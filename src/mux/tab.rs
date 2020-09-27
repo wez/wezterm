@@ -1,7 +1,8 @@
 use crate::keyassignment::PaneDirection;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
-use crate::mux::Mux;
+use crate::mux::{Mux, WindowId};
+use crate::server::codec::{PaneEntry, PaneNode};
 use async_trait::async_trait;
 use bintree::PathBranch;
 use downcast_rs::{impl_downcast, Downcast};
@@ -95,7 +96,6 @@ pub struct SearchResult {
 }
 
 /// A Tab is a container of Panes
-/// At this time only a single pane is supported
 pub struct Tab {
     id: TabId,
     pane: RefCell<Option<Tree>>,
@@ -138,14 +138,14 @@ impl std::fmt::Debug for PositionedPane {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum SplitDirection {
     Horizontal,
     Vertical,
 }
 
 /// The size is of the (first, second) child of the split
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SplitDirectionAndSize {
     pub direction: SplitDirection,
     pub first: PtySize,
@@ -166,6 +166,37 @@ impl SplitDirectionAndSize {
             SplitDirection::Vertical => 0,
         }
     }
+
+    pub fn width(&self) -> u16 {
+        if self.direction == SplitDirection::Horizontal {
+            self.first.cols + self.second.cols + 1
+        } else {
+            self.first.cols
+        }
+    }
+
+    pub fn height(&self) -> u16 {
+        if self.direction == SplitDirection::Vertical {
+            self.first.rows + self.second.rows + 1
+        } else {
+            self.first.rows
+        }
+    }
+
+    pub fn size(&self) -> PtySize {
+        let cell_width = self.first.pixel_width / self.first.cols;
+        let cell_height = self.first.pixel_height / self.first.rows;
+
+        let rows = self.height();
+        let cols = self.width();
+
+        PtySize {
+            rows,
+            cols,
+            pixel_height: cell_height * rows,
+            pixel_width: cell_width * cols,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -184,24 +215,78 @@ pub struct PositionedSplit {
     pub size: usize,
 }
 
-impl SplitDirectionAndSize {
-    pub fn width(&self) -> u16 {
-        if self.direction == SplitDirection::Horizontal {
-            self.first.cols + self.second.cols + 1
-        } else {
-            if self.first.cols != self.second.cols {
-                log::error!("{:#?}", self);
-            }
-            assert_eq!(self.first.cols, self.second.cols);
-            self.first.cols
+fn is_pane(pane: &Rc<dyn Pane>, other: &Option<&Rc<dyn Pane>>) -> bool {
+    if let Some(other) = other {
+        other.pane_id() == pane.pane_id()
+    } else {
+        false
+    }
+}
+
+fn pane_tree(
+    tree: &Tree,
+    tab_id: TabId,
+    window_id: WindowId,
+    active: Option<&Rc<dyn Pane>>,
+    zoomed: Option<&Rc<dyn Pane>>,
+) -> PaneNode {
+    match tree {
+        Tree::Empty => PaneNode::Empty,
+        Tree::Node { left, right, data } => PaneNode::Split {
+            left: Box::new(pane_tree(&*left, tab_id, window_id, active, zoomed)),
+            right: Box::new(pane_tree(&*right, tab_id, window_id, active, zoomed)),
+            node: data.unwrap(),
+        },
+        Tree::Leaf(pane) => {
+            let dims = pane.renderer().get_dimensions();
+            let working_dir = pane.get_current_working_dir();
+
+            PaneNode::Leaf(PaneEntry {
+                window_id,
+                tab_id,
+                pane_id: pane.pane_id(),
+                title: pane.get_title(),
+                is_active_pane: is_pane(pane, &active),
+                is_zoomed_pane: is_pane(pane, &zoomed),
+                size: PtySize {
+                    cols: dims.cols as u16,
+                    rows: dims.viewport_rows as u16,
+                    pixel_height: 0,
+                    pixel_width: 0,
+                },
+                working_dir: working_dir.map(Into::into),
+            })
         }
     }
-    pub fn height(&self) -> u16 {
-        if self.direction == SplitDirection::Vertical {
-            self.first.rows + self.second.rows + 1
-        } else {
-            assert_eq!(self.first.rows, self.second.rows);
-            self.first.rows
+}
+
+fn build_from_pane_tree<F>(
+    tree: bintree::Tree<PaneEntry, SplitDirectionAndSize>,
+    active: &mut Option<Rc<dyn Pane>>,
+    zoomed: &mut Option<Rc<dyn Pane>>,
+    make_pane: &F,
+) -> Tree
+where
+    F: Fn(PaneEntry) -> Rc<dyn Pane>,
+{
+    match tree {
+        bintree::Tree::Empty => Tree::Empty,
+        bintree::Tree::Node { left, right, data } => Tree::Node {
+            left: Box::new(build_from_pane_tree(*left, active, zoomed, make_pane)),
+            right: Box::new(build_from_pane_tree(*right, active, zoomed, make_pane)),
+            data,
+        },
+        bintree::Tree::Leaf(entry) => {
+            let is_zoomed_pane = entry.is_zoomed_pane;
+            let is_active_pane = entry.is_active_pane;
+            let pane = make_pane(entry);
+            if is_zoomed_pane {
+                zoomed.replace(Rc::clone(&pane));
+            }
+            if is_active_pane {
+                active.replace(Rc::clone(&pane));
+            }
+            Tree::Leaf(pane)
         }
     }
 }
@@ -214,6 +299,87 @@ impl Tab {
             size: RefCell::new(*size),
             active: RefCell::new(0),
             zoomed: RefCell::new(None),
+        }
+    }
+
+    /// Called by the multiplexer client when building a local tab to
+    /// mirror a remote tab.  The supplied `root` is the information
+    /// about our counterpart in the the remote server.
+    /// This method builds a local tree based on the remote tree which
+    /// then replaces the local tree structure.
+    ///
+    /// The `make_pane` function is provided by the caller, and its purpose
+    /// is to lookup an existing Pane that corresponds to the provided
+    /// PaneEntry, or to create a new Pane from that entry.
+    /// make_pane is expected to add the pane to the mux if it creates
+    /// a new pane, otherwise the pane won't poll/update in the GUI.
+    pub fn sync_with_pane_tree<F>(&self, size: PtySize, root: PaneNode, make_pane: F)
+    where
+        F: Fn(PaneEntry) -> Rc<dyn Pane>,
+    {
+        let mut active = None;
+        let mut zoomed = None;
+
+        log::debug!("sync_with_pane_tree with size {:?}", size);
+
+        let t = build_from_pane_tree(root.into_tree(), &mut active, &mut zoomed, &make_pane);
+        let mut cursor = t.cursor();
+
+        *self.active.borrow_mut() = 0;
+        if let Some(active) = active {
+            // Resolve the active pane to its index
+            let mut index = 0;
+            loop {
+                if let Some(pane) = cursor.leaf_mut() {
+                    if active.pane_id() == pane.pane_id() {
+                        // Found it
+                        *self.active.borrow_mut() = index;
+                        break;
+                    }
+                    index += 1;
+                }
+                match cursor.preorder_next() {
+                    Ok(c) => cursor = c,
+                    Err(c) => {
+                        // Didn't find it
+                        cursor = c;
+                        break;
+                    }
+                }
+            }
+        }
+        self.pane.borrow_mut().replace(cursor.tree());
+        *self.zoomed.borrow_mut() = zoomed;
+        *self.size.borrow_mut() = size;
+
+        self.resize(size);
+
+        log::debug!(
+            "sync tab: {:#?} zoomed: {} {:#?}",
+            size,
+            self.zoomed.borrow().is_some(),
+            self.iter_panes()
+        );
+        assert!(self.pane.borrow().is_some());
+    }
+
+    pub fn codec_pane_tree(&self) -> PaneNode {
+        let mux = Mux::get().unwrap();
+        let tab_id = self.id;
+        let window_id = match mux.window_containing_tab(tab_id) {
+            Some(w) => w,
+            None => {
+                log::error!("no window contains tab {}", tab_id);
+                return PaneNode::Empty;
+            }
+        };
+
+        let zoomed = self.zoomed.borrow();
+        let active = self.get_active_pane();
+        if let Some(root) = self.pane.borrow().as_ref() {
+            pane_tree(root, tab_id, window_id, active.as_ref(), zoomed.as_ref())
+        } else {
+            PaneNode::Empty
         }
     }
 
@@ -237,16 +403,29 @@ impl Tab {
         }
     }
 
+    pub fn set_zoomed(&self, zoomed: bool) {
+        if self.zoomed.borrow().is_some() == zoomed {
+            // Current zoom state matches intended zoom state,
+            // so we have nothing to do.
+            return;
+        }
+        self.toggle_zoom();
+    }
+
     pub fn toggle_zoom(&self) {
         let size = *self.size.borrow();
         if self.zoomed.borrow_mut().take().is_some() {
             // We were zoomed, but now we are not.
             // Re-apply the size to the panes
+            if let Some(pane) = self.get_active_pane() {
+                pane.set_zoomed(false);
+            }
             self.resize(size);
         } else {
             // We weren't zoomed, but now we want to zoom.
             // Locate the active pane
             if let Some(pane) = self.get_active_pane() {
+                pane.set_zoomed(true);
                 pane.resize(size).ok();
                 self.zoomed.borrow_mut().replace(pane);
             }
@@ -391,13 +570,14 @@ impl Tab {
     /// This works by adjusting the size of the second half of each split.
     pub fn resize(&self, size: PtySize) {
         let mut root = self.pane.borrow_mut();
-        let mut cursor = root.take().unwrap().cursor();
 
         *self.size.borrow_mut() = size;
         if let Some(zoomed) = self.zoomed.borrow().as_ref() {
             zoomed.resize(size).ok();
             return;
         }
+
+        let mut cursor = root.take().unwrap().cursor();
 
         loop {
             // Figure out the available size by looking at our immediate parent node.
@@ -452,6 +632,61 @@ impl Tab {
 
             node.second.pixel_width = node.second.cols * cell_width;
             node.second.pixel_height = node.second.rows * cell_height;
+        }
+    }
+
+    /// Called when running in the mux server after an individual pane
+    /// has been resized.
+    /// Because the split manipulation happened on the GUI we "lost"
+    /// the information that would have allowed us to call resize_split_by()
+    /// and instead need to back-infer the split size information.
+    /// We rely on the client to have resized (or be in the process
+    /// of resizing) affected panes consistently with its own Tab
+    /// tree model.
+    /// This method does a simple tree walk to the leaves to back-propagate
+    /// the size of the panes up to their containing node split data.
+    /// Without this step, disconnecting and reconnecting would cause
+    /// the GUI to use stale size information for the window it spawns
+    /// to attach this tab.
+    pub fn rebuild_splits_sizes_from_contained_panes(&self) {
+        if self.zoomed.borrow().is_some() {
+            return;
+        }
+
+        fn compute_size(node: &mut Tree) -> Option<PtySize> {
+            match node {
+                Tree::Empty => None,
+                Tree::Leaf(pane) => {
+                    let dims = pane.renderer().get_dimensions();
+                    let size = PtySize {
+                        cols: dims.cols as u16,
+                        rows: dims.viewport_rows as u16,
+                        pixel_height: 0,
+                        pixel_width: 0,
+                    };
+                    Some(size)
+                }
+                Tree::Node { left, right, data } => {
+                    if let Some(data) = data {
+                        if let Some(first) = compute_size(left) {
+                            data.first = first;
+                        }
+                        if let Some(second) = compute_size(right) {
+                            data.second = second;
+                        }
+                        Some(data.size())
+                    } else {
+                        None
+                    }
+                }
+            }
+        }
+
+        let mut root = self.pane.borrow_mut();
+        if let Some(root) = root.as_mut() {
+            if let Some(size) = compute_size(root) {
+                *self.size.borrow_mut() = size;
+            }
         }
     }
 
@@ -839,8 +1074,19 @@ impl Tab {
             .map(|p| Rc::clone(&p.pane))
     }
 
+    #[allow(unused)]
     pub fn get_active_idx(&self) -> usize {
         *self.active.borrow()
+    }
+
+    pub fn set_active_pane(&self, pane: &Rc<dyn Pane>) {
+        if let Some(item) = self
+            .iter_panes()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane.pane_id())
+        {
+            *self.active.borrow_mut() = item.index;
+        }
     }
 
     pub fn set_active_idx(&self, pane_index: usize) {
@@ -1007,6 +1253,9 @@ pub trait Pane: Downcast {
     fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>>;
     fn writer(&self) -> RefMut<dyn std::io::Write>;
     fn resize(&self, size: PtySize) -> anyhow::Result<()>;
+    /// Called as a hint that the pane is being resized as part of
+    /// a zoom-to-fill-all-the-tab-space operation.
+    fn set_zoomed(&self, _zoomed: bool) {}
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()>;
     fn advance_bytes(&self, buf: &[u8]);

@@ -862,12 +862,9 @@ impl TermWindow {
         tab: &Rc<Tab>,
         mux_window_id: MuxWindowId,
     ) -> anyhow::Result<()> {
-        let pane = tab
-            .get_active_pane()
-            .ok_or_else(|| anyhow!("tab has no panes"))?;
-        let dims = pane.renderer().get_dimensions();
-        let physical_rows = dims.viewport_rows;
-        let physical_cols = dims.cols;
+        let size = tab.get_size();
+        let physical_rows = size.rows as usize;
+        let physical_cols = size.cols as usize;
 
         let render_metrics = RenderMetrics::new(fontconfig);
 
@@ -1690,11 +1687,13 @@ impl TermWindow {
                 SpawnWhere::SplitPane(direction) => {
                     let mux = Mux::get().unwrap();
                     if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
-                        let pane_index = tab.get_active_idx();
+                        let pane = tab
+                            .get_active_pane()
+                            .ok_or_else(|| anyhow!("tab to have a pane"))?;
 
                         log::error!("doing split_pane");
                         domain
-                            .split_pane(cmd_builder, cwd, tab.tab_id(), pane_index, direction)
+                            .split_pane(cmd_builder, cwd, tab.tab_id(), pane.pane_id(), direction)
                             .await?;
                     } else {
                         log::error!("boop");

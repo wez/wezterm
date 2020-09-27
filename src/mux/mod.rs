@@ -199,7 +199,11 @@ impl Mux {
         Ok(())
     }
 
-    pub fn add_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
+    pub fn add_tab_no_panes(&self, tab: &Rc<Tab>) {
+        self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
+    }
+
+    pub fn add_tab_and_active_pane(&self, tab: &Rc<Tab>) -> Result<(), Error> {
         self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
         let pane = tab
             .get_active_pane()
@@ -307,6 +311,17 @@ impl Mux {
             .ok_or_else(|| anyhow!("add_tab_to_window: no such window_id {}", window_id))?;
         window.push(tab);
         Ok(())
+    }
+
+    pub fn window_containing_tab(&self, tab_id: TabId) -> Option<WindowId> {
+        for w in self.windows.borrow().values() {
+            for t in w.iter() {
+                if t.tab_id() == tab_id {
+                    return Some(w.window_id());
+                }
+            }
+        }
+        None
     }
 
     pub fn is_empty(&self) -> bool {

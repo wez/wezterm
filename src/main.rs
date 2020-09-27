@@ -939,22 +939,34 @@ fn run() -> anyhow::Result<()> {
                         },
                     ];
                     let mut data = vec![];
-                    let tabs = block_on(client.list_tabs())?; // FIXME: blocking
-                    for entry in tabs.tabs.iter() {
-                        data.push(vec![
-                            entry.window_id.to_string(),
-                            entry.tab_id.to_string(),
-                            entry.pane_id.to_string(),
-                            format!("{}x{}", entry.size.cols, entry.size.rows),
-                            entry.title.clone(),
-                            entry
-                                .working_dir
-                                .as_ref()
-                                .map(|url| url.url.as_str())
-                                .unwrap_or("")
-                                .to_string(),
-                        ]);
+                    let panes = block_on(client.list_panes())?; // FIXME: blocking
+
+                    for tabroot in panes.tabs {
+                        let mut cursor = tabroot.into_tree().cursor();
+
+                        loop {
+                            if let Some(entry) = cursor.leaf_mut() {
+                                data.push(vec![
+                                    entry.window_id.to_string(),
+                                    entry.tab_id.to_string(),
+                                    entry.pane_id.to_string(),
+                                    format!("{}x{}", entry.size.cols, entry.size.rows),
+                                    entry.title.clone(),
+                                    entry
+                                        .working_dir
+                                        .as_ref()
+                                        .map(|url| url.url.as_str())
+                                        .unwrap_or("")
+                                        .to_string(),
+                                ]);
+                            }
+                            match cursor.preorder_next() {
+                                Ok(c) => cursor = c,
+                                Err(_) => break,
+                            }
+                        }
                     }
+
                     tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
                 }
                 CliSubCommand::Proxy => {

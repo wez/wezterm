@@ -872,13 +872,14 @@ impl Client {
     }
 
     rpc!(ping, Ping = (), Pong);
-    rpc!(list_tabs, ListTabs = (), ListTabsResponse);
+    rpc!(list_panes, ListPanes = (), ListPanesResponse);
     rpc!(spawn, Spawn, SpawnResponse);
     rpc!(write_to_pane, WriteToPane, UnitResponse);
     rpc!(send_paste, SendPaste, UnitResponse);
     rpc!(key_down, SendKeyDown, UnitResponse);
     rpc!(mouse_event, SendMouseEvent, UnitResponse);
     rpc!(resize, Resize, UnitResponse);
+    rpc!(set_zoomed, SetPaneZoomed, UnitResponse);
     rpc!(
         get_tab_render_changes,
         GetPaneRenderChanges,

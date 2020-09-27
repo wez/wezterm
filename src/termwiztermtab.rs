@@ -59,7 +59,7 @@ impl Domain for TermWizTerminalDomain {
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
         _tab: TabId,
-        _pane_index: usize,
+        _pane_id: PaneId,
         _split_direction: SplitDirection,
     ) -> anyhow::Result<Rc<dyn Pane>> {
         bail!("cannot spawn panes in a TermWizTerminalPane");
@@ -467,7 +467,7 @@ pub async fn run<
         }));
         tab.assign_pane(&pane);
 
-        mux.add_tab(&tab)?;
+        mux.add_tab_and_active_pane(&tab)?;
         mux.add_tab_to_window(&tab, window_id)?;
 
         let fontconfig = Rc::new(FontConfiguration::new());

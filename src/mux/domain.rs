@@ -7,7 +7,7 @@
 
 use crate::config::configuration;
 use crate::localtab::LocalPane;
-use crate::mux::tab::{Pane, SplitDirection, Tab, TabId};
+use crate::mux::tab::{Pane, PaneId, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};
@@ -46,7 +46,7 @@ pub trait Domain: Downcast {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         tab: TabId,
-        pane_index: usize,
+        pane_id: PaneId,
         split_direction: SplitDirection,
     ) -> anyhow::Result<Rc<dyn Pane>>;
 
@@ -152,7 +152,7 @@ impl Domain for LocalDomain {
         let tab = Rc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
-        mux.add_tab(&tab)?;
+        mux.add_tab_and_active_pane(&tab)?;
         mux.add_tab_to_window(&tab, window)?;
 
         Ok(tab)
@@ -163,13 +163,22 @@ impl Domain for LocalDomain {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         tab: TabId,
-        pane_index: usize,
+        pane_id: PaneId,
         direction: SplitDirection,
     ) -> anyhow::Result<Rc<dyn Pane>> {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_tab(tab) {
             Some(t) => t,
             None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let pane_index = match tab
+            .iter_panes()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
         };
 
         let split_size = match tab.compute_split_size(pane_index, direction) {

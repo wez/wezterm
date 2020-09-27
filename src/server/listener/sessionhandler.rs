@@ -193,7 +193,7 @@ impl SessionHandler {
 
         match decoded.pdu {
             Pdu::Ping(Ping {}) => send_response(Ok(Pdu::Pong(Pong {}))),
-            Pdu::ListTabs(ListTabs {}) => {
+            Pdu::ListPanes(ListPanes {}) => {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
@@ -202,27 +202,11 @@ impl SessionHandler {
                             for window_id in mux.iter_windows().into_iter() {
                                 let window = mux.get_window(window_id).unwrap();
                                 for tab in window.iter() {
-                                    if let Some(pane) = tab.get_active_pane() {
-                                        let dims = pane.renderer().get_dimensions();
-                                        let working_dir = pane.get_current_working_dir();
-                                        tabs.push(WindowAndTabEntry {
-                                            window_id,
-                                            tab_id: tab.tab_id(),
-                                            pane_id: pane.pane_id(),
-                                            title: pane.get_title(),
-                                            size: PtySize {
-                                                cols: dims.cols as u16,
-                                                rows: dims.viewport_rows as u16,
-                                                pixel_height: 0,
-                                                pixel_width: 0,
-                                            },
-                                            working_dir: working_dir.map(Into::into),
-                                        });
-                                    }
+                                    tabs.push(tab.codec_pane_tree());
                                 }
                             }
-                            log::error!("ListTabs {:#?}", tabs);
-                            Ok(Pdu::ListTabsResponse(ListTabsResponse { tabs }))
+                            log::error!("ListPanes {:#?}", tabs);
+                            Ok(Pdu::ListPanesResponse(ListPanesResponse { tabs }))
                         },
                         send_response,
                     )
@@ -288,7 +272,35 @@ impl SessionHandler {
                 });
             }
 
-            Pdu::Resize(Resize { pane_id, size }) => {
+            Pdu::SetPaneZoomed(SetPaneZoomed {
+                containing_tab_id,
+                pane_id,
+                zoomed,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            let tab = mux
+                                .get_tab(containing_tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", containing_tab_id))?;
+                            tab.set_active_pane(&pane);
+                            tab.set_zoomed(zoomed);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                });
+            }
+
+            Pdu::Resize(Resize {
+                containing_tab_id,
+                pane_id,
+                size,
+            }) => {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
@@ -297,6 +309,10 @@ impl SessionHandler {
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
                             pane.resize(size)?;
+                            let tab = mux
+                                .get_tab(containing_tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", containing_tab_id))?;
+                            tab.rebuild_splits_sizes_from_contained_panes();
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,
@@ -442,7 +458,7 @@ impl SessionHandler {
 
             Pdu::Invalid { .. } => send_response(Err(anyhow!("invalid PDU {:?}", decoded.pdu))),
             Pdu::Pong { .. }
-            | Pdu::ListTabsResponse { .. }
+            | Pdu::ListPanesResponse { .. }
             | Pdu::SetClipboard { .. }
             | Pdu::SpawnResponse { .. }
             | Pdu::GetPaneRenderChangesResponse { .. }
@@ -498,21 +514,40 @@ async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyho
         .get_domain(spawn.domain_id)
         .ok_or_else(|| anyhow!("domain {} not found on this server", spawn.domain_id))?;
 
-    let window_id = if let Some(window_id) = spawn.window_id {
-        mux.get_window_mut(window_id)
-            .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
-        window_id
+    let (pane, tab_id, window_id, size) = if let Some((tab_id, pane_id, direction)) = spawn.split {
+        let pane = domain
+            .split_pane(spawn.command, spawn.command_dir, tab_id, pane_id, direction)
+            .await?;
+        let window_id = mux
+            .window_containing_tab(tab_id)
+            .ok_or_else(|| anyhow!("no window contains tab {}", tab_id))?;
+        let dims = pane.renderer().get_dimensions();
+        let size = PtySize {
+            cols: dims.cols as u16,
+            rows: dims.viewport_rows as u16,
+            pixel_height: 0,
+            pixel_width: 0,
+        };
+        (pane, tab_id, window_id, size)
     } else {
-        mux.new_empty_window()
+        let window_id = if let Some(window_id) = spawn.window_id {
+            mux.get_window_mut(window_id)
+                .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
+            window_id
+        } else {
+            mux.new_empty_window()
+        };
+
+        let tab = domain
+            .spawn(spawn.size, spawn.command, spawn.command_dir, window_id)
+            .await?;
+
+        let pane = tab
+            .get_active_pane()
+            .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
+
+        (pane, tab.tab_id(), window_id, tab.get_size())
     };
-
-    let tab = domain
-        .spawn(spawn.size, spawn.command, spawn.command_dir, window_id)
-        .await?;
-
-    let pane = tab
-        .get_active_pane()
-        .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
 
     let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
         pane_id: pane.pane_id(),
@@ -522,7 +557,8 @@ async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyho
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
         pane_id: pane.pane_id(),
-        tab_id: tab.tab_id(),
+        tab_id: tab_id,
         window_id,
+        size,
     }))
 }

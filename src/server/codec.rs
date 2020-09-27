@@ -13,7 +13,7 @@
 
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::{PaneId, TabId};
+use crate::mux::tab::{PaneId, SplitDirection, SplitDirectionAndSize, TabId};
 use crate::mux::window::WindowId;
 use anyhow::{bail, Context as _, Error};
 use leb128;
@@ -246,7 +246,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 5;
+pub const CODEC_VERSION: usize = 6;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -256,8 +256,8 @@ pdu! {
     ErrorResponse: 0,
     Ping: 1,
     Pong: 2,
-    ListTabs: 3,
-    ListTabsResponse: 4,
+    ListPanes: 3,
+    ListPanesResponse: 4,
     Spawn: 7,
     SpawnResponse: 8,
     WriteToPane: 9,
@@ -278,6 +278,7 @@ pdu! {
     LivenessResponse: 30,
     SearchScrollbackRequest: 31,
     SearchScrollbackResponse: 32,
+    SetPaneZoomed: 33,
 }
 
 impl Pdu {
@@ -395,7 +396,7 @@ pub struct GetTlsCredsResponse {
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct ListTabs {}
+pub struct ListPanes {}
 
 #[derive(Deserialize, Clone, Serialize, PartialEq, Debug)]
 #[serde(try_from = "String", into = "String")]
@@ -430,19 +431,64 @@ impl Into<String> for SerdeUrl {
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct WindowAndTabEntry {
-    // FIXME: rename to WindowTabPaneEntry ?
+pub enum PaneNode {
+    Empty,
+    Split {
+        left: Box<PaneNode>,
+        right: Box<PaneNode>,
+        node: SplitDirectionAndSize,
+    },
+    Leaf(PaneEntry),
+}
+
+impl PaneNode {
+    pub fn into_tree(self) -> bintree::Tree<PaneEntry, SplitDirectionAndSize> {
+        match self {
+            PaneNode::Empty => bintree::Tree::Empty,
+            PaneNode::Split { left, right, node } => bintree::Tree::Node {
+                left: Box::new((*left).into_tree()),
+                right: Box::new((*right).into_tree()),
+                data: Some(node),
+            },
+            PaneNode::Leaf(e) => bintree::Tree::Leaf(e),
+        }
+    }
+
+    pub fn root_size(&self) -> Option<PtySize> {
+        match self {
+            PaneNode::Empty => None,
+            PaneNode::Split { node, .. } => Some(node.size()),
+            PaneNode::Leaf(entry) => Some(entry.size),
+        }
+    }
+
+    pub fn window_and_tab_ids(&self) -> Option<(WindowId, TabId)> {
+        match self {
+            PaneNode::Empty => None,
+            PaneNode::Split { left, right, .. } => match left.window_and_tab_ids() {
+                Some(res) => Some(res),
+                None => right.window_and_tab_ids(),
+            },
+            PaneNode::Leaf(entry) => Some((entry.window_id, entry.tab_id)),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
+pub struct PaneEntry {
     pub window_id: WindowId,
     pub tab_id: TabId,
-    pub pane_id: TabId,
+    pub pane_id: PaneId,
     pub title: String,
     pub size: PtySize,
     pub working_dir: Option<SerdeUrl>,
+    pub is_active_pane: bool,
+    pub is_zoomed_pane: bool,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct ListTabsResponse {
-    pub tabs: Vec<WindowAndTabEntry>,
+pub struct ListPanesResponse {
+    pub tabs: Vec<PaneNode>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -450,6 +496,7 @@ pub struct Spawn {
     pub domain_id: DomainId,
     /// If None, create a new window for this new tab
     pub window_id: Option<WindowId>,
+    pub split: Option<(TabId, PaneId, SplitDirection)>,
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
     pub size: PtySize,
@@ -460,6 +507,7 @@ pub struct SpawnResponse {
     pub tab_id: TabId,
     pub pane_id: PaneId,
     pub window_id: WindowId,
+    pub size: PtySize,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -529,8 +577,16 @@ pub struct SetClipboard {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct Resize {
+    pub containing_tab_id: TabId,
     pub pane_id: PaneId,
     pub size: PtySize,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetPaneZoomed {
+    pub containing_tab_id: TabId,
+    pub pane_id: PaneId,
+    pub zoomed: bool,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

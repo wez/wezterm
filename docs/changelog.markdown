@@ -24,8 +24,7 @@ brief notes about them may accumulate here.
   number to be zero based.
 * On Linux systems, wezterm can now attempt to guess the current
   working directory that shouldbe set in newly spawned local panes/tabs.
-* Experimental support for splits/panes.  Not currently
-  supported for multiplexer connections.
+* Experimental support for splits/panes.
   See [#157](https://github.com/wez/wezterm/issues/157) for
   overall status and additional information.
 

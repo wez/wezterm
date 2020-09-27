@@ -1,7 +1,7 @@
 use crate::connui::ConnectionUI;
 use crate::localtab::LocalPane;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::tab::{Pane, SplitDirection, Tab, TabId};
+use crate::mux::tab::{Pane, PaneId, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{anyhow, bail, Context, Error};
@@ -268,7 +268,7 @@ impl Domain for RemoteSshDomain {
         let tab = Rc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
-        mux.add_tab(&tab)?;
+        mux.add_tab_and_active_pane(&tab)?;
         mux.add_tab_to_window(&tab, window)?;
 
         Ok(tab)
@@ -279,7 +279,7 @@ impl Domain for RemoteSshDomain {
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
         _tab: TabId,
-        _pane_index: usize,
+        _pane_id: PaneId,
         _split_direction: SplitDirection,
     ) -> anyhow::Result<Rc<dyn Pane>> {
         bail!("spawn_pane not implemented for RemoteSshDomain");

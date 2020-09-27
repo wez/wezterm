@@ -1,7 +1,7 @@
 use crate::config::configuration;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::{Renderable, RenderableDimensions};
-use crate::mux::tab::{alloc_pane_id, Pane, Pattern, SearchResult, TabId};
+use crate::mux::tab::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult, TabId};
 use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
@@ -23,8 +23,9 @@ use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent};
 
 pub struct ClientPane {
     client: Arc<ClientInner>,
-    local_pane_id: TabId,
-    remote_pane_id: TabId,
+    local_pane_id: PaneId,
+    pub remote_pane_id: PaneId,
+    pub remote_tab_id: TabId,
     pub renderable: RefCell<RenderableState>,
     writer: RefCell<PaneWriter>,
     reader: Pipe,
@@ -36,7 +37,8 @@ pub struct ClientPane {
 impl ClientPane {
     pub fn new(
         client: &Arc<ClientInner>,
-        remote_pane_id: TabId,
+        remote_tab_id: TabId,
+        remote_pane_id: PaneId,
         size: PtySize,
         title: &str,
     ) -> Self {
@@ -78,6 +80,7 @@ impl ClientPane {
             mouse,
             remote_pane_id,
             local_pane_id,
+            remote_tab_id,
             renderable: RefCell::new(render),
             writer: RefCell::new(writer),
             reader,
@@ -171,6 +174,27 @@ impl Pane for ClientPane {
         self.writer.borrow_mut()
     }
 
+    fn set_zoomed(&self, zoomed: bool) {
+        let render = self.renderable.borrow();
+        let mut inner = render.inner.borrow_mut();
+        let client = Arc::clone(&self.client);
+        let remote_pane_id = self.remote_pane_id;
+        let remote_tab_id = self.remote_tab_id;
+        // Invalidate any cached rows on a resize
+        inner.make_all_stale();
+        promise::spawn::spawn(async move {
+            client
+                .client
+                .set_zoomed(SetPaneZoomed {
+                    containing_tab_id: remote_tab_id,
+                    pane_id: remote_pane_id,
+                    zoomed,
+                })
+                .await
+        });
+        inner.update_last_send();
+    }
+
     fn resize(&self, size: PtySize) -> anyhow::Result<()> {
         let render = self.renderable.borrow();
         let mut inner = render.inner.borrow_mut();
@@ -187,10 +211,12 @@ impl Pane for ClientPane {
 
             let client = Arc::clone(&self.client);
             let remote_pane_id = self.remote_pane_id;
+            let remote_tab_id = self.remote_tab_id;
             promise::spawn::spawn(async move {
                 client
                     .client
                     .resize(Resize {
+                        containing_tab_id: remote_tab_id,
                         pane_id: remote_pane_id,
                         size,
                     })
