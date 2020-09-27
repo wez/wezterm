@@ -403,8 +403,16 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
     where
         V: Visitor<'de>,
     {
-        match self.0 {
+        match &self.0 {
             Value::Nil => v.visit_none(),
+            Value::Table(t) => {
+                let mut iter = t.clone().pairs::<String, Value>();
+                if iter.next().is_none() {
+                    v.visit_none()
+                } else {
+                    v.visit_some(self)
+                }
+            }
             _ => v.visit_some(self),
         }
     }
@@ -961,5 +969,27 @@ mod test {
             which has allowed variants `Bar`, `Foo`\n\
             unknown variant `Invalid`, expected `Foo` or `Bar`",
         );
+    }
+
+    #[test]
+    fn test_option_mode() {
+        #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+        enum MyEnum {
+            Foo,
+            Bar,
+        };
+        #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+        enum AnotherEnum {
+            ThisOne(Option<MyEnum>),
+        };
+
+        let lua = Lua::new();
+        let res: AnotherEnum =
+            from_lua_value(lua.load("{ThisOne=\"Foo\"}").eval().unwrap()).unwrap();
+        assert_eq!(res, AnotherEnum::ThisOne(Some(MyEnum::Foo)));
+        round_trip(res);
+
+        let res: AnotherEnum = from_lua_value(lua.load("{ThisOne={}}").eval().unwrap()).unwrap();
+        assert_eq!(res, AnotherEnum::ThisOne(None));
     }
 }
