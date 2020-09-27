@@ -867,6 +867,7 @@ impl TermWindow {
         let physical_cols = size.cols as usize;
 
         let render_metrics = RenderMetrics::new(fontconfig);
+        log::trace!("using render_metrics {:#?}", render_metrics);
 
         let terminal_size = PtySize {
             rows: physical_rows as u16,

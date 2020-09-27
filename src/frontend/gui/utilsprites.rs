@@ -8,7 +8,7 @@ use std::rc::Rc;
 use termwiz::surface::CursorShape;
 use wezterm_term::Underline;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct RenderMetrics {
     pub descender: PixelLength,
     pub descender_row: IntPixelLength,
