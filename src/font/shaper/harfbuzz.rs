@@ -4,9 +4,10 @@ use crate::font::hbwrap as harfbuzz;
 use crate::font::locator::FontDataHandle;
 use crate::font::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::font::units::*;
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use log::{debug, error};
 use std::cell::{RefCell, RefMut};
+use thiserror::Error;
 
 fn make_glyphinfo(
     text: &str,
@@ -41,6 +42,12 @@ pub struct HarfbuzzShaper {
     handles: Vec<FontDataHandle>,
     fonts: Vec<RefCell<Option<FontPair>>>,
     lib: ftwrap::Library,
+}
+
+#[derive(Error, Debug)]
+#[error("No more fallbacks while shaping {}", .text.escape_unicode())]
+struct NoMoreFallbacksError {
+    text: String,
 }
 
 impl HarfbuzzShaper {
@@ -119,8 +126,10 @@ impl HarfbuzzShaper {
                     pair.font.shape(&mut buf, Some(features.as_slice()));
                 }
                 None => {
-                    let chars: Vec<u32> = s.chars().map(|c| c as u32).collect();
-                    bail!("No more fallbacks while shaping {:x?}", chars);
+                    return Err(NoMoreFallbacksError {
+                        text: s.to_string(),
+                    }
+                    .into());
                 }
             }
         }
@@ -188,8 +197,8 @@ impl HarfbuzzShaper {
                     Ok(shape) => Ok(shape),
                     Err(e) => {
                         error!("{:?} for {:?}", e, substr);
-                        if font_idx == 0 && s == "?" {
-                            bail!("unable to find any usable glyphs for `?` in font_idx 0");
+                        if e.downcast_ref::<NoMoreFallbacksError>().is_some() {
+                            return Err(e);
                         }
                         self.do_shape(0, "?", font_size, dpi)
                     }
@@ -230,8 +239,8 @@ impl HarfbuzzShaper {
                 Ok(shape) => Ok(shape),
                 Err(e) => {
                     error!("{:?} for {:?}", e, substr);
-                    if font_idx == 0 && s == "?" {
-                        bail!("unable to find any usable glyphs for `?` in font_idx 0");
+                    if e.downcast_ref::<NoMoreFallbacksError>().is_some() {
+                        return Err(e);
                     }
                     self.do_shape(0, "?", font_size, dpi)
                 }
