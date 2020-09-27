@@ -744,7 +744,7 @@ return {
       event={Up={streak=1, button="Left"}},
       mods="SHIFT",
       -- Note that there is no `wezterm.action` here
-      action=ExtendSelectionToMouseCursor={},
+      action={ExtendSelectionToMouseCursor={}},
     },
   }
 }
