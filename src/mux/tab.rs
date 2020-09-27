@@ -575,43 +575,49 @@ impl Tab {
     /// Apply the new size of the tab to the panes contained within.
     /// This works by adjusting the size of the second half of each split.
     pub fn resize(&self, size: PtySize) {
-        let mut root = self.pane.borrow_mut();
+        // Un-zoom first, so that the layout can be reasoned about
+        // more easily.
+        let was_zoomed = self.zoomed.borrow().is_some();
+        self.set_zoomed(false);
 
-        *self.size.borrow_mut() = size;
-        if let Some(zoomed) = self.zoomed.borrow().as_ref() {
-            zoomed.resize(size).ok();
-            return;
-        }
+        {
+            let mut root = self.pane.borrow_mut();
 
-        let mut cursor = root.take().unwrap().cursor();
+            *self.size.borrow_mut() = size;
 
-        loop {
-            // Figure out the available size by looking at our immediate parent node.
-            // If we are the root, look at the provided new size
-            let pane_size = if let Some((branch, Some(parent))) = cursor.path_to_root().next() {
-                if branch == PathBranch::IsRight {
-                    parent.second
+            let mut cursor = root.take().unwrap().cursor();
+
+            loop {
+                // Figure out the available size by looking at our immediate parent node.
+                // If we are the root, look at the provided new size
+                let pane_size = if let Some((branch, Some(parent))) = cursor.path_to_root().next() {
+                    if branch == PathBranch::IsRight {
+                        parent.second
+                    } else {
+                        parent.first
+                    }
                 } else {
-                    parent.first
-                }
-            } else {
-                size
-            };
+                    size
+                };
 
-            if cursor.is_leaf() {
-                // Apply our size to the tty
-                cursor.leaf_mut().map(|pane| pane.resize(pane_size));
-            } else {
-                self.apply_pane_size(pane_size, &mut cursor);
-            }
-            match cursor.preorder_next() {
-                Ok(c) => cursor = c,
-                Err(c) => {
-                    root.replace(c.tree());
-                    break;
+                if cursor.is_leaf() {
+                    // Apply our size to the tty
+                    cursor.leaf_mut().map(|pane| pane.resize(pane_size));
+                } else {
+                    self.apply_pane_size(pane_size, &mut cursor);
+                }
+                match cursor.preorder_next() {
+                    Ok(c) => cursor = c,
+                    Err(c) => {
+                        root.replace(c.tree());
+                        break;
+                    }
                 }
             }
         }
+
+        // And finally restore the zoom, if appropriate
+        self.set_zoomed(was_zoomed);
     }
 
     fn apply_pane_size(&self, pane_size: PtySize, cursor: &mut Cursor) {
