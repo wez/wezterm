@@ -7,7 +7,7 @@
 
 use crate::config::configuration;
 use crate::localtab::LocalPane;
-use crate::mux::tab::{Pane, PaneId, SplitDirection, Tab, TabId};
+use crate::mux::tab::{alloc_pane_id, Pane, PaneId, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};
@@ -130,6 +130,9 @@ impl Domain for LocalDomain {
             }
         }
         let pair = self.pty_system.openpty(size)?;
+        let pane_id = alloc_pane_id();
+        cmd.env("WEZTERM_PANE", pane_id.to_string());
+
         let child = pair.slave.spawn_command(cmd)?;
         info!("spawned: {:?}", child);
 
@@ -147,7 +150,13 @@ impl Domain for LocalDomain {
         );
 
         let mux = Mux::get().unwrap();
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(terminal, child, pair.master, self.id));
+        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+            pane_id,
+            terminal,
+            child,
+            pair.master,
+            self.id,
+        ));
 
         let tab = Rc::new(Tab::new(&size));
         tab.assign_pane(&pane);
@@ -204,6 +213,8 @@ impl Domain for LocalDomain {
             }
         }
         let pair = self.pty_system.openpty(split_size.second)?;
+        let pane_id = alloc_pane_id();
+        cmd.env("WEZTERM_PANE", pane_id.to_string());
         let child = pair.slave.spawn_command(cmd)?;
         info!("spawned: {:?}", child);
 
@@ -220,7 +231,13 @@ impl Domain for LocalDomain {
             Box::new(writer),
         );
 
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(terminal, child, pair.master, self.id));
+        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+            pane_id,
+            terminal,
+            child,
+            pair.master,
+            self.id,
+        ));
 
         tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
 

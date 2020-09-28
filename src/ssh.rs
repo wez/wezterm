@@ -1,7 +1,7 @@
 use crate::connui::ConnectionUI;
 use crate::localtab::LocalPane;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::tab::{Pane, PaneId, SplitDirection, Tab, TabId};
+use crate::mux::tab::{alloc_pane_id, Pane, PaneId, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{anyhow, bail, Context, Error};
@@ -242,11 +242,13 @@ impl Domain for RemoteSshDomain {
         _command_dir: Option<String>,
         window: WindowId,
     ) -> Result<Rc<Tab>, Error> {
-        let cmd = match command {
+        let mut cmd = match command {
             Some(c) => c,
             None => CommandBuilder::new_default_prog(),
         };
         let pair = self.pty_system.openpty(size)?;
+        let pane_id = alloc_pane_id();
+        cmd.env("WEZTERM_PANE", pane_id.to_string());
         let child = pair.slave.spawn_command(cmd)?;
         log::info!("spawned: {:?}", child);
 
@@ -264,7 +266,13 @@ impl Domain for RemoteSshDomain {
         );
 
         let mux = Mux::get().unwrap();
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(terminal, child, pair.master, self.id));
+        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+            pane_id,
+            terminal,
+            child,
+            pair.master,
+            self.id,
+        ));
         let tab = Rc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 

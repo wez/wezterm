@@ -1,6 +1,6 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
-use crate::mux::tab::{alloc_pane_id, Pane, PaneId};
+use crate::mux::tab::{Pane, PaneId};
 use crate::mux::tab::{Pattern, SearchResult};
 use anyhow::Error;
 use async_trait::async_trait;
@@ -223,12 +223,12 @@ impl Pane for LocalPane {
 
 impl LocalPane {
     pub fn new(
+        pane_id: PaneId,
         terminal: Terminal,
         process: Box<dyn Child>,
         pty: Box<dyn MasterPty>,
         domain_id: DomainId,
     ) -> Self {
-        let pane_id = alloc_pane_id();
         Self {
             pane_id,
             terminal: RefCell::new(terminal),
