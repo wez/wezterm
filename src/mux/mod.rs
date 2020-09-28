@@ -11,7 +11,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use thiserror::*;
@@ -45,8 +45,9 @@ fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
     let mut buf = [0; BUFSIZE];
 
     let mut lim = RateLimiter::new(|config| config.ratelimit_output_bytes_per_second);
+    let dead = Arc::new(AtomicBool::new(false));
 
-    loop {
+    'outer: while !dead.load(Ordering::Relaxed) {
         match reader.read(&mut buf) {
             Ok(size) if size == 0 => {
                 error!("read_pty EOF: pane_id {}", pane_id);
@@ -61,16 +62,27 @@ fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
                 let mut pos = 0;
 
                 while pos < size {
+                    if dead.load(Ordering::Relaxed) {
+                        break 'outer;
+                    }
                     match lim.admit_check((size - pos) as u32) {
                         Ok(len) => {
                             let len = len as usize;
                             let data = buf[pos..pos + len].to_vec();
                             pos += len;
-                            promise::spawn::spawn_into_main_thread_with_low_priority(async move {
-                                let mux = Mux::get().unwrap();
-                                if let Some(pane) = mux.get_pane(pane_id) {
-                                    pane.advance_bytes(&data);
-                                    mux.notify(MuxNotification::PaneOutput(pane_id));
+                            promise::spawn::spawn_into_main_thread_with_low_priority({
+                                let dead = Arc::clone(&dead);
+                                async move {
+                                    let mux = Mux::get().unwrap();
+                                    if let Some(pane) = mux.get_pane(pane_id) {
+                                        pane.advance_bytes(&data);
+                                        mux.notify(MuxNotification::PaneOutput(pane_id));
+                                    } else {
+                                        // Something else removed the pane from
+                                        // the mux, so we should stop trying to
+                                        // process it.
+                                        dead.store(true, Ordering::Relaxed);
+                                    }
                                 }
                             });
                         }
