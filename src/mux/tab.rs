@@ -1453,6 +1453,7 @@ pub trait Pane: Downcast {
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()>;
     fn advance_bytes(&self, buf: &[u8]);
     fn is_dead(&self) -> bool;
+    fn kill(&self) {}
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
 

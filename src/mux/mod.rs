@@ -225,13 +225,23 @@ impl Mux {
 
     pub fn remove_pane(&self, pane_id: PaneId) {
         debug!("removing pane {}", pane_id);
-        self.panes.borrow_mut().remove(&pane_id);
+        if let Some(pane) = self.panes.borrow_mut().remove(&pane_id) {
+            pane.kill();
+        }
         self.prune_dead_windows();
     }
 
     pub fn remove_tab(&self, tab_id: TabId) {
         debug!("removing tab {}", tab_id);
-        self.tabs.borrow_mut().remove(&tab_id);
+        let mut pane_ids = vec![];
+        if let Some(tab) = self.tabs.borrow_mut().remove(&tab_id) {
+            for pos in tab.iter_panes() {
+                pane_ids.push(pos.pane.pane_id());
+            }
+        }
+        for pane_id in pane_ids {
+            self.remove_pane(pane_id);
+        }
         self.prune_dead_windows();
     }
 

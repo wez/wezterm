@@ -29,6 +29,11 @@ impl Pane for LocalPane {
         RefMut::map(self.terminal.borrow_mut(), |t| &mut *t)
     }
 
+    fn kill(&self) {
+        log::debug!("killing process in pane {}", self.pane_id);
+        self.process.borrow_mut().kill().ok();
+    }
+
     fn is_dead(&self) -> bool {
         if let Ok(None) = self.process.borrow_mut().try_wait() {
             false
