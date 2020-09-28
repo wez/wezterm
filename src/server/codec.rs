@@ -279,6 +279,7 @@ pdu! {
     SearchScrollbackRequest: 31,
     SearchScrollbackResponse: 32,
     SetPaneZoomed: 33,
+    SplitPane: 34,
 }
 
 impl Pdu {
@@ -496,10 +497,18 @@ pub struct Spawn {
     pub domain_id: DomainId,
     /// If None, create a new window for this new tab
     pub window_id: Option<WindowId>,
-    pub split: Option<(TabId, PaneId, SplitDirection)>,
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
     pub size: PtySize,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SplitPane {
+    pub pane_id: PaneId,
+    pub direction: SplitDirection,
+    pub command: Option<CommandBuilder>,
+    pub command_dir: Option<String>,
+    pub domain: crate::keyassignment::SpawnTabDomain,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

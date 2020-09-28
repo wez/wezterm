@@ -347,7 +347,7 @@ impl Mux {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.tabs.borrow().is_empty()
+        self.panes.borrow().is_empty()
     }
 
     pub fn iter_panes(&self) -> Vec<Rc<dyn Pane>> {
@@ -364,6 +364,21 @@ impl Mux {
 
     pub fn iter_domains(&self) -> Vec<Arc<dyn Domain>> {
         self.domains.borrow().values().cloned().collect()
+    }
+
+    pub fn resolve_pane_id(&self, pane_id: PaneId) -> Option<(DomainId, WindowId, TabId)> {
+        let mut ids = None;
+        for tab in self.tabs.borrow().values() {
+            for p in tab.iter_panes() {
+                if p.pane.pane_id() == pane_id {
+                    ids = Some((tab.tab_id(), p.pane.domain_id()));
+                    break;
+                }
+            }
+        }
+        let (tab_id, domain_id) = ids?;
+        let window_id = self.window_containing_tab(tab_id)?;
+        Some((domain_id, window_id, tab_id))
     }
 
     pub fn domain_was_detached(&self, domain: DomainId) {

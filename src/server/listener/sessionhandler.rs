@@ -1,3 +1,4 @@
+use crate::keyassignment::SpawnTabDomain;
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Pane, PaneId, TabId};
 use crate::mux::Mux;
@@ -379,6 +380,13 @@ impl SessionHandler {
                 });
             }
 
+            Pdu::SplitPane(split) => {
+                let sender = self.to_write_tx.clone();
+                spawn_into_main_thread(async move {
+                    schedule_split_pane(split, sender, send_response);
+                });
+            }
+
             Pdu::GetPaneRenderChanges(GetPaneRenderChanges { pane_id, .. }) => {
                 let sender = self.to_write_tx.clone();
                 let per_pane = self.per_pane(pane_id);
@@ -486,6 +494,16 @@ where
     promise::spawn::spawn(async move { send_response(domain_spawn(spawn, sender).await) });
 }
 
+fn schedule_split_pane<SND>(
+    split: SplitPane,
+    sender: PollableSender<DecodedPdu>,
+    send_response: SND,
+) where
+    SND: Fn(anyhow::Result<Pdu>) + 'static,
+{
+    promise::spawn::spawn(async move { send_response(split_pane(split, sender).await) });
+}
+
 struct RemoteClipboard {
     sender: PollableSender<DecodedPdu>,
     pane_id: TabId,
@@ -508,45 +526,40 @@ impl Clipboard for RemoteClipboard {
     }
 }
 
-async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyhow::Result<Pdu> {
+async fn split_pane(split: SplitPane, sender: PollableSender<DecodedPdu>) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
-    let domain = mux
-        .get_domain(spawn.domain_id)
-        .ok_or_else(|| anyhow!("domain {} not found on this server", spawn.domain_id))?;
+    let (pane_domain_id, window_id, tab_id) = mux
+        .resolve_pane_id(split.pane_id)
+        .ok_or_else(|| anyhow!("pane_id {} invalid", split.pane_id))?;
 
-    let (pane, tab_id, window_id, size) = if let Some((tab_id, pane_id, direction)) = spawn.split {
-        let pane = domain
-            .split_pane(spawn.command, spawn.command_dir, tab_id, pane_id, direction)
-            .await?;
-        let window_id = mux
-            .window_containing_tab(tab_id)
-            .ok_or_else(|| anyhow!("no window contains tab {}", tab_id))?;
-        let dims = pane.renderer().get_dimensions();
-        let size = PtySize {
-            cols: dims.cols as u16,
-            rows: dims.viewport_rows as u16,
-            pixel_height: 0,
-            pixel_width: 0,
-        };
-        (pane, tab_id, window_id, size)
-    } else {
-        let window_id = if let Some(window_id) = spawn.window_id {
-            mux.get_window_mut(window_id)
-                .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
-            window_id
-        } else {
-            mux.new_empty_window()
-        };
+    let domain = match split.domain {
+        SpawnTabDomain::DefaultDomain => mux.default_domain(),
+        SpawnTabDomain::CurrentPaneDomain => mux
+            .get_domain(pane_domain_id)
+            .expect("resolve_pane_id to give valid domain_id"),
+        SpawnTabDomain::Domain(d) => mux
+            .get_domain(d)
+            .ok_or_else(|| anyhow!("domain id {} is invalid", d))?,
+        SpawnTabDomain::DomainName(name) => mux
+            .get_domain_by_name(&name)
+            .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
+    };
 
-        let tab = domain
-            .spawn(spawn.size, spawn.command, spawn.command_dir, window_id)
-            .await?;
-
-        let pane = tab
-            .get_active_pane()
-            .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
-
-        (pane, tab.tab_id(), window_id, tab.get_size())
+    let pane = domain
+        .split_pane(
+            split.command,
+            split.command_dir,
+            tab_id,
+            split.pane_id,
+            split.direction,
+        )
+        .await?;
+    let dims = pane.renderer().get_dimensions();
+    let size = PtySize {
+        cols: dims.cols as u16,
+        rows: dims.viewport_rows as u16,
+        pixel_height: 0,
+        pixel_width: 0,
     };
 
     let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
@@ -560,5 +573,41 @@ async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyho
         tab_id: tab_id,
         window_id,
         size,
+    }))
+}
+
+async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyhow::Result<Pdu> {
+    let mux = Mux::get().unwrap();
+    let domain = mux
+        .get_domain(spawn.domain_id)
+        .ok_or_else(|| anyhow!("domain {} not found on this server", spawn.domain_id))?;
+
+    let window_id = if let Some(window_id) = spawn.window_id {
+        mux.get_window_mut(window_id)
+            .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
+        window_id
+    } else {
+        mux.new_empty_window()
+    };
+
+    let tab = domain
+        .spawn(spawn.size, spawn.command, spawn.command_dir, window_id)
+        .await?;
+
+    let pane = tab
+        .get_active_pane()
+        .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
+
+    let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
+        pane_id: pane.pane_id(),
+        sender,
+    });
+    pane.set_clipboard(&clip);
+
+    Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
+        pane_id: pane.pane_id(),
+        tab_id: tab.tab_id(),
+        window_id,
+        size: tab.get_size(),
     }))
 }

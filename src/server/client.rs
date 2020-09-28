@@ -1,7 +1,7 @@
 use crate::config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
 use crate::connui::ConnectionUI;
-use crate::mux::domain::alloc_domain_id;
-use crate::mux::domain::DomainId;
+use crate::mux::domain::{alloc_domain_id, DomainId};
+use crate::mux::tab::PaneId;
 use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
@@ -88,44 +88,65 @@ macro_rules! rpc {
     };
 }
 
+fn process_unilateral_inner(pane_id: PaneId, local_domain_id: DomainId, decoded: DecodedPdu) {
+    promise::spawn::spawn(async move {
+        process_unilateral_inner_async(pane_id, local_domain_id, decoded).await?;
+        Ok::<(), anyhow::Error>(())
+    });
+}
+
+async fn process_unilateral_inner_async(
+    pane_id: PaneId,
+    local_domain_id: DomainId,
+    decoded: DecodedPdu,
+) -> anyhow::Result<()> {
+    let mux = Mux::get().unwrap();
+    let client_domain = mux
+        .get_domain(local_domain_id)
+        .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
+    let client_domain = client_domain
+        .downcast_ref::<ClientDomain>()
+        .ok_or_else(|| anyhow!("domain {} is not a ClientDomain instance", local_domain_id))?;
+
+    // If we get a push for a pane that we don't yet know about,
+    // it means that some other client has manipulated the mux
+    // topology; we need to re-sync.
+    let local_pane_id = match client_domain.remote_to_local_pane_id(pane_id) {
+        Some(p) => p,
+        None => {
+            client_domain.resync().await?;
+            client_domain
+                .remote_to_local_pane_id(pane_id)
+                .ok_or_else(|| {
+                    anyhow!("remote pane id {} does not have a local pane id", pane_id)
+                })?
+        }
+    };
+
+    let pane = mux
+        .get_pane(local_pane_id)
+        .ok_or_else(|| anyhow!("no such pane {}", local_pane_id))?;
+    let client_pane = pane.downcast_ref::<ClientPane>().ok_or_else(|| {
+        log::error!(
+            "received unilateral PDU for pane {} which is \
+                     not an instance of ClientPane: {:?}",
+            local_pane_id,
+            decoded.pdu
+        );
+        anyhow!(
+            "received unilateral PDU for pane {} which is \
+                     not an instance of ClientPane: {:?}",
+            local_pane_id,
+            decoded.pdu
+        )
+    })?;
+    client_pane.process_unilateral(decoded.pdu)
+}
+
 fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> anyhow::Result<()> {
     if let Some(pane_id) = decoded.pdu.pane_id() {
-        let pdu = decoded.pdu;
         promise::spawn::spawn_into_main_thread(async move {
-            let mux = Mux::get().unwrap();
-            let client_domain = mux
-                .get_domain(local_domain_id)
-                .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
-            let client_domain = client_domain
-                .downcast_ref::<ClientDomain>()
-                .ok_or_else(|| {
-                    anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
-                })?;
-
-            let local_pane_id =
-                client_domain
-                    .remote_to_local_pane_id(pane_id)
-                    .ok_or_else(|| {
-                        anyhow!("remote pane id {} does not have a local pane id", pane_id)
-                    })?;
-            let pane = mux
-                .get_pane(local_pane_id)
-                .ok_or_else(|| anyhow!("no such pane {}", local_pane_id))?;
-            let client_pane = pane.downcast_ref::<ClientPane>().ok_or_else(|| {
-                log::error!(
-                    "received unilateral PDU for pane {} which is \
-                     not an instance of ClientPane: {:?}",
-                    local_pane_id,
-                    pdu
-                );
-                anyhow!(
-                    "received unilateral PDU for pane {} which is \
-                     not an instance of ClientPane: {:?}",
-                    local_pane_id,
-                    pdu
-                )
-            })?;
-            client_pane.process_unilateral(pdu)
+            process_unilateral_inner(pane_id, local_domain_id, decoded)
         });
     } else {
         bail!("don't know how to handle {:?}", decoded);
@@ -210,7 +231,11 @@ fn client_thread(
                         log::trace!("decoded serial {}", decoded.serial);
                         if decoded.serial == 0 {
                             process_unilateral(local_domain_id, decoded)
-                                .context("processing unilateral PDU from server")?;
+                                .context("processing unilateral PDU from server")
+                                .map_err(|e| {
+                                    log::error!("process_unilateral: {:?}", e);
+                                    e
+                                })?;
                         } else if let Some(mut promise) = promises.remove(&decoded.serial) {
                             promise.result(Ok(decoded.pdu));
                         } else {
@@ -227,6 +252,7 @@ fn client_thread(
                         for (_, mut promise) in promises.into_iter() {
                             promise.result(Err(anyhow!("{}", reason)));
                         }
+                        // FIXME: detach the domain here
                         return Err(err).context("Error while decoding response pdu");
                     }
                 }
@@ -874,6 +900,7 @@ impl Client {
     rpc!(ping, Ping = (), Pong);
     rpc!(list_panes, ListPanes = (), ListPanesResponse);
     rpc!(spawn, Spawn, SpawnResponse);
+    rpc!(split_pane, SplitPane, SpawnResponse);
     rpc!(write_to_pane, WriteToPane, UnitResponse);
     rpc!(send_paste, SendPaste, UnitResponse);
     rpc!(key_down, SendKeyDown, UnitResponse);

@@ -2,12 +2,13 @@ use crate::config::{SshDomain, TlsDomainClient, UnixDomain};
 use crate::connui::ConnectionUI;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
+use crate::keyassignment::SpawnTabDomain;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::tab::{Pane, PaneId, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::client::Client;
-use crate::server::codec::{ListPanesResponse, Spawn};
+use crate::server::codec::{ListPanesResponse, Spawn, SplitPane};
 use crate::server::tab::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
@@ -226,6 +227,14 @@ impl ClientDomain {
         Ok(())
     }
 
+    pub async fn resync(&self) -> anyhow::Result<()> {
+        if let Some(inner) = self.inner.borrow().as_ref() {
+            let panes = inner.client.list_panes().await?;
+            Self::process_pane_list(Arc::clone(inner), panes)?;
+        }
+        Ok(())
+    }
+
     fn process_pane_list(inner: Arc<ClientInner>, panes: ListPanesResponse) -> anyhow::Result<()> {
         let mux = Mux::get().expect("to be called on main thread");
         log::debug!("ListPanes result {:#?}", panes);
@@ -372,7 +381,6 @@ impl Domain for ClientDomain {
             .spawn(Spawn {
                 domain_id: inner.remote_domain_id,
                 window_id: inner.local_to_remote_window(window),
-                split: None,
                 size,
                 command,
                 command_dir,
@@ -424,11 +432,10 @@ impl Domain for ClientDomain {
 
         let result = inner
             .client
-            .spawn(Spawn {
-                domain_id: inner.remote_domain_id,
-                window_id: None,
-                split: Some((pane.remote_tab_id, pane.remote_pane_id, direction)),
-                size: PtySize::default(),
+            .split_pane(SplitPane {
+                domain: SpawnTabDomain::CurrentPaneDomain,
+                pane_id: pane.remote_tab_id,
+                direction,
                 command,
                 command_dir,
             })

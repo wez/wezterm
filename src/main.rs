@@ -38,6 +38,7 @@ mod update;
 use crate::frontend::activity::Activity;
 use crate::frontend::{front_end, FrontEndSelection};
 use crate::mux::domain::{Domain, LocalDomain};
+use crate::mux::tab::{PaneId, SplitDirection};
 use crate::mux::Mux;
 use crate::server::client::{unix_connect_with_retry, Client};
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
@@ -164,7 +165,7 @@ struct CliCommand {
 
 #[derive(Debug, StructOpt, Clone)]
 enum CliSubCommand {
-    #[structopt(name = "list", about = "list windows and tabs")]
+    #[structopt(name = "list", about = "list windows, tabs and panes")]
     List,
 
     #[structopt(name = "proxy", about = "start rpc proxy pipe")]
@@ -172,6 +173,34 @@ enum CliSubCommand {
 
     #[structopt(name = "tlscreds", about = "obtain tls credentials")]
     TlsCreds,
+
+    #[structopt(
+        name = "split-pane",
+        about = "split the current pane.
+Outputs the pane-id for the newly created pane on success"
+    )]
+    SplitPane {
+        /// Specify the pane that should be split.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        #[structopt(long = "pane-id")]
+        pane_id: Option<PaneId>,
+
+        /// Split horizontally rather than vertically
+        #[structopt(long = "horizontal")]
+        horizontal: bool,
+
+        /// Specify the current working directory for the initially
+        /// spawned program
+        #[structopt(long = "cwd", parse(from_os_str))]
+        cwd: Option<OsString>,
+
+        /// Instead of executing your shell, run PROG.
+        /// For example: `wezterm start -- bash -l` will spawn bash
+        /// as if it were a login shell.
+        #[structopt(parse(from_os_str))]
+        prog: Vec<OsString>,
+    },
 }
 
 #[derive(Debug, StructOpt, Clone)]
@@ -968,6 +997,44 @@ fn run() -> anyhow::Result<()> {
                     }
 
                     tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
+                }
+                CliSubCommand::SplitPane {
+                    pane_id,
+                    cwd,
+                    prog,
+                    horizontal,
+                } => {
+                    let pane_id: PaneId = match pane_id {
+                        Some(p) => p,
+                        None => std::env::var("WEZTERM_PANE")
+                            .map_err(|_| {
+                                anyhow!(
+                                    "--pane-id was not specified and $WEZTERM_PANE
+                                    is not set in the environment"
+                                )
+                            })?
+                            .parse()?,
+                    };
+
+                    let spawned = block_on(client.split_pane(crate::server::codec::SplitPane {
+                        pane_id,
+                        direction: if horizontal {
+                            SplitDirection::Horizontal
+                        } else {
+                            SplitDirection::Vertical
+                        },
+                        domain: keyassignment::SpawnTabDomain::CurrentPaneDomain,
+                        command: if prog.is_empty() {
+                            None
+                        } else {
+                            let builder = CommandBuilder::from_argv(prog);
+                            Some(builder)
+                        },
+                        command_dir: cwd.and_then(|c| c.to_str().map(|s| s.to_string())),
+                    }))?;
+
+                    log::debug!("{:?}", spawned);
+                    println!("{}", spawned.pane_id);
                 }
                 CliSubCommand::Proxy => {
                     // The client object we created above will have spawned
