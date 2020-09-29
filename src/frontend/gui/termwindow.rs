@@ -2038,10 +2038,12 @@ impl TermWindow {
             (size, dims)
         } else {
             // Resize of the window dimensions may result in changed terminal dimensions
-            let avail_width = dimensions.pixel_width
-                - (config.window_padding.left + self.effective_right_padding(&config)) as usize;
-            let avail_height = dimensions.pixel_height
-                - (config.window_padding.top + config.window_padding.bottom) as usize;
+            let avail_width = dimensions.pixel_width.saturating_sub(
+                (config.window_padding.left + self.effective_right_padding(&config)) as usize,
+            );
+            let avail_height = dimensions.pixel_height.saturating_sub(
+                (config.window_padding.top + config.window_padding.bottom) as usize,
+            );
 
             let rows = (avail_height / self.render_metrics.cell_size.height as usize)
                 .saturating_sub(if self.show_tab_bar { 1 } else { 0 });

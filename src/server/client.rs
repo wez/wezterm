@@ -252,7 +252,6 @@ fn client_thread(
                         for (_, mut promise) in promises.into_iter() {
                             promise.result(Err(anyhow!("{}", reason)));
                         }
-                        // FIXME: detach the domain here
                         return Err(err).context("Error while decoding response pdu");
                     }
                 }

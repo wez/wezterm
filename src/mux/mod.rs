@@ -5,7 +5,7 @@ use crate::ratelim::RateLimiter;
 use crate::server::pollable::{pollable_channel, PollableReceiver, PollableSender};
 use anyhow::{anyhow, Error};
 use domain::{Domain, DomainId};
-use log::{debug, error};
+use log::error;
 use portable_pty::ExitStatus;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
@@ -223,16 +223,16 @@ impl Mux {
         self.add_pane(&pane)
     }
 
-    pub fn remove_pane(&self, pane_id: PaneId) {
-        debug!("removing pane {}", pane_id);
+    fn remove_pane_internal(&self, pane_id: PaneId) {
+        log::debug!("removing pane {}", pane_id);
         if let Some(pane) = self.panes.borrow_mut().remove(&pane_id) {
+            log::debug!("killing pane {}", pane_id);
             pane.kill();
         }
-        self.prune_dead_windows();
     }
 
-    pub fn remove_tab(&self, tab_id: TabId) {
-        debug!("removing tab {}", tab_id);
+    fn remove_tab_internal(&self, tab_id: TabId) {
+        log::debug!("remove_tab_internal tab {}", tab_id);
         let mut pane_ids = vec![];
         if let Some(tab) = self.tabs.borrow_mut().remove(&tab_id) {
             for pos in tab.iter_panes() {
@@ -240,61 +240,65 @@ impl Mux {
             }
         }
         for pane_id in pane_ids {
-            self.remove_pane(pane_id);
+            self.remove_pane_internal(pane_id);
         }
+    }
+
+    fn remove_window_internal(&self, window_id: WindowId) {
+        log::debug!("remove_window_internal {}", window_id);
+        let window = self.windows.borrow_mut().remove(&window_id);
+        if let Some(window) = window {
+            for tab in window.iter() {
+                self.remove_tab_internal(tab.tab_id());
+            }
+        }
+    }
+
+    pub fn remove_pane(&self, pane_id: PaneId) {
+        self.remove_pane_internal(pane_id);
+        self.prune_dead_windows();
+    }
+
+    pub fn remove_tab(&self, tab_id: TabId) {
+        self.remove_tab_internal(tab_id);
         self.prune_dead_windows();
     }
 
     pub fn prune_dead_windows(&self) {
         let live_tab_ids: Vec<TabId> = self.tabs.borrow().keys().cloned().collect();
-        let mut windows = self.windows.borrow_mut();
         let mut dead_windows = vec![];
-        for (window_id, win) in windows.iter_mut() {
-            win.prune_dead_tabs(&live_tab_ids);
-            if win.is_empty() {
-                log::error!("prune_dead_windows: window is now empty");
-                dead_windows.push(*window_id);
-            }
-        }
+        let dead_tab_ids: Vec<TabId>;
 
-        let dead_tab_ids: Vec<TabId> = self
-            .tabs
-            .borrow()
-            .iter()
-            .filter_map(|(&id, tab)| if tab.is_dead() { Some(id) } else { None })
-            .collect();
+        {
+            let mut windows = self.windows.borrow_mut();
+            for (window_id, win) in windows.iter_mut() {
+                win.prune_dead_tabs(&live_tab_ids);
+                if win.is_empty() {
+                    log::debug!("prune_dead_windows: window is now empty");
+                    dead_windows.push(*window_id);
+                }
+            }
+
+            dead_tab_ids = self
+                .tabs
+                .borrow()
+                .iter()
+                .filter_map(|(&id, tab)| if tab.is_dead() { Some(id) } else { None })
+                .collect();
+        }
 
         for tab_id in dead_tab_ids {
             log::error!("tab {} is dead", tab_id);
-            self.tabs.borrow_mut().remove(&tab_id);
+            self.remove_tab_internal(tab_id);
         }
-
-        /*
-        let dead_pane_ids: Vec<TabId> = self
-            .panes
-            .borrow()
-            .iter()
-            .filter_map(|(&id, pane)| if pane.is_dead() { Some(id) } else { None })
-            .collect();
-
-        for pane_id in dead_pane_ids {
-            self.panes.borrow_mut().remove(&pane_id);
-        }
-        */
 
         for window_id in dead_windows {
-            error!("removing window {}", window_id);
-            windows.remove(&window_id);
+            self.remove_window_internal(window_id);
         }
     }
 
     pub fn kill_window(&self, window_id: WindowId) {
-        let mut windows = self.windows.borrow_mut();
-        if let Some(window) = windows.remove(&window_id) {
-            for tab in window.iter() {
-                self.tabs.borrow_mut().remove(&tab.tab_id());
-            }
-        }
+        self.remove_window_internal(window_id);
     }
 
     pub fn get_window(&self, window_id: WindowId) -> Option<Ref<Window>> {
@@ -382,12 +386,28 @@ impl Mux {
     }
 
     pub fn domain_was_detached(&self, domain: DomainId) {
-        self.panes
-            .borrow_mut()
-            .retain(|_pane_id, pane| pane.domain_id() != domain);
-        // Ideally we'd do this here, but that seems to cause problems
-        // at the moment:
-        // self.prune_dead_windows();
+        let mut dead_panes = vec![];
+        for pane in self.panes.borrow().values() {
+            if pane.domain_id() == domain {
+                dead_panes.push(pane.pane_id());
+            }
+        }
+
+        {
+            let mut windows = self.windows.borrow_mut();
+            for (_, win) in windows.iter_mut() {
+                for tab in win.iter() {
+                    tab.kill_panes_in_domain(domain);
+                }
+            }
+        }
+
+        log::error!("domain detached panes: {:?}", dead_panes);
+        for pane_id in dead_panes {
+            self.remove_pane_internal(pane_id);
+        }
+
+        self.prune_dead_windows();
     }
 }
 

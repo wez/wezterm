@@ -762,6 +762,11 @@ impl Tab {
     /// first.  For large resizes this tends to proportionally adjust
     /// the relative sizes of the elements in a split.
     pub fn resize(&self, size: PtySize) {
+        if size.rows == 0 || size.cols == 0 {
+            // Ignore "impossible" resize requests
+            return;
+        }
+
         // Un-zoom first, so that the layout can be reasoned about
         // more easily.
         let was_zoomed = self.zoomed.borrow().is_some();
@@ -1150,7 +1155,13 @@ impl Tab {
 
     pub fn kill_active_pane(&self) -> bool {
         let active_idx = *self.active.borrow();
-        self.remove_pane_if(|idx, _| idx == active_idx)
+        let killed = self.remove_pane_if(|idx, _| idx == active_idx);
+        log::debug!("kill_active_pane: killed={}", killed);
+        killed
+    }
+
+    pub fn kill_panes_in_domain(&self, domain: DomainId) -> bool {
+        self.remove_pane_if(|_, pane| pane.domain_id() == domain)
     }
 
     fn remove_pane_if<F>(&self, f: F) -> bool
@@ -1197,6 +1208,7 @@ impl Tab {
                                 // We might be the root, for example
                                 if c.is_top() && c.is_leaf() {
                                     root.replace(Tree::Empty);
+                                    dead_panes.push(pane.pane_id());
                                 } else {
                                     root.replace(c.tree());
                                 }
