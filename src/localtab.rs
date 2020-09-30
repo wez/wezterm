@@ -238,6 +238,78 @@ impl LocalPane {
         }
     }
 
+    #[cfg(target_os = "macos")]
+    fn divine_current_working_dir_macos(&self) -> Option<Url> {
+        if let Some(pid) = self.pty.borrow().process_group_leader() {
+            extern "C" {
+                fn proc_pidinfo(
+                    pid: libc::pid_t,
+                    flavor: libc::c_int,
+                    arg: u64,
+                    buffer: *mut proc_vnodepathinfo,
+                    buffersize: libc::c_int,
+                ) -> libc::c_int;
+            }
+            const PROC_PIDVNODEPATHINFO: libc::c_int = 9;
+            #[repr(C)]
+            struct vinfo_stat {
+                vst_dev: u32,
+                vst_mode: u16,
+                vst_nlink: u16,
+                vst_ino: u64,
+                vst_uid: libc::uid_t,
+                vst_gid: libc::gid_t,
+                vst_atime: i64,
+                vst_atimensec: i64,
+                vst_mtime: i64,
+                vst_mtimensec: i64,
+                vst_ctime: i64,
+                vst_ctimensec: i64,
+                vst_birthtime: i64,
+                vst_birthtimensec: i64,
+                vst_size: libc::off_t,
+                vst_blocks: i64,
+                vst_blksize: i32,
+                vst_flags: u32,
+                vst_gen: u32,
+                vst_rdev: u32,
+                vst_qspare_1: i64,
+                vst_qspare_2: i64,
+            }
+            #[repr(C)]
+            struct vnode_info {
+                vi_stat: vinfo_stat,
+                vi_type: libc::c_int,
+                vi_pad: libc::c_int,
+                vi_fsid: libc::fsid_t,
+            }
+
+            const MAXPATHLEN: usize = 1024;
+            #[repr(C)]
+            struct vnode_info_path {
+                vip_vi: vnode_info,
+                vip_path: [i8; MAXPATHLEN],
+            }
+
+            #[repr(C)]
+            struct proc_vnodepathinfo {
+                pvi_cdir: vnode_info_path,
+                pvi_rdir: vnode_info_path,
+            }
+
+            let mut pathinfo: proc_vnodepathinfo = unsafe { std::mem::zeroed() };
+            let size = std::mem::size_of_val(&pathinfo) as libc::c_int;
+            let ret = unsafe { proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &mut pathinfo, size) };
+            if ret == size {
+                let path = unsafe { std::ffi::CStr::from_ptr(pathinfo.pvi_cdir.vip_path.as_ptr()) };
+                if let Ok(s) = path.to_str() {
+                    return Url::parse(&format!("file://localhost{}", s)).ok();
+                }
+            }
+        }
+        None
+    }
+
     #[cfg(target_os = "linux")]
     fn divine_current_working_dir_linux(&self) -> Option<Url> {
         if let Some(pid) = self.pty.borrow().process_group_leader() {
@@ -252,6 +324,11 @@ impl LocalPane {
         #[cfg(target_os = "linux")]
         {
             return self.divine_current_working_dir_linux();
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            return self.divine_current_working_dir_macos();
         }
 
         #[allow(unreachable_code)]
