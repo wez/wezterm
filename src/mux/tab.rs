@@ -610,7 +610,9 @@ impl Tab {
             if let Some(pane) = self.get_active_pane() {
                 pane.set_zoomed(false);
             }
-            self.resize(size);
+
+            let mut root = self.pane.borrow_mut();
+            apply_sizes_from_splits(root.as_mut().unwrap(), &size);
         } else {
             // We weren't zoomed, but now we want to zoom.
             // Locate the active pane
