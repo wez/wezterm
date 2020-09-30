@@ -412,6 +412,7 @@ fn adjust_y_size(tree: &mut Tree, mut y_adjust: isize, cell_dimensions: &PtySize
                         data.second.rows = data.first.rows;
                         data.second.pixel_height = data.first.pixel_height;
                     }
+                    return;
                 }
                 SplitDirection::Vertical if y_adjust > 0 => {
                     adjust_y_size(&mut *left, 1, cell_dimensions);
