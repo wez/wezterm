@@ -1,13 +1,6 @@
 use crate::config::*;
 use termwiz::color::RgbColor;
 
-#[cfg(target_os = "macos")]
-const FONT_FAMILY: &str = "Andale Mono";
-#[cfg(windows)]
-const FONT_FAMILY: &str = "Consolas";
-#[cfg(all(not(target_os = "macos"), not(windows)))]
-const FONT_FAMILY: &str = "monospace";
-
 #[derive(Debug, Copy, Deserialize, Serialize, Clone, PartialEq, Eq, Hash)]
 pub enum FontHinting {
     /// No hinting is performed
@@ -69,7 +62,7 @@ impl FontAttributes {
 impl Default for FontAttributes {
     fn default() -> Self {
         Self {
-            family: FONT_FAMILY.into(),
+            family: "JetBrains Mono".into(),
             bold: false,
             italic: false,
         }
@@ -134,14 +127,15 @@ impl TextStyle {
 
     #[cfg_attr(feature = "cargo-clippy", allow(clippy::let_and_return))]
     pub fn font_with_fallback(&self) -> Vec<FontAttributes> {
-        #[allow(unused_mut)]
         let mut font = self.font.clone();
 
-        if font.is_empty() {
-            // This can happen when migratin from the old fontconfig_pattern
-            // configuration syntax; ensure that we have something likely
-            // sane in the font configuration
-            font.push(FontAttributes::default());
+        let default_font = FontAttributes::default();
+
+        // Insert our bundled default JetBrainsMono as a fallback
+        // in case their preference doesn't match anything.
+        // But don't add it if it is already their preference.
+        if font.iter().position(|f| *f == default_font).is_none() {
+            font.push(default_font);
         }
 
         #[cfg(target_os = "macos")]
@@ -161,7 +155,7 @@ impl TextStyle {
         #[cfg(windows)]
         font.push(FontAttributes::new("Segoe UI Symbol"));
 
-        #[cfg(all(unix, not(target_os = "macos")))]
+        // We bundle this emoji font as an in-memory fallback
         font.push(FontAttributes::new("Noto Color Emoji"));
 
         font

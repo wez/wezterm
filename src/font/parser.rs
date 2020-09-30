@@ -92,6 +92,9 @@ impl ParsedFont {
                 parse_and_collect_font_info(path, &mut font_info).ok();
             }
         }
+
+        load_built_in_fonts(&mut font_info).ok();
+
         font_info.sort_by_key(|(names, _, _)| names.full_name.clone());
         for (names, _, _) in &font_info {
             log::warn!("available font: {}", names.full_name);
@@ -104,18 +107,10 @@ impl ParsedFont {
         let mut handles = vec![];
         for attr in fonts_selection {
             let mut found = false;
-            for (names, path, index) in &font_info {
-                if font_info_matches(attr, names) {
-                    log::warn!(
-                        "Using {} from {} index {}",
-                        names.full_name,
-                        path.display(),
-                        index
-                    );
-                    handles.push(FontDataHandle::OnDisk {
-                        path: path.clone(),
-                        index: (*index).try_into()?,
-                    });
+            for (names, path, handle) in &font_info {
+                if font_info_matches(attr, &names) {
+                    log::warn!("Using {} from {}", names.full_name, path.display(),);
+                    handles.push(handle.clone());
                     found = true;
                     break;
                 }
@@ -444,10 +439,17 @@ fn collect_font_info(
     name_table_data: &[u8],
     path: &Path,
     index: usize,
-    infos: &mut Vec<(Names, PathBuf, usize)>,
+    infos: &mut Vec<(Names, PathBuf, FontDataHandle)>,
 ) -> anyhow::Result<()> {
     let names = Names::from_name_table_data(name_table_data)?;
-    infos.push((names, path.to_path_buf(), index));
+    infos.push((
+        names,
+        path.to_path_buf(),
+        FontDataHandle::OnDisk {
+            path: path.to_path_buf(),
+            index: index.try_into()?,
+        },
+    ));
     Ok(())
 }
 
@@ -472,9 +474,79 @@ fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
     }
 }
 
+/// In case the user has a broken configuration, or no configuration,
+/// we bundle JetBrains Mono and Noto Color Emoji to act as reasonably
+/// sane fallback fonts.
+/// This function loads those.
+fn load_built_in_fonts(
+    font_info: &mut Vec<(Names, PathBuf, FontDataHandle)>,
+) -> anyhow::Result<()> {
+    for data in &[
+        include_bytes!("../../assets/fonts/JetBrainsMono-Bold-Italic.ttf") as &'static [u8],
+        include_bytes!("../../assets/fonts/JetBrainsMono-Bold.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-ExtraBold-Italic.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-ExtraBold.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-ExtraLight-Italic.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-ExtraLight.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-Italic.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-Light-Italic.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-Light.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-Medium-Italic.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-Medium.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-Regular.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-SemiLight-Italic.ttf"),
+        include_bytes!("../../assets/fonts/JetBrainsMono-SemiLight.ttf"),
+        include_bytes!("../../assets/fonts/NotoColorEmoji.ttf"),
+    ] {
+        let scope = allsorts::binary::read::ReadScope::new(&data);
+        let file = scope.read::<OpenTypeFile>()?;
+        let path = Path::new("memory");
+
+        match &file.font {
+            OpenTypeFont::Single(ttf) => {
+                let name_table_data = ttf
+                    .read_table(&file.scope, allsorts::tag::NAME)?
+                    .ok_or_else(|| anyhow!("name table is not present"))?;
+
+                let names = Names::from_name_table_data(name_table_data.data())?;
+                font_info.push((
+                    names,
+                    path.to_path_buf(),
+                    FontDataHandle::Memory {
+                        data: data.to_vec(),
+                        index: 0,
+                    },
+                ));
+            }
+            OpenTypeFont::Collection(ttc) => {
+                for (index, offset_table_offset) in ttc.offset_tables.iter().enumerate() {
+                    let ttf = file
+                        .scope
+                        .offset(offset_table_offset as usize)
+                        .read::<OffsetTable>()?;
+                    let name_table_data = ttf
+                        .read_table(&file.scope, allsorts::tag::NAME)?
+                        .ok_or_else(|| anyhow!("name table is not present"))?;
+                    let names = Names::from_name_table_data(name_table_data.data())?;
+                    font_info.push((
+                        names,
+                        path.to_path_buf(),
+                        FontDataHandle::Memory {
+                            data: data.to_vec(),
+                            index: index.try_into()?,
+                        },
+                    ));
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn parse_and_collect_font_info(
     path: &Path,
-    font_info: &mut Vec<(Names, PathBuf, usize)>,
+    font_info: &mut Vec<(Names, PathBuf, FontDataHandle)>,
 ) -> anyhow::Result<()> {
     let data = std::fs::read(path)?;
     let scope = allsorts::binary::read::ReadScope::new(&data);
