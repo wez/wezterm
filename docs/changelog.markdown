@@ -30,6 +30,10 @@ brief notes about them may accumulate here.
 * We now bundle JetBrains Mono and use it as the default font,
   and add it as a default fallback font.  Similarly, we also
   bundle Noto Color Emoji as a default fallback for emoji.
+* Added `automatically_reload_config=false` option to disable
+  automatic config reloading.  When set to false, you will need
+  to manually trigger a config reload (default: `SUPER+R` or
+  `CTRL+SHIFT+R`)
 
 ### 20200909-002054-4c9af461
 

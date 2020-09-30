@@ -160,8 +160,10 @@ impl ConfigInner {
                 self.error.take();
                 self.generation += 1;
                 log::debug!("Reloaded configuration! generation={}", self.generation);
-                if let Some(path) = path {
-                    self.watch_path(path);
+                if self.config.automatically_reload_config {
+                    if let Some(path) = path {
+                        self.watch_path(path);
+                    }
                 }
             }
             Err(err) => {
@@ -538,6 +540,11 @@ pub struct Config {
 
     #[serde(default)]
     pub launch_menu: Vec<SpawnCommand>,
+
+    /// When true, watch the config file and reload it automatically
+    /// when it is detected as changing.
+    #[serde(default = "default_true")]
+    pub automatically_reload_config: bool,
 
     #[serde(default = "default_true")]
     pub add_wsl_distributions_to_launch_menu: bool,
