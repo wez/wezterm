@@ -22,11 +22,14 @@ brief notes about them may accumulate here.
   The displayed number is 1-based.  You can set
   `tab_and_split_indices_are_zero_based=true` if you prefer the
   number to be zero based.
-* On Linux systems, wezterm can now attempt to guess the current
-  working directory that shouldbe set in newly spawned local panes/tabs.
+* On Linux and macOS systems, wezterm can now attempt to guess the current
+  working directory that should be set in newly spawned local panes/tabs.
 * Experimental support for splits/panes.
   See [#157](https://github.com/wez/wezterm/issues/157) for
   overall status and additional information.
+* We now bundle JetBrains Mono and use it as the default font,
+  and add it as a default fallback font.  Similarly, we also
+  bundle Noto Color Emoji as a default fallback for emoji.
 
 ### 20200909-002054-4c9af461
 
