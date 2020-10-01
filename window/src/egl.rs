@@ -389,23 +389,28 @@ impl GlState {
 
         let mut errors = vec![];
 
-        for path in &paths {
-            if let Ok(lib) = libloading::Library::new(path) {
-                match EglWrapper::load_egl(lib) {
-                    Ok(egl) => match func(egl) {
-                        Ok(result) => {
-                            log::info!("initialized {}", path);
-                            return Ok(result);
-                        }
+        for _ in 0..2 {
+            for path in &paths {
+                if let Ok(lib) = libloading::Library::new(path) {
+                    match EglWrapper::load_egl(lib) {
+                        Ok(egl) => match func(egl) {
+                            Ok(result) => {
+                                log::info!("initialized {}", path);
+                                return Ok(result);
+                            }
+                            Err(e) => {
+                                errors.push(format!("with_egl_lib({}) failed: {}", path, e));
+                            }
+                        },
                         Err(e) => {
-                            errors.push(format!("with_egl_lib({}) failed: {}", path, e));
+                            errors.push(format!("load_egl {} failed: {}", path, e));
                         }
-                    },
-                    Err(e) => {
-                        errors.push(format!("load_egl {} failed: {}", path, e));
                     }
                 }
             }
+            // If we're using Mesa, set some environment variables
+            // that should select CPU based rendering and try again
+            std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "true");
         }
         bail!("with_egl_lib failed: {}", errors.join(", "))
     }

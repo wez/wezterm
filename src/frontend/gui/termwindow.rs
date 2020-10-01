@@ -769,7 +769,7 @@ impl WindowCallbacks for TermWindow {
                     self.dimensions.pixel_height,
                 ) {
                     Ok(gl) => {
-                        log::info!(
+                        log::error!(
                             "OpenGL initialized! {} {} is_context_loss_possible={}",
                             gl.context.get_opengl_renderer_string(),
                             gl.context.get_opengl_version_string(),
