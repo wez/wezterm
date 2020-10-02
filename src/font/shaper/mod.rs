@@ -61,7 +61,7 @@ pub trait FontShaper {
     fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics>;
 }
 
-pub use crate::config::FontShaperSelection;
+pub use config::FontShaperSelection;
 
 pub fn new_shaper(
     shaper: FontShaperSelection,

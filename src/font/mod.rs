@@ -21,7 +21,7 @@ use crate::font::rasterizer::{new_rasterizer, FontRasterizer, FontRasterizerSele
 use crate::font::shaper::{new_shaper, FontShaper, FontShaperSelection};
 pub use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 
-use super::config::{configuration, ConfigHandle, TextStyle};
+use config::{configuration, ConfigHandle, TextStyle};
 use wezterm_term::CellAttributes;
 
 pub struct LoadedFont {

@@ -18,34 +18,6 @@ pub fn alloc_pane_id() -> PaneId {
     PANE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub enum Pattern {
-    CaseSensitiveString(String),
-    CaseInSensitiveString(String),
-    Regex(String),
-}
-
-impl std::ops::Deref for Pattern {
-    type Target = String;
-    fn deref(&self) -> &String {
-        match self {
-            Pattern::CaseSensitiveString(s) => s,
-            Pattern::CaseInSensitiveString(s) => s,
-            Pattern::Regex(s) => s,
-        }
-    }
-}
-
-impl std::ops::DerefMut for Pattern {
-    fn deref_mut(&mut self) -> &mut String {
-        match self {
-            Pattern::CaseSensitiveString(s) => s,
-            Pattern::CaseInSensitiveString(s) => s,
-            Pattern::Regex(s) => s,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SearchResult {
     pub start_y: StableRowIndex,
@@ -55,6 +27,8 @@ pub struct SearchResult {
     /// The cell index into the line of the end of the match
     pub end_x: usize,
 }
+
+pub use config::keyassignment::Pattern;
 
 const PASTE_CHUNK_SIZE: usize = 1024;
 

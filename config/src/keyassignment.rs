@@ -1,14 +1,46 @@
-use crate::config::configuration;
-use crate::config::LeaderKey;
-use crate::frontend::gui::SelectionMode;
-use crate::mux::domain::DomainId;
-use crate::mux::pane::Pattern;
+use crate::configuration;
+use crate::LeaderKey;
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use wezterm_term::input::MouseButton;
 use wezterm_term::{KeyCode, KeyModifiers};
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
+pub enum SelectionMode {
+    Cell,
+    Word,
+    Line,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum Pattern {
+    CaseSensitiveString(String),
+    CaseInSensitiveString(String),
+    Regex(String),
+}
+
+impl std::ops::Deref for Pattern {
+    type Target = String;
+    fn deref(&self) -> &String {
+        match self {
+            Pattern::CaseSensitiveString(s) => s,
+            Pattern::CaseInSensitiveString(s) => s,
+            Pattern::Regex(s) => s,
+        }
+    }
+}
+
+impl std::ops::DerefMut for Pattern {
+    fn deref_mut(&mut self) -> &mut String {
+        match self {
+            Pattern::CaseSensitiveString(s) => s,
+            Pattern::CaseInSensitiveString(s) => s,
+            Pattern::Regex(s) => s,
+        }
+    }
+}
 
 /// A mouse event that can trigger an action
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
@@ -32,8 +64,6 @@ pub enum SpawnTabDomain {
     DefaultDomain,
     /// Use the domain from the current tab in the associated window
     CurrentPaneDomain,
-    /// Use a specific domain by id
-    Domain(DomainId),
     /// Use a specific domain by name
     DomainName(String),
 }

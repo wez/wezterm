@@ -1,7 +1,7 @@
 use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
-use anyhow::{anyhow, Error};
+use anyhow::Error;
 use downcast_rs::{impl_downcast, Downcast};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -11,7 +11,7 @@ pub mod activity;
 pub mod gui;
 pub mod muxserver;
 
-pub use crate::config::FrontEndSelection;
+pub use config::FrontEndSelection;
 
 thread_local! {
     static FRONT_END: RefCell<Option<Rc<dyn FrontEnd>>> = RefCell::new(None);
@@ -40,46 +40,21 @@ pub fn shutdown() {
     FRONT_END.with(|f| drop(f.borrow_mut().take()));
 }
 
-impl FrontEndSelection {
-    pub fn try_new(self) -> Result<Rc<dyn FrontEnd>, Error> {
-        let (front_end, is_gui) = match self {
-            FrontEndSelection::MuxServer => (muxserver::MuxServerFrontEnd::try_new(), false),
-            FrontEndSelection::Null => (muxserver::MuxServerFrontEnd::new_null(), false),
-            FrontEndSelection::Software => (gui::GuiFrontEnd::try_new_swrast(), true),
-            FrontEndSelection::OldSoftware => (gui::GuiFrontEnd::try_new_no_opengl(), true),
-            FrontEndSelection::OpenGL => (gui::GuiFrontEnd::try_new(), true),
-        };
+pub fn try_new(sel: FrontEndSelection) -> Result<Rc<dyn FrontEnd>, Error> {
+    let (front_end, is_gui) = match sel {
+        FrontEndSelection::MuxServer => (muxserver::MuxServerFrontEnd::try_new(), false),
+        FrontEndSelection::Null => (muxserver::MuxServerFrontEnd::new_null(), false),
+        FrontEndSelection::Software => (gui::GuiFrontEnd::try_new_swrast(), true),
+        FrontEndSelection::OldSoftware => (gui::GuiFrontEnd::try_new_no_opengl(), true),
+        FrontEndSelection::OpenGL => (gui::GuiFrontEnd::try_new(), true),
+    };
 
-        let front_end = front_end?;
+    let front_end = front_end?;
 
-        FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
-        HAS_GUI_FRONT_END.store(is_gui, Ordering::Release);
+    FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
+    HAS_GUI_FRONT_END.store(is_gui, Ordering::Release);
 
-        Ok(front_end)
-    }
-
-    // TODO: find or build a proc macro for this
-    pub fn variants() -> Vec<&'static str> {
-        vec!["OpenGL", "Software", "OldSoftware", "MuxServer", "Null"]
-    }
-}
-
-impl std::str::FromStr for FrontEndSelection {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_ref() {
-            "muxserver" => Ok(FrontEndSelection::MuxServer),
-            "null" => Ok(FrontEndSelection::Null),
-            "software" => Ok(FrontEndSelection::Software),
-            "oldsoftware" => Ok(FrontEndSelection::OldSoftware),
-            "opengl" => Ok(FrontEndSelection::OpenGL),
-            _ => Err(anyhow!(
-                "{} is not a valid FrontEndSelection variant, possible values are {:?}",
-                s,
-                FrontEndSelection::variants()
-            )),
-        }
-    }
+    Ok(front_end)
 }
 
 pub trait FrontEnd: Downcast {

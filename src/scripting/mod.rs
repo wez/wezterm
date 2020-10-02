@@ -1,6 +1,6 @@
-use crate::config::{FontAttributes, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
+use config::{FontAttributes, TextStyle};
 pub use luahelper::*;
 use mlua::{Lua, Table, Value};
 use serde::*;
@@ -48,8 +48,8 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
             array.insert(1, format!("{}/?/init.lua", path.display()));
         }
 
-        prefix_path(&mut path_array, &crate::config::HOME_DIR.join(".wezterm"));
-        prefix_path(&mut path_array, &crate::config::CONFIG_DIR);
+        prefix_path(&mut path_array, &config::HOME_DIR.join(".wezterm"));
+        prefix_path(&mut path_array, &config::CONFIG_DIR);
         if let Ok(exe) = std::env::current_exe() {
             if let Some(path) = exe.parent() {
                 wezterm_mod.set(
@@ -71,9 +71,9 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
                 .ok_or_else(|| anyhow!("config dir path is not UTF-8"))?,
         )?;
 
-        wezterm_mod.set("target_triple", env!("VERGEN_TARGET_TRIPLE"))?;
-        wezterm_mod.set("version", crate::wezterm_version())?;
-        wezterm_mod.set("home_dir", crate::config::HOME_DIR.to_str())?;
+        wezterm_mod.set("target_triple", config::wezterm_target_triple())?;
+        wezterm_mod.set("version", config::wezterm_version())?;
+        wezterm_mod.set("home_dir", config::HOME_DIR.to_str())?;
         wezterm_mod.set(
             "running_under_wsl",
             lua.create_function(|_, ()| Ok(crate::running_under_wsl()))?,
@@ -207,7 +207,7 @@ fn font_with_fallback<'lua>(
 fn action<'lua>(
     _lua: &'lua Lua,
     action: Table<'lua>,
-) -> mlua::Result<crate::config::keyassignment::KeyAssignment> {
+) -> mlua::Result<config::keyassignment::KeyAssignment> {
     Ok(from_lua_value(Value::Table(action))?)
 }
 

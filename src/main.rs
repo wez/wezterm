@@ -2,18 +2,13 @@
 #![windows_subsystem = "windows"]
 
 use crate::server::listener::umask;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail};
+use config::{wezterm_version, SshParameters};
 use promise::spawn::block_on;
 use std::ffi::OsString;
-use std::fmt;
-use std::fmt::Display;
-use std::fs::DirBuilder;
 use std::io::{Read, Write};
-#[cfg(unix)]
-use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::str::FromStr;
 use std::sync::Arc;
 use structopt::StructOpt;
 use tabout::{tabulate_output, Alignment, Column};
@@ -21,7 +16,6 @@ use tabout::{tabulate_output, Alignment, Column};
 // This module defines a macro, so it must be referenced before any other mods
 mod scripting;
 
-mod config;
 mod connui;
 mod frontend;
 use config::keyassignment;
@@ -54,18 +48,6 @@ use crate::font::FontConfiguration;
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
 //    terminal.advance_bytes(message);
 // !=
-
-fn wezterm_version() -> &'static str {
-    // Prefer our version override, if present (see build.rs)
-    let tag = env!("WEZTERM_CI_TAG");
-    if tag.is_empty() {
-        // Otherwise, fallback to the vergen-generated information,
-        // which is basically `git describe --tags` computed in build.rs
-        env!("VERGEN_SEMVER_LIGHTWEIGHT")
-    } else {
-        tag
-    }
-}
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -318,19 +300,6 @@ impl ImgCatCommand {
     }
 }
 
-pub fn create_user_owned_dirs(p: &Path) -> anyhow::Result<()> {
-    let mut builder = DirBuilder::new();
-    builder.recursive(true);
-
-    #[cfg(unix)]
-    {
-        builder.mode(0o700);
-    }
-
-    builder.create(p)?;
-    Ok(())
-}
-
 pub fn running_under_wsl() -> bool {
     #[cfg(unix)]
     unsafe {
@@ -344,49 +313,6 @@ pub fn running_under_wsl() -> bool {
     };
 
     false
-}
-
-#[derive(Clone, Debug)]
-pub struct SshParameters {
-    pub username: String,
-    pub host_and_port: String,
-}
-
-fn username_from_env() -> anyhow::Result<String> {
-    #[cfg(unix)]
-    const USER: &str = "USER";
-    #[cfg(windows)]
-    const USER: &str = "USERNAME";
-
-    std::env::var(USER).with_context(|| format!("while resolving {} env var", USER))
-}
-
-impl Display for SshParameters {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}@{}", self.username, self.host_and_port)
-    }
-}
-
-impl FromStr for SshParameters {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.split('@').collect();
-
-        if parts.len() == 2 {
-            Ok(Self {
-                username: parts[0].to_string(),
-                host_and_port: parts[1].to_string(),
-            })
-        } else if parts.len() == 1 {
-            Ok(Self {
-                username: username_from_env()?,
-                host_and_port: parts[0].to_string(),
-            })
-        } else {
-            bail!("failed to parse ssh parameters from `{}`", s);
-        }
-    }
 }
 
 async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
@@ -428,7 +354,7 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
 
 fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()> {
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = front_end_selection.try_new()?;
+    let gui = crate::frontend::try_new(front_end_selection)?;
 
     // Set up the mux with no default domain; there's a good chance that
     // we'll need to show authentication UI and we don't want its domain
@@ -470,7 +396,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
-    let gui = front_end.try_new()?;
+    let gui = crate::frontend::try_new(front_end)?;
     block_on(domain.attach())?; // FIXME: blocking
 
     let window_id = mux.new_empty_window();
@@ -513,7 +439,7 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
     Mux::set_mux(&mux);
 
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = front_end_selection.try_new()?;
+    let gui = crate::frontend::try_new(front_end_selection)?;
     let opts = opts.clone();
 
     let cmd = if !opts.prog.is_empty() {
@@ -671,7 +597,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
     Mux::set_mux(&mux);
 
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = front_end_selection.try_new()?;
+    let gui = crate::frontend::try_new(front_end_selection)?;
     let activity = Activity::new();
     let do_auto_connect =
         front_end_selection != FrontEndSelection::MuxServer && !opts.no_auto_connect;
@@ -751,6 +677,8 @@ fn terminate_with_error(err: anyhow::Error) -> ! {
 }
 
 fn main() {
+    config::assign_lua_factory(scripting::make_lua_context);
+    config::assign_error_callback(crate::connui::show_configuration_error_message);
     notify_on_panic();
     if let Err(e) = run() {
         terminate_with_error(e);
@@ -912,7 +840,7 @@ fn run() -> anyhow::Result<()> {
     if !opts.skip_config {
         config::reload();
     }
-    let config = crate::config::configuration();
+    let config = config::configuration();
 
     #[cfg(target_os = "macos")]
     {
@@ -935,7 +863,7 @@ fn run() -> anyhow::Result<()> {
         SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::Cli(cli) => {
             // Start a front end so that the futures executor is running
-            let front_end = FrontEndSelection::Null.try_new()?;
+            let front_end = crate::frontend::try_new(FrontEndSelection::Null)?;
 
             let initial = true;
             let mut ui = crate::connui::ConnectionUI::new_headless();

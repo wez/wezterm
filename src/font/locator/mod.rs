@@ -1,4 +1,4 @@
-use crate::config::FontAttributes;
+use config::FontAttributes;
 use std::path::PathBuf;
 
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -77,7 +77,7 @@ pub fn new_locator(locator: FontLocatorSelection) -> Box<dyn FontLocator> {
 
 struct NopSystemSource {}
 
-pub use crate::config::FontLocatorSelection;
+pub use config::FontLocatorSelection;
 
 impl FontLocator for NopSystemSource {
     fn load_fonts(

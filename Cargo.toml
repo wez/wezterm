@@ -7,7 +7,6 @@ build = "build.rs"
 default-run = "wezterm"
 
 [build-dependencies]
-vergen = "3"
 anyhow = "1.0"
 
 [target.'cfg(windows)'.build-dependencies]
@@ -30,6 +29,7 @@ base91 = { path = "base91" }
 rangeset = { path = "rangeset" }
 bitflags = "1.0"
 bstr = "0.2"
+config = { path = "config" }
 crossbeam = "0.7"
 dirs = "2.0"
 downcast-rs = "1.0"
@@ -53,8 +53,6 @@ metrics = { version="0.12", features=["std"]}
 mlua = {version="0.2", features=["vendored"]}
 hdrhistogram = "6.3"
 openssl = "0.10"
-# file change notification
-notify = "4.0"
 palette = "0.5"
 portable-pty = { path = "pty", features = ["serde_support", "ssh"]}
 promise = { path = "promise" }

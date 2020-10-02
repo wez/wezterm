@@ -1,5 +1,4 @@
-use crate::config::*;
-use crate::SshParameters;
+use crate::*;
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct TlsDomainServer {

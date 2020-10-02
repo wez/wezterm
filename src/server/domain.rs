@@ -1,5 +1,3 @@
-use crate::config::keyassignment::SpawnTabDomain;
-use crate::config::{SshDomain, TlsDomainClient, UnixDomain};
 use crate::connui::ConnectionUI;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
@@ -13,6 +11,8 @@ use crate::server::codec::{ListPanesResponse, Spawn, SplitPane};
 use crate::server::tab::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
+use config::keyassignment::SpawnTabDomain;
+use config::{SshDomain, TlsDomainClient, UnixDomain};
 use portable_pty::{CommandBuilder, PtySize};
 use promise::spawn::{join_handle_result, spawn_into_new_thread};
 use std::cell::RefCell;

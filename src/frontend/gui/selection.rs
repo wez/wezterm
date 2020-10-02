@@ -2,17 +2,9 @@
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use crate::mux::renderable::Renderable;
-use serde::{Deserialize, Serialize};
 use std::ops::Range;
 use termwiz::surface::line::DoubleClickRange;
 use wezterm_term::StableRowIndex;
-
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
-pub enum SelectionMode {
-    Cell,
-    Word,
-    Line,
-}
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct Selection {
@@ -22,6 +14,8 @@ pub struct Selection {
     /// Holds the not-normalized selection range.
     pub range: Option<SelectionRange>,
 }
+
+pub use config::keyassignment::SelectionMode;
 
 impl Selection {
     #[allow(dead_code)]

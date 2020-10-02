@@ -1,6 +1,6 @@
-use crate::config::FontAttributes;
 use crate::font::fcwrap;
 use crate::font::locator::{FontDataHandle, FontLocator};
+use config::FontAttributes;
 use fcwrap::Pattern as FontPattern;
 use std::convert::TryInto;
 

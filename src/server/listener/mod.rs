@@ -1,5 +1,5 @@
-use crate::config::{configuration, TlsDomainServer};
 use anyhow::{anyhow, bail, Context, Error};
+use config::{configuration, TlsDomainServer};
 use log::error;
 use promise::spawn::spawn_into_main_thread;
 use std::net::TcpListener;

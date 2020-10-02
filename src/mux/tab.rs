@@ -1,9 +1,9 @@
-use crate::config::keyassignment::PaneDirection;
 use crate::mux::domain::DomainId;
 use crate::mux::pane::*;
 use crate::mux::{Mux, WindowId};
 use crate::server::codec::{PaneEntry, PaneNode};
 use bintree::PathBranch;
+use config::keyassignment::PaneDirection;
 use portable_pty::PtySize;
 use rangeset::range_intersection;
 use serde::{Deserialize, Serialize};

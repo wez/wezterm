@@ -1,4 +1,3 @@
-use crate::config::{configuration, ConfigHandle};
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::TabId;
 use crate::mux::Mux;
@@ -7,6 +6,7 @@ use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use crate::server::tab::clienttab::ClientPane;
 use anyhow::anyhow;
+use config::{configuration, ConfigHandle};
 use lru::LruCache;
 use promise::BrokenPromise;
 use rangeset::*;

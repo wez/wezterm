@@ -1,7 +1,6 @@
 use super::glyphcache::{CachedGlyph, GlyphCache};
 use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
-use crate::config::{configuration, TextStyle};
 use crate::font::{FontConfiguration, GlyphInfo};
 use ::window::bitmaps::ImageTexture;
 use ::window::glium::backend::Context as GliumContext;
@@ -9,6 +8,7 @@ use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{IndexBuffer, VertexBuffer};
 use ::window::*;
 use anyhow::{anyhow, bail};
+use config::{configuration, TextStyle};
 use std::cell::RefCell;
 use std::rc::Rc;
 

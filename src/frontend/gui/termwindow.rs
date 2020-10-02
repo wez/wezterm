@@ -2,10 +2,6 @@
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
-use crate::config::keyassignment::{
-    InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
-};
-use crate::config::{configuration, ConfigHandle, TextStyle};
 use crate::font::shaper::GlyphInfo;
 use crate::font::units::*;
 use crate::font::FontConfiguration;
@@ -36,6 +32,10 @@ use ::window::MouseButtons as WMB;
 use ::window::MouseEventKind as WMEK;
 use ::window::*;
 use anyhow::{anyhow, bail, ensure};
+use config::keyassignment::{
+    InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
+};
+use config::{configuration, ConfigHandle, TextStyle};
 use lru::LruCache;
 use portable_pty::{CommandBuilder, PtySize};
 use std::any::Any;
@@ -1631,11 +1631,6 @@ impl TermWindow {
                         )
                     }
                 }
-                SpawnTabDomain::Domain(id) => (
-                    mux.get_domain(id)
-                        .ok_or_else(|| anyhow!("spawn_tab called with unresolvable domain id!?"))?,
-                    None,
-                ),
                 SpawnTabDomain::DomainName(name) => (
                     mux.get_domain_by_name(&name).ok_or_else(|| {
                         anyhow!("spawn_tab called with unresolvable domain name {}", name)
@@ -1859,7 +1854,7 @@ impl TermWindow {
             CloseCurrentTab { confirm } => self.close_current_tab(*confirm),
             CloseCurrentPane { confirm } => self.close_current_pane(*confirm),
             Nop | DisableDefaultAssignment => {}
-            ReloadConfiguration => crate::config::reload(),
+            ReloadConfiguration => config::reload(),
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
             ScrollByPage(n) => self.scroll_by_page(*n)?,
@@ -1968,7 +1963,7 @@ impl TermWindow {
     pub fn spawn_new_window(&mut self) {
         async fn new_window() -> anyhow::Result<()> {
             let mux = Mux::get().unwrap();
-            let config = crate::config::configuration();
+            let config = config::configuration();
             let fonts = Rc::new(FontConfiguration::new());
             let window_id = mux.new_empty_window();
             let tab = mux

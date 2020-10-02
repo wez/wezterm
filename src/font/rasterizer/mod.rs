@@ -26,7 +26,7 @@ pub trait FontRasterizer {
     ) -> anyhow::Result<RasterizedGlyph>;
 }
 
-pub use crate::config::FontRasterizerSelection;
+pub use config::FontRasterizerSelection;
 
 pub fn new_rasterizer(
     rasterizer: FontRasterizerSelection,

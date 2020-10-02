@@ -1,4 +1,3 @@
-use crate::config::configuration;
 use crate::mux::domain::DomainId;
 use crate::mux::pane::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult};
 use crate::mux::renderable::{Renderable, RenderableDimensions};
@@ -10,6 +9,7 @@ use crate::server::tab::mousestate::MouseState;
 use crate::server::tab::renderable::{RenderableInner, RenderableState};
 use anyhow::bail;
 use async_trait::async_trait;
+use config::configuration;
 use filedescriptor::Pipe;
 use log::info;
 use portable_pty::PtySize;

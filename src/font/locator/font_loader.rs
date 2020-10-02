@@ -1,6 +1,6 @@
-use crate::config::FontAttributes;
 use crate::font::locator::{FontDataHandle, FontLocator};
 use ::font_loader::system_fonts;
+use config::FontAttributes;
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by the font-loader crate.

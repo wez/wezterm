@@ -1,4 +1,4 @@
-use crate::config::*;
+use crate::*;
 use std::path::PathBuf;
 
 /// Configures an instance of a multiplexer that can be communicated

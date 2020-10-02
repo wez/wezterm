@@ -1,4 +1,4 @@
-use crate::config::{configuration, ConfigHandle};
+use config::{configuration, ConfigHandle};
 use ratelimit_meter::algorithms::NonConformance;
 use ratelimit_meter::{DirectRateLimiter, LeakyBucket, NegativeMultiDecision};
 use std::time::{Duration, Instant};

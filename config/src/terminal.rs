@@ -1,6 +1,6 @@
 //! Bridge our gui config into the terminal crate configuration
 
-use crate::config::configuration;
+use crate::configuration;
 use termwiz::hyperlink::Rule as HyperlinkRule;
 use wezterm_term::color::ColorPalette;
 

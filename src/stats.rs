@@ -1,4 +1,4 @@
-use crate::config::configuration;
+use config::configuration;
 use hdrhistogram::Histogram;
 use metrics::{Key, Recorder};
 use std::collections::HashMap;

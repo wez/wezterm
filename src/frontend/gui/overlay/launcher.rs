@@ -5,8 +5,6 @@
 //! be rendered as a popup/context menu if the system supports it; at the
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
-use crate::config::configuration;
-use crate::config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use crate::frontend::gui::termwindow::{ClipboardHelper, SpawnWhere, TermWindow};
 use crate::mux::domain::{DomainId, DomainState};
 use crate::mux::tab::TabId;
@@ -14,6 +12,8 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::termwiztermtab::TermWizTerminal;
 use anyhow::anyhow;
+use config::configuration;
+use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use portable_pty::PtySize;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
@@ -140,7 +140,7 @@ pub fn launcher(
             Entry::Spawn {
                 label: format!("New Tab ({})", domain_name),
                 command: SpawnCommand {
-                    domain: SpawnTabDomain::Domain(*domain_id),
+                    domain: SpawnTabDomain::DomainName(domain_name.to_string()),
                     ..SpawnCommand::default()
                 },
                 spawn_where: SpawnWhere::NewTab,

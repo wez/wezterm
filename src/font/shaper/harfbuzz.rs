@@ -1,10 +1,10 @@
-use crate::config::configuration;
 use crate::font::ftwrap;
 use crate::font::hbwrap as harfbuzz;
 use crate::font::locator::FontDataHandle;
 use crate::font::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::font::units::*;
 use anyhow::anyhow;
+use config::configuration;
 use log::{debug, error};
 use std::cell::{RefCell, RefMut};
 use thiserror::Error;

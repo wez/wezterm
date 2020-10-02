@@ -1,4 +1,3 @@
-use crate::config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
 use crate::connui::ConnectionUI;
 use crate::mux::domain::{alloc_domain_id, DomainId};
 use crate::mux::pane::PaneId;
@@ -10,6 +9,7 @@ use crate::server::tab::ClientPane;
 use crate::server::UnixStream;
 use crate::ssh::ssh_connect_with_ui;
 use anyhow::{anyhow, bail, Context, Error};
+use config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
 use crossbeam::channel::TryRecvError;
 use filedescriptor::{poll, pollfd, AsRawSocketDescriptor};
 use log::info;
@@ -360,7 +360,7 @@ impl Reconnectable {
     }
 
     fn tls_creds_path(&self) -> anyhow::Result<PathBuf> {
-        let path = crate::config::pki_dir()?.join(self.config.name());
+        let path = config::pki_dir()?.join(self.config.name());
         std::fs::create_dir_all(&path)?;
         Ok(path)
     }

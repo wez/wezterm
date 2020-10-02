@@ -1,4 +1,4 @@
-use crate::config::configuration;
+use config::configuration;
 use downcast_rs::{impl_downcast, Downcast};
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};

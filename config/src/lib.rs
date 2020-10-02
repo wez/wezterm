@@ -1,17 +1,20 @@
 //! Configuration for the gui portion of the terminal
 
-use crate::config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnCommand};
-use crate::create_user_owned_dirs;
+use crate::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnCommand};
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
 use luahelper::impl_lua_conversion;
+use mlua::Lua;
 use portable_pty::{CommandBuilder, PtySize};
 use serde::{Deserialize, Serialize};
 use std;
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::fs;
+use std::fs::DirBuilder;
 use std::io::prelude::*;
+#[cfg(unix)]
+use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -30,6 +33,8 @@ mod ssh;
 mod terminal;
 mod tls;
 mod unix;
+mod version;
+
 pub use color::*;
 pub use daemon::*;
 pub use font::*;
@@ -39,15 +44,59 @@ pub use ssh::*;
 pub use terminal::*;
 pub use tls::*;
 pub use unix::*;
+pub use version::*;
+
+type LuaFactory = fn(&Path) -> anyhow::Result<Lua>;
+type ErrorCallback = fn(&str);
 
 lazy_static! {
     pub static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
     pub static ref CONFIG_DIR: PathBuf = xdg_config_home();
     pub static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
     static ref CONFIG: Configuration = Configuration::new();
+    static ref MAKE_LUA: Mutex<Option<LuaFactory>> = Mutex::new(None);
+    static ref SHOW_ERROR: Mutex<Option<ErrorCallback>> = Mutex::new(None);
+}
+
+pub fn assign_lua_factory(make_lua_context: LuaFactory) {
+    let mut factory = MAKE_LUA.lock().unwrap();
+    factory.replace(make_lua_context);
+}
+
+fn make_lua_context(path: &Path) -> anyhow::Result<Lua> {
+    let factory = MAKE_LUA.lock().unwrap();
+    match factory.as_ref() {
+        Some(f) => f(path),
+        None => anyhow::bail!("assign_lua_factory has not been called"),
+    }
+}
+
+pub fn assign_error_callback(cb: ErrorCallback) {
+    let mut factory = SHOW_ERROR.lock().unwrap();
+    factory.replace(cb);
+}
+
+fn show_error(err: &str) {
+    let factory = SHOW_ERROR.lock().unwrap();
+    if let Some(cb) = factory.as_ref() {
+        cb(err)
+    }
 }
 
 include!(concat!(env!("OUT_DIR"), "/scheme_data.rs"));
+
+pub fn create_user_owned_dirs(p: &Path) -> anyhow::Result<()> {
+    let mut builder = DirBuilder::new();
+    builder.recursive(true);
+
+    #[cfg(unix)]
+    {
+        builder.mode(0o700);
+    }
+
+    builder.create(p)?;
+    Ok(())
+}
 
 fn xdg_config_home() -> PathBuf {
     match std::env::var_os("XDG_CONFIG_HOME").map(|s| PathBuf::from(s).join("wezterm")) {
@@ -170,7 +219,7 @@ impl ConfigInner {
                 let err = format!("{:#}", err);
                 if self.generation > 0 {
                     // Only generate the message for an actual reload
-                    crate::connui::show_configuration_error_message(&err);
+                    show_error(&err);
                 }
                 self.error.replace(err);
             }
@@ -313,7 +362,7 @@ pub struct Config {
     /// For example, to have `wezterm` always run `top` by default,
     /// you'd use this:
     ///
-    /// ```
+    /// ```toml
     /// default_prog = ["top"]
     /// ```
     ///
@@ -672,12 +721,12 @@ impl Config {
 
             let cfg: Self;
 
-            let lua = crate::scripting::make_lua_context(p)?;
+            let lua = make_lua_context(p)?;
             let config: mlua::Value = lua
                 .load(&s)
                 .set_name(p.to_string_lossy().as_bytes())?
                 .eval()?;
-            cfg = crate::scripting::from_lua_value(config).with_context(|| {
+            cfg = luahelper::from_lua_value(config).with_context(|| {
                 format!(
                     "Error converting lua value returned by script {} to Config struct",
                     p.display()

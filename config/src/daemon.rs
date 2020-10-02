@@ -1,4 +1,4 @@
-use crate::config::*;
+use crate::*;
 use std::fs::{File, OpenOptions};
 use std::path::PathBuf;
 

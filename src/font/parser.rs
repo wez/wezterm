@@ -2,7 +2,6 @@
 //! At this time it is used only to extract name information,
 //! but in the future I'd like to use its shaping functionality
 #![allow(dead_code)]
-use crate::config::{Config, FontAttributes};
 use crate::font::locator::{FontDataHandle, FontLocatorSelection};
 use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 use crate::font::units::*;
@@ -18,6 +17,7 @@ use allsorts::tables::{
 };
 use allsorts::tag;
 use anyhow::anyhow;
+use config::{Config, FontAttributes};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use termwiz::cell::unicode_column_width;

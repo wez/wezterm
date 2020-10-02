@@ -1,8 +1,7 @@
-use crate::config::UnixDomain;
-use crate::create_user_owned_dirs;
 use crate::server::listener::clientsession;
 use crate::server::UnixListener;
 use anyhow::{anyhow, Context as _};
+use config::{create_user_owned_dirs, UnixDomain};
 use promise::spawn::spawn_into_main_thread;
 
 pub struct LocalListener {

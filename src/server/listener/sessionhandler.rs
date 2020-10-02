@@ -1,4 +1,3 @@
-use crate::config::keyassignment::SpawnTabDomain;
 use crate::mux::pane::{Pane, PaneId};
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::TabId;
@@ -7,6 +6,7 @@ use crate::server::codec::*;
 use crate::server::listener::PKI;
 use crate::server::pollable::*;
 use anyhow::anyhow;
+use config::keyassignment::SpawnTabDomain;
 use portable_pty::PtySize;
 use promise::spawn::spawn_into_main_thread;
 use rangeset::RangeSet;
@@ -538,9 +538,6 @@ async fn split_pane(split: SplitPane, sender: PollableSender<DecodedPdu>) -> any
         SpawnTabDomain::CurrentPaneDomain => mux
             .get_domain(pane_domain_id)
             .expect("resolve_pane_id to give valid domain_id"),
-        SpawnTabDomain::Domain(d) => mux
-            .get_domain(d)
-            .ok_or_else(|| anyhow!("domain id {} is invalid", d))?,
         SpawnTabDomain::DomainName(name) => mux
             .get_domain_by_name(&name)
             .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,

@@ -1,9 +1,9 @@
-use crate::config::FontAttributes;
 use crate::font::locator::{FontDataHandle, FontLocator};
 use ::font_kit::family_name::FamilyName;
 use ::font_kit::handle::Handle;
 use ::font_kit::properties::Properties;
 use ::font_kit::source::Source;
+use config::FontAttributes;
 
 /// A FontLocator implemented using the font loading
 /// functions provided by Source's from font-kit crate.

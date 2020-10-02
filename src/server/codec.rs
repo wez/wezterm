@@ -509,7 +509,7 @@ pub struct SplitPane {
     pub direction: SplitDirection,
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
-    pub domain: crate::config::keyassignment::SpawnTabDomain,
+    pub domain: config::keyassignment::SpawnTabDomain,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

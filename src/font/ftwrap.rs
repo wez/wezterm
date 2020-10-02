@@ -1,8 +1,8 @@
 //! Higher level freetype bindings
 
-use crate::config::{configuration, FontAntiAliasing, FontHinting};
 use crate::font::locator::FontDataHandle;
 use anyhow::{anyhow, Context};
+use config::{configuration, FontAntiAliasing, FontHinting};
 pub use freetype::*;
 use std::ptr;
 

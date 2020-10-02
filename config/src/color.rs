@@ -1,4 +1,5 @@
-use crate::config::*;
+use crate::*;
+use luahelper::impl_lua_conversion;
 use termwiz::cell::CellAttributes;
 use termwiz::color::{ColorSpec, RgbColor};
 

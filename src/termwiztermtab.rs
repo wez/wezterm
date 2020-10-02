@@ -115,7 +115,7 @@ impl TermWizTerminalPane {
             width,
             0,
             0,
-            std::sync::Arc::new(crate::config::TermConfig {}),
+            std::sync::Arc::new(config::TermConfig {}),
             "WezTerm",
             crate::wezterm_version(),
             Box::new(Vec::new()), // FIXME: connect to something?

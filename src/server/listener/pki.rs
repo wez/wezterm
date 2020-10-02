@@ -20,7 +20,7 @@ pub struct Pki {
 
 impl Pki {
     pub fn init() -> anyhow::Result<Self> {
-        let pki_dir = crate::config::pki_dir()?;
+        let pki_dir = config::pki_dir()?;
         std::fs::create_dir_all(&pki_dir)?;
         log::error!("runtime dir is {}", pki_dir.display());
 
@@ -30,7 +30,7 @@ impl Pki {
                 .map_err(|_| anyhow!("hostname is not representable as unicode"))?,
             "localhost".to_owned(),
         ];
-        let unix_name = crate::username_from_env()?;
+        let unix_name = config::username_from_env()?;
 
         // Create the CA certificate
         let mut ca_params = CertificateParams::new(alt_names.clone());
@@ -60,7 +60,7 @@ impl Pki {
     }
 
     pub fn generate_client_cert(&self) -> anyhow::Result<String> {
-        let unix_name = crate::username_from_env()?;
+        let unix_name = config::username_from_env()?;
 
         let mut params = CertificateParams::new(vec![unix_name.clone()]);
         let mut dn = DistinguishedName::new();

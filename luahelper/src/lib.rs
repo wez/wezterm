@@ -15,7 +15,7 @@ macro_rules! impl_lua_conversion {
     ($struct:ident) => {
         impl<'lua> mlua::ToLua<'lua> for $struct {
             fn to_lua(self, lua: &'lua mlua::Lua) -> Result<mlua::Value<'lua>, mlua::Error> {
-                Ok(crate::scripting::to_lua_value(lua, self)?)
+                Ok(luahelper::to_lua_value(lua, self)?)
             }
         }
 
@@ -24,7 +24,7 @@ macro_rules! impl_lua_conversion {
                 value: mlua::Value<'lua>,
                 _lua: &'lua mlua::Lua,
             ) -> Result<Self, mlua::Error> {
-                Ok(crate::scripting::from_lua_value(value)?)
+                Ok(luahelper::from_lua_value(value)?)
             }
         }
     };

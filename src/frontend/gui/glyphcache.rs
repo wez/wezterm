@@ -1,4 +1,3 @@
-use crate::config::TextStyle;
 use crate::font::units::*;
 use crate::font::{FontConfiguration, GlyphInfo};
 use ::window::bitmaps::atlas::{Atlas, Sprite};
@@ -6,6 +5,7 @@ use ::window::bitmaps::{Image, ImageTexture, Texture2d};
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::*;
+use config::TextStyle;
 use euclid::num::Zero;
 use std::collections::HashMap;
 use std::rc::Rc;

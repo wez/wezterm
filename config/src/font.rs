@@ -1,4 +1,4 @@
-use crate::config::*;
+use crate::*;
 use luahelper::impl_lua_conversion;
 use termwiz::color::RgbColor;
 
@@ -168,7 +168,7 @@ impl TextStyle {
 /// matching can be found in src/font/mod.rs.  The concept is that
 /// the user can specify something like this:
 ///
-/// ```
+/// ```toml
 /// [[font_rules]]
 /// italic = true
 /// font = { font = [{family = "Operator Mono SSm Lig", italic=true}]}

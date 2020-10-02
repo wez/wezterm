@@ -1,0 +1,26 @@
+[package]
+name = "config"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+vergen = "3"
+
+[dependencies]
+anyhow = "1.0"
+dirs = "2.0"
+lazy_static = "1.4"
+luahelper = { path = "../luahelper" }
+log = "0.4"
+# file change notification
+notify = "4.0"
+portable-pty = { path = "../pty", features = ["serde_support"]}
+serde = {version="1.0", features = ["rc", "derive"]}
+termwiz = { path = "../termwiz" }
+toml = "0.4"
+wezterm-term = { path = "../term", features=["use_serde"] }
+mlua = {version="0.2", features=["vendored"]}

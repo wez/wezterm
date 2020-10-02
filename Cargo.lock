@@ -662,6 +662,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "config"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dirs 2.0.2",
+ "lazy_static",
+ "log",
+ "luahelper",
+ "mlua",
+ "notify",
+ "portable-pty",
+ "serde",
+ "termwiz",
+ "toml",
+ "vergen",
+ "wezterm-term",
+]
+
+[[package]]
 name = "const-random"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4048,6 +4067,7 @@ dependencies = [
  "bstr 0.2.13",
  "cc",
  "cocoa",
+ "config",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
  "core-text 15.0.0",
@@ -4077,7 +4097,6 @@ dependencies = [
  "luahelper",
  "metrics",
  "mlua",
- "notify",
  "notify-rust",
  "objc",
  "open",
@@ -4110,7 +4129,6 @@ dependencies = [
  "unicode-width",
  "url",
  "varbincode",
- "vergen",
  "walkdir",
  "wezterm-term",
  "winapi 0.3.9",

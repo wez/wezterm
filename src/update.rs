@@ -1,7 +1,7 @@
-use crate::config::configuration;
 use crate::connui::ConnectionUI;
 use crate::wezterm_version;
 use anyhow::anyhow;
+use config::configuration;
 use http_req::request::{HttpVersion, Request};
 use http_req::uri::Uri;
 use regex::Regex;
@@ -252,7 +252,7 @@ fn update_checker() {
 
     let force_ui = std::env::var_os("WEZTERM_ALWAYS_SHOW_UPDATE_UI").is_some();
 
-    let update_file_name = crate::config::RUNTIME_DIR.join("check_update");
+    let update_file_name = config::RUNTIME_DIR.join("check_update");
     let delay = update_file_name
         .metadata()
         .and_then(|metadata| metadata.modified())
@@ -278,7 +278,7 @@ fn update_checker() {
             }
         }
 
-        crate::create_user_owned_dirs(update_file_name.parent().unwrap()).ok();
+        config::create_user_owned_dirs(update_file_name.parent().unwrap()).ok();
 
         // Record the time of this check
         if let Ok(mut f) = std::fs::OpenOptions::new()
