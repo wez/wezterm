@@ -6,7 +6,7 @@ use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 // in an asynchronous application.
 
 fn main() -> anyhow::Result<()> {
-    smol::run(async {
+    smol::block_on(async {
         let pty_system = native_pty_system();
 
         let pair = pty_system.openpty(PtySize {
@@ -24,7 +24,7 @@ fn main() -> anyhow::Result<()> {
         // file handles which is important to avoid deadlock
         // when waiting for the child process!
         let slave = pair.slave;
-        let mut child = smol::blocking!(slave.spawn_command(cmd))?;
+        let mut child = smol::unblock(move || slave.spawn_command(cmd)).await?;
 
         let reader = pair.master.try_clone_reader()?;
 
@@ -36,7 +36,7 @@ fn main() -> anyhow::Result<()> {
         // waiting for a future child that will never be spawned.
         drop(pair.master);
 
-        let mut lines = futures::io::BufReader::new(smol::reader(reader)).lines();
+        let mut lines = smol::io::BufReader::new(smol::Unblock::new(reader)).lines();
         while let Some(line) = lines.next().await {
             let line = line.map_err(|e| anyhow!("problem reading line: {}", e))?;
             // We print with escapes escaped because the windows conpty
@@ -56,9 +56,10 @@ fn main() -> anyhow::Result<()> {
         // its output from making it into the pty.
         println!(
             "child status: {:?}",
-            smol::blocking!(child
+            smol::unblock(move || child
                 .wait()
-                .map_err(|e| anyhow!("waiting for child: {}", e)))?
+                .map_err(|e| anyhow!("waiting for child: {}", e)))
+            .await?
         );
         Ok(())
     })
