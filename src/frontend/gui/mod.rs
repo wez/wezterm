@@ -42,6 +42,11 @@ impl GuiFrontEnd {
         Self::try_new()
     }
 
+    pub fn try_new_swrast() -> anyhow::Result<Rc<dyn FrontEnd>> {
+        ::window::prefer_swrast();
+        Self::try_new()
+    }
+
     pub fn try_new() -> anyhow::Result<Rc<dyn FrontEnd>> {
         #[cfg(all(unix, not(target_os = "macos")))]
         {
@@ -49,6 +54,7 @@ impl GuiFrontEnd {
                 Connection::disable_wayland();
             }
         }
+
         let connection = Connection::init()?;
         let front_end = Rc::new(GuiFrontEnd { connection });
         Ok(front_end)

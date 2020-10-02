@@ -16,6 +16,7 @@ pub mod muxserver;
 pub enum FrontEndSelection {
     OpenGL,
     Software,
+    OldSoftware,
     MuxServer,
     Null,
 }
@@ -59,7 +60,8 @@ impl FrontEndSelection {
         let (front_end, is_gui) = match self {
             FrontEndSelection::MuxServer => (muxserver::MuxServerFrontEnd::try_new(), false),
             FrontEndSelection::Null => (muxserver::MuxServerFrontEnd::new_null(), false),
-            FrontEndSelection::Software => (gui::GuiFrontEnd::try_new_no_opengl(), true),
+            FrontEndSelection::Software => (gui::GuiFrontEnd::try_new_swrast(), true),
+            FrontEndSelection::OldSoftware => (gui::GuiFrontEnd::try_new_no_opengl(), true),
             FrontEndSelection::OpenGL => (gui::GuiFrontEnd::try_new(), true),
         };
 
@@ -73,7 +75,7 @@ impl FrontEndSelection {
 
     // TODO: find or build a proc macro for this
     pub fn variants() -> Vec<&'static str> {
-        vec!["OpenGL", "Software", "MuxServer", "Null"]
+        vec!["OpenGL", "Software", "OldSoftware", "MuxServer", "Null"]
     }
 }
 
@@ -84,6 +86,7 @@ impl std::str::FromStr for FrontEndSelection {
             "muxserver" => Ok(FrontEndSelection::MuxServer),
             "null" => Ok(FrontEndSelection::Null),
             "software" => Ok(FrontEndSelection::Software),
+            "oldsoftware" => Ok(FrontEndSelection::OldSoftware),
             "opengl" => Ok(FrontEndSelection::OpenGL),
             _ => Err(anyhow!(
                 "{} is not a valid FrontEndSelection variant, possible values are {:?}",

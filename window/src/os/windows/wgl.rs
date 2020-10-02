@@ -1,6 +1,7 @@
 #![cfg(feature = "opengl")]
 
 use super::*;
+use crate::is_swrast_preferred;
 use glium::backend::Backend;
 use std::ffi::CStr;
 use std::io::Error as IoError;
@@ -8,6 +9,7 @@ use std::os::raw::c_void;
 use std::ptr::{null, null_mut};
 use winapi::shared::windef::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
+use winapi::um::libloaderapi::*;
 use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
 
@@ -94,8 +96,25 @@ impl WglWrapper {
     }
 
     fn create() -> anyhow::Result<Self> {
-        let lib = libloading::Library::new("opengl32.dll")?;
-        log::trace!("loading opengl32.dll as {:?}", lib);
+        if is_swrast_preferred() {
+            let mesa_dir = std::env::current_exe()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("mesa");
+            let mesa_dir = wide_string(mesa_dir.to_str().unwrap());
+
+            unsafe {
+                AddDllDirectory(mesa_dir.as_ptr());
+                SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+            }
+        }
+
+        let lib = libloading::Library::new("opengl32.dll").map_err(|e| {
+            log::error!("{:?}", e);
+            e
+        })?;
+        log::trace!("loaded {:?}", lib);
 
         let get_proc_address: libloading::Symbol<GetProcAddressFunc> =
             unsafe { lib.get(b"wglGetProcAddress\0")? };

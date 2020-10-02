@@ -1,5 +1,6 @@
 use promise::Future;
 use std::any::Any;
+use std::sync::atomic::{AtomicBool, Ordering};
 pub mod bitmaps;
 pub mod color;
 pub mod connection;
@@ -291,4 +292,14 @@ pub trait WindowOpsMut {
     /// Depending on the system this may be shown in its titlebar
     /// and/or in the task manager/task switcher
     fn set_icon(&mut self, _image: &dyn BitmapImage) {}
+}
+
+static PREFER_SWRAST: AtomicBool = AtomicBool::new(false);
+
+pub fn prefer_swrast() {
+    PREFER_SWRAST.store(true, Ordering::Release);
+}
+
+pub fn is_swrast_preferred() -> bool {
+    PREFER_SWRAST.load(Ordering::Acquire)
 }

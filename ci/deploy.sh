@@ -52,6 +52,9 @@ case $OSTYPE in
       assets/windows/conhost/conpty.dll \
       assets/windows/conhost/OpenConsole.exe \
       $zipdir
+    mkdir $zipdir/mesa
+    cp $TARGET_DIR/release/mesa/opengl32.dll \
+        $zipdir/mesa
     7z a -tzip $zipname $zipdir
     iscc.exe -DMyAppVersion=${TAG_NAME#nightly} -F${instname} ci/windows-installer.iss
     ;;

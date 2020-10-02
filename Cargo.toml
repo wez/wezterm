@@ -8,6 +8,7 @@ default-run = "wezterm"
 
 [build-dependencies]
 vergen = "3"
+anyhow = "1.0"
 
 [target.'cfg(windows)'.build-dependencies]
 embed-resource = "1.3"

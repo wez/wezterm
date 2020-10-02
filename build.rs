@@ -1,3 +1,4 @@
+use anyhow::Context as _;
 use std::path::Path;
 use vergen::{generate_cargo_keys, ConstantsFlags};
 
@@ -81,7 +82,29 @@ fn main() {
             let src_name = conhost_dir.join(name);
 
             if !dest_name.exists() {
-                std::fs::copy(src_name, dest_name).unwrap();
+                std::fs::copy(&src_name, &dest_name)
+                    .context(format!(
+                        "copy {} -> {}",
+                        src_name.display(),
+                        dest_name.display()
+                    ))
+                    .unwrap();
+            }
+        }
+
+        {
+            let dest_mesa = exe_output_dir.join("mesa");
+            let _ = std::fs::create_dir(&dest_mesa);
+            let dest_name = dest_mesa.join("opengl32.dll");
+            let src_name = windows_dir.join("mesa").join("opengl32.dll");
+            if !dest_name.exists() {
+                std::fs::copy(&src_name, &dest_name)
+                    .context(format!(
+                        "copy {} -> {}",
+                        src_name.display(),
+                        dest_name.display()
+                    ))
+                    .unwrap();
             }
         }
 
