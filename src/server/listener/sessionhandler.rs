@@ -1,4 +1,4 @@
-use crate::keyassignment::SpawnTabDomain;
+use crate::config::keyassignment::SpawnTabDomain;
 use crate::mux::pane::{Pane, PaneId};
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::TabId;

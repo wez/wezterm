@@ -1,4 +1,4 @@
-use crate::keyassignment::PaneDirection;
+use crate::config::keyassignment::PaneDirection;
 use crate::mux::domain::DomainId;
 use crate::mux::pane::*;
 use crate::mux::{Mux, WindowId};

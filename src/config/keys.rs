@@ -1,4 +1,4 @@
-use crate::keyassignment::{KeyAssignment, MouseEventTrigger};
+use crate::config::keyassignment::{KeyAssignment, MouseEventTrigger};
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Deserializer, Serialize};
 use termwiz::input::{KeyCode, Modifiers};

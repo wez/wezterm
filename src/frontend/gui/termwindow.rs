@@ -2,6 +2,9 @@
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
+use crate::config::keyassignment::{
+    InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
+};
 use crate::config::{configuration, ConfigHandle, TextStyle};
 use crate::font::shaper::GlyphInfo;
 use crate::font::units::*;
@@ -15,9 +18,6 @@ use crate::frontend::gui::overlay::{
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
-use crate::keyassignment::{
-    InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
-};
 use crate::mux::domain::{DomainId, DomainState};
 use crate::mux::pane::{Pane, PaneId};
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};

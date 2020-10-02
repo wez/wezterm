@@ -24,7 +24,7 @@ mod scripting;
 mod config;
 mod connui;
 mod frontend;
-mod keyassignment;
+use config::keyassignment;
 mod localtab;
 mod markdown;
 mod mux;

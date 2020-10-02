@@ -207,7 +207,7 @@ fn font_with_fallback<'lua>(
 fn action<'lua>(
     _lua: &'lua Lua,
     action: Table<'lua>,
-) -> mlua::Result<crate::keyassignment::KeyAssignment> {
+) -> mlua::Result<crate::config::keyassignment::KeyAssignment> {
     Ok(from_lua_value(Value::Table(action))?)
 }
 

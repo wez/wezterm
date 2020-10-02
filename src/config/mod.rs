@@ -1,11 +1,11 @@
 //! Configuration for the gui portion of the terminal
 
+use crate::config::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnCommand};
 use crate::create_user_owned_dirs;
 use crate::font::locator::FontLocatorSelection;
 use crate::font::rasterizer::FontRasterizerSelection;
 use crate::font::shaper::FontShaperSelection;
 use crate::frontend::FrontEndSelection;
-use crate::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnCommand};
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
 use luahelper::impl_lua_conversion;
@@ -27,6 +27,7 @@ use toml;
 mod color;
 mod daemon;
 mod font;
+pub mod keyassignment;
 mod keys;
 mod ssh;
 mod terminal;

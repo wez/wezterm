@@ -1,8 +1,8 @@
+use crate::config::keyassignment::SpawnTabDomain;
 use crate::config::{SshDomain, TlsDomainClient, UnixDomain};
 use crate::connui::ConnectionUI;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
-use crate::keyassignment::SpawnTabDomain;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::pane::{Pane, PaneId};
 use crate::mux::tab::{SplitDirection, Tab, TabId};

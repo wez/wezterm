@@ -6,8 +6,8 @@
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
 use crate::config::configuration;
+use crate::config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use crate::frontend::gui::termwindow::{ClipboardHelper, SpawnWhere, TermWindow};
-use crate::keyassignment::{SpawnCommand, SpawnTabDomain};
 use crate::mux::domain::{DomainId, DomainState};
 use crate::mux::tab::TabId;
 use crate::mux::window::WindowId;
