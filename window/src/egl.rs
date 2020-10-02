@@ -1,3 +1,4 @@
+use crate::{is_swrast_preferred, prefer_swrast};
 use anyhow::{anyhow, bail, ensure, Error};
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -390,6 +391,11 @@ impl GlState {
         let mut errors = vec![];
 
         for _ in 0..2 {
+            if is_swrast_preferred() {
+                // Assuming that we're using Mesa, set an environment
+                // variable that should select CPU based rendering.
+                std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "true");
+            }
             for path in &paths {
                 if let Ok(lib) = libloading::Library::new(path) {
                     match EglWrapper::load_egl(lib) {
@@ -408,9 +414,8 @@ impl GlState {
                     }
                 }
             }
-            // If we're using Mesa, set some environment variables
-            // that should select CPU based rendering and try again
-            std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "true");
+            // Since we didn't yet succeed, try enabling software rasterization
+            prefer_swrast();
         }
         bail!("with_egl_lib failed: {}", errors.join(", "))
     }

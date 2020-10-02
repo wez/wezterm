@@ -1,4 +1,3 @@
-use anyhow::Context as _;
 use std::path::Path;
 use vergen::{generate_cargo_keys, ConstantsFlags};
 
@@ -68,6 +67,7 @@ fn main() {
 
     #[cfg(windows)]
     {
+        use anyhow::Context as _;
         use std::io::Write;
         let profile = std::env::var("PROFILE").unwrap();
         let exe_output_dir = Path::new("target").join(profile);
