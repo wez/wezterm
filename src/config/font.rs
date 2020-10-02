@@ -1,4 +1,5 @@
 use crate::config::*;
+use luahelper::impl_lua_conversion;
 use termwiz::color::RgbColor;
 
 #[derive(Debug, Copy, Deserialize, Serialize, Clone, PartialEq, Eq, Hash)]

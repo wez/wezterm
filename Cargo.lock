@@ -1784,6 +1784,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "luahelper"
+version = "0.1.0"
+dependencies = [
+ "bstr 0.2.13",
+ "log",
+ "mlua",
+ "serde",
+ "serde_json",
+ "strsim 0.10.0",
+ "thiserror",
+]
+
+[[package]]
 name = "luajit-src"
 version = "210.1.0+resty31116c4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4061,6 +4074,7 @@ dependencies = [
  "libc",
  "log",
  "lru",
+ "luahelper",
  "metrics",
  "mlua",
  "notify",
@@ -4082,7 +4096,6 @@ dependencies = [
  "serial",
  "shared_library",
  "ssh2",
- "strsim 0.10.0",
  "structopt",
  "tabout",
  "terminfo",

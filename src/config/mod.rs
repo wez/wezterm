@@ -8,6 +8,7 @@ use crate::frontend::FrontEndSelection;
 use crate::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnCommand};
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
+use luahelper::impl_lua_conversion;
 use portable_pty::{CommandBuilder, PtySize};
 use serde::{Deserialize, Serialize};
 use std;

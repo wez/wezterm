@@ -3,6 +3,7 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use anyhow::{anyhow, Error};
 use downcast_rs::{impl_downcast, Downcast};
+use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
