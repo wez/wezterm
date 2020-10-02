@@ -3,8 +3,6 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use anyhow::{anyhow, Error};
 use downcast_rs::{impl_downcast, Downcast};
-use luahelper::impl_lua_conversion;
-use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -13,21 +11,7 @@ pub mod activity;
 pub mod gui;
 pub mod muxserver;
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
-pub enum FrontEndSelection {
-    OpenGL,
-    Software,
-    OldSoftware,
-    MuxServer,
-    Null,
-}
-impl_lua_conversion!(FrontEndSelection);
-
-impl Default for FrontEndSelection {
-    fn default() -> Self {
-        FrontEndSelection::OpenGL
-    }
-}
+pub use crate::config::FrontEndSelection;
 
 thread_local! {
     static FRONT_END: RefCell<Option<Rc<dyn FrontEnd>>> = RefCell::new(None);
