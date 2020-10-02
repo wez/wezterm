@@ -6,8 +6,9 @@
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
+use crate::mux::pane::{alloc_pane_id, Pane, PaneId};
 use crate::mux::renderable::Renderable;
-use crate::mux::tab::{alloc_pane_id, Pane, PaneId, SplitDirection, Tab, TabId};
+use crate::mux::tab::{SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};

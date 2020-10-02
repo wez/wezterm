@@ -19,8 +19,9 @@ use crate::keyassignment::{
     InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
 };
 use crate::mux::domain::{DomainId, DomainState};
+use crate::mux::pane::{Pane, PaneId};
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::{Pane, PaneId, PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
+use crate::mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::wezterm_term::input::MouseButton as TMB;

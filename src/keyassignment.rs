@@ -2,7 +2,7 @@ use crate::config::configuration;
 use crate::config::LeaderKey;
 use crate::frontend::gui::SelectionMode;
 use crate::mux::domain::DomainId;
-use crate::mux::tab::Pattern;
+use crate::mux::pane::Pattern;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;

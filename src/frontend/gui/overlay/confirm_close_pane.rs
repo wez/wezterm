@@ -1,4 +1,5 @@
-use crate::mux::tab::{PaneId, TabId};
+use crate::mux::pane::PaneId;
+use crate::mux::tab::TabId;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::termwiztermtab::TermWizTerminal;

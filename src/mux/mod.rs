@@ -1,4 +1,4 @@
-use crate::mux::tab::{Pane, PaneId};
+use crate::mux::pane::{Pane, PaneId};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
 use crate::ratelim::RateLimiter;
@@ -17,6 +17,7 @@ use std::thread;
 use thiserror::*;
 
 pub mod domain;
+pub mod pane;
 pub mod renderable;
 pub mod tab;
 pub mod window;

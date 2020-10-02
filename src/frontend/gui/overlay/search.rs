@@ -1,9 +1,8 @@
 use crate::frontend::gui::selection::{SelectionCoordinate, SelectionRange};
 use crate::frontend::gui::termwindow::TermWindow;
 use crate::mux::domain::DomainId;
+use crate::mux::pane::{Pane, PaneId, Pattern, SearchResult};
 use crate::mux::renderable::*;
-use crate::mux::tab::{Pane, PaneId};
-use crate::mux::tab::{Pattern, SearchResult};
 use portable_pty::PtySize;
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};

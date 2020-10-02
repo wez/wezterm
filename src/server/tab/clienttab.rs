@@ -1,7 +1,8 @@
 use crate::config::configuration;
 use crate::mux::domain::DomainId;
+use crate::mux::pane::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult};
 use crate::mux::renderable::{Renderable, RenderableDimensions};
-use crate::mux::tab::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult, TabId};
+use crate::mux::tab::TabId;
 use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;

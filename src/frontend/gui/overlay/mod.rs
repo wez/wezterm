@@ -1,5 +1,6 @@
 use crate::frontend::gui::termwindow::TermWindow;
-use crate::mux::tab::{Pane, PaneId, Tab, TabId};
+use crate::mux::pane::{Pane, PaneId};
+use crate::mux::tab::{Tab, TabId};
 use crate::termwiztermtab::{allocate, TermWizTerminal};
 use std::pin::Pin;
 use std::rc::Rc;

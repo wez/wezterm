@@ -7,7 +7,8 @@
 
 use crate::config::configuration;
 use crate::localtab::LocalPane;
-use crate::mux::tab::{alloc_pane_id, Pane, PaneId, SplitDirection, Tab, TabId};
+use crate::mux::pane::{alloc_pane_id, Pane, PaneId};
+use crate::mux::tab::{SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};

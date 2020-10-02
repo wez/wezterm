@@ -1,6 +1,7 @@
 use crate::keyassignment::SpawnTabDomain;
+use crate::mux::pane::{Pane, PaneId};
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::{Pane, PaneId, TabId};
+use crate::mux::tab::TabId;
 use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::listener::PKI;
@@ -252,7 +253,7 @@ impl SessionHandler {
             }
 
             Pdu::SearchScrollbackRequest(SearchScrollbackRequest { pane_id, pattern }) => {
-                use crate::mux::tab::Pattern;
+                use crate::mux::pane::Pattern;
 
                 async fn do_search(pane_id: TabId, pattern: Pattern) -> anyhow::Result<Pdu> {
                     let mux = Mux::get().unwrap();

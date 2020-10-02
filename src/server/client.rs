@@ -1,7 +1,7 @@
 use crate::config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
 use crate::connui::ConnectionUI;
 use crate::mux::domain::{alloc_domain_id, DomainId};
-use crate::mux::tab::PaneId;
+use crate::mux::pane::PaneId;
 use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
