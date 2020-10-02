@@ -11,6 +11,7 @@ mod search;
 mod tabnavigator;
 
 pub use confirm_close_pane::confirm_close_pane;
+pub use confirm_close_pane::confirm_close_tab;
 pub use copy::CopyOverlay;
 pub use launcher::launcher;
 pub use search::SearchOverlay;

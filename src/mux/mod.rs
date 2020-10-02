@@ -231,17 +231,20 @@ impl Mux {
         }
     }
 
-    fn remove_tab_internal(&self, tab_id: TabId) {
+    fn remove_tab_internal(&self, tab_id: TabId) -> Option<Rc<Tab>> {
         log::debug!("remove_tab_internal tab {}", tab_id);
+
+        let tab = self.tabs.borrow_mut().remove(&tab_id)?;
+
         let mut pane_ids = vec![];
-        if let Some(tab) = self.tabs.borrow_mut().remove(&tab_id) {
-            for pos in tab.iter_panes() {
-                pane_ids.push(pos.pane.pane_id());
-            }
+        for pos in tab.iter_panes() {
+            pane_ids.push(pos.pane.pane_id());
         }
         for pane_id in pane_ids {
             self.remove_pane_internal(pane_id);
         }
+
+        Some(tab)
     }
 
     fn remove_window_internal(&self, window_id: WindowId) {
@@ -259,9 +262,10 @@ impl Mux {
         self.prune_dead_windows();
     }
 
-    pub fn remove_tab(&self, tab_id: TabId) {
-        self.remove_tab_internal(tab_id);
+    pub fn remove_tab(&self, tab_id: TabId) -> Option<Rc<Tab>> {
+        let tab = self.remove_tab_internal(tab_id);
         self.prune_dead_windows();
+        tab
     }
 
     pub fn prune_dead_windows(&self) {

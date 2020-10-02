@@ -9,8 +9,8 @@ use crate::font::FontConfiguration;
 use crate::frontend::activity::Activity;
 use crate::frontend::front_end;
 use crate::frontend::gui::overlay::{
-    confirm_close_pane, launcher, start_overlay, start_overlay_pane, tab_navigator, CopyOverlay,
-    SearchOverlay,
+    confirm_close_pane, confirm_close_tab, launcher, start_overlay, start_overlay_pane,
+    tab_navigator, CopyOverlay, SearchOverlay,
 };
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
@@ -1855,7 +1855,7 @@ impl TermWindow {
                     w.show();
                 }
             }
-            CloseCurrentTab => self.close_current_tab(),
+            CloseCurrentTab { confirm } => self.close_current_tab(*confirm),
             CloseCurrentPane { confirm } => self.close_current_pane(*confirm),
             Nop | DisableDefaultAssignment => {}
             ReloadConfiguration => crate::config::reload(),
@@ -2153,17 +2153,23 @@ impl TermWindow {
         }
     }
 
-    fn close_current_tab(&mut self) {
+    fn close_current_tab(&mut self, confirm: bool) {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
             None => return,
         };
-        mux.remove_tab(tab.tab_id());
-        if let Some(mut win) = mux.get_window_mut(self.mux_window_id) {
-            win.remove_by_id(tab.tab_id());
+        let tab_id = tab.tab_id();
+        let mux_window_id = self.mux_window_id;
+        if confirm {
+            let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
+                confirm_close_tab(tab_id, term, mux_window_id)
+            });
+            self.assign_overlay(tab_id, overlay);
+            promise::spawn::spawn(future);
+        } else {
+            mux.remove_tab(tab_id);
         }
-        self.activate_tab_relative(0).ok();
     }
 
     fn close_tab_idx(&mut self, idx: usize) -> anyhow::Result<()> {

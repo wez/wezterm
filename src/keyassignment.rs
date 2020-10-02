@@ -97,7 +97,7 @@ pub enum KeyAssignment {
     DisableDefaultAssignment,
     Hide,
     Show,
-    CloseCurrentTab,
+    CloseCurrentTab { confirm: bool },
     ReloadConfiguration,
     MoveTabRelative(isize),
     MoveTab(usize),
@@ -227,7 +227,11 @@ impl InputMap {
                 [KeyModifiers::SUPER, KeyCode::Char('7'), ActivateTab(6)],
                 [KeyModifiers::SUPER, KeyCode::Char('8'), ActivateTab(7)],
                 [KeyModifiers::SUPER, KeyCode::Char('9'), ActivateTab(-1)],
-                [KeyModifiers::SUPER, KeyCode::Char('w'), CloseCurrentTab],
+                [
+                    KeyModifiers::SUPER,
+                    KeyCode::Char('w'),
+                    CloseCurrentTab { confirm: true }
+                ],
                 [ctrl_shift, KeyCode::Char('1'), ActivateTab(0)],
                 [ctrl_shift, KeyCode::Char('2'), ActivateTab(1)],
                 [ctrl_shift, KeyCode::Char('3'), ActivateTab(2)],
@@ -237,7 +241,11 @@ impl InputMap {
                 [ctrl_shift, KeyCode::Char('7'), ActivateTab(6)],
                 [ctrl_shift, KeyCode::Char('8'), ActivateTab(7)],
                 [ctrl_shift, KeyCode::Char('9'), ActivateTab(-1)],
-                [KeyModifiers::CTRL, KeyCode::Char('W'), CloseCurrentTab],
+                [
+                    KeyModifiers::CTRL,
+                    KeyCode::Char('W'),
+                    CloseCurrentTab { confirm: true }
+                ],
                 [
                     KeyModifiers::SUPER | KeyModifiers::SHIFT,
                     KeyCode::Char('['),
