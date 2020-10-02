@@ -15,11 +15,11 @@ pub mod units;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod fcwrap;
 
-use crate::font::locator::{FontDataHandle, FontLocator, FontLocatorSelection};
+use crate::font::locator::{new_locator, FontDataHandle, FontLocator, FontLocatorSelection};
 pub use crate::font::rasterizer::RasterizedGlyph;
-use crate::font::rasterizer::{FontRasterizer, FontRasterizerSelection};
+use crate::font::rasterizer::{new_rasterizer, FontRasterizer, FontRasterizerSelection};
+use crate::font::shaper::{new_shaper, FontShaper, FontShaperSelection};
 pub use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
-use crate::font::shaper::{FontShaper, FontShaperSelection};
 
 use super::config::{configuration, ConfigHandle, TextStyle};
 use wezterm_term::CellAttributes;
@@ -53,8 +53,10 @@ impl LoadedFont {
             .ok_or_else(|| anyhow!("no such fallback index: {}", fallback))?;
         let mut opt_raster = cell.borrow_mut();
         if opt_raster.is_none() {
-            let raster =
-                FontRasterizerSelection::get_default().new_rasterizer(&self.handles[fallback])?;
+            let raster = new_rasterizer(
+                FontRasterizerSelection::get_default(),
+                &self.handles[fallback],
+            )?;
             opt_raster.replace(raster);
         }
 
@@ -78,7 +80,7 @@ pub struct FontConfiguration {
 impl FontConfiguration {
     /// Create a new empty configuration
     pub fn new() -> Self {
-        let locator = FontLocatorSelection::get_default().new_locator();
+        let locator = new_locator(FontLocatorSelection::get_default());
         Self {
             fonts: RefCell::new(HashMap::new()),
             locator,
@@ -116,7 +118,7 @@ impl FontConfiguration {
         for _ in &handles {
             rasterizers.push(RefCell::new(None));
         }
-        let shaper = FontShaperSelection::get_default().new_shaper(&handles)?;
+        let shaper = new_shaper(FontShaperSelection::get_default(), &handles)?;
 
         let config = configuration();
         let font_size = config.font_size * *self.font_scale.borrow();

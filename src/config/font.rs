@@ -207,3 +207,158 @@ pub struct StyleRule {
     pub font: TextStyle,
 }
 impl_lua_conversion!(StyleRule);
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+pub enum FontLocatorSelection {
+    /// Use fontconfig APIs to resolve fonts (!macos, posix systems)
+    FontConfig,
+    /// Use the fontloader crate to use a system specific method of
+    /// resolving fonts
+    FontLoader,
+    /// Use the fontkit crate to use a different system specific
+    /// method of resolving fonts
+    FontKit,
+    /// Use only the font_dirs configuration to locate fonts
+    ConfigDirsOnly,
+}
+
+lazy_static::lazy_static! {
+    static ref DEFAULT_LOCATOR: Mutex<FontLocatorSelection> = Mutex::new(Default::default());
+}
+
+impl Default for FontLocatorSelection {
+    fn default() -> Self {
+        if cfg!(all(unix, not(target_os = "macos"))) {
+            FontLocatorSelection::FontConfig
+        } else {
+            FontLocatorSelection::FontLoader
+        }
+    }
+}
+
+impl FontLocatorSelection {
+    pub fn set_default(self) {
+        let mut def = DEFAULT_LOCATOR.lock().unwrap();
+        *def = self;
+    }
+
+    pub fn get_default() -> Self {
+        let def = DEFAULT_LOCATOR.lock().unwrap();
+        *def
+    }
+
+    pub fn variants() -> Vec<&'static str> {
+        vec!["FontConfig", "FontLoader", "FontKit", "ConfigDirsOnly"]
+    }
+}
+
+impl std::str::FromStr for FontLocatorSelection {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_ref() {
+            "fontconfig" => Ok(Self::FontConfig),
+            "fontloader" => Ok(Self::FontLoader),
+            "fontkit" => Ok(Self::FontKit),
+            "configdirsonly" => Ok(Self::ConfigDirsOnly),
+            _ => Err(anyhow!(
+                "{} is not a valid FontLocatorSelection variant, possible values are {:?}",
+                s,
+                Self::variants()
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub enum FontRasterizerSelection {
+    FreeType,
+    FontKit,
+}
+
+lazy_static::lazy_static! {
+    static ref DEFAULT_RASTER: Mutex<FontRasterizerSelection> = Mutex::new(Default::default());
+}
+
+impl Default for FontRasterizerSelection {
+    fn default() -> Self {
+        FontRasterizerSelection::FreeType
+    }
+}
+
+impl FontRasterizerSelection {
+    pub fn set_default(self) {
+        let mut def = DEFAULT_RASTER.lock().unwrap();
+        *def = self;
+    }
+
+    pub fn get_default() -> Self {
+        let def = DEFAULT_RASTER.lock().unwrap();
+        *def
+    }
+
+    pub fn variants() -> Vec<&'static str> {
+        vec!["FreeType", "FontKit"]
+    }
+}
+
+impl std::str::FromStr for FontRasterizerSelection {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_ref() {
+            "freetype" => Ok(Self::FreeType),
+            "fontkit" => Ok(Self::FontKit),
+            _ => Err(anyhow!(
+                "{} is not a valid FontRasterizerSelection variant, possible values are {:?}",
+                s,
+                Self::variants()
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub enum FontShaperSelection {
+    Allsorts,
+    Harfbuzz,
+}
+
+lazy_static::lazy_static! {
+    static ref DEFAULT_SHAPER: Mutex<FontShaperSelection> = Mutex::new(Default::default());
+}
+
+impl Default for FontShaperSelection {
+    fn default() -> Self {
+        FontShaperSelection::Harfbuzz
+    }
+}
+
+impl FontShaperSelection {
+    pub fn set_default(self) {
+        let mut def = DEFAULT_SHAPER.lock().unwrap();
+        *def = self;
+    }
+
+    pub fn get_default() -> Self {
+        let def = DEFAULT_SHAPER.lock().unwrap();
+        *def
+    }
+
+    pub fn variants() -> Vec<&'static str> {
+        vec!["Harfbuzz", "AllSorts"]
+    }
+}
+
+impl std::str::FromStr for FontShaperSelection {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_ref() {
+            "harfbuzz" => Ok(Self::Harfbuzz),
+            "allsorts" => Ok(Self::Allsorts),
+            _ => Err(anyhow!(
+                "{} is not a valid FontShaperSelection variant, possible values are {:?}",
+                s,
+                Self::variants()
+            )),
+        }
+    }
+}

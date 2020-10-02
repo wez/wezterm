@@ -1,8 +1,5 @@
 use crate::font::locator::FontDataHandle;
 use crate::font::units::PixelLength;
-use anyhow::{anyhow, Error};
-use serde::Deserialize;
-use std::sync::Mutex;
 
 pub mod allsorts;
 pub mod harfbuzz;
@@ -64,56 +61,14 @@ pub trait FontShaper {
     fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics>;
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
-pub enum FontShaperSelection {
-    Allsorts,
-    Harfbuzz,
-}
+pub use crate::config::FontShaperSelection;
 
-lazy_static::lazy_static! {
-    static ref DEFAULT_SHAPER: Mutex<FontShaperSelection> = Mutex::new(Default::default());
-}
-
-impl Default for FontShaperSelection {
-    fn default() -> Self {
-        FontShaperSelection::Harfbuzz
-    }
-}
-
-impl FontShaperSelection {
-    pub fn set_default(self) {
-        let mut def = DEFAULT_SHAPER.lock().unwrap();
-        *def = self;
-    }
-
-    pub fn get_default() -> Self {
-        let def = DEFAULT_SHAPER.lock().unwrap();
-        *def
-    }
-
-    pub fn variants() -> Vec<&'static str> {
-        vec!["Harfbuzz", "AllSorts"]
-    }
-
-    pub fn new_shaper(self, handles: &[FontDataHandle]) -> anyhow::Result<Box<dyn FontShaper>> {
-        match self {
-            Self::Harfbuzz => Ok(Box::new(harfbuzz::HarfbuzzShaper::new(handles)?)),
-            Self::Allsorts => Ok(Box::new(allsorts::AllsortsShaper::new(handles)?)),
-        }
-    }
-}
-
-impl std::str::FromStr for FontShaperSelection {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_ref() {
-            "harfbuzz" => Ok(Self::Harfbuzz),
-            "allsorts" => Ok(Self::Allsorts),
-            _ => Err(anyhow!(
-                "{} is not a valid FontShaperSelection variant, possible values are {:?}",
-                s,
-                Self::variants()
-            )),
-        }
+pub fn new_shaper(
+    shaper: FontShaperSelection,
+    handles: &[FontDataHandle],
+) -> anyhow::Result<Box<dyn FontShaper>> {
+    match shaper {
+        FontShaperSelection::Harfbuzz => Ok(Box::new(harfbuzz::HarfbuzzShaper::new(handles)?)),
+        FontShaperSelection::Allsorts => Ok(Box::new(allsorts::AllsortsShaper::new(handles)?)),
     }
 }
