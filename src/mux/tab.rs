@@ -1156,11 +1156,8 @@ impl Tab {
         self.remove_pane_if(|_, pane| pane.is_dead())
     }
 
-    pub fn kill_active_pane(&self) -> bool {
-        let active_idx = *self.active.borrow();
-        let killed = self.remove_pane_if(|idx, _| idx == active_idx);
-        log::debug!("kill_active_pane: killed={}", killed);
-        killed
+    pub fn kill_pane(&self, pane_id: PaneId) -> bool {
+        self.remove_pane_if(|_, pane| pane.pane_id() == pane_id)
     }
 
     pub fn kill_panes_in_domain(&self, domain: DomainId) -> bool {

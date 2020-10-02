@@ -123,7 +123,7 @@ pub enum KeyAssignment {
     AdjustPaneSize(PaneDirection, usize),
     ActivatePaneDirection(PaneDirection),
     TogglePaneZoomState,
-    CloseCurrentPane,
+    CloseCurrentPane { confirm: bool },
 }
 impl_lua_conversion!(KeyAssignment);
 
