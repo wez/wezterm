@@ -3383,6 +3383,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
+name = "strip-ansi-escapes"
+version = "0.1.0"
+dependencies = [
+ "structopt",
+ "termwiz",
+]
+
+[[package]]
 name = "strsim"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4111,7 +4119,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wezterm-gui"
+name = "wezterm"
 version = "0.1.0"
 dependencies = [
  "allsorts",
