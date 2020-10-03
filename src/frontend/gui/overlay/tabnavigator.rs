@@ -1,8 +1,8 @@
-use crate::mux::tab::TabId;
-use crate::mux::window::WindowId;
-use crate::mux::Mux;
 use crate::termwiztermtab::TermWizTerminal;
 use anyhow::anyhow;
+use mux::tab::TabId;
+use mux::window::WindowId;
+use mux::Mux;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent, MouseButtons, MouseEvent};

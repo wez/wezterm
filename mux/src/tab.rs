@@ -1,6 +1,6 @@
-use crate::mux::domain::DomainId;
-use crate::mux::pane::*;
-use crate::mux::{Mux, WindowId};
+use crate::domain::DomainId;
+use crate::pane::*;
+use crate::{Mux, WindowId};
 use bintree::PathBranch;
 use config::keyassignment::PaneDirection;
 use portable_pty::PtySize;
@@ -1458,7 +1458,7 @@ impl Into<String> for SerdeUrl {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::mux::renderable::Renderable;
+    use crate::renderable::Renderable;
     use url::Url;
     use wezterm_term::color::ColorPalette;
     use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};

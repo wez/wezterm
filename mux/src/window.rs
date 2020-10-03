@@ -1,4 +1,4 @@
-use crate::mux::{Tab, TabId};
+use crate::{Tab, TabId};
 use std::rc::Rc;
 use std::sync::Arc;
 use wezterm_term::Clipboard;

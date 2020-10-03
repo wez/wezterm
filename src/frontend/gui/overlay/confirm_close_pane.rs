@@ -1,8 +1,8 @@
-use crate::mux::pane::PaneId;
-use crate::mux::tab::TabId;
-use crate::mux::window::WindowId;
-use crate::mux::Mux;
 use crate::termwiztermtab::TermWizTerminal;
+use mux::pane::PaneId;
+use mux::tab::TabId;
+use mux::window::WindowId;
+use mux::Mux;
 use termwiz::color::ColorAttribute;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent};
 use termwiz::surface::{Change, Position};

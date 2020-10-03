@@ -1,13 +1,13 @@
 //! Implements the multiplexer server frontend
 use crate::font::FontConfiguration;
 use crate::frontend::FrontEnd;
-use crate::mux::tab::Tab;
-use crate::mux::window::WindowId;
-use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
 use anyhow::{bail, Error};
 use crossbeam::channel::{unbounded as channel, Receiver};
 use log::info;
+use mux::tab::Tab;
+use mux::window::WindowId;
+use mux::Mux;
 use promise::*;
 use std::rc::Rc;
 

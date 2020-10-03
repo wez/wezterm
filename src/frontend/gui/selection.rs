@@ -1,7 +1,7 @@
 // The range_plus_one lint can't see when the LHS is not compatible with
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
-use crate::mux::renderable::Renderable;
+use mux::renderable::Renderable;
 use std::ops::Range;
 use termwiz::surface::line::DoubleClickRange;
 use wezterm_term::StableRowIndex;

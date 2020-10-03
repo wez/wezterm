@@ -1,10 +1,10 @@
 use crate::font::FontConfiguration;
 use crate::frontend::FrontEnd;
-use crate::mux::tab::Tab;
-use crate::mux::window::WindowId as MuxWindowId;
-use crate::mux::Mux;
 use ::window::*;
 use config::configuration;
+use mux::tab::Tab;
+use mux::window::WindowId as MuxWindowId;
+use mux::Mux;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 

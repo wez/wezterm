@@ -5,11 +5,11 @@
 //! container or actually remote, running on the other end
 //! of an ssh session somewhere.
 
-use crate::mux::localtab::LocalPane;
-use crate::mux::pane::{alloc_pane_id, Pane, PaneId};
-use crate::mux::tab::{SplitDirection, Tab, TabId};
-use crate::mux::window::WindowId;
-use crate::mux::Mux;
+use crate::localtab::LocalPane;
+use crate::pane::{alloc_pane_id, Pane, PaneId};
+use crate::tab::{SplitDirection, Tab, TabId};
+use crate::window::WindowId;
+use crate::Mux;
 use anyhow::{bail, Error};
 use async_trait::async_trait;
 use config::configuration;
@@ -146,7 +146,7 @@ impl Domain for LocalDomain {
             size.pixel_height as usize,
             std::sync::Arc::new(config::TermConfig {}),
             "WezTerm",
-            crate::wezterm_version(),
+            config::wezterm_version(),
             Box::new(writer),
         );
 
@@ -228,7 +228,7 @@ impl Domain for LocalDomain {
             split_size.second.pixel_height as usize,
             std::sync::Arc::new(config::TermConfig {}),
             "WezTerm",
-            crate::wezterm_version(),
+            config::wezterm_version(),
             Box::new(writer),
         );
 

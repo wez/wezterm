@@ -1,6 +1,6 @@
-use crate::mux::domain::DomainId;
-use crate::mux::pane::{Pane, PaneId, Pattern, SearchResult};
-use crate::mux::renderable::Renderable;
+use crate::domain::DomainId;
+use crate::pane::{Pane, PaneId, Pattern, SearchResult};
+use crate::renderable::Renderable;
 use anyhow::Error;
 use async_trait::async_trait;
 use portable_pty::{Child, MasterPty, PtySize};

@@ -1,7 +1,4 @@
 use crate::connui::ConnectionUI;
-use crate::mux::domain::{alloc_domain_id, DomainId};
-use crate::mux::pane::PaneId;
-use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
 use crate::server::pollable::*;
@@ -13,6 +10,9 @@ use config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
 use crossbeam::channel::TryRecvError;
 use filedescriptor::{poll, pollfd, AsRawSocketDescriptor};
 use log::info;
+use mux::domain::{alloc_domain_id, DomainId};
+use mux::pane::PaneId;
+use mux::Mux;
 use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
 use openssl::x509::X509;
 use portable_pty::{CommandBuilder, NativePtySystem, PtySystem};

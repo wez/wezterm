@@ -1,8 +1,8 @@
 use crate::font::FontConfiguration;
-use crate::mux::tab::Tab;
-use crate::mux::window::WindowId;
 use anyhow::Error;
 use downcast_rs::{impl_downcast, Downcast};
+use mux::tab::Tab;
+use mux::window::WindowId;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};

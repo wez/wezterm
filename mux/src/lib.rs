@@ -1,6 +1,6 @@
-use crate::mux::pane::{Pane, PaneId};
-use crate::mux::tab::{Tab, TabId};
-use crate::mux::window::{Window, WindowId};
+use crate::pane::{Pane, PaneId};
+use crate::tab::{Tab, TabId};
+use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Error};
 use domain::{Domain, DomainId};
 use log::error;

@@ -6,14 +6,14 @@
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
 use crate::frontend::gui::termwindow::{ClipboardHelper, SpawnWhere, TermWindow};
-use crate::mux::domain::{DomainId, DomainState};
-use crate::mux::tab::TabId;
-use crate::mux::window::WindowId;
-use crate::mux::Mux;
 use crate::termwiztermtab::TermWizTerminal;
 use anyhow::anyhow;
 use config::configuration;
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
+use mux::domain::{DomainId, DomainState};
+use mux::tab::TabId;
+use mux::window::WindowId;
+use mux::Mux;
 use portable_pty::PtySize;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;

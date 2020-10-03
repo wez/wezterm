@@ -1,7 +1,3 @@
-use crate::mux::domain::DomainId;
-use crate::mux::pane::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult};
-use crate::mux::renderable::{Renderable, RenderableDimensions};
-use crate::mux::tab::TabId;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use crate::server::tab::mousestate::MouseState;
@@ -11,6 +7,10 @@ use async_trait::async_trait;
 use config::configuration;
 use filedescriptor::Pipe;
 use log::info;
+use mux::domain::DomainId;
+use mux::pane::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult};
+use mux::renderable::{Renderable, RenderableDimensions};
+use mux::tab::TabId;
 use portable_pty::PtySize;
 use ratelim::RateLimiter;
 use std::cell::RefCell;

@@ -1,6 +1,6 @@
-use crate::mux::domain::DomainId;
-use crate::mux::renderable::Renderable;
-use crate::mux::Mux;
+use crate::domain::DomainId;
+use crate::renderable::Renderable;
+use crate::Mux;
 use async_trait::async_trait;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;

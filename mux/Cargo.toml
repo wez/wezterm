@@ -1,0 +1,25 @@
+[package]
+name = "mux"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+bintree = { path = "../bintree" }
+config = { path = "../config" }
+downcast-rs = "1.0"
+log = "0.4"
+portable-pty = { path = "../pty", features = ["serde_support"]}
+promise = { path = "../promise" }
+rangeset = { path = "../rangeset" }
+ratelim= { path = "../ratelim" }
+regex = "1"
+serde = {version="1.0", features = ["rc", "derive"]}
+termwiz = { path = "../termwiz" }
+thiserror = "1.0"
+url = "2"
+wezterm-term = { path = "../term", features=["use_serde"] }

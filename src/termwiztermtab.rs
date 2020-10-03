@@ -5,16 +5,16 @@
 
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
-use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::pane::{alloc_pane_id, Pane, PaneId};
-use crate::mux::renderable::Renderable;
-use crate::mux::tab::{SplitDirection, Tab, TabId};
-use crate::mux::window::WindowId;
-use crate::mux::Mux;
 use anyhow::{bail, Error};
 use async_trait::async_trait;
 use crossbeam::channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::{FileDescriptor, Pipe};
+use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
+use mux::pane::{alloc_pane_id, Pane, PaneId};
+use mux::renderable::Renderable;
+use mux::tab::{SplitDirection, Tab, TabId};
+use mux::window::WindowId;
+use mux::Mux;
 use portable_pty::*;
 use std::cell::RefCell;
 use std::cell::RefMut;

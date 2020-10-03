@@ -1,5 +1,5 @@
-use crate::mux::renderable::Renderable;
 use ::window::*;
+use mux::renderable::Renderable;
 use portable_pty::PtySize;
 use wezterm_term::StableRowIndex;
 

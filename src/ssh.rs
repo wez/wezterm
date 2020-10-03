@@ -1,12 +1,12 @@
 use crate::connui::ConnectionUI;
-use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::localtab::LocalPane;
-use crate::mux::pane::{alloc_pane_id, Pane, PaneId};
-use crate::mux::tab::{SplitDirection, Tab, TabId};
-use crate::mux::window::WindowId;
-use crate::mux::Mux;
 use anyhow::{anyhow, bail, Context, Error};
 use async_trait::async_trait;
+use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
+use mux::localtab::LocalPane;
+use mux::pane::{alloc_pane_id, Pane, PaneId};
+use mux::tab::{SplitDirection, Tab, TabId};
+use mux::window::WindowId;
+use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
 use promise::{Future, Promise};

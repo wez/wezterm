@@ -2045,6 +2045,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "mux"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bintree",
+ "config",
+ "downcast-rs",
+ "log",
+ "portable-pty",
+ "promise",
+ "rangeset",
+ "ratelim",
+ "regex",
+ "serde",
+ "termwiz",
+ "thiserror",
+ "url",
+ "wezterm-term",
+]
+
+[[package]]
 name = "nb-connect"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4070,7 +4092,6 @@ dependencies = [
  "async-trait",
  "base64 0.10.1",
  "base91",
- "bintree",
  "bitflags 1.2.1",
  "bstr 0.2.13",
  "cc",
@@ -4105,6 +4126,7 @@ dependencies = [
  "luahelper",
  "metrics",
  "mlua",
+ "mux",
  "notify-rust",
  "objc",
  "open",

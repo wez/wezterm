@@ -22,7 +22,6 @@ allsorts = "0.4"
 async-task = "1.2"
 async-trait = "0.1"
 anyhow = "1.0"
-bintree = { path = "bintree" }
 thiserror = "1.0"
 base64 = "0.10"
 base91 = { path = "base91" }
@@ -47,6 +46,7 @@ libc = "0.2"
 log = "0.4"
 lru = "0.5"
 luahelper = { path = "luahelper" }
+mux = { path = "mux" }
 open = "1.2"
 pulldown-cmark = "0.7"
 metrics = { version="0.12", features=["std"]}

@@ -1,5 +1,5 @@
-use crate::mux::window::Window as MuxWindow;
 use config::{ConfigHandle, TabBarColors};
+use mux::window::Window as MuxWindow;
 use std::cell::Ref;
 use termwiz::cell::unicode_column_width;
 use termwiz::cell::{Cell, CellAttributes};

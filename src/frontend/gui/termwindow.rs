@@ -14,12 +14,6 @@ use crate::frontend::gui::overlay::{
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
-use crate::mux::domain::{DomainId, DomainState};
-use crate::mux::pane::{Pane, PaneId};
-use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
-use crate::mux::window::WindowId as MuxWindowId;
-use crate::mux::Mux;
 use ::wezterm_term::input::MouseButton as TMB;
 use ::wezterm_term::input::MouseEventKind as TMEK;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, SpriteSlice};
@@ -37,6 +31,12 @@ use config::keyassignment::{
 };
 use config::{configuration, ConfigHandle, TextStyle};
 use lru::LruCache;
+use mux::domain::{DomainId, DomainState};
+use mux::pane::{Pane, PaneId};
+use mux::renderable::{RenderableDimensions, StableCursorPosition};
+use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
+use mux::window::WindowId as MuxWindowId;
+use mux::Mux;
 use portable_pty::{CommandBuilder, PtySize};
 use std::any::Any;
 use std::cell::{RefCell, RefMut};

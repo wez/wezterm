@@ -1,12 +1,12 @@
-use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::TabId;
-use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use crate::server::tab::clienttab::ClientPane;
 use anyhow::anyhow;
 use config::{configuration, ConfigHandle};
 use lru::LruCache;
+use mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
+use mux::tab::TabId;
+use mux::Mux;
 use promise::BrokenPromise;
 use rangeset::*;
 use ratelim::RateLimiter;
@@ -350,7 +350,7 @@ impl RenderableInner {
         if !dirty.is_empty() {
             Mux::get()
                 .unwrap()
-                .notify(crate::mux::MuxNotification::PaneOutput(self.local_pane_id));
+                .notify(mux::MuxNotification::PaneOutput(self.local_pane_id));
         }
 
         let mut to_fetch = RangeSet::new();

@@ -11,14 +11,14 @@
 #![allow(dead_code)]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 
-use crate::mux::domain::DomainId;
-use crate::mux::pane::PaneId;
-use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::{PaneNode, SerdeUrl, SplitDirection, TabId};
-use crate::mux::window::WindowId;
 use anyhow::{bail, Context as _, Error};
 use leb128;
 use log::debug;
+use mux::domain::DomainId;
+use mux::pane::PaneId;
+use mux::renderable::{RenderableDimensions, StableCursorPosition};
+use mux::tab::{PaneNode, SerdeUrl, SplitDirection, TabId};
+use mux::window::WindowId;
 use portable_pty::{CommandBuilder, PtySize};
 use rangeset::*;
 use serde::{Deserialize, Serialize};
@@ -683,12 +683,12 @@ pub struct GetLinesResponse {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SearchScrollbackRequest {
     pub pane_id: PaneId,
-    pub pattern: crate::mux::pane::Pattern,
+    pub pattern: mux::pane::Pattern,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SearchScrollbackResponse {
-    pub results: Vec<crate::mux::pane::SearchResult>,
+    pub results: Vec<mux::pane::SearchResult>,
 }
 
 #[cfg(test)]
