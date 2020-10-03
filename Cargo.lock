@@ -660,6 +660,7 @@ dependencies = [
  "portable-pty",
  "rangeset",
  "serde",
+ "smol",
  "termwiz",
  "varbincode",
  "wezterm-term",

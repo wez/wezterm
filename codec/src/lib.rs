@@ -22,6 +22,7 @@ use mux::window::WindowId;
 use portable_pty::{CommandBuilder, PtySize};
 use rangeset::*;
 use serde::{Deserialize, Serialize};
+use smol::prelude::*;
 use std::convert::TryInto;
 use std::io::Cursor;
 use std::ops::Range;
@@ -48,19 +49,12 @@ fn encoded_length(value: u64) -> usize {
 
 const COMPRESSED_MASK: u64 = 1 << 63;
 
-/// Encode a frame.  If the data is compressed, the high bit of the length
-/// is set to indicate that.  The data written out has the format:
-/// tagged_len: leb128  (u64 msb is set if data is compressed)
-/// serial: leb128
-/// ident: leb128
-/// data bytes
-fn encode_raw<W: std::io::Write>(
+fn encode_raw_as_vec(
     ident: u64,
     serial: u64,
     data: &[u8],
     is_compressed: bool,
-    mut w: W,
-) -> anyhow::Result<usize> {
+) -> anyhow::Result<Vec<u8>> {
     let len = data.len() + encoded_length(ident) + encoded_length(serial);
     let masked_len = if is_compressed {
         (len as u64) | COMPRESSED_MASK
@@ -84,9 +78,55 @@ fn encode_raw<W: std::io::Write>(
         metrics::value!("pdu.encode.size", buffer.len() as u64);
     }
 
-    w.write_all(&buffer).context("writing pdu data buffer")?;
+    Ok(buffer)
+}
 
+/// Encode a frame.  If the data is compressed, the high bit of the length
+/// is set to indicate that.  The data written out has the format:
+/// tagged_len: leb128  (u64 msb is set if data is compressed)
+/// serial: leb128
+/// ident: leb128
+/// data bytes
+fn encode_raw<W: std::io::Write>(
+    ident: u64,
+    serial: u64,
+    data: &[u8],
+    is_compressed: bool,
+    mut w: W,
+) -> anyhow::Result<usize> {
+    let buffer = encode_raw_as_vec(ident, serial, data, is_compressed)?;
+    w.write_all(&buffer).context("writing pdu data buffer")?;
     Ok(buffer.len())
+}
+
+async fn encode_raw_async<W: Unpin + AsyncWriteExt>(
+    ident: u64,
+    serial: u64,
+    data: &[u8],
+    is_compressed: bool,
+    w: &mut W,
+) -> anyhow::Result<usize> {
+    let buffer = encode_raw_as_vec(ident, serial, data, is_compressed)?;
+    w.write_all(&buffer)
+        .await
+        .context("writing pdu data buffer")?;
+    Ok(buffer.len())
+}
+
+/// Read a single leb128 encoded value from the stream
+async fn read_u64_async<R: Unpin + AsyncRead>(r: &mut R) -> anyhow::Result<u64> {
+    let mut buf = vec![];
+    loop {
+        let mut byte = [0u8];
+        r.read(&mut byte).await?;
+        buf.push(byte[0]);
+
+        match leb128::read::unsigned(&mut buf.as_slice()) {
+            Ok(n) => return Ok(n),
+            Err(leb128::read::Error::IoError(_)) => continue,
+            Err(leb128::read::Error::Overflow) => anyhow::bail!("leb128 is too large"),
+        }
+    }
 }
 
 /// Read a single leb128 encoded value from the stream
@@ -105,6 +145,40 @@ struct Decoded {
     serial: u64,
     data: Vec<u8>,
     is_compressed: bool,
+}
+
+/// Decode a frame.
+/// See encode_raw() for the frame format.
+async fn decode_raw_async<R: Unpin + AsyncReadExt>(r: &mut R) -> anyhow::Result<Decoded> {
+    let len = read_u64_async(r).await.context("reading PDU length")?;
+    let (len, is_compressed) = if (len & COMPRESSED_MASK) != 0 {
+        (len & !COMPRESSED_MASK, true)
+    } else {
+        (len, false)
+    };
+    let serial = read_u64_async(r).await.context("reading PDU serial")?;
+    let ident = read_u64_async(r).await.context("reading PDU ident")?;
+    let data_len = len as usize - (encoded_length(ident) + encoded_length(serial));
+
+    if is_compressed {
+        metrics::value!("pdu.decode.compressed.size", data_len as u64);
+    } else {
+        metrics::value!("pdu.decode.size", data_len as u64);
+    }
+
+    let mut data = vec![0u8; data_len];
+    r.read_exact(&mut data).await.with_context(|| {
+        format!(
+            "reading {} bytes of data for PDU of length {} with serial={} ident={}",
+            data_len, len, serial, ident
+        )
+    })?;
+    Ok(Decoded {
+        ident,
+        serial,
+        data,
+        is_compressed,
+    })
 }
 
 /// Decode a frame.
@@ -218,6 +292,20 @@ macro_rules! pdu {
                 }
             }
 
+            pub async fn encode_async<W: Unpin + AsyncWriteExt>(&self, w: &mut W, serial: u64) -> Result<(), Error> {
+                match self {
+                    Pdu::Invalid{..} => bail!("attempted to serialize Pdu::Invalid"),
+                    $(
+                        Pdu::$name(s) => {
+                            let (data, is_compressed) = serialize(s)?;
+                            let encoded_size = encode_raw_async($vers, serial, &data, is_compressed, w).await?;
+                            metrics::value!("pdu.size", encoded_size as u64, "pdu" => stringify!($name));
+                            Ok(())
+                        }
+                    ,)*
+                }
+            }
+
             pub fn decode<R: std::io::Read>(r:R) -> Result<DecodedPdu, Error> {
                 let decoded = decode_raw(r).context("decoding a PDU")?;
                 match decoded.ident {
@@ -239,6 +327,30 @@ macro_rules! pdu {
                     }
                 }
             }
+
+            pub async fn decode_async<R: std::marker::Unpin + AsyncReadExt>(r:&mut R) -> Result<DecodedPdu, Error> {
+                let decoded = decode_raw_async(r).await.context("decoding a PDU")?;
+                match decoded.ident {
+                    $(
+                        $vers => {
+                            metrics::value!("pdu.size", decoded.data.len() as u64, "pdu" => stringify!($name));
+                            Ok(DecodedPdu {
+                                serial: decoded.serial,
+                                pdu: Pdu::$name(deserialize(decoded.data.as_slice(), decoded.is_compressed)?)
+                            })
+                        }
+                    ,)*
+                    _ => {
+                        metrics::value!("pdu.size", decoded.data.len() as u64, "pdu" => "??");
+                        Ok(DecodedPdu {
+                            serial: decoded.serial,
+                            pdu: Pdu::Invalid{ident:decoded.ident}
+                        })
+                    }
+                }
+            }
+
+
         }
     }
 }
