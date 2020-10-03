@@ -27,6 +27,7 @@ case $OSTYPE in
     mkdir $zipdir
     cp -r assets/macos/WezTerm.app $zipdir/
     cp $TARGET_DIR/release/wezterm $zipdir/WezTerm.app
+    cp $TARGET_DIR/release/wezterm-mux-server $zipdir/WezTerm.app
     cp $TARGET_DIR/release/strip-ansi-escapes $zipdir/WezTerm.app
     zip -r $zipname $zipdir
 
@@ -47,6 +48,7 @@ case $OSTYPE in
     rm -rf $zipdir $zipname
     mkdir $zipdir
     cp $TARGET_DIR/release/wezterm.exe \
+      $TARGET_DIR/release/wezterm-mux-server.exe \
       $TARGET_DIR/release/strip-ansi-escapes.exe \
       $TARGET_DIR/release/wezterm.pdb \
       assets/windows/conhost/conpty.dll \
@@ -87,6 +89,7 @@ set -x
 cd ${HERE}
 mkdir -p %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm -t %{buildroot}/usr/bin
+install -Dsm755 target/release/wezterm-mux-server -t %{buildroot}/usr/bin
 install -Dsm755 target/release/strip-ansi-escapes -t %{buildroot}/usr/bin
 install -Dm644 assets/icon/terminal.png %{buildroot}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 install -Dm644 assets/wezterm.desktop %{buildroot}/usr/share/applications/org.wezfurlong.wezterm.desktop
@@ -94,6 +97,7 @@ install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/org.we
 
 %files
 /usr/bin/wezterm
+/usr/bin/wezterm-mux-server
 /usr/bin/strip-ansi-escapes
 /usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 /usr/share/applications/org.wezfurlong.wezterm.desktop
@@ -120,6 +124,7 @@ Description: Wez's Terminal Emulator.
  windows.
 Depends: libc6, libegl-mesa0, libxcb-icccm4, libxcb-ewmh2, libxcb-keysyms1, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0, libfontconfig1, xdg-utils, libxcb-render0, libxcb-shape0, libx11-6, libegl1
 EOF
+        install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-mux-server
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm
         install -Dsm755 -t pkg/debian/usr/bin target/release/strip-ansi-escapes
         install -Dm644 assets/icon/terminal.png pkg/debian/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
