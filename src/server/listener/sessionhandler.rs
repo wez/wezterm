@@ -1,7 +1,7 @@
-use crate::server::codec::*;
 use crate::server::listener::PKI;
 use crate::server::pollable::*;
 use anyhow::anyhow;
+use codec::*;
 use config::keyassignment::SpawnTabDomain;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};

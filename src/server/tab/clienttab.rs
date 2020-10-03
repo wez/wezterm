@@ -1,9 +1,9 @@
-use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use crate::server::tab::mousestate::MouseState;
 use crate::server::tab::renderable::{RenderableInner, RenderableState};
 use anyhow::bail;
 use async_trait::async_trait;
+use codec::*;
 use config::configuration;
 use filedescriptor::Pipe;
 use log::info;

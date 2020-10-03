@@ -1,7 +1,7 @@
-use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use crate::server::tab::clienttab::ClientPane;
 use anyhow::anyhow;
+use codec::*;
 use config::{configuration, ConfigHandle};
 use lru::LruCache;
 use mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};

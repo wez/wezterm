@@ -647,6 +647,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "codec"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "leb128",
+ "log",
+ "metrics",
+ "mux",
+ "portable-pty",
+ "rangeset",
+ "serde",
+ "termwiz",
+ "varbincode",
+ "wezterm-term",
+ "zstd",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4097,6 +4116,7 @@ dependencies = [
  "bstr 0.2.13",
  "cc",
  "cocoa",
+ "codec",
  "config",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
@@ -4120,7 +4140,6 @@ dependencies = [
  "http_req",
  "image",
  "lazy_static",
- "leb128",
  "libc",
  "log",
  "lru",
@@ -4159,13 +4178,11 @@ dependencies = [
  "unicode-segmentation",
  "unicode-width",
  "url",
- "varbincode",
  "walkdir",
  "wezterm-term",
  "winapi 0.3.9",
  "window",
  "winrt-notification",
- "zstd",
 ]
 
 [[package]]

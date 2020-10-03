@@ -920,7 +920,7 @@ fn run() -> anyhow::Result<()> {
                             .parse()?,
                     };
 
-                    let spawned = block_on(client.split_pane(crate::server::codec::SplitPane {
+                    let spawned = block_on(client.split_pane(codec::SplitPane {
                         pane_id,
                         direction: if horizontal {
                             SplitDirection::Horizontal
@@ -975,8 +975,7 @@ fn run() -> anyhow::Result<()> {
                 }
                 CliSubCommand::TlsCreds => {
                     let creds = block_on(client.get_tls_creds())?;
-                    crate::server::codec::Pdu::GetTlsCredsResponse(creds)
-                        .encode(std::io::stdout().lock(), 0)?;
+                    codec::Pdu::GetTlsCredsResponse(creds).encode(std::io::stdout().lock(), 0)?;
                 }
             }
             Ok(())

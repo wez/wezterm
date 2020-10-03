@@ -1,0 +1,22 @@
+[package]
+name = "codec"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+config = { path = "../config" }
+leb128 = "0.2"
+log = "0.4"
+metrics = { version="0.12", features=["std"]}
+mux = { path = "../mux" }
+portable-pty = { path = "../pty", features = ["serde_support"]}
+rangeset = { path = "../rangeset" }
+serde = {version="1.0", features = ["rc", "derive"]}
+termwiz = { path = "../termwiz" }
+varbincode = "0.1"
+wezterm-term = { path = "../term", features=["use_serde"] }
+zstd = "0.4"

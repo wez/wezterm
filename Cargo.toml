@@ -28,6 +28,7 @@ base91 = { path = "base91" }
 rangeset = { path = "rangeset" }
 bitflags = "1.0"
 bstr = "0.2"
+codec = { path = "codec" }
 config = { path = "config" }
 crossbeam = "0.7"
 dirs = "2.0"
@@ -41,7 +42,6 @@ image = "0.23"
 harfbuzz = { path = "deps/harfbuzz" }
 hostname = "0.3"
 lazy_static = "1.4"
-leb128 = "0.2"
 libc = "0.2"
 log = "0.4"
 lru = "0.5"
@@ -76,10 +76,8 @@ unicode-normalization = "0.1"
 unicode-segmentation = "1.6"
 unicode-width = "0.1"
 url = "2"
-varbincode = "0.1"
 walkdir = "2"
 window = { path = "window", features=["opengl", "wayland"]}
-zstd = "0.4"
 
 [target.'cfg(unix)'.dependencies]
 daemonize = { git = "https://github.com/wez/daemonize" }

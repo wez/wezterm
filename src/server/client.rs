@@ -1,11 +1,11 @@
 use crate::connui::ConnectionUI;
-use crate::server::codec::*;
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
 use crate::server::pollable::*;
 use crate::server::tab::ClientPane;
 use crate::server::UnixStream;
 use crate::ssh::ssh_connect_with_ui;
 use anyhow::{anyhow, bail, Context, Error};
+use codec::*;
 use config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
 use crossbeam::channel::TryRecvError;
 use filedescriptor::{poll, pollfd, AsRawSocketDescriptor};

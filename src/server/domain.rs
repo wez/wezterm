@@ -1,9 +1,9 @@
 use crate::connui::ConnectionUI;
 use crate::server::client::Client;
-use crate::server::codec::{ListPanesResponse, Spawn, SplitPane};
 use crate::server::tab::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
+use codec::{ListPanesResponse, Spawn, SplitPane};
 use config::keyassignment::SpawnTabDomain;
 use config::{SshDomain, TlsDomainClient, UnixDomain};
 use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};

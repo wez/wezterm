@@ -1,5 +1,5 @@
 use crate::server::client::Client;
-use crate::server::codec::*;
+use codec::*;
 use mux::tab::TabId;
 use std::cell::RefCell;
 use std::collections::VecDeque;
