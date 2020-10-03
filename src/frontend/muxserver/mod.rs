@@ -53,7 +53,7 @@ impl FrontEnd for MuxServerFrontEnd {
                 Err(err) => bail!("while waiting for events: {:?}", err),
             }
 
-            if Mux::get().unwrap().is_empty() && crate::frontend::activity::Activity::count() == 0 {
+            if Mux::get().unwrap().is_empty() && mux::activity::Activity::count() == 0 {
                 info!("No more tabs; all done!");
                 return Ok(());
             }

@@ -15,12 +15,15 @@ use std::sync::Arc;
 use std::thread;
 use thiserror::*;
 
+pub mod activity;
 pub mod domain;
 pub mod localtab;
 pub mod pane;
 pub mod renderable;
 pub mod tab;
 pub mod window;
+
+use crate::activity::Activity;
 
 #[derive(Clone, Debug)]
 pub enum MuxNotification {
@@ -107,15 +110,17 @@ thread_local! {
 
 pub struct MuxWindowBuilder {
     window_id: WindowId,
-    // FIXME: Activity here
+    activity: Option<Activity>,
 }
 
 impl Drop for MuxWindowBuilder {
     fn drop(&mut self) {
         let window_id = self.window_id;
+        let activity = self.activity.take().unwrap();
         promise::spawn::spawn_into_main_thread(async move {
             if let Some(mux) = Mux::get() {
                 mux.notify(MuxNotification::WindowCreated(window_id));
+                drop(activity);
             }
         });
     }
@@ -359,7 +364,10 @@ impl Mux {
         let window = Window::new();
         let window_id = window.window_id();
         self.windows.borrow_mut().insert(window_id, window);
-        MuxWindowBuilder { window_id }
+        MuxWindowBuilder {
+            window_id,
+            activity: Some(Activity::new()),
+        }
     }
 
     pub fn add_tab_to_window(&self, tab: &Rc<Tab>, window_id: WindowId) -> anyhow::Result<()> {

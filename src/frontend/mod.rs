@@ -4,7 +4,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-pub mod activity;
 pub mod gui;
 pub mod muxserver;
 

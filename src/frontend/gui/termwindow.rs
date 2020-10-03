@@ -5,7 +5,6 @@ use super::utilsprites::RenderMetrics;
 use crate::font::shaper::GlyphInfo;
 use crate::font::units::*;
 use crate::font::FontConfiguration;
-use crate::frontend::activity::Activity;
 use crate::frontend::gui::overlay::{
     confirm_close_pane, confirm_close_tab, launcher, start_overlay, start_overlay_pane,
     tab_navigator, CopyOverlay, SearchOverlay,
@@ -30,6 +29,7 @@ use config::keyassignment::{
 };
 use config::{configuration, ConfigHandle, TextStyle};
 use lru::LruCache;
+use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};

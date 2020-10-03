@@ -30,10 +30,10 @@ mod stats;
 mod termwiztermtab;
 mod update;
 
-use crate::frontend::activity::Activity;
 use crate::frontend::{front_end, FrontEndSelection};
 use crate::server::client::{unix_connect_with_retry, Client};
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
+use mux::activity::Activity;
 use portable_pty::cmdbuilder::CommandBuilder;
 
 mod font;

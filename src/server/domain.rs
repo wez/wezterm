@@ -463,7 +463,7 @@ impl Domain for ClientDomain {
         let domain_id = self.local_domain_id;
         let config = self.config.clone();
 
-        let activity = crate::frontend::activity::Activity::new();
+        let activity = mux::activity::Activity::new();
         let ui = ConnectionUI::new();
         ui.title("wezterm: Connecting...");
 
