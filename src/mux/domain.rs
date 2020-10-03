@@ -5,7 +5,7 @@
 //! container or actually remote, running on the other end
 //! of an ssh session somewhere.
 
-use crate::localtab::LocalPane;
+use crate::mux::localtab::LocalPane;
 use crate::mux::pane::{alloc_pane_id, Pane, PaneId};
 use crate::mux::tab::{SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;

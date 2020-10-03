@@ -1,6 +1,6 @@
 use crate::connui::ConnectionUI;
-use crate::localtab::LocalPane;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
+use crate::mux::localtab::LocalPane;
 use crate::mux::pane::{alloc_pane_id, Pane, PaneId};
 use crate::mux::tab::{SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;

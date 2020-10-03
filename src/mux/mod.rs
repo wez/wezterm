@@ -16,6 +16,7 @@ use std::thread;
 use thiserror::*;
 
 pub mod domain;
+pub mod localtab;
 pub mod pane;
 pub mod renderable;
 pub mod tab;
