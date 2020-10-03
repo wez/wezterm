@@ -1,8 +1,10 @@
-use crate::clientsession;
-use crate::UnixListener;
+use crate::sessionhandler::{PduSender, SessionHandler};
+use crate::{UnixListener, UnixStream};
 use anyhow::{anyhow, Context as _};
+use codec::{DecodedPdu, Pdu};
 use config::{create_user_owned_dirs, UnixDomain};
-use promise::spawn::spawn_into_main_thread;
+use mux::{Mux, MuxNotification};
+use promise::spawn::{spawn, spawn_into_main_thread};
 
 pub struct LocalListener {
     listener: UnixListener,
@@ -22,10 +24,7 @@ impl LocalListener {
         for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {
-                    spawn_into_main_thread(async move {
-                        let mut session = clientsession::ClientSession::new(stream);
-                        std::thread::spawn(move || session.run());
-                    });
+                    spawn_into_main_thread(async move { Self::process(stream) });
                 }
                 Err(err) => {
                     log::error!("accept failed: {}", err);
@@ -33,6 +32,60 @@ impl LocalListener {
                 }
             }
         }
+    }
+
+    async fn process(stream: UnixStream) -> anyhow::Result<()> {
+        let mut write_stream = smol::Async::new(stream.try_clone()?)?;
+        let mut read_stream = smol::Async::new(stream)?;
+        let (write_tx, write_rx) = smol::channel::unbounded::<DecodedPdu>();
+
+        // Process the PDU write queue to send to the peer
+        spawn(async move {
+            while let Ok(decoded) = write_rx.recv().await {
+                log::trace!("writing pdu with serial {}", decoded.serial);
+                decoded
+                    .pdu
+                    .encode_async(&mut write_stream, decoded.serial)
+                    .await?;
+            }
+            Ok::<(), anyhow::Error>(())
+        });
+
+        let pdu_sender = PduSender::with_smol(write_tx);
+        let mut handler = SessionHandler::new(pdu_sender);
+
+        enum Item {
+            Notif(MuxNotification),
+            Pdu(DecodedPdu),
+        }
+
+        let (item_tx, item_rx) = smol::channel::unbounded::<Item>();
+        {
+            let mux = Mux::get().expect("to be running on gui thread");
+            let tx = item_tx.clone();
+            mux.subscribe(move |n| tx.try_send(Item::Notif(n)).is_ok());
+        }
+
+        spawn(async move {
+            while let Ok(decoded) = Pdu::decode_async(&mut read_stream).await {
+                item_tx.send(Item::Pdu(decoded)).await?;
+            }
+            Ok::<(), anyhow::Error>(())
+        });
+
+        while let Ok(notif) = item_rx.recv().await {
+            match notif {
+                Item::Notif(MuxNotification::PaneOutput(pane_id)) => {
+                    handler.schedule_pane_push(pane_id);
+                }
+                Item::Notif(MuxNotification::WindowCreated(_window_id)) => {}
+                Item::Pdu(decoded) => {
+                    handler.process_one(decoded);
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 

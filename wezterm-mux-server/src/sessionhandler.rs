@@ -18,6 +18,29 @@ use url::Url;
 use wezterm_term::terminal::Clipboard;
 use wezterm_term::StableRowIndex;
 
+#[derive(Clone)]
+pub struct PduSender {
+    func: Arc<dyn Fn(DecodedPdu) -> anyhow::Result<()> + Send + Sync>,
+}
+
+impl PduSender {
+    pub fn send(&self, pdu: DecodedPdu) -> anyhow::Result<()> {
+        (self.func)(pdu)
+    }
+
+    pub fn with_pollable(p: PollableSender<DecodedPdu>) -> Self {
+        Self {
+            func: Arc::new(move |pdu| p.send(pdu)),
+        }
+    }
+
+    pub fn with_smol(p: smol::channel::Sender<DecodedPdu>) -> Self {
+        Self {
+            func: Arc::new(move |pdu| p.try_send(pdu).map_err(|e| anyhow!("{:?}", e))),
+        }
+    }
+}
+
 #[derive(Default, Debug)]
 struct PerPane {
     cursor_position: StableCursorPosition,
@@ -123,7 +146,7 @@ impl PerPane {
 
 fn maybe_push_pane_changes(
     pane: &Rc<dyn Pane>,
-    sender: PollableSender<DecodedPdu>,
+    sender: PduSender,
     per_pane: Arc<Mutex<PerPane>>,
 ) -> anyhow::Result<()> {
     let mut per_pane = per_pane.lock().unwrap();
@@ -137,12 +160,12 @@ fn maybe_push_pane_changes(
 }
 
 pub struct SessionHandler {
-    to_write_tx: PollableSender<DecodedPdu>,
+    to_write_tx: PduSender,
     per_pane: HashMap<TabId, Arc<Mutex<PerPane>>>,
 }
 
 impl SessionHandler {
-    pub fn new(to_write_tx: PollableSender<DecodedPdu>) -> Self {
+    pub fn new(to_write_tx: PduSender) -> Self {
         Self {
             to_write_tx,
             per_pane: HashMap::new(),
@@ -488,25 +511,22 @@ impl SessionHandler {
 // function below because the compiler thinks that all of its locals then need to be Send.
 // We need to shimmy through this helper to break that aspect of the compiler flow
 // analysis and allow things to compile.
-fn schedule_domain_spawn<SND>(spawn: Spawn, sender: PollableSender<DecodedPdu>, send_response: SND)
+fn schedule_domain_spawn<SND>(spawn: Spawn, sender: PduSender, send_response: SND)
 where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
 {
     promise::spawn::spawn(async move { send_response(domain_spawn(spawn, sender).await) });
 }
 
-fn schedule_split_pane<SND>(
-    split: SplitPane,
-    sender: PollableSender<DecodedPdu>,
-    send_response: SND,
-) where
+fn schedule_split_pane<SND>(split: SplitPane, sender: PduSender, send_response: SND)
+where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
 {
     promise::spawn::spawn(async move { send_response(split_pane(split, sender).await) });
 }
 
 struct RemoteClipboard {
-    sender: PollableSender<DecodedPdu>,
+    sender: PduSender,
     pane_id: TabId,
 }
 
@@ -527,7 +547,7 @@ impl Clipboard for RemoteClipboard {
     }
 }
 
-async fn split_pane(split: SplitPane, sender: PollableSender<DecodedPdu>) -> anyhow::Result<Pdu> {
+async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
     let (pane_domain_id, window_id, tab_id) = mux
         .resolve_pane_id(split.pane_id)
@@ -574,7 +594,7 @@ async fn split_pane(split: SplitPane, sender: PollableSender<DecodedPdu>) -> any
     }))
 }
 
-async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyhow::Result<Pdu> {
+async fn domain_spawn(spawn: Spawn, sender: PduSender) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
     let domain = mux
         .get_domain(spawn.domain_id)

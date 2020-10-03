@@ -21,6 +21,7 @@ pretty_env_logger = "0.4"
 promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }
 rcgen = "0.7"
+smol = "1.2"
 structopt = "0.3"
 umask = { path = "../umask" }
 url = "2"
@@ -33,3 +34,6 @@ daemonize = { git = "https://github.com/wez/daemonize" }
 default = ["vendor_openssl"]
 # FIXME: find a way to magically disable vendor_openssl only on linux!
 vendor_openssl = ["openssl/vendored"]
+
+[target."cfg(windows)".dependencies]
+uds_windows = "0.1"

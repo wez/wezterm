@@ -1,5 +1,5 @@
 use crate::pollable::*;
-use crate::sessionhandler::SessionHandler;
+use crate::sessionhandler::{PduSender, SessionHandler};
 use anyhow::{bail, Context, Error};
 use codec::*;
 use crossbeam::channel::TryRecvError;
@@ -22,6 +22,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
         let mux = Mux::get().expect("to be running on gui thread");
         let (mux_tx, mux_rx) = pollable_channel().expect("failed to create pollable_channel");
         mux.subscribe(move |n| mux_tx.send(n).is_ok());
+        let to_write_tx = PduSender::with_pollable(to_write_tx);
         let handler = SessionHandler::new(to_write_tx);
         Self {
             stream,
