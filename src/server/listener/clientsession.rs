@@ -1,4 +1,4 @@
-use crate::mux::{Mux, MuxNotification, MuxSubscriber};
+use crate::mux::{Mux, MuxNotification};
 use crate::server::codec::*;
 use crate::server::listener::sessionhandler::SessionHandler;
 use crate::server::pollable::*;
@@ -11,7 +11,7 @@ use std::collections::HashSet;
 pub struct ClientSession<S: ReadAndWrite> {
     stream: S,
     to_write_rx: PollableReceiver<DecodedPdu>,
-    mux_rx: MuxSubscriber,
+    mux_rx: PollableReceiver<MuxNotification>,
     handler: SessionHandler,
 }
 
@@ -20,7 +20,8 @@ impl<S: ReadAndWrite> ClientSession<S> {
         let (to_write_tx, to_write_rx) =
             pollable_channel().expect("failed to create pollable_channel");
         let mux = Mux::get().expect("to be running on gui thread");
-        let mux_rx = mux.subscribe().expect("Mux::subscribe to succeed");
+        let (mux_tx, mux_rx) = pollable_channel().expect("failed to create pollable_channel");
+        mux.subscribe(move |n| mux_tx.send(n).is_ok());
         let handler = SessionHandler::new(to_write_tx);
         Self {
             stream,

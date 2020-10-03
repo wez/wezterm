@@ -2,7 +2,6 @@ use crate::mux::pane::{Pane, PaneId};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
 use crate::ratelim::RateLimiter;
-use crate::server::pollable::{pollable_channel, PollableReceiver, PollableSender};
 use anyhow::{anyhow, Error};
 use domain::{Domain, DomainId};
 use log::error;
@@ -29,8 +28,6 @@ pub enum MuxNotification {
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
 
-pub type MuxSubscriber = PollableReceiver<MuxNotification>;
-
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
     panes: RefCell<HashMap<PaneId, Rc<dyn Pane>>>,
@@ -38,7 +35,7 @@ pub struct Mux {
     default_domain: RefCell<Option<Arc<dyn Domain>>>,
     domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
     domains_by_name: RefCell<HashMap<String, Arc<dyn Domain>>>,
-    subscribers: RefCell<HashMap<usize, PollableSender<MuxNotification>>>,
+    subscribers: RefCell<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
 }
 
 fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
@@ -130,16 +127,19 @@ impl Mux {
         }
     }
 
-    pub fn subscribe(&self) -> anyhow::Result<MuxSubscriber> {
+    pub fn subscribe<F>(&self, subscriber: F)
+    where
+        F: Fn(MuxNotification) -> bool + 'static,
+    {
         let sub_id = SUB_ID.fetch_add(1, Ordering::Relaxed);
-        let (tx, rx) = pollable_channel()?;
-        self.subscribers.borrow_mut().insert(sub_id, tx);
-        Ok(rx)
+        self.subscribers
+            .borrow_mut()
+            .insert(sub_id, Box::new(subscriber));
     }
 
     pub fn notify(&self, notification: MuxNotification) {
         let mut subscribers = self.subscribers.borrow_mut();
-        subscribers.retain(|_, tx| tx.send(notification.clone()).is_ok());
+        subscribers.retain(|_, notify| notify(notification.clone()));
     }
 
     pub fn default_domain(&self) -> Arc<dyn Domain> {
