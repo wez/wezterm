@@ -20,3 +20,6 @@ termwiz = { path = "../termwiz" }
 varbincode = "0.1"
 wezterm-term = { path = "../term", features=["use_serde"] }
 zstd = "0.4"
+
+[dev-dependencies]
+base91 = { path = "../base91" }

@@ -5,7 +5,6 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub mod gui;
-pub mod muxserver;
 
 pub use config::FrontEndSelection;
 
@@ -37,18 +36,16 @@ pub fn shutdown() {
 }
 
 pub fn try_new(sel: FrontEndSelection) -> Result<Rc<dyn FrontEnd>, Error> {
-    let (front_end, is_gui) = match sel {
-        FrontEndSelection::MuxServer => (muxserver::MuxServerFrontEnd::try_new(), false),
-        FrontEndSelection::Null => (muxserver::MuxServerFrontEnd::new_null(), false),
-        FrontEndSelection::Software => (gui::GuiFrontEnd::try_new_swrast(), true),
-        FrontEndSelection::OldSoftware => (gui::GuiFrontEnd::try_new_no_opengl(), true),
-        FrontEndSelection::OpenGL => (gui::GuiFrontEnd::try_new(), true),
+    let front_end = match sel {
+        FrontEndSelection::Software => gui::GuiFrontEnd::try_new_swrast(),
+        FrontEndSelection::OldSoftware => gui::GuiFrontEnd::try_new_no_opengl(),
+        FrontEndSelection::OpenGL => gui::GuiFrontEnd::try_new(),
     };
 
     let front_end = front_end?;
 
     FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
-    HAS_GUI_FRONT_END.store(is_gui, Ordering::Release);
+    HAS_GUI_FRONT_END.store(true, Ordering::Release);
 
     Ok(front_end)
 }

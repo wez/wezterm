@@ -1,0 +1,35 @@
+[package]
+name = "wezterm-mux-server"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+codec = { path = "../codec" }
+config = { path = "../config" }
+crossbeam = "0.7"
+filedescriptor = { version="0.7", path = "../filedescriptor" }
+hostname = "0.3"
+log = "0.4"
+mux = { path = "../mux" }
+openssl = "0.10"
+portable-pty = { path = "../pty", features = ["serde_support"]}
+pretty_env_logger = "0.4"
+promise = { path = "../promise" }
+rangeset = { path = "../rangeset" }
+rcgen = "0.7"
+structopt = "0.3"
+umask = { path = "../umask" }
+url = "2"
+wezterm-term = { path = "../term", features=["use_serde"] }
+
+[target.'cfg(unix)'.dependencies]
+daemonize = { git = "https://github.com/wez/daemonize" }
+
+[features]
+default = ["vendor_openssl"]
+# FIXME: find a way to magically disable vendor_openssl only on linux!
+vendor_openssl = ["openssl/vendored"]

@@ -24,7 +24,6 @@ async-trait = "0.1"
 anyhow = "1.0"
 thiserror = "1.0"
 base64 = "0.10"
-base91 = { path = "base91" }
 rangeset = { path = "rangeset" }
 bitflags = "1.0"
 bstr = "0.2"
@@ -72,6 +71,7 @@ termwiz = { path = "termwiz" }
 textwrap = "0.11"
 tinyvec = "0.3"
 toml = "0.4"
+umask = { path = "umask" }
 unicode-normalization = "0.1"
 unicode-segmentation = "1.6"
 unicode-width = "0.1"
@@ -123,6 +123,7 @@ default = ["vendor_openssl"]
 vendor_openssl = ["openssl/vendored"]
 
 [workspace]
+members = ["wezterm-mux-server"]
 
 [profile.release]
 opt-level = 3

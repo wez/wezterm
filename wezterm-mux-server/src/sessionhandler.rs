@@ -1,5 +1,5 @@
-use crate::server::listener::PKI;
-use crate::server::pollable::*;
+use crate::pollable::*;
+use crate::PKI;
 use anyhow::anyhow;
 use codec::*;
 use config::keyassignment::SpawnTabDomain;
@@ -447,7 +447,7 @@ impl SessionHandler {
             Pdu::GetCodecVersion(_) => {
                 send_response(Ok(Pdu::GetCodecVersionResponse(GetCodecVersionResponse {
                     codec_vers: CODEC_VERSION,
-                    version_string: crate::wezterm_version().to_owned(),
+                    version_string: config::wezterm_version().to_owned(),
                 })))
             }
 

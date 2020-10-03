@@ -24,9 +24,9 @@ pub struct UnixDomain {
 
     /// If we decide that we need to start the server, the command to run
     /// to set that up.  The default is to spawn:
-    /// `wezterm start --daemonize --front-end MuxServer`
+    /// `wezterm-mux-server --daemonize`
     /// but it can be useful to set this to eg:
-    /// `wsl -e wezterm --daemonize --front-end MuxServer` to start up
+    /// `wsl -e wezterm-mux-server --daemonize` to start up
     /// a unix domain inside a wsl container.
     pub serve_command: Option<Vec<String>>,
 
@@ -66,11 +66,10 @@ impl UnixDomain {
         match self.serve_command.as_ref() {
             Some(cmd) => Ok(cmd.iter().map(Into::into).collect()),
             None => Ok(vec![
-                std::env::current_exe()?.into_os_string(),
-                OsString::from("start"),
+                std::env::current_exe()?
+                    .with_file_name("wezterm-mux-server")
+                    .into_os_string(),
                 OsString::from("--daemonize"),
-                OsString::from("--front-end"),
-                OsString::from("MuxServer"),
             ]),
         }
     }

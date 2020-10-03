@@ -1,7 +1,6 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
-use crate::server::listener::umask;
 use anyhow::{anyhow, bail};
 use config::{wezterm_version, SshParameters};
 use mux::domain::{Domain, LocalDomain};
@@ -574,8 +573,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = crate::frontend::try_new(front_end_selection)?;
     let activity = Activity::new();
-    let do_auto_connect =
-        front_end_selection != FrontEndSelection::MuxServer && !opts.no_auto_connect;
+    let do_auto_connect = !opts.no_auto_connect;
 
     promise::spawn::spawn(async move {
         if let Err(err) = async_run_terminal_gui(cmd, do_auto_connect).await {
@@ -838,8 +836,6 @@ fn run() -> anyhow::Result<()> {
         SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::Cli(cli) => {
             // Start a front end so that the futures executor is running
-            let front_end = crate::frontend::try_new(FrontEndSelection::Null)?;
-
             let initial = true;
             let mut ui = crate::connui::ConnectionUI::new_headless();
             let client = Client::new_default_unix_domain(initial, &mut ui)?;
@@ -971,7 +967,6 @@ fn run() -> anyhow::Result<()> {
                         let stdin = std::io::stdin();
                         consume_stream_then_exit_process(stdin.lock(), stream);
                     });
-                    front_end.run_forever()?;
                 }
                 CliSubCommand::TlsCreds => {
                     let creds = block_on(client.get_tls_creds())?;
