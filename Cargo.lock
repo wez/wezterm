@@ -4111,7 +4111,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wezterm"
+name = "wezterm-gui"
 version = "0.1.0"
 dependencies = [
  "allsorts",

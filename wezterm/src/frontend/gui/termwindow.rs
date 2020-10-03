@@ -982,7 +982,7 @@ impl TermWindow {
 
     fn apply_icon(window: &Window) -> anyhow::Result<()> {
         let icon_image =
-            image::load_from_memory(include_bytes!("../../../assets/icon/terminal.png"))?;
+            image::load_from_memory(include_bytes!("../../../../assets/icon/terminal.png"))?;
         let image = icon_image.to_bgra();
         let (width, height) = image.dimensions();
         window.set_icon(Image::from_raw(

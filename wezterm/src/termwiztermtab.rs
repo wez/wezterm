@@ -389,7 +389,7 @@ pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, Rc<dyn Pane>) 
 }
 
 fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
-    let data = include_bytes!("../termwiz/data/xterm-256color");
+    let data = include_bytes!("../../termwiz/data/xterm-256color");
     let db = terminfo::Database::from_buffer(&data[..]).unwrap();
 
     TerminfoRenderer::new(
