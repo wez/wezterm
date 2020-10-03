@@ -296,7 +296,7 @@ fn update_checker() {
 
 pub fn start_update_checker() {
     static CHECKER_STARTED: AtomicBool = AtomicBool::new(false);
-    if crate::frontend::has_gui_front_end() && configuration().check_for_updates {
+    if configuration().check_for_updates {
         if CHECKER_STARTED.compare_and_swap(false, true, Ordering::Relaxed) == false {
             std::thread::Builder::new()
                 .name("update_checker".into())

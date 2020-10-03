@@ -2,7 +2,6 @@ use anyhow::Error;
 use downcast_rs::{impl_downcast, Downcast};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 pub mod gui;
 
@@ -10,15 +9,6 @@ pub use config::FrontEndSelection;
 
 thread_local! {
     static FRONT_END: RefCell<Option<Rc<dyn FrontEnd>>> = RefCell::new(None);
-}
-
-static HAS_GUI_FRONT_END: AtomicBool = AtomicBool::new(false);
-
-/// Returns true if a GUI frontend has been initialized, which implies that
-/// it makes sense (and is safe) to use the window crate and associated
-/// functionality
-pub fn has_gui_front_end() -> bool {
-    HAS_GUI_FRONT_END.load(Ordering::Acquire)
 }
 
 pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
@@ -45,7 +35,6 @@ pub fn try_new(sel: FrontEndSelection) -> Result<Rc<dyn FrontEnd>, Error> {
     let front_end = front_end?;
 
     FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
-    HAS_GUI_FRONT_END.store(true, Ordering::Release);
 
     Ok(front_end)
 }

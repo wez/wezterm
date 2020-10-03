@@ -427,13 +427,9 @@ fn get_error_window() -> ConnectionUI {
 /// If there is no GUI front end, generates a toast notification instead.
 pub fn show_configuration_error_message(err: &str) {
     log::error!("While (re)loading configuration: {}", err);
-    if crate::frontend::has_gui_front_end() {
-        let ui = get_error_window();
+    let ui = get_error_window();
 
-        let mut wrapped = textwrap::fill(&err, 78);
-        wrapped.push_str("\n");
-        ui.output_str(&wrapped);
-    } else {
-        crate::toast_notification("Wezterm Configuration", &err);
-    }
+    let mut wrapped = textwrap::fill(&err, 78);
+    wrapped.push_str("\n");
+    ui.output_str(&wrapped);
 }
