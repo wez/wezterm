@@ -110,6 +110,8 @@ impl FontConfiguration {
         let attributes = style.font_with_fallback();
         let mut handles = parser::ParsedFont::load_fonts(&config, &attributes)?;
         handles.append(&mut self.locator.load_fonts(&attributes)?);
+        handles.append(&mut parser::ParsedFont::load_built_in_fonts(&attributes)?);
+        log::debug!("handles: {:#?}", handles);
         let mut rasterizers = vec![];
         for _ in &handles {
             rasterizers.push(RefCell::new(None));

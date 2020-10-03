@@ -93,8 +93,21 @@ impl ParsedFont {
             }
         }
 
-        load_built_in_fonts(&mut font_info).ok();
+        Self::match_font_info(fonts_selection, font_info)
+    }
 
+    pub fn load_built_in_fonts(
+        fonts_selection: &[FontAttributes],
+    ) -> anyhow::Result<Vec<FontDataHandle>> {
+        let mut font_info = vec![];
+        load_built_in_fonts(&mut font_info).ok();
+        Self::match_font_info(fonts_selection, font_info)
+    }
+
+    fn match_font_info(
+        fonts_selection: &[FontAttributes],
+        mut font_info: Vec<(Names, std::path::PathBuf, FontDataHandle)>,
+    ) -> anyhow::Result<Vec<FontDataHandle>> {
         font_info.sort_by_key(|(names, _, _)| names.full_name.clone());
         for (names, _, _) in &font_info {
             log::warn!("available font: {}", names.full_name);
