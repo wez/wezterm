@@ -1,7 +1,9 @@
-use crate::frontend::FrontEnd;
 use ::window::*;
+use anyhow::Error;
 use config::configuration;
+pub use config::FrontEndSelection;
 use mux::{Mux, MuxNotification};
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -34,17 +36,17 @@ pub fn is_opengl_enabled() -> bool {
 }
 
 impl GuiFrontEnd {
-    pub fn try_new_no_opengl() -> anyhow::Result<Rc<dyn FrontEnd>> {
+    pub fn try_new_no_opengl() -> anyhow::Result<Rc<GuiFrontEnd>> {
         USE_OPENGL.store(false, Ordering::Release);
         Self::try_new()
     }
 
-    pub fn try_new_swrast() -> anyhow::Result<Rc<dyn FrontEnd>> {
+    pub fn try_new_swrast() -> anyhow::Result<Rc<GuiFrontEnd>> {
         ::window::prefer_swrast();
         Self::try_new()
     }
 
-    pub fn try_new() -> anyhow::Result<Rc<dyn FrontEnd>> {
+    pub fn try_new() -> anyhow::Result<Rc<GuiFrontEnd>> {
         #[cfg(all(unix, not(target_os = "macos")))]
         {
             if !configuration().enable_wayland {
@@ -71,10 +73,8 @@ impl GuiFrontEnd {
         });
         Ok(front_end)
     }
-}
 
-impl FrontEnd for GuiFrontEnd {
-    fn run_forever(&self) -> anyhow::Result<()> {
+    pub fn run_forever(&self) -> anyhow::Result<()> {
         self.connection
             .schedule_timer(std::time::Duration::from_millis(200), move || {
                 if mux::activity::Activity::count() == 0 {
@@ -88,4 +88,36 @@ impl FrontEnd for GuiFrontEnd {
 
         self.connection.run_message_loop()
     }
+}
+
+thread_local! {
+    static FRONT_END: RefCell<Option<Rc<GuiFrontEnd>>> = RefCell::new(None);
+}
+
+pub fn front_end() -> Option<Rc<GuiFrontEnd>> {
+    let mut res = None;
+    FRONT_END.with(|f| {
+        if let Some(me) = &*f.borrow() {
+            res = Some(Rc::clone(me));
+        }
+    });
+    res
+}
+
+pub fn shutdown() {
+    FRONT_END.with(|f| drop(f.borrow_mut().take()));
+}
+
+pub fn try_new(sel: FrontEndSelection) -> Result<Rc<GuiFrontEnd>, Error> {
+    let front_end = match sel {
+        FrontEndSelection::Software => GuiFrontEnd::try_new_swrast(),
+        FrontEndSelection::OldSoftware => GuiFrontEnd::try_new_no_opengl(),
+        FrontEndSelection::OpenGL => GuiFrontEnd::try_new(),
+    };
+
+    let front_end = front_end?;
+
+    FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
+
+    Ok(front_end)
 }

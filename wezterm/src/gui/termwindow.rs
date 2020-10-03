@@ -5,13 +5,13 @@ use super::utilsprites::RenderMetrics;
 use crate::font::shaper::GlyphInfo;
 use crate::font::units::*;
 use crate::font::FontConfiguration;
-use crate::frontend::gui::overlay::{
+use crate::gui::overlay::{
     confirm_close_pane, confirm_close_tab, launcher, start_overlay, start_overlay_pane,
     tab_navigator, CopyOverlay, SearchOverlay,
 };
-use crate::frontend::gui::scrollbar::*;
-use crate::frontend::gui::selection::*;
-use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
+use crate::gui::scrollbar::*;
+use crate::gui::selection::*;
+use crate::gui::tabbar::{TabBarItem, TabBarState};
 use ::wezterm_term::input::MouseButton as TMB;
 use ::wezterm_term::input::MouseEventKind as TMEK;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, SpriteSlice};
@@ -982,7 +982,7 @@ impl TermWindow {
 
     fn apply_icon(window: &Window) -> anyhow::Result<()> {
         let icon_image =
-            image::load_from_memory(include_bytes!("../../../../assets/icon/terminal.png"))?;
+            image::load_from_memory(include_bytes!("../../../assets/icon/terminal.png"))?;
         let image = icon_image.to_bgra();
         let (width, height) = image.dimensions();
         window.set_icon(Image::from_raw(

@@ -1,5 +1,5 @@
-use crate::frontend::gui::selection::{SelectionCoordinate, SelectionRange};
-use crate::frontend::gui::termwindow::TermWindow;
+use crate::gui::selection::{SelectionCoordinate, SelectionRange};
+use crate::gui::termwindow::TermWindow;
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::*;

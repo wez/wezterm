@@ -20,7 +20,7 @@ use tabout::{tabulate_output, Alignment, Column};
 mod scripting;
 
 mod connui;
-mod frontend;
+mod gui;
 use config::keyassignment;
 mod markdown;
 mod server;
@@ -29,7 +29,7 @@ mod stats;
 mod termwiztermtab;
 mod update;
 
-use crate::frontend::{front_end, FrontEndSelection};
+use crate::gui::{front_end, FrontEndSelection};
 use crate::server::client::{unix_connect_with_retry, Client};
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
 use mux::activity::Activity;
@@ -332,7 +332,7 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
 
 fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()> {
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = crate::frontend::try_new(front_end_selection)?;
+    let gui = crate::gui::try_new(front_end_selection)?;
 
     // Set up the mux with no default domain; there's a good chance that
     // we'll need to show authentication UI and we don't want its domain
@@ -372,7 +372,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
-    let gui = crate::frontend::try_new(front_end)?;
+    let gui = crate::gui::try_new(front_end)?;
     block_on(domain.attach())?; // FIXME: blocking
 
     {
@@ -417,7 +417,7 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
     Mux::set_mux(&mux);
 
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = crate::frontend::try_new(front_end_selection)?;
+    let gui = crate::gui::try_new(front_end_selection)?;
     let opts = opts.clone();
 
     let cmd = if !opts.prog.is_empty() {
@@ -571,7 +571,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
     Mux::set_mux(&mux);
 
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = crate::frontend::try_new(front_end_selection)?;
+    let gui = crate::gui::try_new(front_end_selection)?;
     let activity = Activity::new();
     let do_auto_connect = !opts.no_auto_connect;
 
@@ -657,7 +657,7 @@ fn main() {
         terminate_with_error(e);
     }
     Mux::shutdown();
-    frontend::shutdown();
+    gui::shutdown();
 }
 
 fn maybe_show_configuration_error_window() {

@@ -1,4 +1,4 @@
-use crate::frontend::gui::termwindow::TermWindow;
+use crate::gui::termwindow::TermWindow;
 use crate::termwiztermtab::{allocate, TermWizTerminal};
 use mux::pane::{Pane, PaneId};
 use mux::tab::{Tab, TabId};
