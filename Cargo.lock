@@ -2826,6 +2826,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ratelim"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "ratelimit_meter",
+]
+
+[[package]]
 name = "ratelimit_meter"
 version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4107,7 +4115,7 @@ dependencies = [
  "promise",
  "pulldown-cmark",
  "rangeset",
- "ratelimit_meter",
+ "ratelim",
  "rcgen",
  "regex",
  "serde",

@@ -22,7 +22,6 @@ use config::keyassignment;
 mod localtab;
 mod markdown;
 mod mux;
-mod ratelim;
 mod server;
 mod ssh;
 mod stats;

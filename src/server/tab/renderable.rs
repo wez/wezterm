@@ -1,7 +1,6 @@
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::TabId;
 use crate::mux::Mux;
-use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use crate::server::tab::clienttab::ClientPane;
@@ -10,6 +9,7 @@ use config::{configuration, ConfigHandle};
 use lru::LruCache;
 use promise::BrokenPromise;
 use rangeset::*;
+use ratelim::RateLimiter;
 use std::cell::RefCell;
 use std::ops::Range;
 use std::sync::atomic::{AtomicBool, Ordering};

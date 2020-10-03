@@ -1,11 +1,11 @@
 use crate::mux::pane::{Pane, PaneId};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
-use crate::ratelim::RateLimiter;
 use anyhow::{anyhow, Error};
 use domain::{Domain, DomainId};
 use log::error;
 use portable_pty::ExitStatus;
+use ratelim::RateLimiter;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::Read;

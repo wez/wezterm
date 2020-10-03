@@ -56,7 +56,7 @@ openssl = "0.10"
 palette = "0.5"
 portable-pty = { path = "pty", features = ["serde_support", "ssh"]}
 promise = { path = "promise" }
-ratelimit_meter = "5.0"
+ratelim= { path = "ratelim" }
 rcgen = "0.7"
 http_req = {version="0.6", default-features=false, features=["rust-tls"]}
 regex = "1"
