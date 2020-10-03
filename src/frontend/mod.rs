@@ -1,8 +1,5 @@
-use crate::font::FontConfiguration;
 use anyhow::Error;
 use downcast_rs::{impl_downcast, Downcast};
-use mux::tab::Tab;
-use mux::window::WindowId;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -61,12 +58,5 @@ pub trait FrontEnd: Downcast {
     /// Run the event loop.  Does not return until there is either a fatal
     /// error, or until there are no more windows left to manage.
     fn run_forever(&self) -> anyhow::Result<()>;
-
-    fn spawn_new_window(
-        &self,
-        fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<Tab>,
-        window_id: WindowId,
-    ) -> anyhow::Result<()>;
 }
 impl_downcast!(FrontEnd);

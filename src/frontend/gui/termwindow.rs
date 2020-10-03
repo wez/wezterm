@@ -6,7 +6,6 @@ use crate::font::shaper::GlyphInfo;
 use crate::font::units::*;
 use crate::font::FontConfiguration;
 use crate::frontend::activity::Activity;
-use crate::frontend::front_end;
 use crate::frontend::gui::overlay::{
     confirm_close_pane, confirm_close_tab, launcher, start_overlay, start_overlay_pane,
     tab_navigator, CopyOverlay, SearchOverlay,
@@ -34,7 +33,7 @@ use lru::LruCache;
 use mux::domain::{DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
+use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, TabId};
 use mux::window::WindowId as MuxWindowId;
 use mux::Mux;
 use portable_pty::{CommandBuilder, PtySize};
@@ -858,17 +857,16 @@ pub fn effective_right_padding(config: &ConfigHandle, render_metrics: &RenderMet
 }
 
 impl TermWindow {
-    pub fn new_window(
-        config: &ConfigHandle,
-        fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<Tab>,
-        mux_window_id: MuxWindowId,
-    ) -> anyhow::Result<()> {
+    pub fn new_window(mux_window_id: MuxWindowId) -> anyhow::Result<()> {
+        let config = configuration();
+        let fontconfig = Rc::new(FontConfiguration::new());
+        let mux = Mux::get().unwrap();
+        let tab = mux.get_active_tab_for_window(mux_window_id).unwrap();
         let size = tab.get_size();
         let physical_rows = size.rows as usize;
         let physical_cols = size.cols as usize;
 
-        let render_metrics = RenderMetrics::new(fontconfig);
+        let render_metrics = RenderMetrics::new(&fontconfig);
         log::trace!("using render_metrics {:#?}", render_metrics);
 
         let terminal_size = PtySize {
@@ -903,7 +901,7 @@ impl TermWindow {
         );
 
         let render_state = RenderState::Software(SoftwareRenderState::new(
-            fontconfig,
+            &fontconfig,
             &render_metrics,
             ATLAS_SIZE,
         )?);
@@ -919,7 +917,7 @@ impl TermWindow {
                 window: None,
                 focused: None,
                 mux_window_id,
-                fonts: Rc::clone(fontconfig),
+                fonts: fontconfig,
                 render_metrics,
                 dimensions,
                 terminal_size,
@@ -1590,9 +1588,11 @@ impl TermWindow {
         promise::spawn::spawn(async move {
             let mux = Mux::get().unwrap();
             let activity = Activity::new();
+            let mux_builder;
 
             let mux_window_id = if spawn_where == SpawnWhere::NewWindow {
-                mux.new_empty_window()
+                mux_builder = mux.new_empty_window();
+                *mux_builder
             } else {
                 mux_window_id
             };
@@ -1704,11 +1704,7 @@ impl TermWindow {
                         .get_active_pane()
                         .ok_or_else(|| anyhow!("newly spawned tab to have a pane"))?;
 
-                    if spawn_where == SpawnWhere::NewWindow {
-                        let front_end = front_end().expect("to be called on gui thread");
-                        let fonts = Rc::new(FontConfiguration::new());
-                        front_end.spawn_new_window(&fonts, &tab, mux_window_id)?;
-                    } else {
+                    if spawn_where != SpawnWhere::NewWindow {
                         let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
                         pane.set_clipboard(&clipboard);
                         let mut window = mux
@@ -1964,14 +1960,11 @@ impl TermWindow {
         async fn new_window() -> anyhow::Result<()> {
             let mux = Mux::get().unwrap();
             let config = config::configuration();
-            let fonts = Rc::new(FontConfiguration::new());
             let window_id = mux.new_empty_window();
-            let tab = mux
+            let _tab = mux
                 .default_domain()
-                .spawn(config.initial_size(), None, None, window_id)
+                .spawn(config.initial_size(), None, None, *window_id)
                 .await?;
-            let front_end = front_end().expect("to be called on gui thread");
-            front_end.spawn_new_window(&fonts, &tab, window_id)?;
             Ok::<(), anyhow::Error>(())
         }
         promise::spawn::spawn(async move {

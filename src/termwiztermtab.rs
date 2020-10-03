@@ -3,8 +3,6 @@
 //! input from the user as part of eg: setting up an ssh
 //! session.
 
-use crate::font::FontConfiguration;
-use crate::frontend::front_end;
 use anyhow::{bail, Error};
 use async_trait::async_trait;
 use crossbeam::channel::{unbounded as channel, Receiver, Sender};
@@ -469,14 +467,9 @@ pub async fn run<
         tab.assign_pane(&pane);
 
         mux.add_tab_and_active_pane(&tab)?;
-        mux.add_tab_to_window(&tab, window_id)?;
+        mux.add_tab_to_window(&tab, *window_id)?;
 
-        let fontconfig = Rc::new(FontConfiguration::new());
-
-        let gui = front_end().unwrap();
-        gui.spawn_new_window(&fontconfig, &tab, window_id)?;
-
-        Ok(window_id)
+        Ok(*window_id)
     }
 
     let window_id: WindowId = promise::spawn::spawn_into_main_thread(async move {

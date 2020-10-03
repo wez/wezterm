@@ -1,12 +1,9 @@
 //! Implements the multiplexer server frontend
-use crate::font::FontConfiguration;
 use crate::frontend::FrontEnd;
 use crate::server::listener::spawn_listener;
 use anyhow::{bail, Error};
 use crossbeam::channel::{unbounded as channel, Receiver};
 use log::info;
-use mux::tab::Tab;
-use mux::window::WindowId;
 use mux::Mux;
 use promise::*;
 use std::rc::Rc;
@@ -61,14 +58,5 @@ impl FrontEnd for MuxServerFrontEnd {
                 return Ok(());
             }
         }
-    }
-
-    fn spawn_new_window(
-        &self,
-        _fontconfig: &Rc<FontConfiguration>,
-        _tab: &Rc<Tab>,
-        _window_id: WindowId,
-    ) -> anyhow::Result<()> {
-        Ok(())
     }
 }

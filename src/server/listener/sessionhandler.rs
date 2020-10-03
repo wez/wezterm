@@ -579,13 +579,15 @@ async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyho
     let domain = mux
         .get_domain(spawn.domain_id)
         .ok_or_else(|| anyhow!("domain {} not found on this server", spawn.domain_id))?;
+    let window_builder;
 
     let window_id = if let Some(window_id) = spawn.window_id {
         mux.get_window_mut(window_id)
             .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
         window_id
     } else {
-        mux.new_empty_window()
+        window_builder = mux.new_empty_window();
+        *window_builder
     };
 
     let tab = domain

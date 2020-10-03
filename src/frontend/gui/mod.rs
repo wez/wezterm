@@ -1,10 +1,7 @@
-use crate::font::FontConfiguration;
 use crate::frontend::FrontEnd;
 use ::window::*;
 use config::configuration;
-use mux::tab::Tab;
-use mux::window::WindowId as MuxWindowId;
-use mux::Mux;
+use mux::{Mux, MuxNotification};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -57,6 +54,21 @@ impl GuiFrontEnd {
 
         let connection = Connection::init()?;
         let front_end = Rc::new(GuiFrontEnd { connection });
+        let mux = Mux::get().unwrap();
+        let fe = Rc::downgrade(&front_end);
+        mux.subscribe(move |n| {
+            if let Some(_fe) = fe.upgrade() {
+                match n {
+                    MuxNotification::WindowCreated(mux_window_id) => {
+                        termwindow::TermWindow::new_window(mux_window_id).ok();
+                    }
+                    MuxNotification::PaneOutput(_) => {}
+                }
+                true
+            } else {
+                false
+            }
+        });
         Ok(front_end)
     }
 }
@@ -75,14 +87,5 @@ impl FrontEnd for GuiFrontEnd {
             });
 
         self.connection.run_message_loop()
-    }
-
-    fn spawn_new_window(
-        &self,
-        fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<Tab>,
-        window_id: MuxWindowId,
-    ) -> anyhow::Result<()> {
-        termwindow::TermWindow::new_window(&configuration(), fontconfig, tab, window_id)
     }
 }

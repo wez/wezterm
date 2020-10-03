@@ -40,7 +40,6 @@ mod font;
 use crate::font::locator::FontLocatorSelection;
 use crate::font::rasterizer::FontRasterizerSelection;
 use crate::font::shaper::FontShaperSelection;
-use crate::font::FontConfiguration;
 
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
 //    terminal.advance_bytes(message);
@@ -318,7 +317,7 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     let sess = ssh::async_ssh_connect(&params.host_and_port, &params.username).await?;
     // Now we have a connected session, set up the ssh domain and make it
     // the default domain
-    let gui = front_end().unwrap();
+    let _gui = front_end().unwrap();
 
     let cmd = if !opts.prog.is_empty() {
         let builder = CommandBuilder::from_argv(opts.prog);
@@ -340,11 +339,9 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     domain.attach().await?;
 
     let window_id = mux.new_empty_window();
-    let tab = domain
-        .spawn(config.initial_size(), cmd, None, window_id)
+    let _tab = domain
+        .spawn(config.initial_size(), cmd, None, *window_id)
         .await?;
-    let fontconfig = Rc::new(FontConfiguration::new());
-    gui.spawn_new_window(&fontconfig, &tab, window_id)?;
 
     Ok(())
 }
@@ -380,8 +377,6 @@ fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()>
 }
 
 fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Result<()> {
-    let fontconfig = Rc::new(FontConfiguration::new());
-
     let mut serial = portable_pty::serial::SerialTty::new(&opts.port);
     if let Some(baud) = opts.baud {
         serial.set_baud_rate(serial::BaudRate::from_speed(baud));
@@ -396,9 +391,11 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     let gui = crate::frontend::try_new(front_end)?;
     block_on(domain.attach())?; // FIXME: blocking
 
-    let window_id = mux.new_empty_window();
-    let tab = block_on(domain.spawn(config.initial_size(), None, None, window_id))?; // FIXME: blocking
-    gui.spawn_new_window(&fontconfig, &tab, window_id)?;
+    {
+        let window_id = mux.new_empty_window();
+        // FIXME: blocking
+        let _tab = block_on(domain.spawn(config.initial_size(), None, None, *window_id))?;
+    }
 
     maybe_show_configuration_error_window();
     gui.run_forever()
@@ -474,14 +471,10 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
 
     let config = config::configuration();
     let window_id = mux.new_empty_window();
-    let tab = mux
+    let _tab = mux
         .default_domain()
-        .spawn(config.initial_size(), cmd, None, window_id)
+        .spawn(config.initial_size(), cmd, None, *window_id)
         .await?;
-    let fontconfig = Rc::new(FontConfiguration::new());
-    front_end()
-        .unwrap()
-        .spawn_new_window(&fontconfig, &tab, window_id)?;
     Ok(())
 }
 

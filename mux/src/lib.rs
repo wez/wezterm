@@ -25,6 +25,7 @@ pub mod window;
 #[derive(Clone, Debug)]
 pub enum MuxNotification {
     PaneOutput(PaneId),
+    WindowCreated(WindowId),
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -102,6 +103,30 @@ fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
 
 thread_local! {
     static MUX: RefCell<Option<Rc<Mux>>> = RefCell::new(None);
+}
+
+pub struct MuxWindowBuilder {
+    window_id: WindowId,
+    // FIXME: Activity here
+}
+
+impl Drop for MuxWindowBuilder {
+    fn drop(&mut self) {
+        let window_id = self.window_id;
+        promise::spawn::spawn_into_main_thread(async move {
+            if let Some(mux) = Mux::get() {
+                mux.notify(MuxNotification::WindowCreated(window_id));
+            }
+        });
+    }
+}
+
+impl std::ops::Deref for MuxWindowBuilder {
+    type Target = WindowId;
+
+    fn deref(&self) -> &WindowId {
+        &self.window_id
+    }
 }
 
 impl Mux {
@@ -330,11 +355,11 @@ impl Mux {
         window.get_active().map(Rc::clone)
     }
 
-    pub fn new_empty_window(&self) -> WindowId {
+    pub fn new_empty_window(&self) -> MuxWindowBuilder {
         let window = Window::new();
         let window_id = window.window_id();
         self.windows.borrow_mut().insert(window_id, window);
-        window_id
+        MuxWindowBuilder { window_id }
     }
 
     pub fn add_tab_to_window(&self, tab: &Rc<Tab>, window_id: WindowId) -> anyhow::Result<()> {

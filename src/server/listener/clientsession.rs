@@ -57,7 +57,10 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 match self.mux_rx.try_recv() {
                     Ok(notif) => match notif {
                         // Coalesce multiple TabOutputs for the same tab
-                        MuxNotification::PaneOutput(pane_id) => panes_to_output.insert(pane_id),
+                        MuxNotification::PaneOutput(pane_id) => {
+                            panes_to_output.insert(pane_id);
+                        }
+                        MuxNotification::WindowCreated(_window_id) => {}
                     },
                     Err(TryRecvError::Empty) => break,
                     Err(TryRecvError::Disconnected) => bail!("mux_rx is Disconnected"),

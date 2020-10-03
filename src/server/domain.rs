@@ -1,6 +1,4 @@
 use crate::connui::ConnectionUI;
-use crate::font::FontConfiguration;
-use crate::frontend::front_end;
 use crate::server::client::Client;
 use crate::server::codec::{ListPanesResponse, Spawn, SplitPane};
 use crate::server::tab::ClientPane;
@@ -315,15 +313,9 @@ impl ClientDomain {
                         window.push(&tab);
                     }
                 } else {
-                    let fonts = Rc::new(FontConfiguration::new());
                     let local_window_id = mux.new_empty_window();
-                    inner.record_remote_to_local_window_mapping(remote_window_id, local_window_id);
-                    mux.add_tab_to_window(&tab, local_window_id)?;
-
-                    front_end()
-                        .unwrap()
-                        .spawn_new_window(&fonts, &tab, local_window_id)
-                        .unwrap();
+                    inner.record_remote_to_local_window_mapping(remote_window_id, *local_window_id);
+                    mux.add_tab_to_window(&tab, *local_window_id)?;
                 }
             }
         }
