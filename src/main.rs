@@ -296,21 +296,6 @@ impl ImgCatCommand {
     }
 }
 
-pub fn running_under_wsl() -> bool {
-    #[cfg(unix)]
-    unsafe {
-        let mut name: libc::utsname = std::mem::zeroed();
-        if libc::uname(&mut name) == 0 {
-            let version = std::ffi::CStr::from_ptr(name.version.as_ptr())
-                .to_string_lossy()
-                .into_owned();
-            return version.contains("Microsoft");
-        }
-    };
-
-    false
-}
-
 async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     // Establish the connection; it may show UI for authentication
     let params = &opts.user_at_host_and_port;
@@ -515,7 +500,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
                 .stderr(stderr)
                 .working_directory(config::HOME_DIR.clone());
 
-            if !running_under_wsl() {
+            if !config::running_under_wsl() {
                 // pid file locking is only partly function when running under
                 // WSL 1; it is possible for the pid file to exist after a reboot
                 // and for attempts to open and lock it to fail when there are no

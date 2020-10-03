@@ -76,7 +76,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("home_dir", config::HOME_DIR.to_str())?;
         wezterm_mod.set(
             "running_under_wsl",
-            lua.create_function(|_, ()| Ok(crate::running_under_wsl()))?,
+            lua.create_function(|_, ()| Ok(config::running_under_wsl()))?,
         )?;
 
         wezterm_mod.set(

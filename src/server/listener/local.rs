@@ -52,7 +52,7 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> anyhow::Result<UnixListener
 
     #[cfg(unix)]
     {
-        use crate::running_under_wsl;
+        use config::running_under_wsl;
         use std::os::unix::fs::PermissionsExt;
 
         if !running_under_wsl() && !unix_dom.skip_permissions_check {

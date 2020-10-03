@@ -668,6 +668,7 @@ dependencies = [
  "anyhow",
  "dirs 2.0.2",
  "lazy_static",
+ "libc",
  "log",
  "luahelper",
  "mlua",
