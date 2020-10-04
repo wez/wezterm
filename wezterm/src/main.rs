@@ -16,9 +16,6 @@ use std::sync::Arc;
 use structopt::StructOpt;
 use tabout::{tabulate_output, Alignment, Column};
 
-// This module defines a macro, so it must be referenced before any other mods
-mod scripting;
-
 mod connui;
 mod gui;
 use config::keyassignment;
@@ -650,7 +647,6 @@ fn terminate_with_error(err: anyhow::Error) -> ! {
 }
 
 fn main() {
-    config::assign_lua_factory(scripting::make_lua_context);
     config::assign_error_callback(crate::connui::show_configuration_error_message);
     notify_on_panic();
     if let Err(e) = run() {
@@ -834,147 +830,165 @@ fn run() -> anyhow::Result<()> {
         SubCommand::Serial(serial) => run_serial(config, &serial),
         SubCommand::Connect(connect) => run_mux_client(config, &connect),
         SubCommand::ImageCat(cmd) => cmd.run(),
-        SubCommand::Cli(cli) => {
-            // Start a front end so that the futures executor is running
-            let initial = true;
-            let mut ui = crate::connui::ConnectionUI::new_headless();
-            let client = Client::new_default_unix_domain(initial, &mut ui)?;
-            match cli.sub {
-                CliSubCommand::List => {
-                    let cols = vec![
-                        Column {
-                            name: "WINID".to_string(),
-                            alignment: Alignment::Right,
-                        },
-                        Column {
-                            name: "TABID".to_string(),
-                            alignment: Alignment::Right,
-                        },
-                        Column {
-                            name: "PANEID".to_string(),
-                            alignment: Alignment::Right,
-                        },
-                        Column {
-                            name: "SIZE".to_string(),
-                            alignment: Alignment::Left,
-                        },
-                        Column {
-                            name: "TITLE".to_string(),
-                            alignment: Alignment::Left,
-                        },
-                        Column {
-                            name: "CWD".to_string(),
-                            alignment: Alignment::Left,
-                        },
-                    ];
-                    let mut data = vec![];
-                    let panes = block_on(client.list_panes())?; // FIXME: blocking
+        SubCommand::Cli(cli) => run_cli(config, cli),
+    }
+}
 
-                    for tabroot in panes.tabs {
-                        let mut cursor = tabroot.into_tree().cursor();
+async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
+    let initial = true;
+    let mut ui = crate::connui::ConnectionUI::new_headless();
+    let client = Client::new_default_unix_domain(initial, &mut ui)?;
+    match cli.sub {
+        CliSubCommand::List => {
+            let cols = vec![
+                Column {
+                    name: "WINID".to_string(),
+                    alignment: Alignment::Right,
+                },
+                Column {
+                    name: "TABID".to_string(),
+                    alignment: Alignment::Right,
+                },
+                Column {
+                    name: "PANEID".to_string(),
+                    alignment: Alignment::Right,
+                },
+                Column {
+                    name: "SIZE".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "TITLE".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "CWD".to_string(),
+                    alignment: Alignment::Left,
+                },
+            ];
+            let mut data = vec![];
+            let panes = client.list_panes().await?;
 
-                        loop {
-                            if let Some(entry) = cursor.leaf_mut() {
-                                data.push(vec![
-                                    entry.window_id.to_string(),
-                                    entry.tab_id.to_string(),
-                                    entry.pane_id.to_string(),
-                                    format!("{}x{}", entry.size.cols, entry.size.rows),
-                                    entry.title.clone(),
-                                    entry
-                                        .working_dir
-                                        .as_ref()
-                                        .map(|url| url.url.as_str())
-                                        .unwrap_or("")
-                                        .to_string(),
-                                ]);
-                            }
-                            match cursor.preorder_next() {
-                                Ok(c) => cursor = c,
-                                Err(_) => break,
-                            }
-                        }
+            for tabroot in panes.tabs {
+                let mut cursor = tabroot.into_tree().cursor();
+
+                loop {
+                    if let Some(entry) = cursor.leaf_mut() {
+                        data.push(vec![
+                            entry.window_id.to_string(),
+                            entry.tab_id.to_string(),
+                            entry.pane_id.to_string(),
+                            format!("{}x{}", entry.size.cols, entry.size.rows),
+                            entry.title.clone(),
+                            entry
+                                .working_dir
+                                .as_ref()
+                                .map(|url| url.url.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                        ]);
                     }
-
-                    tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
-                }
-                CliSubCommand::SplitPane {
-                    pane_id,
-                    cwd,
-                    prog,
-                    horizontal,
-                } => {
-                    let pane_id: PaneId = match pane_id {
-                        Some(p) => p,
-                        None => std::env::var("WEZTERM_PANE")
-                            .map_err(|_| {
-                                anyhow!(
-                                    "--pane-id was not specified and $WEZTERM_PANE
-                                    is not set in the environment"
-                                )
-                            })?
-                            .parse()?,
-                    };
-
-                    let spawned = block_on(client.split_pane(codec::SplitPane {
-                        pane_id,
-                        direction: if horizontal {
-                            SplitDirection::Horizontal
-                        } else {
-                            SplitDirection::Vertical
-                        },
-                        domain: keyassignment::SpawnTabDomain::CurrentPaneDomain,
-                        command: if prog.is_empty() {
-                            None
-                        } else {
-                            let builder = CommandBuilder::from_argv(prog);
-                            Some(builder)
-                        },
-                        command_dir: cwd.and_then(|c| c.to_str().map(|s| s.to_string())),
-                    }))?;
-
-                    log::debug!("{:?}", spawned);
-                    println!("{}", spawned.pane_id);
-                }
-                CliSubCommand::Proxy => {
-                    // The client object we created above will have spawned
-                    // the server if needed, so now all we need to do is turn
-                    // ourselves into basically netcat.
-                    drop(client);
-
-                    crate::stats::disable_stats_printing();
-
-                    let mux = Rc::new(mux::Mux::new(None));
-                    Mux::set_mux(&mux);
-                    let unix_dom = config.unix_domains.first().unwrap();
-                    let sock_path = unix_dom.socket_path();
-                    let stream = unix_connect_with_retry(&sock_path)?;
-
-                    // Keep the threads below alive forever; they'll
-                    // exit the process when they're done.
-                    let _activity = Activity::new();
-
-                    // Spawn a thread to pull data from the socket and write
-                    // it to stdout
-                    let duped = stream.try_clone()?;
-                    std::thread::spawn(move || {
-                        let stdout = std::io::stdout();
-                        consume_stream_then_exit_process(duped, stdout.lock());
-                    });
-
-                    // and pull data from stdin and write it to the socket
-                    std::thread::spawn(move || {
-                        let stdin = std::io::stdin();
-                        consume_stream_then_exit_process(stdin.lock(), stream);
-                    });
-                }
-                CliSubCommand::TlsCreds => {
-                    let creds = block_on(client.get_tls_creds())?;
-                    codec::Pdu::GetTlsCredsResponse(creds).encode(std::io::stdout().lock(), 0)?;
+                    match cursor.preorder_next() {
+                        Ok(c) => cursor = c,
+                        Err(_) => break,
+                    }
                 }
             }
-            Ok(())
+
+            tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
         }
+        CliSubCommand::SplitPane {
+            pane_id,
+            cwd,
+            prog,
+            horizontal,
+        } => {
+            let pane_id: PaneId = match pane_id {
+                Some(p) => p,
+                None => std::env::var("WEZTERM_PANE")
+                    .map_err(|_| {
+                        anyhow!(
+                            "--pane-id was not specified and $WEZTERM_PANE
+                                    is not set in the environment"
+                        )
+                    })?
+                    .parse()?,
+            };
+
+            let spawned = client
+                .split_pane(codec::SplitPane {
+                    pane_id,
+                    direction: if horizontal {
+                        SplitDirection::Horizontal
+                    } else {
+                        SplitDirection::Vertical
+                    },
+                    domain: keyassignment::SpawnTabDomain::CurrentPaneDomain,
+                    command: if prog.is_empty() {
+                        None
+                    } else {
+                        let builder = CommandBuilder::from_argv(prog);
+                        Some(builder)
+                    },
+                    command_dir: cwd.and_then(|c| c.to_str().map(|s| s.to_string())),
+                })
+                .await?;
+
+            log::debug!("{:?}", spawned);
+            println!("{}", spawned.pane_id);
+        }
+        CliSubCommand::Proxy => {
+            // The client object we created above will have spawned
+            // the server if needed, so now all we need to do is turn
+            // ourselves into basically netcat.
+            drop(client);
+
+            crate::stats::disable_stats_printing();
+
+            let mux = Rc::new(mux::Mux::new(None));
+            Mux::set_mux(&mux);
+            let unix_dom = config.unix_domains.first().unwrap();
+            let sock_path = unix_dom.socket_path();
+            let stream = unix_connect_with_retry(&sock_path, false)?;
+
+            // Keep the threads below alive forever; they'll
+            // exit the process when they're done.
+            let _activity = Activity::new();
+
+            // Spawn a thread to pull data from the socket and write
+            // it to stdout
+            let duped = stream.try_clone()?;
+            std::thread::spawn(move || {
+                let stdout = std::io::stdout();
+                consume_stream_then_exit_process(duped, stdout.lock());
+            });
+
+            // and pull data from stdin and write it to the socket
+            std::thread::spawn(move || {
+                let stdin = std::io::stdin();
+                consume_stream_then_exit_process(stdin.lock(), stream);
+            });
+        }
+        CliSubCommand::TlsCreds => {
+            let creds = client.get_tls_creds().await?;
+            codec::Pdu::GetTlsCredsResponse(creds).encode(std::io::stdout().lock(), 0)?;
+        }
+    }
+    Ok(())
+}
+
+fn run_cli(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
+    let executor = promise::spawn::SimpleExecutor::new();
+    promise::spawn::spawn(async move {
+        match run_cli_async(config, cli).await {
+            Ok(_) => std::process::exit(0),
+            Err(err) => {
+                terminate_with_error(err);
+            }
+        }
+    });
+    loop {
+        executor.tick()?;
     }
 }
 

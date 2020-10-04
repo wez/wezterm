@@ -158,7 +158,20 @@ async fn decode_raw_async<R: Unpin + AsyncReadExt>(r: &mut R) -> anyhow::Result<
     };
     let serial = read_u64_async(r).await.context("reading PDU serial")?;
     let ident = read_u64_async(r).await.context("reading PDU ident")?;
-    let data_len = len as usize - (encoded_length(ident) + encoded_length(serial));
+    let data_len =
+        match (len as usize).overflowing_sub(encoded_length(ident) + encoded_length(serial)) {
+            (_, true) => {
+                anyhow::bail!(
+                    "sizes don't make sense: len:{} serial:{} (enc={}) ident:{} (enc={})",
+                    len,
+                    serial,
+                    encoded_length(serial),
+                    ident,
+                    encoded_length(ident)
+                );
+            }
+            (data_len, false) => data_len,
+        };
 
     if is_compressed {
         metrics::value!("pdu.decode.compressed.size", data_len as u64);
@@ -192,7 +205,20 @@ fn decode_raw<R: std::io::Read>(mut r: R) -> anyhow::Result<Decoded> {
     };
     let serial = read_u64(r.by_ref()).context("reading PDU serial")?;
     let ident = read_u64(r.by_ref()).context("reading PDU ident")?;
-    let data_len = len as usize - (encoded_length(ident) + encoded_length(serial));
+    let data_len =
+        match (len as usize).overflowing_sub(encoded_length(ident) + encoded_length(serial)) {
+            (_, true) => {
+                anyhow::bail!(
+                    "sizes don't make sense: len:{} serial:{} (enc={}) ident:{} (enc={})",
+                    len,
+                    serial,
+                    encoded_length(serial),
+                    ident,
+                    encoded_length(ident)
+                );
+            }
+            (data_len, false) => data_len,
+        };
 
     if is_compressed {
         metrics::value!("pdu.decode.compressed.size", data_len as u64);

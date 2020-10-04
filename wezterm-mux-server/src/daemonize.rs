@@ -1,0 +1,101 @@
+#![cfg(unix)]
+use anyhow::Context;
+use libc::pid_t;
+use std::io::Write;
+use std::os::unix::io::AsRawFd;
+
+enum Fork {
+    Child(pid_t),
+    Parent(pid_t),
+}
+
+fn fork() -> anyhow::Result<Fork> {
+    let pid = unsafe { libc::fork() };
+
+    if pid == 0 {
+        // We are the child
+        let pid = unsafe { libc::getpid() };
+        Ok(Fork::Child(pid))
+    } else if pid < 0 {
+        let err: anyhow::Error = std::io::Error::last_os_error().into();
+        Err(err.context("fork"))
+    } else {
+        // We are the parent
+        Ok(Fork::Parent(pid))
+    }
+}
+
+fn setsid() -> anyhow::Result<()> {
+    let pid = unsafe { libc::setsid() };
+    if pid == -1 {
+        let err: anyhow::Error = std::io::Error::last_os_error().into();
+        Err(err.context("setsid"))
+    } else {
+        Ok(())
+    }
+}
+
+fn lock_pid_file(config: &config::ConfigHandle) -> anyhow::Result<std::fs::File> {
+    let pid_file = config.daemon_options.pid_file();
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(&pid_file)
+        .with_context(|| format!("opening pid file {}", pid_file.display()))?;
+    let res = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+    if res != 0 {
+        let err = std::io::Error::last_os_error();
+        anyhow::bail!("unable to lock pid file {}: {}", pid_file.display(), err);
+    }
+
+    unsafe { libc::ftruncate(file.as_raw_fd(), 0) };
+
+    Ok(file)
+}
+
+pub fn daemonize(config: &config::ConfigHandle) -> anyhow::Result<()> {
+    let pid_file = if !config::running_under_wsl() {
+        // pid file locking is only partly functional when running under
+        // WSL 1; it is possible for the pid file to exist after a reboot
+        // and for attempts to open and lock it to fail when there are no
+        // other processes that might possibly hold a lock on it.
+        // So, we only use a pid file when not under WSL.
+
+        Some(lock_pid_file(config)?)
+    } else {
+        None
+    };
+    let stdout = config.daemon_options.open_stdout()?;
+    let stderr = config.daemon_options.open_stderr()?;
+    let devnull = std::fs::File::open("/dev/null").context("opening /dev/null for read")?;
+
+    match fork()? {
+        Fork::Parent(pid) => {
+            let mut status = 0;
+            unsafe { libc::waitpid(pid, &mut status, 0) };
+            std::process::exit(0);
+        }
+        Fork::Child(_) => {}
+    }
+
+    setsid()?;
+    match fork()? {
+        Fork::Parent(_) => {
+            std::process::exit(0);
+        }
+        Fork::Child(_) => {}
+    }
+
+    if let Some(mut pid_file) = pid_file {
+        writeln!(pid_file, "{}", unsafe { libc::getpid() }).ok();
+        // Leak it so that the descriptor remains open for the duration
+        // of the process runtime
+        std::mem::forget(pid_file);
+    }
+
+    unsafe { libc::dup2(devnull.as_raw_fd(), libc::STDIN_FILENO) };
+    unsafe { libc::dup2(stdout.as_raw_fd(), libc::STDOUT_FILENO) };
+    unsafe { libc::dup2(stderr.as_raw_fd(), libc::STDERR_FILENO) };
+
+    Ok(())
+}

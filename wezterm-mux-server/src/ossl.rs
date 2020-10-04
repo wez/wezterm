@@ -1,10 +1,67 @@
-use super::*;
+use crate::PKI;
+use anyhow::{anyhow, Context, Error};
+use config::TlsDomainServer;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod, SslStream, SslVerifyMode};
 use openssl::x509::X509;
+use promise::spawn::spawn_into_main_thread;
+use std::net::TcpListener;
+use std::net::TcpStream;
+use std::path::Path;
+use std::sync::Arc;
 
 struct OpenSSLNetListener {
     acceptor: Arc<SslAcceptor>,
     listener: TcpListener,
+}
+
+struct AsyncSslStream {
+    s: SslStream<TcpStream>,
+}
+
+impl AsyncSslStream {
+    pub fn new(s: SslStream<TcpStream>) -> Self {
+        Self { s }
+    }
+}
+
+impl crate::dispatch::TryClone for AsyncSslStream {
+    fn try_to_clone(&self) -> anyhow::Result<Self> {
+        use foreign_types_shared::ForeignTypeRef;
+        let stream = self.s.get_ref().try_clone()?;
+        let s = unsafe { SslStream::from_raw_parts(self.s.ssl().as_ptr(), stream) };
+        Ok(Self { s })
+    }
+}
+
+#[cfg(unix)]
+impl std::os::unix::io::AsRawFd for AsyncSslStream {
+    fn as_raw_fd(&self) -> std::os::unix::io::RawFd {
+        self.s.get_ref().as_raw_fd()
+    }
+}
+
+#[cfg(windows)]
+impl std::os::windows::io::AsRawSocket for AsyncSslStream {
+    fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
+        self.s.get_ref().as_raw_socket()
+    }
+}
+
+impl crate::dispatch::AsRawDesc for AsyncSslStream {}
+
+impl std::io::Read for AsyncSslStream {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+        self.s.read(buf)
+    }
+}
+
+impl std::io::Write for AsyncSslStream {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+        self.s.write(buf)
+    }
+    fn flush(&mut self) -> Result<(), std::io::Error> {
+        self.s.flush()
+    }
 }
 
 impl OpenSSLNetListener {
@@ -57,7 +114,7 @@ impl OpenSSLNetListener {
                 );
                 Ok(())
             } else {
-                bail!("CN `{}` did not match $USER `{}`", cn_str, wanted_unix_name);
+                anyhow::bail!("CN `{}` did not match $USER `{}`", cn_str, wanted_unix_name);
             }
         }
     }
@@ -72,22 +129,20 @@ impl OpenSSLNetListener {
                     match acceptor.accept(stream) {
                         Ok(stream) => {
                             if let Err(err) = Self::verify_peer_cert(&stream) {
-                                error!("problem with peer cert: {}", err);
+                                log::error!("problem with peer cert: {}", err);
                                 break;
                             }
-
                             spawn_into_main_thread(async move {
-                                let mut session = clientsession::ClientSession::new(stream);
-                                thread::spawn(move || session.run());
+                                crate::dispatch::process(AsyncSslStream::new(stream)).await
                             });
                         }
                         Err(e) => {
-                            error!("failed TlsAcceptor: {}", e);
+                            log::error!("failed TlsAcceptor: {}", e);
                         }
                     }
                 }
                 Err(err) => {
-                    error!("accept failed: {}", err);
+                    log::error!("accept failed: {}", err);
                     return;
                 }
             }
@@ -156,6 +211,8 @@ pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
 
     let acceptor = acceptor.build();
 
+    log::error!("listening with TLS on {:?}", tls_server.bind_address);
+
     let mut net_listener = OpenSSLNetListener::new(
         TcpListener::bind(&tls_server.bind_address).with_context(|| {
             format!(
@@ -165,7 +222,7 @@ pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
         })?,
         acceptor,
     );
-    thread::spawn(move || {
+    std::thread::spawn(move || {
         net_listener.run();
     });
     Ok(())

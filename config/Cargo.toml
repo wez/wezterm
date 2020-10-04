@@ -12,7 +12,10 @@ vergen = "3"
 
 [dependencies]
 anyhow = "1.0"
+bstr = "0.2"
 dirs = "2.0"
+filenamegen = "0.2"
+hostname = "0.3"
 lazy_static = "1.4"
 libc = "0.2"
 luahelper = { path = "../luahelper" }

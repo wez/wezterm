@@ -100,7 +100,14 @@ async fn process_unilateral_inner_async(
     local_domain_id: DomainId,
     decoded: DecodedPdu,
 ) -> anyhow::Result<()> {
-    let mux = Mux::get().unwrap();
+    let mux = match Mux::get() {
+        Some(mux) => mux,
+        None => {
+            // This can happen for some client scenarios; it is ok to ignore it.
+            return Ok(());
+        }
+    };
+
     let client_domain = mux
         .get_domain(local_domain_id)
         .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
@@ -260,8 +267,15 @@ fn client_thread(
     }
 }
 
-pub fn unix_connect_with_retry(path: &Path) -> Result<UnixStream, std::io::Error> {
+pub fn unix_connect_with_retry(
+    path: &Path,
+    just_spawned: bool,
+) -> Result<UnixStream, std::io::Error> {
     let mut error = std::io::Error::last_os_error();
+
+    if just_spawned {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+    }
 
     for iter in 0..10 {
         if iter > 0 {
@@ -458,7 +472,7 @@ impl Reconnectable {
         ui.output_str(&format!("Connect to {}\n", sock_path.display()));
         info!("connect to {}", sock_path.display());
 
-        let stream = match unix_connect_with_retry(&sock_path) {
+        let stream = match unix_connect_with_retry(&sock_path, false) {
             Ok(stream) => stream,
             Err(e) => {
                 if unix_dom.no_serve_automatically || !initial {
@@ -483,15 +497,26 @@ impl Reconnectable {
                 let mut cmd = CommandBuilder::new(&argv[0]);
                 cmd.args(&argv[1..]);
                 let mut child = pair.slave.spawn_command(cmd)?;
+                drop(pair.slave);
+                let mut reader = pair.master.try_clone_reader()?;
+                drop(pair.master);
+                let mut s = String::new();
+                reader.read_to_string(&mut s).ok();
+                log::error!("server output: {}", s);
+
                 let status = child.wait()?;
                 if !status.success() {
                     log::error!("{:?} failed with status {:?}", argv, status);
                 }
+                log::error!("{:?} completed with status {:?}", argv, status);
                 drop(child);
-                drop(pair.slave);
 
-                unix_connect_with_retry(&sock_path)
-                    .with_context(|| format!("failed to connect to {}", sock_path.display()))?
+                unix_connect_with_retry(&sock_path, true).with_context(|| {
+                    format!(
+                        "(after spawning server) failed to connect to {}",
+                        sock_path.display()
+                    )
+                })?
             }
         };
 
@@ -781,17 +806,18 @@ impl Client {
             }
 
             async fn detach(local_domain_id: DomainId) -> anyhow::Result<()> {
-                let mux = Mux::get().unwrap();
-                let client_domain = mux
-                    .get_domain(local_domain_id)
-                    .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
-                let client_domain =
-                    client_domain
-                        .downcast_ref::<ClientDomain>()
-                        .ok_or_else(|| {
-                            anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
-                        })?;
-                client_domain.perform_detach();
+                if let Some(mux) = Mux::get() {
+                    let client_domain = mux
+                        .get_domain(local_domain_id)
+                        .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
+                    let client_domain =
+                        client_domain
+                            .downcast_ref::<ClientDomain>()
+                            .ok_or_else(|| {
+                                anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
+                            })?;
+                    client_domain.perform_detach();
+                }
                 Ok(())
             }
             promise::spawn::spawn_into_main_thread(async move {

@@ -1,3 +1,4 @@
+use crate::SpawnFunc;
 use anyhow::{anyhow, Result};
 use async_task::{JoinHandle, Task};
 use std::future::Future;
@@ -211,4 +212,36 @@ pub async fn join_handle_result<T>(handle: JoinHandle<anyhow::Result<T>, ()>) ->
     handle
         .await
         .ok_or_else(|| anyhow::anyhow!("task was cancelled or panicked"))?
+}
+
+pub struct SimpleExecutor {
+    rx: crossbeam::channel::Receiver<SpawnFunc>,
+}
+
+impl SimpleExecutor {
+    pub fn new() -> Self {
+        let (tx, rx) = crossbeam::channel::unbounded();
+
+        let tx_main = tx.clone();
+        let tx_low = tx.clone();
+        let queue_func = move |f: SpawnFunc| {
+            tx_main.send(f).ok();
+        };
+        let queue_func_low = move |f: SpawnFunc| {
+            tx_low.send(f).ok();
+        };
+        set_schedulers(
+            Box::new(move |task| queue_func(Box::new(move || task.run()))),
+            Box::new(move |task| queue_func_low(Box::new(move || task.run()))),
+        );
+        Self { rx }
+    }
+
+    pub fn tick(&self) -> anyhow::Result<()> {
+        match self.rx.recv() {
+            Ok(func) => func(),
+            Err(err) => anyhow::bail!("while waiting for events: {:?}", err),
+        };
+        Ok(())
+    }
 }

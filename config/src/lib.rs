@@ -29,6 +29,7 @@ mod font;
 mod frontend;
 pub mod keyassignment;
 mod keys;
+pub mod lua;
 mod ssh;
 mod terminal;
 mod tls;
@@ -54,8 +55,9 @@ lazy_static! {
     pub static ref CONFIG_DIR: PathBuf = xdg_config_home();
     pub static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
     static ref CONFIG: Configuration = Configuration::new();
-    static ref MAKE_LUA: Mutex<Option<LuaFactory>> = Mutex::new(None);
-    static ref SHOW_ERROR: Mutex<Option<ErrorCallback>> = Mutex::new(None);
+    static ref MAKE_LUA: Mutex<Option<LuaFactory>> = Mutex::new(Some(lua::make_lua_context));
+    static ref SHOW_ERROR: Mutex<Option<ErrorCallback>> =
+        Mutex::new(Some(|e| log::error!("{}", e)));
 }
 
 pub fn assign_lua_factory(make_lua_context: LuaFactory) {

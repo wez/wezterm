@@ -1,20 +1,15 @@
-use anyhow::{anyhow, bail, Context, Error};
-use config::{configuration, TlsDomainServer};
-use crossbeam::channel::unbounded as channel;
-use log::error;
+use config::configuration;
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
-use promise::spawn::spawn_into_main_thread;
-use promise::*;
 use std::ffi::OsString;
-use std::net::TcpListener;
-use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use structopt::*;
+
+mod daemonize;
 
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
@@ -48,8 +43,16 @@ struct Opt {
     prog: Vec<OsString>,
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() {
     pretty_env_logger::init_timed();
+    if let Err(err) = run() {
+        eprintln!("boo {}", err);
+        log::error!("{}", err);
+        std::process::exit(1);
+    }
+}
+
+fn run() -> anyhow::Result<()> {
     //stats::Stats::init()?;
     let _saver = umask::UmaskSaver::new();
 
@@ -62,54 +65,25 @@ fn main() -> anyhow::Result<()> {
     #[cfg(unix)]
     {
         if opts.daemonize {
-            let stdout = config.daemon_options.open_stdout()?;
-            let stderr = config.daemon_options.open_stderr()?;
-            let mut daemonize = daemonize::Daemonize::new()
-                .stdout(stdout)
-                .stderr(stderr)
-                .working_directory(config::HOME_DIR.clone());
-
-            if !config::running_under_wsl() {
-                // pid file locking is only partly function when running under
-                // WSL 1; it is possible for the pid file to exist after a reboot
-                // and for attempts to open and lock it to fail when there are no
-                // other processes that might possibly hold a lock on it.
-                // So, we only use a pid file when not under WSL.
-                daemonize = daemonize.pid_file(config.daemon_options.pid_file());
-            }
-            if let Err(err) = daemonize.start() {
-                use daemonize::DaemonizeError;
-                match err {
-                    DaemonizeError::OpenPidfile
-                    | DaemonizeError::LockPidfile(_)
-                    | DaemonizeError::ChownPidfile(_)
-                    | DaemonizeError::WritePid => {
-                        bail!("{} {}", err, config.daemon_options.pid_file().display());
-                    }
-                    DaemonizeError::ChangeDirectory => {
-                        bail!("{} {}", err, config::HOME_DIR.display());
-                    }
-                    _ => return Err(err.into()),
-                }
-            }
-
-            // Remove some environment variables that aren't super helpful or
-            // that are potentially misleading when we're starting up the
-            // server.
-            // We may potentially want to look into starting/registering
-            // a session of some kind here as well in the future.
-            for name in &[
-                "OLDPWD",
-                "PWD",
-                "SHLVL",
-                "SSH_AUTH_SOCK",
-                "SSH_CLIENT",
-                "SSH_CONNECTION",
-                "_",
-            ] {
-                std::env::remove_var(name);
-            }
+            daemonize::daemonize(&config)?;
         }
+    }
+
+    // Remove some environment variables that aren't super helpful or
+    // that are potentially misleading when we're starting up the
+    // server.
+    // We may potentially want to look into starting/registering
+    // a session of some kind here as well in the future.
+    for name in &[
+        "OLDPWD",
+        "PWD",
+        "SHLVL",
+        "SSH_AUTH_SOCK",
+        "SSH_CLIENT",
+        "SSH_CONNECTION",
+        "_",
+    ] {
+        std::env::remove_var(name);
     }
 
     let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();
@@ -132,22 +106,12 @@ fn main() -> anyhow::Result<()> {
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
-    let (tx, rx) = channel();
+    let executor = promise::spawn::SimpleExecutor::new();
 
-    let tx_main = tx.clone();
-    let tx_low = tx.clone();
-    let queue_func = move |f: SpawnFunc| {
-        tx_main.send(f).ok();
-    };
-    let queue_func_low = move |f: SpawnFunc| {
-        tx_low.send(f).ok();
-    };
-    promise::spawn::set_schedulers(
-        Box::new(move |task| queue_func(Box::new(move || task.run()))),
-        Box::new(move |task| queue_func_low(Box::new(move || task.run()))),
-    );
-
-    spawn_listener()?;
+    spawn_listener().map_err(|e| {
+        log::error!("problem spawning listeners: {:?}", e);
+        e
+    })?;
 
     let activity = Activity::new();
 
@@ -159,13 +123,10 @@ fn main() -> anyhow::Result<()> {
     });
 
     loop {
-        match rx.recv() {
-            Ok(func) => func(),
-            Err(err) => bail!("while waiting for events: {:?}", err),
-        }
+        executor.tick()?;
 
         if Mux::get().unwrap().is_empty() && mux::activity::Activity::count() == 0 {
-            log::info!("No more tabs; all done!");
+            log::error!("No more tabs; all done!");
             return Ok(());
         }
     }
@@ -191,11 +152,10 @@ fn terminate_with_error(err: anyhow::Error) -> ! {
     std::process::exit(1);
 }
 
-mod clientsession;
+mod dispatch;
 mod local;
 mod ossl;
 mod pki;
-mod pollable;
 mod sessionhandler;
 
 lazy_static::lazy_static! {
@@ -214,5 +174,6 @@ pub fn spawn_listener() -> anyhow::Result<()> {
     for tls_server in &config.tls_servers {
         ossl::spawn_tls_listener(tls_server)?;
     }
+
     Ok(())
 }

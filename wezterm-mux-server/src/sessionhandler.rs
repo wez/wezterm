@@ -1,4 +1,3 @@
-use crate::pollable::*;
 use crate::PKI;
 use anyhow::anyhow;
 use codec::*;
@@ -26,12 +25,6 @@ pub struct PduSender {
 impl PduSender {
     pub fn send(&self, pdu: DecodedPdu) -> anyhow::Result<()> {
         (self.func)(pdu)
-    }
-
-    pub fn with_pollable(p: PollableSender<DecodedPdu>) -> Self {
-        Self {
-            func: Arc::new(move |pdu| p.send(pdu)),
-        }
     }
 
     pub fn with_smol(p: smol::channel::Sender<DecodedPdu>) -> Self {
