@@ -7,7 +7,7 @@ use promise::spawn::spawn_into_main_thread;
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 struct OpenSSLNetListener {
     acceptor: Arc<SslAcceptor>,
@@ -15,20 +15,20 @@ struct OpenSSLNetListener {
 }
 
 struct AsyncSslStream {
-    s: SslStream<TcpStream>,
+    s: Arc<Mutex<SslStream<TcpStream>>>,
 }
 
 impl AsyncSslStream {
     pub fn new(s: SslStream<TcpStream>) -> Self {
-        Self { s }
+        Self {
+            s: Arc::new(Mutex::new(s)),
+        }
     }
 }
 
 impl crate::dispatch::TryClone for AsyncSslStream {
     fn try_to_clone(&self) -> anyhow::Result<Self> {
-        use foreign_types_shared::ForeignTypeRef;
-        let stream = self.s.get_ref().try_clone()?;
-        let s = unsafe { SslStream::from_raw_parts(self.s.ssl().as_ptr(), stream) };
+        let s = self.s.clone();
         Ok(Self { s })
     }
 }
@@ -36,14 +36,14 @@ impl crate::dispatch::TryClone for AsyncSslStream {
 #[cfg(unix)]
 impl std::os::unix::io::AsRawFd for AsyncSslStream {
     fn as_raw_fd(&self) -> std::os::unix::io::RawFd {
-        self.s.get_ref().as_raw_fd()
+        self.s.lock().unwrap().get_ref().as_raw_fd()
     }
 }
 
 #[cfg(windows)]
 impl std::os::windows::io::AsRawSocket for AsyncSslStream {
     fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
-        self.s.get_ref().as_raw_socket()
+        self.s.lock().unwrap().get_ref().as_raw_socket()
     }
 }
 
@@ -51,16 +51,16 @@ impl crate::dispatch::AsRawDesc for AsyncSslStream {}
 
 impl std::io::Read for AsyncSslStream {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-        self.s.read(buf)
+        self.s.lock().unwrap().read(buf)
     }
 }
 
 impl std::io::Write for AsyncSslStream {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-        self.s.write(buf)
+        self.s.lock().unwrap().write(buf)
     }
     fn flush(&mut self) -> Result<(), std::io::Error> {
-        self.s.flush()
+        self.s.lock().unwrap().flush()
     }
 }
 
