@@ -11,7 +11,6 @@ anyhow = "1.0"
 codec = { path = "../codec" }
 config = { path = "../config" }
 filedescriptor = { version="0.7", path = "../filedescriptor" }
-foreign-types-shared = "0.1.1" # to peek into SslStream's SSL
 hostname = "0.3"
 libc = "0.2"
 log = "0.4"
@@ -21,7 +20,7 @@ portable-pty = { path = "../pty", features = ["serde_support"]}
 pretty_env_logger = "0.4"
 promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }
-rcgen = "0.7"
+rcgen = "0.8"
 smol = "1.2"
 structopt = "0.3"
 umask = { path = "../umask" }

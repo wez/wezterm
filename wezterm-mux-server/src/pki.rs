@@ -10,7 +10,7 @@ use std::path::PathBuf;
 /// channel (eg: ssh to reach the host, then unix domain to access
 /// the server) to make a request for the key information.
 /// We'll generate that request a new client cert and return
-/// both the public CA certificate informat and that key to the client.
+/// both the public CA certificate information and that key to the client.
 /// The client will use both of those things to connect to the TLS
 /// server.
 pub struct Pki {

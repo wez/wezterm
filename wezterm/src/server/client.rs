@@ -855,7 +855,7 @@ impl Client {
                 let msg = format!(
                     "Please install the same version of wezterm on both \
                      the client and server! \
-                     The server reported error {} while being asked for its \
+                     The server reported error '{}' while being asked for its \
                      version.  This likely means that the server is older \
                      than the client.",
                     err

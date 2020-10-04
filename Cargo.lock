@@ -2522,6 +2522,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pem"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59698ea79df9bf77104aefd39cc3ec990cb9693fb59c3b0a70ddf2646fdffb4b"
+dependencies = [
+ "base64 0.12.3",
+ "once_cell",
+ "regex",
+]
+
+[[package]]
 name = "percent-encoding"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2924,7 +2935,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6d6cbbf5f43710b9242a4897f4671a469198e2d826d9df043fc16e046f45d8a"
 dependencies = [
  "chrono",
- "pem",
+ "pem 0.6.1",
+ "ring",
+ "yasna",
+]
+
+[[package]]
+name = "rcgen"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4974f7e96ee51fa3c90c3022e02c3a7117e71cb2a84518a55e44360135200c25"
+dependencies = [
+ "chrono",
+ "pem 0.8.1",
  "ring",
  "yasna",
 ]
@@ -4175,7 +4198,7 @@ dependencies = [
  "pulldown-cmark",
  "rangeset",
  "ratelim",
- "rcgen",
+ "rcgen 0.7.0",
  "regex",
  "serde",
  "serde_json",
@@ -4211,7 +4234,6 @@ dependencies = [
  "codec",
  "config",
  "filedescriptor",
- "foreign-types-shared",
  "hostname",
  "libc",
  "log",
@@ -4221,7 +4243,7 @@ dependencies = [
  "pretty_env_logger",
  "promise",
  "rangeset",
- "rcgen",
+ "rcgen 0.8.5",
  "smol",
  "structopt",
  "uds_windows",
