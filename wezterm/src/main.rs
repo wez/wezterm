@@ -91,10 +91,6 @@ struct StartCommand {
     #[structopt(long = "no-auto-connect")]
     no_auto_connect: bool,
 
-    /// Detach from the foreground and become a background process
-    #[structopt(long = "daemonize")]
-    daemonize: bool,
-
     /// Specify the current working directory for the initially
     /// spawned program
     #[structopt(long = "cwd", parse(from_os_str))]
@@ -486,59 +482,6 @@ async fn async_run_terminal_gui(
 }
 
 fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow::Result<()> {
-    #[cfg(unix)]
-    {
-        if opts.daemonize {
-            let stdout = config.daemon_options.open_stdout()?;
-            let stderr = config.daemon_options.open_stderr()?;
-            let mut daemonize = daemonize::Daemonize::new()
-                .stdout(stdout)
-                .stderr(stderr)
-                .working_directory(config::HOME_DIR.clone());
-
-            if !config::running_under_wsl() {
-                // pid file locking is only partly function when running under
-                // WSL 1; it is possible for the pid file to exist after a reboot
-                // and for attempts to open and lock it to fail when there are no
-                // other processes that might possibly hold a lock on it.
-                // So, we only use a pid file when not under WSL.
-                daemonize = daemonize.pid_file(config.daemon_options.pid_file());
-            }
-            if let Err(err) = daemonize.start() {
-                use daemonize::DaemonizeError;
-                match err {
-                    DaemonizeError::OpenPidfile
-                    | DaemonizeError::LockPidfile(_)
-                    | DaemonizeError::ChownPidfile(_)
-                    | DaemonizeError::WritePid => {
-                        bail!("{} {}", err, config.daemon_options.pid_file().display());
-                    }
-                    DaemonizeError::ChangeDirectory => {
-                        bail!("{} {}", err, config::HOME_DIR.display());
-                    }
-                    _ => return Err(err.into()),
-                }
-            }
-
-            // Remove some environment variables that aren't super helpful or
-            // that are potentially misleading when we're starting up the
-            // server.
-            // We may potentially want to look into starting/registering
-            // a session of some kind here as well in the future.
-            for name in &[
-                "OLDPWD",
-                "PWD",
-                "SHLVL",
-                "SSH_AUTH_SOCK",
-                "SSH_CLIENT",
-                "SSH_CONNECTION",
-                "_",
-            ] {
-                std::env::remove_var(name);
-            }
-        }
-    }
-
     opts.font_locator
         .unwrap_or(config.font_locator)
         .set_default();
