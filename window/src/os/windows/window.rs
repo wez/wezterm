@@ -263,7 +263,7 @@ fn schedule_show_window(hwnd: HWindow, show: bool) {
         unsafe {
             ShowWindow(hwnd.0, if show { SW_NORMAL } else { SW_HIDE });
         }
-    });
+    }).detach();
 }
 
 impl WindowOpsMut for WindowInner {
@@ -273,7 +273,7 @@ impl WindowOpsMut for WindowInner {
             unsafe {
                 DestroyWindow(hwnd.0);
             }
-        });
+        }).detach();
     }
 
     fn show(&mut self) {
@@ -309,7 +309,7 @@ impl WindowOpsMut for WindowInner {
                     SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
                 );
             }
-        });
+        }).detach();
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {

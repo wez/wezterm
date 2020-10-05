@@ -28,3 +28,6 @@ termwiz = { path = "../termwiz" }
 toml = "0.5"
 wezterm-term = { path = "../term", features=["use_serde"] }
 mlua = {version="0.2", features=["vendored"]}
+
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3", features = ["winuser"]}
