@@ -43,11 +43,21 @@ impl SpawnQueue {
 
     pub fn register_promise_schedulers(&self) {
         promise::spawn::set_schedulers(
-            Box::new(|task| {
-                SPAWN_QUEUE.spawn_impl(Box::new(move || task.run()), true);
+            Box::new(|runnable| {
+                SPAWN_QUEUE.spawn_impl(
+                    Box::new(move || {
+                        runnable.run();
+                    }),
+                    true,
+                );
             }),
-            Box::new(|low_pri_task| {
-                SPAWN_QUEUE.spawn_impl(Box::new(move || low_pri_task.run()), false);
+            Box::new(|runnable| {
+                SPAWN_QUEUE.spawn_impl(
+                    Box::new(move || {
+                        runnable.run();
+                    }),
+                    false,
+                );
             }),
         );
     }

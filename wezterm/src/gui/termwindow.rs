@@ -1454,7 +1454,7 @@ impl TermWindow {
             tab_navigator(tab_id, term, tabs, mux_window_id)
         });
         self.assign_overlay(tab.tab_id(), overlay);
-        promise::spawn::spawn(future);
+        promise::spawn::spawn(future).detach();
     }
 
     fn show_launcher(&mut self) {
@@ -1518,7 +1518,7 @@ impl TermWindow {
             )
         });
         self.assign_overlay(tab.tab_id(), overlay);
-        promise::spawn::spawn(future);
+        promise::spawn::spawn(future).detach();
     }
 
     fn scroll_by_page(&mut self, amount: isize) -> anyhow::Result<()> {
@@ -1720,7 +1720,8 @@ impl TermWindow {
             drop(activity);
 
             Ok(())
-        });
+        })
+        .detach();
     }
 
     fn spawn_tab(&mut self, domain: &SpawnTabDomain) {
@@ -1782,7 +1783,8 @@ impl TermWindow {
                     Ok(())
                 });
             }
-        });
+        })
+        .detach();
     }
 
     fn perform_key_assignment(
@@ -1879,7 +1881,8 @@ impl TermWindow {
                         if let Err(err) = open::that(link.uri()) {
                             log::error!("failed to open {}: {:?}", link.uri(), err);
                         }
-                    });
+                    })
+                    .detach();
                 }
             }
             CompleteSelectionOrOpenLinkAtMouseCursor => {
@@ -1969,7 +1972,8 @@ impl TermWindow {
         }
         promise::spawn::spawn(async move {
             new_window().await.ok();
-        });
+        })
+        .detach();
     }
 
     fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
@@ -2136,7 +2140,7 @@ impl TermWindow {
                 confirm_close_pane(pane_id, term, mux_window_id)
             });
             self.assign_overlay_for_pane(pane_id, overlay);
-            promise::spawn::spawn(future);
+            promise::spawn::spawn(future).detach();
         } else {
             tab.kill_pane(pane_id);
         }
@@ -2155,7 +2159,7 @@ impl TermWindow {
                 confirm_close_tab(tab_id, term, mux_window_id)
             });
             self.assign_overlay(tab_id, overlay);
-            promise::spawn::spawn(future);
+            promise::spawn::spawn(future).detach();
         } else {
             mux.remove_tab(tab_id);
         }

@@ -10,6 +10,7 @@ use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
+#[cfg(feature = "opengl")]
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -457,7 +458,8 @@ impl XConnection {
                 let mut inner = handle.lock().unwrap();
                 prom.result(f(&mut inner));
             }
-        });
+        })
+        .detach();
 
         future
     }

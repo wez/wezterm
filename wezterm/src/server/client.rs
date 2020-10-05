@@ -99,7 +99,8 @@ fn process_unilateral_inner(pane_id: PaneId, local_domain_id: DomainId, decoded:
     promise::spawn::spawn(async move {
         process_unilateral_inner_async(pane_id, local_domain_id, decoded).await?;
         Ok::<(), anyhow::Error>(())
-    });
+    })
+    .detach();
 }
 
 async fn process_unilateral_inner_async(
@@ -161,7 +162,8 @@ fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> anyhow:
     if let Some(pane_id) = decoded.pdu.pane_id() {
         promise::spawn::spawn_into_main_thread(async move {
             process_unilateral_inner(pane_id, local_domain_id, decoded)
-        });
+        })
+        .detach();
     } else {
         bail!("don't know how to handle {:?}", decoded);
     }
@@ -802,7 +804,8 @@ impl Client {
                                 log::error!("Reconnected!");
                                 promise::spawn::spawn_into_main_thread(async move {
                                     ClientDomain::reattach(local_domain_id, ui).await.ok();
-                                });
+                                })
+                                .detach();
                                 break;
                             }
                             Err(err) => {
@@ -837,7 +840,8 @@ impl Client {
             }
             promise::spawn::spawn_into_main_thread(async move {
                 detach(local_domain_id).await.ok();
-            });
+            })
+            .detach();
         });
 
         Self {

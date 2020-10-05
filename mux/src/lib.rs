@@ -87,7 +87,8 @@ fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
                                         dead.store(true, Ordering::Relaxed);
                                     }
                                 }
-                            });
+                            })
+                            .detach();
                         }
                         Err(delay) => {
                             log::trace!("RateLimiter: sleep for {:?}", delay);
@@ -101,7 +102,8 @@ fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
     promise::spawn::spawn_into_main_thread(async move {
         let mux = Mux::get().unwrap();
         mux.remove_pane(pane_id);
-    });
+    })
+    .detach();
 }
 
 thread_local! {
@@ -122,7 +124,8 @@ impl Drop for MuxWindowBuilder {
                 mux.notify(MuxNotification::WindowCreated(window_id));
                 drop(activity);
             }
-        });
+        })
+        .detach();
     }
 }
 

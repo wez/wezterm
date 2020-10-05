@@ -348,7 +348,8 @@ fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()>
         // ensures that we drop it either when we error out, or if not,
         // only once we reach this point in the processing flow.
         drop(activity);
-    });
+    })
+    .detach();
 
     maybe_show_configuration_error_window();
     gui.run_forever()
@@ -427,7 +428,8 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
             terminate_with_error(err);
         }
         drop(activity);
-    });
+    })
+    .detach();
 
     gui.run_forever()
 }
@@ -521,7 +523,8 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
             terminate_with_error(err);
         }
         drop(activity);
-    });
+    })
+    .detach();
 
     maybe_show_configuration_error_window();
     gui.run_forever()
@@ -558,7 +561,8 @@ fn toast_notification(title: &str, message: &str) {
                 .duration(winrt_notification::Duration::Long)
                 .show()
                 .ok();
-        });
+        })
+        .detach();
     }
 }
 
@@ -930,7 +934,8 @@ fn run_cli(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> 
                 terminate_with_error(err);
             }
         }
-    });
+    })
+    .detach();
     loop {
         executor.tick()?;
     }

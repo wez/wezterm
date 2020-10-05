@@ -157,7 +157,8 @@ impl Pane for ClientPane {
                     data,
                 })
                 .await
-        });
+        })
+        .detach();
         self.renderable
             .borrow()
             .inner
@@ -192,7 +193,8 @@ impl Pane for ClientPane {
                     zoomed,
                 })
                 .await
-        });
+        })
+        .detach();
         inner.update_last_send();
     }
 
@@ -222,7 +224,8 @@ impl Pane for ClientPane {
                         size,
                     })
                     .await
-            });
+            })
+            .detach();
             inner.update_last_send();
         }
         Ok(())
@@ -266,7 +269,8 @@ impl Pane for ClientPane {
                     input_serial,
                 })
                 .await
-        });
+        })
+        .detach();
         self.renderable
             .borrow()
             .inner

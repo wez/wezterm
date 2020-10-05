@@ -88,7 +88,8 @@ impl MouseState {
 
                 Self::next(Rc::clone(&state));
                 Ok::<(), anyhow::Error>(())
-            });
+            })
+            .detach();
             true
         } else {
             false

@@ -1,21 +1,21 @@
 use crate::SpawnFunc;
 use anyhow::{anyhow, Result};
-use async_task::{JoinHandle, Task};
+use async_task::Runnable;
 use std::future::Future;
 use std::sync::mpsc::{sync_channel, Receiver, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 
-pub type ScheduleFunc = Box<dyn Fn(Task<()>) + Send + Sync + 'static>;
+pub use async_task::Task;
+pub type ScheduleFunc = Box<dyn Fn(Runnable) + Send + Sync + 'static>;
 
-fn no_schedule_configured(_: Task<()>) {
+fn no_schedule_configured(_: Runnable) {
     panic!("no scheduler has been configured");
 }
 
 lazy_static::lazy_static! {
     static ref ON_MAIN_THREAD: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_schedule_configured));
     static ref ON_MAIN_THREAD_LOW_PRI: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_schedule_configured));
-    static ref TOKIO: tokio::runtime::Handle = start_tokio();
 }
 
 /// Set callbacks for scheduling normal and low priority futures.
@@ -30,59 +30,12 @@ pub fn set_schedulers(main: ScheduleFunc, low_pri: ScheduleFunc) {
     *ON_MAIN_THREAD_LOW_PRI.lock().unwrap() = Box::new(low_pri);
 }
 
-/// Spawn the tokio runtime and run it on a secondary thread.
-/// We can't run it on the main thread for the reasons mentioned above.
-/// This is called implicitly when the TOKIO global is accessed by the
-/// `tokio_spawn` function below.
-fn start_tokio() -> tokio::runtime::Handle {
-    let mut runtime = tokio::runtime::Builder::new()
-        .threaded_scheduler()
-        .core_threads(1)
-        .build()
-        .expect("failed to initialize tokio runtime");
-    let handle = runtime.handle().clone();
-
-    // Run the runtime in another thread.
-    // I'm not sure that it is strictly needed, or whether we can just
-    // keep it alive without actively polling anything.
-    std::thread::spawn(move || {
-        // A future that never completes
-        struct Never {}
-        impl Future for Never {
-            type Output = ();
-            fn poll(
-                self: std::pin::Pin<&mut Self>,
-                _: &mut std::task::Context,
-            ) -> Poll<Self::Output> {
-                Poll::Pending
-            }
-        }
-
-        // manage the runtime forever
-        runtime.block_on(Never {});
-    });
-    handle
-}
-
-/// Spawn a future into the tokio runtime, spawning the tokio runtime
-/// if it hasn't already been started up.  The tokio runtime (in the
-/// context of this crate) is intended primarily for scheduling network
-/// IO.  Most futures should be spawned via the other functions provided
-/// by this module.
-pub fn tokio_spawn<F>(future: F) -> tokio::task::JoinHandle<F::Output>
-where
-    F: Future + Send + 'static,
-    F::Output: Send + 'static,
-{
-    TOKIO.spawn(future)
-}
-
 /// Spawn a new thread to execute the provided function.
 /// Returns a JoinHandle that implements the Future trait
 /// and that can be used to await and yield the return value
 /// from the thread.
 /// Can be called from any thread.
-pub fn spawn_into_new_thread<F, T>(f: F) -> JoinHandle<Result<T>, ()>
+pub fn spawn_into_new_thread<F, T>(f: F) -> Task<Result<T>>
 where
     F: FnOnce() -> Result<T>,
     F: Send + 'static,
@@ -147,14 +100,15 @@ where
 /// This function can be called from any thread.
 /// If you are on the main thread already, consider using
 /// spawn() instead to lift the `Send` requirement.
-pub fn spawn_into_main_thread<F, R>(future: F) -> JoinHandle<R, ()>
+pub fn spawn_into_main_thread<F, R>(future: F) -> Task<R>
 where
     F: Future<Output = R> + Send + 'static,
     R: Send + 'static,
 {
-    let (task, handle) = async_task::spawn(future, |task| ON_MAIN_THREAD.lock().unwrap()(task), ());
-    task.schedule();
-    handle
+    let (runnable, task) =
+        async_task::spawn(future, |runnable| ON_MAIN_THREAD.lock().unwrap()(runnable));
+    ON_MAIN_THREAD.lock().unwrap()(runnable);
+    task
 }
 
 /// Spawn a future into the main thread; it will be polled in
@@ -163,56 +117,54 @@ where
 /// spawns.
 /// If you are on the main thread already, consider using `spawn_with_low_priority`
 /// instead to lift the `Send` requirement.
-pub fn spawn_into_main_thread_with_low_priority<F, R>(future: F) -> JoinHandle<R, ()>
+pub fn spawn_into_main_thread_with_low_priority<F, R>(future: F) -> Task<R>
 where
     F: Future<Output = R> + Send + 'static,
     R: Send + 'static,
 {
-    let (task, handle) = async_task::spawn(
-        future,
-        |task| ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(task),
-        (),
-    );
-    task.schedule();
-    handle
+    let (runnable, task) = async_task::spawn(future, |runnable| {
+        ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(runnable)
+    });
+    ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(runnable);
+    task
 }
 
 /// Spawn a future with normal priority.
-pub fn spawn<F, R>(future: F) -> JoinHandle<R, ()>
+pub fn spawn<F, R>(future: F) -> Task<R>
 where
     F: Future<Output = R> + 'static,
     R: 'static,
 {
-    let (task, handle) =
-        async_task::spawn_local(future, |task| ON_MAIN_THREAD.lock().unwrap()(task), ());
-    task.schedule();
-    handle
+    let (runnable, task) =
+        async_task::spawn_local(future, |runnable| ON_MAIN_THREAD.lock().unwrap()(runnable));
+    ON_MAIN_THREAD.lock().unwrap()(runnable);
+    task
 }
 
 /// Spawn a future with low priority; it will be polled only after
 /// all other normal priority items are processed.
-pub fn spawn_with_low_priority<F, R>(future: F) -> JoinHandle<R, ()>
+pub fn spawn_with_low_priority<F, R>(future: F) -> Task<R>
 where
     F: Future<Output = R> + 'static,
     R: 'static,
 {
-    let (task, handle) = async_task::spawn_local(
-        future,
-        |task| ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(task),
-        (),
-    );
-    task.schedule();
-    handle
+    let (runnable, task) = async_task::spawn_local(future, |runnable| {
+        ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(runnable)
+    });
+    ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(runnable);
+    task
 }
 
 /// Block the current thread until the passed future completes.
 pub use async_std::task::block_on;
 
+/*
 pub async fn join_handle_result<T>(handle: JoinHandle<anyhow::Result<T>, ()>) -> anyhow::Result<T> {
     handle
         .await
         .ok_or_else(|| anyhow::anyhow!("task was cancelled or panicked"))?
 }
+*/
 
 pub struct SimpleExecutor {
     rx: crossbeam::channel::Receiver<SpawnFunc>,
@@ -231,8 +183,16 @@ impl SimpleExecutor {
             tx_low.send(f).ok();
         };
         set_schedulers(
-            Box::new(move |task| queue_func(Box::new(move || task.run()))),
-            Box::new(move |task| queue_func_low(Box::new(move || task.run()))),
+            Box::new(move |task| {
+                queue_func(Box::new(move || {
+                    task.run();
+                }))
+            }),
+            Box::new(move |task| {
+                queue_func_low(Box::new(move || {
+                    task.run();
+                }))
+            }),
         );
         Self { rx }
     }

@@ -12,7 +12,7 @@ use mux::tab::{SplitDirection, Tab, TabId};
 use mux::window::WindowId;
 use mux::Mux;
 use portable_pty::{CommandBuilder, PtySize};
-use promise::spawn::{join_handle_result, spawn_into_new_thread};
+use promise::spawn::spawn_into_new_thread;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -471,14 +471,14 @@ impl Domain for ClientDomain {
             let ui = ui.clone();
             async move {
                 let mut cloned_ui = ui.clone();
-                let client = join_handle_result(spawn_into_new_thread(move || match &config {
+                let client = spawn_into_new_thread(move || match &config {
                     ClientDomainConfig::Unix(unix) => {
                         let initial = true;
                         Client::new_unix_domain(domain_id, unix, initial, &mut cloned_ui)
                     }
                     ClientDomainConfig::Tls(tls) => Client::new_tls(domain_id, tls, &mut cloned_ui),
                     ClientDomainConfig::Ssh(ssh) => Client::new_ssh(domain_id, ssh, &mut cloned_ui),
-                }))
+                })
                 .await?;
 
                 ui.output_str("Checking server version\n");

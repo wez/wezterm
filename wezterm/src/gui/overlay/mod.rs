@@ -24,7 +24,7 @@ pub fn start_overlay<T, F>(
     func: F,
 ) -> (
     Rc<dyn Pane>,
-    Pin<Box<dyn std::future::Future<Output = Option<anyhow::Result<T>>>>>,
+    Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>>>>,
 )
 where
     T: Send + 'static,
@@ -51,7 +51,7 @@ pub fn start_overlay_pane<T, F>(
     func: F,
 ) -> (
     Rc<dyn Pane>,
-    Pin<Box<dyn std::future::Future<Output = Option<anyhow::Result<T>>>>>,
+    Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>>>>,
 )
 where
     T: Send + 'static,

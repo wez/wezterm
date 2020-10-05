@@ -82,7 +82,8 @@ pub fn tab_navigator(
 
                 window.set_active(idx);
                 anyhow::Result::<()>::Ok(())
-            });
+            })
+            .detach();
             true
         }
     }

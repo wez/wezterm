@@ -95,6 +95,7 @@ fn main() -> anyhow::Result<()> {
         eprintln!("running this async block");
         spawn_window().await.ok();
         eprintln!("end of async block");
-    });
+    })
+    .detach();
     conn.run_message_loop()
 }

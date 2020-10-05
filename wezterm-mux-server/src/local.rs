@@ -26,7 +26,8 @@ impl LocalListener {
                             log::error!("{:#}", e);
                             e
                         })
-                    });
+                    })
+                    .detach();
                 }
                 Err(err) => {
                     log::error!("accept failed: {}", err);

@@ -40,7 +40,8 @@ pub fn confirm_close_pane(
                         None => return,
                     };
                     tab.kill_pane(pane_id);
-                });
+                })
+                .detach();
                 break;
             }
             InputEvent::Key(KeyEvent {
@@ -88,7 +89,8 @@ pub fn confirm_close_tab(
                 promise::spawn::spawn_into_main_thread(async move {
                     let mux = Mux::get().unwrap();
                     mux.remove_tab(tab_id);
-                });
+                })
+                .detach();
                 break;
             }
             InputEvent::Key(KeyEvent {

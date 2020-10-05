@@ -218,7 +218,8 @@ pub fn launcher(
                         mux_window_id,
                         clipboard,
                     );
-                });
+                })
+                .detach();
             }
             Entry::Attach { domain, .. } => {
                 promise::spawn::spawn_into_main_thread(async move {
@@ -226,7 +227,8 @@ pub fn launcher(
                     // because the compiler would then want its body
                     // to be Send :-/
                     do_domain_attach(domain);
-                });
+                })
+                .detach();
             }
         }
     }
@@ -297,5 +299,6 @@ fn do_domain_attach(domain: DomainId) {
             .get_domain(domain)
             .ok_or_else(|| anyhow!("launcher attach called with unresolvable domain id!?"))?;
         domain.attach().await
-    });
+    })
+    .detach();
 }

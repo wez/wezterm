@@ -1171,7 +1171,8 @@ impl Tab {
                 for pane_id in dead_panes.into_iter() {
                     mux.remove_pane(pane_id);
                 }
-            });
+            })
+            .detach();
             true
         } else {
             false

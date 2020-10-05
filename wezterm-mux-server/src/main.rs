@@ -120,7 +120,8 @@ fn run() -> anyhow::Result<()> {
             terminate_with_error(err);
         }
         drop(activity);
-    });
+    })
+    .detach();
 
     loop {
         executor.tick()?;

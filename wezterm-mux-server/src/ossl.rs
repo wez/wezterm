@@ -90,7 +90,8 @@ impl OpenSSLNetListener {
                                         log::error!("process: {:?}", e);
                                         e
                                     })
-                            });
+                            })
+                            .detach();
                         }
                         Err(e) => {
                             log::error!("failed TlsAcceptor: {}", e);

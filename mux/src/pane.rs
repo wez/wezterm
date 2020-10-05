@@ -61,7 +61,8 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
             locked.offset += chunk;
             schedule_next_paste(&paste);
         }
-    });
+    })
+    .detach();
 }
 
 /// A Pane represents a view on a terminal

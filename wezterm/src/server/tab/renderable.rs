@@ -498,7 +498,8 @@ impl RenderableInner {
                 })
                 .await;
             Self::apply_lines(local_pane_id, result, to_fetch, now)
-        });
+        })
+        .detach();
     }
 
     fn apply_lines(
@@ -597,7 +598,8 @@ impl RenderableInner {
                 inner.poll_in_progress.store(false, Ordering::SeqCst);
             }
             Ok::<(), anyhow::Error>(())
-        });
+        })
+        .detach();
         Ok(())
     }
 }

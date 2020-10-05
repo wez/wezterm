@@ -258,7 +258,8 @@ impl ConnectionUI {
                 .ok();
             }
             Ok(())
-        }));
+        }))
+        .detach();
         Self { tx }
     }
 

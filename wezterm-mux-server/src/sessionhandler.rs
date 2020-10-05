@@ -183,7 +183,8 @@ impl SessionHandler {
                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
             maybe_push_pane_changes(&pane, sender, per_pane)?;
             Ok::<(), anyhow::Error>(())
-        });
+        })
+        .detach();
     }
 
     pub fn process_one(&mut self, decoded: DecodedPdu) {
@@ -229,7 +230,8 @@ impl SessionHandler {
                         },
                         send_response,
                     )
-                });
+                })
+                .detach();
             }
 
             Pdu::WriteToPane(WriteToPane { pane_id, data }) => {
@@ -248,7 +250,8 @@ impl SessionHandler {
                         },
                         send_response,
                     );
-                });
+                })
+                .detach();
             }
             Pdu::SendPaste(SendPaste { pane_id, data }) => {
                 let sender = self.to_write_tx.clone();
@@ -266,7 +269,8 @@ impl SessionHandler {
                         },
                         send_response,
                     )
-                });
+                })
+                .detach();
             }
 
             Pdu::SearchScrollbackRequest(SearchScrollbackRequest { pane_id, pattern }) => {
@@ -287,8 +291,10 @@ impl SessionHandler {
                     promise::spawn::spawn(async move {
                         let result = do_search(pane_id, pattern).await;
                         send_response(result);
-                    });
-                });
+                    })
+                    .detach();
+                })
+                .detach();
             }
 
             Pdu::SetPaneZoomed(SetPaneZoomed {
@@ -312,7 +318,8 @@ impl SessionHandler {
                         },
                         send_response,
                     )
-                });
+                })
+                .detach();
             }
 
             Pdu::Resize(Resize {
@@ -336,7 +343,8 @@ impl SessionHandler {
                         },
                         send_response,
                     )
-                });
+                })
+                .detach();
             }
 
             Pdu::SendKeyDown(SendKeyDown {
@@ -370,7 +378,8 @@ impl SessionHandler {
                         },
                         send_response,
                     )
-                });
+                })
+                .detach();
             }
             Pdu::SendMouseEvent(SendMouseEvent { pane_id, event }) => {
                 let sender = self.to_write_tx.clone();
@@ -388,21 +397,24 @@ impl SessionHandler {
                         },
                         send_response,
                     )
-                });
+                })
+                .detach();
             }
 
             Pdu::Spawn(spawn) => {
                 let sender = self.to_write_tx.clone();
                 spawn_into_main_thread(async move {
                     schedule_domain_spawn(spawn, sender, send_response);
-                });
+                })
+                .detach();
             }
 
             Pdu::SplitPane(split) => {
                 let sender = self.to_write_tx.clone();
                 spawn_into_main_thread(async move {
                     schedule_split_pane(split, sender, send_response);
-                });
+                })
+                .detach();
             }
 
             Pdu::GetPaneRenderChanges(GetPaneRenderChanges { pane_id, .. }) => {
@@ -426,7 +438,8 @@ impl SessionHandler {
                         },
                         send_response,
                     )
-                });
+                })
+                .detach();
             }
 
             Pdu::GetLines(GetLines { pane_id, lines }) => {
@@ -458,7 +471,8 @@ impl SessionHandler {
                         },
                         send_response,
                     )
-                });
+                })
+                .detach();
             }
 
             Pdu::GetCodecVersion(_) => {
@@ -509,14 +523,14 @@ fn schedule_domain_spawn<SND>(spawn: Spawn, sender: PduSender, send_response: SN
 where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
 {
-    promise::spawn::spawn(async move { send_response(domain_spawn(spawn, sender).await) });
+    promise::spawn::spawn(async move { send_response(domain_spawn(spawn, sender).await) }).detach();
 }
 
 fn schedule_split_pane<SND>(split: SplitPane, sender: PduSender, send_response: SND)
 where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
 {
-    promise::spawn::spawn(async move { send_response(split_pane(split, sender).await) });
+    promise::spawn::spawn(async move { send_response(split_pane(split, sender).await) }).detach();
 }
 
 struct RemoteClipboard {

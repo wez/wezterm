@@ -475,12 +475,9 @@ pub async fn run<
     let window_id: WindowId = promise::spawn::spawn_into_main_thread(async move {
         register_tab(input_tx, render_rx, width, height).await
     })
-    .await
-    .unwrap_or_else(|| bail!("task panicked or was cancelled"))?;
+    .await?;
 
-    let result = promise::spawn::spawn_into_new_thread(move || f(tw_term))
-        .await
-        .unwrap_or_else(|| bail!("task panicked or was cancelled"));
+    let result = promise::spawn::spawn_into_new_thread(move || f(tw_term)).await;
 
     // Since we're typically called with an outstanding Activity token active,
     // the dead status of the tab will be ignored until after the activity
@@ -490,7 +487,8 @@ pub async fn run<
     promise::spawn::spawn_into_main_thread(async move {
         let mux = Mux::get().unwrap();
         mux.kill_window(window_id);
-    });
+    })
+    .detach();
 
     result
 }

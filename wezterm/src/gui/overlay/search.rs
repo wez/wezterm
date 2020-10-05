@@ -372,7 +372,8 @@ impl SearchRenderable {
                     Ok(())
                 });
                 anyhow::Result::<()>::Ok(())
-            });
+            })
+            .detach();
         } else {
             self.set_viewport(None);
             self.clear_selection();

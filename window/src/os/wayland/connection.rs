@@ -129,7 +129,8 @@ impl WaylandConnection {
                 let mut inner = handle.borrow_mut();
                 prom.result(f(&mut inner));
             }
-        });
+        })
+        .detach();
 
         future
     }

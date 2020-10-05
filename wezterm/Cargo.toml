@@ -42,17 +42,16 @@ log = "0.4"
 lru = "0.5"
 luahelper = { path = "../luahelper" }
 mux = { path = "../mux" }
-open = "1.2"
-pulldown-cmark = "0.7"
+open = "1.4"
+pulldown-cmark = "0.8"
 metrics = { version="0.12", features=["std"]}
 mlua = {version="0.2", features=["vendored"]}
-hdrhistogram = "6.3"
+hdrhistogram = "7.1"
 openssl = "0.10"
 palette = "0.5"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
 promise = { path = "../promise" }
 ratelim= { path = "../ratelim" }
-rcgen = "0.7"
 smol = "1.2"
 http_req = {version="0.6", default-features=false, features=["rust-tls"]}
 regex = "1"
@@ -65,9 +64,8 @@ tabout = { path = "../tabout" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }
-textwrap = "0.11"
-tinyvec = "0.3"
-toml = "0.4"
+textwrap = "0.12"
+tinyvec = "0.3" # Note: constrained by the allsorts crate
 umask = { path = "../umask" }
 unicode-normalization = "0.1"
 unicode-segmentation = "1.6"
