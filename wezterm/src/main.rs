@@ -1,7 +1,8 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
+#![recursion_limit = "512"]
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use config::{wezterm_version, SshParameters};
 use mux::domain::{Domain, LocalDomain};
 use mux::pane::PaneId;

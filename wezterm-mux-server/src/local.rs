@@ -23,7 +23,7 @@ impl LocalListener {
                 Ok(stream) => {
                     spawn_into_main_thread(async move {
                         crate::dispatch::process(stream).await.map_err(|e| {
-                            log::error!("welp: {:?}", e);
+                            log::error!("{:#}", e);
                             e
                         })
                     });

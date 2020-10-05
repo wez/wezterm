@@ -60,10 +60,10 @@ impl<T> Drop for Promise<T> {
             } else {
                 locked.result = Some(err);
             }
-            core.cond.notify_one();
             if let Some(waker) = locked.waker.take() {
                 waker.wake();
             }
+            core.cond.notify_one();
         }
     }
 }
@@ -107,11 +107,12 @@ impl<T> Promise<T> {
                     Some(func) => func(result),
                     None => {
                         locked.result = Some(result);
-                        if let Some(waker) = locked.waker.take() {
-                            waker.wake();
-                        }
                     }
                 }
+                if let Some(waker) = locked.waker.take() {
+                    waker.wake();
+                }
+
                 core.cond.notify_one();
             }
             PromiseState::Fulfilled => panic!("Promise already fulfilled"),

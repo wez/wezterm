@@ -1,14 +1,14 @@
 use crate::connui::ConnectionUI;
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
-use crate::server::pollable::*;
 use crate::server::tab::ClientPane;
 use crate::server::UnixStream;
 use crate::ssh::ssh_connect_with_ui;
-use anyhow::{anyhow, bail, Context, Error};
+use anyhow::{anyhow, bail, Context};
+use async_ossl::AsyncSslStream;
+use async_trait::async_trait;
 use codec::*;
 use config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
-use crossbeam::channel::TryRecvError;
-use filedescriptor::{poll, pollfd, AsRawSocketDescriptor};
+use futures::FutureExt;
 use log::info;
 use mux::domain::{alloc_domain_id, DomainId};
 use mux::pane::PaneId;
@@ -16,10 +16,13 @@ use mux::Mux;
 use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
 use openssl::x509::X509;
 use portable_pty::{CommandBuilder, NativePtySystem, PtySystem};
-use promise::{Future, Promise};
+use smol::channel::{bounded, unbounded, Receiver, Sender};
+use smol::prelude::*;
+use smol::{block_on, Async};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io::{Read, Write};
+use std::marker::Unpin;
 use std::net::TcpStream;
 use std::path::Path;
 use std::path::PathBuf;
@@ -28,12 +31,16 @@ use std::time::Duration;
 use thiserror::Error;
 
 enum ReaderMessage {
-    SendPdu { pdu: Pdu, promise: Promise<Pdu> },
+    SendPdu {
+        pdu: Pdu,
+        promise: Sender<anyhow::Result<Pdu>>,
+    },
+    Readable,
 }
 
 #[derive(Clone)]
 pub struct Client {
-    sender: PollableSender<ReaderMessage>,
+    sender: Sender<ReaderMessage>,
     local_domain_id: DomainId,
     pub is_reconnectable: bool,
 }
@@ -170,98 +177,87 @@ enum NotReconnectableError {
 fn client_thread(
     reconnectable: &mut Reconnectable,
     local_domain_id: DomainId,
-    rx: &mut PollableReceiver<ReaderMessage>,
+    rx: &mut Receiver<ReaderMessage>,
+) -> anyhow::Result<()> {
+    block_on(client_thread_async(reconnectable, local_domain_id, rx))
+}
+
+async fn client_thread_async(
+    reconnectable: &mut Reconnectable,
+    local_domain_id: DomainId,
+    rx: &mut Receiver<ReaderMessage>,
 ) -> anyhow::Result<()> {
     let mut next_serial = 1u64;
-    let mut promises = HashMap::new();
-    let mut read_buffer = Vec::with_capacity(1024);
 
-    loop {
-        loop {
-            match rx.try_recv() {
-                Ok(msg) => match msg {
-                    ReaderMessage::SendPdu { pdu, promise } => {
-                        let serial = next_serial;
-                        next_serial += 1;
-                        promises.insert(serial, promise);
+    struct Promises {
+        map: HashMap<u64, Sender<anyhow::Result<Pdu>>>,
+    }
 
-                        pdu.encode(reconnectable.stream(), serial)
-                            .context("encoding a PDU to send to the server")?;
-                        reconnectable
-                            .stream()
-                            .flush()
-                            .context("flushing PDU to server")?;
-                    }
-                },
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => {
-                    for (_, mut promise) in promises.into_iter() {
-                        promise.result(Err(anyhow!("Client was destroyed")));
-                    }
-                    return Err(NotReconnectableError::ClientWasDestroyed.into());
-                }
-            };
-        }
-
-        let mut poll_array = [rx.as_poll_fd(), reconnectable.stream().as_poll_fd()];
-        if !reconnectable.stream().has_read_buffered() {
-            if let Err(err) = poll(
-                &mut poll_array,
-                Some(std::time::Duration::from_millis(1000)),
-            ) {
-                let reason = format!("Error while polling: {}", err);
-                log::error!("{}", reason);
-                for (_, mut promise) in promises.into_iter() {
-                    promise.result(Err(anyhow!("{}", reason)));
-                }
-                return Err(err).context("Error while polling");
+    impl Promises {
+        fn fail_all(&mut self, reason: &str) {
+            log::error!("failing all promises: {}", reason);
+            for (_, promise) in self.map.drain() {
+                promise.try_send(Err(anyhow!("{}", reason))).unwrap();
             }
         }
+    }
 
-        if poll_array[1].revents != 0 || reconnectable.stream().has_read_buffered() {
-            // When TLS is enabled on a stream, it may require a mixture of
-            // reads AND writes in order to satisfy a given read or write.
-            // As a result, we may appear ready to read a PDU, but may not
-            // be able to read a complete PDU.
-            // Set to non-blocking mode while we try to decode a packet to
-            // avoid blocking.
-            loop {
-                reconnectable.stream().set_non_blocking(true)?;
-                let res = Pdu::try_read_and_decode(reconnectable.stream(), &mut read_buffer);
-                reconnectable.stream().set_non_blocking(false)?;
-                match res {
-                    Ok(None) => {
-                        /* no data available right now; try again later! */
-                        break;
-                    }
-                    Ok(Some(decoded)) => {
-                        log::trace!("decoded serial {}", decoded.serial);
-                        if decoded.serial == 0 {
-                            process_unilateral(local_domain_id, decoded)
-                                .context("processing unilateral PDU from server")
-                                .map_err(|e| {
-                                    log::error!("process_unilateral: {:?}", e);
-                                    e
-                                })?;
-                        } else if let Some(mut promise) = promises.remove(&decoded.serial) {
-                            promise.result(Ok(decoded.pdu));
-                        } else {
-                            log::error!(
-                                "got serial {} without a corresponding promise",
-                                decoded.serial
-                            );
-                        }
-                        break;
-                    }
-                    Err(err) => {
-                        let reason = format!("Error while decoding response pdu: {}", err);
-                        log::error!("{}", reason);
-                        for (_, mut promise) in promises.into_iter() {
-                            promise.result(Err(anyhow!("{}", reason)));
-                        }
-                        return Err(err).context("Error while decoding response pdu");
+    impl Drop for Promises {
+        fn drop(&mut self) {
+            self.fail_all("Client was destroyed");
+        }
+    }
+    let mut promises = Promises {
+        map: HashMap::new(),
+    };
+
+    let mut stream = reconnectable.take_stream().unwrap();
+
+    loop {
+        let rx_msg = rx.recv();
+        let wait_for_read = stream
+            .wait_for_readable()
+            .map(|_| Ok(ReaderMessage::Readable));
+
+        match smol::future::or(rx_msg, wait_for_read).await {
+            Ok(ReaderMessage::SendPdu { pdu, promise }) => {
+                let serial = next_serial;
+                next_serial += 1;
+                promises.map.insert(serial, promise);
+
+                pdu.encode_async(&mut stream, serial)
+                    .await
+                    .context("encoding a PDU to send to the server")?;
+                stream.flush().await.context("flushing PDU to server")?;
+            }
+            Ok(ReaderMessage::Readable) => match Pdu::decode_async(&mut stream).await {
+                Ok(decoded) => {
+                    log::trace!("decoded serial {}", decoded.serial);
+                    if decoded.serial == 0 {
+                        process_unilateral(local_domain_id, decoded)
+                            .context("processing unilateral PDU from server")
+                            .map_err(|e| {
+                                log::error!("process_unilateral: {:?}", e);
+                                e
+                            })?;
+                    } else if let Some(promise) = promises.map.remove(&decoded.serial) {
+                        promise.try_send(Ok(decoded.pdu)).unwrap();
+                    } else {
+                        log::error!(
+                            "got serial {} without a corresponding promise",
+                            decoded.serial
+                        );
                     }
                 }
+                Err(err) => {
+                    let reason = format!("Error while decoding response pdu: {:#}", err);
+                    log::error!("{}", reason);
+                    promises.fail_all(&reason);
+                    return Err(err).context("Error while decoding response pdu");
+                }
+            },
+            Err(_) => {
+                return Err(NotReconnectableError::ClientWasDestroyed.into());
             }
         }
     }
@@ -290,15 +286,54 @@ pub fn unix_connect_with_retry(
     Err(error)
 }
 
+#[async_trait(?Send)]
+pub trait AsyncReadAndWrite: Unpin + AsyncRead + AsyncWrite + std::fmt::Debug + Send {
+    async fn wait_for_readable(&self) -> anyhow::Result<()>;
+}
+
+#[async_trait(?Send)]
+impl<T> AsyncReadAndWrite for Async<T>
+where
+    T: std::fmt::Debug,
+    T: std::io::Write,
+    T: std::io::Read,
+    T: Send,
+{
+    async fn wait_for_readable(&self) -> anyhow::Result<()> {
+        Ok(self.readable().await?)
+    }
+}
+
+#[derive(Debug)]
 struct Reconnectable {
     config: ClientDomainConfig,
-    stream: Option<Box<dyn ReadAndWrite>>,
+    stream: Option<Box<dyn AsyncReadAndWrite>>,
     tls_creds: Option<GetTlsCredsResponse>,
 }
 
 struct SshStream {
     chan: ssh2::Channel,
     sess: ssh2::Session,
+}
+
+impl std::fmt::Debug for SshStream {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(fmt, "SshStream {{...}}")
+    }
+}
+
+#[cfg(unix)]
+impl std::os::unix::io::AsRawFd for SshStream {
+    fn as_raw_fd(&self) -> std::os::unix::io::RawFd {
+        dbg!(self.sess.as_raw_fd())
+    }
+}
+
+#[cfg(windows)]
+impl std::os::windows::io::AsRawSocket for SshStream {
+    fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
+        dbg!(self.sess.as_raw_socket())
+    }
 }
 
 impl SshStream {
@@ -338,12 +373,6 @@ impl Read for SshStream {
     }
 }
 
-impl AsPollFd for SshStream {
-    fn as_poll_fd(&self) -> pollfd {
-        self.sess.as_socket_descriptor().as_poll_fd()
-    }
-}
-
 impl Write for SshStream {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
         self.chan.write(buf)
@@ -353,19 +382,8 @@ impl Write for SshStream {
     }
 }
 
-impl ReadAndWrite for SshStream {
-    fn set_non_blocking(&self, non_blocking: bool) -> anyhow::Result<()> {
-        self.sess.set_blocking(!non_blocking);
-        Ok(())
-    }
-
-    fn has_read_buffered(&self) -> bool {
-        false
-    }
-}
-
 impl Reconnectable {
-    fn new(config: ClientDomainConfig, stream: Option<Box<dyn ReadAndWrite>>) -> Self {
+    fn new(config: ClientDomainConfig, stream: Option<Box<dyn AsyncReadAndWrite>>) -> Self {
         Self {
             config,
             stream,
@@ -387,12 +405,8 @@ impl Reconnectable {
         Ok(self.tls_creds_path()?.join("cert.pem"))
     }
 
-    // Clippy thinks we should return &ReadAndWrite here, but the caller
-    // needs to know the size of the returned type in a number of situations,
-    // so suppress that lint
-    #[allow(clippy::borrowed_box)]
-    fn stream(&mut self) -> &mut Box<dyn ReadAndWrite> {
-        self.stream.as_mut().unwrap()
+    fn take_stream(&mut self) -> Option<Box<dyn AsyncReadAndWrite>> {
+        self.stream.take()
     }
 
     fn reconnectable(&mut self) -> bool {
@@ -457,7 +471,7 @@ impl Reconnectable {
         log::error!("going to run {}", cmd);
         chan.exec(&cmd)?;
 
-        let stream: Box<dyn ReadAndWrite> = Box::new(SshStream { sess, chan });
+        let stream: Box<dyn AsyncReadAndWrite> = Box::new(Async::new(SshStream { sess, chan })?);
         self.stream.replace(stream);
         Ok(())
     }
@@ -523,7 +537,7 @@ impl Reconnectable {
         ui.output_str("Connected!\n");
         stream.set_read_timeout(Some(unix_dom.read_timeout))?;
         stream.set_write_timeout(Some(unix_dom.write_timeout))?;
-        let stream: Box<dyn ReadAndWrite> = Box::new(stream);
+        let stream: Box<dyn AsyncReadAndWrite> = Box::new(Async::new(stream)?);
         self.stream.replace(stream);
         Ok(())
     }
@@ -630,6 +644,7 @@ impl Reconnectable {
                         &self.tls_creds_cert_path()?,
                         creds.client_cert_pem.as_bytes(),
                     )?;
+                    log::error!("got TLS creds");
                     Ok(creds)
                 })?;
                 self.tls_creds.replace(creds);
@@ -650,7 +665,7 @@ impl Reconnectable {
         ui: &mut ConnectionUI,
         remote_address: &str,
         remote_host_name: &str,
-    ) -> anyhow::Result<Box<dyn ReadAndWrite>> {
+    ) -> anyhow::Result<Box<dyn AsyncReadAndWrite>> {
         let mut connector = SslConnector::builder(SslMethod::tls())?;
 
         let cert_file = match tls_client.pem_cert.clone() {
@@ -720,7 +735,7 @@ impl Reconnectable {
         stream.set_write_timeout(Some(tls_client.write_timeout))?;
         stream.set_read_timeout(Some(tls_client.read_timeout))?;
 
-        let stream = Box::new(
+        let stream = Box::new(Async::new(AsyncSslStream::new(
             connector
                 .connect(
                     tls_client
@@ -736,7 +751,7 @@ impl Reconnectable {
                         remote_address, remote_host_name,
                     )
                 })?,
-        );
+        ))?);
         ui.output_str("TLS Connected!\n");
         Ok(stream)
     }
@@ -745,7 +760,7 @@ impl Reconnectable {
 impl Client {
     fn new(local_domain_id: DomainId, mut reconnectable: Reconnectable) -> Self {
         let is_reconnectable = reconnectable.reconnectable();
-        let (sender, mut receiver) = pollable_channel().expect("failed to create pollable_channel");
+        let (sender, mut receiver) = unbounded();
 
         thread::spawn(move || {
             const BASE_INTERVAL: Duration = Duration::from_secs(1);
@@ -857,7 +872,7 @@ impl Client {
                      the client and server! \
                      The server reported error '{}' while being asked for its \
                      version.  This likely means that the server is older \
-                     than the client.",
+                     than the client.\n",
                     err
                 );
                 ui.output_str(&msg);
@@ -913,13 +928,12 @@ impl Client {
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
-    pub fn send_pdu(&self, pdu: Pdu) -> Future<Pdu> {
-        let mut promise = Promise::new();
-        let future = promise.get_future().expect("future already taken!?");
-        match self.sender.send(ReaderMessage::SendPdu { pdu, promise }) {
-            Ok(_) => future,
-            Err(err) => Future::err(Error::msg(err)),
-        }
+    pub async fn send_pdu(&self, pdu: Pdu) -> anyhow::Result<Pdu> {
+        let (promise, rx) = bounded(1);
+        self.sender
+            .send(ReaderMessage::SendPdu { pdu, promise })
+            .await?;
+        rx.recv().await?
     }
 
     rpc!(ping, Ping = (), Pong);

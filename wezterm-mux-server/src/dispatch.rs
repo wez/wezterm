@@ -1,146 +1,60 @@
 use crate::sessionhandler::{PduSender, SessionHandler};
 use crate::UnixStream;
+use anyhow::Context;
+use async_ossl::AsyncSslStream;
 use codec::{DecodedPdu, Pdu};
+use futures::FutureExt;
 use mux::{Mux, MuxNotification};
-use promise::spawn::spawn;
-use smol::io::{AsyncRead, AsyncWrite};
-use std::marker::Unpin;
+use smol::prelude::*;
+use smol::Async;
 
 #[cfg(unix)]
 pub trait AsRawDesc: std::os::unix::io::AsRawFd {}
 #[cfg(windows)]
 pub trait AsRawDesc: std::os::windows::io::AsRawSocket {}
 
-pub trait TryClone {
-    fn try_to_clone(&self) -> anyhow::Result<Self>
-    where
-        Self: std::marker::Sized;
-}
-
 impl AsRawDesc for UnixStream {}
-impl TryClone for UnixStream {
-    fn try_to_clone(&self) -> anyhow::Result<Self>
-    where
-        Self: std::marker::Sized,
-    {
-        Ok(self.try_clone()?)
-    }
-}
+impl AsRawDesc for AsyncSslStream {}
 
 #[derive(Debug)]
 enum Item {
     Notif(MuxNotification),
-    Pdu(DecodedPdu),
-    Done(String),
-}
-
-async fn catch(
-    f: impl smol::future::Future<Output = anyhow::Result<()>>,
-    tx: smol::channel::Sender<Item>,
-) -> anyhow::Result<()> {
-    if let Err(err) = f.await {
-        tx.try_send(Item::Done(err.to_string())).ok();
-    }
-    Ok(())
-}
-
-async fn process_write_queue<T>(
-    mut write_stream: T,
-    write_rx: smol::channel::Receiver<DecodedPdu>,
-) -> anyhow::Result<()>
-where
-    T: AsyncWrite + Unpin,
-{
-    loop {
-        let decoded = write_rx.recv().await?;
-
-        log::trace!("writing pdu with serial {}", decoded.serial);
-        decoded
-            .pdu
-            .encode_async(&mut write_stream, decoded.serial)
-            .await?;
-    }
-}
-
-async fn read_pdus<T>(
-    mut read_stream: T,
-    item_tx: smol::channel::Sender<Item>,
-) -> anyhow::Result<()>
-where
-    T: AsyncRead + Unpin,
-{
-    loop {
-        let decoded = Pdu::decode_async(&mut read_stream).await?;
-        item_tx.send(Item::Pdu(decoded)).await?;
-    }
-}
-
-async fn multiplex(
-    write_tx: smol::channel::Sender<DecodedPdu>,
-    item_rx: smol::channel::Receiver<Item>,
-) -> anyhow::Result<()> {
-    let pdu_sender = PduSender::with_smol(write_tx);
-    let mut handler = SessionHandler::new(pdu_sender);
-
-    loop {
-        let item = match item_rx.recv().await {
-            Ok(item) => item,
-            Err(err) => {
-                log::error!("{}", err);
-                return Ok(());
-            }
-        };
-        match item {
-            Item::Notif(MuxNotification::PaneOutput(pane_id)) => {
-                handler.schedule_pane_push(pane_id);
-            }
-            Item::Notif(MuxNotification::WindowCreated(_window_id)) => {}
-            Item::Pdu(decoded) => {
-                handler.process_one(decoded);
-            }
-            Item::Done(e) => {
-                log::error!("{}", e);
-                return Ok(());
-            }
-        }
-    }
+    WritePdu(DecodedPdu),
+    Readable,
 }
 
 pub async fn process<T>(stream: T) -> anyhow::Result<()>
 where
     T: 'static,
-    T: TryClone,
     T: std::io::Read,
     T: std::io::Write,
     T: AsRawDesc,
+    T: std::fmt::Debug,
 {
-    let write_stream = smol::Async::new(stream.try_to_clone()?)?;
-    let read_stream = smol::Async::new(stream)?;
-
-    process_async(write_stream, read_stream).await
+    let stream = smol::Async::new(stream)?;
+    process_async(stream).await
 }
 
-pub async fn process_async<T>(write_stream: T, read_stream: T) -> anyhow::Result<()>
+pub async fn process_async<T>(mut stream: Async<T>) -> anyhow::Result<()>
 where
     T: 'static,
-    T: AsyncRead,
-    T: AsyncWrite,
-    T: Unpin,
+    T: std::io::Read,
+    T: std::io::Write,
+    T: std::fmt::Debug,
 {
-    let (item_tx, item_rx) = smol::channel::unbounded::<Item>();
-    let (write_tx, write_rx) = smol::channel::unbounded::<DecodedPdu>();
+    log::error!("process_async called");
 
-    // Process the PDU write queue to send to the peer
-    spawn({
+    let (item_tx, item_rx) = smol::channel::unbounded::<Item>();
+
+    let pdu_sender = PduSender::new({
         let item_tx = item_tx.clone();
-        async move {
-            catch(
-                async move { process_write_queue(write_stream, write_rx).await },
-                item_tx,
-            )
-            .await
+        move |pdu| {
+            item_tx
+                .try_send(Item::WritePdu(pdu))
+                .map_err(|e| anyhow::anyhow!("{:?}", e))
         }
     });
+    let mut handler = SessionHandler::new(pdu_sender);
 
     {
         let mux = Mux::get().expect("to be running on gui thread");
@@ -148,13 +62,30 @@ where
         mux.subscribe(move |n| tx.try_send(Item::Notif(n)).is_ok());
     }
 
-    {
-        let item_tx = item_tx.clone();
-        spawn(async move {
-            let tx = item_tx.clone();
-            catch(async move { read_pdus(read_stream, item_tx).await }, tx).await
-        });
-    }
+    loop {
+        let rx_msg = item_rx.recv();
+        let wait_for_read = stream.readable().map(|_| Ok(Item::Readable));
 
-    catch(async move { multiplex(write_tx, item_rx).await }, item_tx).await
+        match smol::future::or(rx_msg, wait_for_read).await {
+            Ok(Item::Readable) => {
+                let decoded = Pdu::decode_async(&mut stream).await?;
+                handler.process_one(decoded);
+            }
+            Ok(Item::WritePdu(decoded)) => {
+                decoded
+                    .pdu
+                    .encode_async(&mut stream, decoded.serial)
+                    .await?;
+                stream.flush().await.context("flushing PDU to client")?;
+            }
+            Ok(Item::Notif(MuxNotification::PaneOutput(pane_id))) => {
+                handler.schedule_pane_push(pane_id);
+            }
+            Ok(Item::Notif(MuxNotification::WindowCreated(_window_id))) => {}
+            Err(err) => {
+                log::error!("process_async Err {}", err);
+                return Ok(());
+            }
+        }
+    }
 }

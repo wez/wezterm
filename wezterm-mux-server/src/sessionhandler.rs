@@ -27,10 +27,11 @@ impl PduSender {
         (self.func)(pdu)
     }
 
-    pub fn with_smol(p: smol::channel::Sender<DecodedPdu>) -> Self {
-        Self {
-            func: Arc::new(move |pdu| p.try_send(pdu).map_err(|e| anyhow!("{:?}", e))),
-        }
+    pub fn new<T>(f: T) -> Self
+    where
+        T: Fn(DecodedPdu) -> anyhow::Result<()> + Send + Sync + 'static,
+    {
+        Self { func: Arc::new(f) }
     }
 }
 

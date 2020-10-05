@@ -18,6 +18,7 @@ cc = "1.0"
 allsorts = "0.4"
 async-task = "1.2"
 async-trait = "0.1"
+async_ossl = { path = "../async_ossl" }
 anyhow = "1.0"
 thiserror = "1.0"
 base64 = "0.10"
@@ -32,6 +33,7 @@ euclid = "0.20"
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 pretty_env_logger = "0.4"
 freetype = { path = "../deps/freetype" }
+futures = "0.3"
 image = "0.23"
 harfbuzz = { path = "../deps/harfbuzz" }
 lazy_static = "1.4"
@@ -51,6 +53,7 @@ portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
 promise = { path = "../promise" }
 ratelim= { path = "../ratelim" }
 rcgen = "0.7"
+smol = "1.2"
 http_req = {version="0.6", default-features=false, features=["rust-tls"]}
 regex = "1"
 serde = {version="1.0", features = ["rc", "derive"]}

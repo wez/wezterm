@@ -13,7 +13,6 @@
 
 use anyhow::{bail, Context as _, Error};
 use leb128;
-use log::debug;
 use mux::domain::DomainId;
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
@@ -114,15 +113,27 @@ async fn encode_raw_async<W: Unpin + AsyncWriteExt>(
 }
 
 /// Read a single leb128 encoded value from the stream
-async fn read_u64_async<R: Unpin + AsyncRead>(r: &mut R) -> anyhow::Result<u64> {
+async fn read_u64_async<R>(r: &mut R) -> anyhow::Result<u64>
+where
+    R: Unpin + AsyncRead + std::fmt::Debug,
+{
     let mut buf = vec![];
     loop {
         let mut byte = [0u8];
-        r.read(&mut byte).await?;
+        let nread = r.read(&mut byte).await?;
+        if nread == 0 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "EOF while reading leb128 encoded value",
+            )
+            .into());
+        }
         buf.push(byte[0]);
 
         match leb128::read::unsigned(&mut buf.as_slice()) {
-            Ok(n) => return Ok(n),
+            Ok(n) => {
+                return Ok(n);
+            }
             Err(leb128::read::Error::IoError(_)) => continue,
             Err(leb128::read::Error::Overflow) => anyhow::bail!("leb128 is too large"),
         }
@@ -149,7 +160,9 @@ struct Decoded {
 
 /// Decode a frame.
 /// See encode_raw() for the frame format.
-async fn decode_raw_async<R: Unpin + AsyncReadExt>(r: &mut R) -> anyhow::Result<Decoded> {
+async fn decode_raw_async<R: Unpin + AsyncRead + std::fmt::Debug>(
+    r: &mut R,
+) -> anyhow::Result<Decoded> {
     let len = read_u64_async(r).await.context("reading PDU length")?;
     let (len, is_compressed) = if (len & COMPRESSED_MASK) != 0 {
         (len & !COMPRESSED_MASK, true)
@@ -266,7 +279,7 @@ fn serialize<T: serde::Serialize>(t: &T) -> Result<(Vec<u8>, bool), Error> {
     drop(encode);
     compress.finish()?;
 
-    debug!(
+    log::debug!(
         "serialized+compress len {} vs {}",
         compressed.len(),
         uncompressed.len()
@@ -332,7 +345,7 @@ macro_rules! pdu {
                 }
             }
 
-            pub fn decode<R: std::io::Read>(r:R) -> Result<DecodedPdu, Error> {
+            pub fn decode<R: std::io::Read>(r: R) -> Result<DecodedPdu, Error> {
                 let decoded = decode_raw(r).context("decoding a PDU")?;
                 match decoded.ident {
                     $(
@@ -354,7 +367,11 @@ macro_rules! pdu {
                 }
             }
 
-            pub async fn decode_async<R: std::marker::Unpin + AsyncReadExt>(r:&mut R) -> Result<DecodedPdu, Error> {
+            pub async fn decode_async<R>(r: &mut R) -> Result<DecodedPdu, Error>
+                where R: std::marker::Unpin,
+                      R: AsyncRead,
+                      R: std::fmt::Debug
+            {
                 let decoded = decode_raw_async(r).await.context("decoding a PDU")?;
                 match decoded.ident {
                     $(
@@ -375,8 +392,6 @@ macro_rules! pdu {
                     }
                 }
             }
-
-
         }
     }
 }

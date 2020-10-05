@@ -481,6 +481,7 @@ impl Domain for ClientDomain {
                 }))
                 .await?;
 
+                ui.output_str("Checking server version\n");
                 client.verify_version_compat(&ui).await?;
 
                 ui.output_str("Version check OK!  Requesting pane list...\n");
@@ -492,7 +493,11 @@ impl Domain for ClientDomain {
                 ClientDomain::finish_attach(domain_id, client, panes)
             }
         })
-        .await?;
+        .await
+        .map_err(|e| {
+            ui.output_str(&format!("Error during attach: {:#}\n", e));
+            e
+        })?;
 
         ui.output_str("Attached!\n");
         drop(activity);

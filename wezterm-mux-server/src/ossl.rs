@@ -1,67 +1,17 @@
 use crate::PKI;
 use anyhow::{anyhow, Context, Error};
+use async_ossl::AsyncSslStream;
 use config::TlsDomainServer;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod, SslStream, SslVerifyMode};
 use openssl::x509::X509;
 use promise::spawn::spawn_into_main_thread;
 use std::net::TcpListener;
-use std::net::TcpStream;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 struct OpenSSLNetListener {
     acceptor: Arc<SslAcceptor>,
     listener: TcpListener,
-}
-
-struct AsyncSslStream {
-    s: Arc<Mutex<SslStream<TcpStream>>>,
-}
-
-impl AsyncSslStream {
-    pub fn new(s: SslStream<TcpStream>) -> Self {
-        Self {
-            s: Arc::new(Mutex::new(s)),
-        }
-    }
-}
-
-impl crate::dispatch::TryClone for AsyncSslStream {
-    fn try_to_clone(&self) -> anyhow::Result<Self> {
-        let s = self.s.clone();
-        Ok(Self { s })
-    }
-}
-
-#[cfg(unix)]
-impl std::os::unix::io::AsRawFd for AsyncSslStream {
-    fn as_raw_fd(&self) -> std::os::unix::io::RawFd {
-        self.s.lock().unwrap().get_ref().as_raw_fd()
-    }
-}
-
-#[cfg(windows)]
-impl std::os::windows::io::AsRawSocket for AsyncSslStream {
-    fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
-        self.s.lock().unwrap().get_ref().as_raw_socket()
-    }
-}
-
-impl crate::dispatch::AsRawDesc for AsyncSslStream {}
-
-impl std::io::Read for AsyncSslStream {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-        self.s.lock().unwrap().read(buf)
-    }
-}
-
-impl std::io::Write for AsyncSslStream {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-        self.s.lock().unwrap().write(buf)
-    }
-    fn flush(&mut self) -> Result<(), std::io::Error> {
-        self.s.lock().unwrap().flush()
-    }
 }
 
 impl OpenSSLNetListener {
@@ -133,7 +83,13 @@ impl OpenSSLNetListener {
                                 break;
                             }
                             spawn_into_main_thread(async move {
-                                crate::dispatch::process(AsyncSslStream::new(stream)).await
+                                log::error!("Making new AsyncSslStream");
+                                crate::dispatch::process(AsyncSslStream::new(stream))
+                                    .await
+                                    .map_err(|e| {
+                                        log::error!("process: {:?}", e);
+                                        e
+                                    })
                             });
                         }
                         Err(e) => {
