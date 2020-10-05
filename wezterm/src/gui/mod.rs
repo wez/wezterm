@@ -1,6 +1,5 @@
 use ::window::*;
 use anyhow::Error;
-use config::configuration;
 pub use config::FrontEndSelection;
 use mux::{Mux, MuxNotification};
 use std::cell::RefCell;
@@ -49,7 +48,7 @@ impl GuiFrontEnd {
     pub fn try_new() -> anyhow::Result<Rc<GuiFrontEnd>> {
         #[cfg(all(unix, not(target_os = "macos")))]
         {
-            if !configuration().enable_wayland {
+            if !config::configuration().enable_wayland {
                 Connection::disable_wayland();
             }
         }
