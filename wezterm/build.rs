@@ -10,6 +10,7 @@ fn main() {
         let exe_output_dir = Path::new("target").join(profile);
         let windows_dir = std::env::current_dir()
             .unwrap()
+            .parent()
             .join("assets")
             .join("windows");
         let conhost_dir = windows_dir.join("conhost");
