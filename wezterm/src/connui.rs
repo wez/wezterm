@@ -1,6 +1,7 @@
 use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context as _};
 use crossbeam::channel::{bounded, Receiver, Sender};
+use promise::spawn::block_on;
 use promise::Promise;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -333,7 +334,7 @@ impl ConnectionUI {
             })
             .context("send to ConnectionUI failed")?;
 
-        future.wait()
+        block_on(future)
     }
 
     /// Crack a multi-line prompt into an optional preamble and the prompt
@@ -368,7 +369,7 @@ impl ConnectionUI {
             })
             .context("send to ConnectionUI failed")?;
 
-        future.wait()
+        block_on(future)
     }
 
     pub fn password(&self, prompt: &str) -> anyhow::Result<String> {
@@ -388,7 +389,7 @@ impl ConnectionUI {
             })
             .context("send to ConnectionUI failed")?;
 
-        future.wait()
+        block_on(future)
     }
 
     pub fn close(&self) {

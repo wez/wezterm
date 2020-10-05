@@ -2670,6 +2670,7 @@ dependencies = [
  "async-task 4.0.2",
  "crossbeam",
  "lazy_static",
+ "smol",
  "thiserror",
 ]
 
