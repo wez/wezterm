@@ -11,6 +11,7 @@ fn main() {
         let windows_dir = std::env::current_dir()
             .unwrap()
             .parent()
+            .unwrap()
             .join("assets")
             .join("windows");
         let conhost_dir = windows_dir.join("conhost");

@@ -700,6 +700,7 @@ dependencies = [
  "toml",
  "vergen",
  "wezterm-term",
+ "winapi 0.3.9",
 ]
 
 [[package]]
