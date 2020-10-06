@@ -1,6 +1,6 @@
 use crate::connui::ConnectionUI;
 use crate::server::client::Client;
-use crate::server::tab::ClientPane;
+use crate::server::pane::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
 use codec::{ListPanesResponse, Spawn, SplitPane};

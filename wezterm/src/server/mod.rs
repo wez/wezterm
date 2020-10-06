@@ -5,4 +5,4 @@ use uds_windows::UnixStream;
 
 pub mod client;
 pub mod domain;
-pub mod tab;
+pub mod pane;

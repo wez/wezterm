@@ -1,6 +1,6 @@
 use crate::connui::ConnectionUI;
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
-use crate::server::tab::ClientPane;
+use crate::server::pane::ClientPane;
 use crate::server::UnixStream;
 use crate::ssh::ssh_connect_with_ui;
 use anyhow::{anyhow, bail, Context};
