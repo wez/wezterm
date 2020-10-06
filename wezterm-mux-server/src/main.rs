@@ -69,6 +69,34 @@ fn run() -> anyhow::Result<()> {
         }
     }
 
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        use std::process::Command;
+        // We can't literally daemonize, but we can spawn another copy
+        // of ourselves in the background!
+        if opts.daemonize {
+            let mut cmd = Command::new(std::env::current_exe().unwrap());
+            if opts.skip_config {
+                cmd.arg("-n");
+            }
+            if let Some(cwd) = opts.cwd {
+                cmd.arg("--cwd");
+                cmd.arg(cwd);
+            }
+            if !opts.prog.is_empty() {
+                cmd.arg("--");
+                for a in &opts.prog {
+                    cmd.arg(a);
+                }
+            }
+            cmd.creation_flags(winapi::um::winbase::DETACHED_PROCESS);
+            let child = cmd.spawn();
+            drop(child);
+            return Ok(());
+        }
+    }
+
     // Remove some environment variables that aren't super helpful or
     // that are potentially misleading when we're starting up the
     // server.

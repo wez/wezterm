@@ -15,7 +15,6 @@ use mux::pane::PaneId;
 use mux::Mux;
 use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
 use openssl::x509::X509;
-use portable_pty::{CommandBuilder, NativePtySystem, PtySystem};
 use smol::channel::{bounded, unbounded, Receiver, Sender};
 use smol::prelude::*;
 use smol::{block_on, Async};
@@ -503,29 +502,24 @@ impl Reconnectable {
 
                 let argv = unix_dom.serve_command()?;
 
-                // We need to use a pty to spawn the command because,
-                // on Windows, when spawned from the gui with no pre-existing
-                // conhost.exe, `wsl.exe` will fail to start up correctly.
-                // This also has a nice side effect of not flashing up a
-                // console window when we first spin up the wsl instance.
-                let pty_system = NativePtySystem::default();
-                let pair = pty_system.openpty(Default::default())?;
-                let mut cmd = CommandBuilder::new(&argv[0]);
+                let mut cmd = std::process::Command::new(&argv[0]);
                 cmd.args(&argv[1..]);
-                let mut child = pair.slave.spawn_command(cmd)?;
-                drop(pair.slave);
-                let mut reader = pair.master.try_clone_reader()?;
-                drop(pair.master);
-                let mut s = String::new();
-                reader.read_to_string(&mut s).ok();
-                log::error!("server output: {}", s);
-
-                let status = child.wait()?;
-                if !status.success() {
-                    log::error!("{:?} failed with status {:?}", argv, status);
-                }
-                log::error!("{:?} completed with status {:?}", argv, status);
-                drop(child);
+                let child = cmd
+                    .spawn()
+                    .with_context(|| format!("while spawning {:?}", cmd))?;
+                std::thread::spawn(move || match child.wait_with_output() {
+                    Ok(out) => {
+                        if let Ok(stdout) = std::str::from_utf8(&out.stdout) {
+                            log::error!("stdout: {}", stdout);
+                        }
+                        if let Ok(stderr) = std::str::from_utf8(&out.stderr) {
+                            log::error!("stderr: {}", stderr);
+                        }
+                    }
+                    Err(err) => {
+                        log::error!("spawn: {:#}", err);
+                    }
+                });
 
                 unix_connect_with_retry(&sock_path, true).with_context(|| {
                     format!(

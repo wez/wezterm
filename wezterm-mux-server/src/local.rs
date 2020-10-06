@@ -73,8 +73,16 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> anyhow::Result<UnixListener
         }
     }
 
-    if sock_path.exists() {
-        std::fs::remove_file(sock_path)?;
+    // We want to remove the socket if it exists.
+    // However, on windows, we can't tell if the unix domain socket
+    // exists using the methods on Path, so instead we just unconditionally
+    // remove it and see what error occurs.
+    match std::fs::remove_file(sock_path) {
+        Ok(_) => {}
+        Err(err) => match err.kind() {
+            std::io::ErrorKind::NotFound => {}
+            _ => return Err(err).context(format!("Unable to remove {}", sock_path.display())),
+        },
     }
 
     UnixListener::bind(sock_path)

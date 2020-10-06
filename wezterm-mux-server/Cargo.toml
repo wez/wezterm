@@ -36,3 +36,4 @@ vendor_openssl = ["openssl/vendored"]
 
 [target."cfg(windows)".dependencies]
 uds_windows = "0.1"
+winapi = { version = "0.3", features = [ "winuser" ]}
