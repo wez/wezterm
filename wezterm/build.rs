@@ -7,13 +7,12 @@ fn main() {
         use std::io::Write;
         use std::path::Path;
         let profile = std::env::var("PROFILE").unwrap();
-        let exe_output_dir = Path::new("target").join(profile);
-        let windows_dir = std::env::current_dir()
-            .unwrap()
-            .parent()
-            .unwrap()
-            .join("assets")
-            .join("windows");
+        let repo_dir = std::env::current_dir()
+            .ok()
+            .and_then(|cwd| cwd.parent().map(|p| p.to_path_buf()))
+            .unwrap();
+        let exe_output_dir = repo_dir.join("target").join(profile);
+        let windows_dir = repo_dir.join("assets").join("windows");
         let conhost_dir = windows_dir.join("conhost");
 
         for name in &["conpty.dll", "OpenConsole.exe"] {

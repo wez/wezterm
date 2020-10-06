@@ -60,10 +60,10 @@ fn run() -> anyhow::Result<()> {
     if !opts.skip_config {
         config::reload();
     }
-    let config = config::configuration();
 
     #[cfg(unix)]
     {
+        let config = config::configuration();
         if opts.daemonize {
             daemonize::daemonize(&config)?;
         }

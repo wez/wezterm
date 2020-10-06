@@ -561,8 +561,7 @@ fn toast_notification(title: &str, message: &str) {
                 .duration(winrt_notification::Duration::Long)
                 .show()
                 .ok();
-        })
-        .detach();
+        });
     }
 }
 
