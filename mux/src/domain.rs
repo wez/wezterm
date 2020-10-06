@@ -5,7 +5,7 @@
 //! container or actually remote, running on the other end
 //! of an ssh session somewhere.
 
-use crate::localtab::LocalPane;
+use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, Pane, PaneId};
 use crate::tab::{SplitDirection, Tab, TabId};
 use crate::window::WindowId;

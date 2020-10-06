@@ -17,7 +17,7 @@ use thiserror::*;
 
 pub mod activity;
 pub mod domain;
-pub mod localtab;
+pub mod localpane;
 pub mod pane;
 pub mod renderable;
 pub mod tab;

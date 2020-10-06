@@ -2,7 +2,7 @@ use crate::connui::ConnectionUI;
 use anyhow::{anyhow, bail, Context, Error};
 use async_trait::async_trait;
 use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use mux::localtab::LocalPane;
+use mux::localpane::LocalPane;
 use mux::pane::{alloc_pane_id, Pane, PaneId};
 use mux::tab::{SplitDirection, Tab, TabId};
 use mux::window::WindowId;
