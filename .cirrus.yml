@@ -9,7 +9,9 @@ task:
   setup_script:
     - pkg install -y bash
     - bash get-deps
-    - curl https://sh.rustup.rs -sSf | sh -s -y -q
+    - curl https://sh.rustup.rs -sSf > /tmp/rustup.sh
+    - chmod +x /tmp/rustup.sh
+    - /tmp/rustup.sh -y -q
   test_script:
     - cargo build --all --release
     - cargo test --all --release
