@@ -97,7 +97,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("action", lua.create_function(action)?)?;
 
         wezterm_mod.set("read_dir", lua.create_async_function(read_dir)?)?;
-        wezterm_mod.set("glob", lua.create_function(glob)?)?;
+        wezterm_mod.set("glob", lua.create_async_function(glob)?)?;
 
         wezterm_mod.set("utf16_to_utf8", lua.create_function(utf16_to_utf8)?)?;
         wezterm_mod.set("split_by_newlines", lua.create_function(split_by_newlines)?)?;
@@ -236,22 +236,27 @@ async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>>
     Ok(entries)
 }
 
-fn glob<'lua>(
+async fn glob<'lua>(
     _: &'lua Lua,
     (pattern, path): (String, Option<String>),
 ) -> mlua::Result<Vec<String>> {
-    let mut entries = vec![];
-    let glob = filenamegen::Glob::new(&pattern).map_err(|e| mlua::Error::external(e))?;
-    for path in glob.walk(path.as_ref().map(|s| s.as_str()).unwrap_or(".")) {
-        if let Some(utf8) = path.to_str() {
-            entries.push(utf8.to_string());
-        } else {
-            return Err(mlua::Error::external(anyhow!(
-                "path entry {} is not representable as utf8",
-                path.display()
-            )));
+    let entries = smol::unblock(move || {
+        let mut entries = vec![];
+        let glob = filenamegen::Glob::new(&pattern)?;
+        for path in glob.walk(path.as_ref().map(|s| s.as_str()).unwrap_or(".")) {
+            if let Some(utf8) = path.to_str() {
+                entries.push(utf8.to_string());
+            } else {
+                return Err(anyhow!(
+                    "path entry {} is not representable as utf8",
+                    path.display()
+                ));
+            }
         }
-    }
+        Ok(entries)
+    })
+    .await
+    .map_err(|e| mlua::Error::external(e))?;
     Ok(entries)
 }
 
