@@ -4,6 +4,7 @@ use bstr::BString;
 pub use luahelper::*;
 use mlua::{Lua, Table, Value};
 use serde::*;
+use smol::prelude::*;
 use std::path::Path;
 
 /// Set up a lua context for executing some code.
@@ -95,7 +96,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("hostname", lua.create_function(hostname)?)?;
         wezterm_mod.set("action", lua.create_function(action)?)?;
 
-        wezterm_mod.set("read_dir", lua.create_function(read_dir)?)?;
+        wezterm_mod.set("read_dir", lua.create_async_function(read_dir)?)?;
         wezterm_mod.set("glob", lua.create_function(glob)?)?;
 
         wezterm_mod.set("utf16_to_utf8", lua.create_function(utf16_to_utf8)?)?;
@@ -216,10 +217,12 @@ fn action<'lua>(
     Ok(from_lua_value(Value::Table(action))?)
 }
 
-fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>> {
-    let dir = std::fs::read_dir(path).map_err(|e| mlua::Error::external(e))?;
+async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>> {
+    let mut dir = smol::fs::read_dir(path)
+        .await
+        .map_err(|e| mlua::Error::external(e))?;
     let mut entries = vec![];
-    for entry in dir {
+    for entry in dir.next().await {
         let entry = entry.map_err(|e| mlua::Error::external(e))?;
         if let Some(utf8) = entry.path().to_str() {
             entries.push(utf8.to_string());
