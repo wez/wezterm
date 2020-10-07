@@ -724,10 +724,11 @@ impl Config {
             let cfg: Self;
 
             let lua = make_lua_context(p)?;
-            let config: mlua::Value = lua
-                .load(&s)
-                .set_name(p.to_string_lossy().as_bytes())?
-                .eval()?;
+            let config: mlua::Value = smol::block_on(
+                lua.load(&s)
+                    .set_name(p.to_string_lossy().as_bytes())?
+                    .eval_async(),
+            )?;
             cfg = luahelper::from_lua_value(config).with_context(|| {
                 format!(
                     "Error converting lua value returned by script {} to Config struct",

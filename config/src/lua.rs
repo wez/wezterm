@@ -100,7 +100,10 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
 
         wezterm_mod.set("utf16_to_utf8", lua.create_function(utf16_to_utf8)?)?;
         wezterm_mod.set("split_by_newlines", lua.create_function(split_by_newlines)?)?;
-        wezterm_mod.set("run_child_process", lua.create_function(run_child_process)?)?;
+        wezterm_mod.set(
+            "run_child_process",
+            lua.create_async_function(run_child_process)?,
+        )?;
         wezterm_mod.set("on", lua.create_function(register_event)?)?;
         wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
 
@@ -363,11 +366,11 @@ fn utf16_to_utf8<'lua>(_: &'lua Lua, text: mlua::String) -> mlua::Result<String>
     String::from_utf16(wide).map_err(|e| mlua::Error::external(e))
 }
 
-fn run_child_process<'lua>(
+async fn run_child_process<'lua>(
     _: &'lua Lua,
     args: Vec<String>,
 ) -> mlua::Result<(bool, BString, BString)> {
-    let mut cmd = std::process::Command::new(&args[0]);
+    let mut cmd = smol::process::Command::new(&args[0]);
 
     if args.len() > 1 {
         cmd.args(&args[1..]);
@@ -375,11 +378,11 @@ fn run_child_process<'lua>(
 
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
+        use smol::process::windows::CommandExt;
         cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
     }
 
-    let output = cmd.output().map_err(|e| mlua::Error::external(e))?;
+    let output = cmd.output().await.map_err(|e| mlua::Error::external(e))?;
 
     Ok((
         output.status.success(),
