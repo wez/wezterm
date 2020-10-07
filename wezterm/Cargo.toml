@@ -45,7 +45,7 @@ mux = { path = "../mux" }
 open = "1.4"
 pulldown-cmark = "0.8"
 metrics = { version="0.12", features=["std"]}
-mlua = {version="0.2", features=["vendored"]}
+mlua = "0.4"
 hdrhistogram = "7.1"
 openssl = "0.10"
 palette = "0.5"
