@@ -101,6 +101,8 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("utf16_to_utf8", lua.create_function(utf16_to_utf8)?)?;
         wezterm_mod.set("split_by_newlines", lua.create_function(split_by_newlines)?)?;
         wezterm_mod.set("run_child_process", lua.create_function(run_child_process)?)?;
+        wezterm_mod.set("on", lua.create_function(register_event)?)?;
+        wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
 
         package.set("path", path_array.join(";"))?;
 
@@ -259,6 +261,90 @@ fn split_by_newlines<'lua>(_: &'lua Lua, text: String) -> mlua::Result<Vec<Strin
         .collect())
 }
 
+/// This implements `wezterm.on`, whose goal is to register an event handler
+/// callback.
+/// The callback function may return `false` to prevent other handlers from
+/// triggering.  The `false` return means "prevent the default action",
+/// and thus, depending on the semantics of the emitted event, can be used
+/// to override rather augment built-in behavior.
+///
+/// To allow the default action you can omit a return statement, or
+/// explicitly return `true`.
+///
+/// The arguments to the handler are passed through from the corresponding
+/// `wezterm.emit` call.
+///
+/// ```lua
+/// wezterm.on("event-name", function(arg1, arg2)
+///   -- do something
+///   return false -- if you want to prevent other handlers running
+/// end);
+///
+/// wezterm.emit("event-name", "foo", "bar");
+/// ```
+fn register_event<'lua>(
+    lua: &'lua Lua,
+    (name, func): (String, mlua::Function),
+) -> mlua::Result<()> {
+    let decorated_name = format!("wezterm-event-{}", name);
+    let tbl: mlua::Value = lua.named_registry_value(&decorated_name)?;
+    match tbl {
+        mlua::Value::Nil => {
+            let tbl = lua.create_table()?;
+            tbl.set(1, func)?;
+            lua.set_named_registry_value(&decorated_name, tbl)?;
+            Ok(())
+        }
+        mlua::Value::Table(tbl) => {
+            let len = tbl.raw_len();
+            tbl.set(len + 1, func)?;
+            Ok(())
+        }
+        _ => Err(mlua::Error::external(anyhow!(
+            "registry key for {} has invalid type",
+            decorated_name
+        ))),
+    }
+}
+
+/// This implements `wezterm.emit`.
+/// The first parameter to emit is the name of a signal that may or may not
+/// have previously been registered via `wezterm.on`.
+/// `wezterm.emit` will call each of the registered handlers in the order
+/// that they were registered and pass the remainder of the `emit` arguments
+/// to those handler functions.
+/// If a handler returns `false` then `wezterm.emit` will stop calling
+/// any additional handlers and then return `false`.
+/// Otherwise, once all handlers have been called and none of them returned
+/// `false`, `wezterm.emit` will return `true`.
+/// The return value indicates to the caller whether the default action
+/// should take place.
+pub async fn emit_event<'lua>(
+    lua: &'lua Lua,
+    (name, args): (String, mlua::MultiValue<'lua>),
+) -> mlua::Result<bool> {
+    let decorated_name = format!("wezterm-event-{}", name);
+    let tbl: mlua::Value = lua.named_registry_value(&decorated_name)?;
+    match tbl {
+        mlua::Value::Table(tbl) => {
+            for func in tbl.sequence_values::<mlua::Function>() {
+                let func = func?;
+                match func.call_async(args.clone()).await? {
+                    mlua::Value::Boolean(b) if !b => {
+                        // Default action prevented
+                        return Ok(false);
+                    }
+                    _ => {
+                        // Continue with other handlers
+                    }
+                }
+            }
+            Ok(true)
+        }
+        _ => Ok(true),
+    }
+}
+
 /// Ungh: https://github.com/microsoft/WSL/issues/4456
 fn utf16_to_utf8<'lua>(_: &'lua Lua, text: mlua::String) -> mlua::Result<String> {
     let bytes = text.as_bytes();
@@ -300,4 +386,95 @@ fn run_child_process<'lua>(
         output.stdout.into(),
         output.stderr.into(),
     ))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn can_register_and_emit_multiple_events() -> anyhow::Result<()> {
+        let _ = pretty_env_logger::formatted_builder()
+            .is_test(true)
+            .filter_level(log::LevelFilter::Trace)
+            .try_init();
+
+        let lua = make_lua_context(&std::env::current_dir()?)?;
+
+        let total = Arc::new(Mutex::new(0));
+
+        let first = lua.create_function({
+            let total = total.clone();
+            move |_lua: &mlua::Lua, n: i32| {
+                let mut l = total.lock().unwrap();
+                *l += n;
+                Ok(())
+            }
+        })?;
+
+        let second = lua.create_function({
+            let total = total.clone();
+            move |_lua: &mlua::Lua, n: i32| {
+                let mut l = total.lock().unwrap();
+                *l += n * 2;
+                // Prevent any later functions from being called
+                Ok(false)
+            }
+        })?;
+
+        let third = lua.create_function({
+            let total = total.clone();
+            move |_lua: &mlua::Lua, n: i32| {
+                let mut l = total.lock().unwrap();
+                *l += n * 3;
+                Ok(())
+            }
+        })?;
+
+        register_event(&lua, ("foo".to_string(), first))?;
+        register_event(&lua, ("foo".to_string(), second))?;
+        register_event(&lua, ("foo".to_string(), third))?;
+        register_event(
+            &lua,
+            (
+                "bar".to_string(),
+                lua.create_function(|_: &mlua::Lua, (a, b): (i32, String)| {
+                    eprintln!("a: {}, b: {}", a, b);
+                    Ok(())
+                })?,
+            ),
+        )?;
+
+        smol::block_on(
+            lua.load(
+                r#"
+local wezterm = require 'wezterm';
+
+wezterm.on('foo', function (n)
+    wezterm.log_error("lua hook recording " .. n);
+end);
+
+-- one of the foo handlers returns false, so the emit
+-- returns false overall, indicating that the default
+-- action should not be taken
+assert(wezterm.emit('foo', 2) == false)
+
+wezterm.on('bar', function (n, str)
+    wezterm.log_error("bar says " .. n .. " " .. str)
+end);
+
+-- None of the bar handlers return anything, so the
+-- emit returns true to indicate that the default
+-- action should be performed
+assert(wezterm.emit('bar', 42, 'woot') == true)
+"#,
+            )
+            .exec_async(),
+        )?;
+
+        assert_eq!(*total.lock().unwrap(), 6);
+
+        Ok(())
+    }
 }

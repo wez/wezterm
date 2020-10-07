@@ -10,6 +10,10 @@ build = "build.rs"
 [build-dependencies]
 vergen = "3"
 
+[dev-dependencies]
+pretty_env_logger = "0.4"
+smol = "1.2"
+
 [dependencies]
 anyhow = "1.0"
 bstr = "0.2"
