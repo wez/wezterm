@@ -54,6 +54,7 @@ fn main() {
 
 fn run() -> anyhow::Result<()> {
     //stats::Stats::init()?;
+    config::designate_this_as_the_main_thread();
     let _saver = umask::UmaskSaver::new();
 
     let opts = Opt::from_args();

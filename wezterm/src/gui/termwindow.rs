@@ -1872,16 +1872,41 @@ impl TermWindow {
             }
             OpenLinkAtMouseCursor => {
                 // They clicked on a link, so let's open it!
-                // Ensure that we spawn the `open` call outside of the context
+                // We need to ensure that we spawn the `open` call outside of the context
                 // of our window loop; on Windows it can cause a panic due to
                 // triggering our WndProc recursively.
+                // We get that assurance for free as part of the async dispatch that we
+                // perform below; here we allow the user to define an `open-uri` event
+                // handler that can bypass the normal `open::that` functionality.
                 if let Some(link) = self.current_highlight.as_ref().cloned() {
-                    promise::spawn::spawn(async move {
-                        log::error!("clicking {}", link.uri());
-                        if let Err(err) = open::that(link.uri()) {
-                            log::error!("failed to open {}: {:?}", link.uri(), err);
+                    async fn open_uri(
+                        lua: Option<Rc<mlua::Lua>>,
+                        link: String,
+                    ) -> anyhow::Result<()> {
+                        let default_click = match lua {
+                            Some(lua) => {
+                                let args = lua.pack_multi(link.clone())?;
+                                config::lua::emit_event(&lua, ("open-uri".to_string(), args))
+                                    .await
+                                    .map_err(|e| {
+                                        log::error!("while processing open-uri event: {:#}", e);
+                                        e
+                                    })?
+                            }
+                            None => true,
+                        };
+                        if default_click {
+                            log::error!("clicking {}", link);
+                            if let Err(err) = open::that(&link) {
+                                log::error!("failed to open {}: {:?}", link, err);
+                            }
                         }
-                    })
+                        Ok(())
+                    }
+
+                    promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+                        open_uri(lua, link.uri().to_string())
+                    }))
                     .detach();
                 }
             }

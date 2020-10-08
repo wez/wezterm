@@ -28,6 +28,7 @@ notify = "4.0"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 serde = {version="1.0", features = ["rc", "derive"]}
 smol = "1.2"
+promise = { path = "../promise" }
 termwiz = { path = "../termwiz" }
 toml = "0.5"
 wezterm-term = { path = "../term", features=["use_serde"] }

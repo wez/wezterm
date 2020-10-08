@@ -594,6 +594,7 @@ fn terminate_with_error(err: anyhow::Error) -> ! {
 }
 
 fn main() {
+    config::designate_this_as_the_main_thread();
     config::assign_error_callback(crate::connui::show_configuration_error_message);
     notify_on_panic();
     if let Err(e) = run() {

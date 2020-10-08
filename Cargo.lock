@@ -696,6 +696,7 @@ dependencies = [
  "notify",
  "portable-pty",
  "pretty_env_logger",
+ "promise",
  "serde",
  "smol",
  "termwiz",
