@@ -155,6 +155,7 @@ pub enum KeyAssignment {
     ActivatePaneDirection(PaneDirection),
     TogglePaneZoomState,
     CloseCurrentPane { confirm: bool },
+    EmitEvent(String),
 }
 impl_lua_conversion!(KeyAssignment);
 

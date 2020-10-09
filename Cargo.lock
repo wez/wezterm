@@ -2048,6 +2048,7 @@ dependencies = [
  "downcast-rs",
  "libc",
  "log",
+ "luahelper",
  "portable-pty",
  "promise",
  "rangeset",

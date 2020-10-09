@@ -1,6 +1,7 @@
 #![macro_use]
 
 mod serde_lua;
+pub use mlua;
 pub use serde_lua::from_lua_value;
 pub use serde_lua::ser::to_lua_value;
 
@@ -13,27 +14,22 @@ pub use serde_lua::ser::to_lua_value;
 #[macro_export]
 macro_rules! impl_lua_conversion {
     ($struct:ident) => {
-        impl<'lua> mlua::ToLua<'lua> for $struct {
-            fn to_lua(self, lua: &'lua mlua::Lua) -> Result<mlua::Value<'lua>, mlua::Error> {
+        impl<'lua> $crate::mlua::ToLua<'lua> for $struct {
+            fn to_lua(
+                self,
+                lua: &'lua $crate::mlua::Lua,
+            ) -> Result<$crate::mlua::Value<'lua>, $crate::mlua::Error> {
                 Ok(luahelper::to_lua_value(lua, self)?)
             }
         }
 
-        impl<'lua> mlua::FromLua<'lua> for $struct {
+        impl<'lua> $crate::mlua::FromLua<'lua> for $struct {
             fn from_lua(
-                value: mlua::Value<'lua>,
-                _lua: &'lua mlua::Lua,
-            ) -> Result<Self, mlua::Error> {
+                value: $crate::mlua::Value<'lua>,
+                _lua: &'lua $crate::mlua::Lua,
+            ) -> Result<Self, $crate::mlua::Error> {
                 Ok(luahelper::from_lua_value(value)?)
             }
         }
     };
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
 }

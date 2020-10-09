@@ -12,6 +12,8 @@ use crate::gui::overlay::{
 use crate::gui::scrollbar::*;
 use crate::gui::selection::*;
 use crate::gui::tabbar::{TabBarItem, TabBarState};
+use crate::scripting::guiwin::GuiWin;
+use crate::scripting::pane::PaneObject;
 use ::wezterm_term::input::MouseButton as TMB;
 use ::wezterm_term::input::MouseEventKind as TMEK;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, SpriteSlice};
@@ -251,7 +253,7 @@ pub struct TermWindow {
     dimensions: Dimensions,
     /// Terminal dimensions
     terminal_size: PtySize,
-    mux_window_id: MuxWindowId,
+    pub mux_window_id: MuxWindowId,
     render_metrics: RenderMetrics,
     render_state: RenderState,
     input_map: InputMap,
@@ -1790,7 +1792,7 @@ impl TermWindow {
         .detach();
     }
 
-    fn perform_key_assignment(
+    pub fn perform_key_assignment(
         &mut self,
         pane: &Rc<dyn Pane>,
         assignment: &KeyAssignment,
@@ -1882,13 +1884,18 @@ impl TermWindow {
                 // perform below; here we allow the user to define an `open-uri` event
                 // handler that can bypass the normal `open::that` functionality.
                 if let Some(link) = self.current_highlight.as_ref().cloned() {
+                    let window = GuiWin::new(self);
+                    let pane = PaneObject::new(pane);
+
                     async fn open_uri(
                         lua: Option<Rc<mlua::Lua>>,
+                        window: GuiWin,
+                        pane: PaneObject,
                         link: String,
                     ) -> anyhow::Result<()> {
                         let default_click = match lua {
                             Some(lua) => {
-                                let args = lua.pack_multi(link.clone())?;
+                                let args = lua.pack_multi((window, pane, link.clone()))?;
                                 config::lua::emit_event(&lua, ("open-uri".to_string(), args))
                                     .await
                                     .map_err(|e| {
@@ -1908,10 +1915,38 @@ impl TermWindow {
                     }
 
                     promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-                        open_uri(lua, link.uri().to_string())
+                        open_uri(lua, window, pane, link.uri().to_string())
                     }))
                     .detach();
                 }
+            }
+            EmitEvent(name) => {
+                let window = GuiWin::new(self);
+                let pane = PaneObject::new(pane);
+
+                async fn emit_event(
+                    lua: Option<Rc<mlua::Lua>>,
+                    name: String,
+                    window: GuiWin,
+                    pane: PaneObject,
+                ) -> anyhow::Result<()> {
+                    if let Some(lua) = lua {
+                        let args = lua.pack_multi((window, pane))?;
+                        config::lua::emit_event(&lua, (name.clone(), args))
+                            .await
+                            .map_err(|e| {
+                                log::error!("while processing EmitEvent({}): {:#}", name, e);
+                                e
+                            })?;
+                    }
+                    Ok(())
+                }
+
+                let name = name.to_string();
+                promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+                    emit_event(lua, name, window, pane)
+                }))
+                .detach();
             }
             CompleteSelectionOrOpenLinkAtMouseCursor => {
                 let text = self.selection_text(pane);

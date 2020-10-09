@@ -142,7 +142,7 @@ pub fn designate_this_as_the_main_thread() {
 /// call from a secondary thread.
 pub async fn with_lua_config_on_main_thread<F, RETF, RET>(func: F) -> anyhow::Result<RET>
 where
-    F: Fn(Option<Rc<mlua::Lua>>) -> RETF,
+    F: FnOnce(Option<Rc<mlua::Lua>>) -> RETF,
     RETF: Future<Output = anyhow::Result<RET>>,
 {
     let lua = LUA_CONFIG.with(|lc| {

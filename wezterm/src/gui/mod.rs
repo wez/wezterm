@@ -17,6 +17,7 @@ mod termwindow;
 mod utilsprites;
 
 pub use selection::SelectionMode;
+pub use termwindow::TermWindow;
 
 pub struct GuiFrontEnd {
     connection: Rc<Connection>,

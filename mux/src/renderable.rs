@@ -1,5 +1,6 @@
 use config::configuration;
 use downcast_rs::{impl_downcast, Downcast};
+use luahelper::impl_lua_conversion;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
@@ -13,6 +14,7 @@ pub struct StableCursorPosition {
     pub shape: termwiz::surface::CursorShape,
     pub visibility: termwiz::surface::CursorVisibility,
 }
+impl_lua_conversion!(StableCursorPosition);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct RenderableDimensions {
@@ -33,6 +35,7 @@ pub struct RenderableDimensions {
     /// expressed as a stable index.
     pub scrollback_top: StableRowIndex,
 }
+impl_lua_conversion!(RenderableDimensions);
 
 /// Renderable allows passing something that isn't an actual wezterm_term::Terminal
 /// instance into the renderer, which opens up remoting of the terminal

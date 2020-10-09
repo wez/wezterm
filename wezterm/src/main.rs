@@ -21,6 +21,7 @@ mod connui;
 mod gui;
 use config::keyassignment;
 mod markdown;
+mod scripting;
 mod server;
 mod ssh;
 mod stats;
