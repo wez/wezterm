@@ -2,7 +2,7 @@
 use crate::os::windows::event::EventHandle;
 #[cfg(target_os = "macos")]
 use core_foundation::runloop::*;
-use promise::SpawnFunc;
+use promise::spawn::{Runnable, SpawnFunc};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -36,6 +36,15 @@ pub(crate) struct SpawnQueue {
     read: Mutex<FileDescriptor>,
 }
 
+fn schedule_with_pri(runnable: Runnable, high_pri: bool) {
+    SPAWN_QUEUE.spawn_impl(
+        Box::new(move || {
+            runnable.run();
+        }),
+        high_pri,
+    );
+}
+
 impl SpawnQueue {
     pub fn new() -> anyhow::Result<Self> {
         Self::new_impl()
@@ -44,20 +53,10 @@ impl SpawnQueue {
     pub fn register_promise_schedulers(&self) {
         promise::spawn::set_schedulers(
             Box::new(|runnable| {
-                SPAWN_QUEUE.spawn_impl(
-                    Box::new(move || {
-                        runnable.run();
-                    }),
-                    true,
-                );
+                schedule_with_pri(runnable, true);
             }),
             Box::new(|runnable| {
-                SPAWN_QUEUE.spawn_impl(
-                    Box::new(move || {
-                        runnable.run();
-                    }),
-                    false,
-                );
+                schedule_with_pri(runnable, false);
             }),
         );
     }

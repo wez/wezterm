@@ -1768,21 +1768,24 @@ impl TermWindow {
         let future = window.get_clipboard(clipboard);
         promise::spawn::spawn(async move {
             if let Ok(clip) = future.await {
-                window.apply(move |term_window, _window| {
-                    let clip = clip.clone();
-                    if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
-                        if let Some(pane) =
-                            term_window.pane_state(pane_id).overlay.clone().or_else(|| {
-                                let mux = Mux::get().unwrap();
-                                mux.get_pane(pane_id)
-                            })
-                        {
-                            pane.trickle_paste(clip).ok();
+                window
+                    .apply(move |term_window, _window| {
+                        let clip = clip.clone();
+                        if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
+                            if let Some(pane) =
+                                term_window.pane_state(pane_id).overlay.clone().or_else(|| {
+                                    let mux = Mux::get().unwrap();
+                                    mux.get_pane(pane_id)
+                                })
+                            {
+                                pane.trickle_paste(clip).ok();
+                            }
                         }
-                    }
-                    Ok(())
-                });
-            }
+                        Ok(())
+                    })
+                    .await?;
+            };
+            Ok::<(), anyhow::Error>(())
         })
         .detach();
     }

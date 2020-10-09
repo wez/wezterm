@@ -1,23 +1,28 @@
 use anyhow::Error;
-use smol::channel::{bounded, Receiver, Sender};
 use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll, Waker};
 use thiserror::*;
 
 pub mod spawn;
-pub type SpawnFunc = Box<dyn FnOnce() + Send>;
 
 #[derive(Debug, Error)]
 #[error("Promise was dropped before completion")]
 pub struct BrokenPromise {}
 
-pub struct Promise<T> {
-    tx: Option<Sender<anyhow::Result<T>>>,
-    rx: Option<Receiver<anyhow::Result<T>>>,
+#[derive(Debug)]
+struct Core<T> {
+    result: Option<anyhow::Result<T>>,
+    waker: Option<Waker>,
 }
 
+pub struct Promise<T> {
+    core: Arc<Mutex<Core<T>>>,
+}
+
+#[derive(Debug)]
 pub struct Future<T> {
-    rx: Receiver<anyhow::Result<T>>,
+    core: Arc<Mutex<Core<T>>>,
 }
 
 impl<T> Default for Promise<T> {
@@ -28,31 +33,35 @@ impl<T> Default for Promise<T> {
 
 impl<T> Promise<T> {
     pub fn new() -> Self {
-        let (tx, rx) = bounded(1);
         Self {
-            tx: Some(tx),
-            rx: Some(rx),
+            core: Arc::new(Mutex::new(Core {
+                result: None,
+                waker: None,
+            })),
         }
     }
 
     pub fn get_future(&mut self) -> Option<Future<T>> {
-        self.rx.take().map(|rx| Future { rx })
+        Some(Future {
+            core: Arc::clone(&self.core),
+        })
     }
 
-    pub fn ok(&mut self, value: T) {
-        self.result(Ok(value));
+    pub fn ok(&mut self, value: T) -> bool {
+        self.result(Ok(value))
     }
 
-    pub fn err(&mut self, err: Error) {
-        self.result(Err(err));
+    pub fn err(&mut self, err: Error) -> bool {
+        self.result(Err(err))
     }
 
-    pub fn result(&mut self, result: Result<T, Error>) {
-        self.tx
-            .take()
-            .expect("Promise already fulfilled")
-            .try_send(result)
-            .ok();
+    pub fn result(&mut self, result: Result<T, Error>) -> bool {
+        let mut core = self.core.lock().unwrap();
+        core.result.replace(result);
+        if let Some(waker) = core.waker.take() {
+            waker.wake();
+        }
+        true
     }
 }
 
@@ -72,10 +81,12 @@ impl<T: Send + 'static> Future<T> {
     /// Create a leaf future which is immediately ready with
     /// the provided result
     pub fn result(result: Result<T, Error>) -> Self {
-        let mut promise = Promise::new();
-        let future = promise.get_future().unwrap();
-        promise.result(result);
-        future
+        Self {
+            core: Arc::new(Mutex::new(Core {
+                result: Some(result),
+                waker: None,
+            })),
+        }
     }
 }
 
@@ -83,13 +94,14 @@ impl<T: Send + 'static> std::future::Future for Future<T> {
     type Output = Result<T, Error>;
 
     fn poll(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Self::Output> {
-        let rx = unsafe { &mut self.get_unchecked_mut().rx };
-        let f = rx.recv();
-        smol::pin!(f);
-        match f.poll(ctx) {
-            Poll::Ready(Ok(res)) => Poll::Ready(res),
-            Poll::Ready(Err(_)) => Poll::Ready(Err(BrokenPromise {}.into())),
-            Poll::Pending => Poll::Pending,
+        let waker = ctx.waker().clone();
+
+        let mut core = self.core.lock().unwrap();
+        if let Some(result) = core.result.take() {
+            Poll::Ready(result)
+        } else {
+            core.waker.replace(waker);
+            Poll::Pending
         }
     }
 }

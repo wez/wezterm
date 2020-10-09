@@ -1,12 +1,11 @@
-use crate::SpawnFunc;
 use anyhow::{anyhow, Result};
-use async_task::Runnable;
+use flume::{bounded, unbounded, Receiver, TryRecvError};
 use std::future::Future;
-use std::sync::mpsc::{sync_channel, Receiver, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::task::{Poll, Waker};
 
-pub use async_task::Task;
+pub use async_task::{Runnable, Task};
+pub type SpawnFunc = Box<dyn FnOnce() + Send>;
 pub type ScheduleFunc = Box<dyn Fn(Runnable) + Send + Sync + 'static>;
 
 fn no_schedule_configured(_: Runnable) {
@@ -16,6 +15,16 @@ fn no_schedule_configured(_: Runnable) {
 lazy_static::lazy_static! {
     static ref ON_MAIN_THREAD: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_schedule_configured));
     static ref ON_MAIN_THREAD_LOW_PRI: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_schedule_configured));
+}
+
+fn schedule_runnable(runnable: Runnable, high_pri: bool) {
+    let func = if high_pri {
+        ON_MAIN_THREAD.lock()
+    } else {
+        ON_MAIN_THREAD_LOW_PRI.lock()
+    }
+    .unwrap();
+    func(runnable);
 }
 
 /// Set callbacks for scheduling normal and low priority futures.
@@ -41,7 +50,7 @@ where
     F: Send + 'static,
     T: Send + 'static,
 {
-    let (tx, rx) = sync_channel(1);
+    let (tx, rx) = bounded(1);
 
     // Holds the waker that may later observe
     // during the Future::poll call.
@@ -105,9 +114,8 @@ where
     F: Future<Output = R> + Send + 'static,
     R: Send + 'static,
 {
-    let (runnable, task) =
-        async_task::spawn(future, |runnable| ON_MAIN_THREAD.lock().unwrap()(runnable));
-    ON_MAIN_THREAD.lock().unwrap()(runnable);
+    let (runnable, task) = async_task::spawn(future, |runnable| schedule_runnable(runnable, true));
+    runnable.schedule();
     task
 }
 
@@ -122,10 +130,8 @@ where
     F: Future<Output = R> + Send + 'static,
     R: Send + 'static,
 {
-    let (runnable, task) = async_task::spawn(future, |runnable| {
-        ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(runnable)
-    });
-    ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(runnable);
+    let (runnable, task) = async_task::spawn(future, |runnable| schedule_runnable(runnable, false));
+    runnable.schedule();
     task
 }
 
@@ -136,8 +142,8 @@ where
     R: 'static,
 {
     let (runnable, task) =
-        async_task::spawn_local(future, |runnable| ON_MAIN_THREAD.lock().unwrap()(runnable));
-    ON_MAIN_THREAD.lock().unwrap()(runnable);
+        async_task::spawn_local(future, |runnable| schedule_runnable(runnable, true));
+    runnable.schedule();
     task
 }
 
@@ -148,10 +154,9 @@ where
     F: Future<Output = R> + 'static,
     R: 'static,
 {
-    let (runnable, task) = async_task::spawn_local(future, |runnable| {
-        ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(runnable)
-    });
-    ON_MAIN_THREAD_LOW_PRI.lock().unwrap()(runnable);
+    let (runnable, task) =
+        async_task::spawn_local(future, |runnable| schedule_runnable(runnable, false));
+    runnable.schedule();
     task
 }
 
@@ -159,12 +164,12 @@ where
 pub use async_std::task::block_on;
 
 pub struct SimpleExecutor {
-    rx: crossbeam::channel::Receiver<SpawnFunc>,
+    rx: Receiver<SpawnFunc>,
 }
 
 impl SimpleExecutor {
     pub fn new() -> Self {
-        let (tx, rx) = crossbeam::channel::unbounded();
+        let (tx, rx) = unbounded();
 
         let tx_main = tx.clone();
         let tx_low = tx.clone();
