@@ -44,7 +44,7 @@ class Gen(object):
                 idx.write(self.index)
                 idx.write("\n\n")
             for page in children:
-                page.render(idx, 1)
+                idx.write(f"  - [{page.title}]({page.title}.md)\n")
 
 
 TOC = [
