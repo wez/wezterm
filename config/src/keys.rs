@@ -162,6 +162,10 @@ where
     let s = String::deserialize(deserializer)?;
     let mut mods = Modifiers::NONE;
     for ele in s.split('|') {
+        // Allow for whitespace; debug printing Modifiers includes spaces
+        // around the `|` so it is desirable to be able to reverse that
+        // encoding here.
+        let ele = ele.trim();
         if ele == "SHIFT" {
             mods |= Modifiers::SHIFT;
         } else if ele == "ALT" || ele == "OPT" || ele == "META" {

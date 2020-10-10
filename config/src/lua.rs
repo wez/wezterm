@@ -2,10 +2,12 @@ use crate::{FontAttributes, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;
+use mlua::ToLua;
 use mlua::{Lua, Table, Value};
 use serde::*;
 use smol::prelude::*;
 use std::path::Path;
+use termwiz::input::Modifiers;
 
 /// Set up a lua context for executing some code.
 /// The path to the directory containing the configuration is
@@ -95,6 +97,11 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         )?;
         wezterm_mod.set("hostname", lua.create_function(hostname)?)?;
         wezterm_mod.set("action", lua.create_function(action)?)?;
+        wezterm_mod.set("permute_any_mods", lua.create_function(permute_any_mods)?)?;
+        wezterm_mod.set(
+            "permute_any_or_no_mods",
+            lua.create_function(permute_any_or_no_mods)?,
+        )?;
 
         wezterm_mod.set("read_dir", lua.create_async_function(read_dir)?)?;
         wezterm_mod.set("glob", lua.create_async_function(glob)?)?;
@@ -404,6 +411,49 @@ async fn run_child_process<'lua>(
         output.stdout.into(),
         output.stderr.into(),
     ))
+}
+
+fn permute_any_mods<'lua>(
+    lua: &'lua Lua,
+    item: mlua::Table,
+) -> mlua::Result<Vec<mlua::Value<'lua>>> {
+    permute_mods(lua, item, false)
+}
+
+fn permute_any_or_no_mods<'lua>(
+    lua: &'lua Lua,
+    item: mlua::Table,
+) -> mlua::Result<Vec<mlua::Value<'lua>>> {
+    permute_mods(lua, item, true)
+}
+
+fn permute_mods<'lua>(
+    lua: &'lua Lua,
+    item: mlua::Table,
+    allow_none: bool,
+) -> mlua::Result<Vec<mlua::Value<'lua>>> {
+    let mut result = vec![];
+    for ctrl in &[Modifiers::NONE, Modifiers::CTRL] {
+        for shift in &[Modifiers::NONE, Modifiers::SHIFT] {
+            for alt in &[Modifiers::NONE, Modifiers::ALT] {
+                for sup in &[Modifiers::NONE, Modifiers::SUPER] {
+                    let flags = *ctrl | *shift | *alt | *sup;
+                    if flags == Modifiers::NONE && !allow_none {
+                        continue;
+                    }
+
+                    let new_item = lua.create_table()?;
+                    for pair in item.clone().pairs::<mlua::Value, mlua::Value>() {
+                        let (k, v) = pair?;
+                        new_item.set(k, v)?;
+                    }
+                    new_item.set("mods", format!("{:?}", flags))?;
+                    result.push(new_item.to_lua(lua)?);
+                }
+            }
+        }
+    }
+    Ok(result)
 }
 
 #[cfg(test)]
