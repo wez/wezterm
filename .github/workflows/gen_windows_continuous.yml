@@ -40,17 +40,17 @@ jobs:
          components: "rustfmt"
          target: "x86_64-pc-windows-msvc"
     - name: "Cache cargo registry"
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
          path: "~/.cargo/registry"
          key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
          path: "~/.cargo/git"
          key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
          path: "target"
          key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-build-target"

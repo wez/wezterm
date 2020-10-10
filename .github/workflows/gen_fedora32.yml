@@ -41,17 +41,17 @@ jobs:
          override: true
          components: "rustfmt"
     - name: "Cache cargo registry"
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
          path: "~/.cargo/registry"
          key: "fedora32-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
          path: "~/.cargo/git"
          key: "fedora32-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
          path: "target"
          key: "fedora32-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
