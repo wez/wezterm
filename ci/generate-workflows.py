@@ -198,7 +198,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
     def install_rust(self):
         salt = "1"
         key_prefix = (
-            f"{self.name}-{self.rust_target}-{salt}-${{{{ hashFiles('Cargo.lock') }}}}"
+            f"{self.name}-{self.rust_target}-{salt}-${{{{ runner.os }}}}-${{{{ hashFiles('**/Cargo.lock') }}}}"
         )
         params = {
             "profile": "minimal",
@@ -213,19 +213,9 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
                 name="Install Rust", action="actions-rs/toolchain@v1", params=params,
             ),
             CacheStep(
-                name="Cache cargo registry",
-                path="~/.cargo/registry",
-                key=f"{key_prefix}-cargo-registry",
-            ),
-            CacheStep(
-                name="Cache cargo index",
-                path="~/.cargo/git",
-                key=f"{key_prefix}-cargo-index",
-            ),
-            CacheStep(
-                name="Cache cargo build",
-                path="target",
-                key=f"{key_prefix}-cargo-build-target",
+                name="Cache cargo",
+                path="~/.cargo/registry\n~/.cargo/git\ntarget",
+                key=f"{key_prefix}-cargo",
             ),
         ]
 

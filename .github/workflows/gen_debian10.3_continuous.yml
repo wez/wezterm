@@ -66,21 +66,15 @@ jobs:
          toolchain: "stable"
          override: true
          components: "rustfmt"
-    - name: "Cache cargo registry"
+    - name: "Cache cargo"
       uses: actions/cache@v2
       with:
-         path: "~/.cargo/registry"
-         key: "debian10.3-None-1-${{ hashFiles('Cargo.lock') }}-cargo-registry"
-    - name: "Cache cargo index"
-      uses: actions/cache@v2
-      with:
-         path: "~/.cargo/git"
-         key: "debian10.3-None-1-${{ hashFiles('Cargo.lock') }}-cargo-index"
-    - name: "Cache cargo build"
-      uses: actions/cache@v2
-      with:
-         path: "target"
-         key: "debian10.3-None-1-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+
+         key: "debian10.3-None-1-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
     - name: "Install System Deps"
       shell: bash
       run: |

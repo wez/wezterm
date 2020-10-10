@@ -39,21 +39,15 @@ jobs:
          override: true
          components: "rustfmt"
          target: "x86_64-pc-windows-msvc"
-    - name: "Cache cargo registry"
+    - name: "Cache cargo"
       uses: actions/cache@v2
       with:
-         path: "~/.cargo/registry"
-         key: "windows-x86_64-pc-windows-msvc-1-${{ hashFiles('Cargo.lock') }}-cargo-registry"
-    - name: "Cache cargo index"
-      uses: actions/cache@v2
-      with:
-         path: "~/.cargo/git"
-         key: "windows-x86_64-pc-windows-msvc-1-${{ hashFiles('Cargo.lock') }}-cargo-index"
-    - name: "Cache cargo build"
-      uses: actions/cache@v2
-      with:
-         path: "target"
-         key: "windows-x86_64-pc-windows-msvc-1-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+
+         key: "windows-x86_64-pc-windows-msvc-1-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
     - name: "Build (Release mode)"
       shell: cmd
       run: |
