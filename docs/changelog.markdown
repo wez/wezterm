@@ -10,6 +10,9 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* New: split/pane support!
+  See [#157](https://github.com/wez/wezterm/issues/157) for
+  overall status and additional information.
 * The GUI layer now normalizes SHIFT state for keyboard processing.
   If a keypress is ASCII uppercase and SHIFT is held then the
   SHIFT modifier is removed from the set of active modifiers.  This
@@ -24,9 +27,6 @@ brief notes about them may accumulate here.
   number to be zero based.
 * On Linux and macOS systems, wezterm can now attempt to guess the current
   working directory that should be set in newly spawned local panes/tabs.
-* Experimental support for splits/panes.
-  See [#157](https://github.com/wez/wezterm/issues/157) for
-  overall status and additional information.
 * We now bundle JetBrains Mono and use it as the default font,
   and add it as a default fallback font.  Similarly, we also
   bundle Noto Color Emoji as a default fallback for emoji.
@@ -34,6 +34,8 @@ brief notes about them may accumulate here.
   automatic config reloading.  When set to false, you will need
   to manually trigger a config reload (default: `SUPER+R` or
   `CTRL+SHIFT+R`)
+* [`CloseCurrentTab`](config/lua/keyassignment/CloseCurrentTab.md)
+  now requires a `confirm` parameter.
 
 ### 20200909-002054-4c9af461
 
