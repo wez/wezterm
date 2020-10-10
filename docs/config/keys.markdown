@@ -133,6 +133,17 @@ The default key bindings are:
 | `SUPER`          | `f`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `X`    | `ActivateCopyMode` |
+| `CTRL+SHIFT+ALT` | `"`    | `SplitVertical={domain="CurrentPaneDomain"}` |
+| `CTRL+SHIFT+ALT` | `%`    | `SplitHorizontal={domain="CurrentPaneDomain"}` |
+| `CTRL+SHIFT+ALT` | `LeftArrow`    | `AdjustPaneSize={"Left", 1}` |
+| `CTRL+SHIFT+ALT` | `RightArrow`   | `AdjustPaneSize={"Right", 1}` |
+| `CTRL+SHIFT+ALT` | `UpArrow`      | `AdjustPaneSize={"Up", 1}` |
+| `CTRL+SHIFT+ALT` | `DownArrow`    | `AdjustPaneSize={"Down", 1}` |
+| `CTRL+SHIFT` | `LeftArrow`    | `ActivatePaneDirection="Left"` |
+| `CTRL+SHIFT` | `RightArrow`    | `ActivatePaneDirection="Right"` |
+| `CTRL+SHIFT` | `UpArrow`    | `ActivatePaneDirection="Up"` |
+| `CTRL+SHIFT` | `DownArrow`    | `ActivatePaneDirection="Down"` |
+| `CTRL` | `Z`    | `TogglePaneZoomState` |
 
 If you don't want the default assignments to be registered, you can
 disable all of them with this configuration; if you chose to do this,
