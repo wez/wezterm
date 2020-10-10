@@ -451,7 +451,7 @@ cargo build --all --release""",
             ),
             RunStep("Fetch tag/branch history", "git fetch --prune --unshallow"),
         ]
-        steps += self.install_rust(cache=cache)
+        steps += self.install_rust(cache="mac" not in self.name)
         steps += self.install_system_deps()
         return steps
 
@@ -470,7 +470,7 @@ cargo build --all --release""",
         )
 
     def continuous(self):
-        steps = self.prep_environment(cache="mac" not in self.name)
+        steps = self.prep_environment()
         steps += self.build_all_release()
         steps += self.test_all_release()
         steps += self.package()
