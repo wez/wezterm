@@ -8,8 +8,10 @@
 /pkg
 /target/
 /gh_pages/
+/docs/SUMMARY.md
 /docs/installation.md
 /docs/install/*.md
+/docs/config/lua/wezterm/index.md
 **/*.rs.bk
 .*.sw*
 /esctest.log
