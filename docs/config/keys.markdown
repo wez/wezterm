@@ -300,6 +300,42 @@ Possible Modifier labels are:
 
 You can combine modifiers using the `|` symbol (eg: `"CMD|CTRL"`).
 
+### Leader Key
+
+*Since: nightly builds only*
+
+A *leader* key is a a modal modifier key.  If leader is specified in the
+configuration then pressing that key combination will enable a virtual `LEADER`
+modifier.
+
+While `LEADER` is active, only defined key assignments that include
+`LEADER` in the `mods` mask will be recognized.  Other keypresses
+will be swallowed and NOT passed through to the terminal.
+
+`LEADER` stays active until a keypress is registered (whether it
+matches a key binding or not), or until it has been active for
+the duration specified by `timeout_milliseconds`, at which point
+it will automatically cancel itself.
+
+Here's an example configuration using `LEADER`.  In this configuration,
+pressing `CTRL-A` activates the leader key for up to 1 second (1000
+milliseconds).  While `LEADER` is active, the `|` key (with no other modifiers)
+will trigger the current pane to be split.
+
+```lua
+local wezterm = require 'wezterm';
+
+return {
+  -- timeout_milliseconds defaults to 1000 and can be omitted
+  leader = { key="a", mods="CTRL", timeout_milliseconds=1000 },
+  keys = {
+    {key="|", mods="LEADER", action=wezterm.action{SplitHorizontal={domain="CurrentPaneDomain"}}},
+    -- Send "CTRL-A" to the terminal when pressing CTRL-A, CTRL-A
+    {key="a", mods="LEADER|CTRL", action=wezterm.action{SendString="\x01"}},
+  }
+}
+```
+
 # Available Actions
 
 See the [`KeyAssignment` reference](lua/keyassignment/index.md) for information
