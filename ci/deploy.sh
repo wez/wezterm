@@ -7,12 +7,6 @@ TARGET_DIR=${1:-target}
 TAG_NAME=${TAG_NAME:-$(git describe --tags)}
 TAG_NAME=${TAG_NAME:-$(date +'%Y%m%d-%H%M%S')-$(git log --format=%h -1)}
 
-# Emit the tagname variable for azure to pick up
-# https://docs.microsoft.com/en-us/azure/devops/pipelines/troubleshooting?view=azure-devops#variables-having--single-quote-appended
-set +x
-echo "##vso[task.setvariable variable=wezterm.tagname]$TAG_NAME"
-set -x
-
 HERE=$(pwd)
 
 case $OSTYPE in
