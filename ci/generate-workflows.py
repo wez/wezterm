@@ -195,8 +195,8 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
 
         return steps
 
-    def install_rust(self):
-        salt = "1"
+    def install_rust(self, cache=True):
+        salt = "2"
         key_prefix = (
             f"{self.name}-{self.rust_target}-{salt}-${{{{ runner.os }}}}-${{{{ hashFiles('**/Cargo.lock') }}}}"
         )
@@ -208,16 +208,20 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
         }
         if self.rust_target:
             params["target"] = self.rust_target
-        return [
+        steps = [
             ActionStep(
                 name="Install Rust", action="actions-rs/toolchain@v1", params=params,
             ),
-            CacheStep(
-                name="Cache cargo",
-                path="~/.cargo/registry\n~/.cargo/git\ntarget",
-                key=f"{key_prefix}-cargo",
-            ),
         ]
+        if cache:
+            steps += [
+                CacheStep(
+                    name="Cache cargo",
+                    path="~/.cargo/registry\n~/.cargo/git\ntarget",
+                    key=f"{key_prefix}-cargo",
+                ),
+            ]
+        return steps
 
     def install_system_deps(self):
         if "win" in self.name:
@@ -411,7 +415,7 @@ cargo build --all --release""",
             env["MACOSX_DEPLOYMENT_TARGET"] = "10.9"
         return env
 
-    def prep_environment(self):
+    def prep_environment(self, cache=True):
         steps = []
         if self.uses_apt():
             if self.container:
@@ -447,7 +451,7 @@ cargo build --all --release""",
             ),
             RunStep("Fetch tag/branch history", "git fetch --prune --unshallow"),
         ]
-        steps += self.install_rust()
+        steps += self.install_rust(cache=cache)
         steps += self.install_system_deps()
         return steps
 
@@ -466,7 +470,7 @@ cargo build --all --release""",
         )
 
     def continuous(self):
-        steps = self.prep_environment()
+        steps = self.prep_environment(cache="mac" not in self.name)
         steps += self.build_all_release()
         steps += self.test_all_release()
         steps += self.package()

@@ -50,7 +50,7 @@ jobs:
             ~/.cargo/git
             target
 
-         key: "macos-None-1-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+         key: "macos-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
     - name: "Install System Deps"
       shell: bash
       run: |

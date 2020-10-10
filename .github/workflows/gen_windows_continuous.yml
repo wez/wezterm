@@ -47,7 +47,7 @@ jobs:
             ~/.cargo/git
             target
 
-         key: "windows-x86_64-pc-windows-msvc-1-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+         key: "windows-x86_64-pc-windows-msvc-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
     - name: "Build (Release mode)"
       shell: cmd
       run: |

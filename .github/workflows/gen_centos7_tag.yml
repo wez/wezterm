@@ -64,7 +64,7 @@ jobs:
             ~/.cargo/git
             target
 
-         key: "centos7-None-1-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+         key: "centos7-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
     - name: "Install System Deps"
       shell: bash
       run: "./get-deps"

@@ -42,15 +42,6 @@ jobs:
          toolchain: "stable"
          override: true
          components: "rustfmt"
-    - name: "Cache cargo"
-      uses: actions/cache@v2
-      with:
-         path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-
-         key: "macos-None-1-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
     - name: "Install System Deps"
       shell: bash
       run: |
