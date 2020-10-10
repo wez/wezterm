@@ -21,9 +21,10 @@ class Page(object):
 
 # autogenerate an index page from the contents of a directory
 class Gen(object):
-    def __init__(self, title, dirname):
+    def __init__(self, title, dirname, index=None):
         self.title = title
         self.dirname = dirname
+        self.index = index
 
     def render(self, output, depth=0):
         print(self.dirname)
@@ -39,6 +40,9 @@ class Gen(object):
         index_page = Page(self.title, index_filename, children=children)
         index_page.render(output, depth)
         with open(f"{self.dirname}/index.md", "w") as idx:
+            if self.index:
+                idx.write(self.index)
+                idx.write("\n\n")
             for page in children:
                 page.render(idx, 1)
 
@@ -72,15 +76,6 @@ TOC = [
                     Page("Colors & Appearance", "config/appearance.markdown"),
                 ],
             ),
-            Page(
-                "Lua Reference",
-                "config/lua/general.md",
-                children=[
-                    Gen("module: wezterm", "config/lua/wezterm"),
-                    Gen("object: Pane", "config/lua/pane"),
-                    Gen("object: Window", "config/lua/window"),
-                ],
-            ),
             Page("Scrollback", "scrollback.markdown"),
             Page("Copy Mode", "copymode.markdown"),
             Page("Hyperlinks", "hyperlinks.markdown"),
@@ -92,6 +87,53 @@ TOC = [
             Page("F.A.Q.", "faq.markdown"),
             Page("Getting Help", "help.markdown"),
             Page("Contributing", "contributing.markdown"),
+            Page(
+                "Lua Reference",
+                "config/lua/general.md",
+                children=[
+                    Gen("module: wezterm", "config/lua/wezterm", index="""
+# `require wezterm`
+
+The wezterm module is the primary module that exposes wezterm configuration
+and control to your config file.
+
+You will typically place:
+
+```lua
+local wezterm = require 'wezterm';
+```
+
+at the top of your configuration file to enable it.
+
+## Available functions, constants
+"""),
+                    Gen("object: Pane", "config/lua/pane", index="""
+# `Pane` object
+
+A Pane object cannot be created in lua code; it is typically passed to your
+code via an event callback.  A Pane object is a handle to a live instance of a
+Pane that is known to the wezterm process.  A Pane object tracks the psuedo
+terminal (or real serial terminal) and associated process(es) and the parsed
+screen and scrollback.
+
+A Pane object can be used to send input to the associated processes and
+introspect the state of the terminal emulation for that pane.
+
+## Available methods
+
+"""),
+                    Gen("object: Window", "config/lua/window", index="""
+# `Window` object
+
+A Window object cannot be created in lua code; it is typically passed to
+your code via an event callback.  A Window object is a handle to a GUI
+TermWindow running in the wezterm process.
+
+## Available methods
+
+"""),
+                ],
+            ),
         ],
     )
 ]
