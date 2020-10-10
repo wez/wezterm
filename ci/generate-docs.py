@@ -91,7 +91,10 @@ TOC = [
                 "Lua Reference",
                 "config/lua/general.md",
                 children=[
-                    Gen("module: wezterm", "config/lua/wezterm", index="""
+                    Gen(
+                        "module: wezterm",
+                        "config/lua/wezterm",
+                        index="""
 # `require wezterm`
 
 The wezterm module is the primary module that exposes wezterm configuration
@@ -106,8 +109,35 @@ local wezterm = require 'wezterm';
 at the top of your configuration file to enable it.
 
 ## Available functions, constants
-"""),
-                    Gen("object: Pane", "config/lua/pane", index="""
+""",
+                    ),
+                    Gen(
+                        "enum: KeyAssignment",
+                        "config/lua/keyassignment",
+                        index="""
+# `KeyAssignment` enumeration
+
+A `KeyAssignment` represents a pre-defined function that can be applied
+to control the Window, Tab, Pane state typically when a key or mouse event
+is triggered.
+
+Internally, in the underlying Rust code, `KeyAssignment` is an enum
+type with a variant for each possible action known to wezterm.  In Lua,
+enums get represented as a table with a single key corresponding to
+the variant name.
+
+In most cases the [`wezterm.action`](../wezterm/action.md) function is
+used to create an instance of `KeyAssignment` and make it a bit more
+clear and convenient.
+
+## Available Key Assignments
+
+""",
+                    ),
+                    Gen(
+                        "object: Pane",
+                        "config/lua/pane",
+                        index="""
 # `Pane` object
 
 A Pane object cannot be created in lua code; it is typically passed to your
@@ -121,8 +151,12 @@ introspect the state of the terminal emulation for that pane.
 
 ## Available methods
 
-"""),
-                    Gen("object: Window", "config/lua/window", index="""
+""",
+                    ),
+                    Gen(
+                        "object: Window",
+                        "config/lua/window",
+                        index="""
 # `Window` object
 
 A Window object cannot be created in lua code; it is typically passed to
@@ -131,7 +165,8 @@ TermWindow running in the wezterm process.
 
 ## Available methods
 
-"""),
+""",
+                    ),
                 ],
             ),
         ],

@@ -17,10 +17,10 @@ return {
 }
 ```
 
-The parameter is a lua representation of the underlying
-[KeyAssignment](https://github.com/wez/wezterm/blob/master/config/src/keyassignment.rs#L114)
-enum from the configuration code.  These docs aim to spell out sufficient
-examples that you shouldn't need to learn to read Rust code, but there
-are occasions where newly developed features are not yet documented and
-an enterprising user may wish to go spelunking to figure them out!
+The parameter is a lua representation of the underlying KeyAssignment enum from
+the configuration code.  These docs aim to spell out sufficient examples that
+you shouldn't need to learn to read Rust code, but there are occasions where
+newly developed features are not yet documented and an enterprising user may
+wish to go spelunking to figure them out!
 
+[You can find the reference for available KeyAssignment values here](../keyassignment/index.md).
