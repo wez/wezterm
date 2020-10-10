@@ -54,6 +54,14 @@ wezterm.on("open-uri", function(window, pane, uri)
 end)
 ```
 
+The first event parameter is a [`window` object](../window/index.md) that
+represents the gui window.
+
+The second event parameter is a [`pane` object](../pane/index.md) that
+represents the pane.
+
+The third event parameter is the URI string.
+
 ## Custom Events
 
 You may register handlers for arbitrary events for which wezterm itself
@@ -108,3 +116,8 @@ return {
 }
 ```
 
+The first event parameter is a [`window` object](../window/index.md) that
+represents the gui window.
+
+The second event parameter is a [`pane` object](../pane/index.md) that
+represents the pane.

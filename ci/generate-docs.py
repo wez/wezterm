@@ -78,6 +78,7 @@ TOC = [
                 children=[
                     Gen("module: wezterm", "config/lua/wezterm"),
                     Gen("object: Pane", "config/lua/pane"),
+                    Gen("object: Window", "config/lua/window"),
                 ],
             ),
             Page("Scrollback", "scrollback.markdown"),

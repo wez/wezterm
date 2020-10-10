@@ -13,6 +13,7 @@
 /docs/install/*.md
 /docs/config/lua/wezterm/index.md
 /docs/config/lua/pane/index.md
+/docs/config/lua/window/index.md
 **/*.rs.bk
 .*.sw*
 /esctest.log
