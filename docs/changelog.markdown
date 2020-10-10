@@ -36,6 +36,7 @@ brief notes about them may accumulate here.
   `CTRL+SHIFT+R`)
 * [`CloseCurrentTab`](config/lua/keyassignment/CloseCurrentTab.md)
   now requires a `confirm` parameter.
+* New: [LEADER](config/keys.md#leader-key) modifier key support
 
 ### 20200909-002054-4c9af461
 
