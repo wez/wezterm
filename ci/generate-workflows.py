@@ -196,8 +196,9 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
         return steps
 
     def install_rust(self):
+        salt = "1"
         key_prefix = (
-            f"{self.name}-{self.rust_target}-${{{{ hashFiles('Cargo.lock') }}}}"
+            f"{self.name}-{self.rust_target}-{salt}-${{{{ hashFiles('Cargo.lock') }}}}"
         )
         params = {
             "profile": "minimal",
