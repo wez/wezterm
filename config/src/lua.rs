@@ -107,6 +107,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         )?;
         wezterm_mod.set("on", lua.create_function(register_event)?)?;
         wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
+        wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
 
         package.set("path", path_array.join(";"))?;
 
@@ -115,6 +116,12 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
     }
 
     Ok(lua)
+}
+
+async fn sleep_ms<'lua>(_: &'lua Lua, milliseconds: u64) -> mlua::Result<()> {
+    let duration = std::time::Duration::from_millis(milliseconds);
+    smol::Timer::after(duration).await;
+    Ok(())
 }
 
 /// Returns the system hostname.
