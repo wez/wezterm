@@ -32,14 +32,15 @@ pub struct WaylandConnection {
     // we'll segfault on shutdown.
     // Rust guarantees that struct fields are dropped in the order
     // they appear in the struct, so the Display must be at the
-    // bottom of this list.
+    // bottom of this list, and opengl, which depends on everything
+    // must be ahead of the rest.
+    #[cfg(feature = "opengl")]
+    pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
     pub(crate) pointer: PointerDispatcher,
     pub(crate) keyboard: KeyboardDispatcher,
     pub(crate) environment: RefCell<Environment<MyEnvironment>>,
     event_q: RefCell<EventLoop<()>>,
     pub(crate) display: RefCell<Display>,
-    #[cfg(feature = "opengl")]
-    pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 }
 
 impl WaylandConnection {
@@ -104,8 +105,6 @@ impl WaylandConnection {
         }
         Ok(())
     }
-
-    fn do_paint(&self) {}
 
     pub(crate) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WaylandWindowInner>>> {
         self.windows.borrow().get(&window_id).map(Rc::clone)
@@ -187,21 +186,8 @@ impl ConnectionOps for WaylandConnection {
             })
             .map_err(|e| anyhow!("failed to insert SpawnQueueSource: {:?}", e))?;
 
-        let paint_interval = Duration::from_millis(25);
-        let mut last_interval = Instant::now();
-
         while !*self.should_terminate.borrow() {
             self.timers.borrow_mut().run_ready();
-
-            let now = Instant::now();
-            let diff = now - last_interval;
-            let period = if diff >= paint_interval {
-                self.do_paint();
-                last_interval = now;
-                paint_interval
-            } else {
-                paint_interval - diff
-            };
 
             // Check the spawn queue before we try to sleep; there may
             // be work pending and we don't guarantee that there is a
@@ -215,12 +201,9 @@ impl ConnectionOps for WaylandConnection {
                 self.timers
                     .borrow()
                     .time_until_due(Instant::now())
-                    .map(|duration| duration.min(period))
-                    .unwrap_or(period)
+                    .unwrap_or(Duration::from_millis(2500))
             };
-
             self.flush()?;
-
             {
                 let mut event_q = self.event_q.borrow_mut();
                 if let Err(err) = event_q.dispatch(Some(period), &mut ()) {

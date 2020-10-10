@@ -113,19 +113,39 @@ thread_local! {
 pub struct MuxWindowBuilder {
     window_id: WindowId,
     activity: Option<Activity>,
+    notified: bool,
+}
+
+impl MuxWindowBuilder {
+    fn notify(&mut self) {
+        if self.notified {
+            return;
+        }
+        self.notified = true;
+        let activity = self.activity.take().unwrap();
+        let window_id = self.window_id;
+        if let Some(mux) = Mux::get() {
+            // If we're already on the mux thread, just send the notification
+            // immediately.
+            // This is super important for Wayland; if we push it to the
+            // spawn queue below then the extra milliseconds of delay
+            // causes it to get confused and shutdown the connection!?
+            mux.notify(MuxNotification::WindowCreated(window_id));
+        } else {
+            promise::spawn::spawn_into_main_thread(async move {
+                if let Some(mux) = Mux::get() {
+                    mux.notify(MuxNotification::WindowCreated(window_id));
+                    drop(activity);
+                }
+            })
+            .detach();
+        }
+    }
 }
 
 impl Drop for MuxWindowBuilder {
     fn drop(&mut self) {
-        let window_id = self.window_id;
-        let activity = self.activity.take().unwrap();
-        promise::spawn::spawn_into_main_thread(async move {
-            if let Some(mux) = Mux::get() {
-                mux.notify(MuxNotification::WindowCreated(window_id));
-                drop(activity);
-            }
-        })
-        .detach();
+        self.notify();
     }
 }
 
@@ -370,6 +390,7 @@ impl Mux {
         MuxWindowBuilder {
             window_id,
             activity: Some(Activity::new()),
+            notified: false,
         }
     }
 
