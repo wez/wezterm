@@ -134,6 +134,7 @@ clear and convenient.
 
 """,
                     ),
+                    Page("object: SpawnCommand", "config/lua/SpawnCommand.md"),
                     Gen(
                         "object: Pane",
                         "config/lua/pane",

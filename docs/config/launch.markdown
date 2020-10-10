@@ -83,6 +83,9 @@ the option of connecting and spawning tabs/windows in those domains.
 the menu; one that runs the `top` program to monitor process activity and a
 second one that explicitly launches the `bash` shell.
 
+Each entry in `launch_menu` is an instance of a
+[SpawnCommand](lua/SpawnCommand.md) object.
+
 ```lua
 return {
   launch_menu = {
