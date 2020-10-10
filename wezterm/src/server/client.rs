@@ -196,7 +196,7 @@ async fn client_thread_async(
 
     impl Promises {
         fn fail_all(&mut self, reason: &str) {
-            log::error!("failing all promises: {}", reason);
+            log::trace!("failing all promises: {}", reason);
             for (_, promise) in self.map.drain() {
                 promise.try_send(Err(anyhow!("{}", reason))).unwrap();
             }

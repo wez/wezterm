@@ -4,6 +4,7 @@ use mux::domain::{Domain, LocalDomain};
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use std::ffi::OsString;
+use std::process::Command;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
@@ -67,34 +68,47 @@ fn run() -> anyhow::Result<()> {
         let config = config::configuration();
         if opts.daemonize {
             daemonize::daemonize(&config)?;
+            // When we reach this line, we are in a forked child process,
+            // and the fork will have broken the async-io/reactor state
+            // of the smol runtime.
+            // To resolve this, we will re-exec ourselves in the block
+            // below that was originally Windows-specific
         }
     }
 
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        use std::process::Command;
-        // We can't literally daemonize, but we can spawn another copy
+    if opts.daemonize {
+        // On Windows we can't literally daemonize, but we can spawn another copy
         // of ourselves in the background!
-        if opts.daemonize {
-            let mut cmd = Command::new(std::env::current_exe().unwrap());
-            if opts.skip_config {
-                cmd.arg("-n");
+        // On Unix, forking breaks the global state maintained by `smol`,
+        // so we need to re-exec ourselves to start things back up properly.
+        let mut cmd = Command::new(std::env::current_exe().unwrap());
+        if opts.skip_config {
+            cmd.arg("-n");
+        }
+        if let Some(cwd) = opts.cwd {
+            cmd.arg("--cwd");
+            cmd.arg(cwd);
+        }
+        if !opts.prog.is_empty() {
+            cmd.arg("--");
+            for a in &opts.prog {
+                cmd.arg(a);
             }
-            if let Some(cwd) = opts.cwd {
-                cmd.arg("--cwd");
-                cmd.arg(cwd);
-            }
-            if !opts.prog.is_empty() {
-                cmd.arg("--");
-                for a in &opts.prog {
-                    cmd.arg(a);
-                }
-            }
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
             cmd.creation_flags(winapi::um::winbase::DETACHED_PROCESS);
             let child = cmd.spawn();
             drop(child);
             return Ok(());
+        }
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            return Err(anyhow::anyhow!("failed to re-exec: {:?}", cmd.exec()));
         }
     }
 
