@@ -71,6 +71,8 @@ impl UserData for PaneObject {
                 text.truncate(trimmed);
                 text.push('\n');
             }
+            let trimmed = text.trim_end().len();
+            text.truncate(trimmed);
             Ok(text)
         });
     }

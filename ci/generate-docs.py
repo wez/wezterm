@@ -75,7 +75,10 @@ TOC = [
             Page(
                 "Lua Reference",
                 "config/lua/general.md",
-                children=[Gen("module: wezterm", "config/lua/wezterm"),],
+                children=[
+                    Gen("module: wezterm", "config/lua/wezterm"),
+                    Gen("object: Pane", "config/lua/pane"),
+                ],
             ),
             Page("Scrollback", "scrollback.markdown"),
             Page("Copy Mode", "copymode.markdown"),
