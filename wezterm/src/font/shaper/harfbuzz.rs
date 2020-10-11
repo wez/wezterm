@@ -267,9 +267,39 @@ impl FontShaper for HarfbuzzShaper {
     }
 
     fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics> {
+        // Returns the metrics for the selected font... but look out
+        // for implausible sizes.
+        // Ideally we wouldn't need this, but in the event that a user
+        // has a wonky configuration we don't want to pick something
+        // like a bitmap emoji font for the metrics or well end up
+        // with crazy huge cells.
+        // We do a sniff test based on the theoretical pixel height for
+        // the supplied size+dpi.
+        // If a given fallback slot deviates from the theoretical size
+        // by too much we'll skip to the next slot.
+        let theoretical_height = size * dpi as f64 / 72.0;
+        let mut metrics_idx = 0;
+        while let Ok(Some(mut pair)) = self.load_fallback(metrics_idx) {
+            let (_, cell_height) = pair.face.set_font_size(size, dpi)?;
+            let diff = (theoretical_height - cell_height).abs();
+            let factor = diff / theoretical_height;
+            if factor < 2.0 {
+                break;
+            }
+            log::trace!(
+                "skip idx {} because diff={} factor={} theoretical_height={} cell_height={}",
+                metrics_idx,
+                diff,
+                factor,
+                theoretical_height,
+                cell_height
+            );
+            metrics_idx += 1;
+        }
+
         let mut pair = self
-            .load_fallback(0)?
-            .ok_or_else(|| anyhow!("unable to load first font!?"))?;
+            .load_fallback(metrics_idx)?
+            .ok_or_else(|| anyhow!("unable to load font idx {}!?", metrics_idx))?;
         let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
         let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
         let metrics = FontMetrics {
