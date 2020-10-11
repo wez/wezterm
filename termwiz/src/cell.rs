@@ -381,6 +381,17 @@ mod test {
     use super::*;
 
     #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn memory_usage() {
+        assert_eq!(std::mem::size_of::<crate::color::RgbColor>(), 3);
+        assert_eq!(std::mem::size_of::<ColorAttribute>(), 5);
+        assert_eq!(std::mem::size_of::<CellAttributes>(), 32);
+        assert_eq!(std::mem::size_of::<Cell>(), 64);
+        assert_eq!(std::mem::size_of::<Vec<u8>>(), 24);
+        assert_eq!(std::mem::size_of::<char>(), 4);
+    }
+
+    #[test]
     fn nerf_special() {
         for c in " \n\r\t".chars() {
             let cell = Cell::new(c, CellAttributes::default());

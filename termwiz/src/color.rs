@@ -413,6 +413,7 @@ mod tests {
         assert_eq!(grey.blue, 0xf0);
     }
 
+    #[cfg(feature = "use_serde")]
     #[test]
     fn roundtrip_rgbcolor() {
         let data = varbincode::serialize(&RgbColor::from_named("DarkGreen").unwrap()).unwrap();
