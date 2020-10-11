@@ -313,8 +313,19 @@ impl WaylandWindowInner {
                     .key_event(&key_event, &Window::Wayland(WaylandWindow(self.window_id)));
             }
             KeyboardEvent::Modifiers { modifiers } => self.modifiers = modifiers,
-            KeyboardEvent::Enter { .. } => self.callbacks.focus_change(true),
-            KeyboardEvent::Leave { .. } => self.callbacks.focus_change(false),
+            // Clear the modifiers when we change focus, otherwise weird
+            // things can happen.  For instance, if we lost focus because
+            // CTRL+SHIFT+N was pressed to spawn a new window, we'd be
+            // left stuck with CTRL+SHIFT held down and the window would
+            // be left in a broken state.
+            KeyboardEvent::Enter { .. } => {
+                self.modifiers = Modifiers::NONE;
+                self.callbacks.focus_change(true)
+            }
+            KeyboardEvent::Leave { .. } => {
+                self.modifiers = Modifiers::NONE;
+                self.callbacks.focus_change(false)
+            }
         }
     }
 
