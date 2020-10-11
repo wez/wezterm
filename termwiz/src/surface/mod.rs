@@ -482,7 +482,9 @@ impl Surface {
             }
             Foreground(value) => self.attributes.foreground = *value,
             Background(value) => self.attributes.background = *value,
-            Hyperlink(value) => self.attributes.hyperlink = value.clone(),
+            Hyperlink(value) => {
+                self.attributes.set_hyperlink(value.clone());
+            }
         }
     }
 

@@ -151,7 +151,7 @@ impl Line {
         }
 
         for cell in &mut self.cells {
-            let replace = match cell.attrs().hyperlink {
+            let replace = match cell.attrs().hyperlink() {
                 Some(ref link) if link.is_implicit() => Some(Cell::new_grapheme(
                     cell.str(),
                     cell.attrs().clone().set_hyperlink(None).clone(),
@@ -208,7 +208,7 @@ impl Line {
                 if m.range.contains(&byte_idx) {
                     let attrs = cell.attrs_mut();
                     // Don't replace existing links
-                    if !attrs.hyperlink.is_some() {
+                    if !attrs.hyperlink().is_some() {
                         attrs.set_hyperlink(Some(Arc::clone(&m.link)));
                         self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
                     }
@@ -298,7 +298,7 @@ impl Line {
 
         self.invalidate_implicit_hyperlinks();
         self.bits |= LineBits::DIRTY;
-        if cell.attrs().hyperlink.is_some() {
+        if cell.attrs().hyperlink().is_some() {
             self.bits |= LineBits::HAS_HYPERLINK;
         }
         self.invalidate_grapheme_at_or_before(idx);

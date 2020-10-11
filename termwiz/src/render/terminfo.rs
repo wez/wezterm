@@ -188,10 +188,10 @@ impl TerminfoRenderer {
             }
 
             if self.caps.hyperlinks() {
-                if let Some(link) = attr.hyperlink.as_ref() {
+                if let Some(link) = attr.hyperlink() {
                     let osc = OperatingSystemCommand::SetHyperlink(Some((**link).clone()));
                     write!(out, "{}", osc)?;
-                } else if self.current_attr.hyperlink.is_some() {
+                } else if self.current_attr.hyperlink().is_some() {
                     // Close out the old hyperlink
                     let osc = OperatingSystemCommand::SetHyperlink(None);
                     write!(out, "{}", osc)?;
@@ -436,7 +436,9 @@ impl TerminfoRenderer {
                     self.attr_apply(|attr| attr.background = *col);
                 }
                 Change::Attribute(AttributeChange::Hyperlink(link)) => {
-                    self.attr_apply(|attr| attr.hyperlink = link.clone());
+                    self.attr_apply(|attr| {
+                        attr.set_hyperlink(link.clone());
+                    });
                 }
                 Change::AllAttributes(all) => {
                     self.pending_attr = Some(all.clone());

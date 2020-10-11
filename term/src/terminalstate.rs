@@ -1213,10 +1213,10 @@ impl TerminalState {
     }
 
     fn set_hyperlink(&mut self, link: Option<Hyperlink>) {
-        self.pen.hyperlink = match link {
+        self.pen.set_hyperlink(match link {
             Some(hyperlink) => Some(Arc::new(hyperlink)),
             None => None,
-        }
+        });
     }
 
     fn sixel(&mut self, sixel: Box<Sixel>) {
@@ -2424,9 +2424,9 @@ impl TerminalState {
         debug!("{:?}", sgr);
         match sgr {
             Sgr::Reset => {
-                let link = self.pen.hyperlink.take();
+                let link = self.pen.hyperlink().map(Arc::clone);
                 self.pen = CellAttributes::default();
-                self.pen.hyperlink = link;
+                self.pen.set_hyperlink(link);
             }
             Sgr::Intensity(intensity) => {
                 self.pen.set_intensity(intensity);

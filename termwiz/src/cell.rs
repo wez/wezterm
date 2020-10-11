@@ -23,9 +23,9 @@ pub struct CellAttributes {
     /// The background color
     pub background: ColorAttribute,
     /// The hyperlink content, if any
-    pub hyperlink: Option<Arc<Hyperlink>>,
+    hyperlink: Option<Arc<Hyperlink>>,
     /// The image data, if any
-    pub image: Option<Box<ImageCell>>,
+    image: Option<Box<ImageCell>>,
 }
 
 /// Define getter and setter for the attributes bitfield.
@@ -197,6 +197,14 @@ impl CellAttributes {
             hyperlink: None,
             image: None,
         }
+    }
+
+    pub fn hyperlink(&self) -> Option<&Arc<Hyperlink>> {
+        self.hyperlink.as_ref()
+    }
+
+    pub fn image(&self) -> Option<&ImageCell> {
+        self.image.as_ref().map(|im| im.as_ref())
     }
 }
 

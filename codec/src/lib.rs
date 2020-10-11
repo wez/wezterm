@@ -743,7 +743,8 @@ impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
             {
                 // Unset the hyperlink on the cell, if any, and record that
                 // in the hyperlinks data for later restoration.
-                if let Some(link) = cell.attrs_mut().hyperlink.take() {
+                if let Some(link) = cell.attrs_mut().hyperlink().map(Arc::clone) {
+                    cell.attrs_mut().set_hyperlink(None);
                     match current_link.as_ref() {
                         Some(current) if Arc::ptr_eq(&current, &link) => {
                             // Continue the current streak

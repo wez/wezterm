@@ -2751,8 +2751,8 @@ impl TermWindow {
         let mut last_cell_idx = 0;
         for cluster in cell_clusters {
             let attrs = &cluster.attrs;
-            let is_highlited_hyperlink = match (&attrs.hyperlink, &self.current_highlight) {
-                (&Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
+            let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
+                (Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
                 _ => false,
             };
             let style = self.fonts.match_style(params.config, attrs);
@@ -2875,7 +2875,7 @@ impl TermWindow {
                         params.pos.is_active,
                     );
 
-                    if let Some(image) = attrs.image.as_ref() {
+                    if let Some(image) = attrs.image() {
                         // Render iTerm2 style image attributes
 
                         if let Ok(sprite) = gl_state
@@ -3046,8 +3046,8 @@ impl TermWindow {
         let mut last_cell_idx = 0;
         for cluster in cell_clusters {
             let attrs = &cluster.attrs;
-            let is_highlited_hyperlink = match (&attrs.hyperlink, &self.current_highlight) {
-                (&Some(ref this), &Some(ref highlight)) => this == highlight,
+            let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
+                (Some(ref this), &Some(ref highlight)) => *this == highlight,
                 _ => false,
             };
             let style = self.fonts.match_style(&config, attrs);
@@ -3194,7 +3194,7 @@ impl TermWindow {
                                 Operator::MultiplyThenOver(glyph_color)
                             },
                         );
-                    } else if let Some(image) = attrs.image.as_ref() {
+                    } else if let Some(image) = attrs.image() {
                         // Render iTerm2 style image attributes
                         let software = self.render_state.software();
                         if let Ok(sprite) = software
@@ -3726,7 +3726,7 @@ impl TermWindow {
         let new_highlight = if top == stable_row {
             if let Some(line) = lines.get_mut(0) {
                 if let Some(cell) = line.cells().get(x) {
-                    cell.attrs().hyperlink.as_ref().cloned()
+                    cell.attrs().hyperlink().cloned()
                 } else {
                     None
                 }
