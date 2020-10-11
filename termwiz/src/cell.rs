@@ -22,6 +22,15 @@ pub struct CellAttributes {
     pub foreground: ColorAttribute,
     /// The background color
     pub background: ColorAttribute,
+    /// Relatively rarely used attributes spill over to a heap
+    /// allocated struct in order to keep CellAttributes
+    /// smaller in the common case.
+    fat: Option<Box<FatAttributes>>,
+}
+
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
+struct FatAttributes {
     /// The hyperlink content, if any
     hyperlink: Option<Arc<Hyperlink>>,
     /// The image data, if any
@@ -177,13 +186,24 @@ impl CellAttributes {
         self
     }
 
+    fn allocate_fat_attributes(&mut self) {
+        if self.fat.is_none() {
+            self.fat.replace(Box::new(FatAttributes {
+                hyperlink: None,
+                image: None,
+            }));
+        }
+    }
+
     pub fn set_hyperlink(&mut self, link: Option<Arc<Hyperlink>>) -> &mut Self {
-        self.hyperlink = link;
+        self.allocate_fat_attributes();
+        self.fat.as_mut().unwrap().hyperlink = link;
         self
     }
 
     pub fn set_image(&mut self, image: Option<Box<ImageCell>>) -> &mut Self {
-        self.image = image;
+        self.allocate_fat_attributes();
+        self.fat.as_mut().unwrap().image = image;
         self
     }
 
@@ -194,17 +214,18 @@ impl CellAttributes {
             attributes: self.attributes,
             foreground: self.foreground,
             background: self.background,
-            hyperlink: None,
-            image: None,
+            fat: None,
         }
     }
 
     pub fn hyperlink(&self) -> Option<&Arc<Hyperlink>> {
-        self.hyperlink.as_ref()
+        self.fat.as_ref().and_then(|fat| fat.hyperlink.as_ref())
     }
 
     pub fn image(&self) -> Option<&ImageCell> {
-        self.image.as_ref().map(|im| im.as_ref())
+        self.fat
+            .as_ref()
+            .and_then(|fat| fat.image.as_ref().map(|im| im.as_ref()))
     }
 }
 
@@ -485,8 +506,8 @@ mod test {
     fn memory_usage() {
         assert_eq!(std::mem::size_of::<crate::color::RgbColor>(), 3);
         assert_eq!(std::mem::size_of::<ColorAttribute>(), 5);
-        assert_eq!(std::mem::size_of::<CellAttributes>(), 32);
-        assert_eq!(std::mem::size_of::<Cell>(), 40);
+        assert_eq!(std::mem::size_of::<CellAttributes>(), 24);
+        assert_eq!(std::mem::size_of::<Cell>(), 32);
         assert_eq!(std::mem::size_of::<Vec<u8>>(), 24);
         assert_eq!(std::mem::size_of::<char>(), 4);
         assert_eq!(std::mem::size_of::<TeenyString>(), 8);

@@ -37,6 +37,9 @@ brief notes about them may accumulate here.
 * [`CloseCurrentTab`](config/lua/keyassignment/CloseCurrentTab.md)
   now requires a `confirm` parameter.
 * New: [LEADER](config/keys.md#leader-key) modifier key support
+* Halved the memory usage requirements per Cell in the common
+  case (saving 32 bytes per cell), which gives more headroom for
+  users with large scrollback.
 
 ### 20200909-002054-4c9af461
 
