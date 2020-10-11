@@ -428,7 +428,7 @@ fn get_error_window() -> ConnectionUI {
 /// message framed as a configuration error.
 /// If there is no GUI front end, generates a toast notification instead.
 pub fn show_configuration_error_message(err: &str) {
-    log::error!("While (re)loading configuration: {}", err);
+    log::error!("Configuration Error: {}", err);
     let ui = get_error_window();
 
     let mut wrapped = textwrap::fill(&err, 78);

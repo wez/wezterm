@@ -1,4 +1,5 @@
 use config::FontAttributes;
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -47,8 +48,11 @@ impl std::fmt::Debug for FontDataHandle {
 pub trait FontLocator {
     /// Given a font selection, return the list of successfully loadable
     /// FontDataHandle's that correspond to it
-    fn load_fonts(&self, fonts_selection: &[FontAttributes])
-        -> anyhow::Result<Vec<FontDataHandle>>;
+    fn load_fonts(
+        &self,
+        fonts_selection: &[FontAttributes],
+        loaded: &mut HashSet<FontAttributes>,
+    ) -> anyhow::Result<Vec<FontDataHandle>>;
 }
 
 pub fn new_locator(locator: FontLocatorSelection) -> Box<dyn FontLocator> {
@@ -83,6 +87,7 @@ impl FontLocator for NopSystemSource {
     fn load_fonts(
         &self,
         _fonts_selection: &[FontAttributes],
+        _loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         Ok(vec![])
     }

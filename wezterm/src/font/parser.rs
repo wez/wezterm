@@ -2,7 +2,7 @@
 //! At this time it is used only to extract name information,
 //! but in the future I'd like to use its shaping functionality
 #![allow(dead_code)]
-use crate::font::locator::{FontDataHandle, FontLocatorSelection};
+use crate::font::locator::FontDataHandle;
 use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 use crate::font::units::*;
 use allsorts::binary::read::{ReadScope, ReadScopeOwned};
@@ -18,6 +18,7 @@ use allsorts::tables::{
 use allsorts::tag;
 use anyhow::anyhow;
 use config::{Config, FontAttributes};
+use std::collections::HashSet;
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use termwiz::cell::unicode_column_width;
@@ -78,6 +79,7 @@ impl ParsedFont {
     pub fn load_fonts(
         config: &Config,
         fonts_selection: &[FontAttributes],
+        loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         // First discover the available fonts
         let mut font_info = vec![];
@@ -93,20 +95,22 @@ impl ParsedFont {
             }
         }
 
-        Self::match_font_info(fonts_selection, font_info)
+        Self::match_font_info(fonts_selection, font_info, loaded)
     }
 
     pub fn load_built_in_fonts(
         fonts_selection: &[FontAttributes],
+        loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut font_info = vec![];
         load_built_in_fonts(&mut font_info).ok();
-        Self::match_font_info(fonts_selection, font_info)
+        Self::match_font_info(fonts_selection, font_info, loaded)
     }
 
     fn match_font_info(
         fonts_selection: &[FontAttributes],
         mut font_info: Vec<(Names, std::path::PathBuf, FontDataHandle)>,
+        loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         font_info.sort_by_key(|(names, _, _)| names.full_name.clone());
         for (names, _, _) in &font_info {
@@ -119,18 +123,13 @@ impl ParsedFont {
         // fonts_selection is strictly ordered
         let mut handles = vec![];
         for attr in fonts_selection {
-            let mut found = false;
             for (names, path, handle) in &font_info {
                 if font_info_matches(attr, &names) {
                     log::warn!("Using {} from {}", names.full_name, path.display(),);
                     handles.push(handle.clone());
-                    found = true;
+                    loaded.insert(attr.clone());
                     break;
                 }
-            }
-            if !found && FontLocatorSelection::get_default() == FontLocatorSelection::ConfigDirsOnly
-            {
-                log::error!("Did not locate a font match for {:?}", attr);
             }
         }
         Ok(handles)

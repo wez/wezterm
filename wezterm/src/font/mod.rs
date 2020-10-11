@@ -2,7 +2,7 @@ use anyhow::{anyhow, Error};
 mod hbwrap;
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 pub mod ftwrap;
@@ -110,10 +110,25 @@ impl FontConfiguration {
         }
 
         let attributes = style.font_with_fallback();
-        let mut handles = parser::ParsedFont::load_fonts(&config, &attributes)?;
-        handles.append(&mut self.locator.load_fonts(&attributes)?);
-        handles.append(&mut parser::ParsedFont::load_built_in_fonts(&attributes)?);
-        log::debug!("handles: {:#?}", handles);
+        let mut loaded = HashSet::new();
+        let mut handles = parser::ParsedFont::load_fonts(&config, &attributes, &mut loaded)?;
+        handles.append(&mut self.locator.load_fonts(&attributes, &mut loaded)?);
+        handles.append(&mut parser::ParsedFont::load_built_in_fonts(
+            &attributes,
+            &mut loaded,
+        )?);
+
+        for attr in &attributes {
+            if !attr.is_fallback && !loaded.contains(attr) {
+                crate::connui::show_configuration_error_message(&format!(
+                    "Unable to load a font matching {:?}. Fallback(s)
+                     are being used instead, and the terminal may not
+                     render as intended",
+                    attr
+                ));
+            }
+        }
+
         let mut rasterizers = vec![];
         for _ in &handles {
             rasterizers.push(RefCell::new(None));

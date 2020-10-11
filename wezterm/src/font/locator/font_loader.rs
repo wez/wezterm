@@ -1,6 +1,7 @@
 use crate::font::locator::{FontDataHandle, FontLocator};
 use ::font_loader::system_fonts;
 use config::FontAttributes;
+use std::collections::HashSet;
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by the font-loader crate.
@@ -10,6 +11,7 @@ impl FontLocator for FontLoaderFontLocator {
     fn load_fonts(
         &self,
         fonts_selection: &[FontAttributes],
+        loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut fonts = Vec::new();
         for font_attr in fonts_selection {
@@ -43,6 +45,7 @@ impl FontLocator for FontLoaderFontLocator {
                     index: index as u32,
                 };
                 fonts.push(handle);
+                loaded.insert(font_attr.clone());
             }
         }
         Ok(fonts)

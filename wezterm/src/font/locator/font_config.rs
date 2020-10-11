@@ -2,6 +2,7 @@ use crate::font::fcwrap;
 use crate::font::locator::{FontDataHandle, FontLocator};
 use config::FontAttributes;
 use fcwrap::Pattern as FontPattern;
+use std::collections::HashSet;
 use std::convert::TryInto;
 
 /// A FontLocator implemented using the system font loading
@@ -12,6 +13,7 @@ impl FontLocator for FontConfigFontLocator {
     fn load_fonts(
         &self,
         fonts_selection: &[FontAttributes],
+        loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut fonts = vec![];
         let mut fallback = vec![];
@@ -47,6 +49,7 @@ impl FontLocator for FontConfigFontLocator {
                 // suggested by fontconfig and are lower precedence
                 if idx == 0 {
                     fonts.push(handle);
+                    loaded.insert(attr.clone());
                 } else {
                     fallback.push(handle);
                 }

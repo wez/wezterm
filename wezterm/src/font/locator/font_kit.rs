@@ -4,6 +4,7 @@ use ::font_kit::handle::Handle;
 use ::font_kit::properties::Properties;
 use ::font_kit::source::Source;
 use config::FontAttributes;
+use std::collections::HashSet;
 
 /// A FontLocator implemented using the font loading
 /// functions provided by Source's from font-kit crate.
@@ -14,6 +15,7 @@ where
     fn load_fonts(
         &self,
         fonts_selection: &[FontAttributes],
+        loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut handles = vec![];
 
@@ -35,8 +37,9 @@ where
                     data: bytes.to_vec(),
                     index: font_index,
                 }),
-                Err(_) => {}
+                Err(_) => continue,
             }
+            loaded.insert(font.clone());
         }
 
         Ok(handles)

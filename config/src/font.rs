@@ -47,6 +47,7 @@ pub struct FontAttributes {
     /// Whether the font should be an italic variant
     #[serde(default)]
     pub italic: bool,
+    pub is_fallback: bool,
 }
 impl_lua_conversion!(FontAttributes);
 
@@ -56,6 +57,16 @@ impl FontAttributes {
             family: family.into(),
             bold: false,
             italic: false,
+            is_fallback: false,
+        }
+    }
+
+    pub fn new_fallback(family: &str) -> Self {
+        Self {
+            family: family.into(),
+            bold: false,
+            italic: false,
+            is_fallback: true,
         }
     }
 }
@@ -66,6 +77,7 @@ impl Default for FontAttributes {
             family: "JetBrains Mono".into(),
             bold: false,
             italic: false,
+            is_fallback: false,
         }
     }
 }
@@ -130,34 +142,35 @@ impl TextStyle {
     pub fn font_with_fallback(&self) -> Vec<FontAttributes> {
         let mut font = self.font.clone();
 
-        let default_font = FontAttributes::default();
+        let mut default_font = FontAttributes::default();
 
         // Insert our bundled default JetBrainsMono as a fallback
         // in case their preference doesn't match anything.
         // But don't add it if it is already their preference.
         if font.iter().position(|f| *f == default_font).is_none() {
+            default_font.is_fallback = true;
             font.push(default_font);
         }
 
         #[cfg(target_os = "macos")]
-        font.push(FontAttributes::new("Apple Color Emoji"));
+        font.push(FontAttributes::new_fallback("Apple Color Emoji"));
         #[cfg(target_os = "macos")]
-        font.push(FontAttributes::new("Apple Symbols"));
+        font.push(FontAttributes::new_fallback("Apple Symbols"));
         #[cfg(target_os = "macos")]
-        font.push(FontAttributes::new("Zapf Dingbats"));
+        font.push(FontAttributes::new_fallback("Zapf Dingbats"));
         #[cfg(target_os = "macos")]
-        font.push(FontAttributes::new("Apple LiGothic"));
+        font.push(FontAttributes::new_fallback("Apple LiGothic"));
 
         // Fallback font that has unicode replacement character
         #[cfg(windows)]
-        font.push(FontAttributes::new("Segoe UI"));
+        font.push(FontAttributes::new_fallback("Segoe UI"));
         #[cfg(windows)]
-        font.push(FontAttributes::new("Segoe UI Emoji"));
+        font.push(FontAttributes::new_fallback("Segoe UI Emoji"));
         #[cfg(windows)]
-        font.push(FontAttributes::new("Segoe UI Symbol"));
+        font.push(FontAttributes::new_fallback("Segoe UI Symbol"));
 
         // We bundle this emoji font as an in-memory fallback
-        font.push(FontAttributes::new("Noto Color Emoji"));
+        font.push(FontAttributes::new_fallback("Noto Color Emoji"));
 
         font
     }

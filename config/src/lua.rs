@@ -179,6 +179,7 @@ fn font<'lua>(
         family,
         bold: attrs.bold,
         italic: attrs.italic,
+        is_fallback: false,
     });
     text_style.foreground = attrs.foreground;
 
@@ -200,11 +201,12 @@ fn font_with_fallback<'lua>(
     let mut text_style = TextStyle::default();
 
     text_style.font.clear();
-    for family in fallback {
+    for (idx, family) in fallback.into_iter().enumerate() {
         text_style.font.push(FontAttributes {
             family,
             bold: attrs.bold,
             italic: attrs.italic,
+            is_fallback: idx != 0,
         });
     }
     text_style.foreground = attrs.foreground;
