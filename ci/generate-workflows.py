@@ -251,6 +251,7 @@ cargo build --all --release""",
     def package(self):
         steps = [RunStep("Package", "bash ci/deploy.sh")]
         if self.app_image:
+            steps.append(RunStep("Source Tarball", "bash ci/source-archive.sh"))
             steps.append(RunStep("Build AppImage", "bash ci/appimage.sh"))
         return steps
 

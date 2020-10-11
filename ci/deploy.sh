@@ -134,8 +134,6 @@ EOF
         rm -rf pkg
       ;;
     esac
-    ./ci/source-archive.sh
-
     ;;
   *)
     ;;
