@@ -4,7 +4,6 @@ pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use smallvec::SmallVec;
 use std;
 use std::mem;
 use std::sync::Arc;
@@ -202,24 +201,140 @@ impl CellAttributes {
 }
 
 #[cfg(feature = "use_serde")]
-fn deserialize_smallvec<'de, D>(deserializer: D) -> Result<SmallVec<[u8; 4]>, D::Error>
+fn deserialize_teenystring<'de, D>(deserializer: D) -> Result<TeenyString, D::Error>
 where
     D: Deserializer<'de>,
 {
     let text = String::deserialize(deserializer)?;
-    Ok(SmallVec::from_slice(text.as_bytes()))
+    Ok(TeenyString::from_slice(text.as_bytes()))
 }
 
 #[cfg(feature = "use_serde")]
-fn serialize_smallvec<S>(value: &SmallVec<[u8; 4]>, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_teenystring<S>(value: &TeenyString, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
     // unsafety: this is safe because the Cell constructor guarantees
     // that the storage is valid utf8
-    let s = unsafe { std::str::from_utf8_unchecked(value) };
+    let s = unsafe { std::str::from_utf8_unchecked(value.as_bytes()) };
     s.serialize(serializer)
 }
+
+/// TeenyString encodes string storage in a single machine word.
+/// The scheme is simple but effective: strings that encode into a
+/// byte slice that is 1 less byte than the machine word size can
+/// be encoded directly into the usize bits stored in the struct.
+/// A marker bit (LSB for big endian, MSB for little endian) is
+/// set to indicate that the string is stored inline.
+/// If the string is longer than this then a `Vec<u8>` is allocated
+/// from the heap and the usize holds its raw pointer address.
+struct TeenyString(usize);
+impl TeenyString {
+    fn marker_mask() -> usize {
+        if cfg!(target_endian = "little") {
+            if cfg!(target_pointer_width = "64") {
+                0x7f000000_00000000
+            } else if cfg!(target_pointer_width = "32") {
+                0x7f000000
+            } else if cfg!(target_pointer_width = "16") {
+                0x7f00
+            } else {
+                panic!("unsupported target");
+            }
+        } else {
+            // I don't have a big endian machine to verify
+            // this on, but I think this is right!
+            0x1
+        }
+    }
+    fn is_marker_bit_set(word: usize) -> bool {
+        let mask = Self::marker_mask();
+        word & mask == mask
+    }
+
+    fn set_marker_bit(word: usize) -> usize {
+        word | Self::marker_mask()
+    }
+
+    pub fn from_slice(bytes: &[u8]) -> Self {
+        // De-fang the input text such that it has no special meaning
+        // to a terminal.  All control and movement characters are rewritten
+        // as a space.
+        let bytes = if bytes.is_empty() {
+            b" "
+        } else if bytes == b"\r\n" {
+            b" "
+        } else if bytes.len() == 1 && (bytes[0] < 0x20 || bytes[0] == 0x7f) {
+            b" "
+        } else {
+            bytes
+        };
+        let len = bytes.len();
+        if len < std::mem::size_of::<usize>() {
+            let mut word = 0usize;
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    bytes.as_ptr(),
+                    &mut word as *mut usize as *mut u8,
+                    len,
+                );
+            }
+            let word = Self::set_marker_bit(word);
+            Self(word)
+        } else {
+            let vec = Box::new(bytes.to_vec());
+            let ptr = Box::into_raw(vec);
+            Self(ptr as usize)
+        }
+    }
+
+    pub fn from_char(c: char) -> Self {
+        let mut bytes = [0u8; 8];
+        let len = c.len_utf8();
+        debug_assert!(len < std::mem::size_of_val(&bytes));
+        c.encode_utf8(&mut bytes);
+        Self::from_slice(&bytes[0..len])
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        if Self::is_marker_bit_set(self.0) {
+            let bytes = &self.0 as *const usize as *const u8;
+            let bytes =
+                unsafe { std::slice::from_raw_parts(bytes, std::mem::size_of::<usize>() - 1) };
+            let len = bytes
+                .iter()
+                .position(|&b| b == 0)
+                .unwrap_or(std::mem::size_of::<usize>() - 1);
+
+            &bytes[0..len]
+        } else {
+            let vec = self.0 as *const usize as *const Vec<u8>;
+            unsafe { (*vec).as_slice() }
+        }
+    }
+}
+
+impl Drop for TeenyString {
+    fn drop(&mut self) {
+        if !Self::is_marker_bit_set(self.0) {
+            let vec = unsafe { Box::from_raw(self.0 as *mut usize as *mut Vec<u8>) };
+            drop(vec);
+        }
+    }
+}
+
+impl std::clone::Clone for TeenyString {
+    fn clone(&self) -> Self {
+        Self::from_slice(self.as_bytes())
+    }
+}
+
+impl std::cmp::PartialEq for TeenyString {
+    fn eq(&self, rhs: &Self) -> bool {
+        self.as_bytes().eq(rhs.as_bytes())
+    }
+}
+impl std::cmp::Eq for TeenyString {}
 
 /// Models the contents of a cell on the terminal display
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
@@ -228,11 +343,11 @@ pub struct Cell {
     #[cfg_attr(
         feature = "use_serde",
         serde(
-            deserialize_with = "deserialize_smallvec",
-            serialize_with = "serialize_smallvec"
+            deserialize_with = "deserialize_teenystring",
+            serialize_with = "serialize_teenystring"
         )
     )]
-    text: SmallVec<[u8; 4]>,
+    text: TeenyString,
     attrs: CellAttributes,
 }
 
@@ -252,42 +367,11 @@ impl Default for Cell {
 }
 
 impl Cell {
-    /// De-fang the input character such that it has no special meaning
-    /// to a terminal.  All control and movement characters are rewritten
-    /// as a space.
-    fn nerf_control_char(text: &mut SmallVec<[u8; 4]>) {
-        if text.is_empty() {
-            text.push(b' ');
-            return;
-        }
-
-        if text.as_slice() == [b'\r', b'\n'] {
-            text.remove(1);
-            text[0] = b' ';
-            return;
-        }
-
-        if text.len() != 1 {
-            return;
-        }
-
-        if text[0] < 0x20 || text[0] == 0x7f {
-            text[0] = b' ';
-        }
-    }
-
     /// Create a new cell holding the specified character and with the
     /// specified cell attributes.
     /// All control and movement characters are rewritten as a space.
     pub fn new(text: char, attrs: CellAttributes) -> Self {
-        let len = text.len_utf8();
-        let mut storage = SmallVec::with_capacity(len);
-        unsafe {
-            storage.set_len(len);
-        }
-        text.encode_utf8(&mut storage);
-        Self::nerf_control_char(&mut storage);
-
+        let storage = TeenyString::from_char(text);
         Self {
             text: storage,
             attrs,
@@ -302,8 +386,7 @@ impl Cell {
     /// be passed but it should not be used to hold strings other than
     /// graphemes.
     pub fn new_grapheme(text: &str, attrs: CellAttributes) -> Self {
-        let mut storage = SmallVec::from_slice(text.as_bytes());
-        Self::nerf_control_char(&mut storage);
+        let storage = TeenyString::from_slice(text.as_bytes());
 
         Self {
             text: storage,
@@ -315,7 +398,7 @@ impl Cell {
     pub fn str(&self) -> &str {
         // unsafety: this is safe because the constructor guarantees
         // that the storage is valid utf8
-        unsafe { std::str::from_utf8_unchecked(&self.text) }
+        unsafe { std::str::from_utf8_unchecked(self.text.as_bytes()) }
     }
 
     /// Returns the number of cells visually occupied by this grapheme
@@ -381,14 +464,24 @@ mod test {
     use super::*;
 
     #[test]
+    fn teeny_string() {
+        let s = TeenyString::from_char('a');
+        assert_eq!(s.as_bytes(), &[b'a']);
+
+        let longer = TeenyString::from_slice(b"hellothere");
+        assert_eq!(longer.as_bytes(), b"hellothere");
+    }
+
+    #[test]
     #[cfg(target_pointer_width = "64")]
     fn memory_usage() {
         assert_eq!(std::mem::size_of::<crate::color::RgbColor>(), 3);
         assert_eq!(std::mem::size_of::<ColorAttribute>(), 5);
         assert_eq!(std::mem::size_of::<CellAttributes>(), 32);
-        assert_eq!(std::mem::size_of::<Cell>(), 64);
+        assert_eq!(std::mem::size_of::<Cell>(), 40);
         assert_eq!(std::mem::size_of::<Vec<u8>>(), 24);
         assert_eq!(std::mem::size_of::<char>(), 4);
+        assert_eq!(std::mem::size_of::<TeenyString>(), 8);
     }
 
     #[test]

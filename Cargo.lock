@@ -3538,7 +3538,6 @@ dependencies = [
  "semver",
  "serde",
  "signal-hook",
- "smallvec 1.4.2",
  "terminfo",
  "termios 0.3.2",
  "unicode-segmentation",
