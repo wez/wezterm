@@ -675,7 +675,7 @@ fn test_hyperlinks() {
     term.hyperlink_off();
 
     let mut linked = CellAttributes::default();
-    linked.hyperlink = Some(Arc::clone(&link));
+    linked.set_hyperlink(Some(Arc::clone(&link)));
 
     assert_lines_equal(
         file!(),
