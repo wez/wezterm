@@ -786,7 +786,13 @@ impl WindowCallbacks for TermWindow {
                 }
             }
             Err(err) => {
-                log::error!("OpenGL init failed: {}", err);
+                crate::connui::show_configuration_error_message(&format!(
+                    "OpenGL initialization failed: {:#}\n
+                    The fallback CPU based renderer is active; performance
+                    will be degraded and the appearance will not be as
+                    good as the OpenGL based renderer",
+                    err
+                ));
             }
         };
 
