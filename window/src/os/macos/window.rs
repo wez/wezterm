@@ -298,6 +298,7 @@ impl Window {
                 callbacks,
                 view_id: None,
                 window_id,
+                screen_changed: false,
                 #[cfg(feature = "opengl")]
                 gl_context_pair: None,
                 text_cursor_position: Rect::new(Point::new(0, 0), Size::new(0, 0)),
@@ -598,6 +599,7 @@ struct Inner {
     callbacks: Box<dyn WindowCallbacks>,
     view_id: Option<WeakPtr>,
     window_id: usize,
+    screen_changed: bool,
     #[cfg(feature = "opengl")]
     gl_context_pair: Option<opengl::GlContextPair>,
     text_cursor_position: Rect,
@@ -1146,6 +1148,17 @@ impl WindowView {
     }
     */
 
+    extern "C" fn did_change_screen(this: &mut Object, _sel: Sel, _notification: id) {
+        log::trace!("did_change_screen");
+        if let Some(this) = Self::get_this(this) {
+            // Just set a flag; we don't want to react immediately
+            // as this even fires as part of a live move and the
+            // resize flow may try to re-position the window to
+            // the wrong place.
+            this.inner.borrow_mut().screen_changed = true;
+        }
+    }
+
     extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
         #[cfg(feature = "opengl")]
         {
@@ -1180,6 +1193,18 @@ impl WindowView {
 
         if let Some(this) = Self::get_this(view) {
             let mut inner = this.inner.borrow_mut();
+
+            if inner.screen_changed {
+                // If the screen resolution changed (which can also
+                // happen if the window was dragged to another monitor
+                // with different dpi), then we treat this as a resize
+                // event that will in turn trigger an invalidation
+                // and a repaint.
+                inner.screen_changed = false;
+                drop(inner);
+                Self::did_resize(view, sel, nil);
+                return;
+            }
 
             #[cfg(feature = "opengl")]
             {
@@ -1313,6 +1338,10 @@ impl WindowView {
             cls.add_method(
                 sel!(windowDidResize:),
                 Self::did_resize as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(windowDidChangeScreen:),
+                Self::did_change_screen as extern "C" fn(&mut Object, Sel, id),
             );
 
             cls.add_method(
