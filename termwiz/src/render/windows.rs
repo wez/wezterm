@@ -401,7 +401,7 @@ impl WindowsConsoleRenderer {
                     self.pending_attr.set_background(*col);
                 }
                 Change::Attribute(AttributeChange::Hyperlink(link)) => {
-                    self.pending_attr.hyperlink = link.clone();
+                    self.pending_attr.set_hyperlink(link.clone());
                 }
                 Change::AllAttributes(all) => {
                     self.pending_attr = all.clone();
