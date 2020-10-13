@@ -29,11 +29,20 @@ use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Instant;
 
 static USE_IME: AtomicBool = AtomicBool::new(false);
 
 pub fn use_ime(enable: bool) {
     USE_IME.store(enable, Ordering::Relaxed);
+}
+
+fn round_away_from_zerof(value: f64) -> f64 {
+    if value > 0. {
+        value.max(1.).round()
+    } else {
+        value.min(-1.).round()
+    }
 }
 
 fn round_away_from_zero(value: f64) -> i16 {
@@ -302,6 +311,9 @@ impl Window {
                 #[cfg(feature = "opengl")]
                 gl_context_pair: None,
                 text_cursor_position: Rect::new(Point::new(0, 0), Size::new(0, 0)),
+                hscroll_remainder: 0.,
+                vscroll_remainder: 0.,
+                last_wheel: Instant::now(),
             }));
 
             let window = StrongPtr::new(
@@ -625,6 +637,9 @@ struct Inner {
     #[cfg(feature = "opengl")]
     gl_context_pair: Option<opengl::GlContextPair>,
     text_cursor_position: Rect,
+    hscroll_remainder: f64,
+    vscroll_remainder: f64,
+    last_wheel: Instant,
 }
 
 impl Inner {
@@ -1035,8 +1050,60 @@ impl WindowView {
     }
 
     extern "C" fn scroll_wheel(this: &mut Object, _sel: Sel, nsevent: id) {
-        let vert_delta = unsafe { nsevent.scrollingDeltaY() };
-        let horz_delta = unsafe { nsevent.scrollingDeltaX() };
+        let precise = unsafe { nsevent.hasPreciseScrollingDeltas() } == YES;
+        let scale = if precise {
+            // Devices with precise deltas report number of pixels scrolled.
+            // At this layer we don't know how many pixels comprise a cell
+            // in the terminal widget, and our abstraction doesn't allow being
+            // told what that amount should be, so we come up with a hard
+            // coded factor based on the likely default font size and dpi
+            // to make the scroll speed feel a bit better.
+            15.0
+        } else {
+            // Whereas imprecise deltas report the number of lines scrolled,
+            // so we want to report those lines here wholesale.
+            1.0
+        };
+        let mut vert_delta = unsafe { nsevent.scrollingDeltaY() } / scale;
+        let mut horz_delta = unsafe { nsevent.scrollingDeltaX() } / scale;
+
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+
+            let elapsed = inner.last_wheel.elapsed();
+
+            // If it's been a while since the last wheel movement,
+            // we want to clear out any accumulated fractional amount
+            // and round this event up to 1 line so that we get an
+            // immediate scroll on the first move.
+            let stale = std::time::Duration::from_millis(250);
+            if elapsed >= stale {
+                if vert_delta != 0.0 && vert_delta.abs() < 1.0 {
+                    vert_delta = round_away_from_zerof(vert_delta);
+                }
+                if horz_delta != 0.0 && horz_delta.abs() < 1.0 {
+                    horz_delta = round_away_from_zerof(horz_delta);
+                }
+                inner.vscroll_remainder = 0.;
+                inner.hscroll_remainder = 0.;
+            }
+
+            inner.last_wheel = Instant::now();
+
+            vert_delta += inner.vscroll_remainder;
+            horz_delta += inner.hscroll_remainder;
+
+            inner.vscroll_remainder = vert_delta.fract();
+            inner.hscroll_remainder = horz_delta.fract();
+
+            vert_delta = vert_delta.trunc();
+            horz_delta = horz_delta.trunc();
+        }
+
+        if vert_delta.abs() < 1.0 && horz_delta.abs() < 1.0 {
+            return;
+        }
+
         let kind = if vert_delta.abs() > horz_delta.abs() {
             MouseEventKind::VertWheel(round_away_from_zero(vert_delta))
         } else {
