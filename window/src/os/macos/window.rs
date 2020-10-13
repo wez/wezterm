@@ -313,6 +313,9 @@ impl Window {
                 ),
             );
 
+            // Prevent Cocoa native tabs from being used
+            let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
+
             window.setReleasedWhenClosed_(NO);
             // window.cascadeTopLeftFromPoint_(NSPoint::new(20.0, 20.0));
             window.center();
@@ -956,6 +959,11 @@ impl WindowView {
         YES
     }
 
+    // Don't use Cocoa native window tabbing
+    extern "C" fn allow_automatic_tabbing(_this: &Object, _sel: Sel) -> BOOL {
+        NO
+    }
+
     extern "C" fn window_will_close(this: &mut Object, _sel: Sel, _id: id) {
         if let Some(this) = Self::get_this(this) {
             // Advise the window of its impending death
@@ -1333,6 +1341,11 @@ impl WindowView {
             cls.add_method(
                 sel!(isFlipped),
                 Self::is_flipped as extern "C" fn(&Object, Sel) -> BOOL,
+            );
+
+            cls.add_method(
+                sel!(allowsAutomaticWindowTabbing),
+                Self::allow_automatic_tabbing as extern "C" fn(&Object, Sel) -> BOOL,
             );
 
             cls.add_method(

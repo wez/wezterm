@@ -40,6 +40,10 @@ brief notes about them may accumulate here.
 * Halved the memory usage requirements per Cell in the common
   case (saving 32 bytes per cell), which gives more headroom for
   users with large scrollback.
+* macOS: Fix issue where new windows would open as Cocoa tabs
+  when wezterm was maximized.
+* macOS: Fix issue where wezterm wouldn't adjust to DPI changes
+  when dragging across monitors or the screen resolution changed
 
 ### 20200909-002054-4c9af461
 
