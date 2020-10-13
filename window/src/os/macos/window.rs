@@ -317,8 +317,27 @@ impl Window {
             let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
 
             window.setReleasedWhenClosed_(NO);
-            // window.cascadeTopLeftFromPoint_(NSPoint::new(20.0, 20.0));
-            window.center();
+
+            // Window positioning: the first window opens up in the center of
+            // the screen.  Subsequent windows will be offset from the position
+            // of the prior window at the time it was created.  It's not a
+            // perfect algorithm by any means, and doesn't take in account
+            // windows moving and closing since the last creation, but it is
+            // better than creating them all centered which is what we used
+            // to do here.
+            thread_local! {
+                static LAST_POSITION: RefCell<Option<NSPoint>> = RefCell::new(None);
+            }
+            LAST_POSITION.with(|pos| {
+                let next_pos = if let Some(last_pos) = pos.borrow_mut().take() {
+                    window.cascadeTopLeftFromPoint_(last_pos)
+                } else {
+                    window.center();
+                    window.cascadeTopLeftFromPoint_(NSPoint::new(0.0, 0.0))
+                };
+                pos.borrow_mut().replace(next_pos);
+            });
+
             window.setTitle_(*nsstring(&name));
             window.setAcceptsMouseMovedEvents_(YES);
 
