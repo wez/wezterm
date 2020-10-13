@@ -219,7 +219,9 @@ impl Library {
             FontDataHandle::OnDisk { path, index } => {
                 self.new_face(path.to_str().unwrap(), *index as _)
             }
-            FontDataHandle::Memory { data, index } => self.new_face_from_slice(&data, *index as _),
+            FontDataHandle::Memory { data, index, .. } => {
+                self.new_face_from_slice(&data, *index as _)
+            }
         }
     }
 

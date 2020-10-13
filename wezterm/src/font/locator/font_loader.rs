@@ -43,6 +43,7 @@ impl FontLocator for FontLoaderFontLocator {
                 let handle = FontDataHandle::Memory {
                     data,
                     index: index as u32,
+                    name: font_attr.family.clone(),
                 };
                 fonts.push(handle);
                 loaded.insert(font_attr.clone());

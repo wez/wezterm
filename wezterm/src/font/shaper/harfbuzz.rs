@@ -279,6 +279,7 @@ impl FontShaper for HarfbuzzShaper {
         // by too much we'll skip to the next slot.
         let theoretical_height = size * dpi as f64 / 72.0;
         let mut metrics_idx = 0;
+        log::trace!("{:?}", self.handles);
         while let Ok(Some(mut pair)) = self.load_fallback(metrics_idx) {
             let (_, cell_height) = pair.face.set_font_size(size, dpi)?;
             let diff = (theoretical_height - cell_height).abs();

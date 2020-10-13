@@ -137,7 +137,7 @@ impl ParsedFont {
 
     pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
         let (data, index) = match handle {
-            FontDataHandle::Memory { data, index } => (data.to_vec(), *index),
+            FontDataHandle::Memory { data, index, .. } => (data.to_vec(), *index),
             FontDataHandle::OnDisk { path, index } => {
                 let data = std::fs::read(path)?;
                 (data, *index)
@@ -493,22 +493,27 @@ fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
 fn load_built_in_fonts(
     font_info: &mut Vec<(Names, PathBuf, FontDataHandle)>,
 ) -> anyhow::Result<()> {
-    for data in &[
-        include_bytes!("../../../assets/fonts/JetBrainsMono-Bold-Italic.ttf") as &'static [u8],
-        include_bytes!("../../../assets/fonts/JetBrainsMono-Bold.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-ExtraBold-Italic.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-ExtraBold.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-ExtraLight-Italic.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-ExtraLight.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-Italic.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-Light-Italic.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-Light.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-Medium-Italic.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-Medium.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-Regular.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-SemiLight-Italic.ttf"),
-        include_bytes!("../../../assets/fonts/JetBrainsMono-SemiLight.ttf"),
-        include_bytes!("../../../assets/fonts/NotoColorEmoji.ttf"),
+    macro_rules! font {
+        ($font:literal) => {
+            (include_bytes!($font) as &'static [u8], $font)
+        };
+    }
+    for (data, name) in &[
+        font!("../../../assets/fonts/JetBrainsMono-Bold-Italic.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-Bold.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-ExtraBold-Italic.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-ExtraBold.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-ExtraLight-Italic.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-ExtraLight.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-Italic.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-Light-Italic.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-Light.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-Medium-Italic.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-Medium.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-Regular.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-SemiLight-Italic.ttf"),
+        font!("../../../assets/fonts/JetBrainsMono-SemiLight.ttf"),
+        font!("../../../assets/fonts/NotoColorEmoji.ttf"),
     ] {
         let scope = allsorts::binary::read::ReadScope::new(&data);
         let file = scope.read::<OpenTypeFile>()?;
@@ -527,6 +532,7 @@ fn load_built_in_fonts(
                     FontDataHandle::Memory {
                         data: data.to_vec(),
                         index: 0,
+                        name: name.to_string(),
                     },
                 ));
             }
@@ -546,6 +552,7 @@ fn load_built_in_fonts(
                         FontDataHandle::Memory {
                             data: data.to_vec(),
                             index: index.try_into()?,
+                            name: name.to_string(),
                         },
                     ));
                 }

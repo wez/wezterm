@@ -36,6 +36,7 @@ where
                 Ok(Handle::Memory { bytes, font_index }) => handles.push(FontDataHandle::Memory {
                     data: bytes.to_vec(),
                     index: font_index,
+                    name: font.family.clone(),
                 }),
                 Err(_) => continue,
             }

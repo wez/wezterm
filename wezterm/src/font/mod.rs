@@ -110,11 +110,37 @@ impl FontConfiguration {
         }
 
         let attributes = style.font_with_fallback();
+        let preferred_attributes = attributes
+            .iter()
+            .filter(|a| !a.is_fallback)
+            .map(|a| a.clone())
+            .collect::<Vec<_>>();
+        let fallback_attributes = attributes
+            .iter()
+            .filter(|a| a.is_fallback)
+            .map(|a| a.clone())
+            .collect::<Vec<_>>();
         let mut loaded = HashSet::new();
-        let mut handles = parser::ParsedFont::load_fonts(&config, &attributes, &mut loaded)?;
-        handles.append(&mut self.locator.load_fonts(&attributes, &mut loaded)?);
+
+        let mut handles =
+            parser::ParsedFont::load_fonts(&config, &preferred_attributes, &mut loaded)?;
+        handles.append(
+            &mut self
+                .locator
+                .load_fonts(&preferred_attributes, &mut loaded)?,
+        );
         handles.append(&mut parser::ParsedFont::load_built_in_fonts(
-            &attributes,
+            &preferred_attributes,
+            &mut loaded,
+        )?);
+        handles.append(&mut parser::ParsedFont::load_fonts(
+            &config,
+            &fallback_attributes,
+            &mut loaded,
+        )?);
+        handles.append(&mut self.locator.load_fonts(&fallback_attributes, &mut loaded)?);
+        handles.append(&mut parser::ParsedFont::load_built_in_fonts(
+            &fallback_attributes,
             &mut loaded,
         )?);
 

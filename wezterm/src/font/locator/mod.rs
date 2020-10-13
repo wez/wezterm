@@ -23,6 +23,7 @@ pub enum FontDataHandle {
     },
     #[allow(dead_code)]
     Memory {
+        name: String,
         data: Vec<u8>,
         index: u32,
     },
@@ -36,8 +37,9 @@ impl std::fmt::Debug for FontDataHandle {
                 .field("path", &path)
                 .field("index", &index)
                 .finish(),
-            Self::Memory { data, index } => fmt
+            Self::Memory { data, index, name } => fmt
                 .debug_struct("Memory")
+                .field("name", &name)
                 .field("data_len", &data.len())
                 .field("index", &index)
                 .finish(),
