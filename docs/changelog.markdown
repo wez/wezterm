@@ -48,6 +48,19 @@ brief notes about them may accumulate here.
   hyper sensitive in previous releases, and now it is more
   reasonable.
 * Fix an issue where EGL failed to initialize on Linux
+* If EGL/WGL/OpenGL fail to initialize, we now try to fallback
+  to Mesa OpenGL in software render mode.  This should result
+  in its llvmpipe renderer being used as a fallback, which
+  has improved visuals compared to wezterm's own basic CPU
+  based renderer.  (This applies to X11/Wayland and Windows
+  systems).
+* Setting `front_end="Software"` will try to use the Mesa OpenGL
+  software renderer.  You can select `OldSoftware` if you
+  really want the basic CPU renderer (not recommended; it
+  doesn't support panes).
+* The multiplexer server has been moved into its own
+  `wezterm-mux-server` executable.  You will need to revise
+  your `serve_command` configuration.
 
 ### 20200909-002054-4c9af461
 
