@@ -47,6 +47,7 @@ brief notes about them may accumulate here.
 * macOS: Reduced trackpad based scrolling sensitivity; it was
   hyper sensitive in previous releases, and now it is more
   reasonable.
+* Fix an issue where EGL failed to initialize on Linux
 
 ### 20200909-002054-4c9af461
 
