@@ -27,9 +27,9 @@ brief notes about them may accumulate here.
   number to be zero based.
 * On Linux and macOS systems, wezterm can now attempt to guess the current
   working directory that should be set in newly spawned local panes/tabs.
-* We now bundle JetBrains Mono and use it as the default font,
+* We now bundle *JetBrains Mono* and use it as the default font,
   and add it as a default fallback font.  Similarly, we also
-  bundle Noto Color Emoji as a default fallback for emoji.
+  bundle *Noto Color Emoji* as a default fallback for emoji.
 * Added `automatically_reload_config=false` option to disable
   automatic config reloading.  When set to false, you will need
   to manually trigger a config reload (default: `SUPER+R` or
@@ -64,6 +64,8 @@ brief notes about them may accumulate here.
 * Windows: when started in an RDP session, force the use
   of the Mesa software renderer to work around problems with
   RDP GPU emulation.
+* Fixed an issue with TLS Multiplexing where bootstrapping
+  certificates would usually fail.
 
 ### 20200909-002054-4c9af461
 
