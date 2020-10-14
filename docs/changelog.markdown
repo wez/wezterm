@@ -61,6 +61,9 @@ brief notes about them may accumulate here.
 * The multiplexer server has been moved into its own
   `wezterm-mux-server` executable.  You will need to revise
   your `serve_command` configuration.
+* Windows: when started in an RDP session, force the use
+  of the Mesa software renderer to work around problems with
+  RDP GPU emulation.
 
 ### 20200909-002054-4c9af461
 

@@ -53,6 +53,15 @@ impl GuiFrontEnd {
                 Connection::disable_wayland();
             }
         }
+        #[cfg(windows)]
+        {
+            if is_running_in_rdp_session() {
+                // Using OpenGL in RDP has problematic behavior upon
+                // disconnect, so we force the use of software rendering.
+                log::trace!("Running in an RDP session, use SWRAST");
+                prefer_swrast();
+            }
+        }
 
         let connection = Connection::init()?;
         let front_end = Rc::new(GuiFrontEnd { connection });
