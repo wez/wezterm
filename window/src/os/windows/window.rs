@@ -261,7 +261,7 @@ fn schedule_show_window(hwnd: HWindow, show: bool) {
     // to lock inner, so we avoid locking it ourselves here
     promise::spawn::spawn(async move {
         unsafe {
-            ShowWindow(hwnd.0, if show { SW_NORMAL } else { SW_HIDE });
+            ShowWindow(hwnd.0, if show { SW_NORMAL } else { SW_MINIMIZE });
         }
     })
     .detach();

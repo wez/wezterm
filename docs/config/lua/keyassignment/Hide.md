@@ -1,6 +1,6 @@
 # Hide
 
-Hides the current window
+Hides (or minimizes, depending on the platform) the current window.
 
 ```lua
 return {
