@@ -529,10 +529,8 @@ impl GlState {
                 }
             };
 
-            log::trace!(
-                "Successfully created a surface using configuration {:x?}",
-                config
-            );
+            log::info!("Successfully created a surface using this configuration");
+            connection.egl.log_config_info(connection.display, config);
             return Ok(Self {
                 connection: Rc::clone(connection),
                 context,
