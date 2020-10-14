@@ -239,7 +239,7 @@ impl EglWrapper {
                 .map(surface_bits),
         };
 
-        log::info!("{:?}", info);
+        log::info!("{:x?}", info);
     }
 
     pub fn choose_config(
@@ -498,27 +498,49 @@ impl GlState {
             ],
         )?;
 
-        let first_config = *configs
-            .first()
-            .ok_or_else(|| anyhow!("no compatible EGL configuration was found"))?;
+        if configs.is_empty() {
+            anyhow::bail!("no compatible EGL configuration was found");
+        }
+        let mut errors = String::new();
 
-        let surface =
-            connection
-                .egl
-                .create_window_surface(connection.display, first_config, window)?;
+        for config in configs {
+            let surface =
+                match connection
+                    .egl
+                    .create_window_surface(connection.display, config, window)
+                {
+                    Ok(s) => s,
+                    Err(e) => {
+                        errors.push_str(&format!("{:#} {:x?}\n", e, config));
+                        continue;
+                    }
+                };
 
-        let context = connection.egl.create_context(
-            connection.display,
-            first_config,
-            std::ptr::null(),
-            &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
-        )?;
+            let context = match connection.egl.create_context(
+                connection.display,
+                config,
+                std::ptr::null(),
+                &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
+            ) {
+                Ok(c) => c,
+                Err(e) => {
+                    errors.push_str(&format!("{:#} {:x?}\n", e, config));
+                    continue;
+                }
+            };
 
-        Ok(Self {
-            connection: Rc::clone(connection),
-            context,
-            surface,
-        })
+            log::trace!(
+                "Successfully created a surface using configuration {:x?}",
+                config
+            );
+            return Ok(Self {
+                connection: Rc::clone(connection),
+                context,
+                surface,
+            });
+        }
+
+        Err(anyhow!(errors))
     }
 }
 
