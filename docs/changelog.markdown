@@ -44,6 +44,9 @@ brief notes about them may accumulate here.
   when wezterm was maximized.
 * macOS: Fix issue where wezterm wouldn't adjust to DPI changes
   when dragging across monitors or the screen resolution changed
+* macOS: Reduced trackpad based scrolling sensitivity; it was
+  hyper sensitive in previous releases, and now it is more
+  reasonable.
 
 ### 20200909-002054-4c9af461
 
