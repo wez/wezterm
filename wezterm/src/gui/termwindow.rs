@@ -508,7 +508,7 @@ impl WindowCallbacks for TermWindow {
             return false;
         }
 
-        // log::error!("key_event {:?}", key);
+        log::trace!("key_event {:?}", window_key);
 
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,

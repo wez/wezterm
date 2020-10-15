@@ -1091,16 +1091,16 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             modifiers |= Modifiers::SUPER;
         }
 
-        // If control is pressed, clear the shift state.
-        // That gives us a normalized, unshifted/lowercase version of the
-        // key for processing elsewhere.
+        // If control is pressed, clear that out and remember it in our
+        // own set of modifiers.
+        // We used to also remove shift from this set, but it impacts
+        // handling of eg: ctrl+shift+' (which is equivalent to ctrl+" in a US English
+        // layout.
+        // The shift normalization is now handled by the normalize_shift() method.
         if modifiers.contains(Modifiers::CTRL) {
             keys[VK_CONTROL as usize] = 0;
             keys[VK_LCONTROL as usize] = 0;
             keys[VK_RCONTROL as usize] = 0;
-            keys[VK_SHIFT as usize] = 0;
-            keys[VK_LSHIFT as usize] = 0;
-            keys[VK_RSHIFT as usize] = 0;
         }
 
         let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
