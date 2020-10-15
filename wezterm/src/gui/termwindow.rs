@@ -585,7 +585,11 @@ impl WindowCallbacks for TermWindow {
                         && window_key.raw_modifiers.contains(Modifiers::ALT)
                         && !config.send_composed_key_when_alt_is_pressed);
 
-                    if bypass_compose && pane.key_down(key, raw_modifiers).is_ok() {
+                    if cfg!(windows) && bypass_compose {
+                        // Don't send ALT keypresses to the pane; if we don't
+                        // have a key assignment for it then we need to allow
+                        // Windows to process system messages
+                    } else if bypass_compose && pane.key_down(key, raw_modifiers).is_ok() {
                         if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
                             self.maybe_scroll_to_bottom_for_input(&pane);
                         }
@@ -626,6 +630,14 @@ impl WindowCallbacks for TermWindow {
                         self.leader_is_down.take();
                     }
                     true
+                } else if cfg!(windows)
+                    && (window_key.modifiers.contains(Modifiers::ALT)
+                        || window_key.modifiers.contains(Modifiers::LEFT_ALT)
+                        || window_key.modifiers.contains(Modifiers::RIGHT_ALT))
+                {
+                    // No assigned ALT-key combo; allow the system to process
+                    // the message!
+                    false
                 } else if pane.key_down(key, modifiers).is_ok() {
                     if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&pane);

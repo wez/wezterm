@@ -1047,6 +1047,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             WM_KEYUP => "WM_KEYUP",
             WM_SYSKEYUP => "WM_SYSKEYUP",
             WM_SYSKEYDOWN => "WM_SYSKEYDOWN",
+            WM_SYSCHAR => "WM_SYSCHAR",
             _ => "WAT",
         };
         eprintln!(
@@ -1116,8 +1117,10 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 0,
             );
             match res {
-                // dead key
-                -1 => None,
+                -1 => {
+                    // dead key: allow default processing
+                    None
+                }
                 0 => {
                     /*
                     let mapped_vkey = MapVirtualKeyW(scan_code.into(), MAPVK_VSC_TO_VK_EX) as i32;
@@ -1199,9 +1202,21 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 }
                 1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
                 n => {
+                    // ToUnicode says that n >= 2 is the result of dead key expansion.
+                    // Rather than us handling that here, we want to allow DefWindowProcW
+                    // to call us back with WM_CHAR because the buffer that is
+                    // produced here tends to have doubled up the dead key character.
                     let s = &out[0..n as usize];
                     match String::from_utf16(s) {
-                        Ok(s) => Some(KeyCode::Composed(s)),
+                        Ok(s) => {
+                            log::trace!(
+                                "Ignoring composed text: {} because we're
+                                        almost cetain to get a dead key generated next!",
+                                s
+                            );
+                            // Some(KeyCode::Composed(s)),
+                            None
+                        }
                         Err(err) => {
                             eprintln!("translated to {} WCHARS, err: {}", n, err);
                             None
@@ -1220,7 +1235,24 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 repeat_count: repeat,
                 key_is_down: !releasing,
             }
-            .normalize_shift();
+            .normalize_shift()
+            .normalize_ctrl();
+
+            if let KeyCode::Char(c) = key.key {
+                if !key.modifiers.contains(Modifiers::CTRL | Modifiers::ALT) {
+                    match msg {
+                        WM_SYSKEYDOWN | WM_SYSKEYUP | WM_KEYDOWN | WM_KEYUP => {
+                            // Allow the system to perform its normal translation
+                            // of the key into WM_CHAR and we'll process it then,
+                            // otherwise we'll double up on these key events!
+                            log::trace!("skip `{}` because XX_CHAR would be generated", c);
+                            return None;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
             let handled = inner
                 .callbacks
                 .borrow_mut()
@@ -1242,9 +1274,8 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_SIZE => wm_size(hwnd, msg, wparam, lparam),
         WM_SETFOCUS => wm_set_focus(hwnd, msg, wparam, lparam),
         WM_KILLFOCUS => wm_kill_focus(hwnd, msg, wparam, lparam),
-        WM_KEYDOWN | WM_CHAR | WM_IME_CHAR | WM_KEYUP | WM_SYSKEYUP | WM_SYSKEYDOWN => {
-            key(hwnd, msg, wparam, lparam)
-        }
+        WM_KEYDOWN | WM_KEYUP | WM_SYSCHAR | WM_CHAR | WM_IME_CHAR | WM_SYSKEYUP
+        | WM_SYSKEYDOWN => key(hwnd, msg, wparam, lparam),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
         WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),

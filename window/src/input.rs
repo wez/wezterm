@@ -171,6 +171,18 @@ fn normalize_shift(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
     }
 }
 
+fn normalize_ctrl(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
+    if modifiers.contains(Modifiers::CTRL) {
+        if let KeyCode::Char(c) = key {
+            if (c as u32) < 0x20 {
+                let de_ctrl = ((c as u8) | 0x40) as char;
+                return (KeyCode::Char(de_ctrl.to_ascii_lowercase()), modifiers);
+            }
+        }
+    }
+    (key, modifiers)
+}
+
 impl KeyEvent {
     /// if SHIFT is held and we have KeyCode::Char('c') we want to normalize
     /// that keycode to KeyCode::Char('C'); that is what this function does.
@@ -181,6 +193,23 @@ impl KeyEvent {
 
         if let Some(raw) = self.raw_key.take() {
             let (key, modifiers) = normalize_shift(raw, self.raw_modifiers);
+            self.raw_key.replace(key);
+            self.raw_modifiers = modifiers;
+        }
+
+        self
+    }
+
+    /// If CTRL is held down and we have KeyCode::Char(_) with the
+    /// ASCII control value encoded, decode it back to the ASCII
+    /// alpha keycode instead.
+    pub fn normalize_ctrl(mut self) -> Self {
+        let (key, modifiers) = normalize_ctrl(self.key, self.modifiers);
+        self.key = key;
+        self.modifiers = modifiers;
+
+        if let Some(raw) = self.raw_key.take() {
+            let (key, modifiers) = normalize_ctrl(raw, self.raw_modifiers);
             self.raw_key.replace(key);
             self.raw_modifiers = modifiers;
         }
