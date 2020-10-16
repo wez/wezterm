@@ -307,7 +307,7 @@ impl OscState {
                     self.full = true;
                 }
                 num => {
-                    self.param_indices[num - 1] = self.buffer.len();
+                    self.param_indices[num.saturating_sub(1)] = self.buffer.len();
                     self.num_params += 1;
                 }
             }
