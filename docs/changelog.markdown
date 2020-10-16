@@ -73,6 +73,9 @@ brief notes about them may accumulate here.
   However, setting `use_dead_keys = false` in the config will
   cause dead keys to behave like a regular key; eg: `^` would
   just emit `^` as its own character.
+* Windows: Fixed an issue with the `Hide` key assignment;
+  it would hide the window with no way to show it again!
+  `Hide` now minimizes the window instead.
 
 ### 20200909-002054-4c9af461
 
