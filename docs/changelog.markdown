@@ -66,6 +66,13 @@ brief notes about them may accumulate here.
   RDP GPU emulation.
 * Fixed an issue with TLS Multiplexing where bootstrapping
   certificates would usually fail.
+* Windows: Fixed an issue that prevented ALT-Space from
+  showing the system menu in the window.
+* Windows: Fixed dead key handling.  By default dead keys
+  behave the same as in other programs and produce diacritics.
+  However, setting `use_dead_keys = false` in the config will
+  cause dead keys to behave like a regular key; eg: `^` would
+  just emit `^` as its own character.
 
 ### 20200909-002054-4c9af461
 

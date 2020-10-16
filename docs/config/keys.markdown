@@ -67,6 +67,29 @@ return {
 
 The default for `use_ime` is false.  The default in earlier releases was `true`.
 
+### Microsoft Windows and Dead Keys
+
+*since: nightly builds only*
+
+By default, if you are using a layout with *dead keys* (eg: US International
+layout, or a number of European layouts such as German or French) pressing
+a dead key in wezterm will "hold" the dead key until the next character is
+pressed, resulting in a combined character with a diacritic.  For example,
+pressing `^` and then `e` will produce `ê`.  Pressing `^` then `SPACE`
+will produce `^` on its own.
+
+If you are a heavy user of Vi style editors then you may wish to disable
+dead key processing so that `^` can be used with a single keypress.
+
+You can tell WezTerm to disable dead keys by setting this in your configuration
+file:
+
+```lua
+return {
+  use_dead_keys = false
+}
+```
+
 ### Defining Assignments for key combinations that may be composed
 
 When a key combination produces a composed key result, wezterm will look up
