@@ -261,8 +261,9 @@ impl OperatingSystemCommand {
         // So, for non-numeric OSCs, we look up the prefix and use that.
         // This only works if the non-numeric OSC code has length == 1.
         let osc_code = if !p1str.chars().nth(0).unwrap().is_ascii_digit() && osc.len() == 1 {
-            let p1rest: String = p1str.chars().skip(1).collect();
-            OperatingSystemCommandCode::from_code(&p1rest)
+            let mut p1 = String::new();
+            p1.push(p1str.chars().nth(0).unwrap());
+            OperatingSystemCommandCode::from_code(&p1)
         } else {
             OperatingSystemCommandCode::from_code(&p1str)
         }
