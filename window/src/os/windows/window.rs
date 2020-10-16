@@ -13,11 +13,13 @@ use lazy_static::lazy_static;
 use promise::Future;
 use std::any::Any;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
@@ -26,6 +28,12 @@ use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+
+static USE_DEAD_KEYS: AtomicBool = AtomicBool::new(true);
+
+pub fn use_dead_keys(enable: bool) {
+    USE_DEAD_KEYS.store(enable, Ordering::Relaxed);
+}
 
 const GCS_RESULTSTR: DWORD = 0x800;
 extern "system" {
@@ -964,6 +972,7 @@ unsafe fn ime_composition(
 struct KeyboardLayoutInfo {
     layout: HKL,
     has_alt_gr: bool,
+    dead_keys: HashMap<u8, char>,
 }
 
 impl KeyboardLayoutInfo {
@@ -971,6 +980,7 @@ impl KeyboardLayoutInfo {
         Self {
             layout: std::ptr::null_mut(),
             has_alt_gr: false,
+            dead_keys: HashMap::new(),
         }
     }
 
@@ -979,18 +989,7 @@ impl KeyboardLayoutInfo {
     /// pressed and then testing the virtual key presses.  If we find that
     /// one of these yields a single unicode character output then we assume that
     /// it does have AltGr.
-    unsafe fn update(&mut self) {
-        let current_layout = GetKeyboardLayout(0);
-        if current_layout == self.layout {
-            // Avoid recomputing this if the layout hasn't changed
-            return;
-        }
-
-        let mut saved_state = [0u8; 256];
-        if GetKeyboardState(saved_state.as_mut_ptr()) == 0 {
-            return;
-        }
-
+    unsafe fn probe_alt_gr(&mut self) {
         self.has_alt_gr = false;
 
         let mut state = [0u8; 256];
@@ -1011,10 +1010,60 @@ impl KeyboardLayoutInfo {
             }
 
             if ret == -1 {
-                // Dead key; keep clocking the state to clear out its effects
+                // Dead key.
+                // keep clocking the state to clear out its effects
                 while ToUnicode(vk, 0, state.as_ptr(), out.as_mut_ptr(), out.len() as i32, 0) < 0 {}
             }
         }
+    }
+
+    /// Probe the keymap to figure out which keys are dead keys
+    unsafe fn probe_dead_keys(&mut self) {
+        self.dead_keys.clear();
+        let state = [0u8; 256];
+
+        for vk in 0..=255u32 {
+            if vk == VK_PACKET as _ {
+                // Avoid false positives
+                continue;
+            }
+
+            let mut out = [0u16; 16];
+            let ret = ToUnicode(vk, 0, state.as_ptr(), out.as_mut_ptr(), out.len() as i32, 0);
+
+            if ret == -1 {
+                // Dead key.
+                // keep clocking the state to clear out its effects
+                while ToUnicode(
+                    VK_SPACE as _,
+                    0,
+                    state.as_ptr(),
+                    out.as_mut_ptr(),
+                    out.len() as i32,
+                    0,
+                ) < 0
+                {}
+                let c = std::char::from_u32_unchecked(out[0] as u32);
+                self.dead_keys.insert(vk as u8, c);
+            }
+        }
+    }
+
+    unsafe fn update(&mut self) {
+        let current_layout = GetKeyboardLayout(0);
+        if current_layout == self.layout {
+            // Avoid recomputing this if the layout hasn't changed
+            return;
+        }
+
+        let mut saved_state = [0u8; 256];
+        if GetKeyboardState(saved_state.as_mut_ptr()) == 0 {
+            return;
+        }
+
+        self.probe_alt_gr();
+        self.probe_dead_keys();
+        log::trace!("dead_keys: {:#x?}", self.dead_keys);
 
         SetKeyboardState(saved_state.as_mut_ptr());
         self.layout = current_layout;
@@ -1026,6 +1075,30 @@ impl KeyboardLayoutInfo {
         }
         self.has_alt_gr
     }
+
+    pub fn is_dead_key(&mut self, vk: usize) -> Option<char> {
+        unsafe {
+            self.update();
+        }
+        if vk <= u8::MAX.into() {
+            self.dead_keys.get(&(vk as u8)).map(|&c| c)
+        } else {
+            None
+        }
+    }
+}
+
+/// Generate a MSG and call TranslateMessage upon it
+unsafe fn translate_message(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) {
+    use winapi::um::sysinfoapi::GetTickCount;
+    TranslateMessage(&MSG {
+        hwnd,
+        message: msg,
+        wParam: wparam,
+        lParam: lparam,
+        pt: POINT { x: 0, y: 0 },
+        time: GetTickCount(),
+    });
 }
 
 unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
@@ -1035,6 +1108,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
         let ime_active = wparam == VK_PROCESSKEY as _;
+        let is_dead = inner.keyboard_info.is_dead_key(wparam);
 
         /*
         let alt_pressed = (lparam & (1 << 29)) != 0;
@@ -1048,11 +1122,22 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             WM_SYSKEYUP => "WM_SYSKEYUP",
             WM_SYSKEYDOWN => "WM_SYSKEYDOWN",
             WM_SYSCHAR => "WM_SYSCHAR",
+            WM_DEADCHAR => "WM_DEADCHAR",
             _ => "WAT",
         };
-        eprintln!(
-            "{} c=`{}` repeat={} scan={} is_extended={} alt_pressed={} was_down={} releasing={} IME={}",
-            label, wparam, repeat, scan_code, is_extended, alt_pressed, was_down, releasing, ime_active
+        log::error!(
+            "{} c=`{}` repeat={} scan={} is_extended={} alt_pressed={} was_down={} \
+             releasing={} IME={} is_dead={:?}",
+            label,
+            wparam,
+            repeat,
+            scan_code,
+            is_extended,
+            alt_pressed,
+            was_down,
+            releasing,
+            ime_active,
+            is_dead
         );
         */
 
@@ -1060,7 +1145,19 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // If the IME is active, allow Windows to perform default processing
             // to drive it forwards.  It will generate a call to `ime_composition`
             // or `ime_endcomposition` when it completes.
+
+            if msg == WM_KEYDOWN {
+                // Explicitly allow the built-in translation to occur for the IME
+                translate_message(hwnd, msg, wparam, lparam);
+                return Some(0);
+            }
+
             return None;
+        }
+
+        if msg == WM_DEADCHAR {
+            // Ignore WM_DEADCHAR; we only care about the resultant WM_CHAR
+            return Some(0);
         }
 
         let mut keys = [0u8; 256];
@@ -1106,7 +1203,24 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
 
         let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
             Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32)))
+        } else if is_dead.is_some() {
+            if USE_DEAD_KEYS.load(Ordering::Relaxed) {
+                // The user wants normal dead key processing.
+                // Translate the message so that the system will call us back
+                // with a WM_CHAR at the appropriate time.
+                translate_message(hwnd, msg, wparam, lparam);
+                return Some(0);
+            } else {
+                // They don't want to use dead key expansion; instead, use
+                // the expansion that we computed for the dead key when we
+                // noticed that the keyboard layout was changed
+                is_dead.map(|c| KeyCode::Char(c))
+            }
         } else {
+            // We get here for the various UP/DOWN messages.
+            // We perform conversion to unicode for ourselves,
+            // rather than calling TranslateMessage to do it for us,
+            // so that we have tighter control over the key processing.
             let mut out = [0u16; 16];
             let res = ToUnicode(
                 wparam as u32,
@@ -1116,11 +1230,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 out.len() as i32,
                 0,
             );
+
             match res {
-                -1 => {
-                    // dead key: allow default processing
-                    None
-                }
+                1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
                 0 => {
                     /*
                     let mapped_vkey = MapVirtualKeyW(scan_code.into(), MAPVK_VSC_TO_VK_EX) as i32;
@@ -1200,28 +1312,15 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         _ => None,
                     }
                 }
-                1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
-                n => {
-                    // ToUnicode says that n >= 2 is the result of dead key expansion.
-                    // Rather than us handling that here, we want to allow DefWindowProcW
-                    // to call us back with WM_CHAR because the buffer that is
-                    // produced here tends to have doubled up the dead key character.
-                    let s = &out[0..n as usize];
-                    match String::from_utf16(s) {
-                        Ok(s) => {
-                            log::trace!(
-                                "Ignoring composed text: {} because we're
-                                        almost cetain to get a dead key generated next!",
-                                s
-                            );
-                            // Some(KeyCode::Composed(s)),
-                            None
-                        }
-                        Err(err) => {
-                            eprintln!("translated to {} WCHARS, err: {}", n, err);
-                            None
-                        }
-                    }
+                _ => {
+                    // dead key: if our dead key mapping in KeyboardLayoutInfo was
+                    // correct, we shouldn't be able to get here as we should have
+                    // landed in the dead key case above.
+                    // If somehow we do get here, we don't have a valid mapping
+                    // as -1 indicates the start of a dead key sequence,
+                    // and any other n > 1 indicates an ambiguous expansion.
+                    // Either way, indicate that we don't have a valid result.
+                    None
                 }
             }
         };
@@ -1238,19 +1337,13 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             .normalize_shift()
             .normalize_ctrl();
 
-            if let KeyCode::Char(c) = key.key {
-                if !key.modifiers.contains(Modifiers::CTRL | Modifiers::ALT) {
-                    match msg {
-                        WM_SYSKEYDOWN | WM_SYSKEYUP | WM_KEYDOWN | WM_KEYUP => {
-                            // Allow the system to perform its normal translation
-                            // of the key into WM_CHAR and we'll process it then,
-                            // otherwise we'll double up on these key events!
-                            log::trace!("skip `{}` because XX_CHAR would be generated", c);
-                            return None;
-                        }
-                        _ => {}
-                    }
-                }
+            // Special case for ALT-space to show the system menu, and
+            // ALT-F4 to close the window.
+            if key.modifiers == Modifiers::ALT
+                && (key.key == KeyCode::Char(' ') || key.key == KeyCode::Function(4))
+            {
+                translate_message(hwnd, msg, wparam, lparam);
+                return None;
             }
 
             let handled = inner
@@ -1274,7 +1367,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_SIZE => wm_size(hwnd, msg, wparam, lparam),
         WM_SETFOCUS => wm_set_focus(hwnd, msg, wparam, lparam),
         WM_KILLFOCUS => wm_kill_focus(hwnd, msg, wparam, lparam),
-        WM_KEYDOWN | WM_KEYUP | WM_SYSCHAR | WM_CHAR | WM_IME_CHAR | WM_SYSKEYUP
+        WM_DEADCHAR | WM_KEYDOWN | WM_KEYUP | WM_SYSCHAR | WM_CHAR | WM_IME_CHAR | WM_SYSKEYUP
         | WM_SYSKEYDOWN => key(hwnd, msg, wparam, lparam),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),

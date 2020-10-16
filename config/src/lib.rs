@@ -719,6 +719,8 @@ pub struct Config {
 
     #[serde(default)]
     pub use_ime: bool,
+    #[serde(default = "default_true")]
+    pub use_dead_keys: bool,
 
     #[serde(default)]
     pub use_local_build_for_proxy: bool,

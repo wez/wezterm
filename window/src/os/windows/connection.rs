@@ -43,7 +43,9 @@ impl ConnectionOps for Connection {
                 }
 
                 unsafe {
-                    TranslateMessage(&mut msg);
+                    // We don't want to call TranslateMessage here
+                    // unconditionally.  Instead, we perform translation
+                    // in a handful of special cases in window.rs.
                     DispatchMessageW(&mut msg);
                 }
             } else {
