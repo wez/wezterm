@@ -262,16 +262,22 @@ struct ImgCatCommand {
     /// ratio
     #[structopt(long = "preserve-aspect-ratio")]
     no_preserve_aspect_ratio: bool,
-    /// The name of the image file to be displayed
+    /// The name of the image file to be displayed.
+    /// If omitted, will attempt to read it from stdin.
     #[structopt(parse(from_os_str))]
-    file_name: OsString,
+    file_name: Option<OsString>,
 }
 
 impl ImgCatCommand {
     fn run(&self) -> anyhow::Result<()> {
-        let mut f = std::fs::File::open(&self.file_name)?;
         let mut data = Vec::new();
-        f.read_to_end(&mut data)?;
+        if let Some(file_name) = self.file_name.as_ref() {
+            let mut f = std::fs::File::open(file_name)?;
+            f.read_to_end(&mut data)?;
+        } else {
+            let mut stdin = std::io::stdin();
+            stdin.read_to_end(&mut data)?;
+        }
 
         let osc = OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
             ITermFileData {
