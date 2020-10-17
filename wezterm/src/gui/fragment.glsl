@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 
 in vec2 o_tex;
 in vec4 o_fg_color;
