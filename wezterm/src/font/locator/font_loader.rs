@@ -45,8 +45,16 @@ impl FontLocator for FontLoaderFontLocator {
                     index: index as u32,
                     name: font_attr.family.clone(),
                 };
-                fonts.push(handle);
-                loaded.insert(font_attr.clone());
+
+                // The system may just decide to give us its fallback,
+                // eg: Consolas, so we need to parse the returned font
+                // here to see if we got what we asked for.
+                if let Ok(parsed) = crate::font::parser::ParsedFont::from_locator(&handle) {
+                    if crate::font::parser::font_info_matches(font_attr, parsed.names()) {
+                        fonts.push(handle);
+                        loaded.insert(font_attr.clone());
+                    }
+                }
             }
         }
         Ok(fonts)
