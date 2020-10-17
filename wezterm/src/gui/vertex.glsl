@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 in vec2 position;
 in vec2 adjust;
 in vec2 tex;
