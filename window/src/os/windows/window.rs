@@ -1201,6 +1201,8 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             keys[VK_RCONTROL as usize] = 0;
         }
 
+        let mut raw = None;
+
         let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
             Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32)))
         } else if is_dead.is_some() {
@@ -1231,87 +1233,79 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 0,
             );
 
+            raw = match wparam as i32 {
+                0 => None,
+                VK_CANCEL => Some(KeyCode::Cancel),
+                VK_BACK => Some(KeyCode::Char('\u{8}')),
+                VK_TAB => Some(KeyCode::Char('\t')),
+                VK_CLEAR => Some(KeyCode::Clear),
+                VK_RETURN => Some(KeyCode::Char('\r')),
+                VK_SHIFT => Some(KeyCode::Shift),
+                VK_CONTROL => Some(KeyCode::Control),
+                VK_MENU => Some(KeyCode::Alt),
+                VK_PAUSE => Some(KeyCode::Pause),
+                VK_CAPITAL => Some(KeyCode::CapsLock),
+                VK_ESCAPE => Some(KeyCode::Char('\u{1b}')),
+                VK_SPACE => Some(KeyCode::Char(' ')),
+                VK_PRIOR => Some(KeyCode::PageUp),
+                VK_NEXT => Some(KeyCode::PageDown),
+                VK_END => Some(KeyCode::End),
+                VK_HOME => Some(KeyCode::Home),
+                VK_LEFT => Some(KeyCode::LeftArrow),
+                VK_UP => Some(KeyCode::UpArrow),
+                VK_RIGHT => Some(KeyCode::RightArrow),
+                VK_DOWN => Some(KeyCode::DownArrow),
+                VK_SELECT => Some(KeyCode::Select),
+                VK_PRINT => Some(KeyCode::Print),
+                VK_EXECUTE => Some(KeyCode::Execute),
+                VK_SNAPSHOT => Some(KeyCode::PrintScreen),
+                VK_INSERT => Some(KeyCode::Insert),
+                VK_DELETE => Some(KeyCode::Char('\u{7f}')),
+                VK_HELP => Some(KeyCode::Help),
+                // 0-9 happen to overlap with ascii
+                i @ 0x30..=0x39 => Some(KeyCode::Char(i as u8 as char)),
+                // a-z also overlap with ascii
+                i @ 0x41..=0x5a => Some(KeyCode::Char(i as u8 as char)),
+                VK_LWIN => Some(KeyCode::LeftWindows),
+                VK_RWIN => Some(KeyCode::RightWindows),
+                VK_APPS => Some(KeyCode::Applications),
+                VK_SLEEP => Some(KeyCode::Sleep),
+                i @ VK_NUMPAD0..=VK_NUMPAD9 => Some(KeyCode::Numpad((i - VK_NUMPAD0) as u8)),
+                VK_MULTIPLY => Some(KeyCode::Multiply),
+                VK_ADD => Some(KeyCode::Add),
+                VK_SEPARATOR => Some(KeyCode::Separator),
+                VK_SUBTRACT => Some(KeyCode::Subtract),
+                VK_DECIMAL => Some(KeyCode::Decimal),
+                VK_DIVIDE => Some(KeyCode::Divide),
+                i @ VK_F1..=VK_F24 => Some(KeyCode::Function((1 + i - VK_F1) as u8)),
+                VK_NUMLOCK => Some(KeyCode::NumLock),
+                VK_SCROLL => Some(KeyCode::ScrollLock),
+                VK_LSHIFT => Some(KeyCode::LeftShift),
+                VK_RSHIFT => Some(KeyCode::RightShift),
+                VK_LCONTROL => Some(KeyCode::LeftControl),
+                VK_RCONTROL => Some(KeyCode::RightControl),
+                VK_LMENU => Some(KeyCode::LeftAlt),
+                VK_RMENU => Some(KeyCode::RightAlt),
+                VK_BROWSER_BACK => Some(KeyCode::BrowserBack),
+                VK_BROWSER_FORWARD => Some(KeyCode::BrowserForward),
+                VK_BROWSER_REFRESH => Some(KeyCode::BrowserRefresh),
+                VK_BROWSER_STOP => Some(KeyCode::BrowserStop),
+                VK_BROWSER_SEARCH => Some(KeyCode::BrowserSearch),
+                VK_BROWSER_FAVORITES => Some(KeyCode::BrowserFavorites),
+                VK_BROWSER_HOME => Some(KeyCode::BrowserHome),
+                VK_VOLUME_MUTE => Some(KeyCode::VolumeMute),
+                VK_VOLUME_DOWN => Some(KeyCode::VolumeDown),
+                VK_VOLUME_UP => Some(KeyCode::VolumeUp),
+                VK_MEDIA_NEXT_TRACK => Some(KeyCode::MediaNextTrack),
+                VK_MEDIA_PREV_TRACK => Some(KeyCode::MediaPrevTrack),
+                VK_MEDIA_STOP => Some(KeyCode::MediaStop),
+                VK_MEDIA_PLAY_PAUSE => Some(KeyCode::MediaPlayPause),
+                _ => None,
+            };
+
             match res {
                 1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
-                0 => {
-                    /*
-                    let mapped_vkey = MapVirtualKeyW(scan_code.into(), MAPVK_VSC_TO_VK_EX) as i32;
-                    eprintln!("mapped vkey={} vs wparam vkey {}", mapped_vkey, wparam);
-                    */
-                    // No unicode translation, so map the scan code to a virtual key
-                    // code, and from there map it to our KeyCode type
-                    match wparam as i32 {
-                        0 => None,
-                        VK_CANCEL => Some(KeyCode::Cancel),
-                        VK_BACK => Some(KeyCode::Char('\u{8}')),
-                        VK_TAB => Some(KeyCode::Char('\t')),
-                        VK_CLEAR => Some(KeyCode::Clear),
-                        VK_RETURN => Some(KeyCode::Char('\r')),
-                        VK_SHIFT => Some(KeyCode::Shift),
-                        VK_CONTROL => Some(KeyCode::Control),
-                        VK_MENU => Some(KeyCode::Alt),
-                        VK_PAUSE => Some(KeyCode::Pause),
-                        VK_CAPITAL => Some(KeyCode::CapsLock),
-                        VK_ESCAPE => Some(KeyCode::Char('\u{1b}')),
-                        VK_SPACE => Some(KeyCode::Char(' ')),
-                        VK_PRIOR => Some(KeyCode::PageUp),
-                        VK_NEXT => Some(KeyCode::PageDown),
-                        VK_END => Some(KeyCode::End),
-                        VK_HOME => Some(KeyCode::Home),
-                        VK_LEFT => Some(KeyCode::LeftArrow),
-                        VK_UP => Some(KeyCode::UpArrow),
-                        VK_RIGHT => Some(KeyCode::RightArrow),
-                        VK_DOWN => Some(KeyCode::DownArrow),
-                        VK_SELECT => Some(KeyCode::Select),
-                        VK_PRINT => Some(KeyCode::Print),
-                        VK_EXECUTE => Some(KeyCode::Execute),
-                        VK_SNAPSHOT => Some(KeyCode::PrintScreen),
-                        VK_INSERT => Some(KeyCode::Insert),
-                        VK_DELETE => Some(KeyCode::Char('\u{7f}')),
-                        VK_HELP => Some(KeyCode::Help),
-                        // 0-9 happen to overlap with ascii
-                        i @ 0x30..=0x39 => Some(KeyCode::Char(i as u8 as char)),
-                        // a-z also overlap with ascii
-                        i @ 0x41..=0x5a => Some(KeyCode::Char(i as u8 as char)),
-                        VK_LWIN => Some(KeyCode::LeftWindows),
-                        VK_RWIN => Some(KeyCode::RightWindows),
-                        VK_APPS => Some(KeyCode::Applications),
-                        VK_SLEEP => Some(KeyCode::Sleep),
-                        i @ VK_NUMPAD0..=VK_NUMPAD9 => {
-                            Some(KeyCode::Numpad((i - VK_NUMPAD0) as u8))
-                        }
-                        VK_MULTIPLY => Some(KeyCode::Multiply),
-                        VK_ADD => Some(KeyCode::Add),
-                        VK_SEPARATOR => Some(KeyCode::Separator),
-                        VK_SUBTRACT => Some(KeyCode::Subtract),
-                        VK_DECIMAL => Some(KeyCode::Decimal),
-                        VK_DIVIDE => Some(KeyCode::Divide),
-                        i @ VK_F1..=VK_F24 => Some(KeyCode::Function((1 + i - VK_F1) as u8)),
-                        VK_NUMLOCK => Some(KeyCode::NumLock),
-                        VK_SCROLL => Some(KeyCode::ScrollLock),
-                        VK_LSHIFT => Some(KeyCode::LeftShift),
-                        VK_RSHIFT => Some(KeyCode::RightShift),
-                        VK_LCONTROL => Some(KeyCode::LeftControl),
-                        VK_RCONTROL => Some(KeyCode::RightControl),
-                        VK_LMENU => Some(KeyCode::LeftAlt),
-                        VK_RMENU => Some(KeyCode::RightAlt),
-                        VK_BROWSER_BACK => Some(KeyCode::BrowserBack),
-                        VK_BROWSER_FORWARD => Some(KeyCode::BrowserForward),
-                        VK_BROWSER_REFRESH => Some(KeyCode::BrowserRefresh),
-                        VK_BROWSER_STOP => Some(KeyCode::BrowserStop),
-                        VK_BROWSER_SEARCH => Some(KeyCode::BrowserSearch),
-                        VK_BROWSER_FAVORITES => Some(KeyCode::BrowserFavorites),
-                        VK_BROWSER_HOME => Some(KeyCode::BrowserHome),
-                        VK_VOLUME_MUTE => Some(KeyCode::VolumeMute),
-                        VK_VOLUME_DOWN => Some(KeyCode::VolumeDown),
-                        VK_VOLUME_UP => Some(KeyCode::VolumeUp),
-                        VK_MEDIA_NEXT_TRACK => Some(KeyCode::MediaNextTrack),
-                        VK_MEDIA_PREV_TRACK => Some(KeyCode::MediaPrevTrack),
-                        VK_MEDIA_STOP => Some(KeyCode::MediaStop),
-                        VK_MEDIA_PLAY_PAUSE => Some(KeyCode::MediaPlayPause),
-                        _ => None,
-                    }
-                }
+                0 => raw.clone(),
                 _ => {
                     // dead key: if our dead key mapping in KeyboardLayoutInfo was
                     // correct, we shouldn't be able to get here as we should have
@@ -1328,8 +1322,8 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         if let Some(key) = key {
             let key = KeyEvent {
                 key,
-                raw_key: None,
-                raw_modifiers: Modifiers::NONE,
+                raw_key: raw,
+                raw_modifiers: modifiers,
                 modifiers,
                 repeat_count: repeat,
                 key_is_down: !releasing,
