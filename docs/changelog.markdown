@@ -76,6 +76,8 @@ brief notes about them may accumulate here.
 * Windows: Fixed an issue with the `Hide` key assignment;
   it would hide the window with no way to show it again!
   `Hide` now minimizes the window instead.
+* macOS: we now use Metal to render the gui, via
+  [MetalANGLE](https://github.com/kakashidinho/metalangle)
 
 ### 20200909-002054-4c9af461
 

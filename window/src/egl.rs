@@ -368,6 +368,7 @@ impl EglWrapper {
 }
 
 impl GlState {
+    #[cfg_attr(target_os = "macos", allow(unused))]
     pub fn get_connection(&self) -> &Rc<GlConnection> {
         &self.connection
     }
@@ -375,18 +376,32 @@ impl GlState {
     fn with_egl_lib<F: FnMut(EglWrapper) -> anyhow::Result<Self>>(
         mut func: F,
     ) -> anyhow::Result<Self> {
-        let paths = [
-            // While EGL is cross platform, it isn't available on macOS nor is it
-            // available on my nvidia based system
+        let mut paths: Vec<std::path::PathBuf> = vec![
             #[cfg(target_os = "windows")]
-            "libEGL.dll",
+            "libEGL.dll".into(),
             #[cfg(target_os = "windows")]
-            "atioglxx.dll",
-            #[cfg(not(target_os = "windows"))]
-            "libEGL.so.1",
-            #[cfg(not(target_os = "windows"))]
-            "libEGL.so",
+            "atioglxx.dll".into(),
+            #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+            "libEGL.so.1".into(),
+            #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+            "libEGL.so".into(),
         ];
+
+        if cfg!(target_os = "macos") {
+            // On macOS, let's look in the application directory to see
+            // if we've deployed libEGL.dylib alongside; if so, we want
+            // to try loading that.
+            paths.push(
+                std::env::current_exe()?
+                    .parent()
+                    .ok_or_else(|| anyhow!("current_exe isn't in a directory!?"))?
+                    .join("libEGL.dylib"),
+            );
+
+            // And just in case, let's also allow loading via
+            // DYLD_LIBRARY_PATH
+            paths.push("libEGL.dylib".into());
+        }
 
         let mut errors = vec![];
 
@@ -401,15 +416,19 @@ impl GlState {
                     match EglWrapper::load_egl(lib) {
                         Ok(egl) => match func(egl) {
                             Ok(result) => {
-                                log::info!("initialized {}", path);
+                                log::info!("initialized {}", path.display());
                                 return Ok(result);
                             }
                             Err(e) => {
-                                errors.push(format!("with_egl_lib({}) failed: {}", path, e));
+                                errors.push(format!(
+                                    "with_egl_lib({}) failed: {}",
+                                    path.display(),
+                                    e
+                                ));
                             }
                         },
                         Err(e) => {
-                            errors.push(format!("load_egl {} failed: {}", path, e));
+                            errors.push(format!("load_egl {} failed: {}", path.display(), e));
                         }
                     }
                 }

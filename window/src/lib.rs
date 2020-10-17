@@ -9,11 +9,7 @@ pub mod os;
 mod spawn;
 mod timerlist;
 
-#[cfg(all(
-    not(target_os = "macos"),
-    not(target_os = "windows"),
-    feature = "opengl"
-))]
+#[cfg(all(not(target_os = "windows"), feature = "opengl"))]
 mod egl;
 
 #[cfg(feature = "opengl")]
