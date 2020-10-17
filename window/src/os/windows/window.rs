@@ -1265,7 +1265,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 // 0-9 happen to overlap with ascii
                 i @ 0x30..=0x39 => Some(KeyCode::Char(i as u8 as char)),
                 // a-z also overlap with ascii
-                i @ 0x41..=0x5a => Some(KeyCode::Char(i as u8 as char)),
+                i @ 0x41..=0x5a => Some(KeyCode::Char((i as u8 as char).to_ascii_lowercase())),
                 VK_LWIN => Some(KeyCode::LeftWindows),
                 VK_RWIN => Some(KeyCode::RightWindows),
                 VK_APPS => Some(KeyCode::Applications),
