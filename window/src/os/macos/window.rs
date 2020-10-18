@@ -6,9 +6,9 @@ use crate::bitmaps::Image;
 use crate::connection::ConnectionOps;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
-    BitmapImage, Clipboard, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers,
-    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext,
-    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
+    is_egl_preferred, BitmapImage, Clipboard, Color, Connection, Dimensions, KeyCode, KeyEvent,
+    Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator,
+    PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
@@ -131,17 +131,6 @@ mod opengl {
         /// The ANGLE EGL implementation wants a CALayer descendant passed
         /// as the EGLNativeWindowType.
         pub fn create(view: id) -> anyhow::Result<Self> {
-            let layer: id;
-
-            // ANGLE wants a layer, so tell the view to create one.
-            // Importantly, we must set its scale to 1.0 prior to initializing
-            // EGL to prevent undesirable scaling.
-            unsafe {
-                let _: () = msg_send![view, setWantsLayer: YES];
-                layer = msg_send![view, layer];
-                let _: () = msg_send![layer, setContentsScale: 1.0f64];
-            };
-
             let behavior = if cfg!(debug_assertions) {
                 glium::debug::DebugCallbackBehavior::DebugMessageOnError
             } else {
@@ -149,8 +138,38 @@ mod opengl {
             };
 
             // Let's first try to initialize EGL...
-            let (context, backend) = match crate::egl::GlState::create(None, layer as *const c_void)
-            {
+            let (context, backend) = match if is_egl_preferred() {
+                // ANGLE wants a layer, so tell the view to create one.
+                // Importantly, we must set its scale to 1.0 prior to initializing
+                // EGL to prevent undesirable scaling.
+                let layer: id;
+                unsafe {
+                    let _: () = msg_send![view, setWantsLayer: YES];
+                    layer = msg_send![view, layer];
+                    let _: () = msg_send![layer, setContentsScale: 1.0f64];
+                    let _: () = msg_send![layer, setOpaque: NO];
+                };
+                let state = crate::egl::GlState::create(None, layer as *const c_void);
+
+                if state.is_ok() {
+                    // ANGLE will create a CAMetalLayer as a sublayer of our provided
+                    // layer.  Even though CALayer defaults to !opaque, CAMetalLayer
+                    // defaults to opaque, so we need to find that layer and fix
+                    // the opacity so that our alpha values are respected.
+                    unsafe {
+                        let sublayers: id = msg_send![layer, sublayers];
+                        let layer_count = sublayers.count();
+                        for i in 0..layer_count {
+                            let layer = sublayers.objectAtIndex(i);
+                            let _: () = msg_send![layer, setOpaque: NO];
+                        }
+                    }
+                }
+
+                state
+            } else {
+                Err(anyhow!("prefers not to use EGL"))
+            } {
                 Ok(backend) => {
                     let backend = Rc::new(backend);
                     let context = unsafe {
@@ -220,7 +239,14 @@ mod opengl {
                     )
                 };
                 ensure!(!gl_context.is_null(), "failed to create NSOpenGLContext");
+
                 unsafe {
+                    let opaque: cgl::GLint = 0;
+                    gl_context.setValues_forParameter_(
+                        &opaque,
+                        cocoa::appkit::NSOpenGLContextParameter::NSOpenGLCPSurfaceOpacity,
+                    );
+
                     gl_context.setView_(view);
                 }
 
@@ -378,6 +404,14 @@ impl Window {
             let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
 
             window.setReleasedWhenClosed_(NO);
+            window.setOpaque_(NO);
+            // window.setHasShadow_(NO);
+            let ns_color: id = msg_send![Class::get("NSColor").unwrap(), alloc];
+            window.setBackgroundColor_(cocoa::appkit::NSColor::clearColor(ns_color));
+
+            // We could set this, but it makes the entire window, including
+            // its titlebar, opaque to this fixed degree.
+            // window.setAlphaValue_(0.4);
 
             // Window positioning: the first window opens up in the center of
             // the screen.  Subsequent windows will be offset from the position
@@ -1045,7 +1079,7 @@ impl WindowView {
     // Tell the window/view/layer stuff that we only have a single opaque
     // thing in the window so that it can optimize rendering
     extern "C" fn is_opaque(_this: &Object, _sel: Sel) -> BOOL {
-        YES
+        NO
     }
 
     // Don't use Cocoa native window tabbing
@@ -1483,6 +1517,7 @@ impl WindowView {
                 sel!(isFlipped),
                 Self::is_flipped as extern "C" fn(&Object, Sel) -> BOOL,
             );
+
             cls.add_method(
                 sel!(isOpaque),
                 Self::is_opaque as extern "C" fn(&Object, Sel) -> BOOL,

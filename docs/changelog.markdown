@@ -13,6 +13,9 @@ brief notes about them may accumulate here.
 * New: split/pane support!
   See [#157](https://github.com/wez/wezterm/issues/157) for
   overall status and additional information.
+* New: `window_background_opacity`, `window_background_image`
+  and `window_background_tint` options to control using background
+  images, transparent windows.  [More info](https://github.com/wez/wezterm/commit/f2cbc182cdbf4463b5f80bee7cb651bb7e67024b)
 * The GUI layer now normalizes SHIFT state for keyboard processing.
   If a keypress is ASCII uppercase and SHIFT is held then the
   SHIFT modifier is removed from the set of active modifiers.  This

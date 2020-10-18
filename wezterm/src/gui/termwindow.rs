@@ -2588,11 +2588,15 @@ impl TermWindow {
         pos: &PositionedPane,
         frame: &mut glium::Frame,
     ) -> anyhow::Result<()> {
+        let config = configuration();
         let palette = pos.pane.palette();
 
         let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
+        let background_alpha = (config.window_background_opacity * 255.0) as u8;
+        let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
+
         if pos.index == 0 {
-            let (r, g, b, a) = background_color.to_tuple_rgba();
+            let (r, g, b, a) = background.to_tuple_rgba();
             frame.clear_color_srgb(r, g, b, a);
         }
 
@@ -2607,7 +2611,6 @@ impl TermWindow {
         let current_viewport = self.get_viewport(pos.pane.pane_id());
         let (stable_top, lines);
         let dims = term.get_dimensions();
-        let config = configuration();
 
         {
             let stable_range = match current_viewport {
@@ -2626,8 +2629,6 @@ impl TermWindow {
 
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
         let foreground = rgbcolor_to_window_color(palette.foreground);
-        let background_alpha = (config.window_background_opacity * 255.0) as u8;
-        let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
 
         if self.show_tab_bar && pos.index == 0 {
             let tab_dims = RenderableDimensions {
