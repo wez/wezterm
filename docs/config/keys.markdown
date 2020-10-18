@@ -50,10 +50,11 @@ configuration option.
 
 ### macOS and the Input Method Editor (IME)
 
-WezTerm has support for using the operating system Input Method Editor (IME)
-on macOS.  This is useful in cases where you need to type kanji.  However,
-the input method editor can get in the way and has a couple of irritating
-side effects such as preventing key repeat for a subset of keys.
+WezTerm has support for using the operating system Input Method Editor (IME) on
+macOS.  This is useful in cases where you need to type kanji or are using a
+keyboard layout with dead keys.  However, the input method editor can get in
+the way and has a couple of irritating side effects such as preventing key
+repeat for a subset of keys.
 
 You can control whether the IME is enabled on macOS in your configuration file:
 
