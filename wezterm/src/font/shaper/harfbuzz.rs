@@ -7,6 +7,7 @@ use anyhow::anyhow;
 use config::configuration;
 use log::{debug, error};
 use std::cell::{RefCell, RefMut};
+use termwiz::cell::unicode_column_width;
 use thiserror::Error;
 
 fn make_glyphinfo(
@@ -15,7 +16,6 @@ fn make_glyphinfo(
     info: &harfbuzz::hb_glyph_info_t,
     pos: &harfbuzz::hb_glyph_position_t,
 ) -> GlyphInfo {
-    use termwiz::cell::unicode_column_width;
     let num_cells = unicode_column_width(text) as u8;
     GlyphInfo {
         #[cfg(debug_assertions)]
@@ -48,6 +48,20 @@ pub struct HarfbuzzShaper {
 #[error("No more fallbacks while shaping {}", .text.escape_unicode())]
 struct NoMoreFallbacksError {
     text: String,
+}
+
+/// Make a string holding a set of unicode replacement
+/// characters equal to the number of graphemes in the
+/// original string.  That isn't perfect, but it should
+/// be good enough to indicate that something isn't right.
+fn make_question_string(s: &str) -> String {
+    use unicode_segmentation::UnicodeSegmentation;
+    let len = s.graphemes(true).count();
+    let mut result = String::new();
+    for _ in 0..len {
+        result.push(std::char::REPLACEMENT_CHARACTER);
+    }
+    result
 }
 
 impl HarfbuzzShaper {
@@ -197,10 +211,7 @@ impl HarfbuzzShaper {
                     Ok(shape) => Ok(shape),
                     Err(e) => {
                         error!("{:?} for {:?}", e, substr);
-                        if e.downcast_ref::<NoMoreFallbacksError>().is_some() {
-                            return Err(e);
-                        }
-                        self.do_shape(0, "?", font_size, dpi)
+                        self.do_shape(0, &make_question_string(substr), font_size, dpi)
                     }
                 }?;
 
@@ -239,10 +250,7 @@ impl HarfbuzzShaper {
                 Ok(shape) => Ok(shape),
                 Err(e) => {
                     error!("{:?} for {:?}", e, substr);
-                    if e.downcast_ref::<NoMoreFallbacksError>().is_some() {
-                        return Err(e);
-                    }
-                    self.do_shape(0, "?", font_size, dpi)
+                    self.do_shape(0, &make_question_string(substr), font_size, dpi)
                 }
             }?;
             // Fixup the cluster member to match our current offset
