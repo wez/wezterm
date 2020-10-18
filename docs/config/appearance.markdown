@@ -205,3 +205,81 @@ return {
 }
 ```
 
+## Window Background Image
+
+*since: nightly builds only*
+
+You can attach an image to the background of the wezterm window:
+
+```lua
+return {
+  window_background_image = "/path/to/wallpaper.jpg"
+}
+```
+
+If the path is a relative path then it will be expanded relative
+to the directory containing your `wezterm.lua` config file.
+
+PNG, JPEG, GIF, BMP, ICO, TIFF, PNM, DDS, TGA and farbfeld files
+can be loaded.
+
+The image will be scaled to fit the window contents.  Very large
+images may decrease render performance.
+
+## Window Background Opacity
+
+*since: nightly builds only*
+
+If your Operating System provides Compositing support then WezTerm is able to
+specify the alpha channel value for the background content, rendering the
+window background translucent and causing the windows/desktop behind it to show
+through the window.
+
+macOS, Windows and Wayland support compositing out of the box. X11 may require
+installing or configuring a compositing window manager. XWayland under
+Mutter/Wayland also works without any additional configuration.
+
+`window_background_opacity` specifies the alpha channel value
+with floating point numbers in the range `0.0` (meaning completely
+translucent) through to `1.0` (meaning completely opaque).
+
+Setting this to a value other than the default `1.0` may
+impact render performance.
+
+```lua
+return {
+  window_background_opacity = 1.0,
+}
+```
+
+## Window Backing Tint
+
+*since: nightly builds only*
+
+When using a background image or background opacity, the image content can
+have relatively low contrast with respect to the text you are trying to
+read in your terminal.
+
+The `window_background_tint` setting specifies the alpha channel value
+to use for cells that are rendered with the ANSI default background color
+attribute.  Cells that have reversed or other background colors, or that
+are explicitly setting the color attributes to a color that happens to
+be the same as the default background are not affected by this setting.
+
+The default for this setting is `0.0` such that the background image or
+desktop content shows through the window relatively unimpeded.
+
+Increasing `window_background_tint` causes whatever your color scheme's
+background color to be mixed into the background.  If you have a dark
+color this effectively will darken the content behind and increase the
+contrast for your text, making it a bit more readable.
+
+The range of values permitted are `0.0` (completely translucent)
+through to `1.0` (completely opaque).
+
+```lua
+return {
+  window_background_tint = 0.0,
+}
+```
+
