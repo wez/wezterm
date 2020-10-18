@@ -11,6 +11,7 @@ use crate::{
 use anyhow::{bail, Context};
 use lazy_static::lazy_static;
 use promise::Future;
+use shared_library::shared_library;
 use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -567,6 +568,22 @@ fn enable_dark_mode(hwnd: HWND) {
     use winapi::um::dwmapi::DwmSetWindowAttribute;
     use winapi::um::uxtheme::SetWindowTheme;
 
+    #[allow(non_snake_case)]
+    type WINDOWCOMPOSITIONATTRIB = u32;
+    const WCA_USEDARKMODECOLORS: WINDOWCOMPOSITIONATTRIB = 26;
+
+    #[allow(non_snake_case)]
+    #[repr(C)]
+    pub struct WINDOWCOMPOSITIONATTRIBDATA {
+        Attrib: WINDOWCOMPOSITIONATTRIB,
+        pvData: PVOID,
+        cbData: winapi::shared::basetsd::SIZE_T,
+    }
+
+    shared_library!(User32,
+        pub fn SetWindowCompositionAttribute(hwnd: HWND, attrib: *mut WINDOWCOMPOSITIONATTRIBDATA) -> BOOL,
+    );
+
     const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 19;
     unsafe {
         SetWindowTheme(
@@ -575,13 +592,24 @@ fn enable_dark_mode(hwnd: HWND) {
             std::ptr::null_mut(),
         );
 
-        let enabled: BOOL = 1;
+        let mut enabled: BOOL = 1;
         DwmSetWindowAttribute(
             hwnd as _,
             DWMWA_USE_IMMERSIVE_DARK_MODE,
             &enabled as *const _ as *const _,
             std::mem::size_of_val(&enabled) as u32,
         );
+
+        if let Ok(user) = User32::open(std::path::Path::new("user32.dll")) {
+            (user.SetWindowCompositionAttribute)(
+                hwnd,
+                &mut WINDOWCOMPOSITIONATTRIBDATA {
+                    Attrib: WCA_USEDARKMODECOLORS,
+                    pvData: &mut enabled as *mut _ as _,
+                    cbData: std::mem::size_of_val(&enabled) as _,
+                },
+            );
+        }
     }
 }
 

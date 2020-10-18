@@ -47,6 +47,7 @@ winapi = { version = "0.3", features = [
 ]}
 winreg = "0.6"
 clipboard-win = "2.2"
+shared_library = "0.1"
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 filedescriptor = { version="0.7", path = "../filedescriptor" }

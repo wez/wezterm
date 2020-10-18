@@ -4245,6 +4245,7 @@ dependencies = [
  "pretty_env_logger",
  "promise",
  "resize",
+ "shared_library",
  "smithay-client-toolkit",
  "thiserror",
  "wayland-client",
