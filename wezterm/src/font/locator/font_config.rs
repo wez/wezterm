@@ -34,7 +34,7 @@ impl FontLocator for FontConfigFontLocator {
             // at index 0.
             let font_list = pattern.sort(true)?;
 
-            for (idx, pat) in font_list.iter().enumerate() {
+            for pat in font_list.iter() {
                 pattern.render_prepare(&pat)?;
                 let file = pat.get_file()?;
 
@@ -43,15 +43,14 @@ impl FontLocator for FontConfigFontLocator {
                     index: pat.get_integer("index")?.try_into()?,
                 };
 
-                // When it comes to handling fallback, we prefer our
-                // user specified set of names so we take those first.
-                // The additional items in this loop are fallback fonts
-                // suggested by fontconfig and are lower precedence
-                if idx == 0 {
-                    fonts.push(handle);
-                    loaded.insert(attr.clone());
-                } else {
-                    fallback.push(handle);
+                // fontconfig will give us a boatload of random fallbacks.
+                // so we need to parse the returned font
+                // here to see if we got what we asked for.
+                if let Ok(parsed) = crate::font::parser::ParsedFont::from_locator(&handle) {
+                    if crate::font::parser::font_info_matches(attr, parsed.names()) {
+                        fonts.push(handle);
+                        loaded.insert(attr.clone());
+                    }
                 }
             }
         }
