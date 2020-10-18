@@ -47,9 +47,13 @@ impl GuiFrontEnd {
     }
 
     pub fn try_new() -> anyhow::Result<Rc<GuiFrontEnd>> {
+        let config = config::configuration();
+
+        prefer_egl(config.prefer_egl);
+
         #[cfg(all(unix, not(target_os = "macos")))]
         {
-            if !config::configuration().enable_wayland {
+            if !config.enable_wayland {
                 Connection::disable_wayland();
             }
         }

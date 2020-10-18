@@ -78,6 +78,14 @@ brief notes about them may accumulate here.
   `Hide` now minimizes the window instead.
 * macOS: we now use Metal to render the gui, via
   [MetalANGLE](https://github.com/kakashidinho/metalangle)
+* Windows: we now prefer to use Direct3D11 to render the
+  gui, via [ANGLE](https://chromium.googlesource.com/angle/angle/)
+  EGL.  The primary benefit of this is that upgrading your
+  graphics drivers while you have a stateful wezterm session
+  will no longer terminate the wezterm process. Resize
+  behavior is not as smooth with ANGLE as the prior WGL.
+  If you wish, you can set `prefer_egl = false` to use
+  WGL.
 
 ### 20200909-002054-4c9af461
 

@@ -692,6 +692,7 @@ impl WindowCallbacks for TermWindow {
 
     fn opengl_context_lost(&mut self, prior_window: &dyn WindowOps) -> anyhow::Result<()> {
         log::error!("context was lost, set up a new window");
+        let activity = Activity::new();
 
         let render_state = RenderState::Software(SoftwareRenderState::new(
             &self.fonts,
@@ -703,49 +704,58 @@ impl WindowCallbacks for TermWindow {
         let dimensions = self.dimensions.clone();
         let mux_window_id = self.mux_window_id;
 
-        let window = Window::new_window(
-            "org.wezfurlong.wezterm",
-            "wezterm",
-            dimensions.pixel_width,
-            dimensions.pixel_height,
-            Box::new(Self {
-                window: None,
-                focused: None,
-                mux_window_id,
-                fonts: Rc::clone(&self.fonts),
-                render_metrics: self.render_metrics.clone(),
-                dimensions,
-                terminal_size: self.terminal_size.clone(),
-                render_state,
-                input_map: InputMap::new(),
-                leader_is_down: None,
-                show_tab_bar: self.show_tab_bar,
-                show_scroll_bar: self.show_scroll_bar,
-                tab_bar: self.tab_bar.clone(),
-                last_mouse_coords: self.last_mouse_coords.clone(),
-                last_mouse_terminal_coords: self.last_mouse_terminal_coords.clone(),
-                scroll_drag_start: self.scroll_drag_start.clone(),
-                split_drag_start: self.split_drag_start.clone(),
-                config_generation: self.config_generation,
-                prev_cursor: self.prev_cursor.clone(),
-                last_scroll_info: self.last_scroll_info.clone(),
-                clipboard_contents: Arc::clone(&clipboard_contents),
-                tab_state: RefCell::new(self.tab_state.borrow().clone()),
-                pane_state: RefCell::new(self.pane_state.borrow().clone()),
-                current_mouse_button: self.current_mouse_button.clone(),
-                last_mouse_click: self.last_mouse_click.clone(),
-                current_highlight: self.current_highlight.clone(),
-                shape_cache: RefCell::new(LruCache::new(65536)),
-                last_blink_paint: Instant::now(),
-            }),
-        )?;
-
-        Self::apply_icon(&window)?;
-        Self::start_periodic_maintenance(window.clone());
-        Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
-
+        let guts = Box::new(Self {
+            window: None,
+            focused: None,
+            mux_window_id,
+            fonts: Rc::clone(&self.fonts),
+            render_metrics: self.render_metrics.clone(),
+            dimensions,
+            terminal_size: self.terminal_size.clone(),
+            render_state,
+            input_map: InputMap::new(),
+            leader_is_down: None,
+            show_tab_bar: self.show_tab_bar,
+            show_scroll_bar: self.show_scroll_bar,
+            tab_bar: self.tab_bar.clone(),
+            last_mouse_coords: self.last_mouse_coords.clone(),
+            last_mouse_terminal_coords: self.last_mouse_terminal_coords.clone(),
+            scroll_drag_start: self.scroll_drag_start.clone(),
+            split_drag_start: self.split_drag_start.clone(),
+            config_generation: self.config_generation,
+            prev_cursor: self.prev_cursor.clone(),
+            last_scroll_info: self.last_scroll_info.clone(),
+            clipboard_contents: Arc::clone(&clipboard_contents),
+            tab_state: RefCell::new(self.tab_state.borrow().clone()),
+            pane_state: RefCell::new(self.pane_state.borrow().clone()),
+            current_mouse_button: self.current_mouse_button.clone(),
+            last_mouse_click: self.last_mouse_click.clone(),
+            current_highlight: self.current_highlight.clone(),
+            shape_cache: RefCell::new(LruCache::new(65536)),
+            last_blink_paint: Instant::now(),
+        });
         prior_window.close();
-        window.enable_opengl();
+
+        promise::spawn::spawn(async move {
+            smol::Timer::after(Duration::from_millis(300)).await;
+            log::error!("now try making that new window");
+            let window = Window::new_window(
+                "org.wezfurlong.wezterm",
+                "wezterm",
+                dimensions.pixel_width,
+                dimensions.pixel_height,
+                guts,
+            )?;
+
+            Self::apply_icon(&window)?;
+            Self::start_periodic_maintenance(window.clone());
+            Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
+
+            window.enable_opengl();
+            drop(activity); // Keep the activity outstanding until we get here
+            Ok::<(), anyhow::Error>(())
+        })
+        .detach();
 
         Ok(())
     }
@@ -787,9 +797,9 @@ impl WindowCallbacks for TermWindow {
             }
             Err(err) => {
                 crate::connui::show_configuration_error_message(&format!(
-                    "OpenGL initialization failed: {:#}\n
-                    The fallback CPU based renderer is active; performance
-                    will be degraded and the appearance will not be as
+                    "OpenGL initialization failed: {:#}\n\
+                    The fallback CPU based renderer is active; performance \
+                    will be degraded and the appearance will not be as \
                     good as the OpenGL based renderer",
                     err
                 ));

@@ -45,6 +45,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\target\release\wezterm.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\wezterm-mux-server.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\mesa\opengl32.dll"; DestDir: "{app}\mesa"; Flags: ignoreversion
+Source: "..\target\release\libEGL.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\target\release\libGLESv2.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\conpty.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\OpenConsole.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\strip-ansi-escapes.exe"; DestDir: "{app}"; Flags: ignoreversion

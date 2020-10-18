@@ -9,7 +9,7 @@ pub mod os;
 mod spawn;
 mod timerlist;
 
-#[cfg(all(not(target_os = "windows"), feature = "opengl"))]
+#[cfg(feature = "opengl")]
 mod egl;
 
 #[cfg(feature = "opengl")]
@@ -291,6 +291,7 @@ pub trait WindowOpsMut {
 }
 
 static PREFER_SWRAST: AtomicBool = AtomicBool::new(false);
+static PREFER_EGL: AtomicBool = AtomicBool::new(true);
 
 pub fn prefer_swrast() {
     PREFER_SWRAST.store(true, Ordering::Release);
@@ -298,4 +299,12 @@ pub fn prefer_swrast() {
 
 pub fn is_swrast_preferred() -> bool {
     PREFER_SWRAST.load(Ordering::Acquire)
+}
+
+pub fn prefer_egl(value: bool) {
+    PREFER_EGL.store(value, Ordering::Release);
+}
+
+pub fn is_egl_preferred() -> bool {
+    PREFER_EGL.load(Ordering::Acquire)
 }

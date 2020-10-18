@@ -4,9 +4,9 @@ use crate::bitmaps::*;
 use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::{
-    Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, WindowCallbacks,
-    WindowOps, WindowOpsMut,
+    is_egl_preferred, Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect,
+    ScreenPoint, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use anyhow::{bail, Context};
 use lazy_static::lazy_static;
@@ -55,6 +55,9 @@ pub(crate) struct WindowInner {
     /// Fraction of mouse scroll
     hscroll_remainder: i16,
     vscroll_remainder: i16,
+
+    last_size: Option<Dimensions>,
+    in_size_move: bool,
 
     keyboard_info: KeyboardLayoutInfo,
 }
@@ -112,24 +115,45 @@ fn take_rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
     unsafe { Rc::from_raw(std::mem::transmute(lparam)) }
 }
 
+fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
+    if cfg!(debug_assertions) && false
+    /* https://github.com/glium/glium/issues/1885 */
+    {
+        glium::debug::DebugCallbackBehavior::DebugMessageOnError
+    } else {
+        glium::debug::DebugCallbackBehavior::Ignore
+    }
+}
+
 impl WindowInner {
     #[cfg(feature = "opengl")]
     fn enable_opengl(&mut self) -> anyhow::Result<()> {
         let window = Window(self.hwnd);
 
-        let gl_state = super::wgl::GlState::create(self.hwnd.0)
-            .map(Rc::new)
-            .and_then(|state| unsafe {
+        let gl_state = if is_egl_preferred() {
+            crate::egl::GlState::create(None, self.hwnd.0)
+        } else {
+            Err(anyhow::anyhow!("Config says to avoid EGL"))
+        }
+        .and_then(|egl| unsafe {
+            log::error!("Initialized EGL!");
+            let backend = Rc::new(egl);
+            Ok(glium::backend::Context::new(
+                backend,
+                true,
+                callback_behavior(),
+            )?)
+        })
+        .or_else(|err| {
+            log::error!("EGL init failed {:?}, fall back to WGL", err);
+            super::wgl::GlState::create(self.hwnd.0).and_then(|state| unsafe {
                 Ok(glium::backend::Context::new(
-                    Rc::clone(&state),
+                    Rc::new(state),
                     true,
-                    if cfg!(debug_assertions) {
-                        glium::debug::DebugCallbackBehavior::DebugMessageOnError
-                    } else {
-                        glium::debug::DebugCallbackBehavior::Ignore
-                    },
+                    callback_behavior(),
                 )?)
-            });
+            })
+        });
 
         self.gl_state = gl_state.as_ref().map(Rc::clone).ok();
 
@@ -143,6 +167,45 @@ impl WindowInner {
         } else {
             Ok(())
         }
+    }
+
+    /// Check if we need to generate a resize callback.
+    /// Calls resize if needed.
+    /// Returns true if we did.
+    fn check_and_call_resize_if_needed(&mut self) -> bool {
+        let mut rect = RECT {
+            left: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+        };
+        unsafe {
+            GetClientRect(self.hwnd.0, &mut rect);
+        }
+        let pixel_width = rect_width(&rect) as usize;
+        let pixel_height = rect_height(&rect) as usize;
+
+        let current_dims = Dimensions {
+            pixel_width,
+            pixel_height,
+            dpi: unsafe { GetDpiForWindow(self.hwnd.0) as usize },
+        };
+
+        let same = self
+            .last_size
+            .as_ref()
+            .map(|&dims| dims == current_dims)
+            .unwrap_or(false);
+        self.last_size.replace(current_dims);
+
+        if !same {
+            let imc = ImmContext::get(self.hwnd.0);
+            imc.set_position(0, 0);
+
+            self.callbacks.borrow_mut().resize(current_dims);
+        }
+
+        !same
     }
 }
 
@@ -235,6 +298,8 @@ impl Window {
             vscroll_remainder: 0,
             hscroll_remainder: 0,
             keyboard_info: KeyboardLayoutInfo::new(),
+            last_size: None,
+            in_size_move: false,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -318,6 +383,7 @@ impl WindowOpsMut for WindowInner {
                     height,
                     SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
                 );
+                wm_paint(hwnd.0, 0, 0, 0);
             }
         })
         .detach();
@@ -558,21 +624,52 @@ impl<'a> PaintContext for GdiGraphicsContext<'a> {
     }
 }
 
-unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn wm_enter_exit_size_move(
+    hwnd: HWND,
+    msg: UINT,
+    _wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    let mut should_size = false;
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow();
-        let pixel_width = LOWORD(lparam as DWORD) as usize;
-        let pixel_height = HIWORD(lparam as DWORD) as usize;
-
-        let imc = ImmContext::get(hwnd);
-        imc.set_position(0, 0);
-
-        inner.callbacks.borrow_mut().resize(Dimensions {
-            pixel_width,
-            pixel_height,
-            dpi: GetDpiForWindow(hwnd) as usize,
-        });
+        let mut inner = inner.borrow_mut();
+        inner.in_size_move = msg == WM_ENTERSIZEMOVE;
+        should_size = !inner.in_size_move;
     }
+
+    if should_size {
+        wm_size(hwnd, 0, 0, 0)?;
+    }
+
+    Some(0)
+}
+
+/// We handle WM_WINDOWPOSCHANGED and dispatch directly to our wm_size as it
+/// is a bit more efficient than letting DefWindowProcW parse this and
+/// trigger WM_SIZE.
+unsafe fn wm_windowposchanged(
+    hwnd: HWND,
+    _msg: UINT,
+    _wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    // let pos = &*(lparam as *const WINDOWPOS);
+    wm_size(hwnd, 0, 0, 0)?;
+    Some(0)
+}
+
+unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+    let mut should_paint = false;
+
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
+        should_paint = inner.check_and_call_resize_if_needed();
+    }
+
+    if should_paint {
+        wm_paint(hwnd, 0, 0, 0)?;
+    }
+
     None
 }
 
@@ -602,9 +699,9 @@ unsafe fn wm_kill_focus(
     None
 }
 
-unsafe fn wm_paint(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
+        let inner = inner.borrow();
 
         let mut ps = PAINTSTRUCT {
             fErase: 0,
@@ -636,20 +733,11 @@ unsafe fn wm_paint(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Opt
             if let Some(gl_context) = inner.gl_state.as_ref() {
                 if gl_context.is_context_lost() {
                     log::error!("opengl context was lost; should reinit");
-
-                    drop(inner.gl_state.take());
-                    let _ = inner.callbacks.borrow_mut().opengl_initialize(
-                        &Window(inner.hwnd),
-                        Err(anyhow::anyhow!("opengl context lost")),
-                    );
-
                     let _ = inner
                         .callbacks
                         .borrow_mut()
                         .opengl_context_lost(&Window(inner.hwnd));
-                    inner.gl_state.take();
-                    drop(inner);
-                    return wm_paint(hwnd, msg, wparam, lparam);
+                    return None;
                 }
 
                 let mut frame =
@@ -1358,7 +1446,8 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_NCCREATE => wm_nccreate(hwnd, msg, wparam, lparam),
         WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
-        WM_SIZE => wm_size(hwnd, msg, wparam, lparam),
+        WM_ENTERSIZEMOVE | WM_EXITSIZEMOVE => wm_enter_exit_size_move(hwnd, msg, wparam, lparam),
+        WM_WINDOWPOSCHANGED => wm_windowposchanged(hwnd, msg, wparam, lparam),
         WM_SETFOCUS => wm_set_focus(hwnd, msg, wparam, lparam),
         WM_KILLFOCUS => wm_kill_focus(hwnd, msg, wparam, lparam),
         WM_DEADCHAR | WM_KEYDOWN | WM_KEYUP | WM_SYSCHAR | WM_CHAR | WM_IME_CHAR | WM_SYSKEYUP

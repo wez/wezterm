@@ -103,6 +103,7 @@ impl EglWrapper {
             }
             unsafe { get_proc_address(sym_name.as_ptr()) }
         });
+        log::info!("load_egl: {:?}", lib);
         Ok(Self { _lib: lib, egl })
     }
 
@@ -368,7 +369,7 @@ impl EglWrapper {
 }
 
 impl GlState {
-    #[cfg_attr(target_os = "macos", allow(unused))]
+    #[cfg_attr(any(windows, target_os = "macos"), allow(unused))]
     pub fn get_connection(&self) -> &Rc<GlConnection> {
         &self.connection
     }
@@ -412,11 +413,10 @@ impl GlState {
                 std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "true");
             }
             for path in &paths {
-                if let Ok(lib) = libloading::Library::new(path) {
-                    match EglWrapper::load_egl(lib) {
+                match libloading::Library::new(path) {
+                    Ok(lib) => match EglWrapper::load_egl(lib) {
                         Ok(egl) => match func(egl) {
                             Ok(result) => {
-                                log::info!("initialized {}", path.display());
                                 return Ok(result);
                             }
                             Err(e) => {
@@ -430,10 +430,21 @@ impl GlState {
                         Err(e) => {
                             errors.push(format!("load_egl {} failed: {}", path.display(), e));
                         }
+                    },
+                    Err(e) => {
+                        errors.push(format!("{}: {}", path.display(), e));
                     }
                 }
             }
-            // Since we didn't yet succeed, try enabling software rasterization
+            // Since we didn't yet succeed, try enabling software rasterization.
+            // However, don't do this on Windows; the EGL implementation on
+            // Windows isn't MESA so there's no point trying a second pass
+            // with the mesa environment set, and if we did, it would just
+            // cause us to try software mode instead of the native opengl
+            // drivers we'd pick up from the WGL fallback.
+            if cfg!(windows) {
+                break;
+            }
             prefer_swrast();
         }
         bail!("with_egl_lib failed: {}", errors.join(", "))
@@ -535,11 +546,26 @@ impl GlState {
                     }
                 };
 
+            let mut attributes = vec![ffi::CONTEXT_MAJOR_VERSION, 3];
+            if cfg!(windows) {
+                // On Windows, where drivers may be dynamically unloaded,
+                // let's make an effort to try to survive that event.
+                for &a in &[
+                    ffi::CONTEXT_OPENGL_ROBUST_ACCESS_EXT,
+                    ffi::TRUE,
+                    ffi::CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT,
+                    ffi::LOSE_CONTEXT_ON_RESET_EXT,
+                ] {
+                    attributes.push(a);
+                }
+            }
+            attributes.push(ffi::NONE);
+
             let context = match connection.egl.create_context(
                 connection.display,
                 config,
                 std::ptr::null(),
-                &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
+                &attributes,
             ) {
                 Ok(c) => c,
                 Err(e) => {
@@ -568,7 +594,10 @@ unsafe impl glium::backend::Backend for GlState {
                 .SwapBuffers(self.connection.display, self.surface)
         };
         if res != 1 {
-            Err(glium::SwapBuffersError::AlreadySwapped)
+            Err(match unsafe { self.connection.GetError() } as u32 {
+                ffi::CONTEXT_LOST => glium::SwapBuffersError::ContextLost,
+                _ => glium::SwapBuffersError::AlreadySwapped,
+            })
         } else {
             Ok(())
         }

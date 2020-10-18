@@ -13,11 +13,27 @@ fn main() {
             .unwrap();
         let exe_output_dir = repo_dir.join("target").join(profile);
         let windows_dir = repo_dir.join("assets").join("windows");
-        let conhost_dir = windows_dir.join("conhost");
 
+        let conhost_dir = windows_dir.join("conhost");
         for name in &["conpty.dll", "OpenConsole.exe"] {
             let dest_name = exe_output_dir.join(name);
             let src_name = conhost_dir.join(name);
+
+            if !dest_name.exists() {
+                std::fs::copy(&src_name, &dest_name)
+                    .context(format!(
+                        "copy {} -> {}",
+                        src_name.display(),
+                        dest_name.display()
+                    ))
+                    .unwrap();
+            }
+        }
+
+        let angle_dir = windows_dir.join("angle");
+        for name in &["libEGL.dll", "libGLESv2.dll"] {
+            let dest_name = exe_output_dir.join(name);
+            let src_name = angle_dir.join(name);
 
             if !dest_name.exists() {
                 std::fs::copy(&src_name, &dest_name)

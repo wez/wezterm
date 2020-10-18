@@ -680,6 +680,13 @@ pub struct Config {
     #[serde(default)]
     pub enable_wayland: bool,
 
+    /// Whether to prefer EGL over other GL implementations.
+    /// EGL on Windows has jankier resize behavior than WGL (which
+    /// is used if EGL is unavailable), but EGL survives graphics
+    /// driver updates without breaking and losing your work.
+    #[serde(default = "default_true")]
+    pub prefer_egl: bool,
+
     /// Controls the amount of padding to use around the terminal cell area
     #[serde(default)]
     pub window_padding: WindowPadding,
