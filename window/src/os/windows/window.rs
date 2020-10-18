@@ -316,6 +316,7 @@ impl Window {
         };
 
         enable_dark_mode(hwnd.0);
+        enable_blur_behind(hwnd.0);
 
         Connection::get()
             .expect("Connection::init was not called")
@@ -556,6 +557,27 @@ unsafe fn wm_ncdestroy(
     }
 
     None
+}
+
+/// "Blur behind" is the old vista term for a cool blurring
+/// effect that the DWM could enable.  Subsequent windows
+/// versions have removed the blurring.  We use this call
+/// to tell DWM that we set proper alpha channel info as
+/// a result of rendering our window content.
+fn enable_blur_behind(hwnd: HWND) {
+    use winapi::shared::minwindef::*;
+    use winapi::um::dwmapi::*;
+
+    let bb = DWM_BLURBEHIND {
+        dwFlags: DWM_BB_ENABLE,
+        fEnable: TRUE,
+        hRgnBlur: null_mut(),
+        fTransitionOnMaximized: FALSE,
+    };
+
+    unsafe {
+        DwmEnableBlurBehindWindow(hwnd, &bb);
+    }
 }
 
 fn enable_dark_mode(hwnd: HWND) {
