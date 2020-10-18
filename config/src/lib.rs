@@ -691,6 +691,45 @@ pub struct Config {
     #[serde(default)]
     pub window_padding: WindowPadding,
 
+    /// Specifies the path to a background image attachment file.
+    /// The file can be any image format that the rust `image`
+    /// crate is able to identify and load.
+    /// A window background image is rendered into the background
+    /// of the window before any other content.
+    ///
+    /// The image will be scaled to fit the window.
+    #[serde(default)]
+    pub window_background_image: Option<PathBuf>,
+
+    /// Specifies the alpha value to use when rendering the background
+    /// of the window.  The background is taken either from the
+    /// window_background_image, or if there is none, the background
+    /// color of the cell in the current position.
+    /// The default is 1.0 which is 100% opaque.  Setting it to a number
+    /// between 0.0 and 1.0 will allow for the screen behind the window
+    /// to "shine through" to varying degrees.
+    /// This only works on systems with a compositing window manager.
+    /// Setting opacity to a value other than 1.0 can impact render
+    /// performance.
+    #[serde(default = "default_one_point_oh")]
+    pub window_background_opacity: f32,
+
+    /// Specifies the alpha value to use when applying the default
+    /// background color in a cell.  This is useful to apply a kind
+    /// of "tint" to the background image if either window_background_image
+    /// or window_background_opacity are in used.
+    ///
+    /// It can be a number between 0.0 and 1.0.
+    /// The default is 0.0
+    ///
+    /// Larger numbers increase the amount of the color scheme's
+    /// background color that is applied over the background image.
+    ///
+    /// This can be useful to increase effective contrast for text
+    /// that is rendered over the top.
+    #[serde(default = "default_zero_point_oh")]
+    pub window_background_tint: f32,
+
     /// Specifies how often a blinking cursor transitions between visible
     /// and invisible, expressed in milliseconds.
     /// Setting this to 0 disables blinking.
@@ -755,6 +794,14 @@ pub struct Config {
     /// mapping annoying in vim :-p
     #[serde(default)]
     pub enable_csi_u_key_encoding: bool,
+}
+
+fn default_zero_point_oh() -> f32 {
+    0.0
+}
+
+fn default_one_point_oh() -> f32 {
+    1.0
 }
 
 fn default_tab_max_width() -> usize {
@@ -944,6 +991,12 @@ impl Config {
                 if !font_dir.is_absolute() {
                     let dir = config_dir.join(&font_dir);
                     *font_dir = dir;
+                }
+            }
+
+            if let Some(path) = self.window_background_image.as_ref() {
+                if !path.is_absolute() {
+                    cfg.window_background_image.replace(config_dir.join(path));
                 }
             }
         }

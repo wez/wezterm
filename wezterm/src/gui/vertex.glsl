@@ -10,7 +10,9 @@ in vec2 cursor;
 in vec4 cursor_color;
 
 uniform mat4 projection;
+uniform bool window_bg_layer;
 uniform bool bg_and_line_layer;
+uniform bool has_background_image;
 
 out vec2 o_tex;
 out vec4 o_fg_color;
@@ -19,6 +21,14 @@ out float o_has_color;
 out vec2 o_underline;
 out vec2 o_cursor;
 out vec4 o_cursor_color;
+
+// Returns a position that is outside of the viewport,
+// such that this vertex effectively won't contribute
+// the scene being rendered.
+// There may be a better way to do this.
+vec4 off_screen() {
+  return vec4(100.0, 100.0, 100.0, 100.0);
+}
 
 void main() {
     o_tex = tex;
@@ -29,7 +39,24 @@ void main() {
     o_cursor = cursor;
     o_cursor_color = cursor_color;
 
-    if (bg_and_line_layer) {
+    if (window_bg_layer) {
+      if (o_has_color == 2.0) {
+        // Background image takes up its full coordinates
+        gl_Position = projection * vec4(position, 0.0, 1.0);
+      } else if (!has_background_image) {
+        // If there is no background attachment, then we're
+        // rendering the cell background color and need to
+        // fill the cell with that color
+        gl_Position = projection * vec4(position, 0.0, 1.0);
+      } else {
+        // Nothing else should render on the background layer
+        gl_Position = off_screen();
+      }
+    } else if (o_has_color == 2.0) {
+      // If we're the background image and we're not rendering
+      // the background layer, then move this off screen
+      gl_Position = off_screen();
+    } else if (bg_and_line_layer) {
       // Want to fill the whole cell when painting backgrounds
       gl_Position = projection * vec4(position, 0.0, 1.0);
     } else {

@@ -48,8 +48,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use termwiz::color::RgbColor;
+use termwiz::color::{ColorAttribute, RgbColor};
 use termwiz::hyperlink::Hyperlink;
+use termwiz::image::ImageData;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
@@ -272,6 +273,8 @@ pub struct TermWindow {
 
     tab_state: RefCell<HashMap<TabId, TabState>>,
     pane_state: RefCell<HashMap<PaneId, PaneState>>,
+
+    window_background: Option<Arc<ImageData>>,
 
     /// Gross workaround for managing async keyboard fetching
     /// just for middle mouse button paste function
@@ -706,6 +709,7 @@ impl WindowCallbacks for TermWindow {
 
         let guts = Box::new(Self {
             window: None,
+            window_background: self.window_background.clone(),
             focused: None,
             mux_window_id,
             fonts: Rc::clone(&self.fonts),
@@ -874,9 +878,59 @@ pub fn effective_right_padding(config: &ConfigHandle, render_metrics: &RenderMet
     }
 }
 
+fn load_background_image(config: &ConfigHandle) -> Option<Arc<ImageData>> {
+    match &config.window_background_image {
+        Some(p) => match std::fs::read(p) {
+            Ok(data) => {
+                log::error!("loaded {}", p.display());
+                Some(Arc::new(ImageData::with_raw_data(data)))
+            }
+            Err(err) => {
+                log::error!(
+                    "Failed to load window_background_image {}: {}",
+                    p.display(),
+                    err
+                );
+                None
+            }
+        },
+        None => None,
+    }
+}
+
+fn reload_background_image(
+    config: &ConfigHandle,
+    image: &Option<Arc<ImageData>>,
+) -> Option<Arc<ImageData>> {
+    match &config.window_background_image {
+        Some(p) => match std::fs::read(p) {
+            Ok(data) => {
+                if let Some(existing) = image {
+                    if existing.data() == data {
+                        return Some(Arc::clone(existing));
+                    }
+                }
+                Some(Arc::new(ImageData::with_raw_data(data)))
+            }
+            Err(err) => {
+                log::error!(
+                    "Failed to load window_background_image {}: {}",
+                    p.display(),
+                    err
+                );
+                None
+            }
+        },
+        None => None,
+    }
+}
+
 impl TermWindow {
     pub fn new_window(mux_window_id: MuxWindowId) -> anyhow::Result<()> {
         let config = configuration();
+
+        let window_background = load_background_image(&config);
+
         let fontconfig = Rc::new(FontConfiguration::new());
         let mux = Mux::get().unwrap();
         let tab = mux.get_active_tab_for_window(mux_window_id).unwrap();
@@ -933,6 +987,7 @@ impl TermWindow {
             dimensions.pixel_height,
             Box::new(Self {
                 window: None,
+                window_background,
                 focused: None,
                 mux_window_id,
                 fonts: fontconfig,
@@ -1248,6 +1303,8 @@ impl TermWindow {
         {
             ::window::os::windows::use_dead_keys(config.use_dead_keys);
         }
+
+        self.window_background = reload_background_image(&config, &self.window_background);
 
         let mux = Mux::get().unwrap();
         let window = match mux.get_window(self.mux_window_id) {
@@ -2569,7 +2626,8 @@ impl TermWindow {
 
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
         let foreground = rgbcolor_to_window_color(palette.foreground);
-        let background = rgbcolor_to_window_color(palette.background);
+        let background_alpha = (config.window_background_opacity * 255.0) as u8;
+        let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
 
         if self.show_tab_bar && pos.index == 0 {
             let tab_dims = RenderableDimensions {
@@ -2637,6 +2695,29 @@ impl TermWindow {
             quad.set_cursor_color(rgbcolor_to_window_color(background_color));
         }
 
+        {
+            let mut quad = quads.background_image();
+            let white_space = gl_state.util_sprites.white_space.texture_coords();
+            quad.set_underline(white_space);
+            quad.set_cursor(white_space);
+            quad.set_has_color(false);
+
+            let color = Color::rgba(0, 0, 0, background_alpha);
+            quad.set_texture_adjust(0., 0., 0., 0.);
+
+            quad.set_texture(white_space);
+            if let Some(im) = self.window_background.as_ref() {
+                if let Ok(sprite) = gl_state.glyph_cache.borrow_mut().cached_image(im) {
+                    quad.set_texture(sprite.texture_coords());
+                    quad.set_is_background_image();
+                }
+            }
+            quad.set_cursor_color(color);
+            quad.set_fg_color(color);
+            quad.set_bg_color(background);
+            quad.set_cursor_color(color);
+        }
+
         let selrange = self.selection(pos.pane.pane_id()).range.clone();
 
         for (line_idx, line) in lines.iter().enumerate() {
@@ -2696,7 +2777,9 @@ impl TermWindow {
             .magnify_filter(MagnifySamplerFilter::Nearest)
             .minify_filter(MinifySamplerFilter::Nearest);
 
-        // Pass 1: Draw backgrounds, strikethrough and underline
+        let has_background_image = self.window_background.is_some();
+
+        // Pass 1: Draw backgrounds
         frame.draw(
             &*vb,
             &gl_state.glyph_index_buffer,
@@ -2704,7 +2787,9 @@ impl TermWindow {
             &uniform! {
                 projection: projection,
                 glyph_tex:  glyph_tex,
-                bg_and_line_layer: true,
+                window_bg_layer: true,
+                bg_and_line_layer: false,
+                has_background_image: has_background_image,
             },
             &draw_params,
         )?;
@@ -2731,7 +2816,7 @@ impl TermWindow {
             ..Default::default()
         };
 
-        // Pass 2: Draw glyphs
+        // Pass 2: strikethrough and underline
         frame.draw(
             &*vb,
             &gl_state.glyph_index_buffer,
@@ -2739,7 +2824,24 @@ impl TermWindow {
             &uniform! {
                 projection: projection,
                 glyph_tex:  glyph_tex,
+                window_bg_layer: false,
+                bg_and_line_layer: true,
+                has_background_image: has_background_image,
+            },
+            &draw_params,
+        )?;
+
+        // Pass 3: Draw glyphs
+        frame.draw(
+            &*vb,
+            &gl_state.glyph_index_buffer,
+            &gl_state.program,
+            &uniform! {
+                projection: projection,
+                glyph_tex:  glyph_tex,
+                window_bg_layer: false,
                 bg_and_line_layer: false,
+                has_background_image: has_background_image,
             },
             &draw_params,
         )?;
@@ -2782,6 +2884,7 @@ impl TermWindow {
             };
             let style = self.fonts.match_style(params.config, attrs);
 
+            let bg_is_default = attrs.background == ColorAttribute::Default;
             let bg_color = params.palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {
                 wezterm_term::color::ColorAttribute::Default => {
@@ -2809,19 +2912,29 @@ impl TermWindow {
                 _ => params.palette.resolve_fg(attrs.foreground),
             };
 
-            let (fg_color, bg_color) = {
+            let (fg_color, bg_color, bg_is_default) = {
                 let mut fg = fg_color;
                 let mut bg = bg_color;
+                let mut bg_is_default = bg_is_default;
 
                 if attrs.reverse() {
                     std::mem::swap(&mut fg, &mut bg);
+                    // reversed, so don't let it be transparent
+                    bg_is_default = false;
                 }
 
-                (fg, bg)
+                (fg, bg, bg_is_default)
             };
 
             let glyph_color = rgbcolor_to_window_color(fg_color);
-            let bg_color = rgbcolor_to_window_color(bg_color);
+            let bg_color = if bg_is_default {
+                rgbcolor_alpha_to_window_color(
+                    bg_color,
+                    (params.config.window_background_tint * 255.0) as u8,
+                )
+            } else {
+                rgbcolor_to_window_color(bg_color)
+            };
 
             // Shape the printable text from this cluster
             let glyph_info = {
@@ -3010,13 +3123,18 @@ impl TermWindow {
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
+
             let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
                 params.stable_line_idx,
                 cell_idx,
                 params.cursor,
                 &params.selection,
                 params.foreground,
-                params.background,
+                if self.window_background.is_some() {
+                    Color::rgba(0, 0, 0, 0)
+                } else {
+                    params.background
+                },
                 params.palette,
                 params.pos.is_active,
             );
@@ -4029,7 +4147,11 @@ impl TermWindow {
 }
 
 fn rgbcolor_to_window_color(color: RgbColor) -> Color {
-    Color::rgba(color.red, color.green, color.blue, 0xff)
+    rgbcolor_alpha_to_window_color(color, 0xff)
+}
+
+fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> Color {
+    Color::rgba(color.red, color.green, color.blue, alpha)
 }
 
 fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input::Modifiers {

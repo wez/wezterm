@@ -9,7 +9,9 @@ in vec2 o_cursor;
 in vec4 o_cursor_color;
 
 uniform mat4 projection;
+uniform bool window_bg_layer;
 uniform bool bg_and_line_layer;
+uniform bool has_background_image;
 uniform sampler2D glyph_tex;
 
 out vec4 color;
@@ -33,7 +35,23 @@ vec4 multiply(vec4 src, vec4 dst) {
 }
 
 void main() {
-  if (bg_and_line_layer) {
+  if (window_bg_layer) {
+    if (o_has_color == 2.0) {
+      // We're the window background image.
+      color = texture(glyph_tex, o_tex);
+      // Apply window_background_opacity to the background image
+      color.a = o_bg_color.a;
+    } else if (!has_background_image) {
+      // If there is no background image then take the cell background
+      color = o_bg_color;
+    } else {
+      // Nothing else should render on the background layer
+      // color = vec4(0,0,0,0);
+      discard;
+    }
+  } else if (bg_and_line_layer) {
+    // Note that o_bg_color is set to transparent if the background
+    // color is "default" and there is a window background attachment
     color = o_bg_color;
 
     // Sample the underline glyph texture for this location.
@@ -44,7 +62,7 @@ void main() {
         // if the underline glyph isn't transparent in this position then
         // we take the text fg color, otherwise we'll leave the color
         // at the background color.
-        color.rgb = o_fg_color.rgb;
+        color = o_fg_color;
     }
 
     // Similar to the above: if the cursor texture isn't transparent
@@ -53,14 +71,20 @@ void main() {
     // in the section above.
     vec4 cursor_outline = texture(glyph_tex, o_cursor);
     if (cursor_outline.a != 0.0) {
-      color.rgb = o_cursor_color.rgb;
+      color = o_cursor_color;
     }
-
   } else {
-    color = texture(glyph_tex, o_tex);
-    if (o_has_color == 0.0) {
-      // if it's not a color emoji, tint with the fg_color
-      color.rgb = o_fg_color.rgb;
+    if (o_has_color == 2.0) {
+      // Don't render the background image on anything other than
+      // the window_bg_layer.
+      // color = vec4(0,0,0,0);
+      discard;
+    } else {
+      color = texture(glyph_tex, o_tex);
+      if (o_has_color == 0.0) {
+        // if it's not a color emoji, tint with the fg_color
+        color.rgb = o_fg_color.rgb;
+      }
     }
   }
 }

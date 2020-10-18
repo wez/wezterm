@@ -30,7 +30,16 @@ pub struct Vertex {
     pub cursor_color: (f32, f32, f32, f32),
     pub bg_color: (f32, f32, f32, f32),
     pub fg_color: (f32, f32, f32, f32),
+    // We use a float for this because I can't get
+    // bool or integer values to work:
     // "bool can't be an in in the vertex shader"
+    //
+    // has_color is effectively an enum with three
+    // possible values:
+    // 0.0 -> a regular monochrome text glyph
+    // 1.0 -> a color emoji glyph
+    // 2.0 -> a full color texture attached as the
+    //        background image of the window
     pub has_color: f32,
 }
 ::window::glium::implement_vertex!(
@@ -56,6 +65,7 @@ pub struct Quads {
     pub row_starts: Vec<usize>,
     /// The vertex index for the first vertex of the scroll bar thumb
     pub scroll_thumb: usize,
+    pub background_image: usize,
 }
 
 pub struct MappedQuads<'a> {
@@ -83,6 +93,13 @@ impl<'a> MappedQuads<'a> {
 
     pub fn scroll_thumb<'b>(&'b mut self) -> Quad<'b> {
         let start = self.quads.scroll_thumb;
+        Quad {
+            vert: &mut self.mapping[start..start + VERTICES_PER_CELL],
+        }
+    }
+
+    pub fn background_image<'b>(&'b mut self) -> Quad<'b> {
+        let start = self.quads.background_image;
         Quad {
             vert: &mut self.mapping[start..start + VERTICES_PER_CELL],
         }
@@ -126,6 +143,14 @@ impl<'a> Quad<'a> {
         let has_color = if has_color { 1. } else { 0. };
         for v in self.vert.iter_mut() {
             v.has_color = has_color;
+        }
+    }
+
+    /// Mark this quad as a background image.
+    /// Mutually exclusive with set_has_color.
+    pub fn set_is_background_image(&mut self) {
+        for v in self.vert.iter_mut() {
+            v.has_color = 2.0;
         }
     }
 
