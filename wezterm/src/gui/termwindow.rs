@@ -78,7 +78,6 @@ struct RenderScreenLineOpenGLParams<'a> {
 
     cursor_border_color: Color,
     foreground: Color,
-    background: Color,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -2647,7 +2646,6 @@ impl TermWindow {
                     config: &config,
                     cursor_border_color,
                     foreground,
-                    background,
                     pos,
                 },
                 &mut quads,
@@ -2739,7 +2737,6 @@ impl TermWindow {
                     config: &config,
                     cursor_border_color,
                     foreground,
-                    background,
                     pos,
                 },
                 &mut quads,
@@ -3131,11 +3128,10 @@ impl TermWindow {
                 params.cursor,
                 &params.selection,
                 params.foreground,
-                if self.window_background.is_some() {
-                    Color::rgba(0, 0, 0, 0)
-                } else {
-                    params.background
-                },
+                rgbcolor_alpha_to_window_color(
+                    params.palette.resolve_bg(ColorAttribute::Default),
+                    (params.config.window_background_tint * 255.0) as u8,
+                ),
                 params.palette,
                 params.pos.is_active,
             );
