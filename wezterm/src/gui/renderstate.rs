@@ -205,7 +205,7 @@ impl OpenGLRenderState {
         quads.background_image =
             define_quad(width / -2.0, height / -2.0, width / 2.0, height / 2.0) as usize;
 
-        for y in 0..num_rows {
+        for y in 0..=num_rows {
             let y_pos = (height / -2.0) + (y as f32 * cell_height) + padding_top;
 
             for x in 0..num_cols {

@@ -54,7 +54,7 @@ use termwiz::image::ImageData;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{CellAttributes, Line, StableRowIndex, Underline};
+use wezterm_term::{CellAttributes, Line, StableRowIndex, TerminalConfiguration, Underline};
 
 const ATLAS_SIZE: usize = 4096;
 
@@ -290,6 +290,8 @@ pub struct TermWindow {
     shape_cache: RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<GlyphInfo>>>>>,
 
     last_blink_paint: Instant,
+
+    palette: Option<ColorPalette>,
 }
 
 fn mouse_press_to_tmb(press: &MousePress) -> TMB {
@@ -709,6 +711,7 @@ impl WindowCallbacks for TermWindow {
         let guts = Box::new(Self {
             window: None,
             window_background: self.window_background.clone(),
+            palette: None,
             focused: None,
             mux_window_id,
             fonts: Rc::clone(&self.fonts),
@@ -825,7 +828,18 @@ impl WindowCallbacks for TermWindow {
         }
 
         self.check_for_config_reload();
+        let config = configuration();
+
         let start = std::time::Instant::now();
+
+        {
+            let palette = self.palette();
+            let background_alpha = (config.window_background_opacity * 255.0) as u8;
+            let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
+
+            let (r, g, b, a) = background.to_tuple_rgba();
+            frame.clear_color_srgb(r, g, b, a);
+        }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
             let splits = self.get_splits();
@@ -838,7 +852,7 @@ impl WindowCallbacks for TermWindow {
             if pos.is_active {
                 self.update_text_cursor(&pos.pane);
             }
-            if let Err(err) = self.paint_tab_opengl(&pos, frame) {
+            if let Err(err) = self.paint_pane_opengl(&pos) {
                 if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
                     log::error!("out of texture space, allocating {}", size);
                     if let Err(err) = self.recreate_texture_atlas(Some(size)) {
@@ -853,12 +867,12 @@ impl WindowCallbacks for TermWindow {
                     // Recursively initiate a new paint
                     return self.paint_opengl(frame);
                 }
-                log::error!("paint_tab_opengl failed: {}", err);
+                log::error!("paint_pane_opengl failed: {}", err);
             }
         }
 
         self.call_draw(frame).ok();
-        log::debug!("paint_tab_opengl elapsed={:?}", start.elapsed());
+        log::debug!("paint_pane_opengl elapsed={:?}", start.elapsed());
         metrics::value!("gui.paint.opengl", start.elapsed());
 
         self.update_title();
@@ -987,6 +1001,7 @@ impl TermWindow {
             Box::new(Self {
                 window: None,
                 window_background,
+                palette: None,
                 focused: None,
                 mux_window_id,
                 fonts: fontconfig,
@@ -1290,9 +1305,17 @@ impl TermWindow {
         }
     }
 
+    fn palette(&mut self) -> &ColorPalette {
+        if self.palette.is_none() {
+            self.palette.replace(config::TermConfig.color_palette());
+        }
+        self.palette.as_ref().unwrap()
+    }
+
     fn config_was_reloaded(&mut self) {
         let config = configuration();
         self.config_generation = config.generation();
+        self.palette.take();
 
         #[cfg(target_os = "macos")]
         {
@@ -2582,22 +2605,13 @@ impl TermWindow {
         Ok(())
     }
 
-    fn paint_tab_opengl(
-        &mut self,
-        pos: &PositionedPane,
-        frame: &mut glium::Frame,
-    ) -> anyhow::Result<()> {
+    fn paint_pane_opengl(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {
         let config = configuration();
         let palette = pos.pane.palette();
 
         let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
         let background_alpha = (config.window_background_opacity * 255.0) as u8;
         let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
-
-        if pos.index == 0 {
-            let (r, g, b, a) = background.to_tuple_rgba();
-            frame.clear_color_srgb(r, g, b, a);
-        }
 
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
