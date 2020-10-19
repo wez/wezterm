@@ -207,6 +207,8 @@ return {
 
 ## Window Background Image
 
+<img width="100%" height="100%" src="../screenshots/wezterm-vday-screenshot.png" alt="Screenshot">
+
 *since: nightly builds only*
 
 You can attach an image to the background of the wezterm window:
