@@ -80,6 +80,23 @@ struct RenderScreenLineOpenGLParams<'a> {
     foreground: Color,
 }
 
+struct ComputeCellFgBgParams<'a> {
+    stable_line_idx: Option<StableRowIndex>,
+    cell_idx: usize,
+    cursor: &'a StableCursorPosition,
+    selection: &'a Range<usize>,
+    fg_color: Color,
+    bg_color: Color,
+    palette: &'a ColorPalette,
+    is_active_pane: bool,
+}
+
+struct ComputeCellFgBgResult {
+    fg_color: Color,
+    bg_color: Color,
+    cursor_shape: Option<CursorShape>,
+}
+
 #[derive(Debug, Clone, Copy)]
 struct RowsAndCols {
     rows: usize,
@@ -3014,16 +3031,20 @@ impl TermWindow {
                     }
                     last_cell_idx = cell_idx;
 
-                    let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
-                        params.stable_line_idx,
-                        cell_idx,
-                        params.cursor,
-                        &params.selection,
-                        glyph_color,
+                    let ComputeCellFgBgResult {
+                        fg_color: glyph_color,
                         bg_color,
-                        params.palette,
-                        params.pos.is_active,
-                    );
+                        cursor_shape,
+                    } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
+                        stable_line_idx: params.stable_line_idx,
+                        cell_idx,
+                        cursor: params.cursor,
+                        selection: &params.selection,
+                        fg_color: glyph_color,
+                        bg_color,
+                        palette: params.palette,
+                        is_active_pane: params.pos.is_active,
+                    });
 
                     if let Some(image) = attrs.image() {
                         // Render iTerm2 style image attributes
@@ -3136,19 +3157,23 @@ impl TermWindow {
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
 
-            let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
-                params.stable_line_idx,
+            let ComputeCellFgBgResult {
+                fg_color: glyph_color,
+                bg_color,
+                cursor_shape,
+            } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
+                stable_line_idx: params.stable_line_idx,
                 cell_idx,
-                params.cursor,
-                &params.selection,
-                params.foreground,
-                rgbcolor_alpha_to_window_color(
+                cursor: params.cursor,
+                selection: &params.selection,
+                fg_color: params.foreground,
+                bg_color: rgbcolor_alpha_to_window_color(
                     params.palette.resolve_bg(ColorAttribute::Default),
                     (params.config.window_background_tint * 255.0) as u8,
                 ),
-                params.palette,
-                params.pos.is_active,
-            );
+                palette: params.palette,
+                is_active_pane: params.pos.is_active,
+            });
 
             let mut quad =
                 match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
@@ -3284,16 +3309,20 @@ impl TermWindow {
                     }
                     last_cell_idx = cell_idx;
 
-                    let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
+                    let ComputeCellFgBgResult {
+                        fg_color: glyph_color,
+                        bg_color,
+                        cursor_shape,
+                    } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                         stable_line_idx,
                         cell_idx,
                         cursor,
-                        &selection,
-                        glyph_color,
+                        selection: &selection,
+                        fg_color: glyph_color,
                         bg_color,
                         palette,
-                        pos.is_active,
-                    );
+                        is_active_pane: pos.is_active,
+                    });
 
                     let cell_rect = Rect::new(
                         Point::new(
@@ -3408,16 +3437,20 @@ impl TermWindow {
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
-            let (_glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
+            let ComputeCellFgBgResult {
+                bg_color,
+                cursor_shape,
+                ..
+            } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                 stable_line_idx,
                 cell_idx,
                 cursor,
-                &selection,
-                rgbcolor_to_window_color(palette.foreground),
-                rgbcolor_to_window_color(palette.background),
+                selection: &selection,
+                fg_color: rgbcolor_to_window_color(palette.foreground),
+                bg_color: rgbcolor_to_window_color(palette.background),
                 palette,
-                pos.is_active,
-            );
+                is_active_pane: pos.is_active,
+            });
 
             let cell_rect = Rect::new(
                 Point::new(
@@ -3462,34 +3495,26 @@ impl TermWindow {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn compute_cell_fg_bg(
-        &self,
-        stable_line_idx: Option<StableRowIndex>,
-        cell_idx: usize,
-        cursor: &StableCursorPosition,
-        selection: &Range<usize>,
-        fg_color: Color,
-        bg_color: Color,
-        palette: &ColorPalette,
-        is_active_pane: bool,
-    ) -> (Color, Color, Option<CursorShape>) {
-        let selected = selection.contains(&cell_idx);
+    fn compute_cell_fg_bg(&self, params: ComputeCellFgBgParams) -> ComputeCellFgBgResult {
+        let selected = params.selection.contains(&params.cell_idx);
 
-        let is_cursor = stable_line_idx == Some(cursor.y) && cursor.x == cell_idx;
+        let is_cursor =
+            params.stable_line_idx == Some(params.cursor.y) && params.cursor.x == params.cell_idx;
 
         let (cursor_shape, visibility) =
-            if is_cursor && cursor.visibility == CursorVisibility::Visible {
+            if is_cursor && params.cursor.visibility == CursorVisibility::Visible {
                 // This logic figures out whether the cursor is visible or not.
                 // If the cursor is explicitly hidden then it is obviously not
                 // visible.
                 // If the cursor is set to a blinking mode then we are visible
                 // depending on the current time.
                 let config = configuration();
-                let shape = config.default_cursor_style.effective_shape(cursor.shape);
+                let shape = config
+                    .default_cursor_style
+                    .effective_shape(params.cursor.shape);
                 // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
                 // and the window is focused.
-                let blinking = is_active_pane
+                let blinking = params.is_active_pane
                     && shape.is_blinking()
                     && config.cursor_blink_rate != 0
                     && self.focused.is_some();
@@ -3514,39 +3539,39 @@ impl TermWindow {
                     (shape, CursorVisibility::Visible)
                 }
             } else {
-                (cursor.shape, CursorVisibility::Hidden)
+                (params.cursor.shape, CursorVisibility::Hidden)
             };
 
         let (fg_color, bg_color) = match (
             selected,
-            self.focused.is_some() && is_active_pane,
+            self.focused.is_some() && params.is_active_pane,
             cursor_shape,
             visibility,
         ) {
             // Selected text overrides colors
             (true, _, _, CursorVisibility::Hidden) => (
-                rgbcolor_to_window_color(palette.selection_fg),
-                rgbcolor_to_window_color(palette.selection_bg),
+                rgbcolor_to_window_color(params.palette.selection_fg),
+                rgbcolor_to_window_color(params.palette.selection_bg),
             ),
             // Cursor cell overrides colors
             (_, true, CursorShape::BlinkingBlock, CursorVisibility::Visible)
             | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => (
-                rgbcolor_to_window_color(palette.cursor_fg),
-                rgbcolor_to_window_color(palette.cursor_bg),
+                rgbcolor_to_window_color(params.palette.cursor_fg),
+                rgbcolor_to_window_color(params.palette.cursor_bg),
             ),
             // Normally, render the cell as configured (or if the window is unfocused)
-            _ => (fg_color, bg_color),
+            _ => (params.fg_color, params.bg_color),
         };
 
-        (
+        ComputeCellFgBgResult {
             fg_color,
             bg_color,
-            if visibility == CursorVisibility::Visible {
+            cursor_shape: if visibility == CursorVisibility::Visible {
                 Some(cursor_shape)
             } else {
                 None
             },
-        )
+        }
     }
 
     pub fn pane_state(&self, pane_id: PaneId) -> RefMut<PaneState> {
