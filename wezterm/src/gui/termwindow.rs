@@ -11,6 +11,7 @@ use crate::gui::overlay::{
 };
 use crate::gui::scrollbar::*;
 use crate::gui::selection::*;
+use crate::gui::shapecache::*;
 use crate::gui::tabbar::{TabBarItem, TabBarState};
 use crate::scripting::guiwin::GuiWin;
 use crate::scripting::pane::PaneObject;
@@ -29,7 +30,7 @@ use anyhow::{anyhow, bail, ensure};
 use config::keyassignment::{
     InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
 };
-use config::{configuration, ConfigHandle, TextStyle};
+use config::{configuration, ConfigHandle};
 use lru::LruCache;
 use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
@@ -188,78 +189,6 @@ pub struct TabState {
     /// contents, we're overlaying a little internal application
     /// tab.  We'll also route input to it.
     pub overlay: Option<Rc<dyn Pane>>,
-}
-
-#[derive(PartialEq, Eq, Hash)]
-struct ShapeCacheKey {
-    style: TextStyle,
-    text: String,
-}
-
-/// We'd like to avoid allocating when resolving from the cache
-/// so this is the borrowed version of ShapeCacheKey.
-/// It's a bit involved to make this work; more details can be
-/// found in the excellent guide here:
-/// <https://github.com/sunshowers/borrow-complex-key-example/blob/master/src/lib.rs>
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
-struct BorrowedShapeCacheKey<'a> {
-    style: &'a TextStyle,
-    text: &'a str,
-}
-
-impl<'a> BorrowedShapeCacheKey<'a> {
-    fn to_owned(&self) -> ShapeCacheKey {
-        ShapeCacheKey {
-            style: self.style.clone(),
-            text: self.text.to_owned(),
-        }
-    }
-}
-
-trait ShapeCacheKeyTrait {
-    fn key<'k>(&'k self) -> BorrowedShapeCacheKey<'k>;
-}
-
-impl ShapeCacheKeyTrait for ShapeCacheKey {
-    fn key<'k>(&'k self) -> BorrowedShapeCacheKey<'k> {
-        BorrowedShapeCacheKey {
-            style: &self.style,
-            text: &self.text,
-        }
-    }
-}
-
-impl<'a> ShapeCacheKeyTrait for BorrowedShapeCacheKey<'a> {
-    fn key<'k>(&'k self) -> BorrowedShapeCacheKey<'k> {
-        *self
-    }
-}
-
-impl<'a> std::borrow::Borrow<dyn ShapeCacheKeyTrait + 'a> for ShapeCacheKey {
-    fn borrow(&self) -> &(dyn ShapeCacheKeyTrait + 'a) {
-        self
-    }
-}
-
-impl<'a> std::borrow::Borrow<dyn ShapeCacheKeyTrait + 'a> for lru::KeyRef<ShapeCacheKey> {
-    fn borrow(&self) -> &(dyn ShapeCacheKeyTrait + 'a) {
-        let k: &ShapeCacheKey = self.borrow();
-        k
-    }
-}
-
-impl<'a> PartialEq for (dyn ShapeCacheKeyTrait + 'a) {
-    fn eq(&self, other: &Self) -> bool {
-        self.key().eq(&other.key())
-    }
-}
-
-impl<'a> Eq for (dyn ShapeCacheKeyTrait + 'a) {}
-
-impl<'a> std::hash::Hash for (dyn ShapeCacheKeyTrait + 'a) {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.key().hash(state)
-    }
 }
 
 pub struct TermWindow {

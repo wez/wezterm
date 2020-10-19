@@ -11,6 +11,7 @@ mod quad;
 mod renderstate;
 mod scrollbar;
 mod selection;
+mod shapecache;
 mod tabbar;
 mod termwindow;
 mod utilsprites;
