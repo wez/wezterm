@@ -277,6 +277,12 @@ impl Color {
     }
 
     #[inline]
+    pub fn with_alpha(self, alpha: u8) -> Self {
+        let (r, g, b, _) = self.as_rgba();
+        Self::rgba(r, g, b, alpha)
+    }
+
+    #[inline]
     pub fn rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
         #[allow(clippy::cast_lossless)]
         let word = (blue as u32) << 24 | (green as u32) << 16 | (red as u32) << 8 | alpha as u32;

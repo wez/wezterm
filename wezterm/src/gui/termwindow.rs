@@ -2914,7 +2914,6 @@ impl TermWindow {
             };
             let style = self.fonts.match_style(params.config, attrs);
 
-            let bg_is_default = attrs.background == ColorAttribute::Default;
             let bg_color = params.palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {
                 wezterm_term::color::ColorAttribute::Default => {
@@ -2942,29 +2941,28 @@ impl TermWindow {
                 _ => params.palette.resolve_fg(attrs.foreground),
             };
 
-            let (fg_color, bg_color, bg_is_default) = {
+            let (fg_color, bg_color) = {
                 let mut fg = fg_color;
                 let mut bg = bg_color;
-                let mut bg_is_default = bg_is_default;
 
                 if attrs.reverse() {
                     std::mem::swap(&mut fg, &mut bg);
-                    // reversed, so don't let it be transparent
-                    bg_is_default = false;
                 }
 
-                (fg, bg, bg_is_default)
+                (fg, bg)
             };
 
             let glyph_color = rgbcolor_to_window_color(fg_color);
-            let bg_color = if bg_is_default {
-                rgbcolor_alpha_to_window_color(
-                    bg_color,
-                    (params.config.window_background_tint * 255.0) as u8,
-                )
-            } else {
-                rgbcolor_to_window_color(bg_color)
-            };
+            let bg_color = rgbcolor_alpha_to_window_color(
+                bg_color,
+                if self.window_background.is_none()
+                    && params.config.window_background_opacity == 1.0
+                {
+                    0xff
+                } else {
+                    (params.config.window_background_tint * 255.0) as u8
+                },
+            );
 
             // Shape the printable text from this cluster
             let glyph_info = {

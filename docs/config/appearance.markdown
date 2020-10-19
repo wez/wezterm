@@ -260,11 +260,9 @@ When using a background image or background opacity, the image content can
 have relatively low contrast with respect to the text you are trying to
 read in your terminal.
 
-The `window_background_tint` setting specifies the alpha channel value
-to use for cells that are rendered with the ANSI default background color
-attribute.  Cells that have reversed or other background colors, or that
-are explicitly setting the color attributes to a color that happens to
-be the same as the default background are not affected by this setting.
+The `window_background_tint` setting specifies the alpha channel value to use
+for the background color of cells when either `window_background_image` or
+`window_background_opacity` are in use.
 
 The default for this setting is `0.0` such that the background image or
 desktop content shows through the window relatively unimpeded.
