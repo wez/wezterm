@@ -2535,7 +2535,14 @@ impl TermWindow {
         };
         let palette = pane.palette();
         let foreground = rgbcolor_to_window_color(palette.foreground);
-        let background = rgbcolor_to_window_color(palette.background);
+        let background = rgbcolor_alpha_to_window_color(
+            palette.background,
+            if self.window_background.is_none() && config.window_background_opacity == 1.0 {
+                0xff
+            } else {
+                (config.window_background_tint * 255.0) as u8
+            },
+        );
 
         let style = self.fonts.match_style(&config, &CellAttributes::default());
         let glyph_info = {
