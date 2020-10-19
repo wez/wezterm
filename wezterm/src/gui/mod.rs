@@ -4,7 +4,6 @@ pub use config::FrontEndSelection;
 use mux::{Mux, MuxNotification};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 mod glyphcache;
 mod overlay;
@@ -29,18 +28,7 @@ impl Drop for GuiFrontEnd {
     }
 }
 
-static USE_OPENGL: AtomicBool = AtomicBool::new(true);
-
-pub fn is_opengl_enabled() -> bool {
-    USE_OPENGL.load(Ordering::Acquire)
-}
-
 impl GuiFrontEnd {
-    pub fn try_new_no_opengl() -> anyhow::Result<Rc<GuiFrontEnd>> {
-        USE_OPENGL.store(false, Ordering::Release);
-        Self::try_new()
-    }
-
     pub fn try_new_swrast() -> anyhow::Result<Rc<GuiFrontEnd>> {
         ::window::prefer_swrast();
         Self::try_new()
@@ -124,7 +112,6 @@ pub fn shutdown() {
 pub fn try_new(sel: FrontEndSelection) -> Result<Rc<GuiFrontEnd>, Error> {
     let front_end = match sel {
         FrontEndSelection::Software => GuiFrontEnd::try_new_swrast(),
-        FrontEndSelection::OldSoftware => GuiFrontEnd::try_new_no_opengl(),
         FrontEndSelection::OpenGL => GuiFrontEnd::try_new(),
     };
 

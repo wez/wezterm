@@ -1,34 +1,21 @@
-use super::glyphcache::{CachedGlyph, GlyphCache};
+use super::glyphcache::GlyphCache;
 use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
-use crate::font::{FontConfiguration, GlyphInfo};
-use ::window::bitmaps::ImageTexture;
+use crate::font::FontConfiguration;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{IndexBuffer, VertexBuffer};
 use ::window::*;
-use anyhow::{anyhow, bail};
-use config::{configuration, TextStyle};
+use anyhow::anyhow;
+use config::configuration;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub struct SoftwareRenderState {
-    pub glyph_cache: RefCell<GlyphCache<ImageTexture>>,
-    pub util_sprites: UtilSprites<ImageTexture>,
-}
+pub struct SoftwareRenderState {}
 
 impl SoftwareRenderState {
-    pub fn new(
-        fonts: &Rc<FontConfiguration>,
-        metrics: &RenderMetrics,
-        size: usize,
-    ) -> anyhow::Result<Self> {
-        let glyph_cache = RefCell::new(GlyphCache::new(fonts, size));
-        let util_sprites = UtilSprites::new(&mut glyph_cache.borrow_mut(), metrics)?;
-        Ok(Self {
-            glyph_cache,
-            util_sprites,
-        })
+    pub fn new() -> anyhow::Result<Self> {
+        Ok(Self {})
     }
 }
 
@@ -256,12 +243,7 @@ impl RenderState {
         size: Option<usize>,
     ) -> anyhow::Result<()> {
         match self {
-            RenderState::Software(software) => {
-                let size = size.unwrap_or_else(|| software.glyph_cache.borrow().atlas.size());
-                let mut glyph_cache = GlyphCache::new(fonts, size);
-                software.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
-                *software.glyph_cache.borrow_mut() = glyph_cache;
-            }
+            RenderState::Software(_) => {}
             RenderState::GL(gl) => {
                 let size = size.unwrap_or_else(|| gl.glyph_cache.borrow().atlas.size());
                 let mut glyph_cache = GlyphCache::new_gl(&gl.context, fonts, size)?;
@@ -282,25 +264,6 @@ impl RenderState {
             gl.advise_of_window_size_change(metrics, pixel_width, pixel_height)?;
         }
         Ok(())
-    }
-
-    pub fn cached_software_glyph(
-        &self,
-        info: &GlyphInfo,
-        style: &TextStyle,
-    ) -> anyhow::Result<Rc<CachedGlyph<ImageTexture>>> {
-        if let RenderState::Software(software) = self {
-            software.glyph_cache.borrow_mut().cached_glyph(info, style)
-        } else {
-            bail!("attempted to call cached_software_glyph when in gl mode")
-        }
-    }
-
-    pub fn software(&self) -> &SoftwareRenderState {
-        match self {
-            RenderState::Software(software) => software,
-            _ => panic!("only valid for software render mode"),
-        }
     }
 
     pub fn opengl(&self) -> &OpenGLRenderState {

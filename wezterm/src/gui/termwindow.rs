@@ -54,7 +54,7 @@ use termwiz::image::ImageData;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{CellAttributes, Line, StableRowIndex, TerminalConfiguration, Underline};
+use wezterm_term::{CellAttributes, Line, StableRowIndex, TerminalConfiguration};
 
 const ATLAS_SIZE: usize = 4096;
 
@@ -676,51 +676,15 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint(&mut self, ctx: &mut dyn PaintContext) {
-        let panes = self.get_panes_to_render();
-        if panes.is_empty() {
-            ctx.clear(Color::rgb(0, 0, 0));
-            return;
-        }
-
-        self.check_for_config_reload();
-        self.update_title();
-
-        let start = std::time::Instant::now();
-        for pos in panes {
-            if pos.is_active {
-                self.update_text_cursor(&pos.pane);
-            }
-            if let Err(err) = self.paint_tab(&pos, ctx) {
-                if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
-                    log::error!("out of texture space, allocating {}", size);
-                    if let Err(err) = self.recreate_texture_atlas(Some(size)) {
-                        log::error!("failed recreate atlas with size {}: {}", size, err);
-                        // Failed to increase the size.
-                        // This might happen if a lot of images have been displayed in the
-                        // terminal over time and we've hit a texture size limit.
-                        // Let's just try recreating at the current size.
-                        self.recreate_texture_atlas(None)
-                            .expect("OutOfTextureSpace and failed to recreate atlas");
-                    }
-                    // Recursively initiate a new paint
-                    return self.paint(ctx);
-                }
-                log::error!("paint failed: {}", err);
-            }
-        }
-        log::debug!("paint_tab elapsed={:?}", start.elapsed());
-        metrics::value!("gui.paint.software", start.elapsed());
+        // We shouldn't get here: we should only ever be running with OpenGL
+        ctx.clear(Color::rgb(0, 0, 0));
     }
 
     fn opengl_context_lost(&mut self, prior_window: &dyn WindowOps) -> anyhow::Result<()> {
         log::error!("context was lost, set up a new window");
         let activity = Activity::new();
 
-        let render_state = RenderState::Software(SoftwareRenderState::new(
-            &self.fonts,
-            &self.render_metrics,
-            ATLAS_SIZE,
-        )?);
+        let render_state = RenderState::Software(SoftwareRenderState::new()?);
 
         let clipboard_contents = Arc::clone(&self.clipboard_contents);
         let dimensions = self.dimensions.clone();
@@ -789,11 +753,7 @@ impl WindowCallbacks for TermWindow {
         window: &dyn WindowOps,
         maybe_ctx: anyhow::Result<std::rc::Rc<glium::backend::Context>>,
     ) -> anyhow::Result<()> {
-        self.render_state = RenderState::Software(SoftwareRenderState::new(
-            &self.fonts,
-            &self.render_metrics,
-            ATLAS_SIZE,
-        )?);
+        self.render_state = RenderState::Software(SoftwareRenderState::new()?);
 
         match maybe_ctx {
             Ok(ctx) => {
@@ -820,20 +780,14 @@ impl WindowCallbacks for TermWindow {
                 }
             }
             Err(err) => {
-                crate::connui::show_configuration_error_message(&format!(
-                    "OpenGL initialization failed: {:#}\n\
-                    The fallback CPU based renderer is active; performance \
-                    will be degraded and the appearance will not be as \
-                    good as the OpenGL based renderer",
-                    err
-                ));
+                panic!("OpenGL initialization failed: {:#}", err);
             }
         };
 
         window.show();
 
         match &self.render_state {
-            RenderState::Software(_) => Err(anyhow::anyhow!("Falling back to software renderer")),
+            RenderState::Software(_) => panic!("No OpenGL"),
             RenderState::GL(_) => Ok(()),
         }
     }
@@ -1003,11 +957,7 @@ impl TermWindow {
             dimensions
         );
 
-        let render_state = RenderState::Software(SoftwareRenderState::new(
-            &fontconfig,
-            &render_metrics,
-            ATLAS_SIZE,
-        )?);
+        let render_state = RenderState::Software(SoftwareRenderState::new()?);
 
         let clipboard_contents = Arc::new(Mutex::new(None));
 
@@ -1054,11 +1004,7 @@ impl TermWindow {
         Self::start_periodic_maintenance(window.clone());
         Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
 
-        if super::is_opengl_enabled() {
-            window.enable_opengl();
-        } else {
-            window.show();
-        }
+        window.enable_opengl();
 
         crate::update::start_update_checker();
         Ok(())
@@ -2360,161 +2306,6 @@ impl TermWindow {
         self.activate_tab_relative(0)
     }
 
-    fn paint_tab(
-        &mut self,
-        pos: &PositionedPane,
-        ctx: &mut dyn PaintContext,
-    ) -> anyhow::Result<()> {
-        let palette = pos.pane.palette();
-        let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
-
-        let mut term = pos.pane.renderer();
-        let cursor = term.get_cursor_position();
-        if pos.is_active {
-            self.prev_cursor.update(&cursor);
-        }
-        let current_viewport = self.get_viewport(pos.pane.pane_id());
-
-        let dims = term.get_dimensions();
-
-        if self.show_tab_bar && pos.index == 0 {
-            self.render_screen_line(
-                ctx,
-                0,
-                None,
-                self.tab_bar.line(),
-                0..0,
-                &cursor,
-                &palette,
-                &dims,
-                pos,
-            )?;
-        }
-
-        {
-            let stable_range = match current_viewport {
-                Some(top) => top..top + dims.viewport_rows as StableRowIndex,
-                None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
-            };
-
-            let (stable_top, lines) = term.get_lines(stable_range);
-
-            for (line_idx, line) in lines.iter().enumerate() {
-                let stable_row = stable_top + line_idx as StableRowIndex;
-
-                let selrange = self
-                    .selection(pos.pane.pane_id())
-                    .range
-                    .map(|sel| sel.cols_for_row(stable_row))
-                    .unwrap_or(0..0);
-
-                self.render_screen_line(
-                    ctx,
-                    line_idx + first_line_offset,
-                    Some(stable_row),
-                    &line,
-                    selrange,
-                    &cursor,
-                    &palette,
-                    &dims,
-                    pos,
-                )?;
-            }
-        }
-
-        // Fill any padding
-        let config = configuration();
-        let bg = rgbcolor_to_window_color(palette.background);
-        // Fill any padding below the last row
-        let dims = term.get_dimensions();
-        let num_rows = dims.viewport_rows;
-        let pixel_height_of_cells = config.window_padding.top as usize
-            + (num_rows + first_line_offset) * self.render_metrics.cell_size.height as usize;
-        ctx.clear_rect(
-            Rect::new(
-                Point::new(0, pixel_height_of_cells as isize),
-                Size::new(
-                    self.dimensions.pixel_width as isize,
-                    (self
-                        .dimensions
-                        .pixel_height
-                        .saturating_sub(pixel_height_of_cells)) as isize,
-                ),
-            ),
-            bg,
-        );
-
-        // top padding
-        ctx.clear_rect(
-            Rect::new(
-                Point::new(0, 0),
-                Size::new(
-                    self.dimensions.pixel_width as isize,
-                    config.window_padding.top as isize,
-                ),
-            ),
-            bg,
-        );
-        // left padding
-        ctx.clear_rect(
-            Rect::new(
-                Point::new(0, config.window_padding.top as isize),
-                Size::new(
-                    config.window_padding.left as isize,
-                    (self.dimensions.pixel_height - config.window_padding.top as usize) as isize,
-                ),
-            ),
-            bg,
-        );
-        // right padding / scroll bar
-        let padding_right = self.effective_right_padding(&config);
-
-        ctx.clear_rect(
-            Rect::new(
-                Point::new(
-                    (self.dimensions.pixel_width - padding_right as usize) as isize,
-                    config.window_padding.top as isize,
-                ),
-                Size::new(
-                    padding_right as isize,
-                    (self.dimensions.pixel_height - config.window_padding.top as usize) as isize,
-                ),
-            ),
-            bg,
-        );
-
-        if self.show_scroll_bar {
-            // FIXME: scrollbar for active pane
-            let current_viewport = self.get_viewport(pos.pane.pane_id());
-            let info = ScrollHit::thumb(
-                &*term,
-                current_viewport,
-                self.terminal_size,
-                &self.dimensions,
-            );
-
-            let thumb_size = info.height as isize;
-            let thumb_top = info.top as isize;
-
-            ctx.clear_rect(
-                Rect::new(
-                    Point::new(
-                        (self
-                            .dimensions
-                            .pixel_width
-                            .saturating_sub(padding_right as usize))
-                            as isize,
-                        thumb_top,
-                    ),
-                    Size::new(padding_right as isize, thumb_size),
-                ),
-                rgbcolor_to_window_color(palette.scrollbar_thumb),
-            );
-        }
-
-        Ok(())
-    }
-
     fn effective_right_padding(&self, config: &ConfigHandle) -> u16 {
         effective_right_padding(config, &self.render_metrics)
     }
@@ -3203,304 +2994,6 @@ impl TermWindow {
             );
             quad.set_cursor_color(params.cursor_border_color);
         }
-
-        Ok(())
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn render_screen_line(
-        &self,
-        ctx: &mut dyn PaintContext,
-        line_idx: usize,
-        stable_line_idx: Option<StableRowIndex>,
-        line: &Line,
-        selection: Range<usize>,
-        cursor: &StableCursorPosition,
-        palette: &ColorPalette,
-        dims: &RenderableDimensions,
-        pos: &PositionedPane,
-    ) -> anyhow::Result<()> {
-        let config = configuration();
-
-        let padding_left = config.window_padding.left as isize;
-        let padding_top = config.window_padding.top as isize;
-
-        let num_cols = dims.cols;
-        let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
-
-        // Break the line into clusters of cells with the same attributes
-        let cell_clusters = line.cluster();
-        let mut last_cell_idx = 0;
-        for cluster in cell_clusters {
-            let attrs = &cluster.attrs;
-            let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
-                (Some(ref this), &Some(ref highlight)) => *this == highlight,
-                _ => false,
-            };
-            let style = self.fonts.match_style(&config, attrs);
-
-            let bg_color = palette.resolve_bg(attrs.background);
-            let fg_color = match attrs.foreground {
-                wezterm_term::color::ColorAttribute::Default => {
-                    if let Some(fg) = style.foreground {
-                        fg
-                    } else {
-                        palette.resolve_fg(attrs.foreground)
-                    }
-                }
-                wezterm_term::color::ColorAttribute::PaletteIndex(idx)
-                    if idx < 8 && config.bold_brightens_ansi_colors =>
-                {
-                    // For compatibility purposes, switch to a brighter version
-                    // of one of the standard ANSI colors when Bold is enabled.
-                    // This lifts black to dark grey.
-                    let idx = if attrs.intensity() == wezterm_term::Intensity::Bold {
-                        idx + 8
-                    } else {
-                        idx
-                    };
-                    palette.resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
-                }
-                _ => palette.resolve_fg(attrs.foreground),
-            };
-
-            let (fg_color, bg_color) = {
-                let mut fg = fg_color;
-                let mut bg = bg_color;
-
-                if attrs.reverse() {
-                    std::mem::swap(&mut fg, &mut bg);
-                }
-
-                (fg, bg)
-            };
-
-            let glyph_color = rgbcolor_to_window_color(fg_color);
-            let bg_color = rgbcolor_to_window_color(bg_color);
-
-            // Shape the printable text from this cluster
-            let glyph_info = {
-                let font = self.fonts.resolve_font(style)?;
-                font.shape(&cluster.text)?
-            };
-
-            for info in &glyph_info {
-                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
-                let glyph = self.render_state.cached_software_glyph(info, style)?;
-
-                let left = (glyph.x_offset + glyph.bearing_x).get() as f32;
-                let top = ((PixelLength::new(self.render_metrics.cell_size.to_f64().height)
-                    + self.render_metrics.descender)
-                    - (glyph.y_offset + glyph.bearing_y))
-                    .get() as f32;
-
-                // underline and strikethrough
-                // Figure out what we're going to draw for the underline.
-                // If the current cell is part of the current URL highlight
-                // then we want to show the underline.
-                let underline = match (is_highlited_hyperlink, attrs.underline()) {
-                    (true, Underline::None) => Underline::Single,
-                    (_, underline) => underline,
-                };
-
-                // Iterate each cell that comprises this glyph.  There is usually
-                // a single cell per glyph but combining characters, ligatures
-                // and emoji can be 2 or more cells wide.
-                for glyph_idx in 0..info.num_cells as usize {
-                    let cell_idx = cell_idx + glyph_idx;
-
-                    if cell_idx >= num_cols {
-                        // terminal line data is wider than the window.
-                        // This happens for example while live resizing the window
-                        // smaller than the terminal.
-                        break;
-                    }
-                    last_cell_idx = cell_idx;
-
-                    let ComputeCellFgBgResult {
-                        fg_color: glyph_color,
-                        bg_color,
-                        cursor_shape,
-                    } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
-                        stable_line_idx,
-                        cell_idx,
-                        cursor,
-                        selection: &selection,
-                        fg_color: glyph_color,
-                        bg_color,
-                        palette,
-                        is_active_pane: pos.is_active,
-                        config: &config,
-                    });
-
-                    let cell_rect = Rect::new(
-                        Point::new(
-                            ((pos.left + cell_idx) as isize * self.render_metrics.cell_size.width)
-                                + padding_left,
-                            (self.render_metrics.cell_size.height * (pos.top + line_idx) as isize)
-                                + padding_top,
-                        ),
-                        self.render_metrics.cell_size,
-                    );
-                    ctx.clear_rect(cell_rect, bg_color);
-
-                    {
-                        let software = self.render_state.software();
-                        let sprite = software.util_sprites.select_sprite(
-                            is_highlited_hyperlink,
-                            attrs.strikethrough(),
-                            underline,
-                            attrs.overline(),
-                        );
-                        ctx.draw_image(
-                            cell_rect.origin,
-                            Some(sprite.coords),
-                            &*sprite.texture.image.borrow(),
-                            Operator::MultiplyThenOver(glyph_color),
-                        );
-                    }
-
-                    if let Some(ref texture) = glyph.texture {
-                        let slice = SpriteSlice {
-                            cell_idx: glyph_idx,
-                            num_cells: info.num_cells as usize,
-                            cell_width: self.render_metrics.cell_size.width as usize,
-                            scale: glyph.scale as f32,
-                            left_offset: left,
-                        };
-                        let left = if glyph_idx == 0 { left } else { 0.0 };
-
-                        ctx.draw_image(
-                            Point::new(
-                                (cell_rect.origin.x as f32 + left) as isize,
-                                (cell_rect.origin.y as f32 + top) as isize,
-                            ),
-                            Some(slice.pixel_rect(texture)),
-                            &*texture.texture.image.borrow(),
-                            if glyph.has_color {
-                                // For full color glyphs, always use their color.
-                                // This avoids rendering a black mask when the text
-                                // selection moves over the glyph
-                                Operator::Over
-                            } else {
-                                Operator::MultiplyThenOver(glyph_color)
-                            },
-                        );
-                    } else if let Some(image) = attrs.image() {
-                        // Render iTerm2 style image attributes
-                        let software = self.render_state.software();
-                        if let Ok(sprite) = software
-                            .glyph_cache
-                            .borrow_mut()
-                            .cached_image(image.image_data())
-                        {
-                            let width = sprite.coords.size.width;
-                            let height = sprite.coords.size.height;
-
-                            let top_left = image.top_left();
-                            let bottom_right = image.bottom_right();
-                            let origin = Point::new(
-                                sprite.coords.origin.x + (*top_left.x * width as f32) as isize,
-                                sprite.coords.origin.y + (*top_left.y * height as f32) as isize,
-                            );
-
-                            let coords = Rect::new(
-                                origin,
-                                Size::new(
-                                    ((*bottom_right.x - *top_left.x) * width as f32) as isize,
-                                    ((*bottom_right.y - *top_left.y) * height as f32) as isize,
-                                ),
-                            );
-
-                            ctx.draw_image(
-                                cell_rect.origin,
-                                Some(coords),
-                                &*sprite.texture.image.borrow(),
-                                Operator::Over,
-                            );
-                        }
-                    }
-
-                    if cursor_shape.is_some() {
-                        let software = self.render_state.software();
-                        let sprite = software.util_sprites.cursor_sprite(cursor_shape);
-                        ctx.draw_image(
-                            cell_rect.origin,
-                            Some(sprite.coords),
-                            &*sprite.texture.image.borrow(),
-                            Operator::MultiplyThenOver(cursor_border_color),
-                        );
-                    }
-                }
-            }
-        }
-
-        // Clear any remaining cells to the right of the clusters we
-        // found above, otherwise we leave artifacts behind.  The easiest
-        // reproduction for the artifacts is to maximize the window and
-        // open a vim split horizontally.  Backgrounding vim would leave
-        // the right pane with its prior contents instead of showing the
-        // cleared lines from the shell in the main screen.
-
-        for cell_idx in last_cell_idx + 1..num_cols {
-            // Even though we don't have a cell for these, they still
-            // hold the cursor or the selection so we need to compute
-            // the colors in the usual way.
-            let ComputeCellFgBgResult {
-                bg_color,
-                cursor_shape,
-                ..
-            } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
-                stable_line_idx,
-                cell_idx,
-                cursor,
-                selection: &selection,
-                fg_color: rgbcolor_to_window_color(palette.foreground),
-                bg_color: rgbcolor_to_window_color(palette.background),
-                palette,
-                is_active_pane: pos.is_active,
-                config: &config,
-            });
-
-            let cell_rect = Rect::new(
-                Point::new(
-                    (pos.left + cell_idx) as isize * self.render_metrics.cell_size.width,
-                    self.render_metrics.cell_size.height * (pos.top + line_idx) as isize,
-                ),
-                self.render_metrics.cell_size,
-            );
-            ctx.clear_rect(cell_rect, bg_color);
-
-            if cursor_shape.is_some() {
-                let software = self.render_state.software();
-                let sprite = software.util_sprites.cursor_sprite(cursor_shape);
-                ctx.draw_image(
-                    cell_rect.origin,
-                    Some(sprite.coords),
-                    &*sprite.texture.image.borrow(),
-                    Operator::MultiplyThenOver(cursor_border_color),
-                );
-            }
-        }
-
-        // Fill any marginal area to the right of the last cell
-        let pixel_width_of_cells =
-            padding_left as usize + (num_cols * self.render_metrics.cell_size.width as usize);
-        ctx.clear_rect(
-            Rect::new(
-                Point::new(
-                    pixel_width_of_cells as isize,
-                    self.render_metrics.cell_size.height * line_idx as isize,
-                ),
-                Size::new(
-                    self.dimensions
-                        .pixel_width
-                        .saturating_sub(pixel_width_of_cells) as isize,
-                    self.render_metrics.cell_size.height,
-                ),
-            ),
-            rgbcolor_to_window_color(palette.background),
-        );
 
         Ok(())
     }

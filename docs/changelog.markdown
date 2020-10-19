@@ -58,9 +58,8 @@ brief notes about them may accumulate here.
   based renderer.  (This applies to X11/Wayland and Windows
   systems).
 * Setting `front_end="Software"` will try to use the Mesa OpenGL
-  software renderer.  You can select `OldSoftware` if you
-  really want the basic CPU renderer (not recommended; it
-  doesn't support panes).
+  software renderer if available (X11/Wayland/Windows).
+  The old basic CPU renderer has been removed.
 * The multiplexer server has been moved into its own
   `wezterm-mux-server` executable.  You will need to revise
   your `serve_command` configuration.
