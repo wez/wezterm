@@ -89,6 +89,7 @@ struct ComputeCellFgBgParams<'a> {
     bg_color: Color,
     palette: &'a ColorPalette,
     is_active_pane: bool,
+    config: &'a ConfigHandle,
 }
 
 struct ComputeCellFgBgResult {
@@ -3044,6 +3045,7 @@ impl TermWindow {
                         bg_color,
                         palette: params.palette,
                         is_active_pane: params.pos.is_active,
+                        config: params.config,
                     });
 
                     if let Some(image) = attrs.image() {
@@ -3173,6 +3175,7 @@ impl TermWindow {
                 ),
                 palette: params.palette,
                 is_active_pane: params.pos.is_active,
+                config: params.config,
             });
 
             let mut quad =
@@ -3322,6 +3325,7 @@ impl TermWindow {
                         bg_color,
                         palette,
                         is_active_pane: pos.is_active,
+                        config: &config,
                     });
 
                     let cell_rect = Rect::new(
@@ -3450,6 +3454,7 @@ impl TermWindow {
                 bg_color: rgbcolor_to_window_color(palette.background),
                 palette,
                 is_active_pane: pos.is_active,
+                config: &config,
             });
 
             let cell_rect = Rect::new(
@@ -3508,15 +3513,15 @@ impl TermWindow {
                 // visible.
                 // If the cursor is set to a blinking mode then we are visible
                 // depending on the current time.
-                let config = configuration();
-                let shape = config
+                let shape = params
+                    .config
                     .default_cursor_style
                     .effective_shape(params.cursor.shape);
                 // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
                 // and the window is focused.
                 let blinking = params.is_active_pane
                     && shape.is_blinking()
-                    && config.cursor_blink_rate != 0
+                    && params.config.cursor_blink_rate != 0
                     && self.focused.is_some();
                 if blinking {
                     // Divide the time since we last moved by the blink rate.
@@ -3526,7 +3531,7 @@ impl TermWindow {
                     let milli_uptime = now
                         .duration_since(self.prev_cursor.last_cursor_movement())
                         .as_millis();
-                    let ticks = milli_uptime / config.cursor_blink_rate as u128;
+                    let ticks = milli_uptime / params.config.cursor_blink_rate as u128;
                     (
                         shape,
                         if (ticks & 1) == 0 {
