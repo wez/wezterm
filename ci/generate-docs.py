@@ -69,7 +69,7 @@ class GenColorScheme(object):
                 continue
 
             scheme_filename = f"{scheme_prefix}/index.md"
-            children.append(Page(title.upper(), scheme_filename))
+            children.append(Page(title, scheme_filename))
 
             with open(scheme_filename, "w") as idx:
                 images = sorted(glob.glob(f"{scheme_prefix}/*.png"))
