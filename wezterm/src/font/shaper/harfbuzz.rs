@@ -58,10 +58,24 @@ fn make_question_string(s: &str) -> String {
     use unicode_segmentation::UnicodeSegmentation;
     let len = s.graphemes(true).count();
     let mut result = String::new();
+    let c = if !is_question_string(s) {
+        std::char::REPLACEMENT_CHARACTER
+    } else {
+        '?'
+    };
     for _ in 0..len {
-        result.push(std::char::REPLACEMENT_CHARACTER);
+        result.push(c);
     }
     result
+}
+
+fn is_question_string(s: &str) -> bool {
+    for c in s.chars() {
+        if c != std::char::REPLACEMENT_CHARACTER {
+            return false;
+        }
+    }
+    true
 }
 
 impl HarfbuzzShaper {
