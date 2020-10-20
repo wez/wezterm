@@ -97,7 +97,7 @@ return {{
             idx.write("Color schemes listed by first letter\n\n")
             for page in children:
                 upper = page.title.upper()
-                idx.write(f"  - [{upper}]({page.title}.md)\n")
+                idx.write(f"  - [{upper}]({page.title}/index.md)\n")
 
 TOC = [
     Page(
