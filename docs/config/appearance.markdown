@@ -10,7 +10,8 @@ return {
 }
 ```
 
-You can find a list of available color schemes in [The Color Schemes Section](../colorschemes/index.md).
+You can find a list of available color schemes and screenshots
+in [The Color Schemes Section](../colorschemes/index.md).
 
 The `color_scheme` option takes precedence over the `colors` section below.
 
