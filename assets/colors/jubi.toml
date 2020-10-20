@@ -1,0 +1,11 @@
+# jubi
+[colors]
+foreground = "#c3d3de"
+background = "#262b33"
+cursor_bg = "#c3d3de"
+cursor_fg = "#1e1b2e"
+selection_bg = "#5b5184"
+selection_fg = "#1e1b2e"
+
+ansi = ["#3b3750","#cf7b98","#90a94b","#6ebfc0","#576ea6","#bc4f68","#75a7d2","#c3d3de"]
+brights = ["#a874ce","#de90ab","#bcdd61","#87e9ea","#8c9fcd","#e16c87","#b7c9ef","#d5e5f1"]

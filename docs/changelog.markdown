@@ -88,6 +88,9 @@ brief notes about them may accumulate here.
   behavior is not as smooth with ANGLE as the prior WGL.
   If you wish, you can set `prefer_egl = false` to use
   WGL.
+* New color schemes: `Dracula+`, `Gruvbox Light`, `MaterialDarker`,
+  `Overnight Slumber`, `Popping and Locking`, `Rapture`,
+  `jubi`, `nord`.
 
 ### 20200909-002054-4c9af461
 

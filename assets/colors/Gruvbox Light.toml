@@ -1,0 +1,11 @@
+# Gruvbox Light
+[colors]
+foreground = "#282828"
+background = "#fbf1c7"
+cursor_bg = "#282828"
+cursor_fg = "#282828"
+selection_bg = "#d5c4a1"
+selection_fg = "#665c54"
+
+ansi = ["#fbf1c7","#9d0006","#79740e","#b57614","#076678","#8f3f71","#427b58","#3c3836"]
+brights = ["#9d8374","#cc241d","#98971a","#d79921","#458588","#b16186","#689d69","#7c6f64"]

@@ -1,0 +1,11 @@
+# Rapture
+[colors]
+foreground = "#c0c9e5"
+background = "#111e2a"
+cursor_bg = "#ffffff"
+cursor_fg = "#111e2a"
+selection_bg = "#304b66"
+selection_fg = "#ffffff"
+
+ansi = ["#000000","#fc644d","#7afde1","#fff09b","#6c9bf5","#ff4fa1","#64e0ff","#c0c9e5"]
+brights = ["#304b66","#fc644d","#7afde1","#fff09b","#6c9bf5","#ff4fa1","#64e0ff","#ffffff"]

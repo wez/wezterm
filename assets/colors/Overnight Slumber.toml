@@ -1,0 +1,11 @@
+# Overnight Slumber
+[colors]
+foreground = "#ced2d6"
+background = "#0e1729"
+cursor_bg = "#ffa7c4"
+cursor_fg = "#ffffff"
+selection_bg = "#1f2b41"
+selection_fg = "#ced2d6"
+
+ansi = ["#0a1222","#ffa7c4","#85cc95","#ffcb8b","#8dabe1","#c792eb","#78ccf0","#ffffff"]
+brights = ["#575656","#ffa7c4","#85cc95","#ffcb8b","#8dabe1","#c792eb","#ffa7c4","#ffffff"]

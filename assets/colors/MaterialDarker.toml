@@ -1,0 +1,11 @@
+# MaterialDarker
+[colors]
+foreground = "#eeffff"
+background = "#212121"
+cursor_bg = "#ffffff"
+cursor_fg = "#ffffff"
+selection_bg = "#eeffff"
+selection_fg = "#545454"
+
+ansi = ["#000000","#ff5370","#c3e88d","#ffcb6b","#82aaff","#c792ea","#89ddff","#ffffff"]
+brights = ["#545454","#ff5370","#c3e88d","#ffcb6b","#82aaff","#c792ea","#89ddff","#ffffff"]
