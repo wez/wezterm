@@ -14,7 +14,7 @@ for scheme in *.sh ; do
   mkdir -p $prefix
   bash "./$scheme"
   bash "../tools/screenshotTable.sh"
-  sleep 1
+  sleep 0.2
   xwd -id $WINID | convert "xwd:-" "png:$prefix/${scheme%.sh}.png"
 done
 
