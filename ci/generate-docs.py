@@ -3,6 +3,7 @@ import sys
 import os
 import glob
 import re
+import subprocess
 
 
 class Page(object):
@@ -46,6 +47,57 @@ class Gen(object):
             for page in children:
                 idx.write(f"  - [{page.title}]({page.title}.md)\n")
 
+def image_dimensions(filename):
+    out = subprocess.check_output(["identify", filename])
+    fields = out.split()
+    while fields[0] != b'PNG':
+        fields = fields[1:]
+    return [int(x) for x in fields[1].split(b'x')]
+
+class GenColorScheme(object):
+    def __init__(self, title, dirname, index=None):
+        self.title = title
+        self.dirname = dirname
+        self.index = index
+
+    def render(self, output, depth=0):
+        names = sorted(glob.glob(f"{self.dirname}/*"))
+        children = []
+        for scheme_prefix in names:
+            title = os.path.basename(scheme_prefix).rsplit(".", 1)[0]
+            if title == "index":
+                continue
+
+            scheme_filename = f"{scheme_prefix}/index.md"
+            children.append(Page(title.upper(), scheme_filename))
+
+            with open(scheme_filename, "w") as idx:
+                images = sorted(glob.glob(f"{scheme_prefix}/*.png"))
+                for img in images:
+                    width, height = image_dimensions(img)
+                    img = os.path.basename(img)
+                    title = os.path.basename(img).rsplit(".", 1)[0]
+                    idx.write(f"# {title}\n")
+                    idx.write(f"<img width=\"{width}\" height=\"{height}\" src=\"{img}\" alt=\"{title}\">\n\n")
+                    idx.write("To use this scheme, add this to your config:\n")
+                    idx.write(f"""
+```lua
+return {{
+  color_scheme = "{title}",
+}}
+```
+
+""")
+
+        index_filename = f"{self.dirname}/index.md"
+        index_page = Page(self.title, index_filename, children=children)
+        index_page.render(output, depth)
+
+        with open(f"{self.dirname}/index.md", "w") as idx:
+            idx.write("Color schemes listed by first letter\n\n")
+            for page in children:
+                upper = page.title.upper()
+                idx.write(f"  - [{upper}]({page.title}.md)\n")
 
 TOC = [
     Page(
@@ -87,6 +139,7 @@ TOC = [
             Page("F.A.Q.", "faq.markdown"),
             Page("Getting Help", "help.markdown"),
             Page("Contributing", "contributing.markdown"),
+            GenColorScheme("Color Schemes", "colorschemes"),
             Page(
                 "Lua Reference",
                 "config/lua/general.md",

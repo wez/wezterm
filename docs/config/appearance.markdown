@@ -10,8 +10,7 @@ return {
 }
 ```
 
-There are literally too many schemes to reasonably list here; check out the
-[screenshots](https://github.com/mbadolato/iTerm2-Color-Schemes#screenshots)!
+You can find a list of available color schemes in [The Color Schemes Section](../colorschemes/index.md).
 
 The `color_scheme` option takes precedence over the `colors` section below.
 
