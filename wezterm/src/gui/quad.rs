@@ -30,6 +30,7 @@ pub struct Vertex {
     pub cursor_color: (f32, f32, f32, f32),
     pub bg_color: (f32, f32, f32, f32),
     pub fg_color: (f32, f32, f32, f32),
+    pub hsv: (f32, f32, f32),
     // We use a float for this because I can't get
     // bool or integer values to work:
     // "bool can't be an in in the vertex shader"
@@ -52,6 +53,7 @@ pub struct Vertex {
     cursor_color,
     bg_color,
     fg_color,
+    hsv,
     has_color
 );
 
@@ -187,6 +189,13 @@ impl<'a> Quad<'a> {
         let color = color.to_tuple_rgba();
         for v in self.vert.iter_mut() {
             v.cursor_color = color;
+        }
+    }
+
+    pub fn set_hsv(&mut self, hsv: Option<(f32, f32, f32)>) {
+        let s = hsv.unwrap_or((1., 1., 1.));
+        for v in self.vert.iter_mut() {
+            v.hsv = s;
         }
     }
 

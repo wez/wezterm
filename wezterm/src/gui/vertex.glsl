@@ -8,6 +8,7 @@ in vec4 fg_color;
 in float has_color;
 in vec2 cursor;
 in vec4 cursor_color;
+in vec3 hsv;
 
 uniform mat4 projection;
 uniform bool window_bg_layer;
@@ -21,6 +22,7 @@ out float o_has_color;
 out vec2 o_underline;
 out vec2 o_cursor;
 out vec4 o_cursor_color;
+out vec3 o_hsv;
 
 // Returns a position that is outside of the viewport,
 // such that this vertex effectively won't contribute
@@ -38,6 +40,7 @@ void main() {
     o_underline = underline;
     o_cursor = cursor;
     o_cursor_color = cursor_color;
+    o_hsv = hsv;
 
     if (window_bg_layer) {
       if (o_has_color == 2.0) {

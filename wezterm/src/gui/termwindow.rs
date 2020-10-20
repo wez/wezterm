@@ -79,6 +79,7 @@ struct RenderScreenLineOpenGLParams<'a> {
 
     cursor_border_color: Color,
     foreground: Color,
+    is_active: bool,
 }
 
 struct ComputeCellFgBgParams<'a> {
@@ -2339,6 +2340,7 @@ impl TermWindow {
 
                 quad.set_fg_color(foreground);
                 quad.set_bg_color(background);
+                quad.set_hsv(None);
                 quad.set_texture(texture_rect);
                 quad.set_texture_adjust(left, top, right, bottom);
                 quad.set_underline(underline_tex_rect);
@@ -2406,12 +2408,18 @@ impl TermWindow {
                     cursor_border_color,
                     foreground,
                     pos,
+                    is_active: true,
                 },
                 &mut quads,
             )?;
         }
 
-        {
+        // TODO: we only have a single scrollbar in a single position.
+        // We only update it for the active pane, but we should probably
+        // do a per-pane scrollbar.  That will require more extensive
+        // changes to ScrollHit, mouse positioning, PositionedPane
+        // and tab size calculation.
+        if pos.is_active {
             let (thumb_top, thumb_size, color) = if self.show_scroll_bar {
                 let info = ScrollHit::thumb(
                     &*term,
@@ -2447,6 +2455,7 @@ impl TermWindow {
             quad.set_position(left, top, right, bottom);
             quad.set_texture(white_space);
             quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_hsv(None);
             quad.set_underline(white_space);
             quad.set_has_color(false);
             quad.set_cursor(white_space);
@@ -2470,6 +2479,7 @@ impl TermWindow {
                     quad.set_is_background_image();
                 }
             }
+            quad.set_hsv(None);
             quad.set_cursor_color(color);
             quad.set_fg_color(color);
             quad.set_bg_color(background);
@@ -2497,6 +2507,7 @@ impl TermWindow {
                     cursor_border_color,
                     foreground,
                     pos,
+                    is_active: pos.is_active,
                 },
                 &mut quads,
             )?;
@@ -2629,6 +2640,16 @@ impl TermWindow {
         let gl_state = self.render_state.opengl();
 
         let num_cols = params.dims.cols;
+
+        let hsv = if params.is_active {
+            None
+        } else {
+            Some((
+                params.config.inactive_pane_hue,
+                params.config.inactive_pane_saturation,
+                params.config.inactive_pane_brightness,
+            ))
+        };
 
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = params.line.cluster();
@@ -2806,6 +2827,7 @@ impl TermWindow {
                                 Err(_) => break,
                             };
 
+                            quad.set_hsv(hsv);
                             quad.set_fg_color(glyph_color);
                             quad.set_bg_color(bg_color);
                             quad.set_texture(texture_rect);
@@ -2858,6 +2880,7 @@ impl TermWindow {
                     quad.set_texture(texture_rect);
                     quad.set_texture_adjust(left, top, right, bottom);
                     quad.set_underline(underline_tex_rect);
+                    quad.set_hsv(hsv);
                     quad.set_has_color(glyph.has_color);
                     quad.set_cursor(
                         gl_state
@@ -2915,6 +2938,7 @@ impl TermWindow {
             quad.set_texture_adjust(0., 0., 0., 0.);
             quad.set_underline(white_space);
             quad.set_has_color(false);
+            quad.set_hsv(hsv);
             quad.set_cursor(
                 gl_state
                     .util_sprites

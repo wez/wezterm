@@ -714,6 +714,42 @@ pub struct Config {
     #[serde(default = "default_one_point_oh")]
     pub window_background_opacity: f32,
 
+    /// inactive_pane_hue, inactive_pane_saturation and
+    /// inactive_pane_brightness allow for transforming the color
+    /// of inactive panes.
+    /// The pane colors are converted to HSV values and multiplied
+    /// by these values before being converted back to RGB to
+    /// use in the display.
+    ///
+    /// The default is 1.0 which leaves the values as-is.
+    ///
+    /// Modifying the hue changes the hue of the color by rotating
+    /// it through the color wheel.  It is not as useful as the
+    /// other components, but is available "for free" as part of
+    /// the colorspace conversion.
+    ///
+    /// Modifying the saturation can add or reduce the amount of
+    /// "colorfulness".  Making the value smaller can make it appear
+    /// more washed out.
+    ///
+    /// Modifying the brightness can be used to dim or increase
+    /// the perceived amount of light.
+    ///
+    /// The range of these values is 0.0 and up; they are used to
+    /// multiply the existing values, so the default of 1.0
+    /// preserves the existing component, whilst 0.5 will reduce
+    /// it by half, and 2.0 will double the value.
+    ///
+    /// A subtle dimming effect can be achieved by setting:
+    /// inactive_pane_saturation = 0.9
+    /// inactive_pane_brightness = 0.8
+    #[serde(default = "default_one_point_oh")]
+    pub inactive_pane_hue: f32,
+    #[serde(default = "default_one_point_oh")]
+    pub inactive_pane_saturation: f32,
+    #[serde(default = "default_one_point_oh")]
+    pub inactive_pane_brightness: f32,
+
     /// Specifies the alpha value to use when applying the default
     /// background color in a cell.  This is useful to apply a kind
     /// of "tint" to the background image if either window_background_image

@@ -206,16 +206,8 @@ impl OpenGLRenderState {
             }
         }
 
-        {
-            // And a quad for the scrollbar thumb
-            let x_pos = (width / 2.0) - cell_width;
-            let y_pos = (height / -2.0) + padding_top;
-            let thumb_width = cell_width;
-            let thumb_height = height;
-
-            quads.scroll_thumb =
-                define_quad(x_pos, y_pos, x_pos + thumb_width, y_pos + thumb_height) as usize;
-        }
+        // And a quad for the scrollbar thumb
+        quads.scroll_thumb = define_quad(0.0, 0.0, 0.0, 0.0) as usize;
 
         Ok((
             VertexBuffer::dynamic(context, &verts)?,
