@@ -28,6 +28,7 @@ pub struct ColorPalette {
     pub selection_fg: RgbColor,
     pub selection_bg: RgbColor,
     pub scrollbar_thumb: RgbColor,
+    pub split: RgbColor,
 }
 
 /// Adjust the color to make it appear disabled.
@@ -88,6 +89,7 @@ impl ColorPalette {
             selection_fg: grey_out(self.selection_fg),
             selection_bg: grey_out(self.selection_bg),
             scrollbar_thumb: grey_out(self.scrollbar_thumb),
+            split: grey_out(self.split),
         }
     }
 }
@@ -232,6 +234,7 @@ impl Default for ColorPalette {
         let selection_bg = RgbColor::new(0xff, 0xfa, 0xcd);
 
         let scrollbar_thumb = RgbColor::new(0x22, 0x22, 0x22);
+        let split = RgbColor::new(0x44, 0x44, 0x44);
 
         ColorPalette {
             colors: Palette256(colors),
@@ -243,6 +246,7 @@ impl Default for ColorPalette {
             selection_fg,
             selection_bg,
             scrollbar_thumb,
+            split,
         }
     }
 }

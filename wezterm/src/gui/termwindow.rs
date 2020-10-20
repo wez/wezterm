@@ -2255,7 +2255,7 @@ impl TermWindow {
             "─"
         };
         let palette = pane.palette();
-        let foreground = rgbcolor_to_window_color(palette.foreground);
+        let foreground = rgbcolor_to_window_color(palette.split);
         let background = rgbcolor_alpha_to_window_color(
             palette.background,
             if self.window_background.is_none() && config.window_background_opacity == 1.0 {

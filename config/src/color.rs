@@ -26,6 +26,8 @@ pub struct Palette {
     /// The color of the "thumb" of the scrollbar; the segment that
     /// represents the current viewable area
     pub scrollbar_thumb: Option<RgbColor>,
+    /// The color of the split line between panes
+    pub split: Option<RgbColor>,
 }
 impl_lua_conversion!(Palette);
 
@@ -47,6 +49,7 @@ impl From<Palette> for wezterm_term::color::ColorPalette {
         apply_color!(selection_fg);
         apply_color!(selection_bg);
         apply_color!(scrollbar_thumb);
+        apply_color!(split);
 
         if let Some(ansi) = cfg.ansi {
             for (idx, col) in ansi.iter().enumerate() {

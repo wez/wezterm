@@ -47,6 +47,9 @@ return {
       -- The color of the scrollbar "thumb"; the portion that represents the current viewport
       scrollbar_thumb = "#222222",
 
+      -- The color of the split lines between panes
+      split = "#444444",
+
       ansi = {"black", "maroon", "green", "olive", "navy", "purple", "teal", "silver"},
       brights = {"grey", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"},
   }
