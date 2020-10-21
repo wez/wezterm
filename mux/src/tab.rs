@@ -32,6 +32,8 @@ pub struct PositionedPane {
     pub index: usize,
     /// true if this is the active pane at the time the position was computed
     pub is_active: bool,
+    /// true if this pane is zoomed
+    pub is_zoomed: bool,
     /// The offset from the top left corner of the containing tab to the top
     /// left corner of this pane, in cells.
     pub left: usize,
@@ -549,6 +551,7 @@ impl Tab {
             panes.push(PositionedPane {
                 index: 0,
                 is_active: true,
+                is_zoomed: true,
                 left: 0,
                 top: 0,
                 width: size.cols.into(),
@@ -590,6 +593,7 @@ impl Tab {
                 panes.push(PositionedPane {
                     index,
                     is_active: index == active_idx,
+                    is_zoomed: false,
                     left,
                     top,
                     width: dims.cols as _,

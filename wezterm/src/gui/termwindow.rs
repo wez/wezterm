@@ -1306,28 +1306,37 @@ impl TermWindow {
         let tab_no = window.get_active_idx();
         drop(window);
 
-        let title = if let Some(pane) = self.get_active_pane_or_overlay() {
-            pane.get_title()
-        } else {
-            return;
-        };
+        let panes = self.get_panes_to_render();
+        if let Some(pos) = panes.iter().find(|p| p.is_active) {
+            let title = pos.pane.get_title();
 
-        if let Some(window) = self.window.as_ref() {
-            let show_tab_bar;
-            if num_tabs == 1 {
-                window.set_title(&title);
-                show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
-            } else {
-                window.set_title(&format!("[{}/{}] {}", tab_no + 1, num_tabs, title));
-                show_tab_bar = config.enable_tab_bar;
-            }
+            if let Some(window) = self.window.as_ref() {
+                let show_tab_bar;
+                if num_tabs == 1 {
+                    window.set_title(&format!(
+                        "{}{}",
+                        if pos.is_zoomed { "[Z] " } else { "" },
+                        title
+                    ));
+                    show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
+                } else {
+                    window.set_title(&format!(
+                        "{}[{}/{}] {}",
+                        if pos.is_zoomed { "[Z] " } else { "" },
+                        tab_no + 1,
+                        num_tabs,
+                        title
+                    ));
+                    show_tab_bar = config.enable_tab_bar;
+                }
 
-            // If the number of tabs changed and caused the tab bar to
-            // hide/show, then we'll need to resize things.  It is simplest
-            // to piggy back on the config reloading code for that, so that
-            // is what we're doing.
-            if show_tab_bar != self.show_tab_bar {
-                self.config_was_reloaded();
+                // If the number of tabs changed and caused the tab bar to
+                // hide/show, then we'll need to resize things.  It is simplest
+                // to piggy back on the config reloading code for that, so that
+                // is what we're doing.
+                if show_tab_bar != self.show_tab_bar {
+                    self.config_was_reloaded();
+                }
             }
         }
     }
@@ -3580,6 +3589,7 @@ impl TermWindow {
             vec![PositionedPane {
                 index: 0,
                 is_active: true,
+                is_zoomed: false,
                 left: 0,
                 top: 0,
                 width: size.cols as _,
