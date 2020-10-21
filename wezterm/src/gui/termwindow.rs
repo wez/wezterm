@@ -991,16 +991,21 @@ impl TermWindow {
     fn periodic_window_maintenance(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
 
-        if let Some(pane) = self.get_active_pane_or_overlay() {
-            let mut needs_invalidate = false;
+        let mut needs_invalidate = false;
+        // If the config was reloaded, ask the window to apply
+        // and render any changes
+        self.check_for_config_reload();
 
-            // If the config was reloaded, ask the window to apply
-            // and render any changes
-            self.check_for_config_reload();
+        let config = configuration();
 
-            let config = configuration();
+        let panes = self.get_panes_to_render();
+        if panes.is_empty() {
+            self.window.as_ref().unwrap().close();
+            return Ok(());
+        }
 
-            let render = pane.renderer();
+        for pos in panes {
+            let render = pos.pane.renderer();
 
             // If blinking is permitted, and the cursor shape is set
             // to a blinking variant, and it's been longer than the
@@ -1009,7 +1014,7 @@ impl TermWindow {
             // This is pretty heavyweight: it would be nice to only invalidate
             // the line on which the cursor resides, and then only if the cursor
             // is within the viewport.
-            if config.cursor_blink_rate != 0 && self.focused.is_some() {
+            if config.cursor_blink_rate != 0 && pos.is_active && self.focused.is_some() {
                 let shape = config
                     .default_cursor_style
                     .effective_shape(render.get_cursor_position().shape);
@@ -1027,14 +1032,14 @@ impl TermWindow {
             // If the model is dirty, arrange to re-paint
             let dims = render.get_dimensions();
             let viewport = self
-                .get_viewport(pane.pane_id())
+                .get_viewport(pos.pane.pane_id())
                 .unwrap_or(dims.physical_top);
             let visible_range = viewport..viewport + dims.viewport_rows as StableRowIndex;
             let dirty = render.get_dirty_lines(visible_range);
 
             if !dirty.is_empty() {
-                if pane.downcast_ref::<SearchOverlay>().is_none()
-                    && pane.downcast_ref::<CopyOverlay>().is_none()
+                if pos.pane.downcast_ref::<SearchOverlay>().is_none()
+                    && pos.pane.downcast_ref::<CopyOverlay>().is_none()
                 {
                     // If any of the changed lines intersect with the
                     // selection, then we need to clear the selection, but not
@@ -1044,7 +1049,7 @@ impl TermWindow {
                     // and we want to allow it to retain the selection it made!
 
                     let clear_selection = if let Some(selection_range) =
-                        self.selection(pane.pane_id()).range.as_ref()
+                        self.selection(pos.pane.pane_id()).range.as_ref()
                     {
                         let selection_rows = selection_range.rows();
                         selection_rows.into_iter().any(|row| dirty.contains(row))
@@ -1053,25 +1058,23 @@ impl TermWindow {
                     };
 
                     if clear_selection {
-                        self.selection(pane.pane_id()).range.take();
-                        self.selection(pane.pane_id()).start.take();
+                        self.selection(pos.pane.pane_id()).range.take();
+                        self.selection(pos.pane.pane_id()).start.take();
                     }
                 }
 
                 needs_invalidate = true;
             }
+        }
 
-            if let Some(mut mux_window) = mux.get_window_mut(self.mux_window_id) {
-                if mux_window.check_and_reset_invalidated() {
-                    needs_invalidate = true;
-                }
+        if let Some(mut mux_window) = mux.get_window_mut(self.mux_window_id) {
+            if mux_window.check_and_reset_invalidated() {
+                needs_invalidate = true;
             }
+        }
 
-            if needs_invalidate {
-                self.window.as_ref().unwrap().invalidate();
-            }
-        } else {
-            self.window.as_ref().unwrap().close();
+        if needs_invalidate {
+            self.window.as_ref().unwrap().invalidate();
         }
 
         Ok(())
