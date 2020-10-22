@@ -288,6 +288,8 @@ impl XWindowInner {
                     MouseCursor::Arrow => 132,
                     MouseCursor::Hand => 58,
                     MouseCursor::Text => 152,
+                    MouseCursor::SizeUpDown => 116,
+                    MouseCursor::SizeLeftRight => 108,
                 };
 
                 let cursor_id: xcb::ffi::xcb_cursor_t = conn.generate_id();

@@ -3303,7 +3303,7 @@ impl TermWindow {
         event: &MouseEvent,
         context: &dyn WindowOps,
     ) {
-        let mut on_split = false;
+        let mut on_split = None;
         if y >= 0 {
             let y = y as usize;
 
@@ -3311,24 +3311,30 @@ impl TermWindow {
                 on_split = match split.direction {
                     SplitDirection::Horizontal => {
                         if x == split.left && y >= split.top && y <= split.top + split.size {
-                            true
+                            Some(SplitDirection::Horizontal)
                         } else {
-                            false
+                            None
                         }
                     }
                     SplitDirection::Vertical => {
                         if y == split.top && x >= split.left && x <= split.left + split.size {
-                            true
+                            Some(SplitDirection::Vertical)
                         } else {
-                            false
+                            None
                         }
                     }
                 };
 
-                if on_split && event.kind == WMEK::Press(MousePress::Left) {
-                    context.set_cursor(Some(MouseCursor::Hand));
-                    self.split_drag_start.replace(split);
-                    return;
+                if on_split.is_some() {
+                    if event.kind == WMEK::Press(MousePress::Left) {
+                        context.set_cursor(on_split.map(|d| match d {
+                            SplitDirection::Horizontal => MouseCursor::SizeLeftRight,
+                            SplitDirection::Vertical => MouseCursor::SizeUpDown,
+                        }));
+                        self.split_drag_start.replace(split);
+                        return;
+                    }
+                    break;
                 }
             }
         }
@@ -3396,12 +3402,18 @@ impl TermWindow {
             }
         };
 
-        context.set_cursor(Some(if on_split || self.current_highlight.is_some() {
-            // When hovering over a hyperlink, show an appropriate
-            // mouse cursor to give the cue that it is clickable
-            MouseCursor::Hand
-        } else {
-            MouseCursor::Text
+        context.set_cursor(Some(match on_split {
+            Some(SplitDirection::Horizontal) => MouseCursor::SizeLeftRight,
+            Some(SplitDirection::Vertical) => MouseCursor::SizeUpDown,
+            None => {
+                if self.current_highlight.is_some() {
+                    // When hovering over a hyperlink, show an appropriate
+                    // mouse cursor to give the cue that it is clickable
+                    MouseCursor::Hand
+                } else {
+                    MouseCursor::Text
+                }
+            }
         }));
 
         let event_trigger_type = match &event.kind {

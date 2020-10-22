@@ -929,6 +929,8 @@ impl WindowOpsMut for WaylandWindowInner {
         let cursor = match cursor {
             Some(MouseCursor::Arrow) => "arrow",
             Some(MouseCursor::Hand) => "hand",
+            Some(MouseCursor::SizeUpDown) => "ns-resize",
+            Some(MouseCursor::SizeLeftRight) => "ew-resize",
             Some(MouseCursor::Text) => "text",
             None => return,
         };

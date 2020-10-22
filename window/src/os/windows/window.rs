@@ -885,6 +885,8 @@ fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
                     MouseCursor::Arrow => IDC_ARROW,
                     MouseCursor::Hand => IDC_HAND,
                     MouseCursor::Text => IDC_IBEAM,
+                    MouseCursor::SizeUpDown => IDC_SIZENS,
+                    MouseCursor::SizeLeftRight => IDC_SIZEWE,
                 },
             ));
         },

@@ -653,6 +653,8 @@ impl WindowOpsMut for WindowInner {
                     MouseCursor::Arrow => msg_send![ns_cursor_cls, arrowCursor],
                     MouseCursor::Text => msg_send![ns_cursor_cls, IBeamCursor],
                     MouseCursor::Hand => msg_send![ns_cursor_cls, pointingHandCursor],
+                    MouseCursor::SizeUpDown => msg_send![ns_cursor_cls, resizeUpDown],
+                    MouseCursor::SizeLeftRight => msg_send![ns_cursor_cls, resizeLeftRight],
                 };
                 let () = msg_send![instance, set];
             }

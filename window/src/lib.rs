@@ -105,6 +105,8 @@ pub enum MouseCursor {
     Arrow,
     Hand,
     Text,
+    SizeUpDown,
+    SizeLeftRight,
 }
 
 #[allow(unused_variables)]
