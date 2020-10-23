@@ -136,6 +136,12 @@ impl GlyphCache<SrgbTexture2d> {
             atlas,
         })
     }
+
+    pub fn clear(&mut self) {
+        self.atlas.clear();
+        self.image_cache.clear();
+        self.glyph_cache.clear();
+    }
 }
 
 impl<T: Texture2d> GlyphCache<T> {

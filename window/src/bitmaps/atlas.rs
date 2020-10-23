@@ -1,40 +1,32 @@
 use crate::bitmaps::{BitmapImage, Texture2d, TextureRect};
 use crate::{Point, Rect, Size};
 use anyhow::{ensure, Result as Fallible};
+use guillotiere::{AtlasAllocator, Size as AtlasSize};
+use std::convert::TryInto;
 use std::rc::Rc;
 use thiserror::*;
 
-pub const TEX_SIZE: u32 = 4096;
-const PADDING: usize = 1;
+const PADDING: i32 = 1;
 
 #[derive(Debug, Error)]
-#[error("Texture Size exceeded, need {}", size)]
+#[error("Texture Size exceeded, need {:?}", size)]
 pub struct OutOfTextureSpace {
-    pub size: usize,
+    pub size: Option<usize>,
 }
 
 /// Atlases are bitmaps of srgba data that are sized as a power of 2.
-/// We allocate sprites out of the available space, starting from the
-/// bottom left corner and working to the right until we run out of
-/// space, then we move up to the logical row above.  Since sprites can
-/// have varying height the height of the rows can also vary.
+/// We allocate sprites out of the available space, using AtlasAllocator
+/// to manage the available rectangles.
 pub struct Atlas<T>
 where
     T: Texture2d,
 {
     texture: Rc<T>,
 
+    allocator: AtlasAllocator,
+
     /// Dimensions of the texture
     side: usize,
-
-    /// The bottom of the available space.
-    bottom: usize,
-
-    /// The height of the tallest sprite allocated on the current row
-    tallest: usize,
-
-    /// How far along the current row we've progressed
-    left: usize,
 }
 
 impl<T> Atlas<T>
@@ -46,12 +38,12 @@ where
             texture.width() == texture.height(),
             "texture must be square!"
         );
+        let side = texture.width();
+        let allocator = AtlasAllocator::new(AtlasSize::new(side.try_into()?, side.try_into()?));
         Ok(Self {
             texture: Rc::clone(texture),
-            side: texture.width(),
-            bottom: 0,
-            tallest: 0,
-            left: 0,
+            side,
+            allocator,
         })
     }
 
@@ -64,56 +56,58 @@ where
     pub fn allocate(&mut self, im: &dyn BitmapImage) -> Result<Sprite<T>, OutOfTextureSpace> {
         let (width, height) = im.image_dimensions();
 
+        // If we can't convert the sizes to i32, then we'll never
+        // be able to store this image
+        let reserve_width: i32 = width
+            .try_into()
+            .map_err(|_| OutOfTextureSpace { size: None })?;
+        let reserve_height: i32 = height
+            .try_into()
+            .map_err(|_| OutOfTextureSpace { size: None })?;
+
         // We pad each sprite reservation with blank space to avoid
         // surprising and unexpected artifacts when the texture is
         // interpolated on to the render surface.
-        let reserve_width = width + PADDING * 2;
-        let reserve_height = height + PADDING * 2;
+        let reserve_width = reserve_width + PADDING * 2;
+        let reserve_height = reserve_height + PADDING * 2;
 
-        if reserve_width > self.side || reserve_height > self.side {
+        if let Some(allocation) = self
+            .allocator
+            .allocate(AtlasSize::new(reserve_width, reserve_height))
+        {
+            let left = allocation.rectangle.min.x;
+            let top = allocation.rectangle.min.y;
+            let rect = Rect::new(
+                Point::new((left + PADDING) as isize, (top + PADDING) as isize),
+                Size::new(width as isize, height as isize),
+            );
+
+            self.texture.write(rect, im);
+
+            Ok(Sprite {
+                texture: Rc::clone(&self.texture),
+                coords: rect,
+            })
+        } else {
             // It's not possible to satisfy that request
-            return Err(OutOfTextureSpace {
-                size: reserve_width.max(reserve_height).next_power_of_two(),
-            });
+            let size = (reserve_width.max(reserve_height) as usize).next_power_of_two();
+            Err(OutOfTextureSpace {
+                size: Some((self.side * 2).max(size)),
+            })
         }
-        let x_left = self.side - self.left;
-        if x_left < reserve_width {
-            // Bump up to next row
-            self.bottom += self.tallest;
-            self.left = 0;
-            self.tallest = 0;
-        }
-
-        // Do we have vertical space?
-        let y_left = self.side - self.bottom;
-        if y_left < reserve_height {
-            // No room at the inn.
-            return Err(OutOfTextureSpace {
-                size: (self.side + reserve_width.max(reserve_height)).next_power_of_two(),
-            });
-        }
-
-        let rect = Rect::new(
-            Point::new(
-                (self.left + PADDING) as isize,
-                (self.bottom + PADDING) as isize,
-            ),
-            Size::new(width as isize, height as isize),
-        );
-
-        self.texture.write(rect, im);
-
-        self.left += reserve_width;
-        self.tallest = self.tallest.max(reserve_height);
-
-        Ok(Sprite {
-            texture: Rc::clone(&self.texture),
-            coords: rect,
-        })
     }
 
     pub fn size(&self) -> usize {
         self.side
+    }
+
+    /// Zero out the texture, and forget all allocated regions
+    pub fn clear(&mut self) {
+        let iside = self.side as isize;
+        let image = crate::Image::new(self.side, self.side);
+        let rect = Rect::new(Point::new(0, 0), Size::new(iside, iside));
+        self.texture.write(rect, &image);
+        self.allocator.clear();
     }
 }
 
@@ -202,7 +196,7 @@ impl SpriteSlice {
 
             if self.cell_idx == self.num_cells - 1 {
                 // Width of all the other cells
-                let middle = self.cell_width * (self.num_cells - PADDING * 2);
+                let middle = self.cell_width * (self.num_cells - (PADDING as usize) * 2);
                 cell_0 + middle as f32
             } else {
                 // Width of all the preceding cells

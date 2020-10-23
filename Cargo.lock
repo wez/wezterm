@@ -1037,6 +1037,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "euclid"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5337024b8293bdce5265dc9570ef6e608a34bfacbbc87fe1a5dcb5f1dac2f4e2"
+dependencies = [
+ "num-traits 0.2.12",
+]
+
+[[package]]
 name = "event-listener"
 version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1153,7 +1162,7 @@ dependencies = [
  "core-text 15.0.0",
  "dirs 2.0.2",
  "dwrote",
- "euclid",
+ "euclid 0.20.14",
  "float-ord",
  "freetype 0.4.1",
  "lazy_static",
@@ -1455,6 +1464,16 @@ name = "glyph-names"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8050dc1be3880f690a771051d09727d759229d299afffa1488acc3556879039d"
+
+[[package]]
+name = "guillotiere"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc7cccefbf418f663e11e9500326f46a44273dc598210bbedc8bbe95e696531f"
+dependencies = [
+ "euclid 0.22.1",
+ "svg_fmt",
+]
 
 [[package]]
 name = "harfbuzz"
@@ -1853,7 +1872,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca04310c9807612a311506106000b6eccb2e27bca9bfb594ce80fb8a31231f9d"
 dependencies = [
  "arrayvec 0.4.12",
- "euclid",
+ "euclid 0.20.14",
  "num-traits 0.2.12",
 ]
 
@@ -3412,6 +3431,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "svg_fmt"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fb1df15f412ee2e9dfc1c504260fa695c1c3f10fe9f4a6ee2d2184d7d6450e2"
+
+[[package]]
 name = "syn"
 version = "0.11.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4065,7 +4090,7 @@ dependencies = [
  "downcast-rs",
  "dwrote",
  "embed-resource",
- "euclid",
+ "euclid 0.20.14",
  "filedescriptor",
  "font-kit",
  "font-loader",
@@ -4227,10 +4252,11 @@ dependencies = [
  "cocoa",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
- "euclid",
+ "euclid 0.20.14",
  "filedescriptor",
  "gl_generator",
  "glium",
+ "guillotiere",
  "lazy_static",
  "libc",
  "libloading",

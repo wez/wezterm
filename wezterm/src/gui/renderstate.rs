@@ -228,6 +228,18 @@ pub enum RenderState {
 }
 
 impl RenderState {
+    pub fn clear_texture_atlas(&mut self, metrics: &RenderMetrics) -> anyhow::Result<()> {
+        match self {
+            RenderState::Software(_) => {}
+            RenderState::GL(gl) => {
+                let mut glyph_cache = gl.glyph_cache.borrow_mut();
+                glyph_cache.clear();
+                gl.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
+            }
+        };
+        Ok(())
+    }
+
     pub fn recreate_texture_atlas(
         &mut self,
         fonts: &Rc<FontConfiguration>,

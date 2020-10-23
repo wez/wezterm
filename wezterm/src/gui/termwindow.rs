@@ -723,61 +723,7 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
-        let panes = self.get_panes_to_render();
-        if panes.is_empty() {
-            frame.clear_color_srgb(0., 0., 0., 1.);
-            return;
-        }
-
-        self.check_for_config_reload();
-        let config = configuration();
-
-        let start = std::time::Instant::now();
-
-        {
-            let palette = self.palette();
-            let background_alpha = (config.window_background_opacity * 255.0) as u8;
-            let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
-
-            let (r, g, b, a) = background.to_tuple_rgba();
-            frame.clear_color_srgb(r, g, b, a);
-        }
-
-        if let Some(pane) = self.get_active_pane_or_overlay() {
-            let splits = self.get_splits();
-            for split in &splits {
-                self.paint_split_opengl(split, &pane).ok();
-            }
-        }
-
-        for pos in panes {
-            if pos.is_active {
-                self.update_text_cursor(&pos.pane);
-            }
-            if let Err(err) = self.paint_pane_opengl(&pos) {
-                if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
-                    log::error!("out of texture space, allocating {}", size);
-                    if let Err(err) = self.recreate_texture_atlas(Some(size)) {
-                        log::error!("failed recreate atlas with size {}: {}", size, err);
-                        // Failed to increase the size.
-                        // This might happen if a lot of images have been displayed in the
-                        // terminal over time and we've hit a texture size limit.
-                        // Let's just try recreating at the current size.
-                        self.recreate_texture_atlas(None)
-                            .expect("OutOfTextureSpace and failed to recreate atlas");
-                    }
-                    // Recursively initiate a new paint
-                    return self.paint_opengl(frame);
-                }
-                log::error!("paint_pane_opengl failed: {}", err);
-            }
-        }
-
-        self.call_draw(frame).ok();
-        log::debug!("paint_pane_opengl elapsed={:?}", start.elapsed());
-        metrics::value!("gui.paint.opengl", start.elapsed());
-
-        self.update_title();
+        self.paint_opengl_pass(frame, 0);
     }
 }
 
@@ -2364,6 +2310,80 @@ impl TermWindow {
         Ok(())
     }
 
+    fn paint_opengl_pass(&mut self, frame: &mut glium::Frame, pass: usize) {
+        let panes = self.get_panes_to_render();
+        if panes.is_empty() {
+            frame.clear_color_srgb(0., 0., 0., 1.);
+            return;
+        }
+
+        self.check_for_config_reload();
+        let config = configuration();
+
+        let start = std::time::Instant::now();
+
+        {
+            let palette = self.palette();
+            let background_alpha = (config.window_background_opacity * 255.0) as u8;
+            let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
+
+            let (r, g, b, a) = background.to_tuple_rgba();
+            frame.clear_color_srgb(r, g, b, a);
+        }
+
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            let splits = self.get_splits();
+            for split in &splits {
+                self.paint_split_opengl(split, &pane).ok();
+            }
+        }
+
+        for pos in panes {
+            if pos.is_active {
+                self.update_text_cursor(&pos.pane);
+            }
+            if let Err(err) = self.paint_pane_opengl(&pos) {
+                if let Some(&OutOfTextureSpace { size: Some(size) }) =
+                    err.downcast_ref::<OutOfTextureSpace>()
+                {
+                    if pass == 0 {
+                        // Let's try clearing out the atlas and trying again
+                        if let Ok(()) = self.render_state.clear_texture_atlas(&self.render_metrics)
+                        {
+                            log::trace!("cleared atlas");
+                            return self.paint_opengl_pass(frame, pass + 1);
+                        }
+                    }
+
+                    log::error!("out of texture space, allocating {}", size);
+                    match self.recreate_texture_atlas(Some(size)) {
+                        Ok(_) => {
+                            // Recursively initiate a new paint
+                            return self.paint_opengl_pass(frame, pass + 1);
+                        }
+                        Err(err) => {
+                            log::error!("failed recreate atlas with size {}: {}", size, err);
+                            // Failed to increase the size.
+                            // This might happen if a lot of images have been displayed in the
+                            // terminal over time and we've hit a texture size limit.
+                            // Let's just try recreating at the current size.
+                            self.recreate_texture_atlas(None)
+                                .expect("OutOfTextureSpace and failed to recreate atlas");
+                        }
+                    }
+                } else {
+                    log::error!("paint_pane_opengl failed: {}", err);
+                }
+            }
+        }
+
+        self.call_draw(frame).ok();
+        log::debug!("paint_pane_opengl elapsed={:?}", start.elapsed());
+        metrics::value!("gui.paint.opengl", start.elapsed());
+
+        self.update_title();
+    }
+
     fn paint_pane_opengl(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {
         let config = configuration();
         let palette = pos.pane.palette();
@@ -2486,10 +2506,9 @@ impl TermWindow {
 
             quad.set_texture(white_space);
             if let Some(im) = self.window_background.as_ref() {
-                if let Ok(sprite) = gl_state.glyph_cache.borrow_mut().cached_image(im) {
-                    quad.set_texture(sprite.texture_coords());
-                    quad.set_is_background_image();
-                }
+                let sprite = gl_state.glyph_cache.borrow_mut().cached_image(im)?;
+                quad.set_texture(sprite.texture_coords());
+                quad.set_is_background_image();
             }
             quad.set_hsv(None);
             quad.set_cursor_color(color);
