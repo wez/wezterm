@@ -57,7 +57,7 @@ use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
 use wezterm_term::{CellAttributes, Line, StableRowIndex, TerminalConfiguration};
 
-const ATLAS_SIZE: usize = 4096;
+const ATLAS_SIZE: usize = 128;
 
 #[derive(Copy, Debug, Clone, Eq, PartialEq)]
 pub enum SpawnWhere {
@@ -2809,53 +2809,51 @@ impl TermWindow {
                     if let Some(image) = attrs.image() {
                         // Render iTerm2 style image attributes
 
-                        if let Ok(sprite) = gl_state
+                        let sprite = gl_state
                             .glyph_cache
                             .borrow_mut()
-                            .cached_image(image.image_data())
-                        {
-                            let width = sprite.coords.size.width;
-                            let height = sprite.coords.size.height;
+                            .cached_image(image.image_data())?;
+                        let width = sprite.coords.size.width;
+                        let height = sprite.coords.size.height;
 
-                            let top_left = image.top_left();
-                            let bottom_right = image.bottom_right();
-                            let origin = Point::new(
-                                sprite.coords.origin.x + (*top_left.x * width as f32) as isize,
-                                sprite.coords.origin.y + (*top_left.y * height as f32) as isize,
-                            );
+                        let top_left = image.top_left();
+                        let bottom_right = image.bottom_right();
+                        let origin = Point::new(
+                            sprite.coords.origin.x + (*top_left.x * width as f32) as isize,
+                            sprite.coords.origin.y + (*top_left.y * height as f32) as isize,
+                        );
 
-                            let coords = Rect::new(
-                                origin,
-                                Size::new(
-                                    ((*bottom_right.x - *top_left.x) * width as f32) as isize,
-                                    ((*bottom_right.y - *top_left.y) * height as f32) as isize,
-                                ),
-                            );
+                        let coords = Rect::new(
+                            origin,
+                            Size::new(
+                                ((*bottom_right.x - *top_left.x) * width as f32) as isize,
+                                ((*bottom_right.y - *top_left.y) * height as f32) as isize,
+                            ),
+                        );
 
-                            let texture_rect = sprite.texture.to_texture_coords(coords);
+                        let texture_rect = sprite.texture.to_texture_coords(coords);
 
-                            let mut quad = match quads.cell(cell_idx, params.line_idx) {
-                                Ok(quad) => quad,
-                                Err(_) => break,
-                            };
+                        let mut quad = match quads.cell(cell_idx, params.line_idx) {
+                            Ok(quad) => quad,
+                            Err(_) => break,
+                        };
 
-                            quad.set_hsv(hsv);
-                            quad.set_fg_color(glyph_color);
-                            quad.set_bg_color(bg_color);
-                            quad.set_texture(texture_rect);
-                            quad.set_texture_adjust(0., 0., 0., 0.);
-                            quad.set_underline(gl_state.util_sprites.white_space.texture_coords());
-                            quad.set_has_color(true);
-                            quad.set_cursor(
-                                gl_state
-                                    .util_sprites
-                                    .cursor_sprite(cursor_shape)
-                                    .texture_coords(),
-                            );
-                            quad.set_cursor_color(params.cursor_border_color);
+                        quad.set_hsv(hsv);
+                        quad.set_fg_color(glyph_color);
+                        quad.set_bg_color(bg_color);
+                        quad.set_texture(texture_rect);
+                        quad.set_texture_adjust(0., 0., 0., 0.);
+                        quad.set_underline(gl_state.util_sprites.white_space.texture_coords());
+                        quad.set_has_color(true);
+                        quad.set_cursor(
+                            gl_state
+                                .util_sprites
+                                .cursor_sprite(cursor_shape)
+                                .texture_coords(),
+                        );
+                        quad.set_cursor_color(params.cursor_border_color);
 
-                            continue;
-                        }
+                        continue;
                     }
 
                     let texture = glyph
