@@ -16,6 +16,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::ffi::OsString;
 use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
@@ -59,6 +60,7 @@ pub(crate) struct WindowInner {
 
     last_size: Option<Dimensions>,
     in_size_move: bool,
+    dead_pending: Option<(Modifiers, u32)>,
 
     keyboard_info: KeyboardLayoutInfo,
 }
@@ -301,6 +303,7 @@ impl Window {
             keyboard_info: KeyboardLayoutInfo::new(),
             last_size: None,
             in_size_move: false,
+            dead_pending: None,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -1081,7 +1084,7 @@ unsafe fn ime_composition(
                 wide_buf.as_mut_ptr() as *mut _,
                 byte_size as u32,
             );
-            match std::ffi::OsString::from_wide(&wide_buf).into_string() {
+            match OsString::from_wide(&wide_buf).into_string() {
                 Ok(s) => {
                     let key = KeyEvent {
                         key: KeyCode::Composed(s),
@@ -1108,11 +1111,27 @@ unsafe fn ime_composition(
 
 /// Holds information about the current keyboard layout.
 /// This is used to determine whether the layout includes
-/// an AltGr key or just has a regular Right-Alt key.
+/// an AltGr key or just has a regular Right-Alt key,
+/// as well as to build out information about dead keys.
 struct KeyboardLayoutInfo {
     layout: HKL,
     has_alt_gr: bool,
-    dead_keys: HashMap<u8, char>,
+    dead_keys: HashMap<(Modifiers, u8), DeadKey>,
+}
+
+#[derive(Debug)]
+struct DeadKey {
+    dead_char: char,
+    vk: u8,
+    mods: Modifiers,
+    map: HashMap<(Modifiers, u8), char>,
+}
+
+#[derive(Debug)]
+enum ResolvedDeadKey {
+    InvalidDeadKey,
+    Combined(char),
+    InvalidCombination(char),
 }
 
 impl KeyboardLayoutInfo {
@@ -1122,6 +1141,22 @@ impl KeyboardLayoutInfo {
             has_alt_gr: false,
             dead_keys: HashMap::new(),
         }
+    }
+
+    unsafe fn clear_key_state() {
+        let mut out = [0u16; 16];
+        let state = [0u8; 256];
+        let scan = MapVirtualKeyW(VK_DECIMAL as _, MAPVK_VK_TO_VSC);
+        // keep clocking the state to clear out its effects
+        while ToUnicode(
+            VK_DECIMAL as _,
+            scan,
+            state.as_ptr(),
+            out.as_mut_ptr(),
+            out.len() as i32,
+            0,
+        ) < 0
+        {}
     }
 
     /// Probe to detect whether an AltGr key is present.
@@ -1157,36 +1192,142 @@ impl KeyboardLayoutInfo {
         }
     }
 
+    fn apply_mods(mods: Modifiers, state: &mut [u8; 256]) {
+        if mods.contains(Modifiers::SHIFT) {
+            state[VK_SHIFT as usize] = 0x80;
+        }
+        if mods.contains(Modifiers::CTRL) || mods.contains(Modifiers::RIGHT_ALT) {
+            state[VK_CONTROL as usize] = 0x80;
+        }
+        if mods.contains(Modifiers::RIGHT_ALT) || mods.contains(Modifiers::ALT) {
+            state[VK_MENU as usize] = 0x80;
+        }
+    }
+
     /// Probe the keymap to figure out which keys are dead keys
     unsafe fn probe_dead_keys(&mut self) {
         self.dead_keys.clear();
-        let state = [0u8; 256];
 
-        for vk in 0..=255u32 {
-            if vk == VK_PACKET as _ {
-                // Avoid false positives
-                continue;
-            }
+        let shift_states = [
+            Modifiers::NONE,
+            Modifiers::SHIFT,
+            Modifiers::SHIFT | Modifiers::CTRL,
+            Modifiers::ALT,
+            Modifiers::RIGHT_ALT, // AltGr
+        ];
 
-            let mut out = [0u16; 16];
-            let ret = ToUnicode(vk, 0, state.as_ptr(), out.as_mut_ptr(), out.len() as i32, 0);
+        for &mods in &shift_states {
+            let mut state = [0u8; 256];
+            Self::apply_mods(mods, &mut state);
 
-            if ret == -1 {
-                // Dead key.
-                // keep clocking the state to clear out its effects
-                while ToUnicode(
-                    VK_SPACE as _,
-                    0,
+            for vk in 0..=255u32 {
+                if vk == VK_PACKET as _ {
+                    // Avoid false positives
+                    continue;
+                }
+
+                let scan = MapVirtualKeyW(vk, MAPVK_VK_TO_VSC);
+
+                Self::clear_key_state();
+                let mut out = [0u16; 16];
+                let ret = ToUnicode(
+                    vk,
+                    scan,
                     state.as_ptr(),
                     out.as_mut_ptr(),
                     out.len() as i32,
                     0,
-                ) < 0
-                {}
-                let c = std::char::from_u32_unchecked(out[0] as u32);
-                self.dead_keys.insert(vk as u8, c);
+                );
+
+                if ret != -1 {
+                    continue;
+                }
+
+                // Found a Dead key.
+                let dead_char = std::char::from_u32_unchecked(out[0] as u32);
+
+                let mut map = HashMap::new();
+
+                for &smod in &shift_states {
+                    let mut second_state = [0u8; 256];
+                    Self::apply_mods(smod, &mut second_state);
+
+                    for ik in 0..=255u32 {
+                        // Re-initiate the dead key starting state
+                        Self::clear_key_state();
+                        if ToUnicode(
+                            vk,
+                            scan,
+                            state.as_ptr(),
+                            out.as_mut_ptr(),
+                            out.len() as i32,
+                            0,
+                        ) != -1
+                        {
+                            continue;
+                        }
+
+                        let scan = MapVirtualKeyW(ik, MAPVK_VK_TO_VSC);
+
+                        let ret = ToUnicode(
+                            ik,
+                            scan,
+                            second_state.as_ptr(),
+                            out.as_mut_ptr(),
+                            out.len() as i32,
+                            0,
+                        );
+
+                        if ret == 1 {
+                            // Found a combination
+                            let c = std::char::from_u32_unchecked(out[0] as u32);
+                            // clock through again to get the base
+                            ToUnicode(
+                                ik,
+                                scan,
+                                second_state.as_ptr(),
+                                out.as_mut_ptr(),
+                                out.len() as i32,
+                                0,
+                            );
+                            let base = std::char::from_u32_unchecked(out[0] as u32);
+
+                            if ((smod == Modifiers::CTRL)
+                                || (smod == Modifiers::CTRL | Modifiers::SHIFT))
+                                && c == base
+                                && (c as u32) < 0x20
+                            {
+                                continue;
+                            }
+
+                            log::trace!(
+                                "{:?}: {:?} {:?} + {:?} {:?} -> {:?} base={:?}",
+                                dead_char,
+                                mods,
+                                vk,
+                                smod,
+                                ik,
+                                c,
+                                base
+                            );
+
+                            map.insert((smod, ik as u8), c);
+                        }
+                    }
+                }
+
+                self.dead_keys.insert(
+                    (mods, vk as u8),
+                    DeadKey {
+                        dead_char,
+                        mods,
+                        vk: vk as u8,
+                        map,
+                    },
+                );
             }
         }
+        Self::clear_key_state();
     }
 
     unsafe fn update(&mut self) {
@@ -1203,7 +1344,7 @@ impl KeyboardLayoutInfo {
 
         self.probe_alt_gr();
         self.probe_dead_keys();
-        log::trace!("dead_keys: {:#x?}", self.dead_keys);
+        log::info!("dead_keys: {:#x?}", self.dead_keys);
 
         SetKeyboardState(saved_state.as_mut_ptr());
         self.layout = current_layout;
@@ -1216,14 +1357,37 @@ impl KeyboardLayoutInfo {
         self.has_alt_gr
     }
 
-    pub fn is_dead_key(&mut self, vk: usize) -> Option<char> {
+    pub fn is_dead_key_leader(&mut self, mods: Modifiers, vk: u32) -> Option<char> {
         unsafe {
             self.update();
         }
         if vk <= u8::MAX.into() {
-            self.dead_keys.get(&(vk as u8)).map(|&c| c)
+            self.dead_keys.get(&(mods, vk as u8)).map(|dead| dead.dead_char)
         } else {
             None
+        }
+    }
+
+    pub fn resolve_dead_key(
+        &mut self,
+        leader: (Modifiers, u32),
+        key: (Modifiers, u32),
+    ) -> ResolvedDeadKey {
+        unsafe {
+            self.update();
+        }
+        if leader.1 <= u8::MAX.into() && key.1 <= u8::MAX.into() {
+            if let Some(dead) = self.dead_keys.get(&(leader.0, leader.1 as u8)) {
+                if let Some(c) = dead.map.get(&(key.0, key.1 as u8)).map(|&c| c) {
+                    ResolvedDeadKey::Combined(c)
+                } else {
+                    ResolvedDeadKey::InvalidCombination(dead.dead_char)
+                }
+            } else {
+                ResolvedDeadKey::InvalidDeadKey
+            }
+        } else {
+            ResolvedDeadKey::InvalidDeadKey
         }
     }
 }
@@ -1248,7 +1412,6 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
         let ime_active = wparam == VK_PROCESSKEY as _;
-        let is_dead = inner.keyboard_info.is_dead_key(wparam);
 
         /*
         let alt_pressed = (lparam & (1 << 29)) != 0;
@@ -1267,7 +1430,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         };
         log::error!(
             "{} c=`{}` repeat={} scan={} is_extended={} alt_pressed={} was_down={} \
-             releasing={} IME={} is_dead={:?}",
+             releasing={} IME={} dead_pending={:?}",
             label,
             wparam,
             repeat,
@@ -1277,7 +1440,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             was_down,
             releasing,
             ime_active,
-            is_dead
+            inner.dead_pending,
         );
         */
 
@@ -1317,6 +1480,10 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // Windows sets RMENU and CONTROL to indicate AltGr and we
             // have to keep these in the key state in order for ToUnicode
             // to map the key correctly.
+            // We set RIGHT_ALT as a hint to ourselves that AltGr is in
+            // use (we use regular ALT otherwise) so that our dead key
+            // resolution can do the right thing.
+            modifiers |= Modifiers::RIGHT_ALT;
         } else {
             if keys[VK_CONTROL as usize] & 0x80 != 0 {
                 modifiers |= Modifiers::CTRL;
@@ -1341,38 +1508,26 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             keys[VK_RCONTROL as usize] = 0;
         }
 
+        let raw_modifiers = modifiers;
+
         let mut raw = None;
 
         let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
+            // If we were sent a character by the IME, some other apps,
+            // or by ourselves via TranslateMessage, then take that
+            // value as-is.
             Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32)))
-        } else if is_dead.is_some() {
-            if USE_DEAD_KEYS.load(Ordering::Relaxed) {
-                // The user wants normal dead key processing.
-                // Translate the message so that the system will call us back
-                // with a WM_CHAR at the appropriate time.
-                translate_message(hwnd, msg, wparam, lparam);
-                return Some(0);
-            } else {
-                // They don't want to use dead key expansion; instead, use
-                // the expansion that we computed for the dead key when we
-                // noticed that the keyboard layout was changed
-                is_dead.map(|c| KeyCode::Char(c))
-            }
         } else {
-            // We get here for the various UP/DOWN messages.
-            // We perform conversion to unicode for ourselves,
-            // rather than calling TranslateMessage to do it for us,
-            // so that we have tighter control over the key processing.
-            let mut out = [0u16; 16];
-            let res = ToUnicode(
-                wparam as u32,
-                scan_code as u32,
-                keys.as_ptr(),
-                out.as_mut_ptr(),
-                out.len() as i32,
-                0,
-            );
+            // Otherwise we're dealing with a raw key message.
+            // ToUnicode has frustrating statefulness so we take care to
+            // call it only when we think it will give consistent results.
 
+            if releasing {
+                // Don't care about key-up events
+                return Some(0);
+            }
+
+            // Determine the raw, underlying key event
             raw = match wparam as i32 {
                 0 => None,
                 VK_CANCEL => Some(KeyCode::Cancel),
@@ -1443,27 +1598,144 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 _ => None,
             };
 
-            match res {
-                1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
-                0 => raw.clone(),
-                _ => {
-                    // dead key: if our dead key mapping in KeyboardLayoutInfo was
-                    // correct, we shouldn't be able to get here as we should have
-                    // landed in the dead key case above.
-                    // If somehow we do get here, we don't have a valid mapping
-                    // as -1 indicates the start of a dead key sequence,
-                    // and any other n > 1 indicates an ambiguous expansion.
-                    // Either way, indicate that we don't have a valid result.
+            let is_modifier_only = raw.as_ref().map(|r| r.is_modifier()).unwrap_or(false);
+            if is_modifier_only {
+                // If this event is only modifiers then don't ask the system
+                // for further resolution, as we don't want ToUnicode to
+                // perturb its inscrutable global state
+                raw.clone()
+            } else {
+                // If we think this might be a dead key, process it for ourselves.
+                // Our KeyboardLayoutInfo struct probed the layout for the key
+                // combinations that start a dead key sequence, as well as those
+                // that are valid end states for dead keys, so we can resolve
+                // these for ourselves in a couple of quick hash lookups.
+                let vk = wparam as u32;
+
+                // If we previously had the start of a dead key...
+                let dead = if let Some(leader) = inner.dead_pending.take() {
+                    // look to see how the current event resolves it
+                    match inner
+                        .keyboard_info
+                        .resolve_dead_key(leader, (modifiers, vk))
+                    {
+                        // Valid combination produces a single character
+                        ResolvedDeadKey::Combined(c) => Some(KeyCode::Char(c)),
+                        ResolvedDeadKey::InvalidCombination(c) => {
+                            // An invalid combination results in the deferred
+                            // keypress triggering the original key first,
+                            // and then we process the current key.
+
+                            // Emit an event for the leader of the failed
+                            // dead key combination
+                            let key = KeyEvent {
+                                key: KeyCode::Char(c),
+                                raw_key: None,
+                                raw_modifiers: Modifiers::NONE,
+                                modifiers,
+                                repeat_count: 1,
+                                key_is_down: !releasing,
+                            }
+                            .normalize_shift()
+                            .normalize_ctrl();
+
+                            inner
+                                .callbacks
+                                .borrow_mut()
+                                .key_event(&key, &Window::from_hwnd(hwnd));
+
+                            // And then we'll perform normal processing on the
+                            // current key press
+                            if inner
+                                .keyboard_info
+                                .is_dead_key_leader(modifiers, vk)
+                                .is_some()
+                            {
+                                // Happens to be the start of its own new
+                                // dead key sequence
+                                inner.dead_pending.replace((modifiers, vk));
+                                return Some(0);
+                            }
+
+                            // We don't know; allow normal ToUnicode processing
+                            None
+                        }
+
+                        // We thought we had a dead key last time around,
+                        // but this time it didn't resolve.  Most likely
+                        // because the keyboard layout changed in the middle
+                        // of the keypress.
+                        // We're effectively swallowing the original dead
+                        // key event here, but we could potentially re-process
+                        // the original and current one here if needed.
+                        // Seems like a real edge case.
+                        ResolvedDeadKey::InvalidDeadKey => None,
+                    }
+                } else if let Some(c) = inner.keyboard_info.is_dead_key_leader(modifiers, vk) {
+                    // They pressed a dead key.
+                    // If they want dead key processing, then record that and
+                    // wait for a subsequent keypress.
+                    if USE_DEAD_KEYS.load(Ordering::Relaxed) {
+                        inner.dead_pending.replace((modifiers, vk));
+                        return Some(0);
+                    }
+                    // They don't want dead keys; just return the base character
+                    Some(KeyCode::Char(c))
+                } else {
+                    // Not a dead key as far as we know
                     None
+                };
+
+                if dead.is_some() {
+                    dead
+                } else {
+                    // We get here for the various UP (but not DOWN as we shortcircuit
+                    // those above) messages.
+                    // We perform conversion to unicode for ourselves,
+                    // rather than calling TranslateMessage to do it for us,
+                    // so that we have tighter control over the key processing.
+                    let mut out = [0u16; 16];
+                    let res = ToUnicode(
+                        wparam as u32,
+                        scan_code as u32,
+                        keys.as_ptr(),
+                        out.as_mut_ptr(),
+                        out.len() as i32,
+                        0,
+                    );
+
+                    match res {
+                        1 => {
+                            // Remove our AltGr placeholder modifier flag now that the
+                            // key press has been expanded.
+                            modifiers.remove(Modifiers::RIGHT_ALT);
+                            Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32)))
+                        }
+                        // No mapping, so use our raw info
+                        0 => raw.clone(),
+                        _ => {
+                            // dead key: if our dead key mapping in KeyboardLayoutInfo was
+                            // correct, we shouldn't be able to get here as we should have
+                            // landed in the dead key case above.
+                            // If somehow we do get here, we don't have a valid mapping
+                            // as -1 indicates the start of a dead key sequence,
+                            // and any other n > 1 indicates an ambiguous expansion.
+                            // Either way, indicate that we don't have a valid result.
+                            log::error!("unexpected dead key expansion: {:?}", out);
+                            KeyboardLayoutInfo::clear_key_state();
+                            None
+                        }
+                    }
                 }
             }
         };
 
         if let Some(key) = key {
+            let is_composed = raw != Some(key.clone()) || modifiers != raw_modifiers;
             let key = KeyEvent {
                 key,
-                raw_key: raw,
-                raw_modifiers: modifiers,
+                raw_key: if is_composed { raw } else { None },
+                raw_modifiers,
                 modifiers,
                 repeat_count: repeat,
                 key_is_down: !releasing,

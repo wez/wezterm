@@ -83,6 +83,29 @@ pub enum KeyCode {
     ApplicationDownArrow,
 }
 
+impl KeyCode {
+    /// Return true if the key represents a modifier key.
+    pub fn is_modifier(&self) -> bool {
+        match self {
+            Self::Hyper
+            | Self::Super
+            | Self::Meta
+            | Self::Shift
+            | Self::LeftShift
+            | Self::RightShift
+            | Self::Control
+            | Self::LeftControl
+            | Self::RightControl
+            | Self::Alt
+            | Self::LeftAlt
+            | Self::RightAlt
+            | Self::LeftWindows
+            | Self::RightWindows => true,
+            _ => false,
+        }
+    }
+}
+
 bitflags! {
     #[derive(Default)]
     pub struct Modifiers: u8 {
