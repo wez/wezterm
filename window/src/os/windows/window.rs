@@ -1362,7 +1362,9 @@ impl KeyboardLayoutInfo {
             self.update();
         }
         if vk <= u8::MAX.into() {
-            self.dead_keys.get(&(mods, vk as u8)).map(|dead| dead.dead_char)
+            self.dead_keys
+                .get(&(mods, vk as u8))
+                .map(|dead| dead.dead_char)
         } else {
             None
         }
