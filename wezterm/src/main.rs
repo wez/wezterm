@@ -295,15 +295,6 @@ fn run() -> anyhow::Result<()> {
     }
     let config = config::configuration();
 
-    #[cfg(target_os = "macos")]
-    {
-        window::os::macos::use_ime(config.use_ime);
-    }
-    #[cfg(windows)]
-    {
-        window::os::windows::use_dead_keys(config.use_dead_keys);
-    }
-
     match opts
         .cmd
         .as_ref()

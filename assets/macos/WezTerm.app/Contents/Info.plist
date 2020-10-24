@@ -5,7 +5,7 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>wezterm</string>
+  <string>wezterm-gui</string>
   <key>CFBundleIdentifier</key>
   <string>com.github.wez.wezterm</string>
   <key>CFBundleInfoDictionaryVersion</key>
