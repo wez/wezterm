@@ -1344,9 +1344,14 @@ impl TerminalState {
         let cursor_x = self.cursor.x;
         let x_delta = 1.0 / (width as f32 / (self.pixel_width as f32 / physical_cols as f32));
         let y_delta = 1.0 / (height as f32 / (self.pixel_height as f32 / physical_rows as f32));
-        log::error!(
+        log::debug!(
             "image is {}x{} cells, {}x{} pixels, x_delta:{} y_delta:{}",
-            width_in_cells, height_in_cells, width, height, x_delta, y_delta,
+            width_in_cells,
+            height_in_cells,
+            width,
+            height,
+            x_delta,
+            y_delta,
         );
         for _ in 0..height_in_cells {
             let mut xpos = NotNan::new(0.0).unwrap();

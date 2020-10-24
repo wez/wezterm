@@ -18,7 +18,7 @@ use crate::scripting::pane::PaneObject;
 use ::wezterm_term::input::MouseButton as TMB;
 use ::wezterm_term::input::MouseEventKind as TMEK;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, SpriteSlice};
-use ::window::bitmaps::Texture2d;
+use ::window::bitmaps::{Texture2d, TextureCoord, TextureRect, TextureSize};
 use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
@@ -2841,20 +2841,27 @@ impl TermWindow {
 
                         let top_left = image.top_left();
                         let bottom_right = image.bottom_right();
-                        let origin = Point::new(
-                            sprite.coords.origin.x + (*top_left.x * width as f32) as isize,
-                            sprite.coords.origin.y + (*top_left.y * height as f32) as isize,
+
+                        // We *could* call sprite.texture.to_texture_coords() here,
+                        // but since that takes integer pixel coordinates, we'd
+                        // lose precision and end up with visual artifacts.
+                        // Instead, we compute the texture coords here in floating point.
+
+                        let texture_width = sprite.texture.width() as f32;
+                        let texture_height = sprite.texture.height() as f32;
+                        let origin = TextureCoord::new(
+                            (sprite.coords.origin.x as f32 + (*top_left.x * width as f32))
+                                / texture_width,
+                            (sprite.coords.origin.y as f32 + (*top_left.y * height as f32))
+                                / texture_height,
                         );
 
-                        let coords = Rect::new(
-                            origin,
-                            Size::new(
-                                ((*bottom_right.x - *top_left.x) * width as f32) as isize,
-                                ((*bottom_right.y - *top_left.y) * height as f32) as isize,
-                            ),
+                        let size = TextureSize::new(
+                            (*bottom_right.x - *top_left.x) * width as f32 / texture_width,
+                            (*bottom_right.y - *top_left.y) * height as f32 / texture_height,
                         );
 
-                        let texture_rect = sprite.texture.to_texture_coords(coords);
+                        let texture_rect = TextureRect::new(origin, size);
 
                         let mut quad = match quads.cell(cell_idx, params.line_idx) {
                             Ok(quad) => quad,
