@@ -1,28 +1,29 @@
 precision highp float;
-in vec2 position;
-in vec2 adjust;
-in vec2 tex;
-in vec2 underline;
-in vec4 bg_color;
-in vec4 fg_color;
-in float has_color;
-in vec2 cursor;
-in vec4 cursor_color;
-in vec3 hsv;
+
+attribute vec2 position;
+attribute vec2 adjust;
+attribute vec2 tex;
+attribute vec2 underline;
+attribute vec4 bg_color;
+attribute vec4 fg_color;
+attribute float has_color;
+attribute vec2 cursor;
+attribute vec4 cursor_color;
+attribute vec3 hsv;
 
 uniform mat4 projection;
 uniform bool window_bg_layer;
 uniform bool bg_and_line_layer;
 uniform bool has_background_image;
 
-out vec2 o_tex;
-out vec4 o_fg_color;
-out vec4 o_bg_color;
-out float o_has_color;
-out vec2 o_underline;
-out vec2 o_cursor;
-out vec4 o_cursor_color;
-out vec3 o_hsv;
+varying float o_has_color;
+varying vec2 o_cursor;
+varying vec2 o_tex;
+varying vec2 o_underline;
+varying vec3 o_hsv;
+varying vec4 o_bg_color;
+varying vec4 o_cursor_color;
+varying vec4 o_fg_color;
 
 // Returns a position that is outside of the viewport,
 // such that this vertex effectively won't contribute

@@ -1,18 +1,19 @@
 precision highp float;
 
-in vec2 o_tex;
-in vec4 o_fg_color;
-in vec4 o_bg_color;
-in float o_has_color;
-in vec3 o_hsv;
-in vec2 o_underline;
-in vec2 o_cursor;
-in vec4 o_cursor_color;
+varying float o_has_color;
+varying vec2 o_cursor;
+varying vec2 o_tex;
+varying vec2 o_underline;
+varying vec3 o_hsv;
+varying vec4 o_bg_color;
+varying vec4 o_cursor_color;
+varying vec4 o_fg_color;
 
 uniform mat4 projection;
 uniform bool window_bg_layer;
 uniform bool bg_and_line_layer;
 uniform bool has_background_image;
+
 uniform sampler2D atlas_nearest_sampler;
 uniform sampler2D atlas_linear_sampler;
 
