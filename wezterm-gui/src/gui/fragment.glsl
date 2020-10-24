@@ -1,13 +1,13 @@
 precision highp float;
 
-varying float o_has_color;
-varying vec2 o_cursor;
-varying vec2 o_tex;
-varying vec2 o_underline;
-varying vec3 o_hsv;
-varying vec4 o_bg_color;
-varying vec4 o_cursor_color;
-varying vec4 o_fg_color;
+in float o_has_color;
+in vec2 o_cursor;
+in vec2 o_tex;
+in vec2 o_underline;
+in vec3 o_hsv;
+in vec4 o_bg_color;
+in vec4 o_cursor_color;
+in vec4 o_fg_color;
 
 uniform mat4 projection;
 uniform bool window_bg_layer;
