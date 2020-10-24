@@ -3,6 +3,16 @@ use luahelper::impl_lua_conversion;
 use termwiz::cell::CellAttributes;
 use termwiz::color::{ColorSpec, RgbColor};
 
+#[derive(Debug, Default, Copy, Deserialize, Serialize, Clone)]
+pub struct HsbTransform {
+    #[serde(default = "default_one_point_oh")]
+    pub hue: f32,
+    #[serde(default = "default_one_point_oh")]
+    pub saturation: f32,
+    #[serde(default = "default_one_point_oh")]
+    pub brightness: f32,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Palette {
     /// The text color to use when the attributes are reset to default

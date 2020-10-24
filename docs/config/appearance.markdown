@@ -229,7 +229,30 @@ PNG, JPEG, GIF, BMP, ICO, TIFF, PNM, DDS, TGA and farbfeld files
 can be loaded.
 
 The image will be scaled to fit the window contents.  Very large
-images may decrease render performance.
+images may decrease render performance and take up VRAM from the
+GPU, so you may wish to resize the image file before using it.
+
+You can optionally transform the background image by specifying
+a hue, saturation, brightness multiplier:
+
+```lua
+
+return {
+  window_background_image = "/path/to/wallpaper.jpg",
+
+  window_background_image_hsb = {
+    -- Darken the background image by reducing it to 1/3rd
+    brightness = 0.3,
+
+    -- You can adjust the hue by scaling its value.
+    -- a multiplier of 1.0 leaves the value unchanged.
+    hue = 1.0,
+
+    -- You can adjust the saturation also.
+    saturation = 1.0,
+  },
+}
+```
 
 ## Window Background Opacity
 
@@ -257,7 +280,7 @@ return {
 }
 ```
 
-## Window Backing Tint
+## Text Background Opacity
 
 *since: nightly builds only*
 
@@ -265,24 +288,18 @@ When using a background image or background opacity, the image content can
 have relatively low contrast with respect to the text you are trying to
 read in your terminal.
 
-The `window_background_tint` setting specifies the alpha channel value to use
-for the background color of cells when either `window_background_image` or
-`window_background_opacity` are in use.
+The `text_background_opacity` setting specifies the alpha channel value to use
+for the background color of cells other than the default background color.
 
-The default for this setting is `0.0` such that the background image or
-desktop content shows through the window relatively unimpeded.
-
-Increasing `window_background_tint` causes whatever your color scheme's
-background color to be mixed into the background.  If you have a dark
-color this effectively will darken the content behind and increase the
-contrast for your text, making it a bit more readable.
+The default for this setting is `1.0`, which means that the background
+color is fully opaque.
 
 The range of values permitted are `0.0` (completely translucent)
 through to `1.0` (completely opaque).
 
 ```lua
 return {
-  window_background_tint = 0.0,
+  text_background_opacity = 0.3,
 }
 ```
 

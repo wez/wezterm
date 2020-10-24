@@ -192,8 +192,10 @@ impl<'a> Quad<'a> {
         }
     }
 
-    pub fn set_hsv(&mut self, hsv: Option<(f32, f32, f32)>) {
-        let s = hsv.unwrap_or((1., 1., 1.));
+    pub fn set_hsv(&mut self, hsv: Option<config::HsbTransform>) {
+        let s = hsv
+            .map(|t| (t.hue, t.saturation, t.brightness))
+            .unwrap_or((1., 1., 1.));
         for v in self.vert.iter_mut() {
             v.hsv = s;
         }

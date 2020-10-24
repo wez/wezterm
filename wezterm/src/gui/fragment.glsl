@@ -64,17 +64,20 @@ void main() {
     if (o_has_color == 2.0) {
       // We're the window background image.
       color = texture(glyph_tex, o_tex);
-      // Apply window_background_opacity to the background image
+      // Apply window_background_image_opacity to the background image
       color.a = o_bg_color.a;
-    } else if (!has_background_image) {
-      // If there is no background image then take the cell background
-      color = o_bg_color;
     } else {
       // Nothing else should render on the background layer
       // color = vec4(0,0,0,0);
       discard;
     }
   } else if (bg_and_line_layer) {
+    if (o_has_color == 2.0) {
+      // Don't render the background image on anything other than
+      // the window_bg_layer.
+      discard;
+      return;
+    }
     // Note that o_bg_color is set to transparent if the background
     // color is "default" and there is a window background attachment
     color = o_bg_color;
@@ -102,7 +105,6 @@ void main() {
     if (o_has_color == 2.0) {
       // Don't render the background image on anything other than
       // the window_bg_layer.
-      // color = vec4(0,0,0,0);
       discard;
     } else {
       color = texture(glyph_tex, o_tex);

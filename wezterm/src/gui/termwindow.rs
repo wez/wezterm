@@ -2263,10 +2263,10 @@ impl TermWindow {
         let foreground = rgbcolor_to_window_color(palette.split);
         let background = rgbcolor_alpha_to_window_color(
             palette.background,
-            if self.window_background.is_none() && config.window_background_opacity == 1.0 {
-                0xff
+            if self.window_background.is_some() || config.window_background_opacity != 1.0 {
+                0x00
             } else {
-                (config.window_background_tint * 255.0) as u8
+                (config.text_background_opacity * 255.0) as u8
             },
         );
 
@@ -2386,9 +2386,6 @@ impl TermWindow {
         let palette = pos.pane.palette();
 
         let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
-        let background_alpha = (config.window_background_opacity * 255.0) as u8;
-        let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
-
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
         let mut term = pos.pane.renderer();
@@ -2498,7 +2495,8 @@ impl TermWindow {
             quad.set_cursor(white_space);
             quad.set_has_color(false);
 
-            let color = Color::rgba(0, 0, 0, background_alpha);
+            let background_image_alpha = (config.window_background_opacity * 255.0) as u8;
+            let color = Color::rgba(0, 0, 0, background_image_alpha);
             quad.set_texture_adjust(0., 0., 0., 0.);
 
             quad.set_texture(white_space);
@@ -2507,10 +2505,10 @@ impl TermWindow {
                 quad.set_texture(sprite.texture_coords());
                 quad.set_is_background_image();
             }
-            quad.set_hsv(None);
+            quad.set_hsv(config.window_background_image_hsb);
             quad.set_cursor_color(color);
             quad.set_fg_color(color);
-            quad.set_bg_color(background);
+            quad.set_bg_color(color);
             quad.set_cursor_color(color);
         }
 
@@ -2672,12 +2670,11 @@ impl TermWindow {
         let hsv = if params.is_active {
             None
         } else {
-            Some((
-                params.config.inactive_pane_hue,
-                params.config.inactive_pane_saturation,
-                params.config.inactive_pane_brightness,
-            ))
+            params.config.inactive_pane_hsb
         };
+
+        let window_is_transparent =
+            self.window_background.is_some() || params.config.window_background_opacity != 1.0;
 
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = params.line.cluster();
@@ -2690,6 +2687,7 @@ impl TermWindow {
             };
             let style = self.fonts.match_style(params.config, attrs);
 
+            let bg_is_default = attrs.background == ColorAttribute::Default;
             let bg_color = params.palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {
                 wezterm_term::color::ColorAttribute::Default => {
@@ -2717,26 +2715,27 @@ impl TermWindow {
                 _ => params.palette.resolve_fg(attrs.foreground),
             };
 
-            let (fg_color, bg_color) = {
+            let (fg_color, bg_color, bg_is_default) = {
                 let mut fg = fg_color;
                 let mut bg = bg_color;
+                let mut bg_default = bg_is_default;
 
                 if attrs.reverse() {
                     std::mem::swap(&mut fg, &mut bg);
+                    bg_default = false;
                 }
 
-                (fg, bg)
+                (fg, bg, bg_default)
             };
 
             let glyph_color = rgbcolor_to_window_color(fg_color);
+
             let bg_color = rgbcolor_alpha_to_window_color(
                 bg_color,
-                if self.window_background.is_none()
-                    && params.config.window_background_opacity == 1.0
-                {
-                    0xff
+                if window_is_transparent && bg_is_default {
+                    0x00
                 } else {
-                    (params.config.window_background_tint * 255.0) as u8
+                    (params.config.text_background_opacity * 255.0) as u8
                 },
             );
 
@@ -2945,7 +2944,11 @@ impl TermWindow {
                 fg_color: params.foreground,
                 bg_color: rgbcolor_alpha_to_window_color(
                     params.palette.resolve_bg(ColorAttribute::Default),
-                    (params.config.window_background_tint * 255.0) as u8,
+                    if window_is_transparent {
+                        0x00
+                    } else {
+                        (params.config.text_background_opacity * 255.0) as u8
+                    },
                 ),
                 palette: params.palette,
                 is_active_pane: params.pos.is_active,

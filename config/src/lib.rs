@@ -700,6 +700,8 @@ pub struct Config {
     /// The image will be scaled to fit the window.
     #[serde(default)]
     pub window_background_image: Option<PathBuf>,
+    #[serde(default)]
+    pub window_background_image_hsb: Option<HsbTransform>,
 
     /// Specifies the alpha value to use when rendering the background
     /// of the window.  The background is taken either from the
@@ -743,28 +745,11 @@ pub struct Config {
     /// A subtle dimming effect can be achieved by setting:
     /// inactive_pane_saturation = 0.9
     /// inactive_pane_brightness = 0.8
-    #[serde(default = "default_one_point_oh")]
-    pub inactive_pane_hue: f32,
-    #[serde(default = "default_one_point_oh")]
-    pub inactive_pane_saturation: f32,
-    #[serde(default = "default_one_point_oh")]
-    pub inactive_pane_brightness: f32,
+    #[serde(default)]
+    pub inactive_pane_hsb: Option<HsbTransform>,
 
-    /// Specifies the alpha value to use when applying the default
-    /// background color in a cell.  This is useful to apply a kind
-    /// of "tint" to the background image if either window_background_image
-    /// or window_background_opacity are in used.
-    ///
-    /// It can be a number between 0.0 and 1.0.
-    /// The default is 0.0
-    ///
-    /// Larger numbers increase the amount of the color scheme's
-    /// background color that is applied over the background image.
-    ///
-    /// This can be useful to increase effective contrast for text
-    /// that is rendered over the top.
-    #[serde(default = "default_zero_point_oh")]
-    pub window_background_tint: f32,
+    #[serde(default = "default_one_point_oh")]
+    pub text_background_opacity: f32,
 
     /// Specifies how often a blinking cursor transitions between visible
     /// and invisible, expressed in milliseconds.
@@ -830,10 +815,6 @@ pub struct Config {
     /// mapping annoying in vim :-p
     #[serde(default)]
     pub enable_csi_u_key_encoding: bool,
-}
-
-fn default_zero_point_oh() -> f32 {
-    0.0
 }
 
 fn default_one_point_oh() -> f32 {

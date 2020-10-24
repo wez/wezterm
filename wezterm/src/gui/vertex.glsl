@@ -46,11 +46,6 @@ void main() {
       if (o_has_color == 2.0) {
         // Background image takes up its full coordinates
         gl_Position = projection * vec4(position, 0.0, 1.0);
-      } else if (!has_background_image) {
-        // If there is no background attachment, then we're
-        // rendering the cell background color and need to
-        // fill the cell with that color
-        gl_Position = projection * vec4(position, 0.0, 1.0);
       } else {
         // Nothing else should render on the background layer
         gl_Position = off_screen();
