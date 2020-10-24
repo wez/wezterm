@@ -2501,7 +2501,7 @@ impl TermWindow {
 
             quad.set_texture(white_space);
             if let Some(im) = self.window_background.as_ref() {
-                let sprite = gl_state.glyph_cache.borrow_mut().cached_image(im)?;
+                let sprite = gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
                 quad.set_texture(sprite.texture_coords());
                 quad.set_is_background_image();
             }
@@ -2832,10 +2832,22 @@ impl TermWindow {
                     if let Some(image) = attrs.image() {
                         // Render iTerm2 style image attributes
 
+                        let padding = self
+                            .render_metrics
+                            .cell_size
+                            .height
+                            .max(self.render_metrics.cell_size.width)
+                            as usize;
+                        let padding = if padding.is_power_of_two() {
+                            padding
+                        } else {
+                            padding.next_power_of_two()
+                        };
+
                         let sprite = gl_state
                             .glyph_cache
                             .borrow_mut()
-                            .cached_image(image.image_data())?;
+                            .cached_image(image.image_data(), Some(padding))?;
                         let width = sprite.coords.size.width;
                         let height = sprite.coords.size.height;
 

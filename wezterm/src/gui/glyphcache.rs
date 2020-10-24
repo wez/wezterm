@@ -253,7 +253,11 @@ impl<T: Texture2d> GlyphCache<T> {
         Ok(Rc::new(glyph))
     }
 
-    pub fn cached_image(&mut self, image_data: &Arc<ImageData>) -> anyhow::Result<Sprite<T>> {
+    pub fn cached_image(
+        &mut self,
+        image_data: &Arc<ImageData>,
+        padding: Option<usize>,
+    ) -> anyhow::Result<Sprite<T>> {
         if let Some(sprite) = self.image_cache.get(&image_data.id()) {
             return Ok(sprite.clone());
         }
@@ -266,7 +270,7 @@ impl<T: Texture2d> GlyphCache<T> {
             decoded_image.to_vec(),
         );
 
-        let sprite = self.atlas.allocate(&image)?;
+        let sprite = self.atlas.allocate_with_padding(&image, padding)?;
 
         self.image_cache.insert(image_data.id(), sprite.clone());
 

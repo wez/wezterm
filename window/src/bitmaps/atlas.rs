@@ -39,6 +39,12 @@ where
             "texture must be square!"
         );
         let side = texture.width();
+        let iside = side as isize;
+
+        let image = crate::Image::new(side, side);
+        let rect = Rect::new(Point::new(0, 0), Size::new(iside, iside));
+        texture.write(rect, &image);
+
         let allocator = AtlasAllocator::new(AtlasSize::new(side.try_into()?, side.try_into()?));
         Ok(Self {
             texture: Rc::clone(texture),
@@ -54,6 +60,14 @@ where
 
     /// Reserve space for a sprite of the given size
     pub fn allocate(&mut self, im: &dyn BitmapImage) -> Result<Sprite<T>, OutOfTextureSpace> {
+        self.allocate_with_padding(im, None)
+    }
+
+    pub fn allocate_with_padding(
+        &mut self,
+        im: &dyn BitmapImage,
+        padding: Option<usize>,
+    ) -> Result<Sprite<T>, OutOfTextureSpace> {
         let (width, height) = im.image_dimensions();
 
         // If we can't convert the sizes to i32, then we'll never
@@ -68,8 +82,8 @@ where
         // We pad each sprite reservation with blank space to avoid
         // surprising and unexpected artifacts when the texture is
         // interpolated on to the render surface.
-        let reserve_width = reserve_width + PADDING * 2;
-        let reserve_height = reserve_height + PADDING * 2;
+        let reserve_width = reserve_width + padding.unwrap_or(0) as i32 + PADDING * 2;
+        let reserve_height = reserve_height + padding.unwrap_or(0) as i32 + PADDING * 2;
 
         if let Some(allocation) = self
             .allocator
