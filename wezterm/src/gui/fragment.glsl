@@ -13,7 +13,8 @@ uniform mat4 projection;
 uniform bool window_bg_layer;
 uniform bool bg_and_line_layer;
 uniform bool has_background_image;
-uniform sampler2D glyph_tex;
+uniform sampler2D atlas_nearest_sampler;
+uniform sampler2D atlas_linear_sampler;
 
 out vec4 color;
 
@@ -63,7 +64,7 @@ void main() {
   if (window_bg_layer) {
     if (o_has_color == 2.0) {
       // We're the window background image.
-      color = texture(glyph_tex, o_tex);
+      color = texture(atlas_linear_sampler, o_tex);
       // Apply window_background_image_opacity to the background image
       color.a = o_bg_color.a;
     } else {
@@ -85,7 +86,7 @@ void main() {
     // Sample the underline glyph texture for this location.
     // Note that the texture is whitespace in the case where this is
     // no underline or strikethrough.
-    vec4 under_color = texture(glyph_tex, o_underline);
+    vec4 under_color = texture(atlas_nearest_sampler, o_underline);
     if (under_color.a != 0.0) {
         // if the underline glyph isn't transparent in this position then
         // we take the text fg color, otherwise we'll leave the color
@@ -97,7 +98,7 @@ void main() {
     // in this location, we'll use the cursor color instead of the background.
     // The cursor color overrides any underline color we might have picked
     // in the section above.
-    vec4 cursor_outline = texture(glyph_tex, o_cursor);
+    vec4 cursor_outline = texture(atlas_nearest_sampler, o_cursor);
     if (cursor_outline.a != 0.0) {
       color = o_cursor_color;
     }
@@ -107,10 +108,12 @@ void main() {
       // the window_bg_layer.
       discard;
     } else {
-      color = texture(glyph_tex, o_tex);
       if (o_has_color == 0.0) {
         // if it's not a color emoji, tint with the fg_color
+        color = texture(atlas_nearest_sampler, o_tex);
         color.rgb = o_fg_color.rgb;
+      } else {
+        color = texture(atlas_linear_sampler, o_tex);
       }
     }
   }

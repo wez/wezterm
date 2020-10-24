@@ -2566,10 +2566,15 @@ impl TermWindow {
         // Clamp and use the nearest texel rather than interpolate.
         // This prevents things like the box cursor outlines from
         // being randomly doubled in width or height
-        let glyph_tex = Sampler::new(&*tex)
+        let atlas_nearest_sampler = Sampler::new(&*tex)
             .wrap_function(SamplerWrapFunction::Clamp)
             .magnify_filter(MagnifySamplerFilter::Nearest)
             .minify_filter(MinifySamplerFilter::Nearest);
+
+        let atlas_linear_sampler = Sampler::new(&*tex)
+            .wrap_function(SamplerWrapFunction::Clamp)
+            .magnify_filter(MagnifySamplerFilter::Linear)
+            .minify_filter(MinifySamplerFilter::Linear);
 
         let has_background_image = self.window_background.is_some();
 
@@ -2580,7 +2585,8 @@ impl TermWindow {
             &gl_state.program,
             &uniform! {
                 projection: projection,
-                glyph_tex:  glyph_tex,
+                atlas_nearest_sampler:  atlas_nearest_sampler,
+                atlas_linear_sampler:  atlas_linear_sampler,
                 window_bg_layer: true,
                 bg_and_line_layer: false,
                 has_background_image: has_background_image,
@@ -2617,7 +2623,8 @@ impl TermWindow {
             &gl_state.program,
             &uniform! {
                 projection: projection,
-                glyph_tex:  glyph_tex,
+                atlas_nearest_sampler:  atlas_nearest_sampler,
+                atlas_linear_sampler:  atlas_linear_sampler,
                 window_bg_layer: false,
                 bg_and_line_layer: true,
                 has_background_image: has_background_image,
@@ -2632,7 +2639,8 @@ impl TermWindow {
             &gl_state.program,
             &uniform! {
                 projection: projection,
-                glyph_tex:  glyph_tex,
+                atlas_nearest_sampler:  atlas_nearest_sampler,
+                atlas_linear_sampler:  atlas_linear_sampler,
                 window_bg_layer: false,
                 bg_and_line_layer: false,
                 has_background_image: has_background_image,
