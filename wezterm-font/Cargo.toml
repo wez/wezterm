@@ -1,0 +1,42 @@
+[package]
+name = "wezterm-font"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+allsorts = "0.4"
+anyhow = "1.0"
+config = { path = "../config" }
+euclid = "0.20"
+freetype = { path = "../deps/freetype" }
+harfbuzz = { path = "../deps/harfbuzz" }
+lazy_static = "1.4"
+log = "0.4"
+metrics = { version="0.12", features=["std"]}
+mux = { path = "../mux" }
+termwiz = { path = "../termwiz" }
+thiserror = "1.0"
+tinyvec = "0.3" # Note: constrained by the allsorts crate
+unicode-segmentation = "1.6"
+walkdir = "2"
+wezterm-term = { path = "../term", features=["use_serde"] }
+window = { path = "../window" }
+
+[target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
+fontconfig = { path = "../deps/fontconfig" }
+
+# on linux, font-loader pulls in servo-font* crates which conflict with
+# our newer font related deps, so we avoid it on linux
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+font-loader = { version = "0.8" }
+font-kit = "0.5"
+
+[target."cfg(windows)".dependencies]
+dwrote = "0.9"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.7"
+core-text = "15.0"

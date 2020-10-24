@@ -16,11 +16,14 @@ use std::thread;
 use thiserror::*;
 
 pub mod activity;
+pub mod connui;
 pub mod domain;
 pub mod localpane;
 pub mod pane;
 pub mod renderable;
+pub mod ssh;
 pub mod tab;
+pub mod termwiztermtab;
 pub mod window;
 
 use crate::activity::Activity;

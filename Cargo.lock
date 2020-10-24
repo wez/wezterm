@@ -2062,9 +2062,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.10.1",
  "bintree",
  "config",
+ "crossbeam",
  "downcast-rs",
+ "filedescriptor",
+ "lazy_static",
  "libc",
  "log",
  "luahelper",
@@ -2074,8 +2078,12 @@ dependencies = [
  "ratelim",
  "regex",
  "serde",
+ "ssh2",
+ "terminfo",
  "termwiz",
+ "textwrap 0.12.1",
  "thiserror",
+ "unicode-segmentation",
  "url",
  "wezterm-term",
 ]
@@ -2718,7 +2726,6 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-task 4.0.2",
- "crossbeam",
  "flume",
  "lazy_static",
  "smol",
@@ -4071,33 +4078,102 @@ dependencies = [
 name = "wezterm"
 version = "0.1.0"
 dependencies = [
- "allsorts",
  "anyhow",
- "async-task 1.3.1",
- "async-trait",
- "async_ossl",
- "base64 0.10.1",
- "bitflags 1.2.1",
- "cc",
  "cocoa",
  "codec",
  "config",
- "core-foundation 0.7.0",
- "core-graphics 0.19.2",
- "core-text 15.0.0",
- "crossbeam",
  "dirs 2.0.2",
- "downcast-rs",
- "dwrote",
- "embed-resource",
- "euclid 0.20.14",
  "filedescriptor",
+ "libc",
+ "log",
+ "mux",
+ "objc",
+ "portable-pty",
+ "pretty_env_logger",
+ "promise",
+ "structopt",
+ "tabout",
+ "termwiz",
+ "textwrap 0.12.1",
+ "umask",
+ "wezterm-client",
+ "wezterm-gui-subcommands",
+ "wezterm-term",
+]
+
+[[package]]
+name = "wezterm-client"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "async_ossl",
+ "codec",
+ "config",
+ "filedescriptor",
+ "futures",
+ "log",
+ "lru",
+ "metrics",
+ "mux",
+ "openssl",
+ "portable-pty",
+ "promise",
+ "rangeset",
+ "ratelim",
+ "smol",
+ "ssh2",
+ "termwiz",
+ "textwrap 0.12.1",
+ "thiserror",
+ "url",
+ "wezterm-term",
+]
+
+[[package]]
+name = "wezterm-font"
+version = "0.1.0"
+dependencies = [
+ "allsorts",
+ "anyhow",
+ "config",
+ "core-foundation 0.7.0",
+ "core-text 15.0.0",
+ "dwrote",
+ "euclid 0.20.14",
  "font-kit",
  "font-loader",
  "fontconfig",
  "freetype 0.1.0",
- "futures",
  "harfbuzz",
+ "lazy_static",
+ "log",
+ "metrics",
+ "mux",
+ "termwiz",
+ "thiserror",
+ "tinyvec",
+ "unicode-segmentation",
+ "walkdir",
+ "wezterm-term",
+ "window",
+]
+
+[[package]]
+name = "wezterm-gui"
+version = "0.1.0"
+dependencies = [
+ "allsorts",
+ "anyhow",
+ "bitflags 1.2.1",
+ "cc",
+ "codec",
+ "config",
+ "dirs 2.0.2",
+ "downcast-rs",
+ "embed-resource",
+ "euclid 0.20.14",
+ "filedescriptor",
  "hdrhistogram",
  "http_req",
  "image",
@@ -4110,7 +4186,6 @@ dependencies = [
  "mlua",
  "mux",
  "notify-rust",
- "objc",
  "open",
  "openssl",
  "palette",
@@ -4126,14 +4201,12 @@ dependencies = [
  "serial",
  "shared_library",
  "smol",
- "ssh2",
  "structopt",
  "tabout",
  "terminfo",
  "termwiz",
  "textwrap 0.12.1",
  "thiserror",
- "tinyvec",
  "uds_windows",
  "umask",
  "unicode-normalization",
@@ -4141,10 +4214,21 @@ dependencies = [
  "unicode-width",
  "url",
  "walkdir",
+ "wezterm-client",
+ "wezterm-font",
+ "wezterm-gui-subcommands",
  "wezterm-term",
  "winapi 0.3.9",
  "window",
  "winrt-notification",
+]
+
+[[package]]
+name = "wezterm-gui-subcommands"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "structopt",
 ]
 
 [[package]]

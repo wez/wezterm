@@ -6,7 +6,7 @@
 ;#define MyAppVersion "1.5"
 #define MyAppPublisher "Wez Furlong"
 #define MyAppURL "http://wezfurlong.org/wezterm"
-#define MyAppExeName "wezterm.exe"
+#define MyAppExeName "wezterm-gui.exe"
 
 [Setup]
 AppId={{BCF6F0DA-5B9A-408D-8562-F680AE6E1EAF}
@@ -43,6 +43,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "..\target\release\wezterm.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\target\release\wezterm-gui.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\wezterm-mux-server.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\mesa\opengl32.dll"; DestDir: "{app}\mesa"; Flags: ignoreversion
 Source: "..\target\release\libEGL.dll"; DestDir: "{app}"; Flags: ignoreversion
