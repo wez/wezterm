@@ -36,6 +36,7 @@ font-kit = "0.5"
 
 [target."cfg(windows)".dependencies]
 dwrote = "0.9"
+winapi = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.7"

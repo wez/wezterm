@@ -4126,6 +4126,7 @@ dependencies = [
  "termwiz",
  "textwrap 0.12.1",
  "thiserror",
+ "uds_windows",
  "url",
  "wezterm-term",
 ]
@@ -4156,6 +4157,7 @@ dependencies = [
  "unicode-segmentation",
  "walkdir",
  "wezterm-term",
+ "winapi 0.3.9",
  "window",
 ]
 

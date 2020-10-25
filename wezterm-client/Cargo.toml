@@ -30,3 +30,6 @@ filedescriptor = { version="0.7", path = "../filedescriptor" }
 futures = "0.3"
 metrics = { version="0.12", features=["std"]}
 textwrap = "0.12"
+
+[target."cfg(windows)".dependencies]
+uds_windows = "0.1"
