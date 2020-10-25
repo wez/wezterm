@@ -1,6 +1,7 @@
 use super::glyphcache::GlyphCache;
 use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
+use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{IndexBuffer, VertexBuffer};
@@ -34,51 +35,67 @@ impl OpenGLRenderState {
         context: Rc<GliumContext>,
         fonts: &Rc<FontConfiguration>,
         metrics: &RenderMetrics,
-        size: usize,
+        mut atlas_size: usize,
         pixel_width: usize,
         pixel_height: usize,
     ) -> anyhow::Result<Self> {
-        let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, size)?);
-        let util_sprites = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics)?;
+        loop {
+            let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, atlas_size)?);
+            let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
+            match result {
+                Ok(util_sprites) => {
+                    let mut errors = vec![];
+                    let mut program = None;
+                    for version in &["330", "300 es"] {
+                        let source = glium::program::ProgramCreationInput::SourceCode {
+                            vertex_shader: &Self::vertex_shader(version),
+                            fragment_shader: &Self::fragment_shader(version),
+                            outputs_srgb: true,
+                            tessellation_control_shader: None,
+                            tessellation_evaluation_shader: None,
+                            transform_feedback_varyings: None,
+                            uses_point_size: false,
+                            geometry_shader: None,
+                        };
+                        log::info!("compiling a prog with version {}", version);
+                        match glium::Program::new(&context, source) {
+                            Ok(prog) => {
+                                program = Some(prog);
+                                break;
+                            }
+                            Err(err) => errors.push(err.to_string()),
+                        };
+                    }
 
-        let mut errors = vec![];
-        let mut program = None;
-        for version in &["330", "300 es"] {
-            let source = glium::program::ProgramCreationInput::SourceCode {
-                vertex_shader: &Self::vertex_shader(version),
-                fragment_shader: &Self::fragment_shader(version),
-                outputs_srgb: true,
-                tessellation_control_shader: None,
-                tessellation_evaluation_shader: None,
-                transform_feedback_varyings: None,
-                uses_point_size: false,
-                geometry_shader: None,
-            };
-            log::info!("compiling a prog with version {}", version);
-            match glium::Program::new(&context, source) {
-                Ok(prog) => {
-                    program = Some(prog);
-                    break;
+                    let program = program.ok_or_else(|| {
+                        anyhow!("Failed to compile shaders: {}", errors.join("\n"))
+                    })?;
+
+                    let (glyph_vertex_buffer, glyph_index_buffer, quads) = Self::compute_vertices(
+                        &context,
+                        metrics,
+                        pixel_width as f32,
+                        pixel_height as f32,
+                    )?;
+
+                    return Ok(Self {
+                        context,
+                        glyph_cache,
+                        util_sprites,
+                        program,
+                        glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
+                        glyph_index_buffer,
+                        quads,
+                    });
                 }
-                Err(err) => errors.push(err.to_string()),
+                Err(OutOfTextureSpace { size: Some(size) }) => {
+                    atlas_size = size;
+                }
+                Err(OutOfTextureSpace { size: None }) => {
+                    anyhow::bail!("requested texture size is impossible!?")
+                }
             };
         }
-
-        let program =
-            program.ok_or_else(|| anyhow!("Failed to compile shaders: {}", errors.join("\n")))?;
-
-        let (glyph_vertex_buffer, glyph_index_buffer, quads) =
-            Self::compute_vertices(&context, metrics, pixel_width as f32, pixel_height as f32)?;
-
-        Ok(Self {
-            context,
-            glyph_cache,
-            util_sprites,
-            program,
-            glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
-            glyph_index_buffer,
-            quads,
-        })
     }
 
     pub fn advise_of_window_size_change(
