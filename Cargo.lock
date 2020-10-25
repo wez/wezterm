@@ -1006,6 +1006,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "env-bootstrap"
+version = "0.1.0"
+dependencies = [
+ "cocoa",
+ "config",
+ "dirs 2.0.2",
+ "libc",
+ "objc",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4004,15 +4015,12 @@ name = "wezterm"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cocoa",
  "codec",
  "config",
- "dirs 2.0.2",
+ "env-bootstrap",
  "filedescriptor",
- "libc",
  "log",
  "mux",
- "objc",
  "portable-pty",
  "pretty_env_logger",
  "promise",
@@ -4098,6 +4106,7 @@ dependencies = [
  "dirs 2.0.2",
  "downcast-rs",
  "embed-resource",
+ "env-bootstrap",
  "euclid 0.20.14",
  "filedescriptor",
  "hdrhistogram",

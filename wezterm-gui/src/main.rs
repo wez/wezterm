@@ -404,6 +404,13 @@ fn run() -> anyhow::Result<()> {
         }
     };
 
+    env_bootstrap::set_wezterm_executable();
+
+    #[cfg(target_os = "macos")]
+    env_bootstrap::set_lang_from_locale();
+
+    env_bootstrap::fixup_appimage();
+
     pretty_env_logger::init_timed();
     stats::Stats::init()?;
     let _saver = umask::UmaskSaver::new();

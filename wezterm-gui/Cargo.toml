@@ -22,6 +22,7 @@ codec = { path = "../codec" }
 config = { path = "../config" }
 dirs = "2.0"
 downcast-rs = "1.0"
+env-bootstrap = { path = "../env-bootstrap" }
 euclid = "0.20"
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 hdrhistogram = "7.1"

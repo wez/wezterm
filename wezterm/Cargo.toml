@@ -13,7 +13,7 @@ anyhow = "1.0"
 anyhow = "1.0"
 codec = { path = "../codec" }
 config = { path = "../config" }
-dirs = "2.0"
+env-bootstrap = { path = "../env-bootstrap" }
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 log = "0.4"
 mux = { path = "../mux" }
@@ -28,9 +28,4 @@ umask = { path = "../umask" }
 wezterm-client = { path = "../wezterm-client" }
 wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
 wezterm-term = { path = "../term" }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.20"
-libc = "0.2"
-objc = "0.2"
 
