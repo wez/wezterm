@@ -2875,7 +2875,9 @@ impl TermWindow {
 
                         let texture_rect = TextureRect::new(origin, size);
 
-                        let mut quad = match quads.cell(cell_idx, params.line_idx) {
+                        let mut quad = match quads
+                            .cell(cell_idx + params.pos.left, params.line_idx + params.pos.top)
+                        {
                             Ok(quad) => quad,
                             Err(_) => break,
                         };
