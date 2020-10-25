@@ -228,9 +228,6 @@ pub enum FontLocatorSelection {
     /// Use the fontloader crate to use a system specific method of
     /// resolving fonts
     FontLoader,
-    /// Use the fontkit crate to use a different system specific
-    /// method of resolving fonts
-    FontKit,
     /// Use only the font_dirs configuration to locate fonts
     ConfigDirsOnly,
 }
@@ -261,7 +258,7 @@ impl FontLocatorSelection {
     }
 
     pub fn variants() -> Vec<&'static str> {
-        vec!["FontConfig", "FontLoader", "FontKit", "ConfigDirsOnly"]
+        vec!["FontConfig", "FontLoader", "ConfigDirsOnly"]
     }
 }
 
@@ -271,7 +268,6 @@ impl std::str::FromStr for FontLocatorSelection {
         match s.to_lowercase().as_ref() {
             "fontconfig" => Ok(Self::FontConfig),
             "fontloader" => Ok(Self::FontLoader),
-            "fontkit" => Ok(Self::FontKit),
             "configdirsonly" => Ok(Self::ConfigDirsOnly),
             _ => Err(anyhow!(
                 "{} is not a valid FontLocatorSelection variant, possible values are {:?}",
@@ -285,7 +281,6 @@ impl std::str::FromStr for FontLocatorSelection {
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub enum FontRasterizerSelection {
     FreeType,
-    FontKit,
 }
 
 lazy_static::lazy_static! {
@@ -310,7 +305,7 @@ impl FontRasterizerSelection {
     }
 
     pub fn variants() -> Vec<&'static str> {
-        vec!["FreeType", "FontKit"]
+        vec!["FreeType"]
     }
 }
 
@@ -319,7 +314,6 @@ impl std::str::FromStr for FontRasterizerSelection {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_ref() {
             "freetype" => Ok(Self::FreeType),
-            "fontkit" => Ok(Self::FontKit),
             _ => Err(anyhow!(
                 "{} is not a valid FontRasterizerSelection variant, possible values are {:?}",
                 s,

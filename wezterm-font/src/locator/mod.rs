@@ -5,8 +5,6 @@ use std::path::PathBuf;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod font_config;
 #[cfg(any(target_os = "macos", windows))]
-pub mod font_kit;
-#[cfg(any(target_os = "macos", windows))]
 pub mod font_loader;
 
 /// Represents the data behind a font.
@@ -70,12 +68,6 @@ pub fn new_locator(locator: FontLocatorSelection) -> Box<dyn FontLocator> {
             return Box::new(font_loader::FontLoaderFontLocator {});
             #[cfg(not(any(target_os = "macos", windows)))]
             panic!("fontloader not compiled in");
-        }
-        FontLocatorSelection::FontKit => {
-            #[cfg(any(target_os = "macos", windows))]
-            return Box::new(::font_kit::source::SystemSource::new());
-            #[cfg(not(any(target_os = "macos", windows)))]
-            panic!("fontkit not compiled in");
         }
         FontLocatorSelection::ConfigDirsOnly => Box::new(NopSystemSource {}),
     }

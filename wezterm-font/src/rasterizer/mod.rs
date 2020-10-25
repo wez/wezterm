@@ -1,6 +1,5 @@
 use crate::locator::FontDataHandle;
 use crate::units::*;
-use anyhow::bail;
 
 pub mod freetype;
 
@@ -36,6 +35,5 @@ pub fn new_rasterizer(
         FontRasterizerSelection::FreeType => Ok(Box::new(
             freetype::FreeTypeRasterizer::from_locator(handle)?,
         )),
-        FontRasterizerSelection::FontKit => bail!("FontKit rasterizer not implemented yet"),
     }
 }

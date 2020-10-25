@@ -135,15 +135,6 @@ checksum = "a4c527152e37cf757a3f78aae5a06fbeefdb07ccc535c980a3208ee3060dd544"
 
 [[package]]
 name = "arrayvec"
-version = "0.4.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd9fd44efafa8690358b7408d253adf110036b88f55672a933f01d616ad9b1b9"
-dependencies = [
- "nodrop",
-]
-
-[[package]]
-name = "arrayvec"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cff77d8686867eceff3105329d4698d96c2391c176d5d03adc90c7389162b5b8"
@@ -440,7 +431,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8fb2d74254a3a0b5cac33ac9f8ed0e44aa50378d9dbb2e5d83bd21ed1dc2c8a"
 dependencies = [
  "arrayref",
- "arrayvec 0.5.1",
+ "arrayvec",
  "constant_time_eq",
 ]
 
@@ -1127,12 +1118,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "float-ord"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bad48618fdb549078c333a7a8528acb57af271d0433bdecd523eb620628364e"
-
-[[package]]
 name = "flume"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1149,30 +1134,6 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
-name = "font-kit"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09b6e2b877097ffd0abac6597fea26fccb5ed7eb9da0a4094f11ccc8aba64efb"
-dependencies = [
- "byteorder",
- "core-foundation 0.7.0",
- "core-graphics 0.19.2",
- "core-text 15.0.0",
- "dirs 2.0.2",
- "dwrote",
- "euclid 0.20.14",
- "float-ord",
- "freetype 0.4.1",
- "lazy_static",
- "libc",
- "log",
- "lyon_path",
- "servo-fontconfig",
- "walkdir",
- "winapi 0.3.9",
-]
 
 [[package]]
 name = "font-loader"
@@ -1215,16 +1176,6 @@ name = "freetype"
 version = "0.1.0"
 dependencies = [
  "cc",
-]
-
-[[package]]
-name = "freetype"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11926b2b410b469d0e9399eca4cbbe237a9ef02176c485803b29216307e8e028"
-dependencies = [
- "libc",
- "servo-freetype-sys",
 ]
 
 [[package]]
@@ -1480,7 +1431,7 @@ name = "harfbuzz"
 version = "0.1.0"
 dependencies = [
  "cc",
- "freetype 0.1.0",
+ "freetype",
 ]
 
 [[package]]
@@ -1731,7 +1682,7 @@ version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db65c6da02e61f55dae90a0ae427b2a5f6b3e8db09f58d10efab23af92592616"
 dependencies = [
- "arrayvec 0.5.1",
+ "arrayvec",
  "bitflags 1.2.1",
  "cfg-if",
  "ryu",
@@ -1863,26 +1814,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d02d96d3dc58eea174e1838bb9f093012955db61225f1101a658544448ae4d4f"
 dependencies = [
  "cc",
-]
-
-[[package]]
-name = "lyon_geom"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca04310c9807612a311506106000b6eccb2e27bca9bfb594ce80fb8a31231f9d"
-dependencies = [
- "arrayvec 0.4.12",
- "euclid 0.20.14",
- "num-traits 0.2.12",
-]
-
-[[package]]
-name = "lyon_path"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bcb57ac24a5428539e2c7c0592766d5933c937d703f430990c669c00de96862"
-dependencies = [
- "lyon_geom",
 ]
 
 [[package]]
@@ -2133,12 +2064,6 @@ dependencies = [
  "cfg-if",
  "libc",
 ]
-
-[[package]]
-name = "nodrop"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72ef4a56884ca558e5ddb05a1d1e7e1bfd9a68d9ed024c21704cc98872dae1bb"
 
 [[package]]
 name = "nom"
@@ -4142,10 +4067,9 @@ dependencies = [
  "core-text 15.0.0",
  "dwrote",
  "euclid 0.20.14",
- "font-kit",
  "font-loader",
  "fontconfig",
- "freetype 0.1.0",
+ "freetype",
  "harfbuzz",
  "lazy_static",
  "log",

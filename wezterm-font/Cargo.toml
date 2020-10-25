@@ -32,7 +32,6 @@ fontconfig = { path = "../deps/fontconfig" }
 # our newer font related deps, so we avoid it on linux
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 font-loader = { version = "0.8" }
-font-kit = "0.5"
 
 [target."cfg(windows)".dependencies]
 dwrote = "0.9"
