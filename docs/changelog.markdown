@@ -43,6 +43,8 @@ brief notes about them may accumulate here.
 * Halved the memory usage requirements per Cell in the common
   case (saving 32 bytes per cell), which gives more headroom for
   users with large scrollback.
+* Reduced initial GPU VRAM requirement to 2MiB.  Improved texture
+  allocation to avoid needing lots of VRAM.
 * macOS: Fix issue where new windows would open as Cocoa tabs
   when wezterm was maximized.
 * macOS: Fix issue where wezterm wouldn't adjust to DPI changes
@@ -91,6 +93,9 @@ brief notes about them may accumulate here.
 * New color schemes: `Dracula+`, `Gruvbox Light`, `MaterialDarker`,
   `Overnight Slumber`, `Popping and Locking`, `Rapture`,
   `jubi`, `nord`.
+* Improved image protocol support to have better render fidelity
+  and to reduce VRAM usage when the same image it displayed
+  multiple times in the same pane.
 
 ### 20200909-002054-4c9af461
 
