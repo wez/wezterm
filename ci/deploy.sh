@@ -86,7 +86,7 @@ cd ${HERE}
 mkdir -p %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-mux-server -t %{buildroot}/usr/bin
-install -Dsm755 target/release/gui -t %{buildroot}/usr/bin
+install -Dsm755 target/release/wezterm-gui -t %{buildroot}/usr/bin
 install -Dsm755 target/release/strip-ansi-escapes -t %{buildroot}/usr/bin
 install -Dm644 assets/icon/terminal.png %{buildroot}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 install -Dm644 assets/wezterm.desktop %{buildroot}/usr/share/applications/org.wezfurlong.wezterm.desktop
