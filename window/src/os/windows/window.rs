@@ -867,6 +867,15 @@ fn mouse_coords(lparam: LPARAM) -> Point {
     Point::new(x, y)
 }
 
+fn screen_to_client(hwnd: HWND, point: ScreenPoint) -> Point {
+    let mut point = POINT {
+        x: point.x.try_into().unwrap(),
+        y: point.y.try_into().unwrap(),
+    };
+    unsafe { ScreenToClient(hwnd, &mut point as *mut _) };
+    Point::new(point.x.try_into().unwrap(), point.y.try_into().unwrap())
+}
+
 fn client_to_screen(hwnd: HWND, point: Point) -> ScreenPoint {
     let mut point = POINT {
         x: point.x.try_into().unwrap(),
@@ -974,7 +983,10 @@ fn read_scroll_speed(name: &str) -> io::Result<i16> {
 unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
+        // Wheel events return screen coordinates!
         let coords = mouse_coords(lparam);
+        let screen_coords = ScreenPoint::new(coords.x, coords.y);
+        let coords = screen_to_client(hwnd, screen_coords);
         let delta = GET_WHEEL_DELTA_WPARAM(wparam);
         let scaled_delta = if msg == WM_MOUSEWHEEL {
             delta * (*WHEEL_SCROLL_LINES)
@@ -998,7 +1010,7 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 MouseEventKind::VertWheel(position)
             },
             coords,
-            screen_coords: client_to_screen(hwnd, coords),
+            screen_coords,
             mouse_buttons,
             modifiers,
         };
