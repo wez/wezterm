@@ -107,3 +107,12 @@ pub fn set_lang_from_locale() {
         }
     }
 }
+
+pub fn bootstrap() {
+    set_wezterm_executable();
+
+    #[cfg(target_os = "macos")]
+    set_lang_from_locale();
+
+    fixup_appimage();
+}

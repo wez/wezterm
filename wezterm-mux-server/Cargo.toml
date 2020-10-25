@@ -11,6 +11,7 @@ anyhow = "1.0"
 async_ossl = { path = "../async_ossl" }
 codec = { path = "../codec" }
 config = { path = "../config" }
+env-bootstrap = { path = "../env-bootstrap" }
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 futures = "0.3"
 hostname = "0.3"

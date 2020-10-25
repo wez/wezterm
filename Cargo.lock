@@ -4174,6 +4174,7 @@ dependencies = [
  "async_ossl",
  "codec",
  "config",
+ "env-bootstrap",
  "filedescriptor",
  "futures",
  "hostname",
