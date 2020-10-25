@@ -208,6 +208,45 @@ return {
 }
 ```
 
+## Styling Inactive Panes
+
+*since: nightly builds only*
+
+By default, inactive panes look no different from active panes, with the
+exception that the cursor will render as an outline style to indicate that it
+doesn't have the focus.
+
+You can optionally apply a transformation to the pane colors
+with a hue, saturation, brightness (HSB) multipler.
+
+In this example, inactive panes will be slightly de-saturated and dimmed:
+
+```lua
+return {
+  inactive_pane_hsb = {
+    saturation = 0.9,
+    brightness = 0.8,
+  }
+}
+```
+
+The transform works by converting the RGB colors to HSV values and
+then multiplying the HSV by the numbers specified in `inactive_pane_hsb`.
+
+Modifying the hue changes the hue of the color by rotating it through the color
+wheel. It is not as useful as the other components, but is available "for free"
+as part of the colorspace conversion.
+
+Modifying the saturation can add or reduce the amount of "colorfulness". Making
+the value smaller can make it appear more washed out.
+
+Modifying the brightness can be used to dim or increase the perceived amount of
+light.
+
+The range of these values is 0.0 and up; they are used to multiply the existing
+values, so the default of 1.0 preserves the existing component, whilst 0.5 will
+reduce it by half, and 2.0 will double the value.
+
 ## Window Background Image
 
 <img width="100%" height="100%" src="../screenshots/wezterm-vday-screenshot.png" alt="Screenshot">
@@ -253,6 +292,9 @@ return {
   },
 }
 ```
+
+See [Styling Inactive Panes](#style-inactive-panes) for more information
+on hue, saturation, brigthness transformations.
 
 ## Window Background Opacity
 
