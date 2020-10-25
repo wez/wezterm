@@ -291,6 +291,8 @@ pub struct TerminalState {
     term_version: String,
 
     writer: Box<dyn std::io::Write>,
+
+    image_cache: lru::LruCache<[u8; 32], Arc<ImageData>>,
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -383,6 +385,7 @@ impl TerminalState {
             term_program: term_program.to_string(),
             term_version: term_version.to_string(),
             writer: Box::new(std::io::BufWriter::new(writer)),
+            image_cache: lru::LruCache::new(16),
         }
     }
 
@@ -1326,9 +1329,24 @@ impl TerminalState {
             return;
         }
 
-        // FIXME: cache recent images and avoid assigning a new id for repeated data!
-        let image_data = Arc::new(ImageData::with_raw_data(png_image_data));
+        let image_data = self.raw_image_to_image_data(png_image_data);
         self.assign_image_to_cells(width, height, image_data);
+    }
+
+    /// cache recent images and avoid assigning a new id for repeated data!
+    fn raw_image_to_image_data(&mut self, raw_data: Vec<u8>) -> Arc<ImageData> {
+        use sha2::Digest;
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(&raw_data);
+        let key = hasher.finalize().into();
+
+        if let Some(item) = self.image_cache.get(&key) {
+            Arc::clone(item)
+        } else {
+            let image_data = Arc::new(ImageData::with_raw_data(raw_data));
+            self.image_cache.put(key, Arc::clone(&image_data));
+            image_data
+        }
     }
 
     fn assign_image_to_cells(&mut self, width: u32, height: u32, image_data: Arc<ImageData>) {
@@ -1436,7 +1454,7 @@ impl TerminalState {
             (Some(w), Some(h)) => (w, h),
         };
 
-        let image_data = Arc::new(ImageData::with_raw_data(image.data));
+        let image_data = self.raw_image_to_image_data(image.data);
         self.assign_image_to_cells(width as u32, height as u32, image_data);
 
         // FIXME: check cursor positioning in iterm
