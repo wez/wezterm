@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use config::wezterm_version;
 use mux::activity::Activity;
 use mux::pane::PaneId;
@@ -136,7 +136,8 @@ impl ImgCatCommand {
     fn run(&self) -> anyhow::Result<()> {
         let mut data = Vec::new();
         if let Some(file_name) = self.file_name.as_ref() {
-            let mut f = std::fs::File::open(file_name)?;
+            let mut f = std::fs::File::open(file_name)
+                .with_context(|| anyhow!("reading image file: {:?}", file_name))?;
             f.read_to_end(&mut data)?;
         } else {
             let mut stdin = std::io::stdin();
