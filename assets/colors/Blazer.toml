@@ -3,6 +3,7 @@
 foreground = "#d9e6f2"
 background = "#0d1926"
 cursor_bg = "#d9e6f2"
+cursor_border = "#d9e6f2"
 cursor_fg = "#0d1926"
 
 ansi = ["#000000","#b87a7a","#7ab87a","#b8b87a","#7a7ab8","#b87ab8","#7ab8b8","#d9d9d9"]

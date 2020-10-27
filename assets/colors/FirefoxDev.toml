@@ -3,6 +3,7 @@
 foreground = "#7c8fa4"
 background = "#0e1011"
 cursor_bg = "#708284"
+cursor_border = "#708284"
 cursor_fg = "#002831"
 selection_bg = "#163c61"
 selection_fg = "#f2f5f9"

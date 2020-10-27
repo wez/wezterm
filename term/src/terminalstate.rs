@@ -2970,7 +2970,15 @@ impl<'a> Performer<'a> {
                         match which_color {
                             DynamicColorNumber::TextForegroundColor => set_or_query!(foreground),
                             DynamicColorNumber::TextBackgroundColor => set_or_query!(background),
-                            DynamicColorNumber::TextCursorColor => set_or_query!(cursor_bg),
+                            DynamicColorNumber::TextCursorColor => {
+                                if let ColorOrQuery::Color(c) = color {
+                                    // We set the border to the background color; we don't
+                                    // have an escape that sets that independently, and this
+                                    // way just looks better.
+                                    self.palette_mut().cursor_border = c;
+                                }
+                                set_or_query!(cursor_bg)
+                            }
                             DynamicColorNumber::HighlightForegroundColor => {
                                 set_or_query!(selection_fg)
                             }
@@ -3007,7 +3015,12 @@ impl<'a> Performer<'a> {
                     match which_color {
                         DynamicColorNumber::TextForegroundColor => reset!(foreground),
                         DynamicColorNumber::TextBackgroundColor => reset!(background),
-                        DynamicColorNumber::TextCursorColor => reset!(cursor_bg),
+                        DynamicColorNumber::TextCursorColor => {
+                            reset!(cursor_bg);
+                            // Since we set the border to the bg, we consider it reset
+                            // by resetting the bg too!
+                            reset!(cursor_border);
+                        }
                         DynamicColorNumber::HighlightForegroundColor => reset!(selection_fg),
                         DynamicColorNumber::HighlightBackgroundColor => reset!(selection_bg),
                         DynamicColorNumber::MouseForegroundColor
