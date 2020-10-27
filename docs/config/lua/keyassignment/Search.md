@@ -25,4 +25,5 @@ return {
 }
 ```
 
+[Learn more about the search overlay](../../../scrollback.html#searching-the-scrollback)
 

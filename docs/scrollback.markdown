@@ -116,5 +116,5 @@ With that in your config you can now:
 
 without needing to reach for your mouse.
 
-See [the Search action docs](config/keys.html#search) for more information on
+See [the Search action docs](config/lua/keyassignment/Search.html) for more information on
 using the `Search` action.
