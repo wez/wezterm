@@ -68,13 +68,14 @@ void main() {
       color = texture(atlas_linear_sampler, o_tex);
       // Apply window_background_image_opacity to the background image
       color.a = o_bg_color.a;
+    } else if (o_has_color == 3.0) {
+      color = o_bg_color;
     } else {
       // Nothing else should render on the background layer
-      // color = vec4(0,0,0,0);
       discard;
     }
   } else if (bg_and_line_layer) {
-    if (o_has_color == 2.0) {
+    if (o_has_color >= 2.0) {
       // Don't render the background image on anything other than
       // the window_bg_layer.
       discard;
@@ -104,7 +105,7 @@ void main() {
       color = o_cursor_color;
     }
   } else {
-    if (o_has_color == 2.0) {
+    if (o_has_color >= 2.0) {
       // Don't render the background image on anything other than
       // the window_bg_layer.
       discard;

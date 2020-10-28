@@ -737,7 +737,7 @@ impl WindowCallbacks for TermWindow {
         }
 
         for pass in 0.. {
-            match self.paint_opengl_pass(frame) {
+            match self.paint_opengl_pass() {
                 Ok(_) => break,
                 Err(err) => {
                     if let Some(&OutOfTextureSpace { size: Some(size) }) =
@@ -2357,12 +2357,8 @@ impl TermWindow {
         Ok(())
     }
 
-    fn paint_opengl_pass(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
+    fn paint_opengl_pass(&mut self) -> anyhow::Result<()> {
         let panes = self.get_panes_to_render();
-        if panes.is_empty() {
-            frame.clear_color_srgb(0., 0., 0., 1.);
-            return Ok(());
-        }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
             let splits = self.get_splits();
@@ -2493,23 +2489,23 @@ impl TermWindow {
             let white_space = gl_state.util_sprites.white_space.texture_coords();
             quad.set_underline(white_space);
             quad.set_cursor(white_space);
-            quad.set_has_color(false);
 
             let background_image_alpha = (config.window_background_opacity * 255.0) as u8;
-            let color = Color::rgba(0, 0, 0, background_image_alpha);
-            quad.set_texture_adjust(0., 0., 0., 0.);
+            let color = rgbcolor_alpha_to_window_color(palette.background, background_image_alpha);
 
-            quad.set_texture(white_space);
             if let Some(im) = self.window_background.as_ref() {
                 let sprite = gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
                 quad.set_texture(sprite.texture_coords());
                 quad.set_is_background_image();
+            } else {
+                quad.set_texture(white_space);
+                quad.set_is_background();
             }
+            quad.set_texture_adjust(0., 0., 0., 0.);
             quad.set_hsv(config.window_background_image_hsb);
             quad.set_cursor_color(color);
             quad.set_fg_color(color);
             quad.set_bg_color(color);
-            quad.set_cursor_color(color);
         }
 
         let selrange = self.selection(pos.pane.pane_id()).range.clone();

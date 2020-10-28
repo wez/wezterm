@@ -35,12 +35,14 @@ pub struct Vertex {
     // bool or integer values to work:
     // "bool can't be an in in the vertex shader"
     //
-    // has_color is effectively an enum with three
+    // has_color is effectively an enum with these
     // possible values:
     // 0.0 -> a regular monochrome text glyph
     // 1.0 -> a color emoji glyph
     // 2.0 -> a full color texture attached as the
     //        background image of the window
+    // 3.0 -> like 2.0, except that instead of an
+    //        image, we use the solid bg color
     pub has_color: f32,
 }
 ::window::glium::implement_vertex!(
@@ -153,6 +155,12 @@ impl<'a> Quad<'a> {
     pub fn set_is_background_image(&mut self) {
         for v in self.vert.iter_mut() {
             v.has_color = 2.0;
+        }
+    }
+
+    pub fn set_is_background(&mut self) {
+        for v in self.vert.iter_mut() {
+            v.has_color = 3.0;
         }
     }
 
