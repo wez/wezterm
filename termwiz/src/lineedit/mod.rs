@@ -229,6 +229,19 @@ impl<'term> LineEditor<'term> {
             changes.add(" ");
         }
 
+        if let EditorState::Editing = &self.state {
+            let preview_elements = host.render_preview(line_to_display);
+            if !preview_elements.is_empty() {
+                // Preview starts from a new line.
+                changes.add("\r\n");
+                // Do not be affected by attributes set by highlight_line.
+                changes.add(Change::AllAttributes(Default::default()));
+                for ele in preview_elements {
+                    changes.add(ele);
+                }
+            }
+        }
+
         if let EditorState::Searching {
             style, direction, ..
         } = &self.state
@@ -238,6 +251,8 @@ impl<'term> LineEditor<'term> {
                 (SearchStyle::Substring, SearchDirection::Backwards) => "bck-i-search",
                 (SearchStyle::Substring, SearchDirection::Forwards) => "fwd-i-search",
             };
+            // Do not be affected by attributes set by previous lines.
+            changes.add(Change::AllAttributes(Default::default()));
             // We position the actual cursor on the matching portion of
             // the text in the line editing area, but since the input
             // is drawn here, we render an `_` to indicate where the input
@@ -946,14 +961,18 @@ impl<'term> LineEditor<'term> {
         while let Some(event) = self.terminal.poll_input(None)? {
             if let Some(action) = self.resolve_action(&event, host) {
                 self.apply_action(host, action)?;
+                // Editor state might have changed. Re-render to clear
+                // preview or highlight lines differently.
+                self.render(host)?;
                 match self.state {
                     EditorState::Searching { .. } | EditorState::Editing => {}
                     EditorState::Cancelled => return Ok(None),
                     EditorState::Accepted => return Ok(Some(self.line.clone())),
                     EditorState::Inactive => anyhow::bail!("editor is inactive during read line!?"),
                 }
+            } else {
+                self.render(host)?;
             }
-            self.render(host)?;
         }
         Ok(Some(self.line.clone()))
     }

@@ -49,6 +49,13 @@ pub trait LineEditorHost {
         vec![OutputElement::Text(prompt.to_owned())]
     }
 
+    /// Given a reference to the current line being edited, render a preview
+    /// of its outcome. The preview is cleared when the input is accepted,
+    /// or canceled.
+    fn render_preview(&self, _line: &str) -> Vec<OutputElement> {
+        Vec::new()
+    }
+
     /// Given a reference to the current line being edited and the position
     /// of the cursor, return the rendered form of the line as a sequence
     /// of `OutputElement` instances.
