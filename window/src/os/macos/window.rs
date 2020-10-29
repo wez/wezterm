@@ -405,6 +405,10 @@ impl Window {
 
             window.setReleasedWhenClosed_(NO);
             window.setOpaque_(NO);
+            // Turn off the window shadow, because when the background is transparent
+            // having the shadow enabled seems to correlate with ghostly remnants
+            // see: https://github.com/wez/wezterm/issues/310
+            window.setHasShadow_(NO);
             let ns_color: id = msg_send![Class::get("NSColor").unwrap(), alloc];
             window.setBackgroundColor_(cocoa::appkit::NSColor::clearColor(ns_color));
 
@@ -663,10 +667,6 @@ impl WindowOpsMut for WindowInner {
     fn invalidate(&mut self) {
         unsafe {
             let () = msg_send![*self.view, setNeedsDisplay: YES];
-            // Explicitly invalidate the window shadow to avoid
-            // leaving behind ghost remnants!
-            // see: https://github.com/wez/wezterm/issues/310
-            NSWindow::invalidateShadow(*self.window);
         }
     }
     fn set_title(&mut self, title: &str) {
