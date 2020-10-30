@@ -47,8 +47,7 @@ struct Opt {
 fn main() {
     pretty_env_logger::init_timed();
     if let Err(err) = run() {
-        eprintln!("boo {}", err);
-        log::error!("{}", err);
+        log::error!("{:#}", err);
         std::process::exit(1);
     }
 }

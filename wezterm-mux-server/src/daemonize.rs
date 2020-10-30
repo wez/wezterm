@@ -37,6 +37,15 @@ fn setsid() -> anyhow::Result<()> {
 
 fn lock_pid_file(config: &config::ConfigHandle) -> anyhow::Result<std::fs::File> {
     let pid_file = config.daemon_options.pid_file();
+    let pid_file_dir = pid_file
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("{} has no parent?", pid_file.display()))?;
+    std::fs::create_dir_all(&pid_file_dir).with_context(|| {
+        format!(
+            "while creating directory structure: {}",
+            pid_file_dir.display()
+        )
+    })?;
     let file = std::fs::OpenOptions::new()
         .create(true)
         .write(true)
