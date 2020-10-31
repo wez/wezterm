@@ -10,12 +10,15 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* New: split/pane support!
-  See [#157](https://github.com/wez/wezterm/issues/157) for
-  overall status and additional information.
-* New: `window_background_opacity`, `window_background_image`
-  and `window_background_tint` options to control using background
-  images, transparent windows.  [More info](config/appearance.md#window-background-image)
+* New: split/pane support! `CTRL+SHIFT+ALT+"` to [SplitVertical](config/lua/keyassignment/SplitVertical.md),
+  and `CTRL+SHIFT+ALT+%` to [SplitHorizontal](config/lua/keyassignment/SplitHorizontal.md).
+* New: [LEADER](config/keys.md#leader-key) modifier key support
+* New: `window_background_opacity` and `window_background_image`
+  options to control using background images, transparent windows.
+  [More info](config/appearance.md#window-background-image)
+* New color schemes: `Dracula+`, `Gruvbox Light`, `MaterialDarker`,
+  `Overnight Slumber`, `Popping and Locking`, `Rapture`,
+  `jubi`, `nord`.
 * The GUI layer now normalizes SHIFT state for keyboard processing.
   If a keypress is ASCII uppercase and SHIFT is held then the
   SHIFT modifier is removed from the set of active modifiers.  This
@@ -29,7 +32,8 @@ brief notes about them may accumulate here.
   `tab_and_split_indices_are_zero_based=true` if you prefer the
   number to be zero based.
 * On Linux and macOS systems, wezterm can now attempt to guess the current
-  working directory that should be set in newly spawned local panes/tabs.
+  working directory that should be set in newly spawned local panes/tabs,
+  in case you don't have OSC 7 integration setup in your shell.
 * We now bundle *JetBrains Mono* and use it as the default font,
   and add it as a default fallback font.  Similarly, we also
   bundle *Noto Color Emoji* as a default fallback for emoji.
@@ -39,7 +43,6 @@ brief notes about them may accumulate here.
   `CTRL+SHIFT+R`)
 * [`CloseCurrentTab`](config/lua/keyassignment/CloseCurrentTab.md)
   now requires a `confirm` parameter.
-* New: [LEADER](config/keys.md#leader-key) modifier key support
 * Halved the memory usage requirements per Cell in the common
   case (saving 32 bytes per cell), which gives more headroom for
   users with large scrollback.
@@ -90,9 +93,6 @@ brief notes about them may accumulate here.
   behavior is not as smooth with ANGLE as the prior WGL.
   If you wish, you can set `prefer_egl = false` to use
   WGL.
-* New color schemes: `Dracula+`, `Gruvbox Light`, `MaterialDarker`,
-  `Overnight Slumber`, `Popping and Locking`, `Rapture`,
-  `jubi`, `nord`.
 * Improved image protocol support to have better render fidelity
   and to reduce VRAM usage when the same image it displayed
   multiple times in the same pane.
