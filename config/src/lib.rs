@@ -745,8 +745,8 @@ pub struct Config {
     /// A subtle dimming effect can be achieved by setting:
     /// inactive_pane_saturation = 0.9
     /// inactive_pane_brightness = 0.8
-    #[serde(default)]
-    pub inactive_pane_hsb: Option<HsbTransform>,
+    #[serde(default = "default_inactive_pane_hsb")]
+    pub inactive_pane_hsb: HsbTransform,
 
     #[serde(default = "default_one_point_oh")]
     pub text_background_opacity: f32,
@@ -827,6 +827,14 @@ fn default_tab_max_width() -> usize {
 
 fn default_update_interval() -> u64 {
     86400
+}
+
+fn default_inactive_pane_hsb() -> HsbTransform {
+    HsbTransform {
+        brightness: 0.8,
+        saturation: 0.9,
+        hue: 1.0,
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone, Copy, Debug)]

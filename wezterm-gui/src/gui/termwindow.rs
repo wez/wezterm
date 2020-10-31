@@ -2674,7 +2674,7 @@ impl TermWindow {
         let hsv = if params.is_active {
             None
         } else {
-            params.config.inactive_pane_hsb
+            Some(params.config.inactive_pane_hsb)
         };
 
         let window_is_transparent =
