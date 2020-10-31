@@ -40,4 +40,32 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     /// color palette for a terminal instance at runtime, but this method
     /// defines the initial palette.
     fn color_palette(&self) -> ColorPalette;
+
+    /// Return true if a resize operation should consider rows that have
+    /// made it to scrollback as being immutable.
+    /// When immutable, the resize operation will pad out the screen height
+    /// with additional blank rows and due to implementation details means
+    /// that the user will need to scroll back the scrollbar post-resize
+    /// than they would otherwise.
+    ///
+    /// When mutable, resizing the window taller won't add extra rows;
+    /// instead the resize will tend to have "bottom gravity" meaning that
+    /// making the window taller will reveal more history than in the other
+    /// mode.
+    ///
+    /// mutable is generally speaking a nicer experience.
+    ///
+    /// On Windows, the PTY layer doesn't play well with a mutable scrollback,
+    /// frequently moving the cursor up to high and erasing portions of the
+    /// screen.
+    ///
+    /// This behavior only happens with the windows pty layer; it doesn't
+    /// manifest when using eg: ssh directly to a remote unix system.
+    ///
+    /// Ideally we'd have this return `true` only for the native windows
+    /// pty layer, but for the sake of simplicity, we make this conditional
+    /// on being a windows build.
+    fn resize_preserves_scrollback(&self) -> bool {
+        cfg!(windows)
+    }
 }

@@ -195,12 +195,34 @@ impl Screen {
             self.lines.push_back(Line::with_width(physical_cols));
         }
 
-        // Compute the new cursor location; this is logically the inverse
-        // of the phys_row() function, but given the revised cursor_y
-        // (the rewrap adjusted physical row of the cursor).  This
-        // computes its new VisibleRowIndex given the new viewport size.
-        let new_cursor_y = cursor_y as VisibleRowIndex
-            - (self.lines.len() as VisibleRowIndex - physical_rows as VisibleRowIndex);
+        let new_cursor_y;
+
+        if self.config.resize_preserves_scrollback() {
+            new_cursor_y = cursor
+                .y
+                .saturating_add(cursor_y as i64)
+                .saturating_sub(cursor_phys as i64)
+                .max(0);
+
+            // We need to ensure that the bottom of the screen has sufficient lines;
+            // we use simple subtraction of physical_rows from the bottom of the lines
+            // array to define the visible region.  Our resize operation may have
+            // temporarily violated that, which can result in the cursor unintentionally
+            // moving up into the scrollback and damaging the output
+            let required_num_rows_after_cursor =
+                physical_rows.saturating_sub(new_cursor_y as usize);
+            let actual_num_rows_after_cursor = self.lines.len().saturating_sub(cursor_y);
+            for _ in actual_num_rows_after_cursor..required_num_rows_after_cursor {
+                self.lines.push_back(Line::with_width(physical_cols));
+            }
+        } else {
+            // Compute the new cursor location; this is logically the inverse
+            // of the phys_row() function, but given the revised cursor_y
+            // (the rewrap adjusted physical row of the cursor).  This
+            // computes its new VisibleRowIndex given the new viewport size.
+            new_cursor_y = cursor_y as VisibleRowIndex
+                - (self.lines.len() as VisibleRowIndex - physical_rows as VisibleRowIndex);
+        }
 
         self.physical_rows = physical_rows;
         self.physical_cols = physical_cols;
