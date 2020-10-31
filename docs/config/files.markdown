@@ -16,15 +16,6 @@ configuration will be automatically reloaded and the majority of options will
 take effect immediately.  You may also use the `CTRL+SHIFT+R` keyboard shortcut
 to force the configuration to be reloaded.
 
-To support our early adopters upgrading from an earlier release, `wezterm` can
-also load TOML based configuration files; the structure supported by both lua
-and TOML configuration is the same.  If both lua and TOML configuration files
-are present `wezterm` prefers to read the lua configuration.
-
-Support for loading from TOML will be removed in the nearish future; some of
-the newer capabilities are not supported in TOML configuration files which makes
-it a burden to continue supporting.
-
 ## Configuration File Structure
 
 The `wezterm.lua` configuration file is a lua script which allows for a high
