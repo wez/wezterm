@@ -26,3 +26,11 @@ If you'd like to use a nightly build you can perform a head install:
 ```bash
 $ brew install --HEAD wezterm
 ```
+
+to upgrade to a newer nightly, it is simplest to remove then
+install:
+
+```bash
+$ brew rm wezterm
+$ brew install --HEAD wezterm
+```

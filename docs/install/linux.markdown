@@ -110,6 +110,14 @@ If you'd like to use a nightly build you can perform a head install:
 $ brew install --HEAD wezterm
 ```
 
+to upgrade to a newer nightly, it is simplest to remove then
+install:
+
+```bash
+$ brew rm wezterm
+$ brew install --HEAD wezterm
+```
+
 ## Raw Linux Binary
 
 Another option for linux is a raw binary archive.  These are the same binaries that
