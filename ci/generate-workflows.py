@@ -197,9 +197,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
 
     def install_rust(self, cache=True):
         salt = "2"
-        key_prefix = (
-            f"{self.name}-{self.rust_target}-{salt}-${{{{ runner.os }}}}-${{{{ hashFiles('**/Cargo.lock') }}}}"
-        )
+        key_prefix = f"{self.name}-{self.rust_target}-{salt}-${{{{ runner.os }}}}-${{{{ hashFiles('**/Cargo.lock') }}}}"
         params = {
             "profile": "minimal",
             "toolchain": "stable",
@@ -330,7 +328,7 @@ cargo build --all --release""",
             ActionStep(
                 "Upload to Tagged Release",
                 action="softprops/action-gh-release@v1",
-                params={"files": "\n".join(patterns)},
+                params={"files": "\n".join(patterns), "prerelease": True},
                 env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",},
             )
         ]

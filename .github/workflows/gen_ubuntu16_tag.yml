@@ -58,6 +58,9 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
+    - name: "Source Tarball"
+      shell: bash
+      run: "bash ci/source-archive.sh"
     - name: "Build AppImage"
       shell: bash
       run: "bash ci/appimage.sh"
@@ -71,6 +74,7 @@ jobs:
             *.AppImage
             *.zsync
 
+         prerelease: true
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
     - name: "Update AUR"

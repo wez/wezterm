@@ -91,5 +91,6 @@ jobs:
             wezterm-*.xz
             wezterm-*.tar.gz
 
+         prerelease: true
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

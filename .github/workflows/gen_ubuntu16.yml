@@ -64,6 +64,9 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
+    - name: "Source Tarball"
+      shell: bash
+      run: "bash ci/source-archive.sh"
     - name: "Build AppImage"
       shell: bash
       run: "bash ci/appimage.sh"

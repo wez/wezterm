@@ -71,6 +71,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
          files: "WezTerm-*.zip"
+         prerelease: true
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
     - name: "Checkout homebrew tap"

@@ -89,6 +89,13 @@ jobs:
             bash ci/deploy.sh
             
 
+    - name: "Source Tarball"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            bash ci/source-archive.sh
+            
+
     - name: "Build AppImage"
       shell: bash
       run: |
