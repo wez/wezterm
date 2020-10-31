@@ -58,7 +58,7 @@ impl GuiFrontEnd {
 
         let connection = Connection::init()?;
         let front_end = Rc::new(GuiFrontEnd { connection });
-        let mux = Mux::get().unwrap();
+        let mux = Mux::get().expect("mux started and running on main thread");
         let fe = Rc::downgrade(&front_end);
         mux.subscribe(move |n| {
             if let Some(_fe) = fe.upgrade() {

@@ -840,9 +840,14 @@ impl TermWindow {
         let window_background = load_background_image(&config);
 
         let fontconfig = Rc::new(FontConfiguration::new());
-        let mux = Mux::get().unwrap();
-        let tab = mux.get_active_tab_for_window(mux_window_id).unwrap();
-        let size = tab.get_size();
+        let mux = Mux::get().expect("to be main thread with mux running");
+        let size = match mux.get_active_tab_for_window(mux_window_id) {
+            Some(tab) => tab.get_size(),
+            None => {
+                log::error!("new_window has no tabs... yet?");
+                Default::default()
+            }
+        };
         let physical_rows = size.rows as usize;
         let physical_cols = size.cols as usize;
 

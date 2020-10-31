@@ -5,7 +5,6 @@
 //! initiate a connection somewhere and to authenticate that session
 //! before we can get to a point where `openpty` will be able to run.
 use crate::{Child, CommandBuilder, ExitStatus, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
-use anyhow::Context;
 use filedescriptor::{AsRawSocketDescriptor, POLLIN};
 use ssh2::{Channel, Session};
 use std::collections::HashMap;
@@ -199,9 +198,12 @@ impl SlavePty for SshSlave {
     fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send>> {
         self.pty.with_channel(|channel| {
             for (key, val) in cmd.iter_env_as_str() {
-                channel
-                    .setenv(key, val)
-                    .with_context(|| format!("ssh: setenv {}={} failed", key, val))?;
+                if let Err(err) = channel.setenv(key, val) {
+                    // Depending on the server configuration, a given
+                    // setenv request may not succeed, but that doesn't
+                    // prevent the connection from being set up.
+                    log::error!("ssh: setenv {}={} failed: {}", key, val, err);
+                }
             }
 
             if cmd.is_default_prog() {

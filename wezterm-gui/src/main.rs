@@ -86,14 +86,14 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
 }
 
 fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()> {
-    let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = crate::gui::try_new(front_end_selection)?;
-
     // Set up the mux with no default domain; there's a good chance that
     // we'll need to show authentication UI and we don't want its domain
     // to become the default domain.
     let mux = Rc::new(mux::Mux::new(None));
     Mux::set_mux(&mux);
+
+    let front_end_selection = opts.front_end.unwrap_or(config.front_end);
+    let gui = crate::gui::try_new(front_end_selection)?;
 
     // Keep the frontend alive until we've run through the ssh authentication
     // phase.  This is passed into the thread and dropped when it is done.
