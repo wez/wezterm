@@ -14,6 +14,7 @@ class Wezterm < Formula
     prefix.install "WezTerm.app"
     bin.write_exec_script "#{prefix}/WezTerm.app/wezterm"
     bin.write_exec_script "#{prefix}/WezTerm.app/wezterm-gui"
+    bin.write_exec_script "#{prefix}/WezTerm.app/wezterm-mux-server"
     bin.write_exec_script "#{prefix}/WezTerm.app/strip-ansi-escapes"
   end
 end
