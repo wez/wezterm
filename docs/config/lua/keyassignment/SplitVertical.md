@@ -1,6 +1,6 @@
 # SplitVertical
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 Splits the current pane in half vertically such that the current pane becomes
 the top half and the new bottom half spawns a new command.

@@ -1,6 +1,6 @@
 # AdjustPaneSize
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 `AdjustPaneSize` manipulates the size of the active pane, allowing the
 size to be adjusted by an integer amount in a specific direction.

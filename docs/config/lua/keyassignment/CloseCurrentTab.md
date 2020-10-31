@@ -11,9 +11,9 @@ return {
 }
 ```
 
-*Since: nightly*
+*Since: 20201031-154415-9614e117*
 
-The nightly builds have changed `CloseCurrentTab` so that it requires
+`CloseCurrentTab` was changed so that it requires
 a boolean `confirm` parameter:
 
 ```lua

@@ -1,6 +1,6 @@
 # `wezterm.permute_any_mods(table)`
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 This function is intended to help with generating key or mouse binding
 entries that should apply regardless of the combination of modifier keys

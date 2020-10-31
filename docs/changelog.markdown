@@ -10,6 +10,10 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* Not yet!
+
+### 20201031-154415-9614e117
+
 * New: split/pane support! `CTRL+SHIFT+ALT+"` to [SplitVertical](config/lua/keyassignment/SplitVertical.md),
   and `CTRL+SHIFT+ALT+%` to [SplitHorizontal](config/lua/keyassignment/SplitHorizontal.md).
 * New: [LEADER](config/keys.md#leader-key) modifier key support
@@ -19,6 +23,8 @@ brief notes about them may accumulate here.
 * New color schemes: `Dracula+`, `Gruvbox Light`, `MaterialDarker`,
   `Overnight Slumber`, `Popping and Locking`, `Rapture`,
   `jubi`, `nord`.
+* New: expanded lua API allows handling URI clicks and keyboard events
+  with lua callbacks.  See [wezterm.on](config/lua/wezterm/on.md) docs.
 * The GUI layer now normalizes SHIFT state for keyboard processing.
   If a keypress is ASCII uppercase and SHIFT is held then the
   SHIFT modifier is removed from the set of active modifiers.  This

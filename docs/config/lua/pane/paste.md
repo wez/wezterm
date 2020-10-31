@@ -1,6 +1,6 @@
 # `pane:paste(text)`
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 Sends the supplied `text` string to the input of the pane as if it
 were pasted from the clipboard, except that the clipboard is not involved.

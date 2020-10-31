@@ -1,6 +1,6 @@
 # ActivatePaneDirection
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 `ActivatePaneDirection` activate an adjacent pane in the specified direction.
 In cases where there are multiple adjacent panes in the intended direction,

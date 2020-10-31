@@ -70,7 +70,7 @@ The default for `use_ime` is false.  The default in earlier releases was `true`.
 
 ### Microsoft Windows and Dead Keys
 
-*since: nightly builds only*
+*since: 20201031-154415-9614e117*
 
 By default, if you are using a layout with *dead keys* (eg: US International
 layout, or a number of European layouts such as German or French) pressing
@@ -326,7 +326,7 @@ You can combine modifiers using the `|` symbol (eg: `"CMD|CTRL"`).
 
 ### Leader Key
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 A *leader* key is a a modal modifier key.  If leader is specified in the
 configuration then pressing that key combination will enable a virtual `LEADER`

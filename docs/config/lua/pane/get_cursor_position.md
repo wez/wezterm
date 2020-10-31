@@ -1,6 +1,6 @@
 # `pane:get_cursor_position()`
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 Returns a lua representation of the `StableCursorPosition` struct
 that identifies the cursor position, visibility and shape.

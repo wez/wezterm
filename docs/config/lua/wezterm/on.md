@@ -1,6 +1,6 @@
 # `wezterm.on(event_name, callback)`
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 This function follows the html/javascript naming for defining event handlers.
 

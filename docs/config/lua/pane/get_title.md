@@ -1,6 +1,6 @@
 # `pane:get_title()`
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 Returns the title of the pane.  This will typically be `wezterm` by default but
 can be modified by applications that send `OSC 1` (Icon/Tab title changing)

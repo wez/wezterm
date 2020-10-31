@@ -216,7 +216,7 @@ return {
 
 ## Styling Inactive Panes
 
-*since: nightly builds only*
+*since: 20201031-154415-9614e117*
 
 By default, inactive panes look no different from active panes, with the
 exception that the cursor will render as an outline style to indicate that it
@@ -257,7 +257,7 @@ reduce it by half, and 2.0 will double the value.
 
 <img width="100%" height="100%" src="../screenshots/wezterm-vday-screenshot.png" alt="Screenshot">
 
-*since: nightly builds only*
+*since: 20201031-154415-9614e117*
 
 You can attach an image to the background of the wezterm window:
 
@@ -304,7 +304,7 @@ on hue, saturation, brigthness transformations.
 
 ## Window Background Opacity
 
-*since: nightly builds only*
+*since: 20201031-154415-9614e117*
 
 If your Operating System provides Compositing support then WezTerm is able to
 specify the alpha channel value for the background content, rendering the
@@ -330,7 +330,7 @@ return {
 
 ## Text Background Opacity
 
-*since: nightly builds only*
+*since: 20201031-154415-9614e117*
 
 When using a background image or background opacity, the image content can
 have relatively low contrast with respect to the text you are trying to

@@ -1,6 +1,6 @@
 # `pane:get_current_working_dir()`
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 Returns the current working directory of the pane, if known.
 The current directory can be specified by an application sending

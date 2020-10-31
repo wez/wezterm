@@ -1,6 +1,6 @@
 # `window:window_id()`
 
-*Since: nightly builds only*
+*Since: 20201031-154415-9614e117*
 
 Returns the id number for the window.  The Id is used to identify the window
 within the internal multiplexer and can be used when making API calls
