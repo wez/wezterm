@@ -132,14 +132,23 @@ impl WindowInner {
     #[cfg(feature = "opengl")]
     fn enable_opengl(&mut self) -> anyhow::Result<()> {
         let window = Window(self.hwnd);
+        let conn = Connection::get().unwrap();
 
         let gl_state = if is_egl_preferred() {
-            crate::egl::GlState::create(None, self.hwnd.0)
+            match conn.gl_connection.borrow().as_ref() {
+                None => crate::egl::GlState::create(None, self.hwnd.0),
+                Some(glconn) => {
+                    crate::egl::GlState::create_with_existing_connection(glconn, self.hwnd.0)
+                }
+            }
         } else {
             Err(anyhow::anyhow!("Config says to avoid EGL"))
         }
         .and_then(|egl| unsafe {
             log::error!("Initialized EGL!");
+            conn.gl_connection
+                .borrow_mut()
+                .replace(Rc::clone(egl.get_connection()));
             let backend = Rc::new(egl);
             Ok(glium::backend::Context::new(
                 backend,
