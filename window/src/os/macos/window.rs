@@ -149,9 +149,22 @@ mod opengl {
                     let _: () = msg_send![layer, setContentsScale: 1.0f64];
                     let _: () = msg_send![layer, setOpaque: NO];
                 };
-                let state = crate::egl::GlState::create(None, layer as *const c_void);
+
+                let conn = Connection::get().unwrap();
+
+                let state = match conn.gl_connection.borrow().as_ref() {
+                    None => crate::egl::GlState::create(None, layer as *const c_void),
+                    Some(glconn) => crate::egl::GlState::create_with_existing_connection(
+                        glconn,
+                        layer as *const c_void,
+                    ),
+                };
 
                 if state.is_ok() {
+                    conn.gl_connection
+                        .borrow_mut()
+                        .replace(Rc::clone(state.as_ref().unwrap().get_connection()));
+
                     // ANGLE will create a CAMetalLayer as a sublayer of our provided
                     // layer.  Even though CALayer defaults to !opaque, CAMetalLayer
                     // defaults to opaque, so we need to find that layer and fix
