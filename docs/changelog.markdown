@@ -12,6 +12,10 @@ brief notes about them may accumulate here.
 
 * Not yet!
 
+### 20201101-103216-403d002d
+
+* Whoops! fixed a crash on macOS when using multiple windows in the new Metal renderer [#316](https://github.com/wez/wezterm/issues/316)
+
 ### 20201031-154415-9614e117
 
 * New: split/pane support! `CTRL+SHIFT+ALT+"` to [SplitVertical](config/lua/keyassignment/SplitVertical.md),
