@@ -17,6 +17,10 @@ impl Clipboard for Box<dyn Clipboard> {
     }
 }
 
+pub trait DeviceControlHandler {
+    fn handle_device_control(&mut self, _control: termwiz::escape::DeviceControlMode);
+}
+
 /// Represents an instance of a terminal emulator.
 pub struct Terminal {
     /// The terminal model/state

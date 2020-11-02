@@ -286,6 +286,7 @@ pub struct TerminalState {
     pixel_height: usize,
 
     clipboard: Option<Arc<dyn Clipboard>>,
+    device_control_handler: Option<Box<dyn DeviceControlHandler>>,
 
     current_dir: Option<Url>,
 
@@ -383,6 +384,7 @@ impl TerminalState {
             pixel_height,
             pixel_width,
             clipboard: None,
+            device_control_handler: None,
             current_dir: None,
             term_program: term_program.to_string(),
             term_version: term_version.to_string(),
@@ -393,6 +395,10 @@ impl TerminalState {
 
     pub fn set_clipboard(&mut self, clipboard: &Arc<dyn Clipboard>) {
         self.clipboard.replace(Arc::clone(clipboard));
+    }
+
+    pub fn set_device_control_handler(&mut self, handler: Box<dyn DeviceControlHandler>) {
+        self.device_control_handler.replace(handler);
     }
 
     /// Returns the title text associated with the terminal session.
@@ -2752,9 +2758,10 @@ impl<'a> Performer<'a> {
                     _ => log::error!("unhandled {:?}", s),
                 }
             }
-            ctrl => {
-                log::error!("unhandled {:?}", ctrl);
-            }
+            _ => match self.device_control_handler.as_mut() {
+                Some(handler) => handler.handle_device_control(ctrl),
+                None => log::error!("unhandled {:?}", ctrl),
+            },
         }
     }
 
