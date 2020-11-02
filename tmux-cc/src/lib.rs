@@ -1,11 +1,26 @@
+use anyhow::Context;
 use parser::Rule;
+use pest::iterators::{Pair, Pairs};
 use pest::Parser as _;
+
+pub type TmuxWindowId = u64;
+pub type TmuxPaneId = u64;
+pub type TmuxSessionId = u64;
 
 mod parser {
     use pest_derive::Parser;
     #[derive(Parser)]
     #[grammar = "tmux.pest"]
     pub struct TmuxParser;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Guarded {
+    pub error: bool,
+    pub timestamp: i64,
+    pub number: u64,
+    pub flags: i64,
+    pub output: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,23 +35,87 @@ pub enum Event {
         number: u64,
         flags: i64,
     },
-    Error(String),
+    Error {
+        timestamp: i64,
+        number: u64,
+        flags: i64,
+    },
+    Guarded(Guarded),
     Output {
-        pane: u64,
+        pane: TmuxPaneId,
         text: String,
     },
     Exit,
     SessionsChanged,
     SessionChanged {
-        session: u64,
+        session: TmuxSessionId,
         name: String,
     },
     PaneModeChanged {
-        pane: u64,
+        pane: TmuxPaneId,
     },
     WindowAdd {
-        window: u64,
+        window: TmuxWindowId,
     },
+}
+
+fn parse_pane_id(pair: Pair<Rule>) -> anyhow::Result<TmuxPaneId> {
+    match pair.as_rule() {
+        Rule::pane_id => {
+            let mut pairs = pair.into_inner();
+            pairs
+                .next()
+                .unwrap()
+                .as_str()
+                .parse()
+                .context("pane_id is somehow not digits")
+        }
+        _ => anyhow::bail!("parse_pane_id can only parse Rule::pane_id, got {:?}", pair),
+    }
+}
+
+fn parse_window_id(pair: Pair<Rule>) -> anyhow::Result<TmuxWindowId> {
+    match pair.as_rule() {
+        Rule::window_id => {
+            let mut pairs = pair.into_inner();
+            pairs
+                .next()
+                .unwrap()
+                .as_str()
+                .parse()
+                .context("window_id is somehow not digits")
+        }
+        _ => anyhow::bail!(
+            "parse_window_id can only parse Rule::window_id, got {:?}",
+            pair
+        ),
+    }
+}
+
+fn parse_session_id(pair: Pair<Rule>) -> anyhow::Result<TmuxSessionId> {
+    match pair.as_rule() {
+        Rule::session_id => {
+            let mut pairs = pair.into_inner();
+            pairs
+                .next()
+                .unwrap()
+                .as_str()
+                .parse()
+                .context("session_id is somehow not digits")
+        }
+        _ => anyhow::bail!(
+            "parse_session_id can only parse Rule::session_id, got {:?}",
+            pair
+        ),
+    }
+}
+
+/// Parses a %begin, %end, %error guard line tuple
+fn parse_guard(mut pairs: Pairs<Rule>) -> anyhow::Result<(i64, u64, i64)> {
+    let timestamp = pairs.next().unwrap().as_str().parse::<i64>()?;
+    let number = pairs.next().unwrap().as_str().parse::<u64>()?;
+    let flags = pairs.next().unwrap().as_str().parse::<i64>()?;
+    Ok((timestamp, number, flags))
 }
 
 fn parse_line(line: &str) -> anyhow::Result<Event> {
@@ -44,10 +123,7 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
     let pair = pairs.next().ok_or_else(|| anyhow::anyhow!("no pairs!?"))?;
     match pair.as_rule() {
         Rule::begin => {
-            let mut pairs = pair.into_inner();
-            let timestamp = pairs.next().unwrap().as_str().parse::<i64>()?;
-            let number = pairs.next().unwrap().as_str().parse::<u64>()?;
-            let flags = pairs.next().unwrap().as_str().parse::<i64>()?;
+            let (timestamp, number, flags) = parse_guard(pair.into_inner())?;
             Ok(Event::Begin {
                 timestamp,
                 number,
@@ -55,10 +131,7 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
             })
         }
         Rule::end => {
-            let mut pairs = pair.into_inner();
-            let timestamp = pairs.next().unwrap().as_str().parse::<i64>()?;
-            let number = pairs.next().unwrap().as_str().parse::<u64>()?;
-            let flags = pairs.next().unwrap().as_str().parse::<i64>()?;
+            let (timestamp, number, flags) = parse_guard(pair.into_inner())?;
             Ok(Event::End {
                 timestamp,
                 number,
@@ -66,36 +139,45 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
             })
         }
         Rule::error => {
-            let mut pairs = pair.into_inner();
-            Ok(Event::Error(unvis(pairs.next().unwrap().as_str())?))
+            let (timestamp, number, flags) = parse_guard(pair.into_inner())?;
+            Ok(Event::Error {
+                timestamp,
+                number,
+                flags,
+            })
         }
         Rule::exit => Ok(Event::Exit),
         Rule::sessions_changed => Ok(Event::SessionsChanged),
         Rule::pane_mode_changed => {
             let mut pairs = pair.into_inner();
-            let pane = pairs.next().unwrap().as_str().parse()?;
+            let pane = parse_pane_id(pairs.next().unwrap())?;
             Ok(Event::PaneModeChanged { pane })
         }
         Rule::window_add => {
             let mut pairs = pair.into_inner();
-            let window = pairs.next().unwrap().as_str().parse()?;
+            let window = parse_window_id(pairs.next().unwrap())?;
             Ok(Event::WindowAdd { window })
         }
         Rule::output => {
             let mut pairs = pair.into_inner();
-            let pane = pairs.next().unwrap().as_str().parse()?;
+            let pane = parse_pane_id(pairs.next().unwrap())?;
             let text = unvis(pairs.next().unwrap().as_str())?;
             Ok(Event::Output { pane, text })
         }
         Rule::session_changed => {
             let mut pairs = pair.into_inner();
-            let session = pairs.next().unwrap().as_str().parse()?;
+            let session = parse_session_id(pairs.next().unwrap())?;
             let name = unvis(pairs.next().unwrap().as_str())?;
             Ok(Event::SessionChanged { session, name })
         }
-        Rule::any_text | Rule::line | Rule::line_entire | Rule::EOI | Rule::number => {
-            unreachable!()
-        }
+        Rule::pane_id
+        | Rule::window_id
+        | Rule::session_id
+        | Rule::any_text
+        | Rule::line
+        | Rule::line_entire
+        | Rule::EOI
+        | Rule::number => unreachable!(),
     }
 }
 
@@ -268,11 +350,15 @@ fn unvis(s: &str) -> anyhow::Result<String> {
 
 pub struct Parser {
     buffer: Vec<u8>,
+    begun: Option<Guarded>,
 }
 
 impl Parser {
     pub fn new() -> Self {
-        Self { buffer: vec![] }
+        Self {
+            buffer: vec![],
+            begun: None,
+        }
     }
 
     pub fn advance_byte(&mut self, c: u8) -> Option<Event> {
@@ -298,18 +384,95 @@ impl Parser {
         events
     }
 
+    fn process_guarded_line(&mut self, line: String) -> Option<Event> {
+        let result = match parse_line(&line) {
+            Ok(Event::End {
+                timestamp,
+                number,
+                flags,
+            }) => {
+                if let Some(begun) = self.begun.take() {
+                    if begun.timestamp == timestamp
+                        && begun.number == number
+                        && begun.flags == flags
+                    {
+                        Some(Event::Guarded(begun))
+                    } else {
+                        log::error!("mismatched %end; expected {:?} but got {}", begun, line);
+                        None
+                    }
+                } else {
+                    log::error!("unexpected %end with no %begin ({})", line);
+                    None
+                }
+            }
+            Ok(Event::Error {
+                timestamp,
+                number,
+                flags,
+            }) => {
+                if let Some(mut begun) = self.begun.take() {
+                    if begun.timestamp == timestamp
+                        && begun.number == number
+                        && begun.flags == flags
+                    {
+                        begun.error = true;
+                        Some(Event::Guarded(begun))
+                    } else {
+                        log::error!("mismatched %error; expected {:?} but got {}", begun, line);
+                        None
+                    }
+                } else {
+                    log::error!("unexpected %error with no %begin ({})", line);
+                    None
+                }
+            }
+            _ => {
+                let begun = self.begun.as_mut().unwrap();
+                begun.output.push_str(&line);
+                begun.output.push('\n');
+                None
+            }
+        };
+        self.buffer.clear();
+        return result;
+    }
+
     fn process_line(&mut self) -> Option<Event> {
         if self.buffer.last() == Some(&b'\r') {
             self.buffer.pop();
         }
         let result = match std::str::from_utf8(&self.buffer) {
-            Ok(line) => match parse_line(line) {
-                Ok(event) => Some(event),
-                Err(err) => {
-                    log::error!("Unrecognized tmux cc line: {}", err);
-                    None
+            Ok(line) => {
+                if self.begun.is_some() {
+                    let line = line.to_owned();
+                    return self.process_guarded_line(line);
                 }
-            },
+                match parse_line(line) {
+                    Ok(Event::Begin {
+                        timestamp,
+                        number,
+                        flags,
+                    }) => {
+                        if self.begun.is_some() {
+                            log::error!("expected %end or %error before %begin ({})", line);
+                        }
+                        self.begun.replace(Guarded {
+                            timestamp,
+                            number,
+                            flags,
+                            error: false,
+                            output: String::new(),
+                        });
+                        None
+                    }
+                    Ok(event) => Some(event),
+                    Err(err) => {
+                        log::error!("Unrecognized tmux cc line: {}", err);
+                        None
+                    }
+                }
+            }
             Err(err) => {
                 log::error!("Failed to parse line from tmux: {}", err);
                 None
@@ -331,11 +494,6 @@ mod tests {
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
             .try_init();
-
-        assert_eq!(
-            Event::Error("doh".to_owned()),
-            parse_line("%error doh").unwrap()
-        );
 
         assert_eq!(
             Event::Begin {
@@ -361,6 +519,9 @@ mod tests {
         let input = b"%sessions-changed
 %pane-mode-changed %0
 %begin 1604279270 310 0
+stuff
+in
+here
 %end 1604279270 310 0
 %window-add @1
 %sessions-changed
@@ -378,16 +539,13 @@ mod tests {
             vec![
                 Event::SessionsChanged,
                 Event::PaneModeChanged { pane: 0 },
-                Event::Begin {
+                Event::Guarded(Guarded {
                     timestamp: 1604279270,
                     number: 310,
-                    flags: 0
-                },
-                Event::End {
-                    timestamp: 1604279270,
-                    number: 310,
-                    flags: 0
-                },
+                    flags: 0,
+                    error: false,
+                    output: "stuff\nin\nhere\n".to_owned()
+                }),
                 Event::WindowAdd { window: 1 },
                 Event::SessionsChanged,
                 Event::SessionChanged {
