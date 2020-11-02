@@ -56,7 +56,7 @@ impl Pane for LocalPane {
                 if let Some(line) = lines.get_mut(idx as usize) {
                     line.overlay_text_with_attribute(
                         0,
-                        "This pane is running tmux control mode",
+                        "This pane is running tmux control mode. Press q to detach.",
                         CellAttributes::default(),
                     );
                 }
@@ -97,7 +97,15 @@ impl Pane for LocalPane {
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
-        self.terminal.borrow_mut().key_down(key, mods)
+        if self.tmux_domain.borrow().is_some() {
+            log::error!("key: {:?}", key);
+            if key == KeyCode::Char('q') {
+                self.terminal.borrow_mut().send_paste("detach\n")?;
+            }
+            return Ok(());
+        } else {
+            self.terminal.borrow_mut().key_down(key, mods)
+        }
     }
 
     fn resize(&self, size: PtySize) -> Result<(), Error> {
@@ -120,7 +128,11 @@ impl Pane for LocalPane {
     }
 
     fn send_paste(&self, text: &str) -> Result<(), Error> {
-        self.terminal.borrow_mut().send_paste(text)
+        if self.tmux_domain.borrow().is_some() {
+            Ok(())
+        } else {
+            self.terminal.borrow_mut().send_paste(text)
+        }
     }
 
     fn get_title(&self) -> String {
@@ -144,7 +156,11 @@ impl Pane for LocalPane {
     }
 
     fn is_mouse_grabbed(&self) -> bool {
-        self.terminal.borrow().is_mouse_grabbed()
+        if self.tmux_domain.borrow().is_some() {
+            false
+        } else {
+            self.terminal.borrow().is_mouse_grabbed()
+        }
     }
 
     fn get_current_working_dir(&self) -> Option<Url> {
