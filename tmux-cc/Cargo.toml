@@ -1,0 +1,17 @@
+[package]
+name = "tmux-cc"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+log = "0.4"
+pest = "2.1"
+pest_derive = "2.1"
+
+[dev-dependencies]
+pretty_env_logger = "0.4"
+pretty_assertions = "0.6"

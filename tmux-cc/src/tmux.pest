@@ -1,0 +1,27 @@
+number = { ASCII_DIGIT+ }
+any_text = { ANY* }
+
+
+begin = { "%begin" ~ " " ~ number ~ " " ~ number ~ " " ~ number }
+end = { "%end" ~ " " ~ number ~ " " ~ number ~ " " ~ number }
+error = { "%error" ~ " " ~ any_text }
+output = { "%output" ~ " %" ~ number ~ " " ~ any_text }
+exit = { "%exit" }
+sessions_changed = { "%sessions-changed" }
+pane_mode_changed = { "%pane-mode-changed %" ~ number }
+window_add = { "%window-add @" ~ number }
+session_changed = { "%session-changed $" ~ number ~ " " ~ any_text }
+
+line = _{ (
+  begin |
+  end |
+  error |
+  exit |
+  output |
+  pane_mode_changed |
+  session_changed |
+  sessions_changed |
+  window_add
+) }
+
+line_entire = _{ SOI ~ line ~ EOI }
