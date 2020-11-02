@@ -45,17 +45,42 @@ pub enum Event {
         pane: TmuxPaneId,
         text: String,
     },
-    Exit,
+    Exit {
+        reason: Option<String>,
+    },
     SessionsChanged,
     SessionChanged {
         session: TmuxSessionId,
         name: String,
+    },
+    SessionRenamed {
+        name: String,
+    },
+    SessionWindowChanged {
+        session: TmuxSessionId,
+        window: TmuxWindowId,
+    },
+    ClientSessionChanged {
+        client_name: String,
+        session: TmuxSessionId,
+        session_name: String,
     },
     PaneModeChanged {
         pane: TmuxPaneId,
     },
     WindowAdd {
         window: TmuxWindowId,
+    },
+    WindowClose {
+        window: TmuxWindowId,
+    },
+    WindowPaneChanged {
+        window: TmuxWindowId,
+        pane: TmuxPaneId,
+    },
+    WindowRenamed {
+        window: TmuxWindowId,
+        name: String,
     },
 }
 
@@ -146,7 +171,11 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
                 flags,
             })
         }
-        Rule::exit => Ok(Event::Exit),
+        Rule::exit => {
+            let mut pairs = pair.into_inner();
+            let reason = pairs.next().map(|pair| pair.as_str().to_owned());
+            Ok(Event::Exit { reason })
+        }
         Rule::sessions_changed => Ok(Event::SessionsChanged),
         Rule::pane_mode_changed => {
             let mut pairs = pair.into_inner();
@@ -157,6 +186,23 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
             let mut pairs = pair.into_inner();
             let window = parse_window_id(pairs.next().unwrap())?;
             Ok(Event::WindowAdd { window })
+        }
+        Rule::window_close => {
+            let mut pairs = pair.into_inner();
+            let window = parse_window_id(pairs.next().unwrap())?;
+            Ok(Event::WindowClose { window })
+        }
+        Rule::window_pane_changed => {
+            let mut pairs = pair.into_inner();
+            let window = parse_window_id(pairs.next().unwrap())?;
+            let pane = parse_pane_id(pairs.next().unwrap())?;
+            Ok(Event::WindowPaneChanged { window, pane })
+        }
+        Rule::window_renamed => {
+            let mut pairs = pair.into_inner();
+            let window = parse_window_id(pairs.next().unwrap())?;
+            let name = unvis(pairs.next().unwrap().as_str())?;
+            Ok(Event::WindowRenamed { window, name })
         }
         Rule::output => {
             let mut pairs = pair.into_inner();
@@ -170,7 +216,31 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
             let name = unvis(pairs.next().unwrap().as_str())?;
             Ok(Event::SessionChanged { session, name })
         }
+        Rule::client_session_changed => {
+            let mut pairs = pair.into_inner();
+            let client_name = unvis(pairs.next().unwrap().as_str())?;
+            let session = parse_session_id(pairs.next().unwrap())?;
+            let session_name = unvis(pairs.next().unwrap().as_str())?;
+            Ok(Event::ClientSessionChanged {
+                client_name,
+                session,
+                session_name,
+            })
+        }
+        Rule::session_renamed => {
+            let mut pairs = pair.into_inner();
+            let name = unvis(pairs.next().unwrap().as_str())?;
+            Ok(Event::SessionRenamed { name })
+        }
+        Rule::session_window_changed => {
+            let mut pairs = pair.into_inner();
+            let session = parse_session_id(pairs.next().unwrap())?;
+            let window = parse_window_id(pairs.next().unwrap())?;
+            Ok(Event::SessionWindowChanged { session, window })
+        }
         Rule::pane_id
+        | Rule::word
+        | Rule::client_name
         | Rule::window_id
         | Rule::session_id
         | Rule::any_text
@@ -531,6 +601,7 @@ here
 %output %1 \\033]7;file://cube-localdomain/home/wez\\033\\134
 %output %1 \\033[K\\033[?2004h
 %exit
+%exit I said so
 ";
 
         let mut p = Parser::new();
@@ -569,7 +640,10 @@ here
                     pane: 1,
                     text: "\x1b[K\x1b[?2004h".to_owned(),
                 },
-                Event::Exit,
+                Event::Exit { reason: None },
+                Event::Exit {
+                    reason: Some("I said so".to_owned())
+                },
             ],
             events
         );

@@ -1,5 +1,5 @@
 [workspace]
-members = ["wezterm-mux-server", "wezterm", "wezterm-gui", "strip-ansi-escapes", "tmux-cc"]
+members = ["wezterm-mux-server", "wezterm", "wezterm-gui", "strip-ansi-escapes"]
 
 [profile.release]
 opt-level = 3

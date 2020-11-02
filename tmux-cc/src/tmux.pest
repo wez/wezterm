@@ -1,21 +1,31 @@
 number = { ASCII_DIGIT+ }
 any_text = { ANY* }
+word = { ASCII_ALPHANUMERIC+ }
 
 pane_id = { "%" ~ number }
 window_id = { "@" ~ number }
 session_id = { "$" ~ number }
+client_name = { word }
 
 begin = { "%begin " ~ number ~ " " ~ number ~ " " ~ number }
 end = { "%end " ~ number ~ " " ~ number ~ " " ~ number }
 error = { "%error " ~ number ~ " " ~ number ~ " " ~ number }
+
+client_session_changed = { "%client-session-changed " ~ client_name ~ " " ~ session_id ~ " " ~any_text }
 output = { "%output " ~ pane_id ~ " " ~ any_text }
-exit = { "%exit" }
+exit = { "%exit" ~ (" " ~ any_text)? }
 sessions_changed = { "%sessions-changed" }
 pane_mode_changed = { "%pane-mode-changed " ~ pane_id }
 window_add = { "%window-add " ~ window_id }
+window_close = { "%window-close " ~ window_id }
+window_pane_changed = { "%window-pane-changed " ~ window_id ~ " " ~ pane_id }
+window_renamed = { "%window-renamed " ~ window_id ~ " " ~ any_text }
 session_changed = { "%session-changed " ~ session_id ~ " " ~ any_text }
+session_renamed = { "%session-renamed " ~ any_text }
+session_window_changed = { "%session-window-changed " ~ session_id ~ " " ~ window_id }
 
 line = _{ (
+  client_session_changed |
   begin |
   end |
   error |
@@ -23,8 +33,13 @@ line = _{ (
   output |
   pane_mode_changed |
   session_changed |
+  session_renamed |
+  session_window_changed |
   sessions_changed |
-  window_add
+  window_add |
+  window_close |
+  window_pane_changed |
+  window_renamed
 ) }
 
 line_entire = _{ SOI ~ line ~ EOI }

@@ -2150,6 +2150,7 @@ dependencies = [
  "termwiz",
  "textwrap 0.12.1",
  "thiserror",
+ "tmux-cc",
  "unicode-segmentation",
  "url",
  "wezterm-term",

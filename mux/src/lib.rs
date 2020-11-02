@@ -24,6 +24,7 @@ pub mod renderable;
 pub mod ssh;
 pub mod tab;
 pub mod termwiztermtab;
+pub mod tmux;
 pub mod window;
 
 use crate::activity::Activity;

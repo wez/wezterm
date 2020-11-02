@@ -1,11 +1,14 @@
 use crate::domain::DomainId;
 use crate::pane::{Pane, PaneId, Pattern, SearchResult};
 use crate::renderable::Renderable;
+use crate::tmux::{TmuxDomain, TmuxDomainState};
+use crate::{Domain, Mux};
 use anyhow::Error;
 use async_trait::async_trait;
 use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
 use std::sync::Arc;
+use termwiz::escape::DeviceControlMode;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
@@ -227,14 +230,74 @@ impl Pane for LocalPane {
     }
 }
 
+struct LocalPaneDCSHandler {
+    pane_id: PaneId,
+    tmux_domain: Option<Arc<TmuxDomainState>>,
+}
+
+impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
+    fn handle_device_control(&mut self, control: termwiz::escape::DeviceControlMode) {
+        match control {
+            DeviceControlMode::Enter(mode) => {
+                if !mode.ignored_extra_intermediates
+                    && mode.params.len() == 1
+                    && mode.params[0] == 1000
+                    && mode.intermediates.is_empty()
+                {
+                    log::error!("tmux -CC mode requested");
+
+                    // Create a new domain to host these tmux tabs
+                    let domain = TmuxDomain::new(self.pane_id);
+                    let tmux_domain = Arc::clone(&domain.inner);
+
+                    let domain: Arc<dyn Domain> = Arc::new(domain);
+                    let mux = Mux::get().expect("to be called on main thread");
+                    mux.add_domain(&domain);
+
+                    self.tmux_domain.replace(tmux_domain);
+
+                // TODO: do we need to proactively list available tabs here?
+                // if so we should arrange to call domain.attach() and make
+                // it do the right thing.
+                } else {
+                    log::error!("unknown DeviceControlMode::Enter {:?}", mode,);
+                }
+            }
+            DeviceControlMode::Exit => {
+                if let Some(tmux) = self.tmux_domain.take() {
+                    log::error!("FIXME: detach domain here!");
+                }
+            }
+            DeviceControlMode::Data(c) => {
+                if let Some(tmux) = self.tmux_domain.as_ref() {
+                    tmux.advance(c);
+                } else {
+                    log::error!(
+                        "unhandled DeviceControlMode::Data {:x} {}",
+                        c,
+                        (c as char).escape_debug()
+                    );
+                }
+            }
+            _ => {
+                log::error!("unhandled: {:?}", control);
+            }
+        }
+    }
+}
+
 impl LocalPane {
     pub fn new(
         pane_id: PaneId,
-        terminal: Terminal,
+        mut terminal: Terminal,
         process: Box<dyn Child>,
         pty: Box<dyn MasterPty>,
         domain_id: DomainId,
     ) -> Self {
+        terminal.set_device_control_handler(Box::new(LocalPaneDCSHandler {
+            pane_id,
+            tmux_domain: None,
+        }));
         Self {
             pane_id,
             terminal: RefCell::new(terminal),
