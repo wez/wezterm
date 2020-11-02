@@ -5,7 +5,7 @@
 
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{alloc_pane_id, Pane, PaneId};
-use crate::renderable::Renderable;
+use crate::renderable::*;
 use crate::tab::{SplitDirection, Tab, TabId};
 use crate::window::WindowId;
 use crate::Mux;
@@ -14,10 +14,12 @@ use async_trait::async_trait;
 use crossbeam::channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::{FileDescriptor, Pipe};
 use portable_pty::*;
+use rangeset::RangeSet;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::io::BufWriter;
 use std::io::Write;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
@@ -26,10 +28,11 @@ use termwiz::input::{InputEvent, KeyEvent, MouseEvent as TermWizMouseEvent};
 use termwiz::lineedit::*;
 use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::surface::Change;
+use termwiz::surface::Line;
 use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
+use wezterm_term::{KeyCode, KeyModifiers, MouseEvent, StableRowIndex};
 
 struct TermWizTerminalDomain {
     domain_id: DomainId,
@@ -136,8 +139,20 @@ impl Pane for TermWizTerminalPane {
         self.pane_id
     }
 
-    fn renderer(&self) -> RefMut<dyn Renderable> {
-        RefMut::map(self.terminal.borrow_mut(), |t| &mut *t)
+    fn get_cursor_position(&self) -> StableCursorPosition {
+        terminal_get_cursor_position(&mut self.terminal.borrow_mut())
+    }
+
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+        terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines)
+    }
+
+    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+        terminal_get_lines(&mut self.terminal.borrow_mut(), lines)
+    }
+
+    fn get_dimensions(&self) -> RenderableDimensions {
+        terminal_get_dimensions(&mut self.terminal.borrow_mut())
     }
 
     fn get_title(&self) -> String {

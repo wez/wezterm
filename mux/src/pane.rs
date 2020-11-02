@@ -1,12 +1,15 @@
 use crate::domain::DomainId;
-use crate::renderable::Renderable;
+use crate::renderable::*;
 use crate::Mux;
 use async_trait::async_trait;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
+use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::cell::RefMut;
+use std::ops::Range;
 use std::sync::{Arc, Mutex};
+use termwiz::surface::Line;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex};
@@ -69,7 +72,35 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
 #[async_trait(?Send)]
 pub trait Pane: Downcast {
     fn pane_id(&self) -> PaneId;
-    fn renderer(&self) -> RefMut<dyn Renderable>;
+
+    /// Returns the 0-based cursor position relative to the top left of
+    /// the visible screen
+    fn get_cursor_position(&self) -> StableCursorPosition;
+
+    /// Given a range of lines, return the subset of those lines that
+    /// have their dirty flag set to true.
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex>;
+
+    /// Returns a set of lines from the scrollback or visible portion of
+    /// the display.  The lines are indexed using StableRowIndex, which
+    /// can be invalidated if the scrollback is busy, or when switching
+    /// to the alternate screen.
+    /// To deal with this, this function will adjust the input so that
+    /// a range that has been scrolled off the top will return the top
+    /// n rows of the scrollback (where n is the size of the input range),
+    /// or the bottom n rows of the scrollback when switching to the alt
+    /// screen and the index would go off the bottom.
+    /// Because of this, we also return the adjusted StableRowIndex for
+    /// the first row in the range.
+    ///
+    /// For each line, if it was dirty in the backing data, then the dirty
+    /// flag will be cleared in the backing data.  The returned line will
+    /// have its dirty bit set appropriately.
+    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>);
+
+    /// Returns render related dimensions
+    fn get_dimensions(&self) -> RenderableDimensions;
+
     fn get_title(&self) -> String;
     fn send_paste(&self, text: &str) -> anyhow::Result<()>;
     fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>>;

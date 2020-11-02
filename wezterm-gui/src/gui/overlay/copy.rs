@@ -39,7 +39,7 @@ struct Dimensions {
 
 impl CopyOverlay {
     pub fn with_pane(term_window: &TermWindow, pane: &Rc<dyn Pane>) -> Rc<dyn Pane> {
-        let mut cursor = pane.renderer().get_cursor_position();
+        let mut cursor = pane.get_cursor_position();
         cursor.shape = termwiz::surface::CursorShape::SteadyBlock;
 
         let window = term_window.window.clone().unwrap();
@@ -64,7 +64,7 @@ impl CopyOverlay {
 
 impl CopyRenderable {
     fn clamp_cursor_to_scrollback(&mut self) {
-        let dims = self.delegate.renderer().get_dimensions();
+        let dims = self.delegate.get_dimensions();
         if self.cursor.x >= dims.cols {
             self.cursor.x = dims.cols - 1;
         }
@@ -114,7 +114,7 @@ impl CopyRenderable {
 
     fn dimensions(&self) -> Dimensions {
         const VERTICAL_GAP: isize = 5;
-        let dims = self.delegate.renderer().get_dimensions();
+        let dims = self.delegate.get_dimensions();
         let vertical_gap = if dims.physical_top <= VERTICAL_GAP {
             1
         } else {
@@ -151,7 +151,7 @@ impl CopyRenderable {
     }
 
     fn set_viewport(&self, row: Option<StableRowIndex>) {
-        let dims = self.delegate.renderer().get_dimensions();
+        let dims = self.delegate.get_dimensions();
         let pane_id = self.delegate.pane_id();
         self.window.apply(move |term_window, _window| {
             if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
@@ -240,7 +240,7 @@ impl CopyRenderable {
 
     fn move_to_end_of_line_content(&mut self) {
         let y = self.cursor.y;
-        let (top, lines) = self.get_lines(y..y + 1);
+        let (top, lines) = self.delegate.get_lines(y..y + 1);
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
             self.cursor.x = 0;
@@ -256,7 +256,7 @@ impl CopyRenderable {
 
     fn move_to_start_of_line_content(&mut self) {
         let y = self.cursor.y;
-        let (top, lines) = self.get_lines(y..y + 1);
+        let (top, lines) = self.delegate.get_lines(y..y + 1);
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
             self.cursor.x = 0;
@@ -278,7 +278,7 @@ impl CopyRenderable {
             self.cursor.y
         };
 
-        let (top, lines) = self.get_lines(y..y + 1);
+        let (top, lines) = self.delegate.get_lines(y..y + 1);
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
             if self.cursor.x == usize::max_value() {
@@ -327,7 +327,7 @@ impl CopyRenderable {
 
     fn move_forward_one_word(&mut self) {
         let y = self.cursor.y;
-        let (top, lines) = self.get_lines(y..y + 1);
+        let (top, lines) = self.delegate.get_lines(y..y + 1);
         if let Some(line) = lines.get(0) {
             self.cursor.y = top;
             let width = line.cells().len();
@@ -345,7 +345,7 @@ impl CopyRenderable {
                             // If we advance off the RHS, move to the start of the word on the
                             // next line, if any!
                             if self.cursor.x >= width {
-                                let dims = self.delegate.renderer().get_dimensions();
+                                let dims = self.delegate.get_dimensions();
                                 let max_row = dims.scrollback_top + dims.scrollback_rows as isize;
                                 if self.cursor.y + 1 < max_row {
                                     self.cursor.y += 1;
@@ -378,10 +378,6 @@ impl CopyRenderable {
 impl Pane for CopyOverlay {
     fn pane_id(&self) -> PaneId {
         self.delegate.pane_id()
-    }
-
-    fn renderer(&self) -> RefMut<dyn Renderable> {
-        self.render.borrow_mut()
     }
 
     fn get_title(&self) -> String {
@@ -517,23 +513,21 @@ impl Pane for CopyOverlay {
     fn get_current_working_dir(&self) -> Option<Url> {
         self.delegate.get_current_working_dir()
     }
-}
 
-impl Renderable for CopyRenderable {
     fn get_cursor_position(&self) -> StableCursorPosition {
-        self.cursor
+        self.render.borrow_mut().cursor
     }
 
     fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
-        self.delegate.renderer().get_dirty_lines(lines)
+        self.delegate.get_dirty_lines(lines)
     }
 
-    fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
-        self.delegate.renderer().get_lines(lines)
+    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+        self.delegate.get_lines(lines)
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {
-        self.delegate.renderer().get_dimensions()
+        self.delegate.get_dimensions()
     }
 }
 

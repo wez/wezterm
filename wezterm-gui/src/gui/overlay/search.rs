@@ -55,7 +55,7 @@ impl SearchOverlay {
         pattern: Pattern,
     ) -> Rc<dyn Pane> {
         let viewport = term_window.get_viewport(pane.pane_id());
-        let dims = pane.renderer().get_dimensions();
+        let dims = pane.get_dimensions();
 
         let window = term_window.window.clone().unwrap();
         let mut renderer = SearchRenderable {
@@ -99,10 +99,6 @@ impl SearchOverlay {
 impl Pane for SearchOverlay {
     fn pane_id(&self) -> PaneId {
         self.delegate.pane_id()
-    }
-
-    fn renderer(&self) -> RefMut<dyn Renderable> {
-        self.renderer.borrow_mut()
     }
 
     fn get_title(&self) -> String {
@@ -149,7 +145,7 @@ impl Pane for SearchOverlay {
             (KeyCode::PageUp, KeyModifiers::NONE) => {
                 // Skip this page of matches and move up to the first match from
                 // the prior page.
-                let dims = self.delegate.renderer().get_dimensions();
+                let dims = self.delegate.get_dimensions();
                 let mut r = self.renderer.borrow_mut();
                 if let Some(cur) = r.result_pos {
                     let top = r.viewport.unwrap_or(dims.physical_top);
@@ -168,7 +164,7 @@ impl Pane for SearchOverlay {
             (KeyCode::PageDown, KeyModifiers::NONE) => {
                 // Skip this page of matches and move down to the first match from
                 // the next page.
-                let dims = self.delegate.renderer().get_dimensions();
+                let dims = self.delegate.get_dimensions();
                 let mut r = self.renderer.borrow_mut();
                 if let Some(cur) = r.result_pos {
                     let top = r.viewport.unwrap_or(dims.physical_top);
@@ -255,11 +251,93 @@ impl Pane for SearchOverlay {
     fn get_current_working_dir(&self) -> Option<Url> {
         self.delegate.get_current_working_dir()
     }
+
+    fn get_cursor_position(&self) -> StableCursorPosition {
+        // move to the search box
+        let renderer = self.renderer.borrow();
+        StableCursorPosition {
+            x: 8 + wezterm_term::unicode_column_width(&renderer.pattern),
+            y: renderer.compute_search_row(),
+            shape: termwiz::surface::CursorShape::SteadyBlock,
+            visibility: termwiz::surface::CursorVisibility::Visible,
+        }
+    }
+
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+        let mut dirty = self.delegate.get_dirty_lines(lines.clone());
+        dirty.add_set(&self.renderer.borrow().dirty_results);
+        dirty.intersection_with_range(lines)
+    }
+
+    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+        let mut renderer = self.renderer.borrow_mut();
+        renderer.check_for_resize();
+        let dims = self.get_dimensions();
+
+        let (top, mut lines) = self.delegate.get_lines(lines);
+
+        // Process the lines; for the search row we want to render instead
+        // the search UI.
+        // For rows with search results, we want to highlight the matching ranges
+        let search_row = renderer.compute_search_row();
+        for (idx, line) in lines.iter_mut().enumerate() {
+            let stable_idx = idx as StableRowIndex + top;
+            renderer.dirty_results.remove(stable_idx);
+            if stable_idx == search_row {
+                // Replace with search UI
+                let rev = CellAttributes::default().set_reverse(true).clone();
+                line.fill_range(0..dims.cols, &Cell::new(' ', rev.clone()));
+                let mode = &match renderer.pattern {
+                    Pattern::CaseSensitiveString(_) => "case-sensitive",
+                    Pattern::CaseInSensitiveString(_) => "ignore-case",
+                    Pattern::Regex(_) => "regex",
+                };
+                line.overlay_text_with_attribute(
+                    0,
+                    &format!(
+                        "Search: {} ({}/{} matches. {})",
+                        *renderer.pattern,
+                        renderer.result_pos.map(|x| x + 1).unwrap_or(0),
+                        renderer.results.len(),
+                        mode
+                    ),
+                    rev,
+                );
+                renderer.last_bar_pos = Some(search_row);
+            } else if let Some(matches) = renderer.by_line.get(&stable_idx) {
+                for m in matches {
+                    // highlight
+                    for cell_idx in m.range.clone() {
+                        if let Some(cell) = line.cells_mut_for_attr_changes_only().get_mut(cell_idx)
+                        {
+                            if Some(m.result_index) == renderer.result_pos {
+                                cell.attrs_mut()
+                                    .set_background(AnsiColor::Yellow)
+                                    .set_foreground(AnsiColor::Black)
+                                    .set_reverse(false);
+                            } else {
+                                cell.attrs_mut()
+                                    .set_background(AnsiColor::Fuschia)
+                                    .set_foreground(AnsiColor::Black)
+                                    .set_reverse(false);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        (top, lines)
+    }
+
+    fn get_dimensions(&self) -> RenderableDimensions {
+        self.delegate.get_dimensions()
+    }
 }
 
 impl SearchRenderable {
     fn compute_search_row(&self) -> StableRowIndex {
-        let dims = self.delegate.renderer().get_dimensions();
+        let dims = self.delegate.get_dimensions();
         let top = self.viewport.unwrap_or_else(|| dims.physical_top);
         let bottom = (top + dims.viewport_rows as StableRowIndex).saturating_sub(1);
         bottom
@@ -270,7 +348,7 @@ impl SearchRenderable {
     }
 
     fn set_viewport(&self, row: Option<StableRowIndex>) {
-        let dims = self.delegate.renderer().get_dimensions();
+        let dims = self.delegate.get_dimensions();
         let pane_id = self.delegate.pane_id();
         self.window.apply(move |term_window, _window| {
             if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
@@ -281,7 +359,7 @@ impl SearchRenderable {
     }
 
     fn check_for_resize(&mut self) {
-        let dims = self.delegate.renderer().get_dimensions();
+        let dims = self.delegate.get_dimensions();
         if dims.cols == self.width && dims.viewport_rows == self.height {
             return;
         }
@@ -419,87 +497,5 @@ impl SearchRenderable {
         });
 
         self.set_viewport(Some(result.start_y));
-    }
-}
-
-impl Renderable for SearchRenderable {
-    fn get_cursor_position(&self) -> StableCursorPosition {
-        // move to the search box
-        StableCursorPosition {
-            x: 8 + wezterm_term::unicode_column_width(&self.pattern),
-            y: self.compute_search_row(),
-            shape: termwiz::surface::CursorShape::SteadyBlock,
-            visibility: termwiz::surface::CursorVisibility::Visible,
-        }
-    }
-
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
-        let mut dirty = self.delegate.renderer().get_dirty_lines(lines.clone());
-        dirty.add_set(&self.dirty_results);
-        dirty.intersection_with_range(lines)
-    }
-
-    fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
-        self.check_for_resize();
-        let dims = self.get_dimensions();
-
-        let (top, mut lines) = self.delegate.renderer().get_lines(lines);
-
-        // Process the lines; for the search row we want to render instead
-        // the search UI.
-        // For rows with search results, we want to highlight the matching ranges
-        let search_row = self.compute_search_row();
-        for (idx, line) in lines.iter_mut().enumerate() {
-            let stable_idx = idx as StableRowIndex + top;
-            self.dirty_results.remove(stable_idx);
-            if stable_idx == search_row {
-                // Replace with search UI
-                let rev = CellAttributes::default().set_reverse(true).clone();
-                line.fill_range(0..dims.cols, &Cell::new(' ', rev.clone()));
-                let mode = &match self.pattern {
-                    Pattern::CaseSensitiveString(_) => "case-sensitive",
-                    Pattern::CaseInSensitiveString(_) => "ignore-case",
-                    Pattern::Regex(_) => "regex",
-                };
-                line.overlay_text_with_attribute(
-                    0,
-                    &format!(
-                        "Search: {} ({}/{} matches. {})",
-                        *self.pattern,
-                        self.result_pos.map(|x| x + 1).unwrap_or(0),
-                        self.results.len(),
-                        mode
-                    ),
-                    rev,
-                );
-                self.last_bar_pos = Some(search_row);
-            } else if let Some(matches) = self.by_line.get(&stable_idx) {
-                for m in matches {
-                    // highlight
-                    for cell_idx in m.range.clone() {
-                        if let Some(cell) = line.cells_mut_for_attr_changes_only().get_mut(cell_idx)
-                        {
-                            if Some(m.result_index) == self.result_pos {
-                                cell.attrs_mut()
-                                    .set_background(AnsiColor::Yellow)
-                                    .set_foreground(AnsiColor::Black)
-                                    .set_reverse(false);
-                            } else {
-                                cell.attrs_mut()
-                                    .set_background(AnsiColor::Fuschia)
-                                    .set_foreground(AnsiColor::Black)
-                                    .set_reverse(false);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        (top, lines)
-    }
-
-    fn get_dimensions(&self) -> RenderableDimensions {
-        self.delegate.renderer().get_dimensions()
     }
 }

@@ -58,7 +58,7 @@ where
     F: Send + 'static + FnOnce(PaneId, TermWizTerminal) -> anyhow::Result<T>,
 {
     let pane_id = pane.pane_id();
-    let dims = pane.renderer().get_dimensions();
+    let dims = pane.get_dimensions();
     let (tw_term, tw_tab) = allocate(dims.cols.into(), dims.viewport_rows.into());
 
     let window = term_window.window.clone().unwrap();

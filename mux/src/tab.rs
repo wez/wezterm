@@ -164,7 +164,7 @@ fn pane_tree(
             node: data.unwrap(),
         },
         Tree::Leaf(pane) => {
-            let dims = pane.renderer().get_dimensions();
+            let dims = pane.get_dimensions();
             let working_dir = pane.get_current_working_dir();
 
             PaneNode::Leaf(PaneEntry {
@@ -789,7 +789,7 @@ impl Tab {
             match node {
                 Tree::Empty => None,
                 Tree::Leaf(pane) => {
-                    let dims = pane.renderer().get_dimensions();
+                    let dims = pane.get_dimensions();
                     let size = PtySize {
                         cols: dims.cols as u16,
                         rows: dims.viewport_rows as u16,
@@ -1480,10 +1480,12 @@ impl Into<String> for SerdeUrl {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::renderable::Renderable;
+    use crate::renderable::*;
+    use rangeset::RangeSet;
+    use std::ops::Range;
     use url::Url;
     use wezterm_term::color::ColorPalette;
-    use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
+    use wezterm_term::{KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
 
     struct FakePane {
         id: PaneId,
@@ -1503,9 +1505,23 @@ mod test {
         fn pane_id(&self) -> PaneId {
             self.id
         }
-        fn renderer(&self) -> RefMut<dyn Renderable> {
-            unimplemented!()
+
+        fn get_cursor_position(&self) -> StableCursorPosition {
+            unimplemented!();
         }
+
+        fn get_dirty_lines(&self, _lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+            unimplemented!();
+        }
+
+        fn get_lines(&self, _lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+            unimplemented!();
+        }
+
+        fn get_dimensions(&self) -> RenderableDimensions {
+            unimplemented!();
+        }
+
         fn get_title(&self) -> String {
             unimplemented!()
         }

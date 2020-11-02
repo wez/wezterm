@@ -1,7 +1,7 @@
 // The range_plus_one lint can't see when the LHS is not compatible with
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
-use mux::renderable::Renderable;
+use mux::pane::Pane;
 use std::cmp::Ordering;
 use std::ops::Range;
 use termwiz::surface::line::DoubleClickRange;
@@ -128,8 +128,8 @@ impl SelectionRange {
     }
 
     /// Computes the selection range for the word around the specified coords
-    pub fn word_around(start: SelectionCoordinate, renderer: &mut dyn Renderable) -> Self {
-        let (first, lines) = renderer.get_lines(start.y..start.y + 1);
+    pub fn word_around(start: SelectionCoordinate, pane: &dyn Pane) -> Self {
+        let (first, lines) = pane.get_lines(start.y..start.y + 1);
 
         // TODO: if selection_range.start.x == 0, search backwards for wrapping
         // lines too.
@@ -157,7 +157,7 @@ impl SelectionRange {
                 };
 
                 for y_cont in start.y + 1.. {
-                    let (first, lines) = renderer.get_lines(y_cont..y_cont + 1);
+                    let (first, lines) = pane.get_lines(y_cont..y_cont + 1);
                     if first != y_cont {
                         break;
                     }

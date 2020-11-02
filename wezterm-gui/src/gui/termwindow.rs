@@ -370,7 +370,7 @@ impl WindowCallbacks for TermWindow {
 
             WMEK::VertWheel(amount) if !pane.is_mouse_grabbed() => {
                 // adjust viewport
-                let dims = pane.renderer().get_dimensions();
+                let dims = pane.get_dimensions();
                 let position = self
                     .get_viewport(pane.pane_id())
                     .unwrap_or(dims.physical_top)
@@ -389,8 +389,7 @@ impl WindowCallbacks for TermWindow {
                         None => return,
                     };
 
-                    let render = pane.renderer();
-                    let dims = render.get_dimensions();
+                    let dims = pane.get_dimensions();
 
                     let effective_thumb_top =
                         event.coords.y.saturating_sub(*from_top).max(0) as usize;
@@ -399,12 +398,11 @@ impl WindowCallbacks for TermWindow {
                     // in ScrollHit::thumb
                     let row = ScrollHit::thumb_top_to_scroll_top(
                         effective_thumb_top,
-                        &*render,
+                        &*pane,
                         current_viewport,
                         self.terminal_size,
                         &self.dimensions,
                     );
-                    drop(render);
                     self.set_viewport(pane.pane_id(), Some(row), dims);
                     context.invalidate();
                     return;
@@ -1011,8 +1009,6 @@ impl TermWindow {
         }
 
         for pos in panes {
-            let render = pos.pane.renderer();
-
             // If blinking is permitted, and the cursor shape is set
             // to a blinking variant, and it's been longer than the
             // blink rate interval, then invalidate and redraw
@@ -1023,7 +1019,7 @@ impl TermWindow {
             if config.cursor_blink_rate != 0 && pos.is_active && self.focused.is_some() {
                 let shape = config
                     .default_cursor_style
-                    .effective_shape(render.get_cursor_position().shape);
+                    .effective_shape(pos.pane.get_cursor_position().shape);
                 if shape.is_blinking() {
                     let now = Instant::now();
                     if now.duration_since(self.last_blink_paint)
@@ -1036,12 +1032,12 @@ impl TermWindow {
             }
 
             // If the model is dirty, arrange to re-paint
-            let dims = render.get_dimensions();
+            let dims = pos.pane.get_dimensions();
             let viewport = self
                 .get_viewport(pos.pane.pane_id())
                 .unwrap_or(dims.physical_top);
             let visible_range = viewport..viewport + dims.viewport_rows as StableRowIndex;
-            let dirty = render.get_dirty_lines(visible_range);
+            let dirty = pos.pane.get_dirty_lines(visible_range);
 
             if !dirty.is_empty() {
                 if pos.pane.downcast_ref::<SearchOverlay>().is_none()
@@ -1265,7 +1261,7 @@ impl TermWindow {
             None => return,
         };
 
-        let render_dims = tab.renderer().get_dimensions();
+        let render_dims = tab.get_dimensions();
         if render_dims == self.last_scroll_info {
             return;
         }
@@ -1348,11 +1344,10 @@ impl TermWindow {
     }
 
     fn update_text_cursor(&mut self, pane: &Rc<dyn Pane>) {
-        let term = pane.renderer();
-        let cursor = term.get_cursor_position();
+        let cursor = pane.get_cursor_position();
         if let Some(win) = self.window.as_ref() {
             let config = configuration();
-            let top = term.get_dimensions().physical_top + if self.show_tab_bar { -1 } else { 0 };
+            let top = pane.get_dimensions().physical_top + if self.show_tab_bar { -1 } else { 0 };
             let r = Rect::new(
                 Point::new(
                     (cursor.x.max(0) as isize * self.render_metrics.cell_size.width)
@@ -1544,12 +1539,10 @@ impl TermWindow {
             Some(pane) => pane,
             None => return Ok(()),
         };
-        let render = pane.renderer();
-        let dims = render.get_dimensions();
+        let dims = pane.get_dimensions();
         let position = self
             .get_viewport(pane.pane_id())
             .unwrap_or(dims.physical_top);
-        drop(render);
         let mut zones = pane.get_semantic_zones()?;
         zones.retain(|zone| zone.semantic_type == wezterm_term::SemanticType::Prompt);
         let idx = match zones.binary_search_by(|zone| zone.start_y.cmp(&position)) {
@@ -1571,13 +1564,11 @@ impl TermWindow {
             Some(pane) => pane,
             None => return Ok(()),
         };
-        let render = pane.renderer();
-        let dims = render.get_dimensions();
+        let dims = pane.get_dimensions();
         let position = self
             .get_viewport(pane.pane_id())
             .unwrap_or(dims.physical_top)
             .saturating_add(amount * dims.viewport_rows as isize);
-        drop(render);
         self.set_viewport(pane.pane_id(), Some(position), dims);
         if let Some(win) = self.window.as_ref() {
             win.invalidate();
@@ -1790,8 +1781,7 @@ impl TermWindow {
             .map(|r| r.normalize())
         {
             let mut last_was_wrapped = false;
-            let mut renderer = pane.renderer();
-            let (first_row, lines) = renderer.get_lines(sel.rows());
+            let (first_row, lines) = pane.get_lines(sel.rows());
             for (idx, line) in lines.iter().enumerate() {
                 let cols = sel.cols_for_row(first_row + idx as StableRowIndex);
                 let last_col_idx = cols.end.min(line.cells().len()).saturating_sub(1);
@@ -2410,15 +2400,14 @@ impl TermWindow {
         let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
-        let mut term = pos.pane.renderer();
-        let cursor = term.get_cursor_position();
+        let cursor = pos.pane.get_cursor_position();
         if pos.is_active {
             self.prev_cursor.update(&cursor);
         }
 
         let current_viewport = self.get_viewport(pos.pane.pane_id());
         let (stable_top, lines);
-        let dims = term.get_dimensions();
+        let dims = pos.pane.get_dimensions();
 
         {
             let stable_range = match current_viewport {
@@ -2426,7 +2415,7 @@ impl TermWindow {
                 None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
             };
 
-            let (top, vp_lines) = term.get_lines(stable_range);
+            let (top, vp_lines) = pos.pane.get_lines(stable_range);
             stable_top = top;
             lines = vp_lines;
         }
@@ -2470,7 +2459,7 @@ impl TermWindow {
         if pos.is_active {
             let (thumb_top, thumb_size, color) = if self.show_scroll_bar {
                 let info = ScrollHit::thumb(
-                    &*term,
+                    &*pos.pane,
                     current_viewport,
                     self.terminal_size,
                     &self.dimensions,
@@ -3204,18 +3193,16 @@ impl TermWindow {
         context: &dyn WindowOps,
     ) {
         if let WMEK::Press(MousePress::Left) = event.kind {
-            let render = pane.renderer();
-            let dims = render.get_dimensions();
+            let dims = pane.get_dimensions();
             let current_viewport = self.get_viewport(pane.pane_id());
 
             let hit_result = ScrollHit::test(
                 event.coords.y,
-                &*render,
+                &*pane,
                 current_viewport,
                 self.terminal_size,
                 &self.dimensions,
             );
-            drop(render);
 
             match hit_result {
                 ScrollHit::Above => {
@@ -3274,17 +3261,14 @@ impl TermWindow {
                 self.selection(pane.pane_id()).range = Some(sel);
             }
             SelectionMode::Word => {
-                let end_word = SelectionRange::word_around(
-                    SelectionCoordinate { x, y },
-                    &mut *pane.renderer(),
-                );
+                let end_word = SelectionRange::word_around(SelectionCoordinate { x, y }, &**pane);
 
                 let start_coord = self
                     .selection(pane.pane_id())
                     .start
                     .clone()
                     .unwrap_or(end_word.start);
-                let start_word = SelectionRange::word_around(start_coord, &mut *pane.renderer());
+                let start_word = SelectionRange::word_around(start_coord, &**pane);
 
                 let selection_range = start_word.extend_with(end_word);
                 self.selection(pane.pane_id()).range = Some(selection_range);
@@ -3325,7 +3309,7 @@ impl TermWindow {
         // is smaller because it feels more natural for mouse selection to have
         // a smaller gpa.
         const VERTICAL_GAP: isize = 2;
-        let dims = pane.renderer().get_dimensions();
+        let dims = pane.get_dimensions();
         let top = self
             .get_viewport(pane.pane_id())
             .unwrap_or(dims.physical_top);
@@ -3359,10 +3343,8 @@ impl TermWindow {
                 self.selection(pane.pane_id()).range = Some(selection_range);
             }
             SelectionMode::Word => {
-                let selection_range = SelectionRange::word_around(
-                    SelectionCoordinate { x, y },
-                    &mut *pane.renderer(),
-                );
+                let selection_range =
+                    SelectionRange::word_around(SelectionCoordinate { x, y }, &**pane);
 
                 self.selection(pane.pane_id()).start = Some(selection_range.start);
                 self.selection(pane.pane_id()).range = Some(selection_range);
@@ -3455,7 +3437,7 @@ impl TermWindow {
             }
         }
 
-        let dims = pane.renderer().get_dimensions();
+        let dims = pane.get_dimensions();
         let stable_row = self
             .get_viewport(pane.pane_id())
             .unwrap_or(dims.physical_top)
@@ -3463,7 +3445,7 @@ impl TermWindow {
 
         self.last_mouse_terminal_coords = (x, stable_row); // FIXME: per-pane
 
-        let (top, mut lines) = pane.renderer().get_lines(stable_row..stable_row + 1);
+        let (top, mut lines) = pane.get_lines(stable_row..stable_row + 1);
         let new_highlight = if top == stable_row {
             if let Some(line) = lines.get_mut(0) {
                 if let Some(cell) = line.cells().get(x) {

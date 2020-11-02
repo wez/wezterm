@@ -1,18 +1,22 @@
 use crate::domain::DomainId;
 use crate::pane::{Pane, PaneId, Pattern, SearchResult};
-use crate::renderable::Renderable;
+use crate::renderable::*;
 use crate::tmux::{TmuxDomain, TmuxDomainState};
 use crate::{Domain, Mux};
 use anyhow::Error;
 use async_trait::async_trait;
 use portable_pty::{Child, MasterPty, PtySize};
+use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
+use std::ops::Range;
 use std::sync::Arc;
 use termwiz::escape::DeviceControlMode;
+use termwiz::surface::Line;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex, Terminal,
+    CellAttributes, Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
+    Terminal,
 };
 
 pub struct LocalPane {
@@ -30,17 +34,40 @@ impl Pane for LocalPane {
         self.pane_id
     }
 
-    fn renderer(&self) -> RefMut<dyn Renderable> {
-        /*
-        {
-            let tmux_domain = self.tmux_domain.borrow();
-            let mut tmux = tmux_domain.as_ref().cloned();
-            if let Some(tmux) = tmux.take() {
-                return RefMut::map(tmux.renderable.borrow_mut(), |r| &mut *r);
+    fn get_cursor_position(&self) -> StableCursorPosition {
+        let mut cursor = terminal_get_cursor_position(&mut self.terminal.borrow_mut());
+        if self.tmux_domain.borrow().is_some() {
+            cursor.visibility = termwiz::surface::CursorVisibility::Hidden;
+        }
+        cursor
+    }
+
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+        terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines)
+    }
+
+    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+        let (first, mut lines) = terminal_get_lines(&mut self.terminal.borrow_mut(), lines);
+
+        if self.tmux_domain.borrow().is_some() {
+            let cursor = terminal_get_cursor_position(&mut self.terminal.borrow_mut());
+            let idx = cursor.y as isize - first as isize;
+            if idx > 0 {
+                if let Some(line) = lines.get_mut(idx as usize) {
+                    line.overlay_text_with_attribute(
+                        0,
+                        "This pane is running tmux control mode",
+                        CellAttributes::default(),
+                    );
+                }
             }
         }
-        */
-        RefMut::map(self.terminal.borrow_mut(), |t| &mut *t)
+
+        (first, lines)
+    }
+
+    fn get_dimensions(&self) -> RenderableDimensions {
+        terminal_get_dimensions(&mut self.terminal.borrow_mut())
     }
 
     fn kill(&self) {

@@ -57,12 +57,12 @@ impl PerPane {
             changed = true;
         }
 
-        let dims = pane.renderer().get_dimensions();
+        let dims = pane.get_dimensions();
         if dims != self.dimensions {
             changed = true;
         }
 
-        let cursor_position = pane.renderer().get_cursor_position();
+        let cursor_position = pane.get_cursor_position();
         if cursor_position != self.cursor_position {
             changed = true;
         }
@@ -77,9 +77,8 @@ impl PerPane {
             changed = true;
         }
 
-        let mut all_dirty_lines = pane
-            .renderer()
-            .get_dirty_lines(0..dims.physical_top + dims.viewport_rows as StableRowIndex);
+        let mut all_dirty_lines =
+            pane.get_dirty_lines(0..dims.physical_top + dims.viewport_rows as StableRowIndex);
         let dirty_delta = all_dirty_lines.difference(&self.dirty_lines);
         if !dirty_delta.is_empty() {
             changed = true;
@@ -93,7 +92,7 @@ impl PerPane {
         let viewport_range =
             dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex;
 
-        let (first_line, lines) = pane.renderer().get_lines(viewport_range);
+        let (first_line, lines) = pane.get_lines(viewport_range);
         let mut bonus_lines = lines
             .into_iter()
             .enumerate()
@@ -106,9 +105,7 @@ impl PerPane {
 
         // Always send the cursor's row, as that tends to the busiest and we don't
         // have a sequencing concept for our idea of the remote state.
-        let (cursor_line, lines) = pane
-            .renderer()
-            .get_lines(cursor_position.y..cursor_position.y + 1);
+        let (cursor_line, lines) = pane.get_lines(cursor_position.y..cursor_position.y + 1);
         bonus_lines.push((cursor_line, lines[0].clone()));
 
         self.cursor_position = cursor_position;
@@ -451,13 +448,11 @@ impl SessionHandler {
                             let pane = mux
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
-                            let mut renderer = pane.renderer();
-
                             let mut lines_and_indices = vec![];
                             let mut per_pane = per_pane.lock().unwrap();
 
                             for range in lines {
-                                let (first_row, lines) = renderer.get_lines(range);
+                                let (first_row, lines) = pane.get_lines(range);
                                 for (idx, line) in lines.into_iter().enumerate() {
                                     let stable_row = first_row + idx as StableRowIndex;
                                     per_pane.mark_clean(stable_row);
@@ -580,7 +575,7 @@ async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> 
             split.direction,
         )
         .await?;
-    let dims = pane.renderer().get_dimensions();
+    let dims = pane.get_dimensions();
     let size = PtySize {
         cols: dims.cols as u16,
         rows: dims.viewport_rows as u16,

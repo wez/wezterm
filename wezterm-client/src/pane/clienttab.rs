@@ -9,18 +9,20 @@ use filedescriptor::Pipe;
 use log::info;
 use mux::domain::DomainId;
 use mux::pane::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult};
-use mux::renderable::{Renderable, RenderableDimensions};
+use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
 use portable_pty::PtySize;
+use rangeset::RangeSet;
 use ratelim::RateLimiter;
 use std::cell::RefCell;
 use std::cell::RefMut;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use termwiz::input::KeyEvent;
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent};
+use wezterm_term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
 
 pub struct ClientPane {
     client: Arc<ClientInner>,
@@ -125,8 +127,20 @@ impl Pane for ClientPane {
     fn pane_id(&self) -> TabId {
         self.local_pane_id
     }
-    fn renderer(&self) -> RefMut<dyn Renderable> {
-        self.renderable.borrow_mut()
+
+    fn get_cursor_position(&self) -> StableCursorPosition {
+        self.renderable.borrow().get_cursor_position()
+    }
+
+    fn get_dimensions(&self) -> RenderableDimensions {
+        self.renderable.borrow().get_dimensions()
+    }
+    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+        self.renderable.borrow().get_lines(lines)
+    }
+
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+        self.renderable.borrow().get_dirty_lines(lines)
     }
 
     fn set_clipboard(&self, clipboard: &Arc<dyn Clipboard>) {

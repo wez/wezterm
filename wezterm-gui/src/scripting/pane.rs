@@ -43,10 +43,10 @@ impl UserData for PaneObject {
             Ok(())
         });
         methods.add_method("get_cursor_position", |_, this, _: ()| {
-            Ok(this.pane()?.renderer().get_cursor_position())
+            Ok(this.pane()?.get_cursor_position())
         });
         methods.add_method("get_dimensions", |_, this, _: ()| {
-            Ok(this.pane()?.renderer().get_dimensions())
+            Ok(this.pane()?.get_dimensions())
         });
 
         // When called with no arguments, returns the lines from the
@@ -56,12 +56,11 @@ impl UserData for PaneObject {
         // The returned string will have trailing whitespace trimmed.
         methods.add_method("get_lines_as_text", |_, this, nlines: Option<usize>| {
             let pane = this.pane()?;
-            let mut render = pane.renderer();
-            let dims = render.get_dimensions();
+            let dims = pane.get_dimensions();
             let nlines = nlines.unwrap_or(dims.viewport_rows);
             let bottom_row = dims.physical_top + dims.viewport_rows as isize;
             let top_row = bottom_row.saturating_sub(nlines as isize);
-            let (_first_row, lines) = render.get_lines(top_row..bottom_row);
+            let (_first_row, lines) = pane.get_lines(top_row..bottom_row);
             let mut text = String::new();
             for line in lines {
                 for (_, cell) in line.visible_cells() {

@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use codec::*;
 use config::{configuration, ConfigHandle};
 use lru::LruCache;
-use mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
+use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
 use mux::Mux;
 use promise::BrokenPromise;
@@ -604,12 +604,12 @@ impl RenderableInner {
     }
 }
 
-impl Renderable for RenderableState {
-    fn get_cursor_position(&self) -> StableCursorPosition {
+impl RenderableState {
+    pub fn get_cursor_position(&self) -> StableCursorPosition {
         self.inner.borrow().cursor_position
     }
 
-    fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+    pub fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
         let mut inner = self.inner.borrow_mut();
         let mut result = vec![];
         let mut to_fetch = RangeSet::new();
@@ -676,7 +676,7 @@ impl Renderable for RenderableState {
         (lines.start, result)
     }
 
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+    pub fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
         let mut inner = self.inner.borrow_mut();
         if let Err(err) = inner.poll() {
             // We allow for BrokenPromise here for now; for a TLS backed
@@ -717,7 +717,7 @@ impl Renderable for RenderableState {
         result
     }
 
-    fn get_dimensions(&self) -> RenderableDimensions {
+    pub fn get_dimensions(&self) -> RenderableDimensions {
         self.inner.borrow().dimensions
     }
 }
