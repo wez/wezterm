@@ -21,6 +21,7 @@ pub struct LocalPane {
     process: RefCell<Box<dyn Child>>,
     pty: RefCell<Box<dyn MasterPty>>,
     domain_id: DomainId,
+    tmux_domain: RefCell<Option<Arc<TmuxDomainState>>>,
 }
 
 #[async_trait(?Send)]
@@ -30,6 +31,15 @@ impl Pane for LocalPane {
     }
 
     fn renderer(&self) -> RefMut<dyn Renderable> {
+        /*
+        {
+            let tmux_domain = self.tmux_domain.borrow();
+            let mut tmux = tmux_domain.as_ref().cloned();
+            if let Some(tmux) = tmux.take() {
+                return RefMut::map(tmux.renderable.borrow_mut(), |r| &mut *r);
+            }
+        }
+        */
         RefMut::map(self.terminal.borrow_mut(), |t| &mut *t)
     }
 
@@ -254,6 +264,13 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                     let mux = Mux::get().expect("to be called on main thread");
                     mux.add_domain(&domain);
 
+                    if let Some(pane) = mux.get_pane(self.pane_id) {
+                        let pane = pane.downcast_ref::<LocalPane>().unwrap();
+                        pane.tmux_domain
+                            .borrow_mut()
+                            .replace(Arc::clone(&tmux_domain));
+                    }
+
                     self.tmux_domain.replace(tmux_domain);
 
                 // TODO: do we need to proactively list available tabs here?
@@ -265,7 +282,12 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
             }
             DeviceControlMode::Exit => {
                 if let Some(tmux) = self.tmux_domain.take() {
-                    log::error!("FIXME: detach domain here!");
+                    let mux = Mux::get().expect("to be called on main thread");
+                    if let Some(pane) = mux.get_pane(self.pane_id) {
+                        let pane = pane.downcast_ref::<LocalPane>().unwrap();
+                        pane.tmux_domain.borrow_mut().take();
+                    }
+                    mux.domain_was_detached(tmux.domain_id);
                 }
             }
             DeviceControlMode::Data(c) => {
@@ -304,6 +326,7 @@ impl LocalPane {
             process: RefCell::new(process),
             pty: RefCell::new(pty),
             domain_id,
+            tmux_domain: RefCell::new(None),
         }
     }
 

@@ -1,17 +1,63 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{Pane, PaneId};
+use crate::renderable::*;
 use crate::tab::{SplitDirection, Tab, TabId};
 use crate::window::WindowId;
 use async_trait::async_trait;
 use portable_pty::{CommandBuilder, PtySize};
+use rangeset::RangeSet;
 use std::cell::RefCell;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
+use termwiz::surface::Line;
+use wezterm_term::{CellAttributes, StableRowIndex};
+
+pub(crate) struct TmuxPlaceholderRenderable {}
+
+impl Renderable for TmuxPlaceholderRenderable {
+    fn get_cursor_position(&self) -> StableCursorPosition {
+        StableCursorPosition {
+            x: 0,
+            y: 0,
+            shape: Default::default(),
+            visibility: termwiz::surface::CursorVisibility::Hidden,
+        }
+    }
+
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+        let mut dirty = RangeSet::new();
+        for i in lines {
+            dirty.add(i);
+        }
+        dirty
+    }
+
+    fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+        let line = Line::from_text(
+            "This pane is running tmux control mode",
+            &CellAttributes::default(),
+        );
+        (0, vec![line])
+    }
+
+    /// Returns render related dimensions
+    fn get_dimensions(&self) -> RenderableDimensions {
+        RenderableDimensions {
+            cols: 32,
+            viewport_rows: 1,
+            scrollback_rows: 0,
+            physical_top: 0,
+            scrollback_top: 0,
+        }
+    }
+}
 
 pub(crate) struct TmuxDomainState {
     pane_id: PaneId,
-    domain_id: DomainId,
+    pub domain_id: DomainId,
     parser: RefCell<tmux_cc::Parser>,
+    pub renderable: RefCell<TmuxPlaceholderRenderable>,
 }
 
 pub struct TmuxDomain {
@@ -31,10 +77,12 @@ impl TmuxDomain {
     pub fn new(pane_id: PaneId) -> Self {
         let domain_id = alloc_domain_id();
         let parser = RefCell::new(tmux_cc::Parser::new());
+        let renderable = RefCell::new(TmuxPlaceholderRenderable {});
         let inner = Arc::new(TmuxDomainState {
             domain_id,
             pane_id,
             parser,
+            renderable,
         });
         Self { inner }
     }
