@@ -10,7 +10,8 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* Not yet!
+* Fix cursor position after using iTerm2 image protocol [#317](https://github.com/wez/wezterm/issues/317)
+* Fix pixel dimensions after changing the pane size; this was mostly invisible but impacted image scaling when using sixel or iTerm2 image protocols. [#312](https://github.com/wez/wezterm/issues/312)
 
 ### 20201101-103216-403d002d
 
