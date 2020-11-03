@@ -1330,7 +1330,7 @@ impl TerminalState {
         }
 
         let image_data = self.raw_image_to_image_data(png_image_data);
-        self.assign_image_to_cells(width, height, image_data);
+        self.assign_image_to_cells(width, height, image_data, false);
     }
 
     /// cache recent images and avoid assigning a new id for repeated data!
@@ -1349,7 +1349,13 @@ impl TerminalState {
         }
     }
 
-    fn assign_image_to_cells(&mut self, width: u32, height: u32, image_data: Arc<ImageData>) {
+    fn assign_image_to_cells(
+        &mut self,
+        width: u32,
+        height: u32,
+        image_data: Arc<ImageData>,
+        iterm_cursor_position: bool,
+    ) {
         let physical_cols = self.screen().physical_cols;
         let physical_rows = self.screen().physical_rows;
         let cell_pixel_width = self.pixel_width / physical_cols;
@@ -1399,6 +1405,15 @@ impl TerminalState {
             }
             ypos += y_delta;
             self.new_line(false);
+        }
+
+        // Sixel places the cursor under the left corner of the image,
+        // but iTerm places it after the bottom right corner.
+        if iterm_cursor_position {
+            self.set_cursor_pos(
+                &Position::Relative(width_in_cells as i64),
+                &Position::Relative(-1),
+            );
         }
     }
 
@@ -1455,15 +1470,7 @@ impl TerminalState {
         };
 
         let image_data = self.raw_image_to_image_data(image.data);
-        self.assign_image_to_cells(width as u32, height as u32, image_data);
-
-        // FIXME: check cursor positioning in iterm
-        /*
-        self.set_cursor_pos(
-            &Position::Relative(width_in_cells as i64),
-            &Position::Relative(-(height_in_cells as i64)),
-        );
-        */
+        self.assign_image_to_cells(width as u32, height as u32, image_data, true);
     }
 
     fn perform_device(&mut self, dev: Device) {
