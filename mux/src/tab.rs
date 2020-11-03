@@ -42,8 +42,10 @@ pub struct PositionedPane {
     pub top: usize,
     /// The width of this pane in cells
     pub width: usize,
+    pub pixel_width: usize,
     /// The height of this pane in cells
     pub height: usize,
+    pub pixel_height: usize,
     /// The pane instance
     pub pane: Rc<dyn Pane>,
 }
@@ -555,7 +557,9 @@ impl Tab {
                 left: 0,
                 top: 0,
                 width: size.cols.into(),
+                pixel_width: size.pixel_width.into(),
                 height: size.rows.into(),
+                pixel_height: size.pixel_height.into(),
                 pane: Rc::clone(zoomed),
             });
             return panes;
@@ -598,6 +602,8 @@ impl Tab {
                     top,
                     width: dims.cols as _,
                     height: dims.rows as _,
+                    pixel_width: dims.pixel_width as _,
+                    pixel_height: dims.pixel_height as _,
                     pane,
                 });
             }
@@ -856,6 +862,7 @@ impl Tab {
     }
 
     fn adjust_node_at_cursor(&self, cursor: &mut Cursor, delta: isize) {
+        let cell_dimensions = self.cell_dimensions();
         if let Ok(Some(node)) = cursor.node_mut() {
             match node.direction {
                 SplitDirection::Horizontal => {
@@ -867,8 +874,12 @@ impl Tab {
                         .max(1)
                         .min((width as isize).saturating_sub(2));
                     node.first.cols = cols as u16;
+                    node.first.pixel_width =
+                        node.first.cols.saturating_mul(cell_dimensions.pixel_width);
 
                     node.second.cols = width.saturating_sub(node.first.cols.saturating_add(1));
+                    node.second.pixel_width =
+                        node.second.cols.saturating_mul(cell_dimensions.pixel_width);
                 }
                 SplitDirection::Vertical => {
                     let height = node.height();
@@ -879,8 +890,14 @@ impl Tab {
                         .max(1)
                         .min((height as isize).saturating_sub(2));
                     node.first.rows = rows as u16;
+                    node.first.pixel_height =
+                        node.first.rows.saturating_mul(cell_dimensions.pixel_height);
 
                     node.second.rows = height.saturating_sub(node.first.rows.saturating_add(1));
+                    node.second.pixel_height = node
+                        .second
+                        .rows
+                        .saturating_mul(cell_dimensions.pixel_height);
                 }
             }
         }
@@ -1617,6 +1634,8 @@ mod test {
         assert_eq!(0, panes[0].top);
         assert_eq!(40, panes[0].width);
         assert_eq!(24, panes[0].height);
+        assert_eq!(400, panes[0].pixel_width);
+        assert_eq!(600, panes[0].pixel_height);
         assert_eq!(1, panes[0].pane.pane_id());
 
         assert_eq!(1, panes[1].index);
@@ -1625,6 +1644,8 @@ mod test {
         assert_eq!(0, panes[1].top);
         assert_eq!(39, panes[1].width);
         assert_eq!(24, panes[1].height);
+        assert_eq!(390, panes[1].pixel_width);
+        assert_eq!(600, panes[1].pixel_height);
         assert_eq!(2, panes[1].pane.pane_id());
 
         let vert_size = tab.compute_split_size(0, SplitDirection::Vertical).unwrap();
@@ -1646,6 +1667,8 @@ mod test {
         assert_eq!(0, panes[0].top);
         assert_eq!(40, panes[0].width);
         assert_eq!(12, panes[0].height);
+        assert_eq!(400, panes[0].pixel_width);
+        assert_eq!(300, panes[0].pixel_height);
         assert_eq!(1, panes[0].pane.pane_id());
 
         assert_eq!(1, panes[1].index);
@@ -1654,6 +1677,8 @@ mod test {
         assert_eq!(13, panes[1].top);
         assert_eq!(40, panes[1].width);
         assert_eq!(11, panes[1].height);
+        assert_eq!(400, panes[1].pixel_width);
+        assert_eq!(275, panes[1].pixel_height);
         assert_eq!(3, panes[1].pane.pane_id());
 
         assert_eq!(2, panes[2].index);
@@ -1662,6 +1687,25 @@ mod test {
         assert_eq!(0, panes[2].top);
         assert_eq!(39, panes[2].width);
         assert_eq!(24, panes[2].height);
+        assert_eq!(390, panes[2].pixel_width);
+        assert_eq!(600, panes[2].pixel_height);
         assert_eq!(2, panes[2].pane.pane_id());
+
+        tab.resize_split_by(1, 1);
+        let panes = tab.iter_panes();
+        assert_eq!(40, panes[0].width);
+        assert_eq!(13, panes[0].height);
+        assert_eq!(400, panes[0].pixel_width);
+        assert_eq!(325, panes[0].pixel_height);
+
+        assert_eq!(40, panes[1].width);
+        assert_eq!(10, panes[1].height);
+        assert_eq!(400, panes[1].pixel_width);
+        assert_eq!(250, panes[1].pixel_height);
+
+        assert_eq!(39, panes[2].width);
+        assert_eq!(24, panes[2].height);
+        assert_eq!(390, panes[2].pixel_width);
+        assert_eq!(600, panes[2].pixel_height);
     }
 }

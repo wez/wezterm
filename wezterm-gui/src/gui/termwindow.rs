@@ -3653,6 +3653,8 @@ impl TermWindow {
                 top: 0,
                 width: size.cols as _,
                 height: size.rows as _,
+                pixel_width: size.cols as usize * self.render_metrics.cell_size.width as usize,
+                pixel_height: size.rows as usize * self.render_metrics.cell_size.height as usize,
                 pane,
             }]
         } else {
