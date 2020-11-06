@@ -1679,23 +1679,23 @@ impl<'a> CSIParser<'a> {
     }
 
     fn dec(&mut self, params: &'a [i64]) -> Result<DecPrivateMode, ()> {
-        match FromPrimitive::from_i64(params[0]) {
+        let p0 = *params.get(0).ok_or_else(|| ())?;
+        match FromPrimitive::from_i64(p0) {
             None => Ok(self.advance_by(
                 1,
                 params,
-                DecPrivateMode::Unspecified(params[0].to_u16().ok_or(())?),
+                DecPrivateMode::Unspecified(p0.to_u16().ok_or(())?),
             )),
             Some(mode) => Ok(self.advance_by(1, params, DecPrivateMode::Code(mode))),
         }
     }
 
     fn terminal_mode(&mut self, params: &'a [i64]) -> Result<TerminalMode, ()> {
-        match FromPrimitive::from_i64(params[0]) {
-            None => Ok(self.advance_by(
-                1,
-                params,
-                TerminalMode::Unspecified(params[0].to_u16().ok_or(())?),
-            )),
+        let p0 = *params.get(0).ok_or_else(|| ())?;
+        match FromPrimitive::from_i64(p0) {
+            None => {
+                Ok(self.advance_by(1, params, TerminalMode::Unspecified(p0.to_u16().ok_or(())?)))
+            }
             Some(mode) => Ok(self.advance_by(1, params, TerminalMode::Code(mode))),
         }
     }
