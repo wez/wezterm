@@ -814,7 +814,7 @@ fn reload_background_image(
         Some(p) => match std::fs::read(p) {
             Ok(data) => {
                 if let Some(existing) = image {
-                    if existing.data() == data {
+                    if existing.data() == &*data {
                         return Some(Arc::clone(existing));
                     }
                 }
