@@ -38,6 +38,7 @@ pub enum OperatingSystemCommand {
     SetSelection(Selection, String),
     SystemNotification(String),
     ITermProprietary(ITermProprietary),
+    FinalTermSemanticPrompt(FinalTermSemanticPrompt),
     ChangeColorNumber(Vec<ChangeColorPair>),
     ChangeDynamicColors(DynamicColorNumber, Vec<ColorOrQuery>),
     ResetDynamicColor(DynamicColorNumber),
@@ -299,6 +300,8 @@ impl OperatingSystemCommand {
             ITermProprietary => {
                 self::ITermProprietary::parse(osc).map(OperatingSystemCommand::ITermProprietary)
             }
+            FinalTermSemanticPrompt => self::FinalTermSemanticPrompt::parse(osc)
+                .map(OperatingSystemCommand::FinalTermSemanticPrompt),
             ChangeColorNumber => Self::parse_change_color_number(osc),
             ResetColors => Self::parse_reset_colors(osc),
 
@@ -410,6 +413,7 @@ osc_entries!(
     ResetTektronixCursorColor = "118",
     ResetHighlightForegroundColor = "119",
     RxvtProprietary = "777",
+    FinalTermSemanticPrompt = "133",
     ITermProprietary = "1337",
     /// Here the "Sun" suffix comes from the table in
     /// <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Miscellaneous>
@@ -482,6 +486,7 @@ impl Display for OperatingSystemCommand {
             SetSelection(s, val) => write!(f, "52;{};{}", s, base64::encode(val))?,
             SystemNotification(s) => write!(f, "9;{}", s)?,
             ITermProprietary(i) => i.fmt(f)?,
+            FinalTermSemanticPrompt(i) => i.fmt(f)?,
             ResetColors(colors) => {
                 write!(f, "104")?;
                 for c in colors {
@@ -507,6 +512,267 @@ impl Display for OperatingSystemCommand {
         };
         // Use the longer form ST as neovim doesn't like the BEL version
         write!(f, "\x1b\\")?;
+        Ok(())
+    }
+}
+
+/// https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FinalTermClick {
+    /// Allow motion only within the single input line using left/right arrow keys
+    Line,
+    /// Allow moving between multiple lines of input using left/right arrow keys
+    MultipleLine,
+    /// Allow left/right and conservative up/down arrow motion
+    ConservativeVertical,
+    /// Allow left/right and up/down motion, and the line editor ensures that
+    /// there are no spurious trailing spaces at ends of lines and that vertical
+    /// motion across shorter lines causes some horizontal cursor motion.
+    SmartVertical,
+}
+
+impl std::convert::TryFrom<&str> for FinalTermClick {
+    type Error = anyhow::Error;
+    fn try_from(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "line" => Ok(Self::Line),
+            "m" => Ok(Self::MultipleLine),
+            "v" => Ok(Self::ConservativeVertical),
+            "w" => Ok(Self::SmartVertical),
+            _ => Err(anyhow!("invalid FinalTermClick {}", s)),
+        }
+    }
+}
+
+impl Display for FinalTermClick {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        match self {
+            Self::Line => write!(f, "line"),
+            Self::MultipleLine => write!(f, "m"),
+            Self::ConservativeVertical => write!(f, "v"),
+            Self::SmartVertical => write!(f, "w"),
+        }
+    }
+}
+
+/// https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FinalTermPromptKind {
+    /// A normal left side primary prompt
+    Initial,
+    /// A right-aligned prompt
+    RightSide,
+    /// A continuation prompt for an input that can be edited
+    Continuation,
+    /// A continuation prompt where the input cannot be edited
+    Secondary,
+}
+
+impl Default for FinalTermPromptKind {
+    fn default() -> Self {
+        Self::Initial
+    }
+}
+
+impl std::convert::TryFrom<&str> for FinalTermPromptKind {
+    type Error = anyhow::Error;
+    fn try_from(s: &str) -> anyhow::Result<Self> {
+        match s {
+            "i" => Ok(Self::Initial),
+            "r" => Ok(Self::RightSide),
+            "c" => Ok(Self::Continuation),
+            "s" => Ok(Self::Secondary),
+            _ => Err(anyhow!("invalid FinalTermPromptKind {}", s)),
+        }
+    }
+}
+
+impl Display for FinalTermPromptKind {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        match self {
+            Self::Initial => write!(f, "i"),
+            Self::RightSide => write!(f, "r"),
+            Self::Continuation => write!(f, "c"),
+            Self::Secondary => write!(f, "s"),
+        }
+    }
+}
+
+/// https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FinalTermSemanticPrompt {
+    /// Do a "fresh line"; if the cursor is at the left margin then
+    /// do nothing, otherwise perform the equivalent of "\r\n"
+    FreshLine,
+
+    /// Do a "fresh line" as above and then place the terminal into
+    /// prompt mode; the output between now and the next marker is
+    /// considered part of the prompt.
+    FreshLineAndStartPrompt {
+        aid: Option<String>,
+        cl: Option<FinalTermClick>,
+    },
+
+    /// Denote the end of a command output and then perform FreshLine
+    MarkEndOfCommandWithFreshLine {
+        aid: Option<String>,
+        cl: Option<FinalTermClick>,
+    },
+
+    /// Start a prompt
+    StartPrompt(FinalTermPromptKind),
+
+    /// Mark the end of a prompt and the start of the user input.
+    /// The terminal considers all subsequent output to be "user input"
+    /// until the next semantic marker.
+    MarkEndOfPromptAndStartOfInputUntilNextMarker,
+
+    /// Mark the end of a prompt and the start of the user input.
+    /// The terminal considers all subsequent output to be "user input"
+    /// until the end of the line.
+    MarkEndOfPromptAndStartOfInputUntilEndOfLine,
+
+    MarkEndOfInputAndStartOfOutput {
+        aid: Option<String>,
+    },
+
+    /// Indicates the result of the command
+    CommandStatus {
+        status: i32,
+        aid: Option<String>,
+    },
+}
+
+impl FinalTermSemanticPrompt {
+    fn parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
+        ensure!(osc.len() > 1, "not enough args");
+        let param = String::from_utf8_lossy(osc[1]);
+
+        macro_rules! single {
+            ($variant:ident, $text:expr) => {
+                if osc.len() == 2 && param == $text {
+                    return Ok(FinalTermSemanticPrompt::$variant);
+                }
+            };
+        };
+
+        single!(FreshLine, "L");
+        single!(MarkEndOfPromptAndStartOfInputUntilNextMarker, "B");
+        single!(MarkEndOfPromptAndStartOfInputUntilEndOfLine, "I");
+
+        let mut params = HashMap::new();
+        use std::convert::TryInto;
+
+        for s in osc.iter().skip(if param == "D" { 3 } else { 2 }) {
+            if let Some(equal) = s.iter().position(|c| *c == b'=') {
+                let key = &s[..equal];
+                let value = &s[equal + 1..];
+                params.insert(str::from_utf8(key)?, str::from_utf8(value)?);
+            } else if !s.is_empty() {
+                bail!("malformed FinalTermSemanticPrompt");
+            }
+        }
+
+        if param == "A" {
+            return Ok(Self::FreshLineAndStartPrompt {
+                aid: params.get("aid").map(|&s| s.to_owned()),
+                cl: match params.get("cl") {
+                    Some(&cl) => Some(cl.try_into()?),
+                    None => None,
+                },
+            });
+        }
+
+        if param == "C" {
+            return Ok(Self::MarkEndOfInputAndStartOfOutput {
+                aid: params.get("aid").map(|&s| s.to_owned()),
+            });
+        }
+
+        if param == "D" {
+            let status = match osc.get(2).map(|&p| p) {
+                Some(s) => match str::from_utf8(s) {
+                    Ok(s) => s.parse().unwrap_or(0),
+                    _ => 0,
+                },
+                _ => 0,
+            };
+
+            return Ok(Self::CommandStatus {
+                status,
+                aid: params.get("aid").map(|&s| s.to_owned()),
+            });
+        }
+
+        if param == "N" {
+            return Ok(Self::MarkEndOfCommandWithFreshLine {
+                aid: params.get("aid").map(|&s| s.to_owned()),
+                cl: match params.get("cl") {
+                    Some(&cl) => Some(cl.try_into()?),
+                    None => None,
+                },
+            });
+        }
+
+        if param == "P" {
+            return Ok(Self::StartPrompt(match params.get("k") {
+                Some(&cl) => cl.try_into()?,
+                None => FinalTermPromptKind::default(),
+            }));
+        }
+
+        anyhow::bail!(
+            "invalid FinalTermSemanticPrompt p1:{:?}, params:{:?}",
+            param,
+            params
+        );
+    }
+}
+
+impl Display for FinalTermSemanticPrompt {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        write!(f, "133;")?;
+        match self {
+            Self::FreshLine => write!(f, "L")?,
+            Self::FreshLineAndStartPrompt { aid, cl } => {
+                write!(f, "A")?;
+                if let Some(aid) = aid {
+                    write!(f, ";aid={}", aid)?;
+                }
+                if let Some(cl) = cl {
+                    write!(f, ";cl={}", cl)?;
+                }
+            }
+            Self::MarkEndOfCommandWithFreshLine { aid, cl } => {
+                write!(f, "N")?;
+                if let Some(aid) = aid {
+                    write!(f, ";aid={}", aid)?;
+                }
+                if let Some(cl) = cl {
+                    write!(f, ";cl={}", cl)?;
+                }
+            }
+            Self::StartPrompt(kind) => {
+                write!(f, "P;k={}", kind)?;
+            }
+            Self::MarkEndOfPromptAndStartOfInputUntilNextMarker => write!(f, "B")?,
+            Self::MarkEndOfPromptAndStartOfInputUntilEndOfLine => write!(f, "I")?,
+            Self::MarkEndOfInputAndStartOfOutput { aid } => {
+                write!(f, "C")?;
+                if let Some(aid) = aid {
+                    write!(f, ";aid={}", aid)?;
+                }
+            }
+            Self::CommandStatus {
+                status,
+                aid: Some(aid),
+            } => {
+                write!(f, "D;{};err={};aid={}", status, status, aid)?;
+            }
+            Self::CommandStatus { status, aid: None } => {
+                write!(f, "D;{}", status)?;
+            }
+        }
         Ok(())
     }
 }
@@ -996,6 +1262,207 @@ mod test {
         assert_eq!(
             Hyperlink::parse(&[b"8", b"", b"x"]).unwrap(),
             Some(Hyperlink::new("x"))
+        );
+    }
+
+    #[test]
+    fn finalterm() {
+        assert_eq!(
+            parse(&["133", "L"], "\x1b]133;L\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(FinalTermSemanticPrompt::FreshLine)
+        );
+        assert_eq!(
+            parse(&["133", "C"], "\x1b]133;C\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfInputAndStartOfOutput { aid: None }
+            )
+        );
+
+        assert_eq!(
+            parse(&["133", "C", "aid=123"], "\x1b]133;C;aid=123\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfInputAndStartOfOutput {
+                    aid: Some("123".to_string())
+                }
+            )
+        );
+
+        assert_eq!(
+            parse(&["133", "D", "1"], "\x1b]133;D;1\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::CommandStatus {
+                    status: 1,
+                    aid: None
+                }
+            )
+        );
+
+        assert_eq!(
+            parse(&["133", "D", "0"], "\x1b]133;D;0\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::CommandStatus {
+                    status: 0,
+                    aid: None
+                }
+            )
+        );
+
+        assert_eq!(
+            parse(
+                &["133", "D", "0", "aid=23"],
+                "\x1b]133;D;0;err=0;aid=23\x1b\\"
+            ),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::CommandStatus {
+                    status: 0,
+                    aid: Some("23".to_owned())
+                }
+            )
+        );
+
+        assert_eq!(
+            parse(
+                &["133", "D", "1", "aid=23"],
+                "\x1b]133;D;1;err=1;aid=23\x1b\\"
+            ),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::CommandStatus {
+                    status: 1,
+                    aid: Some("23".to_owned())
+                }
+            )
+        );
+
+        assert_eq!(
+            parse(&["133", "P"], "\x1b]133;P;k=i\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(FinalTermSemanticPrompt::StartPrompt(
+                FinalTermPromptKind::Initial
+            ))
+        );
+
+        assert_eq!(
+            parse(&["133", "P", "k=i"], "\x1b]133;P;k=i\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(FinalTermSemanticPrompt::StartPrompt(
+                FinalTermPromptKind::Initial
+            ))
+        );
+
+        assert_eq!(
+            parse(&["133", "P", "k=r"], "\x1b]133;P;k=r\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(FinalTermSemanticPrompt::StartPrompt(
+                FinalTermPromptKind::RightSide
+            ))
+        );
+
+        assert_eq!(
+            parse(&["133", "P", "k=c"], "\x1b]133;P;k=c\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(FinalTermSemanticPrompt::StartPrompt(
+                FinalTermPromptKind::Continuation
+            ))
+        );
+        assert_eq!(
+            parse(&["133", "P", "k=s"], "\x1b]133;P;k=s\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(FinalTermSemanticPrompt::StartPrompt(
+                FinalTermPromptKind::Secondary
+            ))
+        );
+
+        assert_eq!(
+            parse(&["133", "B"], "\x1b]133;B\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfPromptAndStartOfInputUntilNextMarker
+            ),
+        );
+
+        assert_eq!(
+            parse(&["133", "I"], "\x1b]133;I\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfPromptAndStartOfInputUntilEndOfLine
+            ),
+        );
+
+        assert_eq!(
+            parse(&["133", "N"], "\x1b]133;N\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfCommandWithFreshLine {
+                    aid: None,
+                    cl: None,
+                }
+            ),
+        );
+
+        assert_eq!(
+            parse(&["133", "N", "aid=12"], "\x1b]133;N;aid=12\x1b\\"),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfCommandWithFreshLine {
+                    aid: Some("12".to_owned()),
+                    cl: None,
+                }
+            ),
+        );
+
+        assert_eq!(
+            parse(
+                &["133", "N", "aid=12", "cl=line"],
+                "\x1b]133;N;aid=12;cl=line\x1b\\"
+            ),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfCommandWithFreshLine {
+                    aid: Some("12".to_owned()),
+                    cl: Some(FinalTermClick::Line),
+                }
+            ),
+        );
+
+        assert_eq!(
+            parse(
+                &["133", "N", "aid=12", "cl=m"],
+                "\x1b]133;N;aid=12;cl=m\x1b\\"
+            ),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfCommandWithFreshLine {
+                    aid: Some("12".to_owned()),
+                    cl: Some(FinalTermClick::MultipleLine),
+                }
+            ),
+        );
+
+        assert_eq!(
+            parse(
+                &["133", "N", "aid=12", "cl=v"],
+                "\x1b]133;N;aid=12;cl=v\x1b\\"
+            ),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfCommandWithFreshLine {
+                    aid: Some("12".to_owned()),
+                    cl: Some(FinalTermClick::ConservativeVertical),
+                }
+            ),
+        );
+        assert_eq!(
+            parse(
+                &["133", "N", "aid=12", "cl=w"],
+                "\x1b]133;N;aid=12;cl=w\x1b\\"
+            ),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfCommandWithFreshLine {
+                    aid: Some("12".to_owned()),
+                    cl: Some(FinalTermClick::SmartVertical),
+                }
+            ),
+        );
+
+        assert_eq!(
+            parse(
+                &["133", "A", "aid=12", "cl=w"],
+                "\x1b]133;A;aid=12;cl=w\x1b\\"
+            ),
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::FreshLineAndStartPrompt {
+                    aid: Some("12".to_owned()),
+                    cl: Some(FinalTermClick::SmartVertical),
+                }
+            ),
         );
     }
 

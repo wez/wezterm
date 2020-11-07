@@ -2906,6 +2906,11 @@ impl<'a> Performer<'a> {
                 ITermProprietary::File(image) => self.set_image(*image),
                 _ => error!("unhandled iterm2: {:?}", iterm),
             },
+
+            OperatingSystemCommand::FinalTermSemanticPrompt(ft) => {
+                error!("unhandled: {:?}", ft);
+            }
+
             OperatingSystemCommand::SystemNotification(message) => {
                 error!("Application sends SystemNotification: {}", message);
             }
