@@ -15,7 +15,9 @@ use termwiz::escape::csi::{
     Cursor, CursorStyle, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay,
     EraseInLine, Mode, Sgr, TabulationClear, TerminalMode, TerminalModeCode, Window,
 };
-use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermProprietary};
+use termwiz::escape::osc::{
+    ChangeColorPair, ColorOrQuery, FinalTermSemanticPrompt, ITermFileData, ITermProprietary,
+};
 use termwiz::escape::{
     Action, ControlCode, DeviceControlMode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel,
     SixelData, CSI,
@@ -1123,6 +1125,16 @@ impl TerminalState {
             &left_and_right_margins,
             num_rows,
         )
+    }
+
+    /// Defined by FinalTermSemanticPrompt; a fresh-line is a NOP if the
+    /// cursor is already at the left margin, otherwise it is the same as
+    /// a new line.
+    fn fresh_line(&mut self) {
+        if self.cursor.x == self.left_and_right_margins.start {
+            return;
+        }
+        self.new_line(true);
     }
 
     fn new_line(&mut self, move_to_first_column: bool) {
@@ -2460,8 +2472,10 @@ impl TerminalState {
         match sgr {
             Sgr::Reset => {
                 let link = self.pen.hyperlink().map(Arc::clone);
+                let semantic_type = self.pen.semantic_type();
                 self.pen = CellAttributes::default();
                 self.pen.set_hyperlink(link);
+                self.pen.set_semantic_type(semantic_type);
             }
             Sgr::Intensity(intensity) => {
                 self.pen.set_intensity(intensity);
@@ -2906,6 +2920,37 @@ impl<'a> Performer<'a> {
                 ITermProprietary::File(image) => self.set_image(*image),
                 _ => error!("unhandled iterm2: {:?}", iterm),
             },
+
+            OperatingSystemCommand::FinalTermSemanticPrompt(FinalTermSemanticPrompt::FreshLine) => {
+                self.fresh_line();
+            }
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::FreshLineAndStartPrompt { .. },
+            ) => {
+                self.fresh_line();
+                self.pen.set_semantic_type(SemanticType::Prompt);
+            }
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::StartPrompt(_),
+            ) => {
+                self.pen.set_semantic_type(SemanticType::Prompt);
+            }
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfCommandWithFreshLine { .. },
+            ) => {
+                self.pen.set_semantic_type(SemanticType::Prompt);
+                self.fresh_line();
+            }
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfPromptAndStartOfInputUntilNextMarker { .. },
+            ) => {
+                self.pen.set_semantic_type(SemanticType::Input);
+            }
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfInputAndStartOfOutput { .. },
+            ) => {
+                self.pen.set_semantic_type(SemanticType::Output);
+            }
 
             OperatingSystemCommand::FinalTermSemanticPrompt(ft) => {
                 error!("unhandled: {:?}", ft);

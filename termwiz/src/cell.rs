@@ -15,7 +15,7 @@ use unicode_width::UnicodeWidthStr;
 /// The setter methods return a mutable self reference so that they can
 /// be chained together.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Default, Clone, Eq, PartialEq)]
 pub struct CellAttributes {
     attributes: u16,
     /// The foreground color
@@ -26,6 +26,27 @@ pub struct CellAttributes {
     /// allocated struct in order to keep CellAttributes
     /// smaller in the common case.
     fat: Option<Box<FatAttributes>>,
+}
+
+impl std::fmt::Debug for CellAttributes {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        fmt.debug_struct("CellAttributes")
+            .field("attributes", &self.attributes)
+            .field("intensity", &self.intensity())
+            .field("underline", &self.underline())
+            .field("blink", &self.blink())
+            .field("italic", &self.italic())
+            .field("reverse", &self.reverse())
+            .field("strikethrough", &self.strikethrough())
+            .field("invisible", &self.invisible())
+            .field("wrapped", &self.wrapped())
+            .field("overline", &self.overline())
+            .field("semantic_type", &self.semantic_type())
+            .field("foreground", &self.foreground)
+            .field("background", &self.background)
+            .field("fat", &self.fat)
+            .finish()
+    }
 }
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
@@ -89,6 +110,26 @@ macro_rules! bitfield {
             self
         }
     };
+}
+
+/// Describes the semantic "type" of the cell.
+/// This categorizes cells into Output (from the actions the user is
+/// taking; this is the default if left unspecified),
+/// Input (that the user typed) and Prompt (effectively, "chrome" provided
+/// by the shell or application that the user is interacting with.
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u16)]
+pub enum SemanticType {
+    Output = 0,
+    Input = 1,
+    Prompt = 2,
+}
+
+impl Default for SemanticType {
+    fn default() -> Self {
+        Self::Output
+    }
 }
 
 /// The `Intensity` of a cell describes its boldness.  Most terminals
@@ -167,6 +208,7 @@ impl CellAttributes {
     bitfield!(invisible, set_invisible, 9);
     bitfield!(wrapped, set_wrapped, 10);
     bitfield!(overline, set_overline, 11);
+    bitfield!(semantic_type, set_semantic_type, SemanticType, 0b11, 12);
 
     /// Returns true if the attribute bits in both objects are equal.
     /// This can be used to cheaply test whether the styles of the two
