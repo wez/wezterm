@@ -110,12 +110,11 @@ void main() {
       // the window_bg_layer.
       discard;
     } else {
+      color = texture(atlas_nearest_sampler, o_tex);
       if (o_has_color == 0.0) {
-        // if it's not a color emoji, tint with the fg_color
-        color = texture(atlas_nearest_sampler, o_tex);
-        color.rgb = o_fg_color.rgb;
-      } else {
-        color = texture(atlas_linear_sampler, o_tex);
+        // if it's not a color emoji it will be grayscale
+        // and we need to tint with the fg_color
+        color.rgb *= o_fg_color.rgb;
       }
     }
   }

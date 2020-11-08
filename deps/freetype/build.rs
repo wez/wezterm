@@ -155,6 +155,14 @@ fn freetype() {
             .replace(
                 "/* #define FT_CONFIG_OPTION_USE_PNG */",
                 "#define FT_CONFIG_OPTION_USE_PNG",
+            )
+            .replace(
+                "#define TT_CONFIG_OPTION_SUBPIXEL_HINTING  2",
+                "#define TT_CONFIG_OPTION_SUBPIXEL_HINTING  3",
+            )
+            .replace(
+                "/* #define FT_CONFIG_OPTION_SUBPIXEL_RENDERING */",
+                "#define FT_CONFIG_OPTION_SUBPIXEL_RENDERING",
             ),
     )
     .unwrap();

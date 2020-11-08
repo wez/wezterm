@@ -23,11 +23,11 @@ impl FontRasterizer for FreeTypeRasterizer {
     ) -> anyhow::Result<RasterizedGlyph> {
         self.face.borrow_mut().set_font_size(size, dpi)?;
 
-        let load_flags = ftwrap::compute_load_flags_from_config();
+        let (load_flags, render_mode) = ftwrap::compute_load_flags_from_config();
 
         let mut face = self.face.borrow_mut();
         let descender = unsafe { (*(*face.face).size).metrics.descender as f64 / 64.0 };
-        let ft_glyph = face.load_and_render_glyph(glyph_pos, load_flags)?;
+        let ft_glyph = face.load_and_render_glyph(glyph_pos, load_flags, render_mode)?;
 
         let mode: ftwrap::FT_Pixel_Mode =
             unsafe { mem::transmute(u32::from(ft_glyph.bitmap.pixel_mode)) };
@@ -144,9 +144,12 @@ impl FreeTypeRasterizer {
             let src_offset = y * pitch as usize;
             let dest_offset = y * width * 4;
             for x in 0..width {
-                let blue = data[src_offset + (x * 3)];
+                // Note: it is unclear whether the LCD data format
+                // is BGR or RGB.  I'm using RGB here because the
+                // antialiasing in other apps seems to do this.
+                let red = data[src_offset + (x * 3)];
                 let green = data[src_offset + (x * 3) + 1];
-                let red = data[src_offset + (x * 3) + 2];
+                let blue = data[src_offset + (x * 3) + 2];
                 let alpha = red | green | blue;
                 rgba[dest_offset + (x * 4)] = red;
                 rgba[dest_offset + (x * 4) + 1] = green;

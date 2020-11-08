@@ -28,29 +28,28 @@ fn render_mode_to_load_target(render_mode: FT_Render_Mode) -> u32 {
     (render_mode as u32) & 15 << 16
 }
 
-pub fn compute_load_flags_from_config() -> i32 {
+pub fn compute_load_flags_from_config() -> (i32, FT_Render_Mode) {
     let config = configuration();
-    let flags = match (config.font_hinting, config.font_antialias) {
-        (FontHinting::VerticalSubpixel, _) | (_, FontAntiAliasing::Subpixel) => {
-            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_LCD)
-        }
-        (FontHinting::None, _) => {
+
+    let render = match config.font_antialias {
+        FontAntiAliasing::None => FT_Render_Mode::FT_RENDER_MODE_MONO,
+        FontAntiAliasing::Greyscale => FT_Render_Mode::FT_RENDER_MODE_NORMAL,
+        FontAntiAliasing::Subpixel => FT_Render_Mode::FT_RENDER_MODE_LCD,
+    };
+
+    let flags = match config.font_hinting {
+        FontHinting::None => {
             render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_NORMAL) | FT_LOAD_NO_HINTING
         }
-        (FontHinting::Vertical, FontAntiAliasing::None)
-        | (FontHinting::Full, FontAntiAliasing::None) => {
-            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_MONO)
+        FontHinting::Vertical => render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_LIGHT),
+        FontHinting::VerticalSubpixel | FontHinting::Full => {
+            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_LCD)
         }
-        (FontHinting::Vertical, _) => {
-            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_LIGHT)
-        }
-        (FontHinting::Full, _) => render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_NORMAL),
     };
 
     // If the bitmaps are in color, we want those!
     let flags = flags | FT_LOAD_COLOR;
 
-    #[allow(clippy::let_and_return)]
     let flags = if config.font_antialias == FontAntiAliasing::None {
         // When AA is disabled, force outline rendering to monochrome
         flags | FT_LOAD_MONOCHROME
@@ -58,7 +57,7 @@ pub fn compute_load_flags_from_config() -> i32 {
         flags
     } as i32;
 
-    flags
+    (flags, render)
 }
 
 pub struct Face {
@@ -149,14 +148,12 @@ impl Face {
         &mut self,
         glyph_index: FT_UInt,
         load_flags: FT_Int32,
+        render_mode: FT_Render_Mode,
     ) -> anyhow::Result<&FT_GlyphSlotRec_> {
         unsafe {
-            let res = FT_Load_Glyph(
-                self.face,
-                glyph_index,
-                (FT_LOAD_DEFAULT | FT_LOAD_RENDER) as i32 | load_flags,
-            );
-            ft_result(res, &*(*self.face).glyph)
+            let res = FT_Load_Glyph(self.face, glyph_index, load_flags);
+            let slot = ft_result(res, &mut *(*self.face).glyph)?;
+            ft_result(FT_Render_Glyph(slot, render_mode), slot)
         }
     }
 
@@ -203,6 +200,16 @@ impl Library {
         let res = unsafe { FT_Init_FreeType(&mut lib as *mut _) };
         let lib = ft_result(res, lib).context("FT_Init_FreeType")?;
         let mut lib = Library { lib };
+
+        let interpreter_version: FT_UInt = 38;
+        unsafe {
+            FT_Property_Set(
+                lib.lib,
+                b"truetype\0" as *const u8 as *const FT_String,
+                b"interpreter-version\0" as *const u8 as *const FT_String,
+                &interpreter_version as *const FT_UInt as *const _,
+            );
+        }
 
         // Due to patent concerns, the freetype library disables the LCD
         // filtering feature by default, and since we always build our
