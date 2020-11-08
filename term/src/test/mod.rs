@@ -357,6 +357,19 @@ fn test_semantic() {
         ],
     );
 
+    k9::assert_matches_inline_snapshot!(
+        format!("{:#?}", term.get_semantic_zones().unwrap()),
+        r##"[
+    SemanticZone {
+        start_y: 0,
+        start_x: 0,
+        end_y: 4,
+        end_x: 9,
+        semantic_type: Output,
+    },
+]"##
+    );
+
     term.print(format!(
         "{}",
         OperatingSystemCommand::FinalTermSemanticPrompt(
@@ -397,6 +410,40 @@ fn test_semantic() {
             .attrs_mut()
             .set_semantic_type(SemanticType::Input);
     }
+
+    k9::assert_matches_inline_snapshot!(
+        format!("{:#?}", term.get_semantic_zones().unwrap()),
+        r##"[
+    SemanticZone {
+        start_y: 0,
+        start_x: 0,
+        end_y: 2,
+        end_x: 4,
+        semantic_type: Output,
+    },
+    SemanticZone {
+        start_y: 3,
+        start_x: 0,
+        end_y: 3,
+        end_x: 1,
+        semantic_type: Prompt,
+    },
+    SemanticZone {
+        start_y: 3,
+        start_x: 2,
+        end_y: 3,
+        end_x: 6,
+        semantic_type: Input,
+    },
+    SemanticZone {
+        start_y: 4,
+        start_x: 0,
+        end_y: 4,
+        end_x: 8,
+        semantic_type: Output,
+    },
+]"##
+    );
 
     assert_lines_equal(
         file!(),

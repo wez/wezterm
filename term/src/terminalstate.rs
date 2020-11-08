@@ -2510,6 +2510,75 @@ impl TerminalState {
             Sgr::Font(_) => {}
         }
     }
+
+    /// Computes the set of `SemanticZone`s for the current terminal screen.
+    /// Semantic zones are contiguous runs of cells that have the same
+    /// `SemanticType` (Prompt, Input, Output).
+    /// Due to the way that the terminal clears the screen, the raw, literal
+    /// set of zones is overly fragmented by blanks.  This method will ignore
+    /// trailing Output regions when computing the SemanticZone bounds.
+    ///
+    /// By default, all screen data is of type Output.  The shell needs to
+    /// employ OSC 133 escapes to markup its output.
+    pub fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
+        let screen = self.screen();
+
+        let mut last_cell: Option<&Cell> = None;
+        let mut current_zone = None;
+        let mut zones = vec![];
+        let blank_cell = Cell::new(' ', Default::default());
+
+        for (idx, line) in screen.lines.iter().enumerate() {
+            let stable_row = screen.phys_to_stable_row_index(idx);
+
+            // Rows may have trailing space+Output cells interleaved
+            // with other zones as a result of clear-to-eol and
+            // clear-to-end-of-screen sequences.  We don't want
+            // those to affect the zones that we compute here
+            let last_non_blank = line
+                .cells()
+                .iter()
+                .rposition(|cell| *cell != blank_cell)
+                .unwrap_or(line.cells().len());
+
+            for (grapheme_idx, cell) in line.visible_cells() {
+                if grapheme_idx > last_non_blank {
+                    break;
+                }
+                let semantic_type = cell.attrs().semantic_type();
+                let new_zone = match last_cell {
+                    None => true,
+                    Some(c) => c.attrs().semantic_type() != semantic_type,
+                };
+
+                if new_zone {
+                    if let Some(zone) = current_zone.take() {
+                        zones.push(zone);
+                    }
+
+                    current_zone.replace(SemanticZone {
+                        start_x: grapheme_idx as _,
+                        start_y: stable_row,
+                        end_x: grapheme_idx as _,
+                        end_y: stable_row,
+                        semantic_type: semantic_type,
+                    });
+                }
+
+                if let Some(zone) = current_zone.as_mut() {
+                    zone.end_x = grapheme_idx as _;
+                    zone.end_y = stable_row;
+                }
+
+                last_cell.replace(cell);
+            }
+        }
+        if let Some(zone) = current_zone.take() {
+            zones.push(zone);
+        }
+
+        Ok(zones)
+    }
 }
 
 /// A helper struct for implementing `vtparse::VTActor` while compartmentalizing
@@ -2938,8 +3007,8 @@ impl<'a> Performer<'a> {
             OperatingSystemCommand::FinalTermSemanticPrompt(
                 FinalTermSemanticPrompt::MarkEndOfCommandWithFreshLine { .. },
             ) => {
-                self.pen.set_semantic_type(SemanticType::Prompt);
                 self.fresh_line();
+                self.pen.set_semantic_type(SemanticType::Prompt);
             }
             OperatingSystemCommand::FinalTermSemanticPrompt(
                 FinalTermSemanticPrompt::MarkEndOfPromptAndStartOfInputUntilNextMarker { .. },

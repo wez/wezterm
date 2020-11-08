@@ -8,7 +8,9 @@ use std::cell::{RefCell, RefMut};
 use std::sync::Arc;
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex, Terminal};
+use wezterm_term::{
+    Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex, Terminal,
+};
 
 pub struct LocalPane {
     pane_id: PaneId,
@@ -111,6 +113,11 @@ impl Pane for LocalPane {
             .get_current_dir()
             .cloned()
             .or_else(|| self.divine_current_working_dir())
+    }
+
+    fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
+        let term = self.terminal.borrow();
+        term.get_semantic_zones()
     }
 
     async fn search(&self, mut pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {

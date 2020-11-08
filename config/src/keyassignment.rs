@@ -133,6 +133,7 @@ pub enum KeyAssignment {
     MoveTabRelative(isize),
     MoveTab(usize),
     ScrollByPage(isize),
+    ScrollToPrompt(isize),
     ShowTabNavigator,
     HideApplication,
     QuitApplication,

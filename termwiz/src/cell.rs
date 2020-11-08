@@ -118,7 +118,7 @@ macro_rules! bitfield {
 /// Input (that the user typed) and Prompt (effectively, "chrome" provided
 /// by the shell or application that the user is interacting with.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
 pub enum SemanticType {
     Output = 0,
@@ -252,12 +252,18 @@ impl CellAttributes {
     /// Clone the attributes, but exclude fancy extras such
     /// as hyperlinks or future sprite things
     pub fn clone_sgr_only(&self) -> Self {
-        Self {
+        let mut res = Self {
             attributes: self.attributes,
             foreground: self.foreground,
             background: self.background,
             fat: None,
-        }
+        };
+        // Reset the semantic type; clone_sgr_only is used primarily
+        // to create a "blank" cell when clearing and we want that to
+        // be deterministically tagged as Output so that we have an
+        // easier time in get_semantic_zones.
+        res.set_semantic_type(SemanticType::default());
+        res
     }
 
     pub fn hyperlink(&self) -> Option<&Arc<Hyperlink>> {

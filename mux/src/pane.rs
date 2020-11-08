@@ -9,7 +9,7 @@ use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex};
+use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex};
 
 static PANE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type PaneId = usize;
@@ -21,9 +21,9 @@ pub fn alloc_pane_id() -> PaneId {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SearchResult {
     pub start_y: StableRowIndex,
-    pub end_y: StableRowIndex,
     /// The cell index into the line of the start of the match
     pub start_x: usize,
+    pub end_y: StableRowIndex,
     /// The cell index into the line of the end of the match
     pub end_x: usize,
 }
@@ -95,6 +95,11 @@ pub trait Pane: Downcast {
     /// If the result is empty then there are no matches.
     /// Otherwise, the result shall contain all possible matches.
     async fn search(&self, _pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
+        Ok(vec![])
+    }
+
+    /// Retrieve the set of semantic zones
+    fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
         Ok(vec![])
     }
 

@@ -31,6 +31,7 @@ url = "2"
 [dev-dependencies]
 pretty_assertions = "0.6"
 pretty_env_logger = "0.4"
+k9 = "0.3"
 
 [dependencies.termwiz]
 version = "0.11"

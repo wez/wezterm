@@ -114,6 +114,16 @@ pub struct CursorPosition {
     pub visibility: termwiz::surface::CursorVisibility,
 }
 
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+pub struct SemanticZone {
+    pub start_y: StableRowIndex,
+    pub start_x: usize,
+    pub end_y: StableRowIndex,
+    pub end_x: usize,
+    pub semantic_type: SemanticType,
+}
+
 pub mod color;
 
 #[cfg(test)]

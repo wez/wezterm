@@ -1531,6 +1531,33 @@ impl TermWindow {
         promise::spawn::spawn(future).detach();
     }
 
+    fn scroll_to_prompt(&mut self, amount: isize) -> anyhow::Result<()> {
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
+            None => return Ok(()),
+        };
+        let render = pane.renderer();
+        let dims = render.get_dimensions();
+        let position = self
+            .get_viewport(pane.pane_id())
+            .unwrap_or(dims.physical_top);
+        drop(render);
+        let mut zones = pane.get_semantic_zones()?;
+        zones.retain(|zone| zone.semantic_type == wezterm_term::SemanticType::Prompt);
+        let idx = match zones.binary_search_by(|zone| zone.start_y.cmp(&position)) {
+            Ok(idx) | Err(idx) => idx,
+        };
+        let idx = ((idx as isize) + amount).max(0) as usize;
+        if let Some(zone) = zones.get(idx) {
+            self.set_viewport(pane.pane_id(), Some(zone.start_y), dims);
+        }
+
+        if let Some(win) = self.window.as_ref() {
+            win.invalidate();
+        }
+        Ok(())
+    }
+
     fn scroll_by_page(&mut self, amount: isize) -> anyhow::Result<()> {
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
@@ -1869,6 +1896,7 @@ impl TermWindow {
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
             ScrollByPage(n) => self.scroll_by_page(*n)?,
+            ScrollToPrompt(n) => self.scroll_to_prompt(*n)?,
             ShowTabNavigator => self.show_tab_navigator(),
             ShowLauncher => self.show_launcher(),
             HideApplication => {
