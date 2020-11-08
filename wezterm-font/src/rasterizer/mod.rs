@@ -1,5 +1,6 @@
 use crate::locator::FontDataHandle;
 use crate::units::*;
+use config::FontRasterizerSelection;
 
 pub mod freetype;
 
@@ -24,8 +25,6 @@ pub trait FontRasterizer {
         dpi: u32,
     ) -> anyhow::Result<RasterizedGlyph>;
 }
-
-pub use config::FontRasterizerSelection;
 
 pub fn new_rasterizer(
     rasterizer: FontRasterizerSelection,

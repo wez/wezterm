@@ -1,9 +1,14 @@
+use crate::locator::{new_locator, FontDataHandle, FontLocator, FontLocatorSelection};
+use crate::rasterizer::{new_rasterizer, FontRasterizer};
+use crate::shaper::{new_shaper, FontShaper, FontShaperSelection};
 use anyhow::{anyhow, Error};
-mod hbwrap;
-
+use config::{configuration, ConfigHandle, FontRasterizerSelection, TextStyle};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
+use wezterm_term::CellAttributes;
+
+mod hbwrap;
 
 pub mod ftwrap;
 pub mod locator;
@@ -15,14 +20,8 @@ pub mod units;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod fcwrap;
 
-use crate::locator::{new_locator, FontDataHandle, FontLocator, FontLocatorSelection};
 pub use crate::rasterizer::RasterizedGlyph;
-use crate::rasterizer::{new_rasterizer, FontRasterizer, FontRasterizerSelection};
-use crate::shaper::{new_shaper, FontShaper, FontShaperSelection};
 pub use crate::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
-
-use config::{configuration, ConfigHandle, TextStyle};
-use wezterm_term::CellAttributes;
 
 pub struct LoadedFont {
     rasterizers: Vec<RefCell<Option<Box<dyn FontRasterizer>>>>,
