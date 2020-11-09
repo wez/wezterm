@@ -8,6 +8,7 @@ pub use harfbuzz::*;
 
 use anyhow::{ensure, Error};
 use std::mem;
+use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
 
@@ -42,7 +43,7 @@ hb_coretext_font_get_ct_font (hb_font_t *font);
 
 pub fn language_from_string(s: &str) -> Result<hb_language_t, Error> {
     unsafe {
-        let lang = hb_language_from_string(s.as_ptr() as *const i8, s.len() as i32);
+        let lang = hb_language_from_string(s.as_ptr() as *const c_char, s.len() as i32);
         ensure!(!lang.is_null(), "failed to convert {} to language");
         Ok(lang)
     }
@@ -53,7 +54,7 @@ pub fn feature_from_string(s: &str) -> Result<hb_feature_t, Error> {
         let mut feature = mem::zeroed();
         ensure!(
             hb_feature_from_string(
-                s.as_ptr() as *const i8,
+                s.as_ptr() as *const c_char,
                 s.len() as i32,
                 &mut feature as *mut _,
             ) != 0,
@@ -92,7 +93,7 @@ impl Blob {
     fn from_slice(data: &[u8]) -> Result<Self, Error> {
         let blob = unsafe {
             hb_blob_create(
-                data.as_ptr() as *const i8,
+                data.as_ptr() as *const c_char,
                 data.len() as u32,
                 hb_memory_mode_t::HB_MEMORY_MODE_READONLY,
                 ptr::null_mut(),
@@ -250,7 +251,7 @@ impl Buffer {
         unsafe {
             hb_buffer_add_utf8(
                 self.buf,
-                buf.as_ptr() as *const i8,
+                buf.as_ptr() as *const c_char,
                 buf.len() as i32,
                 0,
                 buf.len() as i32,
