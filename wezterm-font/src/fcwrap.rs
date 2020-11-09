@@ -6,7 +6,7 @@ pub use fontconfig::*;
 use std::ffi::{CStr, CString};
 use std::fmt;
 use std::mem;
-use std::os::raw::c_int;
+use std::os::raw::{c_char, c_int};
 use std::ptr;
 use std::sync::Mutex;
 
@@ -208,7 +208,7 @@ impl Pattern {
             let s = FcPatternFormat(self.pat, fmt.as_ptr() as *const u8);
             ensure!(!s.is_null(), "failed to format pattern");
 
-            let res = CStr::from_ptr(s as *const i8)
+            let res = CStr::from_ptr(s as *const c_char)
                 .to_string_lossy()
                 .into_owned();
             FcStrFree(s);
@@ -313,7 +313,7 @@ impl Pattern {
             if !res.succeeded() {
                 Err(res.as_err())
             } else {
-                Ok(CStr::from_ptr(ptr as *const i8)
+                Ok(CStr::from_ptr(ptr as *const c_char)
                     .to_string_lossy()
                     .into_owned())
             }
