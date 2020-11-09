@@ -247,10 +247,9 @@ pub trait BitmapImage {
 
     /// Clear the entire image to the specific color
     fn clear(&mut self, color: Color) {
-        let (width, height) = self.image_dimensions();
-
         #[cfg(target_arch = "x86_64")]
         {
+            let (width, height) = self.image_dimensions();
             if is_x86_feature_detected!("avx") && width >= 8 {
                 unsafe {
                     avx::fill_pixel(self.pixel_data_mut(), width * 4, width, height, color);
