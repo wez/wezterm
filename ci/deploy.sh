@@ -111,7 +111,7 @@ EOF
         cat > pkg/debian/DEBIAN/control <<EOF
 Package: wezterm
 Version: ${TAG_NAME#nightly-}
-Architecture: amd64
+Architecture: $(dpkg-architecture -q DEB_BUILD_ARCH_CPU)
 Maintainer: Wez Furlong <wez@wezfurlong.org>
 Section: utils
 Priority: optional
