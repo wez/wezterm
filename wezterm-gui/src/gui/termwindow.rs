@@ -1617,7 +1617,7 @@ impl TermWindow {
         spawn: &SpawnCommand,
         spawn_where: SpawnWhere,
         size: PtySize,
-        mux_window_id: MuxWindowId,
+        src_window_id: MuxWindowId,
         clipboard: ClipboardHelper,
     ) {
         let spawn = spawn.clone();
@@ -1627,17 +1627,17 @@ impl TermWindow {
             let activity = Activity::new();
             let mux_builder;
 
-            let mux_window_id = if spawn_where == SpawnWhere::NewWindow {
+            let target_window_id = if spawn_where == SpawnWhere::NewWindow {
                 mux_builder = mux.new_empty_window();
                 *mux_builder
             } else {
-                mux_window_id
+                src_window_id
             };
 
             let (domain, cwd) = match spawn.domain {
                 SpawnTabDomain::DefaultDomain => {
                     let cwd = mux
-                        .get_active_tab_for_window(mux_window_id)
+                        .get_active_tab_for_window(src_window_id)
                         .and_then(|tab| tab.get_active_pane())
                         .and_then(|pane| pane.get_current_working_dir());
                     (mux.default_domain().clone(), cwd)
@@ -1648,12 +1648,12 @@ impl TermWindow {
                         // It doesn't make sense to use it when spawning a new window,
                         // so we treat it as DefaultDomain instead.
                         let cwd = mux
-                            .get_active_tab_for_window(mux_window_id)
+                            .get_active_tab_for_window(src_window_id)
                             .and_then(|tab| tab.get_active_pane())
                             .and_then(|pane| pane.get_current_working_dir());
                         (mux.default_domain().clone(), cwd)
                     } else {
-                        let tab = match mux.get_active_tab_for_window(mux_window_id) {
+                        let tab = match mux.get_active_tab_for_window(src_window_id) {
                             Some(tab) => tab,
                             None => bail!("window has no tabs?"),
                         };
@@ -1721,7 +1721,7 @@ impl TermWindow {
             match spawn_where {
                 SpawnWhere::SplitPane(direction) => {
                     let mux = Mux::get().unwrap();
-                    if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
+                    if let Some(tab) = mux.get_active_tab_for_window(target_window_id) {
                         let pane = tab
                             .get_active_pane()
                             .ok_or_else(|| anyhow!("tab to have a pane"))?;
@@ -1735,7 +1735,9 @@ impl TermWindow {
                     }
                 }
                 _ => {
-                    let tab = domain.spawn(size, cmd_builder, cwd, mux_window_id).await?;
+                    let tab = domain
+                        .spawn(size, cmd_builder, cwd, target_window_id)
+                        .await?;
                     let tab_id = tab.tab_id();
                     let pane = tab
                         .get_active_pane()
@@ -1745,7 +1747,7 @@ impl TermWindow {
                         let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
                         pane.set_clipboard(&clipboard);
                         let mut window = mux
-                            .get_window_mut(mux_window_id)
+                            .get_window_mut(target_window_id)
                             .ok_or_else(|| anyhow!("no such window!?"))?;
                         if let Some(idx) = window.idx_by_id(tab_id) {
                             window.set_active(idx);
@@ -1838,7 +1840,7 @@ impl TermWindow {
                 self.spawn_tab(spawn_where);
             }
             SpawnWindow => {
-                self.spawn_new_window();
+                self.spawn_command(&SpawnCommand::default(), SpawnWhere::NewWindow);
             }
             SpawnCommandInNewTab(spawn) => {
                 self.spawn_command(spawn, SpawnWhere::NewTab);
@@ -2056,23 +2058,6 @@ impl TermWindow {
             }
         };
         Ok(())
-    }
-
-    pub fn spawn_new_window(&mut self) {
-        async fn new_window() -> anyhow::Result<()> {
-            let mux = Mux::get().unwrap();
-            let config = config::configuration();
-            let window_id = mux.new_empty_window();
-            let _tab = mux
-                .default_domain()
-                .spawn(config.initial_size(), None, None, *window_id)
-                .await?;
-            Ok::<(), anyhow::Error>(())
-        }
-        promise::spawn::spawn(async move {
-            new_window().await.ok();
-        })
-        .detach();
     }
 
     fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
