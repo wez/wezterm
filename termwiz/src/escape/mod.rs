@@ -235,11 +235,13 @@ impl Sixel {
             match d {
                 SixelData::Data(_) => {
                     max_y = max_y.max(rows * 6);
-                    x += 1
+                    x += 1;
+                    max_x = max_x.max(x);
                 }
                 SixelData::Repeat { repeat_count, .. } => {
                     max_y = max_y.max(rows * 6);
-                    x += repeat_count
+                    x += repeat_count;
+                    max_x = max_x.max(x);
                 }
                 SixelData::SelectColorMapEntry(_)
                 | SixelData::DefineColorMapRGB { .. }
