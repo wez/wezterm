@@ -246,6 +246,10 @@ async fn async_run_terminal_gui(
 }
 
 fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow::Result<()> {
+    if let Some(cls) = opts.class.as_ref() {
+        crate::gui::set_window_class(cls);
+    }
+
     opts.font_locator
         .unwrap_or(config.font_locator)
         .set_default();

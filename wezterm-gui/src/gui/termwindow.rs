@@ -59,6 +59,14 @@ use wezterm_term::{CellAttributes, Line, StableRowIndex, TerminalConfiguration};
 
 const ATLAS_SIZE: usize = 128;
 
+lazy_static::lazy_static! {
+    static ref WINDOW_CLASS: Mutex<String> = Mutex::new("org.wezfurlong.wezterm".to_owned());
+}
+
+pub fn set_window_class(cls: &str) {
+    *WINDOW_CLASS.lock().unwrap() = cls.to_owned();
+}
+
 #[derive(Copy, Debug, Clone, Eq, PartialEq)]
 pub enum SpawnWhere {
     NewWindow,
@@ -658,7 +666,7 @@ impl WindowCallbacks for TermWindow {
             smol::Timer::after(Duration::from_millis(300)).await;
             log::error!("now try making that new window");
             let window = Window::new_window(
-                "org.wezfurlong.wezterm",
+                &*WINDOW_CLASS.lock().unwrap(),
                 "wezterm",
                 dimensions.pixel_width,
                 dimensions.pixel_height,
@@ -890,7 +898,7 @@ impl TermWindow {
         let clipboard_contents = Arc::new(Mutex::new(None));
 
         let window = Window::new_window(
-            "org.wezfurlong.wezterm",
+            &*WINDOW_CLASS.lock().unwrap(),
             "wezterm",
             dimensions.pixel_width,
             dimensions.pixel_height,

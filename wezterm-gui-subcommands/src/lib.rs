@@ -45,6 +45,16 @@ pub struct StartCommand {
     #[structopt(long = "cwd", parse(from_os_str))]
     pub cwd: Option<OsString>,
 
+    /// Override the default windowing system class.
+    /// The default is "org.wezfurlong.wezterm".
+    /// Under X11 and Windows this changes the window class.
+    /// Under Wayland this changes the app_id.
+    /// This changes the class for all windows spawned by this
+    /// instance of wezterm, including error, update and ssh
+    /// authentication dialogs.
+    #[structopt(long = "class")]
+    pub class: Option<String>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
