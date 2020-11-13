@@ -51,6 +51,13 @@ enum SubCommand {
 
     #[structopt(name = "imgcat", about = "Output an image to the terminal")]
     ImageCat(ImgCatCommand),
+
+    #[structopt(
+        name = "set-working-directory",
+        about = "Advise the terminal of the current working directory by \
+                 emitting an OSC 7 escape sequence"
+    )]
+    SetCwd(SetCwdCommand),
 }
 
 #[derive(Debug, StructOpt, Clone)]
@@ -160,6 +167,41 @@ impl ImgCatCommand {
     }
 }
 
+#[derive(Debug, StructOpt, Clone)]
+struct SetCwdCommand {
+    /// The directory to specify.
+    /// If omitted, will use the current directory of the process itself.
+    #[structopt(parse(from_os_str))]
+    cwd: Option<OsString>,
+
+    /// The hostname to use in the constructed file:// URL.
+    /// If omitted, the system hostname will be used.
+    #[structopt(parse(from_os_str))]
+    host: Option<OsString>,
+}
+
+impl SetCwdCommand {
+    fn run(&self) -> anyhow::Result<()> {
+        let cwd: std::path::PathBuf = match self.cwd.as_ref() {
+            Some(d) => std::fs::canonicalize(d)?,
+            None => std::env::current_dir()?,
+        };
+
+        let mut url = url::Url::from_directory_path(&cwd)
+            .map_err(|_| anyhow::anyhow!("cwd {} is not an absolute path", cwd.display()))?;
+        let host = match self.host.as_ref() {
+            Some(h) => h.clone(),
+            None => hostname::get()?,
+        };
+        let host = host.to_str().unwrap_or("localhost");
+        url.set_host(Some(host))?;
+
+        let osc = OperatingSystemCommand::CurrentWorkingDirectory(url.into_string());
+        print!("{}", osc);
+        Ok(())
+    }
+}
+
 fn terminate_with_error_message(err: &str) -> ! {
     log::error!("{}; terminating", err);
     std::process::exit(1);
@@ -201,6 +243,7 @@ fn run() -> anyhow::Result<()> {
         | SubCommand::Serial(_)
         | SubCommand::Connect(_) => delegate_to_gui(),
         SubCommand::ImageCat(cmd) => cmd.run(),
+        SubCommand::SetCwd(cmd) => cmd.run(),
         SubCommand::Cli(cli) => run_cli(config, cli),
     }
 }
