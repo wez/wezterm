@@ -21,7 +21,7 @@ thiserror = "1.0"
 bitflags = "1.0"
 euclid = "0.20"
 guillotiere = "0.6"
-lazy_static = "1.3"
+lazy_static = "1.4"
 libloading = { version = "0.6", optional=true }
 line_drawing = "0.8"
 log = "0.4"
@@ -36,7 +36,6 @@ opengl = ["cgl", "glium", "gl_generator", "libloading"]
 wayland = ["smithay-client-toolkit", "memmap", "wayland-client", "wayland-egl"]
 
 [target."cfg(windows)".dependencies]
-lazy_static = "1.4"
 winapi = { version = "0.3", features = [
     "dwmapi",
     "handleapi",
