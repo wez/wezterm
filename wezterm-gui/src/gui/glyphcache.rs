@@ -185,8 +185,19 @@ impl<T: Texture2d> GlyphCache<T> {
         let (cell_width, cell_height) = (metrics.cell_width, metrics.cell_height);
 
         let scale = if PixelLength::new(glyph.height as f64) > cell_height * 1.5 {
-            // This is another way to detect overside glyph images
-            cell_height.get() / glyph.height as f64
+            // This is another way to detect oversize glyph images.
+            // Compute an aspect-preserving scale factor that makes the glyph
+            // fit in the appropriate number of cells.
+            // The GlyphInfo tells us how many horizontal cells the glyph occupies.
+            let y_scale = cell_height.get() / glyph.height as f64;
+            let x_scale = (cell_width.get() * info.num_cells as f64) / glyph.width as f64;
+
+            if PixelLength::new(y_scale * glyph.width as f64) > cell_width {
+                // The y scale would overflow the width, so use the x-scale
+                x_scale
+            } else {
+                y_scale
+            }
         } else {
             1.0f64
         };
