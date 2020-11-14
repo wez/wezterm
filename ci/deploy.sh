@@ -84,7 +84,7 @@ echo "Doing the build bit here"
 %install
 set -x
 cd ${HERE}
-mkdir -p %{buildroot}/usr/bin
+mkdir -p %{buildroot}/usr/bin %{buildroot}/etc/profile.d
 install -Dsm755 target/release/wezterm -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-mux-server -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-gui -t %{buildroot}/usr/bin
