@@ -2,6 +2,27 @@
 
 wezterm supports integrating with the shell through the following means:
 
+* OSC 7 Escape sequences to advise the terminal of the working directory
+* OSC 133 Escape sequence to define Input, Output and Prompt zones
+
+These sequences enable some improved user experiences, such as being able
+to spawn new panes, tabs and windows with the same current working directory
+as the current pane, or [jumping through the scrollback to the start of an earlier command](config/lua/keyassignment/ScrollToPrompt.md).
+
+In order for these features to be enabled, you will need to configure your
+shell program to emit the escape sequences at the appropriate place.
+
+You can find some [examples for various shells in the wezterm
+repo](https://github.com/wez/wezterm/tree/master/assets/shell-integration).
+
+In the most recently nightly builds the Fedora and Debian packages
+automatically activate shell integration for Bash and Zsh.
+
+If you're on another system, more information on how these escapes work
+can be found below.
+
+[Learn more about OSC 133 Semantic Prompt Escapes](https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md).
+
 ### OSC 7 Escape sequence to set the working directory
 
 `OSC` is escape sequence jargon for *Operating System Command*; `OSC 7` means
