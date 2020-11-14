@@ -20,6 +20,7 @@ case $OSTYPE in
     rm -rf $zipdir $zipname
     mkdir $zipdir
     cp -r assets/macos/WezTerm.app $zipdir/
+    cp -r assets/shell-integration/* $zipdir/WezTerm.app
     cp $TARGET_DIR/release/wezterm $zipdir/WezTerm.app
     cp $TARGET_DIR/release/wezterm-mux-server $zipdir/WezTerm.app
     cp $TARGET_DIR/release/wezterm-gui $zipdir/WezTerm.app
@@ -88,6 +89,7 @@ install -Dsm755 target/release/wezterm -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-mux-server -t %{buildroot}/usr/bin
 install -Dsm755 target/release/wezterm-gui -t %{buildroot}/usr/bin
 install -Dsm755 target/release/strip-ansi-escapes -t %{buildroot}/usr/bin
+install -Dm644 assets/shell-integration/* -t %{buildroot}/etc/profile.d
 install -Dm644 assets/icon/terminal.png %{buildroot}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 install -Dm644 assets/wezterm.desktop %{buildroot}/usr/share/applications/org.wezfurlong.wezterm.desktop
 install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
@@ -100,6 +102,7 @@ install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/org.we
 /usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 /usr/share/applications/org.wezfurlong.wezterm.desktop
 /usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
+/etc/profile.d/*
 EOF
 
         /usr/bin/rpmbuild -bb --rmspec wezterm.spec --verbose
@@ -129,6 +132,7 @@ EOF
         install -Dm644 assets/icon/terminal.png pkg/debian/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
         install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/org.wezfurlong.wezterm.desktop
         install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
+        install -Dm644 assets/shell-integration/* -t pkg/debian/etc/profile.d
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly.$distro$distver
         else
