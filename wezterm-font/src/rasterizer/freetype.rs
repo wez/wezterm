@@ -150,7 +150,7 @@ impl FreeTypeRasterizer {
                 let red = data[src_offset + (x * 3)];
                 let green = data[src_offset + (x * 3) + 1];
                 let blue = data[src_offset + (x * 3) + 2];
-                let alpha = red | green | blue;
+                let alpha = red.min(green).min(blue);
                 rgba[dest_offset + (x * 4)] = red;
                 rgba[dest_offset + (x * 4) + 1] = green;
                 rgba[dest_offset + (x * 4) + 2] = blue;
