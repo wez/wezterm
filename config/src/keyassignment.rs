@@ -12,6 +12,7 @@ pub enum SelectionMode {
     Cell,
     Word,
     Line,
+    SemanticZone,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

@@ -3302,6 +3302,19 @@ impl TermWindow {
                 let selection_range = start_line.extend_with(end_line);
                 self.selection(pane.pane_id()).range = Some(selection_range);
             }
+            SelectionMode::SemanticZone => {
+                let end_word = SelectionRange::zone_around(SelectionCoordinate { x, y }, &**pane);
+
+                let start_coord = self
+                    .selection(pane.pane_id())
+                    .start
+                    .clone()
+                    .unwrap_or(end_word.start);
+                let start_word = SelectionRange::zone_around(start_coord, &**pane);
+
+                let selection_range = start_word.extend_with(end_word);
+                self.selection(pane.pane_id()).range = Some(selection_range);
+            }
         }
 
         // When the mouse gets close enough to the top or bottom then scroll
@@ -3350,6 +3363,13 @@ impl TermWindow {
                     SelectionCoordinate { x, y },
                     &mut *pane.renderer(),
                 );
+
+                self.selection(pane.pane_id()).start = Some(selection_range.start);
+                self.selection(pane.pane_id()).range = Some(selection_range);
+            }
+            SelectionMode::SemanticZone => {
+                let selection_range =
+                    SelectionRange::zone_around(SelectionCoordinate { x, y }, &**pane);
 
                 self.selection(pane.pane_id()).start = Some(selection_range.start);
                 self.selection(pane.pane_id()).range = Some(selection_range);

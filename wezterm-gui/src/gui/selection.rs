@@ -2,9 +2,10 @@
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use mux::renderable::Renderable;
+use std::cmp::Ordering;
 use std::ops::Range;
 use termwiz::surface::line::DoubleClickRange;
-use wezterm_term::StableRowIndex;
+use wezterm_term::{SemanticZone, StableRowIndex};
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct Selection {
@@ -77,6 +78,52 @@ impl SelectionRange {
                 x: usize::max_value(),
                 y: start.y,
             },
+        }
+    }
+
+    pub fn zone_around(start: SelectionCoordinate, pane: &dyn mux::pane::Pane) -> Self {
+        let zones = match pane.get_semantic_zones() {
+            Ok(z) => z,
+            Err(_) => return Self { start, end: start },
+        };
+
+        fn find_zone(start: &SelectionCoordinate, zone: &SemanticZone) -> Ordering {
+            match zone.start_y.cmp(&start.y) {
+                Ordering::Greater => return Ordering::Greater,
+                // If the zone starts on the same line then check that the
+                // x position is within bounds
+                Ordering::Equal => match zone.start_x.cmp(&start.x) {
+                    Ordering::Greater => return Ordering::Greater,
+                    Ordering::Equal | Ordering::Less => {}
+                },
+                Ordering::Less => {}
+            }
+            match zone.end_y.cmp(&start.y) {
+                Ordering::Less => Ordering::Less,
+                // If the zone ends on the same line then check that the
+                // x position is within bounds
+                Ordering::Equal => match zone.end_x.cmp(&start.x) {
+                    Ordering::Less => Ordering::Less,
+                    Ordering::Equal | Ordering::Greater => Ordering::Equal,
+                },
+                Ordering::Greater => Ordering::Equal,
+            }
+        }
+
+        if let Ok(idx) = zones.binary_search_by(|zone| find_zone(&start, zone)) {
+            let zone = &zones[idx];
+            Self {
+                start: SelectionCoordinate {
+                    x: zone.start_x,
+                    y: zone.start_y,
+                },
+                end: SelectionCoordinate {
+                    x: zone.end_x,
+                    y: zone.end_y,
+                },
+            }
+        } else {
+            Self { start, end: start }
         }
     }
 

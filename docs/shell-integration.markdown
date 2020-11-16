@@ -7,7 +7,8 @@ wezterm supports integrating with the shell through the following means:
 
 These sequences enable some improved user experiences, such as being able
 to spawn new panes, tabs and windows with the same current working directory
-as the current pane, or [jumping through the scrollback to the start of an earlier command](config/lua/keyassignment/ScrollToPrompt.md).
+as the current pane, [jumping through the scrollback to the start of an earlier command](config/lua/keyassignment/ScrollToPrompt.md),
+or [conveniently selecting the complete output from a command](config/lua/keyassignment/SelectTextAtMouseCursor.md).
 
 In order for these features to be enabled, you will need to configure your
 shell program to emit the escape sequences at the appropriate place.
