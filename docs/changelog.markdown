@@ -18,6 +18,7 @@ brief notes about them may accumulate here.
 * Added `wezterm start --class CLASSNAME` option to specify the window class name under X11 and Windows, or the `app_id` under Wayland.  See `wezterm start --help` for more information.
 * Added shell integration for setting OSC 7 (working directory) and OSC 133 (semantic zones) for Zsh and Bash. [See Shell Integration docs](shell-integration.md).
 * Added `SemanticZone` as a possible parameter for [SelectTextAtMouseCursor](config/lua/keyassignment/SelectTextAtMouseCursor.md), making it possible to conveniently select complete input or output regions.
+* Improved font rendering [#320](https://github.com/wez/wezterm/issues/320)
 
 ### 20201101-103216-403d002d
 
