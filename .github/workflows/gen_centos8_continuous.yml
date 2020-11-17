@@ -60,12 +60,14 @@ jobs:
             
 
     - name: "Install Rust"
-      uses: actions-rs/toolchain@v1
+      uses: actions-rs/toolchain@dependabot/npm_and_yarn/actions/core-1.2.6
       with:
          profile: "minimal"
          toolchain: "stable"
          override: true
          components: "rustfmt"
+      env:
+         ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
     - name: "Cache cargo"
       uses: actions/cache@v2
       with:

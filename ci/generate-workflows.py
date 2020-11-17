@@ -208,7 +208,10 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
             params["target"] = self.rust_target
         steps = [
             ActionStep(
-                name="Install Rust", action="actions-rs/toolchain@v1", params=params,
+                name="Install Rust",
+                action="actions-rs/toolchain@dependabot/npm_and_yarn/actions/core-1.2.6",
+                params=params,
+                env={"ACTIONS_ALLOW_UNSECURE_COMMANDS": "true"},
             ),
         ]
         if cache:
@@ -329,7 +332,9 @@ cargo build --all --release""",
                 "Upload to Tagged Release",
                 action="softprops/action-gh-release@v1",
                 params={"files": "\n".join(patterns), "prerelease": True},
-                env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",},
+                env={
+                    "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
+                },
             )
         ]
 
@@ -478,7 +483,12 @@ cargo build --all --release""",
         env = self.global_env()
         env["BUILD_REASON"] = "Schedule"
 
-        return Job(runs_on=self.os, container=self.container, steps=steps, env=env,)
+        return Job(
+            runs_on=self.os,
+            container=self.container,
+            steps=steps,
+            env=env,
+        )
 
     def tag(self):
         steps = self.prep_environment()
@@ -490,7 +500,12 @@ cargo build --all --release""",
         steps += self.update_homebrew_tap()
 
         env = self.global_env()
-        return Job(runs_on=self.os, container=self.container, steps=steps, env=env,)
+        return Job(
+            runs_on=self.os,
+            container=self.container,
+            steps=steps,
+            env=env,
+        )
 
 
 TARGETS = [
