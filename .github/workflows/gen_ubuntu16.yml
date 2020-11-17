@@ -34,7 +34,7 @@ jobs:
       shell: bash
       run: "git fetch --prune --unshallow"
     - name: "Install Rust"
-      uses: actions-rs/toolchain@dependabot/npm_and_yarn/actions/core-1.2.6
+      uses: actions-rs/toolchain@v1
       with:
          profile: "minimal"
          toolchain: "stable"
