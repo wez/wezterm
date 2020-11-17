@@ -69,6 +69,8 @@ jobs:
          toolchain: "stable"
          override: true
          components: "rustfmt"
+      env:
+         ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
     - name: "Cache cargo"
       uses: actions/cache@v2
       with:

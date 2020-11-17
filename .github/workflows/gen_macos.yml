@@ -42,6 +42,8 @@ jobs:
          toolchain: "stable"
          override: true
          components: "rustfmt"
+      env:
+         ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
     - name: "Install System Deps"
       shell: bash
       run: |
