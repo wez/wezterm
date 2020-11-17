@@ -208,7 +208,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
             params["target"] = self.rust_target
         steps = [
             ActionStep(
-                name="Install Rust", action="actions-rs/toolchain@v1", params=params,
+                name="Install Rust", action="actions-rs/toolchain@dependabot/npm_and_yarn/actions/core-1.2.6", params=params,
             ),
         ]
         if cache:
