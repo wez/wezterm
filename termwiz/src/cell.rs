@@ -237,16 +237,37 @@ impl CellAttributes {
         }
     }
 
+    fn deallocate_fat_attributes_if_none(&mut self) {
+        let deallocate = self
+            .fat
+            .as_ref()
+            .map(|fat| fat.image.is_none() && fat.hyperlink.is_none())
+            .unwrap_or(false);
+        if deallocate {
+            self.fat.take();
+        }
+    }
+
     pub fn set_hyperlink(&mut self, link: Option<Arc<Hyperlink>>) -> &mut Self {
-        self.allocate_fat_attributes();
-        self.fat.as_mut().unwrap().hyperlink = link;
-        self
+        if link.is_none() && self.fat.is_none() {
+            self
+        } else {
+            self.allocate_fat_attributes();
+            self.fat.as_mut().unwrap().hyperlink = link;
+            self.deallocate_fat_attributes_if_none();
+            self
+        }
     }
 
     pub fn set_image(&mut self, image: Option<Box<ImageCell>>) -> &mut Self {
-        self.allocate_fat_attributes();
-        self.fat.as_mut().unwrap().image = image;
-        self
+        if image.is_none() && self.fat.is_none() {
+            self
+        } else {
+            self.allocate_fat_attributes();
+            self.fat.as_mut().unwrap().image = image;
+            self.deallocate_fat_attributes_if_none();
+            self
+        }
     }
 
     /// Clone the attributes, but exclude fancy extras such
