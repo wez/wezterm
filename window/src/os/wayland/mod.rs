@@ -1,4 +1,4 @@
-#![cfg(all(unix, feature="wayland", not(target_os = "macos")))]
+#![cfg(all(unix, feature = "wayland", not(target_os = "macos")))]
 
 pub mod connection;
 pub mod window;

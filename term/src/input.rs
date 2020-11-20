@@ -1,5 +1,8 @@
 // clippy hates bitflags
-#![cfg_attr(feature = "cargo-clippy", allow(clippy::suspicious_arithmetic_impl, clippy::redundant_field_names))]
+#![cfg_attr(
+    feature = "cargo-clippy",
+    allow(clippy::suspicious_arithmetic_impl, clippy::redundant_field_names)
+)]
 
 use super::VisibleRowIndex;
 #[cfg(feature = "use_serde")]
