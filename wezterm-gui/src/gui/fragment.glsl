@@ -113,7 +113,7 @@ void main() {
         // if it's not a color emoji it will be grayscale
         // and we need to tint with the fg_color
         if (o_fg_color == o_bg_color) {
-          // However, if we're a monochrome glyph and the forground and
+          // However, if we're a monochrome glyph and the foreground and
           // background colors are the same, just render a transparent pixel
           // instead; this avoids generating shadowy anti-aliasing artifacts
           // for something that should otherwise be invisible.
