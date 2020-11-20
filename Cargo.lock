@@ -1932,7 +1932,6 @@ dependencies = [
  "log",
  "mlua",
  "serde",
- "serde_json",
  "strsim 0.10.0",
  "thiserror",
 ]
@@ -2845,7 +2844,6 @@ dependencies = [
  "async-task 4.0.2",
  "flume",
  "lazy_static",
- "smol",
  "thiserror",
 ]
 
@@ -4339,7 +4337,6 @@ dependencies = [
 name = "wezterm-gui"
 version = "0.1.0"
 dependencies = [
- "allsorts",
  "anyhow",
  "bitflags 1.2.1",
  "cc",
@@ -4530,7 +4527,6 @@ dependencies = [
  "memmap",
  "metrics",
  "mio",
- "mio-extras",
  "objc",
  "palette",
  "pretty_env_logger",

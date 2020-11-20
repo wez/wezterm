@@ -5,7 +5,6 @@ version = "0.2.0"
 edition = "2018"
 
 [dependencies]
-smol = "1.2"
 async-task = "4.0"
 async-std = "1.4"
 anyhow = "1.0"

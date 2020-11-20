@@ -56,7 +56,6 @@ xcb = {version="0.9", features=["shm", "xkb", "xlib_xcb"]}
 xcb-util = { features = [ "icccm", "ewmh", "keysyms", "shm"], version = "0.3" }
 xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://github.com/wez/xkbcommon-rs.git", rev="01a0a0cd5663405e6e4abb1ad3add9add1496f58"}
 mio = "0.6"
-mio-extras = "2.0"
 libc = "0.2"
 smithay-client-toolkit = {version = "0.9", optional = true, features=["calloop"], git="https://github.com/wez/client-toolkit.git", branch="title_trunc"}
 memmap = {version="0.7", optional=true}
