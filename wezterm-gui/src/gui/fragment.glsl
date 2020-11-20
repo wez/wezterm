@@ -112,7 +112,15 @@ void main() {
       if (o_has_color == 0.0) {
         // if it's not a color emoji it will be grayscale
         // and we need to tint with the fg_color
-        color = multiply(o_fg_color, color);
+        if (o_fg_color == o_bg_color) {
+          // However, if we're a monochrome glyph and the forground and
+          // background colors are the same, just render a transparent pixel
+          // instead; this avoids generating shadowy anti-aliasing artifacts
+          // for something that should otherwise be invisible.
+          color = vec4(0.0, 0.0, 0.0, 0.0);
+        } else {
+          color = multiply(o_fg_color, color);
+        }
       }
     }
   }
