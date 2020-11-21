@@ -80,7 +80,7 @@ dependencies = [
  "rental",
  "rustc-hash",
  "tinyvec 1.1.0",
- "unicode-general-category",
+ "unicode-general-category 0.1.0",
  "unicode-joining-type",
 ]
 
@@ -3913,6 +3913,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "961c7c250ebd2c88c8f2ca994489e6cac38fe94301f843f0785ed86bc5490881"
 
 [[package]]
+name = "unicode-general-category"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eab1e2c61f9441613aca1a1c88803bb36df292990aada6abb5133b9b532e07ec"
+
+[[package]]
 name = "unicode-joining-type"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4357,6 +4363,7 @@ dependencies = [
  "termwiz",
  "thiserror",
  "tinyvec 1.1.0",
+ "unicode-general-category 0.3.0",
  "unicode-segmentation",
  "walkdir",
  "wezterm-term",

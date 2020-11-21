@@ -23,6 +23,7 @@ use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use termwiz::cell::unicode_column_width;
 use tinyvec::*;
+use unicode_general_category::{get_general_category, GeneralCategory};
 
 #[derive(Debug)]
 pub enum MaybeShaped {
@@ -315,6 +316,7 @@ impl ParsedFont {
         point_size: f64,
         dpi: u32,
     ) -> anyhow::Result<Vec<MaybeShaped>> {
+        #[derive(Debug)]
         enum Run {
             Unresolved(String),
             Glyphs(Vec<RawGlyph<()>>),
@@ -324,41 +326,89 @@ impl ParsedFont {
         use allsorts::unicode::VariationSelector;
         use std::convert::TryFrom;
 
-        for c in text.as_ref().chars() {
-            match self.glyph_index_for_char(c) {
-                Ok(glyph_index) => {
-                    let glyph = RawGlyph {
-                        unicodes: tiny_vec!([char; 1] => c),
-                        glyph_index,
-                        liga_component_pos: 0,
-                        glyph_origin: GlyphOrigin::Char(c),
-                        small_caps: false,
-                        multi_subst_dup: false,
-                        is_vert_alt: false,
-                        fake_bold: false,
-                        fake_italic: false,
-                        variation: None,
-                        extra_data: (),
-                    };
-                    if let Some(Run::Glyphs(ref mut glyphs)) = runs.last_mut() {
-                        glyphs.push(glyph);
-                    } else {
-                        runs.push(Run::Glyphs(vec![glyph]));
-                    }
+        let mut chars_iter = text.as_ref().chars().peekable();
+        while let Some(c) = chars_iter.next() {
+            match VariationSelector::try_from(c) {
+                Ok(_) => {
+                    // Ignore variation selector; we already accounted for it
+                    // in the lookahead in the case below
                 }
                 Err(_) => {
-                    if let Ok(variation) = VariationSelector::try_from(c) {
-                        if let Some(Run::Glyphs(ref mut glyphs)) = runs.last_mut() {
-                            for g in glyphs.iter_mut() {
-                                g.variation.replace(variation);
+                    // Lookahead for a variation selector
+                    let variation = chars_iter
+                        .peek()
+                        .and_then(|&next| VariationSelector::try_from(next).ok());
+
+                    match self.glyph_index_for_char(c) {
+                        Ok(glyph_index) => {
+                            let glyph = RawGlyph {
+                                unicodes: tiny_vec!([char; 1] => c),
+                                glyph_index,
+                                liga_component_pos: 0,
+                                glyph_origin: GlyphOrigin::Char(c),
+                                small_caps: false,
+                                multi_subst_dup: false,
+                                is_vert_alt: false,
+                                fake_bold: false,
+                                fake_italic: false,
+                                variation,
+                                extra_data: (),
+                            };
+                            if let Some(Run::Glyphs(ref mut glyphs)) = runs.last_mut() {
+                                glyphs.push(glyph);
+                            } else {
+                                runs.push(Run::Glyphs(vec![glyph]));
                             }
-                            continue;
                         }
-                    }
-                    if let Some(Run::Unresolved(ref mut s)) = runs.last_mut() {
-                        s.push(c);
-                    } else {
-                        runs.push(Run::Unresolved(c.to_string()));
+                        Err(_) => {
+                            // There wasn't a match for this character.
+                            // We may need to do a bit of fiddly unwinding here.
+                            // If the character we tried to resolve modifies the preceding
+                            // character then we need to sweep that into an Unresolved block
+                            // along with the current character; if we don't do that then
+                            // eg: U+0030 U+FE0F U+20E3 (keycap 0; 0 in VS16 with combining
+                            // enclosing keycap) can match a plain `0` numeral and leave
+                            // the combining mark as a leftover.
+                            match get_general_category(c) {
+                                GeneralCategory::EnclosingMark => {
+                                    // We modify the prior character, so pop it off and
+                                    // bundle it together for the fallback
+                                    let glyph = match runs.last_mut() {
+                                        Some(Run::Glyphs(ref mut glyphs)) => glyphs.pop(),
+                                        _ => None,
+                                    };
+                                    if let Some(glyph) = glyph {
+                                        // Synthesize the prior glyph into a string
+                                        let mut s = glyph.unicodes[0].to_string();
+                                        // and reverse the variation selector
+                                        match glyph.variation {
+                                            None => {}
+                                            Some(VariationSelector::VS01) => s.push('\u{FE00}'),
+                                            Some(VariationSelector::VS02) => s.push('\u{FE01}'),
+                                            Some(VariationSelector::VS03) => s.push('\u{FE02}'),
+                                            Some(VariationSelector::VS15) => s.push('\u{FE0E}'),
+                                            Some(VariationSelector::VS16) => s.push('\u{FE0F}'),
+                                        }
+                                        runs.push(Run::Unresolved(s));
+                                    }
+                                }
+                                _ => {}
+                            }
+
+                            if let Some(Run::Unresolved(ref mut s)) = runs.last_mut() {
+                                s.push(c);
+                            } else {
+                                runs.push(Run::Unresolved(c.to_string()));
+                            }
+
+                            // And finally, if the next character is a variation selector,
+                            // that belongs with this sequence as well.
+                            if variation.is_some() {
+                                if let Some(Run::Unresolved(ref mut s)) = runs.last_mut() {
+                                    s.push(*chars_iter.peek().unwrap());
+                                }
+                            }
+                        }
                     }
                 }
             }
