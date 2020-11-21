@@ -63,10 +63,10 @@ dependencies = [
 [[package]]
 name = "allsorts"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14b02c01aedfae249f34bacaf3cfb1e714da8f7f143b02bf5a25035dbba7dfad"
+source = "git+https://github.com/yeslogic/allsorts.git?rev=3947164a201ab5e15d5f23204faaaaaad52531aa#3947164a201ab5e15d5f23204faaaaaad52531aa"
 dependencies = [
  "bitflags 1.2.1",
+ "bitreader",
  "brotli-decompressor",
  "byteorder",
  "encoding_rs",
@@ -79,7 +79,8 @@ dependencies = [
  "num-traits 0.2.12",
  "rental",
  "rustc-hash",
- "tinyvec",
+ "tinyvec 1.1.0",
+ "unicode-general-category",
  "unicode-joining-type",
 ]
 
@@ -423,6 +424,15 @@ name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
+
+[[package]]
+name = "bitreader"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fa7f0adf37cd5472c978a1ff4be89c1880a923d10df4cfef6a10855a666e09b"
+dependencies = [
+ "cfg-if",
+]
 
 [[package]]
 name = "blake2b_simd"
@@ -3806,6 +3816,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "238ce071d267c5710f9d31451efec16c5ee22de34df17cc05e56cbc92e967117"
 
 [[package]]
+name = "tinyvec"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccf8dbc19eb42fba10e8feaaec282fb50e2c14b2726d6301dbfeed0f73306a6f"
+dependencies = [
+ "tinyvec_macros",
+]
+
+[[package]]
+name = "tinyvec_macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
+
+[[package]]
 name = "tmux-cc"
 version = "0.1.0"
 dependencies = [
@@ -3882,6 +3907,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "unicode-general-category"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "961c7c250ebd2c88c8f2ca994489e6cac38fe94301f843f0785ed86bc5490881"
+
+[[package]]
 name = "unicode-joining-type"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3893,7 +3924,7 @@ version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fb19cf769fa8c6a80a162df694621ebeb4dafb606470b2b2fce0be40a98a977"
 dependencies = [
- "tinyvec",
+ "tinyvec 0.3.4",
 ]
 
 [[package]]
@@ -4325,7 +4356,7 @@ dependencies = [
  "mux",
  "termwiz",
  "thiserror",
- "tinyvec",
+ "tinyvec 1.1.0",
  "unicode-segmentation",
  "walkdir",
  "wezterm-term",

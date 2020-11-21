@@ -59,8 +59,7 @@ impl AllsortsShaper {
                 // We ran out of fallback fonts, so use a replacement
                 // character that is likely to be in one of those fonts
                 let mut alt_text = String::new();
-                let num_chars = s.chars().count();
-                for _ in 0..num_chars {
+                for _c in s.chars() {
                     alt_text.push('?');
                 }
                 if alt_text == s {
@@ -83,8 +82,6 @@ impl AllsortsShaper {
             font.shape_text(s, slice_index, font_index, script, lang, font_size, dpi)?;
 
         let mut item_iter = first_pass.into_iter();
-        let mut fallback_run = String::new();
-        let mut fallback_start_pos = 0;
         while let Some(item) = item_iter.next() {
             match item {
                 MaybeShaped::Resolved(info) => {
@@ -94,52 +91,18 @@ impl AllsortsShaper {
                     // There was no glyph in that font, so we'll need to shape
                     // using a fallback.  Let's collect together any potential
                     // run of unresolved entries first
-                    fallback_start_pos = slice_start;
-                    for &c in &raw.unicodes {
-                        fallback_run.push(c);
-                    }
-
-                    // Clippy can't see that we're nested
-                    #[allow(clippy::while_let_on_iterator)]
-                    while let Some(item) = item_iter.next() {
-                        match item {
-                            MaybeShaped::Unresolved { raw, .. } => {
-                                for &c in &raw.unicodes {
-                                    fallback_run.push(c);
-                                }
-                            }
-                            MaybeShaped::Resolved(info) => {
-                                self.shape_into(
-                                    font_index + 1,
-                                    &fallback_run,
-                                    fallback_start_pos + slice_index,
-                                    script,
-                                    lang,
-                                    font_size,
-                                    dpi,
-                                    results,
-                                )?;
-                                fallback_run.clear();
-                                results.push(info);
-                                break;
-                            }
-                        }
-                    }
+                    self.shape_into(
+                        font_index + 1,
+                        &raw,
+                        slice_start,
+                        script,
+                        lang,
+                        font_size,
+                        dpi,
+                        results,
+                    )?;
                 }
             }
-        }
-
-        if !fallback_run.is_empty() {
-            self.shape_into(
-                font_index + 1,
-                &fallback_run,
-                fallback_start_pos + slice_index,
-                script,
-                lang,
-                font_size,
-                dpi,
-                results,
-            )?;
         }
 
         Ok(())

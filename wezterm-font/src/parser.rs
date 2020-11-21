@@ -27,10 +27,7 @@ use tinyvec::*;
 #[derive(Debug)]
 pub enum MaybeShaped {
     Resolved(GlyphInfo),
-    Unresolved {
-        raw: RawGlyph<()>,
-        slice_start: usize,
-    },
+    Unresolved { raw: String, slice_start: usize },
 }
 
 /// Represents a parsed font
@@ -239,10 +236,18 @@ impl ParsedFont {
     }
 
     /// Resolve a char to the corresponding glyph in the font
-    pub fn glyph_index_for_char(&self, c: char) -> anyhow::Result<Option<u16>> {
-        self.cmap_subtable
+    pub fn glyph_index_for_char(&self, c: char) -> anyhow::Result<u16> {
+        let glyph = self
+            .cmap_subtable
             .map_glyph(c as u32)
-            .map_err(|e| anyhow!("Error while looking up glyph {}: {}", c, e))
+            .map_err(|e| anyhow!("Error while looking up glyph {}: {}", c, e))?;
+
+        if c == '\u{200C}' && glyph.is_none() {
+            // If ZWNJ is missing, substitute a space
+            self.glyph_index_for_char(' ')
+        } else {
+            glyph.ok_or_else(|| anyhow!("Font doesn't contain glyph for char {:?}", c))
+        }
     }
 
     pub fn get_metrics(&self, point_size: f64, dpi: u32) -> FontMetrics {
@@ -271,7 +276,7 @@ impl ParsedFont {
         let mut cell_width = 0;
         // Compute the max width based on ascii chars
         for i in 0x20..0x7fu8 {
-            if let Ok(Some(glyph_index)) = self.glyph_index_for_char(i as char) {
+            if let Ok(glyph_index) = self.glyph_index_for_char(i as char) {
                 if let Ok(h) = self
                     .hmtx
                     .horizontal_advance(glyph_index, self.hhea.num_h_metrics)
@@ -310,137 +315,157 @@ impl ParsedFont {
         point_size: f64,
         dpi: u32,
     ) -> anyhow::Result<Vec<MaybeShaped>> {
-        let mut glyphs = vec![];
+        enum Run {
+            Unresolved(String),
+            Glyphs(Vec<RawGlyph<()>>),
+        }
+
+        let mut runs = vec![];
+        use allsorts::unicode::VariationSelector;
+        use std::convert::TryFrom;
+
         for c in text.as_ref().chars() {
-            glyphs.push(RawGlyph {
-                unicodes: tiny_vec!([char; 1], c),
-                glyph_index: self.glyph_index_for_char(c)?,
-                liga_component_pos: 0,
-                glyph_origin: GlyphOrigin::Char(c),
-                small_caps: false,
-                multi_subst_dup: false,
-                is_vert_alt: false,
-                fake_bold: false,
-                fake_italic: false,
-                variation: None,
-                extra_data: (),
-            });
+            match self.glyph_index_for_char(c) {
+                Ok(glyph_index) => {
+                    let glyph = RawGlyph {
+                        unicodes: tiny_vec!([char; 1] => c),
+                        glyph_index,
+                        liga_component_pos: 0,
+                        glyph_origin: GlyphOrigin::Char(c),
+                        small_caps: false,
+                        multi_subst_dup: false,
+                        is_vert_alt: false,
+                        fake_bold: false,
+                        fake_italic: false,
+                        variation: None,
+                        extra_data: (),
+                    };
+                    if let Some(Run::Glyphs(ref mut glyphs)) = runs.last_mut() {
+                        glyphs.push(glyph);
+                    } else {
+                        runs.push(Run::Glyphs(vec![glyph]));
+                    }
+                }
+                Err(_) => {
+                    if let Ok(variation) = VariationSelector::try_from(c) {
+                        if let Some(Run::Glyphs(ref mut glyphs)) = runs.last_mut() {
+                            for g in glyphs.iter_mut() {
+                                g.variation.replace(variation);
+                            }
+                            continue;
+                        }
+                    }
+                    if let Some(Run::Unresolved(ref mut s)) = runs.last_mut() {
+                        s.push(c);
+                    } else {
+                        runs.push(Run::Unresolved(c.to_string()));
+                    }
+                }
+            }
         }
 
         // TODO: construct from configuation
-        let feature_mask = GsubFeatureMask::CLIG | GsubFeatureMask::LIGA | GsubFeatureMask::CALT;
-
-        if let Some(gsub_cache) = self.gsub_cache.as_ref() {
-            gsub_apply_default(
-                &|| vec![], //map_char('\u{25cc}')],
-                gsub_cache,
-                self.gdef_table.as_ref(),
-                script,
-                lang,
-                feature_mask,
-                self.num_glyphs,
-                &mut glyphs,
-            )?;
-        }
-
-        // Note: init_from_glyphs silently elides entries that
-        // have no glyph in the current font!  we need to deal
-        // with this so that we can perform font fallback, so
-        // we pass a copy of the glyphs here and detect this
-        // during below.
-        let mut infos = Info::init_from_glyphs(self.gdef_table.as_ref(), glyphs.clone())?;
-        if let Some(gpos_cache) = self.gpos_cache.as_ref() {
-            let kerning = true;
-
-            gpos_apply(
-                gpos_cache,
-                self.gdef_table.as_ref(),
-                kerning,
-                script,
-                lang,
-                &mut infos,
-            )?;
-        }
-
+        let feature_mask = GsubFeatureMask::default();
         let mut pos = Vec::new();
-        let mut glyph_iter = glyphs.into_iter();
         let mut cluster = slice_index;
 
-        fn reverse_engineer_glyph_text(glyph: &RawGlyph<()>) -> String {
-            glyph.unicodes.iter().collect()
-        }
+        for run in runs {
+            match run {
+                Run::Unresolved(raw) => {
+                    let len = raw.len();
+                    pos.push(MaybeShaped::Unresolved {
+                        raw,
+                        slice_start: cluster,
+                    });
+                    cluster += len;
+                }
+                Run::Glyphs(mut glyphs) => {
+                    if let Some(gsub_cache) = self.gsub_cache.as_ref() {
+                        gsub_apply_default(
+                            &|| vec![], //map_char('\u{25cc}')],
+                            gsub_cache,
+                            self.gdef_table.as_ref(),
+                            script,
+                            Some(lang),
+                            feature_mask,
+                            self.num_glyphs,
+                            &mut glyphs,
+                        )?;
+                    }
 
-        for glyph_info in infos.into_iter() {
-            let mut input_glyph = glyph_iter
-                .next()
-                .ok_or_else(|| anyhow!("more output infos than input glyphs!"))?;
+                    // Note: init_from_glyphs silently elides entries that
+                    // have no glyph in the current font!  we need to deal
+                    // with this so that we can perform font fallback, so
+                    // we pass a copy of the glyphs here and detect this
+                    // during below.
+                    let mut infos = Info::init_from_glyphs(self.gdef_table.as_ref(), glyphs)?;
+                    if let Some(gpos_cache) = self.gpos_cache.as_ref() {
+                        let kerning = true;
 
-            while input_glyph.unicodes != glyph_info.glyph.unicodes {
-                // Info::init_from_glyphs skipped the input glyph, so let's be
-                // sure to emit a placeholder for it
-                let text = reverse_engineer_glyph_text(&input_glyph);
-                pos.push(MaybeShaped::Unresolved {
-                    raw: input_glyph,
-                    slice_start: cluster,
-                });
+                        gpos_apply(
+                            gpos_cache,
+                            self.gdef_table.as_ref(),
+                            kerning,
+                            script,
+                            Some(lang),
+                            &mut infos,
+                        )?;
+                    }
 
-                cluster += text.len();
+                    fn reverse_engineer_glyph_text(glyph: &RawGlyph<()>) -> String {
+                        glyph.unicodes.iter().collect()
+                    }
 
-                input_glyph = glyph_iter
-                    .next()
-                    .ok_or_else(|| anyhow!("more output infos than input glyphs! (loop bottom)"))?;
+                    for glyph_info in infos.into_iter() {
+                        let glyph_index = glyph_info.glyph.glyph_index;
+                        //.ok_or_else(|| anyhow!("no mapped glyph_index for {:?}", glyph_info))?;
+
+                        let horizontal_advance = i32::from(
+                            self.hmtx
+                                .horizontal_advance(glyph_index, self.hhea.num_h_metrics)?,
+                        );
+
+                        /*
+                        let width = if glyph_info.kerning != 0 {
+                            horizontal_advance + i32::from(glyph_info.kerning)
+                        } else {
+                            horizontal_advance
+                        };
+                        */
+
+                        // Adjust for distance placement
+                        let (x_advance, y_advance) = match glyph_info.placement {
+                            Placement::Distance(dx, dy) => (horizontal_advance + dx, dy),
+                            Placement::Anchor(_, _) | Placement::None => (horizontal_advance, 0),
+                        };
+
+                        let text = reverse_engineer_glyph_text(&glyph_info.glyph);
+                        let text_len = text.len();
+                        let num_cells = unicode_column_width(&text);
+
+                        let pixel_scale =
+                            (dpi as f64 / 72.) * point_size / self.units_per_em as f64;
+                        let x_advance = PixelLength::new(x_advance as f64 * pixel_scale);
+                        let y_advance = PixelLength::new(y_advance as f64 * pixel_scale);
+
+                        let info = GlyphInfo {
+                            #[cfg(debug_assertions)]
+                            text,
+                            cluster: cluster as u32,
+                            num_cells: num_cells as u8,
+                            font_idx: font_index,
+                            glyph_pos: glyph_index as u32,
+                            x_advance,
+                            y_advance,
+                            x_offset: PixelLength::new(0.),
+                            y_offset: PixelLength::new(0.),
+                        };
+                        cluster += text_len;
+
+                        pos.push(MaybeShaped::Resolved(info));
+                    }
+                }
             }
-
-            let glyph_index = glyph_info
-                .glyph
-                .glyph_index
-                .ok_or_else(|| anyhow!("no mapped glyph_index for {:?}", glyph_info))?;
-
-            let horizontal_advance = i32::from(
-                self.hmtx
-                    .horizontal_advance(glyph_index, self.hhea.num_h_metrics)?,
-            );
-
-            /*
-            let width = if glyph_info.kerning != 0 {
-                horizontal_advance + i32::from(glyph_info.kerning)
-            } else {
-                horizontal_advance
-            };
-            */
-
-            // Adjust for distance placement
-            let (x_advance, y_advance) = match glyph_info.placement {
-                Placement::Distance(dx, dy) => (horizontal_advance + dx, dy),
-                Placement::Anchor(_, _) | Placement::None => (horizontal_advance, 0),
-            };
-
-            let pixel_scale = (dpi as f64 / 72.) * point_size / self.units_per_em as f64;
-            let x_advance = PixelLength::new(x_advance as f64 * pixel_scale);
-            let y_advance = PixelLength::new(y_advance as f64 * pixel_scale);
-
-            let text = reverse_engineer_glyph_text(&glyph_info.glyph);
-            let text_len = text.len();
-
-            // let num_cells = glyph_info.glyph.unicodes.len();
-            let num_cells = unicode_column_width(&text);
-
-            let info = GlyphInfo {
-                #[cfg(debug_assertions)]
-                text,
-                cluster: cluster as u32,
-                num_cells: num_cells as u8,
-                font_idx: font_index,
-                glyph_pos: glyph_index as u32,
-                x_advance,
-                y_advance,
-                x_offset: PixelLength::new(0.),
-                y_offset: PixelLength::new(0.),
-            };
-
-            cluster += text_len;
-
-            pos.push(MaybeShaped::Resolved(info));
         }
 
         Ok(pos)

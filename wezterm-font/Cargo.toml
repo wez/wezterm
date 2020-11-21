@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-allsorts = "0.4"
+allsorts = { git = "https://github.com/yeslogic/allsorts.git", rev="3947164a201ab5e15d5f23204faaaaaad52531aa" }
 anyhow = "1.0"
 config = { path = "../config" }
 euclid = "0.20"
@@ -19,7 +19,7 @@ metrics = { version="0.12", features=["std"]}
 mux = { path = "../mux" }
 termwiz = { path = "../termwiz" }
 thiserror = "1.0"
-tinyvec = "0.3" # Note: constrained by the allsorts crate
+tinyvec = "1.1" # Note: constrained by the allsorts crate
 unicode-segmentation = "1.6"
 walkdir = "2"
 wezterm-term = { path = "../term", features=["use_serde"] }
