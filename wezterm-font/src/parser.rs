@@ -453,11 +453,6 @@ impl ParsedFont {
                         )?;
                     }
 
-                    // Note: init_from_glyphs silently elides entries that
-                    // have no glyph in the current font!  we need to deal
-                    // with this so that we can perform font fallback, so
-                    // we pass a copy of the glyphs here and detect this
-                    // during below.
                     let mut infos = Info::init_from_glyphs(self.gdef_table.as_ref(), glyphs)?;
                     if let Some(gpos_cache) = self.gpos_cache.as_ref() {
                         let kerning = true;
@@ -478,20 +473,11 @@ impl ParsedFont {
 
                     for glyph_info in infos.into_iter() {
                         let glyph_index = glyph_info.glyph.glyph_index;
-                        //.ok_or_else(|| anyhow!("no mapped glyph_index for {:?}", glyph_info))?;
 
                         let horizontal_advance = i32::from(
                             self.hmtx
                                 .horizontal_advance(glyph_index, self.hhea.num_h_metrics)?,
                         );
-
-                        /*
-                        let width = if glyph_info.kerning != 0 {
-                            horizontal_advance + i32::from(glyph_info.kerning)
-                        } else {
-                            horizontal_advance
-                        };
-                        */
 
                         // Adjust for distance placement
                         let (x_advance, y_advance) = match glyph_info.placement {
