@@ -36,11 +36,8 @@ fn harfbuzz() {
         "hb-fallback-shape.cc",
         "hb-font.cc",
         "hb-ft.cc",
-        // "hb-graphite2.cc",
-        // "hb-glib.cc",
-        // "hb-gobject-structs.cc",
-        // "hb-icu.cc",
         "hb-map.cc",
+        "hb-number.cc",
         "hb-ot-cff1-table.cc",
         "hb-ot-cff2-table.cc",
         "hb-ot-color.cc",
@@ -49,7 +46,7 @@ fn harfbuzz() {
         "hb-ot-layout.cc",
         "hb-ot-map.cc",
         "hb-ot-math.cc",
-        "hb-ot-name-language.cc",
+        "hb-ot-metrics.cc",
         "hb-ot-name.cc",
         "hb-ot-shape-complex-arabic.cc",
         "hb-ot-shape-complex-default.cc",
@@ -73,23 +70,15 @@ fn harfbuzz() {
         "hb-shape.cc",
         "hb-shaper.cc",
         "hb-static.cc",
-        "hb-subset-cff-common.cc",
-        "hb-subset-cff1.cc",
-        "hb-subset-cff2.cc",
-        "hb-subset-glyf.cc",
-        "hb-subset-input.cc",
-        "hb-subset-plan.cc",
-        "hb-subset.cc",
-        "hb-ucdn.cc",
+        "hb-ucd.cc",
         "hb-unicode.cc",
-        // "hb-warning.cc",
-        "hb-ucdn/ucdn.c",
     ]
     .iter()
     {
         cfg.file(format!("harfbuzz/src/{}", f));
     }
 
+    cfg.define("HB_NO_MT", None);
     cfg.define("HAVE_FALLBACK", None);
     cfg.define("HAVE_UCDN", None);
     cfg.include("harfbuzz/src/hb-ucdn");
