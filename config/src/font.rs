@@ -225,8 +225,8 @@ impl_lua_conversion!(StyleRule);
 pub enum FontLocatorSelection {
     /// Use fontconfig APIs to resolve fonts (!macos, posix systems)
     FontConfig,
-    /// Use the EnumFontFamilies call on win32 systems
-    EnumFontFamilies,
+    /// Use GDI on win32 systems
+    Gdi,
     /// Use CoreText on macOS
     CoreText,
     /// Use only the font_dirs configuration to locate fonts
@@ -240,7 +240,7 @@ lazy_static::lazy_static! {
 impl Default for FontLocatorSelection {
     fn default() -> Self {
         if cfg!(windows) {
-            FontLocatorSelection::EnumFontFamilies
+            FontLocatorSelection::Gdi
         } else if cfg!(target_os = "macos") {
             FontLocatorSelection::CoreText
         } else {
@@ -261,12 +261,7 @@ impl FontLocatorSelection {
     }
 
     pub fn variants() -> Vec<&'static str> {
-        vec![
-            "FontConfig",
-            "CoreText",
-            "ConfigDirsOnly",
-            "EnumFontFamilies",
-        ]
+        vec!["FontConfig", "CoreText", "ConfigDirsOnly", "Gdi"]
     }
 }
 
@@ -277,7 +272,7 @@ impl std::str::FromStr for FontLocatorSelection {
             "fontconfig" => Ok(Self::FontConfig),
             "coretext" => Ok(Self::CoreText),
             "configdirsonly" => Ok(Self::ConfigDirsOnly),
-            "enumfontfamilies" => Ok(Self::EnumFontFamilies),
+            "gdi" => Ok(Self::Gdi),
             _ => Err(anyhow!(
                 "{} is not a valid FontLocatorSelection variant, possible values are {:?}",
                 s,

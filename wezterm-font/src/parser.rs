@@ -89,7 +89,12 @@ impl ParsedFont {
                 };
 
                 let path = entry.path();
-                parse_and_collect_font_info(path, &mut font_info).ok();
+                parse_and_collect_font_info(path, &mut font_info)
+                    .map_err(|err| {
+                        log::trace!("failed to read {}: {}", path.display(), err);
+                        err
+                    })
+                    .ok();
             }
         }
 
@@ -123,7 +128,12 @@ impl ParsedFont {
         for attr in fonts_selection {
             for (names, path, handle) in &font_info {
                 if font_info_matches(attr, &names) {
-                    log::warn!("Using {} from {}", names.full_name, path.display(),);
+                    log::warn!(
+                        "Using {} from {} for {:?}",
+                        names.full_name,
+                        path.display(),
+                        attr
+                    );
                     handles.push(handle.clone());
                     loaded.insert(attr.clone());
                     break;
@@ -541,9 +551,7 @@ fn collect_font_info(
 }
 
 pub fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
-    if attr.family == names.full_name {
-        true
-    } else if let Some(fam) = names.family.as_ref() {
+    if let Some(fam) = names.family.as_ref() {
         // TODO: correctly match using family and sub-family;
         // this is a pretty rough approximation
         if attr.family == *fam {
@@ -557,6 +565,8 @@ pub fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
         } else {
             false
         }
+    } else if attr.family == names.full_name && !attr.bold && !attr.italic {
+        true
     } else {
         false
     }

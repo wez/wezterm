@@ -3,9 +3,9 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 pub mod core_text;
-pub mod enum_font_families;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod font_config;
+pub mod gdi;
 
 /// Represents the data behind a font.
 /// This may be a font file that we can read off disk,
@@ -69,9 +69,9 @@ pub fn new_locator(locator: FontLocatorSelection) -> Box<dyn FontLocator> {
             #[cfg(not(target_os = "macos"))]
             panic!("CoreText not compiled in");
         }
-        FontLocatorSelection::EnumFontFamilies => {
+        FontLocatorSelection::Gdi => {
             #[cfg(windows)]
-            return Box::new(enum_font_families::EnumFontFamiliesFontLocator {});
+            return Box::new(gdi::GdiFontLocator {});
             #[cfg(not(windows))]
             panic!("EnumFontFamilies not compiled in");
         }
