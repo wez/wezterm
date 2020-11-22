@@ -4,9 +4,9 @@ use crate::bitmaps::*;
 use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::{
-    is_egl_preferred, Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
-    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect,
-    ScreenPoint, WindowCallbacks, WindowOps, WindowOpsMut,
+    Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
+    MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, WindowCallbacks,
+    WindowOps, WindowOpsMut,
 };
 use anyhow::{bail, Context};
 use lazy_static::lazy_static;
@@ -118,6 +118,7 @@ fn take_rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
     unsafe { Rc::from_raw(std::mem::transmute(lparam)) }
 }
 
+#[cfg(feature = "opengl")]
 fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
     if cfg!(debug_assertions) && false
     /* https://github.com/glium/glium/issues/1885 */
@@ -134,7 +135,7 @@ impl WindowInner {
         let window = Window(self.hwnd);
         let conn = Connection::get().unwrap();
 
-        let gl_state = if is_egl_preferred() {
+        let gl_state = if crate::is_egl_preferred() {
             match conn.gl_connection.borrow().as_ref() {
                 None => crate::egl::GlState::create(None, self.hwnd.0),
                 Some(glconn) => {
