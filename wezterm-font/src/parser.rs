@@ -551,7 +551,7 @@ pub fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
                 Some("Italic") if attr.italic && !attr.bold => true,
                 Some("Bold") if attr.bold && !attr.italic => true,
                 Some("Bold Italic") if attr.bold && attr.italic => true,
-                Some("Regular") | None if !attr.italic && !attr.bold => true,
+                Some("Medium") | Some("Regular") | None if !attr.italic && !attr.bold => true,
                 _ => false,
             }
         } else {

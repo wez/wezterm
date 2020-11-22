@@ -227,9 +227,8 @@ pub enum FontLocatorSelection {
     FontConfig,
     /// Use the EnumFontFamilies call on win32 systems
     EnumFontFamilies,
-    /// Use the fontloader crate to use a system specific method of
-    /// resolving fonts
-    FontLoader,
+    /// Use CoreText on macOS
+    CoreText,
     /// Use only the font_dirs configuration to locate fonts
     ConfigDirsOnly,
 }
@@ -243,7 +242,7 @@ impl Default for FontLocatorSelection {
         if cfg!(windows) {
             FontLocatorSelection::EnumFontFamilies
         } else if cfg!(target_os = "macos") {
-            FontLocatorSelection::FontLoader
+            FontLocatorSelection::CoreText
         } else {
             FontLocatorSelection::FontConfig
         }
@@ -264,7 +263,7 @@ impl FontLocatorSelection {
     pub fn variants() -> Vec<&'static str> {
         vec![
             "FontConfig",
-            "FontLoader",
+            "CoreText",
             "ConfigDirsOnly",
             "EnumFontFamilies",
         ]
@@ -276,7 +275,7 @@ impl std::str::FromStr for FontLocatorSelection {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_ref() {
             "fontconfig" => Ok(Self::FontConfig),
-            "fontloader" => Ok(Self::FontLoader),
+            "coretext" => Ok(Self::CoreText),
             "configdirsonly" => Ok(Self::ConfigDirsOnly),
             "enumfontfamilies" => Ok(Self::EnumFontFamilies),
             _ => Err(anyhow!(

@@ -16,7 +16,6 @@ impl FontLocator for FontConfigFontLocator {
         loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut fonts = vec![];
-        let mut fallback = vec![];
 
         for attr in fonts_selection {
             let mut pattern = FontPattern::new()?;
@@ -54,8 +53,6 @@ impl FontLocator for FontConfigFontLocator {
                 }
             }
         }
-
-        fonts.append(&mut fallback);
 
         Ok(fonts)
     }
