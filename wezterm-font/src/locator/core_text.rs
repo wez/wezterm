@@ -1,4 +1,4 @@
-#![cfg(target_os="macos")]
+#![cfg(target_os = "macos")]
 
 use crate::locator::{FontDataHandle, FontLocator};
 use config::FontAttributes;
@@ -12,7 +12,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 /// A FontLocator implemented using the system font loading
-/// functions provided by the font-loader crate.
+/// functions provided by core text.
 pub struct CoreTextFontLocator {}
 
 fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescriptor> {
