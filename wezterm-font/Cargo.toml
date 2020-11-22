@@ -29,11 +29,6 @@ window = { path = "../window" }
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 fontconfig = { path = "../deps/fontconfig" }
 
-# on linux, font-loader pulls in servo-font* crates which conflict with
-# our newer font related deps, so we avoid it on linux
-[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
-font-loader = { version = "0.8" }
-
 [target."cfg(windows)".dependencies]
 dwrote = "0.9"
 winapi = "0.3"
@@ -41,3 +36,6 @@ winapi = "0.3"
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.7"
 core-text = "15.0"
+# on linux, font-loader pulls in servo-font* crates which conflict with
+# our newer font related deps, so we avoid it on linux
+font-loader = { version = "0.8" }

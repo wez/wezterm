@@ -2,9 +2,10 @@ use config::FontAttributes;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+pub mod enum_font_families;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod font_config;
-#[cfg(any(target_os = "macos", windows))]
+#[cfg(target_os = "macos")]
 pub mod font_loader;
 
 /// Represents the data behind a font.
@@ -64,10 +65,16 @@ pub fn new_locator(locator: FontLocatorSelection) -> Box<dyn FontLocator> {
             panic!("fontconfig not compiled in");
         }
         FontLocatorSelection::FontLoader => {
-            #[cfg(any(target_os = "macos", windows))]
+            #[cfg(target_os = "macos")]
             return Box::new(font_loader::FontLoaderFontLocator {});
-            #[cfg(not(any(target_os = "macos", windows)))]
+            #[cfg(not(target_os = "macos"))]
             panic!("fontloader not compiled in");
+        }
+        FontLocatorSelection::EnumFontFamilies => {
+            #[cfg(windows)]
+            return Box::new(enum_font_families::EnumFontFamiliesFontLocator {});
+            #[cfg(not(windows))]
+            panic!("EnumFontFamilies not compiled in");
         }
         FontLocatorSelection::ConfigDirsOnly => Box::new(NopSystemSource {}),
     }

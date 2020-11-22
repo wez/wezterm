@@ -225,6 +225,8 @@ impl_lua_conversion!(StyleRule);
 pub enum FontLocatorSelection {
     /// Use fontconfig APIs to resolve fonts (!macos, posix systems)
     FontConfig,
+    /// Use the EnumFontFamilies call on win32 systems
+    EnumFontFamilies,
     /// Use the fontloader crate to use a system specific method of
     /// resolving fonts
     FontLoader,
@@ -238,10 +240,12 @@ lazy_static::lazy_static! {
 
 impl Default for FontLocatorSelection {
     fn default() -> Self {
-        if cfg!(all(unix, not(target_os = "macos"))) {
-            FontLocatorSelection::FontConfig
-        } else {
+        if cfg!(windows) {
+            FontLocatorSelection::EnumFontFamilies
+        } else if cfg!(target_os = "macos") {
             FontLocatorSelection::FontLoader
+        } else {
+            FontLocatorSelection::FontConfig
         }
     }
 }
@@ -258,7 +262,12 @@ impl FontLocatorSelection {
     }
 
     pub fn variants() -> Vec<&'static str> {
-        vec!["FontConfig", "FontLoader", "ConfigDirsOnly"]
+        vec![
+            "FontConfig",
+            "FontLoader",
+            "ConfigDirsOnly",
+            "EnumFontFamilies",
+        ]
     }
 }
 
@@ -269,6 +278,7 @@ impl std::str::FromStr for FontLocatorSelection {
             "fontconfig" => Ok(Self::FontConfig),
             "fontloader" => Ok(Self::FontLoader),
             "configdirsonly" => Ok(Self::ConfigDirsOnly),
+            "enumfontfamilies" => Ok(Self::EnumFontFamilies),
             _ => Err(anyhow!(
                 "{} is not a valid FontLocatorSelection variant, possible values are {:?}",
                 s,
