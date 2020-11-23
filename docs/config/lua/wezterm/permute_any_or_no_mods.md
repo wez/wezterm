@@ -15,7 +15,7 @@ difference between `permute_any_mods` and `permute_any_or_no_mods`).
 
 An array holding all of those combinations is returned.
 
-The array can be unpacked into a lua table initializer and used like this:
+If this is your only binding, or it is the _last_ binding, the resulting array can be unpacked into a lua table initializer and used like this:
 
 ```lua
 local wezterm = require 'wezterm';
@@ -29,6 +29,7 @@ return {
   }
 }
 ```
+(and if you have other bindings before and/or after, use a for loop to iterate and add each binding to your bindings table)
 
 This is equivalent to writing this out, but is much less verbose:
 
