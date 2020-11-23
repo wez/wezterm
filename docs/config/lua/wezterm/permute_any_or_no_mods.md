@@ -22,7 +22,7 @@ local wezterm = require 'wezterm';
 
 return {
   mouse_bindings = {
-    table.unpack(wezterm.permute_any_mods({
+    table.unpack(wezterm.permute_any_or_no_mods({
       event={Down={streak=1, button="Middle"}},
       action="PastePrimarySelection"
     }))
