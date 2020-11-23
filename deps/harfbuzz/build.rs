@@ -12,7 +12,7 @@ fn harfbuzz() {
 
     let mut cfg = cc::Build::new();
     cfg.warnings(false);
-    cfg.cpp(false);
+    cfg.cpp(true);
     cfg.flag_if_supported("-fno-rtti");
     cfg.flag_if_supported("-fno-exceptions");
     cfg.flag_if_supported("-fno-threadsafe-statics");
