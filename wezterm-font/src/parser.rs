@@ -542,16 +542,17 @@ pub fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
         // this is a pretty rough approximation
         if attr.family == *fam {
             match names.sub_family.as_ref().map(String::as_str) {
-                Some("Italic") if attr.italic && !attr.bold => true,
-                Some("Bold") if attr.bold && !attr.italic => true,
-                Some("Bold Italic") if attr.bold && attr.italic => true,
-                Some("Medium") | Some("Regular") | None if !attr.italic && !attr.bold => true,
-                _ => false,
+                Some("Italic") if attr.italic && !attr.bold => return true,
+                Some("Bold") if attr.bold && !attr.italic => return true,
+                Some("Bold Italic") if attr.bold && attr.italic => return true,
+                Some("Medium") | Some("Regular") | None if !attr.italic && !attr.bold => {
+                    return true
+                }
+                _ => {}
             }
-        } else {
-            false
         }
-    } else if attr.family == names.full_name && !attr.bold && !attr.italic {
+    }
+    if attr.family == names.full_name && !attr.bold && !attr.italic {
         true
     } else {
         false
