@@ -222,6 +222,12 @@ impl Buffer {
         }
     }
 
+    pub fn set_cluster_level(&mut self, level: hb_buffer_cluster_level_t) {
+        unsafe {
+            hb_buffer_set_cluster_level(self.buf, level);
+        }
+    }
+
     pub fn set_direction(&mut self, direction: hb_direction_t) {
         unsafe {
             hb_buffer_set_direction(self.buf, direction);

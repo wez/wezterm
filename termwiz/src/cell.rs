@@ -530,13 +530,27 @@ pub fn grapheme_column_width(s: &str) -> usize {
     // the desired value.
     // Let's check for emoji-ness for ourselves first
     use xi_unicode::EmojiExt;
+    let mut emoji = false;
     for c in s.chars() {
         if c.is_emoji_modifier_base() || c.is_emoji_modifier() {
             // treat modifier sequences as double wide
             return 2;
         }
+        if c.is_emoji() {
+            emoji = true;
+        }
     }
-    UnicodeWidthStr::width(s)
+    let width = UnicodeWidthStr::width(s);
+    if emoji {
+        // For sequences such as "deaf man", UnicodeWidthStr::width()
+        // returns 3 because of the widths of the component glyphs,
+        // rather than 2 for a single double width grapheme.
+        // If we saw any emoji within the characters then we assume
+        // that it can be a maximum of 2 cells in width.
+        width.min(2)
+    } else {
+        width
+    }
 }
 
 /// Models a change in the attributes of a cell in a stream of changes.
@@ -627,5 +641,16 @@ mod test {
             "width of {} should be 2",
             women_holding_hands_dark_skin_tone_medium_light_skin_tone
         );
+
+        let deaf_man = "\u{1F9CF}\u{200D}\u{2642}\u{FE0F}";
+        eprintln!("deaf_man chars");
+        for c in deaf_man.chars() {
+            eprintln!("char: {:?}", c);
+            use xi_unicode::EmojiExt;
+            eprintln!("xi emoji: {}", c.is_emoji());
+            eprintln!("xi emoji_mod: {}", c.is_emoji_modifier());
+            eprintln!("xi emoji_mod_base: {}", c.is_emoji_modifier_base());
+        }
+        assert_eq!(unicode_column_width(deaf_man), 2);
     }
 }

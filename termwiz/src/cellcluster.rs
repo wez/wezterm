@@ -21,6 +21,7 @@ impl CellCluster {
 
         for (cell_idx, c) in iter {
             let cell_str = c.str();
+            let normalized_attr = c.attrs().clone().set_wrapped(false).clone();
 
             last_cluster = match last_cluster.take() {
                 None => {
@@ -28,10 +29,10 @@ impl CellCluster {
                     Some(CellCluster::new(c.attrs().clone(), cell_str, cell_idx))
                 }
                 Some(mut last) => {
-                    if last.attrs != *c.attrs() {
+                    if last.attrs != normalized_attr {
                         // Flush pending cluster and start a new one
                         clusters.push(last);
-                        Some(CellCluster::new(c.attrs().clone(), cell_str, cell_idx))
+                        Some(CellCluster::new(normalized_attr, cell_str, cell_idx))
                     } else {
                         // Add to current cluster
                         last.add(cell_str, cell_idx);

@@ -2695,10 +2695,31 @@ impl TermWindow {
         let window_is_transparent =
             self.window_background.is_some() || params.config.window_background_opacity != 1.0;
 
+        let white_space = gl_state.util_sprites.white_space.texture_coords();
+
+        // Pre-set the row with the whitespace glyph.
+        // This is here primarily because clustering/shaping can cause the line updates
+        // to skip setting a quad that is logically obscured by a double-wide glyph.
+        // If eg: scrolling the viewport causes the pair of quads to change from two
+        // individual cells to a single double-wide cell then we might leave the second
+        // one of the pair with the glyph from the prior viewport position.
+        for cell_idx in 0..num_cols {
+            let mut quad =
+                match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
+                    Ok(quad) => quad,
+                    Err(_) => break,
+                };
+
+            quad.set_texture(white_space);
+            quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_underline(white_space);
+            quad.set_cursor(white_space);
+        }
+
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = params.line.cluster();
-        let mut last_cell_idx = 0;
-        for cluster in cell_clusters {
+        let mut last_cell_idx = None;
+        for cluster in &cell_clusters {
             let attrs = &cluster.attrs;
             let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
                 (Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
@@ -2788,6 +2809,24 @@ impl TermWindow {
 
             for info in glyph_info.iter() {
                 let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
+
+                if last_cell_idx.is_some() && cell_idx <= last_cell_idx.unwrap() {
+                    // This is a tricky case: if we have a cluster such as
+                    // 1F470 1F3FF 200D 2640 (woman with veil: dark skin tone)
+                    // and the font doesn't define a glyph for it, the shaper
+                    // may give us a sequence of three output clusters, each
+                    // comprising: veil, skin tone and female respectively.
+                    // Those all have the same info.cluster which
+                    // means that they all resolve to the same cell_idx.
+                    // In this case, the cluster is logically a single cell,
+                    // and the best presentation is of the veil, so we pick
+                    // that one and ignore the rest of the glyphs that map to
+                    // this same cell.
+                    // Ideally we'd overlay this with a "something is broken"
+                    // glyph in the corner.
+                    continue;
+                }
+
                 let glyph = gl_state
                     .glyph_cache
                     .borrow_mut()
@@ -2822,7 +2861,8 @@ impl TermWindow {
                         // smaller than the terminal.
                         break;
                     }
-                    last_cell_idx = cell_idx;
+
+                    last_cell_idx.replace(cell_idx);
 
                     let ComputeCellFgBgResult {
                         fg_color: glyph_color,
@@ -2898,7 +2938,7 @@ impl TermWindow {
                         quad.set_bg_color(bg_color);
                         quad.set_texture(texture_rect);
                         quad.set_texture_adjust(0., 0., 0., 0.);
-                        quad.set_underline(gl_state.util_sprites.white_space.texture_coords());
+                        quad.set_underline(white_space);
                         quad.set_has_color(true);
                         quad.set_cursor(
                             gl_state
@@ -2965,9 +3005,7 @@ impl TermWindow {
         // the right pane with its prior contents instead of showing the
         // cleared lines from the shell in the main screen.
 
-        let white_space = gl_state.util_sprites.white_space.texture_coords();
-
-        for cell_idx in last_cell_idx + 1..num_cols {
+        for cell_idx in last_cell_idx.unwrap_or(0) + 1..num_cols {
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.

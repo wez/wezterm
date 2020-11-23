@@ -31,6 +31,6 @@ termwiz = { path = "../termwiz" }
 textwrap = "0.12"
 thiserror = "1.0"
 tmux-cc = { path = "../tmux-cc" }
-unicode-segmentation = "1.6"
+unicode-segmentation = "1.7"
 url = "2"
 wezterm-term = { path = "../term", features=["use_serde"] }

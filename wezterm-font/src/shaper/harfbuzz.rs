@@ -5,17 +5,31 @@ use crate::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::units::*;
 use anyhow::anyhow;
 use config::configuration;
-use log::{debug, error};
+use log::error;
 use std::cell::{RefCell, RefMut};
 use termwiz::cell::unicode_column_width;
 use thiserror::Error;
+use unicode_segmentation::UnicodeSegmentation;
 
-fn make_glyphinfo(
-    text: &str,
-    font_idx: usize,
-    info: &harfbuzz::hb_glyph_info_t,
-    pos: &harfbuzz::hb_glyph_position_t,
-) -> GlyphInfo {
+#[derive(Clone)]
+struct Info<'a> {
+    cluster: usize,
+    len: usize,
+    codepoint: harfbuzz::hb_codepoint_t,
+    pos: &'a harfbuzz::hb_glyph_position_t,
+}
+
+impl<'a> std::fmt::Debug for Info<'a> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        fmt.debug_struct("Info")
+            .field("cluster", &self.cluster)
+            .field("len", &self.len)
+            .field("codepoint", &self.codepoint)
+            .finish()
+    }
+}
+
+fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
     let num_cells = unicode_column_width(text) as u8;
     GlyphInfo {
         #[cfg(debug_assertions)]
@@ -23,11 +37,11 @@ fn make_glyphinfo(
         num_cells,
         font_idx,
         glyph_pos: info.codepoint,
-        cluster: info.cluster,
-        x_advance: PixelLength::new(f64::from(pos.x_advance) / 64.0),
-        y_advance: PixelLength::new(f64::from(pos.y_advance) / 64.0),
-        x_offset: PixelLength::new(f64::from(pos.x_offset) / 64.0),
-        y_offset: PixelLength::new(f64::from(pos.y_offset) / 64.0),
+        cluster: info.cluster as u32,
+        x_advance: PixelLength::new(f64::from(info.pos.x_advance) / 64.0),
+        y_advance: PixelLength::new(f64::from(info.pos.y_advance) / 64.0),
+        x_offset: PixelLength::new(f64::from(info.pos.x_offset) / 64.0),
+        y_offset: PixelLength::new(f64::from(info.pos.y_offset) / 64.0),
     }
 }
 
@@ -36,6 +50,8 @@ struct FontPair {
     font: harfbuzz::Font,
     size: f64,
     dpi: u32,
+    cell_width: f64,
+    cell_height: f64,
 }
 
 pub struct HarfbuzzShaper {
@@ -55,7 +71,6 @@ struct NoMoreFallbacksError {
 /// original string.  That isn't perfect, but it should
 /// be good enough to indicate that something isn't right.
 fn make_question_string(s: &str) -> String {
-    use unicode_segmentation::UnicodeSegmentation;
     let len = s.graphemes(true).count();
     let mut result = String::new();
     let c = if !is_question_string(s) {
@@ -112,6 +127,8 @@ impl HarfbuzzShaper {
                         font,
                         size: 0.,
                         dpi: 0,
+                        cell_width: 0.,
+                        cell_height: 0.,
                     });
                 }
 
@@ -141,16 +158,24 @@ impl HarfbuzzShaper {
         buf.set_direction(harfbuzz::hb_direction_t::HB_DIRECTION_LTR);
         buf.set_language(harfbuzz::language_from_string("en")?);
         buf.add_str(s);
+        buf.set_cluster_level(
+            harfbuzz::hb_buffer_cluster_level_t::HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES,
+        );
+
+        let cell_width;
 
         {
             match self.load_fallback(font_idx)? {
                 #[allow(clippy::float_cmp)]
                 Some(mut pair) => {
                     if pair.size != font_size || pair.dpi != dpi {
-                        pair.face.set_font_size(font_size, dpi)?;
+                        let (width, height) = pair.face.set_font_size(font_size, dpi)?;
                         pair.size = font_size;
                         pair.dpi = dpi;
+                        pair.cell_width = width;
+                        pair.cell_height = height;
                     }
+                    cell_width = pair.cell_width;
                     pair.font.shape(&mut buf, Some(features.as_slice()));
                 }
                 None => {
@@ -162,13 +187,10 @@ impl HarfbuzzShaper {
             }
         }
 
-        let infos = buf.glyph_infos();
+        let hb_infos = buf.glyph_infos();
         let positions = buf.glyph_positions();
 
         let mut cluster = Vec::new();
-
-        let mut last_text_pos = None;
-        let mut first_fallback_pos = None;
 
         // Compute the lengths of the text clusters.
         // Ligatures and combining characters mean
@@ -182,45 +204,61 @@ impl HarfbuzzShaper {
         // the fragments to properly handle fallback,
         // and they're handy to have for debugging
         // purposes too.
-        let mut sizes = Vec::with_capacity(s.len());
-        for (i, info) in infos.iter().enumerate() {
-            let pos = info.cluster as usize;
-            let mut size = 1;
-            if let Some(last_pos) = last_text_pos {
-                let diff = pos - last_pos;
-                if diff > 1 {
-                    sizes[i - 1] = diff;
-                }
-            } else if pos != 0 {
-                size = pos;
-            }
-            last_text_pos = Some(pos);
-            sizes.push(size);
-        }
-        if let Some(last_pos) = last_text_pos {
-            let diff = s.len() - last_pos;
-            if diff > 1 {
-                let last = sizes.len() - 1;
-                sizes[last] = diff;
-            }
-        }
-        //debug!("sizes: {:?}", sizes);
+        let mut info_clusters: Vec<Vec<Info>> = vec![];
+        let mut info_iter = hb_infos.iter().enumerate().peekable();
+        while let Some((i, info)) = info_iter.next() {
+            let next_pos = info_iter
+                .peek()
+                .map(|(_, info)| info.cluster as usize)
+                .unwrap_or(s.len());
 
-        // Now make a second pass to determine if we need
-        // to perform fallback to a later font.
-        // We can determine this by looking at the codepoint.
-        for (i, info) in infos.iter().enumerate() {
-            let pos = info.cluster as usize;
-            if info.codepoint == 0 {
-                if first_fallback_pos.is_none() {
-                    // Start of a run that needs fallback
-                    first_fallback_pos = Some(pos);
-                }
-            } else if let Some(start_pos) = first_fallback_pos {
-                // End of a fallback run
-                //debug!("range: {:?}-{:?} needs fallback", start, pos);
+            let info = Info {
+                cluster: info.cluster as usize,
+                len: next_pos - info.cluster as usize,
+                codepoint: info.codepoint,
+                pos: &positions[i],
+            };
 
-                let substr = &s[start_pos..pos];
+            if let Some(ref mut cluster) = info_clusters.last_mut() {
+                if cluster.last().unwrap().cluster == info.cluster {
+                    cluster.push(info);
+                    continue;
+                }
+                // Don't fragment runs of unresolve codepoints; they could be a sequence
+                // that shapes together in a fallback font.
+                if info.codepoint == 0 {
+                    let prior = cluster.last_mut().unwrap();
+                    if prior.codepoint == 0 {
+                        prior.len = next_pos - prior.cluster;
+                        continue;
+                    }
+                }
+            }
+            info_clusters.push(vec![info]);
+        }
+        /*
+        if font_idx > 0 {
+            log::error!("do_shape: font_idx={} {:?} {:?}", font_idx, s, info_clusters);
+        }
+        */
+
+        for infos in &info_clusters {
+            let cluster_len: usize = infos.iter().map(|info| info.len).sum();
+            let cluster_start = infos.first().unwrap().cluster;
+            let substr = &s[cluster_start..cluster_start + cluster_len];
+
+            let incomplete = infos.iter().find(|info| info.codepoint == 0).is_some();
+
+            if incomplete {
+                // One or more entries didn't have a corresponding glyph,
+                // so try a fallback
+
+                /*
+                if font_idx == 0 {
+                    log::error!("incomplete cluster for text={:?} {:?}", s, info_clusters);
+                }
+                */
+
                 let mut shape = match self.do_shape(font_idx + 1, substr, font_size, dpi) {
                     Ok(shape) => Ok(shape),
                     Err(e) => {
@@ -231,50 +269,48 @@ impl HarfbuzzShaper {
 
                 // Fixup the cluster member to match our current offset
                 for mut info in &mut shape {
-                    info.cluster += start_pos as u32;
+                    info.cluster += cluster_start as u32;
                 }
                 cluster.append(&mut shape);
-
-                first_fallback_pos = None;
+                continue;
             }
-            if info.codepoint != 0 {
-                if s.is_char_boundary(pos) && s.is_char_boundary(pos + sizes[i]) {
-                    let text = &s[pos..pos + sizes[i]];
-                    //debug!("glyph from `{}`", text);
-                    cluster.push(make_glyphinfo(text, font_idx, info, &positions[i]));
+
+            let mut next_idx = 0;
+            for info in infos.iter() {
+                if info.pos.x_advance == 0 {
+                    continue;
+                }
+
+                let nom_width =
+                    ((f64::from(info.pos.x_advance) / 64.0) / cell_width).ceil() as usize;
+
+                let len;
+                if nom_width == 0 || !substr.is_char_boundary(next_idx + nom_width) {
+                    let remainder = &substr[next_idx..];
+                    if let Some(g) = remainder.graphemes(true).next() {
+                        len = g.len();
+                    } else {
+                        len = remainder.len();
+                    }
                 } else {
-                    cluster.append(&mut self.do_shape(0, "?", font_size, dpi)?);
+                    len = nom_width;
                 }
+
+                let glyph = if len > 0 {
+                    let text = &substr[next_idx..next_idx + len];
+                    make_glyphinfo(text, font_idx, info)
+                } else {
+                    make_glyphinfo("__", font_idx, info)
+                };
+
+                if glyph.x_advance != PixelLength::new(0.0) {
+                    // log::error!("glyph: {:?}, nominal width: {:?}/{:?} = {:?}", glyph, glyph.x_advance, cell_width, nom_width);
+                    cluster.push(glyph);
+                }
+
+                next_idx += len;
             }
         }
-
-        // Check to see if we started and didn't finish a
-        // fallback run.
-        if let Some(start_pos) = first_fallback_pos {
-            let substr = &s[start_pos..];
-            if false {
-                debug!(
-                    "at end {:?}-{:?} needs fallback {}",
-                    start_pos,
-                    s.len() - 1,
-                    substr,
-                );
-            }
-            let mut shape = match self.do_shape(font_idx + 1, substr, font_size, dpi) {
-                Ok(shape) => Ok(shape),
-                Err(e) => {
-                    error!("{:?} for {:?}", e, substr);
-                    self.do_shape(0, &make_question_string(substr), font_size, dpi)
-                }
-            }?;
-            // Fixup the cluster member to match our current offset
-            for mut info in &mut shape {
-                info.cluster += start_pos as u32;
-            }
-            cluster.append(&mut shape);
-        }
-
-        //debug!("shaped: {:#?}", cluster);
 
         Ok(cluster)
     }
@@ -285,6 +321,16 @@ impl FontShaper for HarfbuzzShaper {
         let start = std::time::Instant::now();
         let result = self.do_shape(0, text, size, dpi);
         metrics::value!("shape.harfbuzz", start.elapsed());
+        /*
+        if let Ok(glyphs) = &result {
+            for g in glyphs {
+                if g.font_idx > 0 {
+                    log::error!("{:#?}", result);
+                    break;
+                }
+            }
+        }
+        */
         result
     }
 

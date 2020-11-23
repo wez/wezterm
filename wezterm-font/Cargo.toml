@@ -20,7 +20,7 @@ mux = { path = "../mux" }
 termwiz = { path = "../termwiz" }
 thiserror = "1.0"
 tinyvec = "1.1" # Note: constrained by the allsorts crate
-unicode-segmentation = "1.6"
+unicode-segmentation = "1.7"
 unicode-general-category = "0.3"
 walkdir = "2"
 wezterm-term = { path = "../term", features=["use_serde"] }
