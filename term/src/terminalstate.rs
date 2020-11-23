@@ -821,7 +821,7 @@ impl TerminalState {
                 if mods.contains(KeyModifiers::SHIFT) || mods.contains(KeyModifiers::CTRL) {
                     self.csi_u_encode(&mut buf, c, mods)?;
                 } else {
-                    if mods.contains(KeyModifiers::ALT) && key != Escape {
+                    if mods.contains(KeyModifiers::ALT) {
                         buf.push(0x1b as char);
                     }
                     buf.push(c);

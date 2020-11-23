@@ -20,6 +20,7 @@ brief notes about them may accumulate here.
 * Added `SemanticZone` as a possible parameter for [SelectTextAtMouseCursor](config/lua/keyassignment/SelectTextAtMouseCursor.md), making it possible to conveniently select complete input or output regions.
 * Improved font rendering [#320](https://github.com/wez/wezterm/issues/320) [#331](https://github.com/wez/wezterm/issues/331)
 * Updated internal harfbuzz shaper to 2.7.2
+* Fixed ALT-Escape not sending ESC-ESC [#338](https://github.com/wez/wezterm/issues/338)
 
 ### 20201101-103216-403d002d
 
