@@ -600,6 +600,7 @@ fn load_built_in_fonts(
         font!("../../assets/fonts/JetBrainsMono-SemiLight-Italic.ttf"),
         font!("../../assets/fonts/JetBrainsMono-SemiLight.ttf"),
         font!("../../assets/fonts/NotoColorEmoji.ttf"),
+        font!("../../assets/fonts/LastResortHE-Regular.ttf"),
     ] {
         let scope = allsorts::binary::read::ReadScope::new(&data);
         let file = scope.read::<OpenTypeFile>()?;

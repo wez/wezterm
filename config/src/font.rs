@@ -172,6 +172,9 @@ impl TextStyle {
         // We bundle this emoji font as an in-memory fallback
         font.push(FontAttributes::new_fallback("Noto Color Emoji"));
 
+        // And finally, a last resort fallback font
+        font.push(FontAttributes::new_fallback("Last Resort High-Efficiency"));
+
         font
     }
 }
