@@ -144,10 +144,10 @@ The default key bindings are:
 | `CTRL+SHIFT`     | `9`      | `ActivateTab=-1` |
 | `SUPER+SHIFT` | `[` | `ActivateTabRelative=-1` |
 | `SUPER+SHIFT` | `]` | `ActivateTabRelative=1` |
-| `CTRL+SHIFT`     | `PAGEUP`      | `MoveTabRelative=-1` |
-| `CTRL+SHIFT`     | `PAGEDOWN`      | `MoveTabRelative=1` |
-| `SHIFT`          | `PAGEUP`      | `ScrollByPage=-1` |
-| `SHIFT`          | `PAGEDOWN`    | `ScrollByPage=1` |
+| `CTRL+SHIFT`     | `PageUp`      | `MoveTabRelative=-1` |
+| `CTRL+SHIFT`     | `PageDown`      | `MoveTabRelative=1` |
+| `SHIFT`          | `PageUp`      | `ScrollByPage=-1` |
+| `SHIFT`          | `PageDown`    | `ScrollByPage=1` |
 | `ALT`            | `9`    | `ShowTabNavigator` |
 | `SUPER`          | `r`    | `ReloadConfiguration` |
 | `CTRL+SHIFT`     | `R`    | `ReloadConfiguration` |
