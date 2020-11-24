@@ -73,7 +73,7 @@ pub fn new_locator(locator: FontLocatorSelection) -> Box<dyn FontLocator> {
             #[cfg(windows)]
             return Box::new(gdi::GdiFontLocator {});
             #[cfg(not(windows))]
-            panic!("EnumFontFamilies not compiled in");
+            panic!("Gdi not compiled in");
         }
         FontLocatorSelection::ConfigDirsOnly => Box::new(NopSystemSource {}),
     }
