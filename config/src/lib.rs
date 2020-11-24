@@ -449,6 +449,9 @@ pub struct Config {
     #[serde(default = "default_font_size")]
     pub font_size: f64,
 
+    #[serde(default)]
+    pub allow_square_glyphs_to_overflow_width: AllowSquareGlyphOverflow,
+
     /// When using FontKitXXX font systems, a set of directories to
     /// search ahead of the standard font locations for fonts.
     /// Relative paths are taken to be relative to the directory

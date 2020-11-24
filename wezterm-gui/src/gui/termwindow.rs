@@ -2311,12 +2311,14 @@ impl TermWindow {
             }
         };
         let first_row_offset = if self.show_tab_bar { 1 } else { 0 };
+        let not_followed_by_space = false;
 
         for info in glyph_info.iter() {
-            let glyph = gl_state
-                .glyph_cache
-                .borrow_mut()
-                .cached_glyph(info, style)?;
+            let glyph = gl_state.glyph_cache.borrow_mut().cached_glyph(
+                info,
+                style,
+                not_followed_by_space,
+            )?;
 
             let left = (glyph.x_offset + glyph.bearing_x).get() as f32;
             let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)
@@ -2827,10 +2829,16 @@ impl TermWindow {
                     continue;
                 }
 
-                let glyph = gl_state
-                    .glyph_cache
-                    .borrow_mut()
-                    .cached_glyph(info, style)?;
+                let followed_by_space = match params.line.cells().get(cell_idx + 1) {
+                    Some(cell) => cell.str() == " ",
+                    None => false,
+                };
+
+                let glyph = gl_state.glyph_cache.borrow_mut().cached_glyph(
+                    info,
+                    style,
+                    followed_by_space,
+                )?;
 
                 let left = (glyph.x_offset + glyph.bearing_x).get() as f32;
                 let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)

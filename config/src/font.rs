@@ -235,6 +235,19 @@ pub struct StyleRule {
 impl_lua_conversion!(StyleRule);
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+pub enum AllowSquareGlyphOverflow {
+    Never,
+    Always,
+    WhenFollowedBySpace,
+}
+
+impl Default for AllowSquareGlyphOverflow {
+    fn default() -> Self {
+        Self::Never
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum FontLocatorSelection {
     /// Use fontconfig APIs to resolve fonts (!macos, posix systems)
     FontConfig,

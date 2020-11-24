@@ -3,7 +3,7 @@ use ::window::bitmaps::{Image, Texture2d};
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::*;
-use config::TextStyle;
+use config::{configuration, AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -17,6 +17,7 @@ pub struct GlyphKey {
     pub font_idx: usize,
     pub glyph_pos: u32,
     pub style: TextStyle,
+    pub followed_by_space: bool,
 }
 
 /// We'd like to avoid allocating when resolving from the cache
@@ -29,6 +30,7 @@ pub struct BorrowedGlyphKey<'a> {
     pub font_idx: usize,
     pub glyph_pos: u32,
     pub style: &'a TextStyle,
+    pub followed_by_space: bool,
 }
 
 impl<'a> BorrowedGlyphKey<'a> {
@@ -37,6 +39,7 @@ impl<'a> BorrowedGlyphKey<'a> {
             font_idx: self.font_idx,
             glyph_pos: self.glyph_pos,
             style: self.style.clone(),
+            followed_by_space: self.followed_by_space,
         }
     }
 }
@@ -51,6 +54,7 @@ impl GlyphKeyTrait for GlyphKey {
             font_idx: self.font_idx,
             glyph_pos: self.glyph_pos,
             style: &self.style,
+            followed_by_space: self.followed_by_space,
         }
     }
 }
@@ -151,18 +155,20 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         info: &GlyphInfo,
         style: &TextStyle,
+        followed_by_space: bool,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let key = BorrowedGlyphKey {
             font_idx: info.font_idx,
             glyph_pos: info.glyph_pos,
             style,
+            followed_by_space,
         };
 
         if let Some(entry) = self.glyph_cache.get(&key as &dyn GlyphKeyTrait) {
             return Ok(Rc::clone(entry));
         }
 
-        let glyph = self.load_glyph(info, style)?;
+        let glyph = self.load_glyph(info, style, followed_by_space)?;
         self.glyph_cache.insert(key.to_owned(), Rc::clone(&glyph));
         Ok(glyph)
     }
@@ -173,6 +179,7 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         info: &GlyphInfo,
         style: &TextStyle,
+        followed_by_space: bool,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let base_metrics;
         let idx_metrics;
@@ -192,8 +199,18 @@ impl<T: Texture2d> GlyphCache<T> {
         let aspect = (idx_metrics.cell_height / idx_metrics.cell_width).get();
         let is_square = aspect >= 0.9 && aspect <= 1.1;
 
-        let scale = if !is_square && y_scale * glyph.width as f64
-            > base_metrics.cell_width.get() * info.num_cells as f64
+        let allow_width_overflow = if is_square {
+            match configuration().allow_square_glyphs_to_overflow_width {
+                AllowSquareGlyphOverflow::Never => false,
+                AllowSquareGlyphOverflow::Always => true,
+                AllowSquareGlyphOverflow::WhenFollowedBySpace => followed_by_space,
+            }
+        } else {
+            false
+        };
+
+        let scale = if !allow_width_overflow
+            && y_scale * glyph.width as f64 > base_metrics.cell_width.get() * info.num_cells as f64
         {
             // y-scaling would make us too wide, so use the x-scale
             x_scale
