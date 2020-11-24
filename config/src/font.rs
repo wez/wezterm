@@ -51,6 +51,16 @@ pub struct FontAttributes {
 }
 impl_lua_conversion!(FontAttributes);
 
+impl std::fmt::Display for FontAttributes {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(
+            fmt,
+            "wezterm.font('{}', {{bold={}, italic={}}})",
+            self.family, self.bold, self.italic
+        )
+    }
+}
+
 impl FontAttributes {
     pub fn new(family: &str) -> Self {
         Self {

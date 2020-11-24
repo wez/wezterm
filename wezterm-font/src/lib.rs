@@ -150,11 +150,45 @@ impl FontConfiguration {
 
         for attr in &attributes {
             if !attr.is_fallback && !loaded.contains(attr) {
+                let styled_extra = if attr.bold || attr.italic {
+                    ". A bold or italic variant of the font was requested; \
+                    TrueType and OpenType fonts don't have an automatic way to \
+                    produce these font variants, so a separate font file containing \
+                    the bold or italic variant must be installed"
+                } else {
+                    ""
+                };
+
+                let is_primary = config.font.font.iter().any(|a| a == attr);
+                let derived_from_primary = config.font.font.iter().any(|a| a.family == attr.family);
+
+                let explanation = if is_primary {
+                    // This is the primary font selection
+                    format!(
+                        "Unable to load a font specified by your font={} configuration",
+                        attr
+                    )
+                } else if derived_from_primary {
+                    // it came from font_rules and may have been derived from
+                    // their primary font (we can't know for sure)
+                    format!(
+                        "Unable to load a font matching one of your font_rules: {}. \
+                        Note that wezterm will synthesize font_rules to select bold \
+                        and italic fonts based on your primary font configuration",
+                        attr
+                    )
+                } else {
+                    format!(
+                        "Unable to load a font matching one of your font_rules: {}",
+                        attr
+                    )
+                };
+
                 mux::connui::show_configuration_error_message(&format!(
-                    "Unable to load a font matching {:?}. Fallback(s)
-                     are being used instead, and the terminal may not
-                     render as intended",
-                    attr
+                    "{}. Fallback(s) are being used instead, and the terminal \
+                    may not render as intended{}. See \
+                    https://wezfurlong.org/wezterm/config/fonts.html for more information",
+                    explanation, styled_extra
                 ));
             }
         }
