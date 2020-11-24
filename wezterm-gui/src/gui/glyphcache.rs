@@ -189,7 +189,10 @@ impl<T: Texture2d> GlyphCache<T> {
         let y_scale = base_metrics.cell_height.get() / idx_metrics.cell_height.get();
         let x_scale = base_metrics.cell_width.get() / idx_metrics.cell_width.get();
 
-        let scale = if y_scale * glyph.width as f64
+        let aspect = (idx_metrics.cell_height / idx_metrics.cell_width).get();
+        let is_square = aspect >= 0.9 && aspect <= 1.1;
+
+        let scale = if !is_square && y_scale * glyph.width as f64
             > base_metrics.cell_width.get() * info.num_cells as f64
         {
             // y-scaling would make us too wide, so use the x-scale
