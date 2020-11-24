@@ -54,7 +54,7 @@ You may [change the color of the scrollbar](config/appearance.html#defining-your
 
 ### Scrolling without a scrollbar
 
-By default, `SHIFT-PAGEUP` and `SHIFT-PAGEDOWN` will adjust the viewport scrollback position
+By default, `SHIFT-PageUp` and `SHIFT-PageDown` will adjust the viewport scrollback position
 by one full screen for each press.
 
 See the [ScrollByPage](config/keys.html#scrollbypage) docs for more information
