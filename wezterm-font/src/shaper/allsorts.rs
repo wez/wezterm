@@ -119,6 +119,17 @@ impl FontShaper for AllsortsShaper {
         Ok(results)
     }
 
+    fn metrics_for_idx(&self, font_idx: usize, size: f64, dpi: u32) -> anyhow::Result<FontMetrics> {
+        let font = self
+            .fonts
+            .get(font_idx)
+            .ok_or_else(|| anyhow::anyhow!("invalid font_idx {}", font_idx))?;
+        let font = font
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("failed to load font_idx {}", font_idx))?;
+        Ok(font.get_metrics(size, dpi))
+    }
+
     fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics> {
         for font in &self.fonts {
             if let Some(font) = font {

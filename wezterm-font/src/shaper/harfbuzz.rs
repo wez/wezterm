@@ -334,6 +334,33 @@ impl FontShaper for HarfbuzzShaper {
         result
     }
 
+    fn metrics_for_idx(&self, font_idx: usize, size: f64, dpi: u32) -> anyhow::Result<FontMetrics> {
+        let mut pair = self
+            .load_fallback(font_idx)?
+            .ok_or_else(|| anyhow!("unable to load font idx {}!?", font_idx))?;
+        let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
+        let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
+        let metrics = FontMetrics {
+            cell_height: PixelLength::new(cell_height),
+            cell_width: PixelLength::new(cell_width),
+            // Note: face.face.descender is useless, we have to go through
+            // face.face.size.metrics to get to the real descender!
+            descender: PixelLength::new(
+                unsafe { (*(*pair.face.face).size).metrics.descender as f64 } / 64.0,
+            ),
+            underline_thickness: PixelLength::new(
+                unsafe { (*pair.face.face).underline_thickness as f64 } * y_scale / 64.,
+            ),
+            underline_position: PixelLength::new(
+                unsafe { (*pair.face.face).underline_position as f64 } * y_scale / 64.,
+            ),
+        };
+
+        log::trace!("metrics: {:?}", metrics);
+
+        Ok(metrics)
+    }
+
     fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics> {
         // Returns the metrics for the selected font... but look out
         // for implausible sizes.
@@ -366,29 +393,6 @@ impl FontShaper for HarfbuzzShaper {
             metrics_idx += 1;
         }
 
-        let mut pair = self
-            .load_fallback(metrics_idx)?
-            .ok_or_else(|| anyhow!("unable to load font idx {}!?", metrics_idx))?;
-        let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
-        let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
-        let metrics = FontMetrics {
-            cell_height: PixelLength::new(cell_height),
-            cell_width: PixelLength::new(cell_width),
-            // Note: face.face.descender is useless, we have to go through
-            // face.face.size.metrics to get to the real descender!
-            descender: PixelLength::new(
-                unsafe { (*(*pair.face.face).size).metrics.descender as f64 } / 64.0,
-            ),
-            underline_thickness: PixelLength::new(
-                unsafe { (*pair.face.face).underline_thickness as f64 } * y_scale / 64.,
-            ),
-            underline_position: PixelLength::new(
-                unsafe { (*pair.face.face).underline_position as f64 } * y_scale / 64.,
-            ),
-        };
-
-        log::trace!("metrics: {:?}", metrics);
-
-        Ok(metrics)
+        self.metrics_for_idx(metrics_idx, size, dpi)
     }
 }

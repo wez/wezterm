@@ -41,6 +41,11 @@ impl LoadedFont {
         self.shaper.shape(text, self.font_size, self.dpi)
     }
 
+    pub fn metrics_for_idx(&self, font_idx: usize) -> anyhow::Result<FontMetrics> {
+        self.shaper
+            .metrics_for_idx(font_idx, self.font_size, self.dpi)
+    }
+
     pub fn rasterize_glyph(
         &self,
         glyph_pos: u32,

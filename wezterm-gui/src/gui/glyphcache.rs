@@ -174,33 +174,32 @@ impl<T: Texture2d> GlyphCache<T> {
         info: &GlyphInfo,
         style: &TextStyle,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
-        let metrics;
+        let base_metrics;
+        let idx_metrics;
         let glyph;
 
         {
             let font = self.fonts.resolve_font(style)?;
-            metrics = font.metrics();
+            base_metrics = font.metrics();
             glyph = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
+
+            idx_metrics = font.metrics_for_idx(info.font_idx)?;
         }
-        let (cell_width, cell_height) = (metrics.cell_width, metrics.cell_height);
 
-        let scale = if PixelLength::new(glyph.height as f64) > cell_height * 1.5 {
-            // This is another way to detect oversize glyph images.
-            // Compute an aspect-preserving scale factor that makes the glyph
-            // fit in the appropriate number of cells.
-            // The GlyphInfo tells us how many horizontal cells the glyph occupies.
-            let y_scale = cell_height.get() / glyph.height as f64;
-            let x_scale = (cell_width.get() * info.num_cells as f64) / glyph.width as f64;
+        let y_scale = base_metrics.cell_height.get() / idx_metrics.cell_height.get();
+        let x_scale = base_metrics.cell_width.get() / idx_metrics.cell_width.get();
 
-            if PixelLength::new(y_scale * glyph.width as f64) > cell_width {
-                // The y scale would overflow the width, so use the x-scale
-                x_scale
-            } else {
-                y_scale
-            }
+        let scale = if y_scale * glyph.width as f64
+            > base_metrics.cell_width.get() * info.num_cells as f64
+        {
+            // y-scaling would make us too wide, so use the x-scale
+            x_scale
         } else {
-            1.0f64
+            y_scale
         };
+
+        let (cell_width, cell_height) = (base_metrics.cell_width, base_metrics.cell_height);
+
         let glyph = if glyph.width == 0 || glyph.height == 0 {
             // a whitespace glyph
             CachedGlyph {

@@ -652,5 +652,10 @@ mod test {
             eprintln!("xi emoji_mod_base: {}", c.is_emoji_modifier_base());
         }
         assert_eq!(unicode_column_width(deaf_man), 2);
+
+        // This is a codepoint in the private use area
+        let font_awesome_star = "\u{f005}";
+        eprintln!("font_awesome_star {}", font_awesome_star.escape_debug());
+        assert_eq!(unicode_column_width(font_awesome_star), 1);
     }
 }

@@ -34,7 +34,7 @@ pub struct GlyphInfo {
 pub type FallbackIdx = usize;
 
 /// Describes the key font metrics that we use in rendering
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct FontMetrics {
     /// Width of a character cell in pixels
     pub cell_width: PixelLength,
@@ -59,6 +59,9 @@ pub trait FontShaper {
     /// Compute the font metrics for the preferred font
     /// at the specified size.
     fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics>;
+
+    /// Compute the metrics for a given fallback font at the specified size
+    fn metrics_for_idx(&self, font_idx: usize, size: f64, dpi: u32) -> anyhow::Result<FontMetrics>;
 }
 
 pub use config::FontShaperSelection;
