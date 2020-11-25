@@ -149,6 +149,10 @@ fn freetype() {
         fs::read_to_string("freetype2/include/freetype/config/ftoption.h")
             .unwrap()
             .replace(
+                "/* #define FT_CONFIG_OPTION_ERROR_STRINGS */",
+                "#define FT_CONFIG_OPTION_ERROR_STRINGS",
+            )
+            .replace(
                 "/* #define FT_CONFIG_OPTION_SYSTEM_ZLIB */",
                 "#define FT_CONFIG_OPTION_SYSTEM_ZLIB",
             )

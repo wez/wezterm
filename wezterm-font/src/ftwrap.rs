@@ -16,7 +16,20 @@ fn ft_result<T>(err: FT_Error, t: T) -> anyhow::Result<T> {
     if succeeded(err) {
         Ok(t)
     } else {
-        Err(anyhow!("FreeType error {:?} 0x{:x}", err, err))
+        unsafe {
+            let reason = FT_Error_String(err);
+            if reason.is_null() {
+                Err(anyhow!("FreeType error {:?} 0x{:x}", err, err))
+            } else {
+                let reason = std::ffi::CStr::from_ptr(reason);
+                Err(anyhow!(
+                    "FreeType error {:?} 0x{:x}: {}",
+                    err,
+                    err,
+                    reason.to_string_lossy()
+                ))
+            }
+        }
     }
 }
 
