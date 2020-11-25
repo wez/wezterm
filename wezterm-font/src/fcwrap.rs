@@ -139,6 +139,40 @@ impl FcResultWrap {
     }
 }
 
+pub struct CharSet {
+    cset: *mut FcCharSet,
+}
+
+impl Drop for CharSet {
+    fn drop(&mut self) {
+        unsafe {
+            FcCharSetDestroy(self.cset);
+        }
+        release_object();
+    }
+}
+
+impl CharSet {
+    pub fn new() -> anyhow::Result<Self> {
+        unsafe {
+            let cset = FcCharSetCreate();
+            ensure!(!cset.is_null(), "FcCharSetCreate failed");
+            add_object();
+            Ok(Self { cset })
+        }
+    }
+
+    pub fn add(&mut self, c: char) -> anyhow::Result<()> {
+        unsafe {
+            ensure!(
+                FcCharSetAddChar(self.cset, c as u32) != 0,
+                "FcCharSetAddChar failed"
+            );
+            Ok(())
+        }
+    }
+}
+
 pub struct Pattern {
     pat: *mut FcPattern,
 }
@@ -150,6 +184,26 @@ impl Pattern {
             ensure!(!p.is_null(), "FcPatternCreate failed");
             add_object();
             Ok(Pattern { pat: p })
+        }
+    }
+
+    pub fn add_charset(&mut self, charset: &CharSet) -> anyhow::Result<()> {
+        unsafe {
+            ensure!(
+                FcPatternAddCharSet(self.pat, b"charset\0".as_ptr() as *const i8, charset.cset)
+                    != 0,
+                "failed to add charset property"
+            );
+            Ok(())
+        }
+    }
+
+    pub fn charset_intersect_count(&self, charset: &CharSet) -> anyhow::Result<u32> {
+        unsafe {
+            let mut c = ptr::null_mut();
+            FcPatternGetCharSet(self.pat, b"charset\0".as_ptr() as *const i8, 0, &mut c);
+            ensure!(!c.is_null(), "pattern has no charset");
+            Ok(FcCharSetIntersectCount(c, charset.cset))
         }
     }
 
@@ -238,6 +292,29 @@ impl Pattern {
     pub fn default_substitute(&mut self) {
         unsafe {
             FcDefaultSubstitute(self.pat);
+        }
+    }
+
+    pub fn list(&self) -> anyhow::Result<FontSet> {
+        log::trace!("listing: {:?}", self);
+        unsafe {
+            // This defines the fields that are retrieved
+            let oset = FcObjectSetCreate();
+            ensure!(!oset.is_null(), "FcObjectSetCreate failed");
+            FcObjectSetAdd(oset, b"family\0".as_ptr() as *const i8);
+            FcObjectSetAdd(oset, b"file\0".as_ptr() as *const i8);
+            FcObjectSetAdd(oset, b"index\0".as_ptr() as *const i8);
+            FcObjectSetAdd(oset, b"charset\0".as_ptr() as *const i8);
+
+            let fonts = FcFontList(ptr::null_mut(), self.pat, oset);
+            let result = if !fonts.is_null() {
+                add_object();
+                Ok(FontSet { fonts })
+            } else {
+                Err(anyhow!("FcFontList failed"))
+            };
+            FcObjectSetDestroy(oset);
+            result
         }
     }
 
@@ -335,7 +412,7 @@ impl fmt::Debug for Pattern {
         // unsafe{FcPatternPrint(self.pat);}
         fmt.write_str(
             &self
-                .format("Pattern(%{+family,style,weight,slant,spacing,file,index,fontformat{%{=unparse}}})")
+                .format("Pattern(%{+family,style,weight,slant,spacing,file,index,charset,fontformat{%{=unparse}}})")
                 .unwrap(),
         )
     }

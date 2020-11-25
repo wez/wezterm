@@ -101,4 +101,11 @@ impl FontLocator for GdiFontLocator {
 
         Ok(fonts)
     }
+
+    fn locate_fallback_for_codepoints(
+        &self,
+        _codepoints: &[char],
+    ) -> anyhow::Result<Vec<FontDataHandle>> {
+        Ok(vec![])
+    }
 }

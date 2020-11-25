@@ -13,7 +13,7 @@ pub mod gdi;
 /// The `index` parameter is the index into a font
 /// collection if the data represents a collection of
 /// fonts.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum FontDataHandle {
     OnDisk {
         path: PathBuf,
@@ -53,6 +53,11 @@ pub trait FontLocator {
         fonts_selection: &[FontAttributes],
         loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>>;
+
+    fn locate_fallback_for_codepoints(
+        &self,
+        codepoints: &[char],
+    ) -> anyhow::Result<Vec<FontDataHandle>>;
 }
 
 pub fn new_locator(locator: FontLocatorSelection) -> Box<dyn FontLocator> {
@@ -88,6 +93,13 @@ impl FontLocator for NopSystemSource {
         &self,
         _fonts_selection: &[FontAttributes],
         _loaded: &mut HashSet<FontAttributes>,
+    ) -> anyhow::Result<Vec<FontDataHandle>> {
+        Ok(vec![])
+    }
+
+    fn locate_fallback_for_codepoints(
+        &self,
+        _codepoints: &[char],
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         Ok(vec![])
     }

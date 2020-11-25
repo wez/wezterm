@@ -40,6 +40,7 @@ impl AllsortsShaper {
         font_size: f64,
         dpi: u32,
         results: &mut Vec<GlyphInfo>,
+        no_glyphs: &mut Vec<char>,
     ) -> anyhow::Result<()> {
         let font = match self.fonts.get(font_index) {
             Some(Some(font)) => font,
@@ -53,13 +54,17 @@ impl AllsortsShaper {
                     font_size,
                     dpi,
                     results,
+                    no_glyphs,
                 );
             }
             None => {
+                // Note: since we added a last resort font, this case shouldn't
+                // ever get hit in practice.
                 // We ran out of fallback fonts, so use a replacement
-                // character that is likely to be in one of those fonts
+                // character that is likely to be in one of those fonts.
                 let mut alt_text = String::new();
-                for _c in s.chars() {
+                for c in s.chars() {
+                    no_glyphs.push(c);
                     alt_text.push('?');
                 }
                 if alt_text == s {
@@ -75,9 +80,19 @@ impl AllsortsShaper {
                     font_size,
                     dpi,
                     results,
+                    no_glyphs,
                 );
             }
         };
+
+        if font_index + 1 == self.fonts.len() {
+            // We are the last resort font, so each codepoint is considered
+            // to be worthy of a fallback lookup
+            for c in s.chars() {
+                no_glyphs.push(c);
+            }
+        }
+
         let first_pass =
             font.shape_text(s, slice_index, font_index, script, lang, font_size, dpi)?;
 
@@ -100,6 +115,7 @@ impl AllsortsShaper {
                         font_size,
                         dpi,
                         results,
+                        no_glyphs,
                     )?;
                 }
             }
@@ -110,11 +126,17 @@ impl AllsortsShaper {
 }
 
 impl FontShaper for AllsortsShaper {
-    fn shape(&self, text: &str, size: f64, dpi: u32) -> anyhow::Result<Vec<GlyphInfo>> {
+    fn shape(
+        &self,
+        text: &str,
+        size: f64,
+        dpi: u32,
+        no_glyphs: &mut Vec<char>,
+    ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut results = vec![];
         let script = allsorts::tag::LATN;
         let lang = allsorts::tag::DFLT;
-        self.shape_into(0, text, 0, script, lang, size, dpi, &mut results)?;
+        self.shape_into(0, text, 0, script, lang, size, dpi, &mut results, no_glyphs)?;
         // log::error!("shape {} into {:?}", text, results);
         Ok(results)
     }

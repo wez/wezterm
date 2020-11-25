@@ -5,7 +5,7 @@ use anyhow::{anyhow, Error};
 use config::{configuration, ConfigHandle, FontRasterizerSelection, TextStyle};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use wezterm_term::CellAttributes;
 
 mod hbwrap;
@@ -25,11 +25,12 @@ pub use crate::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 
 pub struct LoadedFont {
     rasterizers: Vec<RefCell<Option<Box<dyn FontRasterizer>>>>,
-    handles: Vec<FontDataHandle>,
-    shaper: Box<dyn FontShaper>,
+    handles: RefCell<Vec<FontDataHandle>>,
+    shaper: RefCell<Box<dyn FontShaper>>,
     metrics: FontMetrics,
     font_size: f64,
     dpi: u32,
+    font_config: Weak<FontConfigInner>,
 }
 
 impl LoadedFont {
@@ -38,11 +39,69 @@ impl LoadedFont {
     }
 
     pub fn shape(&self, text: &str) -> anyhow::Result<Vec<GlyphInfo>> {
-        self.shaper.shape(text, self.font_size, self.dpi)
+        let mut no_glyphs = vec![];
+        let result = self
+            .shaper
+            .borrow()
+            .shape(text, self.font_size, self.dpi, &mut no_glyphs);
+
+        if !no_glyphs.is_empty() {
+            no_glyphs.sort();
+            no_glyphs.dedup();
+            if let Some(font_config) = self.font_config.upgrade() {
+                match font_config
+                    .locator
+                    .locate_fallback_for_codepoints(&no_glyphs)
+                {
+                    Err(err) => log::error!(
+                        "Error: {} while resolving a fallback font for {:x?}",
+                        err,
+                        no_glyphs.iter().collect::<String>().escape_debug()
+                    ),
+                    Ok(handles) if handles.is_empty() => {
+                        log::error!(
+                            "No fonts have glyphs for {}",
+                            no_glyphs.iter().collect::<String>().escape_debug()
+                        )
+                    }
+                    Ok(extra_handles) => {
+                        let mut loaded = false;
+                        {
+                            let mut handles = self.handles.borrow_mut();
+                            for h in extra_handles {
+                                if !handles.iter().any(|existing| *existing == h) {
+                                    if crate::parser::ParsedFont::from_locator(&h).is_ok() {
+                                        let idx = handles.len() - 1;
+                                        handles.insert(idx, h);
+                                        loaded = true;
+                                    }
+                                }
+                            }
+                        }
+                        if loaded {
+                            *self.shaper.borrow_mut() = new_shaper(
+                                FontShaperSelection::get_default(),
+                                &self.handles.borrow(),
+                            )?;
+                            log::trace!("handles is now: {:#?}", self.handles);
+                            return self.shape(text);
+                        } else {
+                            log::error!(
+                                "No fonts have glyphs for {}",
+                                no_glyphs.iter().collect::<String>().escape_debug()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        result
     }
 
     pub fn metrics_for_idx(&self, font_idx: usize) -> anyhow::Result<FontMetrics> {
         self.shaper
+            .borrow()
             .metrics_for_idx(font_idx, self.font_size, self.dpi)
     }
 
@@ -59,7 +118,7 @@ impl LoadedFont {
         if opt_raster.is_none() {
             let raster = new_rasterizer(
                 FontRasterizerSelection::get_default(),
-                &self.handles[fallback],
+                &(self.handles.borrow())[fallback],
             )?;
             opt_raster.replace(raster);
         }
@@ -71,8 +130,7 @@ impl LoadedFont {
     }
 }
 
-/// Matches and loads fonts for a given input style
-pub struct FontConfiguration {
+struct FontConfigInner {
     fonts: RefCell<HashMap<TextStyle, Rc<LoadedFont>>>,
     metrics: RefCell<Option<FontMetrics>>,
     dpi_scale: RefCell<f64>,
@@ -81,7 +139,12 @@ pub struct FontConfiguration {
     locator: Box<dyn FontLocator>,
 }
 
-impl FontConfiguration {
+/// Matches and loads fonts for a given input style
+pub struct FontConfiguration {
+    inner: Rc<FontConfigInner>,
+}
+
+impl FontConfigInner {
     /// Create a new empty configuration
     pub fn new() -> Self {
         let locator = new_locator(FontLocatorSelection::get_default());
@@ -97,7 +160,7 @@ impl FontConfiguration {
 
     /// Given a text style, load (with caching) the font that best
     /// matches according to the fontconfig pattern.
-    pub fn resolve_font(&self, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
+    fn resolve_font(&self, myself: &Rc<Self>, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
         let mut fonts = self.fonts.borrow_mut();
 
         let config = configuration();
@@ -206,11 +269,12 @@ impl FontConfiguration {
 
         let loaded = Rc::new(LoadedFont {
             rasterizers,
-            handles,
-            shaper,
+            handles: RefCell::new(handles),
+            shaper: RefCell::new(shaper),
             metrics,
             font_size,
             dpi,
+            font_config: Rc::downgrade(myself),
         });
 
         fonts.insert(style.clone(), Rc::clone(&loaded));
@@ -226,15 +290,15 @@ impl FontConfiguration {
     }
 
     /// Returns the baseline font specified in the configuration
-    pub fn default_font(&self) -> anyhow::Result<Rc<LoadedFont>> {
-        self.resolve_font(&configuration().font)
+    pub fn default_font(&self, myself: &Rc<Self>) -> anyhow::Result<Rc<LoadedFont>> {
+        self.resolve_font(myself, &configuration().font)
     }
 
     pub fn get_font_scale(&self) -> f64 {
         *self.font_scale.borrow()
     }
 
-    pub fn default_font_metrics(&self) -> Result<FontMetrics, Error> {
+    pub fn default_font_metrics(&self, myself: &Rc<Self>) -> Result<FontMetrics, Error> {
         {
             let metrics = self.metrics.borrow();
             if let Some(metrics) = metrics.as_ref() {
@@ -242,7 +306,7 @@ impl FontConfiguration {
             }
         }
 
-        let font = self.default_font()?;
+        let font = self.default_font(myself)?;
         let metrics = font.metrics();
 
         *self.metrics.borrow_mut() = Some(metrics);
@@ -288,5 +352,47 @@ impl FontConfiguration {
             return &rule.font;
         }
         &config.font
+    }
+}
+
+impl FontConfiguration {
+    /// Create a new empty configuration
+    pub fn new() -> Self {
+        let inner = Rc::new(FontConfigInner::new());
+        Self { inner }
+    }
+
+    /// Given a text style, load (with caching) the font that best
+    /// matches according to the fontconfig pattern.
+    pub fn resolve_font(&self, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
+        self.inner.resolve_font(&self.inner, style)
+    }
+
+    pub fn change_scaling(&self, font_scale: f64, dpi_scale: f64) {
+        self.inner.change_scaling(font_scale, dpi_scale)
+    }
+
+    /// Returns the baseline font specified in the configuration
+    pub fn default_font(&self) -> anyhow::Result<Rc<LoadedFont>> {
+        self.inner.default_font(&self.inner)
+    }
+
+    pub fn get_font_scale(&self) -> f64 {
+        self.inner.get_font_scale()
+    }
+
+    pub fn default_font_metrics(&self) -> Result<FontMetrics, Error> {
+        self.inner.default_font_metrics(&self.inner)
+    }
+
+    /// Apply the defined font_rules from the user configuration to
+    /// produce the text style that best matches the supplied input
+    /// cell attributes.
+    pub fn match_style<'a>(
+        &self,
+        config: &'a ConfigHandle,
+        attrs: &CellAttributes,
+    ) -> &'a TextStyle {
+        self.inner.match_style(config, attrs)
     }
 }

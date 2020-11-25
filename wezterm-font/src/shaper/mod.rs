@@ -54,7 +54,13 @@ pub struct FontMetrics {
 
 pub trait FontShaper {
     /// Shape text and return a vector of GlyphInfo
-    fn shape(&self, text: &str, size: f64, dpi: u32) -> anyhow::Result<Vec<GlyphInfo>>;
+    fn shape(
+        &self,
+        text: &str,
+        size: f64,
+        dpi: u32,
+        no_glyphs: &mut Vec<char>,
+    ) -> anyhow::Result<Vec<GlyphInfo>>;
 
     /// Compute the font metrics for the preferred font
     /// at the specified size.

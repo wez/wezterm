@@ -145,6 +145,7 @@ impl HarfbuzzShaper {
         s: &str,
         font_size: f64,
         dpi: u32,
+        no_glyphs: &mut Vec<char>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let config = configuration();
         let features: Vec<harfbuzz::hb_feature_t> = config
@@ -179,11 +180,24 @@ impl HarfbuzzShaper {
                     pair.font.shape(&mut buf, Some(features.as_slice()));
                 }
                 None => {
+                    // Note: since we added a last resort font, this case
+                    // shouldn't ever get hit in practice
+                    for c in s.chars() {
+                        no_glyphs.push(c);
+                    }
                     return Err(NoMoreFallbacksError {
                         text: s.to_string(),
                     }
                     .into());
                 }
+            }
+        }
+
+        if font_idx + 1 == self.fonts.len() {
+            // We are the last resort font, so each codepoint is considered
+            // to be worthy of a fallback lookup
+            for c in s.chars() {
+                no_glyphs.push(c);
             }
         }
 
@@ -259,11 +273,12 @@ impl HarfbuzzShaper {
                 }
                 */
 
-                let mut shape = match self.do_shape(font_idx + 1, substr, font_size, dpi) {
+                let mut shape = match self.do_shape(font_idx + 1, substr, font_size, dpi, no_glyphs)
+                {
                     Ok(shape) => Ok(shape),
                     Err(e) => {
                         error!("{:?} for {:?}", e, substr);
-                        self.do_shape(0, &make_question_string(substr), font_size, dpi)
+                        self.do_shape(0, &make_question_string(substr), font_size, dpi, no_glyphs)
                     }
                 }?;
 
@@ -317,9 +332,15 @@ impl HarfbuzzShaper {
 }
 
 impl FontShaper for HarfbuzzShaper {
-    fn shape(&self, text: &str, size: f64, dpi: u32) -> anyhow::Result<Vec<GlyphInfo>> {
+    fn shape(
+        &self,
+        text: &str,
+        size: f64,
+        dpi: u32,
+        no_glyphs: &mut Vec<char>,
+    ) -> anyhow::Result<Vec<GlyphInfo>> {
         let start = std::time::Instant::now();
-        let result = self.do_shape(0, text, size, dpi);
+        let result = self.do_shape(0, text, size, dpi, no_glyphs);
         metrics::value!("shape.harfbuzz", start.elapsed());
         /*
         if let Ok(glyphs) = &result {
