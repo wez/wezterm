@@ -16,7 +16,7 @@ use allsorts::tables::{
     HeadTable, HheaTable, HmtxTable, MaxpTable, OffsetTable, OpenTypeFile, OpenTypeFont,
 };
 use allsorts::tag;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use config::{Config, FontAttributes};
 use std::collections::HashSet;
 use std::convert::TryInto;
@@ -62,7 +62,7 @@ pub struct Names {
 impl Names {
     fn from_name_table_data(name_table: &[u8]) -> anyhow::Result<Names> {
         Ok(Names {
-            full_name: get_name(name_table, 4)?,
+            full_name: get_name(name_table, 4).context("full_name")?,
             unique: get_name(name_table, 3).ok(),
             family: get_name(name_table, 1).ok(),
             sub_family: get_name(name_table, 2).ok(),
@@ -160,21 +160,30 @@ impl ParsedFont {
         // extend the lifetime of the OpenTypeFile that we produce here.
         // That in turn allows us to store all of these derived items
         // into a struct and manage their lifetimes together.
-        let file: OpenTypeFile<'static> =
-            unsafe { std::mem::transmute(owned_scope.scope().read::<OpenTypeFile>()?) };
+        let file: OpenTypeFile<'static> = unsafe {
+            std::mem::transmute(
+                owned_scope
+                    .scope()
+                    .read::<OpenTypeFile>()
+                    .context("read OpenTypeFile")?,
+            )
+        };
 
-        let otf = locate_offset_table(&file, index)?;
-        let name_table = name_table_data(&otf, &file.scope)?;
-        let names = Names::from_name_table_data(name_table)?;
+        let otf = locate_offset_table(&file, index).context("locate_offset_table")?;
+        let name_table = name_table_data(&otf, &file.scope).context("name_table_data")?;
+        let names =
+            Names::from_name_table_data(name_table).context("Names::from_name_table_data")?;
 
         let head = otf
             .read_table(&file.scope, tag::HEAD)?
             .ok_or_else(|| anyhow!("HEAD table missing or broken"))?
-            .read::<HeadTable>()?;
+            .read::<HeadTable>()
+            .context("read HeadTable")?;
         let cmap = otf
             .read_table(&file.scope, tag::CMAP)?
             .ok_or_else(|| anyhow!("CMAP table missing or broken"))?
-            .read::<Cmap>()?;
+            .read::<Cmap>()
+            .context("read Cmap")?;
         let cmap_subtable: CmapSubtable<'static> = read_cmap_subtable(&cmap)?
             .ok_or_else(|| anyhow!("CMAP subtable not found"))?
             .1;
@@ -182,30 +191,37 @@ impl ParsedFont {
         let maxp = otf
             .read_table(&file.scope, tag::MAXP)?
             .ok_or_else(|| anyhow!("MAXP table not found"))?
-            .read::<MaxpTable>()?;
+            .read::<MaxpTable>()
+            .context("read MaxpTable")?;
         let num_glyphs = maxp.num_glyphs;
 
         let post = otf
             .read_table(&file.scope, tag::POST)?
             .ok_or_else(|| anyhow!("POST table not found"))?
-            .read::<PostTable>()?;
+            .read::<PostTable>()
+            .context("read PostTable")?;
 
         let hhea = otf
             .read_table(&file.scope, tag::HHEA)?
             .ok_or_else(|| anyhow!("HHEA table not found"))?
-            .read::<HheaTable>()?;
+            .read::<HheaTable>()
+            .context("read HheaTable")?;
         let hmtx = otf
             .read_table(&file.scope, tag::HMTX)?
             .ok_or_else(|| anyhow!("HMTX table not found"))?
             .read_dep::<HmtxTable>((
                 usize::from(maxp.num_glyphs),
                 usize::from(hhea.num_h_metrics),
-            ))?;
+            ))
+            .context("read_dep HmtxTable")?;
 
         let gdef_table: Option<GDEFTable> = otf
             .find_table_record(tag::GDEF)
             .map(|gdef_record| -> anyhow::Result<GDEFTable> {
-                Ok(gdef_record.read_table(&file.scope)?.read::<GDEFTable>()?)
+                Ok(gdef_record
+                    .read_table(&file.scope)?
+                    .read::<GDEFTable>()
+                    .context("read GDEFTable")?)
             })
             .transpose()?;
         let opt_gpos_table = otf
@@ -213,7 +229,8 @@ impl ParsedFont {
             .map(|gpos_record| -> anyhow::Result<LayoutTable<GPOS>> {
                 Ok(gpos_record
                     .read_table(&file.scope)?
-                    .read::<LayoutTable<GPOS>>()?)
+                    .read::<LayoutTable<GPOS>>()
+                    .context("read LayoutTable<GPOS>")?)
             })
             .transpose()?;
         let gpos_cache = opt_gpos_table.map(new_layout_cache);
@@ -221,7 +238,10 @@ impl ParsedFont {
         let gsub_cache = otf
             .find_table_record(tag::GSUB)
             .map(|gsub| -> anyhow::Result<LayoutTable<GSUB>> {
-                Ok(gsub.read_table(&file.scope)?.read::<LayoutTable<GSUB>>()?)
+                Ok(gsub
+                    .read_table(&file.scope)?
+                    .read::<LayoutTable<GSUB>>()
+                    .context("read LayoutTable<GSUB>")?)
             })
             .transpose()?
             .map(new_layout_cache);
@@ -559,6 +579,50 @@ pub fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
     }
 }
 
+/// Given a blob representing a True Type Collection (.ttc) file,
+/// and a desired font, enumerate the collection to resolve the index of
+/// the font inside that collection that matches it.
+/// Even though this is intended to work with a TTC, this also returns
+/// the index of a singular TTF file, if it matches.
+pub fn resolve_font_from_ttc_data(
+    attr: &FontAttributes,
+    data: &[u8],
+) -> anyhow::Result<Option<usize>> {
+    let scope = allsorts::binary::read::ReadScope::new(&data);
+    let file = scope.read::<OpenTypeFile>()?;
+
+    match &file.font {
+        OpenTypeFont::Single(ttf) => {
+            let name_table_data = ttf
+                .read_table(&file.scope, allsorts::tag::NAME)?
+                .ok_or_else(|| anyhow!("name table is not present"))?;
+
+            let names = Names::from_name_table_data(name_table_data.data())?;
+            if font_info_matches(attr, &names) {
+                Ok(Some(0))
+            } else {
+                Ok(None)
+            }
+        }
+        OpenTypeFont::Collection(ttc) => {
+            for (index, offset_table_offset) in ttc.offset_tables.iter().enumerate() {
+                let ttf = file
+                    .scope
+                    .offset(offset_table_offset as usize)
+                    .read::<OffsetTable>()?;
+                let name_table_data = ttf
+                    .read_table(&file.scope, allsorts::tag::NAME)?
+                    .ok_or_else(|| anyhow!("name table is not present"))?;
+                let names = Names::from_name_table_data(name_table_data.data())?;
+                if font_info_matches(attr, &names) {
+                    return Ok(Some(index));
+                }
+            }
+            Ok(None)
+        }
+    }
+}
+
 /// In case the user has a broken configuration, or no configuration,
 /// we bundle JetBrains Mono and Noto Color Emoji to act as reasonably
 /// sane fallback fonts.
@@ -696,7 +760,8 @@ fn name_table_data<'a>(otf: &OffsetTable<'a>, scope: &ReadScope<'a>) -> anyhow::
 
 /// Extract a name from the name table
 fn get_name(name_table_data: &[u8], name_id: u16) -> anyhow::Result<String> {
-    let cstr = allsorts::get_name::fontcode_get_name(name_table_data, name_id)?
+    let cstr = allsorts::get_name::fontcode_get_name(name_table_data, name_id)
+        .with_context(|| anyhow!("fontcode_get_name name_id:{}", name_id))?
         .ok_or_else(|| anyhow!("name_id {} not found", name_id))?;
     cstr.into_string()
         .map_err(|e| anyhow!("name_id {} is not representable as String: {}", name_id, e))

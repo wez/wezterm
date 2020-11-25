@@ -1,7 +1,7 @@
 use crate::locator::{new_locator, FontDataHandle, FontLocator, FontLocatorSelection};
 use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper, FontShaperSelection};
-use anyhow::{anyhow, Error};
+use anyhow::Error;
 use config::{configuration, ConfigHandle, FontRasterizerSelection, TextStyle};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -24,7 +24,7 @@ pub use crate::rasterizer::RasterizedGlyph;
 pub use crate::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 
 pub struct LoadedFont {
-    rasterizers: Vec<RefCell<Option<Box<dyn FontRasterizer>>>>,
+    rasterizers: RefCell<HashMap<FallbackIdx, Box<dyn FontRasterizer>>>,
     handles: RefCell<Vec<FontDataHandle>>,
     shaper: RefCell<Box<dyn FontShaper>>,
     metrics: FontMetrics,
@@ -58,22 +58,29 @@ impl LoadedFont {
                         err,
                         no_glyphs.iter().collect::<String>().escape_debug()
                     ),
-                    Ok(handles) if handles.is_empty() => {
-                        log::error!(
-                            "No fonts have glyphs for {}",
-                            no_glyphs.iter().collect::<String>().escape_debug()
-                        )
-                    }
+                    Ok(handles) if handles.is_empty() => log::error!(
+                        "No fonts have glyphs for {}",
+                        no_glyphs.iter().collect::<String>().escape_debug()
+                    ),
                     Ok(extra_handles) => {
                         let mut loaded = false;
                         {
                             let mut handles = self.handles.borrow_mut();
                             for h in extra_handles {
                                 if !handles.iter().any(|existing| *existing == h) {
-                                    if crate::parser::ParsedFont::from_locator(&h).is_ok() {
-                                        let idx = handles.len() - 1;
-                                        handles.insert(idx, h);
-                                        loaded = true;
+                                    match crate::parser::ParsedFont::from_locator(&h) {
+                                        Ok(_parsed) => {
+                                            let idx = handles.len() - 1;
+                                            handles.insert(idx, h);
+                                            loaded = true;
+                                        }
+                                        Err(err) => {
+                                            log::error!(
+                                                "Failed to parse font from {:?}: {:?}",
+                                                h,
+                                                err
+                                            );
+                                        }
                                     }
                                 }
                             }
@@ -87,8 +94,8 @@ impl LoadedFont {
                             return self.shape(text);
                         } else {
                             log::error!(
-                                "No fonts have glyphs for {}",
-                                no_glyphs.iter().collect::<String>().escape_debug()
+                                "No fonts have glyphs for {}, even though fallback suggested some.",
+                                no_glyphs.iter().collect::<String>().escape_debug(),
                             )
                         }
                     }
@@ -110,23 +117,18 @@ impl LoadedFont {
         glyph_pos: u32,
         fallback: FallbackIdx,
     ) -> anyhow::Result<RasterizedGlyph> {
-        let cell = self
-            .rasterizers
-            .get(fallback)
-            .ok_or_else(|| anyhow!("no such fallback index: {}", fallback))?;
-        let mut opt_raster = cell.borrow_mut();
-        if opt_raster.is_none() {
+        let mut rasterizers = self.rasterizers.borrow_mut();
+        if let Some(raster) = rasterizers.get(&fallback) {
+            raster.rasterize_glyph(glyph_pos, self.font_size, self.dpi)
+        } else {
             let raster = new_rasterizer(
                 FontRasterizerSelection::get_default(),
                 &(self.handles.borrow())[fallback],
             )?;
-            opt_raster.replace(raster);
+            let result = raster.rasterize_glyph(glyph_pos, self.font_size, self.dpi);
+            rasterizers.insert(fallback, raster);
+            result
         }
-
-        opt_raster
-            .as_ref()
-            .unwrap()
-            .rasterize_glyph(glyph_pos, self.font_size, self.dpi)
     }
 }
 
@@ -256,10 +258,6 @@ impl FontConfigInner {
             }
         }
 
-        let mut rasterizers = vec![];
-        for _ in &handles {
-            rasterizers.push(RefCell::new(None));
-        }
         let shaper = new_shaper(FontShaperSelection::get_default(), &handles)?;
 
         let config = configuration();
@@ -268,7 +266,7 @@ impl FontConfigInner {
         let metrics = shaper.metrics(font_size, dpi)?;
 
         let loaded = Rc::new(LoadedFont {
-            rasterizers,
+            rasterizers: RefCell::new(HashMap::new()),
             handles: RefCell::new(handles),
             shaper: RefCell::new(shaper),
             metrics,

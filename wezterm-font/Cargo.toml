@@ -31,7 +31,7 @@ window = { path = "../window" }
 fontconfig = { path = "../deps/fontconfig" }
 
 [target."cfg(windows)".dependencies]
-dwrote = "0.9"
+dwrote = "0.11"
 winapi = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
