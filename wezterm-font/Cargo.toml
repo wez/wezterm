@@ -17,6 +17,7 @@ lazy_static = "1.4"
 log = "0.4"
 metrics = { version="0.12", features=["std"]}
 mux = { path = "../mux" }
+ordered-float = "1.0"
 termwiz = { path = "../termwiz" }
 thiserror = "1.0"
 tinyvec = "1.1" # Note: constrained by the allsorts crate

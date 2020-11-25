@@ -4297,6 +4297,7 @@ dependencies = [
  "log",
  "metrics",
  "mux",
+ "ordered-float",
  "termwiz",
  "thiserror",
  "tinyvec 1.1.0",

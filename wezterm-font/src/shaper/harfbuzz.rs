@@ -6,7 +6,9 @@ use crate::units::*;
 use anyhow::anyhow;
 use config::configuration;
 use log::error;
+use ordered_float::NotNan;
 use std::cell::{RefCell, RefMut};
+use std::collections::HashMap;
 use termwiz::cell::unicode_column_width;
 use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
@@ -54,10 +56,18 @@ struct FontPair {
     cell_height: f64,
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+struct MetricsKey {
+    font_idx: usize,
+    size: NotNan<f64>,
+    dpi: u32,
+}
+
 pub struct HarfbuzzShaper {
     handles: Vec<FontDataHandle>,
     fonts: Vec<RefCell<Option<FontPair>>>,
     lib: ftwrap::Library,
+    metrics: RefCell<HashMap<MetricsKey, FontMetrics>>,
 }
 
 #[derive(Error, Debug)]
@@ -105,6 +115,7 @@ impl HarfbuzzShaper {
             fonts,
             handles,
             lib,
+            metrics: RefCell::new(HashMap::new()),
         })
     }
 
@@ -359,6 +370,16 @@ impl FontShaper for HarfbuzzShaper {
         let mut pair = self
             .load_fallback(font_idx)?
             .ok_or_else(|| anyhow!("unable to load font idx {}!?", font_idx))?;
+
+        let key = MetricsKey {
+            font_idx,
+            size: NotNan::new(size).unwrap(),
+            dpi,
+        };
+        if let Some(metrics) = self.metrics.borrow().get(&key) {
+            return Ok(metrics.clone());
+        }
+
         let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
         let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
         let metrics = FontMetrics {
@@ -376,6 +397,8 @@ impl FontShaper for HarfbuzzShaper {
                 unsafe { (*pair.face.face).underline_position as f64 } * y_scale / 64.,
             ),
         };
+
+        self.metrics.borrow_mut().insert(key, metrics.clone());
 
         log::trace!("metrics: {:?}", metrics);
 
