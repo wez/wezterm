@@ -3,3 +3,4 @@ members = ["wezterm-mux-server", "wezterm", "wezterm-gui", "strip-ansi-escapes"]
 
 [profile.release]
 opt-level = 3
+# debug = 1

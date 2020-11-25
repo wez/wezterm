@@ -63,6 +63,7 @@ pub fn compute_load_flags_from_config() -> (i32, FT_Render_Mode) {
 pub struct Face {
     pub face: FT_Face,
     _bytes: Vec<u8>,
+    size: Option<FaceSize>,
 }
 
 impl Drop for Face {
@@ -73,14 +74,27 @@ impl Drop for Face {
     }
 }
 
+struct FaceSize {
+    size: f64,
+    dpi: u32,
+    cell_width: f64,
+    cell_height: f64,
+}
+
 impl Face {
     /// This is a wrapper around set_char_size and select_size
     /// that accounts for some weirdness with eg: color emoji
-    pub fn set_font_size(&mut self, size: f64, dpi: u32) -> anyhow::Result<(f64, f64)> {
-        log::debug!("set_char_size {} dpi={}", size, dpi);
+    pub fn set_font_size(&mut self, point_size: f64, dpi: u32) -> anyhow::Result<(f64, f64)> {
+        if let Some(face_size) = self.size.as_ref() {
+            if face_size.size == point_size && face_size.dpi == dpi {
+                return Ok((face_size.cell_width, face_size.cell_height));
+            }
+        }
+
+        log::debug!("set_char_size computing {} dpi={}", point_size, dpi);
         // Scaling before truncating to integer minimizes the chances of hitting
         // the fallback code for set_pixel_sizes below.
-        let size = (size * 64.0) as FT_F26Dot6;
+        let size = (point_size * 64.0) as FT_F26Dot6;
 
         let (cell_width, cell_height) = match self.set_char_size(size, size, dpi, dpi) {
             Ok(_) => {
@@ -115,6 +129,13 @@ impl Face {
                 (f64::from(cell_width), f64::from(cell_height))
             }
         };
+
+        self.size.replace(FaceSize {
+            size: point_size,
+            dpi,
+            cell_width,
+            cell_height,
+        });
 
         Ok((cell_width, cell_height))
     }
@@ -263,6 +284,7 @@ impl Library {
                 )
             })?,
             _bytes: data,
+            size: None,
         })
     }
 
@@ -283,6 +305,7 @@ impl Library {
             face: ft_result(res, face)
                 .with_context(|| format!("FT_New_Memory_Face for index {}", face_index))?,
             _bytes: data,
+            size: None,
         })
     }
 

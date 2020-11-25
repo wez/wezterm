@@ -50,10 +50,6 @@ fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
 struct FontPair {
     face: ftwrap::Face,
     font: harfbuzz::Font,
-    size: f64,
-    dpi: u32,
-    cell_width: f64,
-    cell_height: f64,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -133,14 +129,7 @@ impl HarfbuzzShaper {
                     let mut font = harfbuzz::Font::new(face.face);
                     let (load_flags, _) = ftwrap::compute_load_flags_from_config();
                     font.set_load_flags(load_flags);
-                    *opt_pair = Some(FontPair {
-                        face,
-                        font,
-                        size: 0.,
-                        dpi: 0,
-                        cell_width: 0.,
-                        cell_height: 0.,
-                    });
+                    *opt_pair = Some(FontPair { face, font });
                 }
 
                 Ok(Some(RefMut::map(opt_pair, |opt_pair| {
@@ -180,14 +169,8 @@ impl HarfbuzzShaper {
             match self.load_fallback(font_idx)? {
                 #[allow(clippy::float_cmp)]
                 Some(mut pair) => {
-                    if pair.size != font_size || pair.dpi != dpi {
-                        let (width, height) = pair.face.set_font_size(font_size, dpi)?;
-                        pair.size = font_size;
-                        pair.dpi = dpi;
-                        pair.cell_width = width;
-                        pair.cell_height = height;
-                    }
-                    cell_width = pair.cell_width;
+                    let (width, _height) = pair.face.set_font_size(font_size, dpi)?;
+                    cell_width = width;
                     pair.font.shape(&mut buf, Some(features.as_slice()));
                 }
                 None => {
