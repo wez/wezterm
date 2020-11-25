@@ -39,7 +39,7 @@ return {
   -- range of mature software; for instance, a lot of software
   -- assumes that Black+Bold renders as a Dark Grey which is
   -- legible on a Black background, but if this option is set to
-  -- true, it would render as Black on Black.
+  -- false, it would render as Black on Black.
   bold_brightens_ansi_colors = true,
 }
 ```
