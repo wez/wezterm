@@ -13,7 +13,7 @@ pub mod gdi;
 /// The `index` parameter is the index into a font
 /// collection if the data represents a collection of
 /// fonts.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum FontDataHandle {
     OnDisk {
         path: PathBuf,

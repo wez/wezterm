@@ -40,6 +40,32 @@ impl LoadedFont {
         self.metrics
     }
 
+    fn insert_fallback_handles(&self, extra_handles: Vec<FontDataHandle>) -> anyhow::Result<bool> {
+        let mut loaded = false;
+        {
+            let mut handles = self.handles.borrow_mut();
+            for h in extra_handles {
+                if !handles.iter().any(|existing| *existing == h) {
+                    match crate::parser::ParsedFont::from_locator(&h) {
+                        Ok(_parsed) => {
+                            let idx = handles.len() - 1;
+                            handles.insert(idx, h);
+                            loaded = true;
+                        }
+                        Err(err) => {
+                            log::error!("Failed to parse font from {:?}: {:?}", h, err);
+                        }
+                    }
+                }
+            }
+        }
+        if loaded {
+            *self.shaper.borrow_mut() =
+                new_shaper(FontShaperSelection::get_default(), &self.handles.borrow())?;
+        }
+        Ok(loaded)
+    }
+
     pub fn shape(&self, text: &str) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut no_glyphs = vec![];
         let result = self
@@ -51,55 +77,58 @@ impl LoadedFont {
             no_glyphs.sort();
             no_glyphs.dedup();
             if let Some(font_config) = self.font_config.upgrade() {
+                let mut extra_handles = vec![];
+                let fallback_str = no_glyphs.iter().collect::<String>();
+
+                match font_config
+                    .font_dirs
+                    .borrow()
+                    .locate_fallback_for_codepoints(&no_glyphs)
+                {
+                    Ok(ref mut handles) => extra_handles.append(handles),
+                    Err(err) => log::error!(
+                        "Error: {} while resolving fallback for {} from font_dirs",
+                        err,
+                        fallback_str.escape_debug()
+                    ),
+                }
                 match font_config
                     .locator
                     .locate_fallback_for_codepoints(&no_glyphs)
                 {
+                    Ok(ref mut handles) => extra_handles.append(handles),
                     Err(err) => log::error!(
-                        "Error: {} while resolving a fallback font for {:x?}",
+                        "Error: {} while resolving fallback for {} from font-locator",
                         err,
-                        no_glyphs.iter().collect::<String>().escape_debug()
+                        fallback_str.escape_debug()
                     ),
-                    Ok(handles) if handles.is_empty() => log::error!(
-                        "No fonts have glyphs for {}",
-                        no_glyphs.iter().collect::<String>().escape_debug()
+                }
+
+                match font_config
+                    .built_in
+                    .borrow()
+                    .locate_fallback_for_codepoints(&no_glyphs)
+                {
+                    Ok(ref mut handles) => extra_handles.append(handles),
+                    Err(err) => log::error!(
+                        "Error: {} while resolving fallback for {} for built-in fonts",
+                        err,
+                        fallback_str.escape_debug()
                     ),
-                    Ok(extra_handles) => {
-                        let mut loaded = false;
-                        {
-                            let mut handles = self.handles.borrow_mut();
-                            for h in extra_handles {
-                                if !handles.iter().any(|existing| *existing == h) {
-                                    match crate::parser::ParsedFont::from_locator(&h) {
-                                        Ok(_parsed) => {
-                                            let idx = handles.len() - 1;
-                                            handles.insert(idx, h);
-                                            loaded = true;
-                                        }
-                                        Err(err) => {
-                                            log::error!(
-                                                "Failed to parse font from {:?}: {:?}",
-                                                h,
-                                                err
-                                            );
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if loaded {
-                            *self.shaper.borrow_mut() = new_shaper(
-                                FontShaperSelection::get_default(),
-                                &self.handles.borrow(),
-                            )?;
-                            log::trace!("handles is now: {:#?}", self.handles);
-                            return self.shape(text);
-                        } else {
-                            log::error!(
-                                "No fonts have glyphs for {}, even though fallback suggested some.",
-                                no_glyphs.iter().collect::<String>().escape_debug(),
-                            )
-                        }
+                }
+
+                if extra_handles.is_empty() {
+                    log::error!("No fonts have glyphs for {}", fallback_str.escape_debug());
+                } else {
+                    let loaded = self.insert_fallback_handles(extra_handles)?;
+                    if loaded {
+                        log::trace!("handles is now: {:#?}", self.handles);
+                        return self.shape(text);
+                    } else {
+                        log::error!(
+                            "No fonts have glyphs for {}, even though fallback suggested some.",
+                            fallback_str.escape_debug()
+                        )
                     }
                 }
             }

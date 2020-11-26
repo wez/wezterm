@@ -100,6 +100,16 @@ impl<T: Integer + Copy + Debug> RangeSet<T> {
         self.ranges.is_empty()
     }
 
+    /// Returns the total size of the range (the sum of the start..end
+    /// distance of all contained ranges)
+    pub fn len(&self) -> T {
+        let mut total = num::zero();
+        for r in &self.ranges {
+            total = total + r.end - r.start;
+        }
+        total
+    }
+
     /// Returns true if this set contains the specified integer
     pub fn contains(&self, value: T) -> bool {
         for r in &self.ranges {
@@ -135,6 +145,19 @@ impl<T: Integer + Copy + Debug> RangeSet<T> {
                         result.add_range(a);
                     }
                     _ => {}
+                }
+            }
+        }
+
+        result
+    }
+
+    pub fn intersection(&self, other: &Self) -> Self {
+        let mut result = Self::new();
+        for range in &other.ranges {
+            for r in &self.ranges {
+                if let Some(i) = range_intersection(r, range) {
+                    result.add_range(i);
                 }
             }
         }

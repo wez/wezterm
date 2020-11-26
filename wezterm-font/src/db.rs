@@ -2,9 +2,11 @@
 
 use crate::parser::{font_info_matches, load_built_in_fonts, parse_and_collect_font_info, Names};
 use crate::FontDataHandle;
+use anyhow::{anyhow, Context};
 use config::{Config, FontAttributes};
 use rangeset::RangeSet;
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -12,7 +14,57 @@ use std::rc::Rc;
 struct Entry {
     names: Names,
     handle: FontDataHandle,
-    _coverage: RefCell<Option<RangeSet<u32>>>,
+    coverage: RefCell<Option<RangeSet<u32>>>,
+}
+
+impl Entry {
+    /// Parses out the underlying TTF data and produces a RangeSet holding
+    /// the set of codepoints for which the font has coverage.
+    fn compute_coverage(&self) -> anyhow::Result<RangeSet<u32>> {
+        use ttf_parser::Face;
+        let on_disk_data;
+        let (data, index) = match &self.handle {
+            FontDataHandle::Memory { data, index, .. } => (data, *index),
+            FontDataHandle::OnDisk { path, index } => {
+                on_disk_data = std::fs::read(path)
+                    .with_context(|| anyhow!("reading font data from {}", path.display()))?;
+                (&on_disk_data, *index)
+            }
+        };
+
+        let face = Face::from_slice(data, index)?;
+        let mut coverage = RangeSet::new();
+
+        for table in face.character_mapping_subtables() {
+            if table.is_unicode() {
+                table.codepoints(|cp| coverage.add(cp));
+                break;
+            }
+        }
+
+        Ok(coverage)
+    }
+
+    /// Computes the intersection of the wanted set of codepoints with
+    /// the set of codepoints covered by this font entry.
+    /// Computes the codepoint coverage for this font entry if we haven't
+    /// already done so.
+    fn coverage_intersection(&self, wanted: &RangeSet<u32>) -> anyhow::Result<RangeSet<u32>> {
+        let mut coverage = self.coverage.borrow_mut();
+        if coverage.is_none() {
+            let t = std::time::Instant::now();
+            coverage.replace(self.compute_coverage()?);
+            let elapsed = t.elapsed();
+            metrics::value!("font.compute.codepoint.coverage", elapsed);
+            log::debug!(
+                "{} codepoint coverage computed in {:?}",
+                self.names.full_name,
+                elapsed
+            );
+        }
+
+        Ok(wanted.intersection(coverage.as_ref().unwrap()))
+    }
 }
 
 pub struct FontDatabase {
@@ -33,7 +85,7 @@ impl FontDatabase {
             let entry = Rc::new(Entry {
                 names,
                 handle,
-                _coverage: RefCell::new(None),
+                coverage: RefCell::new(None),
             });
 
             if let Some(family) = entry.names.family.as_ref() {
@@ -106,6 +158,42 @@ impl FontDatabase {
                 loaded.insert(attr.clone());
             }
         }
+    }
+
+    /// Equivalent to FontLocator::locate_fallback_for_codepoints
+    pub fn locate_fallback_for_codepoints(
+        &self,
+        codepoints: &[char],
+    ) -> anyhow::Result<Vec<FontDataHandle>> {
+        let mut wanted_range = RangeSet::new();
+        for &c in codepoints {
+            wanted_range.add(c as u32);
+        }
+
+        let mut matches = vec![];
+
+        for entry in self.by_full_name.values() {
+            let covered = entry.coverage_intersection(&wanted_range)?;
+            let len = covered.len();
+            if len > 0 {
+                matches.push((len, entry.handle.clone()));
+            }
+        }
+
+        // Add the handles in order of descending coverage; the idea being
+        // that if a font has a large coverage then it is probably a better
+        // candidate and more likely to result in other glyphs matching
+        // in future shaping calls.
+        matches.sort_by(|(a_len, a), (b_len, b)| {
+            let primary = a_len.cmp(&b_len).reverse();
+            if primary == Ordering::Equal {
+                a.cmp(b)
+            } else {
+                primary
+            }
+        });
+
+        Ok(matches.into_iter().map(|(_len, handle)| handle).collect())
     }
 
     pub fn resolve(&self, font_attr: &FontAttributes) -> Option<&FontDataHandle> {
