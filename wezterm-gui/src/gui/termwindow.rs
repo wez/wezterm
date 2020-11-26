@@ -766,7 +766,7 @@ impl WindowCallbacks for TermWindow {
                             break;
                         }
                     } else {
-                        log::error!("paint_opengl_pass failed: {}", err);
+                        log::error!("paint_opengl_pass failed: {:#}", err);
                         break;
                     }
                 }
@@ -2062,6 +2062,8 @@ impl TermWindow {
         self.fonts
             .change_scaling(font_scale, dimensions.dpi as f64 / 96.);
         self.render_metrics = RenderMetrics::new(&self.fonts);
+        self.render_state.opengl().glyph_cache.borrow_mut().clear();
+        self.shape_cache.borrow_mut().clear();
 
         self.recreate_texture_atlas(None)
             .expect("failed to recreate atlas");
