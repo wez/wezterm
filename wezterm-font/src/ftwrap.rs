@@ -172,10 +172,11 @@ impl Face {
             },
             (),
         )
+        .context("FT_Set_Char_Size")
     }
 
     fn select_size(&mut self, idx: usize) -> anyhow::Result<()> {
-        ft_result(unsafe { FT_Select_Size(self.face, idx as i32) }, ())
+        ft_result(unsafe { FT_Select_Size(self.face, idx as i32) }, ()).context("FT_Select_Size")
     }
 
     pub fn load_and_render_glyph(
@@ -185,9 +186,18 @@ impl Face {
         render_mode: FT_Render_Mode,
     ) -> anyhow::Result<&FT_GlyphSlotRec_> {
         unsafe {
-            let res = FT_Load_Glyph(self.face, glyph_index, load_flags);
-            let slot = ft_result(res, &mut *(*self.face).glyph)?;
-            ft_result(FT_Render_Glyph(slot, render_mode), slot)
+            ft_result(FT_Load_Glyph(self.face, glyph_index, load_flags), ()).with_context(
+                || {
+                    anyhow!(
+                        "load_and_render_glyph: FT_Load_Glyph glyph_index:{}",
+                        glyph_index
+                    )
+                },
+            )?;
+            let slot = &mut *(*self.face).glyph;
+            ft_result(FT_Render_Glyph(slot, render_mode), ())
+                .context("load_and_render_glyph: FT_Render_Glyph")?;
+            Ok(slot)
         }
     }
 
@@ -323,6 +333,9 @@ impl Library {
     }
 
     pub fn set_lcd_filter(&mut self, filter: FT_LcdFilter) -> anyhow::Result<()> {
-        unsafe { ft_result(FT_Library_SetLcdFilter(self.lib, filter), ()) }
+        unsafe {
+            ft_result(FT_Library_SetLcdFilter(self.lib, filter), ())
+                .context("FT_Library_SetLcdFilter")
+        }
     }
 }

@@ -3,6 +3,7 @@ use ::window::bitmaps::{Image, Texture2d};
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::*;
+use anyhow::{anyhow, Context};
 use config::{configuration, AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use std::collections::HashMap;
@@ -168,7 +169,9 @@ impl<T: Texture2d> GlyphCache<T> {
             return Ok(Rc::clone(entry));
         }
 
-        let glyph = self.load_glyph(info, style, followed_by_space)?;
+        let glyph = self
+            .load_glyph(info, style, followed_by_space)
+            .with_context(|| anyhow!("load_glyph {:?} {:?}", info, style))?;
         self.glyph_cache.insert(key.to_owned(), Rc::clone(&glyph));
         Ok(glyph)
     }
