@@ -190,8 +190,11 @@ impl Pattern {
     pub fn add_charset(&mut self, charset: &CharSet) -> anyhow::Result<()> {
         unsafe {
             ensure!(
-                FcPatternAddCharSet(self.pat, b"charset\0".as_ptr() as *const c_char, charset.cset)
-                    != 0,
+                FcPatternAddCharSet(
+                    self.pat,
+                    b"charset\0".as_ptr() as *const c_char,
+                    charset.cset
+                ) != 0,
                 "failed to add charset property"
             );
             Ok(())
