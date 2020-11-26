@@ -190,7 +190,7 @@ impl Pattern {
     pub fn add_charset(&mut self, charset: &CharSet) -> anyhow::Result<()> {
         unsafe {
             ensure!(
-                FcPatternAddCharSet(self.pat, b"charset\0".as_ptr() as *const i8, charset.cset)
+                FcPatternAddCharSet(self.pat, b"charset\0".as_ptr() as *const c_char, charset.cset)
                     != 0,
                 "failed to add charset property"
             );
@@ -201,7 +201,7 @@ impl Pattern {
     pub fn charset_intersect_count(&self, charset: &CharSet) -> anyhow::Result<u32> {
         unsafe {
             let mut c = ptr::null_mut();
-            FcPatternGetCharSet(self.pat, b"charset\0".as_ptr() as *const i8, 0, &mut c);
+            FcPatternGetCharSet(self.pat, b"charset\0".as_ptr() as *const c_char, 0, &mut c);
             ensure!(!c.is_null(), "pattern has no charset");
             Ok(FcCharSetIntersectCount(c, charset.cset))
         }
@@ -301,10 +301,10 @@ impl Pattern {
             // This defines the fields that are retrieved
             let oset = FcObjectSetCreate();
             ensure!(!oset.is_null(), "FcObjectSetCreate failed");
-            FcObjectSetAdd(oset, b"family\0".as_ptr() as *const i8);
-            FcObjectSetAdd(oset, b"file\0".as_ptr() as *const i8);
-            FcObjectSetAdd(oset, b"index\0".as_ptr() as *const i8);
-            FcObjectSetAdd(oset, b"charset\0".as_ptr() as *const i8);
+            FcObjectSetAdd(oset, b"family\0".as_ptr() as *const c_char);
+            FcObjectSetAdd(oset, b"file\0".as_ptr() as *const c_char);
+            FcObjectSetAdd(oset, b"index\0".as_ptr() as *const c_char);
+            FcObjectSetAdd(oset, b"charset\0".as_ptr() as *const c_char);
 
             let fonts = FcFontList(ptr::null_mut(), self.pat, oset);
             let result = if !fonts.is_null() {
