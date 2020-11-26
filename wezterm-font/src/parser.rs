@@ -17,7 +17,7 @@ use allsorts::tables::{
 };
 use allsorts::tag;
 use anyhow::{anyhow, Context};
-use config::{Config, FontAttributes};
+use config::FontAttributes;
 use std::collections::HashSet;
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
@@ -72,44 +72,6 @@ impl Names {
 }
 
 impl ParsedFont {
-    /// Load FontDataHandle's for fonts that match the configuration
-    /// and that are found in the config font_dirs list.
-    pub fn load_fonts(
-        config: &Config,
-        fonts_selection: &[FontAttributes],
-        loaded: &mut HashSet<FontAttributes>,
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
-        // First discover the available fonts
-        let mut font_info = vec![];
-        for path in &config.font_dirs {
-            for entry in walkdir::WalkDir::new(path).into_iter() {
-                let entry = match entry {
-                    Ok(entry) => entry,
-                    Err(_) => continue,
-                };
-
-                let path = entry.path();
-                parse_and_collect_font_info(path, &mut font_info)
-                    .map_err(|err| {
-                        log::trace!("failed to read {}: {}", path.display(), err);
-                        err
-                    })
-                    .ok();
-            }
-        }
-
-        Self::match_font_info(fonts_selection, font_info, loaded)
-    }
-
-    pub fn load_built_in_fonts(
-        fonts_selection: &[FontAttributes],
-        loaded: &mut HashSet<FontAttributes>,
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
-        let mut font_info = vec![];
-        load_built_in_fonts(&mut font_info).ok();
-        Self::match_font_info(fonts_selection, font_info, loaded)
-    }
-
     fn match_font_info(
         fonts_selection: &[FontAttributes],
         mut font_info: Vec<(Names, std::path::PathBuf, FontDataHandle)>,
