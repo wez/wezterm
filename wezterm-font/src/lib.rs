@@ -1,3 +1,4 @@
+use crate::db::FontDatabase;
 use crate::locator::{new_locator, FontDataHandle, FontLocator, FontLocatorSelection};
 use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper, FontShaperSelection};
@@ -10,6 +11,7 @@ use wezterm_term::CellAttributes;
 
 mod hbwrap;
 
+pub mod db;
 pub mod ftwrap;
 pub mod locator;
 pub mod parser;
@@ -191,27 +193,15 @@ impl FontConfigInner {
             .collect::<Vec<_>>();
         let mut loaded = HashSet::new();
 
-        let mut handles =
-            parser::ParsedFont::load_fonts(&config, &preferred_attributes, &mut loaded)?;
-        handles.append(
-            &mut self
-                .locator
-                .load_fonts(&preferred_attributes, &mut loaded)?,
-        );
-        handles.append(&mut parser::ParsedFont::load_built_in_fonts(
-            &preferred_attributes,
-            &mut loaded,
-        )?);
-        handles.append(&mut parser::ParsedFont::load_fonts(
-            &config,
-            &fallback_attributes,
-            &mut loaded,
-        )?);
-        handles.append(&mut self.locator.load_fonts(&fallback_attributes, &mut loaded)?);
-        handles.append(&mut parser::ParsedFont::load_built_in_fonts(
-            &fallback_attributes,
-            &mut loaded,
-        )?);
+        let font_dirs = FontDatabase::with_font_dirs(&config)?;
+        let built_in = FontDatabase::with_built_in()?;
+
+        let mut handles = vec![];
+        for attrs in &[&preferred_attributes, &fallback_attributes] {
+            font_dirs.resolve_multiple(attrs, &mut handles, &mut loaded);
+            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded)?);
+            built_in.resolve_multiple(attrs, &mut handles, &mut loaded);
+        }
 
         for attr in &attributes {
             if !attr.is_fallback && !loaded.contains(attr) {

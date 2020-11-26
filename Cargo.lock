@@ -2467,7 +2467,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f923fb806c46266c02ab4a5b239735c144bdeda724a50ed058e5226f594cde3"
 dependencies = [
- "ttf-parser",
+ "ttf-parser 0.6.2",
 ]
 
 [[package]]
@@ -3797,6 +3797,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e5d7cd7ab3e47dda6e56542f4bbf3824c15234958c6e1bd6aaa347e93499fdc"
 
 [[package]]
+name = "ttf-parser"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7622061403fd00f0820df288e5a580e87d3ce15a1c4313c59fd1ffb77129903f"
+
+[[package]]
 name = "typenum"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4299,9 +4305,11 @@ dependencies = [
  "metrics",
  "mux",
  "ordered-float",
+ "rangeset",
  "termwiz",
  "thiserror",
  "tinyvec 1.1.0",
+ "ttf-parser 0.8.3",
  "unicode-general-category 0.3.0",
  "unicode-segmentation",
  "walkdir",

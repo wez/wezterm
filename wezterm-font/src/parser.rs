@@ -52,11 +52,11 @@ pub struct ParsedFont {
 
 #[derive(Debug)]
 pub struct Names {
-    full_name: String,
-    unique: Option<String>,
-    family: Option<String>,
-    sub_family: Option<String>,
-    postscript_name: Option<String>,
+    pub full_name: String,
+    pub unique: Option<String>,
+    pub family: Option<String>,
+    pub sub_family: Option<String>,
+    pub postscript_name: Option<String>,
 }
 
 impl Names {
@@ -627,7 +627,7 @@ pub fn resolve_font_from_ttc_data(
 /// we bundle JetBrains Mono and Noto Color Emoji to act as reasonably
 /// sane fallback fonts.
 /// This function loads those.
-fn load_built_in_fonts(
+pub(crate) fn load_built_in_fonts(
     font_info: &mut Vec<(Names, PathBuf, FontDataHandle)>,
 ) -> anyhow::Result<()> {
     macro_rules! font {
@@ -701,7 +701,7 @@ fn load_built_in_fonts(
     Ok(())
 }
 
-fn parse_and_collect_font_info(
+pub(crate) fn parse_and_collect_font_info(
     path: &Path,
     font_info: &mut Vec<(Names, PathBuf, FontDataHandle)>,
 ) -> anyhow::Result<()> {
