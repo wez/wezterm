@@ -141,6 +141,8 @@ struct FontConfigInner {
     font_scale: RefCell<f64>,
     config_generation: RefCell<usize>,
     locator: Box<dyn FontLocator>,
+    font_dirs: RefCell<FontDatabase>,
+    built_in: RefCell<FontDatabase>,
 }
 
 /// Matches and loads fonts for a given input style
@@ -150,16 +152,19 @@ pub struct FontConfiguration {
 
 impl FontConfigInner {
     /// Create a new empty configuration
-    pub fn new() -> Self {
+    pub fn new() -> anyhow::Result<Self> {
         let locator = new_locator(FontLocatorSelection::get_default());
-        Self {
+        let config = configuration();
+        Ok(Self {
             fonts: RefCell::new(HashMap::new()),
             locator,
             metrics: RefCell::new(None),
             font_scale: RefCell::new(1.0),
             dpi_scale: RefCell::new(1.0),
-            config_generation: RefCell::new(configuration().generation()),
-        }
+            config_generation: RefCell::new(config.generation()),
+            font_dirs: RefCell::new(FontDatabase::with_font_dirs(&config)?),
+            built_in: RefCell::new(FontDatabase::with_built_in()?),
+        })
     }
 
     /// Given a text style, load (with caching) the font that best
@@ -173,6 +178,7 @@ impl FontConfigInner {
             // Config was reloaded, invalidate our caches
             fonts.clear();
             self.metrics.borrow_mut().take();
+            *self.font_dirs.borrow_mut() = FontDatabase::with_font_dirs(&config)?;
             *self.config_generation.borrow_mut() = current_generation;
         }
 
@@ -193,14 +199,15 @@ impl FontConfigInner {
             .collect::<Vec<_>>();
         let mut loaded = HashSet::new();
 
-        let font_dirs = FontDatabase::with_font_dirs(&config)?;
-        let built_in = FontDatabase::with_built_in()?;
-
         let mut handles = vec![];
         for attrs in &[&preferred_attributes, &fallback_attributes] {
-            font_dirs.resolve_multiple(attrs, &mut handles, &mut loaded);
+            self.font_dirs
+                .borrow()
+                .resolve_multiple(attrs, &mut handles, &mut loaded);
             handles.append(&mut self.locator.load_fonts(attrs, &mut loaded)?);
-            built_in.resolve_multiple(attrs, &mut handles, &mut loaded);
+            self.built_in
+                .borrow()
+                .resolve_multiple(attrs, &mut handles, &mut loaded);
         }
 
         for attr in &attributes {
@@ -345,9 +352,9 @@ impl FontConfigInner {
 
 impl FontConfiguration {
     /// Create a new empty configuration
-    pub fn new() -> Self {
-        let inner = Rc::new(FontConfigInner::new());
-        Self { inner }
+    pub fn new() -> anyhow::Result<Self> {
+        let inner = Rc::new(FontConfigInner::new()?);
+        Ok(Self { inner })
     }
 
     /// Given a text style, load (with caching) the font that best

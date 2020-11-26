@@ -845,7 +845,7 @@ impl TermWindow {
 
         let window_background = load_background_image(&config);
 
-        let fontconfig = Rc::new(FontConfiguration::new());
+        let fontconfig = Rc::new(FontConfiguration::new()?);
         let mux = Mux::get().expect("to be main thread with mux running");
         let size = match mux.get_active_tab_for_window(mux_window_id) {
             Some(tab) => tab.get_size(),
