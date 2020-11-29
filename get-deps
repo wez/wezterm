@@ -7,6 +7,8 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
   else
     YUM=yum
   fi
+  # Fedora 33 moved some perl bits around
+  $YUM install -y perl-FindBin perl-File-Compare || true
   $YUM install -y \
     make \
     gcc \
@@ -14,6 +16,7 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
     dbus-devel \
     fontconfig-devel \
     openssl-devel \
+    perl-interpreter \
     python3 \
     libxcb-devel \
     libxkbcommon-devel \
