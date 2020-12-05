@@ -21,6 +21,7 @@ use mux::window::WindowId;
 use portable_pty::{CommandBuilder, PtySize};
 use rangeset::*;
 use serde::{Deserialize, Serialize};
+use smol::io::AsyncWriteExt;
 use smol::prelude::*;
 use std::convert::TryInto;
 use std::io::Cursor;

@@ -296,7 +296,7 @@ impl<T: Texture2d> GlyphCache<T> {
             return Ok(sprite.clone());
         }
 
-        let decoded_image = image::load_from_memory(image_data.data())?.to_bgra();
+        let decoded_image = image::load_from_memory(image_data.data())?.to_bgra8();
         let (width, height) = decoded_image.dimensions();
         let image = ::window::bitmaps::Image::from_raw(
             width as usize,

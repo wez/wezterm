@@ -168,8 +168,6 @@ impl TextStyle {
         font.push(FontAttributes::new_fallback("Apple Symbols"));
         #[cfg(target_os = "macos")]
         font.push(FontAttributes::new_fallback("Zapf Dingbats"));
-        #[cfg(target_os = "macos")]
-        font.push(FontAttributes::new_fallback("Apple LiGothic"));
 
         // Fallback font that has unicode replacement character
         #[cfg(windows)]
