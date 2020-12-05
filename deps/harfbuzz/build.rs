@@ -95,25 +95,6 @@ fn harfbuzz() {
     cfg.define("HAVE_FT_Set_Var_Blend_Coordinates", Some("1"));
     cfg.define("HAVE_FT_Done_MM_Var", Some("1"));
 
-    if target.contains("darwin") {
-        cfg.define("HAVE_CORETEXT", None);
-        cfg.file("harfbuzz/src/hb-coretext.cc");
-    }
-
-    if target.contains("windows") {
-        cfg.define("HAVE_DIRECTWRITE", None);
-        cfg.file("harfbuzz/src/hb-directwrite.cc");
-        println!("cargo:rustc-link-lib=dwrite");
-
-        cfg.define("HAVE_UNISCRIBE", None);
-        cfg.file("harfbuzz/src/hb-uniscribe.cc");
-        println!("cargo:rustc-link-lib=usp10");
-
-        println!("cargo:rustc-link-lib=gdi32");
-        println!("cargo:rustc-link-lib=rpcrt4");
-        println!("cargo:rustc-link-lib=user32");
-    }
-
     // Import the include dirs exported from deps/freetype/build.rs
     for inc in std::env::var("DEP_FREETYPE_INCLUDE").unwrap().split(";") {
         cfg.include(inc);
