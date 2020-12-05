@@ -12,6 +12,8 @@ CATEGORIZE = {
     r".fedora31.rpm$": "fedora31_rpm",
     r".fc32.x86_64.rpm$": "fedora32_rpm",
     r".fedora32.rpm$": "fedora32_rpm",
+    r".fc33.x86_64.rpm$": "fedora33_rpm",
+    r".fedora33.rpm$": "fedora33_rpm",
     r"Debian9.12.deb$": "debian9_deb",
     r"Debian10.deb$": "debian10_deb",
     r"Ubuntu16.04.AppImage$": "ubuntu16_AppImage",

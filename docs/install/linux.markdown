@@ -73,6 +73,7 @@ on most Linux systems.
 |CentOS8     |[{{ centos8_rpm_stable_asset }}]({{ centos8_rpm_stable }}) |[{{ centos8_rpm_nightly_asset }}]({{ centos8_rpm_nightly }})|
 |Fedora31    |[{{ fedora31_rpm_stable_asset }}]({{ fedora31_rpm_stable }}) |[{{ fedora31_rpm_nightly_asset }}]({{ fedora31_rpm_nightly }})|
 |Fedora32    |[{{ fedora32_rpm_stable_asset }}]({{ fedora32_rpm_stable }}) |[{{ fedora32_rpm_nightly_asset }}]({{ fedora32_rpm_nightly }})|
+|Fedora32    |Not yet|[{{ fedora33_rpm_nightly_asset }}]({{ fedora33_rpm_nightly }})|
 
 To download and install form the CLI you can use something like this, which
 shows how to install the Fedora 31 package:
