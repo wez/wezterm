@@ -287,6 +287,13 @@ impl RenderState {
         Ok(())
     }
 
+    pub fn has_opengl(&self) -> bool {
+        match self {
+            RenderState::GL(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn opengl(&self) -> &OpenGLRenderState {
         match self {
             RenderState::GL(gl) => gl,

@@ -2062,7 +2062,9 @@ impl TermWindow {
         self.fonts
             .change_scaling(font_scale, dimensions.dpi as f64 / 96.);
         self.render_metrics = RenderMetrics::new(&self.fonts);
-        self.render_state.opengl().glyph_cache.borrow_mut().clear();
+        if self.render_state.has_opengl() {
+            self.render_state.opengl().glyph_cache.borrow_mut().clear();
+        }
         self.shape_cache.borrow_mut().clear();
 
         self.recreate_texture_atlas(None)
