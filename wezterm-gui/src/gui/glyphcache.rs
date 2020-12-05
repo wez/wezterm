@@ -197,7 +197,8 @@ impl<T: Texture2d> GlyphCache<T> {
         }
 
         let y_scale = base_metrics.cell_height.get() / idx_metrics.cell_height.get();
-        let x_scale = base_metrics.cell_width.get() / idx_metrics.cell_width.get();
+        let x_scale =
+            base_metrics.cell_width.get() / (idx_metrics.cell_width.get() / info.num_cells as f64);
 
         let aspect = (idx_metrics.cell_height / idx_metrics.cell_width).get();
         let is_square = aspect >= 0.9 && aspect <= 1.1;
