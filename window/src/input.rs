@@ -1,13 +1,15 @@
 use bitflags::*;
+use serde::*;
 
 /// Which key is pressed.  Not all of these are probable to appear
 /// on most systems.  A lot of this list is @wez trawling docs and
 /// making an entry for things that might be possible in this first pass.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum KeyCode {
     /// The decoded unicode character
     Char(char),
     Composed(String),
+    RawCode(u32),
 
     Hyper,
     Super,
@@ -104,10 +106,14 @@ impl KeyCode {
             _ => false,
         }
     }
+
+    pub fn normalize_shift(&self, modifiers: Modifiers) -> (KeyCode, Modifiers) {
+        normalize_shift(self.clone(), modifiers)
+    }
 }
 
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, Deserialize, Serialize)]
     pub struct Modifiers: u8 {
         const NONE = 0;
         const SHIFT = 1<<1;
@@ -116,6 +122,7 @@ bitflags! {
         const SUPER = 1<<4;
         const LEFT_ALT = 1<<5;
         const RIGHT_ALT = 1<<6;
+        const LEADER = 1<<7;
     }
 }
 bitflags! {

@@ -23,9 +23,9 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use termwiz::hyperlink;
-use termwiz::input::{KeyCode, Modifiers};
 use termwiz::surface::CursorShape;
 use toml;
+use window::input::{KeyCode, Modifiers};
 
 mod color;
 mod daemon;
@@ -617,6 +617,9 @@ pub struct Config {
     #[serde(default)]
     pub keys: Vec<Key>,
     #[serde(default)]
+    pub debug_key_events: bool,
+
+    #[serde(default)]
     pub disable_default_key_bindings: bool,
     pub leader: Option<LeaderKey>,
 
@@ -990,7 +993,7 @@ impl Config {
         let mut map = HashMap::new();
 
         for k in &self.keys {
-            map.insert((k.key, k.mods), k.action.clone());
+            map.insert((k.key.clone(), k.mods), k.action.clone());
         }
 
         Ok(map)

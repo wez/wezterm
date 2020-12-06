@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use wezterm_term::input::MouseButton;
-use wezterm_term::{KeyCode, KeyModifiers};
+use window::input::{KeyCode, Modifiers};
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum SelectionMode {
@@ -162,8 +162,8 @@ pub enum KeyAssignment {
 impl_lua_conversion!(KeyAssignment);
 
 pub struct InputMap {
-    keys: HashMap<(KeyCode, KeyModifiers), KeyAssignment>,
-    mouse: HashMap<(MouseEventTrigger, KeyModifiers), KeyAssignment>,
+    keys: HashMap<(KeyCode, Modifiers), KeyAssignment>,
+    mouse: HashMap<(MouseEventTrigger, Modifiers), KeyAssignment>,
     leader: Option<LeaderKey>,
 }
 
@@ -197,72 +197,71 @@ impl InputMap {
 
         use KeyAssignment::*;
 
-        let ctrl_shift = KeyModifiers::CTRL | KeyModifiers::SHIFT;
+        let ctrl_shift = Modifiers::CTRL | Modifiers::SHIFT;
 
         if !config.disable_default_key_bindings {
             // Apply the default bindings; if the user has already mapped
             // a given entry then that will take precedence.
             k!(
                 // Clipboard
-                [KeyModifiers::SHIFT, KeyCode::Insert, Paste],
-                [KeyModifiers::SUPER, KeyCode::Char('c'), Copy],
-                [KeyModifiers::SUPER, KeyCode::Char('v'), Paste],
-                [KeyModifiers::CTRL, KeyCode::Char('C'), Copy],
-                [KeyModifiers::CTRL, KeyCode::Char('V'), Paste],
+                [Modifiers::SHIFT, KeyCode::Insert, Paste],
+                [Modifiers::SUPER, KeyCode::Char('c'), Copy],
+                [Modifiers::SUPER, KeyCode::Char('v'), Paste],
+                [Modifiers::CTRL, KeyCode::Char('C'), Copy],
+                [Modifiers::CTRL, KeyCode::Char('V'), Paste],
                 // Window management
-                [KeyModifiers::ALT, KeyCode::Char('\n'), ToggleFullScreen],
-                [KeyModifiers::ALT, KeyCode::Char('\r'), ToggleFullScreen],
-                [KeyModifiers::ALT, KeyCode::Enter, ToggleFullScreen],
-                [KeyModifiers::SUPER, KeyCode::Char('m'), Hide],
-                [KeyModifiers::SUPER, KeyCode::Char('n'), SpawnWindow],
-                [KeyModifiers::CTRL, KeyCode::Char('M'), Hide],
-                [KeyModifiers::CTRL, KeyCode::Char('N'), SpawnWindow],
-                [KeyModifiers::SUPER, KeyCode::Char('k'), ClearScrollback],
-                [KeyModifiers::CTRL, KeyCode::Char('K'), ClearScrollback],
+                [Modifiers::ALT, KeyCode::Char('\n'), ToggleFullScreen],
+                [Modifiers::ALT, KeyCode::Char('\r'), ToggleFullScreen],
+                [Modifiers::SUPER, KeyCode::Char('m'), Hide],
+                [Modifiers::SUPER, KeyCode::Char('n'), SpawnWindow],
+                [Modifiers::CTRL, KeyCode::Char('M'), Hide],
+                [Modifiers::CTRL, KeyCode::Char('N'), SpawnWindow],
+                [Modifiers::SUPER, KeyCode::Char('k'), ClearScrollback],
+                [Modifiers::CTRL, KeyCode::Char('K'), ClearScrollback],
                 [
-                    KeyModifiers::SUPER,
+                    Modifiers::SUPER,
                     KeyCode::Char('f'),
                     Search(Pattern::CaseSensitiveString("".into()))
                 ],
                 [
-                    KeyModifiers::CTRL,
+                    Modifiers::CTRL,
                     KeyCode::Char('F'),
                     Search(Pattern::CaseSensitiveString("".into()))
                 ],
                 // Font size manipulation
-                [KeyModifiers::CTRL, KeyCode::Char('-'), DecreaseFontSize],
-                [KeyModifiers::CTRL, KeyCode::Char('0'), ResetFontSize],
-                [KeyModifiers::CTRL, KeyCode::Char('='), IncreaseFontSize],
-                [KeyModifiers::SUPER, KeyCode::Char('-'), DecreaseFontSize],
-                [KeyModifiers::SUPER, KeyCode::Char('0'), ResetFontSize],
-                [KeyModifiers::SUPER, KeyCode::Char('='), IncreaseFontSize],
+                [Modifiers::CTRL, KeyCode::Char('-'), DecreaseFontSize],
+                [Modifiers::CTRL, KeyCode::Char('0'), ResetFontSize],
+                [Modifiers::CTRL, KeyCode::Char('='), IncreaseFontSize],
+                [Modifiers::SUPER, KeyCode::Char('-'), DecreaseFontSize],
+                [Modifiers::SUPER, KeyCode::Char('0'), ResetFontSize],
+                [Modifiers::SUPER, KeyCode::Char('='), IncreaseFontSize],
                 // Tab navigation and management
                 [
-                    KeyModifiers::SUPER,
+                    Modifiers::SUPER,
                     KeyCode::Char('t'),
                     SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
                 [
-                    KeyModifiers::CTRL,
+                    Modifiers::CTRL,
                     KeyCode::Char('T'),
                     SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
                 [
-                    KeyModifiers::SUPER,
+                    Modifiers::SUPER,
                     KeyCode::Char('T'),
                     SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
-                [KeyModifiers::SUPER, KeyCode::Char('1'), ActivateTab(0)],
-                [KeyModifiers::SUPER, KeyCode::Char('2'), ActivateTab(1)],
-                [KeyModifiers::SUPER, KeyCode::Char('3'), ActivateTab(2)],
-                [KeyModifiers::SUPER, KeyCode::Char('4'), ActivateTab(3)],
-                [KeyModifiers::SUPER, KeyCode::Char('5'), ActivateTab(4)],
-                [KeyModifiers::SUPER, KeyCode::Char('6'), ActivateTab(5)],
-                [KeyModifiers::SUPER, KeyCode::Char('7'), ActivateTab(6)],
-                [KeyModifiers::SUPER, KeyCode::Char('8'), ActivateTab(7)],
-                [KeyModifiers::SUPER, KeyCode::Char('9'), ActivateTab(-1)],
+                [Modifiers::SUPER, KeyCode::Char('1'), ActivateTab(0)],
+                [Modifiers::SUPER, KeyCode::Char('2'), ActivateTab(1)],
+                [Modifiers::SUPER, KeyCode::Char('3'), ActivateTab(2)],
+                [Modifiers::SUPER, KeyCode::Char('4'), ActivateTab(3)],
+                [Modifiers::SUPER, KeyCode::Char('5'), ActivateTab(4)],
+                [Modifiers::SUPER, KeyCode::Char('6'), ActivateTab(5)],
+                [Modifiers::SUPER, KeyCode::Char('7'), ActivateTab(6)],
+                [Modifiers::SUPER, KeyCode::Char('8'), ActivateTab(7)],
+                [Modifiers::SUPER, KeyCode::Char('9'), ActivateTab(-1)],
                 [
-                    KeyModifiers::SUPER,
+                    Modifiers::SUPER,
                     KeyCode::Char('w'),
                     CloseCurrentTab { confirm: true }
                 ],
@@ -276,40 +275,40 @@ impl InputMap {
                 [ctrl_shift, KeyCode::Char('8'), ActivateTab(7)],
                 [ctrl_shift, KeyCode::Char('9'), ActivateTab(-1)],
                 [
-                    KeyModifiers::CTRL,
+                    Modifiers::CTRL,
                     KeyCode::Char('W'),
                     CloseCurrentTab { confirm: true }
                 ],
                 [
-                    KeyModifiers::SUPER | KeyModifiers::SHIFT,
+                    Modifiers::SUPER | Modifiers::SHIFT,
                     KeyCode::Char('['),
                     ActivateTabRelative(-1)
                 ],
                 [
-                    KeyModifiers::SUPER | KeyModifiers::SHIFT,
+                    Modifiers::SUPER | Modifiers::SHIFT,
                     KeyCode::Char('{'),
                     ActivateTabRelative(-1)
                 ],
                 [
-                    KeyModifiers::SUPER | KeyModifiers::SHIFT,
+                    Modifiers::SUPER | Modifiers::SHIFT,
                     KeyCode::Char(']'),
                     ActivateTabRelative(1)
                 ],
                 [
-                    KeyModifiers::SUPER | KeyModifiers::SHIFT,
+                    Modifiers::SUPER | Modifiers::SHIFT,
                     KeyCode::Char('}'),
                     ActivateTabRelative(1)
                 ],
-                [KeyModifiers::SUPER, KeyCode::Char('r'), ReloadConfiguration],
-                [KeyModifiers::CTRL, KeyCode::Char('R'), ReloadConfiguration],
+                [Modifiers::SUPER, KeyCode::Char('r'), ReloadConfiguration],
+                [Modifiers::CTRL, KeyCode::Char('R'), ReloadConfiguration],
                 [ctrl_shift, KeyCode::PageUp, MoveTabRelative(-1)],
                 [ctrl_shift, KeyCode::PageDown, MoveTabRelative(1)],
-                [KeyModifiers::SHIFT, KeyCode::PageUp, ScrollByPage(-1)],
-                [KeyModifiers::SHIFT, KeyCode::PageDown, ScrollByPage(1)],
-                [KeyModifiers::ALT, KeyCode::Char('9'), ShowTabNavigator],
-                [KeyModifiers::CTRL, KeyCode::Char('X'), ActivateCopyMode],
+                [Modifiers::SHIFT, KeyCode::PageUp, ScrollByPage(-1)],
+                [Modifiers::SHIFT, KeyCode::PageDown, ScrollByPage(1)],
+                [Modifiers::ALT, KeyCode::Char('9'), ShowTabNavigator],
+                [Modifiers::CTRL, KeyCode::Char('X'), ActivateCopyMode],
                 [
-                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
                     KeyCode::Char('"'),
                     SplitVertical(SpawnCommand {
                         domain: SpawnTabDomain::CurrentPaneDomain,
@@ -317,7 +316,7 @@ impl InputMap {
                     })
                 ],
                 [
-                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
                     KeyCode::Char('%'),
                     SplitHorizontal(SpawnCommand {
                         domain: SpawnTabDomain::CurrentPaneDomain,
@@ -325,22 +324,22 @@ impl InputMap {
                     })
                 ],
                 [
-                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
                     KeyCode::LeftArrow,
                     AdjustPaneSize(PaneDirection::Left, 1)
                 ],
                 [
-                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
                     KeyCode::RightArrow,
                     AdjustPaneSize(PaneDirection::Right, 1)
                 ],
                 [
-                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
                     KeyCode::UpArrow,
                     AdjustPaneSize(PaneDirection::Up, 1)
                 ],
                 [
-                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
                     KeyCode::DownArrow,
                     AdjustPaneSize(PaneDirection::Down, 1)
                 ],
@@ -364,17 +363,17 @@ impl InputMap {
                     KeyCode::DownArrow,
                     ActivatePaneDirection(PaneDirection::Down)
                 ],
-                [KeyModifiers::CTRL, KeyCode::Char('Z'), TogglePaneZoomState],
+                [Modifiers::CTRL, KeyCode::Char('Z'), TogglePaneZoomState],
             );
 
             #[cfg(target_os = "macos")]
-            k!([KeyModifiers::SUPER, KeyCode::Char('h'), HideApplication],);
+            k!([Modifiers::SUPER, KeyCode::Char('h'), HideApplication],);
         }
 
         if !config.disable_default_mouse_bindings {
             m!(
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Down {
                         streak: 3,
                         button: MouseButton::Left
@@ -382,7 +381,7 @@ impl InputMap {
                     SelectTextAtMouseCursor(SelectionMode::Line)
                 ],
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Down {
                         streak: 2,
                         button: MouseButton::Left
@@ -390,7 +389,7 @@ impl InputMap {
                     SelectTextAtMouseCursor(SelectionMode::Word)
                 ],
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Down {
                         streak: 1,
                         button: MouseButton::Left
@@ -398,7 +397,7 @@ impl InputMap {
                     SelectTextAtMouseCursor(SelectionMode::Cell)
                 ],
                 [
-                    KeyModifiers::SHIFT,
+                    Modifiers::SHIFT,
                     MouseEventTrigger::Down {
                         streak: 1,
                         button: MouseButton::Left
@@ -406,7 +405,7 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(None)
                 ],
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Up {
                         streak: 1,
                         button: MouseButton::Left
@@ -414,7 +413,7 @@ impl InputMap {
                     CompleteSelectionOrOpenLinkAtMouseCursor
                 ],
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Up {
                         streak: 2,
                         button: MouseButton::Left
@@ -422,7 +421,7 @@ impl InputMap {
                     CompleteSelection
                 ],
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Up {
                         streak: 3,
                         button: MouseButton::Left
@@ -430,7 +429,7 @@ impl InputMap {
                     CompleteSelection
                 ],
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Drag {
                         streak: 1,
                         button: MouseButton::Left
@@ -438,7 +437,7 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(Some(SelectionMode::Cell))
                 ],
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Drag {
                         streak: 2,
                         button: MouseButton::Left
@@ -446,7 +445,7 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(Some(SelectionMode::Word))
                 ],
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Drag {
                         streak: 3,
                         button: MouseButton::Left
@@ -454,7 +453,7 @@ impl InputMap {
                     ExtendSelectionToMouseCursor(Some(SelectionMode::Line))
                 ],
                 [
-                    KeyModifiers::NONE,
+                    Modifiers::NONE,
                     MouseEventTrigger::Down {
                         streak: 1,
                         button: MouseButton::Middle
@@ -474,9 +473,9 @@ impl InputMap {
         }
     }
 
-    pub fn is_leader(&self, key: KeyCode, mods: KeyModifiers) -> Option<std::time::Duration> {
+    pub fn is_leader(&self, key: &KeyCode, mods: Modifiers) -> Option<std::time::Duration> {
         if let Some(leader) = self.leader.as_ref() {
-            if leader.key == key && leader.mods == mods {
+            if leader.key == *key && leader.mods == mods {
                 return Some(std::time::Duration::from_millis(
                     leader.timeout_milliseconds,
                 ));
@@ -485,17 +484,11 @@ impl InputMap {
         None
     }
 
-    pub fn lookup_key(&self, key: KeyCode, mods: KeyModifiers) -> Option<KeyAssignment> {
-        self.keys
-            .get(&(key.normalize_shift_to_upper_case(mods), mods))
-            .cloned()
+    pub fn lookup_key(&self, key: &KeyCode, mods: Modifiers) -> Option<KeyAssignment> {
+        self.keys.get(&key.normalize_shift(mods)).cloned()
     }
 
-    pub fn lookup_mouse(
-        &self,
-        event: MouseEventTrigger,
-        mods: KeyModifiers,
-    ) -> Option<KeyAssignment> {
+    pub fn lookup_mouse(&self, event: MouseEventTrigger, mods: Modifiers) -> Option<KeyAssignment> {
         self.mouse.get(&(event, mods)).cloned()
     }
 }

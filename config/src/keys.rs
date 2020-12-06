@@ -1,7 +1,8 @@
 use crate::{KeyAssignment, MouseEventTrigger};
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Deserializer, Serialize};
-use termwiz::input::{KeyCode, Modifiers};
+use std::collections::HashMap;
+use window::input::{KeyCode, Modifiers};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Key {
@@ -37,18 +38,13 @@ pub struct Mouse {
 }
 impl_lua_conversion!(Mouse);
 
-fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
+fn make_map() -> HashMap<String, KeyCode> {
+    let mut map = HashMap::new();
 
     macro_rules! m {
         ($($val:ident),* $(,)?) => {
             $(
-            if s == stringify!($val) {
-                return Ok(KeyCode::$val);
-            }
+                map.insert(stringify!($val).to_string(), KeyCode::$val);
             )*
         }
     }
@@ -58,12 +54,8 @@ where
         Super,
         Meta,
         Cancel,
-        Backspace,
-        Tab,
         Clear,
-        Enter,
         Shift,
-        Escape,
         LeftShift,
         RightShift,
         Control,
@@ -72,9 +64,6 @@ where
         Alt,
         LeftAlt,
         RightAlt,
-        Menu,
-        LeftMenu,
-        RightMenu,
         Pause,
         CapsLock,
         PageUp,
@@ -90,22 +79,11 @@ where
         Execute,
         PrintScreen,
         Insert,
-        Delete,
         Help,
         LeftWindows,
         RightWindows,
         Applications,
         Sleep,
-        Numpad0,
-        Numpad1,
-        Numpad2,
-        Numpad3,
-        Numpad4,
-        Numpad5,
-        Numpad6,
-        Numpad7,
-        Numpad8,
-        Numpad9,
         Multiply,
         Add,
         Separator,
@@ -134,14 +112,45 @@ where
         ApplicationDownArrow,
     );
 
-    if s.len() > 1 && s.starts_with('F') {
-        let num: u8 = s[1..].parse().map_err(|_| {
+    map.insert("Backspace".to_string(), KeyCode::Char('\u{8}'));
+    map.insert("Delete".to_string(), KeyCode::Char('\u{7f}'));
+    map.insert("Enter".to_string(), KeyCode::Char('\r'));
+    map.insert("Escape".to_string(), KeyCode::Char('\u{1b}'));
+    map.insert("Tab".to_string(), KeyCode::Char('\t'));
+
+    for i in 0..=9 {
+        map.insert(format!("Numpad{}", i), KeyCode::Numpad(i));
+    }
+
+    for i in 1..=24 {
+        map.insert(format!("F{}", i), KeyCode::Function(i));
+    }
+
+    map
+}
+
+lazy_static::lazy_static! {
+    static ref KEYCODE_MAP: HashMap<String, KeyCode> = make_map();
+}
+
+fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+
+    if let Some(c) = KEYCODE_MAP.get(&s) {
+        return Ok(c.clone());
+    }
+
+    if s.len() > 4 && s.starts_with("raw:") {
+        let num: u32 = s[4..].parse().map_err(|_| {
             serde::de::Error::custom(format!(
-                "expected F<NUMBER> function key string, got: {}",
+                "expected raw:<NUMBER> raw keycode string, got: {}",
                 s
             ))
         })?;
-        return Ok(KeyCode::Function(num));
+        return Ok(KeyCode::RawCode(num));
     }
 
     let chars: Vec<char> = s.chars().collect();

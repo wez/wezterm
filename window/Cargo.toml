@@ -29,6 +29,7 @@ metrics = { version="0.12", features=["std"]}
 palette = "0.5"
 promise = { path = "../promise" }
 resize = "0.3"
+serde = {version="1.0", features = ["rc", "derive"]}
 glium = { version = "0.28", optional=true, default-features = false}
 
 [features]

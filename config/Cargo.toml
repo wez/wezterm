@@ -32,6 +32,7 @@ promise = { path = "../promise" }
 termwiz = { path = "../termwiz" }
 toml = "0.5"
 wezterm-term = { path = "../term", features=["use_serde"] }
+window = { path = "../window" }
 mlua = {version="0.4", features=["vendored", "lua54", "async", "send"]}
 
 [target."cfg(windows)".dependencies]

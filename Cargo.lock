@@ -729,6 +729,7 @@ dependencies = [
  "vergen",
  "wezterm-term",
  "winapi 0.3.9",
+ "window",
 ]
 
 [[package]]
@@ -4692,6 +4693,7 @@ dependencies = [
  "pretty_env_logger",
  "promise",
  "resize",
+ "serde",
  "shared_library",
  "smithay-client-toolkit",
  "thiserror",
