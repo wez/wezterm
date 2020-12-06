@@ -483,14 +483,14 @@ impl WindowCallbacks for TermWindow {
         let (leader_active, leader_mod) = match self.leader_is_down.as_ref() {
             Some(expiry) if *expiry > std::time::Instant::now() => {
                 // Currently active
-                (true, window::input::Modifiers::LEADER)
+                (true, Modifiers::LEADER)
             }
             Some(_) => {
                 // Expired; clear out the old expiration time
                 self.leader_is_down.take();
-                (false, window::input::Modifiers::NONE)
+                (false, Modifiers::NONE)
             }
-            _ => (false, window::input::Modifiers::NONE),
+            _ => (false, Modifiers::NONE),
         };
 
         let modifiers = window_mods_to_termwiz_mods(window_key.modifiers);
