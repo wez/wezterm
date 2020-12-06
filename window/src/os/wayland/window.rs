@@ -269,7 +269,7 @@ impl WaylandWindowInner {
                 is_down,
                 utf8,
                 serial,
-                ..
+                rawkey: raw_code,
             } => {
                 self.copy_and_paste
                     .lock()
@@ -306,6 +306,7 @@ impl WaylandWindowInner {
                     raw_key,
                     modifiers,
                     raw_modifiers,
+                    raw_code: Some(raw_code),
                     repeat_count: 1,
                 }
                 .normalize_shift();

@@ -171,6 +171,7 @@ pub struct KeyEvent {
     /// the processed/composed version
     pub raw_key: Option<KeyCode>,
     pub raw_modifiers: Modifiers,
+    pub raw_code: Option<u32>,
 
     /// How many times this key repeats
     pub repeat_count: u16,

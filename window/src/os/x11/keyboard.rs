@@ -133,12 +133,14 @@ impl Keyboard {
         };
 
         let kc = keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym))?;
+        let modifiers = self.get_key_modifiers();
 
         Some(KeyEvent {
             key: kc,
-            modifiers: self.get_key_modifiers(),
+            modifiers,
             raw_key: None,
-            raw_modifiers: Default::default(),
+            raw_modifiers: modifiers,
+            raw_code: Some(xcode),
             repeat_count: 1,
             key_is_down: pressed,
         })

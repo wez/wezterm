@@ -922,6 +922,7 @@ impl WindowView {
             raw_key: None,
             modifiers,
             raw_modifiers: Modifiers::NONE,
+            raw_code: None,
             repeat_count: 1,
             key_is_down: true,
         }
@@ -960,6 +961,7 @@ impl WindowView {
             raw_key: None,
             modifiers: Modifiers::NONE,
             raw_modifiers: Modifiers::NONE,
+            raw_code: None,
             repeat_count: 1,
             key_is_down: true,
         }
@@ -1318,6 +1320,7 @@ impl WindowView {
                 raw_key,
                 modifiers,
                 raw_modifiers,
+                raw_code: None,
                 repeat_count: 1,
                 key_is_down,
             }
