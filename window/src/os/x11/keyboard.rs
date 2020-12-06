@@ -1,5 +1,5 @@
 use crate::os::xkeysyms::keysym_to_keycode;
-use crate::{KeyCode, Modifiers};
+use crate::{KeyEvent, Modifiers};
 use anyhow::{anyhow, ensure};
 use libc;
 use std::cell::RefCell;
@@ -102,7 +102,7 @@ impl Keyboard {
         Ok((kbd, first_ev))
     }
 
-    pub fn process_key_event(&self, xcb_ev: &xcb::KeyPressEvent) -> Option<(KeyCode, Modifiers)> {
+    pub fn process_key_event(&self, xcb_ev: &xcb::KeyPressEvent) -> Option<KeyEvent> {
         let pressed = (xcb_ev.response_type() & !0x80) == xcb::KEY_PRESS;
 
         let xcode = xkb::Keycode::from(xcb_ev.detail());
@@ -132,22 +132,16 @@ impl Keyboard {
             xsym
         };
 
-        // could be from_u32_unchecked
-        let ks_char = std::char::from_u32(xkb::keysym_to_utf32(ksym));
+        let kc = keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym))?;
 
-        let kc = match ks_char {
-            Some(c) if (c as u32) >= 0x20 => KeyCode::Char(c),
-            _ => {
-                if let Some(key) = keysym_to_keycode(xsym) {
-                    key
-                } else {
-                    log::debug!("xkbc:Missing xcb keysym 0x{:x} definition", xsym);
-                    return None;
-                }
-            }
-        };
-
-        Some((kc, self.get_key_modifiers()))
+        Some(KeyEvent {
+            key: kc,
+            modifiers: self.get_key_modifiers(),
+            raw_key: None,
+            raw_modifiers: Default::default(),
+            repeat_count: 1,
+            key_is_down: pressed,
+        })
     }
 
     fn mod_is_active(&self, modifier: &str) -> bool {

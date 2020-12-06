@@ -4,7 +4,7 @@ use crate::connection::ConnectionOps;
 use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
-    Clipboard, Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
+    Clipboard, Color, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
     MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,
     WindowOpsMut,
 };
@@ -352,16 +352,8 @@ impl XWindowInner {
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 self.copy_and_paste.time = key_press.time();
-                if let Some((code, mods)) = conn.keyboard.process_key_event(key_press) {
-                    let key = KeyEvent {
-                        key: code,
-                        raw_key: None,
-                        raw_modifiers: Default::default(),
-                        modifiers: mods,
-                        repeat_count: 1,
-                        key_is_down: r == xcb::KEY_PRESS,
-                    }
-                    .normalize_shift();
+                if let Some(key) = conn.keyboard.process_key_event(key_press) {
+                    let key = key.normalize_shift();
                     self.callbacks
                         .key_event(&key, &XWindow::from_id(self.window_id));
                 }
