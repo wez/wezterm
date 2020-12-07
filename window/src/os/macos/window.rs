@@ -402,6 +402,7 @@ impl Window {
                 hscroll_remainder: 0.,
                 vscroll_remainder: 0.,
                 last_wheel: Instant::now(),
+                key_is_down: None,
             }));
 
             let window = StrongPtr::new(
@@ -741,6 +742,9 @@ struct Inner {
     hscroll_remainder: f64,
     vscroll_remainder: f64,
     last_wheel: Instant,
+    /// We use this to avoid double-emitting events when
+    /// procesing key-up events.
+    key_is_down: Option<bool>,
 }
 
 impl Inner {
@@ -955,20 +959,21 @@ impl WindowView {
         _replacement_range: NSRange,
     ) {
         let s = unsafe { nsstring_to_str(astring) };
-
-        let event = KeyEvent {
-            key: KeyCode::Composed(s.to_string()),
-            raw_key: None,
-            modifiers: Modifiers::NONE,
-            raw_modifiers: Modifiers::NONE,
-            raw_code: None,
-            repeat_count: 1,
-            key_is_down: true,
-        }
-        .normalize_shift();
-
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
+            let key_is_down = inner.key_is_down.take().unwrap_or(true);
+
+            let event = KeyEvent {
+                key: KeyCode::Composed(s.to_string()),
+                raw_key: None,
+                modifiers: Modifiers::NONE,
+                raw_modifiers: Modifiers::NONE,
+                raw_code: None,
+                repeat_count: 1,
+                key_is_down,
+            }
+            .normalize_shift();
+
             let window = Window(inner.window_id);
             inner.callbacks.key_event(&event, &window);
         }
@@ -1237,11 +1242,12 @@ impl WindowView {
         let virtual_key = unsafe { nsevent.keyCode() };
 
         log::debug!(
-            "key_common: chars=`{}` unmod=`{}` modifiers=`{:?}` virtual_key={:?}",
+            "key_common: chars=`{}` unmod=`{}` modifiers=`{:?}` virtual_key={:?} key_is_down:{}",
             chars.escape_debug(),
             unmod.escape_debug(),
             modifiers,
-            virtual_key
+            virtual_key,
+            key_is_down
         );
 
         // `Delete` on macos is really Backspace and emits BS.
@@ -1273,7 +1279,15 @@ impl WindowView {
             modifiers
         };
 
-        if USE_IME.load(Ordering::Relaxed) && modifiers.is_empty() {
+        let only_alt = (modifiers & !(Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT))
+            == Modifiers::NONE;
+
+        if key_is_down && USE_IME.load(Ordering::Relaxed) && (modifiers.is_empty() || only_alt) {
+            if let Some(myself) = Self::get_this(this) {
+                let mut inner = myself.inner.borrow_mut();
+                inner.key_is_down.replace(key_is_down);
+            }
+
             unsafe {
                 let input_context: id = msg_send![this, inputContext];
                 let res: BOOL = msg_send![input_context, handleEvent: nsevent];
@@ -1297,8 +1311,8 @@ impl WindowView {
             }
         }
 
-        if let Some(key) = key_string_to_key_code(chars) {
-            let (key, raw_key) = if chars == unmod {
+        if let Some(key) = key_string_to_key_code(chars).or_else(|| key_string_to_key_code(unmod)) {
+            let (key, raw_key) = if chars.is_empty() || chars == unmod {
                 (key, None)
             } else {
                 let raw = key_string_to_key_code(unmod);
@@ -1320,7 +1334,7 @@ impl WindowView {
                 raw_key,
                 modifiers,
                 raw_modifiers,
-                raw_code: None,
+                raw_code: Some(virtual_key as u32),
                 repeat_count: 1,
                 key_is_down,
             }
@@ -1346,11 +1360,9 @@ impl WindowView {
         Self::key_common(this, nsevent, true);
     }
 
-    /*
     extern "C" fn key_up(this: &mut Object, _sel: Sel, nsevent: id) {
         Self::key_common(this, nsevent, false);
     }
-    */
 
     extern "C" fn did_change_screen(this: &mut Object, _sel: Sel, _notification: id) {
         log::trace!("did_change_screen");
@@ -1604,15 +1616,10 @@ impl WindowView {
                 sel!(keyDown:),
                 Self::key_down as extern "C" fn(&mut Object, Sel, id),
             );
-            /* keyUp events mess up the IME and we generally only care
-             * about the down events anyway.  Leaving this un-plumbed
-             * means that we'll fall back to the default behavior for
-             * keyUp which helps make key repeat work.
             cls.add_method(
                 sel!(keyUp:),
                 Self::key_up as extern "C" fn(&mut Object, Sel, id),
             );
-            */
 
             cls.add_method(
                 sel!(acceptsFirstResponder),
