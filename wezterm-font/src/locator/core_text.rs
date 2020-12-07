@@ -2,14 +2,14 @@
 
 use crate::locator::{FontDataHandle, FontLocator};
 use config::FontAttributes;
-use core_foundation::base::{CFType, TCFType};
+use core_foundation::array::CFArray;
+use core_foundation::base::TCFType;
 use core_foundation::dictionary::CFDictionary;
 use core_foundation::number::CFNumber;
 use core_foundation::string::CFString;
-use core_foundation::url::CFURL;
+use core_text::font::*;
 use core_text::font_descriptor::*;
 use std::collections::HashSet;
-use std::path::PathBuf;
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by core text.
@@ -42,27 +42,29 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescripto
     Ok(core_text::font_descriptor::new_from_attributes(&attributes))
 }
 
-fn font_path_from_descriptor(descriptor: &CTFontDescriptor) -> anyhow::Result<PathBuf> {
-    let url: CFURL;
-    unsafe {
-        let value =
-            CTFontDescriptorCopyAttribute(descriptor.as_concrete_TypeRef(), kCTFontURLAttribute);
+/// Given a descriptor, return a handle that can be used to open it.
+/// The descriptor may not refer to an on-disk font and thus may
+/// not have a path.
+/// In addition, it may point to a ttc; so we'll need to reference
+/// each contained font to figure out which one is the one that
+/// the descriptor is referencing.
+fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandle> {
+    let path = descriptor.font_path()?;
+    let name = descriptor.display_name();
 
-        if value.is_null() {
-            return Err(anyhow::anyhow!("font descriptor has no URL"));
+    for index in 0.. {
+        let handle = FontDataHandle::OnDisk {
+            path: path.clone(),
+            index,
+        };
+        let parsed = crate::parser::ParsedFont::from_locator(&handle).ok()?;
+        let names = parsed.names();
+        if names.full_name == name {
+            return Some(handle);
         }
+    }
 
-        let value: CFType = TCFType::wrap_under_get_rule(value);
-        if !value.instance_of::<CFURL>() {
-            return Err(anyhow::anyhow!("font descriptor URL is not a CFURL"));
-        }
-        url = TCFType::wrap_under_get_rule(std::mem::transmute(value.as_CFTypeRef()));
-    }
-    if let Some(path) = url.to_path() {
-        Ok(path)
-    } else {
-        Err(anyhow::anyhow!("font descriptor URL is not a path"))
-    }
+    None
 }
 
 impl FontLocator for CoreTextFontLocator {
@@ -75,10 +77,10 @@ impl FontLocator for CoreTextFontLocator {
 
         for attr in fonts_selection {
             if let Ok(descriptor) = descriptor_from_attr(attr) {
-                if let Ok(path) = font_path_from_descriptor(&descriptor) {
-                    let handle = FontDataHandle::OnDisk { path, index: 0 };
-
+                if let Some(handle) = handle_from_descriptor(&descriptor) {
                     if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
+                        // The system may have returned a fallback font rather than the
+                        // font that we requested, so verify that the name matches.
                         if crate::parser::font_info_matches(attr, parsed.names()) {
                             fonts.push(handle);
                             loaded.insert(attr.clone());
@@ -95,6 +97,22 @@ impl FontLocator for CoreTextFontLocator {
         &self,
         _codepoints: &[char],
     ) -> anyhow::Result<Vec<FontDataHandle>> {
-        Ok(vec![])
+        // We don't have an API to resolve a font for the codepoints, so instead we
+        // just get the system fallback list and add the whole thing to the fallback.
+        let font =
+            new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
+        let lang = "en"
+            .parse::<CFString>()
+            .map_err(|_| anyhow::anyhow!("failed to parse lang name en as CFString"))?;
+        let langs = CFArray::from_CFTypes(&[lang]);
+        let cascade = cascade_list_for_languages(&font, &langs);
+        let mut fonts = vec![];
+        for descriptor in &cascade {
+            if let Some(handle) = handle_from_descriptor(&descriptor) {
+                fonts.push(handle);
+            }
+        }
+
+        Ok(fonts)
     }
 }

@@ -697,8 +697,14 @@ pub(crate) fn parse_and_collect_font_info(
 
 fn locate_offset_table<'a>(f: &OpenTypeFile<'a>, idx: usize) -> anyhow::Result<OffsetTable<'a>> {
     match &f.font {
-        OpenTypeFont::Single(ttf) => Ok(ttf.clone()),
+        OpenTypeFont::Single(ttf) if idx == 0 => Ok(ttf.clone()),
+        OpenTypeFont::Single(_) => Err(anyhow!("requested idx {} not present in single ttf", idx)),
         OpenTypeFont::Collection(ttc) => {
+            // Ideally `read_item` would simply error when idx is out of range,
+            // but it generates a panic, so we need to check for ourselves.
+            if idx >= ttc.offset_tables.len() {
+                anyhow::bail!("requested idx {} out of range for ttc", idx);
+            }
             let offset_table_offset = ttc
                 .offset_tables
                 .read_item(idx)

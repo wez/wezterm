@@ -163,8 +163,6 @@ impl TextStyle {
         }
 
         #[cfg(target_os = "macos")]
-        font.push(FontAttributes::new_fallback("Apple Color Emoji"));
-        #[cfg(target_os = "macos")]
         font.push(FontAttributes::new_fallback("Apple Symbols"));
         #[cfg(target_os = "macos")]
         font.push(FontAttributes::new_fallback("Zapf Dingbats"));
