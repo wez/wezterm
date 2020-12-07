@@ -9,6 +9,11 @@ pub mod os;
 mod spawn;
 mod timerlist;
 
+#[cfg(target_os = "macos")]
+pub const DEFAULT_DPI: f64 = 72.0;
+#[cfg(not(target_os = "macos"))]
+pub const DEFAULT_DPI: f64 = 96.0;
+
 #[cfg(feature = "opengl")]
 mod egl;
 

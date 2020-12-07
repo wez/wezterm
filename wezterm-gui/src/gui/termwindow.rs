@@ -27,7 +27,7 @@ use anyhow::{anyhow, bail, ensure};
 use config::keyassignment::{
     InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
 };
-use config::{configuration, ConfigHandle};
+use config::{configuration, default_dpi, ConfigHandle};
 use lru::LruCache;
 use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
@@ -2113,7 +2113,7 @@ impl TermWindow {
 
     fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
         self.fonts
-            .change_scaling(font_scale, dimensions.dpi as f64 / 96.);
+            .change_scaling(font_scale, dimensions.dpi as f64 / default_dpi());
         self.render_metrics = RenderMetrics::new(&self.fonts);
         if self.render_state.has_opengl() {
             self.render_state.opengl().glyph_cache.borrow_mut().clear();

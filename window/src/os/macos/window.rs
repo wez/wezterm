@@ -484,7 +484,7 @@ impl Window {
             inner.borrow_mut().callbacks.resize(Dimensions {
                 pixel_width: width as usize,
                 pixel_height: height as usize,
-                dpi: (96.0 * (backing_frame.size.width / frame.size.width)) as usize,
+                dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width)) as usize,
             });
 
             Ok(window)
@@ -1395,7 +1395,7 @@ impl WindowView {
             this.inner.borrow_mut().callbacks.resize(Dimensions {
                 pixel_width: width as usize,
                 pixel_height: height as usize,
-                dpi: (96.0 * (backing_frame.size.width / frame.size.width)) as usize,
+                dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width)) as usize,
             });
         }
     }
@@ -1460,7 +1460,7 @@ impl WindowView {
 
             let mut ctx = MacGraphicsContext {
                 buffer: &mut *buffer,
-                dpi: (96.0 * backing_frame.size.width / frame.size.width) as usize,
+                dpi: (crate::DEFAULT_DPI * backing_frame.size.width / frame.size.width) as usize,
             };
 
             inner.callbacks.paint(&mut ctx);

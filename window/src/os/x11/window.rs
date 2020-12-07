@@ -90,7 +90,7 @@ impl<'a> PaintContext for X11GraphicsContext<'a> {
         Dimensions {
             pixel_width,
             pixel_height,
-            dpi: 96,
+            dpi: crate::DEFAULT_DPI as usize,
         }
     }
 
@@ -346,7 +346,7 @@ impl XWindowInner {
                 self.callbacks.resize(Dimensions {
                     pixel_width: self.width as usize,
                     pixel_height: self.height as usize,
-                    dpi: 96,
+                    dpi: crate::DEFAULT_DPI as usize,
                 })
             }
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {

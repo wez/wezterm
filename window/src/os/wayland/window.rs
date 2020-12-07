@@ -190,7 +190,7 @@ impl WaylandWindow {
         let dimensions = Dimensions {
             pixel_width: width,
             pixel_height: height,
-            dpi: 96,
+            dpi: crate::DEFAULT_DPI as usize,
         };
 
         let mut window = conn
@@ -422,7 +422,7 @@ impl WaylandWindowInner {
     }
 
     fn get_dpi_factor(&self) -> i32 {
-        self.dimensions.dpi as i32 / 96
+        self.dimensions.dpi as i32 / crate::DEFAULT_DPI as i32
     }
 
     fn get_dpi(&self) -> usize {
@@ -481,7 +481,7 @@ impl WaylandWindowInner {
                 let new_dimensions = Dimensions {
                     pixel_width: pixel_width.try_into().unwrap(),
                     pixel_height: pixel_height.try_into().unwrap(),
-                    dpi: factor as usize * 96,
+                    dpi: factor as usize * crate::DEFAULT_DPI as usize,
                 };
                 // Only trigger a resize if the new dimensions are different;
                 // this makes things more efficient and a little more smooth
