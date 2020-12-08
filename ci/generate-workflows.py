@@ -442,7 +442,7 @@ cargo build --all --release""",
                     ),
                     RunStep(
                         "Enable PowerTools",
-                        "dnf config-manager --set-enabled PowerTools",
+                        "dnf config-manager --set-enabled powertools",
                     ),
                 ]
         steps += self.install_git()

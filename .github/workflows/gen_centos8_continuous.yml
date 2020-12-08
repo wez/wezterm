@@ -24,7 +24,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            dnf config-manager --set-enabled PowerTools
+            dnf config-manager --set-enabled powertools
             
 
     - name: "Install git"
