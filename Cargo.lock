@@ -730,7 +730,6 @@ dependencies = [
  "wezterm-input-types",
  "wezterm-term",
  "winapi 0.3.9",
- "window",
 ]
 
 [[package]]

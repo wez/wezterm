@@ -288,7 +288,8 @@ impl FontConfigInner {
 
         let config = configuration();
         let font_size = config.font_size * *self.font_scale.borrow();
-        let dpi = *self.dpi_scale.borrow() as u32 * config.dpi as u32;
+        let dpi =
+            *self.dpi_scale.borrow() as u32 * config.dpi.unwrap_or(::window::DEFAULT_DPI) as u32;
         let metrics = shaper.metrics(font_size, dpi)?;
 
         let loaded = Rc::new(LoadedFont {

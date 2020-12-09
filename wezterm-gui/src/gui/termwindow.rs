@@ -27,7 +27,7 @@ use anyhow::{anyhow, bail, ensure};
 use config::keyassignment::{
     InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
 };
-use config::{configuration, default_dpi, ConfigHandle};
+use config::{configuration, ConfigHandle};
 use lru::LruCache;
 use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
@@ -933,7 +933,7 @@ impl TermWindow {
             pixel_height: ((rows_with_tab_bar * render_metrics.cell_size.height as u16)
                 + config.window_padding.top
                 + config.window_padding.bottom) as usize,
-            dpi: config.dpi as usize,
+            dpi: config.dpi.unwrap_or(::window::DEFAULT_DPI) as usize,
         };
 
         log::info!(
@@ -2113,7 +2113,7 @@ impl TermWindow {
 
     fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
         self.fonts
-            .change_scaling(font_scale, dimensions.dpi as f64 / default_dpi());
+            .change_scaling(font_scale, dimensions.dpi as f64 / ::window::DEFAULT_DPI);
         self.render_metrics = RenderMetrics::new(&self.fonts);
         if self.render_state.has_opengl() {
             self.render_state.opengl().glyph_cache.borrow_mut().clear();

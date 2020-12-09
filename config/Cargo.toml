@@ -34,7 +34,6 @@ termwiz = { path = "../termwiz" }
 toml = "0.5"
 wezterm-input-types = { path = "../wezterm-input-types" }
 wezterm-term = { path = "../term", features=["use_serde"] }
-window = { path = "../window" }
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = ["winuser"]}

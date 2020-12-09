@@ -463,8 +463,7 @@ pub struct Config {
     pub color_scheme_dirs: Vec<PathBuf>,
 
     /// The DPI to assume
-    #[serde(default = "default_dpi")]
-    pub dpi: f64,
+    pub dpi: Option<f64>,
 
     /// The baseline font to use
     #[serde(default)]
@@ -1251,10 +1250,6 @@ fn default_term() -> String {
 
 fn default_font_size() -> f64 {
     10.0
-}
-
-pub fn default_dpi() -> f64 {
-    ::window::DEFAULT_DPI
 }
 
 fn compute_runtime_dir() -> Result<PathBuf, Error> {
