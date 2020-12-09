@@ -1,6 +1,11 @@
 use bitflags::*;
 use serde::*;
 
+pub struct PixelUnit;
+pub struct ScreenPixelUnit;
+pub type Point = euclid::Point2D<isize, PixelUnit>;
+pub type ScreenPoint = euclid::Point2D<isize, ScreenPixelUnit>;
+
 /// Which key is pressed.  Not all of these are probable to appear
 /// on most systems.  A lot of this list is @wez trawling docs and
 /// making an entry for things that might be possible in this first pass.
@@ -158,7 +163,7 @@ pub enum MouseEventKind {
 pub struct MouseEvent {
     pub kind: MouseEventKind,
     /// Coordinates of the mouse relative to the top left of the window
-    pub coords: crate::Point,
+    pub coords: Point,
     /// The mouse position in screen coordinates
     pub screen_coords: crate::ScreenPoint,
     pub mouse_buttons: MouseButtons,

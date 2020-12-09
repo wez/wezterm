@@ -25,7 +25,7 @@ use std::time::Duration;
 use termwiz::hyperlink;
 use termwiz::surface::CursorShape;
 use toml;
-use window::input::{KeyCode, Modifiers};
+use wezterm_input_types::{KeyCode, Modifiers};
 
 mod color;
 mod daemon;

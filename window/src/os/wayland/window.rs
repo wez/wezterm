@@ -4,7 +4,6 @@ use super::pointer::*;
 use crate::bitmaps::BitmapImage;
 use crate::color::Color;
 use crate::connection::ConnectionOps;
-use crate::input::*;
 use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
@@ -30,6 +29,7 @@ use toolkit::window::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame, E
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 #[cfg(feature = "opengl")]
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
+use wezterm_input_types::*;
 
 const DARK_GRAY: [u8; 4] = [0xff, 0x35, 0x35, 0x35];
 const DARK_PURPLE: [u8; 4] = [0xff, 0x2b, 0x20, 0x42];

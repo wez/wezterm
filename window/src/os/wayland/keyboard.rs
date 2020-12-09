@@ -1,4 +1,3 @@
-use crate::input::*;
 use crate::os::wayland::connection::WaylandConnection;
 use anyhow::anyhow;
 use smithay_client_toolkit as toolkit;
@@ -11,6 +10,7 @@ use toolkit::seat::keyboard::{
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::Attached;
+use wezterm_input_types::*;
 
 #[derive(Default)]
 struct Inner {

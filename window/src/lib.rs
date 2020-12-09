@@ -4,7 +4,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub mod bitmaps;
 pub mod color;
 pub mod connection;
-pub mod input;
 pub mod os;
 mod spawn;
 mod timerlist;
@@ -23,8 +22,8 @@ pub use glium;
 pub use bitmaps::{BitmapImage, Image};
 pub use color::Color;
 pub use connection::*;
-pub use input::*;
 pub use os::*;
+pub use wezterm_input_types::*;
 
 /// Compositing operator.
 /// We implement a small subset of possible compositing operators.
@@ -68,13 +67,8 @@ pub struct Dimensions {
     pub dpi: usize,
 }
 
-pub struct PixelUnit;
-pub type Point = euclid::Point2D<isize, PixelUnit>;
 pub type Rect = euclid::Rect<isize, PixelUnit>;
 pub type Size = euclid::Size2D<isize, PixelUnit>;
-
-pub struct ScreenPixelUnit;
-pub type ScreenPoint = euclid::Point2D<isize, ScreenPixelUnit>;
 
 pub trait PaintContext {
     fn get_dimensions(&self) -> Dimensions;

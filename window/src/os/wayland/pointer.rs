@@ -1,5 +1,4 @@
 use super::copy_and_paste::*;
-use crate::input::*;
 use crate::os::wayland::connection::WaylandConnection;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
@@ -18,6 +17,7 @@ use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::protocol::wl_shm::WlShm;
 use wayland_client::{Attached, Main};
+use wezterm_input_types::*;
 
 #[derive(Default)]
 struct Inner {

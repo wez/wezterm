@@ -4,8 +4,8 @@ use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use wezterm_input_types::{KeyCode, Modifiers};
 use wezterm_term::input::MouseButton;
-use window::input::{KeyCode, Modifiers};
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum SelectionMode {

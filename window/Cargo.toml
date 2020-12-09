@@ -31,6 +31,7 @@ promise = { path = "../promise" }
 resize = "0.3"
 serde = {version="1.0", features = ["rc", "derive"]}
 glium = { version = "0.28", optional=true, default-features = false}
+wezterm-input-types = { path = "../wezterm-input-types" }
 
 [features]
 opengl = ["cgl", "glium", "gl_generator", "libloading"]

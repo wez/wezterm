@@ -2,7 +2,7 @@ use crate::{KeyAssignment, MouseEventTrigger};
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
-use window::input::{KeyCode, Modifiers};
+use wezterm_input_types::{KeyCode, Modifiers};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Key {

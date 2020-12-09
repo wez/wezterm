@@ -727,6 +727,7 @@ dependencies = [
  "termwiz",
  "toml",
  "vergen",
+ "wezterm-input-types",
  "wezterm-term",
  "winapi 0.3.9",
  "window",
@@ -4567,6 +4568,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "wezterm-input-types"
+version = "0.1.0"
+dependencies = [
+ "bitflags 1.2.1",
+ "euclid 0.20.14",
+ "serde",
+]
+
+[[package]]
 name = "wezterm-mux-server"
 version = "0.1.0"
 dependencies = [
@@ -4700,6 +4710,7 @@ dependencies = [
  "thiserror",
  "wayland-client",
  "wayland-egl",
+ "wezterm-input-types",
  "winapi 0.3.9",
  "winreg 0.6.2",
  "x11",
