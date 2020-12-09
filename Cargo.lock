@@ -4604,6 +4604,7 @@ dependencies = [
  "bitflags 1.2.1",
  "image",
  "k9",
+ "lazy_static",
  "log",
  "lru",
  "num-traits 0.2.14",

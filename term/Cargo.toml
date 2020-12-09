@@ -17,6 +17,7 @@ use_serde = ["termwiz/use_serde"]
 anyhow = "1.0"
 bitflags = "1.0"
 image = "0.23"
+lazy_static = "1.4"
 log = "0.4"
 lru = "0.5"
 num-traits = "0.2"

@@ -94,9 +94,19 @@ impl ColorPalette {
     }
 }
 
+lazy_static::lazy_static! {
+    static ref DEFAULT_PALETTE: ColorPalette = ColorPalette::compute_default();
+}
+
 impl Default for ColorPalette {
     /// Construct a default color palette
     fn default() -> ColorPalette {
+        DEFAULT_PALETTE.clone()
+    }
+}
+
+impl ColorPalette {
+    fn compute_default() -> Self {
         let mut colors = [RgbColor::default(); 256];
 
         // The XTerm ansi color set
@@ -201,8 +211,10 @@ impl Default for ColorPalette {
 
         colors[0..16].copy_from_slice(&ANSI);
 
-        // 216 color cube
-        static RAMP6: [u8; 6] = [0x00, 0x33, 0x66, 0x99, 0xCC, 0xFF];
+        // 216 color cube.
+        // This isn't the perfect color cube, but it matches the values used
+        // by xterm, which are slightly brighter.
+        static RAMP6: [u8; 6] = [0, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
         for idx in 0..216 {
             let blue = RAMP6[idx % 6];
             let green = RAMP6[idx / 6 % 6];
