@@ -69,7 +69,7 @@ window = { path = "../window", features=["opengl", "wayland"]}
 
 [target.'cfg(not(windows))'.dependencies]
 # show a notification
-notify-rust = "3"
+notify-rust = "4"
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"

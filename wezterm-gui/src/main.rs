@@ -302,7 +302,7 @@ fn toast_notification(title: &str, message: &str) {
             .summary(title)
             .body(message)
             // Stay on the screen until dismissed
-            .hint(notify_rust::NotificationHint::Resident(true))
+            .hint(notify_rust::Hint::Resident(true))
             // timeout isn't respected on macos
             .timeout(0)
             .show()
