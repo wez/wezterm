@@ -3508,6 +3508,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae524f056d7d770e174287294f562e95044c68e88dec909a00d2094805db9d75"
 
 [[package]]
+name = "smawk"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1bc737c97d093feb72e67f4926d9b22d717ce8580cd25f0ce86d74e859c466d"
+
+[[package]]
 name = "smithay-client-toolkit"
 version = "0.9.1"
 source = "git+https://github.com/wez/client-toolkit.git?branch=title_trunc#9b80c17400aa245f2bceadd496f57c2bb8908e95"
@@ -3866,6 +3872,16 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "203008d98caf094106cfaba70acfed15e18ed3ddb7d94e49baec153a2b462789"
 dependencies = [
+ "unicode-width",
+]
+
+[[package]]
+name = "textwrap"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1bca196a5c5a7bc57a5c92809cf5670e16bcbca3bf0d09ef47150bf97221f6f"
+dependencies = [
+ "smawk",
  "unicode-width",
 ]
 
@@ -4424,7 +4440,7 @@ dependencies = [
  "structopt",
  "tabout",
  "termwiz",
- "textwrap 0.12.1",
+ "textwrap 0.13.0",
  "umask",
  "url",
  "wezterm-client",
@@ -4540,7 +4556,7 @@ dependencies = [
  "tabout",
  "terminfo",
  "termwiz",
- "textwrap 0.12.1",
+ "textwrap 0.13.0",
  "thiserror",
  "uds_windows",
  "umask",

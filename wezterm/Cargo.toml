@@ -24,7 +24,7 @@ promise = { path = "../promise" }
 structopt = "0.3"
 tabout = { path = "../tabout" }
 termwiz = { path = "../termwiz" }
-textwrap = "0.12"
+textwrap = "0.13"
 umask = { path = "../umask" }
 url = "2"
 wezterm-client = { path = "../wezterm-client" }
