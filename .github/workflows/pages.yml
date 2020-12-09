@@ -34,7 +34,7 @@ jobs:
           ./ci/build-docs.sh
       - name: Deploy
         if: success()
-        uses: crazy-max/ghaction-github-pages@v1
+        uses: crazy-max/ghaction-github-pages@v2.2.0
         with:
           target_branch: gh-pages
           build_dir: gh_pages
