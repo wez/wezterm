@@ -53,7 +53,7 @@ structopt = "0.3"
 tabout = { path = "../tabout" }
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }
-textwrap = "0.12"
+textwrap = "0.13"
 thiserror = "1.0"
 umask = { path = "../umask" }
 unicode-normalization = "0.1"
