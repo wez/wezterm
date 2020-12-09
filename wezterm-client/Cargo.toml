@@ -24,7 +24,7 @@ ssh2 = "0.8"
 thiserror = "1.0"
 url = "2"
 wezterm-term = { path = "../term", features=["use_serde"] }
-lru = "0.5"
+lru = "0.6"
 termwiz = { path = "../termwiz" }
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 futures = "0.3"
