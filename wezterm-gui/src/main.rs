@@ -298,11 +298,17 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
 fn toast_notification(title: &str, message: &str) {
     #[cfg(not(windows))]
     {
-        notify_rust::Notification::new()
-            .summary(title)
-            .body(message)
+        #[allow(unused_mut)]
+        let mut notif = notify_rust::Notification::new();
+        notif.summary(title).body(message);
+
+        #[cfg(not(target_os = "macos"))]
+        {
             // Stay on the screen until dismissed
-            .hint(notify_rust::Hint::Resident(true))
+            notif.hint(notify_rust::Hint::Resident(true));
+        }
+
+        notif
             // timeout isn't respected on macos
             .timeout(0)
             .show()
