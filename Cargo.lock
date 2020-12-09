@@ -37,6 +37,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ahash"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6789e291be47ace86a60303502173d84af8327e3627ecf334356ee0f87a164c"
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1621,8 +1627,17 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e6073d0ca812575946eb5f35ff68dbe519907b25c42530389ff946dc84c6ead"
 dependencies = [
- "ahash",
+ "ahash 0.2.19",
  "autocfg 0.1.7",
+]
+
+[[package]]
+name = "hashbrown"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7afe4a420e3fe79967a00898cc1f4db7c8a49a9333a29f8a4bd76a253d5cd04"
+dependencies = [
+ "ahash 0.4.6",
 ]
 
 [[package]]
@@ -1976,6 +1991,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "35c456c123957de3a220cd03786e0d86aa542a88b46029973b542f426da6ef34"
 dependencies = [
  "hashbrown 0.6.3",
+]
+
+[[package]]
+name = "lru"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be716eb6878ca2263eb5d00a781aa13264a794f519fe6af4fbb2668b2d5441c0"
+dependencies = [
+ "hashbrown 0.9.1",
 ]
 
 [[package]]
@@ -4444,7 +4468,7 @@ dependencies = [
  "filedescriptor",
  "futures",
  "log",
- "lru",
+ "lru 0.5.3",
  "metrics",
  "mux",
  "openssl",
@@ -4515,7 +4539,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "lru",
+ "lru 0.6.1",
  "luahelper",
  "metrics",
  "mlua",
@@ -4606,7 +4630,7 @@ dependencies = [
  "k9",
  "lazy_static",
  "log",
- "lru",
+ "lru 0.5.3",
  "num-traits 0.2.14",
  "ordered-float",
  "palette",
