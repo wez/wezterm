@@ -6,7 +6,8 @@ even if it is just to highlight a typo.
 If you're thinking of helping out, then the following resources may be helpful:
 
 * [WezTerm on GitHub](https://github.com/wez/wezterm)
-* [Realtime conversation with wez on Matrix/Gitter](help.html)
+* [GitHub Discussions](https://github.com/wez/wezterm/discussions)
+* [Realtime conversation with wez on Element.io/Gitter](help.html)
 * [Building from Source](install/source.html)
 * [Where to find things and hacking on wezterm](https://github.com/wez/wezterm/blob/master/CONTRIBUTING.md#contributing-to-wezterm)
 
