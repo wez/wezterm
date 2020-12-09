@@ -34,9 +34,9 @@ jobs:
           ./ci/build-docs.sh
       - name: Deploy
         if: success()
-        uses: crazy-max/ghaction-github-pages@v1
+        uses: crazy-max/ghaction-github-pages@v2
         with:
           target_branch: gh-pages
           build_dir: gh_pages
         env:
-          GITHUB_PAT: ${{ secrets.GH_PAT }}
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
