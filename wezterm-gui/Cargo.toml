@@ -19,7 +19,6 @@ anyhow = "1.0"
 bitflags = "1.0"
 codec = { path = "../codec" }
 config = { path = "../config" }
-dirs = "2.0"
 downcast-rs = "1.0"
 env-bootstrap = { path = "../env-bootstrap" }
 euclid = "0.22"

@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 config = { path = "../config" }
-dirs = "2.0"
+dirs-next = "2.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.20"

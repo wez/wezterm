@@ -51,7 +51,7 @@ pub fn fixup_appimage() {
         if config::HOME_DIR.starts_with(append_extra_file_name_suffix(&appimage, ".home")) {
             // Fixup HOME to point to the user's actual home dir
             std::env::remove_var("HOME");
-            std::env::set_var("HOME", dirs::home_dir().expect("can't resolve HOME dir"));
+            std::env::set_var("HOME", dirs_next::home_dir().expect("can't resolve HOME dir"));
             clean_wezterm_config_env();
         }
 

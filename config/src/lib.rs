@@ -55,7 +55,7 @@ type LuaFactory = fn(&Path) -> anyhow::Result<Lua>;
 type ErrorCallback = fn(&str);
 
 lazy_static! {
-    pub static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
+    pub static ref HOME_DIR: PathBuf = dirs_next::home_dir().expect("can't find HOME dir");
     pub static ref CONFIG_DIR: PathBuf = xdg_config_home();
     pub static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
     static ref CONFIG: Configuration = Configuration::new();
@@ -1254,7 +1254,7 @@ fn default_font_size() -> f64 {
 }
 
 fn compute_runtime_dir() -> Result<PathBuf, Error> {
-    if let Some(runtime) = dirs::runtime_dir() {
+    if let Some(runtime) = dirs_next::runtime_dir() {
         return Ok(runtime.join("wezterm"));
     }
 
