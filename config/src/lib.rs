@@ -992,7 +992,8 @@ impl Config {
         let mut map = HashMap::new();
 
         for k in &self.keys {
-            map.insert((k.key.clone(), k.mods), k.action.clone());
+            let (key, mods) = k.key.normalize_shift(k.mods);
+            map.insert((key, mods), k.action.clone());
         }
 
         Ok(map)
