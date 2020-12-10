@@ -4481,7 +4481,7 @@ dependencies = [
  "downcast-rs",
  "embed-resource",
  "env-bootstrap",
- "euclid 0.20.14",
+ "euclid 0.22.1",
  "filedescriptor",
  "hdrhistogram",
  "http_req",
