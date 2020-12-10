@@ -1134,15 +1134,6 @@ dependencies = [
 
 [[package]]
 name = "euclid"
-version = "0.20.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bb7ef65b3777a325d1eeefefab5b6d4959da54747e33bd6258e789640f307ad"
-dependencies = [
- "num-traits 0.2.14",
-]
-
-[[package]]
-name = "euclid"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5337024b8293bdce5265dc9570ef6e608a34bfacbbc87fe1a5dcb5f1dac2f4e2"
@@ -1567,7 +1558,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc7cccefbf418f663e11e9500326f46a44273dc598210bbedc8bbe95e696531f"
 dependencies = [
- "euclid 0.22.1",
+ "euclid",
  "svg_fmt",
 ]
 
@@ -4446,7 +4437,7 @@ dependencies = [
  "core-foundation 0.9.1",
  "core-text",
  "dwrote",
- "euclid 0.20.14",
+ "euclid",
  "fontconfig",
  "freetype",
  "harfbuzz",
@@ -4481,7 +4472,7 @@ dependencies = [
  "downcast-rs",
  "embed-resource",
  "env-bootstrap",
- "euclid 0.20.14",
+ "euclid",
  "filedescriptor",
  "hdrhistogram",
  "http_req",
@@ -4545,7 +4536,7 @@ name = "wezterm-input-types"
 version = "0.1.0"
 dependencies = [
  "bitflags 1.2.1",
- "euclid 0.20.14",
+ "euclid",
  "serde",
 ]
 
@@ -4659,7 +4650,7 @@ dependencies = [
  "cocoa",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
- "euclid 0.20.14",
+ "euclid",
  "filedescriptor",
  "gl_generator",
  "glium",

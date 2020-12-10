@@ -10,7 +10,7 @@ edition = "2018"
 allsorts = { git = "https://github.com/yeslogic/allsorts.git", rev="3947164a201ab5e15d5f23204faaaaaad52531aa" }
 anyhow = "1.0"
 config = { path = "../config" }
-euclid = "0.20"
+euclid = "0.22"
 freetype = { path = "../deps/freetype" }
 harfbuzz = { path = "../deps/harfbuzz" }
 lazy_static = "1.4"

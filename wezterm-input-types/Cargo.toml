@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 bitflags = "1.0"
-euclid = "0.20"
+euclid = "0.22"
 serde = {version="1.0", features = ["rc", "derive"]}

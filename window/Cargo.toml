@@ -19,7 +19,7 @@ async-task = "1.2"
 anyhow = "1.0"
 thiserror = "1.0"
 bitflags = "1.0"
-euclid = "0.20"
+euclid = "0.22"
 guillotiere = "0.6"
 lazy_static = "1.4"
 libloading = { version = "0.6", optional=true }

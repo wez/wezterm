@@ -2625,7 +2625,7 @@ impl TermWindow {
             -1.0,
             1.0,
         )
-        .to_column_arrays();
+        .to_arrays_transposed();
 
         let draw_params = glium::DrawParameters {
             // No alpha blending for the background layer: let's make

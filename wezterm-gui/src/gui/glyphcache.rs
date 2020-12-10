@@ -250,7 +250,7 @@ impl<T: Texture2d> GlyphCache<T> {
 
             let (scale, raw_im) = if scale != 1.0 {
                 log::trace!(
-                    "physically scaling {:?} by {} bcos {}x{} > {}x{}",
+                    "physically scaling {:?} by {} bcos {}x{} > {:?}x{:?}",
                     info,
                     scale,
                     glyph.width,
