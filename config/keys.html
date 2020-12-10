@@ -1,0 +1,514 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js navy">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Key &amp; Mouse Binding - Wez&#x27;s Terminal Emulator</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+        <link rel="stylesheet" href="../custom.css">
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "navy";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">wezterm</a></li><li class="chapter-item expanded "><a href="../installation.html"><strong aria-hidden="true">1.</strong> Install</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../install/windows.html"><strong aria-hidden="true">1.1.</strong> Windows</a></li><li class="chapter-item expanded "><a href="../install/macos.html"><strong aria-hidden="true">1.2.</strong> macOS</a></li><li class="chapter-item expanded "><a href="../install/linux.html"><strong aria-hidden="true">1.3.</strong> Linux</a></li><li class="chapter-item expanded "><a href="../install/source.html"><strong aria-hidden="true">1.4.</strong> Build from source</a></li></ol></li><li class="chapter-item expanded "><a href="../features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="../changelog.html"><strong aria-hidden="true">3.</strong> Change Log</a></li><li class="chapter-item expanded "><a href="../config/files.html"><strong aria-hidden="true">4.</strong> Configuration</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../config/launch.html"><strong aria-hidden="true">4.1.</strong> Launching Programs</a></li><li class="chapter-item expanded "><a href="../config/fonts.html"><strong aria-hidden="true">4.2.</strong> Fonts</a></li><li class="chapter-item expanded "><a href="../config/font-shaping.html"><strong aria-hidden="true">4.3.</strong> Font Shaping</a></li><li class="chapter-item expanded "><a href="../config/misc.html"><strong aria-hidden="true">4.4.</strong> Misc</a></li><li class="chapter-item expanded "><a href="../config/keys.html" class="active"><strong aria-hidden="true">4.5.</strong> Key &amp; Mouse Binding</a></li><li class="chapter-item expanded "><a href="../config/appearance.html"><strong aria-hidden="true">4.6.</strong> Colors &amp; Appearance</a></li></ol></li><li class="chapter-item expanded "><a href="../scrollback.html"><strong aria-hidden="true">5.</strong> Scrollback</a></li><li class="chapter-item expanded "><a href="../copymode.html"><strong aria-hidden="true">6.</strong> Copy Mode</a></li><li class="chapter-item expanded "><a href="../hyperlinks.html"><strong aria-hidden="true">7.</strong> Hyperlinks</a></li><li class="chapter-item expanded "><a href="../shell-integration.html"><strong aria-hidden="true">8.</strong> Shell Integration</a></li><li class="chapter-item expanded "><a href="../imgcat.html"><strong aria-hidden="true">9.</strong> iTerm Image Protocol</a></li><li class="chapter-item expanded "><a href="../ssh.html"><strong aria-hidden="true">10.</strong> SSH</a></li><li class="chapter-item expanded "><a href="../serial.html"><strong aria-hidden="true">11.</strong> Serial Ports &amp; Arduino</a></li><li class="chapter-item expanded "><a href="../multiplexing.html"><strong aria-hidden="true">12.</strong> Mulitplexing</a></li><li class="chapter-item expanded "><a href="../faq.html"><strong aria-hidden="true">13.</strong> F.A.Q.</a></li><li class="chapter-item expanded "><a href="../help.html"><strong aria-hidden="true">14.</strong> Getting Help</a></li><li class="chapter-item expanded "><a href="../contributing.html"><strong aria-hidden="true">15.</strong> Contributing</a></li><li class="chapter-item expanded "><a href="../colorschemes/index.html"><strong aria-hidden="true">16.</strong> Color Schemes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../colorschemes/3/index.html"><strong aria-hidden="true">16.1.</strong> 3</a></li><li class="chapter-item expanded "><a href="../colorschemes/a/index.html"><strong aria-hidden="true">16.2.</strong> a</a></li><li class="chapter-item expanded "><a href="../colorschemes/b/index.html"><strong aria-hidden="true">16.3.</strong> b</a></li><li class="chapter-item expanded "><a href="../colorschemes/c/index.html"><strong aria-hidden="true">16.4.</strong> c</a></li><li class="chapter-item expanded "><a href="../colorschemes/d/index.html"><strong aria-hidden="true">16.5.</strong> d</a></li><li class="chapter-item expanded "><a href="../colorschemes/e/index.html"><strong aria-hidden="true">16.6.</strong> e</a></li><li class="chapter-item expanded "><a href="../colorschemes/f/index.html"><strong aria-hidden="true">16.7.</strong> f</a></li><li class="chapter-item expanded "><a href="../colorschemes/g/index.html"><strong aria-hidden="true">16.8.</strong> g</a></li><li class="chapter-item expanded "><a href="../colorschemes/h/index.html"><strong aria-hidden="true">16.9.</strong> h</a></li><li class="chapter-item expanded "><a href="../colorschemes/i/index.html"><strong aria-hidden="true">16.10.</strong> i</a></li><li class="chapter-item expanded "><a href="../colorschemes/j/index.html"><strong aria-hidden="true">16.11.</strong> j</a></li><li class="chapter-item expanded "><a href="../colorschemes/k/index.html"><strong aria-hidden="true">16.12.</strong> k</a></li><li class="chapter-item expanded "><a href="../colorschemes/l/index.html"><strong aria-hidden="true">16.13.</strong> l</a></li><li class="chapter-item expanded "><a href="../colorschemes/m/index.html"><strong aria-hidden="true">16.14.</strong> m</a></li><li class="chapter-item expanded "><a href="../colorschemes/n/index.html"><strong aria-hidden="true">16.15.</strong> n</a></li><li class="chapter-item expanded "><a href="../colorschemes/o/index.html"><strong aria-hidden="true">16.16.</strong> o</a></li><li class="chapter-item expanded "><a href="../colorschemes/p/index.html"><strong aria-hidden="true">16.17.</strong> p</a></li><li class="chapter-item expanded "><a href="../colorschemes/r/index.html"><strong aria-hidden="true">16.18.</strong> r</a></li><li class="chapter-item expanded "><a href="../colorschemes/s/index.html"><strong aria-hidden="true">16.19.</strong> s</a></li><li class="chapter-item expanded "><a href="../colorschemes/t/index.html"><strong aria-hidden="true">16.20.</strong> t</a></li><li class="chapter-item expanded "><a href="../colorschemes/u/index.html"><strong aria-hidden="true">16.21.</strong> u</a></li><li class="chapter-item expanded "><a href="../colorschemes/v/index.html"><strong aria-hidden="true">16.22.</strong> v</a></li><li class="chapter-item expanded "><a href="../colorschemes/w/index.html"><strong aria-hidden="true">16.23.</strong> w</a></li><li class="chapter-item expanded "><a href="../colorschemes/z/index.html"><strong aria-hidden="true">16.24.</strong> z</a></li></ol></li><li class="chapter-item expanded "><a href="../config/lua/general.html"><strong aria-hidden="true">17.</strong> Lua Reference</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../config/lua/wezterm/index.html"><strong aria-hidden="true">17.1.</strong> module: wezterm</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../config/lua/wezterm/action.html"><strong aria-hidden="true">17.1.1.</strong> action</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/config_dir.html"><strong aria-hidden="true">17.1.2.</strong> config_dir</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/emit.html"><strong aria-hidden="true">17.1.3.</strong> emit</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/executable_dir.html"><strong aria-hidden="true">17.1.4.</strong> executable_dir</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/font.html"><strong aria-hidden="true">17.1.5.</strong> font</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/font_with_fallback.html"><strong aria-hidden="true">17.1.6.</strong> font_with_fallback</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/glob.html"><strong aria-hidden="true">17.1.7.</strong> glob</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/home_dir.html"><strong aria-hidden="true">17.1.8.</strong> home_dir</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/hostname.html"><strong aria-hidden="true">17.1.9.</strong> hostname</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/log_error.html"><strong aria-hidden="true">17.1.10.</strong> log_error</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/on.html"><strong aria-hidden="true">17.1.11.</strong> on</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/permute_any_mods.html"><strong aria-hidden="true">17.1.12.</strong> permute_any_mods</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/permute_any_or_no_mods.html"><strong aria-hidden="true">17.1.13.</strong> permute_any_or_no_mods</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/read_dir.html"><strong aria-hidden="true">17.1.14.</strong> read_dir</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/run_child_process.html"><strong aria-hidden="true">17.1.15.</strong> run_child_process</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/running_under_wsl.html"><strong aria-hidden="true">17.1.16.</strong> running_under_wsl</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/sleep_ms.html"><strong aria-hidden="true">17.1.17.</strong> sleep_ms</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/split_by_newlines.html"><strong aria-hidden="true">17.1.18.</strong> split_by_newlines</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/target_triple.html"><strong aria-hidden="true">17.1.19.</strong> target_triple</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/utf16_to_utf8.html"><strong aria-hidden="true">17.1.20.</strong> utf16_to_utf8</a></li><li class="chapter-item expanded "><a href="../config/lua/wezterm/version.html"><strong aria-hidden="true">17.1.21.</strong> version</a></li></ol></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/index.html"><strong aria-hidden="true">17.2.</strong> enum: KeyAssignment</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ActivateCopyMode.html"><strong aria-hidden="true">17.2.1.</strong> ActivateCopyMode</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ActivatePaneDirection.html"><strong aria-hidden="true">17.2.2.</strong> ActivatePaneDirection</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ActivateTab.html"><strong aria-hidden="true">17.2.3.</strong> ActivateTab</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ActivateTabRelative.html"><strong aria-hidden="true">17.2.4.</strong> ActivateTabRelative</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/AdjustPaneSize.html"><strong aria-hidden="true">17.2.5.</strong> AdjustPaneSize</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ClearScrollback.html"><strong aria-hidden="true">17.2.6.</strong> ClearScrollback</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/CloseCurrentPane.html"><strong aria-hidden="true">17.2.7.</strong> CloseCurrentPane</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/CloseCurrentTab.html"><strong aria-hidden="true">17.2.8.</strong> CloseCurrentTab</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/CompleteSelection.html"><strong aria-hidden="true">17.2.9.</strong> CompleteSelection</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/CompleteSelectionOrOpenLinkAtMouseCursor.html"><strong aria-hidden="true">17.2.10.</strong> CompleteSelectionOrOpenLinkAtMouseCursor</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/Copy.html"><strong aria-hidden="true">17.2.11.</strong> Copy</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/DecreaseFontSize.html"><strong aria-hidden="true">17.2.12.</strong> DecreaseFontSize</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/DisableDefaultAssignment.html"><strong aria-hidden="true">17.2.13.</strong> DisableDefaultAssignment</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/EmitEvent.html"><strong aria-hidden="true">17.2.14.</strong> EmitEvent</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ExtendSelectionToMouseCursor.html"><strong aria-hidden="true">17.2.15.</strong> ExtendSelectionToMouseCursor</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/Hide.html"><strong aria-hidden="true">17.2.16.</strong> Hide</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/HideApplication.html"><strong aria-hidden="true">17.2.17.</strong> HideApplication</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/IncreaseFontSize.html"><strong aria-hidden="true">17.2.18.</strong> IncreaseFontSize</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/MoveTab.html"><strong aria-hidden="true">17.2.19.</strong> MoveTab</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/MoveTabRelative.html"><strong aria-hidden="true">17.2.20.</strong> MoveTabRelative</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/Nop.html"><strong aria-hidden="true">17.2.21.</strong> Nop</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/OpenLinkAtMouseCursor.html"><strong aria-hidden="true">17.2.22.</strong> OpenLinkAtMouseCursor</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/Paste.html"><strong aria-hidden="true">17.2.23.</strong> Paste</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/PastePrimarySelection.html"><strong aria-hidden="true">17.2.24.</strong> PastePrimarySelection</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/QuitApplication.html"><strong aria-hidden="true">17.2.25.</strong> QuitApplication</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ReloadConfiguration.html"><strong aria-hidden="true">17.2.26.</strong> ReloadConfiguration</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ResetFontSize.html"><strong aria-hidden="true">17.2.27.</strong> ResetFontSize</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ScrollByPage.html"><strong aria-hidden="true">17.2.28.</strong> ScrollByPage</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ScrollToPrompt.html"><strong aria-hidden="true">17.2.29.</strong> ScrollToPrompt</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/Search.html"><strong aria-hidden="true">17.2.30.</strong> Search</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/SelectTextAtMouseCursor.html"><strong aria-hidden="true">17.2.31.</strong> SelectTextAtMouseCursor</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/SendString.html"><strong aria-hidden="true">17.2.32.</strong> SendString</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/Show.html"><strong aria-hidden="true">17.2.33.</strong> Show</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ShowLauncher.html"><strong aria-hidden="true">17.2.34.</strong> ShowLauncher</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ShowTabNavigator.html"><strong aria-hidden="true">17.2.35.</strong> ShowTabNavigator</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/SpawnCommandInNewTab.html"><strong aria-hidden="true">17.2.36.</strong> SpawnCommandInNewTab</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/SpawnCommandInNewWindow.html"><strong aria-hidden="true">17.2.37.</strong> SpawnCommandInNewWindow</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/SpawnTab.html"><strong aria-hidden="true">17.2.38.</strong> SpawnTab</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/SpawnWindow.html"><strong aria-hidden="true">17.2.39.</strong> SpawnWindow</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/SplitHorizontal.html"><strong aria-hidden="true">17.2.40.</strong> SplitHorizontal</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/SplitVertical.html"><strong aria-hidden="true">17.2.41.</strong> SplitVertical</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/ToggleFullScreen.html"><strong aria-hidden="true">17.2.42.</strong> ToggleFullScreen</a></li><li class="chapter-item expanded "><a href="../config/lua/keyassignment/TogglePaneZoomState.html"><strong aria-hidden="true">17.2.43.</strong> TogglePaneZoomState</a></li></ol></li><li class="chapter-item expanded "><a href="../config/lua/SpawnCommand.html"><strong aria-hidden="true">17.3.</strong> object: SpawnCommand</a></li><li class="chapter-item expanded "><a href="../config/lua/pane/index.html"><strong aria-hidden="true">17.4.</strong> object: Pane</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../config/lua/pane/get_current_working_dir.html"><strong aria-hidden="true">17.4.1.</strong> get_current_working_dir</a></li><li class="chapter-item expanded "><a href="../config/lua/pane/get_cursor_position.html"><strong aria-hidden="true">17.4.2.</strong> get_cursor_position</a></li><li class="chapter-item expanded "><a href="../config/lua/pane/get_dimensions.html"><strong aria-hidden="true">17.4.3.</strong> get_dimensions</a></li><li class="chapter-item expanded "><a href="../config/lua/pane/get_lines_as_text.html"><strong aria-hidden="true">17.4.4.</strong> get_lines_as_text</a></li><li class="chapter-item expanded "><a href="../config/lua/pane/get_title.html"><strong aria-hidden="true">17.4.5.</strong> get_title</a></li><li class="chapter-item expanded "><a href="../config/lua/pane/pane_id.html"><strong aria-hidden="true">17.4.6.</strong> pane_id</a></li><li class="chapter-item expanded "><a href="../config/lua/pane/paste.html"><strong aria-hidden="true">17.4.7.</strong> paste</a></li></ol></li><li class="chapter-item expanded "><a href="../config/lua/window/index.html"><strong aria-hidden="true">17.5.</strong> object: Window</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../config/lua/window/perform_action.html"><strong aria-hidden="true">17.5.1.</strong> perform_action</a></li><li class="chapter-item expanded "><a href="../config/lua/window/window_id.html"><strong aria-hidden="true">17.5.2.</strong> window_id</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Wez&#x27;s Terminal Emulator</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <p>Both the keyboard and the mouse bindings are configurable.</p>
+<p>The assignments are based around a triggering event, such as a keypress or
+mouse button click, which is combined with a set of modifier keys to produce
+an action.</p>
+<p>A full list of possible keys, mouse events and actions are included below,
+after these tables describing the default assignments.</p>
+<h2><a class="header" href="#alt--option-key-behavior--composed-keys" id="alt--option-key-behavior--composed-keys">Alt / Option Key Behavior &amp; Composed Keys</a></h2>
+<p>The operating system has its own user selectable keymap that is sometimes at
+odds with old-school terminal emulation that pre-dates internationalization as
+a concept.  WezTerm tries to behave reasonably by default, but also give you
+control in other situations.</p>
+<h3><a class="header" href="#layouts-with-an-altgr-key" id="layouts-with-an-altgr-key">Layouts with an AltGr key</a></h3>
+<p>If you have, for example, a European keyboard layout with an AltGr key then
+wezterm will respect the composition effects of AltGr produced by the system.
+For example, in a German keymap, <code>AltGr &lt;</code> will produce <code>|</code>.</p>
+<p>If your physical keyboard doesn't match the keyboard layout (eg: using a US
+keyboard with DEU selected in the OS), then the right hand <code>Alt</code> key is often
+re-interpreted as having the <code>AltGr</code> function with behavior as described above.</p>
+<p>The left <code>Alt</code> will be treated as a modifier with no composition effects.</p>
+<h3><a class="header" href="#macos-left-and-right-option-key" id="macos-left-and-right-option-key">macOS Left and Right Option Key</a></h3>
+<p><em>since: 20200620-160318-e00b076c</em></p>
+<p>The default behavior is to treat the left <code>Option</code> key as the <code>Alt</code> modifier
+with no composition effects, while the right <code>Option</code> key performs composition
+(making it approximately equivalent to <code>AltGr</code> on other operating systems).</p>
+<p>You can control this behavior in your configuration:</p>
+<pre><code class="language-lua">return {
+  send_composed_key_when_left_alt_is_pressed=false,
+  send_composed_key_when_right_alt_is_pressed=true,
+}
+</code></pre>
+<p>If you're running an earlier release the options were a bit more limited;
+both left and right <code>Option</code> keys behave identically and composition
+behavior was influenced for both of them via the <code>send_composed_key_when_alt_is_pressed</code>
+configuration option.</p>
+<h3><a class="header" href="#macos-and-the-input-method-editor-ime" id="macos-and-the-input-method-editor-ime">macOS and the Input Method Editor (IME)</a></h3>
+<p>WezTerm has support for using the operating system Input Method Editor (IME) on
+macOS.  This is useful in cases where you need to type kanji or are using a
+keyboard layout with dead keys.  However, the input method editor can get in
+the way and has a couple of irritating side effects such as preventing key
+repeat for a subset of keys.</p>
+<p>You can control whether the IME is enabled on macOS in your configuration file:</p>
+<pre><code class="language-lua">return {
+  use_ime = false,
+}
+</code></pre>
+<p><em>since: 20200620-160318-e00b076c</em></p>
+<p>The default for <code>use_ime</code> is false.  The default in earlier releases was <code>true</code>.</p>
+<h3><a class="header" href="#microsoft-windows-and-dead-keys" id="microsoft-windows-and-dead-keys">Microsoft Windows and Dead Keys</a></h3>
+<p><em>since: 20201031-154415-9614e117</em></p>
+<p>By default, if you are using a layout with <em>dead keys</em> (eg: US International
+layout, or a number of European layouts such as German or French) pressing
+a dead key in wezterm will &quot;hold&quot; the dead key until the next character is
+pressed, resulting in a combined character with a diacritic.  For example,
+pressing <code>^</code> and then <code>e</code> will produce <code>ê</code>.  Pressing <code>^</code> then <code>SPACE</code>
+will produce <code>^</code> on its own.</p>
+<p>If you are a heavy user of Vi style editors then you may wish to disable
+dead key processing so that <code>^</code> can be used with a single keypress.</p>
+<p>You can tell WezTerm to disable dead keys by setting this in your configuration
+file:</p>
+<pre><code class="language-lua">return {
+  use_dead_keys = false
+}
+</code></pre>
+<h3><a class="header" href="#defining-assignments-for-key-combinations-that-may-be-composed" id="defining-assignments-for-key-combinations-that-may-be-composed">Defining Assignments for key combinations that may be composed</a></h3>
+<p>When a key combination produces a composed key result, wezterm will look up
+both the composed and uncomposed versions of the keypress in your key mappings.
+If either lookup matches your assignment, that will take precedence over
+the normal key processing.</p>
+<h2><a class="header" href="#default-shortcut--key-binding-assignments" id="default-shortcut--key-binding-assignments">Default Shortcut / Key Binding Assignments</a></h2>
+<p>The default key bindings are:</p>
+<table><thead><tr><th>Modifiers</th><th>Key</th><th>Action</th></tr></thead><tbody>
+<tr><td><code>SUPER</code></td><td><code>c</code></td><td><code>Copy</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>v</code></td><td><code>Paste</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>c</code></td><td><code>Copy</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>v</code></td><td><code>Paste</code></td></tr>
+<tr><td><code>SHIFT</code></td><td><code>Insert</code></td><td><code>Paste</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>m</code></td><td><code>Hide</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>n</code></td><td><code>SpawnWindow</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>n</code></td><td><code>SpawnWindow</code></td></tr>
+<tr><td><code>ALT</code></td><td><code>Enter</code></td><td><code>ToggleFullScreen</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>-</code></td><td><code>DecreaseFontSize</code></td></tr>
+<tr><td><code>CTRL</code></td><td><code>-</code></td><td><code>DecreaseFontSize</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>=</code></td><td><code>IncreaseFontSize</code></td></tr>
+<tr><td><code>CTRL</code></td><td><code>=</code></td><td><code>IncreaseFontSize</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>0</code></td><td><code>ResetFontSize</code></td></tr>
+<tr><td><code>CTRL</code></td><td><code>0</code></td><td><code>ResetFontSize</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>t</code></td><td><code>SpawnTab=&quot;CurrentPaneDomain&quot;</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>t</code></td><td><code>SpawnTab=&quot;CurrentPaneDomain&quot;</code></td></tr>
+<tr><td><code>SUPER+SHIFT</code></td><td><code>T</code></td><td><code>SpawnTab=&quot;DefaultDomain&quot;</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>w</code></td><td><code>CloseCurrentTab</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>1</code></td><td><code>ActivateTab=0</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>2</code></td><td><code>ActivateTab=1</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>3</code></td><td><code>ActivateTab=2</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>4</code></td><td><code>ActivateTab=3</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>5</code></td><td><code>ActivateTab=4</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>6</code></td><td><code>ActivateTab=5</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>7</code></td><td><code>ActivateTab=6</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>8</code></td><td><code>ActivateTab=7</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>9</code></td><td><code>ActivateTab=-1</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>w</code></td><td><code>CloseCurrentTab</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>1</code></td><td><code>ActivateTab=0</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>2</code></td><td><code>ActivateTab=1</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>3</code></td><td><code>ActivateTab=2</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>4</code></td><td><code>ActivateTab=3</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>5</code></td><td><code>ActivateTab=4</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>6</code></td><td><code>ActivateTab=5</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>7</code></td><td><code>ActivateTab=6</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>8</code></td><td><code>ActivateTab=7</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>9</code></td><td><code>ActivateTab=-1</code></td></tr>
+<tr><td><code>SUPER+SHIFT</code></td><td><code>[</code></td><td><code>ActivateTabRelative=-1</code></td></tr>
+<tr><td><code>SUPER+SHIFT</code></td><td><code>]</code></td><td><code>ActivateTabRelative=1</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>PageUp</code></td><td><code>MoveTabRelative=-1</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>PageDown</code></td><td><code>MoveTabRelative=1</code></td></tr>
+<tr><td><code>SHIFT</code></td><td><code>PageUp</code></td><td><code>ScrollByPage=-1</code></td></tr>
+<tr><td><code>SHIFT</code></td><td><code>PageDown</code></td><td><code>ScrollByPage=1</code></td></tr>
+<tr><td><code>ALT</code></td><td><code>9</code></td><td><code>ShowTabNavigator</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>r</code></td><td><code>ReloadConfiguration</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>R</code></td><td><code>ReloadConfiguration</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>h</code></td><td><code>HideApplication</code> (macOS only)</td></tr>
+<tr><td><code>SUPER</code></td><td><code>k</code></td><td><code>ClearScrollback</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>K</code></td><td><code>ClearScrollback</code></td></tr>
+<tr><td><code>SUPER</code></td><td><code>f</code></td><td><code>Search={CaseSensitiveString=&quot;&quot;}</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>F</code></td><td><code>Search={CaseSensitiveString=&quot;&quot;}</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>X</code></td><td><code>ActivateCopyMode</code></td></tr>
+<tr><td><code>CTRL+SHIFT+ALT</code></td><td><code>&quot;</code></td><td><code>SplitVertical={domain=&quot;CurrentPaneDomain&quot;}</code></td></tr>
+<tr><td><code>CTRL+SHIFT+ALT</code></td><td><code>%</code></td><td><code>SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}</code></td></tr>
+<tr><td><code>CTRL+SHIFT+ALT</code></td><td><code>LeftArrow</code></td><td><code>AdjustPaneSize={&quot;Left&quot;, 1}</code></td></tr>
+<tr><td><code>CTRL+SHIFT+ALT</code></td><td><code>RightArrow</code></td><td><code>AdjustPaneSize={&quot;Right&quot;, 1}</code></td></tr>
+<tr><td><code>CTRL+SHIFT+ALT</code></td><td><code>UpArrow</code></td><td><code>AdjustPaneSize={&quot;Up&quot;, 1}</code></td></tr>
+<tr><td><code>CTRL+SHIFT+ALT</code></td><td><code>DownArrow</code></td><td><code>AdjustPaneSize={&quot;Down&quot;, 1}</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>LeftArrow</code></td><td><code>ActivatePaneDirection=&quot;Left&quot;</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>RightArrow</code></td><td><code>ActivatePaneDirection=&quot;Right&quot;</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>UpArrow</code></td><td><code>ActivatePaneDirection=&quot;Up&quot;</code></td></tr>
+<tr><td><code>CTRL+SHIFT</code></td><td><code>DownArrow</code></td><td><code>ActivatePaneDirection=&quot;Down&quot;</code></td></tr>
+<tr><td><code>CTRL</code></td><td><code>Z</code></td><td><code>TogglePaneZoomState</code></td></tr>
+</tbody></table>
+<p>If you don't want the default assignments to be registered, you can
+disable all of them with this configuration; if you chose to do this,
+you must explicitly register every binding.</p>
+<pre><code class="language-lua">return {
+  disable_default_key_bindings = true,
+}
+</code></pre>
+<h2><a class="header" href="#default-mouse-assignments" id="default-mouse-assignments">Default Mouse Assignments</a></h2>
+<p>In the table below, <code>Triple Left Down</code> means that the left mouse button is
+being triple clicked and that the event matches the downstroke of the third
+quick consecutive press.  <code>Triple Left Up</code> matches the subsequent release event
+of that triple click, so for a triple click both
+<code>SelectTextAtMouseCursor=&quot;Line&quot;</code> and <code>CompleteSelection</code> will be triggered in
+that order.</p>
+<table><thead><tr><th>Event</th><th>Modifiers</th><th>Action</th></tr></thead><tbody>
+<tr><td>Triple Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Line&quot;</code></td></tr>
+<tr><td>Double Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Word&quot;</code></td></tr>
+<tr><td>Single Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Cell&quot;</code></td></tr>
+<tr><td>Single Left Down</td><td><code>SHIFT</code></td><td><code>ExtendSelectionToMouseCursor={}</code></td></tr>
+<tr><td>Single Left Up</td><td><code>NONE</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor</code></td></tr>
+<tr><td>Double Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection</code></td></tr>
+<tr><td>Triple Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection</code></td></tr>
+<tr><td>Single Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Cell&quot;</code></td></tr>
+<tr><td>Double Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Word&quot;</code></td></tr>
+<tr><td>Triple Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Line&quot;</code></td></tr>
+<tr><td>Single Middle Down</td><td><code>NONE</code></td><td><code>Paste</code></td></tr>
+</tbody></table>
+<p>If you don't want the default assignments to be registered, you can
+disable all of them with this configuration; if you chose to do this,
+you must explicitly register every binding.</p>
+<pre><code class="language-lua">return {
+  disable_default_mouse_bindings = true,
+}
+</code></pre>
+<h2><a class="header" href="#configuring-mouse-assignments" id="configuring-mouse-assignments">Configuring Mouse Assignments</a></h2>
+<p><em>since: 20200607-144723-74889cd4</em></p>
+<p>You can define mouse actions using the <code>mouse_bindings</code> configuration section:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm';
+
+return {
+  mouse_bindings = {
+    -- Right click sends &quot;woot&quot; to the terminal
+    {
+      event={Down={streak=1, button=&quot;Right&quot;}},
+      mods=&quot;NONE&quot;,
+      action=wezterm.action{SendString=&quot;woot&quot;}
+    },
+
+    -- Change the default click behavior so that it only selects
+    -- text and doesn't open hyperlinks
+    {
+      event={Up={streak=1, button=&quot;Left&quot;}},
+      mods=&quot;NONE&quot;,
+      action=&quot;CompleteSelection&quot;,
+    },
+
+    -- and make CTRL-Click open hyperlinks
+    {
+      event={Up={streak=1, button=&quot;Left&quot;}},
+      mods=&quot;CTRL&quot;,
+      action=&quot;OpenLinkAtMouseCursor&quot;,
+    },
+  },
+}
+</code></pre>
+<p>The <code>action</code> and <code>mods</code> portions are described in more detail in the key assignment
+information below.</p>
+<p>The <code>event</code> portion has three components;</p>
+<ul>
+<li>Whether it is a <code>Down</code>, <code>Up</code> or <code>Drag</code> event</li>
+<li>The number of consecutive clicks within the click threshold (the <em>click streak</em>)</li>
+<li>The mouse button; <code>Left</code>, <code>Right</code>, or <code>Middle</code>.</li>
+</ul>
+<p>A double click is a <code>down-up-down</code> sequence where either the second button down
+is held for long enough or is released and no subsequent down event occurs
+within the click threshold.  When recognized, it emits a <code>Down</code> event with
+<code>streak=2</code>.  If the mouse is moved while the button is held, a <code>Drag</code> event
+with <code>streak=2</code> is generated.  When the mouse button is released an <code>Up</code> event
+with <code>streak=2</code> is generated.</p>
+<p>The mouse event recognizer supports an arbitrary click streak, so if
+you wanted quadruple-click bindings you can specify <code>streak=4</code>.</p>
+<table><thead><tr><th>Event</th><th>Lua Representation</th></tr></thead><tbody>
+<tr><td>Triple Left Down</td><td><code>event={Down={streak=3, button=&quot;Left&quot;}}</code></td></tr>
+<tr><td>Double Left Up</td><td><code>event={Up={streak=2, button=&quot;Left&quot;}}</code></td></tr>
+<tr><td>Single Left Drag</td><td><code>event={Drag={streak=1, button=&quot;Left&quot;}}</code></td></tr>
+</tbody></table>
+<h2><a class="header" href="#configuring-key-assignments" id="configuring-key-assignments">Configuring Key Assignments</a></h2>
+<p>These can be overridden using the <code>keys</code> section in your <code>~/.wezterm.lua</code> config file.
+For example, you can disable a default assignment like this:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm';
+
+return {
+  keys = {
+    -- Turn off the default CMD-m Hide action on macOS by making it
+    -- send the empty string instead of hiding the window
+    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=&quot;Nop&quot;}
+  }
+}
+</code></pre>
+<p>The <code>key</code> value can be one of the following keycode identifiers.  Note that not
+all of these are meaningful on all platforms:</p>
+<p><code>Hyper</code>, <code>Super</code>, <code>Meta</code>, <code>Cancel</code>, <code>Backspace</code>, <code>Tab</code>, <code>Clear</code>, <code>Enter</code>,
+<code>Shift</code>, <code>Escape</code>, <code>LeftShift</code>, <code>RightShift</code>, <code>Control</code>, <code>LeftControl</code>,
+<code>RightControl</code>, <code>Alt</code>, <code>LeftAlt</code>, <code>RightAlt</code>, <code>Menu</code>, <code>LeftMenu</code>, <code>RightMenu</code>,
+<code>Pause</code>, <code>CapsLock</code>, <code>PageUp</code>, <code>PageDown</code>, <code>End</code>, <code>Home</code>, <code>LeftArrow</code>,
+<code>RightArrow</code>, <code>UpArrow</code>, <code>DownArrow</code>, <code>Select</code>, <code>Print</code>, <code>Execute</code>,
+<code>PrintScreen</code>, <code>Insert</code>, <code>Delete</code>, <code>Help</code>, <code>LeftWindows</code>, <code>RightWindows</code>,
+<code>Applications</code>, <code>Sleep</code>, <code>Numpad0</code>, <code>Numpad1</code>, <code>Numpad2</code>, <code>Numpad3</code>,
+<code>Numpad4</code>, <code>Numpad5</code>, <code>Numpad6</code>, <code>Numpad7</code>, <code>Numpad8</code>, <code>Numpad9</code>, <code>Multiply</code>,
+<code>Add</code>, <code>Separator</code>, <code>Subtract</code>, <code>Decimal</code>, <code>Divide</code>, <code>NumLock</code>, <code>ScrollLock</code>,
+<code>BrowserBack</code>, <code>BrowserForward</code>, <code>BrowserRefresh</code>, <code>BrowserStop</code>,
+<code>BrowserSearch</code>, <code>BrowserFavorites</code>, <code>BrowserHome</code>, <code>VolumeMute</code>,
+<code>VolumeDown</code>, <code>VolumeUp</code>, <code>MediaNextTrack</code>, <code>MediaPrevTrack</code>, <code>MediaStop</code>,
+<code>MediaPlayPause</code>, <code>ApplicationLeftArrow</code>, <code>ApplicationRightArrow</code>,
+<code>ApplicationUpArrow</code>, <code>ApplicationDownArrow</code>.</p>
+<p>Alternatively, a single unicode character can be specified to indicate
+pressing the corresponding key.</p>
+<p>Possible Modifier labels are:</p>
+<ul>
+<li><code>SUPER</code>, <code>CMD</code>, <code>WIN</code> - these are all equivalent: on macOS the <code>Command</code> key,
+on Windows the <code>Windows</code> key, on Linux this can also be the <code>Super</code> or <code>Hyper</code>
+key.  Left and right are equivalent.</li>
+<li><code>SHIFT</code> - The shift key.  Left and right are equivalent.</li>
+<li><code>ALT</code>, <code>OPT</code>, <code>META</code> - these are all equivalent: on macOS the <code>Option</code> key,
+on other systems the <code>Alt</code> or <code>Meta</code> key.  Left and right are equivalent.</li>
+</ul>
+<p>You can combine modifiers using the <code>|</code> symbol (eg: <code>&quot;CMD|CTRL&quot;</code>).</p>
+<h3><a class="header" href="#leader-key" id="leader-key">Leader Key</a></h3>
+<p><em>Since: 20201031-154415-9614e117</em></p>
+<p>A <em>leader</em> key is a a modal modifier key.  If leader is specified in the
+configuration then pressing that key combination will enable a virtual <code>LEADER</code>
+modifier.</p>
+<p>While <code>LEADER</code> is active, only defined key assignments that include
+<code>LEADER</code> in the <code>mods</code> mask will be recognized.  Other keypresses
+will be swallowed and NOT passed through to the terminal.</p>
+<p><code>LEADER</code> stays active until a keypress is registered (whether it
+matches a key binding or not), or until it has been active for
+the duration specified by <code>timeout_milliseconds</code>, at which point
+it will automatically cancel itself.</p>
+<p>Here's an example configuration using <code>LEADER</code>.  In this configuration,
+pressing <code>CTRL-A</code> activates the leader key for up to 1 second (1000
+milliseconds).  While <code>LEADER</code> is active, the <code>|</code> key (with no other modifiers)
+will trigger the current pane to be split.</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm';
+
+return {
+  -- timeout_milliseconds defaults to 1000 and can be omitted
+  leader = { key=&quot;a&quot;, mods=&quot;CTRL&quot;, timeout_milliseconds=1000 },
+  keys = {
+    {key=&quot;|&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}}},
+    -- Send &quot;CTRL-A&quot; to the terminal when pressing CTRL-A, CTRL-A
+    {key=&quot;a&quot;, mods=&quot;LEADER|CTRL&quot;, action=wezterm.action{SendString=&quot;\x01&quot;}},
+  }
+}
+</code></pre>
+<h1><a class="header" href="#available-actions" id="available-actions">Available Actions</a></h1>
+<p>See the <a href="lua/keyassignment/index.html"><code>KeyAssignment</code> reference</a> for information
+on available actions.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../config/misc.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../config/appearance.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="../config/misc.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="../config/appearance.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

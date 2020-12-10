@@ -1,0 +1,337 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js navy">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>F.A.Q. - Wez&#x27;s Terminal Emulator</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+        <link rel="stylesheet" href="custom.css">
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "navy";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">wezterm</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Install</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="install/windows.html"><strong aria-hidden="true">1.1.</strong> Windows</a></li><li class="chapter-item expanded "><a href="install/macos.html"><strong aria-hidden="true">1.2.</strong> macOS</a></li><li class="chapter-item expanded "><a href="install/linux.html"><strong aria-hidden="true">1.3.</strong> Linux</a></li><li class="chapter-item expanded "><a href="install/source.html"><strong aria-hidden="true">1.4.</strong> Build from source</a></li></ol></li><li class="chapter-item expanded "><a href="features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="changelog.html"><strong aria-hidden="true">3.</strong> Change Log</a></li><li class="chapter-item expanded "><a href="config/files.html"><strong aria-hidden="true">4.</strong> Configuration</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/launch.html"><strong aria-hidden="true">4.1.</strong> Launching Programs</a></li><li class="chapter-item expanded "><a href="config/fonts.html"><strong aria-hidden="true">4.2.</strong> Fonts</a></li><li class="chapter-item expanded "><a href="config/font-shaping.html"><strong aria-hidden="true">4.3.</strong> Font Shaping</a></li><li class="chapter-item expanded "><a href="config/misc.html"><strong aria-hidden="true">4.4.</strong> Misc</a></li><li class="chapter-item expanded "><a href="config/keys.html"><strong aria-hidden="true">4.5.</strong> Key &amp; Mouse Binding</a></li><li class="chapter-item expanded "><a href="config/appearance.html"><strong aria-hidden="true">4.6.</strong> Colors &amp; Appearance</a></li></ol></li><li class="chapter-item expanded "><a href="scrollback.html"><strong aria-hidden="true">5.</strong> Scrollback</a></li><li class="chapter-item expanded "><a href="copymode.html"><strong aria-hidden="true">6.</strong> Copy Mode</a></li><li class="chapter-item expanded "><a href="hyperlinks.html"><strong aria-hidden="true">7.</strong> Hyperlinks</a></li><li class="chapter-item expanded "><a href="shell-integration.html"><strong aria-hidden="true">8.</strong> Shell Integration</a></li><li class="chapter-item expanded "><a href="imgcat.html"><strong aria-hidden="true">9.</strong> iTerm Image Protocol</a></li><li class="chapter-item expanded "><a href="ssh.html"><strong aria-hidden="true">10.</strong> SSH</a></li><li class="chapter-item expanded "><a href="serial.html"><strong aria-hidden="true">11.</strong> Serial Ports &amp; Arduino</a></li><li class="chapter-item expanded "><a href="multiplexing.html"><strong aria-hidden="true">12.</strong> Mulitplexing</a></li><li class="chapter-item expanded "><a href="faq.html" class="active"><strong aria-hidden="true">13.</strong> F.A.Q.</a></li><li class="chapter-item expanded "><a href="help.html"><strong aria-hidden="true">14.</strong> Getting Help</a></li><li class="chapter-item expanded "><a href="contributing.html"><strong aria-hidden="true">15.</strong> Contributing</a></li><li class="chapter-item expanded "><a href="colorschemes/index.html"><strong aria-hidden="true">16.</strong> Color Schemes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="colorschemes/3/index.html"><strong aria-hidden="true">16.1.</strong> 3</a></li><li class="chapter-item expanded "><a href="colorschemes/a/index.html"><strong aria-hidden="true">16.2.</strong> a</a></li><li class="chapter-item expanded "><a href="colorschemes/b/index.html"><strong aria-hidden="true">16.3.</strong> b</a></li><li class="chapter-item expanded "><a href="colorschemes/c/index.html"><strong aria-hidden="true">16.4.</strong> c</a></li><li class="chapter-item expanded "><a href="colorschemes/d/index.html"><strong aria-hidden="true">16.5.</strong> d</a></li><li class="chapter-item expanded "><a href="colorschemes/e/index.html"><strong aria-hidden="true">16.6.</strong> e</a></li><li class="chapter-item expanded "><a href="colorschemes/f/index.html"><strong aria-hidden="true">16.7.</strong> f</a></li><li class="chapter-item expanded "><a href="colorschemes/g/index.html"><strong aria-hidden="true">16.8.</strong> g</a></li><li class="chapter-item expanded "><a href="colorschemes/h/index.html"><strong aria-hidden="true">16.9.</strong> h</a></li><li class="chapter-item expanded "><a href="colorschemes/i/index.html"><strong aria-hidden="true">16.10.</strong> i</a></li><li class="chapter-item expanded "><a href="colorschemes/j/index.html"><strong aria-hidden="true">16.11.</strong> j</a></li><li class="chapter-item expanded "><a href="colorschemes/k/index.html"><strong aria-hidden="true">16.12.</strong> k</a></li><li class="chapter-item expanded "><a href="colorschemes/l/index.html"><strong aria-hidden="true">16.13.</strong> l</a></li><li class="chapter-item expanded "><a href="colorschemes/m/index.html"><strong aria-hidden="true">16.14.</strong> m</a></li><li class="chapter-item expanded "><a href="colorschemes/n/index.html"><strong aria-hidden="true">16.15.</strong> n</a></li><li class="chapter-item expanded "><a href="colorschemes/o/index.html"><strong aria-hidden="true">16.16.</strong> o</a></li><li class="chapter-item expanded "><a href="colorschemes/p/index.html"><strong aria-hidden="true">16.17.</strong> p</a></li><li class="chapter-item expanded "><a href="colorschemes/r/index.html"><strong aria-hidden="true">16.18.</strong> r</a></li><li class="chapter-item expanded "><a href="colorschemes/s/index.html"><strong aria-hidden="true">16.19.</strong> s</a></li><li class="chapter-item expanded "><a href="colorschemes/t/index.html"><strong aria-hidden="true">16.20.</strong> t</a></li><li class="chapter-item expanded "><a href="colorschemes/u/index.html"><strong aria-hidden="true">16.21.</strong> u</a></li><li class="chapter-item expanded "><a href="colorschemes/v/index.html"><strong aria-hidden="true">16.22.</strong> v</a></li><li class="chapter-item expanded "><a href="colorschemes/w/index.html"><strong aria-hidden="true">16.23.</strong> w</a></li><li class="chapter-item expanded "><a href="colorschemes/z/index.html"><strong aria-hidden="true">16.24.</strong> z</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/general.html"><strong aria-hidden="true">17.</strong> Lua Reference</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/wezterm/index.html"><strong aria-hidden="true">17.1.</strong> module: wezterm</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/wezterm/action.html"><strong aria-hidden="true">17.1.1.</strong> action</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/config_dir.html"><strong aria-hidden="true">17.1.2.</strong> config_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/emit.html"><strong aria-hidden="true">17.1.3.</strong> emit</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/executable_dir.html"><strong aria-hidden="true">17.1.4.</strong> executable_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/font.html"><strong aria-hidden="true">17.1.5.</strong> font</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/font_with_fallback.html"><strong aria-hidden="true">17.1.6.</strong> font_with_fallback</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/glob.html"><strong aria-hidden="true">17.1.7.</strong> glob</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/home_dir.html"><strong aria-hidden="true">17.1.8.</strong> home_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/hostname.html"><strong aria-hidden="true">17.1.9.</strong> hostname</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/log_error.html"><strong aria-hidden="true">17.1.10.</strong> log_error</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/on.html"><strong aria-hidden="true">17.1.11.</strong> on</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/permute_any_mods.html"><strong aria-hidden="true">17.1.12.</strong> permute_any_mods</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/permute_any_or_no_mods.html"><strong aria-hidden="true">17.1.13.</strong> permute_any_or_no_mods</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/read_dir.html"><strong aria-hidden="true">17.1.14.</strong> read_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/run_child_process.html"><strong aria-hidden="true">17.1.15.</strong> run_child_process</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/running_under_wsl.html"><strong aria-hidden="true">17.1.16.</strong> running_under_wsl</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/sleep_ms.html"><strong aria-hidden="true">17.1.17.</strong> sleep_ms</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/split_by_newlines.html"><strong aria-hidden="true">17.1.18.</strong> split_by_newlines</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/target_triple.html"><strong aria-hidden="true">17.1.19.</strong> target_triple</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/utf16_to_utf8.html"><strong aria-hidden="true">17.1.20.</strong> utf16_to_utf8</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/version.html"><strong aria-hidden="true">17.1.21.</strong> version</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/index.html"><strong aria-hidden="true">17.2.</strong> enum: KeyAssignment</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivateCopyMode.html"><strong aria-hidden="true">17.2.1.</strong> ActivateCopyMode</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivatePaneDirection.html"><strong aria-hidden="true">17.2.2.</strong> ActivatePaneDirection</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivateTab.html"><strong aria-hidden="true">17.2.3.</strong> ActivateTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivateTabRelative.html"><strong aria-hidden="true">17.2.4.</strong> ActivateTabRelative</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/AdjustPaneSize.html"><strong aria-hidden="true">17.2.5.</strong> AdjustPaneSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ClearScrollback.html"><strong aria-hidden="true">17.2.6.</strong> ClearScrollback</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CloseCurrentPane.html"><strong aria-hidden="true">17.2.7.</strong> CloseCurrentPane</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CloseCurrentTab.html"><strong aria-hidden="true">17.2.8.</strong> CloseCurrentTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CompleteSelection.html"><strong aria-hidden="true">17.2.9.</strong> CompleteSelection</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CompleteSelectionOrOpenLinkAtMouseCursor.html"><strong aria-hidden="true">17.2.10.</strong> CompleteSelectionOrOpenLinkAtMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Copy.html"><strong aria-hidden="true">17.2.11.</strong> Copy</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/DecreaseFontSize.html"><strong aria-hidden="true">17.2.12.</strong> DecreaseFontSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/DisableDefaultAssignment.html"><strong aria-hidden="true">17.2.13.</strong> DisableDefaultAssignment</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/EmitEvent.html"><strong aria-hidden="true">17.2.14.</strong> EmitEvent</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ExtendSelectionToMouseCursor.html"><strong aria-hidden="true">17.2.15.</strong> ExtendSelectionToMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Hide.html"><strong aria-hidden="true">17.2.16.</strong> Hide</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/HideApplication.html"><strong aria-hidden="true">17.2.17.</strong> HideApplication</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/IncreaseFontSize.html"><strong aria-hidden="true">17.2.18.</strong> IncreaseFontSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/MoveTab.html"><strong aria-hidden="true">17.2.19.</strong> MoveTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/MoveTabRelative.html"><strong aria-hidden="true">17.2.20.</strong> MoveTabRelative</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Nop.html"><strong aria-hidden="true">17.2.21.</strong> Nop</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/OpenLinkAtMouseCursor.html"><strong aria-hidden="true">17.2.22.</strong> OpenLinkAtMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Paste.html"><strong aria-hidden="true">17.2.23.</strong> Paste</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/PastePrimarySelection.html"><strong aria-hidden="true">17.2.24.</strong> PastePrimarySelection</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/QuitApplication.html"><strong aria-hidden="true">17.2.25.</strong> QuitApplication</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ReloadConfiguration.html"><strong aria-hidden="true">17.2.26.</strong> ReloadConfiguration</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ResetFontSize.html"><strong aria-hidden="true">17.2.27.</strong> ResetFontSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ScrollByPage.html"><strong aria-hidden="true">17.2.28.</strong> ScrollByPage</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ScrollToPrompt.html"><strong aria-hidden="true">17.2.29.</strong> ScrollToPrompt</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Search.html"><strong aria-hidden="true">17.2.30.</strong> Search</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SelectTextAtMouseCursor.html"><strong aria-hidden="true">17.2.31.</strong> SelectTextAtMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SendString.html"><strong aria-hidden="true">17.2.32.</strong> SendString</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Show.html"><strong aria-hidden="true">17.2.33.</strong> Show</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ShowLauncher.html"><strong aria-hidden="true">17.2.34.</strong> ShowLauncher</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ShowTabNavigator.html"><strong aria-hidden="true">17.2.35.</strong> ShowTabNavigator</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnCommandInNewTab.html"><strong aria-hidden="true">17.2.36.</strong> SpawnCommandInNewTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnCommandInNewWindow.html"><strong aria-hidden="true">17.2.37.</strong> SpawnCommandInNewWindow</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnTab.html"><strong aria-hidden="true">17.2.38.</strong> SpawnTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnWindow.html"><strong aria-hidden="true">17.2.39.</strong> SpawnWindow</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SplitHorizontal.html"><strong aria-hidden="true">17.2.40.</strong> SplitHorizontal</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SplitVertical.html"><strong aria-hidden="true">17.2.41.</strong> SplitVertical</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ToggleFullScreen.html"><strong aria-hidden="true">17.2.42.</strong> ToggleFullScreen</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/TogglePaneZoomState.html"><strong aria-hidden="true">17.2.43.</strong> TogglePaneZoomState</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/SpawnCommand.html"><strong aria-hidden="true">17.3.</strong> object: SpawnCommand</a></li><li class="chapter-item expanded "><a href="config/lua/pane/index.html"><strong aria-hidden="true">17.4.</strong> object: Pane</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/pane/get_current_working_dir.html"><strong aria-hidden="true">17.4.1.</strong> get_current_working_dir</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_cursor_position.html"><strong aria-hidden="true">17.4.2.</strong> get_cursor_position</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_dimensions.html"><strong aria-hidden="true">17.4.3.</strong> get_dimensions</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_lines_as_text.html"><strong aria-hidden="true">17.4.4.</strong> get_lines_as_text</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_title.html"><strong aria-hidden="true">17.4.5.</strong> get_title</a></li><li class="chapter-item expanded "><a href="config/lua/pane/pane_id.html"><strong aria-hidden="true">17.4.6.</strong> pane_id</a></li><li class="chapter-item expanded "><a href="config/lua/pane/paste.html"><strong aria-hidden="true">17.4.7.</strong> paste</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/window/index.html"><strong aria-hidden="true">17.5.</strong> object: Window</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/window/perform_action.html"><strong aria-hidden="true">17.5.1.</strong> perform_action</a></li><li class="chapter-item expanded "><a href="config/lua/window/window_id.html"><strong aria-hidden="true">17.5.2.</strong> window_id</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Wez&#x27;s Terminal Emulator</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#frequently-asked-questions" id="frequently-asked-questions">Frequently Asked Questions</a></h1>
+<h2><a class="header" href="#unicode-glyphs-render-as-underscores-in-my-tmux" id="unicode-glyphs-render-as-underscores-in-my-tmux">Unicode glyphs render as underscores in my tmux!</a></h2>
+<p>This is likely an issue with LANG and locale.  <code>tmux</code> will substitute unicode
+glyphs with underscores if it believes that your environment doesn't support
+UTF-8.</p>
+<p>If you're running on macOS, upgrade to <code>20200620-160318-e00b076c</code> or newer and
+WezTerm will automatically set <code>LANG</code> appropriately.</p>
+<p>Note that if you change your environment you will likely need to kill and
+restart your tmux server before it will take effect.</p>
+<p>You probably should also review <a href="https://github.com/tmux/tmux/wiki/FAQ#how-do-i-use-utf-8">this relevant section from the
+TMUX FAQ</a>, and
+read on for more information about LANG and locale below.</p>
+<h2><a class="header" href="#some-glyphs-look-messed-up-why-is-that" id="some-glyphs-look-messed-up-why-is-that">Some glyphs look messed up, why is that?</a></h2>
+<p>There's a surprisingly amount of work that goes into rendering text,
+and if you're connected to a remote host, it may span both systems.
+Read on for some gory details!</p>
+<h3><a class="header" href="#lang-and-locale" id="lang-and-locale">LANG and locale</a></h3>
+<p>Terminals operate on byte streams and don't necessarily know anything about the
+encoding of the text that you're sending through.  The unix model for this is
+that the end user (that's you!) will instruct the applications that you're
+running to use a particular locale to interpret the byte stream.</p>
+<p>It is common for these environment variables to not be set, or to be set to
+invalid values by default!</p>
+<p>If you're running on macOS, upgrade to <code>20200620-160318-e00b076c</code> or newer
+and WezTerm will automatically set <code>LANG</code> appropriately.</p>
+<p>You need to select a unicode locale for best results; for example:</p>
+<pre><code>export LANG=en_US.UTF-8
+# You don't strictly need this collation, but most technical people
+# probably want C collation for sane results
+export LC_COLLATE=C
+</code></pre>
+<p>If you have other <code>LC_XXX</code> values in your environment, either remove
+them from your environment (if applicable) or adjust them to use a
+UTF-8 locale.</p>
+<p>You can run <code>locale -a</code> to list the available locales on your system.</p>
+<p>You need to make sure that this setting applies both locally and on systems
+that you log in to via ssh or the mux connection protocol.</p>
+<p>If you're seeing multiple garbage characters in your terminal in place of
+what should be a single glyph then you most likely have a problem with your
+locale environment variables.</p>
+<h3><a class="header" href="#fonts-and-fallback" id="fonts-and-fallback">Fonts and fallback</a></h3>
+<p>If you have configured the use of a font that contains only latin characters
+and then try to display a glyph that isn't present in that font (perhaps an
+emoji, or perhaps some kanji) then wezterm will try to locate a fallback
+font that does contain that glyph.</p>
+<p>Wezterm uses freetype and harfbuzz to perform font shaping and rendering in a
+cross platform way, and as a consequence, doesn't have access to the system
+font fallback selection.  Instead it has a short list of fallback fonts that
+are likely to be present on the system and tries to use those.</p>
+<p>If you're seeing the unicode replacement character, a question mark or in
+the worst cases spaces where a glyph should be, then you have an issue with
+font fallback.</p>
+<p>You can resolve this by explicitly adding fallback font(s) the have the glyphs
+that you need in your <code>.wezterm.lua</code>:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm';
+
+return {
+  font = wezterm.font_with_fallback({
+    &quot;My Preferred Font&quot;,
+    -- This font has a broader selection of Chinese glyphs than my preferred font
+    &quot;DengXian&quot;
+  })
+}
+</code></pre>
+<h3><a class="header" href="#some-but-not-all-emoji-dont-render-properly" id="some-but-not-all-emoji-dont-render-properly">Some (but not all) Emoji don't render properly</a></h3>
+<p>To some extent this issue can manifest in a similar way to the LANG and locale
+issue.  There are different versions of the Emoji specifications and the level
+of support in different applications can vary.  Emoji can be comprised from a
+sequence of codepoints and some combine in interesting ways such as a foot and
+a skin tone.  Applications that don't support this correctly may end up
+emitting incorrect output.  For example, pasting some emoji into the zsh REPL
+confuses its input parser and results in broken emoji output.  However, if you
+were to emit that same emoji from a script, wezterm would render it correctly.</p>
+<p>If you're seeing this sort of issue, then you may be able to upgrade the
+affected application on that system to see if a newer version resolves that
+issue.</p>
+<h2><a class="header" href="#how-to-troubleshoot-keys-that-dont-work-or-produce-weird-characters" id="how-to-troubleshoot-keys-that-dont-work-or-produce-weird-characters">How to troubleshoot keys that don't work or produce weird characters!?</a></h2>
+<p>There are a number of layers in input processing that can influence this.</p>
+<p>The first thing to note is that <code>wezterm</code> will always and only output <code>UTF-8</code>
+encoded text.  Your <code>LANG</code> and locale related environment must be set to
+reflect this; there is more information on that above.</p>
+<p>If the key in question is produced in combination with Alt/Option then <a href="config/keys.html">this
+section of the docs describes how wezterm processes
+Alt/Option</a>, as well as options that influence that behavior.</p>
+<p>The next thing to verify is what byte sequences are being produced when you
+press keys.  I generally suggest running <code>xxd</code>, pressing the relevant key, then
+enter, then CTRL-D.  This should show a hex dump of the the byte sequence.
+This step helps to isolate the input from input processing layers in other
+applications.</p>
+<p>Interactive Unix programs generally depend upon the <code>TERM</code> environment variable
+being set appropriately.  <code>wezterm</code> sets this to <code>xterm-256color</code> by default,
+because wezterm aims to be compatible with with the settings defined by that
+terminfo entry.  Setting TERM to something else can change the byte sequences
+that interactive applications expect to see for some keys, effectively
+disabling those keys.</p>
+<p>On top of this, a number of programs use libraries such as GNU readline
+to perform input processing.  That means that settings in your <code>~/.inputrc</code>
+may changing the behavior of <code>bash</code>.  Verify any settings in there that
+might influence how input is resolved and see the question below
+about <code>convert-meta</code>!</p>
+<p>If you are using <code>tmux</code> be aware that it introduces its own set of input/output
+processing layers that are also sensitive to <code>LANG</code>, <code>TERM</code> and locale and how
+they are set in the environment of the tmux server when it was spawned, the
+tmux client and inside the processes spawned by tmux.  It is generally best to
+troubleshoot input/output weirdness independent of tmux first to minimize the
+number of variables!</p>
+<p>If after experimenting with your environment and related settings you believe
+that wezterm isn't sending the correct input then please <a href="https://github.com/wez/wezterm/issues">open an
+issue</a> and include the <code>xxd</code> hexdump,
+and output from <code>env</code> and any other pertinent information about what you're
+trying and why it doesn't match your expectations.</p>
+<h2><a class="header" href="#i-have-set-convert-meta-on-in-my-inputrc-and-latin-characters-are-broken" id="i-have-set-convert-meta-on-in-my-inputrc-and-latin-characters-are-broken">I have <code>set convert-meta on</code> in my <code>~/.inputrc</code> and latin characters are broken!?</a></h2>
+<p>That setting causes Readline to re-encode latin-1 and other characters
+as a different sequence (eg: <code>£</code> will have the high bit stripped and turn
+it into <code>#</code>).</p>
+<p>You should consider disabling that setting when working with a UTF-8
+environment.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="multiplexing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="help.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="multiplexing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="help.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

@@ -1,0 +1,12 @@
+[book]
+title = "Wez's Terminal Emulator"
+author = "Wez Furlong"
+src = "."
+
+[build]
+build-dir = "../gh_pages"
+create-missing = false
+
+[output.html]
+additional-css = ["custom.css"]
+default-theme = "navy"

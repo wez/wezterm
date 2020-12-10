@@ -1,0 +1,624 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js navy">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Change Log - Wez&#x27;s Terminal Emulator</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+        <link rel="stylesheet" href="custom.css">
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "navy";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('navy')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">wezterm</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Install</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="install/windows.html"><strong aria-hidden="true">1.1.</strong> Windows</a></li><li class="chapter-item expanded "><a href="install/macos.html"><strong aria-hidden="true">1.2.</strong> macOS</a></li><li class="chapter-item expanded "><a href="install/linux.html"><strong aria-hidden="true">1.3.</strong> Linux</a></li><li class="chapter-item expanded "><a href="install/source.html"><strong aria-hidden="true">1.4.</strong> Build from source</a></li></ol></li><li class="chapter-item expanded "><a href="features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="changelog.html" class="active"><strong aria-hidden="true">3.</strong> Change Log</a></li><li class="chapter-item expanded "><a href="config/files.html"><strong aria-hidden="true">4.</strong> Configuration</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/launch.html"><strong aria-hidden="true">4.1.</strong> Launching Programs</a></li><li class="chapter-item expanded "><a href="config/fonts.html"><strong aria-hidden="true">4.2.</strong> Fonts</a></li><li class="chapter-item expanded "><a href="config/font-shaping.html"><strong aria-hidden="true">4.3.</strong> Font Shaping</a></li><li class="chapter-item expanded "><a href="config/misc.html"><strong aria-hidden="true">4.4.</strong> Misc</a></li><li class="chapter-item expanded "><a href="config/keys.html"><strong aria-hidden="true">4.5.</strong> Key &amp; Mouse Binding</a></li><li class="chapter-item expanded "><a href="config/appearance.html"><strong aria-hidden="true">4.6.</strong> Colors &amp; Appearance</a></li></ol></li><li class="chapter-item expanded "><a href="scrollback.html"><strong aria-hidden="true">5.</strong> Scrollback</a></li><li class="chapter-item expanded "><a href="copymode.html"><strong aria-hidden="true">6.</strong> Copy Mode</a></li><li class="chapter-item expanded "><a href="hyperlinks.html"><strong aria-hidden="true">7.</strong> Hyperlinks</a></li><li class="chapter-item expanded "><a href="shell-integration.html"><strong aria-hidden="true">8.</strong> Shell Integration</a></li><li class="chapter-item expanded "><a href="imgcat.html"><strong aria-hidden="true">9.</strong> iTerm Image Protocol</a></li><li class="chapter-item expanded "><a href="ssh.html"><strong aria-hidden="true">10.</strong> SSH</a></li><li class="chapter-item expanded "><a href="serial.html"><strong aria-hidden="true">11.</strong> Serial Ports &amp; Arduino</a></li><li class="chapter-item expanded "><a href="multiplexing.html"><strong aria-hidden="true">12.</strong> Mulitplexing</a></li><li class="chapter-item expanded "><a href="faq.html"><strong aria-hidden="true">13.</strong> F.A.Q.</a></li><li class="chapter-item expanded "><a href="help.html"><strong aria-hidden="true">14.</strong> Getting Help</a></li><li class="chapter-item expanded "><a href="contributing.html"><strong aria-hidden="true">15.</strong> Contributing</a></li><li class="chapter-item expanded "><a href="colorschemes/index.html"><strong aria-hidden="true">16.</strong> Color Schemes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="colorschemes/3/index.html"><strong aria-hidden="true">16.1.</strong> 3</a></li><li class="chapter-item expanded "><a href="colorschemes/a/index.html"><strong aria-hidden="true">16.2.</strong> a</a></li><li class="chapter-item expanded "><a href="colorschemes/b/index.html"><strong aria-hidden="true">16.3.</strong> b</a></li><li class="chapter-item expanded "><a href="colorschemes/c/index.html"><strong aria-hidden="true">16.4.</strong> c</a></li><li class="chapter-item expanded "><a href="colorschemes/d/index.html"><strong aria-hidden="true">16.5.</strong> d</a></li><li class="chapter-item expanded "><a href="colorschemes/e/index.html"><strong aria-hidden="true">16.6.</strong> e</a></li><li class="chapter-item expanded "><a href="colorschemes/f/index.html"><strong aria-hidden="true">16.7.</strong> f</a></li><li class="chapter-item expanded "><a href="colorschemes/g/index.html"><strong aria-hidden="true">16.8.</strong> g</a></li><li class="chapter-item expanded "><a href="colorschemes/h/index.html"><strong aria-hidden="true">16.9.</strong> h</a></li><li class="chapter-item expanded "><a href="colorschemes/i/index.html"><strong aria-hidden="true">16.10.</strong> i</a></li><li class="chapter-item expanded "><a href="colorschemes/j/index.html"><strong aria-hidden="true">16.11.</strong> j</a></li><li class="chapter-item expanded "><a href="colorschemes/k/index.html"><strong aria-hidden="true">16.12.</strong> k</a></li><li class="chapter-item expanded "><a href="colorschemes/l/index.html"><strong aria-hidden="true">16.13.</strong> l</a></li><li class="chapter-item expanded "><a href="colorschemes/m/index.html"><strong aria-hidden="true">16.14.</strong> m</a></li><li class="chapter-item expanded "><a href="colorschemes/n/index.html"><strong aria-hidden="true">16.15.</strong> n</a></li><li class="chapter-item expanded "><a href="colorschemes/o/index.html"><strong aria-hidden="true">16.16.</strong> o</a></li><li class="chapter-item expanded "><a href="colorschemes/p/index.html"><strong aria-hidden="true">16.17.</strong> p</a></li><li class="chapter-item expanded "><a href="colorschemes/r/index.html"><strong aria-hidden="true">16.18.</strong> r</a></li><li class="chapter-item expanded "><a href="colorschemes/s/index.html"><strong aria-hidden="true">16.19.</strong> s</a></li><li class="chapter-item expanded "><a href="colorschemes/t/index.html"><strong aria-hidden="true">16.20.</strong> t</a></li><li class="chapter-item expanded "><a href="colorschemes/u/index.html"><strong aria-hidden="true">16.21.</strong> u</a></li><li class="chapter-item expanded "><a href="colorschemes/v/index.html"><strong aria-hidden="true">16.22.</strong> v</a></li><li class="chapter-item expanded "><a href="colorschemes/w/index.html"><strong aria-hidden="true">16.23.</strong> w</a></li><li class="chapter-item expanded "><a href="colorschemes/z/index.html"><strong aria-hidden="true">16.24.</strong> z</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/general.html"><strong aria-hidden="true">17.</strong> Lua Reference</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/wezterm/index.html"><strong aria-hidden="true">17.1.</strong> module: wezterm</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/wezterm/action.html"><strong aria-hidden="true">17.1.1.</strong> action</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/config_dir.html"><strong aria-hidden="true">17.1.2.</strong> config_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/emit.html"><strong aria-hidden="true">17.1.3.</strong> emit</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/executable_dir.html"><strong aria-hidden="true">17.1.4.</strong> executable_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/font.html"><strong aria-hidden="true">17.1.5.</strong> font</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/font_with_fallback.html"><strong aria-hidden="true">17.1.6.</strong> font_with_fallback</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/glob.html"><strong aria-hidden="true">17.1.7.</strong> glob</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/home_dir.html"><strong aria-hidden="true">17.1.8.</strong> home_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/hostname.html"><strong aria-hidden="true">17.1.9.</strong> hostname</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/log_error.html"><strong aria-hidden="true">17.1.10.</strong> log_error</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/on.html"><strong aria-hidden="true">17.1.11.</strong> on</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/permute_any_mods.html"><strong aria-hidden="true">17.1.12.</strong> permute_any_mods</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/permute_any_or_no_mods.html"><strong aria-hidden="true">17.1.13.</strong> permute_any_or_no_mods</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/read_dir.html"><strong aria-hidden="true">17.1.14.</strong> read_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/run_child_process.html"><strong aria-hidden="true">17.1.15.</strong> run_child_process</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/running_under_wsl.html"><strong aria-hidden="true">17.1.16.</strong> running_under_wsl</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/sleep_ms.html"><strong aria-hidden="true">17.1.17.</strong> sleep_ms</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/split_by_newlines.html"><strong aria-hidden="true">17.1.18.</strong> split_by_newlines</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/target_triple.html"><strong aria-hidden="true">17.1.19.</strong> target_triple</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/utf16_to_utf8.html"><strong aria-hidden="true">17.1.20.</strong> utf16_to_utf8</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/version.html"><strong aria-hidden="true">17.1.21.</strong> version</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/index.html"><strong aria-hidden="true">17.2.</strong> enum: KeyAssignment</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivateCopyMode.html"><strong aria-hidden="true">17.2.1.</strong> ActivateCopyMode</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivatePaneDirection.html"><strong aria-hidden="true">17.2.2.</strong> ActivatePaneDirection</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivateTab.html"><strong aria-hidden="true">17.2.3.</strong> ActivateTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivateTabRelative.html"><strong aria-hidden="true">17.2.4.</strong> ActivateTabRelative</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/AdjustPaneSize.html"><strong aria-hidden="true">17.2.5.</strong> AdjustPaneSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ClearScrollback.html"><strong aria-hidden="true">17.2.6.</strong> ClearScrollback</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CloseCurrentPane.html"><strong aria-hidden="true">17.2.7.</strong> CloseCurrentPane</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CloseCurrentTab.html"><strong aria-hidden="true">17.2.8.</strong> CloseCurrentTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CompleteSelection.html"><strong aria-hidden="true">17.2.9.</strong> CompleteSelection</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CompleteSelectionOrOpenLinkAtMouseCursor.html"><strong aria-hidden="true">17.2.10.</strong> CompleteSelectionOrOpenLinkAtMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Copy.html"><strong aria-hidden="true">17.2.11.</strong> Copy</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/DecreaseFontSize.html"><strong aria-hidden="true">17.2.12.</strong> DecreaseFontSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/DisableDefaultAssignment.html"><strong aria-hidden="true">17.2.13.</strong> DisableDefaultAssignment</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/EmitEvent.html"><strong aria-hidden="true">17.2.14.</strong> EmitEvent</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ExtendSelectionToMouseCursor.html"><strong aria-hidden="true">17.2.15.</strong> ExtendSelectionToMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Hide.html"><strong aria-hidden="true">17.2.16.</strong> Hide</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/HideApplication.html"><strong aria-hidden="true">17.2.17.</strong> HideApplication</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/IncreaseFontSize.html"><strong aria-hidden="true">17.2.18.</strong> IncreaseFontSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/MoveTab.html"><strong aria-hidden="true">17.2.19.</strong> MoveTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/MoveTabRelative.html"><strong aria-hidden="true">17.2.20.</strong> MoveTabRelative</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Nop.html"><strong aria-hidden="true">17.2.21.</strong> Nop</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/OpenLinkAtMouseCursor.html"><strong aria-hidden="true">17.2.22.</strong> OpenLinkAtMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Paste.html"><strong aria-hidden="true">17.2.23.</strong> Paste</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/PastePrimarySelection.html"><strong aria-hidden="true">17.2.24.</strong> PastePrimarySelection</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/QuitApplication.html"><strong aria-hidden="true">17.2.25.</strong> QuitApplication</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ReloadConfiguration.html"><strong aria-hidden="true">17.2.26.</strong> ReloadConfiguration</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ResetFontSize.html"><strong aria-hidden="true">17.2.27.</strong> ResetFontSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ScrollByPage.html"><strong aria-hidden="true">17.2.28.</strong> ScrollByPage</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ScrollToPrompt.html"><strong aria-hidden="true">17.2.29.</strong> ScrollToPrompt</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Search.html"><strong aria-hidden="true">17.2.30.</strong> Search</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SelectTextAtMouseCursor.html"><strong aria-hidden="true">17.2.31.</strong> SelectTextAtMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SendString.html"><strong aria-hidden="true">17.2.32.</strong> SendString</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Show.html"><strong aria-hidden="true">17.2.33.</strong> Show</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ShowLauncher.html"><strong aria-hidden="true">17.2.34.</strong> ShowLauncher</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ShowTabNavigator.html"><strong aria-hidden="true">17.2.35.</strong> ShowTabNavigator</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnCommandInNewTab.html"><strong aria-hidden="true">17.2.36.</strong> SpawnCommandInNewTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnCommandInNewWindow.html"><strong aria-hidden="true">17.2.37.</strong> SpawnCommandInNewWindow</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnTab.html"><strong aria-hidden="true">17.2.38.</strong> SpawnTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnWindow.html"><strong aria-hidden="true">17.2.39.</strong> SpawnWindow</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SplitHorizontal.html"><strong aria-hidden="true">17.2.40.</strong> SplitHorizontal</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SplitVertical.html"><strong aria-hidden="true">17.2.41.</strong> SplitVertical</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ToggleFullScreen.html"><strong aria-hidden="true">17.2.42.</strong> ToggleFullScreen</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/TogglePaneZoomState.html"><strong aria-hidden="true">17.2.43.</strong> TogglePaneZoomState</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/SpawnCommand.html"><strong aria-hidden="true">17.3.</strong> object: SpawnCommand</a></li><li class="chapter-item expanded "><a href="config/lua/pane/index.html"><strong aria-hidden="true">17.4.</strong> object: Pane</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/pane/get_current_working_dir.html"><strong aria-hidden="true">17.4.1.</strong> get_current_working_dir</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_cursor_position.html"><strong aria-hidden="true">17.4.2.</strong> get_cursor_position</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_dimensions.html"><strong aria-hidden="true">17.4.3.</strong> get_dimensions</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_lines_as_text.html"><strong aria-hidden="true">17.4.4.</strong> get_lines_as_text</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_title.html"><strong aria-hidden="true">17.4.5.</strong> get_title</a></li><li class="chapter-item expanded "><a href="config/lua/pane/pane_id.html"><strong aria-hidden="true">17.4.6.</strong> pane_id</a></li><li class="chapter-item expanded "><a href="config/lua/pane/paste.html"><strong aria-hidden="true">17.4.7.</strong> paste</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/window/index.html"><strong aria-hidden="true">17.5.</strong> object: Window</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/window/perform_action.html"><strong aria-hidden="true">17.5.1.</strong> perform_action</a></li><li class="chapter-item expanded "><a href="config/lua/window/window_id.html"><strong aria-hidden="true">17.5.2.</strong> window_id</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Wez&#x27;s Terminal Emulator</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h2><a class="header" href="#changes" id="changes">Changes</a></h2>
+<p>Releases are named using the date, time and git commit
+hash.</p>
+<h3><a class="header" href="#nightly" id="nightly">Nightly</a></h3>
+<p>A bleeding edge build is produced continually (at least
+daily) from the master branch.  It may not be usable and
+the feature set may change.  As features stabilize some
+brief notes about them may accumulate here.</p>
+<ul>
+<li>Fix cursor position after using iTerm2 image protocol <a href="https://github.com/wez/wezterm/issues/317">#317</a></li>
+<li>Fix pixel dimensions after changing the pane size; this was mostly invisible but impacted image scaling when using sixel or iTerm2 image protocols. <a href="https://github.com/wez/wezterm/issues/312">#312</a></li>
+<li>Add support for OSC 133 which allows annotating output as <code>Output</code>, <code>Input</code> (that you typed) and <code>Prompt</code> (shell &quot;chrome&quot;). <a href="https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md">Learn more about Semantic prompt and OSC 133</a></li>
+<li>Add <a href="config/lua/keyassignment/ScrollToPrompt.html"><code>ScrollToPrompt</code></a> key assignment that scrolls the viewport to the prior/next shell prompt emitted using OSC 133 Semantic Prompt escapes.  This assignment is not bound by default.</li>
+<li>Fixed an issue where <code>SpawnWindow</code> didn't use the current working directory from the current pane to spawn the new window</li>
+<li>Added <code>wezterm start --class CLASSNAME</code> option to specify the window class name under X11 and Windows, or the <code>app_id</code> under Wayland.  See <code>wezterm start --help</code> for more information.</li>
+<li>Added shell integration for setting OSC 7 (working directory) and OSC 133 (semantic zones) for Zsh and Bash. <a href="shell-integration.html">See Shell Integration docs</a>.</li>
+<li>Added <code>SemanticZone</code> as a possible parameter for <a href="config/lua/keyassignment/SelectTextAtMouseCursor.html">SelectTextAtMouseCursor</a>, making it possible to conveniently select complete input or output regions.</li>
+<li>Improved font rendering <a href="https://github.com/wez/wezterm/issues/320">#320</a> <a href="https://github.com/wez/wezterm/issues/331">#331</a></li>
+<li>Updated internal harfbuzz shaper to 2.7.2</li>
+<li>Fixed ALT-Escape not sending ESC-ESC <a href="https://github.com/wez/wezterm/issues/338">#338</a></li>
+<li>Added <code>allow_square_glyphs_to_overflow_width = &quot;WhenFollowedBySpace&quot;</code> option to allow square symbol glyphs to deliberately overflow their specified cell width when the next cell is a space.  Can be set to <code>Always</code> to allow overflowing regardless of the next cell being a space, or <code>Never</code> to strictly respect the cell width.  The default is <code>Never</code>. <a href="https://github.com/wez/wezterm/issues/342">#342</a></li>
+<li>macOS: Improved key input when Option is pressed.  Fixed dead key processing when <code>use_ime=true</code>. <a href="https://github.com/wez/wezterm/issues/357">#357</a></li>
+<li>macOS: Adjusted default dpi to 72 to bring point sizes into alignment with other macOS apps. <a href="https://github.com/wez/wezterm/issues/332">#332</a></li>
+<li>Improved font fallback; we now try harder to find a system-provided font for glyphs that are not found in your explicitly configured fonts.</li>
+</ul>
+<h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
+<ul>
+<li>Whoops! fixed a crash on macOS when using multiple windows in the new Metal renderer <a href="https://github.com/wez/wezterm/issues/316">#316</a></li>
+</ul>
+<h3><a class="header" href="#20201031-154415-9614e117" id="20201031-154415-9614e117">20201031-154415-9614e117</a></h3>
+<ul>
+<li>New: split/pane support! <code>CTRL+SHIFT+ALT+&quot;</code> to <a href="config/lua/keyassignment/SplitVertical.html">SplitVertical</a>,
+and <code>CTRL+SHIFT+ALT+%</code> to <a href="config/lua/keyassignment/SplitHorizontal.html">SplitHorizontal</a>.</li>
+<li>New: <a href="config/keys.html#leader-key">LEADER</a> modifier key support</li>
+<li>New: <code>window_background_opacity</code> and <code>window_background_image</code>
+options to control using background images, transparent windows.
+<a href="config/appearance.html#window-background-image">More info</a></li>
+<li>New color schemes: <code>Dracula+</code>, <code>Gruvbox Light</code>, <code>MaterialDarker</code>,
+<code>Overnight Slumber</code>, <code>Popping and Locking</code>, <code>Rapture</code>,
+<code>jubi</code>, <code>nord</code>.</li>
+<li>New: expanded lua API allows handling URI clicks and keyboard events
+with lua callbacks.  See <a href="config/lua/wezterm/on.html">wezterm.on</a> docs.</li>
+<li>The GUI layer now normalizes SHIFT state for keyboard processing.
+If a keypress is ASCII uppercase and SHIFT is held then the
+SHIFT modifier is removed from the set of active modifiers.  This
+has implications for your key assignment configuration; previously
+you would write <code>{key=&quot;T&quot;, mods=&quot;CTRL|SHIFT&quot;}</code>, after updating to
+this release you need to write <code>{key=&quot;T&quot;, mods=&quot;CTRL&quot;}</code> in order
+for your key bindings to take effect.</li>
+<li>Added <code>show_tab_index_in_tab_bar</code> option which defaults to true.
+Causes the tab's ordinal index to be prefixed to tab titles.
+The displayed number is 1-based.  You can set
+<code>tab_and_split_indices_are_zero_based=true</code> if you prefer the
+number to be zero based.</li>
+<li>On Linux and macOS systems, wezterm can now attempt to guess the current
+working directory that should be set in newly spawned local panes/tabs,
+in case you don't have OSC 7 integration setup in your shell.</li>
+<li>We now bundle <em>JetBrains Mono</em> and use it as the default font,
+and add it as a default fallback font.  Similarly, we also
+bundle <em>Noto Color Emoji</em> as a default fallback for emoji.</li>
+<li>Added <code>automatically_reload_config=false</code> option to disable
+automatic config reloading.  When set to false, you will need
+to manually trigger a config reload (default: <code>SUPER+R</code> or
+<code>CTRL+SHIFT+R</code>)</li>
+<li><a href="config/lua/keyassignment/CloseCurrentTab.html"><code>CloseCurrentTab</code></a>
+now requires a <code>confirm</code> parameter.</li>
+<li>Halved the memory usage requirements per Cell in the common
+case (saving 32 bytes per cell), which gives more headroom for
+users with large scrollback.</li>
+<li>Reduced initial GPU VRAM requirement to 2MiB.  Improved texture
+allocation to avoid needing lots of VRAM.</li>
+<li>macOS: Fix issue where new windows would open as Cocoa tabs
+when wezterm was maximized.</li>
+<li>macOS: Fix issue where wezterm wouldn't adjust to DPI changes
+when dragging across monitors or the screen resolution changed</li>
+<li>macOS: Reduced trackpad based scrolling sensitivity; it was
+hyper sensitive in previous releases, and now it is more
+reasonable.</li>
+<li>Fix an issue where EGL failed to initialize on Linux</li>
+<li>If EGL/WGL/OpenGL fail to initialize, we now try to fallback
+to Mesa OpenGL in software render mode.  This should result
+in its llvmpipe renderer being used as a fallback, which
+has improved visuals compared to wezterm's own basic CPU
+based renderer.  (This applies to X11/Wayland and Windows
+systems).</li>
+<li>Setting <code>front_end=&quot;Software&quot;</code> will try to use the Mesa OpenGL
+software renderer if available (X11/Wayland/Windows).
+The old basic CPU renderer has been removed.</li>
+<li>The multiplexer server has been moved into its own
+<code>wezterm-mux-server</code> executable.  You will need to revise
+your <code>serve_command</code> configuration.</li>
+<li>Windows: when started in an RDP session, force the use
+of the Mesa software renderer to work around problems with
+RDP GPU emulation.</li>
+<li>Fixed an issue with TLS Multiplexing where bootstrapping
+certificates would usually fail.</li>
+<li>Windows: Fixed an issue that prevented ALT-Space from
+showing the system menu in the window.</li>
+<li>Windows: Fixed dead key handling.  By default dead keys
+behave the same as in other programs and produce diacritics.
+However, setting <code>use_dead_keys = false</code> in the config will
+cause dead keys to behave like a regular key; eg: <code>^</code> would
+just emit <code>^</code> as its own character.</li>
+<li>Windows: Fixed an issue with the <code>Hide</code> key assignment;
+it would hide the window with no way to show it again!
+<code>Hide</code> now minimizes the window instead.</li>
+<li>macOS: we now use Metal to render the gui, via
+<a href="https://github.com/kakashidinho/metalangle">MetalANGLE</a></li>
+<li>Windows: we now prefer to use Direct3D11 to render the
+gui, via <a href="https://chromium.googlesource.com/angle/angle/">ANGLE</a>
+EGL.  The primary benefit of this is that upgrading your
+graphics drivers while you have a stateful wezterm session
+will no longer terminate the wezterm process. Resize
+behavior is not as smooth with ANGLE as the prior WGL.
+If you wish, you can set <code>prefer_egl = false</code> to use
+WGL.</li>
+<li>Improved image protocol support to have better render fidelity
+and to reduce VRAM usage when the same image it displayed
+multiple times in the same pane.</li>
+</ul>
+<h3><a class="header" href="#20200909-002054-4c9af461" id="20200909-002054-4c9af461">20200909-002054-4c9af461</a></h3>
+<ul>
+<li>Added support for OSC 1 (Icon Title changing), and changed
+how that interacts with OSC 2 (Window Title changing).
+If you specify OSC 1 as a non-empty string, then that will
+be used for the title of that terminal instance in the GUI.
+Otherwise the Window Title will be reported instead.</li>
+<li>Added missing mappings for Application Keypad keys on Linux</li>
+<li>Workaround an EGL issue where Mesa reports the least-best
+alpha value when enumerating configs, rather than the best
+alpha.  This could lead to incorrect alpha under XWayland
+and failure to initialize EGL and fallbacks to the Software
+renderer in some other cases.</li>
+<li><code>enable_wayland</code> now defaults to <code>false</code>; mutter keeps breaking
+client-side window decoration so let's just make it opt-in so
+that the default experience is better.</li>
+<li>Fixed a crash on Linux/X11 when using <code>wezterm connect HOST</code></li>
+<li>Added <code>tab_max_width</code> config setting to limit the maximum
+width of tabs in the tab bar.  This defaults to 16 glyphs
+in width.</li>
+</ul>
+<h3><a class="header" href="#20200718-095447-d2315640" id="20200718-095447-d2315640">20200718-095447-d2315640</a></h3>
+<ul>
+<li>Added support for DECSET 1004 Focus Reporting to local
+(not multiplexer) terminal sessions.</li>
+<li>Added support for SGR 53/55 which enable/disable Overline style.
+<code>printf &quot;\x1b[53moverline\x1b[0m\n&quot;</code></li>
+<li>Windows: updated bundled openconsole.exe to <a href="https://github.com/microsoft/terminal/commit/efb1fddb991dc1e6b614d1637daca7314a229925">efb1fdd</a>
+to resolve an issue where bold text didn't respect the configured color scheme.</li>
+<li>Added <code>bold_brightens_ansi_colors</code> option to allow disabling the automatic
+brightening of bold text.</li>
+<li>Unix: fix an issue where setting the current working directory for a custom
+spawned command would not take effect (thanks @john01dav!)</li>
+<li>Windows: fixed buffering/timing issue where a response to a color query in
+vim could be misinterpreted and replace a character in the editor with the
+letter <code>g</code>.</li>
+<li>X11: Improved support for non-24bpp display depths.  WezTerm now tries
+harder to obtain an 8bpc surface on both 16bpp and 30bpp (10bpc) displays.</li>
+<li>Windows: fixed falling back to a simpler OpenGL context if WGL is unable
+to negotiate a robust context.  This is useful on systems with dual
+high/low power GPU hardware where the OpenGL versions for the two GPUs
+are different!</li>
+<li>Color Schemes: synced with <a href="https://github.com/mbadolato/iTerm2-Color-Schemes/commit/ea2c84115d8cff97b5255a7344090902ae669245">ea2c841</a>
+which includes new schemes: <code>Adventure</code>, <code>Banana Blueberry</code>, <code>Blue Matrix</code>,
+<code>BlueBerryPie</code>, <code>Cyberdyne</code>, <code>Django</code>, <code>DjangoRebornAgain</code>, <code>DjangoSmooth</code>,
+<code>DoomOne</code>, <code>Konsolas</code>, <code>Laser</code>, <code>Mirage</code>, <code>Rouge 2</code>, <code>Sakura</code>, <code>Scarlet Protocol</code>, <code>synthwave-everything</code>, <code>Tinacious Design (Dark)</code>, <code>Tinacious Design (Light)</code>.</li>
+</ul>
+<h3><a class="header" href="#20200620-160318-e00b076c" id="20200620-160318-e00b076c">20200620-160318-e00b076c</a></h3>
+<ul>
+<li>Fixed default mapping of ambiguous ctrl key combinations (<code>i</code>, <code>m</code>, <code>[</code>, <code>{</code>,
+<code>@</code>) so that they emit the old school tab, newline, escape etc. values.
+These got broken as part of prototyping CSI-u support a while back.</li>
+<li>Added option to enable CSI-u key encodings.  This is a new mapping scheme
+defined here <a href="http://www.leonerd.org.uk/hacks/fixterms/">http://www.leonerd.org.uk/hacks/fixterms/</a> that disambiguates
+and otherwise enables more key binding combinations.  You can enable this
+setting using <code>enable_csi_u_key_encoding = true</code> in your config file.</li>
+<li>Very early support for sixel graphics</li>
+<li>macos: <code>use_ime</code> now defaults to false; this is a better out of
+the box experience for most users.</li>
+<li>macos: we now attempt to set a reasonable default LANG environment based
+on the locale settings at the time that wezterm is launched.</li>
+<li>macos: introduce <code>send_composed_key_when_left_alt_is_pressed</code> and
+<code>send_composed_key_when_right_alt_is_pressed</code> boolean config settings.  Like
+the existing <code>send_composed_key_when_alt_is_pressed</code> option, these control
+whether the <code>Alt</code> or <code>Option</code> modifier produce composed output or generate
+the raw key position with the ALT modifier applied.  The difference from the
+existing config option is that on systems where Left and Right Alt can be
+distinguished you now have the ability to control this behavior
+independently.  The default behavior on these systems is
+<code>send_composed_key_when_left_alt_is_pressed=false</code> and
+<code>send_composed_key_when_right_alt_is_pressed=true</code> so that the right Alt key
+behaves more like an <code>AltGr</code> key and generates the composed input, while the
+Left Alt is regular uncomposed Alt.</li>
+<li>Fonts: fixed an issue where specifying italic or bold in the second parameter
+of <code>wezterm.font</code> didn't work as intended or documented</li>
+<li>Improved terminal emulation conformance; added left/right margin support
+and now passes <a href="https://gitlab.freedesktop.org/terminal-wg/esctest">esctest</a>
+to a similar degree as iTerm2</li>
+<li>Fixed an issue where unmodified F5+ would use the CSI-u encoded-modifiers
+format, and confused eg: <code>htop</code>.</li>
+<li><code>ActivateTab</code> now accepts negative numbers as a way to reference the last
+tab in the Window.  The default assignment for <code>CTRL+SHIFT+9</code> and <code>CMD+9</code>
+is now <code>ActivateTab=-1</code>, which selects the last tab.</li>
+<li>Fixed an issue when applying hyperlink rules to lines that had mixed width
+characters</li>
+</ul>
+<h3><a class="header" href="#20200607-144723-74889cd4" id="20200607-144723-74889cd4">20200607-144723-74889cd4</a></h3>
+<ul>
+<li>Windows: Fixed AltGr handling for European layouts</li>
+<li>X11: Added <code>PastePrimarySelection</code> key assignment that pastes the contents
+of the primary selection rather than the clipboard.</li>
+<li>Removed old TOML config file parsing code</li>
+<li>Removed old <code>arg=&quot;something&quot;</code> key binding parameter.  This was a remnant from
+the TOML based configuration.  You're unlikely to notice this unless you
+followed an example from the docs; migrate instead to using eg:
+<code>action=wezterm.action{ActivateTab=i-1}</code> to pass the integer argument.</li>
+<li>Windows: now also available with a setup.exe installer.  The installer
+enables &quot;Open WezTerm Here&quot; in the explorer.exe context menu.</li>
+<li>Added <code>ClearScrollback</code> key assignment to clear the scrollback.  This is bound to CMD-K and CTRL-SHIFT-K by default.</li>
+<li>Added <code>Search</code> key assignment to search the scrollback.  Read the new
+<a href="scrollback.html">scrollback</a> section for more information!</li>
+<li>Fixed an issue where ALT+number would send the wrong output for European
+keyboard layouts on macOS and Linux.  As part of this the default behavior
+has changed: we used to force ALT+number to produce ALT+number instead of
+the composed key for that layout.  We now emit the composed key by default.
+You can switch to the old behavior either by explicitly binding those keys
+or by setting <code>send_composed_key_when_alt_is_pressed = false</code> in your
+configuration file.</li>
+<li>Windows: the launcher menu now automatically lists out any WSL environments
+you have installed so that you can quickly spawn a shell in any of them.
+You can suppress this behavior if you wish by setting
+<code>add_wsl_distributions_to_launch_menu = false</code>.
+<a href="config/launch.html#the-launcher-menu">Read more about the launcher menu</a></li>
+<li>Added <code>ActivateCopyMode</code> key assignment to put the tab into mouseless-copy
+mode; <a href="copymode.html">use the keyboard to define the selected text region</a>.
+This is bound to CTRL-SHIFT-X by default.</li>
+</ul>
+<h3><a class="header" href="#20200517-122836-92c201c6" id="20200517-122836-92c201c6">20200517-122836-92c201c6</a></h3>
+<ul>
+<li>AppImage: Support looking for configuration in <code>WezTerm.AppImage.config</code> and
+<code>WezTerm.AppImage.home</code> to support portable thumbdrive use of wezterm on
+linux systems</li>
+<li>We now check the github releases section for updated stable releases and show
+a simple UI to let you know about the update, with links to download/install
+it.  We don't automatically download the release: just make a small REST API
+call to github.  There is no data collection performed by the wezterm project
+as part of this.  We check once every 24 hours.  You can set
+<code>check_for_updates = false</code> in your config to disable this completely if
+desired, or set <code>check_for_updates_interval_seconds</code> to an alternative update
+interval.</li>
+<li>Added support for OSC 110-119 to reset dynamic colors, improving our support for Neovim.</li>
+<li>Change OSC rendering to use the long-form <code>ST</code> sequence <code>ESC \</code> rather than
+the more convenient alternative <code>BEL</code> representation, which was not
+recognized by Neovim when querying for color information.</li>
+<li>Fixed Shift-Tab key on X11 and Wayland</li>
+<li>WezTerm is now also available to Windows users via <a href="https://scoop.sh/">Scoop</a></li>
+</ul>
+<h3><a class="header" href="#20200503-171512-b13ef15f" id="20200503-171512-b13ef15f">20200503-171512-b13ef15f</a></h3>
+<ul>
+<li>Added the <code>launch_menu</code> configuration for the launcher menu
+as described in <a href="config/launch.html">Launching Programs</a>.</li>
+<li>Fixed a crash when reloading a config with <code>enable_tab_bar=false</code></li>
+<li>Fixed missing icon when running under X11 and Wayland</li>
+<li>Wayland client-side-decorations improved and now also render window title</li>
+<li>Implicitly SGR reset when switching alt and primary screen</li>
+<li>Improved config error reporting UI: we now show just a single
+window with all errors rather than one window per failed reload.</li>
+</ul>
+<h3><a class="header" href="#20200406-151651-5b700e4" id="20200406-151651-5b700e4">20200406-151651-5b700e4</a></h3>
+<ul>
+<li>Added lua based configuration.  Reading TOML configuration will be rapidly
+phased out in favor of the more flexible lua config; for now, both are
+supported, but new features may not be available via TOML.</li>
+<li>Added launcher overlay.  Right click the <code>+</code> button on the tab bar or
+bind a key to <code>ShowLauncher</code> to activate it.  It allows spawning tabs in
+various domains as well as attaching multiplexer sessions that were not
+connected automatically at startup.</li>
+<li>Windows: we now support mouse reporting on Windows native ptys.  For this to
+work, <code>conpty.dll</code> and <code>OpenConsole.exe</code> must be present alongside <code>wezterm.exe</code>
+when starting wezterm.</li>
+<li>Added <code>initial_rows</code> and <code>initial_cols</code> config options to set the starting
+size of new terminal windows</li>
+<li>Added <code>hide_tab_bar_if_only_one_tab = true</code> config option to hide the tab
+bar when the window contains only a single tab.</li>
+<li>Added <code>HideApplication</code> key action (defaults to <code>CMD-H</code> on macOS only) which
+hides the wezterm application.  This is macOS specific.</li>
+<li>Added <code>QuitApplication</code> key action which causes the gui loop to terminate
+and the application to exit.  This is not bound by default, but you may
+choose to assign it to something like <code>CMD-Q</code>.</li>
+<li>Added <code>set_environment_variables</code> configuration section to allow defining
+some environment variables to be passed to your shell.</li>
+<li>Improved connectivity UI that shows ssh and mux connection progress/status</li>
+<li>Fixed a bug where the baud rate was not applied when opening a serial port</li>
+<li>Added predictive local echo to the multiplexer for higher latency connections</li>
+<li>We now grey out the UI for lagging multiplexer connections</li>
+<li>Set an upper bound on the memory usage for multiplexer connections</li>
+</ul>
+<h3><a class="header" href="#20200202-181957-765184e5" id="20200202-181957-765184e5">20200202-181957-765184e5</a></h3>
+<ul>
+<li>Improved font shaping performance 2-3x by adding a shaper cache</li>
+<li>Windows: now has support for TLS based multiplexer connections</li>
+<li>Multiplexer: TLS multiplexer can now be bootstrapped via SSH, and automatically
+manages certificates</li>
+<li>Unix: We now default to spawning shells with the <code>-l</code> argument to request a login
+shell.  This is important on macOS where the default GUI environment doesn't
+source a working PATH from the shell, resulting in an anemic PATH unless the
+user has taken care to cover this in their shell startup.  <code>-l</code> works to enable
+a login shell in <code>zsh</code>, <code>bash</code>, <code>fish</code> and <code>tcsh</code>.  If it doesn't work with your
+shell, you can use the <code>default_prog</code> configuration option to override this.</li>
+<li>We now accept <code>rgb:XX/XX/XX</code> color syntax for OSC 4 and related escape
+sequences; previously only <code>#XXXXXX</code> and named colors were accepted.</li>
+<li>We now accept OSC 104 to reset custom colors to their defaults.</li>
+<li>Added Tab Navigator overlay for folks that hoard tabs; it presents
+an interactive UI for selecting and activating a tab from a vertically
+oriented list.  This is bound to <code>Alt-9</code> by default.</li>
+<li>Added support for DEC Origin Mode (<code>DECOM</code>) which improves cursor positioning
+with some applications</li>
+<li>Added support for DEC AutoWrap Mode (<code>DECAWM</code>) which was previously always on.
+This improves rendering for applications that explicitly disable it.</li>
+<li>We now show a connection status window while establishing MUX and SSH connections.
+The status window is also where any interactive authentication is carried out
+for eg: SSH sessions.</li>
+<li>Improved SSH authentication handling; we now give you a few opportunities to
+authenticate and are now able to successfully authenticate with sites that
+have configured 2-Factor authentication in their server side SSH configuration.</li>
+<li>Fixed an issue where SHIFT-Space would swallow the space key.</li>
+<li>Nightly builds are now available for Linux in <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly.AppImage">AppImage</a> format.</li>
+<li>Shift+Left Mouse button can now be used to extend the selection to the clicked location.  This is particularly helpful when you want to select something that is larger than the viewport.</li>
+<li>Windows: a single mouse wheel tick now scrolls by the number of positions configured in the Windows system settings (default 3)</li>
+<li>Windows: fixed IME position when the tab bar is enabled</li>
+<li>Windows: removed support for WinPty, which was too difficult to obtain, configure and use.</li>
+<li>Configuration errors now show in a separate window on startup, or when the configuration is reloaded</li>
+<li>Improved reliability and performance of MUX sessions, although they still have room for further improvement</li>
+</ul>
+<h3><a class="header" href="#20200113-214446-bb6251f" id="20200113-214446-bb6251f">20200113-214446-bb6251f</a></h3>
+<ul>
+<li>Added <code>color_scheme</code> configuration option and more than 200 color schemes</li>
+<li>Improved resize behavior; lines that were split due to
+the width of the terminal are now rewrapped on resize.
+<a href="https://github.com/wez/wezterm/issues/14">Issue 14</a></li>
+<li>Double-click and triple-click and hold followed by a drag now extends
+the selection by word and line respectively.</li>
+<li>The OSC 7 (CurrentWorkingDirectory) escape sequence is now supported; wezterm records the cwd in a tab and that will be used to set the working directory when spawning new tabs in the same domain.  You will need to configure your shell to emit OSC 7 when appropriate.</li>
+<li><a href="https://github.com/wez/wezterm/commit/f0e94084d1df36009b879b06e9cfd2be946168e8">Changed Backspace/Delete handling</a></li>
+<li>Added <code>MoveTabRelative</code> for changing the ordering of tabs within a window
+using key assignments <code>CTRL+SHIFT+PageUp</code> and <code>CTRL+SHIFT+PageDown</code></li>
+<li><a href="https://github.com/wez/wezterm/issues/106">The multiplexer protocol is undergoing major changes</a>.
+The multiplexer will now raise an error if the client and server are incompatible.</li>
+<li>Fixed an issue where wezterm would linger for a few seconds after the last tab was closed</li>
+<li>Fixed an issue where wezterm wouldn't repaint the screen after a tab was closed</li>
+<li>Clicking the OS window close button in the titlebar now closes the window rather than the active tab</li>
+<li>Added <code>use_ime</code> option to optionally disable the use of the IME on macOS.  You might consider enabling this if you don't like the way that the IME swallows key repeats for some keys.</li>
+<li>Fix an <a href="https://github.com/knsd/daemonize/pull/39">issue</a> where the pidfile would leak into child processes and block restarting the mux server</li>
+<li>Fix an issue where the title bars of remote tabs were not picked up at domain attach time</li>
+<li>Fixed selection and scrollbar position for multiplexer tabs</li>
+<li>Added <code>ScrollByPage</code> key assignment and moved the <code>SHIFT+PageUp</code> handling up to the
+gui layer so that it can be rebound.</li>
+<li>X11: a single mouse wheel tick now scrolls by 5 rows rather than 1</li>
+<li>Wayland: normalize line endings to unix line endings when pasting</li>
+<li>Windows: fixed handling of focus related messages, which impacted both the appearance of
+the text cursor and copy and paste handling.</li>
+<li>When hovering over implicitly hyperlinked items, we no longer show the underline for every other URL with the same destination</li>
+</ul>
+<h3><a class="header" href="#20191229-193639-e7aa2f3" id="20191229-193639-e7aa2f3">20191229-193639-e7aa2f3</a></h3>
+<ul>
+<li>Fixed a hang when using middle mouse button to paste</li>
+<li>Recognize 8-bit C1 codes encoded as UTF-8, which are used in the Fedora 31 bash prexec notification for gnome terminal</li>
+<li>Ensure that underlines are a minimum of 1 pixel tall</li>
+<li>Reduced CPU utilization on some Wayland compositors</li>
+<li>Added <code>$WEZTERM_CONFIG_FILE</code> to the start of the config file search path</li>
+<li>Added new font rendering options:</li>
+</ul>
+<pre><code>font_antialias = &quot;Subpixel&quot; # None, Greyscale, Subpixel
+font_hinting = &quot;Full&quot; # None, Vertical, VerticalSubpixel, Full
+</code></pre>
+<ul>
+<li>Early startup errors now generate a &quot;toast&quot; notification, giving you more of a clue about what went wrong</li>
+<li>We now use the default configuration if the config file had errors, rather than refusing to start</li>
+<li>Wayland compositors: Improved detection of display scaling on startup</li>
+<li>Added <code>harfuzz_features</code> option to specify stylistic sets for fonts such as Fira Code, and to control various typographical options</li>
+<li>Added a <code>window_padding</code> config section to add padding to the window display</li>
+<li>We now respect <a href="https://github.com/wez/wezterm/issues/7">DECSCUSR and DECTCEM</a> escape sequence to select between hidden, block, underline and bar cursor types, as well as blinking cursors.  New configuration options have been added to control the appearance and blink rate.</li>
+<li>We now support an optional basic scroll bar.  The scroll bar occupies the right window padding and has a configurable color.  Scroll bars are not yet supported for multiplexer connections and remain disabled by default for the moment.</li>
+<li>Color scheme changes made in the config file now take effect at config reload time for all tabs that have not applied a dynamic color scheme.</li>
+</ul>
+<h3><a class="header" href="#20191218-101156-bf35707" id="20191218-101156-bf35707">20191218-101156-bf35707</a></h3>
+<ul>
+<li>Configuration errors detected during config loading are now shown as a system notification</li>
+<li>New <code>font_dirs</code> configuration option to specify a set of dirs to search for fonts. Useful for self-contained wezterm deployments.</li>
+<li>The <code>font_system</code> option has been split into <code>font_locator</code>, <code>font_shaper</code> and <code>font_rasterizer</code> options.</li>
+<li>Don't allow child processes to inherit open font files on posix systems!</li>
+<li>Disable Nagle's algorithm for <code>wezterm ssh</code> sessions</li>
+<li>Add native Wayland window system support</li>
+</ul>
+<h3><a class="header" href="#20191124-233250-cb9fd7d" id="20191124-233250-cb9fd7d">20191124-233250-cb9fd7d</a></h3>
+<ul>
+<li>New tab bar UI displays tabs and allows creating new tabs</li>
+<li>Configuration file changes are hot reloaded and take effect automatically on save</li>
+<li><code>wezterm ssh user@host</code> for ad-hoc SSH sessions. You may also define SSH multiplexer sessions.</li>
+<li><code>wezterm serial /dev/ttyUSB0</code> to connect to your Arduino</li>
+<li><code>wezterm imgcat /some/image.png</code> to display images inline in the terminal using the iTerm2 image protocol</li>
+<li>IME support on macOS and Windows systems</li>
+<li>Automatic fallback to software rendering if no GPU is available (eg: certain types of remote desktop sessions)</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="features.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="config/files.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="features.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="config/files.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
