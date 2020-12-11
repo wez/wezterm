@@ -102,7 +102,6 @@ class Target(object):
         rust_target=None,
         continuous_only=False,
         app_image=False,
-        skip_apt_update=False,
     ):
         if not name:
             if container:
@@ -116,7 +115,6 @@ class Target(object):
         self.rust_target = rust_target
         self.continuous_only = continuous_only
         self.app_image = app_image
-        self.skip_apt_update = skip_apt_update
 
     def uses_yum(self):
         if "fedora" in self.name:
@@ -432,10 +430,9 @@ cargo build --all --release""",
                     ),
                 ]
             sudo = "sudo -n " if self.needs_sudo() else ""
-            if not self.skip_apt_update:
-                steps += [
-                    RunStep("Update APT", f"{sudo}apt update"),
-                ]
+            steps += [
+                RunStep("Update APT", f"{sudo}apt update"),
+            ]
         if self.container:
             if self.container == "centos:8":
                 steps += [
@@ -514,8 +511,6 @@ cargo build --all --release""",
 TARGETS = [
     Target(name="ubuntu:16", os="ubuntu-16.04", app_image=True),
     Target(name="ubuntu:18", os="ubuntu-18.04", continuous_only=True),
-    Target(container="ubuntu:19.10", continuous_only=True, skip_apt_update=True),
-    # The container gets stuck while running get-deps, so disable for now
     Target(container="ubuntu:20.04", continuous_only=True),
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
