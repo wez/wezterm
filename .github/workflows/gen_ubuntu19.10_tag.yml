@@ -17,9 +17,6 @@ jobs:
     - name: "set APT to non-interactive"
       shell: bash
       run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
-    - name: "Update APT"
-      shell: bash
-      run: "apt update"
     - name: "Install git"
       shell: bash
       run: "apt-get install -y git"
