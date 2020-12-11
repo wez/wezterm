@@ -5,12 +5,12 @@ use anyhow::{anyhow, Error};
 use domain::{Domain, DomainId};
 use log::error;
 use portable_pty::ExitStatus;
-use ratelim::RateLimiter;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::mpsc::{channel, Receiver, RecvTimeoutError};
 use std::sync::Arc;
 use std::thread;
 use thiserror::*;
@@ -47,14 +47,80 @@ pub struct Mux {
     subscribers: RefCell<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
 }
 
+fn send_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, data: Vec<u8>) {
+    promise::spawn::spawn_into_main_thread_with_low_priority({
+        let dead = Arc::clone(&dead);
+        async move {
+            let mux = Mux::get().unwrap();
+            if let Some(pane) = mux.get_pane(pane_id) {
+                pane.advance_bytes(&data);
+                mux.notify(MuxNotification::PaneOutput(pane_id));
+            } else {
+                // Something else removed the pane from
+                // the mux, so we should stop trying to
+                // process it.
+                dead.store(true, Ordering::Relaxed);
+            }
+        }
+    })
+    .detach();
+}
+
+fn accumulator(pane_id: PaneId, dead: &Arc<AtomicBool>, rx: Receiver<Vec<u8>>) {
+    let mut buf = vec![];
+
+    'outer: while let Ok(mut data) = rx.recv() {
+        buf.append(&mut data);
+
+        while !buf.is_empty() {
+            if let Some(idx) = buf.iter().rposition(|&b| b == b'\n') {
+                let mut split = buf.split_off(idx + 1);
+                std::mem::swap(&mut split, &mut buf);
+                send_to_mux(pane_id, &dead, split);
+            }
+
+            match rx.recv_timeout(std::time::Duration::from_millis(50)) {
+                Ok(mut extra) => {
+                    buf.append(&mut extra);
+                }
+                Err(RecvTimeoutError::Timeout) => {
+                    // No more data to read right now, so pass whatever
+                    // we have pending on to the mux thread and then block
+                    // waiting for the next.
+                    let mut to_send = vec![];
+                    std::mem::swap(&mut to_send, &mut buf);
+                    send_to_mux(pane_id, &dead, to_send);
+                    break;
+                }
+                Err(RecvTimeoutError::Disconnected) => break 'outer,
+            }
+        }
+
+        if dead.load(Ordering::Relaxed) {
+            break;
+        }
+    }
+    promise::spawn::spawn_into_main_thread(async move {
+        let mux = Mux::get().unwrap();
+        mux.remove_pane(pane_id);
+    })
+    .detach();
+}
+
 fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
-
-    let mut lim = RateLimiter::new(|config| config.ratelimit_output_bytes_per_second);
     let dead = Arc::new(AtomicBool::new(false));
 
-    'outer: while !dead.load(Ordering::Relaxed) {
+    let (tx, rx) = channel();
+    std::thread::spawn({
+        let dead = Arc::clone(&dead);
+        move || {
+            accumulator(pane_id, &dead, rx);
+        }
+    });
+
+    while !dead.load(Ordering::Relaxed) {
         match reader.read(&mut buf) {
             Ok(size) if size == 0 => {
                 error!("read_pty EOF: pane_id {}", pane_id);
@@ -66,48 +132,14 @@ fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
             }
             Ok(size) => {
                 let buf = &buf[..size];
-                let mut pos = 0;
-
-                while pos < size {
-                    if dead.load(Ordering::Relaxed) {
-                        break 'outer;
-                    }
-                    match lim.admit_check((size - pos) as u32) {
-                        Ok(len) => {
-                            let len = len as usize;
-                            let data = buf[pos..pos + len].to_vec();
-                            pos += len;
-                            promise::spawn::spawn_into_main_thread_with_low_priority({
-                                let dead = Arc::clone(&dead);
-                                async move {
-                                    let mux = Mux::get().unwrap();
-                                    if let Some(pane) = mux.get_pane(pane_id) {
-                                        pane.advance_bytes(&data);
-                                        mux.notify(MuxNotification::PaneOutput(pane_id));
-                                    } else {
-                                        // Something else removed the pane from
-                                        // the mux, so we should stop trying to
-                                        // process it.
-                                        dead.store(true, Ordering::Relaxed);
-                                    }
-                                }
-                            })
-                            .detach();
-                        }
-                        Err(delay) => {
-                            log::trace!("RateLimiter: sleep for {:?}", delay);
-                            std::thread::sleep(delay);
-                        }
-                    }
+                if tx.send(buf.to_vec()).is_err() {
+                    break;
                 }
             }
         }
     }
-    promise::spawn::spawn_into_main_thread(async move {
-        let mux = Mux::get().unwrap();
-        mux.remove_pane(pane_id);
-    })
-    .detach();
+
+    dead.store(true, Ordering::Relaxed);
 }
 
 thread_local! {
