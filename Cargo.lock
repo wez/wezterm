@@ -29,9 +29,9 @@ checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
 
 [[package]]
 name = "ahash"
-version = "0.4.6"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6789e291be47ace86a60303502173d84af8327e3627ecf334356ee0f87a164c"
+checksum = "739f4a8db6605981345c5654f3a85b056ce52f37a39d34da03f25bf2151ea16e"
 
 [[package]]
 name = "aho-corasick"
@@ -2194,7 +2194,7 @@ dependencies = [
  "ssh2",
  "terminfo",
  "termwiz",
- "textwrap 0.13.0",
+ "textwrap 0.13.1",
  "thiserror",
  "tmux-cc",
  "unicode-segmentation",
@@ -3856,9 +3856,9 @@ dependencies = [
 
 [[package]]
 name = "textwrap"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1bca196a5c5a7bc57a5c92809cf5670e16bcbca3bf0d09ef47150bf97221f6f"
+checksum = "7aca9e798437265144ddacce09343df0b3413a0aef54b1e212e640e472118b80"
 dependencies = [
  "smawk",
  "unicode-width",
@@ -4106,9 +4106,9 @@ dependencies = [
 
 [[package]]
 name = "vcpkg"
-version = "0.2.10"
+version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6454029bf181f092ad1b853286f23e2c507d8e8194d01d92da4a55c274a5508c"
+checksum = "b00bca6106a5e23f3eee943593759b7fcddb00554332e856d990c893966879fb"
 
 [[package]]
 name = "vec-arena"
@@ -4410,7 +4410,7 @@ dependencies = [
  "structopt",
  "tabout",
  "termwiz",
- "textwrap 0.13.0",
+ "textwrap 0.13.1",
  "umask",
  "url",
  "wezterm-client",
@@ -4441,7 +4441,7 @@ dependencies = [
  "smol",
  "ssh2",
  "termwiz",
- "textwrap 0.13.0",
+ "textwrap 0.13.1",
  "thiserror",
  "uds_windows",
  "url",
@@ -4525,7 +4525,7 @@ dependencies = [
  "tabout",
  "terminfo",
  "termwiz",
- "textwrap 0.13.0",
+ "textwrap 0.13.1",
  "thiserror",
  "uds_windows",
  "umask",
