@@ -14,14 +14,6 @@ return {
   -- What to set the TERM variable to
   term = "xterm-256color",
 
-  -- Constrains the rate at which output from a child command is
-  -- processed and applied to the terminal model.
-  -- This acts as a brake in the case of a command spewing a
-  -- ton of output and allows for the UI to remain responsive
-  -- so that you can hit CTRL-C to interrupt it if desired.
-  -- The default value is 400,000 bytes/s.
-  ratelimit_output_bytes_per_second = 400000,
-
   -- Constrains the rate at which the multiplexer server will
   -- unilaterally push data to the client.
   -- This helps to avoid saturating the link between the client
