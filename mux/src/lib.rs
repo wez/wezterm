@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::mpsc::{channel, Receiver, RecvTimeoutError};
+use std::sync::mpsc::{sync_channel, Receiver, TryRecvError};
 use std::sync::Arc;
 use std::thread;
 use thiserror::*;
@@ -47,8 +47,11 @@ pub struct Mux {
     subscribers: RefCell<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
 }
 
+/// This function bounces the data over to the main thread to feed to
+/// the pty in the mux.  It blocks until the mux has finished consuming
+/// the data.
 fn send_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, data: Vec<u8>) {
-    promise::spawn::spawn_into_main_thread_with_low_priority({
+    promise::spawn::block_on(promise::spawn::spawn_into_main_thread_with_low_priority({
         let dead = Arc::clone(&dead);
         async move {
             let mux = Mux::get().unwrap();
@@ -62,10 +65,18 @@ fn send_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, data: Vec<u8>) {
                 dead.store(true, Ordering::Relaxed);
             }
         }
-    })
-    .detach();
+    }));
 }
 
+/// The accumulator tries to keep runs of text together, which is important
+/// with various emoji sequences as it is not possible to detect all kinds
+/// of combining sequences based on their leading bytes.
+/// This function prefers to send lines of text to the output parser.
+/// If it doesn't find a complete line then it will do a non-blocking poll
+/// to allow additional data to appear in the channel so that it can be
+/// combined together.
+/// If this function takes too long to batch the data together then text
+/// input/output latency suffers and feels janky.
 fn accumulator(pane_id: PaneId, dead: &Arc<AtomicBool>, rx: Receiver<Vec<u8>>) {
     let mut buf = vec![];
 
@@ -79,20 +90,19 @@ fn accumulator(pane_id: PaneId, dead: &Arc<AtomicBool>, rx: Receiver<Vec<u8>>) {
                 send_to_mux(pane_id, &dead, split);
             }
 
-            match rx.recv_timeout(std::time::Duration::from_millis(50)) {
+            match rx.try_recv() {
                 Ok(mut extra) => {
                     buf.append(&mut extra);
                 }
-                Err(RecvTimeoutError::Timeout) => {
+                Err(TryRecvError::Empty) => {
                     // No more data to read right now, so pass whatever
                     // we have pending on to the mux thread and then block
                     // waiting for the next.
                     let mut to_send = vec![];
                     std::mem::swap(&mut to_send, &mut buf);
                     send_to_mux(pane_id, &dead, to_send);
-                    break;
                 }
-                Err(RecvTimeoutError::Disconnected) => break 'outer,
+                Err(TryRecvError::Disconnected) => break 'outer,
             }
         }
 
@@ -107,12 +117,20 @@ fn accumulator(pane_id: PaneId, dead: &Arc<AtomicBool>, rx: Receiver<Vec<u8>>) {
     .detach();
 }
 
+/// This function is run in a separate thread; its purpose is to perform
+/// blocking reads from the pty (non-blocking reads are not portable to
+/// all platforms and pty/tty types) and relay the data to the `accumulator`
+/// function above that this function spawns a new thread.
 fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
-    const BUFSIZE: usize = 32 * 1024;
+    const BUFSIZE: usize = 4 * 1024;
     let mut buf = [0; BUFSIZE];
+
+    // This is used to signal that an error occurred either in this thread,
+    // in the accumulator, or in the main mux thread.  If `true`, both this
+    // and the accumulator thread will terminate
     let dead = Arc::new(AtomicBool::new(false));
 
-    let (tx, rx) = channel();
+    let (tx, rx) = sync_channel(1);
     std::thread::spawn({
         let dead = Arc::clone(&dead);
         move || {

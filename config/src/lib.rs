@@ -596,15 +596,6 @@ pub struct Config {
     #[serde(default)]
     pub tls_clients: Vec<TlsDomainClient>,
 
-    /// Constrains the rate at which output from a child command is
-    /// processed and applied to the terminal model.
-    /// This acts as a brake in the case of a command spewing a
-    /// ton of output and allows for the UI to remain responsive
-    /// so that you can hit CTRL-C to interrupt it if desired.
-    /// The default value is 400K/s.
-    #[serde(default = "default_ratelimit_output_bytes_per_second")]
-    pub ratelimit_output_bytes_per_second: u32,
-
     /// Constrains the rate at which the multiplexer client will
     /// speculatively fetch line data.
     /// This helps to avoid saturating the link between the client
@@ -1197,10 +1188,6 @@ impl Config {
 
 fn default_ratelimit_line_prefetches_per_second() -> u32 {
     10
-}
-
-fn default_ratelimit_output_bytes_per_second() -> u32 {
-    400_000
 }
 
 fn default_true() -> bool {
