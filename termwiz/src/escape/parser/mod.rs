@@ -265,7 +265,7 @@ impl SixelBuilder {
         let horizontal_grid_size = params.get(2).map(|&x| x);
 
         let repeat_re = Regex::new("^!(\\d+)([\x3f-\x7e])").unwrap();
-        let raster_re = Regex::new("^\"(\\d+);(\\d+);(\\d+);(\\d+)").unwrap();
+        let raster_re = Regex::new("^\"(\\d+);(\\d+)(;(\\d+))?(;(\\d+))?").unwrap();
         let colordef_re = Regex::new("^#(\\d+);(\\d+);(\\d+);(\\d+);(\\d+)").unwrap();
         let coloruse_re = Regex::new("^#(\\d+)([^;\\d]|$)").unwrap();
 
@@ -328,16 +328,17 @@ impl SixelBuilder {
 
                 let pan = cap_int(c.get(1).unwrap()).unwrap_or(2);
                 let pad = cap_int(c.get(2).unwrap()).unwrap_or(1);
-                let pixel_width = cap_int(c.get(3).unwrap()).unwrap_or(0);
-                let pixel_height = cap_int(c.get(4).unwrap()).unwrap_or(0);
+                let pixel_width = c.get(4).and_then(cap_int);
+                let pixel_height = c.get(6).and_then(cap_int);
 
                 self.sixel.pan = pan;
                 self.sixel.pad = pad;
-                self.sixel.pixel_width.replace(pixel_width);
-                self.sixel.pixel_height.replace(pixel_height);
-                self.sixel
-                    .data
-                    .reserve(pixel_width as usize * pixel_height as usize);
+                self.sixel.pixel_width = pixel_width;
+                self.sixel.pixel_height = pixel_height;
+
+                if let (Some(w), Some(h)) = (pixel_width, pixel_height) {
+                    self.sixel.data.reserve(w as usize * h as usize);
+                }
 
                 remainder = &remainder[matched_len..];
                 continue;
