@@ -4494,7 +4494,6 @@ dependencies = [
  "metrics",
  "mlua",
  "mux",
- "notify-rust",
  "open",
  "openssl",
  "ordered-float",
@@ -4527,9 +4526,9 @@ dependencies = [
  "wezterm-font",
  "wezterm-gui-subcommands",
  "wezterm-term",
+ "wezterm-toast-notification",
  "winapi 0.3.9",
  "window",
- "winrt-notification",
 ]
 
 [[package]]
@@ -4600,6 +4599,14 @@ dependencies = [
  "unicode-segmentation",
  "unicode-width",
  "url",
+]
+
+[[package]]
+name = "wezterm-toast-notification"
+version = "0.1.0"
+dependencies = [
+ "notify-rust",
+ "winrt-notification",
 ]
 
 [[package]]

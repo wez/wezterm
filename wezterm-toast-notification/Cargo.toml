@@ -1,0 +1,16 @@
+[package]
+name = "wezterm-toast-notification"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[target.'cfg(not(windows))'.dependencies]
+# show a notification
+notify-rust = "4"
+
+[target.'cfg(windows)'.dependencies]
+winrt-notification = "0.2"

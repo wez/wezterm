@@ -1,3 +1,4 @@
+use crate::gui::ICON_DATA;
 use anyhow::anyhow;
 use config::configuration;
 use config::wezterm_version;
@@ -13,7 +14,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use termwiz::cell::{AttributeChange, Hyperlink, Underline};
+use termwiz::escape::csi::{Cursor, Sgr};
+use termwiz::escape::osc::{ITermDimension, ITermFileData, ITermProprietary};
+use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::surface::{Change, CursorVisibility};
+use wezterm_toast_notification::*;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Release {
@@ -198,7 +203,7 @@ fn show_update_available(release: Release) {
         Change::Attribute(AttributeChange::Hyperlink(Some(Arc::new(Hyperlink::new(
             install,
         ))))),
-        format!("Version {} is now available!\r\n", release.tag_name).into(),
+        format!("\r\nVersion {} is now available!\r\n", release.tag_name).into(),
         Change::Attribute(AttributeChange::Hyperlink(None)),
         Change::Attribute(AttributeChange::Underline(Underline::None)),
         format!("(this is version {})\r\n", wezterm_version()).into(),
@@ -276,7 +281,61 @@ fn update_checker() {
         if let Ok(latest) = get_latest_release_info() {
             let current = wezterm_version();
             if latest.tag_name.as_str() > current || force_ui {
-                log::trace!(
+                let url = format!(
+                    "https://wezfurlong.org/wezterm/changelog.html#{}",
+                    latest.tag_name
+                );
+
+                promise::spawn::spawn_into_main_thread({
+                    let url = url.clone();
+                    async move {
+                        let mux = crate::Mux::get().unwrap();
+                        let icon = ITermFileData {
+                            name: None,
+                            size: Some(ICON_DATA.len()),
+                            width: ITermDimension::Automatic,
+                            height: ITermDimension::Cells(2),
+                            preserve_aspect_ratio: true,
+                            inline: true,
+                            data: ICON_DATA.to_vec(),
+                        };
+                        let icon = OperatingSystemCommand::ITermProprietary(
+                            ITermProprietary::File(Box::new(icon)),
+                        );
+                        let top_line_pos = CSI::Cursor(Cursor::CharacterAndLinePosition {
+                            line: OneBased::new(1),
+                            col: OneBased::new(6),
+                        });
+                        let second_line_pos = CSI::Cursor(Cursor::CharacterAndLinePosition {
+                            line: OneBased::new(2),
+                            col: OneBased::new(6),
+                        });
+                        let link_on =
+                            OperatingSystemCommand::SetHyperlink(Some(Hyperlink::new(url)));
+                        let underline_on = CSI::Sgr(Sgr::Underline(Underline::Single));
+                        let underline_off = CSI::Sgr(Sgr::Underline(Underline::None));
+                        let link_off = OperatingSystemCommand::SetHyperlink(None);
+                        mux.set_banner(Some(format!(
+                            "{}{}WezTerm Update Available\r\n{}{}{}Click to see what's new{}{}\r\n",
+                            icon,
+                            top_line_pos,
+                            second_line_pos,
+                            link_on,
+                            underline_on,
+                            underline_off,
+                            link_off,
+                        )));
+                    }
+                })
+                .detach();
+
+                persistent_toast_notification_with_click_to_open_url(
+                    "WezTerm Update Available",
+                    "Click to see what's new",
+                    &url,
+                );
+
+                log::info!(
                     "latest release {} is newer than current build {}",
                     latest.tag_name,
                     current

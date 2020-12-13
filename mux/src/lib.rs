@@ -45,6 +45,7 @@ pub struct Mux {
     domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
     domains_by_name: RefCell<HashMap<String, Arc<dyn Domain>>>,
     subscribers: RefCell<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
+    banner: RefCell<Option<String>>,
 }
 
 /// This function bounces the data over to the main thread to feed to
@@ -121,7 +122,7 @@ fn accumulator(pane_id: PaneId, dead: &Arc<AtomicBool>, rx: Receiver<Vec<u8>>) {
 /// blocking reads from the pty (non-blocking reads are not portable to
 /// all platforms and pty/tty types) and relay the data to the `accumulator`
 /// function above that this function spawns a new thread.
-fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
+fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<dyn std::io::Read>) {
     const BUFSIZE: usize = 4 * 1024;
     let mut buf = [0; BUFSIZE];
 
@@ -137,6 +138,10 @@ fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
             accumulator(pane_id, &dead, rx);
         }
     });
+
+    if let Some(banner) = banner {
+        tx.send(banner.into_bytes()).ok();
+    }
 
     while !dead.load(Ordering::Relaxed) {
         match reader.read(&mut buf) {
@@ -232,6 +237,7 @@ impl Mux {
             domains_by_name: RefCell::new(domains_by_name),
             domains: RefCell::new(domains),
             subscribers: RefCell::new(HashMap::new()),
+            banner: RefCell::new(None),
         }
     }
 
@@ -316,7 +322,8 @@ impl Mux {
             .insert(pane.pane_id(), Rc::clone(pane));
         let reader = pane.reader()?;
         let pane_id = pane.pane_id();
-        thread::spawn(move || read_from_pane_pty(pane_id, reader));
+        let banner = self.banner.borrow().clone();
+        thread::spawn(move || read_from_pane_pty(pane_id, banner, reader));
         Ok(())
     }
 
@@ -525,6 +532,10 @@ impl Mux {
         }
 
         self.prune_dead_windows();
+    }
+
+    pub fn set_banner(&self, banner: Option<String>) {
+        *self.banner.borrow_mut() = banner;
     }
 }
 

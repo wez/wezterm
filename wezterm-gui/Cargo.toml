@@ -64,11 +64,8 @@ wezterm-client = { path = "../wezterm-client" }
 wezterm-font = { path = "../wezterm-font" }
 wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
 wezterm-term = { path = "../term", features=["use_serde"] }
+wezterm-toast-notification = { path = "../wezterm-toast-notification" }
 window = { path = "../window", features=["opengl", "wayland"]}
-
-[target.'cfg(not(windows))'.dependencies]
-# show a notification
-notify-rust = "4"
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"
@@ -82,7 +79,6 @@ winapi = { version = "0.3", features = [
     "synchapi",
     "winsock2",
 ]}
-winrt-notification = "0.2"
 
 [features]
 default = ["vendor_openssl"]
