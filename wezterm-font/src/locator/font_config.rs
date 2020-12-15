@@ -33,7 +33,13 @@ impl FontLocator for FontConfigFontLocator {
             pattern.default_substitute();
             // and obtain the selection with the best preference
             // at index 0.
+            let start = std::time::Instant::now();
             let font_list = pattern.sort(true)?;
+            log::trace!(
+                "query font-config for {:?} took {:?}",
+                pattern,
+                start.elapsed()
+            );
 
             for pat in font_list.iter() {
                 pattern.render_prepare(&pat)?;
@@ -51,6 +57,10 @@ impl FontLocator for FontConfigFontLocator {
                     if crate::parser::font_info_matches(attr, parsed.names()) {
                         fonts.push(handle);
                         loaded.insert(attr.clone());
+                        // If we found a match, any other results can't also
+                        // match, so stop processing them.
+                        log::trace!("found font-config match for {:?}", parsed.names());
+                        break;
                     }
                 }
             }
