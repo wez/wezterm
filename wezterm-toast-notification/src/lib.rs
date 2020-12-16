@@ -1,15 +1,21 @@
-pub fn persistent_toast_notification_with_click_to_open_url(
-    _title: &str,
-    _message: &str,
-    _url: &str,
-) {
-    // Do nothing for now; none of the rust-accesible toast
-    // notifications let us manage clicking on the notification
-    // persistent_toast_notification(title, message);
+mod macos;
+
+pub fn persistent_toast_notification_with_click_to_open_url(title: &str, message: &str, url: &str) {
+    #[cfg(target_os = "macos")]
+    {
+        macos::show_notif(title, message, Some(url));
+    }
+
+    // No impl for the other OS's at this time
 }
 
 pub fn persistent_toast_notification(title: &str, message: &str) {
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        macos::show_notif(title, message, None);
+    }
+
+    #[cfg(all(not(target_os = "macos"), not(windows)))]
     {
         #[allow(unused_mut)]
         let mut notif = notify_rust::Notification::new();

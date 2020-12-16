@@ -4502,7 +4502,11 @@ dependencies = [
 name = "wezterm-toast-notification"
 version = "0.1.0"
 dependencies = [
+ "cocoa",
+ "core-foundation 0.7.0",
  "notify-rust",
+ "objc",
+ "open",
  "winrt-notification",
 ]
 
