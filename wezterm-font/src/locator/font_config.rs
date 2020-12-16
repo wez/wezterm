@@ -57,12 +57,14 @@ impl FontLocator for FontConfigFontLocator {
                     if crate::parser::font_info_matches(attr, parsed.names()) {
                         fonts.push(handle);
                         loaded.insert(attr.clone());
-                        // If we found a match, any other results can't also
-                        // match, so stop processing them.
                         log::trace!("found font-config match for {:?}", parsed.names());
-                        break;
                     }
                 }
+
+                // If the first result from font-config isn't a match, then stop looking.
+                // font-config can return many fallback fonts. We don't want any of those
+                // at this stage.
+                break;
             }
         }
 
