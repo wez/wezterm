@@ -20,6 +20,9 @@ case $OSTYPE in
     rm -rf $zipdir $zipname
     mkdir $zipdir
     cp -r assets/macos/WezTerm.app $zipdir/
+    # Omit MetalANGLE for now; it's a bit laggy compared to CGL,
+    # and on M1/Big Sur, CGL is implemented in terms of Metal anyway
+    rm $zipdir/WezTerm.app/*.dylib
     cp -r assets/shell-integration/* $zipdir/WezTerm.app
     cp $TARGET_DIR/release/wezterm $zipdir/WezTerm.app
     cp $TARGET_DIR/release/wezterm-mux-server $zipdir/WezTerm.app
