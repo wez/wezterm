@@ -1786,9 +1786,9 @@ dependencies = [
 
 [[package]]
 name = "k9"
-version = "0.3.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ccd792b32bf0403a0970175152bc795f2bf7de13218e218a62f6b271aa2478e"
+checksum = "3288a4d64e83c532d6abf9bde7ee98a7841041aaa13dbcc5e2a432c381562987"
 dependencies = [
  "anyhow",
  "colored",

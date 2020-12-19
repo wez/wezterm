@@ -357,9 +357,10 @@ fn test_semantic() {
         ],
     );
 
-    k9::assert_matches_inline_snapshot!(
-        format!("{:#?}", term.get_semantic_zones().unwrap()),
-        r##"[
+    k9::snapshot!(
+        term.get_semantic_zones().unwrap(),
+        "
+[
     SemanticZone {
         start_y: 0,
         start_x: 0,
@@ -367,7 +368,8 @@ fn test_semantic() {
         end_x: 9,
         semantic_type: Output,
     },
-]"##
+]
+"
     );
 
     term.print(format!(
@@ -411,9 +413,10 @@ fn test_semantic() {
             .set_semantic_type(SemanticType::Input);
     }
 
-    k9::assert_matches_inline_snapshot!(
-        format!("{:#?}", term.get_semantic_zones().unwrap()),
-        r##"[
+    k9::snapshot!(
+        term.get_semantic_zones().unwrap(),
+        "
+[
     SemanticZone {
         start_y: 0,
         start_x: 0,
@@ -442,7 +445,8 @@ fn test_semantic() {
         end_x: 8,
         semantic_type: Output,
     },
-]"##
+]
+"
     );
 
     assert_lines_equal(
