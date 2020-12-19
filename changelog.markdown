@@ -27,6 +27,7 @@ brief notes about them may accumulate here.
 * Improved font fallback; we now try harder to find a system-provided font for glyphs that are not found in your explicitly configured fonts.
 * Revised pty output processing and removed the related `ratelimit_output_bytes_per_second` option
 * Workaround Cocoa leaking window position saved state file descriptors to child processes on macOS Big Sur
+* The 256 color cube now uses slightly brighter colors [#348](https://github.com/wez/wezterm/issues/348)
 
 ### 20201101-103216-403d002d
 
