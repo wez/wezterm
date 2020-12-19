@@ -13,7 +13,7 @@ pub struct HsbTransform {
     pub brightness: f32,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone)]
 pub struct Palette {
     /// The text color to use when the attributes are reset to default
     pub foreground: Option<RgbColor>,

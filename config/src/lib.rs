@@ -63,10 +63,21 @@ lazy_static! {
     static ref SHOW_ERROR: Mutex<Option<ErrorCallback>> =
         Mutex::new(Some(|e| log::error!("{}", e)));
     static ref LUA_PIPE: LuaPipe = LuaPipe::new();
+    static ref COLOR_SCHEMES: HashMap<String, Palette> = build_default_schemes();
 }
 
 thread_local! {
     static LUA_CONFIG: RefCell<Option<LuaConfigState>> = RefCell::new(None);
+}
+
+pub fn build_default_schemes() -> HashMap<String, Palette> {
+    let mut color_schemes = HashMap::new();
+    for (scheme_name, data) in SCHEMES.iter() {
+        let scheme_name = scheme_name.to_string();
+        let scheme: ColorSchemeFile = toml::from_str(data).unwrap();
+        color_schemes.insert(scheme_name, scheme.colors);
+    }
+    color_schemes
 }
 
 struct LuaPipe {
@@ -482,6 +493,9 @@ pub struct Config {
 
     /// The color palette
     pub colors: Option<Palette>,
+
+    #[serde(skip)]
+    pub resolved_palette: Palette,
 
     /// Use a named color scheme rather than the palette specified
     /// by the colors setting.
@@ -1053,14 +1067,20 @@ impl Config {
         cfg.load_color_schemes(&cfg.compute_color_scheme_dirs())
             .ok();
 
+        cfg.resolved_palette = cfg.colors.as_ref().cloned().unwrap_or(Default::default());
+        // Color scheme overrides any manually specified palette
         if let Some(scheme) = cfg.color_scheme.as_ref() {
-            if !cfg.color_schemes.contains_key(scheme) {
-                log::error!(
-                    "Your configuration specifies \
-                     color_scheme=\"{}\" but that scheme \
-                     was not found",
-                    scheme
-                );
+            match cfg.resolve_color_scheme() {
+                None => {
+                    log::error!(
+                        "Your configuration specifies color_scheme=\"{}\" \
+                        but that scheme was not found",
+                        scheme
+                    );
+                }
+                Some(p) => {
+                    cfg.resolved_palette = p.clone();
+                }
             }
         }
 
@@ -1127,17 +1147,17 @@ impl Config {
             }
         }
 
-        for (scheme_name, data) in SCHEMES.iter() {
-            let scheme_name = scheme_name.to_string();
-            if self.color_schemes.contains_key(&scheme_name) {
-                // This scheme has already been defined
-                continue;
-            }
-            let scheme: ColorSchemeFile = toml::from_str(data).unwrap();
-            self.color_schemes.insert(scheme_name, scheme.colors);
-        }
-
         Ok(())
+    }
+
+    pub fn resolve_color_scheme(&self) -> Option<&Palette> {
+        let scheme_name = self.color_scheme.as_ref()?;
+
+        if let Some(palette) = self.color_schemes.get(scheme_name) {
+            Some(palette)
+        } else {
+            COLOR_SCHEMES.get(scheme_name)
+        }
     }
 
     pub fn initial_size(&self) -> PtySize {
