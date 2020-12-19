@@ -329,7 +329,11 @@ impl Pattern {
             if !best.is_null() {
                 add_object();
             }
-            Ok(Pattern { pat: best })
+            if !res.succeeded() {
+                Err(res.as_err())
+            } else {
+                Ok(Pattern { pat: best })
+            }
         }
     }
 
