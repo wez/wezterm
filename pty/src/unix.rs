@@ -98,6 +98,36 @@ impl Read for PtyFd {
     }
 }
 
+// On Big Sur, Cocoa leaks various file descriptors to child processes,
+// so we need to make a pass through the open descriptors beyond just the
+// stdio descriptors and close them all out.
+// This is approximately equivalent to the darwin `posix_spawnattr_setflags`
+// option POSIX_SPAWN_CLOEXEC_DEFAULT which is used as a bit of a cheat
+// on macOS.
+#[cfg(target_os = "macos")]
+fn close_random_fds() {
+    if let Ok(dir) = std::fs::read_dir("/dev/fd") {
+        let mut fds = vec![];
+        for entry in dir {
+            if let Some(num) = entry
+                .ok()
+                .map(|e| e.file_name())
+                .and_then(|s| s.into_string().ok())
+                .and_then(|n| n.parse::<libc::c_int>().ok())
+            {
+                if num > 2 {
+                    fds.push(num);
+                }
+            }
+        }
+        for fd in fds {
+            unsafe {
+                libc::close(fd);
+            }
+        }
+    }
+}
+
 impl PtyFd {
     fn resize(&self, size: PtySize) -> Result<(), Error> {
         let ws_size = winsize {
@@ -188,6 +218,10 @@ impl PtyFd {
                             return Err(io::Error::last_os_error());
                         }
                     }
+
+                    #[cfg(target_os = "macos")]
+                    close_random_fds();
+
                     Ok(())
                 })
         };
