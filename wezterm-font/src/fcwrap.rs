@@ -321,6 +321,18 @@ impl Pattern {
         }
     }
 
+    pub fn get_best_match(&self) -> Result<Self, Error> {
+        unsafe {
+            let mut res = FcResultWrap(0);
+            let best = FcFontMatch(ptr::null_mut(), self.pat, &mut res.0 as *mut _);
+
+            if !best.is_null() {
+                add_object();
+            }
+            Ok(Pattern { pat: best })
+        }
+    }
+
     pub fn sort(&self, trim: bool) -> Result<FontSet, Error> {
         unsafe {
             let mut res = FcResultWrap(0);
