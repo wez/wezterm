@@ -404,6 +404,7 @@ brief notes about them may accumulate here.</p>
 <li>Revised pty output processing and removed the related <code>ratelimit_output_bytes_per_second</code> option</li>
 <li>Workaround Cocoa leaking window position saved state file descriptors to child processes on macOS Big Sur</li>
 <li>The 256 color cube now uses slightly brighter colors <a href="https://github.com/wez/wezterm/issues/348">#348</a></li>
+<li>New: added <code>line_height</code> configuration option to scale the computed cell height. The default is <code>1.0</code>, resulting in using the font-specified metrics. Setting it to <code>1.2</code> will result in a 20% larger cell height.</li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
@@ -1002,6 +1003,15 @@ set of directories:</p>
   -- or notice slight differences when comparing with other terminal
   -- emulators, you may wish to tune this value!
   dpi = 96.0,
+
+  -- (available in nightly builds)
+  -- Scale the effective cell height.
+  -- The cell height is computed based on your selected font_size
+  -- and dpi and then multiplied by line_height.  Setting it to
+  -- eg: 1.2 will result in the spacing between lines being 20%
+  -- larger than the distance specified by the font author.
+  -- Setting it to eg: 0.9 will make it 10% smaller.
+  line_height = 1.0,
 
   -- When true (the default), text that is set to ANSI color
   -- indices 0-7 will be shifted to the corresponding brighter
