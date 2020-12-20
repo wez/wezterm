@@ -104,8 +104,13 @@ impl Read for PtyFd {
 // This is approximately equivalent to the darwin `posix_spawnattr_setflags`
 // option POSIX_SPAWN_CLOEXEC_DEFAULT which is used as a bit of a cheat
 // on macOS.
-#[cfg(target_os = "macos")]
+// On Linux, gnome/mutter leak shell extension fds to wezterm too, so we
+// also need to make an effort to clean up the mess.
 fn close_random_fds() {
+    // FreeBSD, macOS and presumably other BSDish systems have /dev/fd as
+    // a directory listing the current fd numbers for the process.
+    //
+    // On Linux, /dev/fd is a symlink to /proc/self/fd
     if let Ok(dir) = std::fs::read_dir("/dev/fd") {
         let mut fds = vec![];
         for entry in dir {
@@ -219,7 +224,6 @@ impl PtyFd {
                         }
                     }
 
-                    #[cfg(target_os = "macos")]
                     close_random_fds();
 
                     Ok(())
