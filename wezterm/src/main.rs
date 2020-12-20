@@ -268,6 +268,7 @@ fn delegate_to_gui() -> anyhow::Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
+        portable_pty::unix::close_random_fds();
         return Err(anyhow::anyhow!("failed to exec: {:?}", cmd.exec()));
     }
 

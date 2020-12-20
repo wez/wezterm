@@ -98,15 +98,24 @@ impl Read for PtyFd {
     }
 }
 
-// On Big Sur, Cocoa leaks various file descriptors to child processes,
-// so we need to make a pass through the open descriptors beyond just the
-// stdio descriptors and close them all out.
-// This is approximately equivalent to the darwin `posix_spawnattr_setflags`
-// option POSIX_SPAWN_CLOEXEC_DEFAULT which is used as a bit of a cheat
-// on macOS.
-// On Linux, gnome/mutter leak shell extension fds to wezterm too, so we
-// also need to make an effort to clean up the mess.
-fn close_random_fds() {
+/// On Big Sur, Cocoa leaks various file descriptors to child processes,
+/// so we need to make a pass through the open descriptors beyond just the
+/// stdio descriptors and close them all out.
+/// This is approximately equivalent to the darwin `posix_spawnattr_setflags`
+/// option POSIX_SPAWN_CLOEXEC_DEFAULT which is used as a bit of a cheat
+/// on macOS.
+/// On Linux, gnome/mutter leak shell extension fds to wezterm too, so we
+/// also need to make an effort to clean up the mess.
+///
+/// This function enumerates the open filedescriptors in the current process
+/// and then will forcibly call close(2) on each open fd that is numbered
+/// 3 or higher, effectively closing all descriptors except for the stdio
+/// streams.
+///
+/// The implementation of this function relies on `/dev/fd` being available
+/// to provide the list of open fds.  Any errors in enumerating or closing
+/// the fds are silently ignored.
+pub fn close_random_fds() {
     // FreeBSD, macOS and presumably other BSDish systems have /dev/fd as
     // a directory listing the current fd numbers for the process.
     //
