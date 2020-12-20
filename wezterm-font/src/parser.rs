@@ -19,7 +19,6 @@ pub struct ParsedFont {
 #[derive(Debug)]
 pub struct Names {
     pub full_name: String,
-    pub unique: Option<String>,
     pub family: Option<String>,
     pub sub_family: Option<String>,
     pub postscript_name: Option<String>,
@@ -186,38 +185,41 @@ fn decode_name(name: &Name) -> Option<String> {
     }
 }
 
-/// Resolve a given name id from the face
-fn get_name(face: &Face, id: u16) -> Option<String> {
-    let mut best = 0;
-    let mut result = None;
-
-    for name in face.names() {
-        if name.name_id() != id {
-            continue;
-        }
-
-        if let Some(v) = score(&name) {
-            if v > best {
-                if let Some(value) = decode_name(&name) {
-                    result.replace(value);
-                    best = v;
-                }
-            }
-        }
-    }
-
-    result
-}
-
 impl Names {
     fn from_face(face: &Face) -> anyhow::Result<Names> {
+        // The names table isn't very amenable to a direct lookup, and there
+        // can be multiple candidate encodings for a given font name.
+        // Since we need to lookup multiple names, we copy potential
+        // candidates into a vector and then sort it so that the best
+        // candidates are towards the front of the vector.
+        // This should result in less overall work to extract the names.
+        let mut names = face
+            .names()
+            .filter(|name| {
+                let id = name.name_id();
+                let interesting_id = id == ttf_parser::name_id::FAMILY
+                    || id == ttf_parser::name_id::SUBFAMILY
+                    || id == ttf_parser::name_id::FULL_NAME
+                    || id == ttf_parser::name_id::POST_SCRIPT_NAME;
+                interesting_id && (name.is_unicode() || name.platform_id() == PlatformId::Macintosh)
+            })
+            .collect::<Vec<_>>();
+        // Best scores at the front
+        names.sort_by(|a, b| score(a).cmp(&score(b)).reverse());
+
+        // Now looking up a name is a simple matter of finding the
+        // first entry with the desired id
+        fn get_name(names: &[Name], id: u16) -> Option<String> {
+            let name = names.iter().find(|n| n.name_id() == id)?;
+            decode_name(name)
+        }
+
         Ok(Names {
-            full_name: get_name(face, ttf_parser::name_id::FULL_NAME)
+            full_name: get_name(&names, ttf_parser::name_id::FULL_NAME)
                 .ok_or_else(|| anyhow!("missing full name"))?,
-            unique: get_name(face, ttf_parser::name_id::UNIQUE_ID),
-            family: get_name(face, ttf_parser::name_id::FAMILY),
-            sub_family: get_name(face, ttf_parser::name_id::SUBFAMILY),
-            postscript_name: get_name(face, ttf_parser::name_id::POST_SCRIPT_NAME),
+            family: get_name(&names, ttf_parser::name_id::FAMILY),
+            sub_family: get_name(&names, ttf_parser::name_id::SUBFAMILY),
+            postscript_name: get_name(&names, ttf_parser::name_id::POST_SCRIPT_NAME),
         })
     }
 }
