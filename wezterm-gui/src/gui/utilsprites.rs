@@ -2,6 +2,7 @@ use super::glyphcache::GlyphCache;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, Texture2d};
 use ::window::*;
+use config::configuration;
 use std::rc::Rc;
 use termwiz::surface::CursorShape;
 use wezterm_font::units::*;
@@ -24,8 +25,10 @@ impl RenderMetrics {
             .default_font_metrics()
             .expect("failed to get font metrics!?");
 
+        let line_height = configuration().line_height;
+
         let (cell_height, cell_width) = (
-            metrics.cell_height.get().ceil() as usize,
+            (metrics.cell_height.get() * line_height).ceil() as usize,
             metrics.cell_width.get().ceil() as usize,
         );
 

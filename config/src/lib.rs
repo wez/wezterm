@@ -460,6 +460,9 @@ pub struct Config {
     #[serde(default = "default_font_size")]
     pub font_size: f64,
 
+    #[serde(default = "default_one_point_oh_f64")]
+    pub line_height: f64,
+
     #[serde(default)]
     pub allow_square_glyphs_to_overflow_width: AllowSquareGlyphOverflow,
 
@@ -825,6 +828,10 @@ pub struct Config {
     /// mapping annoying in vim :-p
     #[serde(default)]
     pub enable_csi_u_key_encoding: bool,
+}
+
+fn default_one_point_oh_f64() -> f64 {
+    1.0
 }
 
 fn default_one_point_oh() -> f32 {
