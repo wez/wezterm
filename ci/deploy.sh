@@ -142,7 +142,8 @@ EOF
           debname=wezterm-$TAG_NAME.$distro$distver
         fi
         fakeroot dpkg-deb --build pkg/debian $debname.deb
-        tar cJf $debname.tar.xz -C pkg/debian/usr/bin wezterm
+        mv pkg/debian pkg/wezterm
+        tar cJf $debname.tar.xz -C pkg wezterm
         rm -rf pkg
       ;;
     esac
