@@ -245,14 +245,17 @@ impl Library {
         let lib = ft_result(res, lib).context("FT_Init_FreeType")?;
         let mut lib = Library { lib };
 
-        let interpreter_version: FT_UInt = 38;
-        unsafe {
-            FT_Property_Set(
-                lib.lib,
-                b"truetype\0" as *const u8 as *const FT_String,
-                b"interpreter-version\0" as *const u8 as *const FT_String,
-                &interpreter_version as *const FT_UInt as *const _,
-            );
+        let config = configuration();
+        if let Some(vers) = config.freetype_interpreter_version {
+            let interpreter_version: FT_UInt = vers;
+            unsafe {
+                FT_Property_Set(
+                    lib.lib,
+                    b"truetype\0" as *const u8 as *const FT_String,
+                    b"interpreter-version\0" as *const u8 as *const FT_String,
+                    &interpreter_version as *const FT_UInt as *const _,
+                );
+            }
         }
 
         // Due to patent concerns, the freetype library disables the LCD

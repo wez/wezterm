@@ -558,6 +558,12 @@ pub struct Config {
     #[serde(default)]
     pub font_antialias: FontAntiAliasing,
 
+    /// Selects the freetype interpret version to use.
+    /// Likely values are 35, 38 and 40 which have different
+    /// characteristics with respective to subpixel hinting.
+    /// See https://freetype.org/freetype2/docs/subpixel-hinting.html
+    pub freetype_interpreter_version: Option<u32>,
+
     /// Specify the features to enable when using harfbuzz for font shaping.
     /// There is some light documentation here:
     /// <https://harfbuzz.github.io/shaping-opentype-features.html>
