@@ -416,7 +416,9 @@ fn run() -> anyhow::Result<()> {
 
     env_bootstrap::bootstrap();
 
-    pretty_env_logger::init_timed();
+    pretty_env_logger::formatted_timed_builder()
+        .filter(None, log::LevelFilter::Info)
+        .init();
     stats::Stats::init()?;
     let _saver = umask::UmaskSaver::new();
 
@@ -442,7 +444,7 @@ fn run() -> anyhow::Result<()> {
         .unwrap_or_else(|| SubCommand::Start(StartCommand::default()))
     {
         SubCommand::Start(start) => {
-            log::info!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
+            log::trace!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
             run_terminal_gui(config, start)
         }
         SubCommand::Ssh(ssh) => run_ssh(config, ssh),

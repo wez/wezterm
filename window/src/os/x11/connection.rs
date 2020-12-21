@@ -370,7 +370,7 @@ impl XConnection {
         visuals.sort_by(|(a_depth, _), (b_depth, _)| b_depth.cmp(&a_depth));
         let (depth, visual) = visuals[0];
 
-        log::info!(
+        log::trace!(
             "picked depth {} visual id:0x{:x}, class:{}, bits_per_rgb_value:{}, \
                     colormap entries:{}, masks: r=0x{:x},g=0x{:x},b=0x{:x}",
             depth,

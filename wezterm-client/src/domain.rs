@@ -40,7 +40,7 @@ impl ClientInner {
     ) {
         let mut map = self.remote_to_local_window.lock().unwrap();
         map.insert(remote_window_id, local_window_id);
-        log::info!(
+        log::trace!(
             "record_remote_to_local_window_mapping: {} -> {}",
             remote_window_id,
             local_window_id
@@ -90,7 +90,7 @@ impl ClientInner {
     fn record_remote_to_local_tab_mapping(&self, remote_tab_id: TabId, local_tab_id: TabId) {
         let mut map = self.remote_to_local_tab.lock().unwrap();
         map.insert(remote_tab_id, local_tab_id);
-        log::info!(
+        log::trace!(
             "record_remote_to_local_tab_mapping: {} -> {}",
             remote_tab_id,
             local_tab_id

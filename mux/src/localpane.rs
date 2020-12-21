@@ -79,7 +79,7 @@ impl Pane for LocalPane {
         if let Ok(None) = self.process.borrow_mut().try_wait() {
             false
         } else {
-            log::error!("Pane id {} is_dead", self.pane_id);
+            log::trace!("Pane id {} is_dead", self.pane_id);
             true
         }
     }

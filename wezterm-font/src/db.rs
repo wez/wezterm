@@ -131,7 +131,7 @@ impl FontDatabase {
         let mut names = self.by_full_name.keys().collect::<Vec<_>>();
         names.sort();
         for name in names {
-            log::warn!("available font: {}", name);
+            log::debug!("available font: {}", name);
         }
     }
 

@@ -47,7 +47,7 @@ impl Connection {
                         return Ok(Connection::Wayland(Rc::new(w)));
                     }
                     Err(e) => {
-                        log::info!("Failed to init wayland: {}", e);
+                        log::debug!("Failed to init wayland: {}", e);
                     }
                 }
             }

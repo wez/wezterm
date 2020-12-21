@@ -1367,7 +1367,7 @@ impl KeyboardLayoutInfo {
 
         self.probe_alt_gr();
         self.probe_dead_keys();
-        log::info!("dead_keys: {:#x?}", self.dead_keys);
+        log::trace!("dead_keys: {:#x?}", self.dead_keys);
 
         SetKeyboardState(saved_state.as_mut_ptr());
         self.layout = current_layout;

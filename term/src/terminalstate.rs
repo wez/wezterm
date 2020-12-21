@@ -1497,7 +1497,7 @@ impl TerminalState {
 
     fn perform_device(&mut self, dev: Device) {
         match dev {
-            Device::DeviceAttributes(a) => error!("unhandled: {:?}", a),
+            Device::DeviceAttributes(a) => log::warn!("unhandled: {:?}", a),
             Device::SoftReset => {
                 // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html
                 self.pen = CellAttributes::default();
@@ -3027,6 +3027,10 @@ impl<'a> Performer<'a> {
             ) => {
                 self.pen.set_semantic_type(SemanticType::Output);
             }
+
+            OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::CommandStatus { .. },
+            ) => {}
 
             OperatingSystemCommand::FinalTermSemanticPrompt(ft) => {
                 error!("unhandled: {:?}", ft);

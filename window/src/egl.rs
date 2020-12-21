@@ -103,7 +103,7 @@ impl EglWrapper {
             }
             unsafe { get_proc_address(sym_name.as_ptr()) }
         });
-        log::info!("load_egl: {:?}", lib);
+        log::trace!("load_egl: {:?}", lib);
         Ok(Self { _lib: lib, egl })
     }
 
@@ -240,7 +240,7 @@ impl EglWrapper {
                 .map(surface_bits),
         };
 
-        log::info!("{:x?}", info);
+        log::trace!("{:x?}", info);
     }
 
     pub fn choose_config(
@@ -272,7 +272,7 @@ impl EglWrapper {
             return Err(self.error("egl GetConfigs to enumerate configurations"));
         }
 
-        log::info!("Available Configuration(s):");
+        log::trace!("Available Configuration(s):");
         for c in &configs {
             self.log_config_info(display, *c);
         }
@@ -292,7 +292,7 @@ impl EglWrapper {
 
         configs.resize(num_configs as usize, std::ptr::null());
 
-        log::info!("Matching Configuration(s):");
+        log::trace!("Matching Configuration(s):");
         for c in &configs {
             self.log_config_info(display, *c);
         }
@@ -316,7 +316,7 @@ impl EglWrapper {
                 .reverse()
         });
 
-        log::info!("Filtered down to these configuration(s):");
+        log::trace!("Filtered down to these configuration(s):");
         for c in &configs {
             self.log_config_info(display, *c);
         }
@@ -466,7 +466,7 @@ impl GlState {
             let egl_display = egl.get_display(display)?;
 
             let (major, minor) = egl.initialize_and_get_version(egl_display)?;
-            log::info!("initialized EGL version {}.{}", major, minor);
+            log::trace!("initialized EGL version {}.{}", major, minor);
 
             let connection = Rc::new(GlConnection {
                 display: egl_display,
@@ -574,7 +574,7 @@ impl GlState {
                 }
             };
 
-            log::info!("Successfully created a surface using this configuration");
+            log::trace!("Successfully created a surface using this configuration");
             connection.egl.log_config_info(connection.display, config);
             return Ok(Self {
                 connection: Rc::clone(connection),

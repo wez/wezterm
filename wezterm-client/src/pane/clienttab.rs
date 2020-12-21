@@ -6,7 +6,6 @@ use async_trait::async_trait;
 use codec::*;
 use config::configuration;
 use filedescriptor::Pipe;
-use log::info;
 use mux::domain::DomainId;
 use mux::pane::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
@@ -182,7 +181,7 @@ impl Pane for ClientPane {
     }
 
     fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
-        info!("made reader for ClientPane");
+        log::trace!("made reader for ClientPane");
         Ok(Box::new(self.reader.read.try_clone()?))
     }
 

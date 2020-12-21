@@ -46,7 +46,7 @@ impl OpenSSLNetListener {
         let wanted_unix_name = std::env::var("USER")?;
 
         if wanted_unix_name == cn_str {
-            log::info!(
+            log::trace!(
                 "Peer certificate CN `{}` == $USER `{}`",
                 cn_str,
                 wanted_unix_name
@@ -57,7 +57,7 @@ impl OpenSSLNetListener {
             // program encode the CN in the form `user:unixname/DATA`
             let maybe_encoded = format!("user:{}/", wanted_unix_name);
             if cn_str.starts_with(&maybe_encoded) {
-                log::info!(
+                log::trace!(
                     "Peer certificate CN `{}` matches $USER `{}`",
                     cn_str,
                     wanted_unix_name

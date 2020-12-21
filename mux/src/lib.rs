@@ -141,7 +141,7 @@ fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
     while !dead.load(Ordering::Relaxed) {
         match reader.read(&mut buf) {
             Ok(size) if size == 0 => {
-                error!("read_pty EOF: pane_id {}", pane_id);
+                log::trace!("read_pty EOF: pane_id {}", pane_id);
                 break;
             }
             Err(err) => {
@@ -401,7 +401,7 @@ impl Mux {
         }
 
         for tab_id in dead_tab_ids {
-            log::error!("tab {} is dead", tab_id);
+            log::trace!("tab {} is dead", tab_id);
             self.remove_tab_internal(tab_id);
         }
 

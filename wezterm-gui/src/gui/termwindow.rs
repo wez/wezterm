@@ -754,7 +754,7 @@ impl WindowCallbacks for TermWindow {
                     self.dimensions.pixel_height,
                 ) {
                     Ok(gl) => {
-                        log::error!(
+                        log::info!(
                             "OpenGL initialized! {} {} is_context_loss_possible={}",
                             gl.context.get_opengl_renderer_string(),
                             gl.context.get_opengl_version_string(),
@@ -805,7 +805,7 @@ impl WindowCallbacks for TermWindow {
                             // Let's try clearing out the atlas and trying again
                             self.render_state.clear_texture_atlas(&self.render_metrics)
                         } else {
-                            log::error!("grow texture atlas to {}", size);
+                            log::trace!("grow texture atlas to {}", size);
                             self.recreate_texture_atlas(Some(size))
                         };
 
@@ -936,7 +936,7 @@ impl TermWindow {
             dpi: config.dpi.unwrap_or(::window::DEFAULT_DPI) as usize,
         };
 
-        log::info!(
+        log::trace!(
             "TermWindow::new_window called with mux_window_id {} {:?} {:?}",
             mux_window_id,
             terminal_size,
@@ -2222,7 +2222,7 @@ impl TermWindow {
         // Queue up a speculative resize in order to preserve the number of rows+cols
         if let Some(cell_dims) = scale_changed_cells {
             if let Some(window) = self.window.as_ref() {
-                log::error!("scale changed so resize to {:?} {:?}", cell_dims, dims);
+                log::trace!("scale changed so resize to {:?} {:?}", cell_dims, dims);
                 window.set_inner_size(dims.pixel_width, dims.pixel_height);
             }
         }

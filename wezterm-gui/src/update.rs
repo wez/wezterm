@@ -269,7 +269,7 @@ fn update_checker() {
         if let Ok(latest) = get_latest_release_info() {
             let current = wezterm_version();
             if latest.tag_name.as_str() > current || force_ui {
-                log::info!(
+                log::trace!(
                     "latest release {} is newer than current build {}",
                     latest.tag_name,
                     current

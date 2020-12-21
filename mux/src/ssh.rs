@@ -177,7 +177,7 @@ pub fn ssh_connect_with_ui(
 
             if !sess.authenticated() && methods.contains("publickey") {
                 if let Err(err) = sess.userauth_agent(&username) {
-                    log::info!("while attempting agent auth: {}", err);
+                    log::warn!("while attempting agent auth: {}", err);
                 } else if sess.authenticated() {
                     ui.output_str("publickey auth successful!\n");
                 }
@@ -251,7 +251,7 @@ impl Domain for RemoteSshDomain {
         let pane_id = alloc_pane_id();
         cmd.env("WEZTERM_PANE", pane_id.to_string());
         let child = pair.slave.spawn_command(cmd)?;
-        log::info!("spawned: {:?}", child);
+        log::trace!("spawned: {:?}", child);
 
         let writer = pair.master.try_clone_writer()?;
 

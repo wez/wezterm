@@ -14,7 +14,6 @@ use anyhow::{bail, Error};
 use async_trait::async_trait;
 use config::configuration;
 use downcast_rs::{impl_downcast, Downcast};
-use log::info;
 use portable_pty::{native_pty_system, CommandBuilder, PtySize, PtySystem};
 use std::rc::Rc;
 
@@ -135,7 +134,7 @@ impl Domain for LocalDomain {
         cmd.env("WEZTERM_PANE", pane_id.to_string());
 
         let child = pair.slave.spawn_command(cmd)?;
-        info!("spawned: {:?}", child);
+        log::trace!("spawned: {:?}", child);
 
         let writer = pair.master.try_clone_writer()?;
 
@@ -217,7 +216,7 @@ impl Domain for LocalDomain {
         let pane_id = alloc_pane_id();
         cmd.env("WEZTERM_PANE", pane_id.to_string());
         let child = pair.slave.spawn_command(cmd)?;
-        info!("spawned: {:?}", child);
+        log::trace!("spawned: {:?}", child);
 
         let writer = pair.master.try_clone_writer()?;
 

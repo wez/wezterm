@@ -7,7 +7,6 @@ use async_trait::async_trait;
 use codec::*;
 use config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
 use futures::FutureExt;
-use log::info;
 use mux::connui::ConnectionUI;
 use mux::domain::{alloc_domain_id, DomainId};
 use mux::pane::PaneId;
@@ -485,7 +484,7 @@ impl Reconnectable {
     ) -> anyhow::Result<()> {
         let sock_path = unix_dom.socket_path();
         ui.output_str(&format!("Connect to {}\n", sock_path.display()));
-        info!("connect to {}", sock_path.display());
+        log::trace!("connect to {}", sock_path.display());
 
         let stream = match unix_connect_with_retry(&sock_path, false) {
             Ok(stream) => stream,
@@ -848,7 +847,7 @@ impl Client {
     pub async fn verify_version_compat(&self, ui: &ConnectionUI) -> anyhow::Result<()> {
         match self.get_codec_version(GetCodecVersion {}).await {
             Ok(info) if info.codec_vers == CODEC_VERSION => {
-                log::info!(
+                log::trace!(
                     "Server version is {} (codec version {})",
                     info.version_string,
                     info.codec_vers

@@ -192,7 +192,7 @@ mod opengl {
                 }
                 // ... and then fallback to the deprecated platform provided CGL
                 Err(err) => {
-                    log::warn!("EGL init failed: {:#}, falling back to CGL", err);
+                    log::debug!("EGL init failed: {:#}, falling back to CGL", err);
                     let backend = Rc::new(cglbits::GlState::create(view)?);
                     let context = unsafe {
                         glium::backend::Context::new(Rc::clone(&backend), true, behavior)

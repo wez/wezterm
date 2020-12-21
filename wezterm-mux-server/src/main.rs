@@ -45,7 +45,9 @@ struct Opt {
 }
 
 fn main() {
-    pretty_env_logger::init_timed();
+    pretty_env_logger::formatted_timed_builder()
+        .filter(None, log::LevelFilter::Info)
+        .init();
     if let Err(err) = run() {
         log::error!("{:#}", err);
         std::process::exit(1);
