@@ -199,7 +199,7 @@ that case.
 
 ```lua
 return {
-  font_antialias = "Subpixel", -- None, Greyscale, Subpixel
+  font_antialias = "Greyscale", -- None, Greyscale, Subpixel
   font_hinting = "Full",  -- None, Vertical, VerticalSubpixel, Full
 }
 ```

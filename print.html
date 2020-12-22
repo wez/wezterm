@@ -394,7 +394,7 @@ brief notes about them may accumulate here.</p>
 <li>Added <code>wezterm start --class CLASSNAME</code> option to specify the window class name under X11 and Windows, or the <code>app_id</code> under Wayland.  See <code>wezterm start --help</code> for more information.</li>
 <li>Added shell integration for setting OSC 7 (working directory) and OSC 133 (semantic zones) for Zsh and Bash. <a href="shell-integration.html">See Shell Integration docs</a>.</li>
 <li>Added <code>SemanticZone</code> as a possible parameter for <a href="config/lua/keyassignment/SelectTextAtMouseCursor.html">SelectTextAtMouseCursor</a>, making it possible to conveniently select complete input or output regions.</li>
-<li>Improved font rendering <a href="https://github.com/wez/wezterm/issues/320">#320</a> <a href="https://github.com/wez/wezterm/issues/331">#331</a></li>
+<li>Improved font rendering <a href="https://github.com/wez/wezterm/issues/320">#320</a> <a href="https://github.com/wez/wezterm/issues/331">#331</a> and changed <code>font_antialias = &quot;Greyscale&quot;</code> by default.</li>
 <li>Updated internal harfbuzz shaper to 2.7.2</li>
 <li>Fixed ALT-Escape not sending ESC-ESC <a href="https://github.com/wez/wezterm/issues/338">#338</a></li>
 <li>Added <code>allow_square_glyphs_to_overflow_width = &quot;WhenFollowedBySpace&quot;</code> option to allow square symbol glyphs to deliberately overflow their specified cell width when the next cell is a space.  Can be set to <code>Always</code> to allow overflowing regardless of the next cell being a space, or <code>Never</code> to strictly respect the cell width.  The default is <code>Never</code>. <a href="https://github.com/wez/wezterm/issues/342">#342</a></li>
@@ -1160,7 +1160,7 @@ is approximateley equivalent to ClearType rendering on Windows, but some
 people find that it appears blurry.  You may wish to try <code>Greyscale</code> in
 that case.</p>
 <pre><code class="language-lua">return {
-  font_antialias = &quot;Subpixel&quot;, -- None, Greyscale, Subpixel
+  font_antialias = &quot;Greyscale&quot;, -- None, Greyscale, Subpixel
   font_hinting = &quot;Full&quot;,  -- None, Vertical, VerticalSubpixel, Full
 }
 </code></pre>
