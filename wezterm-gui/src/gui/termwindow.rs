@@ -467,7 +467,7 @@ impl WindowCallbacks for TermWindow {
         }
 
         if configuration().debug_key_events {
-            log::error!("key_event {:?}", window_key);
+            log::info!("key_event {:?}", window_key);
         } else {
             log::trace!("key_event {:?}", window_key);
         }
