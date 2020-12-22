@@ -484,11 +484,19 @@ impl InputMap {
         None
     }
 
+    fn remove_positional_alt(mods: Modifiers) -> Modifiers {
+        mods - (Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT)
+    }
+
     pub fn lookup_key(&self, key: &KeyCode, mods: Modifiers) -> Option<KeyAssignment> {
-        self.keys.get(&key.normalize_shift(mods)).cloned()
+        self.keys
+            .get(&key.normalize_shift(Self::remove_positional_alt(mods)))
+            .cloned()
     }
 
     pub fn lookup_mouse(&self, event: MouseEventTrigger, mods: Modifiers) -> Option<KeyAssignment> {
-        self.mouse.get(&(event, mods)).cloned()
+        self.mouse
+            .get(&(event, Self::remove_positional_alt(mods)))
+            .cloned()
     }
 }
