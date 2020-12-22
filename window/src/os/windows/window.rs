@@ -146,7 +146,7 @@ impl WindowInner {
             Err(anyhow::anyhow!("Config says to avoid EGL"))
         }
         .and_then(|egl| unsafe {
-            log::error!("Initialized EGL!");
+            log::trace!("Initialized EGL!");
             conn.gl_connection
                 .borrow_mut()
                 .replace(Rc::clone(egl.get_connection()));
@@ -158,7 +158,7 @@ impl WindowInner {
             )?)
         })
         .or_else(|err| {
-            log::error!("EGL init failed {:?}, fall back to WGL", err);
+            log::warn!("EGL init failed {:?}, fall back to WGL", err);
             super::wgl::GlState::create(self.hwnd.0).and_then(|state| unsafe {
                 Ok(glium::backend::Context::new(
                     Rc::new(state),
