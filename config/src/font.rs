@@ -33,7 +33,7 @@ impl_lua_conversion!(FontAntiAliasing);
 
 impl Default for FontAntiAliasing {
     fn default() -> Self {
-        Self::Subpixel
+        Self::Greyscale
     }
 }
 
