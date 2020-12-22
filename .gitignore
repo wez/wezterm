@@ -22,6 +22,7 @@
 /AppDir
 /WezTerm*.AppImage
 /WezTerm*.AppImage.zsync
+/WezTerm-macos-*
 /wezterm*-src.tar.gz
 /wezterm-linuxbrew.rb
 /wezterm.rb
