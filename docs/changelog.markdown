@@ -29,6 +29,7 @@ brief notes about them may accumulate here.
 * Workaround Cocoa leaking window position saved state file descriptors to child processes on macOS Big Sur
 * The 256 color cube now uses slightly brighter colors [#348](https://github.com/wez/wezterm/issues/348)
 * New: added `line_height` configuration option to scale the computed cell height. The default is `1.0`, resulting in using the font-specified metrics. Setting it to `1.2` will result in a 20% larger cell height.
+* macOS: Fixed an issue where hovering over the split between panes could result in wezterm becoming unresponsive [#391](https://github.com/wez/wezterm/issues/391)
 
 ### 20201101-103216-403d002d
 
