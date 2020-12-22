@@ -2839,7 +2839,7 @@ impl<'a> Performer<'a> {
             ControlCode::HTS => self.c1_hts(),
             ControlCode::IND => self.c1_index(),
             ControlCode::NEL => self.c1_nel(),
-            ControlCode::Bell => error!("Ding! (this is the bell)"),
+            ControlCode::Bell => log::info!("Ding! (this is the bell)"),
             ControlCode::RI => self.c1_reverse_index(),
             _ => error!("unhandled ControlCode {:?}", control),
         }

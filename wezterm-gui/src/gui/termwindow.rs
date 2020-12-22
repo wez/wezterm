@@ -1778,12 +1778,12 @@ impl TermWindow {
                             .get_active_pane()
                             .ok_or_else(|| anyhow!("tab to have a pane"))?;
 
-                        log::error!("doing split_pane");
+                        log::trace!("doing split_pane");
                         domain
                             .split_pane(cmd_builder, cwd, tab.tab_id(), pane.pane_id(), direction)
                             .await?;
                     } else {
-                        log::error!("boop");
+                        log::error!("there is no active tab while splitting pane!?");
                     }
                 }
                 _ => {
@@ -1900,11 +1900,11 @@ impl TermWindow {
                 self.spawn_command(spawn, SpawnWhere::NewWindow);
             }
             SplitHorizontal(spawn) => {
-                log::error!("SplitHorizontal {:?}", spawn);
+                log::trace!("SplitHorizontal {:?}", spawn);
                 self.spawn_command(spawn, SpawnWhere::SplitPane(SplitDirection::Horizontal));
             }
             SplitVertical(spawn) => {
-                log::error!("SplitVertical {:?}", spawn);
+                log::trace!("SplitVertical {:?}", spawn);
                 self.spawn_command(spawn, SpawnWhere::SplitPane(SplitDirection::Vertical));
             }
             ToggleFullScreen => {
