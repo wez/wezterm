@@ -834,6 +834,9 @@ pub struct Config {
     /// mapping annoying in vim :-p
     #[serde(default)]
     pub enable_csi_u_key_encoding: bool,
+
+    #[serde(default)]
+    pub window_close_confirmation: WindowCloseConfirmation,
 }
 
 fn default_one_point_oh_f64() -> f64 {
@@ -905,6 +908,21 @@ pub struct WindowPadding {
     pub bottom: u16,
 }
 impl_lua_conversion!(WindowPadding);
+
+#[derive(Deserialize, Serialize, Clone, Copy, Debug)]
+pub enum WindowCloseConfirmation {
+    AlwaysPrompt,
+    NeverPrompt,
+    // TODO: something smart where we see whether the
+    // running programs are stateful
+}
+impl_lua_conversion!(WindowCloseConfirmation);
+
+impl Default for WindowCloseConfirmation {
+    fn default() -> Self {
+        WindowCloseConfirmation::AlwaysPrompt
+    }
+}
 
 impl Default for Config {
     fn default() -> Self {

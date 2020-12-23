@@ -109,3 +109,53 @@ pub fn confirm_close_tab(
 
     Ok(())
 }
+
+pub fn confirm_close_window(
+    mut term: TermWizTerminal,
+    mux_window_id: WindowId,
+) -> anyhow::Result<()> {
+    term.set_raw_mode()?;
+
+    let changes = vec![
+        Change::ClearScreen(ColorAttribute::Default),
+        Change::CursorPosition {
+            x: Position::Absolute(0),
+            y: Position::Absolute(0),
+        },
+        Change::Text(
+            "Really kill this window and all contained tabs and panes? [y/n]\r\n".to_string(),
+        ),
+    ];
+
+    term.render(&changes)?;
+    term.flush()?;
+
+    while let Ok(Some(event)) = term.poll_input(None) {
+        match event {
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('y'),
+                ..
+            }) => {
+                promise::spawn::spawn_into_main_thread(async move {
+                    let mux = Mux::get().unwrap();
+                    mux.kill_window(mux_window_id);
+                })
+                .detach();
+                break;
+            }
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('n'),
+                ..
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::Escape,
+                ..
+            }) => {
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    Ok(())
+}

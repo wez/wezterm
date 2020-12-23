@@ -3,8 +3,8 @@ use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::gui::overlay::{
-    confirm_close_pane, confirm_close_tab, launcher, start_overlay, start_overlay_pane,
-    tab_navigator, CopyOverlay, SearchOverlay,
+    confirm_close_pane, confirm_close_tab, confirm_close_window, launcher, start_overlay,
+    start_overlay_pane, tab_navigator, CopyOverlay, SearchOverlay,
 };
 use crate::gui::scrollbar::*;
 use crate::gui::selection::*;
@@ -27,7 +27,7 @@ use anyhow::{anyhow, bail, ensure};
 use config::keyassignment::{
     InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
 };
-use config::{configuration, ConfigHandle};
+use config::{configuration, ConfigHandle, WindowCloseConfirmation};
 use lru::LruCache;
 use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
@@ -272,16 +272,31 @@ impl WindowCallbacks for TermWindow {
 
     fn can_close(&mut self) -> bool {
         let mux = Mux::get().unwrap();
-        let tab_ids: Vec<TabId> = if let Some(win) = mux.get_window(self.mux_window_id) {
-            win.iter().map(|tab| tab.tab_id()).collect()
-        } else {
-            return true;
-        };
+        let config = configuration();
+        match config.window_close_confirmation {
+            WindowCloseConfirmation::NeverPrompt => {
+                // Immediately kill the tabs and allow the window to close
+                mux.kill_window(self.mux_window_id);
+                true
+            }
+            WindowCloseConfirmation::AlwaysPrompt => {
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return true,
+                };
 
-        for id in tab_ids {
-            mux.remove_tab(id);
+                let mux_window_id = self.mux_window_id;
+                let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
+                    confirm_close_window(term, mux_window_id)
+                });
+                self.assign_overlay(tab.tab_id(), overlay);
+                promise::spawn::spawn(future).detach();
+
+                // Don't close right now; let the close happen from
+                // the confirmation overlay
+                false
+            }
         }
-        true
     }
 
     fn as_any(&mut self) -> &mut dyn Any {
