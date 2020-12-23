@@ -6,7 +6,7 @@ use mux::Mux;
 use termwiz::cell::AttributeChange;
 use termwiz::color::ColorAttribute;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent, MouseButtons, MouseEvent};
-use termwiz::surface::{Change, CursorVisibility,Position};
+use termwiz::surface::{Change, CursorVisibility, Position};
 use termwiz::terminal::Terminal;
 
 fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Result<bool> {
