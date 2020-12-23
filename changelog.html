@@ -179,6 +179,7 @@ brief notes about them may accumulate here.</p>
 <li>New: added <code>line_height</code> configuration option to scale the computed cell height. The default is <code>1.0</code>, resulting in using the font-specified metrics. Setting it to <code>1.2</code> will result in a 20% larger cell height.</li>
 <li>macOS: Fixed an issue where hovering over the split between panes could result in wezterm becoming unresponsive <a href="https://github.com/wez/wezterm/issues/391">#391</a></li>
 <li>Closing windows will now prompt for confirmation before proceeding with the close.  Added <code>window_close_confirmation</code> to control this; valid values are <code>AlwaysPrompt</code> and <code>NeverPrompt</code>. <a href="https://github.com/wez/wezterm/issues/280">#280</a></li>
+<li>Tidied up logging. Previously ERROR level logging was used to make sure that informational things showed up in the stderr stream. Now we use INFO level logging for this to avoid alarming the user.  You can set <code>WEZTERM_LOG=trace</code> in the environment to get more verbose logging for troubleshooting purposes.</li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
