@@ -38,7 +38,6 @@ open = "1.4"
 openssl = "0.10"
 palette = "0.5"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
-pretty_env_logger = "0.4"
 promise = { path = "../promise" }
 pulldown-cmark = "0.8"
 rangeset = { path = "../rangeset" }

@@ -9,6 +9,16 @@ pub fn set_wezterm_executable() {
     }
 }
 
+pub fn setup_logger() {
+    let mut builder = pretty_env_logger::formatted_timed_builder();
+    if let Ok(s) = std::env::var("WEZTERM_LOG") {
+        builder.parse_filters(&s);
+    } else {
+        builder.filter(None, log::LevelFilter::Info);
+    }
+    builder.init();
+}
+
 pub fn fixup_appimage() {
     if let Some(appimage) = std::env::var_os("APPIMAGE") {
         let appimage = std::path::PathBuf::from(appimage);
@@ -118,4 +128,6 @@ pub fn bootstrap() {
     set_lang_from_locale();
 
     fixup_appimage();
+
+    setup_logger();
 }

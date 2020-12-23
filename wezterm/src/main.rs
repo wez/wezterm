@@ -223,9 +223,6 @@ fn main() {
 fn run() -> anyhow::Result<()> {
     env_bootstrap::bootstrap();
 
-    pretty_env_logger::formatted_timed_builder()
-        .filter(None, log::LevelFilter::Info)
-        .init();
     let _saver = umask::UmaskSaver::new();
 
     let opts = Opt::from_args();

@@ -416,9 +416,6 @@ fn run() -> anyhow::Result<()> {
 
     env_bootstrap::bootstrap();
 
-    pretty_env_logger::formatted_timed_builder()
-        .filter(None, log::LevelFilter::Info)
-        .init();
     stats::Stats::init()?;
     let _saver = umask::UmaskSaver::new();
 

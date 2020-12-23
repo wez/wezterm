@@ -20,7 +20,6 @@ log = "0.4"
 mux = { path = "../mux" }
 openssl = "0.10"
 portable-pty = { path = "../pty", features = ["serde_support"]}
-pretty_env_logger = "0.4"
 promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }
 rcgen = "0.8"

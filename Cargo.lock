@@ -1131,7 +1131,9 @@ dependencies = [
  "config",
  "dirs-next",
  "libc",
+ "log",
  "objc",
+ "pretty_env_logger",
 ]
 
 [[package]]
@@ -4393,7 +4395,6 @@ dependencies = [
  "log",
  "mux",
  "portable-pty",
- "pretty_env_logger",
  "promise",
  "structopt",
  "tabout",
@@ -4498,7 +4499,6 @@ dependencies = [
  "openssl",
  "palette",
  "portable-pty",
- "pretty_env_logger",
  "promise",
  "pulldown-cmark",
  "rangeset",
@@ -4565,7 +4565,6 @@ dependencies = [
  "mux",
  "openssl",
  "portable-pty",
- "pretty_env_logger",
  "promise",
  "rangeset",
  "rcgen",
