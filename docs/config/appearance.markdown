@@ -218,14 +218,14 @@ return {
 
 *since: 20201031-154415-9614e117*
 
-By default, inactive panes look no different from active panes, with the
-exception that the cursor will render as an outline style to indicate that it
-doesn't have the focus.
+To make it easier to see which pane is active, the inactive panes are dimmed
+and de-saturated slightly.
 
-You can optionally apply a transformation to the pane colors
-with a hue, saturation, brightness (HSB) multipler.
+You can specify your own transformation to the pane colors with a hue,
+saturation, brightness (HSB) multipler.
 
-In this example, inactive panes will be slightly de-saturated and dimmed:
+In this example, inactive panes will be slightly de-saturated and dimmed;
+this is the default configuration:
 
 ```lua
 return {
