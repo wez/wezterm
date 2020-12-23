@@ -406,6 +406,7 @@ brief notes about them may accumulate here.</p>
 <li>The 256 color cube now uses slightly brighter colors <a href="https://github.com/wez/wezterm/issues/348">#348</a></li>
 <li>New: added <code>line_height</code> configuration option to scale the computed cell height. The default is <code>1.0</code>, resulting in using the font-specified metrics. Setting it to <code>1.2</code> will result in a 20% larger cell height.</li>
 <li>macOS: Fixed an issue where hovering over the split between panes could result in wezterm becoming unresponsive <a href="https://github.com/wez/wezterm/issues/391">#391</a></li>
+<li>Closing windows will now prompt for confirmation before proceeding with the close.  Added <code>window_close_confirmation</code> to control this; valid values are <code>AlwaysPrompt</code> and <code>NeverPrompt</code>. <a href="https://github.com/wez/wezterm/issues/280">#280</a></li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
@@ -1257,6 +1258,10 @@ it lists available stylistic sets here:
   -- Specifies the maximum width that a tab can have in the
   -- tab bar.  Defaults to 16 glyphs in width.
   tab_max_width = 16,
+
+  -- Set this to &quot;NeverPrompt&quot; if you don't like confirming closing
+  -- windows every time
+  window_close_confirmation = &quot;AlwaysPrompt&quot;,
 }
 </code></pre>
 <p>Both the keyboard and the mouse bindings are configurable.</p>
