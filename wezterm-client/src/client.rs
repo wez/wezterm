@@ -325,14 +325,14 @@ impl std::fmt::Debug for SshStream {
 #[cfg(unix)]
 impl std::os::unix::io::AsRawFd for SshStream {
     fn as_raw_fd(&self) -> std::os::unix::io::RawFd {
-        dbg!(self.sess.as_raw_fd())
+        self.sess.as_raw_fd()
     }
 }
 
 #[cfg(windows)]
 impl std::os::windows::io::AsRawSocket for SshStream {
     fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
-        dbg!(self.sess.as_raw_socket())
+        self.sess.as_raw_socket()
     }
 }
 
