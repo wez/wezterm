@@ -122,7 +122,7 @@ The default key bindings are:
 | `SUPER`     | `t`      | `SpawnTab="CurrentPaneDomain"` |
 | `CTRL+SHIFT`     | `t`      | `SpawnTab="CurrentPaneDomain"` |
 | `SUPER+SHIFT` | `T`    | `SpawnTab="DefaultDomain"` |
-| `SUPER`     | `w`      | `CloseCurrentTab` |
+| `SUPER`     | `w`      | `CloseCurrentTab{confirm=true}` |
 | `SUPER`     | `1`      | `ActivateTab=0` |
 | `SUPER`     | `2`      | `ActivateTab=1` |
 | `SUPER`     | `3`      | `ActivateTab=2` |
@@ -132,7 +132,7 @@ The default key bindings are:
 | `SUPER`     | `7`      | `ActivateTab=6` |
 | `SUPER`     | `8`      | `ActivateTab=7` |
 | `SUPER`     | `9`      | `ActivateTab=-1` |
-| `CTRL+SHIFT`     | `w`      | `CloseCurrentTab` |
+| `CTRL+SHIFT`     | `w`      | `CloseCurrentTab{confirm=true}` |
 | `CTRL+SHIFT`     | `1`      | `ActivateTab=0` |
 | `CTRL+SHIFT`     | `2`      | `ActivateTab=1` |
 | `CTRL+SHIFT`     | `3`      | `ActivateTab=2` |
