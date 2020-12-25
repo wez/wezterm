@@ -133,13 +133,22 @@ impl Keyboard {
         };
 
         let kc = keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym))?;
-        let modifiers = self.get_key_modifiers();
+        let raw_modifiers = self.get_key_modifiers();
+        // X11 keysyms that map to KeyCode::Char already factor in the SHIFT
+        // modifier state.  eg: SHIFT-c in an US layout produces `Char('C')`.
+        // So, if we have `Char`, remove SHIFT from the processed modifier
+        // state.  Not doing so can produce frustration such as that in
+        // https://github.com/wez/wezterm/issues/394
+        let modifiers = match (&kc, raw_modifiers) {
+            (crate::KeyCode::Char(_), mods) => mods - Modifiers::SHIFT,
+            (_, mods) => mods,
+        };
 
         Some(KeyEvent {
             key: kc,
             modifiers,
             raw_key: None,
-            raw_modifiers: modifiers,
+            raw_modifiers,
             raw_code: Some(xcode),
             repeat_count: 1,
             key_is_down: pressed,
