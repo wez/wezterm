@@ -1497,7 +1497,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         }
 
         if inner.keyboard_info.has_alt_gr()
-            && (keys[VK_RMENU as usize] & 0x80 != 0)
+            && ((keys[VK_RMENU as usize] & 0x80 != 0) || (keys[VK_MENU as usize] & 0x80 != 0))
             && (keys[VK_CONTROL as usize] & 0x80 != 0)
         {
             // AltGr is pressed; while AltGr is on the RHS of the keyboard
@@ -1508,6 +1508,14 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // We set RIGHT_ALT as a hint to ourselves that AltGr is in
             // use (we use regular ALT otherwise) so that our dead key
             // resolution can do the right thing.
+            //
+            // When running inside a VNC session, VNC emulates the AltGr keypresses
+            // by sending plain VK_MENU (rather than RMENU) + VK_CONTROL.
+            // For compatibility with that we also treat MENU+CONTROL as equivalent
+            // to RMENU+CONTROL even though it is technically a lossy transformation.
+            // We only do that when the keyboard layout has AltGr so that we don't
+            // screw things up for other keyboard layouts.
+            // See issue #392 for some more context.
             modifiers |= Modifiers::RIGHT_ALT;
         } else {
             if keys[VK_CONTROL as usize] & 0x80 != 0 {
