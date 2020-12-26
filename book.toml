@@ -9,4 +9,6 @@ create-missing = false
 
 [output.html]
 additional-css = ["custom.css"]
-default-theme = "navy"
+default-theme = "ayu"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/wez/wezterm"
