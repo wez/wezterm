@@ -409,6 +409,7 @@ brief notes about them may accumulate here.</p>
 <li>Closing windows will now prompt for confirmation before proceeding with the close.  Added <code>window_close_confirmation</code> to control this; valid values are <code>AlwaysPrompt</code> and <code>NeverPrompt</code>. <a href="https://github.com/wez/wezterm/issues/280">#280</a></li>
 <li>Tidied up logging. Previously ERROR level logging was used to make sure that informational things showed up in the stderr stream. Now we use INFO level logging for this to avoid alarming the user.  You can set <code>WEZTERM_LOG=trace</code> in the environment to get more verbose logging for troubleshooting purposes.</li>
 <li>Windows: fix an issue where VNC-server-emulated AltGr was not treated as AltGr <a href="https://github.com/wez/wezterm/issues/392">#392</a></li>
+<li>X11: fix an issue where keys that produce unicode characters retained SHIFT as a modifier instead of normalizing it away. <a href="https://github.com/wez/wezterm/issues/394">#394</a></li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
