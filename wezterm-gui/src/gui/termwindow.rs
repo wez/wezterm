@@ -3,8 +3,8 @@ use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::gui::overlay::{
-    confirm_close_pane, confirm_close_tab, confirm_close_window, launcher, start_overlay,
-    start_overlay_pane, tab_navigator, CopyOverlay, SearchOverlay,
+    confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
+    start_overlay, start_overlay_pane, tab_navigator, CopyOverlay, SearchOverlay,
 };
 use crate::gui::scrollbar::*;
 use crate::gui::selection::*;
@@ -1972,8 +1972,16 @@ impl TermWindow {
                 con.hide_application();
             }
             QuitApplication => {
-                let con = Connection::get().expect("call on gui thread");
-                con.terminate_message_loop();
+                let mux = Mux::get().unwrap();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => anyhow::bail!("no active tab!?"),
+                };
+
+                let (overlay, future) =
+                    start_overlay(self, &tab, move |_tab_id, term| confirm_quit_program(term));
+                self.assign_overlay(tab.tab_id(), overlay);
+                promise::spawn::spawn(future).detach();
             }
             SelectTextAtMouseCursor(mode) => self.select_text_at_mouse_cursor(*mode, pane),
             ExtendSelectionToMouseCursor(mode) => {

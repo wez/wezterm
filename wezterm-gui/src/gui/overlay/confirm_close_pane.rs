@@ -191,3 +191,16 @@ pub fn confirm_close_window(
 
     Ok(())
 }
+
+pub fn confirm_quit_program(mut term: TermWizTerminal) -> anyhow::Result<()> {
+    if run_confirmation_app("🛑 Really Quit WezTerm?", &mut term)? {
+        promise::spawn::spawn_into_main_thread(async move {
+            use ::window::{Connection, ConnectionOps};
+            let con = Connection::get().expect("call on gui thread");
+            con.terminate_message_loop();
+        })
+        .detach();
+    }
+
+    Ok(())
+}
