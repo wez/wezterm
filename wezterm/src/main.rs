@@ -130,7 +130,7 @@ struct ImgCatCommand {
     height: Option<ITermDimension>,
     /// Do not respect the aspect ratio.  The default is to respect the aspect
     /// ratio
-    #[structopt(long = "preserve-aspect-ratio")]
+    #[structopt(long = "no-preserve-aspect-ratio")]
     no_preserve_aspect_ratio: bool,
     /// The name of the image file to be displayed.
     /// If omitted, will attempt to read it from stdin.
