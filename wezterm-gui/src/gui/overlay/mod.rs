@@ -2,6 +2,7 @@ use crate::gui::termwindow::TermWindow;
 use mux::pane::{Pane, PaneId};
 use mux::tab::{Tab, TabId};
 use mux::termwiztermtab::{allocate, TermWizTerminal};
+use portable_pty::PtySize;
 use std::pin::Pin;
 use std::rc::Rc;
 
@@ -34,7 +35,7 @@ where
 {
     let tab_id = tab.tab_id();
     let tab_size = tab.get_size();
-    let (tw_term, tw_tab) = allocate(tab_size.cols.into(), tab_size.rows.into());
+    let (tw_term, tw_tab) = allocate(tab_size);
 
     let window = term_window.window.clone().unwrap();
 
@@ -61,7 +62,14 @@ where
 {
     let pane_id = pane.pane_id();
     let dims = pane.get_dimensions();
-    let (tw_term, tw_tab) = allocate(dims.cols.into(), dims.viewport_rows.into());
+    let size = PtySize {
+        cols: dims.cols as u16,
+        rows: dims.viewport_rows as u16,
+        pixel_width: term_window.render_metrics.cell_size.width as u16 * dims.cols as u16,
+        pixel_height: term_window.render_metrics.cell_size.height as u16
+            * dims.viewport_rows as u16,
+    };
+    let (tw_term, tw_tab) = allocate(size);
 
     let window = term_window.window.clone().unwrap();
 

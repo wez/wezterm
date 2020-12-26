@@ -1473,20 +1473,24 @@ impl TerminalState {
         let height = image.height.to_pixels(cell_pixel_height, physical_rows);
 
         // Compute any Automatic dimensions
+        let aspect = decoded_image.width() as f32 / decoded_image.height() as f32;
+
         let (width, height) = match (width, height) {
             (None, None) => (
                 decoded_image.width() as usize,
                 decoded_image.height() as usize,
             ),
             (Some(w), None) => {
-                let scale = decoded_image.width() as f32 / w as f32;
-                let h = decoded_image.height() as f32 / scale;
+                let h = w as f32 / aspect;
                 (w, h as usize)
             }
             (None, Some(h)) => {
-                let scale = decoded_image.height() as f32 / h as f32;
-                let w = decoded_image.width() as f32 / scale;
+                let w = h as f32 * aspect;
                 (w as usize, h)
+            }
+            (Some(w), Some(_)) if image.preserve_aspect_ratio => {
+                let h = w as f32 / aspect;
+                (w, h as usize)
             }
             (Some(w), Some(h)) => (w, h),
         };

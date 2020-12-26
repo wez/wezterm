@@ -14,6 +14,22 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
 
     let size = term.get_screen_size()?;
 
+    /*
+    use crate::gui::termwindow::ICON_DATA;
+    use image::GenericImageView;
+    use std::sync::Arc;
+    use termwiz::surface::change::ImageData;
+    use termwiz::surface::TextureCoordinate;
+
+        let image_data = Arc::new(ImageData::with_raw_data(ICON_DATA.to_vec()));
+        let decoded_image = image::load_from_memory(ICON_DATA)?;
+        let logo_width_cells = 3usize;
+        let logo_width = logo_width_cells * size.xpixel;
+        let logo_scale = logo_width as f32 / decoded_image.width() as f32;
+        let logo_height = decoded_image.height() as f32 * logo_scale;
+        let logo_height_cells = (logo_height / size.ypixel as f32).ceil() as usize;
+        */
+
     // Render 80% wide, centered
     let text_width = size.cols * 80 / 100;
     let x_pos = size.cols * 10 / 100;
@@ -41,6 +57,15 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
         let mut changes = vec![
             Change::ClearScreen(ColorAttribute::Default),
             Change::CursorVisibility(CursorVisibility::Hidden),
+            /*
+            Change::Image(termwiz::surface::change::Image {
+                width: logo_width_cells,
+                height: logo_height_cells,
+                top_left: TextureCoordinate::new_f32(0., 0.),
+                bottom_right: TextureCoordinate::new_f32(1., 1.),
+                image: Arc::clone(&image_data),
+            }),
+            */
         ];
 
         for (y, row) in wrapped.split("\n").enumerate() {

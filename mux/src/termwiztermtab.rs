@@ -9,7 +9,7 @@ use crate::renderable::*;
 use crate::tab::{SplitDirection, Tab, TabId};
 use crate::window::WindowId;
 use crate::Mux;
-use anyhow::{bail, Error};
+use anyhow::bail;
 use async_trait::async_trait;
 use crossbeam::channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::{FileDescriptor, Pipe};
@@ -25,11 +25,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
 use termwiz::input::{InputEvent, KeyEvent, MouseEvent as TermWizMouseEvent};
-use termwiz::lineedit::*;
 use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::surface::Change;
 use termwiz::surface::Line;
-use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
+use termwiz::terminal::{ScreenSize, TerminalWaker};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent, StableRowIndex};
@@ -104,18 +103,17 @@ pub struct TermWizTerminalPane {
 impl TermWizTerminalPane {
     fn new(
         domain_id: DomainId,
-        width: usize,
-        height: usize,
+        size: PtySize,
         input_tx: Sender<InputEvent>,
         render_rx: FileDescriptor,
     ) -> Self {
         let pane_id = alloc_pane_id();
 
         let terminal = RefCell::new(wezterm_term::Terminal::new(
-            height,
-            width,
-            0,
-            0,
+            size.rows as usize,
+            size.cols as usize,
+            size.pixel_width as usize,
+            size.pixel_height as usize,
             std::sync::Arc::new(config::TermConfig {}),
             "WezTerm",
             config::wezterm_version(),
@@ -370,7 +368,7 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 }
 
-pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, Rc<dyn Pane>) {
+pub fn allocate(size: PtySize) -> (TermWizTerminal, Rc<dyn Pane>) {
     let render_pipe = Pipe::new().expect("Pipe creation not to fail");
 
     let (input_tx, input_rx) = channel();
@@ -381,10 +379,10 @@ pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, Rc<dyn Pane>) 
         render_tx: TermWizTerminalRenderTty {
             render_tx: BufWriter::new(render_pipe.write),
             screen_size: ScreenSize {
-                cols: width,
-                rows: height,
-                xpixel: 0,
-                ypixel: 0,
+                cols: size.cols as usize,
+                rows: size.rows as usize,
+                xpixel: (size.pixel_width / size.cols) as usize,
+                ypixel: (size.pixel_height / size.rows) as usize,
             },
         },
         input_rx,
@@ -392,7 +390,7 @@ pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, Rc<dyn Pane>) 
     };
 
     let domain_id = 0;
-    let pane = TermWizTerminalPane::new(domain_id, width, height, input_tx, render_pipe.read);
+    let pane = TermWizTerminalPane::new(domain_id, size, input_tx, render_pipe.read);
 
     // Add the tab to the mux so that the output is processed
     let pane: Rc<dyn Pane> = Rc::new(pane);
@@ -432,8 +430,7 @@ pub async fn run<
     T: Send + 'static,
     F: Send + 'static + FnOnce(TermWizTerminal) -> anyhow::Result<T>,
 >(
-    width: usize,
-    height: usize,
+    size: PtySize,
     f: F,
 ) -> anyhow::Result<T> {
     let render_pipe = Pipe::new().expect("Pipe creation not to fail");
@@ -446,10 +443,10 @@ pub async fn run<
         render_tx: TermWizTerminalRenderTty {
             render_tx: BufWriter::new(render_pipe.write),
             screen_size: ScreenSize {
-                cols: width,
-                rows: height,
-                xpixel: 0,
-                ypixel: 0,
+                cols: size.cols as usize,
+                rows: size.rows as usize,
+                xpixel: (size.pixel_width / size.cols) as usize,
+                ypixel: (size.pixel_height / size.rows) as usize,
             },
         },
         input_rx,
@@ -459,8 +456,7 @@ pub async fn run<
     async fn register_tab(
         input_tx: Sender<InputEvent>,
         render_rx: FileDescriptor,
-        width: usize,
-        height: usize,
+        size: PtySize,
     ) -> anyhow::Result<WindowId> {
         let mux = Mux::get().unwrap();
 
@@ -470,15 +466,10 @@ pub async fn run<
 
         let window_id = mux.new_empty_window();
 
-        let pane = TermWizTerminalPane::new(domain.domain_id(), width, height, input_tx, render_rx);
+        let pane = TermWizTerminalPane::new(domain.domain_id(), size, input_tx, render_rx);
         let pane: Rc<dyn Pane> = Rc::new(pane);
 
-        let tab = Rc::new(Tab::new(&PtySize {
-            rows: height as _,
-            cols: width as _,
-            pixel_width: 0,
-            pixel_height: 0,
-        }));
+        let tab = Rc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
         mux.add_tab_and_active_pane(&tab)?;
@@ -488,7 +479,7 @@ pub async fn run<
     }
 
     let window_id: WindowId = promise::spawn::spawn_into_main_thread(async move {
-        register_tab(input_tx, render_rx, width, height).await
+        register_tab(input_tx, render_rx, size).await
     })
     .await?;
 
@@ -506,26 +497,4 @@ pub async fn run<
     .detach();
 
     result
-}
-
-#[allow(unused)]
-pub fn message_box_ok(message: &str) {
-    let title = "wezterm";
-    let message = message.to_string();
-
-    promise::spawn::block_on(run(60, 10, move |mut term| {
-        term.render(&[
-            Change::Title(title.to_string()),
-            Change::Text(message.to_string()),
-        ])
-        .map_err(Error::msg)?;
-
-        let mut editor = LineEditor::new(&mut term);
-        editor.set_prompt("press enter to continue.");
-
-        let mut host = NopLineEditorHost::default();
-        editor.read_line(&mut host).ok();
-        Ok(())
-    }))
-    .ok();
 }

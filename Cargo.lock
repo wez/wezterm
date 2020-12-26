@@ -4497,6 +4497,7 @@ dependencies = [
  "notify-rust",
  "open",
  "openssl",
+ "ordered-float",
  "palette",
  "portable-pty",
  "promise",

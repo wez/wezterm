@@ -63,6 +63,8 @@ lazy_static::lazy_static! {
     static ref WINDOW_CLASS: Mutex<String> = Mutex::new("org.wezfurlong.wezterm".to_owned());
 }
 
+pub const ICON_DATA: &'static [u8] = include_bytes!("../../../assets/icon/terminal.png");
+
 pub fn set_window_class(cls: &str) {
     *WINDOW_CLASS.lock().unwrap() = cls.to_owned();
 }
@@ -210,7 +212,7 @@ pub struct TermWindow {
     /// Terminal dimensions
     terminal_size: PtySize,
     pub mux_window_id: MuxWindowId,
-    render_metrics: RenderMetrics,
+    pub render_metrics: RenderMetrics,
     render_state: RenderState,
     input_map: InputMap,
     /// If is_some, the LEADER modifier is active until the specified instant.
@@ -1033,8 +1035,7 @@ impl TermWindow {
     }
 
     fn apply_icon(window: &Window) -> anyhow::Result<()> {
-        let icon_image =
-            image::load_from_memory(include_bytes!("../../../assets/icon/terminal.png"))?;
+        let icon_image = image::load_from_memory(ICON_DATA)?;
         let image = icon_image.to_bgra8();
         let (width, height) = image.dimensions();
         window.set_icon(Image::from_raw(

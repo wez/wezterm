@@ -36,6 +36,7 @@ mlua = "0.4"
 mux = { path = "../mux" }
 open = "1.4"
 openssl = "0.10"
+ordered-float = "1.0"
 palette = "0.5"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
 promise = { path = "../promise" }
