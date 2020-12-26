@@ -11,4 +11,5 @@ mdbook build docs
 mv gh_pages/book.js gh_pages/book.2
 cat docs/lua.js gh_pages/book.2 > gh_pages/book.js
 rm gh_pages/book.2
-
+cp assets/icon/terminal.png gh_pages/favicon.png
+cp assets/icon/wezterm-icon.svg gh_pages/favicon.svg
