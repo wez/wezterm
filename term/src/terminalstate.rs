@@ -1480,12 +1480,12 @@ impl TerminalState {
             ),
             (Some(w), None) => {
                 let scale = decoded_image.width() as f32 / w as f32;
-                let h = decoded_image.height() as f32 * scale;
+                let h = decoded_image.height() as f32 / scale;
                 (w, h as usize)
             }
             (None, Some(h)) => {
                 let scale = decoded_image.height() as f32 / h as f32;
-                let w = decoded_image.width() as f32 * scale;
+                let w = decoded_image.width() as f32 / scale;
                 (w as usize, h)
             }
             (Some(w), Some(h)) => (w, h),
