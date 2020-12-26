@@ -75,8 +75,8 @@ impl Terminal {
             state: TerminalState::new(
                 physical_rows,
                 physical_cols,
-                pixel_height,
                 pixel_width,
+                pixel_height,
                 config,
                 term_program,
                 term_version,
