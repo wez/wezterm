@@ -1974,15 +1974,26 @@ impl TermWindow {
             }
             QuitApplication => {
                 let mux = Mux::get().unwrap();
-                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
-                    Some(tab) => tab,
-                    None => anyhow::bail!("no active tab!?"),
-                };
+                let config = configuration();
 
-                let (overlay, future) =
-                    start_overlay(self, &tab, move |_tab_id, term| confirm_quit_program(term));
-                self.assign_overlay(tab.tab_id(), overlay);
-                promise::spawn::spawn(future).detach();
+                match config.window_close_confirmation {
+                    WindowCloseConfirmation::NeverPrompt => {
+                        let con = Connection::get().expect("call on gui thread");
+                        con.terminate_message_loop();
+                    }
+                    WindowCloseConfirmation::AlwaysPrompt => {
+                        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                            Some(tab) => tab,
+                            None => anyhow::bail!("no active tab!?"),
+                        };
+
+                        let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
+                            confirm_quit_program(term)
+                        });
+                        self.assign_overlay(tab.tab_id(), overlay);
+                        promise::spawn::spawn(future).detach();
+                    }
+                }
             }
             SelectTextAtMouseCursor(mode) => self.select_text_at_mouse_cursor(*mode, pane),
             ExtendSelectionToMouseCursor(mode) => {
