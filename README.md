@@ -1,6 +1,8 @@
 # Wez's Terminal
 
-<img alt="WezTerm Icon" src="https://raw.githubusercontent.com/wez/wezterm/master/assets/icon/terminal.png" align="left"> *A GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*
+<img alt="WezTerm Icon" src="https://raw.githubusercontent.com/wez/wezterm/master/assets/icon/terminal.png" width="32pt" height="32pt">
+
+*A GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*
 
 User facing docs and guide at: https://wezfurlong.org/wezterm/
 
