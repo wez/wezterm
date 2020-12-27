@@ -824,6 +824,8 @@ pub struct Config {
 
     #[serde(default = "default_true")]
     pub check_for_updates: bool,
+    #[serde(default)]
+    pub show_update_window: bool,
 
     #[serde(default = "default_update_interval")]
     pub check_for_updates_interval_seconds: u64,

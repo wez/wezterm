@@ -149,6 +149,9 @@ lazy_static::lazy_static! {
 }
 
 fn show_update_available(release: Release) {
+    if !configuration().show_update_window {
+        return;
+    }
     let mut updater = UPDATER_WINDOW.lock().unwrap();
 
     let enable_close_delay = false;
@@ -352,6 +355,12 @@ fn update_checker() {
             schedule_set_banner_from_release_info(&latest);
             let current = wezterm_version();
             if latest.tag_name.as_str() > current || force_ui {
+                log::info!(
+                    "latest release {} is newer than current build {}",
+                    latest.tag_name,
+                    current
+                );
+
                 let url = format!(
                     "https://wezfurlong.org/wezterm/changelog.html#{}",
                     latest.tag_name
@@ -363,11 +372,6 @@ fn update_checker() {
                     &url,
                 );
 
-                log::info!(
-                    "latest release {} is newer than current build {}",
-                    latest.tag_name,
-                    current
-                );
                 show_update_available(latest.clone());
             }
 
