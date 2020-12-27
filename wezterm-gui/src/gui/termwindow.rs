@@ -2030,7 +2030,7 @@ impl TermWindow {
                             None => true,
                         };
                         if default_click {
-                            log::error!("clicking {}", link);
+                            log::info!("clicking {}", link);
                             if let Err(err) = open::that(&link) {
                                 log::error!("failed to open {}: {:?}", link, err);
                             }
