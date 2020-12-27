@@ -9,7 +9,6 @@ use portable_pty::PtySize;
 use regex::Regex;
 use serde::*;
 use std::collections::HashMap;
-use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -20,7 +19,7 @@ use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::surface::{Change, CursorVisibility};
 use wezterm_toast_notification::*;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Release {
     pub url: String,
     pub body: String,
@@ -40,7 +39,7 @@ impl Release {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Asset {
     pub name: String,
     pub size: usize,
@@ -253,6 +252,77 @@ fn show_update_available(release: Release) {
     updater.replace(ui);
 }
 
+pub fn load_last_release_info_and_set_banner() {
+    if !configuration().check_for_updates {
+        return;
+    }
+
+    let update_file_name = config::RUNTIME_DIR.join("check_update");
+    if let Ok(data) = std::fs::read(update_file_name) {
+        let latest: Release = match serde_json::from_slice(&data) {
+            Ok(d) => d,
+            Err(_) => return,
+        };
+
+        let current = wezterm_version();
+        let force_ui = std::env::var_os("WEZTERM_ALWAYS_SHOW_UPDATE_UI").is_some();
+        if latest.tag_name.as_str() <= current && !force_ui {
+            return;
+        }
+
+        set_banner_from_release_info(&latest);
+    }
+}
+
+fn set_banner_from_release_info(latest: &Release) {
+    let mux = crate::Mux::get().unwrap();
+    let url = format!(
+        "https://wezfurlong.org/wezterm/changelog.html#{}",
+        latest.tag_name
+    );
+
+    let icon = ITermFileData {
+        name: None,
+        size: Some(ICON_DATA.len()),
+        width: ITermDimension::Automatic,
+        height: ITermDimension::Cells(2),
+        preserve_aspect_ratio: true,
+        inline: true,
+        data: ICON_DATA.to_vec(),
+    };
+    let icon = OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(icon)));
+    let top_line_pos = CSI::Cursor(Cursor::CharacterAndLinePosition {
+        line: OneBased::new(1),
+        col: OneBased::new(6),
+    });
+    let second_line_pos = CSI::Cursor(Cursor::CharacterAndLinePosition {
+        line: OneBased::new(2),
+        col: OneBased::new(6),
+    });
+    let link_on = OperatingSystemCommand::SetHyperlink(Some(Hyperlink::new(url)));
+    let underline_on = CSI::Sgr(Sgr::Underline(Underline::Single));
+    let underline_off = CSI::Sgr(Sgr::Underline(Underline::None));
+    let link_off = OperatingSystemCommand::SetHyperlink(None);
+    mux.set_banner(Some(format!(
+        "{}{}WezTerm Update Available\r\n{}{}{}Click to see what's new{}{}\r\n",
+        icon, top_line_pos, second_line_pos, link_on, underline_on, underline_off, link_off,
+    )));
+}
+
+fn schedule_set_banner_from_release_info(latest: &Release) {
+    let current = wezterm_version();
+    if latest.tag_name.as_str() <= current {
+        return;
+    }
+    promise::spawn::spawn_into_main_thread({
+        let latest = latest.clone();
+        async move {
+            set_banner_from_release_info(&latest);
+        }
+    })
+    .detach();
+}
+
 fn update_checker() {
     // Compute how long we should sleep for;
     // if we've never checked, give it a few seconds after the first
@@ -279,55 +349,13 @@ fn update_checker() {
 
     loop {
         if let Ok(latest) = get_latest_release_info() {
+            schedule_set_banner_from_release_info(&latest);
             let current = wezterm_version();
             if latest.tag_name.as_str() > current || force_ui {
                 let url = format!(
                     "https://wezfurlong.org/wezterm/changelog.html#{}",
                     latest.tag_name
                 );
-
-                promise::spawn::spawn_into_main_thread({
-                    let url = url.clone();
-                    async move {
-                        let mux = crate::Mux::get().unwrap();
-                        let icon = ITermFileData {
-                            name: None,
-                            size: Some(ICON_DATA.len()),
-                            width: ITermDimension::Automatic,
-                            height: ITermDimension::Cells(2),
-                            preserve_aspect_ratio: true,
-                            inline: true,
-                            data: ICON_DATA.to_vec(),
-                        };
-                        let icon = OperatingSystemCommand::ITermProprietary(
-                            ITermProprietary::File(Box::new(icon)),
-                        );
-                        let top_line_pos = CSI::Cursor(Cursor::CharacterAndLinePosition {
-                            line: OneBased::new(1),
-                            col: OneBased::new(6),
-                        });
-                        let second_line_pos = CSI::Cursor(Cursor::CharacterAndLinePosition {
-                            line: OneBased::new(2),
-                            col: OneBased::new(6),
-                        });
-                        let link_on =
-                            OperatingSystemCommand::SetHyperlink(Some(Hyperlink::new(url)));
-                        let underline_on = CSI::Sgr(Sgr::Underline(Underline::Single));
-                        let underline_off = CSI::Sgr(Sgr::Underline(Underline::None));
-                        let link_off = OperatingSystemCommand::SetHyperlink(None);
-                        mux.set_banner(Some(format!(
-                            "{}{}WezTerm Update Available\r\n{}{}{}Click to see what's new{}{}\r\n",
-                            icon,
-                            top_line_pos,
-                            second_line_pos,
-                            link_on,
-                            underline_on,
-                            underline_off,
-                            link_off,
-                        )));
-                    }
-                })
-                .detach();
 
                 persistent_toast_notification_with_click_to_open_url(
                     "WezTerm Update Available",
@@ -342,18 +370,18 @@ fn update_checker() {
                 );
                 show_update_available(latest.clone());
             }
-        }
 
-        config::create_user_owned_dirs(update_file_name.parent().unwrap()).ok();
+            config::create_user_owned_dirs(update_file_name.parent().unwrap()).ok();
 
-        // Record the time of this check
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(&update_file_name)
-        {
-            f.write(b"_").ok();
+            // Record the time of this check
+            if let Ok(f) = std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(&update_file_name)
+            {
+                serde_json::to_writer_pretty(f, &latest).ok();
+            }
         }
 
         std::thread::sleep(update_interval);

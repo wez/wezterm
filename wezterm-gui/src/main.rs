@@ -92,6 +92,7 @@ fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()>
     // to become the default domain.
     let mux = Rc::new(mux::Mux::new(None));
     Mux::set_mux(&mux);
+    crate::update::load_last_release_info_and_set_banner();
 
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = crate::gui::try_new(front_end_selection)?;
@@ -127,6 +128,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     let domain: Arc<dyn Domain> = Arc::new(LocalDomain::with_pty_system("local", pty_system));
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
+    crate::update::load_last_release_info_and_set_banner();
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = crate::gui::try_new(front_end)?;
@@ -172,6 +174,7 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
     let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
+    crate::update::load_last_release_info_and_set_banner();
 
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = crate::gui::try_new(front_end_selection)?;
@@ -278,6 +281,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
     let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
+    crate::update::load_last_release_info_and_set_banner();
 
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = crate::gui::try_new(front_end_selection)?;
