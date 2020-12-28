@@ -38,10 +38,6 @@ impl GuiFrontEnd {
     }
 
     pub fn try_new() -> anyhow::Result<Rc<GuiFrontEnd>> {
-        let config = config::configuration();
-
-        prefer_egl(config.prefer_egl);
-
         #[cfg(windows)]
         {
             if is_running_in_rdp_session() {

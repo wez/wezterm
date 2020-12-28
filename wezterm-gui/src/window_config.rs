@@ -15,4 +15,8 @@ impl WindowConfiguration for ConfigBridge {
     fn enable_wayland(&self) -> bool {
         configuration().enable_wayland
     }
+
+    fn prefer_egl(&self) -> bool {
+        configuration().prefer_egl
+    }
 }

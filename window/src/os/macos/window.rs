@@ -6,10 +6,9 @@ use crate::bitmaps::Image;
 use crate::connection::ConnectionOps;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
-    config, is_egl_preferred, BitmapImage, Clipboard, Color, Connection, Dimensions, KeyCode,
-    KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,
-    WindowOpsMut,
+    config, BitmapImage, Clipboard, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers,
+    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext,
+    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
@@ -132,7 +131,7 @@ mod opengl {
             };
 
             // Let's first try to initialize EGL...
-            let (context, backend) = match if is_egl_preferred() {
+            let (context, backend) = match if config().prefer_egl() {
                 // ANGLE wants a layer, so tell the view to create one.
                 // Importantly, we must set its scale to 1.0 prior to initializing
                 // EGL to prevent undesirable scaling.

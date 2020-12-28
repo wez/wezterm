@@ -12,6 +12,10 @@ pub trait WindowConfiguration {
     fn enable_wayland(&self) -> bool {
         true
     }
+
+    fn prefer_egl(&self) -> bool {
+        true
+    }
 }
 
 lazy_static::lazy_static! {

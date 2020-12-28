@@ -128,7 +128,7 @@ impl WindowInner {
         let window = Window(self.hwnd);
         let conn = Connection::get().unwrap();
 
-        let gl_state = if crate::is_egl_preferred() {
+        let gl_state = if config().prefer_egl() {
             match conn.gl_connection.borrow().as_ref() {
                 None => crate::egl::GlState::create(None, self.hwnd.0),
                 Some(glconn) => {
