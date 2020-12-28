@@ -1285,11 +1285,6 @@ impl TermWindow {
         self.config_generation = config.generation();
         self.palette.take();
 
-        #[cfg(windows)]
-        {
-            ::window::os::windows::use_dead_keys(config.use_dead_keys);
-        }
-
         self.window_background = reload_background_image(&config, &self.window_background);
 
         let mux = Mux::get().unwrap();

@@ -391,11 +391,6 @@ fn run() -> anyhow::Result<()> {
     let config = config::configuration();
     window::configuration::set_configuration(crate::window_config::ConfigBridge);
 
-    #[cfg(windows)]
-    {
-        window::os::windows::use_dead_keys(config.use_dead_keys);
-    }
-
     match opts
         .cmd
         .as_ref()

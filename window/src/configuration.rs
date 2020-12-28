@@ -4,6 +4,10 @@ pub trait WindowConfiguration {
     fn use_ime(&self) -> bool {
         false
     }
+
+    fn use_dead_keys(&self) -> bool {
+        true
+    }
 }
 
 lazy_static::lazy_static! {

@@ -4,9 +4,9 @@ use crate::bitmaps::*;
 use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::{
-    Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, WindowCallbacks,
-    WindowOps, WindowOpsMut,
+    config, Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
+    MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, ScreenPoint,
+    WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use anyhow::{bail, Context};
 use lazy_static::lazy_static;
@@ -21,7 +21,6 @@ use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
@@ -30,12 +29,6 @@ use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
-
-static USE_DEAD_KEYS: AtomicBool = AtomicBool::new(true);
-
-pub fn use_dead_keys(enable: bool) {
-    USE_DEAD_KEYS.store(enable, Ordering::Relaxed);
-}
 
 const GCS_RESULTSTR: DWORD = 0x800;
 extern "system" {
@@ -1709,7 +1702,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                     // They pressed a dead key.
                     // If they want dead key processing, then record that and
                     // wait for a subsequent keypress.
-                    if USE_DEAD_KEYS.load(Ordering::Relaxed) {
+                    if config().use_dead_keys() {
                         inner.dead_pending.replace((modifiers, vk));
                         return Some(0);
                     }
