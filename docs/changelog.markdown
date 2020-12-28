@@ -36,6 +36,7 @@ brief notes about them may accumulate here.
 * X11: fix an issue where keys that produce unicode characters retained SHIFT as a modifier instead of normalizing it away. [#394](https://github.com/wez/wezterm/issues/394)
 * Fixed an issue where a symbol-only font would be seen as 0-width and panic wezterm [#404](https://github.com/wez/wezterm/issues/404)
 * Tweaked mouse selection: we now round the x-coordinate to the nearest cell which makes it a bit more forgiving if the mouse cursor is slightly to the left of the intended cell start. [#350](https://github.com/wez/wezterm/issues/350)
+* Added `selection_word_boundary` option to control double-click word selection boundaries. The default is ` \t\n{[}]()\"'`. [#405](https://github.com/wez/wezterm/issues/405)
 
 ### 20201101-103216-403d002d
 

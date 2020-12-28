@@ -842,6 +842,13 @@ pub struct Config {
 
     #[serde(default)]
     pub native_macos_fullscreen_mode: bool,
+
+    #[serde(default = "default_word_boundary")]
+    pub selection_word_boundary: String,
+}
+
+fn default_word_boundary() -> String {
+    " \t\n{[}]()\"'".to_string()
 }
 
 fn default_one_point_oh_f64() -> f64 {

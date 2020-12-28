@@ -51,13 +51,9 @@ pub struct SelectionRange {
     pub end: SelectionCoordinate,
 }
 
-// TODO: expose is_double_click_word in config file
 fn is_double_click_word(s: &str) -> bool {
     match s.len() {
-        1 => match s.chars().nth(0).unwrap() {
-            ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"' | '\'' => false,
-            _ => true,
-        },
+        1 => !config::configuration().selection_word_boundary.contains(s),
         0 => false,
         _ => true,
     }
