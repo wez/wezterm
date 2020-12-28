@@ -221,6 +221,25 @@ impl Face {
                     }
                 }
             }
+            if width == 0.0 {
+                // Most likely we're looking at a symbol font with no latin
+                // glyphs at all. Let's just pick a selection of glyphs
+                for glyph_pos in 1..8 {
+                    let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
+                    if succeeded(res) {
+                        let glyph = &(*(*self.face).glyph);
+                        if glyph.metrics.horiAdvance as f64 > width {
+                            width = glyph.metrics.horiAdvance as f64;
+                        }
+                    }
+                }
+                if width == 0.0 {
+                    log::error!(
+                        "Couldn't find any glyphs for metrics, so guessing width == height"
+                    );
+                    width = height * 64.;
+                }
+            }
             (width / 64.0, height)
         }
     }
