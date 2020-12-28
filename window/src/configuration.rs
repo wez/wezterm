@@ -8,6 +8,10 @@ pub trait WindowConfiguration {
     fn use_dead_keys(&self) -> bool {
         true
     }
+
+    fn enable_wayland(&self) -> bool {
+        true
+    }
 }
 
 lazy_static::lazy_static! {

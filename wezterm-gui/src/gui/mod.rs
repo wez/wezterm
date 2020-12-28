@@ -42,12 +42,6 @@ impl GuiFrontEnd {
 
         prefer_egl(config.prefer_egl);
 
-        #[cfg(all(unix, not(target_os = "macos")))]
-        {
-            if !config.enable_wayland {
-                Connection::disable_wayland();
-            }
-        }
         #[cfg(windows)]
         {
             if is_running_in_rdp_session() {

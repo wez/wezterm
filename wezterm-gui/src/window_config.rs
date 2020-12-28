@@ -11,4 +11,8 @@ impl WindowConfiguration for ConfigBridge {
     fn use_dead_keys(&self) -> bool {
         configuration().use_dead_keys
     }
+
+    fn enable_wayland(&self) -> bool {
+        configuration().enable_wayland
+    }
 }

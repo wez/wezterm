@@ -7,7 +7,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{Clipboard, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
+use crate::{config, Clipboard, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
 use promise::*;
 use std::any::Any;
 use std::rc::Rc;
@@ -26,21 +26,11 @@ pub enum Window {
     Wayland(WaylandWindow),
 }
 
-static ALLOW_WAYLAND: AtomicBool = AtomicBool::new(true);
-
 impl Connection {
-    pub fn disable_wayland() {
-        ALLOW_WAYLAND.store(false, Ordering::Release);
-    }
-
-    pub fn is_wayland_enabled() -> bool {
-        ALLOW_WAYLAND.load(Ordering::Acquire)
-    }
-
     pub(crate) fn create_new() -> anyhow::Result<Connection> {
         #[cfg(feature = "wayland")]
         {
-            if Self::is_wayland_enabled() {
+            if config().enable_wayland() {
                 match WaylandConnection::create_new() {
                     Ok(w) => {
                         log::debug!("Using wayland connection!");
