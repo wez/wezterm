@@ -332,12 +332,17 @@ impl WindowCallbacks for TermWindow {
         };
 
         let config = configuration();
-        let x = (event
+        // Round the x coordinate so that we're a bit more forgiving of
+        // the horizontal position when selecting cells
+        let x = ((event
             .coords
             .x
             .sub(config.window_padding.left as isize)
-            .max(0)
-            / self.render_metrics.cell_size.width) as usize;
+            .max(0) as f32)
+            / self.render_metrics.cell_size.width as f32)
+            .round()
+            .trunc() as usize;
+        // But don't round the y coordinate as that is more annoying
         let y = (event
             .coords
             .y
