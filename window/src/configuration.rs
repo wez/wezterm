@@ -16,6 +16,10 @@ pub trait WindowConfiguration {
     fn prefer_egl(&self) -> bool {
         true
     }
+
+    fn native_macos_fullscreen_mode(&self) -> bool {
+        false
+    }
 }
 
 lazy_static::lazy_static! {

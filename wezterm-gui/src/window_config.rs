@@ -19,4 +19,8 @@ impl WindowConfiguration for ConfigBridge {
     fn prefer_egl(&self) -> bool {
         configuration().prefer_egl
     }
+
+    fn native_macos_fullscreen_mode(&self) -> bool {
+        configuration().native_macos_fullscreen_mode
+    }
 }

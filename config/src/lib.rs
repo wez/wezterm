@@ -839,6 +839,9 @@ pub struct Config {
 
     #[serde(default)]
     pub window_close_confirmation: WindowCloseConfirmation,
+
+    #[serde(default)]
+    pub native_macos_fullscreen_mode: bool,
 }
 
 fn default_one_point_oh_f64() -> f64 {

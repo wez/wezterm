@@ -639,6 +639,94 @@ fn screen_point_to_cartesian(point: ScreenPoint) -> NSPoint {
     }
 }
 
+impl WindowInner {
+    fn toggle_native_fullscreen(&mut self) {
+        unsafe {
+            NSWindow::toggleFullScreen_(*self.window, nil);
+        }
+    }
+
+    fn is_native_fullscreen(&self) -> bool {
+        let style_mask = unsafe { NSWindow::styleMask(*self.window) };
+        style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
+    }
+
+    /// If we were in native full screen mode, exit it and return true.
+    /// Otherwise, return false
+    fn exit_native_fullscreen(&mut self) -> bool {
+        if self.is_native_fullscreen() {
+            self.toggle_native_fullscreen();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// If we were in simple full screen mode, exit it and return true.
+    /// Otherwise, return false
+    fn exit_simple_fullscreen(&mut self) -> bool {
+        if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
+            let is_fullscreen = window_view.inner.borrow().fullscreen.is_some();
+            if is_fullscreen {
+                self.toggle_simple_fullscreen();
+            }
+            is_fullscreen
+        } else {
+            false
+        }
+    }
+
+    fn toggle_simple_fullscreen(&mut self) {
+        let current_app = unsafe { NSApplication::sharedApplication(nil) };
+
+        if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
+            let fullscreen = window_view.inner.borrow_mut().fullscreen.take();
+            match fullscreen {
+                Some(saved_rect) => unsafe {
+                    // Restore prior dimensions
+                    self.window.orderOut_(nil);
+                    self.window.setStyleMask_(
+                        NSWindowStyleMask::NSTitledWindowMask
+                            | NSWindowStyleMask::NSClosableWindowMask
+                            | NSWindowStyleMask::NSMiniaturizableWindowMask
+                            | NSWindowStyleMask::NSResizableWindowMask,
+                    );
+
+                    self.window.setFrame_display_(saved_rect, YES);
+                    self.window.makeKeyAndOrderFront_(nil);
+                    self.window.setOpaque_(NO);
+                    current_app.setPresentationOptions_(
+                        NSApplicationPresentationOptions::NSApplicationPresentationDefault,
+                    );
+                },
+                None => unsafe {
+                    // Go full screen
+                    let saved_rect = NSWindow::frame(*self.window);
+                    window_view
+                        .inner
+                        .borrow_mut()
+                        .fullscreen
+                        .replace(saved_rect);
+
+                    let main_screen = NSScreen::mainScreen(nil);
+                    let screen_rect = NSScreen::frame(main_screen);
+
+                    self.window.orderOut_(nil);
+                    self.window
+                        .setStyleMask_(NSWindowStyleMask::NSBorderlessWindowMask);
+                    self.window.setFrame_display_(screen_rect, YES);
+                    self.window.makeKeyAndOrderFront_(nil);
+                    self.window.setOpaque_(YES);
+                    current_app.setPresentationOptions_(
+                        NSApplicationPresentationOptions:: NSApplicationPresentationAutoHideMenuBar
+                            | NSApplicationPresentationOptions::NSApplicationPresentationAutoHideDock
+                    );
+                },
+            }
+        }
+    }
+}
+
 impl WindowOpsMut for WindowInner {
     fn show(&mut self) {
         unsafe {
@@ -732,58 +820,21 @@ impl WindowOpsMut for WindowInner {
     }
 
     fn toggle_fullscreen(&mut self) {
-        let current_app = unsafe { NSApplication::sharedApplication(nil) };
+        let native_fullscreen = config().native_macos_fullscreen_mode();
 
-        if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
-            let fullscreen = window_view.inner.borrow_mut().fullscreen.take();
-            match fullscreen {
-                Some(saved_rect) => unsafe {
-                    // Restore prior dimensions
-                    self.window.orderOut_(nil);
-                    self.window.setStyleMask_(
-                        NSWindowStyleMask::NSTitledWindowMask
-                            | NSWindowStyleMask::NSClosableWindowMask
-                            | NSWindowStyleMask::NSMiniaturizableWindowMask
-                            | NSWindowStyleMask::NSResizableWindowMask,
-                    );
+        // If they changed their config since going full screen, be sure
+        // to undo whichever fullscreen mode they had active rather than
+        // trying to undo the one they have configured.
 
-                    self.window.setFrame_display_(saved_rect, YES);
-                    self.window.makeKeyAndOrderFront_(nil);
-                    self.window.setOpaque_(NO);
-                    current_app.setPresentationOptions_(
-                        NSApplicationPresentationOptions::NSApplicationPresentationDefault,
-                    );
-                },
-                None => unsafe {
-                    // Go full screen
-                    let saved_rect = NSWindow::frame(*self.window);
-                    window_view
-                        .inner
-                        .borrow_mut()
-                        .fullscreen
-                        .replace(saved_rect);
-
-                    let main_screen = NSScreen::mainScreen(nil);
-                    let screen_rect = NSScreen::frame(main_screen);
-
-                    self.window.orderOut_(nil);
-                    self.window
-                        .setStyleMask_(NSWindowStyleMask::NSBorderlessWindowMask);
-                    self.window.setFrame_display_(screen_rect, YES);
-                    self.window.makeKeyAndOrderFront_(nil);
-                    self.window.setOpaque_(YES);
-                    current_app.setPresentationOptions_(
-                        NSApplicationPresentationOptions:: NSApplicationPresentationAutoHideMenuBar
-                            | NSApplicationPresentationOptions::NSApplicationPresentationAutoHideDock
-                    );
-                },
+        if native_fullscreen {
+            if !self.exit_simple_fullscreen() {
+                self.toggle_native_fullscreen();
+            }
+        } else {
+            if !self.exit_native_fullscreen() {
+                self.toggle_simple_fullscreen();
             }
         }
-        /*
-        unsafe {
-            NSWindow::toggleFullScreen_(*self.window, nil);
-        }
-        */
     }
 }
 
@@ -802,6 +853,8 @@ struct Inner {
     /// procesing key-up events.
     key_is_down: Option<bool>,
 
+    /// When using simple fullscreen mode, this tracks
+    /// the window dimensions that need to be restored
     fullscreen: Option<NSRect>,
 }
 
