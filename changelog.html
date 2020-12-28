@@ -187,6 +187,7 @@ brief notes about them may accumulate here.</p>
 <li>Windows: fix an issue where VNC-server-emulated AltGr was not treated as AltGr <a href="https://github.com/wez/wezterm/issues/392">#392</a></li>
 <li>X11: fix an issue where keys that produce unicode characters retained SHIFT as a modifier instead of normalizing it away. <a href="https://github.com/wez/wezterm/issues/394">#394</a></li>
 <li>Fixed an issue where a symbol-only font would be seen as 0-width and panic wezterm <a href="https://github.com/wez/wezterm/issues/404">#404</a></li>
+<li>Tweaked mouse selection: we now round the x-coordinate to the nearest cell which makes it a bit more forgiving if the mouse cursor is slightly to the left of the intended cell start. <a href="https://github.com/wez/wezterm/issues/350">#350</a></li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
