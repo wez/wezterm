@@ -2537,6 +2537,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordered-float"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dacdec97876ef3ede8c50efc429220641a0b11ba0048b4b0c357bccbc47c5204"
+dependencies = [
+ "num-traits 0.2.14",
+]
+
+[[package]]
 name = "output_vt100"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3819,7 +3828,7 @@ dependencies = [
  "memmem",
  "num-derive",
  "num-traits 0.2.14",
- "ordered-float",
+ "ordered-float 1.1.1",
  "pretty_assertions",
  "regex",
  "semver",
@@ -4455,7 +4464,7 @@ dependencies = [
  "log",
  "metrics",
  "mux",
- "ordered-float",
+ "ordered-float 1.1.1",
  "rangeset",
  "termwiz",
  "thiserror",
@@ -4496,7 +4505,7 @@ dependencies = [
  "mux",
  "open",
  "openssl",
- "ordered-float",
+ "ordered-float 2.0.1",
  "palette",
  "portable-pty",
  "promise",
@@ -4589,7 +4598,7 @@ dependencies = [
  "log",
  "lru",
  "num-traits 0.2.14",
- "ordered-float",
+ "ordered-float 1.1.1",
  "palette",
  "pretty_assertions",
  "pretty_env_logger",
