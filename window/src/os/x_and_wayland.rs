@@ -134,6 +134,14 @@ impl WindowOps for Window {
         }
     }
 
+    fn toggle_fullscreen(&self) -> Future<()> {
+        match self {
+            Self::X11(x) => x.toggle_fullscreen(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.toggle_fullscreen(),
+        }
+    }
+
     fn show(&self) -> Future<()> {
         match self {
             Self::X11(x) => x.show(),

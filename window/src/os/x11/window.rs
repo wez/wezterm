@@ -629,8 +629,69 @@ impl XWindowInner {
         Ok(())
     }
 
+    fn is_fullscreen(&self) -> anyhow::Result<bool> {
+        let conn = self.conn();
+
+        let net_wm_state = xcb::intern_atom(conn.conn(), false, "_NET_WM_STATE")
+            .get_reply()?
+            .atom();
+        let net_wm_state_fullscreen =
+            xcb::intern_atom(conn.conn(), false, "_NET_WM_STATE_FULLSCREEN")
+                .get_reply()?
+                .atom();
+
+        let reply = xcb::xproto::get_property(
+            &conn,
+            false,
+            self.window_id,
+            net_wm_state,
+            xcb::xproto::ATOM_ATOM,
+            0,
+            1024,
+        )
+        .get_reply()?;
+
+        let state = reply.value::<u32>();
+
+        Ok(state
+            .iter()
+            .position(|&x| x == net_wm_state_fullscreen)
+            .is_some())
+    }
+
+    fn set_fullscreen_hint(&mut self, enable: bool) -> anyhow::Result<()> {
+        let conn = self.conn();
+
+        let net_wm_state = xcb::intern_atom(conn.conn(), false, "_NET_WM_STATE")
+            .get_reply()?
+            .atom();
+        let net_wm_state_fullscreen =
+            xcb::intern_atom(conn.conn(), false, "_NET_WM_STATE_FULLSCREEN")
+                .get_reply()?
+                .atom();
+
+        let data: [u32; 5] = [if enable { 1 } else { 0 }, net_wm_state_fullscreen, 0, 0, 0];
+
+        // Ask window manager to change our fullscreen state
+        xcb::xproto::send_event(
+            &conn,
+            true,
+            conn.root,
+            xcb::xproto::EVENT_MASK_SUBSTRUCTURE_REDIRECT
+                | xcb::xproto::EVENT_MASK_SUBSTRUCTURE_NOTIFY,
+            &xcb::xproto::ClientMessageEvent::new(
+                32,
+                self.window_id,
+                net_wm_state,
+                xcb::ClientMessageData::from_data32(data),
+            ),
+        );
+
+        Ok(())
+    }
+
     #[allow(dead_code, clippy::identity_op)]
-    fn disable_decorations(&mut self) -> anyhow::Result<()> {
+    fn adjust_decorations(&mut self, enable: bool) -> anyhow::Result<()> {
         // Set the motif hints to disable decorations.
         // See https://stackoverflow.com/a/1909708
         #[repr(C)]
@@ -654,7 +715,7 @@ impl XWindowInner {
         let hints = MwmHints {
             flags: HINTS_DECORATIONS,
             functions: 0,
-            decorations: 0, // off
+            decorations: if enable { FUNC_ALL } else { 0 },
             input_mode: 0,
             status: 0,
         };
@@ -843,6 +904,17 @@ impl WindowOpsMut for XWindowInner {
         self.paint_all = true;
     }
 
+    fn toggle_fullscreen(&mut self) {
+        let fullscreen = match self.is_fullscreen() {
+            Ok(f) => f,
+            Err(err) => {
+                log::error!("Failed to determine fullscreen state: {}", err);
+                return;
+            }
+        };
+        self.set_fullscreen_hint(!fullscreen).ok();
+    }
+
     fn set_inner_size(&mut self, width: usize, height: usize) {
         xcb::configure_window(
             self.conn().conn(),
@@ -872,24 +944,9 @@ impl WindowOpsMut for XWindowInner {
                 | xcb_util::ewmh::MOVE_RESIZE_WINDOW_Y,
             coords.x as u32,
             coords.y as u32,
-            // these dimensions are ignored because we're not
-            // passing the relevant MOVE_RESIZE_XX flags above,
-            // but are preserved here for clarity on what these
-            // parameters do
             self.width as u32,
             self.height as u32,
         );
-
-        /*
-        xcb::configure_window(
-            self.conn.conn(),
-            self.window_id,
-            &[
-                (xcb::CONFIG_WINDOW_X as u16, coords.x as u32),
-                (xcb::CONFIG_WINDOW_Y as u16, coords.y as u32),
-            ],
-        );
-        */
     }
 
     /// Change the title for the window manager
@@ -929,6 +986,13 @@ impl WindowOps for XWindow {
     fn hide(&self) -> Future<()> {
         XConnection::with_window_inner(self.0, |inner| {
             inner.hide();
+            Ok(())
+        })
+    }
+
+    fn toggle_fullscreen(&self) -> Future<()> {
+        XConnection::with_window_inner(self.0, |inner| {
+            inner.toggle_fullscreen();
             Ok(())
         })
     }

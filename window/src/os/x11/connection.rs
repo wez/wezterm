@@ -19,6 +19,7 @@ use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_ke
 pub struct XConnection {
     pub conn: xcb_util::ewmh::Connection,
     pub screen_num: i32,
+    pub root: xcb::xproto::Window,
     pub keyboard: Keyboard,
     pub kbd_ev: u8,
     pub atom_protocols: xcb::Atom,
@@ -390,10 +391,13 @@ impl XConnection {
             .request_check()
             .context("xcb::open_font_checked")?;
 
+        let root = screen.root();
+
         let conn = XConnection {
             conn,
             cursor_font_id,
             screen_num,
+            root,
             atom_protocols,
             atom_clipboard,
             atom_delete,
