@@ -1924,7 +1924,7 @@ impl TermWindow {
                 self.spawn_command(spawn, SpawnWhere::SplitPane(SplitDirection::Vertical));
             }
             ToggleFullScreen => {
-                // self.toggle_full_screen(),
+                self.window.as_ref().unwrap().toggle_fullscreen();
             }
             Copy => {
                 self.window

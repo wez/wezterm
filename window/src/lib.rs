@@ -250,6 +250,10 @@ pub trait WindowOps {
     fn set_icon(&self, _image: Image) -> Future<()> {
         Future::ok(())
     }
+
+    fn toggle_fullscreen(&self) -> Future<()> {
+        Future::ok(())
+    }
 }
 
 pub trait WindowOpsMut {
@@ -289,6 +293,8 @@ pub trait WindowOpsMut {
     /// Depending on the system this may be shown in its titlebar
     /// and/or in the task manager/task switcher
     fn set_icon(&mut self, _image: &dyn BitmapImage) {}
+
+    fn toggle_fullscreen(&mut self) {}
 }
 
 static PREFER_SWRAST: AtomicBool = AtomicBool::new(false);

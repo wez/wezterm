@@ -12,9 +12,9 @@ use crate::{
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
-    NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
-    NSRunningApplication, NSScreen, NSView, NSViewHeightSizable, NSViewWidthSizable, NSWindow,
-    NSWindowStyleMask,
+    NSApplication, NSApplicationActivateIgnoringOtherApps, NSApplicationPresentationOptions,
+    NSBackingStoreBuffered, NSEvent, NSEventModifierFlags, NSRunningApplication, NSScreen, NSView,
+    NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowStyleMask,
 };
 use cocoa::base::*;
 use cocoa::foundation::{NSArray, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger};
@@ -403,16 +403,17 @@ impl Window {
                 vscroll_remainder: 0.,
                 last_wheel: Instant::now(),
                 key_is_down: None,
+                fullscreen: None,
             }));
 
-            let window = StrongPtr::new(
-                NSWindow::alloc(nil).initWithContentRect_styleMask_backing_defer_(
-                    rect,
-                    style_mask,
-                    NSBackingStoreBuffered,
-                    NO,
-                ),
-            );
+            let window: id = msg_send![get_window_class(), alloc];
+            let window = StrongPtr::new(NSWindow::initWithContentRect_styleMask_backing_defer_(
+                window,
+                rect,
+                style_mask,
+                NSBackingStoreBuffered,
+                NO,
+            ));
 
             // Prevent Cocoa native tabs from being used
             let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
@@ -604,6 +605,13 @@ impl WindowOps for Window {
                 .map_err(|e| anyhow!("Failed to set clipboard:{}", e)),
         )
     }
+
+    fn toggle_fullscreen(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.toggle_fullscreen();
+            Ok(())
+        })
+    }
 }
 
 /// Convert from a macOS screen coordinate with the origin in the bottom left
@@ -729,6 +737,61 @@ impl WindowOpsMut for WindowInner {
             }
         }
     }
+
+    fn toggle_fullscreen(&mut self) {
+        let current_app = unsafe { NSApplication::sharedApplication(nil) };
+
+        if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
+            let fullscreen = window_view.inner.borrow_mut().fullscreen.take();
+            match fullscreen {
+                Some(saved_rect) => unsafe {
+                    // Restore prior dimensions
+                    self.window.orderOut_(nil);
+                    self.window.setStyleMask_(
+                        NSWindowStyleMask::NSTitledWindowMask
+                            | NSWindowStyleMask::NSClosableWindowMask
+                            | NSWindowStyleMask::NSMiniaturizableWindowMask
+                            | NSWindowStyleMask::NSResizableWindowMask,
+                    );
+
+                    self.window.setFrame_display_(saved_rect, YES);
+                    self.window.makeKeyAndOrderFront_(nil);
+                    self.window.setOpaque_(NO);
+                    current_app.setPresentationOptions_(
+                        NSApplicationPresentationOptions::NSApplicationPresentationDefault,
+                    );
+                },
+                None => unsafe {
+                    // Go full screen
+                    let saved_rect = NSWindow::frame(*self.window);
+                    window_view
+                        .inner
+                        .borrow_mut()
+                        .fullscreen
+                        .replace(saved_rect);
+
+                    let main_screen = NSScreen::mainScreen(nil);
+                    let screen_rect = NSScreen::frame(main_screen);
+
+                    self.window.orderOut_(nil);
+                    self.window
+                        .setStyleMask_(NSWindowStyleMask::NSBorderlessWindowMask);
+                    self.window.setFrame_display_(screen_rect, YES);
+                    self.window.makeKeyAndOrderFront_(nil);
+                    self.window.setOpaque_(YES);
+                    current_app.setPresentationOptions_(
+                        NSApplicationPresentationOptions:: NSApplicationPresentationAutoHideMenuBar
+                            | NSApplicationPresentationOptions::NSApplicationPresentationAutoHideDock
+                    );
+                },
+            }
+        }
+        /*
+        unsafe {
+            NSWindow::toggleFullScreen_(*self.window, nil);
+        }
+        */
+    }
 }
 
 struct Inner {
@@ -745,6 +808,8 @@ struct Inner {
     /// We use this to avoid double-emitting events when
     /// procesing key-up events.
     key_is_down: Option<bool>,
+
+    fullscreen: Option<NSRect>,
 }
 
 impl Inner {
@@ -762,7 +827,8 @@ impl Inner {
     }
 }
 
-const CLS_NAME: &str = "WezTermWindowView";
+const VIEW_CLS_NAME: &str = "WezTermWindowView";
+const WINDOW_CLS_NAME: &str = "WezTermWindow";
 
 struct WindowView {
     inner: Rc<RefCell<Inner>>,
@@ -859,6 +925,34 @@ fn key_modifiers(flags: NSEventModifierFlags) -> Modifiers {
     mods
 }
 
+/// We register our own subclass of NSWindow so that we can override
+/// canBecomeKeyWindow so that our simple fullscreen style can keep
+/// focus once the titlebar has been removed; the default behavior of
+/// NSWindow is to reject focus when it doesn't have a titlebar!
+fn get_window_class() -> &'static Class {
+    Class::get(WINDOW_CLS_NAME).unwrap_or_else(|| {
+        let mut cls = ClassDecl::new(WINDOW_CLS_NAME, class!(NSWindow))
+            .expect("Unable to register Window class");
+
+        extern "C" fn yes(_: &mut Object, _: Sel) -> BOOL {
+            YES
+        }
+
+        unsafe {
+            cls.add_method(
+                sel!(canBecomeKeyWindow),
+                yes as extern "C" fn(&mut Object, Sel) -> BOOL,
+            );
+            cls.add_method(
+                sel!(canBecomeMainWindow),
+                yes as extern "C" fn(&mut Object, Sel) -> BOOL,
+            );
+        }
+
+        cls.register()
+    })
+}
+
 impl WindowView {
     extern "C" fn dealloc(this: &mut Object, _sel: Sel) {
         Self::drop_inner(this);
@@ -879,8 +973,8 @@ impl WindowView {
     /// `dealloc` and `windowWillClose` to `drop_inner`.
     fn drop_inner(this: &mut Object) {
         unsafe {
-            let myself: *mut c_void = *this.get_ivar(CLS_NAME);
-            this.set_ivar(CLS_NAME, std::ptr::null_mut() as *mut c_void);
+            let myself: *mut c_void = *this.get_ivar(VIEW_CLS_NAME);
+            this.set_ivar(VIEW_CLS_NAME, std::ptr::null_mut() as *mut c_void);
 
             if !myself.is_null() {
                 let myself = Box::from_raw(myself as *mut Self);
@@ -1484,7 +1578,7 @@ impl WindowView {
 
     fn get_this(this: &Object) -> Option<&mut Self> {
         unsafe {
-            let myself: *mut c_void = *this.get_ivar(CLS_NAME);
+            let myself: *mut c_void = *this.get_ivar(VIEW_CLS_NAME);
             if myself.is_null() {
                 None
             } else {
@@ -1506,21 +1600,21 @@ impl WindowView {
         }));
 
         unsafe {
-            (**view_id).set_ivar(CLS_NAME, view as *mut c_void);
+            (**view_id).set_ivar(VIEW_CLS_NAME, view as *mut c_void);
         }
 
         Ok(view_id)
     }
 
     fn get_class() -> &'static Class {
-        Class::get(CLS_NAME).unwrap_or_else(Self::define_class)
+        Class::get(VIEW_CLS_NAME).unwrap_or_else(Self::define_class)
     }
 
     fn define_class() -> &'static Class {
-        let mut cls =
-            ClassDecl::new(CLS_NAME, class!(NSView)).expect("Unable to register WindowView class");
+        let mut cls = ClassDecl::new(VIEW_CLS_NAME, class!(NSView))
+            .expect("Unable to register WindowView class");
 
-        cls.add_ivar::<*mut c_void>(CLS_NAME);
+        cls.add_ivar::<*mut c_void>(VIEW_CLS_NAME);
         cls.add_protocol(
             Protocol::get("NSTextInputClient").expect("failed to get NSTextInputClient protocol"),
         );
