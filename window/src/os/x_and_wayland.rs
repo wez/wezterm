@@ -11,7 +11,6 @@ use crate::{config, Clipboard, MouseCursor, ScreenPoint, WindowCallbacks, Window
 use promise::*;
 use std::any::Any;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 pub enum Connection {
     X11(Rc<XConnection>),
