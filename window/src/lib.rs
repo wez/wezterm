@@ -3,10 +3,13 @@ use std::any::Any;
 use std::sync::atomic::{AtomicBool, Ordering};
 pub mod bitmaps;
 pub mod color;
+pub mod configuration;
 pub mod connection;
 pub mod os;
 mod spawn;
 mod timerlist;
+
+use configuration::config;
 
 #[cfg(target_os = "macos")]
 pub const DEFAULT_DPI: f64 = 72.0;

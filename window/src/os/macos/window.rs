@@ -6,9 +6,10 @@ use crate::bitmaps::Image;
 use crate::connection::ConnectionOps;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
-    is_egl_preferred, BitmapImage, Clipboard, Color, Connection, Dimensions, KeyCode, KeyEvent,
-    Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator,
-    PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
+    config, is_egl_preferred, BitmapImage, Clipboard, Color, Connection, Dimensions, KeyCode,
+    KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
+    Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,
+    WindowOpsMut,
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
@@ -28,14 +29,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-
-static USE_IME: AtomicBool = AtomicBool::new(false);
-
-pub fn use_ime(enable: bool) {
-    USE_IME.store(enable, Ordering::Relaxed);
-}
 
 fn round_away_from_zerof(value: f64) -> f64 {
     if value > 0. {
@@ -730,7 +724,7 @@ impl WindowOpsMut for WindowInner {
         if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
             window_view.inner.borrow_mut().text_cursor_position = cursor;
         }
-        if USE_IME.load(Ordering::Relaxed) {
+        if config().use_ime() {
             unsafe {
                 let input_context: id = msg_send![&**self.view, inputContext];
                 let () = msg_send![input_context, invalidateCharacterCoordinates];
@@ -1344,21 +1338,22 @@ impl WindowView {
             key_is_down
         );
 
+        let use_ime = config().use_ime();
+
         // `Delete` on macos is really Backspace and emits BS.
         // `Fn-Delete` emits DEL.
         // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
         // We want to emit Alt-BS in that situation.
-        let unmod = if virtual_key == super::keycodes::kVK_Delete
-            && modifiers.contains(Modifiers::ALT)
-        {
-            "\x08"
-        } else if virtual_key == super::keycodes::kVK_Tab {
-            "\t"
-        } else if !USE_IME.load(Ordering::Relaxed) && virtual_key == super::keycodes::kVK_Delete {
-            "\x08"
-        } else {
-            unmod
-        };
+        let unmod =
+            if virtual_key == super::keycodes::kVK_Delete && modifiers.contains(Modifiers::ALT) {
+                "\x08"
+            } else if virtual_key == super::keycodes::kVK_Tab {
+                "\t"
+            } else if !use_ime && virtual_key == super::keycodes::kVK_Delete {
+                "\x08"
+            } else {
+                unmod
+            };
 
         // If unmod is empty it most likely means that the user has selected
         // an alternate keymap that has a chorded representation of eg: an ASCII
@@ -1376,7 +1371,7 @@ impl WindowView {
         let only_alt = (modifiers & !(Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT))
             == Modifiers::NONE;
 
-        if key_is_down && USE_IME.load(Ordering::Relaxed) && (modifiers.is_empty() || only_alt) {
+        if key_is_down && use_ime && (modifiers.is_empty() || only_alt) {
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
                 inner.key_is_down.replace(key_is_down);

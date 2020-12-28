@@ -20,6 +20,7 @@ mod markdown;
 mod scripting;
 mod stats;
 mod update;
+mod window_config;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -388,11 +389,8 @@ fn run() -> anyhow::Result<()> {
         config::reload();
     }
     let config = config::configuration();
+    window::configuration::set_configuration(crate::window_config::ConfigBridge);
 
-    #[cfg(target_os = "macos")]
-    {
-        window::os::macos::use_ime(config.use_ime);
-    }
     #[cfg(windows)]
     {
         window::os::windows::use_dead_keys(config.use_dead_keys);
