@@ -549,3 +549,12 @@ pub enum SessionTerminated {
     #[error("Window Closed")]
     WindowClosed,
 }
+
+pub(crate) fn pty_size_to_terminal_size(size: portable_pty::PtySize) -> wezterm_term::TerminalSize {
+    wezterm_term::TerminalSize {
+        physical_rows: size.rows as usize,
+        physical_cols: size.cols as usize,
+        pixel_width: size.pixel_width as usize,
+        pixel_height: size.pixel_height as usize,
+    }
+}

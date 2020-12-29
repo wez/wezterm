@@ -43,6 +43,14 @@ impl DerefMut for Terminal {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct TerminalSize {
+    pub physical_rows: usize,
+    pub physical_cols: usize,
+    pub pixel_width: usize,
+    pub pixel_height: usize,
+}
+
 impl Terminal {
     /// Construct a new Terminal.
     /// `physical_rows` and `physical_cols` describe the dimensions
@@ -61,10 +69,7 @@ impl Terminal {
     /// and mouse input is encoded and written to that stream, as
     /// are answerback responses to a number of escape sequences.
     pub fn new(
-        physical_rows: usize,
-        physical_cols: usize,
-        pixel_width: usize,
-        pixel_height: usize,
+        size: TerminalSize,
         config: Arc<dyn TerminalConfiguration>,
         term_program: &str,
         term_version: &str,
@@ -72,16 +77,7 @@ impl Terminal {
         writer: Box<dyn std::io::Write>,
     ) -> Terminal {
         Terminal {
-            state: TerminalState::new(
-                physical_rows,
-                physical_cols,
-                pixel_width,
-                pixel_height,
-                config,
-                term_program,
-                term_version,
-                writer,
-            ),
+            state: TerminalState::new(size, config, term_program, term_version, writer),
             parser: Parser::new(),
         }
     }

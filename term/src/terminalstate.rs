@@ -334,16 +334,13 @@ impl TerminalState {
     /// You generally want the `Terminal` struct rather than this one;
     /// Terminal contains and dereferences to `TerminalState`.
     pub fn new(
-        physical_rows: usize,
-        physical_cols: usize,
-        pixel_width: usize,
-        pixel_height: usize,
+        size: TerminalSize,
         config: Arc<dyn TerminalConfiguration>,
         term_program: &str,
         term_version: &str,
         writer: Box<dyn std::io::Write>,
     ) -> TerminalState {
-        let screen = ScreenOrAlt::new(physical_rows, physical_cols, &config);
+        let screen = ScreenOrAlt::new(size.physical_rows, size.physical_cols, &config);
 
         let color_map = default_color_map();
 
@@ -352,8 +349,8 @@ impl TerminalState {
             screen,
             pen: CellAttributes::default(),
             cursor: CursorPosition::default(),
-            top_and_bottom_margins: 0..physical_rows as VisibleRowIndex,
-            left_and_right_margins: 0..physical_cols,
+            top_and_bottom_margins: 0..size.physical_rows as VisibleRowIndex,
+            left_and_right_margins: 0..size.physical_cols,
             left_and_right_margin_mode: false,
             wrap_next: false,
             // We default auto wrap to true even though the default for
@@ -377,12 +374,12 @@ impl TerminalState {
             cursor_visible: true,
             dec_line_drawing_mode: false,
             current_mouse_button: MouseButton::None,
-            tabs: TabStop::new(physical_cols, 8),
+            tabs: TabStop::new(size.physical_cols, 8),
             title: "wezterm".to_string(),
             icon_title: None,
             palette: None,
-            pixel_height,
-            pixel_width,
+            pixel_height: size.pixel_height,
+            pixel_width: size.pixel_width,
             clipboard: None,
             device_control_handler: None,
             current_dir: None,

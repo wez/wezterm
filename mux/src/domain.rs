@@ -139,10 +139,7 @@ impl Domain for LocalDomain {
         let writer = pair.master.try_clone_writer()?;
 
         let terminal = wezterm_term::Terminal::new(
-            size.rows as usize,
-            size.cols as usize,
-            size.pixel_width as usize,
-            size.pixel_height as usize,
+            crate::pty_size_to_terminal_size(size),
             std::sync::Arc::new(config::TermConfig {}),
             "WezTerm",
             config::wezterm_version(),
@@ -221,10 +218,7 @@ impl Domain for LocalDomain {
         let writer = pair.master.try_clone_writer()?;
 
         let terminal = wezterm_term::Terminal::new(
-            split_size.second.rows as usize,
-            split_size.second.cols as usize,
-            split_size.second.pixel_width as usize,
-            split_size.second.pixel_height as usize,
+            crate::pty_size_to_terminal_size(split_size.second),
             std::sync::Arc::new(config::TermConfig {}),
             "WezTerm",
             config::wezterm_version(),
