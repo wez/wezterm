@@ -22,9 +22,9 @@ pub enum TerminfoError {
     #[error("terminfo: {0}")]
     Terminfo(#[from] terminfo::Error),
 
-    /// Wrapped error about getting sizing.
-    #[error("get size: {0}")]
-    GetSize(#[source] Box<crate::error::Error>),
+    /// Wrapped error about sizing.
+    #[error("sizing: {0}")]
+    Sizing(#[source] Box<crate::error::Error>),
 }
 
 type Result<T> = std::result::Result<T, TerminfoError>;
@@ -371,7 +371,7 @@ impl TerminfoRenderer {
                         // paint the whole thing.
                         self.move_cursor_absolute(0, 0, out)?;
 
-                        let (cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::GetSize(Box::new(err)))?;
+                        let (cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
                         let num_spaces = cols * rows;
                         let mut buf = Vec::with_capacity(num_spaces);
                         buf.resize(num_spaces, b' ');
@@ -482,7 +482,7 @@ impl TerminfoRenderer {
                         }
 
                         (Position::Relative(x), Position::EndRelative(y)) => {
-                            let (_cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::GetSize(Box::new(err)))?;
+                            let (_cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
                             self.cursor_up(rows as u32, out)?;
                             self.cursor_down(rows.saturating_sub(y + 1) as u32, out)?;
                             self.cursor_x_relative(*x, out)?;
@@ -493,7 +493,7 @@ impl TerminfoRenderer {
                         }
                         (Position::EndRelative(x), Position::Relative(y)) => {
                             self.cursor_y_relative(*y, out)?;
-                            let (cols, _rows) = out.get_size_in_cells().map_err(|err| TerminfoError::GetSize(Box::new(err)))?;
+                            let (cols, _rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
                             out.by_ref().write_all(b"\r")?;
                             self.cursor_right(cols.saturating_sub(x + 1) as u32, out)?;
                         }
@@ -502,7 +502,7 @@ impl TerminfoRenderer {
                             self.move_cursor_absolute(*x as u32, *y as u32, out)?;
                         }
                         (Position::Absolute(x), Position::EndRelative(y)) => {
-                            let (_cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::GetSize(Box::new(err)))?;
+                            let (_cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
                             self.move_cursor_absolute(
                                 *x as u32,
                                 rows.saturating_sub(y + 1) as u32,
@@ -510,7 +510,7 @@ impl TerminfoRenderer {
                             )?;
                         }
                         (Position::EndRelative(x), Position::EndRelative(y)) => {
-                            let (cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::GetSize(Box::new(err)))?;
+                            let (cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
                             self.move_cursor_absolute(
                                 cols.saturating_sub(x + 1) as u32,
                                 rows.saturating_sub(y + 1) as u32,
@@ -519,14 +519,14 @@ impl TerminfoRenderer {
                         }
 
                         (Position::Relative(x), Position::Absolute(y)) => {
-                            let (_cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::GetSize(Box::new(err)))?;
+                            let (_cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
                             self.cursor_up(rows as u32, out)?;
                             self.cursor_down(*y as u32, out)?;
                             self.cursor_x_relative(*x, out)?;
                         }
 
                         (Position::EndRelative(x), Position::Absolute(y)) => {
-                            let (cols, _rows) = out.get_size_in_cells().map_err(|err| TerminfoError::GetSize(Box::new(err)))?;
+                            let (cols, _rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
                             self.move_cursor_absolute(
                                 cols.saturating_sub(x + 1) as u32,
                                 *y as u32,
@@ -706,12 +706,12 @@ mod test {
     use crate::input::InputEvent;
     use crate::terminal::unix::{Purge, SetAttributeWhen, UnixTty};
     use crate::terminal::ScreenSize;
-    use crate::terminal::{cast, Terminal, TerminalWaker};
-    use anyhow::bail;
+    use crate::terminal::{cast, Error as TerminalError, Terminal, TerminalWaker};
     use libc::winsize;
     use std::io::{Error as IoError, ErrorKind, Read, Result as IoResult, Write};
     use std::mem;
     use std::time::Duration;
+    use std::result::Result as StdResult;
     use terminfo;
     use termios::Termios;
 
@@ -754,35 +754,35 @@ mod test {
         }
     }
     impl RenderTty for FakeTty {
-        fn get_size_in_cells(&mut self) -> Result<(usize, usize)> {
+        fn get_size_in_cells(&mut self) -> StdResult<(usize, usize), crate::error::Error> {
             Ok((self.size.ws_col as usize, self.size.ws_row as usize))
         }
     }
 
     impl UnixTty for FakeTty {
-        fn get_size(&mut self) -> Result<winsize> {
+        fn get_size(&mut self) -> StdResult<winsize, TerminalError> {
             Ok(self.size.clone())
         }
-        fn set_size(&mut self, size: winsize) -> Result<()> {
+        fn set_size(&mut self, size: winsize) -> StdResult<(), TerminalError> {
             self.size = size.clone();
             Ok(())
         }
-        fn get_termios(&mut self) -> Result<Termios> {
+        fn get_termios(&mut self) -> StdResult<Termios, TerminalError> {
             Ok(self.termios.clone())
         }
         fn set_termios(
             &mut self,
             termios: &Termios,
             _when: SetAttributeWhen,
-        ) -> Result<()> {
+        ) -> StdResult<(), TerminalError> {
             self.termios = termios.clone();
             Ok(())
         }
         /// Waits until all written data has been transmitted.
-        fn drain(&mut self) -> Result<()> {
+        fn drain(&mut self) -> StdResult<(), TerminalError> {
             Ok(())
         }
-        fn purge(&mut self, _purge: Purge) -> Result<()> {
+        fn purge(&mut self, _purge: Purge) -> StdResult<(), TerminalError> {
             Ok(())
         }
     }
@@ -825,27 +825,27 @@ mod test {
     }
 
     impl Terminal for FakeTerm {
-        fn set_raw_mode(&mut self) -> Result<()> {
-            bail!("not implemented");
+        fn set_raw_mode(&mut self) -> StdResult<(), TerminalError> {
+            unimplemented!()
         }
 
-        fn set_cooked_mode(&mut self) -> Result<()> {
-            bail!("not implemented");
+        fn set_cooked_mode(&mut self) -> StdResult<(), TerminalError> {
+            unimplemented!()
         }
 
-        fn enter_alternate_screen(&mut self) -> Result<()> {
-            bail!("not implemented");
+        fn enter_alternate_screen(&mut self) -> StdResult<(), TerminalError> {
+            unimplemented!()
         }
 
-        fn exit_alternate_screen(&mut self) -> Result<()> {
-            bail!("not implemented");
+        fn exit_alternate_screen(&mut self) -> StdResult<(), TerminalError> {
+            unimplemented!()
         }
 
-        fn render(&mut self, changes: &[Change]) -> Result<()> {
-            self.renderer.render_to(changes, &mut self.write)
+        fn render(&mut self, changes: &[Change]) -> StdResult<(), TerminalError> {
+            Ok(self.renderer.render_to(changes, &mut self.write)?)
         }
 
-        fn get_screen_size(&mut self) -> Result<ScreenSize> {
+        fn get_screen_size(&mut self) -> StdResult<ScreenSize, TerminalError> {
             let size = self.write.get_size()?;
             Ok(ScreenSize {
                 rows: cast(size.ws_row)?,
@@ -855,7 +855,7 @@ mod test {
             })
         }
 
-        fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {
+        fn set_screen_size(&mut self, size: ScreenSize) -> StdResult<(), TerminalError> {
             let size = winsize {
                 ws_row: cast(size.rows)?,
                 ws_col: cast(size.cols)?,
@@ -866,16 +866,16 @@ mod test {
             self.write.set_size(size)
         }
 
-        fn flush(&mut self) -> Result<()> {
+        fn flush(&mut self) -> StdResult<(), TerminalError> {
             Ok(())
         }
 
-        fn poll_input(&mut self, _wait: Option<Duration>) -> Result<Option<InputEvent>> {
-            bail!("not implemented");
+        fn poll_input(&mut self, _wait: Option<Duration>) -> StdResult<Option<InputEvent>, TerminalError> {
+            unimplemented!()
         }
 
         fn waker(&self) -> TerminalWaker {
-            unimplemented!();
+            unimplemented!()
         }
     }
 
