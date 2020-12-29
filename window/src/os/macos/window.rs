@@ -12,12 +12,17 @@ use crate::{
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
-    NSApplication, NSApplicationActivateIgnoringOtherApps, NSApplicationPresentationOptions,
-    NSBackingStoreBuffered, NSEvent, NSEventModifierFlags, NSRunningApplication, NSScreen, NSView,
-    NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowStyleMask,
+    self, NSApplication, NSApplicationActivateIgnoringOtherApps, NSApplicationPresentationOptions,
+    NSBackingStoreBuffered, NSEvent, NSEventModifierFlags, NSOpenGLContext, NSOpenGLPixelFormat,
+    NSRunningApplication, NSScreen, NSView, NSViewHeightSizable, NSViewWidthSizable, NSWindow,
+    NSWindowStyleMask,
 };
 use cocoa::base::*;
+use cocoa::foundation::NSAutoreleasePool;
 use cocoa::foundation::{NSArray, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger};
+use core_foundation::base::TCFType;
+use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
+use core_foundation::string::CFString;
 use core_graphics::image::CGImageRef;
 use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
@@ -28,6 +33,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
+use std::str::FromStr;
 use std::time::Instant;
 
 fn round_away_from_zerof(value: f64) -> f64 {
@@ -85,241 +91,225 @@ impl NSRange {
     }
 }
 
-mod opengl {
-    use super::*;
-    use cocoa::appkit::{self, NSOpenGLContext, NSOpenGLPixelFormat};
-    use cocoa::foundation::NSAutoreleasePool;
-    use core_foundation::base::TCFType;
-    use core_foundation::bundle::{
-        CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName,
-    };
-    use core_foundation::string::CFString;
-    use std::str::FromStr;
+#[derive(Clone)]
+pub enum BackendImpl {
+    Cgl(Rc<cglbits::GlState>),
+    Egl(Rc<crate::egl::GlState>),
+}
 
-    #[derive(Clone)]
-    pub enum BackendImpl {
-        Cgl(Rc<cglbits::GlState>),
-        Egl(Rc<crate::egl::GlState>),
-    }
-
-    impl BackendImpl {
-        pub fn update(&self) {
-            if let Self::Cgl(be) = self {
-                be.update();
-            }
+impl BackendImpl {
+    pub fn update(&self) {
+        if let Self::Cgl(be) = self {
+            be.update();
         }
     }
+}
 
-    #[derive(Clone)]
-    pub struct GlContextPair {
-        pub context: Rc<glium::backend::Context>,
-        pub backend: BackendImpl,
-    }
+#[derive(Clone)]
+pub struct GlContextPair {
+    pub context: Rc<glium::backend::Context>,
+    pub backend: BackendImpl,
+}
 
-    impl GlContextPair {
-        /// on macOS we first try to initialize EGL by dynamically loading it.
-        /// The system doesn't provide an EGL implementation, but the ANGLE
-        /// project (and MetalANGLE) both provide implementations.
-        /// The ANGLE EGL implementation wants a CALayer descendant passed
-        /// as the EGLNativeWindowType.
-        pub fn create(view: id) -> anyhow::Result<Self> {
-            let behavior = if cfg!(debug_assertions) {
-                glium::debug::DebugCallbackBehavior::DebugMessageOnError
-            } else {
-                glium::debug::DebugCallbackBehavior::Ignore
+impl GlContextPair {
+    /// on macOS we first try to initialize EGL by dynamically loading it.
+    /// The system doesn't provide an EGL implementation, but the ANGLE
+    /// project (and MetalANGLE) both provide implementations.
+    /// The ANGLE EGL implementation wants a CALayer descendant passed
+    /// as the EGLNativeWindowType.
+    pub fn create(view: id) -> anyhow::Result<Self> {
+        let behavior = if cfg!(debug_assertions) {
+            glium::debug::DebugCallbackBehavior::DebugMessageOnError
+        } else {
+            glium::debug::DebugCallbackBehavior::Ignore
+        };
+
+        // Let's first try to initialize EGL...
+        let (context, backend) = match if config().prefer_egl() {
+            // ANGLE wants a layer, so tell the view to create one.
+            // Importantly, we must set its scale to 1.0 prior to initializing
+            // EGL to prevent undesirable scaling.
+            let layer: id;
+            unsafe {
+                let _: () = msg_send![view, setWantsLayer: YES];
+                layer = msg_send![view, layer];
+                let _: () = msg_send![layer, setContentsScale: 1.0f64];
+                let _: () = msg_send![layer, setOpaque: NO];
             };
 
-            // Let's first try to initialize EGL...
-            let (context, backend) = match if config().prefer_egl() {
-                // ANGLE wants a layer, so tell the view to create one.
-                // Importantly, we must set its scale to 1.0 prior to initializing
-                // EGL to prevent undesirable scaling.
-                let layer: id;
+            let conn = Connection::get().unwrap();
+
+            let state = match conn.gl_connection.borrow().as_ref() {
+                None => crate::egl::GlState::create(None, layer as *const c_void),
+                Some(glconn) => crate::egl::GlState::create_with_existing_connection(
+                    glconn,
+                    layer as *const c_void,
+                ),
+            };
+
+            if state.is_ok() {
+                conn.gl_connection
+                    .borrow_mut()
+                    .replace(Rc::clone(state.as_ref().unwrap().get_connection()));
+
+                // ANGLE will create a CAMetalLayer as a sublayer of our provided
+                // layer.  Even though CALayer defaults to !opaque, CAMetalLayer
+                // defaults to opaque, so we need to find that layer and fix
+                // the opacity so that our alpha values are respected.
                 unsafe {
-                    let _: () = msg_send![view, setWantsLayer: YES];
-                    layer = msg_send![view, layer];
-                    let _: () = msg_send![layer, setContentsScale: 1.0f64];
-                    let _: () = msg_send![layer, setOpaque: NO];
-                };
-
-                let conn = Connection::get().unwrap();
-
-                let state = match conn.gl_connection.borrow().as_ref() {
-                    None => crate::egl::GlState::create(None, layer as *const c_void),
-                    Some(glconn) => crate::egl::GlState::create_with_existing_connection(
-                        glconn,
-                        layer as *const c_void,
-                    ),
-                };
-
-                if state.is_ok() {
-                    conn.gl_connection
-                        .borrow_mut()
-                        .replace(Rc::clone(state.as_ref().unwrap().get_connection()));
-
-                    // ANGLE will create a CAMetalLayer as a sublayer of our provided
-                    // layer.  Even though CALayer defaults to !opaque, CAMetalLayer
-                    // defaults to opaque, so we need to find that layer and fix
-                    // the opacity so that our alpha values are respected.
-                    unsafe {
-                        let sublayers: id = msg_send![layer, sublayers];
-                        let layer_count = sublayers.count();
-                        for i in 0..layer_count {
-                            let layer = sublayers.objectAtIndex(i);
-                            let _: () = msg_send![layer, setOpaque: NO];
-                        }
+                    let sublayers: id = msg_send![layer, sublayers];
+                    let layer_count = sublayers.count();
+                    for i in 0..layer_count {
+                        let layer = sublayers.objectAtIndex(i);
+                        let _: () = msg_send![layer, setOpaque: NO];
                     }
                 }
+            }
 
-                state
-            } else {
-                Err(anyhow!("prefers not to use EGL"))
-            } {
-                Ok(backend) => {
-                    let backend = Rc::new(backend);
-                    let context = unsafe {
-                        glium::backend::Context::new(Rc::clone(&backend), true, behavior)
-                    }?;
-                    (context, BackendImpl::Egl(backend))
-                }
-                // ... and then fallback to the deprecated platform provided CGL
-                Err(err) => {
-                    log::debug!("EGL init failed: {:#}, falling back to CGL", err);
-                    let backend = Rc::new(cglbits::GlState::create(view)?);
-                    let context = unsafe {
-                        glium::backend::Context::new(Rc::clone(&backend), true, behavior)
-                    }?;
-                    (context, BackendImpl::Cgl(backend))
-                }
+            state
+        } else {
+            Err(anyhow!("prefers not to use EGL"))
+        } {
+            Ok(backend) => {
+                let backend = Rc::new(backend);
+                let context =
+                    unsafe { glium::backend::Context::new(Rc::clone(&backend), true, behavior) }?;
+                (context, BackendImpl::Egl(backend))
+            }
+            // ... and then fallback to the deprecated platform provided CGL
+            Err(err) => {
+                log::debug!("EGL init failed: {:#}, falling back to CGL", err);
+                let backend = Rc::new(cglbits::GlState::create(view)?);
+                let context =
+                    unsafe { glium::backend::Context::new(Rc::clone(&backend), true, behavior) }?;
+                (context, BackendImpl::Cgl(backend))
+            }
+        };
+
+        Ok(Self { context, backend })
+    }
+}
+
+mod cglbits {
+    use super::*;
+
+    pub struct GlState {
+        _pixel_format: StrongPtr,
+        gl_context: StrongPtr,
+    }
+
+    impl GlState {
+        pub fn create(view: id) -> anyhow::Result<Self> {
+            let pixel_format = unsafe {
+                StrongPtr::new(NSOpenGLPixelFormat::alloc(nil).initWithAttributes_(&[
+                    appkit::NSOpenGLPFAOpenGLProfile as u32,
+                    appkit::NSOpenGLProfileVersion3_2Core as u32,
+                    appkit::NSOpenGLPFAClosestPolicy as u32,
+                    appkit::NSOpenGLPFAColorSize as u32,
+                    32,
+                    appkit::NSOpenGLPFAAlphaSize as u32,
+                    8,
+                    appkit::NSOpenGLPFADepthSize as u32,
+                    24,
+                    appkit::NSOpenGLPFAStencilSize as u32,
+                    8,
+                    appkit::NSOpenGLPFAAllowOfflineRenderers as u32,
+                    appkit::NSOpenGLPFAAccelerated as u32,
+                    appkit::NSOpenGLPFADoubleBuffer as u32,
+                    0,
+                ]))
             };
+            ensure!(
+                !pixel_format.is_null(),
+                "failed to create NSOpenGLPixelFormat"
+            );
 
-            Ok(Self { context, backend })
+            // Allow using retina resolutions; without this we're forced into low res
+            // and the system will scale us up, resulting in blurry rendering
+            unsafe {
+                let _: () = msg_send![view, setWantsBestResolutionOpenGLSurface: YES];
+            }
+
+            let gl_context = unsafe {
+                StrongPtr::new(
+                    NSOpenGLContext::alloc(nil).initWithFormat_shareContext_(*pixel_format, nil),
+                )
+            };
+            ensure!(!gl_context.is_null(), "failed to create NSOpenGLContext");
+
+            unsafe {
+                let opaque: cgl::GLint = 0;
+                gl_context.setValues_forParameter_(
+                    &opaque,
+                    cocoa::appkit::NSOpenGLContextParameter::NSOpenGLCPSurfaceOpacity,
+                );
+
+                gl_context.setView_(view);
+            }
+
+            Ok(Self {
+                _pixel_format: pixel_format,
+                gl_context,
+            })
+        }
+
+        /// Calls NSOpenGLContext update; we need to do this on resize
+        pub fn update(&self) {
+            unsafe {
+                let _: () = msg_send![*self.gl_context, update];
+            }
         }
     }
 
-    mod cglbits {
-        use super::*;
-
-        pub struct GlState {
-            _pixel_format: StrongPtr,
-            gl_context: StrongPtr,
+    unsafe impl glium::backend::Backend for GlState {
+        fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
+            unsafe {
+                let pool = NSAutoreleasePool::new(nil);
+                self.gl_context.flushBuffer();
+                let _: () = msg_send![pool, release];
+            }
+            Ok(())
         }
 
-        impl GlState {
-            pub fn create(view: id) -> anyhow::Result<Self> {
-                let pixel_format = unsafe {
-                    StrongPtr::new(NSOpenGLPixelFormat::alloc(nil).initWithAttributes_(&[
-                        appkit::NSOpenGLPFAOpenGLProfile as u32,
-                        appkit::NSOpenGLProfileVersion3_2Core as u32,
-                        appkit::NSOpenGLPFAClosestPolicy as u32,
-                        appkit::NSOpenGLPFAColorSize as u32,
-                        32,
-                        appkit::NSOpenGLPFAAlphaSize as u32,
-                        8,
-                        appkit::NSOpenGLPFADepthSize as u32,
-                        24,
-                        appkit::NSOpenGLPFAStencilSize as u32,
-                        8,
-                        appkit::NSOpenGLPFAAllowOfflineRenderers as u32,
-                        appkit::NSOpenGLPFAAccelerated as u32,
-                        appkit::NSOpenGLPFADoubleBuffer as u32,
-                        0,
-                    ]))
-                };
-                ensure!(
-                    !pixel_format.is_null(),
-                    "failed to create NSOpenGLPixelFormat"
-                );
+        unsafe fn get_proc_address(&self, symbol: &str) -> *const c_void {
+            let symbol_name: CFString = FromStr::from_str(symbol).unwrap();
+            let framework_name: CFString = FromStr::from_str("com.apple.opengl").unwrap();
+            let framework = CFBundleGetBundleWithIdentifier(framework_name.as_concrete_TypeRef());
+            let symbol =
+                CFBundleGetFunctionPointerForName(framework, symbol_name.as_concrete_TypeRef());
+            symbol as *const _
+        }
 
-                // Allow using retina resolutions; without this we're forced into low res
-                // and the system will scale us up, resulting in blurry rendering
-                unsafe {
-                    let _: () = msg_send![view, setWantsBestResolutionOpenGLSurface: YES];
-                }
-
-                let gl_context = unsafe {
-                    StrongPtr::new(
-                        NSOpenGLContext::alloc(nil)
-                            .initWithFormat_shareContext_(*pixel_format, nil),
-                    )
-                };
-                ensure!(!gl_context.is_null(), "failed to create NSOpenGLContext");
-
-                unsafe {
-                    let opaque: cgl::GLint = 0;
-                    gl_context.setValues_forParameter_(
-                        &opaque,
-                        cocoa::appkit::NSOpenGLContextParameter::NSOpenGLCPSurfaceOpacity,
-                    );
-
-                    gl_context.setView_(view);
-                }
-
-                Ok(Self {
-                    _pixel_format: pixel_format,
-                    gl_context,
-                })
-            }
-
-            /// Calls NSOpenGLContext update; we need to do this on resize
-            pub fn update(&self) {
-                unsafe {
-                    let _: () = msg_send![*self.gl_context, update];
-                }
+        fn get_framebuffer_dimensions(&self) -> (u32, u32) {
+            unsafe {
+                let view = self.gl_context.view();
+                let frame = NSView::frame(view);
+                let backing_frame = NSView::convertRectToBacking(view, frame);
+                (
+                    backing_frame.size.width as u32,
+                    backing_frame.size.height as u32,
+                )
             }
         }
 
-        unsafe impl glium::backend::Backend for GlState {
-            fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
-                unsafe {
-                    let pool = NSAutoreleasePool::new(nil);
-                    self.gl_context.flushBuffer();
-                    let _: () = msg_send![pool, release];
-                }
-                Ok(())
+        fn is_current(&self) -> bool {
+            unsafe {
+                let pool = NSAutoreleasePool::new(nil);
+                let current = NSOpenGLContext::currentContext(nil);
+                let res = if current != nil {
+                    let is_equal: BOOL = msg_send![current, isEqual: *self.gl_context];
+                    is_equal != NO
+                } else {
+                    false
+                };
+                let _: () = msg_send![pool, release];
+                res
             }
+        }
 
-            unsafe fn get_proc_address(&self, symbol: &str) -> *const c_void {
-                let symbol_name: CFString = FromStr::from_str(symbol).unwrap();
-                let framework_name: CFString = FromStr::from_str("com.apple.opengl").unwrap();
-                let framework =
-                    CFBundleGetBundleWithIdentifier(framework_name.as_concrete_TypeRef());
-                let symbol =
-                    CFBundleGetFunctionPointerForName(framework, symbol_name.as_concrete_TypeRef());
-                symbol as *const _
-            }
-
-            fn get_framebuffer_dimensions(&self) -> (u32, u32) {
-                unsafe {
-                    let view = self.gl_context.view();
-                    let frame = NSView::frame(view);
-                    let backing_frame = NSView::convertRectToBacking(view, frame);
-                    (
-                        backing_frame.size.width as u32,
-                        backing_frame.size.height as u32,
-                    )
-                }
-            }
-
-            fn is_current(&self) -> bool {
-                unsafe {
-                    let pool = NSAutoreleasePool::new(nil);
-                    let current = NSOpenGLContext::currentContext(nil);
-                    let res = if current != nil {
-                        let is_equal: BOOL = msg_send![current, isEqual: *self.gl_context];
-                        is_equal != NO
-                    } else {
-                        false
-                    };
-                    let _: () = msg_send![pool, release];
-                    res
-                }
-            }
-
-            unsafe fn make_current(&self) {
-                let _: () = msg_send![*self.gl_context, update];
-                self.gl_context.makeCurrentContext();
-            }
+        unsafe fn make_current(&self) {
+            let _: () = msg_send![*self.gl_context, update];
+            self.gl_context.makeCurrentContext();
         }
     }
 }
@@ -334,7 +324,6 @@ fn function_key_to_keycode(function_key: char) -> KeyCode {
     // FIXME: CTRL-C is 0x3, should it be normalized to C here
     // using the unmod string?  Or should be normalize the 0x3
     // as the canonical representation of that input?
-    use cocoa::appkit;
     match function_key as u16 {
         appkit::NSUpArrowFunctionKey => KeyCode::UpArrow,
         appkit::NSDownArrowFunctionKey => KeyCode::DownArrow,
@@ -830,7 +819,7 @@ struct Inner {
     view_id: Option<WeakPtr>,
     window_id: usize,
     screen_changed: bool,
-    gl_context_pair: Option<opengl::GlContextPair>,
+    gl_context_pair: Option<GlContextPair>,
     text_cursor_position: Rect,
     hscroll_remainder: f64,
     vscroll_remainder: f64,
@@ -849,7 +838,7 @@ impl Inner {
         let window = Window(self.window_id);
 
         let view = self.view_id.as_ref().unwrap().load();
-        let glium_context = opengl::GlContextPair::create(*view)?;
+        let glium_context = GlContextPair::create(*view)?;
 
         self.gl_context_pair.replace(glium_context.clone());
 
