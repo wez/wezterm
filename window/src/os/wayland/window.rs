@@ -1,14 +1,12 @@
 use super::copy_and_paste::*;
 use super::keyboard::KeyboardEvent;
 use super::pointer::*;
-use crate::bitmaps::BitmapImage;
-use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
-    Clipboard, Connection, Dimensions, MouseCursor, Operator, PaintContext, Point, Rect,
-    ScreenPoint, Window, WindowCallbacks, WindowOps, WindowOpsMut,
+    Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowCallbacks,
+    WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, Context};
 use filedescriptor::FileDescriptor;
@@ -569,59 +567,6 @@ impl WaylandWindowInner {
         }
 
         Ok(())
-    }
-}
-
-struct MmapImage<'a> {
-    mmap: &'a mut memmap::MmapMut,
-    dimensions: (usize, usize),
-    dpi: usize,
-}
-
-impl<'a> BitmapImage for MmapImage<'a> {
-    unsafe fn pixel_data(&self) -> *const u8 {
-        self.mmap.as_ptr()
-    }
-
-    unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
-        self.mmap.as_mut_ptr()
-    }
-
-    fn image_dimensions(&self) -> (usize, usize) {
-        self.dimensions
-    }
-}
-
-impl<'a> PaintContext for MmapImage<'a> {
-    fn clear_rect(&mut self, rect: Rect, color: Color) {
-        BitmapImage::clear_rect(self, rect, color)
-    }
-
-    fn clear(&mut self, color: Color) {
-        BitmapImage::clear(self, color);
-    }
-
-    fn get_dimensions(&self) -> Dimensions {
-        let (pixel_width, pixel_height) = self.image_dimensions();
-        Dimensions {
-            pixel_width,
-            pixel_height,
-            dpi: self.dpi,
-        }
-    }
-
-    fn draw_image(
-        &mut self,
-        dest_top_left: Point,
-        src_rect: Option<Rect>,
-        im: &dyn BitmapImage,
-        operator: Operator,
-    ) {
-        BitmapImage::draw_image(self, dest_top_left, src_rect, im, operator)
-    }
-
-    fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {
-        BitmapImage::draw_line(self, start, end, color, operator);
     }
 }
 
