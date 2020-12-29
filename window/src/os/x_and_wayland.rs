@@ -213,7 +213,6 @@ impl WindowOps for Window {
         }
     }
 
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()> {
         match self {
             Self::X11(x) => x.enable_opengl(),

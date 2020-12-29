@@ -50,7 +50,6 @@ pub(crate) struct XWindowInner {
     cursor: Option<MouseCursor>,
     cursors: HashMap<Option<MouseCursor>, XcbCursor>,
     copy_and_paste: CopyAndPaste,
-    #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
 }
 
@@ -111,7 +110,6 @@ impl<'a> PaintContext for X11GraphicsContext<'a> {
 }
 
 impl XWindowInner {
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&mut self) -> anyhow::Result<()> {
         let window = XWindow(self.window_id);
         let conn = self.conn();
@@ -159,27 +157,24 @@ impl XWindowInner {
             return Ok(());
         }
 
-        #[cfg(feature = "opengl")]
-        {
-            if let Some(gl_context) = self.gl_state.as_ref() {
-                if gl_context.is_context_lost() {
-                    log::error!("opengl context was lost; should reinit");
-                    drop(self.gl_state.take());
-                    self.enable_opengl()?;
-                    return self.paint();
-                }
-
-                self.expose.clear();
-
-                let mut frame = glium::Frame::new(
-                    Rc::clone(&gl_context),
-                    (u32::from(self.width), u32::from(self.height)),
-                );
-
-                self.callbacks.paint_opengl(&mut frame);
-                frame.finish()?;
-                return Ok(());
+        if let Some(gl_context) = self.gl_state.as_ref() {
+            if gl_context.is_context_lost() {
+                log::error!("opengl context was lost; should reinit");
+                drop(self.gl_state.take());
+                self.enable_opengl()?;
+                return self.paint();
             }
+
+            self.expose.clear();
+
+            let mut frame = glium::Frame::new(
+                Rc::clone(&gl_context),
+                (u32::from(self.width), u32::from(self.height)),
+            );
+
+            self.callbacks.paint_opengl(&mut frame);
+            frame.finish()?;
+            return Ok(());
         }
 
         let (buf_width, buf_height) = self.buffer_image.image_dimensions();
@@ -848,7 +843,6 @@ impl XWindow {
                 buffer_image,
                 cursor: None,
                 cursors: HashMap::new(),
-                #[cfg(feature = "opengl")]
                 gl_state: None,
             }))
         };
@@ -1061,7 +1055,6 @@ impl WindowOps for XWindow {
         })
     }
 
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()> {
         XConnection::with_window_inner(self.0, move |inner| inner.enable_opengl())
     }

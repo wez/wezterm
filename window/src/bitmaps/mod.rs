@@ -1,6 +1,5 @@
 use crate::color::Color;
 use crate::{Operator, Point, Rect, Size};
-#[cfg(feature = "opengl")]
 use glium::texture::SrgbTexture2d;
 use palette::LinSrgba;
 use std::cell::RefCell;
@@ -43,7 +42,6 @@ pub trait Texture2d {
     }
 }
 
-#[cfg(feature = "opengl")]
 impl Texture2d for SrgbTexture2d {
     fn write(&self, rect: Rect, im: &dyn BitmapImage) {
         let (im_width, im_height) = im.image_dimensions();

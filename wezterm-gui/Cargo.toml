@@ -65,7 +65,7 @@ wezterm-font = { path = "../wezterm-font" }
 wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }
-window = { path = "../window", features=["opengl", "wayland"]}
+window = { path = "../window", features=["wayland"]}
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"

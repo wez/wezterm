@@ -27,7 +27,6 @@ use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::shm::MemPool;
 use toolkit::window::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame, Event};
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
-#[cfg(feature = "opengl")]
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_input_types::*;
 
@@ -98,9 +97,7 @@ pub struct WaylandWindowInner {
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
     // libraries will segfault on shutdown
-    #[cfg(feature = "opengl")]
     wegl_surface: Option<WlEglSurface>,
-    #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
 }
 
@@ -245,9 +242,7 @@ impl WaylandWindow {
             modifiers: Modifiers::NONE,
             pending_event,
             pending_mouse,
-            #[cfg(feature = "opengl")]
             gl_state: None,
-            #[cfg(feature = "opengl")]
             wegl_surface: None,
         }));
 
@@ -489,11 +484,8 @@ impl WaylandWindowInner {
                     self.dimensions = new_dimensions;
 
                     self.callbacks.resize(self.dimensions);
-                    #[cfg(feature = "opengl")]
-                    {
-                        if let Some(wegl_surface) = self.wegl_surface.as_mut() {
-                            wegl_surface.resize(pixel_width, pixel_height, 0, 0);
-                        }
+                    if let Some(wegl_surface) = self.wegl_surface.as_mut() {
+                        wegl_surface.resize(pixel_width, pixel_height, 0, 0);
                     }
                 }
 
@@ -514,7 +506,6 @@ impl WaylandWindowInner {
         }
     }
 
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&mut self) -> anyhow::Result<()> {
         let window = Window::Wayland(WaylandWindow(self.window_id));
         let wayland_conn = Connection::get().unwrap().wayland();
@@ -563,31 +554,28 @@ impl WaylandWindowInner {
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
-        #[cfg(feature = "opengl")]
-        {
-            if let Some(gl_context) = self.gl_state.as_ref() {
-                if gl_context.is_context_lost() {
-                    log::error!("opengl context was lost; should reinit");
-                    drop(self.gl_state.take());
-                    self.enable_opengl()?;
-                    return self.do_paint();
-                }
-
-                let mut frame = glium::Frame::new(
-                    Rc::clone(&gl_context),
-                    (
-                        self.dimensions.pixel_width as u32,
-                        self.dimensions.pixel_height as u32,
-                    ),
-                );
-
-                self.callbacks.paint_opengl(&mut frame);
-                frame.finish()?;
-                // self.damage();
-                self.refresh_frame();
-                self.need_paint = false;
-                return Ok(());
+        if let Some(gl_context) = self.gl_state.as_ref() {
+            if gl_context.is_context_lost() {
+                log::error!("opengl context was lost; should reinit");
+                drop(self.gl_state.take());
+                self.enable_opengl()?;
+                return self.do_paint();
             }
+
+            let mut frame = glium::Frame::new(
+                Rc::clone(&gl_context),
+                (
+                    self.dimensions.pixel_width as u32,
+                    self.dimensions.pixel_height as u32,
+                ),
+            );
+
+            self.callbacks.paint_opengl(&mut frame);
+            frame.finish()?;
+            // self.damage();
+            self.refresh_frame();
+            self.need_paint = false;
+            return Ok(());
         }
 
         if self.pool.is_used() {
@@ -777,7 +765,6 @@ impl WindowOps for WaylandWindow {
         })
     }
 
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()> {
         WaylandConnection::with_window_inner(self.0, move |inner| inner.enable_opengl())
     }

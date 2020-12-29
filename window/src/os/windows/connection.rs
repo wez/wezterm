@@ -18,7 +18,6 @@ pub struct Connection {
     event_handle: HANDLE,
     pub(crate) windows: RefCell<HashMap<HWindow, Rc<RefCell<WindowInner>>>>,
     timers: RefCell<HashMap<UINT_PTR, UINT_PTR>>,
-    #[cfg(feature = "opengl")]
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 }
 
@@ -99,7 +98,6 @@ impl Connection {
             event_handle,
             windows: RefCell::new(HashMap::new()),
             timers: RefCell::new(HashMap::new()),
-            #[cfg(feature = "opengl")]
             gl_connection: RefCell::new(None),
         })
     }

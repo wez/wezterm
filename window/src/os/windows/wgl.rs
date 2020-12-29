@@ -1,5 +1,3 @@
-#![cfg(feature = "opengl")]
-
 use super::*;
 use crate::is_swrast_preferred;
 use glium::backend::Backend;

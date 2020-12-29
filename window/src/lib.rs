@@ -16,15 +16,12 @@ pub const DEFAULT_DPI: f64 = 72.0;
 #[cfg(not(target_os = "macos"))]
 pub const DEFAULT_DPI: f64 = 96.0;
 
-#[cfg(feature = "opengl")]
 mod egl;
-
-#[cfg(feature = "opengl")]
-pub use glium;
 
 pub use bitmaps::{BitmapImage, Image};
 pub use color::Color;
 pub use connection::*;
+pub use glium;
 pub use os::*;
 pub use wezterm_input_types::*;
 
@@ -139,7 +136,6 @@ pub trait WindowCallbacks: Any {
 
     /// Called when the window has opengl mode enabled and the window
     /// contents need painting.
-    #[cfg(feature = "opengl")]
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
         use glium::Surface;
         frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
@@ -147,7 +143,6 @@ pub trait WindowCallbacks: Any {
 
     /// Called when opengl is initialized by enable_opengl(),
     /// and also prior to calling opengl_context_lost with and Err value.
-    #[cfg(feature = "opengl")]
     fn opengl_initialize(
         &mut self,
         _window: &dyn WindowOps,
@@ -157,7 +152,6 @@ pub trait WindowCallbacks: Any {
     }
 
     /// Called if the opengl context is lost
-    #[cfg(feature = "opengl")]
     fn opengl_context_lost(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
         Ok(())
     }
@@ -238,7 +232,6 @@ pub trait WindowOps {
     /// Attempt to set up opengl based painting.
     /// Will call opengl_initialize() in your WindowCallbacks impl to
     /// inform it of the gl context.
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()>;
 
     /// Initiate textual transfer from the clipboard

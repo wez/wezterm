@@ -45,7 +45,6 @@ pub(crate) struct WindowInner {
     hwnd: HWindow,
     callbacks: RefCell<Box<dyn WindowCallbacks>>,
     bitmap: RefCell<GdiBitmap>,
-    #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
     /// Fraction of mouse scroll
     hscroll_remainder: i16,
@@ -111,7 +110,6 @@ fn take_rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
     unsafe { Rc::from_raw(std::mem::transmute(lparam)) }
 }
 
-#[cfg(feature = "opengl")]
 fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
     if cfg!(debug_assertions) && false
     /* https://github.com/glium/glium/issues/1885 */
@@ -123,7 +121,6 @@ fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
 }
 
 impl WindowInner {
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&mut self) -> anyhow::Result<()> {
         let window = Window(self.hwnd);
         let conn = Connection::get().unwrap();
@@ -299,7 +296,6 @@ impl Window {
             hwnd: HWindow(null_mut()),
             callbacks: RefCell::new(callbacks),
             bitmap: RefCell::new(GdiBitmap::new_empty()),
-            #[cfg(feature = "opengl")]
             gl_state: None,
             vscroll_remainder: 0,
             hscroll_remainder: 0,
@@ -512,7 +508,6 @@ impl WindowOps for Window {
         })
     }
 
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()> {
         Connection::with_window_inner(self.0, move |inner| inner.enable_opengl())
     }
@@ -784,26 +779,23 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
         let width = rect_width(&rect) as usize;
         let height = rect_height(&rect) as usize;
 
-        #[cfg(feature = "opengl")]
-        {
-            if let Some(gl_context) = inner.gl_state.as_ref() {
-                if gl_context.is_context_lost() {
-                    log::error!("opengl context was lost; should reinit");
-                    let _ = inner
-                        .callbacks
-                        .borrow_mut()
-                        .opengl_context_lost(&Window(inner.hwnd));
-                    return None;
-                }
-
-                let mut frame =
-                    glium::Frame::new(Rc::clone(&gl_context), (width as u32, height as u32));
-
-                inner.callbacks.borrow_mut().paint_opengl(&mut frame);
-                frame.finish().expect("frame.finish failed");
-                EndPaint(hwnd, &mut ps);
-                return Some(0);
+        if let Some(gl_context) = inner.gl_state.as_ref() {
+            if gl_context.is_context_lost() {
+                log::error!("opengl context was lost; should reinit");
+                let _ = inner
+                    .callbacks
+                    .borrow_mut()
+                    .opengl_context_lost(&Window(inner.hwnd));
+                return None;
             }
+
+            let mut frame =
+                glium::Frame::new(Rc::clone(&gl_context), (width as u32, height as u32));
+
+            inner.callbacks.borrow_mut().paint_opengl(&mut frame);
+            frame.finish().expect("frame.finish failed");
+            EndPaint(hwnd, &mut ps);
+            return Some(0);
         }
 
         if width > 0 && height > 0 {

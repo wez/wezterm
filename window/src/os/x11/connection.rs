@@ -10,7 +10,6 @@ use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
-#[cfg(feature = "opengl")]
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -36,7 +35,6 @@ pub struct XConnection {
     timers: RefCell<TimerList>,
     pub(crate) visual: xcb::xproto::Visualtype,
     pub(crate) depth: u8,
-    #[cfg(feature = "opengl")]
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 }
 
@@ -413,7 +411,6 @@ impl XConnection {
             timers: RefCell::new(TimerList::new()),
             depth,
             visual,
-            #[cfg(feature = "opengl")]
             gl_connection: RefCell::new(None),
         };
 

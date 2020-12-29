@@ -16,14 +16,12 @@ impl WindowCallbacks for MyWindow {
         context.clear(Color::rgb(0x0, 0x0, 0x0));
     }
 
-    #[cfg(feature = "opengl")]
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
         // Window contents are gray in opengl mode
         use glium::Surface;
         frame.clear_color_srgb(0.15, 0.15, 0.15, 1.0);
     }
 
-    #[cfg(feature = "opengl")]
     fn opengl_initialize(
         &mut self,
         _window: &dyn WindowOps,
@@ -53,14 +51,7 @@ fn spawn_window() -> anyhow::Result<()> {
         }),
     )?;
 
-    #[cfg(feature = "opengl")]
     win.enable_opengl();
-
-    #[cfg(not(feature = "opengl"))]
-    eprintln!(
-        "opengl not enabled at compile time: cargo run --feature opengl --example basic_opengl"
-    );
-
     win.show();
     win.apply(|myself, _win| {
         if let Some(myself) = myself.downcast_ref::<MyWindow>() {

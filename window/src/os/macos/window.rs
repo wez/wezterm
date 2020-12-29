@@ -85,7 +85,6 @@ impl NSRange {
     }
 }
 
-#[cfg(feature = "opengl")]
 mod opengl {
     use super::*;
     use cocoa::appkit::{self, NSOpenGLContext, NSOpenGLPixelFormat};
@@ -389,7 +388,6 @@ impl Window {
                 view_id: None,
                 window_id,
                 screen_changed: false,
-                #[cfg(feature = "opengl")]
                 gl_context_pair: None,
                 text_cursor_position: Rect::new(Point::new(0, 0), Size::new(0, 0)),
                 hscroll_remainder: 0.,
@@ -570,7 +568,6 @@ impl WindowOps for Window {
         })
     }
 
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()> {
         Connection::with_window_inner(self.0, move |inner| {
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
@@ -843,7 +840,6 @@ struct Inner {
     view_id: Option<WeakPtr>,
     window_id: usize,
     screen_changed: bool,
-    #[cfg(feature = "opengl")]
     gl_context_pair: Option<opengl::GlContextPair>,
     text_cursor_position: Rect,
     hscroll_remainder: f64,
@@ -859,7 +855,6 @@ struct Inner {
 }
 
 impl Inner {
-    #[cfg(feature = "opengl")]
     fn enable_opengl(&mut self) -> anyhow::Result<()> {
         let window = Window(self.window_id);
 
@@ -1517,14 +1512,11 @@ impl WindowView {
     }
 
     extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
-        #[cfg(feature = "opengl")]
-        {
-            if let Some(this) = Self::get_this(this) {
-                let inner = this.inner.borrow_mut();
+        if let Some(this) = Self::get_this(this) {
+            let inner = this.inner.borrow_mut();
 
-                if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
-                    gl_context_pair.backend.update();
-                }
+            if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
+                gl_context_pair.backend.update();
             }
         }
 
@@ -1563,34 +1555,31 @@ impl WindowView {
                 return;
             }
 
-            #[cfg(feature = "opengl")]
-            {
-                if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
-                    if gl_context_pair.context.is_context_lost() {
-                        log::error!("opengl context was lost; should reinit");
-                        drop(inner.gl_context_pair.take());
-                        if let Err(e) = inner.enable_opengl() {
-                            log::error!("failed to reinit opengl: {}", e);
-                        }
-                        let view = inner.view_id.as_ref().unwrap().load();
-                        drop(inner);
-                        drop(this);
-                        unsafe {
-                            return Self::draw_rect(&mut **view, sel, dirty_rect);
-                        }
+            if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
+                if gl_context_pair.context.is_context_lost() {
+                    log::error!("opengl context was lost; should reinit");
+                    drop(inner.gl_context_pair.take());
+                    if let Err(e) = inner.enable_opengl() {
+                        log::error!("failed to reinit opengl: {}", e);
                     }
-
-                    let mut frame = glium::Frame::new(
-                        Rc::clone(&gl_context_pair.context),
-                        (width as u32, height as u32),
-                    );
-
-                    inner.callbacks.paint_opengl(&mut frame);
-                    frame
-                        .finish()
-                        .expect("frame.finish failed and we don't know how to recover");
-                    return;
+                    let view = inner.view_id.as_ref().unwrap().load();
+                    drop(inner);
+                    drop(this);
+                    unsafe {
+                        return Self::draw_rect(&mut **view, sel, dirty_rect);
+                    }
                 }
+
+                let mut frame = glium::Frame::new(
+                    Rc::clone(&gl_context_pair.context),
+                    (width as u32, height as u32),
+                );
+
+                inner.callbacks.paint_opengl(&mut frame);
+                frame
+                    .finish()
+                    .expect("frame.finish failed and we don't know how to recover");
+                return;
             }
 
             let mut buffer = this.buffer.borrow_mut();

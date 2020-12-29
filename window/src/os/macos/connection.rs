@@ -18,7 +18,6 @@ pub struct Connection {
     ns_app: id,
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WindowInner>>>>,
     pub(crate) next_window_id: AtomicUsize,
-    #[cfg(feature = "opengl")]
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 }
 
@@ -35,7 +34,6 @@ impl Connection {
                 ns_app,
                 windows: RefCell::new(HashMap::new()),
                 next_window_id: AtomicUsize::new(1),
-                #[cfg(feature = "opengl")]
                 gl_connection: RefCell::new(None),
             };
             Ok(conn)

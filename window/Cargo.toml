@@ -12,7 +12,7 @@ build = "build.rs"
 pretty_env_logger = "0.4"
 
 [build-dependencies]
-gl_generator = {version="0.14", optional=true}
+gl_generator = "0.14"
 
 [dependencies]
 async-task = "4.0"
@@ -22,7 +22,7 @@ bitflags = "1.0"
 euclid = "0.22"
 guillotiere = "0.6"
 lazy_static = "1.4"
-libloading = { version = "0.6", optional=true }
+libloading = "0.6"
 line_drawing = "0.8"
 log = "0.4"
 metrics = { version="0.12", features=["std"]}
@@ -30,11 +30,10 @@ palette = "0.5"
 promise = { path = "../promise" }
 resize = "0.5"
 serde = {version="1.0", features = ["rc", "derive"]}
-glium = { version = "0.29", optional=true, default-features = false}
+glium = { version = "0.29", default-features = false}
 wezterm-input-types = { path = "../wezterm-input-types" }
 
 [features]
-opengl = ["cgl", "glium", "gl_generator", "libloading"]
 wayland = ["smithay-client-toolkit", "memmap", "wayland-client", "wayland-egl"]
 
 [target."cfg(windows)".dependencies]
@@ -70,4 +69,4 @@ objc = "0.2"
 clipboard = "0.5"
 core-foundation = "0.7"
 core-graphics = "0.19"
-cgl = { version = "0.3", optional = true }
+cgl = "0.3"
