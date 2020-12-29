@@ -5,8 +5,8 @@ use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::{
     config, Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
-    MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, ScreenPoint,
-    WindowCallbacks, WindowOps, WindowOpsMut,
+    MouseEvent, MouseEventKind, MousePress, Operator, Point, Rect, ScreenPoint, WindowCallbacks,
+    WindowOps, WindowOpsMut,
 };
 use anyhow::{bail, Context};
 use lazy_static::lazy_static;
@@ -44,7 +44,6 @@ pub(crate) struct WindowInner {
     /// Non-owning reference to the window handle
     hwnd: HWindow,
     callbacks: RefCell<Box<dyn WindowCallbacks>>,
-    bitmap: RefCell<GdiBitmap>,
     gl_state: Option<Rc<glium::backend::Context>>,
     /// Fraction of mouse scroll
     hscroll_remainder: i16,
@@ -291,7 +290,6 @@ impl Window {
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),
             callbacks: RefCell::new(callbacks),
-            bitmap: RefCell::new(GdiBitmap::new_empty()),
             gl_state: None,
             vscroll_remainder: 0,
             hscroll_remainder: 0,
@@ -625,45 +623,6 @@ fn enable_dark_mode(hwnd: HWND) {
                 },
             );
         }
-    }
-}
-
-struct GdiGraphicsContext<'a> {
-    bitmap: &'a mut GdiBitmap,
-    dpi: u32,
-}
-
-impl<'a> PaintContext for GdiGraphicsContext<'a> {
-    fn clear_rect(&mut self, rect: Rect, color: Color) {
-        self.bitmap.clear_rect(rect, color)
-    }
-
-    fn clear(&mut self, color: Color) {
-        self.bitmap.clear(color);
-    }
-
-    fn get_dimensions(&self) -> Dimensions {
-        let (pixel_width, pixel_height) = self.bitmap.image_dimensions();
-        Dimensions {
-            pixel_width,
-            pixel_height,
-            dpi: self.dpi as usize,
-        }
-    }
-
-    fn draw_image(
-        &mut self,
-        dest_top_left: Point,
-        src_rect: Option<Rect>,
-        im: &dyn BitmapImage,
-        operator: Operator,
-    ) {
-        self.bitmap
-            .draw_image(dest_top_left, src_rect, im, operator)
-    }
-
-    fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {
-        self.bitmap.draw_line(start, end, color, operator);
     }
 }
 
