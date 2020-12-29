@@ -3,7 +3,6 @@
 use crate::caps::Capabilities;
 use crate::input::InputEvent;
 use crate::surface::Change;
-use anyhow::{anyhow, Error};
 use num_traits::NumCast;
 use std::fmt::Display;
 use std::time::Duration;
@@ -14,6 +13,8 @@ pub mod unix;
 pub mod windows;
 
 pub mod buffered;
+pub mod error;
+pub use error::{Error, Result};
 
 #[cfg(unix)]
 pub use self::unix::{UnixTerminal, UnixTerminalWaker as TerminalWaker};
@@ -55,27 +56,27 @@ pub trait Terminal {
     /// read as the user presses keys, disables local echo, so keys
     /// pressed by the user do not implicitly render to the terminal
     /// output, and disables canonicalization of unix newlines to CRLF.
-    fn set_raw_mode(&mut self) -> Result<(), Error>;
-    fn set_cooked_mode(&mut self) -> anyhow::Result<()>;
+    fn set_raw_mode(&mut self) -> Result<()>;
+    fn set_cooked_mode(&mut self) -> Result<()>;
 
     /// Enter the alternate screen.  The alternate screen will be left
     /// automatically when the `Terminal` is dropped.
-    fn enter_alternate_screen(&mut self) -> Result<(), Error>;
+    fn enter_alternate_screen(&mut self) -> Result<()>;
 
     /// Exit the alternate screen.
-    fn exit_alternate_screen(&mut self) -> Result<(), Error>;
+    fn exit_alternate_screen(&mut self) -> Result<()>;
 
     /// Queries the current screen size, returning width, height.
-    fn get_screen_size(&mut self) -> Result<ScreenSize, Error>;
+    fn get_screen_size(&mut self) -> Result<ScreenSize>;
 
     /// Sets the current screen size
-    fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error>;
+    fn set_screen_size(&mut self, size: ScreenSize) -> Result<()>;
 
     /// Render a series of changes to the terminal output
-    fn render(&mut self, changes: &[Change]) -> Result<(), Error>;
+    fn render(&mut self, changes: &[Change]) -> Result<()>;
 
     /// Flush any buffered output
-    fn flush(&mut self) -> Result<(), Error>;
+    fn flush(&mut self) -> Result<()>;
 
     /// Check for a parsed input event.
     /// `wait` indicates the behavior in the case that no input is
@@ -89,7 +90,7 @@ pub trait Terminal {
     /// The possible values returned as `InputEvent`s depend on the
     /// mode of the terminal.  Most values are not returned unless
     /// the terminal is set to raw mode.
-    fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>, Error>;
+    fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>>;
 
     fn waker(&self) -> TerminalWaker;
 }
@@ -112,10 +113,10 @@ pub type SystemTerminal = WindowsTerminal;
 /// If you have a more advanced use case you will want to look to the
 /// constructors for `UnixTerminal` and `WindowsTerminal` and call whichever
 /// one is most suitable for your needs.
-pub fn new_terminal(caps: Capabilities) -> Result<impl Terminal, Error> {
+pub fn new_terminal(caps: Capabilities) -> Result<impl Terminal> {
     SystemTerminal::new(caps)
 }
 
-pub(crate) fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U, Error> {
-    num_traits::cast(n).ok_or_else(|| anyhow!("{} is out of bounds for this system", n))
+pub(crate) fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U> {
+    num_traits::cast(n).ok_or_else(|| Error::NumCastOutOfBounds(n.to_string()))
 }

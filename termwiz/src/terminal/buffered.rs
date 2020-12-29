@@ -2,7 +2,7 @@
 
 use crate::surface::{SequenceNo, Surface};
 use crate::terminal::Terminal;
-use anyhow::Error;
+use crate::error::Result;
 use std::ops::{Deref, DerefMut};
 
 /// `BufferedTerminal` is a convenience wrapper around both
@@ -23,7 +23,7 @@ pub struct BufferedTerminal<T: Terminal> {
 impl<T: Terminal> BufferedTerminal<T> {
     /// Create a new `BufferedTerminal` with a `Surface` of
     /// a matching size.
-    pub fn new(mut terminal: T) -> Result<Self, Error> {
+    pub fn new(mut terminal: T) -> Result<Self> {
         let size = terminal.get_screen_size()?;
         let surface = Surface::new(size.cols, size.rows);
         Ok(Self {
@@ -47,7 +47,7 @@ impl<T: Terminal> BufferedTerminal<T> {
     /// Applications typically build in a refresh function (CTRL-L
     /// is common for unix applications) to request a repaint.
     /// You can use the `repaint` function for that situation.
-    pub fn flush(&mut self) -> Result<(), Error> {
+    pub fn flush(&mut self) -> Result<()> {
         {
             let (seq, changes) = self.surface.get_changes(self.seqno);
             // If we encounter an error during rendering, we want to
@@ -64,7 +64,7 @@ impl<T: Terminal> BufferedTerminal<T> {
 
     /// Clears the screen and re-draws the surface contents onto
     /// the Terminal.
-    pub fn repaint(&mut self) -> Result<(), Error> {
+    pub fn repaint(&mut self) -> Result<()> {
         self.seqno = 0;
         self.flush()
     }
@@ -93,7 +93,7 @@ impl<T: Terminal> BufferedTerminal<T> {
     /// consume the input records.  Such a thing is possible, but is
     /// better suited for a higher level abstraction than this basic
     /// `BufferedTerminal` interface.
-    pub fn check_for_resize(&mut self) -> Result<bool, Error> {
+    pub fn check_for_resize(&mut self) -> Result<bool> {
         let size = self.terminal.get_screen_size()?;
         let (width, height) = self.surface.dimensions();
 

@@ -1,14 +1,79 @@
 use crate::color::RgbColor;
 pub use crate::hyperlink::Hyperlink;
-use anyhow::{anyhow, bail, ensure};
-use base64;
+
 use bitflags::bitflags;
 use num_derive::*;
 use num_traits::FromPrimitive;
 use ordered_float::NotNan;
-use std::collections::HashMap;
-use std::fmt::{Display, Error as FmtError, Formatter};
-use std::str;
+use std::{
+    collections::HashMap,
+    fmt::{Display, Result as FmtResult, Formatter},
+    str,
+};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum OscError {
+    /// Empty sequence.
+    #[error("empty sequence")]
+    Empty,
+
+    /// Unknown sequence.
+    #[error("unknown code: {0}")]
+    Unknown(String),
+
+    /// Unsupported sequence.
+    #[error("unsupported: {0:?}")]
+    Unsupported(OperatingSystemCommandCode),
+
+    /// Invalid selection sequence.
+    #[error("selection: invalid {0:?}")]
+    SelectionInvalid(Vec<u8>),
+
+    /// Unhandled selection sequence.
+    #[error("selection: unhandled {0:?}")]
+    SelectionUnhandled(Vec<Vec<u8>>),
+
+    /// Error when a simple sequence doesn't have 2 parameters.
+    #[error("simple sequence: expected 2 parameters, found {0}")]
+    SimpleParamCount(usize),
+
+    /// Unknown DynamicColor code.
+    #[error("color: unknown dynamic code {0}")]
+    ColorDynamic(u8),
+
+    /// Unknown or invalid color spec format.
+    #[error("color: invalid spec {0}")]
+    ColorSpec(String),
+
+    /// Base64 decoding error.
+    #[error("base64: {0}")]
+    Base64(#[from] base64::DecodeError),
+
+    /// Integer parse error.
+    #[error("parse int: {0}")]
+    Int(#[from] std::num::ParseIntError),
+
+    /// UTF-8 decoding error (String).
+    #[error("utf-8: {0}")]
+    Utf8String(#[from] std::string::FromUtf8Error),
+
+    /// UTF-8 decoding error (str).
+    #[error("utf-8: {0}")]
+    Utf8Str(#[from] std::str::Utf8Error),
+
+    /// Wrapped Hyperlink sequence errors.
+    #[error("hyperlink: {0}")]
+    Hyperlink(#[from] crate::hyperlink::HyperlinkError),
+
+    /// Wrapped FinalTerm sequence errors.
+    #[error("finalterm: {0}")]
+    FinalTerm(#[from] FinalTermError),
+
+    /// Wrapped iTerm sequence errors.
+    #[error("iterm: {0}")]
+    ITerm(#[from] ITermError),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ColorOrQuery {
@@ -17,7 +82,7 @@ pub enum ColorOrQuery {
 }
 
 impl Display for ColorOrQuery {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         match self {
             ColorOrQuery::Query => write!(f, "?"),
             ColorOrQuery::Color(c) => write!(f, "{}", c.to_x11_16bit_rgb_string()),
@@ -89,7 +154,7 @@ pub struct Selection :u16{
 }
 
 impl Selection {
-    fn try_parse(buf: &[u8]) -> anyhow::Result<Selection> {
+    fn try_parse(buf: &[u8]) -> Result<Selection, OscError> {
         if buf == b"" {
             Ok(Selection::SELECT | Selection::CUT0)
         } else {
@@ -109,7 +174,7 @@ impl Selection {
                     b'7' => Selection::CUT7,
                     b'8' => Selection::CUT8,
                     b'9' => Selection::CUT9,
-                    _ => bail!("invalid selection {:?}", buf),
+                    _ => return Err(OscError::SelectionInvalid(buf.to_vec()))
                 }
             }
             Ok(s)
@@ -118,7 +183,7 @@ impl Selection {
 }
 
 impl Display for Selection {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         macro_rules! item {
             ($variant:ident, $s:expr) => {
                 if (*self & Selection::$variant) != Selection::NONE {
@@ -160,7 +225,7 @@ impl OperatingSystemCommand {
         })
     }
 
-    fn parse_selection(osc: &[&[u8]]) -> anyhow::Result<Self> {
+    fn parse_selection(osc: &[&[u8]]) -> Result<Self, OscError> {
         if osc.len() == 2 {
             Selection::try_parse(osc[1]).map(OperatingSystemCommand::ClearSelection)
         } else if osc.len() == 3 && osc[2] == b"?" {
@@ -171,11 +236,11 @@ impl OperatingSystemCommand {
             let s = String::from_utf8(bytes)?;
             Ok(OperatingSystemCommand::SetSelection(sel, s))
         } else {
-            bail!("unhandled OSC 52: {:?}", osc);
+            Err(OscError::SelectionUnhandled(osc.iter().map(|v| v.to_vec()).collect()))
         }
     }
 
-    fn parse_reset_colors(osc: &[&[u8]]) -> anyhow::Result<Self> {
+    fn parse_reset_colors(osc: &[&[u8]]) -> Result<Self, OscError> {
         let mut colors = vec![];
         let mut iter = osc.iter();
         iter.next(); // skip the command word that we already know is present
@@ -191,7 +256,7 @@ impl OperatingSystemCommand {
         Ok(OperatingSystemCommand::ResetColors(colors))
     }
 
-    fn parse_change_color_number(osc: &[&[u8]]) -> anyhow::Result<Self> {
+    fn parse_change_color_number(osc: &[&[u8]]) -> Result<Self, OscError> {
         let mut pairs = vec![];
         let mut iter = osc.iter();
         iter.next(); // skip the command word that we already know is present
@@ -204,7 +269,7 @@ impl OperatingSystemCommand {
             } else {
                 ColorOrQuery::Color(
                     RgbColor::from_named_or_rgb_string(spec)
-                        .ok_or_else(|| anyhow!("invalid color spec {:?}", spec))?,
+                        .ok_or_else(|| OscError::ColorSpec(spec.to_string()))?,
                 )
             };
 
@@ -217,16 +282,16 @@ impl OperatingSystemCommand {
         Ok(OperatingSystemCommand::ChangeColorNumber(pairs))
     }
 
-    fn parse_reset_dynamic_color_number(idx: u8) -> anyhow::Result<Self> {
+    fn parse_reset_dynamic_color_number(idx: u8) -> Result<Self, OscError> {
         let which_color: DynamicColorNumber = FromPrimitive::from_u8(idx)
-            .ok_or_else(|| anyhow!("osc code is not a valid DynamicColorNumber!?"))?;
+            .ok_or_else(|| OscError::ColorDynamic(idx))?;
 
         Ok(OperatingSystemCommand::ResetDynamicColor(which_color))
     }
 
-    fn parse_change_dynamic_color_number(idx: u8, osc: &[&[u8]]) -> anyhow::Result<Self> {
+    fn parse_change_dynamic_color_number(idx: u8, osc: &[&[u8]]) -> Result<Self, OscError> {
         let which_color: DynamicColorNumber = FromPrimitive::from_u8(idx)
-            .ok_or_else(|| anyhow!("osc code is not a valid DynamicColorNumber!?"))?;
+            .ok_or_else(|| OscError::ColorDynamic(idx))?;
         let mut colors = vec![];
         for spec in osc.iter().skip(1) {
             if spec == b"?" {
@@ -235,7 +300,7 @@ impl OperatingSystemCommand {
                 let spec = str::from_utf8(spec)?;
                 colors.push(ColorOrQuery::Color(
                     RgbColor::from_named_or_rgb_string(spec)
-                        .ok_or_else(|| anyhow!("invalid color spec {:?}", spec))?,
+                        .ok_or_else(|| OscError::ColorSpec(spec.to_string()))?,
                 ));
             }
         }
@@ -246,12 +311,15 @@ impl OperatingSystemCommand {
         ))
     }
 
-    fn internal_parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
-        ensure!(!osc.is_empty(), "no params");
+    fn internal_parse(osc: &[&[u8]]) -> Result<Self, OscError> {
+        if osc.is_empty() {
+            return Err(OscError::Empty);
+        }
+
         let p1str = String::from_utf8_lossy(osc[0]);
 
         if p1str.is_empty() {
-            bail!("zero length osc");
+            return Err(OscError::Empty);
         }
 
         // Ugh, this is to handle "OSC ltitle" which is a legacyish
@@ -268,17 +336,16 @@ impl OperatingSystemCommand {
         } else {
             OperatingSystemCommandCode::from_code(&p1str)
         }
-        .ok_or_else(|| anyhow!("unknown code"))?;
+        .ok_or_else(|| OscError::Unknown(p1str.to_string()))?;
 
         macro_rules! single_string {
-            ($variant:ident) => {{
+            ($variant:ident) => {
                 if osc.len() != 2 {
-                    bail!("wrong param count");
+                    Err(OscError::SimpleParamCount(osc.len()))
+                } else {
+                    Ok(OperatingSystemCommand::$variant(String::from_utf8(osc[1].to_vec())?))
                 }
-                let s = String::from_utf8(osc[1].to_vec())?;
-
-                Ok(OperatingSystemCommand::$variant(s))
-            }};
+            };
         };
 
         use self::OperatingSystemCommandCode::*;
@@ -297,11 +364,10 @@ impl OperatingSystemCommand {
             ManipulateSelectionData => Self::parse_selection(osc),
             SystemNotification => single_string!(SystemNotification),
             SetCurrentWorkingDirectory => single_string!(CurrentWorkingDirectory),
-            ITermProprietary => {
-                self::ITermProprietary::parse(osc).map(OperatingSystemCommand::ITermProprietary)
-            }
-            FinalTermSemanticPrompt => self::FinalTermSemanticPrompt::parse(osc)
-                .map(OperatingSystemCommand::FinalTermSemanticPrompt),
+            ITermProprietary => Ok(self::ITermProprietary::parse(osc)
+                .map(OperatingSystemCommand::ITermProprietary)?),
+            FinalTermSemanticPrompt => Ok(self::FinalTermSemanticPrompt::parse(osc)
+                .map(OperatingSystemCommand::FinalTermSemanticPrompt)?),
             ChangeColorNumber => Self::parse_change_color_number(osc),
             ResetColors => Self::parse_reset_colors(osc),
 
@@ -332,7 +398,7 @@ impl OperatingSystemCommand {
                 Self::parse_change_dynamic_color_number(p1str.parse::<u8>().unwrap(), osc)
             }
 
-            osc_code => bail!("{:?} not impl", osc_code),
+            osc_code => Err(OscError::Unsupported(osc_code)),
         }
     }
 }
@@ -442,7 +508,7 @@ impl OperatingSystemCommandCode {
 }
 
 impl Display for OperatingSystemCommand {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(f, "\x1b]")?;
 
         macro_rules! single_string {
@@ -516,6 +582,37 @@ impl Display for OperatingSystemCommand {
     }
 }
 
+/// Errors related to FinalTerm's OSC sequence.
+#[derive(Debug, Error)]
+pub enum FinalTermError {
+    /// Error when there's less than 2 parameters.
+    #[error("expected >=2 parameters, found {0}")]
+    InsufficientParameters(usize),
+
+    /// UTF-8 decoding error.
+    #[error("utf-8: {0}")]
+    Utf8Str(#[from] std::str::Utf8Error),
+
+    // Click: unknown kind.
+    #[error("click: unknown kind {0}")]
+    ClickUnknownKind(String),
+
+    // Semantic prompt: unknown kind.
+    #[error("semantic prompt: unknown kind {0}")]
+    SemanticPromptUnknownKind(String),
+
+    // Semantic prompt: invalid parameters.
+    #[error("semantic prompt: invalid p1={p1} params={params}")]
+    SemanticPromptInvalidParams {
+        p1: String,
+        params: String,
+    },
+
+    // Semantic prompt: malformed.
+    #[error("semantic prompt: malformed")]
+    SemanticPromptMalformed,
+}
+
 /// https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FinalTermClick {
@@ -532,20 +629,20 @@ pub enum FinalTermClick {
 }
 
 impl std::convert::TryFrom<&str> for FinalTermClick {
-    type Error = anyhow::Error;
-    fn try_from(s: &str) -> anyhow::Result<Self> {
+    type Error = FinalTermError;
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
         match s {
             "line" => Ok(Self::Line),
             "m" => Ok(Self::MultipleLine),
             "v" => Ok(Self::ConservativeVertical),
             "w" => Ok(Self::SmartVertical),
-            _ => Err(anyhow!("invalid FinalTermClick {}", s)),
+            _ => Err(FinalTermError::ClickUnknownKind(s.to_string())),
         }
     }
 }
 
 impl Display for FinalTermClick {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         match self {
             Self::Line => write!(f, "line"),
             Self::MultipleLine => write!(f, "m"),
@@ -575,20 +672,20 @@ impl Default for FinalTermPromptKind {
 }
 
 impl std::convert::TryFrom<&str> for FinalTermPromptKind {
-    type Error = anyhow::Error;
-    fn try_from(s: &str) -> anyhow::Result<Self> {
+    type Error = FinalTermError;
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
         match s {
             "i" => Ok(Self::Initial),
             "r" => Ok(Self::RightSide),
             "c" => Ok(Self::Continuation),
             "s" => Ok(Self::Secondary),
-            _ => Err(anyhow!("invalid FinalTermPromptKind {}", s)),
+            _ => Err(FinalTermError::SemanticPromptUnknownKind(s.to_string())),
         }
     }
 }
 
 impl Display for FinalTermPromptKind {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         match self {
             Self::Initial => write!(f, "i"),
             Self::RightSide => write!(f, "r"),
@@ -644,8 +741,11 @@ pub enum FinalTermSemanticPrompt {
 }
 
 impl FinalTermSemanticPrompt {
-    fn parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
-        ensure!(osc.len() > 1, "not enough args");
+    fn parse(osc: &[&[u8]]) -> Result<Self, FinalTermError> {
+        if osc.len() < 2 {
+            return Err(FinalTermError::InsufficientParameters(osc.len()));
+        }
+
         let param = String::from_utf8_lossy(osc[1]);
 
         macro_rules! single {
@@ -669,7 +769,7 @@ impl FinalTermSemanticPrompt {
                 let value = &s[equal + 1..];
                 params.insert(str::from_utf8(key)?, str::from_utf8(value)?);
             } else if !s.is_empty() {
-                bail!("malformed FinalTermSemanticPrompt");
+                return Err(FinalTermError::SemanticPromptMalformed);
             }
         }
 
@@ -721,16 +821,15 @@ impl FinalTermSemanticPrompt {
             }));
         }
 
-        anyhow::bail!(
-            "invalid FinalTermSemanticPrompt p1:{:?}, params:{:?}",
-            param,
-            params
-        );
+        Err(FinalTermError::SemanticPromptInvalidParams {
+            p1: param.to_string(),
+            params: format!("{:?}", params),
+        })
     }
 }
 
 impl Display for FinalTermSemanticPrompt {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(f, "133;")?;
         match self {
             Self::FreshLine => write!(f, "L")?,
@@ -820,6 +919,58 @@ pub enum ITermProprietary {
     File(Box<ITermFileData>),
 }
 
+/// Errors specific to iTerm sequences.
+#[derive(Debug, Error)]
+pub enum ITermError {
+    /// Error when there's less than 2 parameters.
+    #[error("expected >=2 parameters, found {0}")]
+    InsufficientParameters(usize),
+
+    /// UTF-8 decoding error (String).
+    #[error("utf-8: {0}")]
+    Utf8String(#[from] std::string::FromUtf8Error),
+
+    /// UTF-8 decoding error (str).
+    #[error("utf-8: {0}")]
+    Utf8Str(#[from] std::str::Utf8Error),
+
+    /// Base64 decoding error.
+    #[error("base64: {0}")]
+    Base64(#[from] base64::DecodeError),
+
+    /// Float parse error.
+    #[error("parse float: {0}")]
+    Float(#[from] std::num::ParseFloatError),
+
+    /// Integer parse error.
+    #[error("parse int: {0}")]
+    Int(#[from] std::num::ParseIntError),
+
+    /// Float is NaN error.
+    #[error("unexpected NaN: {0}")]
+    NaNFloat(#[from] ordered_float::FloatIsNan),
+
+    /// Missing keyword (sequence discriminant).
+    #[error("missing keyword")]
+    MissingKeyword,
+
+    /// File download: no colon.
+    #[error("file download: no colon")]
+    FileNoColon,
+
+    /// File download: no equals.
+    #[error("file download: no equals")]
+    FileNoEquals,
+
+    /// File download: no data.
+    #[error("file download: no data")]
+    FileNoData,
+
+    /// Unknown sequence.
+    #[error("unknown sequence: {0:?}")]
+    Unknown(Vec<Vec<u8>>),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ITermFileData {
     /// file name
@@ -841,7 +992,7 @@ pub struct ITermFileData {
 }
 
 impl ITermFileData {
-    fn parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
+    fn parse(osc: &[&[u8]]) -> Result<Self, ITermError> {
         let mut params = HashMap::new();
 
         // Unfortunately, the encoding for the file download data is
@@ -870,7 +1021,7 @@ impl ITermFileData {
                 } else {
                     // If we don't find the colon in the last piece, we've
                     // got nothing useful
-                    bail!("failed to parse file data; no colon found");
+                    return Err(ITermError::FileNoColon);
                 }
             } else {
                 param
@@ -882,7 +1033,7 @@ impl ITermFileData {
                 let value = &param[equal + 1..];
                 params.insert(str::from_utf8(key)?, str::from_utf8(value)?);
             } else if idx != last {
-                bail!("failed to parse file data; no equals found");
+                return Err(ITermError::FileNoEquals);
             }
         }
 
@@ -904,7 +1055,7 @@ impl ITermFileData {
             .map(|s| *s != "0")
             .unwrap_or(true);
         let inline = params.get("inline").map(|s| *s != "0").unwrap_or(false);
-        let data = data.ok_or_else(|| anyhow!("didn't set data"))?;
+        let data = data.ok_or(ITermError::FileNoData)?;
         Ok(Self {
             name,
             size,
@@ -918,10 +1069,10 @@ impl ITermFileData {
 }
 
 impl Display for ITermFileData {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(f, "File")?;
         let mut sep = "=";
-        let emit_sep = |sep, f: &mut Formatter| -> Result<&str, FmtError> {
+        let emit_sep = |sep, f: &mut Formatter| -> std::result::Result<&str, std::fmt::Error> {
             write!(f, "{}", sep)?;
             Ok(";")
         };
@@ -974,7 +1125,7 @@ impl Default for ITermDimension {
 }
 
 impl Display for ITermDimension {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         use self::ITermDimension::*;
         match self {
             Automatic => write!(f, "auto"),
@@ -986,14 +1137,14 @@ impl Display for ITermDimension {
 }
 
 impl std::str::FromStr for ITermDimension {
-    type Err = anyhow::Error;
-    fn from_str(s: &str) -> anyhow::Result<Self> {
+    type Err = ITermError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         ITermDimension::parse(s)
     }
 }
 
 impl ITermDimension {
-    fn parse(s: &str) -> anyhow::Result<Self> {
+    fn parse(s: &str) -> Result<Self, ITermError> {
         if s == "auto" {
             Ok(ITermDimension::Automatic)
         } else if s.ends_with("px") {
@@ -1031,15 +1182,17 @@ impl ITermProprietary {
         feature = "cargo-clippy",
         allow(clippy::cyclomatic_complexity, clippy::cognitive_complexity)
     )]
-    fn parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
+    fn parse(osc: &[&[u8]]) -> Result<Self, ITermError> {
         // iTerm has a number of different styles of OSC parameter
         // encodings, which makes this section of code a bit gnarly.
-        ensure!(osc.len() > 1, "not enough args");
+        if osc.len() < 2 {
+            return Err(ITermError::InsufficientParameters(osc.len()));
+        }
 
         let param = String::from_utf8_lossy(osc[1]);
 
         let mut iter = param.splitn(2, '=');
-        let keyword = iter.next().ok_or_else(|| anyhow!("bad params"))?;
+        let keyword = iter.next().ok_or_else(|| ITermError::MissingKeyword)?;
         let p1 = iter.next();
 
         macro_rules! single {
@@ -1127,12 +1280,12 @@ impl ITermProprietary {
             return Ok(ITermProprietary::File(Box::new(ITermFileData::parse(osc)?)));
         }
 
-        bail!("ITermProprietary {:?}", osc);
+        Err(ITermError::Unknown(osc.iter().map(|v| v.to_vec()).collect()))
     }
 }
 
 impl Display for ITermProprietary {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(f, "1337;")?;
         use self::ITermProprietary::*;
         match self {

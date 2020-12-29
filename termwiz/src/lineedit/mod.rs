@@ -38,6 +38,7 @@
 //! Alt-b, Alt-Left | Move the cursor backwards one word
 //! Alt-f, Alt-Right | Move the cursor forwards one word
 use crate::caps::{Capabilities, ProbeHints};
+use crate::error::{Error, Result};
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use crate::surface::change::ChangeSequence;
 use crate::surface::{Change, Position};
@@ -165,7 +166,7 @@ impl<'term> LineEditor<'term> {
         }
     }
 
-    fn render(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<()> {
+    fn render(&mut self, host: &mut dyn LineEditorHost) -> Result<()> {
         let screen_size = self.terminal.get_screen_size()?;
 
         let mut changes = ChangeSequence::new(screen_size.rows, screen_size.cols);
@@ -300,11 +301,10 @@ impl<'term> LineEditor<'term> {
     /// Control is not returned to the caller until a line has been
     /// accepted, or until an error is detected.
     /// Returns Ok(None) if the editor was cancelled eg: via CTRL-C.
-    pub fn read_line(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<Option<String>> {
-        anyhow::ensure!(
-            self.state == EditorState::Inactive,
-            "recursive call to read_line!"
-        );
+    pub fn read_line(&mut self, host: &mut dyn LineEditorHost) -> Result<Option<String>> {
+        if self.state != EditorState::Inactive {
+            return Err(Error::ImpossibleState("recursive call to read_line!"));
+        }
 
         // Clear out the last render info so that we don't over-compensate
         // on the first call to render().
@@ -790,7 +790,7 @@ impl<'term> LineEditor<'term> {
         &mut self,
         host: &mut dyn LineEditorHost,
         action: Action,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         // When searching, reinterpret history next/prev as repeated
         // search actions in the appropriate direction
         let action = match (action, &self.state) {
@@ -950,7 +950,7 @@ impl<'term> LineEditor<'term> {
         Ok(())
     }
 
-    fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<Option<String>> {
+    fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> Result<Option<String>> {
         self.line.clear();
         self.cursor = 0;
         self.history_pos = None;
@@ -968,7 +968,7 @@ impl<'term> LineEditor<'term> {
                     EditorState::Searching { .. } | EditorState::Editing => {}
                     EditorState::Cancelled => return Ok(None),
                     EditorState::Accepted => return Ok(Some(self.line.clone())),
-                    EditorState::Inactive => anyhow::bail!("editor is inactive during read line!?"),
+                    EditorState::Inactive => return Err(Error::ImpossibleState("editor is inactive during read line!?")),
                 }
             } else {
                 self.render(host)?;
@@ -980,8 +980,8 @@ impl<'term> LineEditor<'term> {
 
 /// Create a `Terminal` with the recommended settings for use with
 /// a `LineEditor`.
-pub fn line_editor_terminal() -> anyhow::Result<impl Terminal> {
+pub fn line_editor_terminal() -> Result<impl Terminal> {
     let hints = ProbeHints::new_from_env().mouse_reporting(Some(false));
     let caps = Capabilities::new_with_hints(hints)?;
-    new_terminal(caps)
+    new_terminal(caps).map_err(|err| err.into())
 }

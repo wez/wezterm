@@ -4,14 +4,44 @@
 //! We use that as the foundation of our hyperlink support, and the game
 //! plan is to then implicitly enable the hyperlink attribute for a cell
 //! as we recognize linkable input text during print() processing.
-use anyhow::{anyhow, ensure, Error};
 use regex::{Captures, Regex};
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
-use std::fmt::{Display, Error as FmtError, Formatter};
+use std::fmt::{Display, Formatter};
 use std::ops::Range;
 use std::sync::Arc;
+use thiserror::Error;
+
+/// Errors specific to hyperlinks.
+#[derive(Debug, Error)]
+pub enum HyperlinkError {
+    /// Error when there's not 3 parameters.
+    #[error("expected 3 parameters, found {0}")]
+    InvalidParameterCount(usize),
+
+    /// Regex error.
+    #[error("regex: {0}")]
+    Regex(#[from] regex::Error),
+
+    /// UTF-8 decoding error (String).
+    #[error("utf-8: {0}")]
+    Utf8String(#[from] std::string::FromUtf8Error),
+
+    /// UTF-8 decoding error (str).
+    #[error("utf-8: {0}")]
+    Utf8Str(#[from] std::str::Utf8Error),
+
+    /// Missing key in params.
+    #[error("missing key")]
+    MissingKey,
+
+    /// Missing value in params.
+    #[error("missing value")]
+    MissingValue,
+}
+
+type Result<T> = std::result::Result<T, HyperlinkError>;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -71,8 +101,11 @@ impl Hyperlink {
         }
     }
 
-    pub fn parse(osc: &[&[u8]]) -> Result<Option<Hyperlink>, Error> {
-        ensure!(osc.len() == 3, "wrong param count");
+    pub fn parse(osc: &[&[u8]]) -> Result<Option<Hyperlink>> {
+        if osc.len() != 3 {
+            return Err(HyperlinkError::InvalidParameterCount(osc.len()));
+        }
+
         if osc[1].is_empty() && osc[2].is_empty() {
             // Clearing current hyperlink
             Ok(None)
@@ -84,8 +117,8 @@ impl Hyperlink {
             if !param_str.is_empty() {
                 for pair in param_str.split(':') {
                     let mut iter = pair.splitn(2, '=');
-                    let key = iter.next().ok_or_else(|| anyhow!("bad params"))?;
-                    let value = iter.next().ok_or_else(|| anyhow!("bad params"))?;
+                    let key = iter.next().ok_or(HyperlinkError::MissingKey)?;
+                    let value = iter.next().ok_or(HyperlinkError::MissingValue)?;
                     params.insert(key.to_owned(), value.to_owned());
                 }
             }
@@ -96,7 +129,7 @@ impl Hyperlink {
 }
 
 impl Display for Hyperlink {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "8;")?;
         for (idx, (k, v)) in self.params.iter().enumerate() {
             // TODO: protect against k, v containing : or =
@@ -145,7 +178,7 @@ pub struct Rule {
 }
 
 #[cfg(feature = "use_serde")]
-fn deserialize_regex<'de, D>(deserializer: D) -> Result<Regex, D::Error>
+fn deserialize_regex<'de, D>(deserializer: D) -> std::result::Result<Regex, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -198,7 +231,7 @@ impl<'t> Match<'t> {
 
 impl Rule {
     /// Construct a new rule.  It may fail if the regex is invalid.
-    pub fn new(regex: &str, format: &str) -> Result<Self, Error> {
+    pub fn new(regex: &str, format: &str) -> Result<Self> {
         Ok(Self {
             regex: Regex::new(regex)?,
             format: format.to_owned(),

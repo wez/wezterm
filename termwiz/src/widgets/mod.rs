@@ -4,15 +4,50 @@
 use crate::color::ColorAttribute;
 use crate::input::InputEvent;
 use crate::surface::{Change, CursorShape, Position, SequenceNo, Surface};
-use anyhow::Error;
+
+use cassowary::{AddConstraintError, SuggestValueError};
 use fnv::FnvHasher;
 use std::collections::{HashMap, VecDeque};
 use std::hash::BuildHasherDefault;
+use thiserror::Error;
 
 /// fnv is a more appropriate hasher for the WidgetIds we use in this module.
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;
 
 pub mod layout;
+
+/// Errors specific to widgets.
+#[derive(Debug, Error)]
+pub enum WidgetError {
+    #[error("unknown edit variable")]
+    UnknownEditVariable,
+
+    #[error("internal solver error: {0}")]
+    SolverError(String),
+
+    #[error("widget has no solver state")]
+    NoSolverState,
+
+    #[error("add constraint: {0:?}")]
+    AddConstraint(AddConstraintError),
+}
+
+type Result<T> = std::result::Result<T, WidgetError>;
+
+impl From<AddConstraintError> for WidgetError {
+    fn from(err: AddConstraintError) -> Self {
+        Self::AddConstraint(err)
+    }
+}
+
+impl From<SuggestValueError> for WidgetError {
+    fn from(err: SuggestValueError) -> Self {
+        match err {
+            SuggestValueError::UnknownEditVariable => Self::UnknownEditVariable,
+            SuggestValueError::InternalSolverError(e) => Self::SolverError(e.to_string()),
+        }
+    }
+}
 
 /// Describes an event that may need to be processed by the widget
 pub enum WidgetEvent {
@@ -309,7 +344,7 @@ impl<'widget> Ui<'widget> {
         }
     }
 
-    pub fn process_event_queue(&mut self) -> Result<(), Error> {
+    pub fn process_event_queue(&mut self) -> Result<()> {
         while let Some(event) = self.input_queue.pop_front() {
             match event {
                 WidgetEvent::Input(InputEvent::Resized { rows, cols }) => {
@@ -354,7 +389,7 @@ impl<'widget> Ui<'widget> {
         id: WidgetId,
         screen: &mut Surface,
         abs_coords: &ScreenRelativeCoords,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let coords = {
             let render_data = self.render.get_mut(&id).unwrap();
             let surface = &mut render_data.surface;
@@ -389,7 +424,7 @@ impl<'widget> Ui<'widget> {
 
     /// Reconsider the layout constraints and apply them.
     /// Returns true if the layout was changed, false if no changes were made.
-    fn compute_layout(&mut self, width: usize, height: usize) -> Result<bool, Error> {
+    fn compute_layout(&mut self, width: usize, height: usize) -> Result<bool> {
         let mut layout = layout::LayoutState::new();
 
         let root = self.graph.root.unwrap();
@@ -421,7 +456,7 @@ impl<'widget> Ui<'widget> {
         &mut self,
         layout: &mut layout::LayoutState,
         widget: WidgetId,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let constraints = self.render[&widget].widget.get_size_constraints();
         let children = self.graph.children(widget).to_vec();
 
@@ -437,7 +472,7 @@ impl<'widget> Ui<'widget> {
     /// This has the side effect of clearing out any unconsumed input queue.
     /// Returns true if the Ui may need to be updated again; for example,
     /// if the most recent update operation changed layout.
-    pub fn render_to_screen(&mut self, screen: &mut Surface) -> Result<bool, Error> {
+    pub fn render_to_screen(&mut self, screen: &mut Surface) -> Result<bool> {
         if let Some(root) = self.graph.root {
             let (width, height) = screen.dimensions();
             // Render from scratch into a fresh screen buffer

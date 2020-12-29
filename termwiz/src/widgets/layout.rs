@@ -1,13 +1,12 @@
 //! This module provides some automatic layout functionality for widgets.
 //! The parameters are similar to those that you may have encountered
 //! in HTML, but do not fully recreate the layout model.
-use anyhow::{anyhow, Error};
 use cassowary::strength::{REQUIRED, STRONG, WEAK};
 use cassowary::WeightedRelation::*;
-use cassowary::{AddConstraintError, Expression, Solver, SuggestValueError, Variable};
+use cassowary::{Expression, Solver, Variable};
 use std::collections::HashMap;
 
-use crate::widgets::{Rect, WidgetId};
+use crate::widgets::{Rect, WidgetId, WidgetError};
 
 /// Expands to an Expression holding the value of the variable,
 /// or if there is no variable, a constant with the specified
@@ -183,17 +182,6 @@ pub struct LaidOutWidget {
     pub rect: Rect,
 }
 
-fn suggesterr(e: SuggestValueError) -> Error {
-    match e {
-        SuggestValueError::UnknownEditVariable => anyhow!("Unknown edit variable"),
-        SuggestValueError::InternalSolverError(e) => anyhow!("Internal solver error: {}", e),
-    }
-}
-
-fn adderr(e: AddConstraintError) -> Error {
-    anyhow!("{:?}", e)
-}
-
 impl Default for LayoutState {
     fn default() -> Self {
         Self::new()
@@ -246,13 +234,9 @@ impl LayoutState {
         screen_width: usize,
         screen_height: usize,
         root_widget: WidgetId,
-    ) -> Result<Vec<LaidOutWidget>, Error> {
-        self.solver
-            .suggest_value(self.screen_width, screen_width as f64)
-            .map_err(suggesterr)?;
-        self.solver
-            .suggest_value(self.screen_height, screen_height as f64)
-            .map_err(suggesterr)?;
+    ) -> Result<Vec<LaidOutWidget>, WidgetError> {
+        self.solver.suggest_value(self.screen_width, screen_width as f64)?;
+        self.solver.suggest_value(self.screen_height, screen_height as f64)?;
 
         let width = self.screen_width;
         let height = self.screen_height;
@@ -279,11 +263,11 @@ impl LayoutState {
         parent_left: usize,
         parent_top: usize,
         results: &mut Vec<LaidOutWidget>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), WidgetError> {
         let state = self
             .widget_states
             .get(&widget)
-            .ok_or_else(|| anyhow!("widget has no solver state"))?;
+            .ok_or(WidgetError::NoSolverState)?;
         let width = self.solver.get_value(state.width) as usize;
         let height = self.solver.get_value(state.height) as usize;
         let left = self.solver.get_value(state.left) as usize;
@@ -313,11 +297,11 @@ impl LayoutState {
         parent_height: Variable,
         parent_left: Option<Variable>,
         parent_top: Option<Variable>,
-    ) -> Result<WidgetState, Error> {
+    ) -> Result<WidgetState, WidgetError> {
         let state = self
             .widget_states
             .get(&widget)
-            .ok_or_else(|| anyhow!("widget has no solver state"))?
+            .ok_or(WidgetError::NoSolverState)?
             .clone();
 
         let is_root_widget = parent_left.is_none();
@@ -326,23 +310,15 @@ impl LayoutState {
         let parent_top = unwrap_variable_or(parent_top, 0.0);
 
         // First, we should fit inside the parent container
-        self.solver
-            .add_constraint(
-                (state.left + state.width) | LE(REQUIRED) | (parent_left.clone() + parent_width),
-            )
-            .map_err(adderr)?;
-        self.solver
-            .add_constraint(state.left | GE(REQUIRED) | parent_left)
-            .map_err(adderr)?;
+        self.solver.add_constraint(
+            (state.left + state.width) | LE(REQUIRED) | (parent_left.clone() + parent_width),
+        )?;
+        self.solver.add_constraint(state.left | GE(REQUIRED) | parent_left)?;
 
-        self.solver
-            .add_constraint(
-                (state.top + state.height) | LE(REQUIRED) | (parent_top.clone() + parent_height),
-            )
-            .map_err(adderr)?;
-        self.solver
-            .add_constraint(state.top | GE(REQUIRED) | parent_top)
-            .map_err(adderr)?;
+        self.solver.add_constraint(
+            (state.top + state.height) | LE(REQUIRED) | (parent_top.clone() + parent_height),
+        )?;
+        self.solver.add_constraint(state.top | GE(REQUIRED) | parent_top)?;
 
         if is_root_widget {
             // We handle alignment on the root widget specially here;
@@ -350,86 +326,67 @@ impl LayoutState {
             match state.constraints.halign {
                 HorizontalAlignment::Left => self
                     .solver
-                    .add_constraint(state.left | EQ(STRONG) | 0.0)
-                    .map_err(adderr)?,
+                    .add_constraint(state.left | EQ(STRONG) | 0.0)?,
                 HorizontalAlignment::Right => self
                     .solver
-                    .add_constraint(state.left | EQ(STRONG) | (parent_width - state.width))
-                    .map_err(adderr)?,
+                    .add_constraint(state.left | EQ(STRONG) | (parent_width - state.width))?,
                 HorizontalAlignment::Center => self
                     .solver
-                    .add_constraint(state.left | EQ(STRONG) | ((parent_width - state.width) / 2.0))
-                    .map_err(adderr)?,
+                    .add_constraint(state.left | EQ(STRONG) | ((parent_width - state.width) / 2.0))?,
             }
 
             match state.constraints.valign {
                 VerticalAlignment::Top => self
                     .solver
-                    .add_constraint(state.top | EQ(STRONG) | 0.0)
-                    .map_err(adderr)?,
+                    .add_constraint(state.top | EQ(STRONG) | 0.0)?,
                 VerticalAlignment::Bottom => self
                     .solver
-                    .add_constraint(state.top | EQ(STRONG) | (parent_height - state.height))
-                    .map_err(adderr)?,
+                    .add_constraint(state.top | EQ(STRONG) | (parent_height - state.height))?,
                 VerticalAlignment::Middle => self
                     .solver
-                    .add_constraint(state.top | EQ(STRONG) | ((parent_height - state.height) / 2.0))
-                    .map_err(adderr)?,
+                    .add_constraint(state.top | EQ(STRONG) | ((parent_height - state.height) / 2.0))?,
             }
         }
 
         match state.constraints.width.spec {
             DimensionSpec::Fixed(width) => {
                 self.solver
-                    .add_constraint(state.width | EQ(STRONG) | f64::from(width))
-                    .map_err(adderr)?;
+                    .add_constraint(state.width | EQ(STRONG) | f64::from(width))?;
             }
             DimensionSpec::Percentage(pct) => {
                 self.solver
                     .add_constraint(
                         state.width | EQ(STRONG) | (f64::from(pct) * parent_width / 100.0),
-                    )
-                    .map_err(adderr)?;
+                    )?;
             }
         }
-        self.solver
-            .add_constraint(
-                state.width
-                    | GE(STRONG)
-                    | f64::from(state.constraints.width.minimum.unwrap_or(1).max(1)),
-            )
-            .map_err(adderr)?;
+        self.solver.add_constraint(
+            state.width
+                | GE(STRONG)
+                | f64::from(state.constraints.width.minimum.unwrap_or(1).max(1)),
+        )?;
+
         if let Some(max_width) = state.constraints.width.maximum {
-            self.solver
-                .add_constraint(state.width | LE(STRONG) | f64::from(max_width))
-                .map_err(adderr)?;
+            self.solver.add_constraint(state.width | LE(STRONG) | f64::from(max_width))?;
         }
 
         match state.constraints.height.spec {
             DimensionSpec::Fixed(height) => {
-                self.solver
-                    .add_constraint(state.height | EQ(STRONG) | f64::from(height))
-                    .map_err(adderr)?;
+                self.solver.add_constraint(state.height | EQ(STRONG) | f64::from(height))?;
             }
             DimensionSpec::Percentage(pct) => {
-                self.solver
-                    .add_constraint(
-                        state.height | EQ(STRONG) | (f64::from(pct) * parent_height / 100.0),
-                    )
-                    .map_err(adderr)?;
+                self.solver.add_constraint(
+                    state.height | EQ(STRONG) | (f64::from(pct) * parent_height / 100.0),
+                )?;
             }
         }
-        self.solver
-            .add_constraint(
-                state.height
-                    | GE(STRONG)
-                    | f64::from(state.constraints.height.minimum.unwrap_or(1).max(1)),
-            )
-            .map_err(adderr)?;
+        self.solver.add_constraint(
+            state.height
+                | GE(STRONG)
+                | f64::from(state.constraints.height.minimum.unwrap_or(1).max(1)),
+        )?;
         if let Some(max_height) = state.constraints.height.maximum {
-            self.solver
-                .add_constraint(state.height | LE(STRONG) | f64::from(max_height))
-                .map_err(adderr)?;
+            self.solver.add_constraint(state.height | LE(STRONG) | f64::from(max_height))?;
         }
 
         let has_children = !state.children.is_empty();
@@ -451,47 +408,41 @@ impl LayoutState {
                 match child_state.constraints.halign {
                     HorizontalAlignment::Left => self
                         .solver
-                        .add_constraint(child_state.left | EQ(STRONG) | left_edge.clone())
-                        .map_err(adderr)?,
+                        .add_constraint(child_state.left | EQ(STRONG) | left_edge.clone())?,
                     HorizontalAlignment::Right => self
                         .solver
                         .add_constraint(
                             (child_state.left + child_state.width)
                                 | EQ(STRONG)
                                 | (state.left + state.width),
-                        )
-                        .map_err(adderr)?,
+                        )?,
                     HorizontalAlignment::Center => self
                         .solver
                         .add_constraint(
                             child_state.left
                                 | EQ(STRONG)
                                 | (state.left + (state.width - child_state.width) / 2.0),
-                        )
-                        .map_err(adderr)?,
+                        )?,
                 }
 
                 match child_state.constraints.valign {
                     VerticalAlignment::Top => self
                         .solver
-                        .add_constraint(child_state.top | EQ(STRONG) | top_edge.clone())
-                        .map_err(adderr)?,
+                        .add_constraint(child_state.top | EQ(STRONG) | top_edge.clone())?,
                     VerticalAlignment::Bottom => self
                         .solver
                         .add_constraint(
                             (child_state.top + child_state.height)
                                 | EQ(STRONG)
                                 | (state.top + state.height),
-                        )
-                        .map_err(adderr)?,
+                        )?,
                     VerticalAlignment::Middle => self
                         .solver
                         .add_constraint(
                             child_state.top
                                 | EQ(STRONG)
                                 | (state.top + (state.height - child_state.height) / 2.0),
-                        )
-                        .map_err(adderr)?,
+                        )?,
                 }
 
                 match state.constraints.child_orientation {
@@ -508,23 +459,15 @@ impl LayoutState {
 
             // This constraint encourages the contents to fill out to the width
             // of the container, rather than clumping left
-            self.solver
-                .add_constraint(left_edge | EQ(STRONG) | (state.left + state.width))
-                .map_err(adderr)?;
+            self.solver.add_constraint(left_edge | EQ(STRONG) | (state.left + state.width))?;
 
-            self.solver
-                .add_constraint(state.width | GE(WEAK) | width_constraint)
-                .map_err(adderr)?;
+            self.solver.add_constraint(state.width | GE(WEAK) | width_constraint)?;
 
             // This constraint encourages the contents to fill out to the height
             // of the container, rather than clumping top
-            self.solver
-                .add_constraint(top_edge | EQ(STRONG) | (state.top + state.height))
-                .map_err(adderr)?;
+            self.solver.add_constraint(top_edge | EQ(STRONG) | (state.top + state.height))?;
 
-            self.solver
-                .add_constraint(state.height | GE(WEAK) | height_constraint)
-                .map_err(adderr)?;
+            self.solver.add_constraint(state.height | GE(WEAK) | height_constraint)?;
         }
 
         Ok(state)
