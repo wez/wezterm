@@ -4,9 +4,9 @@
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::{
-    config, BitmapImage, Clipboard, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers,
-    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext,
-    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
+    config, Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size,
+    WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
@@ -853,45 +853,6 @@ pub fn superclass(this: &Object) -> &'static Class {
     unsafe {
         let superclass: id = msg_send![this, superclass];
         &*(superclass as *const _)
-    }
-}
-
-struct MacGraphicsContext<'a> {
-    buffer: &'a mut dyn BitmapImage,
-    dpi: usize,
-}
-
-impl<'a> PaintContext for MacGraphicsContext<'a> {
-    fn clear_rect(&mut self, rect: Rect, color: Color) {
-        self.buffer.clear_rect(rect, color)
-    }
-
-    fn clear(&mut self, color: Color) {
-        self.buffer.clear(color);
-    }
-
-    fn get_dimensions(&self) -> Dimensions {
-        let (pixel_width, pixel_height) = self.buffer.image_dimensions();
-        Dimensions {
-            pixel_width,
-            pixel_height,
-            dpi: self.dpi,
-        }
-    }
-
-    fn draw_image(
-        &mut self,
-        dest_top_left: Point,
-        src_rect: Option<Rect>,
-        im: &dyn BitmapImage,
-        operator: Operator,
-    ) {
-        self.buffer
-            .draw_image(dest_top_left, src_rect, im, operator)
-    }
-
-    fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {
-        self.buffer.draw_line(start, end, color, operator);
     }
 }
 
