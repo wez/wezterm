@@ -229,11 +229,6 @@ pub trait WindowOps {
         Self: Sized,
         R: Send + 'static;
 
-    /// Attempt to set up opengl based painting.
-    /// Will call opengl_initialize() in your WindowCallbacks impl to
-    /// inform it of the gl context.
-    fn enable_opengl(&self) -> promise::Future<()>;
-
     /// Initiate textual transfer from the clipboard
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String>;
 

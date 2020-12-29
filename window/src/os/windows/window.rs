@@ -328,6 +328,7 @@ impl Window {
 
         let window = Window(hwnd);
         inner.borrow_mut().callbacks.borrow_mut().created(&window);
+        inner.borrow_mut().enable_opengl()?;
 
         Ok(window)
     }
@@ -506,10 +507,6 @@ impl WindowOps for Window {
             let window = Window(inner.hwnd);
             func(inner.callbacks.borrow_mut().as_any(), &window)
         })
-    }
-
-    fn enable_opengl(&self) -> promise::Future<()> {
-        Connection::with_window_inner(self.0, move |inner| inner.enable_opengl())
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {

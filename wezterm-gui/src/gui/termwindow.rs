@@ -749,7 +749,6 @@ impl WindowCallbacks for TermWindow {
             Self::start_periodic_maintenance(window.clone());
             Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
 
-            window.enable_opengl();
             drop(activity); // Keep the activity outstanding until we get here
             Ok::<(), anyhow::Error>(())
         })
@@ -1011,8 +1010,6 @@ impl TermWindow {
         Self::apply_icon(&window)?;
         Self::start_periodic_maintenance(window.clone());
         Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
-
-        window.enable_opengl();
 
         crate::update::start_update_checker();
         Ok(())

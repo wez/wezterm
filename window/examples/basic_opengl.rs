@@ -51,7 +51,6 @@ fn spawn_window() -> anyhow::Result<()> {
         }),
     )?;
 
-    win.enable_opengl();
     win.show();
     win.apply(|myself, _win| {
         if let Some(myself) = myself.downcast_ref::<MyWindow>() {

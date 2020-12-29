@@ -213,14 +213,6 @@ impl WindowOps for Window {
         }
     }
 
-    fn enable_opengl(&self) -> promise::Future<()> {
-        match self {
-            Self::X11(x) => x.enable_opengl(),
-            #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.enable_opengl(),
-        }
-    }
-
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
         match self {
             Self::X11(x) => x.get_clipboard(clipboard),

@@ -251,6 +251,7 @@ impl WaylandWindow {
         conn.windows.borrow_mut().insert(window_id, inner.clone());
 
         inner.borrow_mut().callbacks.created(&window_handle);
+        inner.borrow_mut().enable_opengl()?;
 
         Ok(window_handle)
     }
@@ -763,10 +764,6 @@ impl WindowOps for WaylandWindow {
             let window = Window::Wayland(WaylandWindow(inner.window_id));
             func(inner.callbacks.as_any(), &window)
         })
-    }
-
-    fn enable_opengl(&self) -> promise::Future<()> {
-        WaylandConnection::with_window_inner(self.0, move |inner| inner.enable_opengl())
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {

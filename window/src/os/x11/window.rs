@@ -867,6 +867,7 @@ impl XWindow {
         let window_handle = Window::X11(XWindow::from_id(window_id));
 
         window.lock().unwrap().callbacks.created(&window_handle);
+        window.lock().unwrap().enable_opengl()?;
 
         conn.windows.borrow_mut().insert(window_id, window);
 
@@ -1053,10 +1054,6 @@ impl WindowOps for XWindow {
             let window = XWindow(inner.window_id);
             func(inner.callbacks.as_any(), &window)
         })
-    }
-
-    fn enable_opengl(&self) -> promise::Future<()> {
-        XConnection::with_window_inner(self.0, move |inner| inner.enable_opengl())
     }
 
     /// Initiate textual transfer from the clipboard

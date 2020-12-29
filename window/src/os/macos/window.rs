@@ -469,6 +469,7 @@ impl Window {
 
             let window = Window(window_id);
 
+            inner.borrow_mut().enable_opengl()?;
             inner.borrow_mut().callbacks.created(&window);
             // Synthesize a resize event immediately; this allows
             // the embedding application an opportunity to discover
@@ -562,16 +563,6 @@ impl WindowOps for Window {
 
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
                 func(window_view.inner.borrow_mut().callbacks.as_any(), &window)
-            } else {
-                bail!("apply: window is invalid");
-            }
-        })
-    }
-
-    fn enable_opengl(&self) -> promise::Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
-            if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
-                window_view.inner.borrow_mut().enable_opengl()
             } else {
                 bail!("apply: window is invalid");
             }
