@@ -2,9 +2,7 @@
 #![allow(clippy::let_unit_value)]
 
 use super::{nsstring, nsstring_to_str};
-use crate::bitmaps::Image;
 use crate::connection::ConnectionOps;
-use crate::os::macos::bitmap::BitmapRef;
 use crate::{
     config, BitmapImage, Clipboard, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers,
     MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext,
@@ -23,7 +21,6 @@ use cocoa::foundation::{NSArray, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger
 use core_foundation::base::TCFType;
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::string::CFString;
-use core_graphics::image::CGImageRef;
 use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
@@ -434,8 +431,7 @@ impl Window {
             window.setTitle_(*nsstring(&name));
             window.setAcceptsMouseMovedEvents_(YES);
 
-            let buffer = Image::new(width, height);
-            let view = WindowView::alloc(&inner, buffer)?;
+            let view = WindowView::alloc(&inner)?;
             view.initWithFrame_(rect);
             view.setAutoresizingMask_(NSViewHeightSizable | NSViewWidthSizable);
 
@@ -851,7 +847,6 @@ const WINDOW_CLS_NAME: &str = "WezTermWindow";
 
 struct WindowView {
     inner: Rc<RefCell<Inner>>,
-    buffer: RefCell<Image>,
 }
 
 pub fn superclass(this: &Object) -> &'static Class {
@@ -1557,35 +1552,6 @@ impl WindowView {
                 frame
                     .finish()
                     .expect("frame.finish failed and we don't know how to recover");
-                return;
-            }
-
-            let mut buffer = this.buffer.borrow_mut();
-            let (pixel_width, pixel_height) = buffer.image_dimensions();
-            if width as usize != pixel_width || height as usize != pixel_height {
-                *buffer = Image::new(width as usize, height as usize);
-            }
-
-            let mut ctx = MacGraphicsContext {
-                buffer: &mut *buffer,
-                dpi: (crate::DEFAULT_DPI * backing_frame.size.width / frame.size.width) as usize,
-            };
-
-            inner.callbacks.paint(&mut ctx);
-
-            let cg_image = BitmapRef::with_image(&*buffer);
-
-            fn nsimage_from_cgimage(cg: &CGImageRef, size: NSSize) -> StrongPtr {
-                unsafe {
-                    let ns_image: id = msg_send![class!(NSImage), alloc];
-                    StrongPtr::new(msg_send![ns_image, initWithCGImage: cg size:size])
-                }
-            }
-
-            let ns_image = nsimage_from_cgimage(cg_image.as_ref(), NSSize::new(0., 0.));
-
-            unsafe {
-                let () = msg_send![*ns_image, drawInRect: frame];
             }
         }
     }
@@ -1601,7 +1567,7 @@ impl WindowView {
         }
     }
 
-    fn alloc(inner: &Rc<RefCell<Inner>>, buffer: Image) -> anyhow::Result<StrongPtr> {
+    fn alloc(inner: &Rc<RefCell<Inner>>) -> anyhow::Result<StrongPtr> {
         let cls = Self::get_class();
 
         let view_id: StrongPtr = unsafe { StrongPtr::new(msg_send![cls, new]) };
@@ -1610,7 +1576,6 @@ impl WindowView {
 
         let view = Box::into_raw(Box::new(Self {
             inner: Rc::clone(&inner),
-            buffer: RefCell::new(buffer),
         }));
 
         unsafe {
