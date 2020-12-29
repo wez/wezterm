@@ -28,7 +28,6 @@ ssh = ["ssh2"]
 bitflags = "1.0"
 lazy_static = "1.4"
 shared_library = "0.1"
-uds_windows = "0.1"
 winapi = { version = "0.3", features = [
     "winuser",
     "consoleapi",

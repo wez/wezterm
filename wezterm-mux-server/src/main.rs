@@ -12,11 +12,6 @@ use structopt::*;
 
 mod daemonize;
 
-#[cfg(unix)]
-use std::os::unix::net::{UnixListener, UnixStream};
-#[cfg(windows)]
-use uds_windows::{UnixListener, UnixStream};
-
 #[derive(Debug, StructOpt)]
 #[structopt(
     about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
@@ -196,20 +191,12 @@ fn terminate_with_error(err: anyhow::Error) -> ! {
     std::process::exit(1);
 }
 
-mod dispatch;
-mod local;
 mod ossl;
-mod pki;
-mod sessionhandler;
-
-lazy_static::lazy_static! {
-    static ref PKI: pki::Pki = pki::Pki::init().expect("failed to initialize PKI");
-}
 
 pub fn spawn_listener() -> anyhow::Result<()> {
     let config = configuration();
     for unix_dom in &config.unix_domains {
-        let mut listener = local::LocalListener::with_domain(unix_dom)?;
+        let mut listener = wezterm_mux_server_impl::local::LocalListener::with_domain(unix_dom)?;
         thread::spawn(move || {
             listener.run();
         });

@@ -69,7 +69,6 @@ window = { path = "../window", features=["wayland"]}
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"
-uds_windows = "0.1"
 winapi = { version = "0.3", features = [
     "winuser",
     "consoleapi",

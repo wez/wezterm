@@ -1,4 +1,3 @@
-use crate::PKI;
 use anyhow::{anyhow, Context, Error};
 use async_ossl::AsyncSslStream;
 use config::TlsDomainServer;
@@ -8,6 +7,7 @@ use promise::spawn::spawn_into_main_thread;
 use std::net::TcpListener;
 use std::path::Path;
 use std::sync::Arc;
+use wezterm_mux_server_impl::PKI;
 
 struct OpenSSLNetListener {
     acceptor: Arc<SslAcceptor>,
@@ -84,12 +84,14 @@ impl OpenSSLNetListener {
                             }
                             spawn_into_main_thread(async move {
                                 log::error!("Making new AsyncSslStream");
-                                crate::dispatch::process(AsyncSslStream::new(stream))
-                                    .await
-                                    .map_err(|e| {
-                                        log::error!("process: {:?}", e);
-                                        e
-                                    })
+                                wezterm_mux_server_impl::dispatch::process(AsyncSslStream::new(
+                                    stream,
+                                ))
+                                .await
+                                .map_err(|e| {
+                                    log::error!("process: {:?}", e);
+                                    e
+                                })
                             })
                             .detach();
                         }

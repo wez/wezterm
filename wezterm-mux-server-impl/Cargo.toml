@@ -1,5 +1,5 @@
 [package]
-name = "wezterm-mux-server"
+name = "wezterm-mux-server-impl"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
@@ -9,19 +9,21 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0"
 async_ossl = { path = "../async_ossl" }
+codec = { path = "../codec" }
 config = { path = "../config" }
-env-bootstrap = { path = "../env-bootstrap" }
-libc = "0.2"
+futures = "0.3"
+hostname = "0.3"
+lazy_static = "1.4"
 log = "0.4"
 mux = { path = "../mux" }
-openssl = "0.10"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
-structopt = "0.3"
-umask = { path = "../umask" }
-wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }
+rangeset = { path = "../rangeset" }
+rcgen = "0.8"
+smol = "1.2"
+url = "2"
+wezterm-term = { path = "../term", features=["use_serde"] }
 
-[features]
-default = ["vendor_openssl"]
-# FIXME: find a way to magically disable vendor_openssl only on linux!
-vendor_openssl = ["openssl/vendored"]
+[target."cfg(windows)".dependencies]
+uds_windows = "0.1"
+winapi = { version = "0.3", features = [ "winuser" ]}

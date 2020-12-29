@@ -4470,27 +4470,41 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async_ossl",
- "codec",
  "config",
  "env-bootstrap",
- "filedescriptor",
- "futures",
- "hostname",
  "libc",
  "log",
  "mux",
  "openssl",
  "portable-pty",
  "promise",
- "rangeset",
- "rcgen",
- "smol",
  "structopt",
  "uds_windows",
  "umask",
+ "wezterm-mux-server-impl",
+ "winapi 0.3.9",
+]
+
+[[package]]
+name = "wezterm-mux-server-impl"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async_ossl",
+ "codec",
+ "config",
+ "futures",
+ "hostname",
+ "lazy_static",
+ "log",
+ "mux",
+ "portable-pty",
+ "promise",
+ "rangeset",
+ "rcgen",
+ "smol",
  "url",
  "wezterm-term",
- "winapi 0.3.9",
 ]
 
 [[package]]
