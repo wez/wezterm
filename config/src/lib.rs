@@ -848,7 +848,7 @@ pub struct Config {
 }
 
 fn default_word_boundary() -> String {
-    " \t\n{[}]()\"'".to_string()
+    " \t\n{[}]()\"'`".to_string()
 }
 
 fn default_one_point_oh_f64() -> f64 {
