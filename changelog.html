@@ -178,7 +178,7 @@ brief notes about them may accumulate here.</p>
 <li>macOS: Adjusted default dpi to 72 to bring point sizes into alignment with other macOS apps. <a href="https://github.com/wez/wezterm/issues/332">#332</a></li>
 <li>Improved font fallback; we now try harder to find a system-provided font for glyphs that are not found in your explicitly configured fonts.</li>
 <li>Revised pty output processing and removed the related <code>ratelimit_output_bytes_per_second</code> option</li>
-<li>Workaround Cocoa leaking window position saved state file descriptors to child processes on macOS Big Sur</li>
+<li>Workaround Cocoa leaking window position saved state file descriptors to child processes on macOS Big Sur, and Gnome/Mutter doing something similar under X11</li>
 <li>The 256 color cube now uses slightly brighter colors <a href="https://github.com/wez/wezterm/issues/348">#348</a></li>
 <li>New: added <code>line_height</code> configuration option to scale the computed cell height. The default is <code>1.0</code>, resulting in using the font-specified metrics. Setting it to <code>1.2</code> will result in a 20% larger cell height.</li>
 <li>macOS: Fixed an issue where hovering over the split between panes could result in wezterm becoming unresponsive <a href="https://github.com/wez/wezterm/issues/391">#391</a></li>
@@ -188,7 +188,7 @@ brief notes about them may accumulate here.</p>
 <li>X11: fix an issue where keys that produce unicode characters retained SHIFT as a modifier instead of normalizing it away. <a href="https://github.com/wez/wezterm/issues/394">#394</a></li>
 <li>Fixed an issue where a symbol-only font would be seen as 0-width and panic wezterm <a href="https://github.com/wez/wezterm/issues/404">#404</a></li>
 <li>Tweaked mouse selection: we now round the x-coordinate to the nearest cell which makes it a bit more forgiving if the mouse cursor is slightly to the left of the intended cell start. <a href="https://github.com/wez/wezterm/issues/350">#350</a></li>
-<li>Added <code>selection_word_boundary</code> option to control double-click word selection boundaries. The default is <code> \t\n{[}]()\&quot;'</code>. <a href="https://github.com/wez/wezterm/issues/405">#405</a></li>
+<li>Added <code>selection_word_boundary</code> option to control double-click word selection boundaries. The default is ` \t\n{<a href="">}</a>&quot;'``. <a href="https://github.com/wez/wezterm/issues/405">#405</a></li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
