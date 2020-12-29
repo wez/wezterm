@@ -70,35 +70,6 @@ pub struct Dimensions {
 pub type Rect = euclid::Rect<isize, PixelUnit>;
 pub type Size = euclid::Size2D<isize, PixelUnit>;
 
-pub trait PaintContext {
-    fn get_dimensions(&self) -> Dimensions;
-
-    /// Clear the entire context to the specified color
-    fn clear(&mut self, color: Color) {
-        let dims = self.get_dimensions();
-        self.clear_rect(
-            Rect::from_size(Size::new(
-                dims.pixel_width as isize,
-                dims.pixel_height as isize,
-            )),
-            color,
-        );
-    }
-
-    /// Clear a rectangle to the specified color
-    fn clear_rect(&mut self, rect: Rect, color: Color);
-
-    fn draw_image(
-        &mut self,
-        dest_top_left: Point,
-        src_rect: Option<Rect>,
-        im: &dyn BitmapImage,
-        operator: Operator,
-    );
-
-    fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator);
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MouseCursor {
     Arrow,
