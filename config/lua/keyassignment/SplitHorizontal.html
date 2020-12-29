@@ -157,12 +157,23 @@
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Splits the current pane in half horizontally such that the current pane becomes
 the left half and the new right half spawns a new command.</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm';
+
+return {
+  keys = {
+    -- This will create a new split and run your default program inside it
+    {key=&quot;%&quot;, mods=&quot;CLTR|SHIFT|ALT&quot;,
+      action=wezterm.action{SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}}},
+  }
+}
+</code></pre>
 <p><code>SplitHorizontal</code> requires a <a href="../SpawnCommand.html">SpawnCommand</a> parameter to
 specify what should be spawned into the new split.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 
 return {
   keys = {
+    -- This will create a new split and run the `top` program inside it
     {key=&quot;%&quot;, mods=&quot;CLTR|SHIFT|ALT&quot;, action=wezterm.action{SplitHorizontal={
       args={&quot;top&quot;}
     }}},
