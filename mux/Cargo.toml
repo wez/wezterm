@@ -9,10 +9,10 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
-base64 = "0.10"
+base64 = "0.13"
 bintree = { path = "../bintree" }
 config = { path = "../config" }
-crossbeam = "0.7"
+crossbeam = "0.8"
 downcast-rs = "1.0"
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 lazy_static = "1.4"
@@ -25,7 +25,7 @@ rangeset = { path = "../rangeset" }
 ratelim= { path = "../ratelim" }
 regex = "1"
 serde = {version="1.0", features = ["rc", "derive"]}
-ssh2 = "0.8"
+ssh2 = "0.9"
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }
 textwrap = "0.13"

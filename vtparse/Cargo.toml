@@ -11,7 +11,7 @@ keywords = ["terminal", "escape", "ansi", "sequence", "parser"]
 readme = "README.md"
 
 [dependencies]
-utf8parse = "0.1"
+utf8parse = "0.2"
 
 [dev-dependencies]
 pretty_assertions = "0.6"

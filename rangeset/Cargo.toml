@@ -5,4 +5,4 @@ authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
 
 [dependencies]
-num = "0.2"
+num = "0.3"

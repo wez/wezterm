@@ -13,11 +13,11 @@ anyhow = "1.0"
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 log = "0.4"
 libc = "0.2"
-shell-words = "0.1"
+shell-words = "1.0"
 serde_derive = {version="1.0", optional=true}
 serde = {version="1.0", optional=true}
 serial = "0.4"
-ssh2 = {optional=true, version="0.8"}
+ssh2 = {optional=true, version="0.9"}
 
 [features]
 default = []

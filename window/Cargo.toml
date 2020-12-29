@@ -15,7 +15,7 @@ pretty_env_logger = "0.4"
 gl_generator = {version="0.14", optional=true}
 
 [dependencies]
-async-task = "1.2"
+async-task = "4.0"
 anyhow = "1.0"
 thiserror = "1.0"
 bitflags = "1.0"
@@ -28,9 +28,9 @@ log = "0.4"
 metrics = { version="0.12", features=["std"]}
 palette = "0.5"
 promise = { path = "../promise" }
-resize = "0.3"
+resize = "0.5"
 serde = {version="1.0", features = ["rc", "derive"]}
-glium = { version = "0.28", optional=true, default-features = false}
+glium = { version = "0.29", optional=true, default-features = false}
 wezterm-input-types = { path = "../wezterm-input-types" }
 
 [features]

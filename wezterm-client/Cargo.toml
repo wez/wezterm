@@ -20,7 +20,7 @@ promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }
 ratelim= { path = "../ratelim" }
 smol = "1.2"
-ssh2 = "0.8"
+ssh2 = "0.9"
 thiserror = "1.0"
 url = "2"
 wezterm-term = { path = "../term", features=["use_serde"] }

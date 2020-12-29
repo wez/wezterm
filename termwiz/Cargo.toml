@@ -11,7 +11,7 @@ keywords = ["terminal", "readline", "console", "curses"]
 readme = "README.md"
 
 [dependencies]
-base64 = "0.10"
+base64 = "0.13"
 bitflags = "1.0"
 cassowary = {version="0.3", optional=true}
 anyhow = "1.0"
@@ -24,12 +24,12 @@ memmem = "0.1"
 num-traits = "0.2"
 ordered-float = "2.0"
 regex = "1"
-semver = "0.9"
+semver = "0.11"
 serde = {version="1.0", features = ["rc", "derive"], optional=true}
 terminfo = "0.7"
 unicode-segmentation = "1.7"
 unicode-width = "0.1"
-xi-unicode = "0.2"
+xi-unicode = "0.3"
 vtparse = { version="0.3", path="../vtparse" }
 
 [features]
@@ -42,7 +42,8 @@ pretty_assertions = "0.6"
 
 [dependencies.num-derive]
 features = ["full-syntax"]
-version = "0.2"
+version = "0.3"
+
 [target."cfg(unix)".dependencies]
 signal-hook = "0.1"
 termios = "0.3"
