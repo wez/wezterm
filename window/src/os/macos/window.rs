@@ -1548,7 +1548,7 @@ impl WindowView {
                     (width as u32, height as u32),
                 );
 
-                inner.callbacks.paint_opengl(&mut frame);
+                inner.callbacks.paint(&mut frame);
                 frame
                     .finish()
                     .expect("frame.finish failed and we don't know how to recover");

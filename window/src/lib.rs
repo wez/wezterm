@@ -126,17 +126,9 @@ pub trait WindowCallbacks: Any {
     /// Called when window gains/loses focus
     fn focus_change(&mut self, focused: bool) {}
 
-    /// Called when the window contents need painting.
-    /// This is used only when the software renderer is enabled (which
-    /// is the default).  When the window is set to opengl mode, the
-    /// `paint_opengl` function is called instead.
-    fn paint(&mut self, context: &mut dyn PaintContext) {
-        context.clear(Color::rgb(0x20, 0x40, 0x60));
-    }
-
     /// Called when the window has opengl mode enabled and the window
     /// contents need painting.
-    fn paint_opengl(&mut self, frame: &mut glium::Frame) {
+    fn paint(&mut self, frame: &mut glium::Frame) {
         use glium::Surface;
         frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
     }

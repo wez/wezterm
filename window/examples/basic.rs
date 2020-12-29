@@ -106,7 +106,7 @@ impl WindowCallbacks for MyWindow {
         Ok(())
     }
 
-    fn paint_opengl(&mut self, frame: &mut glium::Frame) {
+    fn paint(&mut self, frame: &mut glium::Frame) {
         // Window contents are gray in opengl mode
         use glium::Surface;
         frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
@@ -131,34 +131,6 @@ impl WindowCallbacks for MyWindow {
                 &Default::default(),
             )
             .unwrap();
-    }
-
-    fn paint(&mut self, context: &mut dyn PaintContext) {
-        // Pick a purple background color
-        context.clear(Color::rgb(0x40, 0x20, 0x60));
-
-        // This line doesn't need anti-aliasing
-        context.draw_line(
-            Point::new(0, 0),
-            Point::new(100, 100),
-            Color::rgb(0xff, 0xff, 0xff),
-            Operator::Over,
-        );
-
-        // This shallower line should need some
-        context.draw_line(
-            Point::new(100, 0),
-            Point::new(200, 120),
-            Color::rgb(0xff, 0x80, 0xff),
-            Operator::Over,
-        );
-
-        context.draw_line(
-            Point::new(0, 0),
-            self.cursor_pos,
-            Color::rgb(0xff, 0xff, 0x80),
-            Operator::Over,
-        );
     }
 
     fn resize(&mut self, dims: Dimensions) {

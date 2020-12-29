@@ -681,11 +681,6 @@ impl WindowCallbacks for TermWindow {
         }
     }
 
-    fn paint(&mut self, ctx: &mut dyn PaintContext) {
-        // We shouldn't get here: we should only ever be running with OpenGL
-        ctx.clear(Color::rgb(0, 0, 0));
-    }
-
     fn opengl_context_lost(&mut self, prior_window: &dyn WindowOps) -> anyhow::Result<()> {
         log::error!("context was lost, set up a new window");
         let activity = Activity::new();
@@ -792,7 +787,7 @@ impl WindowCallbacks for TermWindow {
         }
     }
 
-    fn paint_opengl(&mut self, frame: &mut glium::Frame) {
+    fn paint(&mut self, frame: &mut glium::Frame) {
         self.check_for_config_reload();
         let config = configuration();
         let start = std::time::Instant::now();

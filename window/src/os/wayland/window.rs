@@ -570,50 +570,12 @@ impl WaylandWindowInner {
                 ),
             );
 
-            self.callbacks.paint_opengl(&mut frame);
+            self.callbacks.paint(&mut frame);
             frame.finish()?;
             // self.damage();
             self.refresh_frame();
             self.need_paint = false;
-            return Ok(());
         }
-
-        if self.pool.is_used() {
-            // Buffer still in use by server; retry later
-            return Ok(());
-        }
-
-        if self.window.is_none() {
-            // Window has been closed; complete gracefully
-            return Ok(());
-        }
-
-        self.pool
-            .resize(4 * self.dimensions.pixel_width * self.dimensions.pixel_height)?;
-
-        let dpi = self.get_dpi();
-        let mut context = MmapImage {
-            mmap: self.pool.mmap(),
-            dimensions: (self.dimensions.pixel_width, self.dimensions.pixel_height),
-            dpi,
-        };
-        self.callbacks.paint(&mut context);
-        context.mmap.flush()?;
-
-        let buffer = self.pool.buffer(
-            0,
-            self.dimensions.pixel_width as i32,
-            self.dimensions.pixel_height as i32,
-            4 * self.dimensions.pixel_width as i32,
-            toolkit::reexports::client::protocol::wl_shm::Format::Argb8888,
-        );
-
-        self.surface.attach(Some(&buffer), 0, 0);
-        self.damage();
-
-        self.surface.commit();
-        self.refresh_frame();
-        self.need_paint = false;
 
         Ok(())
     }

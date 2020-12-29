@@ -784,36 +784,8 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
             let mut frame =
                 glium::Frame::new(Rc::clone(&gl_context), (width as u32, height as u32));
 
-            inner.callbacks.borrow_mut().paint_opengl(&mut frame);
+            inner.callbacks.borrow_mut().paint(&mut frame);
             frame.finish().expect("frame.finish failed");
-            EndPaint(hwnd, &mut ps);
-            return Some(0);
-        }
-
-        if width > 0 && height > 0 {
-            let mut bitmap = inner.bitmap.borrow_mut();
-            let (bm_width, bm_height) = bitmap.image_dimensions();
-            if bm_width != width || bm_height != height {
-                *bitmap = GdiBitmap::new_compatible(width, height, dc).unwrap();
-            }
-            let dpi = GetDpiForWindow(hwnd);
-            let mut context = GdiGraphicsContext {
-                dpi,
-                bitmap: &mut bitmap,
-            };
-
-            inner.callbacks.borrow_mut().paint(&mut context);
-            BitBlt(
-                dc,
-                0,
-                0,
-                width as i32,
-                height as i32,
-                context.bitmap.hdc(),
-                0,
-                0,
-                SRCCOPY,
-            );
         }
 
         EndPaint(hwnd, &mut ps);

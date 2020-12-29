@@ -29,11 +29,6 @@ impl WindowCallbacks for MyWindow {
         Connection::get().unwrap().terminate_message_loop();
     }
 
-    fn paint(&mut self, context: &mut dyn PaintContext) {
-        // Pick a purple background color
-        context.clear(Color::rgb(0x40, 0x20, 0x60));
-    }
-
     fn resize(&mut self, dims: Dimensions) {
         eprintln!("resize {:?}", dims);
     }
