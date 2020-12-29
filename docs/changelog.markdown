@@ -26,7 +26,7 @@ brief notes about them may accumulate here.
 * macOS: Adjusted default dpi to 72 to bring point sizes into alignment with other macOS apps. [#332](https://github.com/wez/wezterm/issues/332)
 * Improved font fallback; we now try harder to find a system-provided font for glyphs that are not found in your explicitly configured fonts.
 * Revised pty output processing and removed the related `ratelimit_output_bytes_per_second` option
-* Workaround Cocoa leaking window position saved state file descriptors to child processes on macOS Big Sur
+* Workaround Cocoa leaking window position saved state file descriptors to child processes on macOS Big Sur, and Gnome/Mutter doing something similar under X11
 * The 256 color cube now uses slightly brighter colors [#348](https://github.com/wez/wezterm/issues/348)
 * New: added `line_height` configuration option to scale the computed cell height. The default is `1.0`, resulting in using the font-specified metrics. Setting it to `1.2` will result in a 20% larger cell height.
 * macOS: Fixed an issue where hovering over the split between panes could result in wezterm becoming unresponsive [#391](https://github.com/wez/wezterm/issues/391)
