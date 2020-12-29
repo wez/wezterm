@@ -63,6 +63,7 @@ walkdir = "2"
 wezterm-client = { path = "../wezterm-client" }
 wezterm-font = { path = "../wezterm-font" }
 wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
+wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }
 window = { path = "../window", features=["wayland"]}

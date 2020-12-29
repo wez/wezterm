@@ -885,11 +885,25 @@ impl Client {
 
     pub fn new_default_unix_domain(initial: bool, ui: &mut ConnectionUI) -> anyhow::Result<Self> {
         let config = configuration();
-        let unix_dom = config
-            .unix_domains
-            .first()
-            .ok_or_else(|| anyhow!("no default unix domain is configured"))?;
-        Self::new_unix_domain(alloc_domain_id(), unix_dom, initial, ui)
+
+        let unix_dom = match std::env::var_os("WEZTERM_UNIX_SOCKET") {
+            Some(path) => config::UnixDomain {
+                socket_path: Some(path.into()),
+                ..Default::default()
+            },
+            None => config
+                .unix_domains
+                .first()
+                .ok_or_else(|| {
+                    anyhow!(
+                        "no default unix domain is configured and WEZTERM_UNIX_SOCKET \
+                        is not set in the environment"
+                    )
+                })?
+                .clone(),
+        };
+
+        Self::new_unix_domain(alloc_domain_id(), &unix_dom, initial, ui)
     }
 
     pub fn new_unix_domain(

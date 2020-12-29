@@ -44,7 +44,7 @@ impl LocalListener {
 /// that prevent other users from manipulating its contents.
 fn safely_create_sock_path(unix_dom: &UnixDomain) -> anyhow::Result<UnixListener> {
     let sock_path = &unix_dom.socket_path();
-    log::error!("setting up {}", sock_path.display());
+    log::info!("setting up {}", sock_path.display());
 
     let sock_dir = sock_path
         .parent()

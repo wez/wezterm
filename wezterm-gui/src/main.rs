@@ -255,50 +255,73 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
         crate::gui::set_window_class(cls);
     }
 
-    opts.font_locator
-        .unwrap_or(config.font_locator)
-        .set_default();
-    opts.font_shaper.unwrap_or(config.font_shaper).set_default();
-    opts.font_rasterizer
-        .unwrap_or(config.font_rasterizer)
-        .set_default();
+    let unix_socket_path =
+        config::RUNTIME_DIR.join(format!("gui-sock-{}", unsafe { libc::getpid() }));
+    std::env::set_var("WEZTERM_UNIX_SOCKET", unix_socket_path.clone());
 
-    let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();
+    if let Ok(mut listener) =
+        wezterm_mux_server_impl::local::LocalListener::with_domain(&config::UnixDomain {
+            socket_path: Some(unix_socket_path.clone()),
+            ..Default::default()
+        })
+    {
+        std::thread::spawn(move || {
+            listener.run();
+        });
+    }
 
-    let cmd = if need_builder {
-        let mut builder = if opts.prog.is_empty() {
-            CommandBuilder::new_default_prog()
+    let run = move || -> anyhow::Result<()> {
+        opts.font_locator
+            .unwrap_or(config.font_locator)
+            .set_default();
+        opts.font_shaper.unwrap_or(config.font_shaper).set_default();
+        opts.font_rasterizer
+            .unwrap_or(config.font_rasterizer)
+            .set_default();
+
+        let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();
+
+        let cmd = if need_builder {
+            let mut builder = if opts.prog.is_empty() {
+                CommandBuilder::new_default_prog()
+            } else {
+                CommandBuilder::from_argv(opts.prog)
+            };
+            if let Some(cwd) = opts.cwd {
+                builder.cwd(cwd);
+            }
+            Some(builder)
         } else {
-            CommandBuilder::from_argv(opts.prog)
+            None
         };
-        if let Some(cwd) = opts.cwd {
-            builder.cwd(cwd);
-        }
-        Some(builder)
-    } else {
-        None
+
+        let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
+        let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
+        Mux::set_mux(&mux);
+        crate::update::load_last_release_info_and_set_banner();
+
+        let front_end_selection = opts.front_end.unwrap_or(config.front_end);
+        let gui = crate::gui::try_new(front_end_selection)?;
+        let activity = Activity::new();
+        let do_auto_connect = !opts.no_auto_connect;
+
+        promise::spawn::spawn(async move {
+            if let Err(err) = async_run_terminal_gui(cmd, do_auto_connect).await {
+                terminate_with_error(err);
+            }
+            drop(activity);
+        })
+        .detach();
+
+        maybe_show_configuration_error_window();
+        gui.run_forever()
     };
 
-    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
-    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
-    Mux::set_mux(&mux);
-    crate::update::load_last_release_info_and_set_banner();
+    let res = run();
 
-    let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = crate::gui::try_new(front_end_selection)?;
-    let activity = Activity::new();
-    let do_auto_connect = !opts.no_auto_connect;
+    std::fs::remove_file(unix_socket_path).ok();
 
-    promise::spawn::spawn(async move {
-        if let Err(err) = async_run_terminal_gui(cmd, do_auto_connect).await {
-            terminate_with_error(err);
-        }
-        drop(activity);
-    })
-    .detach();
-
-    maybe_show_configuration_error_window();
-    gui.run_forever()
+    res
 }
 
 fn fatal_toast_notification(title: &str, message: &str) {

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 /// Configures an instance of a multiplexer that can be communicated
 /// with via a unix domain socket
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct UnixDomain {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
@@ -45,6 +45,21 @@ pub struct UnixDomain {
     pub write_timeout: Duration,
 }
 impl_lua_conversion!(UnixDomain);
+
+impl Default for UnixDomain {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            socket_path: None,
+            connect_automatically: false,
+            no_serve_automatically: false,
+            serve_command: None,
+            skip_permissions_check: false,
+            read_timeout: default_read_timeout(),
+            write_timeout: default_write_timeout(),
+        }
+    }
+}
 
 impl UnixDomain {
     pub fn socket_path(&self) -> PathBuf {
