@@ -41,12 +41,10 @@ pub(crate) struct XWindowInner {
     window_id: xcb::xproto::Window,
     conn: Weak<XConnection>,
     callbacks: Box<dyn WindowCallbacks>,
-    window_context: Context,
     width: u16,
     height: u16,
     expose: VecDeque<Rect>,
     paint_all: bool,
-    buffer_image: BufferImage,
     cursor: Option<MouseCursor>,
     cursors: HashMap<Option<MouseCursor>, XcbCursor>,
     copy_and_paste: CopyAndPaste,
@@ -111,7 +109,6 @@ impl<'a> PaintContext for X11GraphicsContext<'a> {
 
 impl XWindowInner {
     fn enable_opengl(&mut self) -> anyhow::Result<()> {
-        let window = XWindow(self.window_id);
         let conn = self.conn();
 
         let gl_state = match conn.gl_connection.borrow().as_ref() {
@@ -142,13 +139,11 @@ impl XWindowInner {
         })?;
 
         self.gl_state.replace(gl_state.clone());
-        self.callbacks.created(&window, gl_state)
+        let window_handle = Window::X11(XWindow::from_id(self.window_id));
+        self.callbacks.created(&window_handle, gl_state)
     }
 
     pub fn paint(&mut self) -> anyhow::Result<()> {
-        let window_dimensions =
-            Rect::from_size(Size::new(self.width as isize, self.height as isize));
-
         if !self.paint_all && self.expose.is_empty() {
             return Ok(());
         }
@@ -757,21 +752,15 @@ impl XWindow {
             .request_check()
             .context("xcb::create_window_checked")?;
 
-            let window_context = Context::new(&conn, &window_id);
-
-            let buffer_image = BufferImage::new(&conn, window_id, width, height);
-
             Arc::new(Mutex::new(XWindowInner {
                 window_id,
                 conn: Rc::downgrade(&conn),
                 callbacks,
-                window_context,
                 width: width.try_into()?,
                 height: height.try_into()?,
                 expose: VecDeque::new(),
                 paint_all: true,
                 copy_and_paste: CopyAndPaste::default(),
-                buffer_image,
                 cursor: None,
                 cursors: HashMap::new(),
                 gl_state: None,

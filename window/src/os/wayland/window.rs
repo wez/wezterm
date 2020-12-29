@@ -24,7 +24,6 @@ use std::sync::{Arc, Mutex};
 use toolkit::get_surface_scale_factor;
 use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
-use toolkit::shm::MemPool;
 use toolkit::window::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame, Event};
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
@@ -86,7 +85,6 @@ pub struct WaylandWindowInner {
     surface: WlSurface,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<ConceptFrame>>,
-    pool: MemPool,
     dimensions: Dimensions,
     need_paint: bool,
     last_mouse_coords: Point,
@@ -218,8 +216,6 @@ impl WaylandWindow {
         window.set_title(name.to_string());
         window.set_frame_config(frame_config());
 
-        let pool = MemPool::new(conn.environment.borrow().require_global(), |_| {})?;
-
         // window.new_seat(&conn.seat);
         conn.keyboard.add_window(window_id, &surface);
 
@@ -234,7 +230,6 @@ impl WaylandWindow {
             callbacks,
             surface: surface.detach(),
             window: Some(window),
-            pool,
             dimensions,
             need_paint: true,
             last_mouse_coords: Point::new(0, 0),
@@ -420,10 +415,6 @@ impl WaylandWindowInner {
         self.dimensions.dpi as i32 / crate::DEFAULT_DPI as i32
     }
 
-    fn get_dpi(&self) -> usize {
-        self.dimensions.dpi
-    }
-
     fn surface_to_pixels(&self, surface: i32) -> i32 {
         surface * self.get_dpi_factor()
     }
@@ -578,27 +569,6 @@ impl WaylandWindowInner {
         }
 
         Ok(())
-    }
-
-    fn damage(&mut self) {
-        if self.surface.as_ref().version() >= 4 {
-            self.surface.damage_buffer(
-                0,
-                0,
-                self.dimensions.pixel_width as i32,
-                self.dimensions.pixel_height as i32,
-            );
-        } else {
-            // Older versions use the surface size which is the pre-scaled
-            // dimensions.  Since we store the scaled dimensions, we need
-            // to compensate here.
-            self.surface.damage(
-                0,
-                0,
-                self.pixels_to_surface(self.dimensions.pixel_width as i32),
-                self.pixels_to_surface(self.dimensions.pixel_height as i32),
-            );
-        }
     }
 }
 
