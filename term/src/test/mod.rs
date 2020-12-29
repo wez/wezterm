@@ -69,10 +69,12 @@ impl TestTerm {
             .try_init();
 
         let mut term = Terminal::new(
-            height,
-            width,
-            height * 16,
-            width * 8,
+            TerminalSize {
+                physical_rows: height,
+                physical_cols: width,
+                pixel_width: width * 8,
+                pixel_height: height * 16,
+            },
             Arc::new(TestTermConfig { scrollback }),
             "WezTerm",
             "O_o",
