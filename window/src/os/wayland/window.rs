@@ -250,7 +250,6 @@ impl WaylandWindow {
 
         conn.windows.borrow_mut().insert(window_id, inner.clone());
 
-        inner.borrow_mut().callbacks.created(&window_handle);
         inner.borrow_mut().enable_opengl()?;
 
         Ok(window_handle)
@@ -546,12 +545,12 @@ impl WaylandWindowInner {
                     glium::debug::DebugCallbackBehavior::Ignore
                 },
             )?)
-        });
+        })?;
 
-        self.gl_state = gl_state.as_ref().map(Rc::clone).ok();
+        self.gl_state.replace(gl_state.clone());
         self.wegl_surface = wegl_surface;
 
-        self.callbacks.opengl_initialize(&window, gl_state)
+        self.callbacks.created(&window, gl_state)
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {

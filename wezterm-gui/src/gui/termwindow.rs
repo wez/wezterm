@@ -268,10 +268,6 @@ enum Key {
 }
 
 impl WindowCallbacks for TermWindow {
-    fn created(&mut self, window: &Window) {
-        self.window.replace(window.clone());
-    }
-
     fn can_close(&mut self) -> bool {
         let mux = Mux::get().unwrap();
         let config = configuration();
@@ -757,41 +753,36 @@ impl WindowCallbacks for TermWindow {
         Ok(())
     }
 
-    fn opengl_initialize(
+    fn created(
         &mut self,
-        window: &dyn WindowOps,
-        maybe_ctx: anyhow::Result<std::rc::Rc<glium::backend::Context>>,
+        window: &Window,
+        ctx: std::rc::Rc<glium::backend::Context>,
     ) -> anyhow::Result<()> {
+        self.window.replace(window.clone());
+
         self.render_state = RenderState::Software(SoftwareRenderState::new()?);
 
-        match maybe_ctx {
-            Ok(ctx) => {
-                match OpenGLRenderState::new(
-                    ctx,
-                    &self.fonts,
-                    &self.render_metrics,
-                    ATLAS_SIZE,
-                    self.dimensions.pixel_width,
-                    self.dimensions.pixel_height,
-                ) {
-                    Ok(gl) => {
-                        log::info!(
-                            "OpenGL initialized! {} {} is_context_loss_possible={}",
-                            gl.context.get_opengl_renderer_string(),
-                            gl.context.get_opengl_version_string(),
-                            gl.context.is_context_loss_possible(),
-                        );
-                        self.render_state = RenderState::GL(gl);
-                    }
-                    Err(err) => {
-                        log::error!("failed to create OpenGLRenderState: {}", err);
-                    }
-                }
+        match OpenGLRenderState::new(
+            ctx,
+            &self.fonts,
+            &self.render_metrics,
+            ATLAS_SIZE,
+            self.dimensions.pixel_width,
+            self.dimensions.pixel_height,
+        ) {
+            Ok(gl) => {
+                log::info!(
+                    "OpenGL initialized! {} {} is_context_loss_possible={}",
+                    gl.context.get_opengl_renderer_string(),
+                    gl.context.get_opengl_version_string(),
+                    gl.context.is_context_loss_possible(),
+                );
+                self.render_state = RenderState::GL(gl);
             }
             Err(err) => {
-                panic!("OpenGL initialization failed: {:#}", err);
+                log::error!("failed to create OpenGLRenderState: {}", err);
             }
-        };
+        }
 
         window.show();
 

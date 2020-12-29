@@ -156,15 +156,11 @@ impl WindowInner {
                     callback_behavior(),
                 )?)
             })
-        });
+        })?;
 
-        self.gl_state = gl_state.as_ref().map(Rc::clone).ok();
+        self.gl_state.replace(gl_state.clone());
 
-        if let Err(err) = self
-            .callbacks
-            .borrow_mut()
-            .opengl_initialize(&window, gl_state)
-        {
+        if let Err(err) = self.callbacks.borrow_mut().created(&window, gl_state) {
             self.gl_state.take();
             Err(err)
         } else {
@@ -327,7 +323,6 @@ impl Window {
             .insert(hwnd.clone(), Rc::clone(&inner));
 
         let window = Window(hwnd);
-        inner.borrow_mut().callbacks.borrow_mut().created(&window);
         inner.borrow_mut().enable_opengl()?;
 
         Ok(window)

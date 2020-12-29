@@ -470,7 +470,6 @@ impl Window {
             let window = Window(window_id);
 
             inner.borrow_mut().enable_opengl()?;
-            inner.borrow_mut().callbacks.created(&window);
             // Synthesize a resize event immediately; this allows
             // the embedding application an opportunity to discover
             // the dpi and adjust for display scaling
@@ -850,12 +849,11 @@ impl Inner {
         let window = Window(self.window_id);
 
         let view = self.view_id.as_ref().unwrap().load();
-        let glium_context = opengl::GlContextPair::create(*view);
+        let glium_context = opengl::GlContextPair::create(*view)?;
 
-        self.gl_context_pair = glium_context.as_ref().map(Clone::clone).ok();
+        self.gl_context_pair.replace(glium_context.clone());
 
-        self.callbacks
-            .opengl_initialize(&window, glium_context.map(|pair| pair.context))
+        self.callbacks.created(&window, glium_context.context)
     }
 }
 

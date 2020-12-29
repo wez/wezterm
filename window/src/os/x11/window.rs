@@ -139,10 +139,10 @@ impl XWindowInner {
                     glium::debug::DebugCallbackBehavior::Ignore
                 },
             )?)
-        });
+        })?;
 
-        self.gl_state = gl_state.as_ref().map(Rc::clone).ok();
-        self.callbacks.opengl_initialize(&window, gl_state)
+        self.gl_state.replace(gl_state.clone());
+        self.callbacks.created(&window, gl_state)
     }
 
     pub fn paint(&mut self) -> anyhow::Result<()> {
@@ -866,7 +866,6 @@ impl XWindow {
 
         let window_handle = Window::X11(XWindow::from_id(window_id));
 
-        window.lock().unwrap().callbacks.created(&window_handle);
         window.lock().unwrap().enable_opengl()?;
 
         conn.windows.borrow_mut().insert(window_id, window);

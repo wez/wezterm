@@ -141,16 +141,6 @@ pub trait WindowCallbacks: Any {
         frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
     }
 
-    /// Called when opengl is initialized by enable_opengl(),
-    /// and also prior to calling opengl_context_lost with and Err value.
-    fn opengl_initialize(
-        &mut self,
-        _window: &dyn WindowOps,
-        context: anyhow::Result<std::rc::Rc<glium::backend::Context>>,
-    ) -> anyhow::Result<()> {
-        context.map(|_| ())
-    }
-
     /// Called if the opengl context is lost
     fn opengl_context_lost(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
         Ok(())
@@ -170,7 +160,13 @@ pub trait WindowCallbacks: Any {
 
     /// Called when the window is created and allows the embedding
     /// app to reference the window and operate upon it.
-    fn created(&mut self, window: &Window) {}
+    fn created(
+        &mut self,
+        _window: &Window,
+        _context: std::rc::Rc<glium::backend::Context>,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
 
     /// An unfortunate bit of boilerplate; you need to provie an impl
     /// of this method that returns `self` in order for the downcast_ref
