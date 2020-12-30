@@ -105,10 +105,12 @@ impl Line {
                     line
                 })
                 .collect();
+
             // The last of the chunks wasn't actually wrapped
-            lines
-                .last_mut()
-                .map(|line| line.set_last_cell_was_wrapped(false));
+            if let Some(line) = lines.last_mut() {
+                line.set_last_cell_was_wrapped(false);
+            }
+
             lines
         } else {
             vec![self]
@@ -208,7 +210,7 @@ impl Line {
                 if m.range.contains(&byte_idx) {
                     let attrs = cell.attrs_mut();
                     // Don't replace existing links
-                    if !attrs.hyperlink().is_some() {
+                    if attrs.hyperlink().is_none() {
                         attrs.set_hyperlink(Some(Arc::clone(&m.link)));
                         self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
                     }

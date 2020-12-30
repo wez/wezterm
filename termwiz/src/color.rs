@@ -149,7 +149,7 @@ impl RgbColor {
     /// Construct a color from a string of the form `#RRGGBB` where
     /// R, G and B are all hex digits.
     pub fn from_rgb_str(s: &str) -> Option<RgbColor> {
-        if s.len() > 0 && s.as_bytes()[0] == b'#' {
+        if !s.is_empty() && s.as_bytes()[0] == b'#' {
             // Probably `#RGB`
 
             let digits = (s.len() - 1) / 3;
@@ -169,7 +169,7 @@ impl RgbColor {
                     let mut component = 0u16;
 
                     for _ in 0..digits {
-                        component = component << 4;
+                        component <<= 4;
 
                         let nybble = match chars.next().unwrap().to_digit(16) {
                             Some(v) => v as u16,
@@ -212,7 +212,7 @@ impl RgbColor {
                     let mut component = 0u16;
 
                     for _ in 0..digits {
-                        component = component << 4;
+                        component <<= 4;
 
                         let nybble = match chars.next().unwrap().to_digit(16) {
                             Some(v) => v as u16,

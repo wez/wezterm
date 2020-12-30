@@ -317,9 +317,7 @@ impl TerminfoRenderer {
             match change {
                 Change::ClearScreen(color) => {
                     // ClearScreen implicitly resets all to default
-                    let defaults = CellAttributes::default()
-                        .set_background(color.clone())
-                        .clone();
+                    let defaults = CellAttributes::default().set_background(*color).clone();
                     if self.current_attr != defaults {
                         self.pending_attr = Some(defaults);
                         self.flush_pending_attr(out)?;
@@ -354,9 +352,7 @@ impl TerminfoRenderer {
                 }
                 Change::ClearToEndOfLine(color) => {
                     // ClearScreen implicitly resets all to default
-                    let defaults = CellAttributes::default()
-                        .set_background(color.clone())
-                        .clone();
+                    let defaults = CellAttributes::default().set_background(*color).clone();
                     if self.current_attr != defaults {
                         self.pending_attr = Some(defaults);
                         self.flush_pending_attr(out)?;
@@ -378,9 +374,7 @@ impl TerminfoRenderer {
                 }
                 Change::ClearToEndOfScreen(color) => {
                     // ClearScreen implicitly resets all to default
-                    let defaults = CellAttributes::default()
-                        .set_background(color.clone())
-                        .clone();
+                    let defaults = CellAttributes::default().set_background(*color).clone();
                     if self.current_attr != defaults {
                         self.pending_attr = Some(defaults);
                         self.flush_pending_attr(out)?;

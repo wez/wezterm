@@ -131,12 +131,8 @@ struct Performer<'a, F: FnMut(Action) + 'a> {
 }
 
 fn is_short_dcs(intermediates: &[u8], byte: u8) -> bool {
-    if intermediates == &[b'$'] && byte == b'q' {
-        // DECRQSS
-        true
-    } else {
-        false
-    }
+    // DECRQSS
+    intermediates == [b'$'] && byte == b'q'
 }
 
 impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
@@ -262,7 +258,7 @@ impl SixelBuilder {
             1 => true,
             _ => false,
         };
-        let horizontal_grid_size = params.get(2).map(|&x| x);
+        let horizontal_grid_size = params.get(2).copied();
 
         let repeat_re = Regex::new("^!(\\d+)([\x3f-\x7e])").unwrap();
         let raster_re = Regex::new("^\"(\\d+);(\\d+)(;(\\d+))?(;(\\d+))?").unwrap();

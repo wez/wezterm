@@ -4,7 +4,6 @@ pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std;
 use std::mem;
 use std::sync::Arc;
 use unicode_width::UnicodeWidthStr;
@@ -358,15 +357,15 @@ impl TeenyString {
         // De-fang the input text such that it has no special meaning
         // to a terminal.  All control and movement characters are rewritten
         // as a space.
-        let bytes = if bytes.is_empty() {
-            b" "
-        } else if bytes == b"\r\n" {
-            b" "
-        } else if bytes.len() == 1 && (bytes[0] < 0x20 || bytes[0] == 0x7f) {
+        let bytes = if bytes.is_empty()
+            || bytes == b"\r\n"
+            || (bytes.len() == 1 && (bytes[0] < 0x20 || bytes[0] == 0x7f))
+        {
             b" "
         } else {
             bytes
         };
+
         let len = bytes.len();
         if len < std::mem::size_of::<usize>() {
             let mut word = 0usize;

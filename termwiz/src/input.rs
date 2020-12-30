@@ -8,7 +8,6 @@ use crate::readbuf::ReadBuffer;
 use bitflags::bitflags;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
-use std;
 
 #[cfg(windows)]
 use winapi::um::wincon::{

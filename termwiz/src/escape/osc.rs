@@ -247,7 +247,7 @@ impl OperatingSystemCommand {
         let mut iter = osc.iter();
         iter.next(); // skip the command word that we already know is present
 
-        while let Some(index) = iter.next() {
+        for index in iter {
             if index.is_empty() {
                 continue;
             }
@@ -331,9 +331,9 @@ impl OperatingSystemCommand {
         // response for the CSI ReportWindowTitle.
         // So, for non-numeric OSCs, we look up the prefix and use that.
         // This only works if the non-numeric OSC code has length == 1.
-        let osc_code = if !p1str.chars().nth(0).unwrap().is_ascii_digit() && osc.len() == 1 {
+        let osc_code = if !p1str.chars().next().unwrap().is_ascii_digit() && osc.len() == 1 {
             let mut p1 = String::new();
-            p1.push(p1str.chars().nth(0).unwrap());
+            p1.push(p1str.chars().next().unwrap());
             OperatingSystemCommandCode::from_code(&p1)
         } else {
             OperatingSystemCommandCode::from_code(&p1str)
@@ -793,7 +793,7 @@ impl FinalTermSemanticPrompt {
         }
 
         if param == "D" {
-            let status = match osc.get(2).map(|&p| p) {
+            let status = match osc.get(2).copied() {
                 Some(s) => match str::from_utf8(s) {
                     Ok(s) => s.parse().unwrap_or(0),
                     _ => 0,

@@ -250,7 +250,7 @@ impl Rule {
         // Sort the matches by descending match length.
         // This is to avoid confusion if multiple rules match the
         // same sections of text.
-        matches.sort_by(|a, b| b.len().cmp(&a.len()));
+        matches.sort_by_key(|b| std::cmp::Reverse(b.len()));
 
         matches
             .into_iter()
