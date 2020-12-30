@@ -395,7 +395,9 @@ fn update_checker() {
 pub fn start_update_checker() {
     static CHECKER_STARTED: AtomicBool = AtomicBool::new(false);
     if configuration().check_for_updates {
-        if CHECKER_STARTED.compare_and_swap(false, true, Ordering::Relaxed) == false {
+        if let Ok(false) =
+            CHECKER_STARTED.compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+        {
             std::thread::Builder::new()
                 .name("update_checker".into())
                 .spawn(update_checker)
