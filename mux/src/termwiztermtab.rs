@@ -25,13 +25,16 @@ use std::sync::Arc;
 use std::time::Duration;
 use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
 use termwiz::input::{InputEvent, KeyEvent, MouseEvent as TermWizMouseEvent};
-use termwiz::render::terminfo::TerminfoRenderer;
+use termwiz::render::{RenderError, terminfo::TerminfoRenderer};
 use termwiz::surface::Change;
 use termwiz::surface::Line;
-use termwiz::terminal::{ScreenSize, TerminalWaker};
+use termwiz::terminal::{ScreenSize, TerminalWaker, Error as TerminalError};
+use thiserror::Error;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent, StableRowIndex};
+
+type TerminalResult<T> = Result<T, TerminalError>;
 
 struct TermWizTerminalDomain {
     domain_id: DomainId,
@@ -272,13 +275,13 @@ impl std::io::Write for TermWizTerminalRenderTty {
 }
 
 impl termwiz::render::RenderTty for TermWizTerminalRenderTty {
-    fn get_size_in_cells(&mut self) -> anyhow::Result<(usize, usize)> {
+    fn get_size_in_cells(&mut self) -> Result<(usize, usize), RenderError> {
         Ok((self.screen_size.cols, self.screen_size.rows))
     }
 }
 
 impl TermWizTerminal {
-    fn do_input_poll(&mut self, wait: Option<Duration>) -> anyhow::Result<Option<InputEvent>> {
+    fn do_input_poll(&mut self, wait: Option<Duration>) -> TerminalResult<Option<InputEvent>> {
         if let Some(timeout) = wait {
             match self.input_rx.recv_timeout(timeout) {
                 Ok(input) => Ok(Some(input)),
@@ -286,19 +289,28 @@ impl TermWizTerminal {
                     if err.is_timeout() {
                         Ok(None)
                     } else {
-                        Err(err.into())
+                        Err(TerminalError::Custom(Box::new(err)))
                     }
                 }
             }
         } else {
-            let input = self.input_rx.recv()?;
+            let input = self.input_rx.recv().map_err(|err| TerminalError::Custom(Box::new(err)))?;
             Ok(Some(input))
         }
     }
 }
 
+#[derive(Debug, Error)]
+pub enum TermWizTerminalPaneCustomError {
+    #[error("TermWizTerminalPane has no alt screen")]
+    NoAltScreen,
+
+    #[error("TermWizTerminalPane cannot set screen size")]
+    CannotSetSize,
+}
+
 impl termwiz::terminal::Terminal for TermWizTerminal {
-    fn set_raw_mode(&mut self) -> anyhow::Result<()> {
+    fn set_raw_mode(&mut self) -> TerminalResult<()> {
         use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, CSI};
 
         macro_rules! decset {
@@ -321,37 +333,37 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
         Ok(())
     }
 
-    fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
+    fn set_cooked_mode(&mut self) -> TerminalResult<()> {
         Ok(())
     }
 
-    fn enter_alternate_screen(&mut self) -> anyhow::Result<()> {
-        bail!("TermWizTerminalPane has no alt screen");
+    fn enter_alternate_screen(&mut self) -> TerminalResult<()> {
+        Err(TerminalError::Custom(Box::new(TermWizTerminalPaneCustomError::NoAltScreen)))
     }
 
-    fn exit_alternate_screen(&mut self) -> anyhow::Result<()> {
-        bail!("TermWizTerminalPane has no alt screen");
+    fn exit_alternate_screen(&mut self) -> TerminalResult<()> {
+        Err(TerminalError::Custom(Box::new(TermWizTerminalPaneCustomError::NoAltScreen)))
     }
 
-    fn get_screen_size(&mut self) -> anyhow::Result<ScreenSize> {
+    fn get_screen_size(&mut self) -> TerminalResult<ScreenSize> {
         Ok(self.render_tx.screen_size)
     }
 
-    fn set_screen_size(&mut self, _size: ScreenSize) -> anyhow::Result<()> {
-        bail!("TermWizTerminalPane cannot set screen size");
+    fn set_screen_size(&mut self, _size: ScreenSize) -> TerminalResult<()> {
+        Err(TerminalError::Custom(Box::new(TermWizTerminalPaneCustomError::CannotSetSize)))
     }
 
-    fn render(&mut self, changes: &[Change]) -> anyhow::Result<()> {
+    fn render(&mut self, changes: &[Change]) -> TerminalResult<()> {
         self.renderer.render_to(changes, &mut self.render_tx)?;
         Ok(())
     }
 
-    fn flush(&mut self) -> anyhow::Result<()> {
+    fn flush(&mut self) -> TerminalResult<()> {
         self.render_tx.render_tx.flush()?;
         Ok(())
     }
 
-    fn poll_input(&mut self, wait: Option<Duration>) -> anyhow::Result<Option<InputEvent>> {
+    fn poll_input(&mut self, wait: Option<Duration>) -> TerminalResult<Option<InputEvent>> {
         self.do_input_poll(wait).map(|i| {
             if let Some(InputEvent::Resized { cols, rows }) = i.as_ref() {
                 self.render_tx.screen_size.cols = *cols;

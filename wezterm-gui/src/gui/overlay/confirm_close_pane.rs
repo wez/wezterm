@@ -101,7 +101,8 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
         }
 
         term.render(&changes)?;
-        term.flush()
+        term.flush()?;
+        Ok(())
     };
 
     render(term, active)?;

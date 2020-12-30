@@ -59,7 +59,8 @@ pub fn tab_navigator(
         }
 
         term.render(&changes)?;
-        term.flush()
+        term.flush()?;
+        Ok(())
     }
 
     term.render(&[Change::Title("Tab Navigator".to_string())])?;

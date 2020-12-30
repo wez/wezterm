@@ -191,7 +191,8 @@ pub fn launcher(
                 changes.push(AttributeChange::Reverse(false).into());
             }
         }
-        term.render(&changes)
+        term.render(&changes)?;
+        Ok(())
     }
 
     term.render(&[Change::Title("Launcher".to_string())])?;

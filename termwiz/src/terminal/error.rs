@@ -84,7 +84,11 @@ pub enum Error {
     Syscall {
         syscall: Cow<'static, str>,
         #[source] error: IoError,
-    }
+    },
+
+    /// Custom error for implementers.
+    #[error("custom: {0}")]
+    Custom(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl Error {
