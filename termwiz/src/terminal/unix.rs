@@ -60,9 +60,7 @@ impl TtyReadHandle {
     }
 
     fn set_blocking(&mut self, blocking: Blocking) -> Result<()> {
-        self.fd
-            .set_non_blocking(blocking == Blocking::DoNotWait)
-            .map_err(Error::FileDescriptor)?;
+        self.fd.set_non_blocking(blocking == Blocking::DoNotWait)?;
         Ok(())
     }
 }
@@ -219,10 +217,8 @@ impl UnixTerminal {
         read: &A,
         write: &B,
     ) -> Result<UnixTerminal> {
-        let mut read =
-            TtyReadHandle::new(FileDescriptor::dup(read).map_err(Error::FileDescriptor)?);
-        let mut write =
-            TtyWriteHandle::new(FileDescriptor::dup(write).map_err(Error::FileDescriptor)?);
+        let mut read = TtyReadHandle::new(FileDescriptor::dup(read)?);
+        let mut write = TtyWriteHandle::new(FileDescriptor::dup(write)?);
         let saved_termios = write.get_termios()?;
         let renderer = TerminfoRenderer::new(caps.clone());
         let input_parser = InputParser::new();
@@ -442,10 +438,10 @@ impl Terminal for UnixTerminal {
                             Ok(None)
                         }
                     } else {
-                        Err(Error::Poll(Box::new(Error::Io(err))))
+                        Err(Error::from(err).with_context("poll(2)"))
                     }
                 }
-                Err(err) => Err(Error::Poll(Box::new(Error::FileDescriptor(err)))),
+                Err(err) => Err(Error::from(err).with_context("poll(2)")),
             };
         };
 

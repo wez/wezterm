@@ -474,7 +474,7 @@ impl WindowsTerminal {
         write: B,
     ) -> Result<Self> {
         if !read.is_tty() || !write.is_tty() {
-            return Err(Error::NotATTY);
+            anyhow::bail!("stdin or stdout is not a TTY");
         }
 
         let mut input_handle = InputHandle {

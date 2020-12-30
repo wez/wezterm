@@ -1,4 +1,5 @@
 //! Error types.
+use crate::error::InternalError;
 use std::{borrow::Cow, io::Error as IoError, result::Result as StdResult};
 use thiserror::Error;
 
@@ -12,6 +13,10 @@ pub enum Error {
     #[error("i/o: {0}")]
     Io(#[from] IoError),
 
+    /// Opaque internal error.
+    #[error("{0}")]
+    Internal(InternalError),
+
     /// Error about a specific ioctl.
     #[error("ioctl({ctl}): {error}")]
     Ioctl {
@@ -19,10 +24,6 @@ pub enum Error {
         #[source]
         error: IoError,
     },
-
-    /// Error when stdin or stdout are not TTYs.
-    #[error("stdin or stdout is not a TTY")]
-    NotATTY,
 
     /// Error reading tty.
     #[error("tty read: {0}")]
@@ -48,10 +49,6 @@ pub enum Error {
     #[error("sigwinch pipe read: {0}")]
     SigWinchPipeRead(#[source] IoError),
 
-    /// Polling error.
-    #[error("poll(2): {0}")]
-    Poll(#[source] Box<Self>),
-
     /// Error when casting a bit-sized int to a machine-sized int.
     #[error("{0} is out of bounds for this system")]
     NumCastOutOfBounds(String),
@@ -67,10 +64,6 @@ pub enum Error {
     /// Wrapped render error.
     #[error("render: {0}")]
     Render(#[from] crate::render::RenderError),
-
-    /// Wrapped FileDescriptor (anyhow) error.
-    #[error("filedescriptor: {0}")]
-    FileDescriptor(anyhow::Error),
 
     /// Wrapped error about termios.
     #[error("termios: {0}")]
@@ -90,6 +83,22 @@ pub enum Error {
 
     #[error("unimplemented")]
     Unimplemented,
+
+    #[error("{context}: {error}")]
+    WithContext {
+        context: Cow<'static, str>,
+        #[source]
+        error: Box<Self>,
+    },
+}
+
+impl<E> From<E> for Error
+where
+    E: Into<InternalError>,
+{
+    fn from(err: E) -> Self {
+        Self::Internal(err.into())
+    }
 }
 
 impl Error {
@@ -103,6 +112,13 @@ impl Error {
         Self::Syscall {
             syscall: syscall.into(),
             error: IoError::last_os_error(),
+        }
+    }
+
+    pub(crate) fn with_context(self, context: impl Into<Cow<'static, str>>) -> Self {
+        Self::WithContext {
+            context: context.into(),
+            error: Box::new(self),
         }
     }
 }
