@@ -328,11 +328,12 @@ impl ConsoleOutputHandle for OutputHandle {
         let cols = info.dwSize.X as usize;
         let rows = 1 + info.srWindow.Bottom as usize - info.srWindow.Top as usize;
         if rows * cols != buffer.len() {
-            return Err(Error::BufferScreenMismatch {
-                rows,
+            crate::terminal_bail!(
+                "buffer size doesn't match screen size: cols={} * rows={} != buffer={}",
                 cols,
-                buffer: buffer.len(),
-            });
+                rows,
+                buffer.len()
+            );
         }
 
         let mut write_region = SMALL_RECT {
@@ -474,14 +475,13 @@ impl WindowsTerminal {
         write: B,
     ) -> Result<Self> {
         if !read.is_tty() || !write.is_tty() {
-            anyhow::bail!("stdin or stdout is not a TTY");
+            crate::terminal_bail!("stdin or stdout is not a TTY");
         }
 
         let mut input_handle = InputHandle {
-            handle: FileDescriptor::dup(&read).map_err(Error::FileDescriptor)?,
+            handle: FileDescriptor::dup(&read)?,
         };
-        let mut output_handle =
-            OutputHandle::new(FileDescriptor::dup(&write).map_err(Error::FileDescriptor)?);
+        let mut output_handle = OutputHandle::new(FileDescriptor::dup(&write)?);
         let waker_handle = Arc::new(EventHandle::new()?);
 
         let saved_input_mode = input_handle.get_input_mode()?;
@@ -651,7 +651,9 @@ impl Terminal for WindowsTerminal {
     }
 
     fn flush(&mut self) -> Result<()> {
-        self.output_handle.flush().map_err(Error::TtyFlush)
+        self.output_handle
+            .flush()
+            .map_err(|err| Error::from(err).with_context("tty flush"))
     }
 
     fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>> {

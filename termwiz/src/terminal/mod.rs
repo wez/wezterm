@@ -118,5 +118,6 @@ pub fn new_terminal(caps: Capabilities) -> Result<impl Terminal> {
 }
 
 pub(crate) fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U> {
-    num_traits::cast(n).ok_or_else(|| Error::NumCastOutOfBounds(n.to_string()))
+    num_traits::cast(n)
+        .ok_or_else(|| anyhow::anyhow!("out of bounds for this system: {}", n).into())
 }

@@ -132,10 +132,7 @@ impl UnixTty for TtyWriteHandle {
     fn get_size(&mut self) -> Result<winsize> {
         let mut size: winsize = unsafe { mem::zeroed() };
         if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCGWINSZ as _, &mut size) } != 0 {
-            return Err(Error::Ioctl {
-                ctl: "TIOCSWINSZ",
-                error: IoError::last_os_error(),
-            });
+            return Err(Error::syscall("TIOCSWINSZ"));
         }
         Ok(size)
     }
@@ -149,10 +146,7 @@ impl UnixTty for TtyWriteHandle {
             )
         } != 0
         {
-            return Err(Error::Ioctl {
-                ctl: "TIOCSWINSZ",
-                error: IoError::last_os_error(),
-            });
+            return Err(Error::syscall("TIOCSWINSZ"));
         }
 
         Ok(())
@@ -169,11 +163,12 @@ impl UnixTty for TtyWriteHandle {
             SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue => TCSAFLUSH,
         };
         tcsetattr(self.fd.as_raw_fd(), when, termios)
-            .map_err(|err| Error::termios(Error::TtySetAttr(err)))
+            .map_err(|err| Error::termios(Error::from(err).with_context("tty set attr")))
     }
 
     fn drain(&mut self) -> Result<()> {
-        tcdrain(self.fd.as_raw_fd()).map_err(|err| Error::termios(Error::TtyWrite(err)))
+        tcdrain(self.fd.as_raw_fd())
+            .map_err(|err| Error::termios(Error::from(err).with_context("tty write")))
     }
 
     fn purge(&mut self, purge: Purge) -> Result<()> {
@@ -182,7 +177,8 @@ impl UnixTty for TtyWriteHandle {
             Purge::OutputQueue => TCOFLUSH,
             Purge::InputAndOutputQueue => TCIOFLUSH,
         };
-        tcflush(self.fd.as_raw_fd(), param).map_err(|err| Error::termios(Error::TtyFlush(err)))
+        tcflush(self.fd.as_raw_fd(), param)
+            .map_err(|err| Error::termios(Error::from(err).with_context("tty flush")))
     }
 }
 
@@ -277,7 +273,7 @@ impl UnixTerminal {
             {
                 Ok(None)
             }
-            Err(e) => Err(Error::SigWinchPipeRead(e)),
+            Err(e) => Err(Error::from(e).with_context("sigwinch read")),
         }
     }
 }
@@ -293,7 +289,7 @@ impl UnixTerminalWaker {
         match pipe.write(b"W") {
             Ok(_) => Ok(()),
             Err(e) if e.kind() == ErrorKind::WouldBlock => Ok(()),
-            Err(e) => Err(Error::UnixStreamWrite(e)),
+            Err(e) => Err(Error::from(e).with_context("unixstream write")),
         }
     }
 }
@@ -388,7 +384,9 @@ impl Terminal for UnixTerminal {
             .map_err(|err| err.into())
     }
     fn flush(&mut self) -> Result<()> {
-        self.write.flush().map_err(Error::TtyFlush)
+        self.write
+            .flush()
+            .map_err(|err| Error::from(err).with_context("tty flush"))
     }
 
     fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>> {
@@ -466,7 +464,7 @@ impl Terminal for UnixTerminal {
                 }
                 Err(ref e)
                     if e.kind() == ErrorKind::WouldBlock || e.kind() == ErrorKind::Interrupted => {}
-                Err(e) => return Err(Error::TtyRead(e)),
+                Err(e) => return Err(Error::from(e).with_context("tty read")),
             }
         }
 

@@ -17,65 +17,9 @@ pub enum Error {
     #[error("{0}")]
     Internal(InternalError),
 
-    /// Error about a specific ioctl.
-    #[error("ioctl({ctl}): {error}")]
-    Ioctl {
-        ctl: &'static str,
-        #[source]
-        error: IoError,
-    },
-
-    /// Error reading tty.
-    #[error("tty read: {0}")]
-    TtyRead(#[source] IoError),
-
-    /// Error writing tty.
-    #[error("tty write: {0}")]
-    TtyWrite(#[source] IoError),
-
-    /// Error flushing tty.
-    #[error("tty flush: {0}")]
-    TtyFlush(#[source] IoError),
-
-    /// Error setting tty attribute.
-    #[error("tty setattr: {0}")]
-    TtySetAttr(#[source] IoError),
-
-    /// Error writing a UnixStream.
-    #[error("unix stream write: {0}")]
-    UnixStreamWrite(#[source] IoError),
-
-    /// Error reading a SIGWINCH pipe.
-    #[error("sigwinch pipe read: {0}")]
-    SigWinchPipeRead(#[source] IoError),
-
-    /// Error when casting a bit-sized int to a machine-sized int.
-    #[error("{0} is out of bounds for this system")]
-    NumCastOutOfBounds(String),
-
-    /// Error when the buffer isn't sized correctly for the screen.
-    #[error("buffer size doesn't match screen size: cols={cols} * rows={rows} != buffer={buffer}")]
-    BufferScreenMismatch {
-        rows: usize,
-        cols: usize,
-        buffer: usize,
-    },
-
     /// Wrapped render error.
     #[error("render: {0}")]
     Render(#[from] crate::render::RenderError),
-
-    /// Wrapped error about termios.
-    #[error("termios: {0}")]
-    Termios(#[source] Box<Self>),
-
-    /// Error about a winapi/syscall.
-    #[error("syscall {syscall}: {error}")]
-    Syscall {
-        syscall: Cow<'static, str>,
-        #[source]
-        error: IoError,
-    },
 
     /// Custom error for implementers.
     #[error("custom: {0}")]
@@ -104,15 +48,11 @@ where
 impl Error {
     #[cfg(unix)]
     pub(crate) fn termios(err: Self) -> Self {
-        Self::Termios(Box::new(err))
+        err.with_context("termios")
     }
 
-    #[cfg(windows)]
     pub(crate) fn syscall(syscall: impl Into<Cow<'static, str>>) -> Self {
-        Self::Syscall {
-            syscall: syscall.into(),
-            error: IoError::last_os_error(),
-        }
+        Self::from(IoError::last_os_error()).with_context(syscall)
     }
 
     pub(crate) fn with_context(self, context: impl Into<Cow<'static, str>>) -> Self {
@@ -121,4 +61,17 @@ impl Error {
             error: Box::new(self),
         }
     }
+}
+
+#[macro_export]
+macro_rules! terminal_bail {
+    ($msg:literal $(,)?) => {
+        return Err(Error::from(::anyhow::anyhow!($msg)));
+    };
+    ($err:expr $(,)?) => {
+        return Err(Error::from(::anyhow::anyhow!($err)));
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        return Err(Error::from(::anyhow::anyhow!($fmt, $($arg)*)));
+    };
 }
