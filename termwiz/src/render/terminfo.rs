@@ -794,19 +794,19 @@ mod test {
 
     impl Terminal for FakeTerm {
         fn set_raw_mode(&mut self) -> StdResult<(), TerminalError> {
-            unimplemented!()
+            Err(TerminalError::Unimplemented)
         }
 
         fn set_cooked_mode(&mut self) -> StdResult<(), TerminalError> {
-            unimplemented!()
+            Err(TerminalError::Unimplemented)
         }
 
         fn enter_alternate_screen(&mut self) -> StdResult<(), TerminalError> {
-            unimplemented!()
+            Err(TerminalError::Unimplemented)
         }
 
         fn exit_alternate_screen(&mut self) -> StdResult<(), TerminalError> {
-            unimplemented!()
+            Err(TerminalError::Unimplemented)
         }
 
         fn render(&mut self, changes: &[Change]) -> StdResult<(), TerminalError> {
@@ -842,7 +842,7 @@ mod test {
             &mut self,
             _wait: Option<Duration>,
         ) -> StdResult<Option<InputEvent>, TerminalError> {
-            unimplemented!()
+            Err(TerminalError::Unimplemented)
         }
 
         fn waker(&self) -> TerminalWaker {

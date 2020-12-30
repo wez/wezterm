@@ -87,6 +87,9 @@ pub enum Error {
     /// Custom error for implementers.
     #[error("custom: {0}")]
     Custom(Box<dyn std::error::Error + Send + Sync>),
+
+    #[error("unimplemented")]
+    Unimplemented,
 }
 
 impl Error {
