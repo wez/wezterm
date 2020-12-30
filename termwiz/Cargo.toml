@@ -27,7 +27,7 @@ regex = "1"
 semver = "0.9"
 serde = {version="1.0", features = ["rc", "derive"], optional=true}
 terminfo = "0.7"
-thiserror = "1.0.23"
+thiserror = "1.0"
 unicode-segmentation = "1.7"
 unicode-width = "0.1"
 xi-unicode = "0.2"
