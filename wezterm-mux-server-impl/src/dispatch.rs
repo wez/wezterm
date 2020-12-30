@@ -42,7 +42,7 @@ where
     T: std::io::Write,
     T: std::fmt::Debug,
 {
-    log::error!("process_async called");
+    log::trace!("process_async called");
 
     let (item_tx, item_rx) = smol::channel::unbounded::<Item>();
 

@@ -222,7 +222,7 @@ impl SessionHandler {
                                     tabs.push(tab.codec_pane_tree());
                                 }
                             }
-                            log::error!("ListPanes {:#?}", tabs);
+                            log::trace!("ListPanes {:#?}", tabs);
                             Ok(Pdu::ListPanesResponse(ListPanesResponse { tabs }))
                         },
                         send_response,
