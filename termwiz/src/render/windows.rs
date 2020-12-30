@@ -3,8 +3,10 @@
 use crate::caps::Capabilities;
 use crate::cell::{AttributeChange, CellAttributes, Underline};
 use crate::color::{AnsiColor, ColorAttribute};
+use crate::render::Result;
 use crate::surface::{Change, Position};
 use crate::terminal::windows::ConsoleOutputHandle;
+
 use num_traits::FromPrimitive;
 use std::io::Write;
 use winapi::shared::minwindef::WORD;
@@ -155,7 +157,7 @@ impl ScreenBuffer {
     fn do_cursor_y_scroll<B: ConsoleOutputHandle + Write>(
         &mut self,
         out: &mut B,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if self.cursor_y >= self.rows {
             self.dirty = true;
             let lines_to_scroll = self.cursor_y.saturating_sub(self.rows) + 1;
@@ -172,7 +174,7 @@ impl ScreenBuffer {
         x: usize,
         y: usize,
         out: &mut B,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         self.cursor_x = x;
         self.cursor_y = y;
 
@@ -190,7 +192,7 @@ impl ScreenBuffer {
         t: &str,
         attr: WORD,
         out: &mut B,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         for c in t.chars() {
             match c {
                 '\r' => {
@@ -222,7 +224,7 @@ impl ScreenBuffer {
         Ok(())
     }
 
-    fn flush<B: ConsoleOutputHandle + Write>(&mut self, out: &mut B) -> anyhow::Result<()> {
+    fn flush<B: ConsoleOutputHandle + Write>(&mut self, out: &mut B) -> Result<()> {
         self.flush_screen(out)?;
         let info = out.get_buffer_info()?;
         out.set_cursor_position(
@@ -234,7 +236,7 @@ impl ScreenBuffer {
         Ok(())
     }
 
-    fn flush_screen<B: ConsoleOutputHandle + Write>(&mut self, out: &mut B) -> anyhow::Result<()> {
+    fn flush_screen<B: ConsoleOutputHandle + Write>(&mut self, out: &mut B) -> Result<()> {
         if self.dirty {
             out.flush()?;
             out.set_buffer_contents(&self.buf)?;
@@ -244,7 +246,7 @@ impl ScreenBuffer {
         Ok(())
     }
 
-    fn reread_buffer<B: ConsoleOutputHandle + Write>(&mut self, out: &mut B) -> anyhow::Result<()> {
+    fn reread_buffer<B: ConsoleOutputHandle + Write>(&mut self, out: &mut B) -> Result<()> {
         self.buf = out.get_buffer_contents()?;
         self.dirty = false;
         Ok(())
@@ -256,7 +258,7 @@ impl ScreenBuffer {
         region_size: usize,
         scroll_count: isize,
         out: &mut B,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if region_size > 0 && scroll_count != 0 {
             self.flush_screen(out)?;
             let info = out.get_buffer_info()?;
@@ -296,7 +298,7 @@ impl WindowsConsoleRenderer {
         &mut self,
         changes: &[Change],
         out: &mut B,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         out.flush()?;
         let info = out.get_buffer_info()?;
 

@@ -2,6 +2,7 @@
 use std::{
     result::Result as StdResult,
     io::Error as IoError,
+    borrow::Cow,
 };
 use thiserror::Error;
 
@@ -21,6 +22,10 @@ pub enum Error {
         ctl: &'static str,
         #[source] error: IoError
     },
+
+    /// Error when stdin or stdout are not TTYs.
+    #[error("stdin or stdout is not a TTY")]
+    NotATTY,
 
     /// Error reading tty.
     #[error("tty read: {0}")]
@@ -50,12 +55,21 @@ pub enum Error {
     #[error("poll(2): {0}")]
     Poll(#[source] Box<Self>),
 
+    /// Error when casting a bit-sized int to a machine-sized int.
     #[error("{0} is out of bounds for this system")]
     NumCastOutOfBounds(String),
 
-    /// Wrapped terminfo error.
-    #[error("terminfo: {0}")]
-    Terminfo(#[from] crate::render::terminfo::TerminfoError),
+    /// Error when the buffer isn't sized correctly for the screen.
+    #[error("buffer size doesn't match screen size: cols={cols} * rows={rows} != buffer={buffer}")]
+    BufferScreenMismatch {
+        rows: usize,
+        cols: usize,
+        buffer: usize,
+    },
+
+    /// Wrapped render error.
+    #[error("render: {0}")]
+    Render(#[from] crate::render::RenderError),
 
     /// Wrapped FileDescriptor (anyhow) error.
     #[error("filedescriptor: {0}")]
@@ -63,11 +77,27 @@ pub enum Error {
 
     /// Wrapped error about termios.
     #[error("termios: {0}")]
-    Termios(#[source] Box<Self>)
+    Termios(#[source] Box<Self>),
+
+    /// Error about a winapi/syscall.
+    #[error("syscall {syscall}: {error}")]
+    Syscall {
+        syscall: Cow<'static, str>,
+        #[source] error: IoError,
+    }
 }
 
 impl Error {
+    #[cfg(unix)]
     pub(crate) fn termios(err: Self) -> Self {
         Self::Termios(Box::new(err))
+    }
+
+    #[cfg(windows)]
+    pub(crate) fn syscall(syscall: impl Into<Cow<'static, str>>) -> Self {
+        Self::Syscall {
+            syscall: syscall.into(),
+            error: IoError::last_os_error(),
+        }
     }
 }

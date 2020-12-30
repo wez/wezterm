@@ -6,28 +6,10 @@ use crate::escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
 use crate::escape::osc::{ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand};
 use crate::escape::OneBased;
 use crate::image::TextureCoordinate;
-use crate::render::RenderTty;
+use crate::render::{RenderTty, Result};
 use crate::surface::{Change, CursorShape, CursorVisibility, Position};
 use std::io::Write;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum TerminfoError {
-    /// Generic I/O error.
-    #[error("i/o: {0}")]
-    Io(#[from] std::io::Error),
-
-    /// Upstream terminfo error.
-    #[error("terminfo: {0}")]
-    Terminfo(#[from] terminfo::Error),
-
-    /// Wrapped error about sizing.
-    #[error("sizing: {0}")]
-    Sizing(#[source] Box<crate::error::Error>),
-}
-
-type Result<T> = std::result::Result<T, TerminfoError>;
 
 pub struct TerminfoRenderer {
     caps: Capabilities,
@@ -371,7 +353,7 @@ impl TerminfoRenderer {
                         // paint the whole thing.
                         self.move_cursor_absolute(0, 0, out)?;
 
-                        let (cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
+                        let (cols, rows) = out.get_size_in_cells()?;
                         let num_spaces = cols * rows;
                         let mut buf = Vec::with_capacity(num_spaces);
                         buf.resize(num_spaces, b' ');
@@ -482,7 +464,7 @@ impl TerminfoRenderer {
                         }
 
                         (Position::Relative(x), Position::EndRelative(y)) => {
-                            let (_cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
+                            let (_cols, rows) = out.get_size_in_cells()?;
                             self.cursor_up(rows as u32, out)?;
                             self.cursor_down(rows.saturating_sub(y + 1) as u32, out)?;
                             self.cursor_x_relative(*x, out)?;
@@ -493,7 +475,7 @@ impl TerminfoRenderer {
                         }
                         (Position::EndRelative(x), Position::Relative(y)) => {
                             self.cursor_y_relative(*y, out)?;
-                            let (cols, _rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
+                            let (cols, _rows) = out.get_size_in_cells()?;
                             out.by_ref().write_all(b"\r")?;
                             self.cursor_right(cols.saturating_sub(x + 1) as u32, out)?;
                         }
@@ -502,7 +484,7 @@ impl TerminfoRenderer {
                             self.move_cursor_absolute(*x as u32, *y as u32, out)?;
                         }
                         (Position::Absolute(x), Position::EndRelative(y)) => {
-                            let (_cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
+                            let (_cols, rows) = out.get_size_in_cells()?;
                             self.move_cursor_absolute(
                                 *x as u32,
                                 rows.saturating_sub(y + 1) as u32,
@@ -510,7 +492,7 @@ impl TerminfoRenderer {
                             )?;
                         }
                         (Position::EndRelative(x), Position::EndRelative(y)) => {
-                            let (cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
+                            let (cols, rows) = out.get_size_in_cells()?;
                             self.move_cursor_absolute(
                                 cols.saturating_sub(x + 1) as u32,
                                 rows.saturating_sub(y + 1) as u32,
@@ -519,14 +501,14 @@ impl TerminfoRenderer {
                         }
 
                         (Position::Relative(x), Position::Absolute(y)) => {
-                            let (_cols, rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
+                            let (_cols, rows) = out.get_size_in_cells()?;
                             self.cursor_up(rows as u32, out)?;
                             self.cursor_down(*y as u32, out)?;
                             self.cursor_x_relative(*x, out)?;
                         }
 
                         (Position::EndRelative(x), Position::Absolute(y)) => {
-                            let (cols, _rows) = out.get_size_in_cells().map_err(|err| TerminfoError::Sizing(Box::new(err)))?;
+                            let (cols, _rows) = out.get_size_in_cells()?;
                             self.move_cursor_absolute(
                                 cols.saturating_sub(x + 1) as u32,
                                 *y as u32,
@@ -754,7 +736,7 @@ mod test {
         }
     }
     impl RenderTty for FakeTty {
-        fn get_size_in_cells(&mut self) -> StdResult<(usize, usize), crate::error::Error> {
+        fn get_size_in_cells(&mut self) -> Result<(usize, usize)> {
             Ok((self.size.ws_col as usize, self.size.ws_row as usize))
         }
     }

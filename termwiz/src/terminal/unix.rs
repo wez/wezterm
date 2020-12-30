@@ -120,7 +120,7 @@ impl Write for TtyWriteHandle {
 }
 
 impl RenderTty for TtyWriteHandle {
-    fn get_size_in_cells(&mut self) -> crate::error::Result<(usize, usize)> {
+    fn get_size_in_cells(&mut self) -> std::result::Result<(usize, usize), crate::render::RenderError> {
         let size = self.get_size()?;
         Ok((size.ws_col as usize, size.ws_row as usize))
     }
