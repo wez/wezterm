@@ -1,7 +1,7 @@
 //! # Terminal Wizardry
 //!
 //! This is a rust crate that provides a number of support functions
-//! for applications interesting in either displaying data to a terminal
+//! for applications interested in either displaying data to a terminal
 //! or in building a terminal emulator.
 //!
 //! It is currently in active development and subject to fairly wild
