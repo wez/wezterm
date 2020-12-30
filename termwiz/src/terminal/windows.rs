@@ -153,7 +153,9 @@ fn dimensions_from_buffer_info(info: CONSOLE_SCREEN_BUFFER_INFO) -> (usize, usiz
 }
 
 impl RenderTty for OutputHandle {
-    fn get_size_in_cells(&mut self) -> std::result::Result<(usize, usize), crate::render::RenderError> {
+    fn get_size_in_cells(
+        &mut self,
+    ) -> std::result::Result<(usize, usize), crate::render::RenderError> {
         let info = self.get_buffer_info()?;
         let (cols, rows) = dimensions_from_buffer_info(info);
 
@@ -275,7 +277,10 @@ impl ConsoleOutputHandle for OutputHandle {
             SetConsoleCursorPosition(self.handle.as_raw_handle() as *mut _, COORD { X: x, Y: y })
         } == 0
         {
-            return Err(Error::syscall(format!("ReadConsoleOutputW(x={}, y={})", x, y)));
+            return Err(Error::syscall(format!(
+                "ReadConsoleOutputW(x={}, y={})",
+                x, y
+            )));
         }
         Ok(())
     }
@@ -323,7 +328,11 @@ impl ConsoleOutputHandle for OutputHandle {
         let cols = info.dwSize.X as usize;
         let rows = 1 + info.srWindow.Bottom as usize - info.srWindow.Top as usize;
         if rows * cols != buffer.len() {
-            return Err(Error::BufferScreenMismatch { rows, cols, buffer: buffer.len() });
+            return Err(Error::BufferScreenMismatch {
+                rows,
+                cols,
+                buffer: buffer.len(),
+            });
         }
 
         let mut write_region = SMALL_RECT {
@@ -471,7 +480,8 @@ impl WindowsTerminal {
         let mut input_handle = InputHandle {
             handle: FileDescriptor::dup(&read).map_err(Error::FileDescriptor)?,
         };
-        let mut output_handle = OutputHandle::new(FileDescriptor::dup(&write).map_err(Error::FileDescriptor)?);
+        let mut output_handle =
+            OutputHandle::new(FileDescriptor::dup(&write).map_err(Error::FileDescriptor)?);
         let waker_handle = Arc::new(EventHandle::new()?);
 
         let saved_input_mode = input_handle.get_input_mode()?;
@@ -641,9 +651,7 @@ impl Terminal for WindowsTerminal {
     }
 
     fn flush(&mut self) -> Result<()> {
-        self.output_handle
-            .flush()
-            .map_err(Error::TtyFlush)
+        self.output_handle.flush().map_err(Error::TtyFlush)
     }
 
     fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>> {

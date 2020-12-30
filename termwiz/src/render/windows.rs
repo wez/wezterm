@@ -154,10 +154,7 @@ impl ScreenBuffer {
         end
     }
 
-    fn do_cursor_y_scroll<B: ConsoleOutputHandle + Write>(
-        &mut self,
-        out: &mut B,
-    ) -> Result<()> {
+    fn do_cursor_y_scroll<B: ConsoleOutputHandle + Write>(&mut self, out: &mut B) -> Result<()> {
         if self.cursor_y >= self.rows {
             self.dirty = true;
             let lines_to_scroll = self.cursor_y.saturating_sub(self.rows) + 1;

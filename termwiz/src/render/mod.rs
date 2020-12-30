@@ -1,5 +1,5 @@
-use thiserror::Error;
 use crate::terminal::Error as TerminalError;
+use thiserror::Error;
 
 pub mod terminfo;
 #[cfg(windows)]

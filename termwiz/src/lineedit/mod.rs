@@ -786,11 +786,7 @@ impl<'term> LineEditor<'term> {
     /// Applies the effect of the specified action to the line editor.
     /// You don't normally need to call this unless you are defining
     /// custom key mapping or custom actions in your embedding application.
-    pub fn apply_action(
-        &mut self,
-        host: &mut dyn LineEditorHost,
-        action: Action,
-    ) -> Result<()> {
+    pub fn apply_action(&mut self, host: &mut dyn LineEditorHost, action: Action) -> Result<()> {
         // When searching, reinterpret history next/prev as repeated
         // search actions in the appropriate direction
         let action = match (action, &self.state) {
@@ -968,7 +964,11 @@ impl<'term> LineEditor<'term> {
                     EditorState::Searching { .. } | EditorState::Editing => {}
                     EditorState::Cancelled => return Ok(None),
                     EditorState::Accepted => return Ok(Some(self.line.clone())),
-                    EditorState::Inactive => return Err(Error::ImpossibleState("editor is inactive during read line!?")),
+                    EditorState::Inactive => {
+                        return Err(Error::ImpossibleState(
+                            "editor is inactive during read line!?",
+                        ))
+                    }
                 }
             } else {
                 self.render(host)?;

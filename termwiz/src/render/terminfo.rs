@@ -226,11 +226,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_y_relative<W: RenderTty + Write>(
-        &mut self,
-        y: isize,
-        out: &mut W,
-    ) -> Result<()> {
+    fn cursor_y_relative<W: RenderTty + Write>(&mut self, y: isize, out: &mut W) -> Result<()> {
         if y > 0 {
             self.cursor_down(y as u32, out)
         } else {
@@ -260,11 +256,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_x_relative<W: RenderTty + Write>(
-        &mut self,
-        x: isize,
-        out: &mut W,
-    ) -> Result<()> {
+    fn cursor_x_relative<W: RenderTty + Write>(&mut self, x: isize, out: &mut W) -> Result<()> {
         if x > 0 {
             self.cursor_right(x as u32, out)
         } else {
@@ -692,8 +684,8 @@ mod test {
     use libc::winsize;
     use std::io::{Error as IoError, ErrorKind, Read, Result as IoResult, Write};
     use std::mem;
-    use std::time::Duration;
     use std::result::Result as StdResult;
+    use std::time::Duration;
     use terminfo;
     use termios::Termios;
 
@@ -852,7 +844,10 @@ mod test {
             Ok(())
         }
 
-        fn poll_input(&mut self, _wait: Option<Duration>) -> StdResult<Option<InputEvent>, TerminalError> {
+        fn poll_input(
+            &mut self,
+            _wait: Option<Duration>,
+        ) -> StdResult<Option<InputEvent>, TerminalError> {
             unimplemented!()
         }
 

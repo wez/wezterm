@@ -1,9 +1,5 @@
 //! Error types.
-use std::{
-    result::Result as StdResult,
-    io::Error as IoError,
-    borrow::Cow,
-};
+use std::{borrow::Cow, io::Error as IoError, result::Result as StdResult};
 use thiserror::Error;
 
 /// Convenient return type for functions.
@@ -20,7 +16,8 @@ pub enum Error {
     #[error("ioctl({ctl}): {error}")]
     Ioctl {
         ctl: &'static str,
-        #[source] error: IoError
+        #[source]
+        error: IoError,
     },
 
     /// Error when stdin or stdout are not TTYs.
@@ -83,7 +80,8 @@ pub enum Error {
     #[error("syscall {syscall}: {error}")]
     Syscall {
         syscall: Cow<'static, str>,
-        #[source] error: IoError,
+        #[source]
+        error: IoError,
     },
 
     /// Custom error for implementers.

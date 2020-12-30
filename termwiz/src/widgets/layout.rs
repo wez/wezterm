@@ -6,7 +6,7 @@ use cassowary::WeightedRelation::*;
 use cassowary::{Expression, Solver, Variable};
 use std::collections::HashMap;
 
-use crate::widgets::{Rect, WidgetId, WidgetError};
+use crate::widgets::{Rect, WidgetError, WidgetId};
 
 /// Expands to an Expression holding the value of the variable,
 /// or if there is no variable, a constant with the specified
@@ -235,8 +235,10 @@ impl LayoutState {
         screen_height: usize,
         root_widget: WidgetId,
     ) -> Result<Vec<LaidOutWidget>, WidgetError> {
-        self.solver.suggest_value(self.screen_width, screen_width as f64)?;
-        self.solver.suggest_value(self.screen_height, screen_height as f64)?;
+        self.solver
+            .suggest_value(self.screen_width, screen_width as f64)?;
+        self.solver
+            .suggest_value(self.screen_height, screen_height as f64)?;
 
         let width = self.screen_width;
         let height = self.screen_height;
@@ -313,38 +315,40 @@ impl LayoutState {
         self.solver.add_constraint(
             (state.left + state.width) | LE(REQUIRED) | (parent_left.clone() + parent_width),
         )?;
-        self.solver.add_constraint(state.left | GE(REQUIRED) | parent_left)?;
+        self.solver
+            .add_constraint(state.left | GE(REQUIRED) | parent_left)?;
 
         self.solver.add_constraint(
             (state.top + state.height) | LE(REQUIRED) | (parent_top.clone() + parent_height),
         )?;
-        self.solver.add_constraint(state.top | GE(REQUIRED) | parent_top)?;
+        self.solver
+            .add_constraint(state.top | GE(REQUIRED) | parent_top)?;
 
         if is_root_widget {
             // We handle alignment on the root widget specially here;
             // for non-root widgets, we handle it when assessing children
             match state.constraints.halign {
-                HorizontalAlignment::Left => self
-                    .solver
-                    .add_constraint(state.left | EQ(STRONG) | 0.0)?,
+                HorizontalAlignment::Left => {
+                    self.solver.add_constraint(state.left | EQ(STRONG) | 0.0)?
+                }
                 HorizontalAlignment::Right => self
                     .solver
                     .add_constraint(state.left | EQ(STRONG) | (parent_width - state.width))?,
-                HorizontalAlignment::Center => self
-                    .solver
-                    .add_constraint(state.left | EQ(STRONG) | ((parent_width - state.width) / 2.0))?,
+                HorizontalAlignment::Center => self.solver.add_constraint(
+                    state.left | EQ(STRONG) | ((parent_width - state.width) / 2.0),
+                )?,
             }
 
             match state.constraints.valign {
-                VerticalAlignment::Top => self
-                    .solver
-                    .add_constraint(state.top | EQ(STRONG) | 0.0)?,
+                VerticalAlignment::Top => {
+                    self.solver.add_constraint(state.top | EQ(STRONG) | 0.0)?
+                }
                 VerticalAlignment::Bottom => self
                     .solver
                     .add_constraint(state.top | EQ(STRONG) | (parent_height - state.height))?,
-                VerticalAlignment::Middle => self
-                    .solver
-                    .add_constraint(state.top | EQ(STRONG) | ((parent_height - state.height) / 2.0))?,
+                VerticalAlignment::Middle => self.solver.add_constraint(
+                    state.top | EQ(STRONG) | ((parent_height - state.height) / 2.0),
+                )?,
             }
         }
 
@@ -354,10 +358,9 @@ impl LayoutState {
                     .add_constraint(state.width | EQ(STRONG) | f64::from(width))?;
             }
             DimensionSpec::Percentage(pct) => {
-                self.solver
-                    .add_constraint(
-                        state.width | EQ(STRONG) | (f64::from(pct) * parent_width / 100.0),
-                    )?;
+                self.solver.add_constraint(
+                    state.width | EQ(STRONG) | (f64::from(pct) * parent_width / 100.0),
+                )?;
             }
         }
         self.solver.add_constraint(
@@ -367,12 +370,14 @@ impl LayoutState {
         )?;
 
         if let Some(max_width) = state.constraints.width.maximum {
-            self.solver.add_constraint(state.width | LE(STRONG) | f64::from(max_width))?;
+            self.solver
+                .add_constraint(state.width | LE(STRONG) | f64::from(max_width))?;
         }
 
         match state.constraints.height.spec {
             DimensionSpec::Fixed(height) => {
-                self.solver.add_constraint(state.height | EQ(STRONG) | f64::from(height))?;
+                self.solver
+                    .add_constraint(state.height | EQ(STRONG) | f64::from(height))?;
             }
             DimensionSpec::Percentage(pct) => {
                 self.solver.add_constraint(
@@ -386,7 +391,8 @@ impl LayoutState {
                 | f64::from(state.constraints.height.minimum.unwrap_or(1).max(1)),
         )?;
         if let Some(max_height) = state.constraints.height.maximum {
-            self.solver.add_constraint(state.height | LE(STRONG) | f64::from(max_height))?;
+            self.solver
+                .add_constraint(state.height | LE(STRONG) | f64::from(max_height))?;
         }
 
         let has_children = !state.children.is_empty();
@@ -409,40 +415,32 @@ impl LayoutState {
                     HorizontalAlignment::Left => self
                         .solver
                         .add_constraint(child_state.left | EQ(STRONG) | left_edge.clone())?,
-                    HorizontalAlignment::Right => self
-                        .solver
-                        .add_constraint(
-                            (child_state.left + child_state.width)
-                                | EQ(STRONG)
-                                | (state.left + state.width),
-                        )?,
-                    HorizontalAlignment::Center => self
-                        .solver
-                        .add_constraint(
-                            child_state.left
-                                | EQ(STRONG)
-                                | (state.left + (state.width - child_state.width) / 2.0),
-                        )?,
+                    HorizontalAlignment::Right => self.solver.add_constraint(
+                        (child_state.left + child_state.width)
+                            | EQ(STRONG)
+                            | (state.left + state.width),
+                    )?,
+                    HorizontalAlignment::Center => self.solver.add_constraint(
+                        child_state.left
+                            | EQ(STRONG)
+                            | (state.left + (state.width - child_state.width) / 2.0),
+                    )?,
                 }
 
                 match child_state.constraints.valign {
                     VerticalAlignment::Top => self
                         .solver
                         .add_constraint(child_state.top | EQ(STRONG) | top_edge.clone())?,
-                    VerticalAlignment::Bottom => self
-                        .solver
-                        .add_constraint(
-                            (child_state.top + child_state.height)
-                                | EQ(STRONG)
-                                | (state.top + state.height),
-                        )?,
-                    VerticalAlignment::Middle => self
-                        .solver
-                        .add_constraint(
-                            child_state.top
-                                | EQ(STRONG)
-                                | (state.top + (state.height - child_state.height) / 2.0),
-                        )?,
+                    VerticalAlignment::Bottom => self.solver.add_constraint(
+                        (child_state.top + child_state.height)
+                            | EQ(STRONG)
+                            | (state.top + state.height),
+                    )?,
+                    VerticalAlignment::Middle => self.solver.add_constraint(
+                        child_state.top
+                            | EQ(STRONG)
+                            | (state.top + (state.height - child_state.height) / 2.0),
+                    )?,
                 }
 
                 match state.constraints.child_orientation {
@@ -459,15 +457,19 @@ impl LayoutState {
 
             // This constraint encourages the contents to fill out to the width
             // of the container, rather than clumping left
-            self.solver.add_constraint(left_edge | EQ(STRONG) | (state.left + state.width))?;
+            self.solver
+                .add_constraint(left_edge | EQ(STRONG) | (state.left + state.width))?;
 
-            self.solver.add_constraint(state.width | GE(WEAK) | width_constraint)?;
+            self.solver
+                .add_constraint(state.width | GE(WEAK) | width_constraint)?;
 
             // This constraint encourages the contents to fill out to the height
             // of the container, rather than clumping top
-            self.solver.add_constraint(top_edge | EQ(STRONG) | (state.top + state.height))?;
+            self.solver
+                .add_constraint(top_edge | EQ(STRONG) | (state.top + state.height))?;
 
-            self.solver.add_constraint(state.height | GE(WEAK) | height_constraint)?;
+            self.solver
+                .add_constraint(state.height | GE(WEAK) | height_constraint)?;
         }
 
         Ok(state)

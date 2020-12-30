@@ -4,7 +4,7 @@ use libc::{self, winsize};
 use signal_hook::{self, SigId};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
-use std::io::{stdin, stdout, Error as IoError, Result as IoResult, ErrorKind, Read, Write};
+use std::io::{stdin, stdout, Error as IoError, ErrorKind, Read, Result as IoResult, Write};
 use std::mem;
 use std::os::unix::io::AsRawFd;
 use std::os::unix::net::UnixStream;
@@ -60,7 +60,9 @@ impl TtyReadHandle {
     }
 
     fn set_blocking(&mut self, blocking: Blocking) -> Result<()> {
-        self.fd.set_non_blocking(blocking == Blocking::DoNotWait).map_err(Error::FileDescriptor)?;
+        self.fd
+            .set_non_blocking(blocking == Blocking::DoNotWait)
+            .map_err(Error::FileDescriptor)?;
         Ok(())
     }
 }
@@ -120,7 +122,9 @@ impl Write for TtyWriteHandle {
 }
 
 impl RenderTty for TtyWriteHandle {
-    fn get_size_in_cells(&mut self) -> std::result::Result<(usize, usize), crate::render::RenderError> {
+    fn get_size_in_cells(
+        &mut self,
+    ) -> std::result::Result<(usize, usize), crate::render::RenderError> {
         let size = self.get_size()?;
         Ok((size.ws_col as usize, size.ws_row as usize))
     }
@@ -130,7 +134,10 @@ impl UnixTty for TtyWriteHandle {
     fn get_size(&mut self) -> Result<winsize> {
         let mut size: winsize = unsafe { mem::zeroed() };
         if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCGWINSZ as _, &mut size) } != 0 {
-            return Err(Error::Ioctl { ctl: "TIOCSWINSZ", error: IoError::last_os_error() });
+            return Err(Error::Ioctl {
+                ctl: "TIOCSWINSZ",
+                error: IoError::last_os_error(),
+            });
         }
         Ok(size)
     }
@@ -144,15 +151,17 @@ impl UnixTty for TtyWriteHandle {
             )
         } != 0
         {
-            return Err(Error::Ioctl { ctl: "TIOCSWINSZ", error: IoError::last_os_error() });
+            return Err(Error::Ioctl {
+                ctl: "TIOCSWINSZ",
+                error: IoError::last_os_error(),
+            });
         }
 
         Ok(())
     }
 
     fn get_termios(&mut self) -> Result<Termios> {
-        Termios::from_fd(self.fd.as_raw_fd())
-            .map_err(|err| Error::termios(Error::Io(err)))
+        Termios::from_fd(self.fd.as_raw_fd()).map_err(|err| Error::termios(Error::Io(err)))
     }
 
     fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<()> {
@@ -166,8 +175,7 @@ impl UnixTty for TtyWriteHandle {
     }
 
     fn drain(&mut self) -> Result<()> {
-        tcdrain(self.fd.as_raw_fd())
-            .map_err(|err| Error::termios(Error::TtyWrite(err)))
+        tcdrain(self.fd.as_raw_fd()).map_err(|err| Error::termios(Error::TtyWrite(err)))
     }
 
     fn purge(&mut self, purge: Purge) -> Result<()> {
@@ -176,8 +184,7 @@ impl UnixTty for TtyWriteHandle {
             Purge::OutputQueue => TCOFLUSH,
             Purge::InputAndOutputQueue => TCIOFLUSH,
         };
-        tcflush(self.fd.as_raw_fd(), param)
-            .map_err(|err| Error::termios(Error::TtyFlush(err)))
+        tcflush(self.fd.as_raw_fd(), param).map_err(|err| Error::termios(Error::TtyFlush(err)))
     }
 }
 
@@ -212,10 +219,10 @@ impl UnixTerminal {
         read: &A,
         write: &B,
     ) -> Result<UnixTerminal> {
-        let mut read = TtyReadHandle::new(FileDescriptor::dup(read)
-            .map_err(Error::FileDescriptor)?);
-        let mut write = TtyWriteHandle::new(FileDescriptor::dup(write)
-            .map_err(Error::FileDescriptor)?);
+        let mut read =
+            TtyReadHandle::new(FileDescriptor::dup(read).map_err(Error::FileDescriptor)?);
+        let mut write =
+            TtyWriteHandle::new(FileDescriptor::dup(write).map_err(Error::FileDescriptor)?);
         let saved_termios = write.get_termios()?;
         let renderer = TerminfoRenderer::new(caps.clone());
         let input_parser = InputParser::new();
@@ -380,7 +387,9 @@ impl Terminal for UnixTerminal {
         self.write.set_size(size)
     }
     fn render(&mut self, changes: &[Change]) -> Result<()> {
-        self.renderer.render_to(changes, &mut self.write).map_err(|err| err.into())
+        self.renderer
+            .render_to(changes, &mut self.write)
+            .map_err(|err| err.into())
     }
     fn flush(&mut self) -> Result<()> {
         self.write.flush().map_err(Error::TtyFlush)

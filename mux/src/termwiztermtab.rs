@@ -25,10 +25,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
 use termwiz::input::{InputEvent, KeyEvent, MouseEvent as TermWizMouseEvent};
-use termwiz::render::{RenderError, terminfo::TerminfoRenderer};
+use termwiz::render::{terminfo::TerminfoRenderer, RenderError};
 use termwiz::surface::Change;
 use termwiz::surface::Line;
-use termwiz::terminal::{ScreenSize, TerminalWaker, Error as TerminalError};
+use termwiz::terminal::{Error as TerminalError, ScreenSize, TerminalWaker};
 use thiserror::Error;
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -294,7 +294,10 @@ impl TermWizTerminal {
                 }
             }
         } else {
-            let input = self.input_rx.recv().map_err(|err| TerminalError::Custom(Box::new(err)))?;
+            let input = self
+                .input_rx
+                .recv()
+                .map_err(|err| TerminalError::Custom(Box::new(err)))?;
             Ok(Some(input))
         }
     }
@@ -338,11 +341,15 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 
     fn enter_alternate_screen(&mut self) -> TerminalResult<()> {
-        Err(TerminalError::Custom(Box::new(TermWizTerminalPaneCustomError::NoAltScreen)))
+        Err(TerminalError::Custom(Box::new(
+            TermWizTerminalPaneCustomError::NoAltScreen,
+        )))
     }
 
     fn exit_alternate_screen(&mut self) -> TerminalResult<()> {
-        Err(TerminalError::Custom(Box::new(TermWizTerminalPaneCustomError::NoAltScreen)))
+        Err(TerminalError::Custom(Box::new(
+            TermWizTerminalPaneCustomError::NoAltScreen,
+        )))
     }
 
     fn get_screen_size(&mut self) -> TerminalResult<ScreenSize> {
@@ -350,7 +357,9 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 
     fn set_screen_size(&mut self, _size: ScreenSize) -> TerminalResult<()> {
-        Err(TerminalError::Custom(Box::new(TermWizTerminalPaneCustomError::CannotSetSize)))
+        Err(TerminalError::Custom(Box::new(
+            TermWizTerminalPaneCustomError::CannotSetSize,
+        )))
     }
 
     fn render(&mut self, changes: &[Change]) -> TerminalResult<()> {

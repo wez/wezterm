@@ -7,7 +7,7 @@ use num_traits::FromPrimitive;
 use ordered_float::NotNan;
 use std::{
     collections::HashMap,
-    fmt::{Display, Result as FmtResult, Formatter},
+    fmt::{Display, Formatter, Result as FmtResult},
     str,
 };
 use thiserror::Error;
@@ -174,7 +174,7 @@ impl Selection {
                     b'7' => Selection::CUT7,
                     b'8' => Selection::CUT8,
                     b'9' => Selection::CUT9,
-                    _ => return Err(OscError::SelectionInvalid(buf.to_vec()))
+                    _ => return Err(OscError::SelectionInvalid(buf.to_vec())),
                 }
             }
             Ok(s)
@@ -236,7 +236,9 @@ impl OperatingSystemCommand {
             let s = String::from_utf8(bytes)?;
             Ok(OperatingSystemCommand::SetSelection(sel, s))
         } else {
-            Err(OscError::SelectionUnhandled(osc.iter().map(|v| v.to_vec()).collect()))
+            Err(OscError::SelectionUnhandled(
+                osc.iter().map(|v| v.to_vec()).collect(),
+            ))
         }
     }
 
@@ -283,15 +285,15 @@ impl OperatingSystemCommand {
     }
 
     fn parse_reset_dynamic_color_number(idx: u8) -> Result<Self, OscError> {
-        let which_color: DynamicColorNumber = FromPrimitive::from_u8(idx)
-            .ok_or_else(|| OscError::ColorDynamic(idx))?;
+        let which_color: DynamicColorNumber =
+            FromPrimitive::from_u8(idx).ok_or_else(|| OscError::ColorDynamic(idx))?;
 
         Ok(OperatingSystemCommand::ResetDynamicColor(which_color))
     }
 
     fn parse_change_dynamic_color_number(idx: u8, osc: &[&[u8]]) -> Result<Self, OscError> {
-        let which_color: DynamicColorNumber = FromPrimitive::from_u8(idx)
-            .ok_or_else(|| OscError::ColorDynamic(idx))?;
+        let which_color: DynamicColorNumber =
+            FromPrimitive::from_u8(idx).ok_or_else(|| OscError::ColorDynamic(idx))?;
         let mut colors = vec![];
         for spec in osc.iter().skip(1) {
             if spec == b"?" {
@@ -343,7 +345,9 @@ impl OperatingSystemCommand {
                 if osc.len() != 2 {
                     Err(OscError::SimpleParamCount(osc.len()))
                 } else {
-                    Ok(OperatingSystemCommand::$variant(String::from_utf8(osc[1].to_vec())?))
+                    Ok(OperatingSystemCommand::$variant(String::from_utf8(
+                        osc[1].to_vec(),
+                    )?))
                 }
             };
         };
@@ -364,8 +368,10 @@ impl OperatingSystemCommand {
             ManipulateSelectionData => Self::parse_selection(osc),
             SystemNotification => single_string!(SystemNotification),
             SetCurrentWorkingDirectory => single_string!(CurrentWorkingDirectory),
-            ITermProprietary => Ok(self::ITermProprietary::parse(osc)
-                .map(OperatingSystemCommand::ITermProprietary)?),
+            ITermProprietary => {
+                Ok(self::ITermProprietary::parse(osc)
+                    .map(OperatingSystemCommand::ITermProprietary)?)
+            }
             FinalTermSemanticPrompt => Ok(self::FinalTermSemanticPrompt::parse(osc)
                 .map(OperatingSystemCommand::FinalTermSemanticPrompt)?),
             ChangeColorNumber => Self::parse_change_color_number(osc),
@@ -603,10 +609,7 @@ pub enum FinalTermError {
 
     // Semantic prompt: invalid parameters.
     #[error("semantic prompt: invalid p1={p1} params={params}")]
-    SemanticPromptInvalidParams {
-        p1: String,
-        params: String,
-    },
+    SemanticPromptInvalidParams { p1: String, params: String },
 
     // Semantic prompt: malformed.
     #[error("semantic prompt: malformed")]
@@ -1280,7 +1283,9 @@ impl ITermProprietary {
             return Ok(ITermProprietary::File(Box::new(ITermFileData::parse(osc)?)));
         }
 
-        Err(ITermError::Unknown(osc.iter().map(|v| v.to_vec()).collect()))
+        Err(ITermError::Unknown(
+            osc.iter().map(|v| v.to_vec()).collect(),
+        ))
     }
 }
 
