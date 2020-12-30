@@ -30,7 +30,7 @@ palette = "0.5"
 promise = { path = "../promise" }
 resize = "0.5"
 serde = {version="1.0", features = ["rc", "derive"]}
-glium = { version = "0.29", default-features = false}
+glium = { version = "0.28", default-features = false}
 wezterm-input-types = { path = "../wezterm-input-types" }
 
 [features]
@@ -58,10 +58,11 @@ xcb-util = { features = [ "icccm", "ewmh", "keysyms", "shm"], version = "0.3" }
 xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://github.com/wez/xkbcommon-rs.git", rev="01a0a0cd5663405e6e4abb1ad3add9add1496f58"}
 mio = "0.6"
 libc = "0.2"
-smithay-client-toolkit = {version = "0.9", optional = true, features=["calloop"], git="https://github.com/wez/client-toolkit.git", branch="title_trunc"}
+#smithay-client-toolkit = {version = "0.9", optional = true, features=["calloop"], git="https://github.com/wez/client-toolkit.git", branch="title_trunc"}
+smithay-client-toolkit = {version = "0.12", optional = true, features=["calloop"]}
 memmap = {version="0.7", optional=true}
-wayland-client = {version="0.26", optional=true}
-wayland-egl = {version="0.26", optional=true}
+wayland-client = {version="0.28", optional=true}
+wayland-egl = {version="0.28", optional=true}
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"

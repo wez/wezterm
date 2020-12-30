@@ -57,10 +57,10 @@ impl CopyAndPaste {
                 }
             }
             DataOfferEvent::SourceActions { source_actions } => {
-                log::error!("Offer source_actions {}", source_actions);
+                log::error!("Offer source_actions {:?}", source_actions);
             }
             DataOfferEvent::Action { dnd_action } => {
-                log::error!("Offer dnd_action {}", dnd_action);
+                log::error!("Offer dnd_action {:?}", dnd_action);
             }
             _ => {}
         }

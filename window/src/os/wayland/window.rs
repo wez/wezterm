@@ -186,11 +186,14 @@ impl WaylandWindow {
             dpi: crate::DEFAULT_DPI as usize,
         };
 
+        let theme_manager = None;
+
         let mut window = conn
             .environment
             .borrow()
             .create_window::<ConceptFrame, _>(
                 surface.clone().detach(),
+                theme_manager,
                 (
                     dimensions.pixel_width as u32,
                     dimensions.pixel_height as u32,

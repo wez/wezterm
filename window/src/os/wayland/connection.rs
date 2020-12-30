@@ -45,7 +45,7 @@ pub struct WaylandConnection {
 impl WaylandConnection {
     pub fn create_new() -> anyhow::Result<Self> {
         let (environment, display, event_q) =
-            toolkit::init_default_environment!(MyEnvironment, desktop)?;
+            toolkit::new_default_environment!(MyEnvironment, desktop)?;
         let event_loop = toolkit::reexports::calloop::EventLoop::<()>::new()?;
 
         let keyboard = KeyboardDispatcher::new();
