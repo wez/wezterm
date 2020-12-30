@@ -5,11 +5,9 @@ use bitflags::bitflags;
 use num_derive::*;
 use num_traits::FromPrimitive;
 use ordered_float::NotNan;
-use std::{
-    collections::HashMap,
-    fmt::{Display, Formatter, Result as FmtResult},
-    str,
-};
+use std::collections::HashMap;
+use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::str;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
