@@ -21,6 +21,9 @@ structopt = "0.3"
 umask = { path = "../umask" }
 wezterm-mux-server-impl = { path = "../wezterm-mux-server-impl" }
 
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3", features = [ "winuser" ]}
+
 [features]
 default = ["vendor_openssl"]
 # FIXME: find a way to magically disable vendor_openssl only on linux!

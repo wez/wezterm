@@ -4480,6 +4480,7 @@ dependencies = [
  "structopt",
  "umask",
  "wezterm-mux-server-impl",
+ "winapi 0.3.9",
 ]
 
 [[package]]
