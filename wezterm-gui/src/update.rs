@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use termwiz::cell::{AttributeChange, Hyperlink, Hyperfile, Underline};
+use termwiz::cell::{AttributeChange, Hyperlink, Underline};
 use termwiz::escape::csi::{Cursor, Sgr};
 use termwiz::escape::osc::{ITermDimension, ITermFileData, ITermProprietary};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};

@@ -86,6 +86,10 @@ builder! {
         /// The default is to assume yes as this is mostly harmless.
         hyperlinks: Option<bool>,
 
+        /// Definitively set whether hyperfiles are supported.
+        /// The default is to assume yes as this is mostly harmless.
+        hyperfiles: Option<bool>,
+
         /// Configure whether sixel graphics are supported.
         sixel: Option<bool>,
 
@@ -150,6 +154,7 @@ pub enum ColorLevel {
 pub struct Capabilities {
     color_level: ColorLevel,
     hyperlinks: bool,
+    hyperfiles: bool,
     sixel: bool,
     iterm2_image: bool,
     bce: bool,
@@ -232,6 +237,12 @@ impl Capabilities {
         // the text will look "OK", although some versions of VTE based
         // terminals had a bug where it look like garbage.
         let hyperlinks = hints.hyperlinks.unwrap_or(true);
+        
+        // The use of OSC 8 for hyperfiles means that it is generally
+        // safe to assume yes: if the terminal doesn't support it,
+        // the text will look "OK", although some versions of VTE based
+        // terminals had a bug where it look like garbage.
+        let hyperfiles = hints.hyperfiles.unwrap_or(true);
 
         let bce = hints.bce.unwrap_or_else(|| {
             // Use the COLORTERM_BCE variable to override any terminfo
@@ -278,6 +289,7 @@ impl Capabilities {
             color_level,
             sixel,
             hyperlinks,
+            hyperfiles,
             iterm2_image,
             bce,
             terminfo_db: hints.terminfo_db,
@@ -300,6 +312,12 @@ impl Capabilities {
     /// See <https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda>
     pub fn hyperlinks(&self) -> bool {
         self.hyperlinks
+    }
+
+    /// Does the terminal support hyperfiles?
+    /// See <https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda>
+    pub fn hyperfiles(&self) -> bool {
+        self.hyperfiles
     }
 
     /// Does the terminal support the iTerm2 image protocol?

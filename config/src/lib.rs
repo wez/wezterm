@@ -1292,6 +1292,13 @@ fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
     ]
 }
 
+fn default_hyperfile_rules() -> Vec<hyperfile::Rule> {
+    vec![
+        // File:## with a protocol
+        hyperfile::Rule::new(r"^\s*[a-zA-Z0-9/_\-\. ]+\.?[a-zA-Z0-9]+:[0-9]+", "$0").unwrap(),
+    ]
+}
+
 fn default_harfbuzz_features() -> Vec<String> {
     ["kern", "liga", "clig"]
         .iter()

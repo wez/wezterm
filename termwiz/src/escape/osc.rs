@@ -387,7 +387,7 @@ osc_entries!(
     SetCurrentWorkingDirectory = "7",
     /// See https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
     SetHyperlink = "8",
-    SetHyperfile = "8",
+    SetHyperfile = "88",
     /// iTerm2
     SystemNotification = "9",
     SetTextForegroundColor = "10",
@@ -478,7 +478,7 @@ impl Display for OperatingSystemCommand {
             SetHyperlink(Some(link)) => link.fmt(f)?,
             SetHyperfile(Some(file)) => file.fmt(f)?,
             SetHyperlink(None) => write!(f, "8;;")?,
-            SetHyperfile(None) => write!(f, "8;;")?,
+            SetHyperfile(None) => write!(f, "88;;")?,
             Unspecified(v) => {
                 for (idx, item) in v.iter().enumerate() {
                     if idx > 0 {
@@ -1185,7 +1185,7 @@ mod test {
         let result = OperatingSystemCommand::parse(&v);
 
         assert_eq!(encode(&result), expected);
-
+        println!("{}", result);
         result
     }
 
@@ -1275,8 +1275,8 @@ mod test {
     fn hyperfile() {
         assert_eq!(
             parse(
-                &["8", "id=foo", "/User/user/foo.txt"],
-                "\x1b]8;id=foo;/User/user/foo.txt\x1b\\"
+                &["88","id=foo", "/User/user/foo.txt"],
+                "\x1b]88;id=foo;/User/user/foo.txt\x1b\\"
             ),
             OperatingSystemCommand::SetHyperfile(Some(Hyperfile::new_with_id(
                 "/User/user/foo.txt",
@@ -1285,18 +1285,18 @@ mod test {
         );
 
         assert_eq!(
-            parse(&["8", "", ""], "\x1b]8;;\x1b\\"),
+            parse(&["88", "", ""], "\x1b]88;;\x1b\\"),
             OperatingSystemCommand::SetHyperfile(None)
         );
 
         // too many params
         assert_eq!(
-            parse(&["8", "1", "2"], "\x1b]8;1;2\x1b\\"),
-            OperatingSystemCommand::Unspecified(vec![b"8".to_vec(), b"1".to_vec(), b"2".to_vec()])
+            parse(&["88", "1", "2"], "\x1b]88;1;2\x1b\\"),
+            OperatingSystemCommand::Unspecified(vec![b"88".to_vec(), b"1".to_vec(), b"2".to_vec()])
         );
 
         assert_eq!(
-            Hyperfile::parse(&[b"8", b"", b"x"]).unwrap(),
+            Hyperfile::parse(&[b"88", b"", b"x"]).unwrap(),
             Some(Hyperfile::new("x"))
         );
     }

@@ -2030,14 +2030,14 @@ impl TermWindow {
                 }
             }
             OpenFileAtMouseCursor => {
-                // They clicked on a link, so let's open it!
+                // They clicked on a file, so let's open it!
                 // We need to ensure that we spawn the `open` call outside of the context
                 // of our window loop; on Windows it can cause a panic due to
                 // triggering our WndProc recursively.
                 // We get that assurance for free as part of the async dispatch that we
                 // perform below; here we allow the user to define an `open-uri` event
                 // handler that can bypass the normal `open::that` functionality.
-                if let Some(link) = self.current_highlight_file.as_ref().cloned() {
+                if let Some(file) = self.current_highlight_file.as_ref().cloned() {
                     let window = GuiWin::new(self);
                     let pane = PaneObject::new(pane);
 
@@ -2045,31 +2045,31 @@ impl TermWindow {
                         lua: Option<Rc<mlua::Lua>>,
                         window: GuiWin,
                         pane: PaneObject,
-                        link: String,
+                        file: String,
                     ) -> anyhow::Result<()> {
                         let default_click = match lua {
                             Some(lua) => {
-                                let args = lua.pack_multi((window, pane, link.clone()))?;
+                                let args = lua.pack_multi((window, pane, file.clone()))?;
                                 config::lua::emit_event(&lua, ("open-uri".to_string(), args))
                                     .await
                                     .map_err(|e| {
                                         log::error!("while processing open-uri event: {:#}", e);
-                                        egsb
+                                        e
                                     })?
                             }
                             None => true,
                         };
                         if default_click {
-                            log::info!("clicking {}", link);
-                            if let Err(err) = open::that(&link) {
-                                log::error!("failed to open {}: {:?}", link, err);
+                            log::info!("clicking {}", file);
+                            if let Err(err) = open::that(&file) {
+                                log::error!("failed to open {}: {:?}", file, err);
                             }
                         }
                         Ok(())
                     }
 
                     promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-                        open_uri(lua, window, pane, link.uri().to_string())
+                        open_uri(lua, window, pane, file.uri().to_string())
                     }))
                         .detach();
                 }

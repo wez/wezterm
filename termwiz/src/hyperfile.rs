@@ -97,7 +97,7 @@ impl Hyperfile {
 
 impl Display for Hyperfile {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
-        write!(f, "8;")?;
+        write!(f, "88;")?;
         for (idx, (k, v)) in self.params.iter().enumerate() {
             // TODO: protect against k, v containing : or =
             if idx > 0 {
@@ -240,13 +240,13 @@ mod test {
     #[test]
     fn parse_implicit() {
         let rules = vec![
-            Rule::new(r"^\s*[a-zA-Z0-9\/\_\-\.\ ]+\.?[a-zA-Z0-9]+\:[0-9]+", "$0").unwrap(),
+            Rule::new(r"^\s*[a-zA-Z0-9/_\-\. ]+\.?[a-zA-Z0-9]+:[0-9]+", "$0").unwrap(),
         ];
 
         assert_eq!(
             Rule::match_hyperfiles("/Users/user/.bash_history:10", &rules),
             vec![RuleMatch {
-                range: 2..20,
+                range: 0..28,
                 file: Arc::new(Hyperfile::new_implicit("/Users/user/.bash_history:10")),
             }]
         );

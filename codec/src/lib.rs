@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use smol::io::AsyncWriteExt;
 use smol::prelude::*;
 use std::convert::TryInto;
-use std::io::{Cursor, Read};
+use std::io::{Cursor};
 use std::ops::Range;
 use std::sync::Arc;
 use termwiz::hyperlink::Hyperlink;

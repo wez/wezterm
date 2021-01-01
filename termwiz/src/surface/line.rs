@@ -607,8 +607,8 @@ impl<'a> From<&'a str> for Line {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::hyperlink::*;
-    use crate::hyperfile::*;
+    use crate::hyperlink::{Rule as HyperlinkRule, Hyperlink};
+    use crate::hyperfile::{Rule as HyperfileRule, Hyperfile};
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -617,8 +617,8 @@ mod test {
             "❤ 😍🤢 http://example.com \u{1f468}\u{1f3fe}\u{200d}\u{1f9b0} http://example.com";
 
         let rules = vec![
-            Rule::new(r"\b\w+://(?:[\w.-]+)\.[a-z]{2,15}\S*\b", "$0").unwrap(),
-            Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
+            HyperlinkRule::new(r"\b\w+://(?:[\w.-]+)\.[a-z]{2,15}\S*\b", "$0").unwrap(),
+            HyperlinkRule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
         ];
 
         let hyperlink = Arc::new(Hyperlink::new_implicit("http://example.com"));
@@ -693,7 +693,7 @@ mod test {
             "/etc/hosts:5";
 
         let rules = vec![
-            Rule::new(r"^\s*[a-zA-Z0-9\/\_\-\.\ ]+\.?[a-zA-Z0-9]+\:[0-9]+", "$0").unwrap(),
+            HyperfileRule::new(r"^\s*[a-zA-Z0-9/_\-\. ]+\.?[a-zA-Z0-9]+:[0-9]+", "$0").unwrap(),
         ];
 
         let hyperfile = Arc::new(Hyperfile::new_implicit("/etc/hosts:5"));
