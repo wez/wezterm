@@ -198,6 +198,17 @@ impl TerminfoRenderer {
                 }
             }
 
+            if self.caps.hyperfiles() {
+                if let Some(file) = attr.hyperfile() {
+                    let osc = OperatingSystemCommand::SetHyperfile(Some((**file).clone()));
+                    write!(out, "{}", osc)?;
+                } else if self.current_attr.hyperfile().is_some() {
+                    // Close out the old hyperfile
+                    let osc = OperatingSystemCommand::SetHyperfile(None);
+                    write!(out, "{}", osc)?;
+                }
+            }
+
             self.current_attr = attr;
         }
 
@@ -438,6 +449,11 @@ impl TerminfoRenderer {
                 Change::Attribute(AttributeChange::Hyperlink(link)) => {
                     self.attr_apply(|attr| {
                         attr.set_hyperlink(link.clone());
+                    });
+                }
+                Change::Attribute(AttributeChange::Hyperfile(file)) => {
+                    self.attr_apply(|attr| {
+                        attr.set_hyperfile(file.clone());
                     });
                 }
                 Change::AllAttributes(all) => {

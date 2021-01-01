@@ -138,6 +138,7 @@ TOC = [
             Page("Scrollback", "scrollback.markdown"),
             Page("Copy Mode", "copymode.markdown"),
             Page("Hyperlinks", "hyperlinks.markdown"),
+            Page("Hyperfiles", "hyperfiles.markdown"),
             Page("Shell Integration", "shell-integration.markdown"),
             Page("iTerm Image Protocol", "imgcat.markdown"),
             Page("SSH", "ssh.markdown"),

@@ -485,6 +485,9 @@ impl Surface {
             Hyperlink(value) => {
                 self.attributes.set_hyperlink(value.clone());
             }
+            Hyperfile(value) => {
+                self.attributes.set_hyperfile(value.clone());
+            }
         }
     }
 

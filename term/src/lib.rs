@@ -5,8 +5,9 @@
 //!
 //! It is full featured, providing terminal escape sequence parsing, keyboard
 //! and mouse input encoding, a model for the screen cells including scrollback,
-//! sixel and iTerm2 image support, OSC 8 Hyperlinks and a wide range of
-//! terminal cell attributes.
+//! sixel and iTerm2 image support, OSC 8 Hyperlinks,
+//! Hyperfiles and a wide range of terminal cell
+//! attributes.
 //!
 //! This crate does not provide any kind of gui, nor does it directly
 //! manage a PTY; you provide a `std::io::Write` implementation that
@@ -37,6 +38,7 @@ pub use crate::screen::*;
 pub mod selection;
 
 use termwiz::hyperlink::Hyperlink;
+use termwiz::hyperfile::Hyperfile;
 
 pub mod terminal;
 pub use crate::terminal::*;

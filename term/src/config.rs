@@ -1,5 +1,6 @@
 use crate::color::ColorPalette;
 use termwiz::hyperlink::Rule as HyperlinkRule;
+use termwiz::hyperfile::Rule as HyperfileRule;
 
 /// TerminalConfiguration allows for the embedding application to pass configuration
 /// information to the Terminal.
@@ -32,6 +33,13 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     /// hyperlink rules are used to recognize and automatically generate
     /// hyperlink attributes for runs of text that match the provided rules.
     fn hyperlink_rules(&self) -> (usize, Vec<HyperlinkRule>) {
+        (self.generation(), vec![])
+    }
+
+    /// Returns the current generation and its associated hyperfile rules.
+    /// hyperfile rules are used to recognize and automatically generate
+    /// hyperfile attributes for runs of text that match the provided rules.
+    fn hyperfile_rules(&self) -> (usize, Vec<HyperfileRule>) {
         (self.generation(), vec![])
     }
 

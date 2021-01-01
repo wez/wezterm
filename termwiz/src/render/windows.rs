@@ -403,6 +403,9 @@ impl WindowsConsoleRenderer {
                 Change::Attribute(AttributeChange::Hyperlink(link)) => {
                     self.pending_attr.set_hyperlink(link.clone());
                 }
+                Change::Attribute(AttributeChange::Hyperfile(file)) => {
+                    self.pending_attr.set_hyperfile(file.clone());
+                }
                 Change::AllAttributes(all) => {
                     self.pending_attr = all.clone();
                 }

@@ -141,7 +141,16 @@ impl TestTerm {
         self.print(format!("{}", osc));
     }
 
+    fn hyperfile(&mut self, file: &Arc<Hyperfile>) {
+        let osc = OperatingSystemCommand::SetHyperfile(Some(file.as_ref().clone()));
+        self.print(format!("{}", osc));
+    }
+
     fn hyperlink_off(&mut self) {
+        self.print("\x1b]8;;\x1b\\");
+    }
+
+    fn hyperfile_off(&mut self) {
         self.print("\x1b]8;;\x1b\\");
     }
 
@@ -896,6 +905,89 @@ fn test_hyperlinks() {
         &[
             Line::from_text_with_wrapped_last_col("hello", &linked),
             Line::from_text_with_wrapped_last_col("hey!!", &linked),
+            partial_line,
+        ],
+        Compare::TEXT | Compare::ATTRS,
+    );
+}
+#[test]
+fn test_hyperfiles() {
+    let mut term = TestTerm::new(3, 5, 0);
+    let file = Arc::new(Hyperfile::new("/User/user/.bash_history:10"));
+    term.hyperfile(&file);
+    term.print("hello");
+    term.hyperfile_off();
+
+    let mut fileed = CellAttributes::default();
+    fileed.set_hyperfile(Some(Arc::clone(&file)));
+
+    assert_lines_equal(
+        file!(),
+        line!(),
+        &term.screen().visible_lines(),
+        &[
+            Line::from_text_with_wrapped_last_col("hello", &fileed),
+            Line::from_text("     ", &CellAttributes::default()),
+            Line::from_text("     ", &CellAttributes::default()),
+        ],
+        Compare::TEXT | Compare::ATTRS,
+    );
+
+    term.hyperfile(&file);
+    term.print("he");
+    // Resetting pen should not reset the file
+    term.print("\x1b[m");
+    term.print("y!!");
+
+    assert_lines_equal(
+        file!(),
+        line!(),
+        &term.screen().visible_lines(),
+        &[
+            Line::from_text_with_wrapped_last_col("hello", &fileed),
+            Line::from_text_with_wrapped_last_col("hey!!", &fileed),
+            "     ".into(),
+        ],
+        Compare::TEXT | Compare::ATTRS,
+    );
+
+    let otherfile = Arc::new(Hyperfile::new_with_id("/User/user/.bash_profile:10", "w00t"));
+
+    // Switching file and turning it off
+    term.hyperfile(&otherfile);
+    term.print("wo");
+    // soft reset also disables hyperfile attribute
+    term.soft_reset();
+    term.print("00t");
+
+    let mut partial_line =
+        Line::from_text_with_wrapped_last_col("wo00t", &CellAttributes::default());
+    partial_line.set_cell(
+        0,
+        Cell::new(
+            'w',
+            CellAttributes::default()
+                .set_hyperfile(Some(Arc::clone(&otherfile)))
+                .clone(),
+        ),
+    );
+    partial_line.set_cell(
+        1,
+        Cell::new(
+            'o',
+            CellAttributes::default()
+                .set_hyperfile(Some(Arc::clone(&otherfile)))
+                .clone(),
+        ),
+    );
+
+    assert_lines_equal(
+        file!(),
+        line!(),
+        &term.screen().visible_lines(),
+        &[
+            Line::from_text_with_wrapped_last_col("hello", &fileed),
+            Line::from_text_with_wrapped_last_col("hey!!", &fileed),
             partial_line,
         ],
         Compare::TEXT | Compare::ATTRS,

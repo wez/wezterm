@@ -4,7 +4,7 @@
 use super::*;
 use crate::color::{ColorPalette, RgbColor};
 use anyhow::bail;
-use image::{self, GenericImageView};
+use image::{self, GenericImageView, codecs};
 use log::{debug, error};
 use num_traits::FromPrimitive;
 use ordered_float::NotNan;
@@ -421,7 +421,7 @@ impl TerminalState {
 
     /// Returns the current working directory associated with the
     /// terminal session.  The working directory can be changed by
-    /// the applicaiton using the OSC 7 escape sequence.
+    /// the application using the OSC 7 escape sequence.
     pub fn get_current_dir(&self) -> Option<&Url> {
         self.current_dir.as_ref()
     }
@@ -1237,6 +1237,13 @@ impl TerminalState {
         });
     }
 
+    fn set_hyperfile(&mut self, file: Option<Hyperfile>) {
+        self.pen.set_hyperfile(match file {
+            Some(hyperfile) => Some(Arc::new(hyperfile)),
+            None => None,
+        });
+    }
+
     fn sixel(&mut self, sixel: Box<Sixel>) {
         let (width, height) = sixel.dimensions();
 
@@ -1338,7 +1345,7 @@ impl TerminalState {
         }
 
         let mut png_image_data = Vec::new();
-        let encoder = image::png::PngEncoder::new(&mut png_image_data);
+        let encoder = codecs::png::PngEncoder::new(&mut png_image_data);
         if let Err(e) = encoder.encode(&image.into_vec(), width, height, image::ColorType::Rgba8) {
             error!("failed to encode sixel data into png: {}", e);
             return;
@@ -2479,9 +2486,11 @@ impl TerminalState {
         match sgr {
             Sgr::Reset => {
                 let link = self.pen.hyperlink().map(Arc::clone);
+                let file = self.pen.hyperfile().map(Arc::clone);
                 let semantic_type = self.pen.semantic_type();
                 self.pen = CellAttributes::default();
                 self.pen.set_hyperlink(link);
+                self.pen.set_hyperfile(file);
                 self.pen.set_semantic_type(semantic_type);
             }
             Sgr::Intensity(intensity) => {
@@ -2568,7 +2577,7 @@ impl TerminalState {
                         start_y: stable_row,
                         end_x: grapheme_idx as _,
                         end_y: stable_row,
-                        semantic_type: semantic_type,
+                        semantic_type,
                     });
                 }
 
@@ -2973,6 +2982,9 @@ impl<'a> Performer<'a> {
             }
             OperatingSystemCommand::SetHyperlink(link) => {
                 self.set_hyperlink(link);
+            }
+            OperatingSystemCommand::SetHyperfile(file) => {
+                self.set_hyperfile(file);
             }
             OperatingSystemCommand::Unspecified(unspec) => {
                 let mut output = String::new();

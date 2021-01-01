@@ -24,10 +24,11 @@ use serde::{Deserialize, Serialize};
 use smol::io::AsyncWriteExt;
 use smol::prelude::*;
 use std::convert::TryInto;
-use std::io::Cursor;
+use std::io::{Cursor, Read};
 use std::ops::Range;
 use std::sync::Arc;
 use termwiz::hyperlink::Hyperlink;
+use termwiz::hyperfile::Hyperfile;
 use termwiz::surface::Line;
 use varbincode;
 use wezterm_term::StableRowIndex;
@@ -709,8 +710,15 @@ struct LineHyperlink {
     coords: Vec<CellCoordinates>,
 }
 
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+struct LineHyperfile {
+    file: Hyperfile,
+    coords: Vec<CellCoordinates>,
+}
+
 /// What's all this?
 /// Cells hold references to Arc<Hyperlink> and it is important to us to
+/// Cells hold references to Arc<Hyperfile> and it is important to us to
 /// maintain identity of the hyperlinks in the individual cells, while also
 /// only sending a single copy of the associated URL.
 /// This section of code extracts the hyperlinks from the cells and builds
@@ -720,6 +728,7 @@ struct LineHyperlink {
 pub struct SerializedLines {
     lines: Vec<(StableRowIndex, Line)>,
     hyperlinks: Vec<LineHyperlink>,
+    hyperfiles: Vec<LineHyperfile>,
     // TODO: image references
 }
 
@@ -732,10 +741,13 @@ impl SerializedLines {
 impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
     fn from(mut lines: Vec<(StableRowIndex, Line)>) -> Self {
         let mut hyperlinks = vec![];
+        let mut hyperfiles = vec![];
 
         for (line_idx, (_, line)) in lines.iter_mut().enumerate() {
+            let mut current_file: Option<Arc<Hyperfile>> = None;
             let mut current_link: Option<Arc<Hyperlink>> = None;
             let mut current_range = 0..0;
+            let mut current_filerange = 0..0;
 
             for (x, cell) in line
                 .cells_mut_for_attr_changes_only()
@@ -781,6 +793,45 @@ impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
                     current_range = 0..0;
                 }
 
+                // Unset the hyperfile on the cell, if any, and record that
+                // in the hyperfiles data for later restoration.
+                if let Some(file) = cell.attrs_mut().hyperfile().map(Arc::clone) {
+                    cell.attrs_mut().set_hyperfile(None);
+                    match current_file.as_ref() {
+                        Some(current) if Arc::ptr_eq(&current, &file) => {
+                            // Continue the current streak
+                            current_filerange = range_union(current_filerange, x..x + 1);
+                        }
+                        Some(prior) => {
+                            // It's a different URL, push the current data and start a new one
+                            hyperfiles.push(LineHyperfile {
+                                file: (**prior).clone(),
+                                coords: vec![CellCoordinates {
+                                    line_idx,
+                                    cols: current_filerange,
+                                }],
+                            });
+                            current_filerange = x..x + 1;
+                            current_file = Some(file);
+                        }
+                        None => {
+                            // Starting a new streak
+                            current_filerange = x..x + 1;
+                            current_file = Some(file);
+                        }
+                    }
+                } else if let Some(file) = current_file.take() {
+                    // Wrap up a prior streak
+                    hyperfiles.push(LineHyperfile {
+                        file: (*file).clone(),
+                        coords: vec![CellCoordinates {
+                            line_idx,
+                            cols: current_filerange,
+                        }],
+                    });
+                    current_filerange = 0..0;
+                }
+
                 // TODO: something smart for image cells
             }
             if let Some(link) = current_link.take() {
@@ -793,9 +844,19 @@ impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
                     }],
                 });
             }
+            if let Some(file) = current_file.take() {
+                // Wrap up final streak
+                hyperfiles.push(LineHyperfile {
+                    file: (*file).clone(),
+                    coords: vec![CellCoordinates {
+                        line_idx,
+                        cols: current_filerange,
+                    }],
+                });
+            }
         }
 
-        Self { lines, hyperlinks }
+        Self { lines, hyperlinks, hyperfiles }
     }
 }
 

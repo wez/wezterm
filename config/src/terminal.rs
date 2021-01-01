@@ -2,6 +2,7 @@
 
 use crate::configuration;
 use termwiz::hyperlink::Rule as HyperlinkRule;
+use termwiz::hyperfile::Rule as HyperfileRule;
 use wezterm_term::color::ColorPalette;
 
 #[derive(Debug)]
@@ -19,6 +20,11 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
     fn hyperlink_rules(&self) -> (usize, Vec<HyperlinkRule>) {
         let config = configuration();
         (config.generation(), config.hyperlink_rules.clone())
+    }
+
+    fn hyperfile_rules(&self) -> (usize, Vec<HyperfileRule>) {
+        let config = configuration();
+        (config.generation(), config.hyperfile_rules.clone())
     }
 
     fn enable_csi_u_key_encoding(&self) -> bool {

@@ -48,6 +48,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use termwiz::color::{ColorAttribute, RgbColor};
 use termwiz::hyperlink::Hyperlink;
+use termwiz::hyperfile::Hyperfile;
 use termwiz::image::ImageData;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::shaper::GlyphInfo;
@@ -244,6 +245,9 @@ pub struct TermWindow {
 
     /// The URL over which we are currently hovering
     current_highlight: Option<Arc<Hyperlink>>,
+
+    /// The File over which we are currently hovering
+    current_highlight_file: Option<Arc<Hyperfile>>,
 
     shape_cache: RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<GlyphInfo>>>>>,
 
@@ -720,6 +724,7 @@ impl WindowCallbacks for TermWindow {
             current_mouse_button: self.current_mouse_button.clone(),
             last_mouse_click: self.last_mouse_click.clone(),
             current_highlight: self.current_highlight.clone(),
+            current_highlight_file: self.current_highlight_file.clone(),
             shape_cache: RefCell::new(LruCache::new(65536)),
             last_blink_paint: Instant::now(),
         });
@@ -988,6 +993,7 @@ impl TermWindow {
                 current_mouse_button: None,
                 last_mouse_click: None,
                 current_highlight: None,
+                current_highlight_file: None,
                 shape_cache: RefCell::new(LruCache::new(65536)),
                 last_blink_paint: Instant::now(),
             }),
@@ -2023,6 +2029,51 @@ impl TermWindow {
                     .detach();
                 }
             }
+            OpenFileAtMouseCursor => {
+                // They clicked on a link, so let's open it!
+                // We need to ensure that we spawn the `open` call outside of the context
+                // of our window loop; on Windows it can cause a panic due to
+                // triggering our WndProc recursively.
+                // We get that assurance for free as part of the async dispatch that we
+                // perform below; here we allow the user to define an `open-uri` event
+                // handler that can bypass the normal `open::that` functionality.
+                if let Some(link) = self.current_highlight_file.as_ref().cloned() {
+                    let window = GuiWin::new(self);
+                    let pane = PaneObject::new(pane);
+
+                    async fn open_uri(
+                        lua: Option<Rc<mlua::Lua>>,
+                        window: GuiWin,
+                        pane: PaneObject,
+                        link: String,
+                    ) -> anyhow::Result<()> {
+                        let default_click = match lua {
+                            Some(lua) => {
+                                let args = lua.pack_multi((window, pane, link.clone()))?;
+                                config::lua::emit_event(&lua, ("open-uri".to_string(), args))
+                                    .await
+                                    .map_err(|e| {
+                                        log::error!("while processing open-uri event: {:#}", e);
+                                        egsb
+                                    })?
+                            }
+                            None => true,
+                        };
+                        if default_click {
+                            log::info!("clicking {}", link);
+                            if let Err(err) = open::that(&link) {
+                                log::error!("failed to open {}: {:?}", link, err);
+                            }
+                        }
+                        Ok(())
+                    }
+
+                    promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+                        open_uri(lua, window, pane, link.uri().to_string())
+                    }))
+                        .detach();
+                }
+            }
             EmitEvent(name) => {
                 let window = GuiWin::new(self);
                 let pane = PaneObject::new(pane);
@@ -2797,6 +2848,10 @@ impl TermWindow {
             let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
                 (Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
                 _ => false,
+            };            
+            let is_highlited_hyperfile = match (attrs.hyperfile(), &self.current_highlight_file) {
+                (Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
+                _ => false,
             };
             let style = self.fonts.match_style(params.config, attrs);
 
@@ -2922,6 +2977,7 @@ impl TermWindow {
                     .util_sprites
                     .select_sprite(
                         is_highlited_hyperlink,
+                        is_highlited_hyperfile,
                         attrs.strikethrough(),
                         attrs.underline(),
                         attrs.overline(),
@@ -3575,6 +3631,20 @@ impl TermWindow {
             }
         } else {
             None
+        };        
+        
+        let new_highlight_file = if top == stable_row {
+            if let Some(line) = lines.get_mut(0) {
+                if let Some(cell) = line.cells().get(x) {
+                    cell.attrs().hyperfile().cloned()
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
         };
 
         match (self.current_highlight.as_ref(), new_highlight) {
@@ -3595,6 +3665,32 @@ impl TermWindow {
             None => {
                 if self.current_highlight.is_some() {
                     // When hovering over a hyperlink, show an appropriate
+                    // mouse cursor to give the cue that it is clickable
+                    MouseCursor::Hand
+                } else {
+                    MouseCursor::Text
+                }
+            }
+        }));
+
+        match (self.current_highlight_file.as_ref(), new_highlight_file) {
+            (Some(old_file), Some(new_file)) if Arc::ptr_eq(&old_file, &new_file) => {
+                // Unchanged
+            }
+            (_, rhs) => {
+                // We're hovering over a different URL, so invalidate and repaint
+                // so that we render the underline correctly
+                self.current_highlight_file = rhs;
+                context.invalidate();
+            }
+        };
+
+        context.set_cursor(Some(match on_split {
+            Some(SplitDirection::Horizontal) => MouseCursor::SizeLeftRight,
+            Some(SplitDirection::Vertical) => MouseCursor::SizeUpDown,
+            None => {
+                if self.current_highlight_file.is_some() {
+                    // When hovering over a hyperfile, show an appropriate
                     // mouse cursor to give the cue that it is clickable
                     MouseCursor::Hand
                 } else {

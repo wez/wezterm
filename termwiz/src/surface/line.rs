@@ -1,6 +1,7 @@
 use crate::cell::{Cell, CellAttributes};
 use crate::cellcluster::CellCluster;
-use crate::hyperlink::Rule;
+use crate::hyperlink::Rule as HyperlinkRule;
+use crate::hyperfile::Rule as HyperfileRule;
 use crate::surface::Change;
 use bitflags::bitflags;
 #[cfg(feature = "use_serde")]
@@ -22,6 +23,12 @@ bitflags! {
         const SCANNED_IMPLICIT_HYPERLINKS = 1<<2;
         /// true if we found implicit hyperlinks in the last scan
         const HAS_IMPLICIT_HYPERLINKS = 1<<3;
+        /// The line contains 1+ cells with explicit hyperlinks set
+        const HAS_HYPERFILE = 1<<1;
+        /// true if we have scanned for implicit hyperlinks
+        const SCANNED_IMPLICIT_HYPERFILES = 1<<2;
+        /// true if we found implicit hyperlinks in the last scan
+        const HAS_IMPLICIT_HYPERFILES = 1<<3;
     }
 }
 
@@ -168,14 +175,14 @@ impl Line {
     }
 
     /// Scan through the line and look for sequences that match the provided
-    /// rules.  Matching sequences are considered to be implicit hyperlinks
+    /// HyperlinkRules.  Matching sequences are considered to be implicit hyperlinks
     /// and will have a hyperlink attribute associated with them.
     /// This function will only make changes if the line has been invalidated
     /// since the last time this function was called.
     /// This function does not remember the values of the `rules` slice, so it
     /// is the responsibility of the caller to call `invalidate_implicit_hyperlinks`
     /// if it wishes to call this function with different `rules`.
-    pub fn scan_and_create_hyperlinks(&mut self, rules: &[Rule]) {
+    pub fn scan_and_create_hyperlinks(&mut self, rules: &[HyperlinkRule]) {
         if (self.bits & LineBits::SCANNED_IMPLICIT_HYPERLINKS)
             == LineBits::SCANNED_IMPLICIT_HYPERLINKS
         {
@@ -191,7 +198,7 @@ impl Line {
         self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS;
         self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
 
-        let matches = Rule::match_hyperlinks(&line, rules);
+        let matches = HyperlinkRule::match_hyperlinks(&line, rules);
         if matches.is_empty() {
             return;
         }
@@ -222,6 +229,64 @@ impl Line {
     #[inline]
     pub fn has_hyperlink(&self) -> bool {
         (self.bits & (LineBits::HAS_HYPERLINK | LineBits::HAS_IMPLICIT_HYPERLINKS))
+            != LineBits::NONE
+    }
+
+    /// Scan through the line and look for sequences that match the provided
+    /// HyperfileRules.  Matching sequences are considered to be implicit hyperfiles
+    /// and will have a hyperfile attribute associated with them.
+    /// This function will only make changes if the line has been invalidated
+    /// since the last time this function was called.
+    /// This function does not remember the values of the `rules` slice, so it
+    /// is the responsibility of the caller to call `invalidate_implicit_hyperfiles`
+    /// if it wishes to call this function with different `rules`.
+    pub fn scan_and_create_hyperfiles(&mut self, rules: &[HyperfileRule]) {
+        if (self.bits & LineBits::SCANNED_IMPLICIT_HYPERFILES)
+            == LineBits::SCANNED_IMPLICIT_HYPERFILES
+        {
+            // Has not changed since last time we scanned
+            return;
+        }
+
+        // FIXME: let's build a string and a byte-to-cell map here, and
+        // use this as an opportunity to rebuild HAS_HYPERFILE, skip matching
+        // cells with existing non-implicit hyperfiles, and avoid matching
+        // text with zero-width cells.
+        let line = self.as_str();
+        self.bits |= LineBits::SCANNED_IMPLICIT_HYPERFILES;
+        self.bits &= !LineBits::HAS_IMPLICIT_HYPERFILES;
+
+        let matches = HyperfileRule::match_hyperfiles(&line, rules);
+        if matches.is_empty() {
+            return;
+        }
+
+        // The capture range is measured in bytes but we need to translate
+        // that to the index of the column.  This is complicated a bit further
+        // because double wide sequences have a blank column cell after them
+        // in the cells array, but the string we match against excludes that
+        // string.
+        let mut cell_idx = 0;
+        for (byte_idx, _grapheme) in line.grapheme_indices(true) {
+            let cell = &mut self.cells[cell_idx];
+            for m in &matches {
+                if m.range.contains(&byte_idx) {
+                    let attrs = cell.attrs_mut();
+                    // Don't replace existing files
+                    if !attrs.hyperfile().is_some() {
+                        attrs.set_hyperfile(Some(Arc::clone(&m.file)));
+                        self.bits |= LineBits::HAS_IMPLICIT_HYPERFILES;
+                    }
+                }
+            }
+            cell_idx += cell.width();
+        }
+    }
+
+    /// Returns true if the line contains a hyperfile
+    #[inline]
+    pub fn has_hyperfile(&self) -> bool {
+        (self.bits & (LineBits::HAS_HYPERFILE | LineBits::HAS_IMPLICIT_HYPERFILES))
             != LineBits::NONE
     }
 
@@ -543,6 +608,7 @@ impl<'a> From<&'a str> for Line {
 mod test {
     use super::*;
     use crate::hyperlink::*;
+    use crate::hyperfile::*;
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -617,6 +683,42 @@ mod test {
                 Cell::new('c', hyperlink_attr.clone()),
                 Cell::new('o', hyperlink_attr.clone()),
                 Cell::new('m', hyperlink_attr.clone()),
+            ]
+        );
+    }
+
+    #[test]
+    fn hyperfiles() {
+        let text =
+            "/etc/hosts:5";
+
+        let rules = vec![
+            Rule::new(r"^\s*[a-zA-Z0-9\/\_\-\.\ ]+\.?[a-zA-Z0-9]+\:[0-9]+", "$0").unwrap(),
+        ];
+
+        let hyperfile = Arc::new(Hyperfile::new_implicit("/etc/hosts:5"));
+        let hyperfile_attr = CellAttributes::default()
+            .set_hyperfile(Some(hyperfile.clone()))
+            .clone();
+
+        let mut line: Line = text.into();
+        line.scan_and_create_hyperfiles(&rules);
+        assert!(line.has_hyperfile());
+        assert_eq!(
+            line.cells().to_vec(),
+            vec![
+                Cell::new('/', hyperfile_attr.clone()),
+                Cell::new('e', hyperfile_attr.clone()),
+                Cell::new('t', hyperfile_attr.clone()),
+                Cell::new('c', hyperfile_attr.clone()),
+                Cell::new('/', hyperfile_attr.clone()),
+                Cell::new('h', hyperfile_attr.clone()),
+                Cell::new('o', hyperfile_attr.clone()),
+                Cell::new('s', hyperfile_attr.clone()),
+                Cell::new('t', hyperfile_attr.clone()),
+                Cell::new('s', hyperfile_attr.clone()),
+                Cell::new(':', hyperfile_attr.clone()),
+                Cell::new('5', hyperfile_attr.clone()),
             ]
         );
     }

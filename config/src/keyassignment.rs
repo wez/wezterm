@@ -150,6 +150,7 @@ pub enum KeyAssignment {
     SelectTextAtMouseCursor(SelectionMode),
     ExtendSelectionToMouseCursor(Option<SelectionMode>),
     OpenLinkAtMouseCursor,
+    OpenFileAtMouseCursor,
     CompleteSelection,
     CompleteSelectionOrOpenLinkAtMouseCursor,
 

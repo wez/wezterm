@@ -1,6 +1,7 @@
 //! Model a cell in the terminal display
 use crate::color::ColorAttribute;
 pub use crate::escape::osc::Hyperlink;
+pub use crate::escape::osc::Hyperfile;
 use crate::image::ImageCell;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -54,6 +55,8 @@ impl std::fmt::Debug for CellAttributes {
 struct FatAttributes {
     /// The hyperlink content, if any
     hyperlink: Option<Arc<Hyperlink>>,
+    /// The hyperfile content, if any
+    hyperfile: Option<Arc<Hyperfile>>,
     /// The image data, if any
     image: Option<Box<ImageCell>>,
 }
@@ -232,6 +235,7 @@ impl CellAttributes {
         if self.fat.is_none() {
             self.fat.replace(Box::new(FatAttributes {
                 hyperlink: None,
+                hyperfile: None,
                 image: None,
             }));
         }
@@ -241,7 +245,7 @@ impl CellAttributes {
         let deallocate = self
             .fat
             .as_ref()
-            .map(|fat| fat.image.is_none() && fat.hyperlink.is_none())
+            .map(|fat| fat.image.is_none() && fat.hyperlink.is_none() && fat.hyperfile.is_none())
             .unwrap_or(false);
         if deallocate {
             self.fat.take();
@@ -254,6 +258,17 @@ impl CellAttributes {
         } else {
             self.allocate_fat_attributes();
             self.fat.as_mut().unwrap().hyperlink = link;
+            self.deallocate_fat_attributes_if_none();
+            self
+        }
+    }
+
+    pub fn set_hyperfile(&mut self, file: Option<Arc<Hyperfile>>) -> &mut Self {
+        if file.is_none() && self.fat.is_none() {
+            self
+        } else {
+            self.allocate_fat_attributes();
+            self.fat.as_mut().unwrap().hyperfile = file;
             self.deallocate_fat_attributes_if_none();
             self
         }
@@ -289,6 +304,10 @@ impl CellAttributes {
 
     pub fn hyperlink(&self) -> Option<&Arc<Hyperlink>> {
         self.fat.as_ref().and_then(|fat| fat.hyperlink.as_ref())
+    }
+
+    pub fn hyperfile(&self) -> Option<&Arc<Hyperfile>> {
+        self.fat.as_ref().and_then(|fat| fat.hyperfile.as_ref())
     }
 
     pub fn image(&self) -> Option<&ImageCell> {
@@ -569,6 +588,7 @@ pub enum AttributeChange {
     Foreground(ColorAttribute),
     Background(ColorAttribute),
     Hyperlink(Option<Arc<Hyperlink>>),
+    Hyperfile(Option<Arc<Hyperfile>>),
 }
 
 #[cfg(test)]

@@ -23,6 +23,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use termwiz::hyperlink;
+use termwiz::hyperfile;
 use termwiz::surface::CursorShape;
 use toml;
 use wezterm_input_types::{KeyCode, Modifiers};
@@ -542,6 +543,9 @@ pub struct Config {
 
     #[serde(default = "default_hyperlink_rules")]
     pub hyperlink_rules: Vec<hyperlink::Rule>,
+
+    #[serde(default = "default_hyperfile_rules")]
+    pub hyperfile_rules: Vec<hyperfile::Rule>,
 
     /// What to set the TERM variable to
     #[serde(default = "default_term")]

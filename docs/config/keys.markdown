@@ -244,6 +244,14 @@ return {
       mods="CTRL",
       action="OpenLinkAtMouseCursor",
     },
+
+    -- and make ALT-Click open edit file
+    {
+      event={Up={streak=1, button="Left"}},
+      mods="ALT",
+      action="OpenFileAtMouseCursor",
+    },
+
   },
 }
 ```

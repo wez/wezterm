@@ -160,6 +160,20 @@ impl RenderState {
                 self.changes
                     .push(AttributeChange::Underline(Underline::None).into());
             }
+            
+            Event::Start(Tag::Link(_filetype, url, _title)) => {
+                self.changes.push(
+                    AttributeChange::Hyperfile(Some(Arc::new(Hyperfile::new(url.into_string()))))
+                        .into(),
+                );
+                self.changes
+                    .push(AttributeChange::Underline(Underline::Single).into());
+            }
+            Event::End(Tag::Link(..)) => {
+                self.changes.push(AttributeChange::Hyperfile(None).into());
+                self.changes
+                    .push(AttributeChange::Underline(Underline::None).into());
+            }
 
             Event::Start(Tag::Image(_linktype, img_url, _title)) => {
                 use image::GenericImageView;

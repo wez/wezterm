@@ -1,5 +1,6 @@
 use crate::color::RgbColor;
 pub use crate::hyperlink::Hyperlink;
+pub use crate::hyperfile::Hyperfile;
 use anyhow::{anyhow, bail, ensure};
 use base64;
 use bitflags::bitflags;
@@ -33,6 +34,7 @@ pub enum OperatingSystemCommand {
     SetIconName(String),
     SetIconNameSun(String),
     SetHyperlink(Option<Hyperlink>),
+    SetHyperfile(Option<Hyperfile>),
     ClearSelection(Selection),
     QuerySelection(Selection),
     SetSelection(Selection, String),
@@ -294,6 +296,7 @@ impl OperatingSystemCommand {
                 p1str[1..].to_owned(),
             )),
             SetHyperlink => Ok(OperatingSystemCommand::SetHyperlink(Hyperlink::parse(osc)?)),
+            SetHyperfile => Ok(OperatingSystemCommand::SetHyperfile(Hyperfile::parse(osc)?)),
             ManipulateSelectionData => Self::parse_selection(osc),
             SystemNotification => single_string!(SystemNotification),
             SetCurrentWorkingDirectory => single_string!(CurrentWorkingDirectory),
@@ -384,6 +387,7 @@ osc_entries!(
     SetCurrentWorkingDirectory = "7",
     /// See https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
     SetHyperlink = "8",
+    SetHyperfile = "8",
     /// iTerm2
     SystemNotification = "9",
     SetTextForegroundColor = "10",
@@ -472,7 +476,9 @@ impl Display for OperatingSystemCommand {
             SetIconName(title) => single_string!(SetIconName, title),
             SetIconNameSun(title) => single_string!(SetIconNameSun, title),
             SetHyperlink(Some(link)) => link.fmt(f)?,
+            SetHyperfile(Some(file)) => file.fmt(f)?,
             SetHyperlink(None) => write!(f, "8;;")?,
+            SetHyperfile(None) => write!(f, "8;;")?,
             Unspecified(v) => {
                 for (idx, item) in v.iter().enumerate() {
                     if idx > 0 {
@@ -1262,6 +1268,36 @@ mod test {
         assert_eq!(
             Hyperlink::parse(&[b"8", b"", b"x"]).unwrap(),
             Some(Hyperlink::new("x"))
+        );
+    }
+
+    #[test]
+    fn hyperfile() {
+        assert_eq!(
+            parse(
+                &["8", "id=foo", "/User/user/foo.txt"],
+                "\x1b]8;id=foo;/User/user/foo.txt\x1b\\"
+            ),
+            OperatingSystemCommand::SetHyperfile(Some(Hyperfile::new_with_id(
+                "/User/user/foo.txt",
+                "foo"
+            )))
+        );
+
+        assert_eq!(
+            parse(&["8", "", ""], "\x1b]8;;\x1b\\"),
+            OperatingSystemCommand::SetHyperfile(None)
+        );
+
+        // too many params
+        assert_eq!(
+            parse(&["8", "1", "2"], "\x1b]8;1;2\x1b\\"),
+            OperatingSystemCommand::Unspecified(vec![b"8".to_vec(), b"1".to_vec(), b"2".to_vec()])
+        );
+
+        assert_eq!(
+            Hyperfile::parse(&[b"8", b"", b"x"]).unwrap(),
+            Some(Hyperfile::new("x"))
         );
     }
 

@@ -4,6 +4,7 @@
 * [Multiplex terminal panes, tabs and windows on local and remote hosts, with native mouse and scrollback](multiplexing.html)
 * <a href="https://github.com/tonsky/FiraCode#fira-code-monospaced-font-with-programming-ligatures">Ligatures</a>, Color Emoji and font fallback, with true color and [dynamic color schemes](config/appearance.html#colors).
 * [Hyperlinks](hyperlinks.html)
+* [Hyperfiles](hyperfiles.html)
 * [Searchable Scrollback](scrollback.html) (use mouse wheel and `Shift-PageUp` and `Shift PageDown` to navigate, Ctrl-Shift-F to activate search mode)
 * xterm style selection of text with mouse; paste selection via `Shift-Insert` (bracketed paste is supported!)
 * SGR style mouse reporting (works in vim and tmux)
