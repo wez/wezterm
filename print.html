@@ -4405,12 +4405,12 @@ in response to clicking on <code>mailto:</code> URLs, you could do something lik
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 
 wezterm.on(&quot;open-uri&quot;, function(window, pane, uri)
-  local start, end = uri:find(&quot;mailto:&quot;)
+  local start, match_end = uri:find(&quot;mailto:&quot;)
   if start == 1 then
-    local recipient = uri:sub(end+1)
-    window.perform_action(wezterm.action{SpawnCommandInNewWindow={
+    local recipient = uri:sub(match_end+1)
+    window:perform_action(wezterm.action{SpawnCommandInNewWindow={
          args={&quot;mutt&quot;, recipient}
-      }});
+      }}, pane);
     -- prevent the default action from opening in a browser
     return false
   end
