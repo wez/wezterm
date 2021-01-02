@@ -24,11 +24,11 @@ bitflags! {
         /// true if we found implicit hyperlinks in the last scan
         const HAS_IMPLICIT_HYPERLINKS = 1<<3;
         /// The line contains 1+ cells with explicit hyperlinks set
-        const HAS_HYPERFILE = 1<<1;
+        const HAS_HYPERFILE = 1<<4;
         /// true if we have scanned for implicit hyperlinks
-        const SCANNED_IMPLICIT_HYPERFILES = 1<<2;
+        const SCANNED_IMPLICIT_HYPERFILES = 1<<5;
         /// true if we found implicit hyperlinks in the last scan
-        const HAS_IMPLICIT_HYPERFILES = 1<<3;
+        const HAS_IMPLICIT_HYPERFILES = 1<<6;
     }
 }
 

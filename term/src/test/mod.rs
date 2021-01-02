@@ -151,7 +151,7 @@ impl TestTerm {
     }
 
     fn hyperfile_off(&mut self) {
-        self.print("\x1b]8;;\x1b\\");
+        self.print("\x1b]88;;\x1b\\");
     }
 
     fn soft_reset(&mut self) {

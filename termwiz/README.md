@@ -12,7 +12,7 @@ Included functionality:
 * `Surface` models a terminal display and its component `Cell`s
 * Terminal attributes are aware of modern features such as
   True Color, [Hyperlinks](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda)
-  True Color, [Hyperfiles](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda)
+  Hyperfiles,
   and will also support sixel and iterm style terminal graphics display.
 * `Surface`s include a log of `Change`s and an API for consuming
   and applying deltas.  This is a powerful building block for

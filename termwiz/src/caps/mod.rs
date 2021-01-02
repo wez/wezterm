@@ -315,7 +315,6 @@ impl Capabilities {
     }
 
     /// Does the terminal support hyperfiles?
-    /// See <https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda>
     pub fn hyperfiles(&self) -> bool {
         self.hyperfiles
     }
