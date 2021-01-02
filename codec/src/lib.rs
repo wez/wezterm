@@ -24,11 +24,11 @@ use serde::{Deserialize, Serialize};
 use smol::io::AsyncWriteExt;
 use smol::prelude::*;
 use std::convert::TryInto;
-use std::io::{Cursor};
+use std::io::Cursor;
 use std::ops::Range;
 use std::sync::Arc;
-use termwiz::hyperlink::Hyperlink;
 use termwiz::hyperfile::Hyperfile;
+use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::Line;
 use varbincode;
 use wezterm_term::StableRowIndex;
@@ -856,7 +856,11 @@ impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
             }
         }
 
-        Self { lines, hyperlinks, hyperfiles }
+        Self {
+            lines,
+            hyperlinks,
+            hyperfiles,
+        }
     }
 }
 

@@ -951,8 +951,10 @@ fn test_hyperfiles() {
         Compare::TEXT | Compare::ATTRS,
     );
 
-    let otherfile = Arc::new(Hyperfile::new_with_id("/User/user/.bash_profile:10", "w00t"));
-
+    let otherfile = Arc::new(Hyperfile::new_with_id(
+        "/User/user/.bash_profile:10",
+        "w00t",
+    ));
     // Switching file and turning it off
     term.hyperfile(&otherfile);
     term.print("wo");

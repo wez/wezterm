@@ -1,6 +1,6 @@
 use crate::color::ColorPalette;
-use termwiz::hyperlink::Rule as HyperlinkRule;
 use termwiz::hyperfile::Rule as HyperfileRule;
+use termwiz::hyperlink::Rule as HyperlinkRule;
 
 /// TerminalConfiguration allows for the embedding application to pass configuration
 /// information to the Terminal.

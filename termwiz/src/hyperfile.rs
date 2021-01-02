@@ -239,9 +239,8 @@ mod test {
 
     #[test]
     fn parse_implicit() {
-        let rules = vec![
-            Rule::new(r"^\s*[a-zA-Z0-9/_\-\. ]+\.?[a-zA-Z0-9]+:[0-9]+", "$0").unwrap(),
-        ];
+        let rules =
+            vec![Rule::new(r"^\s*[a-zA-Z0-9/_\-\. ]+\.?[a-zA-Z0-9]+:[0-9]+", "$0").unwrap()];
 
         assert_eq!(
             Rule::match_hyperfiles("/Users/user/.bash_history:10", &rules),
@@ -250,6 +249,5 @@ mod test {
                 file: Arc::new(Hyperfile::new_implicit("/Users/user/.bash_history:10")),
             }]
         );
-
     }
 }

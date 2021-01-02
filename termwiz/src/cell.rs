@@ -1,7 +1,7 @@
 //! Model a cell in the terminal display
 use crate::color::ColorAttribute;
-pub use crate::escape::osc::Hyperlink;
 pub use crate::escape::osc::Hyperfile;
+pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

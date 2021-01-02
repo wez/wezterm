@@ -4,7 +4,7 @@
 use super::*;
 use crate::color::{ColorPalette, RgbColor};
 use anyhow::bail;
-use image::{self, GenericImageView, codecs};
+use image::{self, codecs, GenericImageView};
 use log::{debug, error};
 use num_traits::FromPrimitive;
 use ordered_float::NotNan;

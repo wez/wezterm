@@ -37,8 +37,8 @@ pub use crate::screen::*;
 
 pub mod selection;
 
-use termwiz::hyperlink::Hyperlink;
 use termwiz::hyperfile::Hyperfile;
+use termwiz::hyperlink::Hyperlink;
 
 pub mod terminal;
 pub use crate::terminal::*;

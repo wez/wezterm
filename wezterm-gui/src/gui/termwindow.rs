@@ -47,8 +47,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use termwiz::color::{ColorAttribute, RgbColor};
-use termwiz::hyperlink::Hyperlink;
 use termwiz::hyperfile::Hyperfile;
+use termwiz::hyperlink::Hyperlink;
 use termwiz::image::ImageData;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::shaper::GlyphInfo;
@@ -2071,7 +2071,7 @@ impl TermWindow {
                     promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
                         open_uri(lua, window, pane, file.uri().to_string())
                     }))
-                        .detach();
+                    .detach();
                 }
             }
             EmitEvent(name) => {
@@ -2848,7 +2848,7 @@ impl TermWindow {
             let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
                 (Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
                 _ => false,
-            };            
+            };
             let is_highlited_hyperfile = match (attrs.hyperfile(), &self.current_highlight_file) {
                 (Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
                 _ => false,
@@ -3631,8 +3631,8 @@ impl TermWindow {
             }
         } else {
             None
-        };        
-        
+        };
+
         let new_highlight_file = if top == stable_row {
             if let Some(line) = lines.get_mut(0) {
                 if let Some(cell) = line.cells().get(x) {

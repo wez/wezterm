@@ -1,7 +1,7 @@
 use crate::cell::{Cell, CellAttributes};
 use crate::cellcluster::CellCluster;
-use crate::hyperlink::Rule as HyperlinkRule;
 use crate::hyperfile::Rule as HyperfileRule;
+use crate::hyperlink::Rule as HyperlinkRule;
 use crate::surface::Change;
 use bitflags::bitflags;
 #[cfg(feature = "use_serde")]
@@ -607,8 +607,8 @@ impl<'a> From<&'a str> for Line {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::hyperlink::{Rule as HyperlinkRule, Hyperlink};
-    use crate::hyperfile::{Rule as HyperfileRule, Hyperfile};
+    use crate::hyperfile::{Hyperfile, Rule as HyperfileRule};
+    use crate::hyperlink::{Hyperlink, Rule as HyperlinkRule};
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -689,12 +689,12 @@ mod test {
 
     #[test]
     fn hyperfiles() {
-        let text =
-            "/etc/hosts:5";
+        let text = "/etc/hosts:5";
 
-        let rules = vec![
-            HyperfileRule::new(r"^\s*[a-zA-Z0-9/_\-\. ]+\.?[a-zA-Z0-9]+:[0-9]+", "$0").unwrap(),
-        ];
+        let rules =
+            vec![
+                HyperfileRule::new(r"^\s*[a-zA-Z0-9/_\-\. ]+\.?[a-zA-Z0-9]+:[0-9]+", "$0").unwrap(),
+            ];
 
         let hyperfile = Arc::new(Hyperfile::new_implicit("/etc/hosts:5"));
         let hyperfile_attr = CellAttributes::default()

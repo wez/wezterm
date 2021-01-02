@@ -1,6 +1,6 @@
 use crate::color::RgbColor;
-pub use crate::hyperlink::Hyperlink;
 pub use crate::hyperfile::Hyperfile;
+pub use crate::hyperlink::Hyperlink;
 use anyhow::{anyhow, bail, ensure};
 use base64;
 use bitflags::bitflags;
@@ -1275,7 +1275,7 @@ mod test {
     fn hyperfile() {
         assert_eq!(
             parse(
-                &["88","id=foo", "/User/user/foo.txt"],
+                &["88", "id=foo", "/User/user/foo.txt"],
                 "\x1b]88;id=foo;/User/user/foo.txt\x1b\\"
             ),
             OperatingSystemCommand::SetHyperfile(Some(Hyperfile::new_with_id(

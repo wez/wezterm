@@ -237,7 +237,7 @@ impl Capabilities {
         // the text will look "OK", although some versions of VTE based
         // terminals had a bug where it look like garbage.
         let hyperlinks = hints.hyperlinks.unwrap_or(true);
-        
+
         // The use of OSC 8 for hyperfiles means that it is generally
         // safe to assume yes: if the terminal doesn't support it,
         // the text will look "OK", although some versions of VTE based
