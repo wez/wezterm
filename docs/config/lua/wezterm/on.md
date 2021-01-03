@@ -82,6 +82,24 @@ local function isEmpty(s)
   -- end
   return s == nil or s == ''
 end
+local function runAction(window, pane, name, lineno)
+  -- Sample use
+  -- runAction(window, pane, name, lineno)
+  local action = wezterm.action{SpawnCommandInNewWindow={
+    -- args={"vim", "+"..lineno, name}
+    -- args={"nano", "+"..lineno, name}
+    -- args={"pstorm", name..":"..lineno}
+    -- args={"mine", name..":"..lineno}
+    -- args={"webstorm", name..":"..lineno}
+    -- args={"charm", name..":"..lineno}
+    -- args={"subl", name..":"..lineno}
+    -- args={"brackets", name}
+    -- args={"code", "-g", name..":"..lineno}
+    args={"code-insiders", "-g", name..":"..lineno}
+  }};
+  window:perform_action(action, pane);
+end
+
 wezterm.on("open-file", function(window, pane, uri)
   local m_fr, m_to = uri:find("hyperfile:");
   if m_fr == 1 then
@@ -99,38 +117,14 @@ wezterm.on("open-file", function(window, pane, uri)
           local m_fr, m_to = name:find(" at line ");
           local lineno = name:sub(m_to+1)
           name = name:sub(1, m_fr-1)
-          local action = wezterm.action{SpawnCommandInNewWindow={
-            args={"vim", "+"..lineno, name}
-            -- args={"nano", "+"..lineno, name}
-            -- args={"pstorm", name..":"..lineno}
-            -- args={"mine", name..":"..lineno}
-            -- args={"webstorm", name..":"..lineno}
-            -- args={"charm", name..":"..lineno}
-            -- args={"subl", name..":"..lineno}
-            -- args={"brackets", name}
-            -- args={"code", "-g", name..":"..lineno}
-            -- args={"code-insiders", "-g", name..":"..lineno}
-          }};
-          window:perform_action(action, pane);
+          runAction(window, pane, name, lineno);
         end
       end
     else
       local m_fr, m_to = name:find(":");
       local lineno = name:sub(m_to+1);
       name = name:sub(1, m_to-1)
-      local action = wezterm.action{SpawnCommandInNewWindow={
-        args={"vim", "+"..lineno, name}
-        -- args={"nano", "+"..lineno, name}
-        -- args={"pstorm", name..":"..lineno}
-        -- args={"mine", name..":"..lineno}
-        -- args={"webstorm", name..":"..lineno}
-        -- args={"charm", name..":"..lineno}
-        -- args={"subl", name..":"..lineno}
-        -- args={"brackets", name}
-        -- args={"code", "-g", name..":"..lineno}
-        -- args={"code-insiders", "-g", name..":"..lineno}
-      }};
-      window:perform_action(action, pane);
+      runAction(window, pane, name, lineno);
     end
     -- prevent the default action from opening in a browser
     return false
