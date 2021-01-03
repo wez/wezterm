@@ -86,7 +86,7 @@ local function runAction(window, pane, name, lineno)
   -- Sample use
   -- runAction(window, pane, name, lineno)
   local action = wezterm.action{SpawnCommandInNewWindow={
-    -- args={"vim", "+"..lineno, name}
+    args={"vim", "+"..lineno, name}
     -- args={"nano", "+"..lineno, name}
     -- args={"pstorm", name..":"..lineno}
     -- args={"mine", name..":"..lineno}
@@ -95,7 +95,7 @@ local function runAction(window, pane, name, lineno)
     -- args={"subl", name..":"..lineno}
     -- args={"brackets", name}
     -- args={"code", "-g", name..":"..lineno}
-    args={"code-insiders", "-g", name..":"..lineno}
+    -- args={"code-insiders", "-g", name..":"..lineno}
   }};
   window:perform_action(action, pane);
 end
