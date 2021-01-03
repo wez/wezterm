@@ -135,14 +135,21 @@ wezterm.on("open-file", function(window, pane, uri)
 end)
 return {
   hyperfile_rules = {
+    -- Hyperfile
     {
       regex = "^\\s*[a-zA-Z0-9/_\\-\\. ]+\\.?[a-zA-Z0-9]+:[0-9]+",
       format = "hyperfile:$0"
     },
+    -- Hyperfile Diff in ... at line two groups for 1 and 2
     {
-       regex = "Diff in [a-zA-Z0-9/_\\-\\. ]+\\.?[a-zA-Z0-9]+",
-       format = "hyperfile:$1:$2"
-    }
+        regex = "Diff in ([a-zA-Z0-9/_\\-\\. ]+\\.?[a-zA-Z0-9]+) at line ([0-9]+):",
+        format = "hyperfile:$1:$2"
+    },
+    -- Hyperfile Diff in ... not groups just whole expression passed on 0
+    -- {
+    --     regex = "Diff in [a-zA-Z0-9/_\\-\\. ]+\\.?[a-zA-Z0-9]+",
+    --     format = "hyperfile:$0"
+    -- },
   }
 }
 ```
