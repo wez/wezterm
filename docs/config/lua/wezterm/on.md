@@ -134,7 +134,7 @@ wezterm.on("open-file", function(window, pane, uri)
   -- URI to be opened in the browser
 end)
 return {
-  hyperlink_rules = {
+  hyperfile_rules = {
     {
       regex = "^\\s*[a-zA-Z0-9/_\\-\\. ]+\\.?[a-zA-Z0-9]+:[0-9]+",
       format = "hyperfile:$0"
