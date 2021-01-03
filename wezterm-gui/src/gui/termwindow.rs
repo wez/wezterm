@@ -2041,7 +2041,7 @@ impl TermWindow {
                     let window = GuiWin::new(self);
                     let pane = PaneObject::new(pane);
 
-                    async fn open_uri(
+                    async fn open_file(
                         lua: Option<Rc<mlua::Lua>>,
                         window: GuiWin,
                         pane: PaneObject,
@@ -2050,10 +2050,10 @@ impl TermWindow {
                         let default_click = match lua {
                             Some(lua) => {
                                 let args = lua.pack_multi((window, pane, file.clone()))?;
-                                config::lua::emit_event(&lua, ("open-uri".to_string(), args))
+                                config::lua::emit_event(&lua, ("open-file".to_string(), args))
                                     .await
                                     .map_err(|e| {
-                                        log::error!("while processing open-uri event: {:#}", e);
+                                        log::error!("while processing open-file event: {:#}", e);
                                         e
                                     })?
                             }
@@ -2069,7 +2069,7 @@ impl TermWindow {
                     }
 
                     promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-                        open_uri(lua, window, pane, file.uri().to_string())
+                        open_file(lua, window, pane, file.uri().to_string())
                     }))
                     .detach();
                 }

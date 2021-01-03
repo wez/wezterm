@@ -62,6 +62,105 @@ represents the pane.
 
 The third event parameter is the URI string.
 
+### `open-file`
+
+The `open-file` event is emitted when the `CompleteSelectionOrOpenLinkAtMouseCursor`
+key/mouse assignment is triggered.
+
+The default action is to open the active URI in your browser, but if you
+register for this event you can co-opt the default behavior.
+
+For example, if you prefer to launch your preferred MUA in a new window
+in response to clicking on `mailto:` URLs, you could do something like:
+
+```lua
+local wezterm = require 'wezterm';
+local function isEmpty(s)
+  -- Sample use
+  -- if isempty(foo) then
+  --    foo = "default value"
+  -- end
+  return s == nil or s == ''
+end
+wezterm.on("open-file", function(window, pane, uri)
+  local m_fr, m_to = uri:find("hyperfile:");
+  if m_fr == 1 then
+    local name = uri:sub(m_to+1);
+    local m_fr = name:find(":");
+    if isEmpty(m_fr) then
+      local m_fr = 0
+      local m_to = 0
+      local m_fr = name:find("Diff in");
+      if false == isEmpty(m_fr) then
+        local m_fr, m_to = name:find("Diff in ");
+        local name = name:sub(m_to+1);
+        local m_fr = name:find(" at line ");
+        if false == isEmpty(m_fr) then
+          local m_fr, m_to = name:find(" at line ");
+          local lineno = name:sub(m_to+1)
+          name = name:sub(1, m_fr-1)
+          local action = wezterm.action{SpawnCommandInNewWindow={
+            args={"vim", "+"..lineno, name}
+            -- args={"nano", "+"..lineno, name}
+            -- args={"pstorm", name..":"..lineno}
+            -- args={"mine", name..":"..lineno}
+            -- args={"webstorm", name..":"..lineno}
+            -- args={"charm", name..":"..lineno}
+            -- args={"subl", name..":"..lineno}
+            -- args={"brackets", name}
+            -- args={"code", "-g", name..":"..lineno}
+            -- args={"code-insiders", "-g", name..":"..lineno}
+          }};
+          window:perform_action(action, pane);
+        end
+      end
+    else
+      local m_fr, m_to = name:find(":");
+      local lineno = name:sub(m_to+1);
+      name = name:sub(1, m_to-1)
+      local action = wezterm.action{SpawnCommandInNewWindow={
+        args={"vim", "+"..lineno, name}
+        -- args={"nano", "+"..lineno, name}
+        -- args={"pstorm", name..":"..lineno}
+        -- args={"mine", name..":"..lineno}
+        -- args={"webstorm", name..":"..lineno}
+        -- args={"charm", name..":"..lineno}
+        -- args={"subl", name..":"..lineno}
+        -- args={"brackets", name}
+        -- args={"code", "-g", name..":"..lineno}
+        -- args={"code-insiders", "-g", name..":"..lineno}
+      }};
+      window:perform_action(action, pane);
+    end
+    -- prevent the default action from opening in a browser
+    return false
+  end
+  -- otherwise, by not specifying a return value, we allow later
+  -- handlers and ultimately the default action to caused the
+  -- URI to be opened in the browser
+end)
+return {
+  hyperlink_rules = {
+    {
+      regex = "^\\s*[a-zA-Z0-9/_\\-\\. ]+\\.?[a-zA-Z0-9]+:[0-9]+",
+      format = "hyperfile:$0"
+    },
+    {
+       regex = "Diff in [a-zA-Z0-9/_\\-\\. ]+\\.?[a-zA-Z0-9]+",
+       format = "hyperfile:$1:$2"
+    }
+  }
+}
+```
+
+The first event parameter is a [`window` object](../window/index.md) that
+represents the gui window.
+
+The second event parameter is a [`pane` object](../pane/index.md) that
+represents the pane.
+
+The third event parameter is the "FILEPATH with a LINE NUMBER" string.
+
 ## Custom Events
 
 You may register handlers for arbitrary events for which wezterm itself
