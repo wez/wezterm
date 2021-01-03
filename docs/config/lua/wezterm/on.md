@@ -106,7 +106,6 @@ wezterm.on("open-file", function(window, pane, uri)
     local name = uri:sub(m_to+1);
     local m_fr = name:find(":");
     if isEmpty(m_fr) then
-      local m_fr = 0
       local m_to = 0
       local m_fr = name:find("Diff in");
       if false == isEmpty(m_fr) then
