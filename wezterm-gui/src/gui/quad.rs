@@ -30,6 +30,7 @@ pub struct Vertex {
     pub cursor_color: (f32, f32, f32, f32),
     pub bg_color: (f32, f32, f32, f32),
     pub fg_color: (f32, f32, f32, f32),
+    pub underline_color: (f32, f32, f32, f32),
     pub hsv: (f32, f32, f32),
     // We use a float for this because I can't get
     // bool or integer values to work:
@@ -55,6 +56,7 @@ pub struct Vertex {
     cursor_color,
     bg_color,
     fg_color,
+    underline_color,
     hsv,
     has_color
 );
@@ -168,6 +170,13 @@ impl<'a> Quad<'a> {
         let color = color.to_tuple_rgba();
         for v in self.vert.iter_mut() {
             v.fg_color = color;
+        }
+    }
+
+    pub fn set_underline_color(&mut self, color: Color) {
+        let color = color.to_tuple_rgba();
+        for v in self.vert.iter_mut() {
+            v.underline_color = color;
         }
     }
 

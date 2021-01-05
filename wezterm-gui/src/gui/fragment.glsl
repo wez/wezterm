@@ -8,6 +8,7 @@ in vec3 o_hsv;
 in vec4 o_bg_color;
 in vec4 o_cursor_color;
 in vec4 o_fg_color;
+in vec4 o_underline_color;
 
 uniform mat4 projection;
 uniform bool window_bg_layer;
@@ -89,9 +90,9 @@ void main() {
     vec4 under_color = texture(atlas_nearest_sampler, o_underline);
     if (under_color.a != 0.0) {
         // if the underline glyph isn't transparent in this position then
-        // we take the text fg color, otherwise we'll leave the color
+        // we take the underline color, otherwise we'll leave the color
         // at the background color.
-        color = o_fg_color;
+        color = o_underline_color;
     }
 
     // Similar to the above: if the cursor texture isn't transparent
