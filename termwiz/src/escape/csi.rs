@@ -1086,6 +1086,7 @@ pub enum Sgr {
     /// Set the intensity/bold level
     Intensity(Intensity),
     Underline(Underline),
+    UnderlineColor(ColorSpec),
     Blink(Blink),
     Italic(bool),
     Inverse(bool),
@@ -1124,6 +1125,9 @@ impl Display for Sgr {
             Sgr::Intensity(Intensity::Normal) => code!(NormalIntensity),
             Sgr::Underline(Underline::Single) => code!(UnderlineOn),
             Sgr::Underline(Underline::Double) => code!(UnderlineDouble),
+            Sgr::Underline(Underline::Curly) => code!(UnderlineCurly),
+            Sgr::Underline(Underline::Dotted) => code!(UnderlineDotted),
+            Sgr::Underline(Underline::Dashed) => code!(UnderlineDashed),
             Sgr::Underline(Underline::None) => code!(UnderlineOff),
             Sgr::Blink(Blink::Slow) => code!(BlinkOn),
             Sgr::Blink(Blink::Rapid) => code!(RapidBlinkOn),
@@ -1213,6 +1217,18 @@ impl Display for Sgr {
                 c.green,
                 c.blue
             )?,
+            Sgr::UnderlineColor(ColorSpec::Default) => code!(ResetUnderlineColor),
+            Sgr::UnderlineColor(ColorSpec::TrueColor(c)) => write!(
+                f,
+                "{};2;{};{};{}m",
+                SgrCode::UnderlineColor as i64,
+                c.red,
+                c.green,
+                c.blue
+            )?,
+            Sgr::UnderlineColor(ColorSpec::PaletteIndex(idx)) => {
+                write!(f, "{};5;{}m", SgrCode::UnderlineColor as i64, *idx)?
+            }
         }
         Ok(())
     }
@@ -1814,7 +1830,14 @@ impl<'a> CSIParser<'a> {
                     SgrCode::NormalIntensity => one!(Sgr::Intensity(Intensity::Normal)),
                     SgrCode::UnderlineOn => one!(Sgr::Underline(Underline::Single)),
                     SgrCode::UnderlineDouble => one!(Sgr::Underline(Underline::Double)),
+                    SgrCode::UnderlineCurly => one!(Sgr::Underline(Underline::Curly)),
+                    SgrCode::UnderlineDotted => one!(Sgr::Underline(Underline::Dotted)),
+                    SgrCode::UnderlineDashed => one!(Sgr::Underline(Underline::Dashed)),
                     SgrCode::UnderlineOff => one!(Sgr::Underline(Underline::None)),
+                    SgrCode::UnderlineColor => {
+                        self.parse_sgr_color(params).map(Sgr::UnderlineColor)
+                    }
+                    SgrCode::ResetUnderlineColor => one!(Sgr::UnderlineColor(ColorSpec::default())),
                     SgrCode::BlinkOn => one!(Sgr::Blink(Blink::Slow)),
                     SgrCode::RapidBlinkOn => one!(Sgr::Blink(Blink::Rapid)),
                     SgrCode::BlinkOff => one!(Sgr::Blink(Blink::None)),
@@ -1948,6 +1971,12 @@ pub enum SgrCode {
     OverlineOn = 53,
     OverlineOff = 55,
 
+    UnderlineColor = 58,
+    ResetUnderlineColor = 59,
+    UnderlineCurly = 60,
+    UnderlineDotted = 61,
+    UnderlineDashed = 62,
+
     ForegroundBrightBlack = 90,
     ForegroundBrightRed = 91,
     ForegroundBrightGreen = 92,
@@ -2070,6 +2099,50 @@ mod test {
                 ignored_extra_intermediates: false,
                 control: 'm',
             }))]
+        );
+    }
+
+    #[test]
+    fn underlines() {
+        assert_eq!(
+            parse('m', &[21], "\x1b[21m"),
+            vec![CSI::Sgr(Sgr::Underline(Underline::Double))]
+        );
+        assert_eq!(
+            parse('m', &[4], "\x1b[4m"),
+            vec![CSI::Sgr(Sgr::Underline(Underline::Single))]
+        );
+    }
+
+    #[test]
+    fn underline_color() {
+        assert_eq!(
+            parse('m', &[58, 2], "\x1b[58;2m"),
+            vec![CSI::Unspecified(Box::new(Unspecified {
+                params: [58, 2].to_vec(),
+                intermediates: vec![],
+                ignored_extra_intermediates: false,
+                control: 'm',
+            }))]
+        );
+
+        assert_eq!(
+            parse('m', &[58, 2, 255, 255, 255], "\x1b[58;2;255;255;255m"),
+            vec![CSI::Sgr(Sgr::UnderlineColor(ColorSpec::TrueColor(
+                RgbColor::new(255, 255, 255),
+            )))]
+        );
+        assert_eq!(
+            parse('m', &[58, 5, 220, 255, 255], "\x1b[58;5;220m\x1b[255;255m"),
+            vec![
+                CSI::Sgr(Sgr::UnderlineColor(ColorSpec::PaletteIndex(220))),
+                CSI::Unspecified(Box::new(Unspecified {
+                    params: [255, 255].to_vec(),
+                    intermediates: vec![],
+                    ignored_extra_intermediates: false,
+                    control: 'm',
+                })),
+            ]
         );
     }
 

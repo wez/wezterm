@@ -418,7 +418,7 @@ impl SixelBuilder {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cell::Intensity;
+    use crate::cell::{Intensity, Underline};
     use crate::escape::csi::Sgr;
     use crate::escape::EscCode;
     use std::io::Write;
@@ -476,6 +476,35 @@ mod test {
         );
 
         assert_eq!(encode(&actions), "\x1b[1m\x1b[3mb");
+    }
+
+    #[test]
+    fn fancy_underline() {
+        let mut p = Parser::new();
+
+        // Kitty underline sequences use a `:` which is explicitly invalid
+        // and deleted by the dec/ansi vtparser
+        let actions = p.parse_as_vec(b"\x1b[4:0mb");
+        assert_eq!(
+            vec![
+                // NO: Action::CSI(CSI::Sgr(Sgr::Underline(Underline::None))),
+                Action::Print('b'),
+            ],
+            actions
+        );
+
+        let actions = p.parse_as_vec(b"\x1b[60;61;62mb");
+        assert_eq!(
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Curly))),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Dotted))),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Dashed))),
+                Action::Print('b'),
+            ],
+            actions
+        );
+
+        assert_eq!(encode(&actions), "\x1b[60m\x1b[61m\x1b[62mb");
     }
 
     #[test]

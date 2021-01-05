@@ -369,6 +369,12 @@ impl<T: Texture2d> UtilSprites<T> {
             (false, true, Underline::None, true) => &self.strike_over,
             (false, true, Underline::Single, true) => &self.single_strike_over,
             (false, true, Underline::Double, true) => &self.double_strike_over,
+
+            // FIXME: these are just placeholders under we render
+            // these things properly
+            (_, _, Underline::Curly, _) => &self.double_underline,
+            (_, _, Underline::Dotted, _) => &self.double_underline,
+            (_, _, Underline::Dashed, _) => &self.double_underline,
         }
     }
 

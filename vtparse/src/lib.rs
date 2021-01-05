@@ -708,6 +708,28 @@ mod test {
     }
 
     #[test]
+    fn test_fancy_underline() {
+        assert_eq!(
+            parse_as_vec(b"\x1b[4m"),
+            vec![VTAction::CsiDispatch {
+                params: vec![4],
+                intermediates: b"".to_vec(),
+                ignored_excess_intermediates: false,
+                byte: b'm'
+            }]
+        );
+
+        assert_eq!(
+            // This is the kitty curly underline sequence.
+            // The : is explicitly set to be ignored by
+            // the state machine tables, so this whole sequence
+            // is discarded during parsing.
+            parse_as_vec(b"\x1b[4:3m"),
+            vec![]
+        );
+    }
+
+    #[test]
     fn test_csi_omitted_param() {
         assert_eq!(
             parse_as_vec(b"\x1b[;1m"),
