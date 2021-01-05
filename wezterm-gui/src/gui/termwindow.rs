@@ -2937,13 +2937,14 @@ impl TermWindow {
 
                 // underline and strikethrough
                 let underline_tex_rect = gl_state
-                    .util_sprites
-                    .select_sprite(
+                    .glyph_cache
+                    .borrow_mut()
+                    .cached_line_sprite(
                         is_highlited_hyperlink,
                         attrs.strikethrough(),
                         attrs.underline(),
                         attrs.overline(),
-                    )
+                    )?
                     .texture_coords();
 
                 // Iterate each cell that comprises this glyph.  There is usually

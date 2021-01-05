@@ -7,7 +7,6 @@ use std::rc::Rc;
 use termwiz::surface::CursorShape;
 use wezterm_font::units::*;
 use wezterm_font::FontConfiguration;
-use wezterm_term::Underline;
 
 #[derive(Copy, Clone, Debug)]
 pub struct RenderMetrics {
@@ -53,20 +52,9 @@ impl RenderMetrics {
 
 pub struct UtilSprites<T: Texture2d> {
     pub white_space: Sprite<T>,
-    pub single_underline: Sprite<T>,
-    pub double_underline: Sprite<T>,
-    pub strike_through: Sprite<T>,
-    pub single_and_strike: Sprite<T>,
-    pub double_and_strike: Sprite<T>,
     pub cursor_box: Sprite<T>,
     pub cursor_i_beam: Sprite<T>,
     pub cursor_underline: Sprite<T>,
-    pub overline: Sprite<T>,
-    pub single_under_over: Sprite<T>,
-    pub double_under_over: Sprite<T>,
-    pub strike_over: Sprite<T>,
-    pub single_strike_over: Sprite<T>,
-    pub double_strike_over: Sprite<T>,
 }
 
 impl<T: Texture2d> UtilSprites<T> {
@@ -86,136 +74,6 @@ impl<T: Texture2d> UtilSprites<T> {
 
         buffer.clear_rect(cell_rect, black);
         let white_space = glyph_cache.atlas.allocate(&buffer)?;
-
-        let draw_single = |buffer: &mut Image| {
-            for row in 0..metrics.underline_height {
-                buffer.draw_line(
-                    Point::new(
-                        cell_rect.origin.x,
-                        cell_rect.origin.y + metrics.descender_row + row,
-                    ),
-                    Point::new(
-                        cell_rect.origin.x + metrics.cell_size.width,
-                        cell_rect.origin.y + metrics.descender_row + row,
-                    ),
-                    white,
-                    Operator::Source,
-                );
-            }
-        };
-
-        let draw_double = |buffer: &mut Image| {
-            for row in 0..metrics.underline_height {
-                buffer.draw_line(
-                    Point::new(
-                        cell_rect.origin.x,
-                        cell_rect.origin.y + metrics.descender_row + row,
-                    ),
-                    Point::new(
-                        cell_rect.origin.x + metrics.cell_size.width,
-                        cell_rect.origin.y + metrics.descender_row + row,
-                    ),
-                    white,
-                    Operator::Source,
-                );
-                buffer.draw_line(
-                    Point::new(
-                        cell_rect.origin.x,
-                        cell_rect.origin.y + metrics.descender_plus_two + row,
-                    ),
-                    Point::new(
-                        cell_rect.origin.x + metrics.cell_size.width,
-                        cell_rect.origin.y + metrics.descender_plus_two + row,
-                    ),
-                    white,
-                    Operator::Source,
-                );
-            }
-        };
-
-        let draw_strike = |buffer: &mut Image| {
-            for row in 0..metrics.underline_height {
-                buffer.draw_line(
-                    Point::new(
-                        cell_rect.origin.x,
-                        cell_rect.origin.y + metrics.strike_row + row,
-                    ),
-                    Point::new(
-                        cell_rect.origin.x + metrics.cell_size.width,
-                        cell_rect.origin.y + metrics.strike_row + row,
-                    ),
-                    white,
-                    Operator::Source,
-                );
-            }
-        };
-
-        let draw_overline = |buffer: &mut Image| {
-            for row in 0..metrics.underline_height {
-                buffer.draw_line(
-                    Point::new(cell_rect.origin.x, cell_rect.origin.y + row),
-                    Point::new(
-                        cell_rect.origin.x + metrics.cell_size.width,
-                        cell_rect.origin.y + row,
-                    ),
-                    white,
-                    Operator::Source,
-                );
-            }
-        };
-
-        buffer.clear_rect(cell_rect, black);
-        draw_overline(&mut buffer);
-        let overline = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_single(&mut buffer);
-        let single_underline = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_overline(&mut buffer);
-        draw_single(&mut buffer);
-        let single_under_over = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_double(&mut buffer);
-        let double_underline = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_overline(&mut buffer);
-        draw_double(&mut buffer);
-        let double_under_over = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_strike(&mut buffer);
-        let strike_through = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_overline(&mut buffer);
-        draw_strike(&mut buffer);
-        let strike_over = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_single(&mut buffer);
-        draw_strike(&mut buffer);
-        let single_and_strike = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_overline(&mut buffer);
-        draw_single(&mut buffer);
-        draw_strike(&mut buffer);
-        let single_strike_over = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_double(&mut buffer);
-        draw_strike(&mut buffer);
-        let double_and_strike = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        draw_overline(&mut buffer);
-        draw_double(&mut buffer);
-        draw_strike(&mut buffer);
-        let double_strike_over = glyph_cache.atlas.allocate(&buffer)?;
 
         // Derive a width for the border box from the underline height,
         // but aspect ratio adjusted for width.
@@ -311,71 +169,10 @@ impl<T: Texture2d> UtilSprites<T> {
 
         Ok(Self {
             white_space,
-            single_underline,
-            double_underline,
-            strike_through,
-            single_and_strike,
-            double_and_strike,
             cursor_box,
             cursor_i_beam,
             cursor_underline,
-            overline,
-            single_under_over,
-            double_under_over,
-            strike_over,
-            single_strike_over,
-            double_strike_over,
         })
-    }
-
-    /// Figure out what we're going to draw for the underline.
-    /// If the current cell is part of the current URL highlight
-    /// then we want to show the underline.
-    pub fn select_sprite(
-        &self,
-        is_highlited_hyperlink: bool,
-        is_strike_through: bool,
-        underline: Underline,
-        overline: bool,
-    ) -> &Sprite<T> {
-        match (
-            is_highlited_hyperlink,
-            is_strike_through,
-            underline,
-            overline,
-        ) {
-            (true, false, Underline::None, false) => &self.single_underline,
-            (true, false, Underline::Single, false) => &self.double_underline,
-            (true, false, Underline::Double, false) => &self.single_underline,
-            (true, true, Underline::None, false) => &self.strike_through,
-            (true, true, Underline::Single, false) => &self.single_and_strike,
-            (true, true, Underline::Double, false) => &self.double_and_strike,
-            (false, false, Underline::None, false) => &self.white_space,
-            (false, false, Underline::Single, false) => &self.single_underline,
-            (false, false, Underline::Double, false) => &self.double_underline,
-            (false, true, Underline::None, false) => &self.strike_through,
-            (false, true, Underline::Single, false) => &self.single_and_strike,
-            (false, true, Underline::Double, false) => &self.double_and_strike,
-
-            (true, false, Underline::None, true) => &self.single_under_over,
-            (true, false, Underline::Single, true) => &self.double_under_over,
-            (true, false, Underline::Double, true) => &self.single_under_over,
-            (true, true, Underline::None, true) => &self.strike_over,
-            (true, true, Underline::Single, true) => &self.single_strike_over,
-            (true, true, Underline::Double, true) => &self.double_strike_over,
-            (false, false, Underline::None, true) => &self.overline,
-            (false, false, Underline::Single, true) => &self.single_under_over,
-            (false, false, Underline::Double, true) => &self.double_under_over,
-            (false, true, Underline::None, true) => &self.strike_over,
-            (false, true, Underline::Single, true) => &self.single_strike_over,
-            (false, true, Underline::Double, true) => &self.double_strike_over,
-
-            // FIXME: these are just placeholders under we render
-            // these things properly
-            (_, _, Underline::Curly, _) => &self.double_underline,
-            (_, _, Underline::Dotted, _) => &self.double_underline,
-            (_, _, Underline::Dashed, _) => &self.double_underline,
-        }
     }
 
     pub fn cursor_sprite(&self, shape: Option<CursorShape>) -> &Sprite<T> {

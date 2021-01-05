@@ -156,7 +156,7 @@ impl Default for Intensity {
 
 /// Specify just how underlined you want your `Cell` to be
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u16)]
 pub enum Underline {
     /// The cell is not underlined
