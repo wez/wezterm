@@ -189,6 +189,7 @@ brief notes about them may accumulate here.</p>
 <li>Fixed an issue where a symbol-only font would be seen as 0-width and panic wezterm <a href="https://github.com/wez/wezterm/issues/404">#404</a></li>
 <li>Tweaked mouse selection: we now round the x-coordinate to the nearest cell which makes it a bit more forgiving if the mouse cursor is slightly to the left of the intended cell start. <a href="https://github.com/wez/wezterm/issues/350">#350</a></li>
 <li>Added <code>selection_word_boundary</code> option to control double-click word selection boundaries. The default is ` \t\n{<a href="">}</a>&quot;'``. <a href="https://github.com/wez/wezterm/issues/405">#405</a></li>
+<li>Added support for Curly, Dotted and Dashed underlines.  Vim users can set <code>let &amp;t_Cs = &quot;\e[60m&quot;</code> in their <code>.vimrc</code> to enable undercurl support in wezterm. See <a href="https://github.com/wez/wezterm/issues/415#issuecomment-755150303">#415</a> for more details on the escape sequences and configuration for this.</li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
