@@ -36,7 +36,7 @@ impl RenderMetrics {
         let descender_row =
             (cell_height as f64 + (metrics.descender - metrics.underline_position).get()) as isize;
         let descender_plus_two =
-            (2 * underline_height + descender_row).min(cell_height as isize - 1);
+            (2 * underline_height + descender_row).min(cell_height as isize - underline_height);
         let strike_row = descender_row / 2;
 
         Self {

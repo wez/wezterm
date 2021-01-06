@@ -353,16 +353,96 @@ impl<T: Texture2d> GlyphCache<T> {
             }
         };
 
+        let draw_dotted = |buffer: &mut Image| {
+            for row in 0..self.metrics.underline_height {
+                let y = (cell_rect.origin.y + self.metrics.descender_row + row) as usize;
+                if y >= self.metrics.cell_size.height as usize {
+                    break;
+                }
+
+                let mut color = white;
+                let segment_length = (self.metrics.cell_size.width / 4) as usize;
+                let mut count = segment_length;
+                let range =
+                    buffer.horizontal_pixel_range_mut(0, self.metrics.cell_size.width as usize, y);
+                for c in range.iter_mut() {
+                    *c = color.0;
+                    count -= 1;
+                    if count == 0 {
+                        color = if color == white { black } else { white };
+                        count = segment_length;
+                    }
+                }
+            }
+        };
+
+        let draw_dashed = |buffer: &mut Image| {
+            for row in 0..self.metrics.underline_height {
+                let y = (cell_rect.origin.y + self.metrics.descender_row + row) as usize;
+                if y >= self.metrics.cell_size.height as usize {
+                    break;
+                }
+                let mut color = white;
+                let third = (self.metrics.cell_size.width / 3) as usize + 1;
+                let mut count = third;
+                let range =
+                    buffer.horizontal_pixel_range_mut(0, self.metrics.cell_size.width as usize, y);
+                for c in range.iter_mut() {
+                    *c = color.0;
+                    count -= 1;
+                    if count == 0 {
+                        color = if color == white { black } else { white };
+                        count = third;
+                    }
+                }
+            }
+        };
+
+        let draw_curly = |buffer: &mut Image| {
+            let max_y = self.metrics.cell_size.height as usize - 1;
+            let x_factor = (2. * std::f32::consts::PI) / self.metrics.cell_size.width as f32;
+
+            // Have the wave go from the descender to the bottom of the cell
+            let wave_height =
+                self.metrics.cell_size.height - (cell_rect.origin.y + self.metrics.descender_row);
+
+            let half_height = (wave_height as f32 / 2.).max(1.);
+            let y =
+                (cell_rect.origin.y + self.metrics.descender_row) as usize - half_height as usize;
+
+            fn add(x: usize, y: usize, val: u8, max_y: usize, buffer: &mut Image) {
+                let y = y.min(max_y);
+                let pixel = buffer.pixel_mut(x, y);
+                let (current, _, _, _) = Color(*pixel).as_rgba();
+                let value = current.saturating_add(val);
+                *pixel = Color::rgb(value, value, value).0;
+            }
+
+            for x in 0..self.metrics.cell_size.width as usize {
+                let vertical = wave_height as f32 * (x as f32 * x_factor).cos();
+                let v1 = vertical.floor();
+                let v2 = vertical.ceil();
+
+                for row in 0..self.metrics.underline_height as usize {
+                    let value = (255. * (vertical - v1).abs()) as u8;
+                    add(x, row + y + v1 as usize, 255 - value, max_y, buffer);
+                    add(x, row + y + v2 as usize, value, max_y, buffer);
+                }
+            }
+        };
+
         let draw_double = |buffer: &mut Image| {
+            let first_line = self
+                .metrics
+                .descender_row
+                .min(self.metrics.descender_plus_two - 2 * self.metrics.underline_height);
+
             for row in 0..self.metrics.underline_height {
                 buffer.draw_line(
-                    Point::new(
-                        cell_rect.origin.x,
-                        cell_rect.origin.y + self.metrics.descender_row + row,
-                    ),
+                    Point::new(cell_rect.origin.x, cell_rect.origin.y + first_line + row),
                     Point::new(
                         cell_rect.origin.x + self.metrics.cell_size.width,
-                        cell_rect.origin.y + self.metrics.descender_row + row,
+                        cell_rect.origin.y + first_line + row,
                     ),
                     white,
                     Operator::Source,
@@ -419,11 +499,10 @@ impl<T: Texture2d> GlyphCache<T> {
         }
         match key.underline {
             Underline::None => {}
-            Underline::Single |
-                // FIXME: these extra styles need to be rendered separately!
-                Underline::Curly | Underline::Dotted | Underline::Dashed => {
-                draw_single(&mut buffer)
-            }
+            Underline::Single => draw_single(&mut buffer),
+            Underline::Curly => draw_curly(&mut buffer),
+            Underline::Dashed => draw_dashed(&mut buffer),
+            Underline::Dotted => draw_dotted(&mut buffer),
             Underline::Double => draw_double(&mut buffer),
         }
         if key.strike_through {
