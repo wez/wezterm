@@ -6,6 +6,8 @@ use num_derive::*;
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::fmt::{Display, Error as FmtError, Formatter};
 
+pub use vtparse::CsiParam;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CSI {
     /// SGR: Set Graphics Rendition.
@@ -33,15 +35,15 @@ pub enum CSI {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unspecified {
-    params: Vec<i64>,
+    pub params: Vec<CsiParam>,
     // TODO: can we just make intermediates a single u8?
-    intermediates: Vec<u8>,
+    pub intermediates: Vec<u8>,
     /// if true, more than two intermediates arrived and the
     /// remaining data was ignored
-    ignored_extra_intermediates: bool,
+    pub ignored_extra_intermediates: bool,
     /// The final character in the CSI sequence; this typically
     /// defines how to interpret the other parameters.
-    control: char,
+    pub control: char,
 }
 
 impl Display for Unspecified {
@@ -117,7 +119,7 @@ pub enum DeviceAttributeCodes {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeviceAttribute {
     Code(DeviceAttributeCodes),
-    Unspecified(u16),
+    Unspecified(CsiParam),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -131,7 +133,7 @@ impl DeviceAttributeFlags {
         for item in &self.attributes {
             match item {
                 DeviceAttribute::Code(c) => write!(f, ";{}", c.to_u16().ok_or_else(|| FmtError)?)?,
-                DeviceAttribute::Unspecified(c) => write!(f, ";{}", *c)?,
+                DeviceAttribute::Unspecified(param) => write!(f, ";{}", param)?,
             }
         }
         write!(f, "c")?;
@@ -142,12 +144,15 @@ impl DeviceAttributeFlags {
         Self { attributes }
     }
 
-    fn from_params(params: &[i64]) -> Self {
+    fn from_params(params: &[CsiParam]) -> Self {
         let mut attributes = Vec::new();
-        for p in params {
-            match FromPrimitive::from_i64(*p) {
-                Some(c) => attributes.push(DeviceAttribute::Code(c)),
-                None => attributes.push(DeviceAttribute::Unspecified(*p as u16)),
+        for i in params {
+            match i {
+                CsiParam::Integer(p) => match FromPrimitive::from_i64(*p) {
+                    Some(c) => attributes.push(DeviceAttribute::Code(c)),
+                    None => attributes.push(DeviceAttribute::Unspecified(i.clone())),
+                },
+                _ => attributes.push(DeviceAttribute::Unspecified(i.clone())),
             }
         }
         Self { attributes }
@@ -941,16 +946,16 @@ impl Display for Cursor {
 /// but in some we build out an enum.  The trait helps to generalize
 /// the parser code while keeping it relatively terse.
 trait ParseParams: Sized {
-    fn parse_params(params: &[i64]) -> Result<Self, ()>;
+    fn parse_params(params: &[CsiParam]) -> Result<Self, ()>;
 }
 
 /// Parse an input parameter into a 1-based unsigned value
 impl ParseParams for u32 {
-    fn parse_params(params: &[i64]) -> Result<u32, ()> {
+    fn parse_params(params: &[CsiParam]) -> Result<u32, ()> {
         if params.is_empty() {
             Ok(1)
         } else if params.len() == 1 {
-            to_1b_u32(params[0])
+            to_1b_u32(&params[0])
         } else {
             Err(())
         }
@@ -959,11 +964,11 @@ impl ParseParams for u32 {
 
 /// Parse an input parameter into a 1-based unsigned value
 impl ParseParams for OneBased {
-    fn parse_params(params: &[i64]) -> Result<OneBased, ()> {
+    fn parse_params(params: &[CsiParam]) -> Result<OneBased, ()> {
         if params.is_empty() {
             Ok(OneBased::new(1))
         } else if params.len() == 1 {
-            OneBased::from_esc_param(params[0])
+            OneBased::from_esc_param(&params[0])
         } else {
             Err(())
         }
@@ -974,15 +979,15 @@ impl ParseParams for OneBased {
 /// This is typically used to build a struct comprised of
 /// the pair of values.
 impl ParseParams for (OneBased, OneBased) {
-    fn parse_params(params: &[i64]) -> Result<(OneBased, OneBased), ()> {
+    fn parse_params(params: &[CsiParam]) -> Result<(OneBased, OneBased), ()> {
         if params.is_empty() {
             Ok((OneBased::new(1), OneBased::new(1)))
         } else if params.len() == 1 {
-            Ok((OneBased::from_esc_param(params[0])?, OneBased::new(1)))
+            Ok((OneBased::from_esc_param(&params[0])?, OneBased::new(1)))
         } else if params.len() == 2 {
             Ok((
-                OneBased::from_esc_param(params[0])?,
-                OneBased::from_esc_param(params[1])?,
+                OneBased::from_esc_param(&params[0])?,
+                OneBased::from_esc_param(&params[1])?,
             ))
         } else {
             Err(())
@@ -1000,11 +1005,14 @@ trait ParamEnum: FromPrimitive {
 
 /// implement ParseParams for the enums that also implement ParamEnum.
 impl<T: ParamEnum> ParseParams for T {
-    fn parse_params(params: &[i64]) -> Result<Self, ()> {
+    fn parse_params(params: &[CsiParam]) -> Result<Self, ()> {
         if params.is_empty() {
             Ok(ParamEnum::default())
         } else if params.len() == 1 {
-            FromPrimitive::from_i64(params[0]).ok_or(())
+            match params[0] {
+                CsiParam::Integer(i) => FromPrimitive::from_i64(i).ok_or(()),
+                CsiParam::ColonList(_) => Err(()),
+            }
         } else {
             Err(())
         }
@@ -1257,7 +1265,7 @@ struct CSIParser<'a> {
     /// In a number of cases an empty params list is used to indicate
     /// default values, especially for SGR, so we need to be careful not
     /// to update params to an empty slice.
-    params: Option<&'a [i64]>,
+    params: Option<&'a [CsiParam]>,
 }
 
 impl CSI {
@@ -1268,7 +1276,7 @@ impl CSI {
     /// If no semantic meaning is known for a subsequence, the remainder
     /// of the sequence is returned wrapped in a `CSI::Unspecified` container.
     pub fn parse<'a>(
-        params: &'a [i64],
+        params: &'a [CsiParam],
         intermediates: &'a [u8],
         ignored_extra_intermediates: bool,
         control: char,
@@ -1283,11 +1291,16 @@ impl CSI {
 }
 
 /// A little helper to convert i64 -> u8 if safe
-fn to_u8(v: i64) -> Result<u8, ()> {
-    if v <= i64::from(u8::max_value()) {
-        Ok(v as u8)
-    } else {
-        Err(())
+fn to_u8(v: &CsiParam) -> Result<u8, ()> {
+    match v {
+        CsiParam::ColonList(_) => Err(()),
+        CsiParam::Integer(v) => {
+            if *v <= i64::from(u8::max_value()) {
+                Ok(*v as u8)
+            } else {
+                Err(())
+            }
+        }
     }
 }
 
@@ -1302,13 +1315,11 @@ fn to_u8(v: i64) -> Result<u8, ()> {
 /// otherwise outside that range, an error is propagated and
 /// that will typically case the sequence to be reported via
 /// the Unspecified placeholder.
-fn to_1b_u32(v: i64) -> Result<u32, ()> {
-    if v == 0 {
-        Ok(1)
-    } else if v > 0 && v <= i64::from(u32::max_value()) {
-        Ok(v as u32)
-    } else {
-        Err(())
+fn to_1b_u32(v: &CsiParam) -> Result<u32, ()> {
+    match v {
+        CsiParam::Integer(v) if *v == 0 => Ok(1),
+        CsiParam::Integer(v) if *v > 0 && *v <= i64::from(u32::max_value()) => Ok(*v as u32),
+        _ => Err(()),
     }
 }
 
@@ -1338,7 +1349,7 @@ macro_rules! parse {
 }
 
 impl<'a> CSIParser<'a> {
-    fn parse_next(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+    fn parse_next(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
         match (self.control, self.intermediates) {
             ('@', &[]) => parse!(Edit, InsertCharacter, params),
             ('`', &[]) => parse!(Cursor, CharacterPositionAbsolute, params),
@@ -1387,8 +1398,8 @@ impl<'a> CSIParser<'a> {
             ('t', &[]) => self.window(params).map(CSI::Window),
             ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
             ('y', &[b'*']) => {
-                fn p(params: &[i64], idx: usize) -> Result<i64, ()> {
-                    params.get(idx).cloned().ok_or(())
+                fn p(params: &[CsiParam], idx: usize) -> Result<i64, ()> {
+                    params.get(idx).and_then(CsiParam::as_integer).ok_or(())
                 }
                 let request_id = p(params, 0)?;
                 let page_number = p(params, 1)?;
@@ -1445,7 +1456,7 @@ impl<'a> CSIParser<'a> {
     /// Take care to avoid setting params back to an empty slice
     /// as this would trigger returning a default value and/or
     /// an unterminated parse loop.
-    fn advance_by<T>(&mut self, n: usize, params: &'a [i64], result: T) -> T {
+    fn advance_by<T>(&mut self, n: usize, params: &'a [CsiParam], result: T) -> T {
         let (_, next) = params.split_at(n);
         if !next.is_empty() {
             self.params = Some(next);
@@ -1453,11 +1464,11 @@ impl<'a> CSIParser<'a> {
         result
     }
 
-    fn cursor_style(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+    fn cursor_style(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
         if params.len() != 1 {
             Err(())
         } else {
-            match FromPrimitive::from_i64(params[0]) {
+            match FromPrimitive::from_i64(params[0].as_integer().unwrap()) {
                 None => Err(()),
                 Some(style) => {
                     Ok(self.advance_by(1, params, CSI::Cursor(Cursor::CursorStyle(style))))
@@ -1466,17 +1477,17 @@ impl<'a> CSIParser<'a> {
         }
     }
 
-    fn dsr(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
-        if params == [5] {
+    fn dsr(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
+        if params == [CsiParam::Integer(5)] {
             Ok(self.advance_by(1, params, CSI::Device(Box::new(Device::StatusReport))))
-        } else if params == [6] {
+        } else if params == [CsiParam::Integer(6)] {
             Ok(self.advance_by(1, params, CSI::Cursor(Cursor::RequestActivePositionReport)))
         } else {
             Err(())
         }
     }
 
-    fn decstbm(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+    fn decstbm(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
         if params.is_empty() {
             Ok(CSI::Cursor(Cursor::SetTopAndBottomMargins {
                 top: OneBased::new(1),
@@ -1487,7 +1498,7 @@ impl<'a> CSIParser<'a> {
                 1,
                 params,
                 CSI::Cursor(Cursor::SetTopAndBottomMargins {
-                    top: OneBased::from_esc_param(params[0])?,
+                    top: OneBased::from_esc_param(&params[0])?,
                     bottom: OneBased::new(u32::max_value()),
                 }),
             ))
@@ -1496,8 +1507,8 @@ impl<'a> CSIParser<'a> {
                 2,
                 params,
                 CSI::Cursor(Cursor::SetTopAndBottomMargins {
-                    top: OneBased::from_esc_param(params[0])?,
-                    bottom: OneBased::from_esc_param_with_big_default(params[1])?,
+                    top: OneBased::from_esc_param(&params[0])?,
+                    bottom: OneBased::from_esc_param_with_big_default(&params[1])?,
                 }),
             ))
         } else {
@@ -1505,19 +1516,21 @@ impl<'a> CSIParser<'a> {
         }
     }
 
-    fn xterm_key_modifier(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+    fn xterm_key_modifier(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
         if params.len() == 2 {
-            let resource = XtermKeyModifierResource::parse(params[0]).ok_or_else(|| ())?;
+            let resource = XtermKeyModifierResource::parse(params[0].as_integer().unwrap())
+                .ok_or_else(|| ())?;
             Ok(self.advance_by(
                 2,
                 params,
                 CSI::Mode(Mode::XtermKeyMode {
                     resource,
-                    value: Some(params[1]),
+                    value: Some(params[1].as_integer().ok_or_else(|| ())?),
                 }),
             ))
         } else if params.len() == 1 {
-            let resource = XtermKeyModifierResource::parse(params[0]).ok_or_else(|| ())?;
+            let resource = XtermKeyModifierResource::parse(params[0].as_integer().unwrap())
+                .ok_or_else(|| ())?;
             Ok(self.advance_by(
                 1,
                 params,
@@ -1531,7 +1544,7 @@ impl<'a> CSIParser<'a> {
         }
     }
 
-    fn decslrm(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+    fn decslrm(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
         if params.is_empty() {
             // with no params this is a request to save the cursor
             // and is technically in conflict with SetLeftAndRightMargins.
@@ -1544,7 +1557,7 @@ impl<'a> CSIParser<'a> {
                 1,
                 params,
                 CSI::Cursor(Cursor::SetLeftAndRightMargins {
-                    left: OneBased::from_esc_param(params[0])?,
+                    left: OneBased::from_esc_param(&params[0])?,
                     right: OneBased::new(u32::max_value()),
                 }),
             ))
@@ -1553,8 +1566,8 @@ impl<'a> CSIParser<'a> {
                 2,
                 params,
                 CSI::Cursor(Cursor::SetLeftAndRightMargins {
-                    left: OneBased::from_esc_param(params[0])?,
-                    right: OneBased::from_esc_param(params[1])?,
+                    left: OneBased::from_esc_param(&params[0])?,
+                    right: OneBased::from_esc_param(&params[1])?,
                 }),
             ))
         } else {
@@ -1562,52 +1575,52 @@ impl<'a> CSIParser<'a> {
         }
     }
 
-    fn req_primary_device_attributes(&mut self, params: &'a [i64]) -> Result<Device, ()> {
+    fn req_primary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
         if params == [] {
             Ok(Device::RequestPrimaryDeviceAttributes)
-        } else if params == [0] {
+        } else if params == [CsiParam::Integer(0)] {
             Ok(self.advance_by(1, params, Device::RequestPrimaryDeviceAttributes))
         } else {
             Err(())
         }
     }
 
-    fn req_terminal_name_and_version(&mut self, params: &'a [i64]) -> Result<Device, ()> {
+    fn req_terminal_name_and_version(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
         if params == [] {
             Ok(Device::RequestTerminalNameAndVersion)
-        } else if params == [0] {
+        } else if params == [CsiParam::Integer(0)] {
             Ok(self.advance_by(1, params, Device::RequestTerminalNameAndVersion))
         } else {
             Err(())
         }
     }
 
-    fn req_secondary_device_attributes(&mut self, params: &'a [i64]) -> Result<Device, ()> {
+    fn req_secondary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
         if params == [] {
             Ok(Device::RequestSecondaryDeviceAttributes)
-        } else if params == [0] {
+        } else if params == [CsiParam::Integer(0)] {
             Ok(self.advance_by(1, params, Device::RequestSecondaryDeviceAttributes))
         } else {
             Err(())
         }
     }
 
-    fn secondary_device_attributes(&mut self, params: &'a [i64]) -> Result<Device, ()> {
-        if params == [1, 0] {
+    fn secondary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
+        if params == [CsiParam::Integer(1), CsiParam::Integer(0)] {
             Ok(self.advance_by(
                 2,
                 params,
                 Device::DeviceAttributes(DeviceAttributes::Vt101WithNoOptions),
             ))
-        } else if params == [6] {
+        } else if params == [CsiParam::Integer(6)] {
             Ok(self.advance_by(1, params, Device::DeviceAttributes(DeviceAttributes::Vt102)))
-        } else if params == [1, 2] {
+        } else if params == [CsiParam::Integer(1), CsiParam::Integer(2)] {
             Ok(self.advance_by(
                 2,
                 params,
                 Device::DeviceAttributes(DeviceAttributes::Vt100WithAdvancedVideoOption),
             ))
-        } else if !params.is_empty() && params[0] == 62 {
+        } else if !params.is_empty() && params[0] == CsiParam::Integer(62) {
             Ok(self.advance_by(
                 params.len(),
                 params,
@@ -1615,7 +1628,7 @@ impl<'a> CSIParser<'a> {
                     DeviceAttributeFlags::from_params(&params[1..]),
                 )),
             ))
-        } else if !params.is_empty() && params[0] == 63 {
+        } else if !params.is_empty() && params[0] == CsiParam::Integer(63) {
             Ok(self.advance_by(
                 params.len(),
                 params,
@@ -1623,7 +1636,7 @@ impl<'a> CSIParser<'a> {
                     DeviceAttributeFlags::from_params(&params[1..]),
                 )),
             ))
-        } else if !params.is_empty() && params[0] == 64 {
+        } else if !params.is_empty() && params[0] == CsiParam::Integer(64) {
             Ok(self.advance_by(
                 params.len(),
                 params,
@@ -1637,13 +1650,15 @@ impl<'a> CSIParser<'a> {
     }
 
     /// Parse extended mouse reports known as SGR 1006 mode
-    fn mouse_sgr1006(&mut self, params: &'a [i64]) -> Result<MouseReport, ()> {
+    fn mouse_sgr1006(&mut self, params: &'a [CsiParam]) -> Result<MouseReport, ()> {
         if params.len() != 3 {
             return Err(());
         }
 
+        let p0 = params[0].as_integer().unwrap();
+
         // 'M' encodes a press, 'm' a release.
-        let button = match (self.control, params[0] & 0b110_0011) {
+        let button = match (self.control, p0 & 0b110_0011) {
             ('M', 0) => MouseButton::Button1Press,
             ('m', 0) => MouseButton::Button1Release,
             ('M', 1) => MouseButton::Button2Press,
@@ -1672,30 +1687,36 @@ impl<'a> CSIParser<'a> {
         };
 
         let mut modifiers = Modifiers::NONE;
-        if params[0] & 4 != 0 {
+        if p0 & 4 != 0 {
             modifiers |= Modifiers::SHIFT;
         }
-        if params[0] & 8 != 0 {
+        if p0 & 8 != 0 {
             modifiers |= Modifiers::ALT;
         }
-        if params[0] & 16 != 0 {
+        if p0 & 16 != 0 {
             modifiers |= Modifiers::CTRL;
         }
+
+        let p1 = params[1].as_integer().unwrap();
+        let p2 = params[2].as_integer().unwrap();
 
         Ok(self.advance_by(
             3,
             params,
             MouseReport::SGR1006 {
-                x: params[1] as u16,
-                y: params[2] as u16,
+                x: p1 as u16,
+                y: p2 as u16,
                 button,
                 modifiers,
             },
         ))
     }
 
-    fn dec(&mut self, params: &'a [i64]) -> Result<DecPrivateMode, ()> {
-        let p0 = *params.get(0).ok_or_else(|| ())?;
+    fn dec(&mut self, params: &'a [CsiParam]) -> Result<DecPrivateMode, ()> {
+        let p0 = params
+            .get(0)
+            .and_then(CsiParam::as_integer)
+            .ok_or_else(|| ())?;
         match FromPrimitive::from_i64(p0) {
             None => Ok(self.advance_by(
                 1,
@@ -1706,8 +1727,11 @@ impl<'a> CSIParser<'a> {
         }
     }
 
-    fn terminal_mode(&mut self, params: &'a [i64]) -> Result<TerminalMode, ()> {
-        let p0 = *params.get(0).ok_or_else(|| ())?;
+    fn terminal_mode(&mut self, params: &'a [CsiParam]) -> Result<TerminalMode, ()> {
+        let p0 = params
+            .get(0)
+            .and_then(CsiParam::as_integer)
+            .ok_or_else(|| ())?;
         match FromPrimitive::from_i64(p0) {
             None => {
                 Ok(self.advance_by(1, params, TerminalMode::Unspecified(p0.to_u16().ok_or(())?)))
@@ -1716,100 +1740,103 @@ impl<'a> CSIParser<'a> {
         }
     }
 
-    fn parse_sgr_color(&mut self, params: &'a [i64]) -> Result<ColorSpec, ()> {
-        if params.len() >= 5 && params[1] == 2 {
-            let red = to_u8(params[2])?;
-            let green = to_u8(params[3])?;
-            let blue = to_u8(params[4])?;
+    fn parse_sgr_color(&mut self, params: &'a [CsiParam]) -> Result<ColorSpec, ()> {
+        if params.len() >= 5 && params[1].as_integer() == Some(2) {
+            let red = to_u8(&params[2])?;
+            let green = to_u8(&params[3])?;
+            let blue = to_u8(&params[4])?;
             let res = RgbColor::new(red, green, blue).into();
             Ok(self.advance_by(5, params, res))
-        } else if params.len() >= 3 && params[1] == 5 {
-            let idx = to_u8(params[2])?;
+        } else if params.len() >= 3 && params[1].as_integer() == Some(5) {
+            let idx = to_u8(&params[2])?;
             Ok(self.advance_by(3, params, ColorSpec::PaletteIndex(idx)))
         } else {
             Err(())
         }
     }
 
-    fn window(&mut self, params: &'a [i64]) -> Result<Window, ()> {
+    fn window(&mut self, params: &'a [CsiParam]) -> Result<Window, ()> {
         if params.is_empty() {
             Err(())
         } else {
-            let arg1 = params.get(1).cloned();
-            let arg2 = params.get(2).cloned();
-            match params[0] {
-                1 => Ok(Window::DeIconify),
-                2 => Ok(Window::Iconify),
-                3 => Ok(Window::MoveWindow {
-                    x: arg1.unwrap_or(0),
-                    y: arg2.unwrap_or(0),
-                }),
-                4 => Ok(Window::ResizeWindowPixels {
-                    height: arg1,
-                    width: arg2,
-                }),
-                5 => Ok(Window::RaiseWindow),
-                6 => match params.len() {
-                    1 => Ok(Window::LowerWindow),
-                    3 => Ok(Window::ReportCellSizePixelsResponse {
+            let arg1 = params.get(1).and_then(CsiParam::as_integer);
+            let arg2 = params.get(2).and_then(CsiParam::as_integer);
+            match params[0].as_integer() {
+                None => Err(()),
+                Some(p) => match p {
+                    1 => Ok(Window::DeIconify),
+                    2 => Ok(Window::Iconify),
+                    3 => Ok(Window::MoveWindow {
+                        x: arg1.unwrap_or(0),
+                        y: arg2.unwrap_or(0),
+                    }),
+                    4 => Ok(Window::ResizeWindowPixels {
                         height: arg1,
                         width: arg2,
                     }),
+                    5 => Ok(Window::RaiseWindow),
+                    6 => match params.len() {
+                        1 => Ok(Window::LowerWindow),
+                        3 => Ok(Window::ReportCellSizePixelsResponse {
+                            height: arg1,
+                            width: arg2,
+                        }),
+                        _ => Err(()),
+                    },
+                    7 => Ok(Window::RefreshWindow),
+                    8 => Ok(Window::ResizeWindowCells {
+                        height: arg1,
+                        width: arg2,
+                    }),
+                    9 => match arg1 {
+                        Some(0) => Ok(Window::RestoreMaximizedWindow),
+                        Some(1) => Ok(Window::MaximizeWindow),
+                        Some(2) => Ok(Window::MaximizeWindowVertically),
+                        Some(3) => Ok(Window::MaximizeWindowHorizontally),
+                        _ => Err(()),
+                    },
+                    10 => match arg1 {
+                        Some(0) => Ok(Window::UndoFullScreenMode),
+                        Some(1) => Ok(Window::ChangeToFullScreenMode),
+                        Some(2) => Ok(Window::ToggleFullScreen),
+                        _ => Err(()),
+                    },
+                    11 => Ok(Window::ReportWindowState),
+                    13 => match arg1 {
+                        None => Ok(Window::ReportWindowPosition),
+                        Some(2) => Ok(Window::ReportTextAreaPosition),
+                        _ => Err(()),
+                    },
+                    14 => match arg1 {
+                        None => Ok(Window::ReportTextAreaSizePixels),
+                        Some(2) => Ok(Window::ReportWindowSizePixels),
+                        _ => Err(()),
+                    },
+                    15 => Ok(Window::ReportScreenSizePixels),
+                    16 => Ok(Window::ReportCellSizePixels),
+                    18 => Ok(Window::ReportTextAreaSizeCells),
+                    19 => Ok(Window::ReportScreenSizeCells),
+                    20 => Ok(Window::ReportIconLabel),
+                    21 => Ok(Window::ReportWindowTitle),
+                    22 => match arg1 {
+                        Some(0) => Ok(Window::PushIconAndWindowTitle),
+                        Some(1) => Ok(Window::PushIconTitle),
+                        Some(2) => Ok(Window::PushWindowTitle),
+                        _ => Err(()),
+                    },
+                    23 => match arg1 {
+                        Some(0) => Ok(Window::PopIconAndWindowTitle),
+                        Some(1) => Ok(Window::PopIconTitle),
+                        Some(2) => Ok(Window::PopWindowTitle),
+                        _ => Err(()),
+                    },
                     _ => Err(()),
                 },
-                7 => Ok(Window::RefreshWindow),
-                8 => Ok(Window::ResizeWindowCells {
-                    height: arg1,
-                    width: arg2,
-                }),
-                9 => match arg1 {
-                    Some(0) => Ok(Window::RestoreMaximizedWindow),
-                    Some(1) => Ok(Window::MaximizeWindow),
-                    Some(2) => Ok(Window::MaximizeWindowVertically),
-                    Some(3) => Ok(Window::MaximizeWindowHorizontally),
-                    _ => Err(()),
-                },
-                10 => match arg1 {
-                    Some(0) => Ok(Window::UndoFullScreenMode),
-                    Some(1) => Ok(Window::ChangeToFullScreenMode),
-                    Some(2) => Ok(Window::ToggleFullScreen),
-                    _ => Err(()),
-                },
-                11 => Ok(Window::ReportWindowState),
-                13 => match arg1 {
-                    None => Ok(Window::ReportWindowPosition),
-                    Some(2) => Ok(Window::ReportTextAreaPosition),
-                    _ => Err(()),
-                },
-                14 => match arg1 {
-                    None => Ok(Window::ReportTextAreaSizePixels),
-                    Some(2) => Ok(Window::ReportWindowSizePixels),
-                    _ => Err(()),
-                },
-                15 => Ok(Window::ReportScreenSizePixels),
-                16 => Ok(Window::ReportCellSizePixels),
-                18 => Ok(Window::ReportTextAreaSizeCells),
-                19 => Ok(Window::ReportScreenSizeCells),
-                20 => Ok(Window::ReportIconLabel),
-                21 => Ok(Window::ReportWindowTitle),
-                22 => match arg1 {
-                    Some(0) => Ok(Window::PushIconAndWindowTitle),
-                    Some(1) => Ok(Window::PushIconTitle),
-                    Some(2) => Ok(Window::PushWindowTitle),
-                    _ => Err(()),
-                },
-                23 => match arg1 {
-                    Some(0) => Ok(Window::PopIconAndWindowTitle),
-                    Some(1) => Ok(Window::PopIconTitle),
-                    Some(2) => Ok(Window::PopWindowTitle),
-                    _ => Err(()),
-                },
-                _ => Err(()),
             }
         }
     }
 
-    fn sgr(&mut self, params: &'a [i64]) -> Result<Sgr, ()> {
+    fn sgr(&mut self, params: &'a [CsiParam]) -> Result<Sgr, ()> {
         if params.is_empty() {
             // With no parameters, treat as equivalent to Reset.
             Ok(Sgr::Reset)
@@ -1821,97 +1848,130 @@ impl<'a> CSIParser<'a> {
                 };
             };
 
-            match FromPrimitive::from_i64(params[0]) {
-                None => Err(()),
-                Some(sgr) => match sgr {
-                    SgrCode::Reset => one!(Sgr::Reset),
-                    SgrCode::IntensityBold => one!(Sgr::Intensity(Intensity::Bold)),
-                    SgrCode::IntensityDim => one!(Sgr::Intensity(Intensity::Half)),
-                    SgrCode::NormalIntensity => one!(Sgr::Intensity(Intensity::Normal)),
-                    SgrCode::UnderlineOn => one!(Sgr::Underline(Underline::Single)),
-                    SgrCode::UnderlineDouble => one!(Sgr::Underline(Underline::Double)),
-                    SgrCode::UnderlineCurly => one!(Sgr::Underline(Underline::Curly)),
-                    SgrCode::UnderlineDotted => one!(Sgr::Underline(Underline::Dotted)),
-                    SgrCode::UnderlineDashed => one!(Sgr::Underline(Underline::Dashed)),
-                    SgrCode::UnderlineOff => one!(Sgr::Underline(Underline::None)),
-                    SgrCode::UnderlineColor => {
-                        self.parse_sgr_color(params).map(Sgr::UnderlineColor)
-                    }
-                    SgrCode::ResetUnderlineColor => one!(Sgr::UnderlineColor(ColorSpec::default())),
-                    SgrCode::BlinkOn => one!(Sgr::Blink(Blink::Slow)),
-                    SgrCode::RapidBlinkOn => one!(Sgr::Blink(Blink::Rapid)),
-                    SgrCode::BlinkOff => one!(Sgr::Blink(Blink::None)),
-                    SgrCode::ItalicOn => one!(Sgr::Italic(true)),
-                    SgrCode::ItalicOff => one!(Sgr::Italic(false)),
-                    SgrCode::ForegroundColor => self.parse_sgr_color(params).map(Sgr::Foreground),
-                    SgrCode::ForegroundBlack => one!(Sgr::Foreground(AnsiColor::Black.into())),
-                    SgrCode::ForegroundRed => one!(Sgr::Foreground(AnsiColor::Maroon.into())),
-                    SgrCode::ForegroundGreen => one!(Sgr::Foreground(AnsiColor::Green.into())),
-                    SgrCode::ForegroundYellow => one!(Sgr::Foreground(AnsiColor::Olive.into())),
-                    SgrCode::ForegroundBlue => one!(Sgr::Foreground(AnsiColor::Navy.into())),
-                    SgrCode::ForegroundMagenta => one!(Sgr::Foreground(AnsiColor::Purple.into())),
-                    SgrCode::ForegroundCyan => one!(Sgr::Foreground(AnsiColor::Teal.into())),
-                    SgrCode::ForegroundWhite => one!(Sgr::Foreground(AnsiColor::Silver.into())),
-                    SgrCode::ForegroundDefault => one!(Sgr::Foreground(ColorSpec::Default)),
-                    SgrCode::ForegroundBrightBlack => one!(Sgr::Foreground(AnsiColor::Grey.into())),
-                    SgrCode::ForegroundBrightRed => one!(Sgr::Foreground(AnsiColor::Red.into())),
-                    SgrCode::ForegroundBrightGreen => one!(Sgr::Foreground(AnsiColor::Lime.into())),
-                    SgrCode::ForegroundBrightYellow => {
-                        one!(Sgr::Foreground(AnsiColor::Yellow.into()))
-                    }
-                    SgrCode::ForegroundBrightBlue => one!(Sgr::Foreground(AnsiColor::Blue.into())),
-                    SgrCode::ForegroundBrightMagenta => {
-                        one!(Sgr::Foreground(AnsiColor::Fuschia.into()))
-                    }
-                    SgrCode::ForegroundBrightCyan => one!(Sgr::Foreground(AnsiColor::Aqua.into())),
-                    SgrCode::ForegroundBrightWhite => {
-                        one!(Sgr::Foreground(AnsiColor::White.into()))
-                    }
+            match params[0] {
+                CsiParam::Integer(i) => match FromPrimitive::from_i64(i) {
+                    None => Err(()),
+                    Some(sgr) => match sgr {
+                        SgrCode::Reset => one!(Sgr::Reset),
+                        SgrCode::IntensityBold => one!(Sgr::Intensity(Intensity::Bold)),
+                        SgrCode::IntensityDim => one!(Sgr::Intensity(Intensity::Half)),
+                        SgrCode::NormalIntensity => one!(Sgr::Intensity(Intensity::Normal)),
+                        SgrCode::UnderlineOn => one!(Sgr::Underline(Underline::Single)),
+                        SgrCode::UnderlineDouble => one!(Sgr::Underline(Underline::Double)),
+                        SgrCode::UnderlineCurly => one!(Sgr::Underline(Underline::Curly)),
+                        SgrCode::UnderlineDotted => one!(Sgr::Underline(Underline::Dotted)),
+                        SgrCode::UnderlineDashed => one!(Sgr::Underline(Underline::Dashed)),
+                        SgrCode::UnderlineOff => one!(Sgr::Underline(Underline::None)),
+                        SgrCode::UnderlineColor => {
+                            self.parse_sgr_color(params).map(Sgr::UnderlineColor)
+                        }
+                        SgrCode::ResetUnderlineColor => {
+                            one!(Sgr::UnderlineColor(ColorSpec::default()))
+                        }
+                        SgrCode::BlinkOn => one!(Sgr::Blink(Blink::Slow)),
+                        SgrCode::RapidBlinkOn => one!(Sgr::Blink(Blink::Rapid)),
+                        SgrCode::BlinkOff => one!(Sgr::Blink(Blink::None)),
+                        SgrCode::ItalicOn => one!(Sgr::Italic(true)),
+                        SgrCode::ItalicOff => one!(Sgr::Italic(false)),
+                        SgrCode::ForegroundColor => {
+                            self.parse_sgr_color(params).map(Sgr::Foreground)
+                        }
+                        SgrCode::ForegroundBlack => one!(Sgr::Foreground(AnsiColor::Black.into())),
+                        SgrCode::ForegroundRed => one!(Sgr::Foreground(AnsiColor::Maroon.into())),
+                        SgrCode::ForegroundGreen => one!(Sgr::Foreground(AnsiColor::Green.into())),
+                        SgrCode::ForegroundYellow => one!(Sgr::Foreground(AnsiColor::Olive.into())),
+                        SgrCode::ForegroundBlue => one!(Sgr::Foreground(AnsiColor::Navy.into())),
+                        SgrCode::ForegroundMagenta => {
+                            one!(Sgr::Foreground(AnsiColor::Purple.into()))
+                        }
+                        SgrCode::ForegroundCyan => one!(Sgr::Foreground(AnsiColor::Teal.into())),
+                        SgrCode::ForegroundWhite => one!(Sgr::Foreground(AnsiColor::Silver.into())),
+                        SgrCode::ForegroundDefault => one!(Sgr::Foreground(ColorSpec::Default)),
+                        SgrCode::ForegroundBrightBlack => {
+                            one!(Sgr::Foreground(AnsiColor::Grey.into()))
+                        }
+                        SgrCode::ForegroundBrightRed => {
+                            one!(Sgr::Foreground(AnsiColor::Red.into()))
+                        }
+                        SgrCode::ForegroundBrightGreen => {
+                            one!(Sgr::Foreground(AnsiColor::Lime.into()))
+                        }
+                        SgrCode::ForegroundBrightYellow => {
+                            one!(Sgr::Foreground(AnsiColor::Yellow.into()))
+                        }
+                        SgrCode::ForegroundBrightBlue => {
+                            one!(Sgr::Foreground(AnsiColor::Blue.into()))
+                        }
+                        SgrCode::ForegroundBrightMagenta => {
+                            one!(Sgr::Foreground(AnsiColor::Fuschia.into()))
+                        }
+                        SgrCode::ForegroundBrightCyan => {
+                            one!(Sgr::Foreground(AnsiColor::Aqua.into()))
+                        }
+                        SgrCode::ForegroundBrightWhite => {
+                            one!(Sgr::Foreground(AnsiColor::White.into()))
+                        }
 
-                    SgrCode::BackgroundColor => self.parse_sgr_color(params).map(Sgr::Background),
-                    SgrCode::BackgroundBlack => one!(Sgr::Background(AnsiColor::Black.into())),
-                    SgrCode::BackgroundRed => one!(Sgr::Background(AnsiColor::Maroon.into())),
-                    SgrCode::BackgroundGreen => one!(Sgr::Background(AnsiColor::Green.into())),
-                    SgrCode::BackgroundYellow => one!(Sgr::Background(AnsiColor::Olive.into())),
-                    SgrCode::BackgroundBlue => one!(Sgr::Background(AnsiColor::Navy.into())),
-                    SgrCode::BackgroundMagenta => one!(Sgr::Background(AnsiColor::Purple.into())),
-                    SgrCode::BackgroundCyan => one!(Sgr::Background(AnsiColor::Teal.into())),
-                    SgrCode::BackgroundWhite => one!(Sgr::Background(AnsiColor::Silver.into())),
-                    SgrCode::BackgroundDefault => one!(Sgr::Background(ColorSpec::Default)),
-                    SgrCode::BackgroundBrightBlack => one!(Sgr::Background(AnsiColor::Grey.into())),
-                    SgrCode::BackgroundBrightRed => one!(Sgr::Background(AnsiColor::Red.into())),
-                    SgrCode::BackgroundBrightGreen => one!(Sgr::Background(AnsiColor::Lime.into())),
-                    SgrCode::BackgroundBrightYellow => {
-                        one!(Sgr::Background(AnsiColor::Yellow.into()))
-                    }
-                    SgrCode::BackgroundBrightBlue => one!(Sgr::Background(AnsiColor::Blue.into())),
-                    SgrCode::BackgroundBrightMagenta => {
-                        one!(Sgr::Background(AnsiColor::Fuschia.into()))
-                    }
-                    SgrCode::BackgroundBrightCyan => one!(Sgr::Background(AnsiColor::Aqua.into())),
-                    SgrCode::BackgroundBrightWhite => {
-                        one!(Sgr::Background(AnsiColor::White.into()))
-                    }
+                        SgrCode::BackgroundColor => {
+                            self.parse_sgr_color(params).map(Sgr::Background)
+                        }
+                        SgrCode::BackgroundBlack => one!(Sgr::Background(AnsiColor::Black.into())),
+                        SgrCode::BackgroundRed => one!(Sgr::Background(AnsiColor::Maroon.into())),
+                        SgrCode::BackgroundGreen => one!(Sgr::Background(AnsiColor::Green.into())),
+                        SgrCode::BackgroundYellow => one!(Sgr::Background(AnsiColor::Olive.into())),
+                        SgrCode::BackgroundBlue => one!(Sgr::Background(AnsiColor::Navy.into())),
+                        SgrCode::BackgroundMagenta => {
+                            one!(Sgr::Background(AnsiColor::Purple.into()))
+                        }
+                        SgrCode::BackgroundCyan => one!(Sgr::Background(AnsiColor::Teal.into())),
+                        SgrCode::BackgroundWhite => one!(Sgr::Background(AnsiColor::Silver.into())),
+                        SgrCode::BackgroundDefault => one!(Sgr::Background(ColorSpec::Default)),
+                        SgrCode::BackgroundBrightBlack => {
+                            one!(Sgr::Background(AnsiColor::Grey.into()))
+                        }
+                        SgrCode::BackgroundBrightRed => {
+                            one!(Sgr::Background(AnsiColor::Red.into()))
+                        }
+                        SgrCode::BackgroundBrightGreen => {
+                            one!(Sgr::Background(AnsiColor::Lime.into()))
+                        }
+                        SgrCode::BackgroundBrightYellow => {
+                            one!(Sgr::Background(AnsiColor::Yellow.into()))
+                        }
+                        SgrCode::BackgroundBrightBlue => {
+                            one!(Sgr::Background(AnsiColor::Blue.into()))
+                        }
+                        SgrCode::BackgroundBrightMagenta => {
+                            one!(Sgr::Background(AnsiColor::Fuschia.into()))
+                        }
+                        SgrCode::BackgroundBrightCyan => {
+                            one!(Sgr::Background(AnsiColor::Aqua.into()))
+                        }
+                        SgrCode::BackgroundBrightWhite => {
+                            one!(Sgr::Background(AnsiColor::White.into()))
+                        }
 
-                    SgrCode::InverseOn => one!(Sgr::Inverse(true)),
-                    SgrCode::InverseOff => one!(Sgr::Inverse(false)),
-                    SgrCode::InvisibleOn => one!(Sgr::Invisible(true)),
-                    SgrCode::InvisibleOff => one!(Sgr::Invisible(false)),
-                    SgrCode::StrikeThroughOn => one!(Sgr::StrikeThrough(true)),
-                    SgrCode::StrikeThroughOff => one!(Sgr::StrikeThrough(false)),
-                    SgrCode::OverlineOn => one!(Sgr::Overline(true)),
-                    SgrCode::OverlineOff => one!(Sgr::Overline(false)),
-                    SgrCode::DefaultFont => one!(Sgr::Font(Font::Default)),
-                    SgrCode::AltFont1 => one!(Sgr::Font(Font::Alternate(1))),
-                    SgrCode::AltFont2 => one!(Sgr::Font(Font::Alternate(2))),
-                    SgrCode::AltFont3 => one!(Sgr::Font(Font::Alternate(3))),
-                    SgrCode::AltFont4 => one!(Sgr::Font(Font::Alternate(4))),
-                    SgrCode::AltFont5 => one!(Sgr::Font(Font::Alternate(5))),
-                    SgrCode::AltFont6 => one!(Sgr::Font(Font::Alternate(6))),
-                    SgrCode::AltFont7 => one!(Sgr::Font(Font::Alternate(7))),
-                    SgrCode::AltFont8 => one!(Sgr::Font(Font::Alternate(8))),
-                    SgrCode::AltFont9 => one!(Sgr::Font(Font::Alternate(9))),
+                        SgrCode::InverseOn => one!(Sgr::Inverse(true)),
+                        SgrCode::InverseOff => one!(Sgr::Inverse(false)),
+                        SgrCode::InvisibleOn => one!(Sgr::Invisible(true)),
+                        SgrCode::InvisibleOff => one!(Sgr::Invisible(false)),
+                        SgrCode::StrikeThroughOn => one!(Sgr::StrikeThrough(true)),
+                        SgrCode::StrikeThroughOff => one!(Sgr::StrikeThrough(false)),
+                        SgrCode::OverlineOn => one!(Sgr::Overline(true)),
+                        SgrCode::OverlineOff => one!(Sgr::Overline(false)),
+                        SgrCode::DefaultFont => one!(Sgr::Font(Font::Default)),
+                        SgrCode::AltFont1 => one!(Sgr::Font(Font::Alternate(1))),
+                        SgrCode::AltFont2 => one!(Sgr::Font(Font::Alternate(2))),
+                        SgrCode::AltFont3 => one!(Sgr::Font(Font::Alternate(3))),
+                        SgrCode::AltFont4 => one!(Sgr::Font(Font::Alternate(4))),
+                        SgrCode::AltFont5 => one!(Sgr::Font(Font::Alternate(5))),
+                        SgrCode::AltFont6 => one!(Sgr::Font(Font::Alternate(6))),
+                        SgrCode::AltFont7 => one!(Sgr::Font(Font::Alternate(7))),
+                        SgrCode::AltFont8 => one!(Sgr::Font(Font::Alternate(8))),
+                        SgrCode::AltFont9 => one!(Sgr::Font(Font::Alternate(9))),
+                    },
                 },
+                CsiParam::ColonList(_) => Err(()),
             }
         }
     }
@@ -2028,14 +2088,22 @@ mod test {
     use std::io::Write;
 
     fn parse(control: char, params: &[i64], expected: &str) -> Vec<CSI> {
-        let res = CSI::parse(params, &[], false, control).collect();
+        let params = params
+            .iter()
+            .map(|&i| CsiParam::Integer(i))
+            .collect::<Vec<_>>();
+        let res = CSI::parse(&params, &[], false, control).collect();
         assert_eq!(encode(&res), expected);
         res
     }
 
     fn parse_int(control: char, params: &[i64], intermediate: u8, expected: &str) -> Vec<CSI> {
+        let params = params
+            .iter()
+            .map(|&i| CsiParam::Integer(i))
+            .collect::<Vec<_>>();
         let intermediates = [intermediate];
-        let res = CSI::parse(params, &intermediates, false, control).collect();
+        let res = CSI::parse(&params, &intermediates, false, control).collect();
         assert_eq!(encode(&res), expected);
         res
     }
@@ -2072,7 +2140,7 @@ mod test {
                 CSI::Sgr(Sgr::Intensity(Intensity::Bold)),
                 CSI::Sgr(Sgr::Italic(true)),
                 CSI::Unspecified(Box::new(Unspecified {
-                    params: [1231231].to_vec(),
+                    params: [CsiParam::Integer(1231231)].to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',
@@ -2084,7 +2152,7 @@ mod test {
             vec![
                 CSI::Sgr(Sgr::Intensity(Intensity::Bold)),
                 CSI::Unspecified(Box::new(Unspecified {
-                    params: [1231231, 3].to_vec(),
+                    params: [CsiParam::Integer(1231231), CsiParam::Integer(3)].to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',
@@ -2094,7 +2162,7 @@ mod test {
         assert_eq!(
             parse('m', &[1231231, 3], "\x1b[1231231;3m"),
             vec![CSI::Unspecified(Box::new(Unspecified {
-                params: [1231231, 3].to_vec(),
+                params: [CsiParam::Integer(1231231), CsiParam::Integer(3)].to_vec(),
                 intermediates: vec![],
                 ignored_extra_intermediates: false,
                 control: 'm',
@@ -2119,7 +2187,7 @@ mod test {
         assert_eq!(
             parse('m', &[58, 2], "\x1b[58;2m"),
             vec![CSI::Unspecified(Box::new(Unspecified {
-                params: [58, 2].to_vec(),
+                params: [CsiParam::Integer(58), CsiParam::Integer(2)].to_vec(),
                 intermediates: vec![],
                 ignored_extra_intermediates: false,
                 control: 'm',
@@ -2137,7 +2205,7 @@ mod test {
             vec![
                 CSI::Sgr(Sgr::UnderlineColor(ColorSpec::PaletteIndex(220))),
                 CSI::Unspecified(Box::new(Unspecified {
-                    params: [255, 255].to_vec(),
+                    params: [CsiParam::Integer(255), CsiParam::Integer(255)].to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',
@@ -2151,7 +2219,7 @@ mod test {
         assert_eq!(
             parse('m', &[38, 2], "\x1b[38;2m"),
             vec![CSI::Unspecified(Box::new(Unspecified {
-                params: [38, 2].to_vec(),
+                params: [CsiParam::Integer(38), CsiParam::Integer(2)].to_vec(),
                 intermediates: vec![],
                 ignored_extra_intermediates: false,
                 control: 'm',
@@ -2169,7 +2237,7 @@ mod test {
             vec![
                 CSI::Sgr(Sgr::Foreground(ColorSpec::PaletteIndex(220))),
                 CSI::Unspecified(Box::new(Unspecified {
-                    params: [255, 255].to_vec(),
+                    params: [CsiParam::Integer(255), CsiParam::Integer(255)].to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',

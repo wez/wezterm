@@ -151,7 +151,7 @@ pub trait VTActor {
     /// for more information on control functions.
     fn csi_dispatch(
         &mut self,
-        params: &[i64],
+        params: &[CsiParam],
         intermediates: &[u8],
         ignored_excess_intermediates: bool,
         byte: u8,
@@ -187,7 +187,7 @@ pub enum VTAction {
         byte: u8,
     },
     CsiDispatch {
-        params: Vec<i64>,
+        params: Vec<CsiParam>,
         intermediates: Vec<u8>,
         ignored_excess_intermediates: bool,
         byte: u8,
@@ -268,7 +268,7 @@ impl VTActor for CollectingVTActor {
 
     fn csi_dispatch(
         &mut self,
-        params: &[i64],
+        params: &[CsiParam],
         intermediates: &[u8],
         ignored_excess_intermediates: bool,
         byte: u8,
@@ -333,20 +333,84 @@ pub struct VTParser {
 
     osc: OscState,
 
-    params: [i64; MAX_PARAMS],
+    params: [CsiParam; MAX_PARAMS],
     num_params: usize,
-    current_param: Option<i64>,
+    current_param: Option<CsiParam>,
     params_full: bool,
 
     utf8_parser: Utf8Parser,
     utf8_return_state: State,
 }
 
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+pub enum CsiParam {
+    Integer(i64),
+    ColonList(Vec<Option<i64>>),
+    // TODO: add a None case here, but that requires more care
+}
+
+impl Default for CsiParam {
+    fn default() -> Self {
+        Self::Integer(0)
+    }
+}
+
+fn add_digit(target: &mut i64, digit: u8) {
+    *target = target
+        .saturating_mul(10)
+        .saturating_add((digit - b'0') as i64);
+}
+
+impl CsiParam {
+    fn add_digit(&mut self, digit: u8) {
+        match self {
+            Self::Integer(i) => add_digit(i, digit),
+            Self::ColonList(list) => {
+                if let Some(target) = list.last_mut().unwrap() {
+                    add_digit(target, digit);
+                } else {
+                    // Promote trailing None into a 0 value
+                    let mut target = 0;
+                    add_digit(&mut target, digit);
+                    list.last_mut().unwrap().replace(target);
+                }
+            }
+        }
+    }
+
+    pub fn as_integer(&self) -> Option<i64> {
+        match self {
+            Self::Integer(i) => Some(*i),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for CsiParam {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            CsiParam::Integer(v) => {
+                write!(f, "{}", v)?;
+            }
+            CsiParam::ColonList(list) => {
+                for (idx, p) in list.iter().enumerate() {
+                    if idx > 0 {
+                        write!(f, ":")?;
+                    }
+                    if let Some(num) = p {
+                        write!(f, "{}", num)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl VTParser {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         let param_indices = [0usize; MAX_OSC];
-        let params = [0i64; MAX_PARAMS];
 
         Self {
             state: State::Ground,
@@ -363,13 +427,27 @@ impl VTParser {
                 full: false,
             },
 
-            params,
+            params: Default::default(),
             num_params: 0,
             params_full: false,
             current_param: None,
 
             utf8_parser: Utf8Parser::new(),
         }
+    }
+
+    fn as_integer_params(&self) -> [i64; MAX_PARAMS] {
+        let mut res = [0i64; MAX_PARAMS];
+        for (src, dest) in self.params[0..self.num_params]
+            .iter()
+            .zip(&mut res[0..self.num_params])
+        {
+            match src {
+                CsiParam::Integer(i) => *dest = *i,
+                bad => panic!("illegal parameter type: {:?}", bad),
+            }
+        }
+        res
     }
 
     fn finish_param(&mut self) {
@@ -411,24 +489,34 @@ impl VTParser {
                     if self.num_params + 1 > MAX_OSC {
                         self.params_full = true;
                     } else {
-                        self.params[self.num_params] = self.current_param.take().unwrap_or(0);
+                        // FIXME: the unwrap_or here is a lossy representation.
+                        // Consider replacing this with a CsiParam::None variant
+                        // to indicate that it wasn't present?
+                        self.params[self.num_params] =
+                            self.current_param.take().unwrap_or(CsiParam::Integer(0));
                         self.num_params += 1;
                     }
-                } else {
-                    let current = self.current_param.take().unwrap_or(0);
+                } else if param == b':' {
+                    let mut current = match self.current_param.take() {
+                        None => vec![None],
+                        Some(CsiParam::Integer(i)) => vec![Some(i)],
+                        Some(CsiParam::ColonList(list)) => list,
+                    };
 
-                    self.current_param.replace(
-                        current
-                            .saturating_mul(10)
-                            .saturating_add((param - b'0') as i64),
-                    );
+                    current.push(None); // Start a new, empty parameter
+
+                    self.current_param.replace(CsiParam::ColonList(current));
+                } else {
+                    let mut current = self.current_param.take().unwrap_or(CsiParam::Integer(0));
+                    current.add_digit(param);
+                    self.current_param.replace(current);
                 }
             }
             Action::Hook => {
                 self.finish_param();
                 actor.dcs_hook(
                     param,
-                    &self.params[0..self.num_params],
+                    &self.as_integer_params()[0..self.num_params],
                     &self.intermediates[0..self.num_intermediates],
                     self.ignored_excess_intermediates,
                 );
@@ -437,7 +525,7 @@ impl VTParser {
             Action::EscDispatch => {
                 self.finish_param();
                 actor.esc_dispatch(
-                    &self.params[0..self.num_params],
+                    &self.as_integer_params()[0..self.num_params],
                     &self.intermediates[0..self.num_intermediates],
                     self.ignored_excess_intermediates,
                     param,
@@ -599,7 +687,7 @@ mod test {
                 VTAction::Print('o'),
                 VTAction::ExecuteC0orC1(0x07,),
                 VTAction::CsiDispatch {
-                    params: vec![32],
+                    params: vec![CsiParam::Integer(32)],
                     intermediates: vec![],
                     ignored_excess_intermediates: false,
                     byte: b'm',
@@ -609,7 +697,7 @@ mod test {
                 VTAction::Print('o',),
                 VTAction::Print('t',),
                 VTAction::CsiDispatch {
-                    params: vec![0],
+                    params: vec![CsiParam::Integer(0)],
                     intermediates: vec![],
                     ignored_excess_intermediates: false,
                     byte: b'm',
@@ -712,7 +800,7 @@ mod test {
         assert_eq!(
             parse_as_vec(b"\x1b[4m"),
             vec![VTAction::CsiDispatch {
-                params: vec![4],
+                params: vec![CsiParam::Integer(4)],
                 intermediates: b"".to_vec(),
                 ignored_excess_intermediates: false,
                 byte: b'm'
@@ -721,11 +809,33 @@ mod test {
 
         assert_eq!(
             // This is the kitty curly underline sequence.
-            // The : is explicitly set to be ignored by
-            // the state machine tables, so this whole sequence
-            // is discarded during parsing.
             parse_as_vec(b"\x1b[4:3m"),
-            vec![]
+            vec![VTAction::CsiDispatch {
+                params: vec![CsiParam::ColonList(vec![Some(4), Some(3)])],
+                intermediates: b"".to_vec(),
+                ignored_excess_intermediates: false,
+                byte: b'm'
+            }]
+        );
+    }
+
+    #[test]
+    fn test_colon_rgb() {
+        assert_eq!(
+            parse_as_vec(b"\x1b[38:2::128:64:192m"),
+            vec![VTAction::CsiDispatch {
+                params: vec![CsiParam::ColonList(vec![
+                    Some(38),
+                    Some(2),
+                    None,
+                    Some(128),
+                    Some(64),
+                    Some(192)
+                ])],
+                intermediates: b"".to_vec(),
+                ignored_excess_intermediates: false,
+                byte: b'm'
+            }]
         );
     }
 
@@ -735,7 +845,7 @@ mod test {
             parse_as_vec(b"\x1b[;1m"),
             vec![VTAction::CsiDispatch {
                 // The omitted parameter defaults to 0
-                params: vec![0, 1],
+                params: vec![CsiParam::Integer(0), CsiParam::Integer(1)],
                 intermediates: b"".to_vec(),
                 ignored_excess_intermediates: false,
                 byte: b'm'
@@ -748,7 +858,10 @@ mod test {
         assert_eq!(
             parse_as_vec(b"\x1b[0;1;2;3;4;5;6;7;8;9;0;1;2;3;4;51;6p"),
             vec![VTAction::CsiDispatch {
-                params: vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 51],
+                params: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 51]
+                    .iter()
+                    .map(|&i| CsiParam::Integer(i))
+                    .collect(),
                 intermediates: b"".to_vec(),
                 ignored_excess_intermediates: false,
                 byte: b'p'
@@ -761,7 +874,7 @@ mod test {
         assert_eq!(
             parse_as_vec(b"\x1b[1 p"),
             vec![VTAction::CsiDispatch {
-                params: vec![1],
+                params: vec![CsiParam::Integer(1)],
                 intermediates: b" ".to_vec(),
                 ignored_excess_intermediates: false,
                 byte: b'p'
@@ -770,7 +883,7 @@ mod test {
         assert_eq!(
             parse_as_vec(b"\x1b[1 !p"),
             vec![VTAction::CsiDispatch {
-                params: vec![1],
+                params: vec![CsiParam::Integer(1)],
                 intermediates: b" !".to_vec(),
                 ignored_excess_intermediates: false,
                 byte: b'p'
@@ -779,7 +892,7 @@ mod test {
         assert_eq!(
             parse_as_vec(b"\x1b[1 !#p"),
             vec![VTAction::CsiDispatch {
-                params: vec![1],
+                params: vec![CsiParam::Integer(1)],
                 // Note that the `#` was discarded
                 intermediates: b" !".to_vec(),
                 ignored_excess_intermediates: true,

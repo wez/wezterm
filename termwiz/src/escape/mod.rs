@@ -18,6 +18,8 @@ pub use self::esc::Esc;
 pub use self::esc::EscCode;
 pub use self::osc::OperatingSystemCommand;
 
+use vtparse::CsiParam;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
     /// Send a single printable character to the display
@@ -477,35 +479,35 @@ impl OneBased {
 
     /// Map a value from an escape sequence parameter.
     /// 0 is equivalent to 1
-    pub fn from_esc_param(v: i64) -> Result<Self, ()> {
-        if v == 0 {
-            Ok(Self {
+    pub fn from_esc_param(v: &CsiParam) -> Result<Self, ()> {
+        match v {
+            CsiParam::Integer(v) if *v == 0 => Ok(Self {
                 value: num_traits::one(),
-            })
-        } else if v > 0 && v <= i64::from(u32::max_value()) {
-            Ok(Self { value: v as u32 })
-        } else {
-            Err(())
+            }),
+            CsiParam::Integer(v) if *v > 0 && *v <= i64::from(u32::max_value()) => {
+                Ok(Self { value: *v as u32 })
+            }
+            _ => Err(()),
         }
     }
 
     /// Map a value from an escape sequence parameter.
     /// 0 is equivalent to max_value.
-    pub fn from_esc_param_with_big_default(v: i64) -> Result<Self, ()> {
-        if v == 0 {
-            Ok(Self {
+    pub fn from_esc_param_with_big_default(v: &CsiParam) -> Result<Self, ()> {
+        match v {
+            CsiParam::Integer(v) if *v == 0 => Ok(Self {
                 value: u32::max_value(),
-            })
-        } else if v > 0 && v <= i64::from(u32::max_value()) {
-            Ok(Self { value: v as u32 })
-        } else {
-            Err(())
+            }),
+            CsiParam::Integer(v) if *v > 0 && *v <= i64::from(u32::max_value()) => {
+                Ok(Self { value: *v as u32 })
+            }
+            _ => Err(()),
         }
     }
 
     /// Map a value from an optional escape sequence parameter
-    pub fn from_optional_esc_param(o: Option<&i64>) -> Result<Self, ()> {
-        Self::from_esc_param(o.cloned().unwrap_or(1))
+    pub fn from_optional_esc_param(o: Option<&CsiParam>) -> Result<Self, ()> {
+        Self::from_esc_param(o.unwrap_or(&CsiParam::Integer(1)))
     }
 
     /// Return the underlying value as a 0-based value

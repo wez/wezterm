@@ -7,7 +7,7 @@ use log::error;
 use num_traits::FromPrimitive;
 use regex::bytes::Regex;
 use std::cell::RefCell;
-use vtparse::{VTActor, VTParser};
+use vtparse::{CsiParam, VTActor, VTParser};
 
 struct SixelBuilder {
     sixel: Sixel,
@@ -213,7 +213,7 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
 
     fn csi_dispatch(
         &mut self,
-        params: &[i64],
+        params: &[CsiParam],
         intermediates: &[u8],
         ignored_extra_intermediates: bool,
         control: u8,
@@ -482,12 +482,17 @@ mod test {
     fn fancy_underline() {
         let mut p = Parser::new();
 
-        // Kitty underline sequences use a `:` which is explicitly invalid
-        // and deleted by the dec/ansi vtparser
         let actions = p.parse_as_vec(b"\x1b[4:0mb");
         assert_eq!(
             vec![
-                // NO: Action::CSI(CSI::Sgr(Sgr::Underline(Underline::None))),
+                Action::CSI(CSI::Unspecified(Box::new(
+                    crate::escape::csi::Unspecified {
+                        params: vec![CsiParam::ColonList(vec![Some(4), Some(0)])],
+                        intermediates: vec![],
+                        ignored_extra_intermediates: false,
+                        control: 'm'
+                    }
+                ))),
                 Action::Print('b'),
             ],
             actions
