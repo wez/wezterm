@@ -14,6 +14,8 @@ pub struct CommandBuilder {
     args: Vec<OsString>,
     envs: Vec<(OsString, OsString)>,
     cwd: Option<OsString>,
+    #[cfg(unix)]
+    pub(crate) umask: Option<libc::mode_t>,
 }
 
 impl CommandBuilder {
@@ -24,6 +26,7 @@ impl CommandBuilder {
             args: vec![program.as_ref().to_owned()],
             envs: vec![],
             cwd: None,
+            umask: None,
         }
     }
 
@@ -33,6 +36,7 @@ impl CommandBuilder {
             args,
             envs: vec![],
             cwd: None,
+            umask: None,
         }
     }
 
@@ -43,6 +47,7 @@ impl CommandBuilder {
             args: vec![],
             envs: vec![],
             cwd: None,
+            umask: None,
         }
     }
 
@@ -86,6 +91,11 @@ impl CommandBuilder {
         D: AsRef<OsStr>,
     {
         self.cwd = Some(dir.as_ref().to_owned());
+    }
+
+    #[cfg(unix)]
+    pub fn umask(&mut self, mask: Option<libc::mode_t>) {
+        self.umask = mask;
     }
 
     #[cfg(feature = "ssh")]

@@ -693,6 +693,7 @@ dependencies = [
  "smol",
  "termwiz",
  "toml",
+ "umask",
  "vergen",
  "wezterm-input-types",
  "wezterm-term",
@@ -3836,6 +3837,7 @@ dependencies = [
 name = "umask"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "libc",
 ]
 

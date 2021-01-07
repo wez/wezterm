@@ -1241,6 +1241,9 @@ impl Config {
         for (k, v) in &self.set_environment_variables {
             cmd.env(k, v);
         }
+
+        #[cfg(unix)]
+        cmd.umask(umask::UmaskSaver::saved_umask());
         cmd.env("TERM", &self.term);
         // TERM_PROGRAM and TERM_PROGRAM_VERSION are an emerging
         // de-facto standard for identifying the terminal.
