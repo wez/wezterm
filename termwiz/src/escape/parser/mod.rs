@@ -482,25 +482,12 @@ mod test {
     fn fancy_underline() {
         let mut p = Parser::new();
 
-        let actions = p.parse_as_vec(b"\x1b[4:0mb");
+        let actions = p.parse_as_vec(b"\x1b[4:0;4:1;4:2;4:3;4:4;4:5mb");
         assert_eq!(
             vec![
-                Action::CSI(CSI::Unspecified(Box::new(
-                    crate::escape::csi::Unspecified {
-                        params: vec![CsiParam::ColonList(vec![Some(4), Some(0)])],
-                        intermediates: vec![],
-                        ignored_extra_intermediates: false,
-                        control: 'm'
-                    }
-                ))),
-                Action::Print('b'),
-            ],
-            actions
-        );
-
-        let actions = p.parse_as_vec(b"\x1b[60;61;62mb");
-        assert_eq!(
-            vec![
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::None))),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Single))),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Double))),
                 Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Curly))),
                 Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Dotted))),
                 Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Dashed))),
@@ -509,7 +496,10 @@ mod test {
             actions
         );
 
-        assert_eq!(encode(&actions), "\x1b[60m\x1b[61m\x1b[62mb");
+        assert_eq!(
+            encode(&actions),
+            "\x1b[24m\x1b[4m\x1b[21m\x1b[4:3m\x1b[4:4m\x1b[4:5mb"
+        );
     }
 
     #[test]

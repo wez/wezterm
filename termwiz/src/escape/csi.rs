@@ -1133,9 +1133,9 @@ impl Display for Sgr {
             Sgr::Intensity(Intensity::Normal) => code!(NormalIntensity),
             Sgr::Underline(Underline::Single) => code!(UnderlineOn),
             Sgr::Underline(Underline::Double) => code!(UnderlineDouble),
-            Sgr::Underline(Underline::Curly) => code!(UnderlineCurly),
-            Sgr::Underline(Underline::Dotted) => code!(UnderlineDotted),
-            Sgr::Underline(Underline::Dashed) => code!(UnderlineDashed),
+            Sgr::Underline(Underline::Curly) => write!(f, "4:3m")?,
+            Sgr::Underline(Underline::Dotted) => write!(f, "4:4m")?,
+            Sgr::Underline(Underline::Dashed) => write!(f, "4:5m")?,
             Sgr::Underline(Underline::None) => code!(UnderlineOff),
             Sgr::Blink(Blink::Slow) => code!(BlinkOn),
             Sgr::Blink(Blink::Rapid) => code!(RapidBlinkOn),
@@ -1848,8 +1848,8 @@ impl<'a> CSIParser<'a> {
                 };
             };
 
-            match params[0] {
-                CsiParam::Integer(i) => match FromPrimitive::from_i64(i) {
+            match &params[0] {
+                CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
                     None => Err(()),
                     Some(sgr) => match sgr {
                         SgrCode::Reset => one!(Sgr::Reset),
@@ -1858,9 +1858,6 @@ impl<'a> CSIParser<'a> {
                         SgrCode::NormalIntensity => one!(Sgr::Intensity(Intensity::Normal)),
                         SgrCode::UnderlineOn => one!(Sgr::Underline(Underline::Single)),
                         SgrCode::UnderlineDouble => one!(Sgr::Underline(Underline::Double)),
-                        SgrCode::UnderlineCurly => one!(Sgr::Underline(Underline::Curly)),
-                        SgrCode::UnderlineDotted => one!(Sgr::Underline(Underline::Dotted)),
-                        SgrCode::UnderlineDashed => one!(Sgr::Underline(Underline::Dashed)),
                         SgrCode::UnderlineOff => one!(Sgr::Underline(Underline::None)),
                         SgrCode::UnderlineColor => {
                             self.parse_sgr_color(params).map(Sgr::UnderlineColor)
@@ -1971,7 +1968,18 @@ impl<'a> CSIParser<'a> {
                         SgrCode::AltFont9 => one!(Sgr::Font(Font::Alternate(9))),
                     },
                 },
-                CsiParam::ColonList(_) => Err(()),
+                CsiParam::ColonList(list) => {
+                    match list.as_slice() {
+                        // Kitty styled underlines
+                        &[Some(4), Some(0)] => one!(Sgr::Underline(Underline::None)),
+                        &[Some(4), Some(1)] => one!(Sgr::Underline(Underline::Single)),
+                        &[Some(4), Some(2)] => one!(Sgr::Underline(Underline::Double)),
+                        &[Some(4), Some(3)] => one!(Sgr::Underline(Underline::Curly)),
+                        &[Some(4), Some(4)] => one!(Sgr::Underline(Underline::Dotted)),
+                        &[Some(4), Some(5)] => one!(Sgr::Underline(Underline::Dashed)),
+                        _ => Err(()),
+                    }
+                }
             }
         }
     }
@@ -2033,9 +2041,6 @@ pub enum SgrCode {
 
     UnderlineColor = 58,
     ResetUnderlineColor = 59,
-    UnderlineCurly = 60,
-    UnderlineDotted = 61,
-    UnderlineDashed = 62,
 
     ForegroundBrightBlack = 90,
     ForegroundBrightRed = 91,
