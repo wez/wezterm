@@ -59,6 +59,9 @@ struct FatAttributes {
     hyperfile: Option<Arc<Hyperfile>>,
     /// The image data, if any
     image: Option<Box<ImageCell>>,
+    /// The color of the underline.  If None, then
+    /// the foreground color is to be used
+    underline_color: ColorAttribute,
 }
 
 /// Define getter and setter for the attributes bitfield.
@@ -156,7 +159,7 @@ impl Default for Intensity {
 
 /// Specify just how underlined you want your `Cell` to be
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u16)]
 pub enum Underline {
     /// The cell is not underlined
@@ -165,6 +168,12 @@ pub enum Underline {
     Single = 1,
     /// The cell is underlined with two lines
     Double = 2,
+    /// Curly underline
+    Curly = 3,
+    /// Dotted underline
+    Dotted = 4,
+    /// Dashed underline
+    Dashed = 5,
 }
 
 impl Default for Underline {
@@ -203,15 +212,15 @@ impl Into<bool> for Blink {
 
 impl CellAttributes {
     bitfield!(intensity, set_intensity, Intensity, 0b11, 0);
-    bitfield!(underline, set_underline, Underline, 0b11, 2);
-    bitfield!(blink, set_blink, Blink, 0b11, 4);
-    bitfield!(italic, set_italic, 6);
-    bitfield!(reverse, set_reverse, 7);
-    bitfield!(strikethrough, set_strikethrough, 8);
-    bitfield!(invisible, set_invisible, 9);
-    bitfield!(wrapped, set_wrapped, 10);
-    bitfield!(overline, set_overline, 11);
-    bitfield!(semantic_type, set_semantic_type, SemanticType, 0b11, 12);
+    bitfield!(underline, set_underline, Underline, 0b111, 2);
+    bitfield!(blink, set_blink, Blink, 0b11, 5);
+    bitfield!(italic, set_italic, 7);
+    bitfield!(reverse, set_reverse, 8);
+    bitfield!(strikethrough, set_strikethrough, 9);
+    bitfield!(invisible, set_invisible, 10);
+    bitfield!(wrapped, set_wrapped, 11);
+    bitfield!(overline, set_overline, 12);
+    bitfield!(semantic_type, set_semantic_type, SemanticType, 0b11, 13);
 
     /// Returns true if the attribute bits in both objects are equal.
     /// This can be used to cheaply test whether the styles of the two
@@ -237,6 +246,7 @@ impl CellAttributes {
                 hyperlink: None,
                 hyperfile: None,
                 image: None,
+                underline_color: ColorAttribute::Default,
             }));
         }
     }
@@ -245,7 +255,11 @@ impl CellAttributes {
         let deallocate = self
             .fat
             .as_ref()
-            .map(|fat| fat.image.is_none() && fat.hyperlink.is_none() && fat.hyperfile.is_none())
+            .map(|fat| {
+                fat.image.is_none()
+                    && fat.hyperlink.is_none()
+                    && fat.underline_color == ColorAttribute::Default
+            })
             .unwrap_or(false);
         if deallocate {
             self.fat.take();
@@ -285,6 +299,21 @@ impl CellAttributes {
         }
     }
 
+    pub fn set_underline_color<C: Into<ColorAttribute>>(
+        &mut self,
+        underline_color: C,
+    ) -> &mut Self {
+        let underline_color = underline_color.into();
+        if underline_color == ColorAttribute::Default && self.fat.is_none() {
+            self
+        } else {
+            self.allocate_fat_attributes();
+            self.fat.as_mut().unwrap().underline_color = underline_color;
+            self.deallocate_fat_attributes_if_none();
+            self
+        }
+    }
+
     /// Clone the attributes, but exclude fancy extras such
     /// as hyperlinks or future sprite things
     pub fn clone_sgr_only(&self) -> Self {
@@ -299,6 +328,7 @@ impl CellAttributes {
         // be deterministically tagged as Output so that we have an
         // easier time in get_semantic_zones.
         res.set_semantic_type(SemanticType::default());
+        res.set_underline_color(self.underline_color());
         res
     }
 
@@ -314,6 +344,13 @@ impl CellAttributes {
         self.fat
             .as_ref()
             .and_then(|fat| fat.image.as_ref().map(|im| im.as_ref()))
+    }
+
+    pub fn underline_color(&self) -> ColorAttribute {
+        self.fat
+            .as_ref()
+            .map(|fat| fat.underline_color)
+            .unwrap_or(ColorAttribute::Default)
     }
 }
 

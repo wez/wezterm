@@ -6,6 +6,7 @@ in vec2 tex;
 in vec2 underline;
 in vec4 bg_color;
 in vec4 fg_color;
+in vec4 underline_color;
 in float has_color;
 in vec2 cursor;
 in vec4 cursor_color;
@@ -24,6 +25,7 @@ out vec3 o_hsv;
 out vec4 o_bg_color;
 out vec4 o_cursor_color;
 out vec4 o_fg_color;
+out vec4 o_underline_color;
 
 // Returns a position that is outside of the viewport,
 // such that this vertex effectively won't contribute
@@ -39,6 +41,7 @@ void main() {
     o_fg_color = fg_color;
     o_bg_color = bg_color;
     o_underline = underline;
+    o_underline_color = underline_color;
     o_cursor = cursor;
     o_cursor_color = cursor_color;
     o_hsv = hsv;

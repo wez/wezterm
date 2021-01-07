@@ -37,6 +37,8 @@ brief notes about them may accumulate here.
 * Fixed an issue where a symbol-only font would be seen as 0-width and panic wezterm [#404](https://github.com/wez/wezterm/issues/404)
 * Tweaked mouse selection: we now round the x-coordinate to the nearest cell which makes it a bit more forgiving if the mouse cursor is slightly to the left of the intended cell start. [#350](https://github.com/wez/wezterm/issues/350)
 * Added `selection_word_boundary` option to control double-click word selection boundaries. The default is ` \t\n{[}]()\"'\``. [#405](https://github.com/wez/wezterm/issues/405)
+* Added support for Curly, Dotted and Dashed underlines.  Vim users can set `let &t_Cs = "\e[4:3m"` in their `.vimrc` to enable undercurl support in wezterm. See [#415](https://github.com/wez/wezterm/issues/415) for more details on the escape sequences and configuration for this.
+* Fixed an issue where wezterm would spawn processes with `umask 077` on unix systems, rather than the more commonly expected `umask 022`. [#416](https://github.com/wez/wezterm/issues/416)
 
 ### 20201101-103216-403d002d
 

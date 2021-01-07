@@ -192,6 +192,8 @@ impl PtyFd {
     }
 
     fn spawn_command(&self, builder: CommandBuilder) -> anyhow::Result<std::process::Child> {
+        let configured_umask = builder.umask;
+
         let mut cmd = builder.as_command()?;
 
         unsafe {
@@ -234,6 +236,10 @@ impl PtyFd {
                     }
 
                     close_random_fds();
+
+                    if let Some(mask) = configured_umask {
+                        libc::umask(mask);
+                    }
 
                     Ok(())
                 })

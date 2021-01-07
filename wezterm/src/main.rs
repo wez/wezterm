@@ -10,6 +10,7 @@ use std::io::{Read, Write};
 use std::rc::Rc;
 use structopt::StructOpt;
 use tabout::{tabulate_output, Alignment, Column};
+use umask::UmaskSaver;
 use wezterm_client::client::{unix_connect_with_retry, Client};
 use wezterm_gui_subcommands::*;
 
@@ -223,7 +224,7 @@ fn main() {
 fn run() -> anyhow::Result<()> {
     env_bootstrap::bootstrap();
 
-    let _saver = umask::UmaskSaver::new();
+    let saver = UmaskSaver::new();
 
     let opts = Opt::from_args();
     if !opts.skip_config {
@@ -240,15 +241,18 @@ fn run() -> anyhow::Result<()> {
         SubCommand::Start(_)
         | SubCommand::Ssh(_)
         | SubCommand::Serial(_)
-        | SubCommand::Connect(_) => delegate_to_gui(),
+        | SubCommand::Connect(_) => delegate_to_gui(saver),
         SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::SetCwd(cmd) => cmd.run(),
         SubCommand::Cli(cli) => run_cli(config, cli),
     }
 }
 
-fn delegate_to_gui() -> anyhow::Result<()> {
+fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
     use std::process::Command;
+
+    // Restore the original umask
+    drop(saver);
 
     let exe_name = if cfg!(windows) {
         "wezterm-gui.exe"

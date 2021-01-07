@@ -7,7 +7,7 @@ use log::error;
 use num_traits::FromPrimitive;
 use regex::bytes::Regex;
 use std::cell::RefCell;
-use vtparse::{VTActor, VTParser};
+use vtparse::{CsiParam, VTActor, VTParser};
 
 struct SixelBuilder {
     sixel: Sixel,
@@ -213,7 +213,7 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
 
     fn csi_dispatch(
         &mut self,
-        params: &[i64],
+        params: &[CsiParam],
         intermediates: &[u8],
         ignored_extra_intermediates: bool,
         control: u8,
@@ -418,7 +418,8 @@ impl SixelBuilder {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cell::Intensity;
+    use crate::cell::{Intensity, Underline};
+    use crate::color::ColorSpec;
     use crate::escape::csi::Sgr;
     use crate::escape::EscCode;
     use std::io::Write;
@@ -476,6 +477,48 @@ mod test {
         );
 
         assert_eq!(encode(&actions), "\x1b[1m\x1b[3mb");
+    }
+
+    #[test]
+    fn fancy_underline() {
+        let mut p = Parser::new();
+
+        let actions = p.parse_as_vec(b"\x1b[4:0;4:1;4:2;4:3;4:4;4:5mb");
+        assert_eq!(
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::None))),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Single))),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Double))),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Curly))),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Dotted))),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Dashed))),
+                Action::Print('b'),
+            ],
+            actions
+        );
+
+        assert_eq!(
+            encode(&actions),
+            "\x1b[24m\x1b[4m\x1b[21m\x1b[4:3m\x1b[4:4m\x1b[4:5mb"
+        );
+    }
+
+    #[test]
+    fn true_color() {
+        let mut p = Parser::new();
+
+        let actions = p.parse_as_vec(b"\x1b[38:2::128:64:192mw");
+        assert_eq!(
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
+                    RgbColor::new(128, 64, 192)
+                )))),
+                Action::Print('w'),
+            ],
+            actions
+        );
+
+        assert_eq!(encode(&actions), "\u{1b}[38:2::128:64:192mw");
     }
 
     #[test]

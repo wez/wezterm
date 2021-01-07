@@ -108,6 +108,7 @@ impl XWindowInner {
         if !self.paint_all && self.expose.is_empty() {
             return Ok(());
         }
+        self.paint_all = false;
         self.expose.clear();
 
         if let Some(gl_context) = self.gl_state.as_ref() {

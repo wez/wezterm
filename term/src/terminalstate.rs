@@ -2523,6 +2523,9 @@ impl TerminalState {
             Sgr::Background(col) => {
                 self.pen.set_background(col);
             }
+            Sgr::UnderlineColor(col) => {
+                self.pen.set_underline_color(col);
+            }
             Sgr::Font(_) => {}
         }
     }

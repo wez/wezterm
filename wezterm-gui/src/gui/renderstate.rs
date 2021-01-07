@@ -40,7 +40,8 @@ impl OpenGLRenderState {
         pixel_height: usize,
     ) -> anyhow::Result<Self> {
         loop {
-            let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, atlas_size)?);
+            let glyph_cache =
+                RefCell::new(GlyphCache::new_gl(&context, fonts, atlas_size, metrics)?);
             let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
@@ -267,7 +268,7 @@ impl RenderState {
             RenderState::Software(_) => {}
             RenderState::GL(gl) => {
                 let size = size.unwrap_or_else(|| gl.glyph_cache.borrow().atlas.size());
-                let mut glyph_cache = GlyphCache::new_gl(&gl.context, fonts, size)?;
+                let mut glyph_cache = GlyphCache::new_gl(&gl.context, fonts, size, metrics)?;
                 gl.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
                 *gl.glyph_cache.borrow_mut() = glyph_cache;
             }

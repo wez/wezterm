@@ -772,10 +772,11 @@ impl WindowCallbacks for TermWindow {
         ) {
             Ok(gl) => {
                 log::info!(
-                    "OpenGL initialized! {} {} is_context_loss_possible={}",
+                    "OpenGL initialized! {} {} is_context_loss_possible={} wezterm version: {}",
                     gl.context.get_opengl_renderer_string(),
                     gl.context.get_opengl_version_string(),
                     gl.context.is_context_loss_possible(),
+                    config::wezterm_version(),
                 );
                 self.render_state = RenderState::GL(gl);
             }
@@ -2484,6 +2485,7 @@ impl TermWindow {
                 };
 
                 quad.set_fg_color(foreground);
+                quad.set_underline_color(foreground);
                 quad.set_bg_color(background);
                 quad.set_hsv(None);
                 quad.set_texture(texture_rect);
@@ -2613,6 +2615,7 @@ impl TermWindow {
 
             quad.set_bg_color(color);
             quad.set_fg_color(color);
+            quad.set_underline_color(color);
             quad.set_position(left, top, right, bottom);
             quad.set_texture(white_space);
             quad.set_texture_adjust(0., 0., 0., 0.);
@@ -2644,6 +2647,7 @@ impl TermWindow {
             quad.set_hsv(config.window_background_image_hsb);
             quad.set_cursor_color(color);
             quad.set_fg_color(color);
+            quad.set_underline_color(color);
             quad.set_bg_color(color);
         }
 
@@ -2857,31 +2861,40 @@ impl TermWindow {
 
             let bg_is_default = attrs.background == ColorAttribute::Default;
             let bg_color = params.palette.resolve_bg(attrs.background);
-            let fg_color = match attrs.foreground {
-                wezterm_term::color::ColorAttribute::Default => {
-                    if let Some(fg) = style.foreground {
-                        fg
-                    } else {
-                        params.palette.resolve_fg(attrs.foreground)
+
+            fn resolve_fg_color_attr(
+                attrs: &CellAttributes,
+                fg: &ColorAttribute,
+                params: &RenderScreenLineOpenGLParams,
+                style: &config::TextStyle,
+            ) -> RgbColor {
+                match fg {
+                    wezterm_term::color::ColorAttribute::Default => {
+                        if let Some(fg) = style.foreground {
+                            fg
+                        } else {
+                            params.palette.resolve_fg(attrs.foreground)
+                        }
                     }
+                    wezterm_term::color::ColorAttribute::PaletteIndex(idx)
+                        if *idx < 8 && params.config.bold_brightens_ansi_colors =>
+                    {
+                        // For compatibility purposes, switch to a brighter version
+                        // of one of the standard ANSI colors when Bold is enabled.
+                        // This lifts black to dark grey.
+                        let idx = if attrs.intensity() == wezterm_term::Intensity::Bold {
+                            *idx + 8
+                        } else {
+                            *idx
+                        };
+                        params
+                            .palette
+                            .resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
+                    }
+                    _ => params.palette.resolve_fg(*fg),
                 }
-                wezterm_term::color::ColorAttribute::PaletteIndex(idx)
-                    if idx < 8 && params.config.bold_brightens_ansi_colors =>
-                {
-                    // For compatibility purposes, switch to a brighter version
-                    // of one of the standard ANSI colors when Bold is enabled.
-                    // This lifts black to dark grey.
-                    let idx = if attrs.intensity() == wezterm_term::Intensity::Bold {
-                        idx + 8
-                    } else {
-                        idx
-                    };
-                    params
-                        .palette
-                        .resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
-                }
-                _ => params.palette.resolve_fg(attrs.foreground),
-            };
+            }
+            let fg_color = resolve_fg_color_attr(&attrs, &attrs.foreground, &params, &style);
 
             let (fg_color, bg_color, bg_is_default) = {
                 let mut fg = fg_color;
@@ -2897,6 +2910,11 @@ impl TermWindow {
             };
 
             let glyph_color = rgbcolor_to_window_color(fg_color);
+            let underline_color = match attrs.underline_color() {
+                ColorAttribute::Default => fg_color,
+                c => resolve_fg_color_attr(&attrs, &c, &params, &style),
+            };
+            let underline_color = rgbcolor_to_window_color(underline_color);
 
             let bg_color = rgbcolor_alpha_to_window_color(
                 bg_color,
@@ -2974,14 +2992,15 @@ impl TermWindow {
 
                 // underline and strikethrough
                 let underline_tex_rect = gl_state
-                    .util_sprites
-                    .select_sprite(
+                    .glyph_cache
+                    .borrow_mut()
+                    .cached_line_sprite(
                         is_highlited_hyperlink,
                         is_highlited_hyperfile,
                         attrs.strikethrough(),
                         attrs.underline(),
                         attrs.overline(),
-                    )
+                    )?
                     .texture_coords();
 
                 // Iterate each cell that comprises this glyph.  There is usually
@@ -3070,6 +3089,7 @@ impl TermWindow {
 
                         quad.set_hsv(hsv);
                         quad.set_fg_color(glyph_color);
+                        quad.set_underline_color(underline_color);
                         quad.set_bg_color(bg_color);
                         quad.set_texture(texture_rect);
                         quad.set_texture_adjust(0., 0., 0., 0.);
@@ -3120,6 +3140,7 @@ impl TermWindow {
                     quad.set_texture(texture_rect);
                     quad.set_texture_adjust(left, top, right, bottom);
                     quad.set_underline(underline_tex_rect);
+                    quad.set_underline_color(underline_color);
                     quad.set_hsv(hsv);
                     quad.set_has_color(glyph.has_color);
                     quad.set_cursor(
@@ -3176,6 +3197,7 @@ impl TermWindow {
 
             quad.set_bg_color(bg_color);
             quad.set_fg_color(glyph_color);
+            quad.set_underline_color(glyph_color);
             quad.set_texture(white_space);
             quad.set_texture_adjust(0., 0., 0., 0.);
             quad.set_underline(white_space);

@@ -1,3 +1,4 @@
+use super::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::{Atlas, Sprite};
 use ::window::bitmaps::{Image, Texture2d};
 use ::window::glium::backend::Context as GliumContext;
@@ -12,6 +13,7 @@ use std::sync::Arc;
 use termwiz::image::ImageData;
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo};
+use wezterm_term::Underline;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GlyphKey {
@@ -112,11 +114,20 @@ impl<T: Texture2d> std::fmt::Debug for CachedGlyph<T> {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+struct LineKey {
+    strike_through: bool,
+    underline: Underline,
+    overline: bool,
+}
+
 pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
     image_cache: HashMap<usize, Sprite<T>>,
+    line_glyphs: HashMap<LineKey, Sprite<T>>,
+    metrics: RenderMetrics,
 }
 
 impl GlyphCache<SrgbTexture2d> {
@@ -124,6 +135,7 @@ impl GlyphCache<SrgbTexture2d> {
         backend: &Rc<GliumContext>,
         fonts: &Rc<FontConfiguration>,
         size: usize,
+        metrics: &RenderMetrics,
     ) -> anyhow::Result<Self> {
         let surface = Rc::new(SrgbTexture2d::empty_with_format(
             backend,
@@ -139,6 +151,8 @@ impl GlyphCache<SrgbTexture2d> {
             glyph_cache: HashMap::new(),
             image_cache: HashMap::new(),
             atlas,
+            metrics: metrics.clone(),
+            line_glyphs: HashMap::new(),
         })
     }
 
@@ -146,6 +160,7 @@ impl GlyphCache<SrgbTexture2d> {
         self.atlas.clear();
         self.image_cache.clear();
         self.glyph_cache.clear();
+        self.line_glyphs.clear();
     }
 }
 
@@ -309,5 +324,222 @@ impl<T: Texture2d> GlyphCache<T> {
         self.image_cache.insert(image_data.id(), sprite.clone());
 
         Ok(sprite)
+    }
+
+    fn line_sprite(&mut self, key: LineKey) -> anyhow::Result<Sprite<T>> {
+        let mut buffer = Image::new(
+            self.metrics.cell_size.width as usize,
+            self.metrics.cell_size.height as usize,
+        );
+        let black = ::window::color::Color::rgba(0, 0, 0, 0);
+        let white = ::window::color::Color::rgb(0xff, 0xff, 0xff);
+
+        let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
+
+        let draw_single = |buffer: &mut Image| {
+            for row in 0..self.metrics.underline_height {
+                buffer.draw_line(
+                    Point::new(
+                        cell_rect.origin.x,
+                        cell_rect.origin.y + self.metrics.descender_row + row,
+                    ),
+                    Point::new(
+                        cell_rect.origin.x + self.metrics.cell_size.width,
+                        cell_rect.origin.y + self.metrics.descender_row + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+            }
+        };
+
+        let draw_dotted = |buffer: &mut Image| {
+            for row in 0..self.metrics.underline_height {
+                let y = (cell_rect.origin.y + self.metrics.descender_row + row) as usize;
+                if y >= self.metrics.cell_size.height as usize {
+                    break;
+                }
+
+                let mut color = white;
+                let segment_length = (self.metrics.cell_size.width / 4) as usize;
+                let mut count = segment_length;
+                let range =
+                    buffer.horizontal_pixel_range_mut(0, self.metrics.cell_size.width as usize, y);
+                for c in range.iter_mut() {
+                    *c = color.0;
+                    count -= 1;
+                    if count == 0 {
+                        color = if color == white { black } else { white };
+                        count = segment_length;
+                    }
+                }
+            }
+        };
+
+        let draw_dashed = |buffer: &mut Image| {
+            for row in 0..self.metrics.underline_height {
+                let y = (cell_rect.origin.y + self.metrics.descender_row + row) as usize;
+                if y >= self.metrics.cell_size.height as usize {
+                    break;
+                }
+                let mut color = white;
+                let third = (self.metrics.cell_size.width / 3) as usize + 1;
+                let mut count = third;
+                let range =
+                    buffer.horizontal_pixel_range_mut(0, self.metrics.cell_size.width as usize, y);
+                for c in range.iter_mut() {
+                    *c = color.0;
+                    count -= 1;
+                    if count == 0 {
+                        color = if color == white { black } else { white };
+                        count = third;
+                    }
+                }
+            }
+        };
+
+        let draw_curly = |buffer: &mut Image| {
+            let max_y = self.metrics.cell_size.height as usize - 1;
+            let x_factor = (2. * std::f32::consts::PI) / self.metrics.cell_size.width as f32;
+
+            // Have the wave go from the descender to the bottom of the cell
+            let wave_height =
+                self.metrics.cell_size.height - (cell_rect.origin.y + self.metrics.descender_row);
+
+            let half_height = (wave_height as f32 / 2.).max(1.);
+            let y =
+                (cell_rect.origin.y + self.metrics.descender_row) as usize - half_height as usize;
+
+            fn add(x: usize, y: usize, val: u8, max_y: usize, buffer: &mut Image) {
+                let y = y.min(max_y);
+                let pixel = buffer.pixel_mut(x, y);
+                let (current, _, _, _) = Color(*pixel).as_rgba();
+                let value = current.saturating_add(val);
+                *pixel = Color::rgb(value, value, value).0;
+            }
+
+            for x in 0..self.metrics.cell_size.width as usize {
+                let vertical = wave_height as f32 * (x as f32 * x_factor).cos();
+                let v1 = vertical.floor();
+                let v2 = vertical.ceil();
+
+                for row in 0..self.metrics.underline_height as usize {
+                    let value = (255. * (vertical - v1).abs()) as u8;
+                    add(x, row + y + v1 as usize, 255 - value, max_y, buffer);
+                    add(x, row + y + v2 as usize, value, max_y, buffer);
+                }
+            }
+        };
+
+        let draw_double = |buffer: &mut Image| {
+            let first_line = self
+                .metrics
+                .descender_row
+                .min(self.metrics.descender_plus_two - 2 * self.metrics.underline_height);
+
+            for row in 0..self.metrics.underline_height {
+                buffer.draw_line(
+                    Point::new(cell_rect.origin.x, cell_rect.origin.y + first_line + row),
+                    Point::new(
+                        cell_rect.origin.x + self.metrics.cell_size.width,
+                        cell_rect.origin.y + first_line + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+                buffer.draw_line(
+                    Point::new(
+                        cell_rect.origin.x,
+                        cell_rect.origin.y + self.metrics.descender_plus_two + row,
+                    ),
+                    Point::new(
+                        cell_rect.origin.x + self.metrics.cell_size.width,
+                        cell_rect.origin.y + self.metrics.descender_plus_two + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+            }
+        };
+
+        let draw_strike = |buffer: &mut Image| {
+            for row in 0..self.metrics.underline_height {
+                buffer.draw_line(
+                    Point::new(
+                        cell_rect.origin.x,
+                        cell_rect.origin.y + self.metrics.strike_row + row,
+                    ),
+                    Point::new(
+                        cell_rect.origin.x + self.metrics.cell_size.width,
+                        cell_rect.origin.y + self.metrics.strike_row + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+            }
+        };
+
+        let draw_overline = |buffer: &mut Image| {
+            for row in 0..self.metrics.underline_height {
+                buffer.draw_line(
+                    Point::new(cell_rect.origin.x, cell_rect.origin.y + row),
+                    Point::new(
+                        cell_rect.origin.x + self.metrics.cell_size.width,
+                        cell_rect.origin.y + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+            }
+        };
+
+        buffer.clear_rect(cell_rect, black);
+        if key.overline {
+            draw_overline(&mut buffer);
+        }
+        match key.underline {
+            Underline::None => {}
+            Underline::Single => draw_single(&mut buffer),
+            Underline::Curly => draw_curly(&mut buffer),
+            Underline::Dashed => draw_dashed(&mut buffer),
+            Underline::Dotted => draw_dotted(&mut buffer),
+            Underline::Double => draw_double(&mut buffer),
+        }
+        if key.strike_through {
+            draw_strike(&mut buffer);
+        }
+        let sprite = self.atlas.allocate(&buffer)?;
+        self.line_glyphs.insert(key, sprite.clone());
+        Ok(sprite)
+    }
+
+    /// Figure out what we're going to draw for the underline.
+    /// If the current cell is part of the current URL highlight
+    /// then we want to show the underline.
+    pub fn cached_line_sprite(
+        &mut self,
+        is_highlited_hyperlink: bool,
+        is_strike_through: bool,
+        underline: Underline,
+        overline: bool,
+    ) -> anyhow::Result<Sprite<T>> {
+        let effective_underline = match (is_highlited_hyperlink, underline) {
+            (true, Underline::None) => Underline::Single,
+            (true, Underline::Single) => Underline::Double,
+            (true, _) => Underline::Single,
+            (false, u) => u,
+        };
+
+        let key = LineKey {
+            strike_through: is_strike_through,
+            overline,
+            underline: effective_underline,
+        };
+
+        if let Some(s) = self.line_glyphs.get(&key) {
+            return Ok(s.clone());
+        }
+
+        self.line_sprite(key)
     }
 }

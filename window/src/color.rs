@@ -187,7 +187,7 @@ fn srgb8_to_linear_f32(val: u8) -> f32 {
 }
 
 /// A color stored as big endian bgra32
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Color(pub u32);
 
 impl From<LinSrgba> for Color {

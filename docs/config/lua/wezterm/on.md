@@ -39,12 +39,12 @@ in response to clicking on `mailto:` URLs, you could do something like:
 local wezterm = require 'wezterm';
 
 wezterm.on("open-uri", function(window, pane, uri)
-  local start, end = uri:find("mailto:")
+  local start, match_end = uri:find("mailto:")
   if start == 1 then
-    local recipient = uri:sub(end+1)
-    window.perform_action(wezterm.action{SpawnCommandInNewWindow={
+    local recipient = uri:sub(match_end+1)
+    window:perform_action(wezterm.action{SpawnCommandInNewWindow={
          args={"mutt", recipient}
-      }});
+      }}, pane);
     -- prevent the default action from opening in a browser
     return false
   end

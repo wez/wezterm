@@ -30,11 +30,12 @@ terminfo = "0.7"
 unicode-segmentation = "1.7"
 unicode-width = "0.1"
 xi-unicode = "0.3"
-vtparse = { version="0.3", path="../vtparse" }
+vtparse = { version="0.4", path="../vtparse" }
 
 [features]
 widgets = ["cassowary", "fnv"]
 use_serde = ["serde"]
+docs = ["widgets", "use_serde"]
 
 [dev-dependencies]
 varbincode = "0.1"
@@ -58,3 +59,7 @@ features = [
     "synchapi",
 ]
 version = "0.3"
+
+[package.metadata.docs.rs]
+features = ["docs"]
+rustdoc-args = ["--cfg", "feature=\"docs\""]
