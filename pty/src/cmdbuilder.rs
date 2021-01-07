@@ -26,6 +26,7 @@ impl CommandBuilder {
             args: vec![program.as_ref().to_owned()],
             envs: vec![],
             cwd: None,
+            #[cfg(unix)]
             umask: None,
         }
     }
@@ -36,6 +37,7 @@ impl CommandBuilder {
             args,
             envs: vec![],
             cwd: None,
+            #[cfg(unix)]
             umask: None,
         }
     }
@@ -47,6 +49,7 @@ impl CommandBuilder {
             args: vec![],
             envs: vec![],
             cwd: None,
+            #[cfg(unix)]
             umask: None,
         }
     }
