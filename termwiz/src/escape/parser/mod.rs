@@ -419,6 +419,7 @@ impl SixelBuilder {
 mod test {
     use super::*;
     use crate::cell::{Intensity, Underline};
+    use crate::color::ColorSpec;
     use crate::escape::csi::Sgr;
     use crate::escape::EscCode;
     use std::io::Write;
@@ -500,6 +501,24 @@ mod test {
             encode(&actions),
             "\x1b[24m\x1b[4m\x1b[21m\x1b[4:3m\x1b[4:4m\x1b[4:5mb"
         );
+    }
+
+    #[test]
+    fn true_color() {
+        let mut p = Parser::new();
+
+        let actions = p.parse_as_vec(b"\x1b[38:2::128:64:192mw");
+        assert_eq!(
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
+                    RgbColor::new(128, 64, 192)
+                )))),
+                Action::Print('w'),
+            ],
+            actions
+        );
+
+        assert_eq!(encode(&actions), "\u{1b}[38:2::128:64:192mw");
     }
 
     #[test]
