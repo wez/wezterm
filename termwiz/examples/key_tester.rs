@@ -1,7 +1,7 @@
-use anyhow::Error;
 use termwiz::caps::Capabilities;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use termwiz::terminal::{new_terminal, Terminal};
+use termwiz::Error;
 
 const CTRL_C: KeyEvent = KeyEvent {
     key: KeyCode::Char('C'),

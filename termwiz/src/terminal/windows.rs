@@ -1,5 +1,5 @@
 use crate::istty::IsTty;
-use anyhow::{anyhow, bail, Error};
+use crate::{bail, format_err, Error};
 use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::cmp::{max, min};
 use std::collections::VecDeque;
@@ -52,8 +52,8 @@ pub trait ConsoleOutputHandle {
     fn set_attr(&mut self, attr: u16) -> Result<(), Error>;
     fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<(), Error>;
     fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO, Error>;
-    fn get_buffer_contents(&mut self) -> anyhow::Result<Vec<CHAR_INFO>>;
-    fn set_buffer_contents(&mut self, buffer: &[CHAR_INFO]) -> anyhow::Result<()>;
+    fn get_buffer_contents(&mut self) -> Result<Vec<CHAR_INFO>>;
+    fn set_buffer_contents(&mut self, buffer: &[CHAR_INFO]) -> Result<()>;
     fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<(), Error>;
     fn scroll_region(
         &mut self,
@@ -157,7 +157,7 @@ fn dimensions_from_buffer_info(info: CONSOLE_SCREEN_BUFFER_INFO) -> (usize, usiz
 }
 
 impl RenderTty for OutputHandle {
-    fn get_size_in_cells(&mut self) -> anyhow::Result<(usize, usize)> {
+    fn get_size_in_cells(&mut self) -> Result<(usize, usize)> {
         let info = self.get_buffer_info()?;
         let (cols, rows) = dimensions_from_buffer_info(info);
 
@@ -298,7 +298,7 @@ impl ConsoleOutputHandle for OutputHandle {
         Ok(())
     }
 
-    fn get_buffer_contents(&mut self) -> anyhow::Result<Vec<CHAR_INFO>> {
+    fn get_buffer_contents(&mut self) -> Result<Vec<CHAR_INFO>> {
         let info = self.get_buffer_info()?;
 
         let cols = info.dwSize.X as usize;
@@ -335,12 +335,12 @@ impl ConsoleOutputHandle for OutputHandle {
         Ok(res)
     }
 
-    fn set_buffer_contents(&mut self, buffer: &[CHAR_INFO]) -> anyhow::Result<()> {
+    fn set_buffer_contents(&mut self, buffer: &[CHAR_INFO]) -> Result<()> {
         let info = self.get_buffer_info()?;
 
         let cols = info.dwSize.X as usize;
         let rows = 1 + info.srWindow.Bottom as usize - info.srWindow.Top as usize;
-        anyhow::ensure!(
+        ensure!(
             rows * cols == buffer.len(),
             "buffer size doesn't match screen size"
         );
@@ -548,7 +548,7 @@ impl WindowsTerminal {
         Ok(terminal)
     }
 
-    fn enable_virtual_terminal_processing_if_needed(&mut self) -> anyhow::Result<()> {
+    fn enable_virtual_terminal_processing_if_needed(&mut self) -> Result<()> {
         match &self.renderer {
             Renderer::Terminfo(_) => self.enable_virtual_terminal_processing(),
             Renderer::Windows(_) => Ok(()),
@@ -605,7 +605,7 @@ impl Terminal for WindowsTerminal {
         )
     }
 
-    fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
+    fn set_cooked_mode(&mut self) -> Result<()> {
         let mode = self.output_handle.get_output_mode()?;
         self.output_handle
             .set_output_mode(mode & !DISABLE_NEWLINE_AUTO_RETURN)
@@ -671,7 +671,7 @@ impl Terminal for WindowsTerminal {
     fn flush(&mut self) -> Result<(), Error> {
         self.output_handle
             .flush()
-            .map_err(|e| anyhow!("flush failed: {}", e))
+            .map_err(|e| format_err!("flush failed: {}", e))
     }
 
     fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>, Error> {

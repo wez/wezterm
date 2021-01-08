@@ -1,5 +1,5 @@
 use crate::render::RenderTty;
-use anyhow::{anyhow, bail, Context, Error};
+use crate::{bail, Context, Result};
 use filedescriptor::{poll, pollfd, FileDescriptor, POLLIN};
 use libc::{self, winsize};
 use signal_hook::{self, SigId};
@@ -42,13 +42,13 @@ pub enum SetAttributeWhen {
 }
 
 pub trait UnixTty {
-    fn get_size(&mut self) -> Result<winsize, Error>;
-    fn set_size(&mut self, size: winsize) -> Result<(), Error>;
-    fn get_termios(&mut self) -> Result<Termios, Error>;
-    fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<(), Error>;
+    fn get_size(&mut self) -> Result<winsize>;
+    fn set_size(&mut self, size: winsize) -> Result<()>;
+    fn get_termios(&mut self) -> Result<Termios>;
+    fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<()>;
     /// Waits until all written data has been transmitted.
-    fn drain(&mut self) -> Result<(), Error>;
-    fn purge(&mut self, purge: Purge) -> Result<(), Error>;
+    fn drain(&mut self) -> Result<()>;
+    fn purge(&mut self, purge: Purge) -> Result<()>;
 }
 
 pub struct TtyReadHandle {
@@ -60,14 +60,14 @@ impl TtyReadHandle {
         Self { fd }
     }
 
-    fn set_blocking(&mut self, blocking: Blocking) -> Result<(), Error> {
+    fn set_blocking(&mut self, blocking: Blocking) -> Result<()> {
         self.fd.set_non_blocking(blocking == Blocking::DoNotWait)?;
         Ok(())
     }
 }
 
 impl Read for TtyReadHandle {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, IoError> {
+    fn read(&mut self, buf: &mut [u8]) -> std::result::Result<usize, IoError> {
         let size =
             unsafe { libc::read(self.fd.as_raw_fd(), buf.as_mut_ptr() as *mut _, buf.len()) };
         if size == -1 {
@@ -91,7 +91,7 @@ impl TtyWriteHandle {
         }
     }
 
-    fn flush_local_buffer(&mut self) -> Result<(), IoError> {
+    fn flush_local_buffer(&mut self) -> std::result::Result<(), IoError> {
         if !self.write_buffer.is_empty() {
             self.fd.write_all(&self.write_buffer)?;
             self.write_buffer.clear();
@@ -101,7 +101,7 @@ impl TtyWriteHandle {
 }
 
 impl Write for TtyWriteHandle {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, IoError> {
+    fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, IoError> {
         if self.write_buffer.len() + buf.len() > self.write_buffer.capacity() {
             self.flush()?;
         }
@@ -112,7 +112,7 @@ impl Write for TtyWriteHandle {
         }
     }
 
-    fn flush(&mut self) -> Result<(), IoError> {
+    fn flush(&mut self) -> std::result::Result<(), IoError> {
         self.flush_local_buffer()?;
         self.drain()
             .map_err(|e| IoError::new(ErrorKind::Other, format!("{}", e)))?;
@@ -121,14 +121,14 @@ impl Write for TtyWriteHandle {
 }
 
 impl RenderTty for TtyWriteHandle {
-    fn get_size_in_cells(&mut self) -> anyhow::Result<(usize, usize)> {
+    fn get_size_in_cells(&mut self) -> Result<(usize, usize)> {
         let size = self.get_size()?;
         Ok((size.ws_col as usize, size.ws_row as usize))
     }
 }
 
 impl UnixTty for TtyWriteHandle {
-    fn get_size(&mut self) -> Result<winsize, Error> {
+    fn get_size(&mut self) -> Result<winsize> {
         let mut size: winsize = unsafe { mem::zeroed() };
         if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCGWINSZ as _, &mut size) } != 0 {
             bail!("failed to ioctl(TIOCGWINSZ): {}", IoError::last_os_error());
@@ -136,7 +136,7 @@ impl UnixTty for TtyWriteHandle {
         Ok(size)
     }
 
-    fn set_size(&mut self, size: winsize) -> Result<(), Error> {
+    fn set_size(&mut self, size: winsize) -> Result<()> {
         if unsafe {
             libc::ioctl(
                 self.fd.as_raw_fd(),
@@ -154,11 +154,11 @@ impl UnixTty for TtyWriteHandle {
         Ok(())
     }
 
-    fn get_termios(&mut self) -> Result<Termios, Error> {
+    fn get_termios(&mut self) -> Result<Termios> {
         Termios::from_fd(self.fd.as_raw_fd()).context("get_termios failed")
     }
 
-    fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<(), Error> {
+    fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<()> {
         let when = match when {
             SetAttributeWhen::Now => TCSANOW,
             SetAttributeWhen::AfterDrainOutputQueue => TCSADRAIN,
@@ -167,11 +167,11 @@ impl UnixTty for TtyWriteHandle {
         tcsetattr(self.fd.as_raw_fd(), when, termios).context("set_termios failed")
     }
 
-    fn drain(&mut self) -> Result<(), Error> {
+    fn drain(&mut self) -> Result<()> {
         tcdrain(self.fd.as_raw_fd()).context("tcdrain failed")
     }
 
-    fn purge(&mut self, purge: Purge) -> Result<(), Error> {
+    fn purge(&mut self, purge: Purge) -> Result<()> {
         let param = match purge {
             Purge::InputQueue => TCIFLUSH,
             Purge::OutputQueue => TCOFLUSH,
@@ -203,7 +203,7 @@ impl UnixTerminal {
     /// Note that this will duplicate the underlying file descriptors
     /// and will no longer participate in the stdin/stdout locking
     /// provided by the rust standard library.
-    pub fn new_from_stdio(caps: Capabilities) -> Result<UnixTerminal, Error> {
+    pub fn new_from_stdio(caps: Capabilities) -> Result<UnixTerminal> {
         Self::new_with(caps, &stdin(), &stdout())
     }
 
@@ -211,7 +211,7 @@ impl UnixTerminal {
         caps: Capabilities,
         read: &A,
         write: &B,
-    ) -> Result<UnixTerminal, Error> {
+    ) -> Result<UnixTerminal> {
         let mut read = TtyReadHandle::new(FileDescriptor::dup(read)?);
         let mut write = TtyWriteHandle::new(FileDescriptor::dup(write)?);
         let saved_termios = write.get_termios()?;
@@ -248,14 +248,14 @@ impl UnixTerminal {
     /// (/dev/tty) and build a `UnixTerminal` from there.  This will
     /// yield a terminal even if the stdio streams have been redirected,
     /// provided that the process has an associated controlling terminal.
-    pub fn new(caps: Capabilities) -> Result<UnixTerminal, Error> {
+    pub fn new(caps: Capabilities) -> Result<UnixTerminal> {
         let file = OpenOptions::new().read(true).write(true).open("/dev/tty")?;
         Self::new_with(caps, &file, &file)
     }
 
     /// Test whether we caught delivery of SIGWINCH.
     /// If so, yield an `InputEvent` with the current size of the tty.
-    fn caught_sigwinch(&mut self) -> Result<Option<InputEvent>, Error> {
+    fn caught_sigwinch(&mut self) -> Result<Option<InputEvent>> {
         let mut buf = [0u8; 64];
 
         match self.sigwinch_pipe.read(&mut buf) {
@@ -272,7 +272,7 @@ impl UnixTerminal {
             {
                 Ok(None)
             }
-            Err(e) => Err(anyhow!("failed to read sigwinch pipe {}", e)),
+            Err(e) => bail!("failed to read sigwinch pipe {}", e),
         }
     }
 }
@@ -283,7 +283,7 @@ pub struct UnixTerminalWaker {
 }
 
 impl UnixTerminalWaker {
-    pub fn wake(&self) -> Result<(), IoError> {
+    pub fn wake(&self) -> std::result::Result<(), IoError> {
         let mut pipe = self.pipe.lock().unwrap();
         match pipe.write(b"W") {
             Err(e) => match e.kind() {
@@ -296,7 +296,7 @@ impl UnixTerminalWaker {
 }
 
 impl Terminal for UnixTerminal {
-    fn set_raw_mode(&mut self) -> Result<(), Error> {
+    fn set_raw_mode(&mut self) -> Result<()> {
         let mut raw = self.write.get_termios()?;
         cfmakeraw(&mut raw);
         self.write
@@ -327,12 +327,12 @@ impl Terminal for UnixTerminal {
         Ok(())
     }
 
-    fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
+    fn set_cooked_mode(&mut self) -> Result<()> {
         self.write
             .set_termios(&self.saved_termios, SetAttributeWhen::Now)
     }
 
-    fn enter_alternate_screen(&mut self) -> Result<(), Error> {
+    fn enter_alternate_screen(&mut self) -> Result<()> {
         if !self.in_alternate_screen {
             write!(
                 self.write,
@@ -346,7 +346,7 @@ impl Terminal for UnixTerminal {
         Ok(())
     }
 
-    fn exit_alternate_screen(&mut self) -> Result<(), Error> {
+    fn exit_alternate_screen(&mut self) -> Result<()> {
         if self.in_alternate_screen {
             write!(
                 self.write,
@@ -360,7 +360,7 @@ impl Terminal for UnixTerminal {
         Ok(())
     }
 
-    fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
+    fn get_screen_size(&mut self) -> Result<ScreenSize> {
         let size = self.write.get_size()?;
         Ok(ScreenSize {
             rows: cast(size.ws_row)?,
@@ -370,7 +370,7 @@ impl Terminal for UnixTerminal {
         })
     }
 
-    fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error> {
+    fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {
         let size = winsize {
             ws_row: cast(size.rows)?,
             ws_col: cast(size.cols)?,
@@ -380,14 +380,14 @@ impl Terminal for UnixTerminal {
 
         self.write.set_size(size)
     }
-    fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
+    fn render(&mut self, changes: &[Change]) -> Result<()> {
         self.renderer.render_to(changes, &mut self.write)
     }
-    fn flush(&mut self) -> Result<(), Error> {
+    fn flush(&mut self) -> Result<()> {
         self.write.flush().context("flush failed")
     }
 
-    fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>, Error> {
+    fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>> {
         if let Some(event) = self.input_queue.pop_front() {
             return Ok(Some(event));
         }
@@ -434,10 +434,10 @@ impl Terminal for UnixTerminal {
                             Ok(None)
                         }
                     } else {
-                        Err(anyhow!("poll(2) error: {}", err))
+                        bail!("poll(2) error: {}", err)
                     }
                 }
-                Err(err) => Err(anyhow!("poll(2) error: {}", err)),
+                Err(err) => bail!("poll(2) error: {}", err),
             };
         };
 
@@ -462,7 +462,7 @@ impl Terminal for UnixTerminal {
                 }
                 Err(ref e)
                     if e.kind() == ErrorKind::WouldBlock || e.kind() == ErrorKind::Interrupted => {}
-                Err(e) => return Err(anyhow!("failed to read input {}", e)),
+                Err(e) => bail!("failed to read input {}", e),
             }
         }
 

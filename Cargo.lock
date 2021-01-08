@@ -3683,6 +3683,7 @@ dependencies = [
  "signal-hook",
  "terminfo",
  "termios 0.3.3",
+ "thiserror",
  "unicode-segmentation",
  "unicode-width",
  "varbincode",

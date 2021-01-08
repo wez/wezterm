@@ -44,6 +44,7 @@ pub mod caps;
 pub mod cell;
 pub mod cellcluster;
 pub mod color;
+pub mod error;
 pub mod escape;
 pub mod hyperlink;
 pub mod image;
@@ -58,3 +59,5 @@ pub mod surface;
 pub mod terminal;
 #[cfg(feature = "widgets")]
 pub mod widgets;
+
+pub use error::{Context, Error, Result};

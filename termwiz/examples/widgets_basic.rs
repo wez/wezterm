@@ -1,7 +1,6 @@
 //! This example shows how to make a basic widget that accumulates
 //! text input and renders it to the screen
 #![allow(unused)]
-use anyhow::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
@@ -11,6 +10,7 @@ use termwiz::terminal::buffered::BufferedTerminal;
 use termwiz::terminal::{new_terminal, Terminal};
 #[cfg(feature = "widgets")]
 use termwiz::widgets::*;
+use termwiz::Error;
 
 /// This is a widget for our application
 struct MainScreen<'a> {

@@ -4,7 +4,7 @@
 //! We use that as the foundation of our hyperlink support, and the game
 //! plan is to then implicitly enable the hyperlink attribute for a cell
 //! as we recognize linkable input text during print() processing.
-use anyhow::{anyhow, ensure, Error};
+use crate::{ensure, format_err, Result};
 use regex::{Captures, Regex};
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize};
@@ -71,7 +71,7 @@ impl Hyperlink {
         }
     }
 
-    pub fn parse(osc: &[&[u8]]) -> Result<Option<Hyperlink>, Error> {
+    pub fn parse(osc: &[&[u8]]) -> Result<Option<Hyperlink>> {
         ensure!(osc.len() == 3, "wrong param count");
         if osc[1].is_empty() && osc[2].is_empty() {
             // Clearing current hyperlink
@@ -84,8 +84,8 @@ impl Hyperlink {
             if !param_str.is_empty() {
                 for pair in param_str.split(':') {
                     let mut iter = pair.splitn(2, '=');
-                    let key = iter.next().ok_or_else(|| anyhow!("bad params"))?;
-                    let value = iter.next().ok_or_else(|| anyhow!("bad params"))?;
+                    let key = iter.next().ok_or_else(|| format_err!("bad params"))?;
+                    let value = iter.next().ok_or_else(|| format_err!("bad params"))?;
                     params.insert(key.to_owned(), value.to_owned());
                 }
             }
@@ -96,7 +96,7 @@ impl Hyperlink {
 }
 
 impl Display for Hyperlink {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, f: &mut Formatter) -> std::result::Result<(), FmtError> {
         write!(f, "8;")?;
         for (idx, (k, v)) in self.params.iter().enumerate() {
             // TODO: protect against k, v containing : or =
@@ -145,7 +145,7 @@ pub struct Rule {
 }
 
 #[cfg(feature = "use_serde")]
-fn deserialize_regex<'de, D>(deserializer: D) -> Result<Regex, D::Error>
+fn deserialize_regex<'de, D>(deserializer: D) -> std::result::Result<Regex, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -198,7 +198,7 @@ impl<'t> Match<'t> {
 
 impl Rule {
     /// Construct a new rule.  It may fail if the regex is invalid.
-    pub fn new(regex: &str, format: &str) -> Result<Self, Error> {
+    pub fn new(regex: &str, format: &str) -> Result<Self> {
         Ok(Self {
             regex: Regex::new(regex)?,
             format: format.to_owned(),

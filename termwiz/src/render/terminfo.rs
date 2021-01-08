@@ -8,6 +8,7 @@ use crate::escape::OneBased;
 use crate::image::TextureCoordinate;
 use crate::render::RenderTty;
 use crate::surface::{Change, CursorShape, CursorVisibility, Position};
+use crate::Result;
 use std::io::Write;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 
@@ -47,7 +48,7 @@ impl TerminfoRenderer {
     }
 
     #[cfg_attr(feature = "cargo-clippy", allow(clippy::cognitive_complexity))]
-    fn flush_pending_attr<W: RenderTty + Write>(&mut self, out: &mut W) -> anyhow::Result<()> {
+    fn flush_pending_attr<W: RenderTty + Write>(&mut self, out: &mut W) -> Result<()> {
         macro_rules! attr_on {
             ($cap:ident, $sgr:expr) => {
                 if let Some(attr) = self.get_capability::<cap::$cap>() {
@@ -204,7 +205,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_up<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
+    fn cursor_up<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> Result<()> {
         if n > 0 {
             if let Some(attr) = self.get_capability::<cap::ParmUpCursor>() {
                 attr.expand().count(n).to(out.by_ref())?;
@@ -215,7 +216,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_down<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
+    fn cursor_down<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> Result<()> {
         if n > 0 {
             if let Some(attr) = self.get_capability::<cap::ParmDownCursor>() {
                 attr.expand().count(n).to(out.by_ref())?;
@@ -226,11 +227,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_y_relative<W: RenderTty + Write>(
-        &mut self,
-        y: isize,
-        out: &mut W,
-    ) -> anyhow::Result<()> {
+    fn cursor_y_relative<W: RenderTty + Write>(&mut self, y: isize, out: &mut W) -> Result<()> {
         if y > 0 {
             self.cursor_down(y as u32, out)
         } else {
@@ -238,7 +235,7 @@ impl TerminfoRenderer {
         }
     }
 
-    fn cursor_left<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
+    fn cursor_left<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> Result<()> {
         if n > 0 {
             if let Some(attr) = self.get_capability::<cap::ParmLeftCursor>() {
                 attr.expand().count(n).to(out.by_ref())?;
@@ -249,7 +246,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_right<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
+    fn cursor_right<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> Result<()> {
         if n > 0 {
             if let Some(attr) = self.get_capability::<cap::ParmRightCursor>() {
                 attr.expand().count(n).to(out.by_ref())?;
@@ -260,11 +257,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_x_relative<W: RenderTty + Write>(
-        &mut self,
-        x: isize,
-        out: &mut W,
-    ) -> anyhow::Result<()> {
+    fn cursor_x_relative<W: RenderTty + Write>(&mut self, x: isize, out: &mut W) -> Result<()> {
         if x > 0 {
             self.cursor_right(x as u32, out)
         } else {
@@ -277,7 +270,7 @@ impl TerminfoRenderer {
         x: u32,
         y: u32,
         out: &mut W,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if x == 0 && y == 0 {
             if let Some(attr) = self.get_capability::<cap::CursorHome>() {
                 attr.expand().to(out.by_ref())?;
@@ -312,7 +305,7 @@ impl TerminfoRenderer {
         &mut self,
         changes: &[Change],
         out: &mut W,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         macro_rules! record {
             ($accesor:ident, $value:expr) => {
                 self.attr_apply(|attr| {
@@ -681,6 +674,7 @@ impl TerminfoRenderer {
 #[cfg(all(test, unix))]
 mod test {
     use super::*;
+    use crate::bail;
     use crate::caps::ProbeHints;
     use crate::color::{AnsiColor, ColorAttribute, RgbColor};
     use crate::escape::parser::Parser;
@@ -689,7 +683,6 @@ mod test {
     use crate::terminal::unix::{Purge, SetAttributeWhen, UnixTty};
     use crate::terminal::ScreenSize;
     use crate::terminal::{cast, Terminal, TerminalWaker};
-    use anyhow::bail;
     use libc::winsize;
     use std::io::{Error as IoError, ErrorKind, Read, Result as IoResult, Write};
     use std::mem;
@@ -736,41 +729,37 @@ mod test {
         }
     }
     impl RenderTty for FakeTty {
-        fn get_size_in_cells(&mut self) -> anyhow::Result<(usize, usize)> {
+        fn get_size_in_cells(&mut self) -> Result<(usize, usize)> {
             Ok((self.size.ws_col as usize, self.size.ws_row as usize))
         }
     }
 
     impl UnixTty for FakeTty {
-        fn get_size(&mut self) -> anyhow::Result<winsize> {
+        fn get_size(&mut self) -> Result<winsize> {
             Ok(self.size.clone())
         }
-        fn set_size(&mut self, size: winsize) -> anyhow::Result<()> {
+        fn set_size(&mut self, size: winsize) -> Result<()> {
             self.size = size.clone();
             Ok(())
         }
-        fn get_termios(&mut self) -> anyhow::Result<Termios> {
+        fn get_termios(&mut self) -> Result<Termios> {
             Ok(self.termios.clone())
         }
-        fn set_termios(
-            &mut self,
-            termios: &Termios,
-            _when: SetAttributeWhen,
-        ) -> anyhow::Result<()> {
+        fn set_termios(&mut self, termios: &Termios, _when: SetAttributeWhen) -> Result<()> {
             self.termios = termios.clone();
             Ok(())
         }
         /// Waits until all written data has been transmitted.
-        fn drain(&mut self) -> anyhow::Result<()> {
+        fn drain(&mut self) -> Result<()> {
             Ok(())
         }
-        fn purge(&mut self, _purge: Purge) -> anyhow::Result<()> {
+        fn purge(&mut self, _purge: Purge) -> Result<()> {
             Ok(())
         }
     }
 
     impl Read for FakeTty {
-        fn read(&mut self, _buf: &mut [u8]) -> Result<usize, IoError> {
+        fn read(&mut self, _buf: &mut [u8]) -> std::result::Result<usize, IoError> {
             Err(IoError::new(ErrorKind::Other, "not implemented"))
         }
     }
@@ -807,27 +796,27 @@ mod test {
     }
 
     impl Terminal for FakeTerm {
-        fn set_raw_mode(&mut self) -> anyhow::Result<()> {
+        fn set_raw_mode(&mut self) -> Result<()> {
             bail!("not implemented");
         }
 
-        fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
+        fn set_cooked_mode(&mut self) -> Result<()> {
             bail!("not implemented");
         }
 
-        fn enter_alternate_screen(&mut self) -> anyhow::Result<()> {
+        fn enter_alternate_screen(&mut self) -> Result<()> {
             bail!("not implemented");
         }
 
-        fn exit_alternate_screen(&mut self) -> anyhow::Result<()> {
+        fn exit_alternate_screen(&mut self) -> Result<()> {
             bail!("not implemented");
         }
 
-        fn render(&mut self, changes: &[Change]) -> anyhow::Result<()> {
+        fn render(&mut self, changes: &[Change]) -> Result<()> {
             self.renderer.render_to(changes, &mut self.write)
         }
 
-        fn get_screen_size(&mut self) -> anyhow::Result<ScreenSize> {
+        fn get_screen_size(&mut self) -> Result<ScreenSize> {
             let size = self.write.get_size()?;
             Ok(ScreenSize {
                 rows: cast(size.ws_row)?,
@@ -837,7 +826,7 @@ mod test {
             })
         }
 
-        fn set_screen_size(&mut self, size: ScreenSize) -> anyhow::Result<()> {
+        fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {
             let size = winsize {
                 ws_row: cast(size.rows)?,
                 ws_col: cast(size.cols)?,
@@ -848,11 +837,11 @@ mod test {
             self.write.set_size(size)
         }
 
-        fn flush(&mut self) -> anyhow::Result<()> {
+        fn flush(&mut self) -> Result<()> {
             Ok(())
         }
 
-        fn poll_input(&mut self, _wait: Option<Duration>) -> anyhow::Result<Option<InputEvent>> {
+        fn poll_input(&mut self, _wait: Option<Duration>) -> Result<Option<InputEvent>> {
             bail!("not implemented");
         }
 

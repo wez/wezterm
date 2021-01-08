@@ -26,7 +26,7 @@ pub fn tab_navigator(
         active_tab_idx: usize,
         tab_list: &[(String, TabId, usize)],
         term: &mut TermWizTerminal,
-    ) -> anyhow::Result<()> {
+    ) -> termwiz::Result<()> {
         // let dims = term.get_screen_size()?;
         let mut changes = vec![
             Change::ClearScreen(ColorAttribute::Default),

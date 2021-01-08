@@ -165,7 +165,7 @@ pub fn launcher(
         active_idx: usize,
         entries: &[Entry],
         term: &mut TermWizTerminal,
-    ) -> anyhow::Result<()> {
+    ) -> termwiz::Result<()> {
         let mut changes = vec![
             Change::ClearScreen(ColorAttribute::Default),
             Change::CursorPosition {

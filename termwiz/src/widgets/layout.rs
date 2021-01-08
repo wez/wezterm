@@ -1,7 +1,7 @@
 //! This module provides some automatic layout functionality for widgets.
 //! The parameters are similar to those that you may have encountered
 //! in HTML, but do not fully recreate the layout model.
-use anyhow::{anyhow, Error};
+use crate::{format_err, Error, Result};
 use cassowary::strength::{REQUIRED, STRONG, WEAK};
 use cassowary::WeightedRelation::*;
 use cassowary::{AddConstraintError, Expression, Solver, SuggestValueError, Variable};
@@ -185,13 +185,13 @@ pub struct LaidOutWidget {
 
 fn suggesterr(e: SuggestValueError) -> Error {
     match e {
-        SuggestValueError::UnknownEditVariable => anyhow!("Unknown edit variable"),
-        SuggestValueError::InternalSolverError(e) => anyhow!("Internal solver error: {}", e),
+        SuggestValueError::UnknownEditVariable => format_err!("Unknown edit variable"),
+        SuggestValueError::InternalSolverError(e) => format_err!("Internal solver error: {}", e),
     }
 }
 
 fn adderr(e: AddConstraintError) -> Error {
-    anyhow!("{:?}", e)
+    format_err!("{:?}", e)
 }
 
 impl Default for LayoutState {
@@ -246,7 +246,7 @@ impl LayoutState {
         screen_width: usize,
         screen_height: usize,
         root_widget: WidgetId,
-    ) -> Result<Vec<LaidOutWidget>, Error> {
+    ) -> Result<Vec<LaidOutWidget>> {
         self.solver
             .suggest_value(self.screen_width, screen_width as f64)
             .map_err(suggesterr)?;
@@ -279,11 +279,11 @@ impl LayoutState {
         parent_left: usize,
         parent_top: usize,
         results: &mut Vec<LaidOutWidget>,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let state = self
             .widget_states
             .get(&widget)
-            .ok_or_else(|| anyhow!("widget has no solver state"))?;
+            .ok_or_else(|| format_err!("widget has no solver state"))?;
         let width = self.solver.get_value(state.width) as usize;
         let height = self.solver.get_value(state.height) as usize;
         let left = self.solver.get_value(state.left) as usize;
@@ -313,11 +313,11 @@ impl LayoutState {
         parent_height: Variable,
         parent_left: Option<Variable>,
         parent_top: Option<Variable>,
-    ) -> Result<WidgetState, Error> {
+    ) -> Result<WidgetState> {
         let state = self
             .widget_states
             .get(&widget)
-            .ok_or_else(|| anyhow!("widget has no solver state"))?
+            .ok_or_else(|| format_err!("widget has no solver state"))?
             .clone();
 
         let is_root_widget = parent_left.is_none();

@@ -1,4 +1,3 @@
-use anyhow::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::AnsiColor;
@@ -6,6 +5,7 @@ use termwiz::input::{InputEvent, KeyCode, KeyEvent};
 use termwiz::surface::{Change, Position, Surface};
 use termwiz::terminal::buffered::BufferedTerminal;
 use termwiz::terminal::{new_terminal, Terminal};
+use termwiz::Error;
 
 fn main() -> Result<(), Error> {
     let caps = Capabilities::new_from_env()?;

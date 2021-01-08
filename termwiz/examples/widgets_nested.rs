@@ -1,7 +1,6 @@
 //! This example shows how to make an app that uses parent/child widgets
 #[cfg(feature = "widgets")]
 mod inner {
-    use anyhow::Error;
     use termwiz::caps::Capabilities;
     use termwiz::cell::AttributeChange;
     use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
@@ -11,6 +10,7 @@ mod inner {
     use termwiz::terminal::{new_terminal, Terminal};
     use termwiz::widgets::layout::{ChildOrientation, VerticalAlignment};
     use termwiz::widgets::*;
+    use termwiz::Error;
 
     /// This is the main container widget for the app
     struct MainScreen {}
@@ -202,12 +202,12 @@ mod inner {
 
 #[cfg(not(feature = "widgets"))]
 mod inner {
-    pub fn run() -> anyhow::Result<()> {
+    pub fn run() -> termwiz::Result<()> {
         println!("recompile with --features widgets");
         Ok(())
     }
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() -> termwiz::Result<()> {
     inner::run()
 }

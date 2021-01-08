@@ -54,8 +54,7 @@
 //! implements some heuristics (a fancy word for guessing) to compute
 //! the terminal capabilities, but also offers a `ProbeHints`
 //! that can be used by the embedding application to override those choices.
-use crate::builder;
-use anyhow::Error;
+use crate::{builder, Result};
 use semver::Version;
 use std::env::var;
 use terminfo::{self, capability as cap};
@@ -163,7 +162,7 @@ impl Capabilities {
     /// Capability object holding the outcome.
     /// This function inspects the environment variables to build
     /// up configuration hints.
-    pub fn new_from_env() -> Result<Self, Error> {
+    pub fn new_from_env() -> Result<Self> {
         Self::new_with_hints(ProbeHints::new_from_env())
     }
 
@@ -184,7 +183,7 @@ impl Capabilities {
     }
 
     /// Build a `Capabilities` object based on the provided `ProbeHints` object.
-    pub fn new_with_hints(hints: ProbeHints) -> Result<Self, Error> {
+    pub fn new_with_hints(hints: ProbeHints) -> Result<Self> {
         let color_level = hints.color_level.unwrap_or_else(|| {
             // If set, COLORTERM overrides any other source of information
             match hints.colorterm.as_ref().map(String::as_ref) {

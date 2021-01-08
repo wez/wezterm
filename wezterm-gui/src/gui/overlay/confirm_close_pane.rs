@@ -53,7 +53,7 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
         No,
     }
 
-    let render = |term: &mut TermWizTerminal, active: ActiveButton| -> anyhow::Result<()> {
+    let render = |term: &mut TermWizTerminal, active: ActiveButton| -> termwiz::Result<()> {
         let mut changes = vec![
             Change::ClearScreen(ColorAttribute::Default),
             Change::CursorVisibility(CursorVisibility::Hidden),
