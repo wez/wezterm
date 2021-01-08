@@ -1,5 +1,5 @@
 use crate::istty::IsTty;
-use crate::{bail, format_err, Error};
+use crate::{bail, format_err, Error, Result};
 use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::cmp::{max, min};
 use std::collections::VecDeque;
@@ -38,23 +38,23 @@ enum Renderer {
 }
 
 pub trait ConsoleInputHandle {
-    fn set_input_mode(&mut self, mode: u32) -> Result<(), Error>;
-    fn get_input_mode(&mut self) -> Result<u32, Error>;
-    fn get_number_of_input_events(&mut self) -> Result<usize, Error>;
-    fn read_console_input(&mut self, num_events: usize) -> Result<Vec<INPUT_RECORD>, Error>;
+    fn set_input_mode(&mut self, mode: u32) -> Result<()>;
+    fn get_input_mode(&mut self) -> Result<u32>;
+    fn get_number_of_input_events(&mut self) -> Result<usize>;
+    fn read_console_input(&mut self, num_events: usize) -> Result<Vec<INPUT_RECORD>>;
 }
 
 pub trait ConsoleOutputHandle {
-    fn set_output_mode(&mut self, mode: u32) -> Result<(), Error>;
-    fn get_output_mode(&mut self) -> Result<u32, Error>;
-    fn fill_char(&mut self, text: char, x: i16, y: i16, len: u32) -> Result<u32, Error>;
-    fn fill_attr(&mut self, attr: u16, x: i16, y: i16, len: u32) -> Result<u32, Error>;
-    fn set_attr(&mut self, attr: u16) -> Result<(), Error>;
-    fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<(), Error>;
-    fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO, Error>;
+    fn set_output_mode(&mut self, mode: u32) -> Result<()>;
+    fn get_output_mode(&mut self) -> Result<u32>;
+    fn fill_char(&mut self, text: char, x: i16, y: i16, len: u32) -> Result<u32>;
+    fn fill_attr(&mut self, attr: u16, x: i16, y: i16, len: u32) -> Result<u32>;
+    fn set_attr(&mut self, attr: u16) -> Result<()>;
+    fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<()>;
+    fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO>;
     fn get_buffer_contents(&mut self) -> Result<Vec<CHAR_INFO>>;
     fn set_buffer_contents(&mut self, buffer: &[CHAR_INFO]) -> Result<()>;
-    fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<(), Error>;
+    fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<()>;
     fn scroll_region(
         &mut self,
         left: i16,
@@ -64,7 +64,7 @@ pub trait ConsoleOutputHandle {
         dx: i16,
         dy: i16,
         attr: u16,
-    ) -> Result<(), Error>;
+    ) -> Result<()>;
 }
 
 struct InputHandle {
@@ -72,20 +72,20 @@ struct InputHandle {
 }
 
 impl Read for InputHandle {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, IoError> {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
         self.handle.read(buf)
     }
 }
 
 impl ConsoleInputHandle for InputHandle {
-    fn set_input_mode(&mut self, mode: u32) -> Result<(), Error> {
+    fn set_input_mode(&mut self, mode: u32) -> Result<()> {
         if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle() as *mut _, mode) } == 0 {
             bail!("SetConsoleMode failed: {}", IoError::last_os_error());
         }
         Ok(())
     }
 
-    fn get_input_mode(&mut self) -> Result<u32, Error> {
+    fn get_input_mode(&mut self) -> Result<u32> {
         let mut mode = 0;
         if unsafe { consoleapi::GetConsoleMode(self.handle.as_raw_handle() as *mut _, &mut mode) }
             == 0
@@ -95,7 +95,7 @@ impl ConsoleInputHandle for InputHandle {
         Ok(mode)
     }
 
-    fn get_number_of_input_events(&mut self) -> Result<usize, Error> {
+    fn get_number_of_input_events(&mut self) -> Result<usize> {
         let mut num = 0;
         if unsafe {
             consoleapi::GetNumberOfConsoleInputEvents(
@@ -112,7 +112,7 @@ impl ConsoleInputHandle for InputHandle {
         Ok(num as usize)
     }
 
-    fn read_console_input(&mut self, num_events: usize) -> Result<Vec<INPUT_RECORD>, Error> {
+    fn read_console_input(&mut self, num_events: usize) -> Result<Vec<INPUT_RECORD>> {
         let mut res = Vec::with_capacity(num_events);
         let empty_record: INPUT_RECORD = unsafe { mem::zeroed() };
         res.resize(num_events, empty_record);
@@ -216,14 +216,14 @@ impl Write for OutputHandle {
 }
 
 impl ConsoleOutputHandle for OutputHandle {
-    fn set_output_mode(&mut self, mode: u32) -> Result<(), Error> {
+    fn set_output_mode(&mut self, mode: u32) -> Result<()> {
         if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle() as *mut _, mode) } == 0 {
             bail!("SetConsoleMode failed: {}", IoError::last_os_error());
         }
         Ok(())
     }
 
-    fn get_output_mode(&mut self) -> Result<u32, Error> {
+    fn get_output_mode(&mut self) -> Result<u32> {
         let mut mode = 0;
         if unsafe { consoleapi::GetConsoleMode(self.handle.as_raw_handle() as *mut _, &mut mode) }
             == 0
@@ -233,7 +233,7 @@ impl ConsoleOutputHandle for OutputHandle {
         Ok(mode)
     }
 
-    fn fill_char(&mut self, text: char, x: i16, y: i16, len: u32) -> Result<u32, Error> {
+    fn fill_char(&mut self, text: char, x: i16, y: i16, len: u32) -> Result<u32> {
         let mut wrote = 0;
         if unsafe {
             FillConsoleOutputCharacterW(
@@ -253,7 +253,7 @@ impl ConsoleOutputHandle for OutputHandle {
         Ok(wrote)
     }
 
-    fn fill_attr(&mut self, attr: u16, x: i16, y: i16, len: u32) -> Result<u32, Error> {
+    fn fill_attr(&mut self, attr: u16, x: i16, y: i16, len: u32) -> Result<u32> {
         let mut wrote = 0;
         if unsafe {
             FillConsoleOutputAttribute(
@@ -273,7 +273,7 @@ impl ConsoleOutputHandle for OutputHandle {
         Ok(wrote)
     }
 
-    fn set_attr(&mut self, attr: u16) -> Result<(), Error> {
+    fn set_attr(&mut self, attr: u16) -> Result<()> {
         if unsafe { SetConsoleTextAttribute(self.handle.as_raw_handle() as *mut _, attr) } == 0 {
             bail!(
                 "SetConsoleTextAttribute failed: {}",
@@ -283,7 +283,7 @@ impl ConsoleOutputHandle for OutputHandle {
         Ok(())
     }
 
-    fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<(), Error> {
+    fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<()> {
         if unsafe {
             SetConsoleCursorPosition(self.handle.as_raw_handle() as *mut _, COORD { X: x, Y: y })
         } == 0
@@ -370,7 +370,7 @@ impl ConsoleOutputHandle for OutputHandle {
         Ok(())
     }
 
-    fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO, Error> {
+    fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO> {
         let mut info: CONSOLE_SCREEN_BUFFER_INFO = unsafe { mem::zeroed() };
         let ok = unsafe {
             GetConsoleScreenBufferInfo(self.handle.as_raw_handle() as *mut _, &mut info as *mut _)
@@ -384,7 +384,7 @@ impl ConsoleOutputHandle for OutputHandle {
         Ok(info)
     }
 
-    fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<(), Error> {
+    fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<()> {
         let rect = SMALL_RECT {
             Left: left,
             Top: top,
@@ -406,7 +406,7 @@ impl ConsoleOutputHandle for OutputHandle {
         dx: i16,
         dy: i16,
         attr: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let scroll_rect = SMALL_RECT {
             Left: max(left, left - dx),
             Top: max(top, top - dy),
@@ -477,7 +477,7 @@ impl WindowsTerminal {
     /// Note that this will duplicate the underlying file descriptors
     /// and will no longer participate in the stdin/stdout locking
     /// provided by the rust standard library.
-    pub fn new_from_stdio(caps: Capabilities) -> Result<Self, Error> {
+    pub fn new_from_stdio(caps: Capabilities) -> Result<Self> {
         Self::new_with(caps, stdin(), stdout())
     }
 
@@ -488,7 +488,7 @@ impl WindowsTerminal {
         caps: Capabilities,
         read: A,
         write: B,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self> {
         if !read.is_tty() || !write.is_tty() {
             bail!("stdin and stdout must both be tty handles");
         }
@@ -558,13 +558,13 @@ impl WindowsTerminal {
     /// Attempt to explicitly open handles to a console device (CONIN$,
     /// CONOUT$). This should yield the terminal already associated with
     /// the process, even if stdio streams have been redirected.
-    pub fn new(caps: Capabilities) -> Result<Self, Error> {
+    pub fn new(caps: Capabilities) -> Result<Self> {
         let read = OpenOptions::new().read(true).write(true).open("CONIN$")?;
         let write = OpenOptions::new().read(true).write(true).open("CONOUT$")?;
         Self::new_with(caps, read, write)
     }
 
-    pub fn enable_virtual_terminal_processing(&mut self) -> Result<(), Error> {
+    pub fn enable_virtual_terminal_processing(&mut self) -> Result<()> {
         let mode = self.output_handle.get_output_mode()?;
         self.output_handle.set_output_mode(
             mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN,
@@ -590,7 +590,7 @@ impl WindowsTerminalWaker {
 }
 
 impl Terminal for WindowsTerminal {
-    fn set_raw_mode(&mut self) -> Result<(), Error> {
+    fn set_raw_mode(&mut self) -> Result<()> {
         let mode = self.output_handle.get_output_mode()?;
         self.output_handle
             .set_output_mode(mode | DISABLE_NEWLINE_AUTO_RETURN)
@@ -621,18 +621,18 @@ impl Terminal for WindowsTerminal {
         )
     }
 
-    fn enter_alternate_screen(&mut self) -> Result<(), Error> {
+    fn enter_alternate_screen(&mut self) -> Result<()> {
         // TODO: Implement using CreateConsoleScreenBuffer and
         // SetConsoleActiveScreenBuffer.
         Ok(())
     }
 
-    fn exit_alternate_screen(&mut self) -> Result<(), Error> {
+    fn exit_alternate_screen(&mut self) -> Result<()> {
         // TODO: Implement using SetConsoleActiveScreenBuffer.
         Ok(())
     }
 
-    fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
+    fn get_screen_size(&mut self) -> Result<ScreenSize> {
         let info = self.output_handle.get_buffer_info()?;
         let (cols, rows) = dimensions_from_buffer_info(info);
 
@@ -644,7 +644,7 @@ impl Terminal for WindowsTerminal {
         })
     }
 
-    fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error> {
+    fn set_screen_size(&mut self, size: ScreenSize) -> Result<()> {
         // FIXME: take into account the visible window size here;
         // this probably changes the size of everything including scrollback
         let size = COORD {
@@ -661,20 +661,20 @@ impl Terminal for WindowsTerminal {
         Ok(())
     }
 
-    fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
+    fn render(&mut self, changes: &[Change]) -> Result<()> {
         match &mut self.renderer {
             Renderer::Terminfo(r) => r.render_to(changes, &mut self.output_handle),
             Renderer::Windows(r) => r.render_to(changes, &mut self.output_handle),
         }
     }
 
-    fn flush(&mut self) -> Result<(), Error> {
+    fn flush(&mut self) -> Result<()> {
         self.output_handle
             .flush()
             .map_err(|e| format_err!("flush failed: {}", e))
     }
 
-    fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>, Error> {
+    fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>> {
         loop {
             if let Some(event) = self.input_queue.pop_front() {
                 return Ok(Some(event));
