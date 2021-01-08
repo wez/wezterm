@@ -1,5 +1,5 @@
 use crate::istty::IsTty;
-use crate::{bail, format_err, Error, Result};
+use crate::{bail, ensure, format_err, Result};
 use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::cmp::{max, min};
 use std::collections::VecDeque;
