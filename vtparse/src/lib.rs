@@ -342,6 +342,18 @@ pub struct VTParser {
     utf8_return_state: State,
 }
 
+/// Represents a parameter to a CSI-based escaped sequence.
+///
+/// CSI escapes typically have the form: `CSI 3 m`, but can also
+/// bundle multiple values together: `CSI 3 ; 4 m`.  In both
+/// of those examples the parameters are simple integer values
+/// and latter of which would be expressed as a slice containing
+/// `[CsiParam::Integer(3), CsiParam::Integer(4)]`.
+///
+/// There are some escape sequences that use colons to subdivide and
+/// extend the meaning.  For example: `CSI 4:3 m` is a sequence used
+/// to denote a curly underline.  That would be represented as:
+/// `[CsiParam::ColonList(vec![Some(4), Some(3)])]`.
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub enum CsiParam {
     Integer(i64),
