@@ -59,7 +59,7 @@ if test -e /etc/debian_version ; then
 fi
 
 if test -e /etc/arch-release ; then
-  pacman -S --noconfirm --needed
+  pacman -S --noconfirm --needed \
     'cargo' \
     'cmake' \
     'dbus' \
