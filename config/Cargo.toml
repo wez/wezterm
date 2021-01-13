@@ -23,7 +23,7 @@ lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
 luahelper = { path = "../luahelper" }
-mlua = {version="0.4", features=["vendored", "lua54", "async", "send"]}
+mlua = {version="0.5", features=["vendored", "lua54", "async", "send"]}
 # file change notification
 notify = "4.0"
 portable-pty = { path = "../pty", features = ["serde_support"]}
