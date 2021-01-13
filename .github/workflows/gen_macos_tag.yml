@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       fail-fast: false
-    runs-on: "macos-latest"
+    runs-on: "macos-11.0"
     
     steps:
     - name: "checkout repo"
@@ -41,6 +41,13 @@ jobs:
          components: "rustfmt"
       env:
          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+    - name: "Install Rust (ARM)"
+      shell: bash
+      run: |
+            export MACOSX_DEPLOYMENT_TARGET=10.9
+            rustup target add aarch64-apple-darwin
+            
+
     - name: "Install System Deps"
       shell: bash
       run: |
@@ -48,18 +55,25 @@ jobs:
             ./get-deps
             
 
-    - name: "Build (Release mode)"
+    - name: "Build (Release mode Intel)"
       shell: bash
       run: |
             export MACOSX_DEPLOYMENT_TARGET=10.9
-            cargo build --all --release
+            cargo build --target x86_64-apple-darwin --all --release
+            
+
+    - name: "Build (Release mode ARM)"
+      shell: bash
+      run: |
+            export MACOSX_DEPLOYMENT_TARGET=10.9
+            cargo build --target aarch64-apple-darwin --all --release
             
 
     - name: "Test (Release mode)"
       shell: bash
       run: |
             export MACOSX_DEPLOYMENT_TARGET=10.9
-            cargo test --all --release
+            cargo --target x86_64-apple-darwin test --all --release
             
 
     - name: "Package"

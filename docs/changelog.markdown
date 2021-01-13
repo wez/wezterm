@@ -39,6 +39,7 @@ brief notes about them may accumulate here.
 * Added `selection_word_boundary` option to control double-click word selection boundaries. The default is ` \t\n{[}]()\"'\``. [#405](https://github.com/wez/wezterm/issues/405)
 * Added support for Curly, Dotted and Dashed underlines.  Vim users can set `let &t_Cs = "\e[4:3m"` in their `.vimrc` to enable undercurl support in wezterm. See [#415](https://github.com/wez/wezterm/issues/415) for more details on the escape sequences and configuration for this.
 * Fixed an issue where wezterm would spawn processes with `umask 077` on unix systems, rather than the more commonly expected `umask 022`. [#416](https://github.com/wez/wezterm/issues/416)
+* macOS: We now ship a Universal binary containing both Intel and "Apple Silicon" architectures
 
 ### 20201101-103216-403d002d
 
