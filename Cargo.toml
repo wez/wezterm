@@ -4,3 +4,7 @@ members = ["wezterm-mux-server", "wezterm", "wezterm-gui", "strip-ansi-escapes"]
 [profile.release]
 opt-level = 3
 # debug = 1
+
+[patch.crates-io]
+# See: https://github.com/khvzak/mlua/pull/26
+mlua = { git = "https://github.com/wez/mlua.git", branch="cross" }

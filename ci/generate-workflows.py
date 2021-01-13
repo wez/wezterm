@@ -214,11 +214,16 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
                 env={"ACTIONS_ALLOW_UNSECURE_COMMANDS": "true"},
             ),
         ]
+        if "macos" in self.name:
+            steps += [
+                RunStep(name="Install Rust (ARM)", run="rustup target add aarch64-apple-darwin")
+            ]
         if cache:
+            cache_paths = ["~/.cargo/registry", "~/.cargo/git", "target"]
             steps += [
                 CacheStep(
                     name="Cache cargo",
-                    path="~/.cargo/registry\n~/.cargo/git\ntarget",
+                    path="\n".join(cache_paths),
                     key=f"{key_prefix}-cargo",
                 ),
             ]
@@ -244,9 +249,20 @@ PATH C:\\Strawberry\\perl\\bin;%PATH%
 cargo build --all --release""",
                 )
             ]
+        if "macos" in self.name:
+            return [
+                RunStep(
+                    name="Build (Release mode Intel)",
+                    run="cargo build --target x86_64-apple-darwin --all --release"),
+                RunStep(
+                    name="Build (Release mode ARM)",
+                    run="cargo build --target aarch64-apple-darwin --all --release"),
+            ]
         return [RunStep(name="Build (Release mode)", run="cargo build --all --release")]
 
     def test_all_release(self):
+        if "macos" in self.name:
+            return [RunStep(name="Test (Release mode)", run="cargo test --target x86_64-apple-darwin --all --release")]
         return [RunStep(name="Test (Release mode)", run="cargo test --all --release")]
 
     def package(self):
@@ -516,7 +532,7 @@ TARGETS = [
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
     Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
     Target(container="debian:10.3", continuous_only=True),
-    Target(name="macos", os="macos-latest"),
+    Target(name="macos", os="macos-11.0"),
     Target(container="fedora:31"),
     Target(container="fedora:32"),
     Target(container="fedora:33"),

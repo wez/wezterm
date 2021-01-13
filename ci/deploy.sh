@@ -24,10 +24,21 @@ case $OSTYPE in
     # and on M1/Big Sur, CGL is implemented in terms of Metal anyway
     rm $zipdir/WezTerm.app/*.dylib
     cp -r assets/shell-integration/* $zipdir/WezTerm.app
-    cp $TARGET_DIR/release/wezterm $zipdir/WezTerm.app
-    cp $TARGET_DIR/release/wezterm-mux-server $zipdir/WezTerm.app
-    cp $TARGET_DIR/release/wezterm-gui $zipdir/WezTerm.app
-    cp $TARGET_DIR/release/strip-ansi-escapes $zipdir/WezTerm.app
+
+    for bin in wezterm wezterm-mux-server wezterm-gui strip-ansi-escapes ; do
+      # If the user ran a simple `cargo build --release`, then we want to allow
+      # a single-arch package to be built
+      if [[ -f target/release/$bin ]] ; then
+        cp target/release/$bin $zipdir/WezTerm.app/$bin
+      else
+        # The CI runs `cargo build --target XXX --release` which means that
+        # the binaries will be deployed in `target/XXX/release` instead of
+        # the plain path above.
+        # In that situation, we have two architectures to assemble into a
+        # Universal ("fat") binary, so we use the `lipo` tool for that.
+        lipo target/*/release/$bin -output $zipdir/WezTerm.app/$bin -create
+      fi
+    done
     zip -r $zipname $zipdir
 
     SHA256=$(shasum -a 256 $zipname | cut -d' ' -f1)
