@@ -210,6 +210,9 @@ scoop install wezterm
 <h2><a class="header" href="#installing-on-macos" id="installing-on-macos">Installing on macOS</a></h2>
 <p>The CI system builds the package on macOS Mojave (10.14).  It may run on earlier
 versions of macOS, but that has not been tested.</p>
+<p>If you have an M1-based mac then it is recommended that you download the
+Nightly build which is a Universal binary with support for both Apple Silicon
+and Intel hardware.</p>
 <p><a href="https://github.com/wez/wezterm/releases/download/20201101-103216-403d002d/WezTerm-macos-20201101-103216-403d002d.zip" class="btn">Download for macOS</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-macos-nightly.zip" class="btn">Nightly for macOS</a></p>
 <ol>
@@ -419,6 +422,7 @@ brief notes about them may accumulate here.</p>
 <li>Added <code>selection_word_boundary</code> option to control double-click word selection boundaries. The default is ` \t\n{<a href="">}</a>&quot;'``. <a href="https://github.com/wez/wezterm/issues/405">#405</a></li>
 <li>Added support for Curly, Dotted and Dashed underlines.  Vim users can set <code>let &amp;t_Cs = &quot;\e[4:3m&quot;</code> in their <code>.vimrc</code> to enable undercurl support in wezterm. See <a href="https://github.com/wez/wezterm/issues/415">#415</a> for more details on the escape sequences and configuration for this.</li>
 <li>Fixed an issue where wezterm would spawn processes with <code>umask 077</code> on unix systems, rather than the more commonly expected <code>umask 022</code>. <a href="https://github.com/wez/wezterm/issues/416">#416</a></li>
+<li>macOS: We now ship a Universal binary containing both Intel and &quot;Apple Silicon&quot; architectures</li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
