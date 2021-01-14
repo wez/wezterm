@@ -262,7 +262,7 @@ cargo build --all --release""",
 
     def test_all_release(self):
         if "macos" in self.name:
-            return [RunStep(name="Test (Release mode)", run="cargo --target x86_64-apple-darwin test --all --release")]
+            return [RunStep(name="Test (Release mode)", run="cargo test --target x86_64-apple-darwin --all --release")]
         return [RunStep(name="Test (Release mode)", run="cargo test --all --release")]
 
     def package(self):

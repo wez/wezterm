@@ -73,7 +73,7 @@ jobs:
       shell: bash
       run: |
             export MACOSX_DEPLOYMENT_TARGET=10.9
-            cargo --target x86_64-apple-darwin test --all --release
+            cargo test --target x86_64-apple-darwin --all --release
             
 
     - name: "Package"
