@@ -243,6 +243,43 @@ impl RenderState {
         metrics: &RenderMetrics,
         size: Option<usize>,
     ) -> anyhow::Result<()> {
+        // We make a a couple of passes at resizing; if the user has selected a large
+        // font size (or a large scaling factor) then the `size==None` case will not
+        // be able to fit the initial utility glyphs and apply_scale_change won't
+        // be able to deal with that error situation.  Rather than make every
+        // caller know how to deal with OutOfTextureSpace we try to absorb
+        // and accomodate that here.
+        let mut size = size;
+        let mut attempt = 10;
+        loop {
+            match self.recreate_texture_atlas_impl(fonts, metrics, size) {
+                Ok(_) => return Ok(()),
+                Err(err) => {
+                    attempt -= 1;
+                    if attempt == 0 {
+                        return Err(err);
+                    }
+
+                    if let Some(&OutOfTextureSpace {
+                        size: Some(needed_size),
+                    }) = err.downcast_ref::<OutOfTextureSpace>()
+                    {
+                        size.replace(needed_size);
+                        continue;
+                    }
+
+                    return Err(err);
+                }
+            }
+        }
+    }
+
+    fn recreate_texture_atlas_impl(
+        &mut self,
+        fonts: &Rc<FontConfiguration>,
+        metrics: &RenderMetrics,
+        size: Option<usize>,
+    ) -> anyhow::Result<()> {
         let size = size.unwrap_or_else(|| self.glyph_cache.borrow().atlas.size());
         let mut glyph_cache = GlyphCache::new_gl(&self.context, fonts, size, metrics)?;
         self.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
