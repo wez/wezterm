@@ -2,7 +2,7 @@ use crate::db::FontDatabase;
 use crate::locator::{new_locator, FontDataHandle, FontLocator, FontLocatorSelection};
 use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper, FontShaperSelection};
-use anyhow::Error;
+use anyhow::{Context, Error};
 use config::{configuration, ConfigHandle, FontRasterizerSelection, TextStyle};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -290,7 +290,12 @@ impl FontConfigInner {
         let font_size = config.font_size * *self.font_scale.borrow();
         let dpi =
             *self.dpi_scale.borrow() as u32 * config.dpi.unwrap_or(::window::DEFAULT_DPI) as u32;
-        let metrics = shaper.metrics(font_size, dpi)?;
+        let metrics = shaper.metrics(font_size, dpi).with_context(|| {
+            format!(
+                "obtaining metrics for font_size={} @ dpi {}",
+                font_size, dpi
+            )
+        })?;
 
         let loaded = Rc::new(LoadedFont {
             rasterizers: RefCell::new(HashMap::new()),

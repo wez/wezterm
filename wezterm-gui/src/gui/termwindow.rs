@@ -2134,6 +2134,19 @@ impl TermWindow {
     }
 
     fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
+        let config = configuration();
+        let font_size = config.font_size * font_scale;
+        let theoretical_height = font_size * dimensions.dpi as f64 / 72.0;
+
+        if theoretical_height < 2.0 {
+            log::warn!("refusing to go to an unreasonably small font scale {:?} "
+                       "font_scale={} would yield font_height {}",
+                       dimensions,
+                       font_scale,
+                       theoretical_height);
+            return;
+        }
+
         let (prior_font, prior_dpi) = self
             .fonts
             .change_scaling(font_scale, dimensions.dpi as f64 / ::window::DEFAULT_DPI);
