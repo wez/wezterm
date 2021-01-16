@@ -213,7 +213,7 @@ pub struct TermWindow {
     terminal_size: PtySize,
     pub mux_window_id: MuxWindowId,
     pub render_metrics: RenderMetrics,
-    render_state: RenderState,
+    render_state: Option<RenderState>,
     input_map: InputMap,
     /// If is_some, the LEADER modifier is active until the specified instant.
     leader_is_down: Option<std::time::Instant>,
@@ -685,7 +685,7 @@ impl WindowCallbacks for TermWindow {
         log::error!("context was lost, set up a new window");
         let activity = Activity::new();
 
-        let render_state = RenderState::Software(SoftwareRenderState::new()?);
+        let render_state = None;
 
         let clipboard_contents = Arc::clone(&self.clipboard_contents);
         let dimensions = self.dimensions.clone();
@@ -755,9 +755,9 @@ impl WindowCallbacks for TermWindow {
     ) -> anyhow::Result<()> {
         self.window.replace(window.clone());
 
-        self.render_state = RenderState::Software(SoftwareRenderState::new()?);
+        self.render_state = None;
 
-        match OpenGLRenderState::new(
+        match RenderState::new(
             ctx,
             &self.fonts,
             &self.render_metrics,
@@ -773,7 +773,7 @@ impl WindowCallbacks for TermWindow {
                     gl.context.is_context_loss_possible(),
                     config::wezterm_version(),
                 );
-                self.render_state = RenderState::GL(gl);
+                self.render_state.replace(gl);
             }
             Err(err) => {
                 log::error!("failed to create OpenGLRenderState: {}", err);
@@ -782,10 +782,11 @@ impl WindowCallbacks for TermWindow {
 
         window.show();
 
-        match &self.render_state {
-            RenderState::Software(_) => panic!("No OpenGL"),
-            RenderState::GL(_) => Ok(()),
+        if self.render_state.is_none() {
+            panic!("No OpenGL");
         }
+
+        Ok(())
     }
 
     fn paint(&mut self, frame: &mut glium::Frame) {
@@ -811,7 +812,10 @@ impl WindowCallbacks for TermWindow {
                     {
                         let result = if pass == 0 {
                             // Let's try clearing out the atlas and trying again
-                            self.render_state.clear_texture_atlas(&self.render_metrics)
+                            self.render_state
+                                .as_mut()
+                                .unwrap()
+                                .clear_texture_atlas(&self.render_metrics)
                         } else {
                             log::trace!("grow texture atlas to {}", size);
                             self.recreate_texture_atlas(Some(size))
@@ -951,7 +955,7 @@ impl TermWindow {
             dimensions
         );
 
-        let render_state = RenderState::Software(SoftwareRenderState::new()?);
+        let render_state = None;
 
         let clipboard_contents = Arc::new(Mutex::new(None));
 
@@ -1252,8 +1256,11 @@ impl TermWindow {
     }
 
     fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
-        self.render_state
-            .recreate_texture_atlas(&self.fonts, &self.render_metrics, size)
+        self.render_state.as_mut().unwrap().recreate_texture_atlas(
+            &self.fonts,
+            &self.render_metrics,
+            size,
+        )
     }
 
     fn check_for_config_reload(&mut self) {
@@ -2130,13 +2137,14 @@ impl TermWindow {
         self.fonts
             .change_scaling(font_scale, dimensions.dpi as f64 / ::window::DEFAULT_DPI);
         self.render_metrics = RenderMetrics::new(&self.fonts);
-        if self.render_state.has_opengl() {
-            self.render_state.opengl().glyph_cache.borrow_mut().clear();
-        }
         self.shape_cache.borrow_mut().clear();
 
-        self.recreate_texture_atlas(None)
-            .expect("failed to recreate atlas");
+        if let Some(render_state) = self.render_state.as_mut() {
+            render_state.glyph_cache.borrow_mut().clear();
+            render_state
+                .recreate_texture_atlas(&self.fonts, &self.render_metrics, None)
+                .unwrap();
+        }
     }
 
     fn apply_dimensions(
@@ -2207,11 +2215,16 @@ impl TermWindow {
             (size, *dimensions)
         };
 
-        if let Err(err) = self.render_state.advise_of_window_size_change(
-            &self.render_metrics,
-            dimensions.pixel_width,
-            dimensions.pixel_height,
-        ) {
+        if let Err(err) = self
+            .render_state
+            .as_mut()
+            .unwrap()
+            .advise_of_window_size_change(
+                &self.render_metrics,
+                dimensions.pixel_width,
+                dimensions.pixel_height,
+            )
+        {
             log::error!(
                 "failed to advise of resize from {:?} -> {:?}: {:?}",
                 orig_dimensions,
@@ -2338,7 +2351,7 @@ impl TermWindow {
         split: &PositionedSplit,
         pane: &Rc<dyn Pane>,
     ) -> anyhow::Result<()> {
-        let gl_state = self.render_state.opengl();
+        let gl_state = self.render_state.as_ref().unwrap();
         let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
         let mut quads = gl_state.quads.map(&mut vb);
         let config = configuration();
@@ -2495,7 +2508,7 @@ impl TermWindow {
             lines = vp_lines;
         }
 
-        let gl_state = self.render_state.opengl();
+        let gl_state = self.render_state.as_ref().unwrap();
         let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
         let mut quads = gl_state.quads.map(&mut vb);
 
@@ -2631,7 +2644,7 @@ impl TermWindow {
     }
 
     fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
-        let gl_state = self.render_state.opengl();
+        let gl_state = self.render_state.as_ref().unwrap();
         let vb = gl_state.glyph_vertex_buffer.borrow_mut();
 
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
@@ -2759,7 +2772,7 @@ impl TermWindow {
         params: RenderScreenLineOpenGLParams,
         quads: &mut MappedQuads,
     ) -> anyhow::Result<()> {
-        let gl_state = self.render_state.opengl();
+        let gl_state = self.render_state.as_ref().unwrap();
 
         let num_cols = params.dims.cols;
 

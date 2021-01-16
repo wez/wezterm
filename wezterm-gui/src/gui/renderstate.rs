@@ -12,15 +12,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
 
-pub struct SoftwareRenderState {}
-
-impl SoftwareRenderState {
-    pub fn new() -> anyhow::Result<Self> {
-        Ok(Self {})
-    }
-}
-
-pub struct OpenGLRenderState {
+pub struct RenderState {
     pub context: Rc<GliumContext>,
     pub glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
     pub util_sprites: UtilSprites<SrgbTexture2d>,
@@ -30,7 +22,7 @@ pub struct OpenGLRenderState {
     pub quads: Quads,
 }
 
-impl OpenGLRenderState {
+impl RenderState {
     pub fn new(
         context: Rc<GliumContext>,
         fonts: &Rc<FontConfiguration>,
@@ -237,24 +229,11 @@ impl OpenGLRenderState {
             quads,
         ))
     }
-}
 
-#[allow(clippy::large_enum_variant)]
-pub enum RenderState {
-    Software(SoftwareRenderState),
-    GL(OpenGLRenderState),
-}
-
-impl RenderState {
     pub fn clear_texture_atlas(&mut self, metrics: &RenderMetrics) -> anyhow::Result<()> {
-        match self {
-            RenderState::Software(_) => {}
-            RenderState::GL(gl) => {
-                let mut glyph_cache = gl.glyph_cache.borrow_mut();
-                glyph_cache.clear();
-                gl.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
-            }
-        };
+        let mut glyph_cache = self.glyph_cache.borrow_mut();
+        glyph_cache.clear();
+        self.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
         Ok(())
     }
 
@@ -264,41 +243,10 @@ impl RenderState {
         metrics: &RenderMetrics,
         size: Option<usize>,
     ) -> anyhow::Result<()> {
-        match self {
-            RenderState::Software(_) => {}
-            RenderState::GL(gl) => {
-                let size = size.unwrap_or_else(|| gl.glyph_cache.borrow().atlas.size());
-                let mut glyph_cache = GlyphCache::new_gl(&gl.context, fonts, size, metrics)?;
-                gl.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
-                *gl.glyph_cache.borrow_mut() = glyph_cache;
-            }
-        };
+        let size = size.unwrap_or_else(|| self.glyph_cache.borrow().atlas.size());
+        let mut glyph_cache = GlyphCache::new_gl(&self.context, fonts, size, metrics)?;
+        self.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
+        *self.glyph_cache.borrow_mut() = glyph_cache;
         Ok(())
-    }
-
-    pub fn advise_of_window_size_change(
-        &mut self,
-        metrics: &RenderMetrics,
-        pixel_width: usize,
-        pixel_height: usize,
-    ) -> anyhow::Result<()> {
-        if let RenderState::GL(gl) = self {
-            gl.advise_of_window_size_change(metrics, pixel_width, pixel_height)?;
-        }
-        Ok(())
-    }
-
-    pub fn has_opengl(&self) -> bool {
-        match self {
-            RenderState::GL(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn opengl(&self) -> &OpenGLRenderState {
-        match self {
-            RenderState::GL(gl) => gl,
-            _ => panic!("only valid for opengl render mode"),
-        }
     }
 }
