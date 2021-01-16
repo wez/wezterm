@@ -2,6 +2,7 @@ use super::glyphcache::GlyphCache;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, Texture2d};
 use ::window::*;
+use anyhow::Context;
 use config::configuration;
 use std::rc::Rc;
 use termwiz::surface::CursorShape;
@@ -19,10 +20,10 @@ pub struct RenderMetrics {
 }
 
 impl RenderMetrics {
-    pub fn new(fonts: &Rc<FontConfiguration>) -> Self {
+    pub fn new(fonts: &Rc<FontConfiguration>) -> anyhow::Result<Self> {
         let metrics = fonts
             .default_font_metrics()
-            .expect("failed to get font metrics!?");
+            .context("failed to get font metrics!?")?;
 
         let line_height = configuration().line_height;
 
@@ -39,14 +40,14 @@ impl RenderMetrics {
             (2 * underline_height + descender_row).min(cell_height as isize - underline_height);
         let strike_row = descender_row / 2;
 
-        Self {
+        Ok(Self {
             descender: metrics.descender,
             descender_row,
             descender_plus_two,
             strike_row,
             cell_size: Size::new(cell_width as isize, cell_height as isize),
             underline_height,
-        }
+        })
     }
 }
 

@@ -921,7 +921,7 @@ impl TermWindow {
         let physical_rows = size.rows as usize;
         let physical_cols = size.cols as usize;
 
-        let render_metrics = RenderMetrics::new(&fontconfig);
+        let render_metrics = RenderMetrics::new(&fontconfig)?;
         log::trace!("using render_metrics {:#?}", render_metrics);
 
         let terminal_size = PtySize {
@@ -2134,9 +2134,24 @@ impl TermWindow {
     }
 
     fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
-        self.fonts
+        let (prior_font, prior_dpi) = self
+            .fonts
             .change_scaling(font_scale, dimensions.dpi as f64 / ::window::DEFAULT_DPI);
-        self.render_metrics = RenderMetrics::new(&self.fonts);
+        match RenderMetrics::new(&self.fonts) {
+            Ok(metrics) => {
+                self.render_metrics = metrics;
+            }
+            Err(err) => {
+                log::error!(
+                    "{:#} while attempting to scale font to {} with {:?}",
+                    err,
+                    font_scale,
+                    dimensions
+                );
+                // Restore prior scaling factors
+                self.fonts.change_scaling(prior_font, prior_dpi);
+            }
+        }
         self.shape_cache.borrow_mut().clear();
 
         if let Some(render_state) = self.render_state.as_mut() {

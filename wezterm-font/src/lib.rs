@@ -307,11 +307,16 @@ impl FontConfigInner {
         Ok(loaded)
     }
 
-    pub fn change_scaling(&self, font_scale: f64, dpi_scale: f64) {
+    pub fn change_scaling(&self, font_scale: f64, dpi_scale: f64) -> (f64, f64) {
+        let prior_font = *self.font_scale.borrow();
+        let prior_dpi = *self.dpi_scale.borrow();
+
         *self.dpi_scale.borrow_mut() = dpi_scale;
         *self.font_scale.borrow_mut() = font_scale;
         self.fonts.borrow_mut().clear();
         self.metrics.borrow_mut().take();
+
+        (prior_font, prior_dpi)
     }
 
     /// Returns the baseline font specified in the configuration
@@ -393,7 +398,7 @@ impl FontConfiguration {
         self.inner.resolve_font(&self.inner, style)
     }
 
-    pub fn change_scaling(&self, font_scale: f64, dpi_scale: f64) {
+    pub fn change_scaling(&self, font_scale: f64, dpi_scale: f64) -> (f64, f64) {
         self.inner.change_scaling(font_scale, dpi_scale)
     }
 
