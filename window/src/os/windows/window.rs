@@ -1,12 +1,9 @@
-use super::gdi::*;
 use super::*;
-use crate::bitmaps::*;
-use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::{
     config, Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
-    MouseEvent, MouseEventKind, MousePress, Operator, Point, Rect, ScreenPoint, WindowCallbacks,
-    WindowOps, WindowOpsMut,
+    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks, WindowOps,
+    WindowOpsMut,
 };
 use anyhow::{bail, Context};
 use lazy_static::lazy_static;
@@ -26,7 +23,6 @@ use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
 use winapi::um::imm::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
-use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
@@ -718,7 +714,7 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
             },
             rgbReserved: [0; 32],
         };
-        let dc = BeginPaint(hwnd, &mut ps);
+        let _ = BeginPaint(hwnd, &mut ps);
 
         let mut rect = RECT {
             left: 0,
