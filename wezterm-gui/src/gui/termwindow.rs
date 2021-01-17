@@ -2245,28 +2245,25 @@ impl TermWindow {
             (size, *dimensions)
         };
 
-        if let Err(err) = self
-            .render_state
-            .as_mut()
-            .unwrap()
-            .advise_of_window_size_change(
+        if let Some(render_state) = self.render_state.as_mut() {
+            if let Err(err) = render_state.advise_of_window_size_change(
                 &self.render_metrics,
                 dimensions.pixel_width,
                 dimensions.pixel_height,
-            )
-        {
-            log::error!(
-                "failed to advise of resize from {:?} -> {:?}: {:?}",
-                orig_dimensions,
-                dimensions,
-                err
-            );
-            // Try to restore the original dimensions
-            self.dimensions = orig_dimensions;
-            // Avoid the inner resize below
-            scale_changed_cells.take();
-        } else {
-            self.terminal_size = size;
+            ) {
+                log::error!(
+                    "failed to advise of resize from {:?} -> {:?}: {:?}",
+                    orig_dimensions,
+                    dimensions,
+                    err
+                );
+                // Try to restore the original dimensions
+                self.dimensions = orig_dimensions;
+                // Avoid the inner resize below
+                scale_changed_cells.take();
+            } else {
+                self.terminal_size = size;
+            }
         }
 
         let mux = Mux::get().unwrap();
