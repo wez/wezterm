@@ -707,12 +707,58 @@ impl TerminalState {
     /// If bracketed paste mode is enabled, the paste is enclosed
     /// in the bracketing, otherwise it is fed to the writer as-is.
     pub fn send_paste(&mut self, text: &str) -> Result<(), Error> {
+        let mut buf = String::new();
         if self.bracketed_paste {
-            let buf = format!("\x1b[200~{}\x1b[201~", text);
-            self.writer.write_all(buf.as_bytes())?;
-        } else {
-            self.writer.write_all(text.as_bytes())?;
+            buf.push_str("\x1b[200~");
         }
+
+        // This is a bit horrible; in general we try to stick with unix line
+        // endings as the one-true representation because using canonical
+        // CRLF can result is excess blank lines during a paste operation.
+        // On Windows we're in a bit of a frustrating situation: pasting into
+        // Windows console programs requires CRLF otherwise there is no newline
+        // at all, but when in WSL, pasting with CRLF gives excess blank lines.
+        //
+        // To come to a compromise, if wezterm is running on Windows then we'll
+        // use canonical CRLF unless the embedded application has enabled
+        // bracketed paste: we can use bracketed paste mode as a signal that
+        // the application will prefer newlines.
+        //
+        // In practice this means that unix shells and vim will get the
+        // unix newlines in their pastes (which is the UX I want) and
+        // cmd.exe will get CRLF.
+        let canonicalize_line_endings = cfg!(windows) && !self.bracketed_paste;
+
+        if canonicalize_line_endings {
+            // Convert (\r|\n) -> \r\n, but not if it is \r\n anyway.
+            let mut iter = text.chars();
+            while let Some(c) = iter.next() {
+                if c == '\n' {
+                    buf.push_str("\r\n");
+                } else if c == '\r' {
+                    buf.push_str("\r\n");
+                    match iter.next() {
+                        Some(c) if c == '\n' => {
+                            // Already emitted it above
+                        }
+                        Some(c) => buf.push(c),
+                        None => {
+                            // No more text and we already emitted \r\n above
+                        }
+                    }
+                } else {
+                    buf.push(c);
+                }
+            }
+        } else {
+            buf.push_str(text);
+        }
+
+        if self.bracketed_paste {
+            buf.push_str("\x1b[201~");
+        }
+
+        self.writer.write_all(buf.as_bytes())?;
         self.writer.flush()?;
         Ok(())
     }
