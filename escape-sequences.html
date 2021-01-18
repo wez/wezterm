@@ -1,0 +1,499 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js ayu">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Escape Sequences - Wez&#x27;s Terminal Emulator</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+        <link rel="stylesheet" href="custom.css">
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "ayu" : "ayu";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('ayu')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">wezterm</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Install</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="install/windows.html"><strong aria-hidden="true">1.1.</strong> Windows</a></li><li class="chapter-item expanded "><a href="install/macos.html"><strong aria-hidden="true">1.2.</strong> macOS</a></li><li class="chapter-item expanded "><a href="install/linux.html"><strong aria-hidden="true">1.3.</strong> Linux</a></li><li class="chapter-item expanded "><a href="install/source.html"><strong aria-hidden="true">1.4.</strong> Build from source</a></li></ol></li><li class="chapter-item expanded "><a href="features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="changelog.html"><strong aria-hidden="true">3.</strong> Change Log</a></li><li class="chapter-item expanded "><a href="config/files.html"><strong aria-hidden="true">4.</strong> Configuration</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/launch.html"><strong aria-hidden="true">4.1.</strong> Launching Programs</a></li><li class="chapter-item expanded "><a href="config/fonts.html"><strong aria-hidden="true">4.2.</strong> Fonts</a></li><li class="chapter-item expanded "><a href="config/font-shaping.html"><strong aria-hidden="true">4.3.</strong> Font Shaping</a></li><li class="chapter-item expanded "><a href="config/misc.html"><strong aria-hidden="true">4.4.</strong> Misc</a></li><li class="chapter-item expanded "><a href="config/keys.html"><strong aria-hidden="true">4.5.</strong> Key &amp; Mouse Binding</a></li><li class="chapter-item expanded "><a href="config/appearance.html"><strong aria-hidden="true">4.6.</strong> Colors &amp; Appearance</a></li></ol></li><li class="chapter-item expanded "><a href="scrollback.html"><strong aria-hidden="true">5.</strong> Scrollback</a></li><li class="chapter-item expanded "><a href="copymode.html"><strong aria-hidden="true">6.</strong> Copy Mode</a></li><li class="chapter-item expanded "><a href="hyperlinks.html"><strong aria-hidden="true">7.</strong> Hyperlinks</a></li><li class="chapter-item expanded "><a href="shell-integration.html"><strong aria-hidden="true">8.</strong> Shell Integration</a></li><li class="chapter-item expanded "><a href="imgcat.html"><strong aria-hidden="true">9.</strong> iTerm Image Protocol</a></li><li class="chapter-item expanded "><a href="ssh.html"><strong aria-hidden="true">10.</strong> SSH</a></li><li class="chapter-item expanded "><a href="serial.html"><strong aria-hidden="true">11.</strong> Serial Ports &amp; Arduino</a></li><li class="chapter-item expanded "><a href="multiplexing.html"><strong aria-hidden="true">12.</strong> Mulitplexing</a></li><li class="chapter-item expanded "><a href="escape-sequences.html" class="active"><strong aria-hidden="true">13.</strong> Escape Sequences</a></li><li class="chapter-item expanded "><a href="faq.html"><strong aria-hidden="true">14.</strong> F.A.Q.</a></li><li class="chapter-item expanded "><a href="help.html"><strong aria-hidden="true">15.</strong> Getting Help</a></li><li class="chapter-item expanded "><a href="contributing.html"><strong aria-hidden="true">16.</strong> Contributing</a></li><li class="chapter-item expanded "><a href="colorschemes/index.html"><strong aria-hidden="true">17.</strong> Color Schemes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="colorschemes/3/index.html"><strong aria-hidden="true">17.1.</strong> 3</a></li><li class="chapter-item expanded "><a href="colorschemes/a/index.html"><strong aria-hidden="true">17.2.</strong> a</a></li><li class="chapter-item expanded "><a href="colorschemes/b/index.html"><strong aria-hidden="true">17.3.</strong> b</a></li><li class="chapter-item expanded "><a href="colorschemes/c/index.html"><strong aria-hidden="true">17.4.</strong> c</a></li><li class="chapter-item expanded "><a href="colorschemes/d/index.html"><strong aria-hidden="true">17.5.</strong> d</a></li><li class="chapter-item expanded "><a href="colorschemes/e/index.html"><strong aria-hidden="true">17.6.</strong> e</a></li><li class="chapter-item expanded "><a href="colorschemes/f/index.html"><strong aria-hidden="true">17.7.</strong> f</a></li><li class="chapter-item expanded "><a href="colorschemes/g/index.html"><strong aria-hidden="true">17.8.</strong> g</a></li><li class="chapter-item expanded "><a href="colorschemes/h/index.html"><strong aria-hidden="true">17.9.</strong> h</a></li><li class="chapter-item expanded "><a href="colorschemes/i/index.html"><strong aria-hidden="true">17.10.</strong> i</a></li><li class="chapter-item expanded "><a href="colorschemes/j/index.html"><strong aria-hidden="true">17.11.</strong> j</a></li><li class="chapter-item expanded "><a href="colorschemes/k/index.html"><strong aria-hidden="true">17.12.</strong> k</a></li><li class="chapter-item expanded "><a href="colorschemes/l/index.html"><strong aria-hidden="true">17.13.</strong> l</a></li><li class="chapter-item expanded "><a href="colorschemes/m/index.html"><strong aria-hidden="true">17.14.</strong> m</a></li><li class="chapter-item expanded "><a href="colorschemes/n/index.html"><strong aria-hidden="true">17.15.</strong> n</a></li><li class="chapter-item expanded "><a href="colorschemes/o/index.html"><strong aria-hidden="true">17.16.</strong> o</a></li><li class="chapter-item expanded "><a href="colorschemes/p/index.html"><strong aria-hidden="true">17.17.</strong> p</a></li><li class="chapter-item expanded "><a href="colorschemes/r/index.html"><strong aria-hidden="true">17.18.</strong> r</a></li><li class="chapter-item expanded "><a href="colorschemes/s/index.html"><strong aria-hidden="true">17.19.</strong> s</a></li><li class="chapter-item expanded "><a href="colorschemes/t/index.html"><strong aria-hidden="true">17.20.</strong> t</a></li><li class="chapter-item expanded "><a href="colorschemes/u/index.html"><strong aria-hidden="true">17.21.</strong> u</a></li><li class="chapter-item expanded "><a href="colorschemes/v/index.html"><strong aria-hidden="true">17.22.</strong> v</a></li><li class="chapter-item expanded "><a href="colorschemes/w/index.html"><strong aria-hidden="true">17.23.</strong> w</a></li><li class="chapter-item expanded "><a href="colorschemes/z/index.html"><strong aria-hidden="true">17.24.</strong> z</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/general.html"><strong aria-hidden="true">18.</strong> Lua Reference</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/wezterm/index.html"><strong aria-hidden="true">18.1.</strong> module: wezterm</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/wezterm/action.html"><strong aria-hidden="true">18.1.1.</strong> action</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/config_dir.html"><strong aria-hidden="true">18.1.2.</strong> config_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/emit.html"><strong aria-hidden="true">18.1.3.</strong> emit</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/executable_dir.html"><strong aria-hidden="true">18.1.4.</strong> executable_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/font.html"><strong aria-hidden="true">18.1.5.</strong> font</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/font_with_fallback.html"><strong aria-hidden="true">18.1.6.</strong> font_with_fallback</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/glob.html"><strong aria-hidden="true">18.1.7.</strong> glob</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/home_dir.html"><strong aria-hidden="true">18.1.8.</strong> home_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/hostname.html"><strong aria-hidden="true">18.1.9.</strong> hostname</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/log_error.html"><strong aria-hidden="true">18.1.10.</strong> log_error</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/on.html"><strong aria-hidden="true">18.1.11.</strong> on</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/permute_any_mods.html"><strong aria-hidden="true">18.1.12.</strong> permute_any_mods</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/permute_any_or_no_mods.html"><strong aria-hidden="true">18.1.13.</strong> permute_any_or_no_mods</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/read_dir.html"><strong aria-hidden="true">18.1.14.</strong> read_dir</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/run_child_process.html"><strong aria-hidden="true">18.1.15.</strong> run_child_process</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/running_under_wsl.html"><strong aria-hidden="true">18.1.16.</strong> running_under_wsl</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/sleep_ms.html"><strong aria-hidden="true">18.1.17.</strong> sleep_ms</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/split_by_newlines.html"><strong aria-hidden="true">18.1.18.</strong> split_by_newlines</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/target_triple.html"><strong aria-hidden="true">18.1.19.</strong> target_triple</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/utf16_to_utf8.html"><strong aria-hidden="true">18.1.20.</strong> utf16_to_utf8</a></li><li class="chapter-item expanded "><a href="config/lua/wezterm/version.html"><strong aria-hidden="true">18.1.21.</strong> version</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/index.html"><strong aria-hidden="true">18.2.</strong> enum: KeyAssignment</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivateCopyMode.html"><strong aria-hidden="true">18.2.1.</strong> ActivateCopyMode</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivatePaneDirection.html"><strong aria-hidden="true">18.2.2.</strong> ActivatePaneDirection</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivateTab.html"><strong aria-hidden="true">18.2.3.</strong> ActivateTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ActivateTabRelative.html"><strong aria-hidden="true">18.2.4.</strong> ActivateTabRelative</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/AdjustPaneSize.html"><strong aria-hidden="true">18.2.5.</strong> AdjustPaneSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ClearScrollback.html"><strong aria-hidden="true">18.2.6.</strong> ClearScrollback</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CloseCurrentPane.html"><strong aria-hidden="true">18.2.7.</strong> CloseCurrentPane</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CloseCurrentTab.html"><strong aria-hidden="true">18.2.8.</strong> CloseCurrentTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CompleteSelection.html"><strong aria-hidden="true">18.2.9.</strong> CompleteSelection</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/CompleteSelectionOrOpenLinkAtMouseCursor.html"><strong aria-hidden="true">18.2.10.</strong> CompleteSelectionOrOpenLinkAtMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Copy.html"><strong aria-hidden="true">18.2.11.</strong> Copy</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/DecreaseFontSize.html"><strong aria-hidden="true">18.2.12.</strong> DecreaseFontSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/DisableDefaultAssignment.html"><strong aria-hidden="true">18.2.13.</strong> DisableDefaultAssignment</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/EmitEvent.html"><strong aria-hidden="true">18.2.14.</strong> EmitEvent</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ExtendSelectionToMouseCursor.html"><strong aria-hidden="true">18.2.15.</strong> ExtendSelectionToMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Hide.html"><strong aria-hidden="true">18.2.16.</strong> Hide</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/HideApplication.html"><strong aria-hidden="true">18.2.17.</strong> HideApplication</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/IncreaseFontSize.html"><strong aria-hidden="true">18.2.18.</strong> IncreaseFontSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/MoveTab.html"><strong aria-hidden="true">18.2.19.</strong> MoveTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/MoveTabRelative.html"><strong aria-hidden="true">18.2.20.</strong> MoveTabRelative</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Nop.html"><strong aria-hidden="true">18.2.21.</strong> Nop</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/OpenLinkAtMouseCursor.html"><strong aria-hidden="true">18.2.22.</strong> OpenLinkAtMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Paste.html"><strong aria-hidden="true">18.2.23.</strong> Paste</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/PastePrimarySelection.html"><strong aria-hidden="true">18.2.24.</strong> PastePrimarySelection</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/QuitApplication.html"><strong aria-hidden="true">18.2.25.</strong> QuitApplication</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ReloadConfiguration.html"><strong aria-hidden="true">18.2.26.</strong> ReloadConfiguration</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ResetFontSize.html"><strong aria-hidden="true">18.2.27.</strong> ResetFontSize</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ScrollByPage.html"><strong aria-hidden="true">18.2.28.</strong> ScrollByPage</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ScrollToPrompt.html"><strong aria-hidden="true">18.2.29.</strong> ScrollToPrompt</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Search.html"><strong aria-hidden="true">18.2.30.</strong> Search</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SelectTextAtMouseCursor.html"><strong aria-hidden="true">18.2.31.</strong> SelectTextAtMouseCursor</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SendString.html"><strong aria-hidden="true">18.2.32.</strong> SendString</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/Show.html"><strong aria-hidden="true">18.2.33.</strong> Show</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ShowLauncher.html"><strong aria-hidden="true">18.2.34.</strong> ShowLauncher</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ShowTabNavigator.html"><strong aria-hidden="true">18.2.35.</strong> ShowTabNavigator</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnCommandInNewTab.html"><strong aria-hidden="true">18.2.36.</strong> SpawnCommandInNewTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnCommandInNewWindow.html"><strong aria-hidden="true">18.2.37.</strong> SpawnCommandInNewWindow</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnTab.html"><strong aria-hidden="true">18.2.38.</strong> SpawnTab</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SpawnWindow.html"><strong aria-hidden="true">18.2.39.</strong> SpawnWindow</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SplitHorizontal.html"><strong aria-hidden="true">18.2.40.</strong> SplitHorizontal</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/SplitVertical.html"><strong aria-hidden="true">18.2.41.</strong> SplitVertical</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/ToggleFullScreen.html"><strong aria-hidden="true">18.2.42.</strong> ToggleFullScreen</a></li><li class="chapter-item expanded "><a href="config/lua/keyassignment/TogglePaneZoomState.html"><strong aria-hidden="true">18.2.43.</strong> TogglePaneZoomState</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/SpawnCommand.html"><strong aria-hidden="true">18.3.</strong> object: SpawnCommand</a></li><li class="chapter-item expanded "><a href="config/lua/pane/index.html"><strong aria-hidden="true">18.4.</strong> object: Pane</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/pane/get_current_working_dir.html"><strong aria-hidden="true">18.4.1.</strong> get_current_working_dir</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_cursor_position.html"><strong aria-hidden="true">18.4.2.</strong> get_cursor_position</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_dimensions.html"><strong aria-hidden="true">18.4.3.</strong> get_dimensions</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_lines_as_text.html"><strong aria-hidden="true">18.4.4.</strong> get_lines_as_text</a></li><li class="chapter-item expanded "><a href="config/lua/pane/get_title.html"><strong aria-hidden="true">18.4.5.</strong> get_title</a></li><li class="chapter-item expanded "><a href="config/lua/pane/pane_id.html"><strong aria-hidden="true">18.4.6.</strong> pane_id</a></li><li class="chapter-item expanded "><a href="config/lua/pane/paste.html"><strong aria-hidden="true">18.4.7.</strong> paste</a></li></ol></li><li class="chapter-item expanded "><a href="config/lua/window/index.html"><strong aria-hidden="true">18.5.</strong> object: Window</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/lua/window/perform_action.html"><strong aria-hidden="true">18.5.1.</strong> perform_action</a></li><li class="chapter-item expanded "><a href="config/lua/window/window_id.html"><strong aria-hidden="true">18.5.2.</strong> window_id</a></li></ol></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu (default)</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Wez&#x27;s Terminal Emulator</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        <a href="https://github.com/wez/wezterm" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <blockquote>
+<p>Please note that this is a &quot;living document&quot; and may lag or lead the state
+of the current stable release in a number of areas--as you might imagine,
+precisely documenting escape codes and their behaviors and cross-checking
+with the various technical documents is laborious and tedious and I only
+have so much spare time!</p>
+<p>If you notice that something is inaccurate or missing, please do <a href="https://github.com/wez/wezterm/issues/new/choose">file an issue</a>
+so that it can be resolved!</p>
+</blockquote>
+<h2><a class="header" href="#outputescape-sequences" id="outputescape-sequences">Output/Escape Sequences</a></h2>
+<p>WezTerm considers the output from the terminal to be a UTF-8 encoded stream of
+codepoints.  No other encoding is supported.  As described below, some C1
+control codes have both 7-bit ASCII compatible as well as 8-bit
+representations.  As ASCII is a compatible subset of UTF-8, the 7-bit
+representations are preferred and processed without any special consideration.</p>
+<p>The 8-bit values <em>are</em> recognized, but only if the 8-bit value is treated as a
+unicode code point and encoded via a UTF-8 multi-byte sequence.</p>
+<h3><a class="header" href="#printable-codepoints" id="printable-codepoints">Printable Codepoints</a></h3>
+<p>Codepoints with value 0x20 and higher are considered to be printable and are
+applied to the terminal display using the following rules:</p>
+<ul>
+<li>Codepoints are buffered until a C0, C1 or other escape/control sequence is encountered,
+which triggers a flush and processing continues with the next step.</li>
+<li>The buffered codepoint sequence is split into unicode graphemes, which means that
+combining sequences and emoji are decoded.  Processing continues for below for
+each individually recognized grapheme.</li>
+<li>If DEC line drawing mode is active, graphemes <code>j-n</code>, <code>q</code>, <code>t-x</code> are translated
+to equivalent line drawing graphemes and processing continues.</li>
+<li>If prior output/actions require it, the cursor position may be moved to a new line
+and the terminal display may be scrolled to make accomodate it.</li>
+<li>An appropriate number of cells, starting at the current cursor position,
+are allocated based on the column width of the current grapheme and are assigned
+to the grapheme.  The current current graphics rendition state (such as colors
+and other presentation attributes) is also applied to those cells.
+If insert mode is active, those cells will be inserted at the current cursor
+position, otherwise they will overwrite cells at the current cursor position.</li>
+<li>The cursor position will be updated based on the column width of the grapheme.</li>
+</ul>
+<p>After the graphemes are applied to the terminal display, the rendering portion of
+WezTerm will attempt to apply your <a href="config/font-shaping.html">font shaping</a> configuration
+based on runs of graphemes with matching graphic attributes to determine which glyphs
+should be rendered from your fonts; it is at this stage that emoji and ligatures are
+resolved.</p>
+<h3><a class="header" href="#c0-control-codes" id="c0-control-codes">C0 Control Codes</a></h3>
+<p>Codepoints in the range <code>0x00-0x1F</code> are considered to be <code>C0</code> control codes.
+<code>C0</code> controls will flush any buffered printable codepoints before triggering
+the action described below.</p>
+<table><thead><tr><th>Seq</th><th>Hex</th><th>Name</th><th>Description</th><th>Action</th></tr></thead><tbody>
+<tr><td>^@</td><td>0x00</td><td>NUL</td><td>Null</td><td>Ignored</td></tr>
+<tr><td>^A</td><td>0x01</td><td>SOH</td><td>Start of Heading</td><td>Ignored</td></tr>
+<tr><td>^B</td><td>0x02</td><td>STX</td><td>Start of Text</td><td>Ignored</td></tr>
+<tr><td>^C</td><td>0x03</td><td>ETX</td><td>End of Text</td><td>Ignored</td></tr>
+<tr><td>^D</td><td>0x04</td><td>EOT</td><td>End of Transmission</td><td>Ignored</td></tr>
+<tr><td>^E</td><td>0x05</td><td>ENQ</td><td>Enquiry</td><td>Ignored</td></tr>
+<tr><td>^F</td><td>0x06</td><td>ACK</td><td>Acknowledge</td><td>Ignored</td></tr>
+<tr><td>^G</td><td>0x07</td><td>BEL</td><td>Bell</td><td>Logs <code>Ding! (this is the bell)</code> to stderr of the WezTerm process. See <a href="https://github.com/wez/wezterm/issues/3">#3</a></td></tr>
+<tr><td>^H</td><td>0x08</td><td>BS</td><td>Backspace</td><td>Move cursor left by 1, constrained by the left margin. If Reverse Wraparound and dec auto wrap modes are enabled, moving left of the left margin will jump the cursor to the right margin, jumping to bottom right margin if it was at the top left.</td></tr>
+<tr><td>^I</td><td>0x09</td><td>HT</td><td>Horizontal Tab</td><td>Move cursor right to the next tab stop</td></tr>
+<tr><td>^J</td><td>0x0A</td><td>LF</td><td>Line Feed</td><td>If cursor is at the bottom margin, scroll the region up, otherwise move cursor down 1 row</td></tr>
+<tr><td>^K</td><td>0x0B</td><td>VT</td><td>Vertical Tab</td><td>Treated as Line Feed</td></tr>
+<tr><td>^L</td><td>0x0C</td><td>FF</td><td>Form Feed</td><td>Treated as Line Feed</td></tr>
+<tr><td>^M</td><td>0x0D</td><td>CR</td><td>Carriage Return</td><td>If cursor is left of leftmost margin, move to column 0. Otherwise move to left margin</td></tr>
+<tr><td>^N</td><td>0x0E</td><td>SO</td><td>Shift Out</td><td>Ignored</td></tr>
+<tr><td>^O</td><td>0x0F</td><td>SI</td><td>Shift In</td><td>Ignored</td></tr>
+<tr><td>^P</td><td>0x10</td><td>DLE</td><td>Data Link Escape</td><td>Ignored</td></tr>
+<tr><td>^Q</td><td>0x11</td><td>DC1</td><td>Device Control One</td><td>Ignored</td></tr>
+<tr><td>^R</td><td>0x12</td><td>DC2</td><td>Device Control Two</td><td>Ignored</td></tr>
+<tr><td>^S</td><td>0x13</td><td>DC3</td><td>Device Control Three</td><td>Ignored</td></tr>
+<tr><td>^T</td><td>0x14</td><td>DC4</td><td>Device Control Four</td><td>Ignored</td></tr>
+<tr><td>^U</td><td>0x15</td><td>NAK</td><td>Negative Acknowledge</td><td>Ignored</td></tr>
+<tr><td>^V</td><td>0x16</td><td>SYN</td><td>Synchronous Idle</td><td>Ignored</td></tr>
+<tr><td>^W</td><td>0x17</td><td>ETB</td><td>End Transmission Block</td><td>Ignored</td></tr>
+<tr><td>^X</td><td>0x18</td><td>CAN</td><td>Cancel</td><td>Ignored</td></tr>
+<tr><td>^Y</td><td>0x19</td><td>EM</td><td>End of Medium</td><td>Ignored</td></tr>
+<tr><td>^Z</td><td>0x1A</td><td>SUB</td><td>Substitute</td><td>Ignored</td></tr>
+<tr><td>^[</td><td>0x1B</td><td>ESC</td><td>Escape</td><td>Introduces various escape sequences described below</td></tr>
+<tr><td>^\</td><td>0x1C</td><td>FS</td><td>File Separator</td><td>Ignored</td></tr>
+<tr><td>^]</td><td>0x1D</td><td>GS</td><td>Group Separator</td><td>Ignored</td></tr>
+<tr><td>^^</td><td>0x1E</td><td>RS</td><td>Record Separator</td><td>Ignored</td></tr>
+<tr><td>^_</td><td>0x1F</td><td>US</td><td>Unit Separator</td><td>Ignored</td></tr>
+</tbody></table>
+<h3><a class="header" href="#c1-control-codes" id="c1-control-codes">C1 Control Codes</a></h3>
+<p>As mentioned above, WezTerm only supports UTF-8 encoding.  C1 control codes
+have an 8-bit representation as well as a multi-codepoint 7-bit escape sequence.</p>
+<p>The 8-bit representation is recognized if the 8-bit value is treated as a
+unicode code point and encoded as a multi-byte UTF-8 sequence.  Sending the
+8-bit binary value will not be recognized as intended, as those bitsequences
+are passing through a UTF-8 decoder.</p>
+<p>The table below lists the 7-bit <code>C1</code> sequence (which is preferred) as well as the
+codepoint value, along with the corresponding meaning.</p>
+<p>As with <code>C0</code> control codes, <code>C1</code> controls will flush any buffered printable
+codepoints before triggering the action described below.</p>
+<table><thead><tr><th>Seq</th><th>Codepoint</th><th>Name</th><th>Description</th><th>Action</th></tr></thead><tbody>
+<tr><td>ESC D</td><td>0x84</td><td>IND</td><td>Index</td><td>Moves the cursor down one line in the same column. If the cursor is at the bottom margin, the page scrolls up</td></tr>
+<tr><td>ESC E</td><td>0x85</td><td>NEL</td><td>Next Line</td><td>Moves the cursor to the left margin on the next line. If the cursor is at the bottom margin, scroll the page up</td></tr>
+<tr><td>ESC H</td><td>0x88</td><td>HTS</td><td>Horizontal Tab Set</td><td>Sets a horizontal tab stop at the column where the cursor is</td></tr>
+<tr><td>ESC M</td><td>0x8D</td><td>RI</td><td>Reverse Index</td><td>Move the cursor up one line. If the cursor is at the top margin, scroll the region down</td></tr>
+<tr><td>ESC P</td><td>0x90</td><td>DCS</td><td>Device Control String</td><td>Discussed below</td></tr>
+<tr><td>ESC [</td><td>0x9B</td><td>CSI</td><td>Control Sequence Introducer</td><td>Discussed below</td></tr>
+<tr><td>ESC \</td><td>0x9C</td><td>ST</td><td>String Terminator</td><td>No direct effect; ST is used to delimit the end of OSC style escape sequences</td></tr>
+</tbody></table>
+<h3><a class="header" href="#other-escape-sequences" id="other-escape-sequences">Other Escape Sequences</a></h3>
+<p>As these sequences start with an <code>ESC</code>, which is a <code>C0</code> control, these will
+flush any buffered printable codepoints before triggering the associated
+action.</p>
+<table><thead><tr><th>Seq</th><th>Name</th><th>Description</th><th>Action</th></tr></thead><tbody>
+<tr><td>ESC c</td><td><a href="https://vt100.net/docs/vt510-rm/RIS.html">RIS</a></td><td>Reset to Initial State</td><td>Resets tab stops, margins, modes, graphic rendition, palette, activates primary screen, erases the display and moves cursor to home position</td></tr>
+<tr><td>ESC 7</td><td><a href="https://vt100.net/docs/vt510-rm/DECSC.html">DECSC</a></td><td>Save Cursor Position</td><td>Records cursor position</td></tr>
+<tr><td>ESC 8</td><td><a href="https://vt100.net/docs/vt510-rm/DECRC.html">DECRC</a></td><td>Restored Saved Cursor Position</td><td>Moves cursor to location it had when DECSC was used</td></tr>
+<tr><td>ESC =</td><td><a href="https://vt100.net/docs/vt510-rm/DECPAM.html">DECPAM</a></td><td>Application Keypad</td><td>Enable Application Keypad Mode</td></tr>
+<tr><td>ESC &gt;</td><td><a href="https://vt100.net/docs/vt510-rm/DECPNM.html">DECPNM</a></td><td>Normal Keypad</td><td>Set Normal Keypad Mode</td></tr>
+<tr><td>ESC (0</td><td></td><td>DEC Line Drawing character set</td><td>Translate characters <code>j-x</code> to line drawing glyphs</td></tr>
+<tr><td>ESC (B</td><td></td><td>US ASCII character set</td><td>Disables DEC Line Drawing character translation</td></tr>
+<tr><td>ESC #8</td><td><a href="https://vt100.net/docs/vt510-rm/DECALN.html">DECALN</a></td><td>Screen Alignment Display</td><td>Fills the display with <code>E</code> characters for diagnostic/test purposes (for vttest)</td></tr>
+</tbody></table>
+<h3><a class="header" href="#csi---control-sequence-introducer-sequences" id="csi---control-sequence-introducer-sequences">CSI - Control Sequence Introducer Sequences</a></h3>
+<p>CSI sequences begin with the <code>C1</code> <code>CSI</code> sequence, which is either the 7-bit
+<code>ESC [</code> sequence or the codepoint <code>0x9B</code>.</p>
+<p>WezTerm classifies these sequences into a number of functional families which
+are broken out below.</p>
+<h4><a class="header" href="#graphic-rendition-sgr" id="graphic-rendition-sgr">Graphic Rendition (SGR)</a></h4>
+<p>SGR sequences are of the form <code>CSI DIGITS [; DIGITS ]+ m</code>.  That is, any number
+of semicolon separated numbers, terminated by the <code>m</code> codepoint.  There are a handful
+of slightly more modern sequences that use colon <code>:</code> codepoints to encode additional
+context.</p>
+<p>The digits map to one of the codes in the table below, which manipulate the
+presentation attributes of subsequently printed characters.</p>
+<p>It is valid to omit the code number; for example <code>CSI m</code> is equivalent to <code>CSI 0 m</code> which resets the presentation attributes.</p>
+<table><thead><tr><th>Code</th><th>Description</th><th>Action</th></tr></thead><tbody>
+<tr><td>0</td><td>Reset</td><td>Reset to default foreground/background colors, reset all presentation attributes, clear any explicit hyperlinks</td></tr>
+<tr><td>1</td><td>IntensityBold</td><td>Set the intensity level to Bold.  This causes subsequent text to be rendered in a bold font variant and, if the foreground color is set to a palette index in the 0-7 range, effectively shifts it to the brighter value in the 8-15 range</td></tr>
+<tr><td>2</td><td>IntensityDim</td><td>Set the intensity level to Dim or Half-Bright.  This causes text to be rendered in a lighter weight font variant</td></tr>
+<tr><td>3</td><td>ItalicOn</td><td>Sets the italic attribute on the text, causing an italic font variant to be selected</td></tr>
+<tr><td>4</td><td>UnderlineOn</td><td>Text will have a single underline</td></tr>
+<tr><td>4:0</td><td>UnderlineOff</td><td>Text will have no underline</td></tr>
+<tr><td>4:1</td><td>UnderlineOn</td><td>Text will have a single underline</td></tr>
+<tr><td>4:2</td><td>UnderlineDouble</td><td>Text will be rendered with double underline</td></tr>
+<tr><td>4:3</td><td>UnderlineCurly</td><td>Text will be rendered with a curly underline</td></tr>
+<tr><td>4:4</td><td>UnderlineDotted</td><td>Text will be rendered with a dotted underline</td></tr>
+<tr><td>4:5</td><td>UnderlineDashed</td><td>Text will be rendered with a dashed underline</td></tr>
+<tr><td>5</td><td>BlinkOn</td><td>Indicates that the text should blink &lt;150 times per minute.  While the attribute is preserved, WezTerm doesn't render blinking text</td></tr>
+<tr><td>6</td><td>RapidBlinkOn</td><td>Indicates that the text should blink &gt;150 times per minute.  While the attribute is preserved, WezTerm doesn't render blinking text</td></tr>
+<tr><td>7</td><td>InverseOn</td><td>Causes the foreground and background colors to be swapped</td></tr>
+<tr><td>8</td><td>InvisibleOn</td><td>Marks text as invisible.</td></tr>
+<tr><td>9</td><td>StrikeThroughOn</td><td>Text will be rendered with a single line struck through the middle</td></tr>
+<tr><td>21</td><td>UnderlineDouble</td><td>Text will be rendered with double underline</td></tr>
+<tr><td>22</td><td>NormalIntensity</td><td>Cancels the effect of IntensityBold and IntensityDim, returning the text to normal intensity</td></tr>
+<tr><td>23</td><td>ItalicOff</td><td>Cancels the effect of ItalicOn</td></tr>
+<tr><td>24</td><td>UnderlineOff</td><td>Text will have no underline</td></tr>
+<tr><td>25</td><td>BlinkOff</td><td>Cancels the effect of BlinkOn and RapidBlinkOn</td></tr>
+<tr><td>27</td><td>InverseOff</td><td>Cancels the effect of InverseOn</td></tr>
+<tr><td>28</td><td>InvisibleOff</td><td>cancels the effect of InvisibleOn</td></tr>
+<tr><td>29</td><td>StrikeThroughOff</td><td>Cancels the effect of StrikeThroughOn</td></tr>
+<tr><td>30</td><td>ForegroundBlack</td><td>Sets the foreground color to ANSI Black, which is palette index 0</td></tr>
+<tr><td>31</td><td>ForegroundRed</td><td>Sets the foreground color to ANSI Red, which is palette index 1</td></tr>
+<tr><td>32</td><td>ForegroundGreen</td><td>Sets the foreground color to ANSI Green, which is palette index 2</td></tr>
+<tr><td>33</td><td>ForegroundYellow</td><td>Sets the foreground color to ANSI Yellow, which is palette index 3</td></tr>
+<tr><td>34</td><td>ForegroundBlue</td><td>Sets the foreground color to ANSI Blue, which is palette index 4</td></tr>
+<tr><td>35</td><td>ForegroundMagenta</td><td>Sets the foreground color to ANSI Magenta, which is palette index 5</td></tr>
+<tr><td>36</td><td>ForegroundCyan</td><td>Sets the foreground color to ANSI Cyan, which is palette index 6</td></tr>
+<tr><td>37</td><td>ForegroundWhite</td><td>Sets the foreground color to ANSI White, which is palette index 7</td></tr>
+<tr><td>39</td><td>ForegroundDefault</td><td>Sets the foreground color to the user's configured default text color</td></tr>
+<tr><td>40</td><td>BackgroundBlack</td><td>Sets the background color to ANSI Black, which is palette index 0</td></tr>
+<tr><td>41</td><td>BackgroundRed</td><td>Sets the background color to ANSI Red, which is palette index 1</td></tr>
+<tr><td>42</td><td>BackgroundGreen</td><td>Sets the background color to ANSI Green, which is palette index 2</td></tr>
+<tr><td>43</td><td>BackgroundYellow</td><td>Sets the background color to ANSI Yellow, which is palette index 3</td></tr>
+<tr><td>44</td><td>BackgroundBlue</td><td>Sets the background color to ANSI Blue, which is palette index 4</td></tr>
+<tr><td>45</td><td>BackgroundMagenta</td><td>Sets the background color to ANSI Magenta, which is palette index 5</td></tr>
+<tr><td>46</td><td>BackgroundCyan</td><td>Sets the background color to ANSI Cyan, which is palette index 6</td></tr>
+<tr><td>47</td><td>BackgroundWhite</td><td>Sets the background color to ANSI White, which is palette index 7</td></tr>
+<tr><td>49</td><td>BackgroundDefault</td><td>Sets the background color to the user's configured default background color</td></tr>
+<tr><td>53</td><td>OverlineOn</td><td>Renders text with a single overline/overbar</td></tr>
+<tr><td>55</td><td>OverlineOff</td><td>Cancels OverlineOn</td></tr>
+<tr><td>59</td><td>UnderlineColorDefault</td><td>Resets the underline color to default, which is to match the foreground color</td></tr>
+<tr><td>90</td><td>ForegroundBrightBlack</td><td>Sets the foreground color to Bright Black, which is palette index 8</td></tr>
+<tr><td>91</td><td>ForegroundBrightRed</td><td>Sets the foreground color to Bright Red, which is palette index 9</td></tr>
+<tr><td>92</td><td>ForegroundBrightGreen</td><td>Sets the foreground color to Bright Green, which is palette index 10</td></tr>
+<tr><td>93</td><td>ForegroundBrightYellow</td><td>Sets the foreground color to Bright Yellow, which is palette index 11</td></tr>
+<tr><td>94</td><td>ForegroundBrightBlue</td><td>Sets the foreground color to Bright Blue, which is palette index 12</td></tr>
+<tr><td>95</td><td>ForegroundBrightMagenta</td><td>Sets the foreground color to Bright Magenta, which is palette index 13</td></tr>
+<tr><td>96</td><td>ForegroundBrightCyan</td><td>Sets the foreground color to Bright Cyan, which is palette index 14</td></tr>
+<tr><td>97</td><td>ForegroundBrightWhite</td><td>Sets the foreground color to Bright White, which is palette index 15</td></tr>
+<tr><td>100</td><td>BackgroundBrightBlack</td><td>Sets the background color to Bright Black, which is palette index 8</td></tr>
+<tr><td>101</td><td>BackgroundBrightRed</td><td>Sets the background color to Bright Red, which is palette index 9</td></tr>
+<tr><td>102</td><td>BackgroundBrightGreen</td><td>Sets the background color to Bright Green, which is palette index 10</td></tr>
+<tr><td>103</td><td>BackgroundBrightYellow</td><td>Sets the background color to Bright Yellow, which is palette index 11</td></tr>
+<tr><td>104</td><td>BackgroundBrightBlue</td><td>Sets the background color to Bright Blue, which is palette index 12</td></tr>
+<tr><td>105</td><td>BackgroundBrightMagenta</td><td>Sets the background color to Bright Magenta, which is palette index 13</td></tr>
+<tr><td>106</td><td>BackgroundBrightCyan</td><td>Sets the background color to Bright Cyan, which is palette index 14</td></tr>
+<tr><td>107</td><td>BackgroundBrightWhite</td><td>Sets the background color to Bright White, which is palette index 15</td></tr>
+</tbody></table>
+<p>There are a handful of additional SGR codes that allow setting extended colors;
+unlike the codes above, which are activated by a single numeric parameter out
+of SGR sequence, these the extended color codes require multiple parameters.
+The canonical representation of these sequences is to have the multiple
+parameters be separated by colons (<code>:</code>), but for compatibility reasons WezTerm
+also accepts an ambiguous semicolon (<code>;</code>) separated variation.  The colon form
+is unambiguous and should be preferred; the semicolon form should not be used
+by new applications and is not documented here in the interest of avoiding
+accidental new implementations.</p>
+<p>This sequence will set the <em>foreground color</em> to the specified palette INDEX,
+which can be a decimal number in the range <code>0-255</code>.</p>
+<pre><code>CSI 38 : 5 : INDEX m
+</code></pre>
+<p>This sequence will set the <em>background color</em> to the specified palette INDEX,
+which can be a decimal number in the range <code>0-255</code>.</p>
+<pre><code>CSI 48 : 5 : INDEX m
+</code></pre>
+<p>This sequence will set the <em>underline color</em> to the specified palette INDEX,
+which can be a decimal number in the range <code>0-255</code>.</p>
+<pre><code>CSI 58 : 5 : INDEX m
+</code></pre>
+<p>This sequence will set the <em>foreground color</em> to an arbitrary color in RGB colorspace.
+The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal numbers in the range <code>0-255</code>.  Note
+that after the <code>2</code> parameter two colons are present; its really an omitted parameter
+but that nature of that parameter is not well-specified and is ignored by <code>WezTerm</code>
+and most (all?) other terminal emulators:</p>
+<pre><code>CSI 38 : 2 : : R : G : B m
+</code></pre>
+<p>This sequence will set the <em>background color</em> to an arbitrary color in RGB colorspace.
+The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal numbers in the range <code>0-255</code>:</p>
+<pre><code>CSI 48 : 2 : : R : G : B m
+</code></pre>
+<p>This sequence will set the <em>underline color</em> to an arbitrary color in RGB colorspace.
+The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal numbers in the range <code>0-255</code>:</p>
+<pre><code>CSI 58 : 2 : : R : G : B m
+</code></pre>
+<h4><a class="header" href="#cursor-movement" id="cursor-movement">Cursor Movement</a></h4>
+<h4><a class="header" href="#editing-functions" id="editing-functions">Editing Functions</a></h4>
+<h4><a class="header" href="#mode-functions" id="mode-functions">Mode Functions</a></h4>
+<h4><a class="header" href="#device-functions" id="device-functions">Device Functions</a></h4>
+<h4><a class="header" href="#window-functions" id="window-functions">Window Functions</a></h4>
+<h3><a class="header" href="#dcs---device-control-string" id="dcs---device-control-string">DCS - Device Control String</a></h3>
+<p>The <code>C1</code> <code>DCS</code> escape places the terminal parser into a device control mode until the <code>C1</code> <code>ST</code> is encountered.</p>
+<p>In the table below, <code>DCS</code> can be either the 7-bit representation (<code>ESC P</code>) or the 8-bit codepoint (<code>0x90</code>).</p>
+<table><thead><tr><th>Seq</th><th>Name</th><th>Description</th></tr></thead><tbody>
+<tr><td>DCS $ q &quot; p ST</td><td><a href="https://vt100.net/docs/vt510-rm/DECRQSS.html">DECRQSS</a> for <a href="https://vt100.net/docs/vt510-rm/DECSCL.html">DECSCL</a></td><td>Request Conformance Level; Reports the conformance level</td></tr>
+<tr><td>DCS $ q r ST</td><td><a href="https://vt100.net/docs/vt510-rm/DECRQSS.html">DECRQSS</a> for <a href="https://vt100.net/docs/vt510-rm/DECSTBM.html">DECSTBM</a></td><td>Request top and bottom margin report; Reports the margins</td></tr>
+<tr><td>DCS $ q s ST</td><td><a href="https://vt100.net/docs/vt510-rm/DECRQSS.html">DECRQSS</a> for <a href="https://vt100.net/docs/vt510-rm/DECSLRM.html">DECSLRM</a></td><td>Request left and right margin report; Reports the margins</td></tr>
+<tr><td>DCS [PARAMS] q [DATA] ST</td><td>Sixel Graphic Data</td><td>Decodes <a href="https://vt100.net/docs/vt3xx-gp/chapter14.html">Sixel graphic data</a> and apply the image to the terminal model. Support is preliminary and incomplete; see <a href="https://github.com/wez/wezterm/issues/217">this issue</a> for status.</td></tr>
+<tr><td>DCS 1000 q</td><td>tmux control mode</td><td>Bridges tmux into the WezTerm multiplexer.  Currently incomplete, see <a href="https://github.com/wez/wezterm/issues/336">this issue</a> for status.</td></tr>
+</tbody></table>
+<h3><a class="header" href="#operating-system-command-sequences" id="operating-system-command-sequences">Operating System Command Sequences</a></h3>
+<p>Operating System Command (OSC) sequences are introduced via <code>ESC ]</code> followed by
+a numeric code and typically have parameters delimited by <code>;</code>.  OSC sequences
+are canonically delimited by the <code>ST</code> (String Terminator) sequence, but WezTerm
+also accepts delimiting them with the <code>BEL</code> control.</p>
+<p>The table below is keyed by the OSC code.</p>
+<table><thead><tr><th>OSC</th><th>Description</th><th>Action</th><th>Example</th></tr></thead><tbody>
+<tr><td>0</td><td>Set Icon Name and Window Title</td><td>Clears Icon Name, sets Window Title.</td><td><code>\x1b]0;title\x1b\\</code></td></tr>
+<tr><td>1</td><td>Set Icon Name</td><td>Sets Icon Name, which is used as the Tab title when it is non-empty</td><td><code>\x1b]1;tab-title\x1b\\</code></td></tr>
+<tr><td>2</td><td>Set Window Title</td><td>Set Window Title</td><td><code>\x1b]2;window-title\x1b\\</code></td></tr>
+<tr><td>3</td><td>Set X11 Window Property</td><td>Ignored</td><td></td></tr>
+<tr><td>4</td><td>Change/Query Color Number</td><td>Set or query color palette entries 0-255.</td><td>query color number 1: <code>\x1b]4;1;?\x1b\\</code> <br/> Set color number 2: <code>\x1b]4;2;#cccccc\x1b\\</code></td></tr>
+<tr><td>5</td><td>Change/Query Special Color Number</td><td>Ignored</td><td></td></tr>
+<tr><td>6</td><td>iTerm2 Change Title Tab Color</td><td>Ignored</td><td></td></tr>
+<tr><td>7</td><td>Set Current Working Directory</td><td><a href="shell-integration.html#osc-7-escape-sequence-to-set-the-working-directory">See Shell Integration</a></td><td></td></tr>
+<tr><td>8</td><td>Set Hyperlink</td><td><a href="hyperlinks.html#explicit-hyperlinks">See Explicit Hyperlinks</a></td><td></td></tr>
+<tr><td>9</td><td>iTerm2 Show System Notification</td><td>Logs the notification to the stderr of the WezTerm process</td><td></td></tr>
+<tr><td>52</td><td>Manipulate clipboard</td><td>Requests to query the clipboard are ignored. Allows setting or clearing the clipboard</td><td></td></tr>
+<tr><td>104</td><td>ResetColors</td><td>Reset color palette entries to their default values</td><td></td></tr>
+<tr><td>133</td><td>FinalTerm semantic escapes</td><td>Informs the terminal about Input, Output and Prompt regions on the display</td><td><a href="shell-integration.html">See Shell Integration</a></td></tr>
+<tr><td>1337</td><td>iTerm2 File Upload Protocol</td><td>Allows displaying images inline</td><td><a href="imgcat.html">See iTerm Image Protocol</a></td></tr>
+<tr><td>L</td><td>Set Icon Name (Sun)</td><td>Same as OSC 1</td><td><code>\x1b]Ltab-title\x1b\\</code></td></tr>
+<tr><td>l</td><td>Set Window Title (Sun)</td><td>Same as OSC 2</td><td><code>\x1b]lwindow-title\x1b\\</code></td></tr>
+</tbody></table>
+<h1><a class="header" href="#additional-resources" id="additional-resources">Additional Resources</a></h1>
+<ul>
+<li><a href="http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt">xterm's escape sequences</a></li>
+<li><a href="https://iterm2.com/documentation-escape-codes.html">iTerm2's escape sequences</a></li>
+<li><a href="https://sw.kovidgoyal.net/kitty/protocol-extensions.html">kitty's escape sequences</a></li>
+<li><a href="https://github.com/billiob/terminology#extended-escapes-for-terminology-only">Terminology's escape sequences</a></li>
+<li><a href="https://docs.google.com/spreadsheets/d/19W-lXWS9jYwqCK-LwgYo31GucPPxYVld_hVEcfpNpXg/edit?usp=sharing">This Google spreadsheet</a>
+aims to document all the known escape sequences.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="multiplexing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="faq.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="multiplexing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="faq.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
