@@ -1560,6 +1560,9 @@ mod test {
         fn is_mouse_grabbed(&self) -> bool {
             false
         }
+        fn is_alt_screen_active(&self) -> bool {
+            false
+        }
         fn get_current_working_dir(&self) -> Option<Url> {
             None
         }
