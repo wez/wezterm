@@ -156,3 +156,63 @@ it into `#`).
 You should consider disabling that setting when working with a UTF-8
 environment.
 
+## How do I enable undercurl (curly underlines)?
+
+Starting in the nightly builds, WezTerm has support for colored and curly underlines.
+
+The relevant escape sequences are:
+
+```
+ CSI 24 m   -> No underline
+ CSI 4 m    -> Single underline
+ CSI 4:0 m  -> No underline
+ CSI 4:1 m  -> Single underline
+ CSI 4:2 m  -> Double underline
+ CSI 4:3 m  -> Curly underline
+ CSI 4:4 m  -> Dotted underline
+ CSI 4:5 m  -> Dashed underline
+
+ CSI 58:2::R:G:B m   -> set underline color to specified true color RGB
+ CSI 58:5:I m        -> set underline color to palette index I (0-255)
+ CSI 59              -> restore underline color to default
+```
+
+You can try these out in your shell; this example will print the various
+underline styles with a red underline:
+
+```bash
+$ printf "\x1b[58:2::255:0:0m\x1b[4:1msingle\x1b[4:2mdouble\x1b[4:3mcurly\x1b[4:4mdotted\x1b[4:5mdashed\x1b[0m\n"
+```
+
+To use this in vim, add something like the following to your `.vimrc`:
+
+```vim
+let &t_Cs = "\e[4:3m"
+let &t_Ce = "\e[4:0m"
+hi SpellBad   guisp=red gui=undercurl guifg=NONE guibg=NONE \
+     ctermfg=NONE ctermbg=NONE term=underline cterm=undercurl ctermul=red
+hi SpellCap   guisp=yellow gui=undercurl guifg=NONE guibg=NONE \
+     ctermfg=NONE ctermbg=NONE term=underline cterm=undercurl ctermul=yellow
+```
+
+If you are a neovim user then you will need to install a terminfo file that
+tells neovim about this support.
+
+You may wish to try these steps to install a copy of a `wezterm` terminfo file;
+this will compile a copy of the terminfo and install it into your `~/.terminfo`
+directory:
+
+```bash
+tempfile=$(mktemp) \
+  && curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/master/termwiz/data/wezterm.terminfo \
+  && tic -x -o ~/.terminfo $tempfile \
+  && rm $tempfile
+```
+
+With that in place, you can then start neovim like this, and it should enable
+undercurl:
+
+```bash
+env TERM=wezterm nvim
+```
+
