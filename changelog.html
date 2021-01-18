@@ -194,6 +194,7 @@ brief notes about them may accumulate here.</p>
 <li>macOS: We now ship a Universal binary containing both Intel and &quot;Apple Silicon&quot; architectures</li>
 <li>Setting a really large or really small font scale (using CTRL +/-) no longer causes a panic <a href="https://github.com/wez/wezterm/issues/428">#428</a></li>
 <li>Fixed an issue where the mouse wheel wasn't mapped to cursor up/down when the alternate screen was active <a href="https://github.com/wez/wezterm/issues/429">#429</a></li>
+<li>Fixed <code>ToggleFullScreen</code> not working on macOS and X11.  It still doesn't function on Windows.  <code>native_macos_fullscreen_mode = false</code> uses a fast full-screen window on macOS. Set it to <code>true</code> to use the slower macOS native &quot;Spaces&quot; style fullscreen mode. <a href="https://github.com/wez/wezterm/issues/177">#177</a></li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
