@@ -1,5 +1,5 @@
 
-<img alt="WezTerm Icon" src="https://raw.githubusercontent.com/wez/wezterm/master/assets/icon/terminal.png" align="left"> *WezTerm is a GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*
+<img alt="WezTerm Icon" src="https://raw.githubusercontent.com/wez/wezterm/master/assets/icon/terminal.png" align="left" style="padding-right: 1em"> *WezTerm is a GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*
 
 <a class="btn" href="installation.html">Download</a>
 
