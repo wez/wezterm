@@ -333,6 +333,11 @@ impl Pane for ClientPane {
         *self.mouse_grabbed.borrow()
     }
 
+    fn is_alt_screen_active(&self) -> bool {
+        // FIXME: retrieve this from the remote
+        false
+    }
+
     fn get_current_working_dir(&self) -> Option<Url> {
         self.renderable.borrow().inner.borrow().working_dir.clone()
     }

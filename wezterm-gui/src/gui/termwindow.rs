@@ -386,7 +386,7 @@ impl WindowCallbacks for TermWindow {
                 self.current_mouse_button = Some(press.clone());
             }
 
-            WMEK::VertWheel(amount) if !pane.is_mouse_grabbed() => {
+            WMEK::VertWheel(amount) if !pane.is_mouse_grabbed() && !pane.is_alt_screen_active() => {
                 // adjust viewport
                 let dims = pane.get_dimensions();
                 let position = self
@@ -3711,27 +3711,23 @@ impl TermWindow {
         let ignore_grab_modifier = Modifiers::SHIFT;
 
         if !pane.is_mouse_grabbed() || event.modifiers.contains(ignore_grab_modifier) {
-            let event_trigger_type = match event_trigger_type {
-                Some(ett) => ett,
-                None => return,
-            };
+            if let Some(event_trigger_type) = event_trigger_type {
+                let mut modifiers = event.modifiers;
 
-            let mut modifiers = event.modifiers;
+                // Since we use shift to force assessing the mouse bindings, pretend
+                // that shift is not one of the mods when the mouse is grabbed.
+                if pane.is_mouse_grabbed() {
+                    modifiers -= ignore_grab_modifier;
+                }
 
-            // Since we use shift to force assessing the mouse bindings, pretend
-            // that shift is not one of the mods when the mouse is grabbed.
-            if pane.is_mouse_grabbed() {
-                modifiers -= ignore_grab_modifier;
+                if let Some(action) = self
+                    .input_map
+                    .lookup_mouse(event_trigger_type.clone(), modifiers)
+                {
+                    self.perform_key_assignment(&pane, &action).ok();
+                    return;
+                }
             }
-
-            if let Some(action) = self
-                .input_map
-                .lookup_mouse(event_trigger_type.clone(), modifiers)
-            {
-                self.perform_key_assignment(&pane, &action).ok();
-            }
-
-            return;
         }
 
         let mouse_event = wezterm_term::MouseEvent {

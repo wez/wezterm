@@ -163,6 +163,14 @@ impl Pane for LocalPane {
         }
     }
 
+    fn is_alt_screen_active(&self) -> bool {
+        if self.tmux_domain.borrow().is_some() {
+            false
+        } else {
+            self.terminal.borrow().is_alt_screen_active()
+        }
+    }
+
     fn get_current_working_dir(&self) -> Option<Url> {
         self.terminal
             .borrow()

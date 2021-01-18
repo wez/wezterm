@@ -41,6 +41,7 @@ brief notes about them may accumulate here.
 * Fixed an issue where wezterm would spawn processes with `umask 077` on unix systems, rather than the more commonly expected `umask 022`. [#416](https://github.com/wez/wezterm/issues/416)
 * macOS: We now ship a Universal binary containing both Intel and "Apple Silicon" architectures
 * Setting a really large or really small font scale (using CTRL +/-) no longer causes a panic [#428](https://github.com/wez/wezterm/issues/428)
+* Fixed an issue where the mouse wheel wasn't mapped to cursor up/down when the alternate screen was active [#429](https://github.com/wez/wezterm/issues/429)
 
 ### 20201101-103216-403d002d
 

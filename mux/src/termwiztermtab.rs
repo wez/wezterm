@@ -240,6 +240,10 @@ impl Pane for TermWizTerminalPane {
         self.terminal.borrow().is_mouse_grabbed()
     }
 
+    fn is_alt_screen_active(&self) -> bool {
+        self.terminal.borrow().is_alt_screen_active()
+    }
+
     fn get_current_working_dir(&self) -> Option<Url> {
         self.terminal.borrow().get_current_dir().cloned()
     }

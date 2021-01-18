@@ -139,6 +139,7 @@ pub trait Pane: Downcast {
     /// In practice this controls whether the gui will perform local
     /// handling of clicks.
     fn is_mouse_grabbed(&self) -> bool;
+    fn is_alt_screen_active(&self) -> bool;
 
     fn set_clipboard(&self, _clipboard: &Arc<dyn Clipboard>) {}
 

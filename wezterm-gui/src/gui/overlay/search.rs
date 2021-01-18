@@ -244,6 +244,10 @@ impl Pane for SearchOverlay {
         false
     }
 
+    fn is_alt_screen_active(&self) -> bool {
+        false
+    }
+
     fn set_clipboard(&self, clipboard: &Arc<dyn Clipboard>) {
         self.delegate.set_clipboard(clipboard)
     }

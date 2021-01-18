@@ -688,6 +688,10 @@ impl TerminalState {
         self.mouse_tracking || self.button_event_mouse || self.any_event_mouse
     }
 
+    pub fn is_alt_screen_active(&self) -> bool {
+        self.screen.is_alt_screen_active()
+    }
+
     /// Returns true if the associated application has enabled
     /// bracketed paste mode, which can be helpful to the hosting
     /// GUI application to decide about fragmenting a large paste.
