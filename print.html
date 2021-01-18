@@ -420,7 +420,7 @@ brief notes about them may accumulate here.</p>
 <li>Fixed an issue where a symbol-only font would be seen as 0-width and panic wezterm <a href="https://github.com/wez/wezterm/issues/404">#404</a></li>
 <li>Tweaked mouse selection: we now round the x-coordinate to the nearest cell which makes it a bit more forgiving if the mouse cursor is slightly to the left of the intended cell start. <a href="https://github.com/wez/wezterm/issues/350">#350</a></li>
 <li>Added <code>selection_word_boundary</code> option to control double-click word selection boundaries. The default is ` \t\n{<a href="">}</a>&quot;'``. <a href="https://github.com/wez/wezterm/issues/405">#405</a></li>
-<li>Added support for Curly, Dotted and Dashed underlines.  Vim users can set <code>let &amp;t_Cs = &quot;\e[4:3m&quot;</code> in their <code>.vimrc</code> to enable undercurl support in wezterm. See <a href="https://github.com/wez/wezterm/issues/415">#415</a> for more details on the escape sequences and configuration for this.</li>
+<li>Added support for Curly, Dotted and Dashed underlines.  See <a href="faq.html">this documentation</a> on the escape sequences how enable undercurl support in vim and nvim. <a href="https://github.com/wez/wezterm/issues/415">#415</a></li>
 <li>Fixed an issue where wezterm would spawn processes with <code>umask 077</code> on unix systems, rather than the more commonly expected <code>umask 022</code>. <a href="https://github.com/wez/wezterm/issues/416">#416</a></li>
 <li>macOS: We now ship a Universal binary containing both Intel and &quot;Apple Silicon&quot; architectures</li>
 <li>Setting a really large or really small font scale (using CTRL +/-) no longer causes a panic <a href="https://github.com/wez/wezterm/issues/428">#428</a></li>
@@ -2459,6 +2459,48 @@ as a different sequence (eg: <code>£</code> will have the high bit stripped and
 it into <code>#</code>).</p>
 <p>You should consider disabling that setting when working with a UTF-8
 environment.</p>
+<h2><a class="header" href="#how-do-i-enable-undercurl-curly-underlines" id="how-do-i-enable-undercurl-curly-underlines">How do I enable undercurl (curly underlines)?</a></h2>
+<p>Starting in the nightly builds, WezTerm has support for colored and curly underlines.</p>
+<p>The relevant escape sequences are:</p>
+<pre><code> CSI 24 m   -&gt; No underline
+ CSI 4 m    -&gt; Single underline
+ CSI 4:0 m  -&gt; No underline
+ CSI 4:1 m  -&gt; Single underline
+ CSI 4:2 m  -&gt; Double underline
+ CSI 4:3 m  -&gt; Curly underline
+ CSI 4:4 m  -&gt; Dotted underline
+ CSI 4:5 m  -&gt; Dashed underline
+
+ CSI 58:2::R:G:B m   -&gt; set underline color to specified true color RGB
+ CSI 58:5:I m        -&gt; set underline color to palette index I (0-255)
+ CSI 59              -&gt; restore underline color to default
+</code></pre>
+<p>You can try these out in your shell; this example will print the various
+underline styles with a red underline:</p>
+<pre><code class="language-bash">$ printf &quot;\x1b[58:2::255:0:0m\x1b[4:1msingle\x1b[4:2mdouble\x1b[4:3mcurly\x1b[4:4mdotted\x1b[4:5mdashed\x1b[0m\n&quot;
+</code></pre>
+<p>To use this in vim, add something like the following to your <code>.vimrc</code>:</p>
+<pre><code class="language-vim">let &amp;t_Cs = &quot;\e[4:3m&quot;
+let &amp;t_Ce = &quot;\e[4:0m&quot;
+hi SpellBad   guisp=red gui=undercurl guifg=NONE guibg=NONE \
+     ctermfg=NONE ctermbg=NONE term=underline cterm=undercurl ctermul=red
+hi SpellCap   guisp=yellow gui=undercurl guifg=NONE guibg=NONE \
+     ctermfg=NONE ctermbg=NONE term=underline cterm=undercurl ctermul=yellow
+</code></pre>
+<p>If you are a neovim user then you will need to install a terminfo file that
+tells neovim about this support.</p>
+<p>You may wish to try these steps to install a copy of a <code>wezterm</code> terminfo file;
+this will compile a copy of the terminfo and install it into your <code>~/.terminfo</code>
+directory:</p>
+<pre><code class="language-bash">tempfile=$(mktemp) \
+  &amp;&amp; curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/master/termwiz/data/wezterm.terminfo \
+  &amp;&amp; tic -x -o ~/.terminfo $tempfile \
+  &amp;&amp; rm $tempfile
+</code></pre>
+<p>With that in place, you can then start neovim like this, and it should enable
+undercurl:</p>
+<pre><code class="language-bash">env TERM=wezterm nvim
+</code></pre>
 <h2><a class="header" href="#getting-help" id="getting-help">Getting Help</a></h2>
 <p>This is a spare time project, so please bear with me.  There are a couple of channels for support:</p>
 <ul>
