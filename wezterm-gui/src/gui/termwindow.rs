@@ -2306,14 +2306,29 @@ impl TermWindow {
         self.apply_dimensions(&dimensions, scale_changed_cells);
     }
 
+    // Used for applying font size changes only; this takes into account
+    // the `adjust_window_size_when_changing_font_size` configuration and
+    // revises the scaling/resize change accordingly
+    fn adjust_font_scale(&mut self, font_scale: f64) {
+        if configuration().adjust_window_size_when_changing_font_size {
+            self.scaling_changed(self.dimensions, font_scale);
+        } else {
+            let dimensions = self.dimensions;
+            // Compute new font metrics
+            self.apply_scale_change(&dimensions, font_scale);
+            // Now revise the pty size to fit the window
+            self.apply_dimensions(&dimensions, None);
+        }
+    }
+
     fn decrease_font_size(&mut self) {
-        self.scaling_changed(self.dimensions, self.fonts.get_font_scale() * 0.9);
+        self.adjust_font_scale(self.fonts.get_font_scale() * 0.9);
     }
     fn increase_font_size(&mut self) {
-        self.scaling_changed(self.dimensions, self.fonts.get_font_scale() * 1.1);
+        self.adjust_font_scale(self.fonts.get_font_scale() * 1.1);
     }
     fn reset_font_size(&mut self) {
-        self.scaling_changed(self.dimensions, 1.);
+        self.adjust_font_scale(1.0);
     }
 
     fn close_current_pane(&mut self, confirm: bool) {
