@@ -167,6 +167,16 @@ impl WindowInner {
     /// Calls resize if needed.
     /// Returns true if we did.
     fn check_and_call_resize_if_needed(&mut self) -> bool {
+        if self.gl_state.is_none() {
+            // Don't cache state or generate resize callbacks until
+            // we've set up opengl, otherwise we can miss propagating
+            // some state during the initial window setup that results
+            // in the window dimensions being out of sync with the dpi
+            // when eg: the system display settings are set to 200%
+            // scale factor.
+            return false;
+        }
+
         let mut rect = RECT {
             left: 0,
             bottom: 0,
