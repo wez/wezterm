@@ -427,6 +427,7 @@ brief notes about them may accumulate here.</p>
 <li>Fixed an issue where the mouse wheel wasn't mapped to cursor up/down when the alternate screen was active <a href="https://github.com/wez/wezterm/issues/429">#429</a></li>
 <li>Fixed <code>ToggleFullScreen</code> not working on macOS and X11.  It still doesn't function on Windows.  <code>native_macos_fullscreen_mode = false</code> uses a fast full-screen window on macOS. Set it to <code>true</code> to use the slower macOS native &quot;Spaces&quot; style fullscreen mode. <a href="https://github.com/wez/wezterm/issues/177">#177</a></li>
 <li>Windows: fix an issue where the initial window size didn't factor the correct DPI when the system-wide display scaling was not 100%. <a href="https://github.com/wez/wezterm/issues/427">#427</a></li>
+<li>New: <code>adjust_window_size_when_changing_font_size</code> option to control whether changing the font size adjusts the dimensions of the window (true) or adjusts the number of terminal rows/columns (false).  The default is <code>true</code>. <a href="https://github.com/wez/wezterm/issues/431">#431</a></li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
