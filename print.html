@@ -155,7 +155,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p><em>WezTerm is a GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a></em></p>
+                        <p><img alt="WezTerm Icon" src="https://raw.githubusercontent.com/wez/wezterm/master/assets/icon/terminal.png" align="left"> <em>WezTerm is a GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a></em></p>
 <p><a class="btn" href="installation.html">Download</a></p>
 <h2><a class="header" href="#features" id="features">Features</a></h2>
 <ul>
@@ -428,6 +428,7 @@ brief notes about them may accumulate here.</p>
 <li>Fixed <code>ToggleFullScreen</code> not working on macOS and X11.  It still doesn't function on Windows.  <code>native_macos_fullscreen_mode = false</code> uses a fast full-screen window on macOS. Set it to <code>true</code> to use the slower macOS native &quot;Spaces&quot; style fullscreen mode. <a href="https://github.com/wez/wezterm/issues/177">#177</a></li>
 <li>Windows: fix an issue where the initial window size didn't factor the correct DPI when the system-wide display scaling was not 100%. <a href="https://github.com/wez/wezterm/issues/427">#427</a></li>
 <li>New: <code>adjust_window_size_when_changing_font_size</code> option to control whether changing the font size adjusts the dimensions of the window (true) or adjusts the number of terminal rows/columns (false).  The default is <code>true</code>. <a href="https://github.com/wez/wezterm/issues/431">#431</a></li>
+<li>macOS: we no longer use MetalANGLE to render the gui; it was short lived as macOS Big Sur now uses Metal in its CGL implementation.  Support for using MetalANGLE is still present if the dylib is found on startup, but we no longer ship the dylib.</li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
