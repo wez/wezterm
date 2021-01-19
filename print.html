@@ -429,7 +429,6 @@ brief notes about them may accumulate here.</p>
 <li>Windows: fix an issue where the initial window size didn't factor the correct DPI when the system-wide display scaling was not 100%. <a href="https://github.com/wez/wezterm/issues/427">#427</a></li>
 <li>New: <code>adjust_window_size_when_changing_font_size</code> option to control whether changing the font size adjusts the dimensions of the window (true) or adjusts the number of terminal rows/columns (false).  The default is <code>true</code>. <a href="https://github.com/wez/wezterm/issues/431">#431</a></li>
 <li>macOS: we no longer use MetalANGLE to render the gui; it was short lived as macOS Big Sur now uses Metal in its CGL implementation.  Support for using MetalANGLE is still present if the dylib is found on startup, but we no longer ship the dylib.</li>
-<li>Windows: when pasting text, ensure that the text has CRLF line endings unless bracketed paste is enabled. This imperfect heuristic helps to keep multi-line pastes on multiple lines when using Windows console applications and to avoid interleaved blank lines when using unix applications. <a href="https://github.com/wez/wezterm/issues/411">#411</a></li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
