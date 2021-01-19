@@ -246,11 +246,12 @@ which can be a decimal number in the range `0-255`.
 CSI 58 : 5 : INDEX m
 ```
 
-This sequence will set the *foreground color* to an arbitrary color in RGB colorspace.
-The `R`, `G` and `B` symbols below are decimal numbers in the range `0-255`.  Note
-that after the `2` parameter two colons are present; its really an omitted parameter
-but that nature of that parameter is not well-specified and is ignored by `WezTerm`
-and most (all?) other terminal emulators:
+This sequence will set the *foreground color* to an arbitrary color in RGB
+colorspace.  The `R`, `G` and `B` symbols below are decimal numbers in the
+range `0-255`.  Note that after the `2` parameter two colons are present; its
+really an omitted *colorspace ID* parameter but that nature of that parameter
+is not specified in the accompanying ITU T.416 specification and is ignored by
+`WezTerm` and most (all?) other terminal emulators:
 
 ```
 CSI 38 : 2 : : R : G : B m
@@ -331,3 +332,4 @@ The table below is keyed by the OSC code.
 * [Terminology's escape sequences](https://github.com/billiob/terminology#extended-escapes-for-terminology-only)
 * [This Google spreadsheet](https://docs.google.com/spreadsheets/d/19W-lXWS9jYwqCK-LwgYo31GucPPxYVld_hVEcfpNpXg/edit?usp=sharing)
   aims to document all the known escape sequences.
+* [Wikipedia's ANSI escape code page](https://en.wikipedia.org/wiki/ANSI_escape_code)
