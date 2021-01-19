@@ -13,6 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use termwiz::cell::{AttributeChange, Hyperlink, Underline};
+use termwiz::color::AnsiColor;
 use termwiz::escape::csi::{Cursor, Sgr};
 use termwiz::escape::osc::{ITermDimension, ITermFileData, ITermProprietary};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
@@ -303,12 +304,20 @@ fn set_banner_from_release_info(latest: &Release) {
         col: OneBased::new(6),
     });
     let link_on = OperatingSystemCommand::SetHyperlink(Some(Hyperlink::new(url)));
+    let underline_color = CSI::Sgr(Sgr::UnderlineColor(AnsiColor::Blue.into()));
     let underline_on = CSI::Sgr(Sgr::Underline(Underline::Single));
-    let underline_off = CSI::Sgr(Sgr::Underline(Underline::None));
+    let reset = CSI::Sgr(Sgr::Reset);
     let link_off = OperatingSystemCommand::SetHyperlink(None);
     mux.set_banner(Some(format!(
-        "{}{}WezTerm Update Available\r\n{}{}{}Click to see what's new{}{}\r\n",
-        icon, top_line_pos, second_line_pos, link_on, underline_on, underline_off, link_off,
+        "{}{}WezTerm Update Available\r\n{}{}{}{}Click to see what's new{}{}\r\n",
+        icon,
+        top_line_pos,
+        second_line_pos,
+        link_on,
+        underline_color,
+        underline_on,
+        link_off,
+        reset,
     )));
 }
 
