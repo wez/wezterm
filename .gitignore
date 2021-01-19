@@ -12,6 +12,7 @@
 /docs/installation.md
 /docs/install/*.md
 /docs/colorschemes/**/index.md
+/docs/config/lua/config/index.md
 /docs/config/lua/wezterm/index.md
 /docs/config/lua/pane/index.md
 /docs/config/lua/window/index.md
