@@ -3,8 +3,8 @@
 	url = https://github.com/harfbuzz/harfbuzz.git
 [submodule "freetype/freetype2"]
 	path = deps/freetype/freetype2
-#	url = https://git.savannah.gnu.org/git/freetype/freetype2.git
-	url = https://github.com/aseprite/freetype2.git
+	url = https://git.savannah.gnu.org/git/freetype/freetype2.git
+#	url = https://github.com/aseprite/freetype2.git
 [submodule "freetype/libpng"]
 	path = deps/freetype/libpng
 	url = https://github.com/glennrp/libpng.git

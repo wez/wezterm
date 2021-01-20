@@ -127,22 +127,6 @@ fn freetype() {
     cfg.define("FT2_BUILD_LIBRARY", None);
 
     let target = env::var("TARGET").unwrap();
-    let ftconfig = if !target.contains("windows") {
-        fs::read_to_string("freetype2/builds/unix/ftconfig.in")
-            .unwrap()
-            .replace("#undef HAVE_UNISTD_H", "#define HAVE_UNISTD_H 1")
-            .replace("#undef HAVE_FCNTL_H", "#define HAVE_FCNTL_H 1")
-            .replace("#undef HAVE_STDINT_H", "#define HAVE_STDINT_H 1")
-            .replace("/undef", "#undef")
-    } else {
-        fs::read_to_string("freetype2/include/freetype/config/ftconfig.h").unwrap()
-    };
-
-    fs::write(
-        build_dir.join("freetype2/include/freetype/config/ftconfig.h"),
-        ftconfig,
-    )
-    .unwrap();
 
     fs::write(
         build_dir.join("freetype2/include/freetype/config/ftoption.h"),
