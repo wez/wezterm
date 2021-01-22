@@ -49,40 +49,19 @@ macro_rules! define_function {
 
 /// Apply all u8 values to `fn(u8) -> u8`, return `[u8; 256]`.
 macro_rules! define_table {
-    ( $func:tt ) => {
-        define_table!( func=$func result=[] iter=(0) remaining=[i i i i i i i i i i i i i i i i] )
-    };
+    ( $func:tt ) => {{
+        const fn gen() -> [u8; 256] {
+            let mut arr = [0; 256];
 
-    ( func=$func:tt result=[$($result:tt)*] iter=($($iter:tt)*) remaining=[]) => {
-        [ $($result, )* ]
-    };
-
-    ( func=$func:tt result=[$($result:tt)*] iter=($($iter:tt)*) remaining=[i $($remaining:tt)*]) => {
-        define_table! (
-            func=$func
-            result=[
-                $($result)*
-                ($func($($iter)*))
-                ($func($($iter)* + 1))
-                ($func($($iter)* + 2))
-                ($func($($iter)* + 3))
-                ($func($($iter)* + 4))
-                ($func($($iter)* + 5))
-                ($func($($iter)* + 6))
-                ($func($($iter)* + 7))
-                ($func($($iter)* + 8))
-                ($func($($iter)* + 9))
-                ($func($($iter)* + 10))
-                ($func($($iter)* + 11))
-                ($func($($iter)* + 12))
-                ($func($($iter)* + 13))
-                ($func($($iter)* + 14))
-                ($func($($iter)* + 15))
-            ]
-            iter=($($iter)*+16)
-            remaining=[$($remaining)*]
-        )
-    };
+            let mut i = 0;
+            while i < 256 {
+                arr[i] = $func(i as u8);
+                i += 1;
+            }
+            return arr;
+        }
+        gen()
+    }};
 }
 
 /// An alternative form of `Option<u8>` that works with const_fn.
