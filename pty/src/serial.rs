@@ -99,7 +99,7 @@ struct Slave {
 }
 
 impl SlavePty for Slave {
-    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send>> {
+    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
         ensure!(
             cmd.is_default_prog(),
             "can only use default prog commands with serial tty implementations"

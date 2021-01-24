@@ -129,7 +129,7 @@ pub trait Child: std::fmt::Debug {
 /// Can be used to spawn processes into the pty.
 pub trait SlavePty {
     /// Spawns the command specified by the provided CommandBuilder
-    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<dyn Child + Send>, Error>;
+    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<dyn Child + Send + Sync>, Error>;
 }
 
 /// Represents the exit status of a child process.

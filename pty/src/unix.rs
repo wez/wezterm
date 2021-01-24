@@ -292,7 +292,10 @@ fn cloexec(fd: RawFd) -> Result<(), Error> {
 }
 
 impl SlavePty for UnixSlavePty {
-    fn spawn_command(&self, builder: CommandBuilder) -> Result<Box<dyn Child + Send>, Error> {
+    fn spawn_command(
+        &self,
+        builder: CommandBuilder,
+    ) -> Result<Box<dyn Child + Send + Sync>, Error> {
         Ok(Box::new(self.fd.spawn_command(builder)?))
     }
 }
