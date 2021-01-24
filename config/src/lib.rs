@@ -526,6 +526,10 @@ pub struct Config {
     /// as the positional arguments to that command.
     pub default_prog: Option<Vec<String>>,
 
+    /// Specifies the default current working directory for the initially
+    /// spawned program.
+    pub default_cwd: Option<PathBuf>,
+
     /// Specifies a map of environment variables that should be set
     /// when spawning commands in the local domain.
     /// This is not used when working with remote domains.
@@ -1241,6 +1245,10 @@ impl Config {
     }
 
     pub fn apply_cmd_defaults(&self, cmd: &mut CommandBuilder) {
+        if let Some(ref cwd) = self.default_cwd {
+            cmd.cwd(cwd);
+        }
+
         for (k, v) in &self.set_environment_variables {
             cmd.env(k, v);
         }
