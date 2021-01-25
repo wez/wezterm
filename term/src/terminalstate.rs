@@ -674,7 +674,7 @@ impl TerminalState {
         }
     }
 
-    pub fn erase_buffer(&mut self) {
+    pub fn erase_scrollback_and_viewport(&mut self) {
         self.erase_in_display(EraseInDisplay::EraseScrollback);
 
         let row_index = self.screen.phys_row(self.cursor.y);

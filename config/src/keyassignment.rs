@@ -111,6 +111,18 @@ pub enum PaneDirection {
     Right,
 }
 
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum ScrollbackEraseMode {
+    ScrollbackOnly,
+    ScrollbackAndViewport,
+}
+
+impl Default for ScrollbackEraseMode {
+    fn default() -> Self {
+        Self::ScrollbackOnly
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
@@ -143,8 +155,7 @@ pub enum KeyAssignment {
     SplitHorizontal(SpawnCommand),
     SplitVertical(SpawnCommand),
     ShowLauncher,
-    ClearBuffer,
-    ClearScrollback,
+    ClearScrollback(ScrollbackEraseMode),
     Search(Pattern),
     ActivateCopyMode,
 
@@ -217,8 +228,16 @@ impl InputMap {
                 [Modifiers::SUPER, KeyCode::Char('n'), SpawnWindow],
                 [Modifiers::CTRL, KeyCode::Char('M'), Hide],
                 [Modifiers::CTRL, KeyCode::Char('N'), SpawnWindow],
-                [Modifiers::SUPER, KeyCode::Char('k'), ClearScrollback],
-                [Modifiers::CTRL, KeyCode::Char('K'), ClearScrollback],
+                [
+                    Modifiers::SUPER,
+                    KeyCode::Char('k'),
+                    ClearScrollback(ScrollbackEraseMode::ScrollbackOnly)
+                ],
+                [
+                    Modifiers::CTRL,
+                    KeyCode::Char('K'),
+                    ClearScrollback(ScrollbackEraseMode::ScrollbackOnly)
+                ],
                 [
                     Modifiers::SUPER,
                     KeyCode::Char('f'),

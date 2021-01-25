@@ -5,6 +5,7 @@ use crate::tmux::{TmuxDomain, TmuxDomainState};
 use crate::{Domain, Mux};
 use anyhow::Error;
 use async_trait::async_trait;
+use config::keyassignment::ScrollbackEraseMode;
 use portable_pty::{Child, MasterPty, PtySize};
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
@@ -147,12 +148,15 @@ impl Pane for LocalPane {
         self.domain_id
     }
 
-    fn erase_buffer(&self) {
-        self.terminal.borrow_mut().erase_buffer();
-    }
-
-    fn erase_scrollback(&self) {
-        self.terminal.borrow_mut().erase_scrollback();
+    fn erase_scrollback(&self, erase_mode: ScrollbackEraseMode) {
+        match erase_mode {
+            ScrollbackEraseMode::ScrollbackOnly => {
+                self.terminal.borrow_mut().erase_scrollback();
+            }
+            ScrollbackEraseMode::ScrollbackAndViewport => {
+                self.terminal.borrow_mut().erase_scrollback_and_viewport();
+            }
+        }
     }
 
     fn focus_changed(&self, focused: bool) {
