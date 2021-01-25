@@ -143,6 +143,7 @@ pub enum KeyAssignment {
     SplitHorizontal(SpawnCommand),
     SplitVertical(SpawnCommand),
     ShowLauncher,
+    ClearBuffer,
     ClearScrollback,
     Search(Pattern),
     ActivateCopyMode,

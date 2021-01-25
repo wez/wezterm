@@ -248,6 +248,10 @@ impl Pane for TermWizTerminalPane {
         self.terminal.borrow().get_current_dir().cloned()
     }
 
+    fn erase_buffer(&self) {
+        self.terminal.borrow_mut().erase_buffer();
+    }
+
     fn erase_scrollback(&self) {
         self.terminal.borrow_mut().erase_scrollback();
     }

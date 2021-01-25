@@ -2078,6 +2078,11 @@ impl TermWindow {
                     window.invalidate();
                 }
             }
+            ClearBuffer => {
+                pane.erase_buffer();
+                let window = self.window.as_ref().unwrap();
+                window.invalidate();
+            }
             ClearScrollback => {
                 pane.erase_scrollback();
                 let window = self.window.as_ref().unwrap();

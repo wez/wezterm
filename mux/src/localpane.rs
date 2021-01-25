@@ -147,6 +147,10 @@ impl Pane for LocalPane {
         self.domain_id
     }
 
+    fn erase_buffer(&self) {
+        self.terminal.borrow_mut().erase_buffer();
+    }
+
     fn erase_scrollback(&self) {
         self.terminal.borrow_mut().erase_scrollback();
     }

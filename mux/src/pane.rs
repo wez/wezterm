@@ -117,6 +117,7 @@ pub trait Pane: Downcast {
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
 
+    fn erase_buffer(&self) {}
     fn erase_scrollback(&self) {}
 
     /// Called to advise on whether this tab has focus
