@@ -526,6 +526,11 @@ pub struct Config {
     /// as the positional arguments to that command.
     pub default_prog: Option<Vec<String>>,
 
+    /// Specifies the default current working directory if none is specified
+    /// through configuration or OSC 7 (see docs for `default_cwd` for more
+    /// info!)
+    pub default_cwd: Option<PathBuf>,
+
     /// Specifies a map of environment variables that should be set
     /// when spawning commands in the local domain.
     /// This is not used when working with remote domains.
@@ -1241,6 +1246,12 @@ impl Config {
     }
 
     pub fn apply_cmd_defaults(&self, cmd: &mut CommandBuilder) {
+        // Apply `default_cwd` only if `cwd` is not already set, allows `--cwd`
+        // option to take precedence
+        if let (None, Some(cwd)) = (cmd.get_cwd(), &self.default_cwd) {
+            cmd.cwd(cwd);
+        }
+
         for (k, v) in &self.set_environment_variables {
             cmd.env(k, v);
         }
