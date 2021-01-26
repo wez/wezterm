@@ -5568,10 +5568,15 @@ return {
 </code></pre>
 <h1><a class="header" href="#clearscrollback" id="clearscrollback">ClearScrollback</a></h1>
 <p>Clears the lines that have scrolled off the top of the viewport, resetting
-the scrollbar thumb to the full height of the window.</p>
+the scrollbar thumb to the full height of the window, and additionally the
+viewport depending on the argument:</p>
 <pre><code class="language-lua">return {
   keys = {
-    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=&quot;ClearScrollback&quot;}
+    -- Clears only the scrollback and leaves the viewport intact.
+    -- This is the default behavior.
+    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackOnly&quot;}}
+    -- Clears the scrollback and viewport leaving the prompt line the new first line.
+    {key=&quot;K&quot;, mods=&quot;CTRL|SHIFT&quot;, action=wezterm.action{ClearScrollback=&quot;ScrollbackAndViewport&quot;}}
   }
 }
 </code></pre>
