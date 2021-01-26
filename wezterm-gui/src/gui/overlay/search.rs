@@ -1,5 +1,6 @@
 use crate::gui::selection::{SelectionCoordinate, SelectionRange};
 use crate::gui::termwindow::TermWindow;
+use config::keyassignment::ScrollbackEraseMode;
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::*;
@@ -235,8 +236,8 @@ impl Pane for SearchOverlay {
         self.delegate.domain_id()
     }
 
-    fn erase_scrollback(&self) {
-        self.delegate.erase_scrollback()
+    fn erase_scrollback(&self, erase_mode: ScrollbackEraseMode) {
+        self.delegate.erase_scrollback(erase_mode)
     }
 
     fn is_mouse_grabbed(&self) -> bool {

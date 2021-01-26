@@ -674,6 +674,19 @@ impl TerminalState {
         }
     }
 
+    pub fn erase_scrollback_and_viewport(&mut self) {
+        self.erase_in_display(EraseInDisplay::EraseScrollback);
+
+        let row_index = self.screen.phys_row(self.cursor.y);
+        let row = self.screen.lines[row_index].clone();
+
+        self.erase_in_display(EraseInDisplay::EraseDisplay);
+
+        self.screen.lines[0] = row;
+
+        self.cursor.y = 0;
+    }
+
     /// Discards the scrollback, leaving only the data that is present
     /// in the viewport.
     pub fn erase_scrollback(&mut self) {

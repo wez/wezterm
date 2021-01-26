@@ -2,6 +2,7 @@ use crate::domain::DomainId;
 use crate::renderable::*;
 use crate::Mux;
 use async_trait::async_trait;
+use config::keyassignment::ScrollbackEraseMode;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
 use rangeset::RangeSet;
@@ -117,7 +118,7 @@ pub trait Pane: Downcast {
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
 
-    fn erase_scrollback(&self) {}
+    fn erase_scrollback(&self, _erase_mode: ScrollbackEraseMode) {}
 
     /// Called to advise on whether this tab has focus
     fn focus_changed(&self, _focused: bool) {}

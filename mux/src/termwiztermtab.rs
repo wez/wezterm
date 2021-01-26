@@ -11,6 +11,7 @@ use crate::window::WindowId;
 use crate::Mux;
 use anyhow::bail;
 use async_trait::async_trait;
+use config::keyassignment::ScrollbackEraseMode;
 use crossbeam::channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::{FileDescriptor, Pipe};
 use portable_pty::*;
@@ -248,8 +249,15 @@ impl Pane for TermWizTerminalPane {
         self.terminal.borrow().get_current_dir().cloned()
     }
 
-    fn erase_scrollback(&self) {
-        self.terminal.borrow_mut().erase_scrollback();
+    fn erase_scrollback(&self, erase_mode: ScrollbackEraseMode) {
+        match erase_mode {
+            ScrollbackEraseMode::ScrollbackOnly => {
+                self.terminal.borrow_mut().erase_scrollback();
+            }
+            ScrollbackEraseMode::ScrollbackAndViewport => {
+                self.terminal.borrow_mut().erase_scrollback_and_viewport();
+            }
+        }
     }
 }
 
