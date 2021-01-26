@@ -49,6 +49,48 @@ to edit your wezterm configuration:
 wezterm start -- vim ~/.wezterm.lua
 ```
 
+## Specifying the current working directory
+
+If you'd like `wezterm` to start running a program in a specific working
+directory you can do so via the config, CLI, and when using
+[`SpawnCommand`](lua/SpawnCommand.md):
+
+* Setting the [`default_cwd`](lua/config/default_cwd.md) via the config:
+
+  ```lua
+  return {
+    default_cwd = "/some/path",
+  }
+  ```
+
+* One off program in a specific working directory via the CLI:
+
+  ```bash
+  wezterm start --cwd /some/path
+  ```
+
+* The [`SpawnCommandInNewTab`](lua/keyassignment/SpawnCommandInNewTab.md),
+  [`SpawnCommandInNewWindow`](lua/keyassignment/SpawnCommandInNewWindow.md),
+  [`SpawnTab`](lua/keyassignment/SpawnTab.md) key assignments, and the
+  [Launcher Menu](#the-launcher-menu) described below all accept a
+  [`SpawnCommand`](lua/SpawnCommand.md) object that accepts an optional `cwd` field:
+
+  ```lua
+  {
+    label = "List files in /some/path",
+    args = {"ls", "-al"},
+    cwd = "/some/path",
+  }
+  ```
+
+Panes/Tabs/Windows created after the first will generally try to resolve the
+current working directory of the current Pane, preferring
+[a value set by OSC 7](../shell-integration.markdown) and falling back to
+attempting to lookup the `cwd` of the current process group leader attached to a
+local Pane. If no `cwd` can be resolved, then the `default_cwd` will be used.
+If `default_cwd` is not specified, then the home directory of the user will be
+used.
+
 ## Passing Environment variables to the spawned program
 
 The `set_environment_variables` configuration setting can be used to

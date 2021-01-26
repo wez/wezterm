@@ -526,8 +526,9 @@ pub struct Config {
     /// as the positional arguments to that command.
     pub default_prog: Option<Vec<String>>,
 
-    /// Specifies the default current working directory for the initially
-    /// spawned program.
+    /// Specifies the default current working directory if none is specified
+    /// through configuration or OSC 7 (see docs for `default_cwd` for more
+    /// info!)
     pub default_cwd: Option<PathBuf>,
 
     /// Specifies a map of environment variables that should be set
