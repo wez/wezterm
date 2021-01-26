@@ -91,6 +91,8 @@ local Pane. If no `cwd` can be resolved, then the `default_cwd` will be used.
 If `default_cwd` is not specified, then the home directory of the user will be
 used.
 
+[See `default_cwd` for an easier to understand visualization](lua/config/default_cwd.md).
+
 ## Passing Environment variables to the spawned program
 
 The `set_environment_variables` configuration setting can be used to
