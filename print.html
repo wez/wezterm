@@ -431,6 +431,7 @@ brief notes about them may accumulate here.</p>
 <li>macOS: we no longer use MetalANGLE to render the gui; it was short lived as macOS Big Sur now uses Metal in its CGL implementation.  Support for using MetalANGLE is still present if the dylib is found on startup, but we no longer ship the dylib.</li>
 <li>Windows: when pasting text, ensure that the text has CRLF line endings unless bracketed paste is enabled. This imperfect heuristic helps to keep multi-line pastes on multiple lines when using Windows console applications and to avoid interleaved blank lines when using unix applications. <a href="https://github.com/wez/wezterm/issues/411">#411</a></li>
 <li>New: <a href="config/lua/keyassignment/ClearScrollback.html">ClearScrollback</a> now accepts a parameter to control whether the viewport is cleared along with the scrollback. Thanks to <a href="https://github.com/dfrankland">@dfrankland</a>!</li>
+<li>New: <a href="config/lua/config/default_cwd.html">default_cwd</a> to specify an alternative current working directory. Thanks to <a href="https://github.com/dfrankland">@dfrankland</a>!</li>
 </ul>
 <h3><a class="header" href="#20201101-103216-403d002d" id="20201101-103216-403d002d">20201101-103216-403d002d</a></h3>
 <ul>
@@ -930,6 +931,7 @@ attempting to lookup the <code>cwd</code> of the current process group leader at
 local Pane. If no <code>cwd</code> can be resolved, then the <code>default_cwd</code> will be used.
 If <code>default_cwd</code> is not specified, then the home directory of the user will be
 used.</p>
+<p><a href="config/lua/config/default_cwd.html">See <code>default_cwd</code> for an easier to understand visualization</a>.</p>
 <h2><a class="header" href="#passing-environment-variables-to-the-spawned-program" id="passing-environment-variables-to-the-spawned-program">Passing Environment variables to the spawned program</a></h2>
 <p>The <code>set_environment_variables</code> configuration setting can be used to
 add environment variables to the environment of the spawned program.</p>
