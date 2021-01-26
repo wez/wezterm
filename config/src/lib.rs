@@ -1245,7 +1245,9 @@ impl Config {
     }
 
     pub fn apply_cmd_defaults(&self, cmd: &mut CommandBuilder) {
-        if let Some(ref cwd) = self.default_cwd {
+        // Apply `default_cwd` only if `cwd` is not already set, allows `--cwd`
+        // option to take precedence
+        if let (None, Some(cwd)) = (cmd.get_cwd(), &self.default_cwd) {
             cmd.cwd(cwd);
         }
 

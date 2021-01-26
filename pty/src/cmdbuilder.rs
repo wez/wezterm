@@ -96,6 +96,10 @@ impl CommandBuilder {
         self.cwd = Some(dir.as_ref().to_owned());
     }
 
+    pub fn get_cwd(&self) -> Option<&OsString> {
+        self.cwd.as_ref()
+    }
+
     #[cfg(unix)]
     pub fn umask(&mut self, mask: Option<libc::mode_t>) {
         self.umask = mask;
