@@ -155,8 +155,9 @@
                     <main>
                         <h1><a class="header" href="#clearscrollback" id="clearscrollback">ClearScrollback</a></h1>
 <p>Clears the lines that have scrolled off the top of the viewport, resetting
-the scrollbar thumb to the full height of the window, and additionally the
-viewport depending on the argument:</p>
+the scrollbar thumb to the full height of the window.</p>
+<p><em>since: nightly builds only</em></p>
+<p>Added a parameter that allows additionally clear the viewport:</p>
 <pre><code class="language-lua">return {
   keys = {
     -- Clears only the scrollback and leaves the viewport intact.
