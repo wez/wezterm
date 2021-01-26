@@ -1,5 +1,7 @@
 # `default_cwd`
 
+*Since: nightly builds only*
+
 Sets the default current working directory used by the initial window. If
 `wezterm start --cwd /some/path` is used to specify the current working
 directory, that will take precedence.
