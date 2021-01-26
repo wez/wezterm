@@ -13,6 +13,7 @@ use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::os::windows::raw::HANDLE;
 use std::path::Path;
 use std::ptr;
+use std::sync::Mutex;
 use winapi::shared::minwindef::DWORD;
 use winapi::shared::winerror::{HRESULT, S_OK};
 use winapi::um::handleapi::*;
@@ -150,6 +151,8 @@ impl PsuedoCon {
         let _main_thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread) };
         let proc = unsafe { OwnedHandle::from_raw_handle(pi.hProcess) };
 
-        Ok(WinChild { proc })
+        Ok(WinChild {
+            proc: Mutex::new(proc),
+        })
     }
 }

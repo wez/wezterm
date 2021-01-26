@@ -3,6 +3,7 @@ use anyhow::Context as _;
 use std::io::{Error as IoError, Result as IoResult};
 use std::os::windows::io::{AsRawHandle, RawHandle};
 use std::pin::Pin;
+use std::sync::Mutex;
 use std::task::{Context, Poll};
 use winapi::shared::minwindef::DWORD;
 use winapi::um::minwinbase::STILL_ACTIVE;
@@ -18,13 +19,14 @@ use filedescriptor::OwnedHandle;
 
 #[derive(Debug)]
 pub struct WinChild {
-    proc: OwnedHandle,
+    proc: Mutex<OwnedHandle>,
 }
 
 impl WinChild {
     fn is_complete(&mut self) -> IoResult<Option<ExitStatus>> {
         let mut status: DWORD = 0;
-        let res = unsafe { GetExitCodeProcess(self.proc.as_raw_handle(), &mut status) };
+        let proc = self.proc.lock().unwrap();
+        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle(), &mut status) };
         if res != 0 {
             if status == STILL_ACTIVE {
                 Ok(None)
@@ -37,7 +39,8 @@ impl WinChild {
     }
 
     fn do_kill(&mut self) -> IoResult<()> {
-        let res = unsafe { TerminateProcess(self.proc.as_raw_handle(), 1) };
+        let proc = self.proc.lock().unwrap();
+        let res = unsafe { TerminateProcess(proc.as_raw_handle(), 1) };
         let err = IoError::last_os_error();
         if res != 0 {
             Err(err)
@@ -62,11 +65,12 @@ impl Child for WinChild {
         if let Ok(Some(status)) = self.try_wait() {
             return Ok(status);
         }
+        let proc = self.proc.lock().unwrap();
         unsafe {
-            WaitForSingleObject(self.proc.as_raw_handle(), INFINITE);
+            WaitForSingleObject(proc.as_raw_handle(), INFINITE);
         }
         let mut status: DWORD = 0;
-        let res = unsafe { GetExitCodeProcess(self.proc.as_raw_handle(), &mut status) };
+        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle(), &mut status) };
         if res != 0 {
             Ok(ExitStatus::with_exit_code(status))
         } else {
@@ -85,7 +89,9 @@ impl std::future::Future for WinChild {
             Ok(None) => {
                 struct PassRawHandleToWaiterThread(pub RawHandle);
                 unsafe impl Send for PassRawHandleToWaiterThread {}
-                let handle = PassRawHandleToWaiterThread(self.proc.as_raw_handle());
+
+                let proc = self.proc.lock().unwrap();
+                let handle = PassRawHandleToWaiterThread(proc.as_raw_handle());
 
                 let waker = cx.waker().clone();
                 std::thread::spawn(move || {
