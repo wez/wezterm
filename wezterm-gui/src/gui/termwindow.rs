@@ -25,7 +25,8 @@ use ::window::MouseEventKind as WMEK;
 use ::window::*;
 use anyhow::{anyhow, bail, ensure};
 use config::keyassignment::{
-    InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
+    ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, MouseEventTrigger,
+    SpawnCommand, SpawnTabDomain,
 };
 use config::{configuration, ConfigHandle, WindowCloseConfirmation};
 use lru::LruCache;
@@ -143,7 +144,8 @@ impl wezterm_term::Clipboard for ClipboardHelper {
     }
 
     fn set_contents(&self, data: Option<String>) -> anyhow::Result<()> {
-        self.window.set_clipboard(data.unwrap_or_else(String::new));
+        self.window
+            .set_clipboard(Clipboard::Clipboard, data.unwrap_or_else(String::new));
         Ok(())
     }
 }
@@ -1855,10 +1857,31 @@ impl TermWindow {
         s
     }
 
-    fn paste_from_clipboard(&mut self, pane: &Rc<dyn Pane>, clipboard: Clipboard) {
+    fn copy_to_clipboard(&self, clipboard: ClipboardCopyDestination, text: String) {
+        let clipboard = match clipboard {
+            ClipboardCopyDestination::Clipboard => [Some(Clipboard::Clipboard), None],
+            ClipboardCopyDestination::PrimarySelection => [Some(Clipboard::PrimarySelection), None],
+            ClipboardCopyDestination::ClipboardAndPrimarySelection => [
+                Some(Clipboard::Clipboard),
+                Some(Clipboard::PrimarySelection),
+            ],
+        };
+        for &c in &clipboard {
+            if let Some(c) = c {
+                self.window.as_ref().unwrap().set_clipboard(c, text.clone());
+            }
+        }
+    }
+
+    fn paste_from_clipboard(&mut self, pane: &Rc<dyn Pane>, clipboard: ClipboardPasteSource) {
         let pane_id = pane.pane_id();
         let window = self.window.as_ref().unwrap().clone();
+        let clipboard = match clipboard {
+            ClipboardPasteSource::Clipboard => Clipboard::Clipboard,
+            ClipboardPasteSource::PrimarySelection => Clipboard::PrimarySelection,
+        };
         let future = window.get_clipboard(clipboard);
+
         promise::spawn::spawn(async move {
             if let Ok(clip) = future.await {
                 window
@@ -1914,16 +1937,21 @@ impl TermWindow {
                 self.window.as_ref().unwrap().toggle_fullscreen();
             }
             Copy => {
-                self.window
-                    .as_ref()
-                    .unwrap()
-                    .set_clipboard(self.selection_text(pane));
+                let text = self.selection_text(pane);
+                self.copy_to_clipboard(configuration().default_clipboard_copy_destination, text);
+            }
+            CopyTo(dest) => {
+                let text = self.selection_text(pane);
+                self.copy_to_clipboard(*dest, text);
             }
             Paste => {
-                self.paste_from_clipboard(pane, Clipboard::default());
+                self.paste_from_clipboard(pane, configuration().default_clipboard_paste_source);
             }
             PastePrimarySelection => {
-                self.paste_from_clipboard(pane, Clipboard::PrimarySelection);
+                self.paste_from_clipboard(pane, ClipboardPasteSource::PrimarySelection);
+            }
+            PasteFrom(source) => {
+                self.paste_from_clipboard(pane, *source);
             }
             ActivateTabRelative(n) => {
                 self.activate_tab_relative(*n)?;
@@ -2062,8 +2090,11 @@ impl TermWindow {
             CompleteSelectionOrOpenLinkAtMouseCursor => {
                 let text = self.selection_text(pane);
                 if !text.is_empty() {
+                    self.copy_to_clipboard(
+                        configuration().default_clipboard_copy_destination,
+                        text,
+                    );
                     let window = self.window.as_ref().unwrap();
-                    window.set_clipboard(text);
                     window.invalidate();
                 } else {
                     return self
@@ -2073,8 +2104,11 @@ impl TermWindow {
             CompleteSelection => {
                 let text = self.selection_text(pane);
                 if !text.is_empty() {
+                    self.copy_to_clipboard(
+                        configuration().default_clipboard_copy_destination,
+                        text,
+                    );
                     let window = self.window.as_ref().unwrap();
-                    window.set_clipboard(text);
                     window.invalidate();
                 }
             }

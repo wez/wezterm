@@ -516,7 +516,7 @@ impl WindowOps for Window {
         )
     }
 
-    fn set_clipboard(&self, text: String) -> Future<()> {
+    fn set_clipboard(&self, _clipboard: Clipboard, text: String) -> Future<()> {
         Future::result(
             clipboard_win::set_clipboard_string(&text).context("Error setting clipboard"),
         )

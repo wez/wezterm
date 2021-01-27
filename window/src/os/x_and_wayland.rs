@@ -220,11 +220,11 @@ impl WindowOps for Window {
             Self::Wayland(w) => w.get_clipboard(clipboard),
         }
     }
-    fn set_clipboard(&self, text: String) -> Future<()> {
+    fn set_clipboard(&self, clipboard: Clipboard, text: String) -> Future<()> {
         match self {
-            Self::X11(x) => x.set_clipboard(text),
+            Self::X11(x) => x.set_clipboard(clipboard, text),
             #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.set_clipboard(text),
+            Self::Wayland(w) => w.set_clipboard(clipboard, text),
         }
     }
 }

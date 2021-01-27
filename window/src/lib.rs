@@ -192,7 +192,7 @@ pub trait WindowOps {
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String>;
 
     /// Set some text in the clipboard
-    fn set_clipboard(&self, text: String) -> Future<()>;
+    fn set_clipboard(&self, clipboard: Clipboard, text: String) -> Future<()>;
 
     /// Set the icon for the window.
     /// Depending on the system this may be shown in its titlebar

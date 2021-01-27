@@ -108,6 +108,7 @@ The default key bindings are:
 | `SUPER`     | `v`   | `Paste`  |
 | `CTRL+SHIFT`     | `c`   | `Copy`  |
 | `CTRL+SHIFT`     | `v`   | `Paste`  |
+| `CTRL`     | `Insert` | `Copy` (*since: nightly builds*) |
 | `SHIFT`     | `Insert` | `Paste` |
 | `SUPER`     | `m`      | `Hide`  |
 | `SUPER`     | `n`      | `SpawnWindow` |

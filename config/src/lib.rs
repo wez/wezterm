@@ -1,6 +1,8 @@
 //! Configuration for the gui portion of the terminal
 
-use crate::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnCommand};
+use crate::keyassignment::{
+    ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, MouseEventTrigger, SpawnCommand,
+};
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
 use luahelper::impl_lua_conversion;
@@ -853,6 +855,12 @@ pub struct Config {
 
     #[serde(default = "default_true")]
     pub adjust_window_size_when_changing_font_size: bool,
+
+    #[serde(default = "default_copy_destination")]
+    pub default_clipboard_copy_destination: ClipboardCopyDestination,
+
+    #[serde(default = "default_paste_source")]
+    pub default_clipboard_paste_source: ClipboardPasteSource,
 }
 
 fn default_word_boundary() -> String {
@@ -1264,6 +1272,18 @@ impl Config {
         cmd.env("TERM_PROGRAM", "WezTerm");
         cmd.env("TERM_PROGRAM_VERSION", crate::wezterm_version());
     }
+}
+
+fn default_copy_destination() -> ClipboardCopyDestination {
+    if cfg!(any(target_os = "macos", windows)) {
+        ClipboardCopyDestination::Clipboard
+    } else {
+        ClipboardCopyDestination::ClipboardAndPrimarySelection
+    }
+}
+
+fn default_paste_source() -> ClipboardPasteSource {
+    ClipboardPasteSource::Clipboard
 }
 
 fn default_ratelimit_line_prefetches_per_second() -> u32 {

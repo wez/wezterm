@@ -123,14 +123,41 @@ impl Default for ScrollbackEraseMode {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum ClipboardCopyDestination {
+    Clipboard,
+    PrimarySelection,
+    ClipboardAndPrimarySelection,
+}
+
+impl Default for ClipboardCopyDestination {
+    fn default() -> Self {
+        Self::ClipboardAndPrimarySelection
+    }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum ClipboardPasteSource {
+    Clipboard,
+    PrimarySelection,
+}
+
+impl Default for ClipboardPasteSource {
+    fn default() -> Self {
+        Self::Clipboard
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
     ToggleFullScreen,
     Copy,
+    CopyTo(ClipboardCopyDestination),
     Paste,
     PastePrimarySelection,
+    PasteFrom(ClipboardPasteSource),
     ActivateTabRelative(isize),
     IncreaseFontSize,
     DecreaseFontSize,
@@ -217,6 +244,7 @@ impl InputMap {
             k!(
                 // Clipboard
                 [Modifiers::SHIFT, KeyCode::Insert, Paste],
+                [Modifiers::CTRL, KeyCode::Insert, Copy],
                 [Modifiers::SUPER, KeyCode::Char('c'), Copy],
                 [Modifiers::SUPER, KeyCode::Char('v'), Paste],
                 [Modifiers::CTRL, KeyCode::Char('C'), Copy],

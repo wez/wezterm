@@ -360,25 +360,22 @@ impl XWindowInner {
 
     /// If we own the selection, make sure that the X server reflects
     /// that and vice versa.
-    fn update_selection_owner(&mut self) {
+    fn update_selection_owner(&mut self, clipboard: Clipboard) {
         let conn = self.conn();
-        for &selection in &[xcb::ATOM_PRIMARY, conn.atom_clipboard] {
-            let current_owner = xcb::get_selection_owner(&conn, selection)
-                .get_reply()
-                .unwrap()
-                .owner();
-            if self.copy_and_paste.owned.is_none() && current_owner == self.window_id {
-                // We don't have a selection but X thinks we do; disown it!
-                xcb::set_selection_owner(&conn, xcb::NONE, selection, self.copy_and_paste.time);
-            } else if self.copy_and_paste.owned.is_some() && current_owner != self.window_id {
-                // We have the selection but X doesn't think we do; assert it!
-                xcb::set_selection_owner(
-                    &conn,
-                    self.window_id,
-                    selection,
-                    self.copy_and_paste.time,
-                );
-            }
+        let selection = match clipboard {
+            Clipboard::PrimarySelection => xcb::ATOM_PRIMARY,
+            Clipboard::Clipboard => conn.atom_clipboard,
+        };
+        let current_owner = xcb::get_selection_owner(&conn, selection)
+            .get_reply()
+            .unwrap()
+            .owner();
+        if self.copy_and_paste.owned.is_none() && current_owner == self.window_id {
+            // We don't have a selection but X thinks we do; disown it!
+            xcb::set_selection_owner(&conn, xcb::NONE, selection, self.copy_and_paste.time);
+        } else if self.copy_and_paste.owned.is_some() && current_owner != self.window_id {
+            // We have the selection but X doesn't think we do; assert it!
+            xcb::set_selection_owner(&conn, self.window_id, selection, self.copy_and_paste.time);
         }
         conn.flush();
     }
@@ -386,7 +383,8 @@ impl XWindowInner {
     fn selection_clear(&mut self) -> anyhow::Result<()> {
         self.copy_and_paste.owned.take();
         self.copy_and_paste.request.take();
-        self.update_selection_owner();
+        self.update_selection_owner(Clipboard::PrimarySelection);
+        self.update_selection_owner(Clipboard::Clipboard);
         Ok(())
     }
 
@@ -976,10 +974,10 @@ impl WindowOps for XWindow {
     }
 
     /// Set some text in the clipboard
-    fn set_clipboard(&self, text: String) -> Future<()> {
+    fn set_clipboard(&self, clipboard: Clipboard, text: String) -> Future<()> {
         XConnection::with_window_inner(self.0, move |inner| {
             inner.copy_and_paste.owned.replace(text.clone());
-            inner.update_selection_owner();
+            inner.update_selection_owner(clipboard);
             Ok(())
         })
     }

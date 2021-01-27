@@ -49,6 +49,8 @@ brief notes about them may accumulate here.
 * Windows: when pasting text, ensure that the text has CRLF line endings unless bracketed paste is enabled. This imperfect heuristic helps to keep multi-line pastes on multiple lines when using Windows console applications and to avoid interleaved blank lines when using unix applications. [#411](https://github.com/wez/wezterm/issues/411)
 * New: [ClearScrollback](config/lua/keyassignment/ClearScrollback.html) now accepts a parameter to control whether the viewport is cleared along with the scrollback. Thanks to [@dfrankland](https://github.com/dfrankland)!
 * New: [default_cwd](config/lua/config/default_cwd.html) to specify an alternative current working directory. Thanks to [@dfrankland](https://github.com/dfrankland)!
+* New: [default_clipboard_copy_destination](config/lua/config/default_clipboard_copy_destination.md) and [default_clipboard_paste_source](config/lua/config/default_clipboard_paste_source.md) config options for X11, along with [CopyTo](config/lua/keyassignment/CopyTo.md) and [PasteFrom](config/lua/keyassignment/PasteFrom.md) actions. [PastePrimarySelection](config/lua/keyassignment/PastePrimarySelection.md) is now deprecated in favor of these new options.
+* New: Added a new default `CTRL-Insert` key assignment bound to `Copy`
 
 ### 20201101-103216-403d002d
 

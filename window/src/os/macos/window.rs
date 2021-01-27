@@ -562,7 +562,7 @@ impl WindowOps for Window {
         )
     }
 
-    fn set_clipboard(&self, text: String) -> Future<()> {
+    fn set_clipboard(&self, _clipboard: Clipboard, text: String) -> Future<()> {
         use clipboard::ClipboardProvider;
         Future::result(
             clipboard::ClipboardContext::new()

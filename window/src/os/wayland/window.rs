@@ -669,7 +669,7 @@ impl WindowOps for WaylandWindow {
         future
     }
 
-    fn set_clipboard(&self, text: String) -> Future<()> {
+    fn set_clipboard(&self, _clipboard: Clipboard, text: String) -> Future<()> {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             let text = text.clone();
             let conn = Connection::get().unwrap().wayland();
