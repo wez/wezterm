@@ -25,7 +25,7 @@ pub struct WinChild {
 impl WinChild {
     fn is_complete(&mut self) -> IoResult<Option<ExitStatus>> {
         let mut status: DWORD = 0;
-        let proc = self.proc.lock().unwrap();
+        let proc = self.proc.lock().unwrap().try_clone().unwrap();
         let res = unsafe { GetExitCodeProcess(proc.as_raw_handle(), &mut status) };
         if res != 0 {
             if status == STILL_ACTIVE {
@@ -39,7 +39,7 @@ impl WinChild {
     }
 
     fn do_kill(&mut self) -> IoResult<()> {
-        let proc = self.proc.lock().unwrap();
+        let proc = self.proc.lock().unwrap().try_clone().unwrap();
         let res = unsafe { TerminateProcess(proc.as_raw_handle(), 1) };
         let err = IoError::last_os_error();
         if res != 0 {
@@ -65,7 +65,7 @@ impl Child for WinChild {
         if let Ok(Some(status)) = self.try_wait() {
             return Ok(status);
         }
-        let proc = self.proc.lock().unwrap();
+        let proc = self.proc.lock().unwrap().try_clone().unwrap();
         unsafe {
             WaitForSingleObject(proc.as_raw_handle(), INFINITE);
         }
@@ -90,7 +90,7 @@ impl std::future::Future for WinChild {
                 struct PassRawHandleToWaiterThread(pub RawHandle);
                 unsafe impl Send for PassRawHandleToWaiterThread {}
 
-                let proc = self.proc.lock().unwrap();
+                let proc = self.proc.lock().unwrap().try_clone()?;
                 let handle = PassRawHandleToWaiterThread(proc.as_raw_handle());
 
                 let waker = cx.waker().clone();
