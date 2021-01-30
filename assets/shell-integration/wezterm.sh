@@ -10,12 +10,12 @@
 # WEZTERM_SHELL_SKIP_SEMANTIC_ZONES - disables zones
 # WEZTERM_SHELL_SKIP_CWD - disables OSC 7 cwd setting
 
-if [[ "${WEZTERM_SHELL_SKIP_ALL}" == "1" ]] ; then
+if [ -z "${BASH_VERSION}" -a -z "${ZSH_NAME}" ] ; then
+  # Only for bash or zsh
   return 0
 fi
 
-if [[ -z "${BASH_VERSION}" && -z "${ZSH_NAME}" ]] ; then
-  # Only for bash or zsh
+if [ "${WEZTERM_SHELL_SKIP_ALL}" = "1" ] ; then
   return 0
 fi
 
