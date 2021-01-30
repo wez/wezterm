@@ -9,7 +9,6 @@
 /target/
 /gh_pages/
 /docs/SUMMARY.md
-/docs/installation.md
 /docs/install/*.md
 /docs/colorschemes/**/index.md
 /docs/config/lua/config/index.md

@@ -79,7 +79,7 @@ def load_release_info():
     build_subst(subst, "nightly", nightly)
     print(pretty(subst))
 
-    for name in ['installation', 'install/windows', 'install/macos', 'install/linux', 'install/source']:
+    for name in ['install/windows', 'install/macos', 'install/linux', 'install/source']:
         with open(f"docs/{name}.markdown", "r") as input:
             with open(f"docs/{name}.md", "w") as output:
                 for line in input:

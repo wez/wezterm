@@ -81,7 +81,7 @@ the action described below.
 | ^X |0x18|CAN |Cancel       |Ignored|
 | ^Y |0x19|EM  |End of Medium|Ignored|
 | ^Z |0x1A|SUB |Substitute   |Ignored|
-| ^[ |0x1B|ESC |Escape       |Introduces various escape sequences described below|
+| ^\[ |0x1B|ESC |Escape       |Introduces various escape sequences described below|
 | ^\\|0x1C|FS  |File Separator|Ignored|
 | ^] |0x1D|GS  |Group Separator|Ignored|
 | ^^ |0x1E|RS  |Record Separator|Ignored|
@@ -293,7 +293,7 @@ In the table below, `DCS` can be either the 7-bit representation (`ESC P`) or th
 |DCS $ q " p ST | [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html) for [DECSCL](https://vt100.net/docs/vt510-rm/DECSCL.html) | Request Conformance Level; Reports the conformance level |
 |DCS $ q r ST   | [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html) for [DECSTBM](https://vt100.net/docs/vt510-rm/DECSTBM.html) | Request top and bottom margin report; Reports the margins |
 |DCS $ q s ST   | [DECRQSS](https://vt100.net/docs/vt510-rm/DECRQSS.html) for [DECSLRM](https://vt100.net/docs/vt510-rm/DECSLRM.html) | Request left and right margin report; Reports the margins |
-|DCS [PARAMS] q [DATA] ST | Sixel Graphic Data | Decodes [Sixel graphic data](https://vt100.net/docs/vt3xx-gp/chapter14.html) and apply the image to the terminal model. Support is preliminary and incomplete; see [this issue](https://github.com/wez/wezterm/issues/217) for status. |
+|DCS \[PARAMS\] q \[DATA\] ST | Sixel Graphic Data | Decodes [Sixel graphic data](https://vt100.net/docs/vt3xx-gp/chapter14.html) and apply the image to the terminal model. Support is preliminary and incomplete; see [this issue](https://github.com/wez/wezterm/issues/217) for status. |
 |DCS 1000 q | tmux control mode | Bridges tmux into the WezTerm multiplexer.  Currently incomplete, see [this issue](https://github.com/wez/wezterm/issues/336) for status. |
 
 ### Operating System Command Sequences

@@ -11,7 +11,7 @@ Commands launched using [`SpawnCommand`](../SpawnCommand.md) will use the
 
 Panes/Tabs/Windows created after the first will generally try to resolve the
 current working directory of the current Pane, preferring
-[a value set by OSC 7](../../../shell-integration.markdown) and falling back to
+[a value set by OSC 7](../../../shell-integration.md) and falling back to
 attempting to lookup the `cwd` of the current process group leader attached to a
 local Pane. If no `cwd` can be resolved, then the `default_cwd` will be used.
 If `default_cwd` is not specified, then the home directory of the user will be

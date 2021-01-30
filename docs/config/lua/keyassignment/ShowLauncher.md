@@ -1,6 +1,6 @@
 # ShowLauncher
 
-Activate the [Launcher Menu](launch.html#the-launcher-menu)
+Activate the [Launcher Menu](../../launch.md#the-launcher-menu)
 in the current tab.
 
 ```lua
