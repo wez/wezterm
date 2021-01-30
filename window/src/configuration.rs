@@ -21,6 +21,12 @@ pub trait WindowConfiguration {
         false
     }
 
+    /// Retrieves the opacity configuration from the host application.
+    /// Note that this value doesn't directly control the opacity of
+    /// the window from the perspective of this window crate; the application
+    /// must set the alpha level of the pixels when it renders the window.
+    /// This method is used by the macOS impl to adjust other window settings
+    /// when the window is transparent.
     fn window_background_opacity(&self) -> f32 {
         1.0
     }
