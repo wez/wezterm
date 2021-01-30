@@ -10,8 +10,8 @@ use std::os::raw::{c_char, c_int};
 use std::ptr;
 use std::sync::Mutex;
 
-static FC_MONO: i32 = 100;
-static FC_DUAL: i32 = 90;
+pub const FC_MONO: i32 = 100;
+pub const FC_DUAL: i32 = 90;
 
 lazy_static::lazy_static! {
     /// This is hideous and gross, but we don't have a lot of choice.
@@ -262,6 +262,11 @@ impl Pattern {
 
     pub fn dual(&mut self) -> Result<(), Error> {
         self.add_integer("spacing", FC_DUAL)
+    }
+
+    pub fn delete_property(&mut self, key: &str) -> Result<bool, Error> {
+        let key = CString::new(key)?;
+        unsafe { Ok(FcPatternDel(self.pat, key.as_ptr()) != 0) }
     }
 
     pub fn format(&self, fmt: &str) -> Result<String, Error> {

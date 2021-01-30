@@ -6,6 +6,10 @@ use fcwrap::{CharSet, Pattern as FontPattern};
 use std::collections::HashSet;
 use std::convert::TryInto;
 
+/// Allow for both monospace and dual spacing; both of these are
+/// fixed width styles so are desirable for a terminal use case.
+const SPACING: [i32; 2] = [fcwrap::FC_MONO, fcwrap::FC_DUAL];
+
 /// A FontLocator implemented using the system font loading
 /// functions provided by font-config
 pub struct FontConfigFontLocator {}
@@ -18,47 +22,41 @@ impl FontLocator for FontConfigFontLocator {
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut fonts = vec![];
 
-        for (is_mono, attr) in fonts_selection
-            .iter()
-            .flat_map(|a| std::iter::once((true, a)).chain(std::iter::once((false, a))))
-        {
-            let mut pattern = FontPattern::new()?;
-            let start = std::time::Instant::now();
-            pattern.family(&attr.family)?;
-            pattern.add_integer("weight", if attr.bold { 200 } else { 80 })?;
-            pattern.add_integer("slant", if attr.italic { 100 } else { 0 })?;
+        for attr in fonts_selection {
+            for &spacing in &SPACING {
+                let mut pattern = FontPattern::new()?;
+                let start = std::time::Instant::now();
+                pattern.family(&attr.family)?;
+                pattern.add_integer("weight", if attr.bold { 200 } else { 80 })?;
+                pattern.add_integer("slant", if attr.italic { 100 } else { 0 })?;
+                pattern.add_integer("spacing", spacing)?;
 
-            if is_mono {
-                pattern.monospace()?;
-            } else {
-                pattern.dual()?;
-            }
+                log::trace!("fc pattern before config subst: {:?}", pattern);
+                pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
+                pattern.default_substitute();
 
-            log::trace!("fc pattern before config subst: {:?}", pattern);
-            pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
-            pattern.default_substitute();
+                let best = pattern.get_best_match()?;
+                log::trace!(
+                    "best match took {:?} to compute and is {:?}",
+                    start.elapsed(),
+                    best
+                );
 
-            let best = pattern.get_best_match()?;
-            log::trace!(
-                "best match took {:?} to compute and is {:?}",
-                start.elapsed(),
-                best
-            );
+                let file = best.get_file()?;
+                let handle = FontDataHandle::OnDisk {
+                    path: file.into(),
+                    index: best.get_integer("index")?.try_into()?,
+                };
 
-            let file = best.get_file()?;
-            let handle = FontDataHandle::OnDisk {
-                path: file.into(),
-                index: best.get_integer("index")?.try_into()?,
-            };
-
-            // fontconfig will give us a boatload of random fallbacks.
-            // so we need to parse the returned font
-            // here to see if we got what we asked for.
-            if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
-                if crate::parser::font_info_matches(attr, parsed.names()) {
-                    fonts.push(handle);
-                    loaded.insert(attr.clone());
-                    log::trace!("found font-config match for {:?}", parsed.names());
+                // fontconfig will give us a boatload of random fallbacks.
+                // so we need to parse the returned font
+                // here to see if we got what we asked for.
+                if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
+                    if crate::parser::font_info_matches(attr, parsed.names()) {
+                        fonts.push(handle);
+                        loaded.insert(attr.clone());
+                        log::trace!("found font-config match for {:?}", parsed.names());
+                    }
                 }
             }
         }
@@ -80,17 +78,23 @@ impl FontLocator for FontConfigFontLocator {
         pattern.add_integer("weight", 80)?;
         pattern.add_integer("slant", 0)?;
 
-        let any_spacing = pattern
+        let mut lists = vec![pattern
             .list()
-            .context("pattern.list with no spacing constraint")?;
-        pattern.monospace()?;
-        let mono_spacing = pattern
-            .list()
-            .context("pattern.list with monospace constraint")?;
+            .context("pattern.list with no spacing constraint")?];
+
+        for &spacing in &SPACING {
+            pattern.delete_property("spacing")?;
+            pattern.add_integer("spacing", spacing)?;
+            lists.push(
+                pattern
+                    .list()
+                    .with_context(|| format!("pattern.list with spacing={}", spacing))?,
+            );
+        }
 
         let mut fonts = vec![];
 
-        for list in &[mono_spacing, any_spacing] {
+        for list in lists {
             for pat in list.iter() {
                 let num = pat.charset_intersect_count(&charset)?;
                 if num == 0 {
