@@ -11,6 +11,7 @@ use std::ptr;
 use std::sync::Mutex;
 
 static FC_MONO: i32 = 100;
+static FC_DUAL: i32 = 90;
 
 lazy_static::lazy_static! {
     /// This is hideous and gross, but we don't have a lot of choice.
@@ -257,6 +258,10 @@ impl Pattern {
 
     pub fn monospace(&mut self) -> Result<(), Error> {
         self.add_integer("spacing", FC_MONO)
+    }
+
+    pub fn dual(&mut self) -> Result<(), Error> {
+        self.add_integer("spacing", FC_DUAL)
     }
 
     pub fn format(&self, fmt: &str) -> Result<String, Error> {
