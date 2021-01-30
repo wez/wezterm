@@ -18,13 +18,22 @@ impl FontLocator for FontConfigFontLocator {
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut fonts = vec![];
 
-        for attr in fonts_selection {
+        for (is_mono, attr) in fonts_selection
+            .iter()
+            .flat_map(|a| std::iter::once((true, a)).chain(std::iter::once((false, a))))
+        {
             let mut pattern = FontPattern::new()?;
             let start = std::time::Instant::now();
             pattern.family(&attr.family)?;
             pattern.add_integer("weight", if attr.bold { 200 } else { 80 })?;
             pattern.add_integer("slant", if attr.italic { 100 } else { 0 })?;
-            pattern.monospace()?;
+
+            if is_mono {
+                pattern.monospace()?;
+            } else {
+                pattern.dual()?;
+            }
+
             log::trace!("fc pattern before config subst: {:?}", pattern);
             pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
             pattern.default_substitute();
