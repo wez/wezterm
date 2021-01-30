@@ -51,6 +51,7 @@ brief notes about them may accumulate here.
 * New: [default_cwd](config/lua/config/default_cwd.html) to specify an alternative current working directory. Thanks to [@dfrankland](https://github.com/dfrankland)!
 * New: [default_clipboard_copy_destination](config/lua/config/default_clipboard_copy_destination.md) and [default_clipboard_paste_source](config/lua/config/default_clipboard_paste_source.md) config options for X11, along with [CopyTo](config/lua/keyassignment/CopyTo.md) and [PasteFrom](config/lua/keyassignment/PasteFrom.md) actions. [PastePrimarySelection](config/lua/keyassignment/PastePrimarySelection.md) is now deprecated in favor of these new options.
 * New: Added a new default `CTRL-Insert` key assignment bound to `Copy`
+* macOS: Windows now have drop-shadows when they are opaque. These were disabled due transparency support was added. Thanks to [Rice](https://github.com/fanzeyi)! [#445](https://github.com/wez/wezterm/pull/445)
 
 ### 20201101-103216-403d002d
 
