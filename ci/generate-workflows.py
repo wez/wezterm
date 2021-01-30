@@ -40,7 +40,7 @@ class RunStep(Step):
 
         if env:
             for k, v in env.items():
-                if self.shell is "bash":
+                if self.shell == "bash":
                     run = f"export {k}={v}\n{run}\n"
 
         f.write(f"      run: {yv(run)}\n")
@@ -590,12 +590,11 @@ def generate_pr_actions():
         lambda t: t.pull_request(),
         trigger="""
 on:
-  push:
-    branches:
-    - master
   pull_request:
     branches:
     - master
+    paths-ignore:
+    - 'docs/*'
 """,
         is_continuous=False,
     )
@@ -608,7 +607,12 @@ def continuous_actions():
         trigger="""
 on:
   schedule:
-    - cron: "10 * * * *"
+    - cron: "10 3 * * *"
+  push:
+    branches:
+    - master
+    paths-ignore:
+    - 'docs/**'
 """,
         is_continuous=True,
     )

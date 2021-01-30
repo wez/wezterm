@@ -3,7 +3,12 @@ name: debian10.3_continuous
 
 on:
   schedule:
-    - cron: "10 * * * *"
+    - cron: "10 3 * * *"
+  push:
+    branches:
+    - master
+    paths-ignore:
+    - 'docs/**'
 
 
 jobs:
