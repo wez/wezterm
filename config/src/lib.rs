@@ -861,6 +861,13 @@ pub struct Config {
 
     #[serde(default = "default_paste_source")]
     pub default_clipboard_paste_source: ClipboardPasteSource,
+
+    #[serde(default = "default_alternate_buffer_wheel_scroll_speed")]
+    pub alternate_buffer_wheel_scroll_speed: u8,
+}
+
+fn default_alternate_buffer_wheel_scroll_speed() -> u8 {
+    3
 }
 
 fn default_word_boundary() -> String {

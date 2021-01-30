@@ -30,4 +30,8 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
 
         config.resolved_palette.clone().into()
     }
+
+    fn alternate_buffer_wheel_scroll_speed(&self) -> u8 {
+        configuration().alternate_buffer_wheel_scroll_speed
+    }
 }

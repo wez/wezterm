@@ -531,14 +531,16 @@ impl TerminalState {
             self.writer.flush()?;
         } else if self.screen.is_alt_screen_active() {
             // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
-            self.key_down(
-                match event.button {
-                    MouseButton::WheelDown(_) => KeyCode::DownArrow,
-                    MouseButton::WheelUp(_) => KeyCode::UpArrow,
-                    _ => bail!("unexpected mouse event"),
-                },
-                KeyModifiers::default(),
-            )?;
+            for _ in 0..self.config.alternate_buffer_wheel_scroll_speed() {
+                self.key_down(
+                    match event.button {
+                        MouseButton::WheelDown(_) => KeyCode::DownArrow,
+                        MouseButton::WheelUp(_) => KeyCode::UpArrow,
+                        _ => bail!("unexpected mouse event"),
+                    },
+                    KeyModifiers::default(),
+                )?;
+            }
         }
         Ok(())
     }

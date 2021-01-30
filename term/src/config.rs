@@ -68,4 +68,8 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     fn resize_preserves_scrollback(&self) -> bool {
         cfg!(windows)
     }
+
+    fn alternate_buffer_wheel_scroll_speed(&self) -> u8 {
+        3
+    }
 }
