@@ -204,6 +204,10 @@ pub trait WindowOps {
     fn toggle_fullscreen(&self) -> Future<()> {
         Future::ok(())
     }
+
+    fn config_did_change(&self) -> Future<()> {
+        Future::ok(())
+    }
 }
 
 pub trait WindowOpsMut {
@@ -245,6 +249,8 @@ pub trait WindowOpsMut {
     fn set_icon(&mut self, _image: &dyn BitmapImage) {}
 
     fn toggle_fullscreen(&mut self) {}
+
+    fn config_did_change(&mut self) {}
 }
 
 static PREFER_SWRAST: AtomicBool = AtomicBool::new(false);

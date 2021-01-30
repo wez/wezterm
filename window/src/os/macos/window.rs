@@ -396,11 +396,6 @@ impl Window {
             let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
 
             window.setReleasedWhenClosed_(NO);
-            window.setOpaque_(NO);
-            // Turn off the window shadow, because when the background is transparent
-            // having the shadow enabled seems to correlate with ghostly remnants
-            // see: https://github.com/wez/wezterm/issues/310
-            window.setHasShadow_(NO);
             let ns_color: id = msg_send![Class::get("NSColor").unwrap(), alloc];
             window.setBackgroundColor_(cocoa::appkit::NSColor::clearColor(ns_color));
 
@@ -453,6 +448,7 @@ impl Window {
                 .insert(window_id, Rc::clone(&window_inner));
 
             let window = Window(window_id);
+            window.config_did_change();
 
             inner.borrow_mut().enable_opengl()?;
             // Synthesize a resize event immediately; this allows
@@ -577,6 +573,13 @@ impl WindowOps for Window {
             Ok(())
         })
     }
+
+    fn config_did_change(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.config_did_change();
+            Ok(())
+        })
+    }
 }
 
 /// Convert from a macOS screen coordinate with the origin in the bottom left
@@ -697,6 +700,23 @@ impl WindowInner {
             }
         }
     }
+
+    fn update_window_shadow(&mut self) {
+        if config().window_background_opacity() < 1.0 {
+            unsafe {
+                self.window.setOpaque_(YES);
+                // Turn off the window shadow, because when the background is transparent
+                // having the shadow enabled seems to correlate with ghostly remnants
+                // see: https://github.com/wez/wezterm/issues/310
+                self.window.setHasShadow_(NO);
+            }
+        } else {
+            unsafe {
+                self.window.setOpaque_(NO);
+                self.window.setHasShadow_(YES);
+            }
+        }
+    }
 }
 
 impl WindowOpsMut for WindowInner {
@@ -807,6 +827,10 @@ impl WindowOpsMut for WindowInner {
                 self.toggle_simple_fullscreen();
             }
         }
+    }
+
+    fn config_did_change(&mut self) {
+        self.update_window_shadow();
     }
 }
 

@@ -1305,6 +1305,7 @@ impl TermWindow {
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
         self.apply_dimensions(&dimensions, Some(cell_dims));
         if let Some(window) = self.window.as_ref() {
+            window.config_did_change();
             window.invalidate();
         }
     }
