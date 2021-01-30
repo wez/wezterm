@@ -23,4 +23,8 @@ impl WindowConfiguration for ConfigBridge {
     fn native_macos_fullscreen_mode(&self) -> bool {
         configuration().native_macos_fullscreen_mode
     }
+
+    fn window_background_opacity(&self) -> f32 {
+        configuration().window_background_opacity
+    }
 }

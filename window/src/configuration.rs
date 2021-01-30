@@ -20,6 +20,10 @@ pub trait WindowConfiguration {
     fn native_macos_fullscreen_mode(&self) -> bool {
         false
     }
+
+    fn window_background_opacity(&self) -> f32 {
+        1.0
+    }
 }
 
 lazy_static::lazy_static! {
