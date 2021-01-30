@@ -704,7 +704,7 @@ impl WindowInner {
     fn update_window_shadow(&mut self) {
         if config().window_background_opacity() < 1.0 {
             unsafe {
-                self.window.setOpaque_(YES);
+                self.window.setOpaque_(NO);
                 // Turn off the window shadow, because when the background is transparent
                 // having the shadow enabled seems to correlate with ghostly remnants
                 // see: https://github.com/wez/wezterm/issues/310
@@ -712,7 +712,7 @@ impl WindowInner {
             }
         } else {
             unsafe {
-                self.window.setOpaque_(NO);
+                self.window.setOpaque_(YES);
                 self.window.setHasShadow_(YES);
             }
         }
