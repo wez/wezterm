@@ -34,7 +34,7 @@ h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
 .right { float: right; }
 .boring { opacity: 0.6; }
 .hide-boring .boring { display: none; }
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 h2, h3 { margin-top: 2.5em; }
 h4, h5 { margin-top: 2em; }
@@ -165,4 +165,10 @@ blockquote {
 }
 .tooltipped .tooltiptext {
     visibility: visible;
+}
+
+.chapter li.part-title {
+    color: var(--sidebar-fg);
+    margin: 5px 0px;
+    font-weight: bold;
 }
