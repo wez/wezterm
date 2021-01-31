@@ -195,7 +195,7 @@ struct SshSlave {
 }
 
 impl SlavePty for SshSlave {
-    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send>> {
+    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
         self.pty.with_channel(|channel| {
             for (key, val) in cmd.iter_env_as_str() {
                 if let Err(err) = channel.setenv(key, val) {
@@ -213,7 +213,7 @@ impl SlavePty for SshSlave {
                 channel.exec(&command)?;
             }
 
-            let child: Box<dyn Child + Send> = Box::new(SshChild {
+            let child: Box<dyn Child + Send + Sync> = Box::new(SshChild {
                 pty: self.pty.clone(),
             });
 
