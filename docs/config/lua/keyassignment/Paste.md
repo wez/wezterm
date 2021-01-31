@@ -2,11 +2,12 @@
 
 Paste the clipboard to the current pane.
 
-On X11 systems that have multiple clipboards, the
-[default_clipboard_paste_source](../config/default_clipboard_paste_source.md)
-option specifies which source to use.
+*since: nightly*
 
-See also [PastePrimarySelection](PastePrimarySelection.md) and [PasteFrom](PasteFrom.md).
+This action is considered to be deprecated and will be removed in
+a future release; please use [PasteFrom](PasteFrom.md) instead.
+
+## Example
 
 ```lua
 local wezterm = require 'wezterm';

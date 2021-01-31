@@ -2,7 +2,12 @@
 
 Copy the selection to the clipboard.
 
-The value of the [default_clipboard_copy_destination](../config/default_clipboard_copy_destination.md) configuration option specifies which clipboard buffer is populated.
+*since: nightly*
+
+This action is considered to be deprecated and will be removed in
+a future release; please use [CopyTo](CopyTo.md) instead.
+
+## Example
 
 
 ```lua

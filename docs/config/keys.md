@@ -104,12 +104,12 @@ The default key bindings are:
 
 | Modifiers | Key | Action |
 | --------- | --- | ------ |
-| `SUPER`     | `c`   | `Copy`  |
-| `SUPER`     | `v`   | `Paste`  |
-| `CTRL+SHIFT`     | `c`   | `Copy`  |
-| `CTRL+SHIFT`     | `v`   | `Paste`  |
-| `CTRL`     | `Insert` | `Copy` (*since: nightly builds*) |
-| `SHIFT`     | `Insert` | `Paste` |
+| `SUPER`     | `c`   | `CopyTo="Clipboard"`  |
+| `SUPER`     | `v`   | `PasteFrom="Clipboard"`  |
+| `CTRL+SHIFT`     | `c`   | `CopyTo="Clipboard"`  |
+| `CTRL+SHIFT`     | `v`   | `PasteFrom="Clipboard"`  |
+| `CTRL`     | `Insert` | `CopyTo="PrimarySelection"` (*since: nightly builds*) |
+| `SHIFT`     | `Insert` | `PasteFrom="PrimarySelection"` |
 | `SUPER`     | `m`      | `Hide`  |
 | `SUPER`     | `n`      | `SpawnWindow` |
 | `CTRL+SHIFT`     | `n`      | `SpawnWindow` |
@@ -195,13 +195,13 @@ that order.
 | Double Left Down | `NONE`   | `SelectTextAtMouseCursor="Word"`  |
 | Single Left Down | `NONE`   | `SelectTextAtMouseCursor="Cell"`  |
 | Single Left Down | `SHIFT`   | `ExtendSelectionToMouseCursor={}`  |
-| Single Left Up | `NONE`   | `CompleteSelectionOrOpenLinkAtMouseCursor`  |
-| Double Left Up | `NONE`   | `CompleteSelection`  |
-| Triple Left Up | `NONE`   | `CompleteSelection`  |
+| Single Left Up | `NONE`   | `CompleteSelectionOrOpenLinkAtMouseCursor="PrimarySelection"`  |
+| Double Left Up | `NONE`   | `CompleteSelection="PrimarySelection"`  |
+| Triple Left Up | `NONE`   | `CompleteSelection="PrimarySelection"`  |
 | Single Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Cell"`  |
 | Double Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Word"`  |
 | Triple Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Line"`  |
-| Single Middle Down | `NONE`   | `Paste`  |
+| Single Middle Down | `NONE`   | `PasteFrom="PrimarySelection"`  |
 
 If you don't want the default assignments to be registered, you can
 disable all of them with this configuration; if you chose to do this,
@@ -236,7 +236,7 @@ return {
     {
       event={Up={streak=1, button="Left"}},
       mods="NONE",
-      action="CompleteSelection",
+      action=wezterm.action{CompleteSelection="PrimarySelection"},
     },
 
     -- and make CTRL-Click open hyperlinks

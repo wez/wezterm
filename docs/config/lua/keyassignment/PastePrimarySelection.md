@@ -5,9 +5,8 @@ On other systems, this behaves identically to [Paste](Paste.md).
 
 *since: nightly*
 
-This action is considered to be deprecated; please consider
-using either [PasteFrom](PasteFrom.md) or just [Paste](Paste.md)
-and adjusting the new [default_clipboard_paste_source](../config/default_clipboard_paste_source.md) configuration option.
+This action is considered to be deprecated and will be removed in
+a future release; please use [PasteFrom](PasteFrom.md) instead.
 
 ## Example
 

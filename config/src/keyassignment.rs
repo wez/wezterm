@@ -189,8 +189,8 @@ pub enum KeyAssignment {
     SelectTextAtMouseCursor(SelectionMode),
     ExtendSelectionToMouseCursor(Option<SelectionMode>),
     OpenLinkAtMouseCursor,
-    CompleteSelection,
-    CompleteSelectionOrOpenLinkAtMouseCursor,
+    CompleteSelection(ClipboardCopyDestination),
+    CompleteSelectionOrOpenLinkAtMouseCursor(ClipboardCopyDestination),
 
     AdjustPaneSize(PaneDirection, usize),
     ActivatePaneDirection(PaneDirection),
@@ -243,12 +243,36 @@ impl InputMap {
             // a given entry then that will take precedence.
             k!(
                 // Clipboard
-                [Modifiers::SHIFT, KeyCode::Insert, Paste],
-                [Modifiers::CTRL, KeyCode::Insert, Copy],
-                [Modifiers::SUPER, KeyCode::Char('c'), Copy],
-                [Modifiers::SUPER, KeyCode::Char('v'), Paste],
-                [Modifiers::CTRL, KeyCode::Char('C'), Copy],
-                [Modifiers::CTRL, KeyCode::Char('V'), Paste],
+                [
+                    Modifiers::SHIFT,
+                    KeyCode::Insert,
+                    PasteFrom(ClipboardPasteSource::PrimarySelection)
+                ],
+                [
+                    Modifiers::CTRL,
+                    KeyCode::Insert,
+                    CopyTo(ClipboardCopyDestination::PrimarySelection)
+                ],
+                [
+                    Modifiers::SUPER,
+                    KeyCode::Char('c'),
+                    CopyTo(ClipboardCopyDestination::Clipboard)
+                ],
+                [
+                    Modifiers::SUPER,
+                    KeyCode::Char('v'),
+                    PasteFrom(ClipboardPasteSource::Clipboard)
+                ],
+                [
+                    Modifiers::CTRL,
+                    KeyCode::Char('C'),
+                    CopyTo(ClipboardCopyDestination::Clipboard)
+                ],
+                [
+                    Modifiers::CTRL,
+                    KeyCode::Char('V'),
+                    PasteFrom(ClipboardPasteSource::Clipboard)
+                ],
                 // Window management
                 [Modifiers::ALT, KeyCode::Char('\n'), ToggleFullScreen],
                 [Modifiers::ALT, KeyCode::Char('\r'), ToggleFullScreen],
@@ -458,7 +482,9 @@ impl InputMap {
                         streak: 1,
                         button: MouseButton::Left
                     },
-                    CompleteSelectionOrOpenLinkAtMouseCursor
+                    CompleteSelectionOrOpenLinkAtMouseCursor(
+                        ClipboardCopyDestination::PrimarySelection
+                    )
                 ],
                 [
                     Modifiers::NONE,
@@ -466,7 +492,7 @@ impl InputMap {
                         streak: 2,
                         button: MouseButton::Left
                     },
-                    CompleteSelection
+                    CompleteSelection(ClipboardCopyDestination::PrimarySelection)
                 ],
                 [
                     Modifiers::NONE,
@@ -474,7 +500,7 @@ impl InputMap {
                         streak: 3,
                         button: MouseButton::Left
                     },
-                    CompleteSelection
+                    CompleteSelection(ClipboardCopyDestination::PrimarySelection)
                 ],
                 [
                     Modifiers::NONE,
@@ -506,7 +532,7 @@ impl InputMap {
                         streak: 1,
                         button: MouseButton::Middle
                     },
-                    Paste
+                    PasteFrom(ClipboardPasteSource::PrimarySelection)
                 ],
             );
         }

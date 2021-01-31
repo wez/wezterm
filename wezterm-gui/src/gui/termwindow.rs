@@ -1939,14 +1939,17 @@ impl TermWindow {
             }
             Copy => {
                 let text = self.selection_text(pane);
-                self.copy_to_clipboard(configuration().default_clipboard_copy_destination, text);
+                self.copy_to_clipboard(
+                    ClipboardCopyDestination::ClipboardAndPrimarySelection,
+                    text,
+                );
             }
             CopyTo(dest) => {
                 let text = self.selection_text(pane);
                 self.copy_to_clipboard(*dest, text);
             }
             Paste => {
-                self.paste_from_clipboard(pane, configuration().default_clipboard_paste_source);
+                self.paste_from_clipboard(pane, ClipboardPasteSource::Clipboard);
             }
             PastePrimarySelection => {
                 self.paste_from_clipboard(pane, ClipboardPasteSource::PrimarySelection);
@@ -2088,13 +2091,10 @@ impl TermWindow {
                 }))
                 .detach();
             }
-            CompleteSelectionOrOpenLinkAtMouseCursor => {
+            CompleteSelectionOrOpenLinkAtMouseCursor(dest) => {
                 let text = self.selection_text(pane);
                 if !text.is_empty() {
-                    self.copy_to_clipboard(
-                        configuration().default_clipboard_copy_destination,
-                        text,
-                    );
+                    self.copy_to_clipboard(*dest, text);
                     let window = self.window.as_ref().unwrap();
                     window.invalidate();
                 } else {
@@ -2102,13 +2102,10 @@ impl TermWindow {
                         .perform_key_assignment(pane, &KeyAssignment::OpenLinkAtMouseCursor);
                 }
             }
-            CompleteSelection => {
+            CompleteSelection(dest) => {
                 let text = self.selection_text(pane);
                 if !text.is_empty() {
-                    self.copy_to_clipboard(
-                        configuration().default_clipboard_copy_destination,
-                        text,
-                    );
+                    self.copy_to_clipboard(*dest, text);
                     let window = self.window.as_ref().unwrap();
                     window.invalidate();
                 }
