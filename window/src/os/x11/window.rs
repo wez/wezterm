@@ -31,9 +31,34 @@ impl Drop for XcbCursor {
 
 #[derive(Default)]
 struct CopyAndPaste {
-    owned: Option<String>,
-    request: Option<Promise<String>>,
+    clipboard_owned: Option<String>,
+    primary_selection_owned: Option<String>,
+    clipboard_request: Option<Promise<String>>,
+    selection_request: Option<Promise<String>>,
     time: u32,
+}
+
+impl CopyAndPaste {
+    fn clipboard(&self, clipboard: Clipboard) -> &Option<String> {
+        match clipboard {
+            Clipboard::PrimarySelection => &self.primary_selection_owned,
+            Clipboard::Clipboard => &self.clipboard_owned,
+        }
+    }
+
+    fn clipboard_mut(&mut self, clipboard: Clipboard) -> &mut Option<String> {
+        match clipboard {
+            Clipboard::PrimarySelection => &mut self.primary_selection_owned,
+            Clipboard::Clipboard => &mut self.clipboard_owned,
+        }
+    }
+
+    fn request_mut(&mut self, clipboard: Clipboard) -> &mut Option<Promise<String>> {
+        match clipboard {
+            Clipboard::PrimarySelection => &mut self.selection_request,
+            Clipboard::Clipboard => &mut self.clipboard_request,
+        }
+    }
 }
 
 pub(crate) struct XWindowInner {
@@ -326,7 +351,7 @@ impl XWindowInner {
                 conn.windows.borrow_mut().remove(&self.window_id);
             }
             xcb::SELECTION_CLEAR => {
-                self.selection_clear()?;
+                self.selection_clear(unsafe { xcb::cast_event(event) })?;
             }
             xcb::SELECTION_REQUEST => {
                 self.selection_request(unsafe { xcb::cast_event(event) })?;
@@ -370,21 +395,35 @@ impl XWindowInner {
             .get_reply()
             .unwrap()
             .owner();
-        if self.copy_and_paste.owned.is_none() && current_owner == self.window_id {
+        if self.copy_and_paste.clipboard(clipboard).is_none() && current_owner == self.window_id {
             // We don't have a selection but X thinks we do; disown it!
             xcb::set_selection_owner(&conn, xcb::NONE, selection, self.copy_and_paste.time);
-        } else if self.copy_and_paste.owned.is_some() && current_owner != self.window_id {
+        } else if self.copy_and_paste.clipboard(clipboard).is_some()
+            && current_owner != self.window_id
+        {
             // We have the selection but X doesn't think we do; assert it!
             xcb::set_selection_owner(&conn, self.window_id, selection, self.copy_and_paste.time);
         }
         conn.flush();
     }
 
-    fn selection_clear(&mut self) -> anyhow::Result<()> {
-        self.copy_and_paste.owned.take();
-        self.copy_and_paste.request.take();
-        self.update_selection_owner(Clipboard::PrimarySelection);
-        self.update_selection_owner(Clipboard::Clipboard);
+    fn selection_atom_to_clipboard(&self, atom: xcb::Atom) -> Option<Clipboard> {
+        if atom == xcb::ATOM_PRIMARY {
+            Some(Clipboard::PrimarySelection)
+        } else if atom == self.conn().atom_clipboard {
+            Some(Clipboard::Clipboard)
+        } else {
+            None
+        }
+    }
+
+    fn selection_clear(&mut self, request: &xcb::SelectionClearEvent) -> anyhow::Result<()> {
+        if let Some(clipboard) = self.selection_atom_to_clipboard(request.selection()) {
+            self.copy_and_paste.clipboard_mut(clipboard).take();
+            self.copy_and_paste.request_mut(clipboard).take();
+            self.update_selection_owner(clipboard);
+        }
+
         Ok(())
     }
 
@@ -427,24 +466,28 @@ impl XWindowInner {
         } else if request.target() == conn.atom_utf8_string
             || request.target() == xcb::xproto::ATOM_STRING
         {
-            // We'll accept requests for UTF-8 or STRING data.
-            // We don't and won't do any conversion from UTF-8 to
-            // whatever STRING represents; let's just assume that
-            // the other end is going to handle it correctly.
-            if let Some(text) = self.copy_and_paste.owned.as_ref() {
-                xcb::xproto::change_property(
-                    &conn,
-                    xcb::xproto::PROP_MODE_REPLACE as u8,
-                    request.requestor(),
-                    request.property(),
-                    request.target(),
-                    8, /* 8-bit string data */
-                    text.as_bytes(),
-                );
-                // let the requestor know that we set their property
-                request.property()
+            if let Some(clipboard) = self.selection_atom_to_clipboard(request.selection()) {
+                // We'll accept requests for UTF-8 or STRING data.
+                // We don't and won't do any conversion from UTF-8 to
+                // whatever STRING represents; let's just assume that
+                // the other end is going to handle it correctly.
+                if let Some(text) = self.copy_and_paste.clipboard(clipboard) {
+                    xcb::xproto::change_property(
+                        &conn,
+                        xcb::xproto::PROP_MODE_REPLACE as u8,
+                        request.requestor(),
+                        request.property(),
+                        request.target(),
+                        8, /* 8-bit string data */
+                        text.as_bytes(),
+                    );
+                    // let the requestor know that we set their property
+                    request.property()
+                } else {
+                    // We have no clipboard so there is nothing to report
+                    xcb::NONE
+                }
             } else {
-                // We have no clipboard so there is nothing to report
                 xcb::NONE
             }
         } else {
@@ -483,29 +526,29 @@ impl XWindowInner {
             selection.property()
         );
 
-        if (selection.selection() == xcb::ATOM_PRIMARY
-            || selection.selection() == conn.atom_clipboard)
-            && selection.property() != xcb::NONE
-        {
-            match xcb_util::icccm::get_text_property(
-                &conn,
-                selection.requestor(),
-                selection.property(),
-            )
-            .get_reply()
-            {
-                Ok(prop) => {
-                    if let Some(mut promise) = self.copy_and_paste.request.take() {
-                        promise.ok(prop.name().to_owned());
+        if let Some(clipboard) = self.selection_atom_to_clipboard(selection.selection()) {
+            if selection.property() != xcb::NONE {
+                match xcb_util::icccm::get_text_property(
+                    &conn,
+                    selection.requestor(),
+                    selection.property(),
+                )
+                .get_reply()
+                {
+                    Ok(prop) => {
+                        if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take()
+                        {
+                            promise.ok(prop.name().to_owned());
+                        }
+                        xcb::delete_property(&conn, self.window_id, conn.atom_xsel_data);
                     }
-                    xcb::delete_property(&conn, self.window_id, conn.atom_xsel_data);
+                    Err(err) => {
+                        log::error!("clipboard: err while getting clipboard property: {:?}", err);
+                    }
                 }
-                Err(err) => {
-                    log::error!("clipboard: err while getting clipboard property: {:?}", err);
-                }
+            } else if let Some(mut promise) = self.copy_and_paste.request_mut(clipboard).take() {
+                promise.ok("".to_owned());
             }
-        } else if let Some(mut promise) = self.copy_and_paste.request.take() {
-            promise.ok("".to_owned());
         }
         Ok(())
     }
@@ -942,15 +985,15 @@ impl WindowOps for XWindow {
         let mut promise = Some(promise);
         XConnection::with_window_inner(self.0, move |inner| {
             let mut promise = promise.take().unwrap();
-            if let Some(text) = inner.copy_and_paste.owned.as_ref() {
+            if let Some(text) = inner.copy_and_paste.clipboard(clipboard) {
                 promise.ok(text.to_owned());
 
                 // Cancel any outstanding promise from the other branch
                 // below.
-                inner.copy_and_paste.request.take();
+                inner.copy_and_paste.request_mut(clipboard).take();
             } else {
                 log::debug!("prepare promise, time={}", inner.copy_and_paste.time);
-                inner.copy_and_paste.request.replace(promise);
+                inner.copy_and_paste.request_mut(clipboard).replace(promise);
                 let conn = inner.conn();
                 // Find the owner and ask them to send us the buffer
                 xcb::convert_selection(
@@ -976,7 +1019,10 @@ impl WindowOps for XWindow {
     /// Set some text in the clipboard
     fn set_clipboard(&self, clipboard: Clipboard, text: String) -> Future<()> {
         XConnection::with_window_inner(self.0, move |inner| {
-            inner.copy_and_paste.owned.replace(text.clone());
+            inner
+                .copy_and_paste
+                .clipboard_mut(clipboard)
+                .replace(text.clone());
             inner.update_selection_owner(clipboard);
             Ok(())
         })
