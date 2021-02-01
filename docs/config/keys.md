@@ -48,6 +48,16 @@ both left and right `Option` keys behave identically and composition
 behavior was influenced for both of them via the `send_composed_key_when_alt_is_pressed`
 configuration option.
 
+*since: nightly*
+
+WezTerm is now able to perform dead-key expansion when `use_ime = false`.  Dead
+keys are treated as composition effects, so with the default settings of
+`send_composed_key_when_left_alt_is_pressed` and
+`send_composed_key_when_right_alt_is_pressed` above, in a US layout, `Left-Opt
+n` will produce `Alt N` and `Right-Opt n` will will for a subsequent key press
+before generating an event; `Right-Opt n SPACE` will `~` whereas `Right-Opt n
+n` will emit `ñ`.
+
 ### macOS and the Input Method Editor (IME)
 
 WezTerm has support for using the operating system Input Method Editor (IME) on

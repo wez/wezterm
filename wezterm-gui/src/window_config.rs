@@ -12,6 +12,14 @@ impl WindowConfiguration for ConfigBridge {
         configuration().use_dead_keys
     }
 
+    fn send_composed_key_when_left_alt_is_pressed(&self) -> bool {
+        configuration().send_composed_key_when_left_alt_is_pressed
+    }
+
+    fn send_composed_key_when_right_alt_is_pressed(&self) -> bool {
+        configuration().send_composed_key_when_right_alt_is_pressed
+    }
+
     fn enable_wayland(&self) -> bool {
         configuration().enable_wayland
     }

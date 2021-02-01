@@ -18,9 +18,11 @@ use cocoa::appkit::{
 use cocoa::base::*;
 use cocoa::foundation::NSAutoreleasePool;
 use cocoa::foundation::{NSArray, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger};
-use core_foundation::base::TCFType;
+use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
-use core_foundation::string::CFString;
+use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};
+use core_foundation::string::{CFString, CFStringRef, UniChar};
+use core_foundation::{declare_TCFType, impl_TCFType};
 use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
@@ -380,6 +382,7 @@ impl Window {
                 vscroll_remainder: 0.,
                 last_wheel: Instant::now(),
                 key_is_down: None,
+                dead_pending: None,
                 fullscreen: None,
             }));
 
@@ -847,9 +850,64 @@ struct Inner {
     /// procesing key-up events.
     key_is_down: Option<bool>,
 
+    /// First in a dead-key sequence
+    dead_pending: Option<(u16, u32)>,
+
     /// When using simple fullscreen mode, this tracks
     /// the window dimensions that need to be restored
     fullscreen: Option<NSRect>,
+}
+
+#[repr(C)]
+pub struct __InputSource {
+    _dummy: i32,
+}
+pub type InputSourceRef = *const __InputSource;
+
+declare_TCFType!(InputSource, InputSourceRef);
+impl_TCFType!(InputSource, InputSourceRef, TISInputSourceGetTypeID);
+
+#[repr(C)]
+struct UCKeyboardLayout {
+    _dummy: i32,
+}
+
+type UniCharCount = std::os::raw::c_ulong;
+
+/// key is going down
+#[allow(non_upper_case_globals)]
+const kUCKeyActionDown: u16 = 0;
+/// key is going up
+#[allow(non_upper_case_globals, dead_code)]
+const kUCKeyActionUp: u16 = 1;
+/// auto-key down
+#[allow(non_upper_case_globals, dead_code)]
+const kUCKeyActionAutoKey: u16 = 2;
+/// get information for key display (as in Key Caps)
+#[allow(non_upper_case_globals)]
+const kUCKeyActionDisplay: u16 = 3;
+
+extern "C" {
+    fn TISInputSourceGetTypeID() -> CFTypeID;
+    fn TISCopyCurrentKeyboardInputSource() -> InputSourceRef;
+    fn TISGetInputSourceProperty(source: InputSourceRef, propertyKey: CFStringRef) -> CFDataRef;
+
+    static kTISPropertyUnicodeKeyLayoutData: CFStringRef;
+
+    fn UCKeyTranslate(
+        layout: *const UCKeyboardLayout,
+        virtualKeyCode: u16,
+        keyAction: u16,
+        modifierKeyState: u32,
+        keyboardType: u32,
+        keyTranslateOptions: u32,
+        deadKeyState: *mut u32,
+        maxStringLength: UniCharCount,
+        actualStringLength: *mut UniCharCount,
+        unicodeString: *mut UniChar,
+    ) -> u32;
+
+    fn LMGetKbdType() -> u8;
 }
 
 impl Inner {
@@ -862,6 +920,116 @@ impl Inner {
         self.gl_context_pair.replace(glium_context.clone());
 
         self.callbacks.created(&window, glium_context.context)
+    }
+
+    /// <https://stackoverflow.com/a/22677690>
+    /// <https://stackoverflow.com/a/12548163>
+    /// <https://stackoverflow.com/a/8263841>
+    /// <https://developer.apple.com/documentation/coreservices/1390584-uckeytranslate?language=objc>
+    fn translate_key_event(
+        &mut self,
+        virtual_key_code: u16,
+        modifier_flags: NSEventModifierFlags,
+    ) -> Option<Result<String, std::string::FromUtf16Error>> {
+        let kbd =
+            unsafe { InputSource::wrap_under_create_rule(TISCopyCurrentKeyboardInputSource()) };
+
+        let layout_data = unsafe {
+            CFData::wrap_under_get_rule(TISGetInputSourceProperty(
+                kbd.as_concrete_TypeRef(),
+                kTISPropertyUnicodeKeyLayoutData,
+            ))
+        };
+
+        let layout_data = unsafe {
+            CFDataGetBytePtr(layout_data.as_concrete_TypeRef()) as *const UCKeyboardLayout
+        };
+
+        let modifier_key_state: u32 = (modifier_flags.bits() >> 16) as u32 & 0xFF;
+
+        let kbd_type = unsafe { LMGetKbdType() } as _;
+
+        let mut unicode_buffer = [0u16; 8];
+        let mut length = 0;
+
+        let mut dead_state = 0;
+
+        let mods = key_modifiers(modifier_flags);
+
+        let use_dead_keys = if mods.contains(Modifiers::LEFT_ALT) {
+            config().send_composed_key_when_left_alt_is_pressed()
+        } else if mods.contains(Modifiers::RIGHT_ALT) {
+            config().send_composed_key_when_right_alt_is_pressed()
+        } else {
+            true
+        };
+
+        if let Some((code, flags)) = self.dead_pending.take() {
+            unsafe {
+                UCKeyTranslate(
+                    layout_data,
+                    code,
+                    kUCKeyActionDown,
+                    flags,
+                    kbd_type,
+                    0,
+                    &mut dead_state,
+                    unicode_buffer.len() as _,
+                    &mut length,
+                    unicode_buffer.as_mut_ptr(),
+                );
+            }
+        } else if use_dead_keys {
+            self.dead_pending
+                .replace((virtual_key_code, modifier_key_state));
+            return None;
+        }
+        length = 0;
+        unsafe {
+            UCKeyTranslate(
+                layout_data,
+                virtual_key_code,
+                kUCKeyActionDisplay,
+                /*
+                if key_is_down {
+                kUCKeyActionDown
+                } else {
+                    kUCKeyActionUp
+                },
+                */
+                modifier_key_state,
+                kbd_type,
+                0,
+                &mut dead_state,
+                unicode_buffer.len() as _,
+                &mut length,
+                unicode_buffer.as_mut_ptr(),
+            );
+        };
+
+        if !use_dead_keys {
+            length = 0;
+            // Ignore dead key sequences; synthesize a SPACE press to
+            // elicit the underlying key code
+            unsafe {
+                UCKeyTranslate(
+                    layout_data,
+                    super::keycodes::kVK_Space,
+                    kUCKeyActionDown,
+                    0,
+                    kbd_type,
+                    0,
+                    &mut dead_state,
+                    unicode_buffer.len() as _,
+                    &mut length,
+                    unicode_buffer.as_mut_ptr(),
+                );
+            }
+        }
+
+        Some(String::from_utf16(unsafe {
+            std::slice::from_raw_parts(unicode_buffer.as_mut_ptr(), length as _)
+        }))
     }
 }
 
@@ -1330,8 +1498,10 @@ impl WindowView {
         // let is_a_repeat = unsafe { nsevent.isARepeat() == YES };
         let chars = unsafe { nsstring_to_str(nsevent.characters()) };
         let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
-        let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
+        let modifier_flags = unsafe { nsevent.modifierFlags() };
+        let modifiers = key_modifiers(modifier_flags);
         let virtual_key = unsafe { nsevent.keyCode() };
+        let translated;
 
         log::debug!(
             "key_common: chars=`{}` unmod=`{}` modifiers=`{:?}` virtual_key={:?} key_is_down:{}",
@@ -1341,6 +1511,36 @@ impl WindowView {
             virtual_key,
             key_is_down
         );
+
+        let chars = if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+
+            if chars.is_empty() || inner.dead_pending.is_some() {
+                // Dead key!
+                if !key_is_down {
+                    return;
+                }
+
+                match inner.translate_key_event(virtual_key, modifier_flags) {
+                    None => {
+                        // Next key press in dead key sequence is pending.
+                        return;
+                    }
+                    Some(Ok(s)) => {
+                        translated = s;
+                        &translated
+                    }
+                    Some(Err(e)) => {
+                        log::error!("Failed to translate dead key: {}", e);
+                        return;
+                    }
+                }
+            } else {
+                chars
+            }
+        } else {
+            return;
+        };
 
         let use_ime = config().use_ime();
 
