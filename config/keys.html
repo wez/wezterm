@@ -208,7 +208,9 @@ configuration option.</p>
 keys are treated as composition effects, so with the default settings of
 <code>send_composed_key_when_left_alt_is_pressed</code> and
 <code>send_composed_key_when_right_alt_is_pressed</code> above, in a US layout, <code>Left-Opt n</code> will produce <code>Alt N</code> and <code>Right-Opt n</code> will will for a subsequent key press
-before generating an event; <code>Right-Opt n SPACE</code> will <code>~</code> whereas <code>Right-Opt n n</code> will emit <code>ñ</code>.</p>
+before generating an event; <code>Right-Opt n SPACE</code> will emit <code>~</code> whereas <code>Right-Opt n n</code> will emit <code>ñ</code>.</p>
+<p>You may also set <code>use_dead_keys = false</code> to skip the hold state; continuing
+the example above, <code>Right-Opt n</code> will then immediately produce <code>~</code>.</p>
 <h3><a class="header" href="#macos-and-the-input-method-editor-ime" id="macos-and-the-input-method-editor-ime">macOS and the Input Method Editor (IME)</a></h3>
 <p>WezTerm has support for using the operating system Input Method Editor (IME) on
 macOS.  This is useful in cases where you need to type kanji or are using a
