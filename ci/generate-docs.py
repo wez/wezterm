@@ -49,11 +49,14 @@ class Gen(object):
 
 
 def image_dimensions(filename):
-    out = subprocess.check_output(["identify", filename])
-    fields = out.split()
-    while fields[0] != b"PNG":
-        fields = fields[1:]
-    return [int(x) for x in fields[1].split(b"x")]
+    try:
+        out = subprocess.check_output(["identify", filename])
+        fields = out.split()
+        while fields[0] != b"PNG":
+            fields = fields[1:]
+        return [int(x) for x in fields[1].split(b"x")]
+    except FileNotFoundError:
+        return [100, 100]
 
 
 class GenColorScheme(object):
