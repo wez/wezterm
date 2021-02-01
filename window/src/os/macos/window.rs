@@ -956,10 +956,14 @@ impl Inner {
 
         let mods = key_modifiers(modifier_flags);
 
-        let use_dead_keys = if mods.contains(Modifiers::LEFT_ALT) {
-            config().send_composed_key_when_left_alt_is_pressed()
+        let config = config();
+
+        let use_dead_keys = if !config.use_dead_keys() {
+            false
+        } else if mods.contains(Modifiers::LEFT_ALT) {
+            config.send_composed_key_when_left_alt_is_pressed()
         } else if mods.contains(Modifiers::RIGHT_ALT) {
-            config().send_composed_key_when_right_alt_is_pressed()
+            config.send_composed_key_when_right_alt_is_pressed()
         } else {
             true
         };

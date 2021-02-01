@@ -55,8 +55,11 @@ keys are treated as composition effects, so with the default settings of
 `send_composed_key_when_left_alt_is_pressed` and
 `send_composed_key_when_right_alt_is_pressed` above, in a US layout, `Left-Opt
 n` will produce `Alt N` and `Right-Opt n` will will for a subsequent key press
-before generating an event; `Right-Opt n SPACE` will `~` whereas `Right-Opt n
+before generating an event; `Right-Opt n SPACE` will emit `~` whereas `Right-Opt n
 n` will emit `ñ`.
+
+You may also set `use_dead_keys = false` to skip the hold state; continuing
+the example above, `Right-Opt n` will then immediately produce `~`.
 
 ### macOS and the Input Method Editor (IME)
 
