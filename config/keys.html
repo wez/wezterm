@@ -203,6 +203,12 @@ with no composition effects, while the right <code>Option</code> key performs co
 both left and right <code>Option</code> keys behave identically and composition
 behavior was influenced for both of them via the <code>send_composed_key_when_alt_is_pressed</code>
 configuration option.</p>
+<p><em>since: nightly</em></p>
+<p>WezTerm is now able to perform dead-key expansion when <code>use_ime = false</code>.  Dead
+keys are treated as composition effects, so with the default settings of
+<code>send_composed_key_when_left_alt_is_pressed</code> and
+<code>send_composed_key_when_right_alt_is_pressed</code> above, in a US layout, <code>Left-Opt n</code> will produce <code>Alt N</code> and <code>Right-Opt n</code> will will for a subsequent key press
+before generating an event; <code>Right-Opt n SPACE</code> will <code>~</code> whereas <code>Right-Opt n n</code> will emit <code>ñ</code>.</p>
 <h3><a class="header" href="#macos-and-the-input-method-editor-ime" id="macos-and-the-input-method-editor-ime">macOS and the Input Method Editor (IME)</a></h3>
 <p>WezTerm has support for using the operating system Input Method Editor (IME) on
 macOS.  This is useful in cases where you need to type kanji or are using a
