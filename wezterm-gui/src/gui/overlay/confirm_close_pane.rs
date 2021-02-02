@@ -85,7 +85,7 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
         if active == ActiveButton::Yes {
             changes.push(AttributeChange::Reverse(true).into());
         }
-        changes.push(" Yes ".into());
+        changes.push(" [Y]es ".into());
         if active == ActiveButton::Yes {
             changes.push(AttributeChange::Reverse(false).into());
         }
@@ -95,7 +95,7 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
         if active == ActiveButton::No {
             changes.push(AttributeChange::Reverse(true).into());
         }
-        changes.push(" No ".into());
+        changes.push(" [N]o ".into());
         if active == ActiveButton::No {
             changes.push(AttributeChange::Reverse(false).into());
         }
@@ -132,12 +132,12 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
             }) => {
                 let x = x as usize;
                 let y = y as usize;
-                if y == button_row && x >= x_pos && x <= x_pos + 5 {
+                if y == button_row && x >= x_pos && x <= x_pos + 7 {
                     active = ActiveButton::Yes;
                     if mouse_buttons == MouseButtons::LEFT {
                         return Ok(true);
                     }
-                } else if y == button_row && x >= x_pos + 14 && x <= x_pos + 20 {
+                } else if y == button_row && x >= x_pos + 14 && x <= x_pos + 22 {
                     active = ActiveButton::No;
                     if mouse_buttons == MouseButtons::LEFT {
                         return Ok(false);
