@@ -1,5 +1,6 @@
 mod macos;
 
+#[allow(unused_variables)]
 pub fn persistent_toast_notification_with_click_to_open_url(title: &str, message: &str, url: &str) {
     #[cfg(target_os = "macos")]
     {
