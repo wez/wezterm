@@ -15,6 +15,7 @@ pub fn persistent_toast_notification_with_click_to_open_url(title: &str, message
 
         std::thread::spawn(move || {
             if let Ok(notif) = notify_rust::Notification::new()
+                .appname("wezterm")
                 .summary(&title)
                 .body(&message)
                 .icon("org.wezfurlong.wezterm")
@@ -45,6 +46,7 @@ pub fn persistent_toast_notification(title: &str, message: &str) {
     {
         let mut notif = notify_rust::Notification::new();
         notif
+            .appname("wezterm")
             .summary(title)
             .body(message)
             .icon("org.wezfurlong.wezterm")
