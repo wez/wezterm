@@ -1222,8 +1222,17 @@ impl Config {
         PtySize {
             rows: self.initial_rows,
             cols: self.initial_cols,
-            pixel_width: 0,
-            pixel_height: 0,
+            // Guess at a plausible default set of pixel dimensions.
+            // This is based on "typical" 10 point font at "normal"
+            // pixel density.
+            // This will get filled in by the gui layer, but there is
+            // an edge case where we emit an iTerm image escape in
+            // the software update banner through the mux layer before
+            // the GUI has had a chance to update the pixel dimensions
+            // when running under X11.
+            // This is a bit gross.
+            pixel_width: 8 * self.initial_cols,
+            pixel_height: 16 * self.initial_rows,
         }
     }
 
