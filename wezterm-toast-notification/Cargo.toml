@@ -8,6 +8,7 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+open = "1.4"
 
 [target.'cfg(all(not(windows), not(target_os="macos")))'.dependencies]
 # show a notification
@@ -17,7 +18,6 @@ notify-rust = "4"
 cocoa = "0.20"
 core-foundation = "0.7"
 objc = "0.2"
-open = "1.4"
 
 [target.'cfg(windows)'.dependencies]
 winrt-notification = "0.2"
