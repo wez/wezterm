@@ -28,7 +28,7 @@ return {
   -- emulators, you may wish to tune this value!
   dpi = 96.0,
 
-  -- (available in nightly builds)
+  -- (available starting in version 20210203-095643-70a364eb)
   -- Scale the effective cell height.
   -- The cell height is computed based on your selected font_size
   -- and dpi and then multiplied by line_height.  Setting it to

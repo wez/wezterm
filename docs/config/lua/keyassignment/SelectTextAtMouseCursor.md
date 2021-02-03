@@ -4,7 +4,7 @@ Initiates selection of text at the current mouse cursor position.
 The mode argument can be one of `Cell`, `Word` or `Line` to control
 the scope of the selection.
 
-*Since: nightly builds only*
+*Since: 20210203-095643-70a364eb*
 
 The mode argument can be `SemanticZone` which causes the selection
 to take the surrounding semantic zone.

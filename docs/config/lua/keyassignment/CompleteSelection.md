@@ -4,7 +4,7 @@ Completes an active text selection process; the selection range is
 marked closed and then the selected text is copied as though the
 `Copy` action was executed.
 
-*since: nightly*
+*since: 20210203-095643-70a364eb*
 
 `CompleteSelection` now requires a destination parameter to specify
 which clipboard buffer the selection will populate; the copy action

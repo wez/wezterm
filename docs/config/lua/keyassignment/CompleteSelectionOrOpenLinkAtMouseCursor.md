@@ -5,7 +5,7 @@ triggered.  Otherwise acts as though `OpenLinkAtMouseCursor` was
 triggered.
 
 
-*since: nightly*
+*since: 20210203-095643-70a364eb*
 
 `CompleteSelectionOrOpenLinkAtMouseCursor` now requires a destination parameter to specify
 which clipboard buffer the selection will populate. The copy action

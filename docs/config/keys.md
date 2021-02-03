@@ -48,7 +48,7 @@ both left and right `Option` keys behave identically and composition
 behavior was influenced for both of them via the `send_composed_key_when_alt_is_pressed`
 configuration option.
 
-*since: nightly*
+*since: 20210203-095643-70a364eb*
 
 WezTerm is now able to perform dead-key expansion when `use_ime = false`.  Dead
 keys are treated as composition effects, so with the default settings of
@@ -121,7 +121,7 @@ The default key bindings are:
 | `SUPER`     | `v`   | `PasteFrom="Clipboard"`  |
 | `CTRL+SHIFT`     | `c`   | `CopyTo="Clipboard"`  |
 | `CTRL+SHIFT`     | `v`   | `PasteFrom="Clipboard"`  |
-| `CTRL`     | `Insert` | `CopyTo="PrimarySelection"` (*since: nightly builds*) |
+| `CTRL`     | `Insert` | `CopyTo="PrimarySelection"` (*since: 20210203-095643-70a364eb*) |
 | `SHIFT`     | `Insert` | `PasteFrom="PrimarySelection"` |
 | `SUPER`     | `m`      | `Hide`  |
 | `SUPER`     | `n`      | `SpawnWindow` |
