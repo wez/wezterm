@@ -1,11 +1,11 @@
 ## Installing on macOS
 
-The CI system builds the package on macOS Mojave (10.14).  It may run on earlier
-versions of macOS, but that has not been tested.
+The CI system builds the package on macOS Big Sur and should run on systems as
+"old" as Mojave.  It may run on earlier versions of macOS, but that has not
+been tested.
 
-If you have an M1-based mac then it is recommended that you download the
-Nightly build which is a Universal binary with support for both Apple Silicon
-and Intel hardware.
+Starting with version 20210203-095643-70a364eb, WezTerm is a Universal binary
+with support for both Apple Silicon and Intel hardware.
 
 <a href="{{ macos_zip_stable }}" class="btn">Download for macOS</a>
 <a href="{{ macos_zip_nightly }}" class="btn">Nightly for macOS</a>
