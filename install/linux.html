@@ -222,13 +222,13 @@ on most Linux systems.</p>
 <table><thead><tr><th>Distro</th><th>Stable</th><th>Nightly</th></tr></thead><tbody>
 <tr><td>CentOS7</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.el7.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.el7.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos7.rpm">wezterm-nightly-centos7.rpm</a></td></tr>
 <tr><td>CentOS8</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.el8.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.el8.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos8.rpm">wezterm-nightly-centos8.rpm</a></td></tr>
-<tr><td>Fedora31</td><td>[{{ fedora31_rpm_stable_asset }}]({{ fedora31_rpm_stable }})</td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora31.rpm">wezterm-nightly-fedora31.rpm</a></td></tr>
-<tr><td>Fedora32</td><td>[{{ fedora32_rpm_stable_asset }}]({{ fedora32_rpm_stable }})</td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora32.rpm">wezterm-nightly-fedora32.rpm</a></td></tr>
-<tr><td>Fedora33</td><td>Not yet</td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora33.rpm">wezterm-nightly-fedora33.rpm</a></td></tr>
+<tr><td>Fedora31</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc31.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.fc31.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora31.rpm">wezterm-nightly-fedora31.rpm</a></td></tr>
+<tr><td>Fedora32</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc32.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.fc32.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora32.rpm">wezterm-nightly-fedora32.rpm</a></td></tr>
+<tr><td>Fedora33</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc33.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.fc33.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora33.rpm">wezterm-nightly-fedora33.rpm</a></td></tr>
 </tbody></table>
 <p>To download and install form the CLI you can use something like this, which
 shows how to install the Fedora 31 package:</p>
-<pre><code class="language-bash">sudo dnf install -y {{ fedora31_rpm_stable }}
+<pre><code class="language-bash">sudo dnf install -y https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc31.x86_64.rpm
 </code></pre>
 <ul>
 <li>The package installs <code>/usr/bin/wezterm</code> and <code>/usr/share/applications/org.wezfurlong.wezterm.desktop</code></li>

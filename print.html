@@ -197,7 +197,7 @@ source, you may also build it for yourself.</p>
 a setup.exe style installer to guide the installation (requires admin privileges)
 or a simple zip file and manage the files for yourself (no special privileges
 required).</p>
-<p><a href="install/{{ windows_exe_stable }}" class="btn">Windows (setup.exe)</a>
+<p><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-20210203-095643-70a364eb-setup.exe" class="btn">Windows (setup.exe)</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly-setup.exe" class="btn">Nightly Windows (setup.exe)</a></p>
 <p>WezTerm is available in a setup.exe style installer; the installer is produced
 with Inno Setup and will install wezterm to your program files directory and
@@ -205,13 +205,13 @@ register that location in your PATH environment.  The installer can be run
 as a GUI to guide you through the install, but also offers the <a href="https://jrsoftware.org/ishelp/index.php?topic=setupcmdline">standard
 Inno Setup command line options</a>
 to configure/script the installation process.</p>
-<p><a href="install/{{ windows_zip_stable }}" class="btn">Windows (zip)</a>
+<p><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-windows-20210203-095643-70a364eb.zip" class="btn">Windows (zip)</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-windows-nightly.zip" class="btn">Nightly Windows (zip)</a></p>
 <p>WezTerm is also available in a simple zip file that can be extracted and
 run from anywhere, including a flash drive for a portable/relocatable
 installation.</p>
 <ol>
-<li>Download <a href="install/{{ windows_zip_stable }}">Release</a></li>
+<li>Download <a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-windows-20210203-095643-70a364eb.zip">Release</a></li>
 <li>Extract the zipfile and double-click <code>wezterm.exe</code> to run the UI</li>
 <li>Configuration instructions can be <a href="install/../config/files.html">found here</a></li>
 </ol>
@@ -305,13 +305,13 @@ on most Linux systems.</p>
 <table><thead><tr><th>Distro</th><th>Stable</th><th>Nightly</th></tr></thead><tbody>
 <tr><td>CentOS7</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.el7.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.el7.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos7.rpm">wezterm-nightly-centos7.rpm</a></td></tr>
 <tr><td>CentOS8</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.el8.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.el8.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos8.rpm">wezterm-nightly-centos8.rpm</a></td></tr>
-<tr><td>Fedora31</td><td>[{{ fedora31_rpm_stable_asset }}]({{ fedora31_rpm_stable }})</td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora31.rpm">wezterm-nightly-fedora31.rpm</a></td></tr>
-<tr><td>Fedora32</td><td>[{{ fedora32_rpm_stable_asset }}]({{ fedora32_rpm_stable }})</td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora32.rpm">wezterm-nightly-fedora32.rpm</a></td></tr>
-<tr><td>Fedora33</td><td>Not yet</td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora33.rpm">wezterm-nightly-fedora33.rpm</a></td></tr>
+<tr><td>Fedora31</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc31.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.fc31.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora31.rpm">wezterm-nightly-fedora31.rpm</a></td></tr>
+<tr><td>Fedora32</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc32.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.fc32.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora32.rpm">wezterm-nightly-fedora32.rpm</a></td></tr>
+<tr><td>Fedora33</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc33.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.fc33.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora33.rpm">wezterm-nightly-fedora33.rpm</a></td></tr>
 </tbody></table>
 <p>To download and install form the CLI you can use something like this, which
 shows how to install the Fedora 31 package:</p>
-<pre><code class="language-bash">sudo dnf install -y {{ fedora31_rpm_stable }}
+<pre><code class="language-bash">sudo dnf install -y https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc31.x86_64.rpm
 </code></pre>
 <ul>
 <li>The package installs <code>/usr/bin/wezterm</code> and <code>/usr/share/applications/org.wezfurlong.wezterm.desktop</code></li>
@@ -408,6 +408,10 @@ hash.</p>
 daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.</p>
+<ul>
+<li>Not yet!</li>
+</ul>
+<h3><a class="header" href="#20210203-095643-70a364eb" id="20210203-095643-70a364eb">20210203-095643-70a364eb</a></h3>
 <ul>
 <li>Fix cursor position after using iTerm2 image protocol <a href="https://github.com/wez/wezterm/issues/317">#317</a></li>
 <li>Fix pixel dimensions after changing the pane size; this was mostly invisible but impacted image scaling when using sixel or iTerm2 image protocols. <a href="https://github.com/wez/wezterm/issues/312">#312</a></li>
@@ -1094,7 +1098,7 @@ set of directories:</p>
   -- emulators, you may wish to tune this value!
   dpi = 96.0,
 
-  -- (available in nightly builds)
+  -- (available starting in version 20210203-095643-70a364eb)
   -- Scale the effective cell height.
   -- The cell height is computed based on your selected font_size
   -- and dpi and then multiplied by line_height.  Setting it to
@@ -1386,7 +1390,7 @@ with no composition effects, while the right <code>Option</code> key performs co
 both left and right <code>Option</code> keys behave identically and composition
 behavior was influenced for both of them via the <code>send_composed_key_when_alt_is_pressed</code>
 configuration option.</p>
-<p><em>since: nightly</em></p>
+<p><em>since: 20210203-095643-70a364eb</em></p>
 <p>WezTerm is now able to perform dead-key expansion when <code>use_ime = false</code>.  Dead
 keys are treated as composition effects, so with the default settings of
 <code>send_composed_key_when_left_alt_is_pressed</code> and
@@ -1435,7 +1439,7 @@ the normal key processing.</p>
 <tr><td><code>SUPER</code></td><td><code>v</code></td><td><code>PasteFrom=&quot;Clipboard&quot;</code></td></tr>
 <tr><td><code>CTRL+SHIFT</code></td><td><code>c</code></td><td><code>CopyTo=&quot;Clipboard&quot;</code></td></tr>
 <tr><td><code>CTRL+SHIFT</code></td><td><code>v</code></td><td><code>PasteFrom=&quot;Clipboard&quot;</code></td></tr>
-<tr><td><code>CTRL</code></td><td><code>Insert</code></td><td><code>CopyTo=&quot;PrimarySelection&quot;</code> (<em>since: nightly builds</em>)</td></tr>
+<tr><td><code>CTRL</code></td><td><code>Insert</code></td><td><code>CopyTo=&quot;PrimarySelection&quot;</code> (<em>since: 20210203-095643-70a364eb</em>)</td></tr>
 <tr><td><code>SHIFT</code></td><td><code>Insert</code></td><td><code>PasteFrom=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td><code>SUPER</code></td><td><code>m</code></td><td><code>Hide</code></td></tr>
 <tr><td><code>SUPER</code></td><td><code>n</code></td><td><code>SpawnWindow</code></td></tr>
@@ -5373,7 +5377,7 @@ struct.</p>
 <li><a href="config/lua/config/unix_domains.html">unix_domains</a></li>
 </ul>
 <h1><a class="header" href="#alternate_buffer_wheel_scroll_speed--3" id="alternate_buffer_wheel_scroll_speed--3"><code>alternate_buffer_wheel_scroll_speed = 3</code></a></h1>
-<p><em>Since: nightly builds</em></p>
+<p><em>Since: 20210203-095643-70a364eb</em></p>
 <p>Normally the vertical mouse wheel will scroll the terminal viewport
 so that different sections of the scrollback are visible.</p>
 <p>When an application activates the <em>Alternate Screen Buffer</em> (this is
@@ -5400,7 +5404,7 @@ color.</p>
 <p>Specifies the color palette.</p>
 <p>Described in more detail in <a href="config/lua/config/../../appearance.html#defining-your-own-colors">Colors &amp; Appearance</a></p>
 <h1><a class="header" href="#default_cwd" id="default_cwd"><code>default_cwd</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210203-095643-70a364eb</em></p>
 <p>Sets the default current working directory used by the initial window. If
 <code>wezterm start --cwd /some/path</code> is used to specify the current working
 directory, that will take precedence.</p>
@@ -5713,7 +5717,7 @@ return {
 <h1><a class="header" href="#clearscrollback" id="clearscrollback">ClearScrollback</a></h1>
 <p>Clears the lines that have scrolled off the top of the viewport, resetting
 the scrollbar thumb to the full height of the window.</p>
-<p><em>since: nightly builds only</em></p>
+<p><em>since: 20210203-095643-70a364eb</em></p>
 <p>Added a parameter that allows additionally clear the viewport:</p>
 <pre><code class="language-lua">return {
   keys = {
@@ -5769,7 +5773,7 @@ the tab and terminates its panes without prompting.</p>
 <p>Completes an active text selection process; the selection range is
 marked closed and then the selected text is copied as though the
 <code>Copy</code> action was executed.</p>
-<p><em>since: nightly</em></p>
+<p><em>since: 20210203-095643-70a364eb</em></p>
 <p><code>CompleteSelection</code> now requires a destination parameter to specify
 which clipboard buffer the selection will populate; the copy action
 is now equivalent to <a href="config/lua/keyassignment/CopyTo.html">CopyTo</a>.</p>
@@ -5794,7 +5798,7 @@ return {
 <p>If a selection is in progress, acts as though <code>CompleteSelection</code> was
 triggered.  Otherwise acts as though <code>OpenLinkAtMouseCursor</code> was
 triggered.</p>
-<p><em>since: nightly</em></p>
+<p><em>since: 20210203-095643-70a364eb</em></p>
 <p><code>CompleteSelectionOrOpenLinkAtMouseCursor</code> now requires a destination parameter to specify
 which clipboard buffer the selection will populate. The copy action
 is now equivalent to <a href="config/lua/keyassignment/CopyTo.html">CopyTo</a>.</p>
@@ -5815,7 +5819,7 @@ return {
 </code></pre>
 <h1><a class="header" href="#copy" id="copy">Copy</a></h1>
 <p>Copy the selection to the clipboard.</p>
-<p><em>since: nightly</em></p>
+<p><em>since: 20210203-095643-70a364eb</em></p>
 <p>This action is considered to be deprecated and will be removed in
 a future release; please use <a href="config/lua/keyassignment/CopyTo.html">CopyTo</a> instead.</p>
 <h2><a class="header" href="#example" id="example">Example</a></h2>
@@ -5960,7 +5964,7 @@ keys were not pressed.</p>
 a hyperlink, this action causes that link to be opened.</p>
 <h1><a class="header" href="#paste" id="paste">Paste</a></h1>
 <p>Paste the clipboard to the current pane.</p>
-<p><em>since: nightly</em></p>
+<p><em>since: 20210203-095643-70a364eb</em></p>
 <p>This action is considered to be deprecated and will be removed in
 a future release; please use <a href="config/lua/keyassignment/PasteFrom.html">PasteFrom</a> instead.</p>
 <h2><a class="header" href="#example-1" id="example-1">Example</a></h2>
@@ -6004,7 +6008,7 @@ return {
 <h1><a class="header" href="#pasteprimaryselection" id="pasteprimaryselection">PastePrimarySelection</a></h1>
 <p>X11: Paste the Primary Selection to the current tab.
 On other systems, this behaves identically to <a href="config/lua/keyassignment/Paste.html">Paste</a>.</p>
-<p><em>since: nightly</em></p>
+<p><em>since: 20210203-095643-70a364eb</em></p>
 <p>This action is considered to be deprecated and will be removed in
 a future release; please use <a href="config/lua/keyassignment/PasteFrom.html">PasteFrom</a> instead.</p>
 <h2><a class="header" href="#example-2" id="example-2">Example</a></h2>
@@ -6062,7 +6066,7 @@ return {
 }
 </code></pre>
 <h1><a class="header" href="#scrolltoprompt" id="scrolltoprompt">ScrollToPrompt</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210203-095643-70a364eb</em></p>
 <p>This action operates on Semantic Zones defined by applications that use <a href="https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md">OSC
 133 Semantic Prompt Escapes</a> and requires configuring your shell to emit those sequences.</p>
 <p>OSC 133 escapes allow marking regions of output as <code>Output</code> (from the commands
@@ -6109,7 +6113,7 @@ return {
 <p>Initiates selection of text at the current mouse cursor position.
 The mode argument can be one of <code>Cell</code>, <code>Word</code> or <code>Line</code> to control
 the scope of the selection.</p>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210203-095643-70a364eb</em></p>
 <p>The mode argument can be <code>SemanticZone</code> which causes the selection
 to take the surrounding semantic zone.</p>
 <p>In this example, the triple-left-click mouse action is set to
