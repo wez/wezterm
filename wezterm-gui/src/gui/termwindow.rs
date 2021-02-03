@@ -2807,6 +2807,13 @@ impl TermWindow {
             &draw_params,
         )?;
 
+        // Use regular alpha blending when we draw the glyphs!
+        // <https://github.com/wez/wezterm/issues/413>
+        let draw_params = glium::DrawParameters {
+            blend: glium::Blend::alpha_blending(),
+            ..Default::default()
+        };
+
         // Pass 3: Draw glyphs
         frame.draw(
             &*vb,
