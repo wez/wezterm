@@ -1,6 +1,6 @@
 use config::configuration;
 use hdrhistogram::Histogram;
-use metrics::{Key, Recorder};
+use metrics::{GaugeValue, Key, Recorder, Unit};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -54,7 +54,7 @@ impl Inner {
                 let inner = inner.lock().unwrap();
                 let mut data = vec![];
                 for (key, histogram) in &inner.histograms {
-                    if key.name().ends_with(".size") {
+                    if key.to_string().ends_with(".size") {
                         let p50 = histogram.value_at_percentile(50.);
                         let p75 = histogram.value_at_percentile(75.);
                         let p95 = histogram.value_at_percentile(95.);
@@ -109,20 +109,33 @@ impl Stats {
 }
 
 impl Recorder for Stats {
+    fn register_counter(&self, _key: Key, _unit: Option<Unit>, _description: Option<&'static str>) {
+    }
+
+    fn register_gauge(&self, _key: Key, _unit: Option<Unit>, _description: Option<&'static str>) {}
+
+    fn register_histogram(
+        &self,
+        _key: Key,
+        _unit: Option<Unit>,
+        _description: Option<&'static str>,
+    ) {
+    }
+
     fn increment_counter(&self, key: Key, value: u64) {
         log::trace!("counter '{}' -> {}", key, value);
     }
 
-    fn update_gauge(&self, key: Key, value: i64) {
-        log::trace!("gauge '{}' -> {}", key, value);
+    fn update_gauge(&self, key: Key, value: GaugeValue) {
+        log::trace!("gauge '{}' -> {:?}", key, value);
     }
 
-    fn record_histogram(&self, key: Key, value: u64) {
+    fn record_histogram(&self, key: Key, value: f64) {
         let mut inner = self.inner.lock().unwrap();
         let histogram = inner
             .histograms
             .entry(key)
             .or_insert_with(|| Histogram::new(2).expect("failed to crate new Histogram"));
-        histogram.record(value).ok();
+        histogram.record(value as u64).ok();
     }
 }

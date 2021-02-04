@@ -841,7 +841,7 @@ impl WindowCallbacks for TermWindow {
 
         self.call_draw(frame).ok();
         log::debug!("paint_pane_opengl elapsed={:?}", start.elapsed());
-        metrics::value!("gui.paint.opengl", start.elapsed());
+        metrics::histogram!("gui.paint.opengl", start.elapsed());
         self.update_title();
     }
 }

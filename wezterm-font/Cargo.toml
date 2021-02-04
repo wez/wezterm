@@ -15,7 +15,7 @@ freetype = { path = "../deps/freetype" }
 harfbuzz = { path = "../deps/harfbuzz" }
 lazy_static = "1.4"
 log = "0.4"
-metrics = { version="0.12", features=["std"]}
+metrics = { version="0.14", features=["std"]}
 mux = { path = "../mux" }
 ordered-float = "2.0"
 rangeset = { path = "../rangeset" }

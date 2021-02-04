@@ -65,7 +65,7 @@ macro_rules! rpc {
             let start = std::time::Instant::now();
             let result = self.send_pdu(Pdu::$request_type(pdu)).await;
             let elapsed = start.elapsed();
-            metrics::value!("rpc", elapsed, "method" => stringify!($method_name));
+            metrics::histogram!("rpc", elapsed, "method" => stringify!($method_name));
             match result {
                 Ok(Pdu::$response_type(res)) => Ok(res),
                 Ok(_) => bail!("unexpected response {:?}", result),
@@ -83,7 +83,7 @@ macro_rules! rpc {
             let start = std::time::Instant::now();
             let result = self.send_pdu(Pdu::$request_type($request_type{})).await;
             let elapsed = start.elapsed();
-            metrics::value!("rpc", elapsed, "method" => stringify!($method_name));
+            metrics::histogram!("rpc", elapsed, "method" => stringify!($method_name));
             match result {
                 Ok(Pdu::$response_type(res)) => Ok(res),
                 Ok(_) => bail!("unexpected response {:?}", result),

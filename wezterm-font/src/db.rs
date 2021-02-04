@@ -55,7 +55,7 @@ impl Entry {
             let t = std::time::Instant::now();
             coverage.replace(self.compute_coverage()?);
             let elapsed = t.elapsed();
-            metrics::value!("font.compute.codepoint.coverage", elapsed);
+            metrics::histogram!("font.compute.codepoint.coverage", elapsed);
             log::debug!(
                 "{} codepoint coverage computed in {:?}",
                 self.names.full_name,

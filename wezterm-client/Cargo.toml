@@ -28,7 +28,7 @@ lru = "0.6"
 termwiz = { path = "../termwiz" }
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 futures = "0.3"
-metrics = { version="0.12", features=["std"]}
+metrics = { version="0.14", features=["std"]}
 textwrap = "0.13"
 
 [target."cfg(windows)".dependencies]
