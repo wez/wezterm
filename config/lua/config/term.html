@@ -177,7 +177,7 @@ data.</p>
 <p>If you want to get the most application support out of wezterm, then you may
 wish to install a copy of the <code>wezterm</code> TERM definition:</p>
 <pre><code>tempfile=$(mktemp) \
-  &amp;&amp; curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/master/termwiz/data/wezterm.terminfo \
+  &amp;&amp; curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/main/termwiz/data/wezterm.terminfo \
   &amp;&amp; tic -x -o ~/.terminfo $tempfile \
   &amp;&amp; rm $tempfile
 </code></pre>

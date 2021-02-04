@@ -180,9 +180,9 @@ macOS.</p>
 <li>Build in release mode: <code>cargo build --release</code></li>
 <li>Run it via either <code>cargo run --release</code> or <code>target/release/wezterm</code></li>
 </ul>
-<p>You will need a collection of support libraries; the <a href="https://github.com/wez/wezterm/blob/master/get-deps"><code>get-deps</code></a> script will
+<p>You will need a collection of support libraries; the <a href="https://github.com/wez/wezterm/blob/main/get-deps"><code>get-deps</code></a> script will
 attempt to install them for you.  If it doesn't know about your system,
-<a href="https://github.com/wez/wezterm/blob/master/CONTRIBUTING.md">please contribute instructions!</a></p>
+<a href="https://github.com/wez/wezterm/blob/main/CONTRIBUTING.md">please contribute instructions!</a></p>
 <p>If you don't plan to submit a pull request to the wezterm repo, you can
 download a smaller source tarball using these steps:</p>
 <pre><code class="language-bash">curl https://sh.rustup.rs -sSf | sh -s
@@ -195,7 +195,7 @@ cargo run --release -- start
 </code></pre>
 <p>Alternatively, use the full git repo:</p>
 <pre><code class="language-bash">curl https://sh.rustup.rs -sSf | sh -s
-git clone --depth=1 --branch=master --recursive https://github.com/wez/wezterm.git
+git clone --depth=1 --branch=main --recursive https://github.com/wez/wezterm.git
 cd wezterm
 git submodule update --init --recursive
 sudo ./get-deps

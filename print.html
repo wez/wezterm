@@ -354,9 +354,9 @@ macOS.</p>
 <li>Build in release mode: <code>cargo build --release</code></li>
 <li>Run it via either <code>cargo run --release</code> or <code>target/release/wezterm</code></li>
 </ul>
-<p>You will need a collection of support libraries; the <a href="https://github.com/wez/wezterm/blob/master/get-deps"><code>get-deps</code></a> script will
+<p>You will need a collection of support libraries; the <a href="https://github.com/wez/wezterm/blob/main/get-deps"><code>get-deps</code></a> script will
 attempt to install them for you.  If it doesn't know about your system,
-<a href="https://github.com/wez/wezterm/blob/master/CONTRIBUTING.md">please contribute instructions!</a></p>
+<a href="https://github.com/wez/wezterm/blob/main/CONTRIBUTING.md">please contribute instructions!</a></p>
 <p>If you don't plan to submit a pull request to the wezterm repo, you can
 download a smaller source tarball using these steps:</p>
 <pre><code class="language-bash">curl https://sh.rustup.rs -sSf | sh -s
@@ -369,7 +369,7 @@ cargo run --release -- start
 </code></pre>
 <p>Alternatively, use the full git repo:</p>
 <pre><code class="language-bash">curl https://sh.rustup.rs -sSf | sh -s
-git clone --depth=1 --branch=master --recursive https://github.com/wez/wezterm.git
+git clone --depth=1 --branch=main --recursive https://github.com/wez/wezterm.git
 cd wezterm
 git submodule update --init --recursive
 sudo ./get-deps
@@ -1730,7 +1730,7 @@ to use in the <code>color_schemes</code> sections.</p>
 </code></pre>
 <h3><a class="header" href="#defining-a-color-scheme-in-a-separate-file" id="defining-a-color-scheme-in-a-separate-file">Defining a Color Scheme in a separate file</a></h3>
 <p>If you'd like to factor your color schemes out into separate files, you
-can create a file with a <code>[colors]</code> section; take a look at <a href="https://github.com/wez/wezterm/blob/master/assets/colors/Builtin%20Dark.toml">one of
+can create a file with a <code>[colors]</code> section; take a look at <a href="https://github.com/wez/wezterm/blob/main/assets/colors/Builtin%20Dark.toml">one of
 the available color schemes for an example</a>.</p>
 <p>It is recommended that you place your custom scheme in a directory
 named <code>$HOME/.config/wezterm/colors</code> if you're on a POSIX system.</p>
@@ -2138,7 +2138,7 @@ as the current pane, <a href="config/lua/keyassignment/ScrollToPrompt.html">jump
 or <a href="config/lua/keyassignment/SelectTextAtMouseCursor.html">conveniently selecting the complete output from a command</a>.</p>
 <p>In order for these features to be enabled, you will need to configure your
 shell program to emit the escape sequences at the appropriate place.</p>
-<p>You can find some <a href="https://github.com/wez/wezterm/tree/master/assets/shell-integration">examples for various shells in the wezterm
+<p>You can find some <a href="https://github.com/wez/wezterm/tree/main/assets/shell-integration">examples for various shells in the wezterm
 repo</a>.</p>
 <p>In the most recently nightly builds the Fedora and Debian packages
 automatically activate shell integration for Bash and Zsh.</p>
@@ -5553,7 +5553,7 @@ data.</p>
 <p>If you want to get the most application support out of wezterm, then you may
 wish to install a copy of the <code>wezterm</code> TERM definition:</p>
 <pre><code>tempfile=$(mktemp) \
-  &amp;&amp; curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/master/termwiz/data/wezterm.terminfo \
+  &amp;&amp; curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/main/termwiz/data/wezterm.terminfo \
   &amp;&amp; tic -x -o ~/.terminfo $tempfile \
   &amp;&amp; rm $tempfile
 </code></pre>
