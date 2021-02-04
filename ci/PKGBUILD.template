@@ -1,6 +1,6 @@
 # Maintainer:  Wez Furlong <wez at wezfurlong dot org>
 # NOTE: if you're looking at this on AUR, this file is generated from
-# https://github.com/wez/wezterm/blob/master/ci/PKGBUILD.template
+# https://github.com/wez/wezterm/blob/main/ci/PKGBUILD.template
 # by automation in the wezterm repo.
 
 pkgname=wezterm-bin
@@ -27,7 +27,7 @@ depends=(
 )
 source=(
   "wezterm::https://github.com/wez/wezterm/releases/download/${_tag}/WezTerm-${_tag}-Ubuntu16.04.AppImage"
-  'LICENSE::https://github.com/wez/wezterm/raw/master/LICENSE.md'
+  'LICENSE::https://github.com/wez/wezterm/raw/main/LICENSE.md'
 )
 sha256sums=(
   '@SHA256@'

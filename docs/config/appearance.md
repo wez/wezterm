@@ -88,7 +88,7 @@ return {
 
 If you'd like to factor your color schemes out into separate files, you
 can create a file with a `[colors]` section; take a look at [one of
-the available color schemes for an example](https://github.com/wez/wezterm/blob/master/assets/colors/Builtin%20Dark.toml).
+the available color schemes for an example](https://github.com/wez/wezterm/blob/main/assets/colors/Builtin%20Dark.toml).
 
 It is recommended that you place your custom scheme in a directory
 named `$HOME/.config/wezterm/colors` if you're on a POSIX system.

@@ -1,6 +1,6 @@
 # Note: if you are viewing this from the tap repo, this file is automatically
 # updated from:
-# https://github.com/wez/wezterm/blob/master/ci/wezterm-linuxbrew.rb.template
+# https://github.com/wez/wezterm/blob/main/ci/wezterm-linuxbrew.rb.template
 # by automation in the wezterm repo.
 class Wezterm < Formula
   desc "A GPU-accelerated cross-platform terminal emulator and multiplexer written by @wez and implemented in Rust"

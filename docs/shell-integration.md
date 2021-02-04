@@ -14,7 +14,7 @@ In order for these features to be enabled, you will need to configure your
 shell program to emit the escape sequences at the appropriate place.
 
 You can find some [examples for various shells in the wezterm
-repo](https://github.com/wez/wezterm/tree/master/assets/shell-integration).
+repo](https://github.com/wez/wezterm/tree/main/assets/shell-integration).
 
 In the most recently nightly builds the Fedora and Debian packages
 automatically activate shell integration for Bash and Zsh.
