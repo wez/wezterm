@@ -592,7 +592,7 @@ def generate_pr_actions():
 on:
   pull_request:
     branches:
-    - master
+    - main
     paths-ignore:
     - 'docs/*'
 """,
@@ -610,7 +610,7 @@ on:
     - cron: "10 3 * * *"
   push:
     branches:
-    - master
+    - main
     paths-ignore:
     - 'docs/**'
 """,

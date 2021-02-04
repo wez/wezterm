@@ -4,7 +4,7 @@ name: debian9.12
 on:
   pull_request:
     branches:
-    - master
+    - main
     paths-ignore:
     - 'docs/*'
 

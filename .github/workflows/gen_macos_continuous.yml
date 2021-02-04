@@ -6,7 +6,7 @@ on:
     - cron: "10 3 * * *"
   push:
     branches:
-    - master
+    - main
     paths-ignore:
     - 'docs/**'
 
