@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context};
-use config::wezterm_version;
+use config::{ConfigFileSelection, wezterm_version};
 use mux::activity::Activity;
 use mux::pane::PaneId;
 use mux::tab::SplitDirection;
@@ -28,6 +28,10 @@ struct Opt {
     /// Skip loading wezterm.lua
     #[structopt(short = "n")]
     skip_config: bool,
+
+    /// Specify the configuration file to use, overrides WEZTERM_CONFIG_FILE
+    #[structopt(long = "config-file", parse(from_os_str))]
+    config_file: Option<OsString>,
 
     #[structopt(subcommand)]
     cmd: Option<SubCommand>,
@@ -228,7 +232,12 @@ fn run() -> anyhow::Result<()> {
 
     let opts = Opt::from_args();
     if !opts.skip_config {
-        config::reload();
+        if let Some(ref config_file) = opts.config_file {
+            let path = std::path::PathBuf::from(config_file);
+            config::reload(ConfigFileSelection::FromPath(path.as_path()));
+        } else {
+            config::reload(ConfigFileSelection::Search);
+        }
     }
     let config = config::configuration();
 

@@ -1,4 +1,4 @@
-use config::configuration;
+use config::{configuration, ConfigFileSelection};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::Mux;
@@ -22,6 +22,10 @@ struct Opt {
     /// Skip loading wezterm.lua
     #[structopt(short = "n")]
     skip_config: bool,
+
+    /// Specify the configuration file to use, overrides WEZTERM_CONFIG_FILE
+    #[structopt(long = "config-file", parse(from_os_str))]
+    config_file: Option<OsString>,
 
     /// Detach from the foreground and become a background process
     #[structopt(long = "daemonize")]
@@ -55,7 +59,12 @@ fn run() -> anyhow::Result<()> {
 
     let opts = Opt::from_args();
     if !opts.skip_config {
-        config::reload();
+        if let Some(ref config_file) = opts.config_file {
+            let path = std::path::PathBuf::from(config_file);
+            config::reload(ConfigFileSelection::FromPath(path.as_path()));
+        } else {
+            config::reload(ConfigFileSelection::Search);
+        }
     }
 
     #[cfg(unix)]

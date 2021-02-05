@@ -3,11 +3,13 @@
 
 use crate::gui::front_end;
 use anyhow::anyhow;
+use config::ConfigFileSelection;
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use promise::spawn::block_on;
+use std::ffi::OsString;
 use std::rc::Rc;
 use std::sync::Arc;
 use structopt::StructOpt;
@@ -32,6 +34,10 @@ struct Opt {
     /// Skip loading wezterm.lua
     #[structopt(short = "n")]
     skip_config: bool,
+
+    /// Specify the configuration file to use, overrides WEZTERM_CONFIG_FILE
+    #[structopt(long = "config-file", parse(from_os_str))]
+    config_file: Option<OsString>,
 
     #[structopt(subcommand)]
     cmd: Option<SubCommand>,
@@ -409,7 +415,12 @@ fn run() -> anyhow::Result<()> {
 
     let opts = Opt::from_args();
     if !opts.skip_config {
-        config::reload();
+        if let Some(ref config_file) = opts.config_file {
+            let path = std::path::PathBuf::from(config_file);
+            config::reload(ConfigFileSelection::FromPath(path.as_path()));
+        } else {
+            config::reload(ConfigFileSelection::Search);
+        }
     }
     let config = config::configuration();
     window::configuration::set_configuration(crate::window_config::ConfigBridge);

@@ -251,8 +251,13 @@ pub fn configuration() -> ConfigHandle {
     CONFIG.get()
 }
 
-pub fn reload() {
-    CONFIG.reload();
+pub enum ConfigFileSelection<'a> {
+    Search,
+    FromPath(&'a Path),
+}
+
+pub fn reload(file_selection: ConfigFileSelection) {
+    CONFIG.reload(file_selection);
 }
 
 /// If there was an error loading the preferred configuration,
@@ -317,7 +322,7 @@ impl ConfigInner {
                     log::trace!("event:{:?}", event);
                     if let Some(path) = extract_path(event) {
                         log::debug!("path {} changed, reload config", path.display());
-                        reload();
+                        reload(ConfigFileSelection::Search);
                     }
                 }
             });
@@ -336,8 +341,12 @@ impl ConfigInner {
     /// configuration.
     /// On failure, retain the existing configuration but
     /// replace any captured error message.
-    fn reload(&mut self) {
-        match Config::load() {
+    fn reload(&mut self, file_selection: ConfigFileSelection) {
+        let config = match file_selection {
+            ConfigFileSelection::Search => Config::load(),
+            ConfigFileSelection::FromPath(path) => Config::load_from_path(path),
+        };
+        match config {
             Ok(LoadedConfig {
                 config,
                 file_name,
@@ -410,9 +419,9 @@ impl Configuration {
     }
 
     /// Reload the configuration
-    pub fn reload(&self) {
+    pub fn reload(&self, file_selection: ConfigFileSelection) {
         let mut inner = self.inner.lock().unwrap();
-        inner.reload();
+        inner.reload(file_selection);
     }
 
     /// Returns a copy of any captured error message.
@@ -997,47 +1006,11 @@ impl Config {
             paths.insert(0, path.into());
         }
 
-        for p in &paths {
-            log::trace!("consider config: {}", p.display());
-            let mut file = match fs::File::open(p) {
-                Ok(file) => file,
-                Err(err) => match err.kind() {
-                    std::io::ErrorKind::NotFound => continue,
-                    _ => bail!("Error opening {}: {}", p.display(), err),
-                },
-            };
-
-            let mut s = String::new();
-            file.read_to_string(&mut s)?;
-
-            let cfg: Self;
-
-            let lua = make_lua_context(p)?;
-            let config: mlua::Value = smol::block_on(
-                lua.load(&s)
-                    .set_name(p.to_string_lossy().as_bytes())?
-                    .eval_async(),
-            )?;
-            cfg = luahelper::from_lua_value(config).with_context(|| {
-                format!(
-                    "Error converting lua value returned by script {} to Config struct",
-                    p.display()
-                )
-            })?;
-
-            // Compute but discard the key bindings here so that we raise any
-            // problems earlier than we use them.
-            let _ = cfg.key_bindings()?;
-
-            std::env::set_var("WEZTERM_CONFIG_FILE", p);
-            if let Some(dir) = p.parent() {
-                std::env::set_var("WEZTERM_CONFIG_DIR", dir);
+        for path in &paths {
+            log::trace!("consider config: {}", path.display());
+            if path.exists() {
+                return Self::load_from_path(path);
             }
-            return Ok(LoadedConfig {
-                config: cfg.compute_extra_defaults(Some(p)),
-                file_name: Some(p.to_path_buf()),
-                lua: Some(lua),
-            });
         }
 
         Ok(LoadedConfig {
@@ -1045,6 +1018,45 @@ impl Config {
             file_name: None,
             lua: None,
         })
+    }
+
+    pub fn load_from_path(path: &Path) -> Result<LoadedConfig, Error> {
+        let mut file = match fs::File::open(path) {
+            Ok(file) => file,
+            Err(err) => bail!("Error opening {}: {}", path.display(), err),
+        };
+
+        let mut s = String::new();
+        file.read_to_string(&mut s)?;
+
+        let cfg: Self;
+
+        let lua = make_lua_context(path)?;
+        let config: mlua::Value = smol::block_on(
+            lua.load(&s)
+            .set_name(path.to_string_lossy().as_bytes())?
+            .eval_async(),
+        )?;
+        cfg = luahelper::from_lua_value(config).with_context(|| {
+            format!(
+                "Error converting lua value returned by script {} to Config struct",
+                path.display()
+            )
+        })?;
+
+        // Compute but discard the key bindings here so that we raise any
+        // problems earlier than we use them.
+        let _ = cfg.key_bindings();
+
+        std::env::set_var("WEZTERM_CONFIG_FILE", path);
+        if let Some(dir) = path.parent() {
+            std::env::set_var("WEZTERM_CONFIG_DIR", dir);
+        }
+        return Ok(LoadedConfig {
+            config: cfg.compute_extra_defaults(Some(path)),
+            file_name: Some(path.to_path_buf()),
+            lua: Some(lua),
+        });
     }
 
     pub fn default_config() -> Self {

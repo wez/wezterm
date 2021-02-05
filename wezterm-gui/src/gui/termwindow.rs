@@ -28,7 +28,7 @@ use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, MouseEventTrigger,
     SpawnCommand, SpawnTabDomain,
 };
-use config::{configuration, ConfigHandle, WindowCloseConfirmation};
+use config::{configuration, ConfigFileSelection, ConfigHandle, WindowCloseConfirmation};
 use lru::LruCache;
 use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
@@ -1980,7 +1980,7 @@ impl TermWindow {
             CloseCurrentTab { confirm } => self.close_current_tab(*confirm),
             CloseCurrentPane { confirm } => self.close_current_pane(*confirm),
             Nop | DisableDefaultAssignment => {}
-            ReloadConfiguration => config::reload(),
+            ReloadConfiguration => config::reload(ConfigFileSelection::Search),
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
             ScrollByPage(n) => self.scroll_by_page(*n)?,
