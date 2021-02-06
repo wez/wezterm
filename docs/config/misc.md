@@ -70,6 +70,16 @@ return {
   -- automatically when it is detected as changing.
   -- When false, you will need to manually trigger a config reload.
   automatically_reload_config = true,
+
+  -- The github releases section is checked regularly for updated stable
+  -- releases and show a simple UI to let you know about the update,
+  -- with links to download/install it. It doesn't automatically download
+  -- the release. No data are collected for the wezterm project as part of this.
+  -- By default it is checked once every 24 hours.
+  -- Set `check_for_updates` to `false` to disable this completely or set
+  -- `check_for_updates_interval_seconds` for an alternative update interval.
+  check_for_updates = true,
+  check_for_updates_interval_seconds = 86400,
 }
 ```
 
