@@ -87,5 +87,10 @@ return {
   -- When true (the default) scrolls to the bottom of the scrollback
   -- on input.
   scroll_to_bottom_on_input = true,
+
+  -- (available starting in version 20210203-095643-70a364eb)
+  -- Configures the boudaries of a word, thus what is selected when doing
+  -- a word selection with the mouse.
+  selection_word_boundary = " \t\n{}[]()\"'`",
 }
 ```
