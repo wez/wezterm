@@ -1034,8 +1034,8 @@ impl Config {
         let lua = make_lua_context(path)?;
         let config: mlua::Value = smol::block_on(
             lua.load(&s)
-            .set_name(path.to_string_lossy().as_bytes())?
-            .eval_async(),
+                .set_name(path.to_string_lossy().as_bytes())?
+                .eval_async(),
         )?;
         cfg = luahelper::from_lua_value(config).with_context(|| {
             format!(

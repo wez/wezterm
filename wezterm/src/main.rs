@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context};
-use config::{ConfigFileSelection, wezterm_version};
+use config::{wezterm_version, ConfigFileSelection};
 use mux::activity::Activity;
 use mux::pane::PaneId;
 use mux::tab::SplitDirection;
