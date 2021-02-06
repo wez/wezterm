@@ -59,6 +59,7 @@ lazy_static! {
     pub static ref CONFIG_DIR: PathBuf = xdg_config_home();
     pub static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
     static ref CONFIG: Configuration = Configuration::new();
+    static ref CONFIG_FILE_OVERRIDE: Mutex<Option<PathBuf>> = Mutex::new(None);
     static ref MAKE_LUA: Mutex<Option<LuaFactory>> = Mutex::new(Some(lua::make_lua_context));
     static ref SHOW_ERROR: Mutex<Option<ErrorCallback>> =
         Mutex::new(Some(|e| log::error!("{}", e)));
@@ -239,6 +240,13 @@ fn xdg_config_home() -> PathBuf {
     }
 }
 
+pub fn set_config_file_override(path: &Path) {
+    CONFIG_FILE_OVERRIDE
+        .lock()
+        .unwrap()
+        .replace(path.to_path_buf());
+}
+
 /// Discard the current configuration and replace it with
 /// the default configuration
 #[allow(dead_code)]
@@ -251,13 +259,8 @@ pub fn configuration() -> ConfigHandle {
     CONFIG.get()
 }
 
-pub enum ConfigFileSelection<'a> {
-    Search,
-    FromPath(&'a Path),
-}
-
-pub fn reload(file_selection: ConfigFileSelection) {
-    CONFIG.reload(file_selection);
+pub fn reload() {
+    CONFIG.reload();
 }
 
 /// If there was an error loading the preferred configuration,
@@ -322,7 +325,7 @@ impl ConfigInner {
                     log::trace!("event:{:?}", event);
                     if let Some(path) = extract_path(event) {
                         log::debug!("path {} changed, reload config", path.display());
-                        reload(ConfigFileSelection::Search);
+                        reload();
                     }
                 }
             });
@@ -341,12 +344,8 @@ impl ConfigInner {
     /// configuration.
     /// On failure, retain the existing configuration but
     /// replace any captured error message.
-    fn reload(&mut self, file_selection: ConfigFileSelection) {
-        let config = match file_selection {
-            ConfigFileSelection::Search => Config::load(),
-            ConfigFileSelection::FromPath(path) => Config::load_from_path(path),
-        };
-        match config {
+    fn reload(&mut self) {
+        match Config::load() {
             Ok(LoadedConfig {
                 config,
                 file_name,
@@ -419,9 +418,9 @@ impl Configuration {
     }
 
     /// Reload the configuration
-    pub fn reload(&self, file_selection: ConfigFileSelection) {
+    pub fn reload(&self) {
         let mut inner = self.inner.lock().unwrap();
-        inner.reload(file_selection);
+        inner.reload();
     }
 
     /// Returns a copy of any captured error message.
@@ -1006,11 +1005,52 @@ impl Config {
             paths.insert(0, path.into());
         }
 
-        for path in &paths {
-            log::trace!("consider config: {}", path.display());
-            if path.exists() {
-                return Self::load_from_path(path);
+        if let Some(path) = CONFIG_FILE_OVERRIDE.lock().unwrap().as_ref() {
+            log::trace!("Note: config file override is set");
+            paths.insert(0, path.clone());
+        }
+
+        for p in &paths {
+            log::trace!("consider config: {}", p.display());
+            let mut file = match fs::File::open(p) {
+                Ok(file) => file,
+                Err(err) => match err.kind() {
+                    std::io::ErrorKind::NotFound => continue,
+                    _ => bail!("Error opening {}: {}", p.display(), err),
+                },
+            };
+
+            let mut s = String::new();
+            file.read_to_string(&mut s)?;
+
+            let cfg: Self;
+
+            let lua = make_lua_context(p)?;
+            let config: mlua::Value = smol::block_on(
+                lua.load(&s)
+                    .set_name(p.to_string_lossy().as_bytes())?
+                    .eval_async(),
+            )?;
+            cfg = luahelper::from_lua_value(config).with_context(|| {
+                format!(
+                    "Error converting lua value returned by script {} to Config struct",
+                    p.display()
+                )
+            })?;
+
+            // Compute but discard the key bindings here so that we raise any
+            // problems earlier than we use them.
+            let _ = cfg.key_bindings();
+
+            std::env::set_var("WEZTERM_CONFIG_FILE", p);
+            if let Some(dir) = p.parent() {
+                std::env::set_var("WEZTERM_CONFIG_DIR", dir);
             }
+            return Ok(LoadedConfig {
+                config: cfg.compute_extra_defaults(Some(p)),
+                file_name: Some(p.to_path_buf()),
+                lua: Some(lua),
+            });
         }
 
         Ok(LoadedConfig {
@@ -1018,45 +1058,6 @@ impl Config {
             file_name: None,
             lua: None,
         })
-    }
-
-    pub fn load_from_path(path: &Path) -> Result<LoadedConfig, Error> {
-        let mut file = match fs::File::open(path) {
-            Ok(file) => file,
-            Err(err) => bail!("Error opening {}: {}", path.display(), err),
-        };
-
-        let mut s = String::new();
-        file.read_to_string(&mut s)?;
-
-        let cfg: Self;
-
-        let lua = make_lua_context(path)?;
-        let config: mlua::Value = smol::block_on(
-            lua.load(&s)
-                .set_name(path.to_string_lossy().as_bytes())?
-                .eval_async(),
-        )?;
-        cfg = luahelper::from_lua_value(config).with_context(|| {
-            format!(
-                "Error converting lua value returned by script {} to Config struct",
-                path.display()
-            )
-        })?;
-
-        // Compute but discard the key bindings here so that we raise any
-        // problems earlier than we use them.
-        let _ = cfg.key_bindings();
-
-        std::env::set_var("WEZTERM_CONFIG_FILE", path);
-        if let Some(dir) = path.parent() {
-            std::env::set_var("WEZTERM_CONFIG_DIR", dir);
-        }
-        return Ok(LoadedConfig {
-            config: cfg.compute_extra_defaults(Some(path)),
-            file_name: Some(path.to_path_buf()),
-            lua: Some(lua),
-        });
     }
 
     pub fn default_config() -> Self {

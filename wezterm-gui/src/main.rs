@@ -3,7 +3,6 @@
 
 use crate::gui::front_end;
 use anyhow::anyhow;
-use config::ConfigFileSelection;
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::Mux;
@@ -419,13 +418,11 @@ fn run() -> anyhow::Result<()> {
     let _saver = umask::UmaskSaver::new();
 
     let opts = Opt::from_args();
+    if let Some(config_file) = opts.config_file.as_ref() {
+        config::set_config_file_override(std::path::Path::new(config_file));
+    }
     if !opts.skip_config {
-        if let Some(ref config_file) = opts.config_file {
-            let path = std::path::PathBuf::from(config_file);
-            config::reload(ConfigFileSelection::FromPath(path.as_path()));
-        } else {
-            config::reload(ConfigFileSelection::Search);
-        }
+        config::reload();
     }
     let config = config::configuration();
     window::configuration::set_configuration(crate::window_config::ConfigBridge);
