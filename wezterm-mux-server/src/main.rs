@@ -23,8 +23,13 @@ struct Opt {
     #[structopt(short = "n")]
     skip_config: bool,
 
-    /// Specify the configuration file to use, overrides WEZTERM_CONFIG_FILE
-    #[structopt(long = "config-file", parse(from_os_str))]
+    /// Specify the configuration file to use, overrides the normal
+    /// configuration file resolution
+    #[structopt(
+        long = "config-file",
+        parse(from_os_str),
+        conflicts_with = "skip_config"
+    )]
     config_file: Option<OsString>,
 
     /// Detach from the foreground and become a background process
