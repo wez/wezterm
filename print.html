@@ -409,7 +409,7 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.</p>
 <ul>
-<li>Not yet!</li>
+<li>Fonts: when computing default <code>font_rules</code> for bold and italic fonts, strip italic and bold components from the family name. eg: if you set <code>font = wezterm.font(&quot;Source Code Pro Medium&quot;)</code> then the <code> Medium</code> text will be stripped from the font name used to locate bold and italic variants so that we don't report an error loading a non-sensical <code>Source Code Pro Medium Bold</code>. <a href="https://github.com/wez/wezterm/issues/456">#456</a></li>
 </ul>
 <h3><a class="header" href="#20210203-095643-70a364eb" id="20210203-095643-70a364eb">20210203-095643-70a364eb</a></h3>
 <ul>
