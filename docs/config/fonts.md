@@ -15,7 +15,7 @@ return {
 }
 ```
 
-The following options impact how text is rendered:
+The following options impact how text & glyphs are rendered:
 
 ```lua
 return {
@@ -50,6 +50,15 @@ return {
   -- legible on a Black background, but if this option is set to
   -- false, it would render as Black on Black.
   bold_brightens_ansi_colors = true,
+
+  -- (available starting in version 20210203-095643-70a364eb)
+  -- Configures how square symbol glyph's cell is rendered:
+  -- * "WhenFollowedBySpace" - deliberately overflow the cell
+  --   width when the next cell is a space.
+  -- * "Always" - overflow the cell regardless of the next cell
+  --   being a space.
+  -- * "Never" (the default) - strictly respect the cell width.
+  allow_square_glyphs_to_overflow_width = "Never",
 }
 ```
 
@@ -203,4 +212,3 @@ return {
   font_hinting = "Full",  -- None, Vertical, VerticalSubpixel, Full
 }
 ```
-
