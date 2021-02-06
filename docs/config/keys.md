@@ -166,8 +166,8 @@ The default key bindings are:
 | `SUPER`          | `r`    | `ReloadConfiguration` |
 | `CTRL+SHIFT`     | `R`    | `ReloadConfiguration` |
 | `SUPER`          | `h`    | `HideApplication` (macOS only) |
-| `SUPER`          | `k`    | `ClearScrollback` |
-| `CTRL+SHIFT`     | `K`    | `ClearScrollback` |
+| `SUPER`          | `k`    | `ClearScrollback="ScrollbackOnly"` |
+| `CTRL+SHIFT`     | `K`    | `ClearScrollback="ScrollbackOnly"` |
 | `SUPER`          | `f`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `X`    | `ActivateCopyMode` |

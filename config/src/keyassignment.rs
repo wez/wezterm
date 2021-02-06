@@ -209,13 +209,9 @@ pub struct InputMap {
 impl InputMap {
     pub fn new() -> Self {
         let config = configuration();
-        let mut mouse = config
-            .mouse_bindings()
-            .expect("mouse_bindings section of the config to be valid");
+        let mut mouse = config.mouse_bindings();
 
-        let mut keys = config
-            .key_bindings()
-            .expect("keys section of config to be valid");
+        let mut keys = config.key_bindings();
 
         let leader = config.leader.clone();
 

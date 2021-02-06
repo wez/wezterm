@@ -1064,7 +1064,7 @@ impl Config {
         Self::default().compute_extra_defaults(None)
     }
 
-    pub fn key_bindings(&self) -> anyhow::Result<HashMap<(KeyCode, Modifiers), KeyAssignment>> {
+    pub fn key_bindings(&self) -> HashMap<(KeyCode, Modifiers), KeyAssignment> {
         let mut map = HashMap::new();
 
         for k in &self.keys {
@@ -1072,19 +1072,17 @@ impl Config {
             map.insert((key, mods), k.action.clone());
         }
 
-        Ok(map)
+        map
     }
 
-    pub fn mouse_bindings(
-        &self,
-    ) -> anyhow::Result<HashMap<(MouseEventTrigger, Modifiers), KeyAssignment>> {
+    pub fn mouse_bindings(&self) -> HashMap<(MouseEventTrigger, Modifiers), KeyAssignment> {
         let mut map = HashMap::new();
 
         for m in &self.mouse_bindings {
             map.insert((m.event.clone(), m.mods), m.action.clone());
         }
 
-        Ok(map)
+        map
     }
 
     /// In some cases we need to compute expanded values based
