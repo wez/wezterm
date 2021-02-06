@@ -1095,8 +1095,9 @@ impl Config {
 
         if cfg.font_rules.is_empty() {
             // Expand out some reasonable default font rules
-            let bold = self.font.make_bold();
-            let italic = self.font.make_italic();
+            let reduced = self.font.reduce_first_font_to_family();
+            let bold = reduced.make_bold();
+            let italic = reduced.make_italic();
             let bold_italic = bold.make_italic();
 
             cfg.font_rules.push(StyleRule {

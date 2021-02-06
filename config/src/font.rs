@@ -116,6 +116,53 @@ impl Default for TextStyle {
 }
 
 impl TextStyle {
+    /// Make a version of this style where the first entry
+    /// has any explicitly named bold/italic components
+    /// removed.  The intent is to set it up for make_bold
+    /// and make_italic below.
+    ///
+    /// This is done heuristically based on the family name
+    /// string as we cannot depend on the font parser from
+    /// this crate, and even if we did have a parser, that
+    /// doesn't help us know anything about the name until
+    /// we have a parsed font to compare with.
+    ///
+    /// <https://github.com/wez/wezterm/issues/456>
+    pub fn reduce_first_font_to_family(&self) -> Self {
+        fn reduce(family: &str) -> String {
+            family
+                // Italic tends to be last in the string,
+                // if present, so strip it first
+                .trim_end_matches(" Italic")
+                // Then the various weight names
+                .trim_end_matches(" Thin")
+                .trim_end_matches(" Extra Light")
+                .trim_end_matches(" Normal")
+                .trim_end_matches(" Medium")
+                .trim_end_matches(" Semi Bold")
+                .trim_end_matches(" Bold")
+                .trim_end_matches(" Extra Bold")
+                .trim_end_matches(" Ultra Bold")
+                .trim_end_matches(" Book")
+                .to_string()
+        }
+        Self {
+            foreground: self.foreground,
+            font: self
+                .font
+                .iter()
+                .enumerate()
+                .map(|(idx, orig_attr)| {
+                    let mut attr = orig_attr.clone();
+                    if idx == 0 {
+                        attr.family = reduce(&attr.family);
+                    }
+                    attr
+                })
+                .collect(),
+        }
+    }
+
     /// Make a version of this style with bold enabled.
     pub fn make_bold(&self) -> Self {
         Self {
