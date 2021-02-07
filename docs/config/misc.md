@@ -66,11 +66,6 @@ return {
   -- windows every time
   window_close_confirmation = "AlwaysPrompt",
 
-  -- When true (the default), watch the config file and reload it
-  -- automatically when it is detected as changing.
-  -- When false, you will need to manually trigger a config reload.
-  automatically_reload_config = true,
-
   -- The github releases section is checked regularly for updated stable
   -- releases and show a simple UI to let you know about the update,
   -- with links to download/install it. It doesn't automatically download
@@ -83,14 +78,5 @@ return {
   check_for_updates = true,
   check_for_updates_interval_seconds = 86400,
   show_update_window = true,
-
-  -- When true (the default) scrolls to the bottom of the scrollback
-  -- on input.
-  scroll_to_bottom_on_input = true,
-
-  -- (available starting in version 20210203-095643-70a364eb)
-  -- Configures the boudaries of a word, thus what is selected when doing
-  -- a word selection with the mouse.
-  selection_word_boundary = " \t\n{}[]()\"'`",
 }
 ```
