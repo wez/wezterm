@@ -26,8 +26,17 @@ use wezterm_gui_subcommands::*;
 )]
 struct Opt {
     /// Skip loading wezterm.lua
-    #[structopt(short = "n")]
+    #[structopt(name = "skip-config", short = "n")]
     skip_config: bool,
+
+    /// Specify the configuration file to use, overrides the normal
+    /// configuration file resolution
+    #[structopt(
+        long = "config-file",
+        parse(from_os_str),
+        conflicts_with = "skip-config"
+    )]
+    config_file: Option<OsString>,
 
     #[structopt(subcommand)]
     cmd: Option<SubCommand>,
@@ -227,6 +236,9 @@ fn run() -> anyhow::Result<()> {
     let saver = UmaskSaver::new();
 
     let opts = Opt::from_args();
+    if let Some(config_file) = opts.config_file.as_ref() {
+        config::set_config_file_override(std::path::Path::new(config_file));
+    }
     if !opts.skip_config {
         config::reload();
     }

@@ -20,8 +20,17 @@ mod daemonize;
 )]
 struct Opt {
     /// Skip loading wezterm.lua
-    #[structopt(short = "n")]
+    #[structopt(name = "skip-config", short = "n")]
     skip_config: bool,
+
+    /// Specify the configuration file to use, overrides the normal
+    /// configuration file resolution
+    #[structopt(
+        long = "config-file",
+        parse(from_os_str),
+        conflicts_with = "skip-config"
+    )]
+    config_file: Option<OsString>,
 
     /// Detach from the foreground and become a background process
     #[structopt(long = "daemonize")]
@@ -54,6 +63,9 @@ fn run() -> anyhow::Result<()> {
     let _saver = umask::UmaskSaver::new();
 
     let opts = Opt::from_args();
+    if let Some(config_file) = opts.config_file.as_ref() {
+        config::set_config_file_override(std::path::Path::new(config_file));
+    }
     if !opts.skip_config {
         config::reload();
     }
