@@ -974,6 +974,19 @@ pub struct LoadedConfig {
     lua: Option<mlua::Lua>,
 }
 
+struct PathPossibility {
+    path: PathBuf,
+    is_required: bool,
+}
+impl PathPossibility {
+    pub fn required(path: PathBuf) -> PathPossibility {
+        PathPossibility { path, is_required: true }
+    }
+    pub fn optional(path: PathBuf) -> PathPossibility {
+        PathPossibility { path, is_required: false }
+    }
+}
+
 impl Config {
     pub fn load() -> Result<LoadedConfig, Error> {
         // Note that the directories crate has methods for locating project
@@ -982,8 +995,8 @@ impl Config {
         // so we do this bit "by-hand"
 
         let mut paths = vec![
-            CONFIG_DIR.join("wezterm.lua"),
-            HOME_DIR.join(".wezterm.lua"),
+            PathPossibility::optional(CONFIG_DIR.join("wezterm.lua")),
+            PathPossibility::optional(HOME_DIR.join(".wezterm.lua")),
         ];
         if cfg!(windows) {
             // On Windows, a common use case is to maintain a thumb drive
@@ -996,26 +1009,27 @@ impl Config {
             // dir as the executable that will take precedence.
             if let Ok(exe_name) = std::env::current_exe() {
                 if let Some(exe_dir) = exe_name.parent() {
-                    paths.insert(0, exe_dir.join("wezterm.lua"));
+                    paths.insert(0, PathPossibility::optional(exe_dir.join("wezterm.lua")));
                 }
             }
         }
         if let Some(path) = std::env::var_os("WEZTERM_CONFIG_FILE") {
             log::trace!("Note: WEZTERM_CONFIG_FILE is set in the environment");
-            paths.insert(0, path.into());
+            paths.insert(0, PathPossibility::required(path.into()));
         }
 
         if let Some(path) = CONFIG_FILE_OVERRIDE.lock().unwrap().as_ref() {
             log::trace!("Note: config file override is set");
-            paths.insert(0, path.clone());
+            paths.insert(0, PathPossibility::required(path.clone()));
         }
 
-        for p in &paths {
+        for path_item in &paths {
+            let p = path_item.path.as_path();
             log::trace!("consider config: {}", p.display());
             let mut file = match fs::File::open(p) {
                 Ok(file) => file,
                 Err(err) => match err.kind() {
-                    std::io::ErrorKind::NotFound => continue,
+                    std::io::ErrorKind::NotFound if !path_item.is_required => continue,
                     _ => bail!("Error opening {}: {}", p.display(), err),
                 },
             };
