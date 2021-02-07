@@ -6,7 +6,7 @@ freebsd_instance:
 task:
   name: freebsd-12
   stateful: false
-  only_if: "changesInclude('**.{toml,rs}', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
+  only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
   setup_script:
     - pkg install -y bash
     - bash get-deps
