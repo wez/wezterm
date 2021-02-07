@@ -980,10 +980,16 @@ struct PathPossibility {
 }
 impl PathPossibility {
     pub fn required(path: PathBuf) -> PathPossibility {
-        PathPossibility { path, is_required: true }
+        PathPossibility {
+            path,
+            is_required: true,
+        }
     }
     pub fn optional(path: PathBuf) -> PathPossibility {
-        PathPossibility { path, is_required: false }
+        PathPossibility {
+            path,
+            is_required: false,
+        }
     }
 }
 
