@@ -28,7 +28,7 @@ struct Opt {
     #[structopt(
         long = "config-file",
         parse(from_os_str),
-        conflicts_with = "skip_config"
+        conflicts_with = "skip-config"
     )]
     config_file: Option<OsString>,
 
@@ -64,7 +64,7 @@ fn run() -> anyhow::Result<()> {
 
     let opts = Opt::from_args();
     if let Some(config_file) = opts.config_file.as_ref() {
-        config::set_config_file_override(std::path::Path::new(config_file));
+        config::set_config_file_override(config_file.into());
     }
     if !opts.skip_config {
         config::reload();
