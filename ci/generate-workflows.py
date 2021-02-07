@@ -595,6 +595,11 @@ on:
     - main
     paths-ignore:
     - 'docs/*'
+    - 'ci/build-docs.sh'
+    - 'ci/generate-docs.py'
+    - 'ci/subst-release-info.py'
+    - '.github/workflows/pages.yml'
+    - '**/*.md'
 """,
         is_continuous=False,
     )
