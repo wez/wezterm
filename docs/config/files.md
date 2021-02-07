@@ -4,8 +4,13 @@
 configuration file in the following locations, stopping at the first file that
 it finds:
 
+* (in the nightly builds) if the `--config-file` CLI argument was specified, then
+  that path will be used.  If that path fails to load, then the defaults will be
+  used instead.
 * If the environment variable `$WEZTERM_CONFIG_FILE` is set, it will be treated as the
-  path to a configuration file.
+  path to a configuration file.  In the nightly builds: if that path fails to load
+  then the defaults will be used instead.  In earlier releases, the following steps
+  would be used as a fallback.
 * On Windows, `wezterm.lua` from the directory that contains `wezterm.exe`.
   This is handy for users that want to carry their wezterm install around on a thumb drive.
 * `$HOME/.config/wezterm/wezterm.lua`,
