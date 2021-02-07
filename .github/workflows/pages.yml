@@ -3,7 +3,7 @@ name: pages
 on:
   push:
     branches:
-    - master
+    - main
   schedule:
     - cron: "50 * * * *"
 
