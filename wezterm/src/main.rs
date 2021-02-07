@@ -26,7 +26,7 @@ use wezterm_gui_subcommands::*;
 )]
 struct Opt {
     /// Skip loading wezterm.lua
-    #[structopt(short = "n")]
+    #[structopt(name = "skip-config", short = "n")]
     skip_config: bool,
 
     /// Specify the configuration file to use, overrides the normal
