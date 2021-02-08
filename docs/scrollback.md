@@ -67,21 +67,21 @@ search overlay in the current tab.
 
 When the search overlay is active the behavior of wezterm changes:
 
-* Typing (or pasting) text will populate the *search pattern* in the bar at the bottom of the screen
+* Typing (or pasting) text will populate the *search pattern* in the bar at the bottom of the screen.
 * Text from the scrollback that matches the *search pattern* will be highlighted and
-  the number of matches shown in the search bar
+  the number of matches shown in the search bar.
 * The bottom-most match will be selected and the viewport scrolled to show the selected
   text.
-* `Enter`, `UpArrow` and `CTRL-P` will cause the selection to move to any prior matching text
+* `Enter`, `UpArrow` and `CTRL-P` will cause the selection to move to any prior matching text.
 * `PageUp` will traverse to previous matches one page at a time.
-* `CTRL-N` and `DownArrow` will cause the selection to move to any next matching text
+* `CTRL-N` and `DownArrow` will cause the selection to move to any next matching text.
 * `PageDown` will traverse to the next match one page at a time.
 * `CTRL-R` will cycle through the pattern matching mode; the initial mode is case-sensitive
   text matching, the next will match ignoring case and the last will match using the
   [regular expression syntax described here](https://docs.rs/regex/1.3.9/regex/#syntax).
   The matching mode is indicated in the search bar.
 * `CTRL-U` will clear the *search pattern* so you can start over.
-* `CTRL-SHIFT-C` will copy the selected text to the clipboard
+* `CTRL-SHIFT-C` will copy the selected text to the clipboard.
 * `Escape` will cancel the search overlay, leaving the currently selected text selected
   with the viewport scrolled to that location.
 
