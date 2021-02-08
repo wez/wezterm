@@ -218,21 +218,20 @@ on this key binding assignment.</p>
 search overlay in the current tab.</p>
 <p>When the search overlay is active the behavior of wezterm changes:</p>
 <ul>
-<li>Typing (or pasting) text will populate the <em>search pattern</em> in the bar at the bottom of the screen.</li>
+<li>Typing (or pasting) text will populate the <em>search pattern</em> in the bar at the bottom of the screen</li>
 <li>Text from the scrollback that matches the <em>search pattern</em> will be highlighted and
-the number of matches shown in the search bar.</li>
+the number of matches shown in the search bar</li>
 <li>The bottom-most match will be selected and the viewport scrolled to show the selected
 text.</li>
-<li><code>Enter</code>, <code>UpArrow</code> and <code>CTRL-P</code> will cause the selection to move to any prior matching text.</li>
+<li><code>Enter</code>, <code>UpArrow</code> and <code>CTRL-P</code> will cause the selection to move to any prior matching text</li>
 <li><code>PageUp</code> will traverse to previous matches one page at a time.</li>
-<li><code>CTRL-N</code> and <code>DownArrow</code> will cause the selection to move to any next matching text.</li>
+<li><code>CTRL-N</code> and <code>DownArrow</code> will cause the selection to move to any next matching text</li>
 <li><code>PageDown</code> will traverse to the next match one page at a time.</li>
 <li><code>CTRL-R</code> will cycle through the pattern matching mode; the initial mode is case-sensitive
 text matching, the next will match ignoring case and the last will match using the
 <a href="https://docs.rs/regex/1.3.9/regex/#syntax">regular expression syntax described here</a>.
 The matching mode is indicated in the search bar.</li>
-<li><code>CTRL-U</code> will clear the <em>search pattern</em> so you can start over.</li>
-<li><code>CTRL-SHIFT-C</code> will copy the selected text to the clipboard.</li>
+<li><code>CTRL-SHIFT-C</code> will copy the selected text to the clipboard</li>
 <li><code>Escape</code> will cancel the search overlay, leaving the currently selected text selected
 with the viewport scrolled to that location.</li>
 </ul>
