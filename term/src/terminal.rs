@@ -2,18 +2,32 @@ use super::*;
 use std::sync::Arc;
 use termwiz::escape::parser::Parser;
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum ClipboardSelection {
+    Clipboard,
+    PrimarySelection,
+}
+
 pub trait Clipboard {
-    fn get_contents(&self) -> anyhow::Result<String>;
-    fn set_contents(&self, data: Option<String>) -> anyhow::Result<()>;
+    fn get_contents(&self, selection: ClipboardSelection) -> anyhow::Result<String>;
+    fn set_contents(
+        &self,
+        selection: ClipboardSelection,
+        data: Option<String>,
+    ) -> anyhow::Result<()>;
 }
 
 impl Clipboard for Box<dyn Clipboard> {
-    fn get_contents(&self) -> anyhow::Result<String> {
-        self.as_ref().get_contents()
+    fn get_contents(&self, selection: ClipboardSelection) -> anyhow::Result<String> {
+        self.as_ref().get_contents(selection)
     }
 
-    fn set_contents(&self, data: Option<String>) -> anyhow::Result<()> {
-        self.as_ref().set_contents(data)
+    fn set_contents(
+        &self,
+        selection: ClipboardSelection,
+        data: Option<String>,
+    ) -> anyhow::Result<()> {
+        self.as_ref().set_contents(selection, data)
     }
 }
 

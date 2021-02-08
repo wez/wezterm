@@ -30,7 +30,7 @@ use std::sync::Arc;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::Line;
 use varbincode;
-use wezterm_term::StableRowIndex;
+use wezterm_term::{ClipboardSelection, StableRowIndex};
 
 /// Returns the encoded length of the leb128 representation of value
 fn encoded_length(value: u64) -> usize {
@@ -400,7 +400,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 6;
+pub const CODEC_VERSION: usize = 7;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -648,6 +648,7 @@ pub struct SendMouseEvent {
 pub struct SetClipboard {
     pub pane_id: PaneId,
     pub clipboard: Option<String>,
+    pub selection: ClipboardSelection,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

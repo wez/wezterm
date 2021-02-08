@@ -17,6 +17,7 @@ use termwiz::escape::csi::{
 };
 use termwiz::escape::osc::{
     ChangeColorPair, ColorOrQuery, FinalTermSemanticPrompt, ITermFileData, ITermProprietary,
+    Selection,
 };
 use termwiz::escape::{
     Action, ControlCode, DeviceControlMode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel,
@@ -462,9 +463,13 @@ impl TerminalState {
         &mut self.screen
     }
 
-    fn set_clipboard_contents(&self, text: Option<String>) -> anyhow::Result<()> {
+    fn set_clipboard_contents(
+        &self,
+        selection: ClipboardSelection,
+        text: Option<String>,
+    ) -> anyhow::Result<()> {
         if let Some(clip) = self.clipboard.as_ref() {
-            clip.set_contents(text)?;
+            clip.set_contents(selection, text)?;
         }
         Ok(())
     }
@@ -2683,6 +2688,19 @@ impl<'a> Drop for Performer<'a> {
     }
 }
 
+fn selection_to_selection(sel: Selection) -> ClipboardSelection {
+    match sel {
+        Selection::CLIPBOARD => ClipboardSelection::Clipboard,
+        Selection::PRIMARY => ClipboardSelection::PrimarySelection,
+        // xterm will use a configurable selection in the NONE case
+        Selection::NONE => ClipboardSelection::Clipboard,
+        // otherwise we just use clipboard.  Could potentially
+        // also use the same fallback configuration as NONE,
+        // if/when we add it
+        _ => ClipboardSelection::Clipboard,
+    }
+}
+
 impl<'a> Performer<'a> {
     pub fn new(state: &'a mut TerminalState) -> Self {
         Self { state, print: None }
@@ -3051,12 +3069,14 @@ impl<'a> Performer<'a> {
                 error!("{}", output);
             }
 
-            OperatingSystemCommand::ClearSelection(_) => {
-                self.set_clipboard_contents(None).ok();
+            OperatingSystemCommand::ClearSelection(selection) => {
+                let selection = selection_to_selection(selection);
+                self.set_clipboard_contents(selection, None).ok();
             }
             OperatingSystemCommand::QuerySelection(_) => {}
-            OperatingSystemCommand::SetSelection(_, selection_data) => {
-                match self.set_clipboard_contents(Some(selection_data)) {
+            OperatingSystemCommand::SetSelection(selection, selection_data) => {
+                let selection = selection_to_selection(selection);
+                match self.set_clipboard_contents(selection, Some(selection_data)) {
                     Ok(_) => (),
                     Err(err) => error!("failed to set clipboard in response to OSC 52: {:?}", err),
                 }

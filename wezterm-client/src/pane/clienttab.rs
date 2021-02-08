@@ -101,16 +101,18 @@ impl ClientPane {
                     .borrow_mut()
                     .apply_changes_to_surface(delta);
             }
-            Pdu::SetClipboard(SetClipboard { clipboard, .. }) => {
-                match self.clipboard.borrow().as_ref() {
-                    Some(clip) => {
-                        clip.set_contents(clipboard)?;
-                    }
-                    None => {
-                        log::error!("ClientPane: Ignoring SetClipboard request {:?}", clipboard);
-                    }
+            Pdu::SetClipboard(SetClipboard {
+                clipboard,
+                selection,
+                ..
+            }) => match self.clipboard.borrow().as_ref() {
+                Some(clip) => {
+                    clip.set_contents(selection, clipboard)?;
                 }
-            }
+                None => {
+                    log::error!("ClientPane: Ignoring SetClipboard request {:?}", clipboard);
+                }
+            },
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
         };
         Ok(())

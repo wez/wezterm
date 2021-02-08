@@ -14,7 +14,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use url::Url;
-use wezterm_term::terminal::Clipboard;
+use wezterm_term::terminal::{Clipboard, ClipboardSelection};
 use wezterm_term::StableRowIndex;
 
 #[derive(Clone)]
@@ -534,16 +534,21 @@ struct RemoteClipboard {
 }
 
 impl Clipboard for RemoteClipboard {
-    fn get_contents(&self) -> anyhow::Result<String> {
+    fn get_contents(&self, _selection: ClipboardSelection) -> anyhow::Result<String> {
         Ok("".to_owned())
     }
 
-    fn set_contents(&self, clipboard: Option<String>) -> anyhow::Result<()> {
+    fn set_contents(
+        &self,
+        selection: ClipboardSelection,
+        clipboard: Option<String>,
+    ) -> anyhow::Result<()> {
         self.sender.send(DecodedPdu {
             serial: 0,
             pdu: Pdu::SetClipboard(SetClipboard {
                 pane_id: self.pane_id,
                 clipboard,
+                selection,
             }),
         })?;
         Ok(())

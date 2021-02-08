@@ -56,7 +56,9 @@ use wezterm_font::units::*;
 use wezterm_font::FontConfiguration;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{CellAttributes, Line, StableRowIndex, TerminalConfiguration};
+use wezterm_term::{
+    CellAttributes, ClipboardSelection, Line, StableRowIndex, TerminalConfiguration,
+};
 
 const ATLAS_SIZE: usize = 128;
 
@@ -126,7 +128,7 @@ pub struct ClipboardHelper {
 }
 
 impl wezterm_term::Clipboard for ClipboardHelper {
-    fn get_contents(&self) -> anyhow::Result<String> {
+    fn get_contents(&self, _selection: ClipboardSelection) -> anyhow::Result<String> {
         // Even though we could request the clipboard contents using a call
         // like `self.window.get_clipboard().wait()` here, that requires
         // that the event loop be processed to do its work.
@@ -143,9 +145,18 @@ impl wezterm_term::Clipboard for ClipboardHelper {
             .unwrap_or_else(String::new))
     }
 
-    fn set_contents(&self, data: Option<String>) -> anyhow::Result<()> {
-        self.window
-            .set_clipboard(Clipboard::Clipboard, data.unwrap_or_else(String::new));
+    fn set_contents(
+        &self,
+        selection: ClipboardSelection,
+        data: Option<String>,
+    ) -> anyhow::Result<()> {
+        self.window.set_clipboard(
+            match selection {
+                ClipboardSelection::Clipboard => Clipboard::Clipboard,
+                ClipboardSelection::PrimarySelection => Clipboard::PrimarySelection,
+            },
+            data.unwrap_or_else(String::new),
+        );
         Ok(())
     }
 }

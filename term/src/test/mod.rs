@@ -29,12 +29,16 @@ impl LocalClip {
 }
 
 impl Clipboard for LocalClip {
-    fn set_contents(&self, clip: Option<String>) -> anyhow::Result<()> {
+    fn set_contents(
+        &self,
+        _selection: ClipboardSelection,
+        clip: Option<String>,
+    ) -> anyhow::Result<()> {
         *self.clip.borrow_mut() = clip;
         Ok(())
     }
 
-    fn get_contents(&self) -> anyhow::Result<String> {
+    fn get_contents(&self, _selection: ClipboardSelection) -> anyhow::Result<String> {
         self.clip
             .borrow()
             .as_ref()
