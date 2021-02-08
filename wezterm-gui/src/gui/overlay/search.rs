@@ -213,6 +213,12 @@ impl Pane for SearchOverlay {
                 r.pattern.pop();
                 r.update_search();
             }
+            (KeyCode::Char('u'), KeyModifiers::CTRL) => {
+                // CTRL-u to clear the pattern
+                let mut r = self.renderer.borrow_mut();
+                r.pattern.clear();
+                r.update_search();
+            }
             _ => {}
         }
         Ok(())
