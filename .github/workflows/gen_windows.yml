@@ -43,7 +43,7 @@ jobs:
       env:
          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
     - name: "Cache cargo"
-      uses: actions/cache@v2
+      uses: actions/cache@v2.1.4
       with:
          path: |
             ~/.cargo/registry
