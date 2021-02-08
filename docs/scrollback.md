@@ -80,6 +80,7 @@ When the search overlay is active the behavior of wezterm changes:
   text matching, the next will match ignoring case and the last will match using the
   [regular expression syntax described here](https://docs.rs/regex/1.3.9/regex/#syntax).
   The matching mode is indicated in the search bar.
+* `CTRL-U` will clear the *search pattern* so you can start over.
 * `CTRL-SHIFT-C` will copy the selected text to the clipboard
 * `Escape` will cancel the search overlay, leaving the currently selected text selected
   with the viewport scrolled to that location.
