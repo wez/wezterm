@@ -64,6 +64,8 @@ case $OSTYPE in
       $TARGET_DIR/release/wezterm.pdb \
       assets/windows/conhost/conpty.dll \
       assets/windows/conhost/OpenConsole.exe \
+      assets/windows/angle/libEGL.dll \
+      assets/windows/angle/libGLESv2.dll \
       $zipdir
     mkdir $zipdir/mesa
     cp $TARGET_DIR/release/mesa/opengl32.dll \
