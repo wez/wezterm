@@ -65,18 +65,5 @@ return {
   -- Set this to "NeverPrompt" if you don't like confirming closing
   -- windows every time
   window_close_confirmation = "AlwaysPrompt",
-
-  -- The github releases section is checked regularly for updated stable
-  -- releases and show a simple UI to let you know about the update,
-  -- with links to download/install it. It doesn't automatically download
-  -- the release. No data are collected for the wezterm project as part
-  -- of this.
-  -- By default it is checked once every 24 hours.
-  -- Set `check_for_updates` to `false` to disable this completely or set
-  -- `check_for_updates_interval_seconds` for an alternative update interval.
-  -- You can also disable the update window with `show_update_window`.
-  check_for_updates = true,
-  check_for_updates_interval_seconds = 86400,
-  show_update_window = true,
 }
 ```
