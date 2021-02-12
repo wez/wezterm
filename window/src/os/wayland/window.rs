@@ -100,6 +100,7 @@ pub struct WaylandWindowInner {
 #[derive(Default, Clone, Debug)]
 struct PendingEvent {
     close: bool,
+    start: bool,
     refresh_decorations: bool,
     configure: Option<(u32, u32)>,
     dpi: Option<i32>,
@@ -133,6 +134,7 @@ impl PendingEvent {
                     changed = !self.refresh_decorations;
                     self.refresh_decorations = true;
                 }
+                self.start = true;
                 changed
             }
         }
@@ -245,8 +247,6 @@ impl WaylandWindow {
         let window_handle = Window::Wayland(WaylandWindow(window_id));
 
         conn.windows.borrow_mut().insert(window_id, inner.clone());
-
-        inner.borrow_mut().enable_opengl()?;
 
         Ok(window_handle)
     }
@@ -488,6 +488,9 @@ impl WaylandWindowInner {
         }
         if pending.refresh_decorations && self.window.is_some() {
             self.refresh_frame();
+        }
+        if pending.start && self.window.is_some() && self.wegl_surface.is_none() {
+            self.enable_opengl().unwrap();
         }
     }
 

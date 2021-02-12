@@ -1150,7 +1150,9 @@ impl TermWindow {
         }
 
         if needs_invalidate {
-            self.window.as_ref().unwrap().invalidate();
+            if let Some(ref win) = self.window {
+                win.invalidate();
+            }
         }
 
         Ok(())
