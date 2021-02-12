@@ -96,7 +96,7 @@ named `$HOME/.config/wezterm/colors` if you're on a POSIX system.
 On a Windows system, `wezterm` will search for schemes in a directory
 named `colors` that is in the same directory as the `wezterm.exe`.
 
-If you wish to place your color scheme files in some other location, then will
+If you wish to place your color scheme files in some other location, then you
 will need to instruct wezterm where to look for your scheme files; the
 `color_scheme_dirs` setting specifies a list of directories to be searched:
 
