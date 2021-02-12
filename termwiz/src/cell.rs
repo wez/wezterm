@@ -367,14 +367,16 @@ struct TeenyString(usize);
 impl TeenyString {
     fn marker_mask() -> usize {
         if cfg!(target_endian = "little") {
-            if cfg!(target_pointer_width = "64") {
-                0x7f000000_00000000
-            } else if cfg!(target_pointer_width = "32") {
-                0x7f000000
-            } else if cfg!(target_pointer_width = "16") {
-                0x7f00
-            } else {
-                panic!("unsupported target");
+            cfg_if::cfg_if! {
+                if #[cfg(target_pointer_width = "64")] {
+                    0x7f000000_00000000
+                } else if #[cfg(target_pointer_width = "32")] {
+                    0x7f000000
+                } else if #[cfg(target_pointer_width = "16")] {
+                    0x7f00
+                } else {
+                    panic!("unsupported target");
+                }
             }
         } else {
             // I don't have a big endian machine to verify
