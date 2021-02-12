@@ -314,20 +314,20 @@ pub(crate) fn load_built_in_fonts(
         };
     }
     for (data, name) in &[
-        font!("../../assets/fonts/JetBrainsMono-Bold-Italic.ttf"),
+        font!("../../assets/fonts/JetBrainsMono-BoldItalic.ttf"),
         font!("../../assets/fonts/JetBrainsMono-Bold.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-ExtraBold-Italic.ttf"),
+        font!("../../assets/fonts/JetBrainsMono-ExtraBoldItalic.ttf"),
         font!("../../assets/fonts/JetBrainsMono-ExtraBold.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-ExtraLight-Italic.ttf"),
+        font!("../../assets/fonts/JetBrainsMono-ExtraLightItalic.ttf"),
         font!("../../assets/fonts/JetBrainsMono-ExtraLight.ttf"),
         font!("../../assets/fonts/JetBrainsMono-Italic.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-Light-Italic.ttf"),
+        font!("../../assets/fonts/JetBrainsMono-LightItalic.ttf"),
         font!("../../assets/fonts/JetBrainsMono-Light.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-Medium-Italic.ttf"),
+        font!("../../assets/fonts/JetBrainsMono-MediumItalic.ttf"),
         font!("../../assets/fonts/JetBrainsMono-Medium.ttf"),
         font!("../../assets/fonts/JetBrainsMono-Regular.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-SemiLight-Italic.ttf"),
-        font!("../../assets/fonts/JetBrainsMono-SemiLight.ttf"),
+        font!("../../assets/fonts/JetBrainsMono-ThinItalic.ttf"),
+        font!("../../assets/fonts/JetBrainsMono-Thin.ttf"),
         font!("../../assets/fonts/NotoColorEmoji.ttf"),
         font!("../../assets/fonts/LastResortHE-Regular.ttf"),
     ] {
