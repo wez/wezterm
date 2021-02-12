@@ -56,7 +56,11 @@ impl GuiFrontEnd {
             if let Some(_fe) = fe.upgrade() {
                 match n {
                     MuxNotification::WindowCreated(mux_window_id) => {
-                        termwindow::TermWindow::new_window(mux_window_id).ok();
+                        if let Err(err) = termwindow::TermWindow::new_window(mux_window_id) {
+                            log::error!("Failed to create window: {:#}", err);
+                            let mux = Mux::get().expect("subscribe to trigger on main thread");
+                            mux.kill_window(mux_window_id);
+                        }
                     }
                     MuxNotification::PaneOutput(_) => {}
                 }
