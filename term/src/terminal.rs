@@ -88,7 +88,7 @@ impl Terminal {
         term_program: &str,
         term_version: &str,
         // writing to the writer sends data to input of the pty
-        writer: Box<dyn std::io::Write>,
+        writer: Box<dyn std::io::Write + Send>,
     ) -> Terminal {
         Terminal {
             state: TerminalState::new(size, config, term_program, term_version, writer),
