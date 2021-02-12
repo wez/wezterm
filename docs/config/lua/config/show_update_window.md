@@ -1,6 +1,6 @@
 # `show_update_window`
 
-When the automatic update checks detects a new version of Wezterm, this
+When Wezterm checks for an update and detects a new version, this
 option controls whether a window is shown with information about the new
 available version and links to download/install it.
 
