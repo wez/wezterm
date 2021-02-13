@@ -15,6 +15,7 @@ brief notes about them may accumulate here.
 * Fixed an issue where large pastes could result in a hang
 * Updated bundled JetBrainsMono font to version 2.225
 * Fixed an issue where the window would be redrawn on mouse move. This was most noticeable as a laggy mouse pointer when moving the mouse across a window running on the nouveau display driver on X11 and Wayland systems
+* Wayland: the raw key modifiers are now correctly propagated so that they activate when used with key assignments using the `key = "raw:123"` binding syntax.
 
 ### 20210203-095643-70a364eb
 

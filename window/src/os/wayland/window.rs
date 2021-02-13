@@ -285,10 +285,10 @@ impl WaylandWindowInner {
                     pair => pair,
                 };
 
-                let (modifiers, raw_modifiers) = if raw_key.is_some() {
-                    (Modifiers::NONE, self.modifiers)
+                let modifiers = if raw_key.is_some() {
+                    Modifiers::NONE
                 } else {
-                    (self.modifiers, Modifiers::NONE)
+                    self.modifiers
                 };
 
                 let key_event = KeyEvent {
@@ -296,7 +296,7 @@ impl WaylandWindowInner {
                     key,
                     raw_key,
                     modifiers,
-                    raw_modifiers,
+                    raw_modifiers: self.modifiers,
                     raw_code: Some(raw_code),
                     repeat_count: 1,
                 }
