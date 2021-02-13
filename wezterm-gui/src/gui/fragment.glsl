@@ -119,6 +119,8 @@ void main() {
           // instead; this avoids generating shadowy anti-aliasing artifacts
           // for something that should otherwise be invisible.
           color = vec4(0.0, 0.0, 0.0, 0.0);
+          discard;
+          return;
         } else {
           color = multiply(o_fg_color, color);
         }

@@ -2745,9 +2745,8 @@ impl TermWindow {
         )
         .to_arrays_transposed();
 
-        let draw_params = glium::DrawParameters {
-            // No alpha blending for the background layer: let's make
-            // sure that our background pixels are at 100% opacity.
+        let alpha_blending = glium::DrawParameters {
+            blend: glium::Blend::alpha_blending(),
             ..Default::default()
         };
 
@@ -2779,30 +2778,8 @@ impl TermWindow {
                 bg_and_line_layer: false,
                 has_background_image: has_background_image,
             },
-            &draw_params,
+            &alpha_blending,
         )?;
-
-        let draw_params = glium::DrawParameters {
-            blend: glium::Blend {
-                color: BlendingFunction::Addition {
-                    source: LinearBlendingFactor::SourceAlpha,
-                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
-                },
-                alpha: BlendingFunction::Addition {
-                    source: LinearBlendingFactor::SourceAlpha,
-                    // On Wayland, the compositor takes the destination alpha
-                    // value and blends with the window behind our own, which
-                    // can make the text look brighter or less sharp.
-                    // We set the destination alpha to 1.0 to prevent that
-                    // from happening.
-                    // (The normal alpha blending operation would set this to
-                    // OneMinusSourceAlpha).
-                    destination: LinearBlendingFactor::One,
-                },
-                constant_value: (0.0, 0.0, 0.0, 0.0),
-            },
-            ..Default::default()
-        };
 
         // Pass 2: strikethrough and underline
         frame.draw(
@@ -2817,13 +2794,46 @@ impl TermWindow {
                 bg_and_line_layer: true,
                 has_background_image: has_background_image,
             },
-            &draw_params,
+            &alpha_blending,
         )?;
 
         // Use regular alpha blending when we draw the glyphs!
+        // This is trying to avoid an issue that is most prevalent
+        // on Wayland and X11.  If our glyph pixels end up with alpha
+        // that isn't 1.0 then the window behind can cause the resultant
+        // text to appear brighter or more bold, especially with a
+        // 100% white window behind.
+        //
+        // To avoid this, for the computed alpha channel, instruct
+        // the render phase to pick a larger alpha value.
+        // There doesn't appear to be a way to tell it to set the
+        // result to constant=1.0, only to influence the factors
+        // in the equation:
+        //
+        // alpha = src_alpha * src_factor + dest_alpha * dest_factor.
+        //
+        // src_alpha comes from the glyph we are rendering.
+        // dest_alpha comes from the background it is rendering over.
+        // src_factor from alpha.source below
+        // dest_factor from alpha.destination below
+        //
+        // If you're here troubleshooting this, please see:
         // <https://github.com/wez/wezterm/issues/413>
-        let draw_params = glium::DrawParameters {
-            blend: glium::Blend::alpha_blending(),
+        // <https://github.com/wez/wezterm/issues/470>
+        let blend_but_set_alpha_to_one = glium::DrawParameters {
+            blend: glium::Blend {
+                // Standard alpha-blending color
+                color: BlendingFunction::Addition {
+                    source: LinearBlendingFactor::SourceAlpha,
+                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
+                },
+                // Try to result in an alpha closer to 1.0
+                alpha: BlendingFunction::Addition {
+                    source: LinearBlendingFactor::One,
+                    destination: LinearBlendingFactor::One,
+                },
+                constant_value: (0.0, 0.0, 0.0, 0.0),
+            },
             ..Default::default()
         };
 
@@ -2840,7 +2850,7 @@ impl TermWindow {
                 bg_and_line_layer: false,
                 has_background_image: has_background_image,
             },
-            &draw_params,
+            &blend_but_set_alpha_to_one,
         )?;
 
         Ok(())
