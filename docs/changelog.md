@@ -14,6 +14,7 @@ brief notes about them may accumulate here.
 * Added `--config-file` CLI option to specify an alternate config file location. [Read more about config file resolution](config/files.md). Thanks to [@bew](https://github.com/bew)! [#459](https://github.com/wez/wezterm/pull/459)
 * Fixed an issue where large pastes could result in a hang
 * Updated bundled JetBrainsMono font to version 2.225
+* Fixed an issue where the window would be redrawn on mouse move. This was most noticeable as a laggy mouse pointer when moving the mouse across a window running on the nouveau display driver on X11 and Wayland systems
 
 ### 20210203-095643-70a364eb
 

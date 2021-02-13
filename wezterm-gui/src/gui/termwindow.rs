@@ -3710,6 +3710,9 @@ impl TermWindow {
             (Some(old_link), Some(new_link)) if Arc::ptr_eq(&old_link, &new_link) => {
                 // Unchanged
             }
+            (None, None) => {
+                // Unchanged
+            }
             (_, rhs) => {
                 // We're hovering over a different URL, so invalidate and repaint
                 // so that we render the underline correctly
