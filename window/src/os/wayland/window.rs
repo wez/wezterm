@@ -22,7 +22,7 @@ use std::sync::{Arc, Mutex};
 use toolkit::get_surface_scale_factor;
 use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
-use toolkit::window::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame, Event};
+use toolkit::window::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame, Event, State};
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_input_types::*;
@@ -85,6 +85,7 @@ pub struct WaylandWindowInner {
     window: Option<toolkit::window::Window<ConceptFrame>>,
     dimensions: Dimensions,
     need_paint: bool,
+    full_screen: bool,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
     modifiers: Modifiers,
@@ -100,10 +101,11 @@ pub struct WaylandWindowInner {
 #[derive(Default, Clone, Debug)]
 struct PendingEvent {
     close: bool,
-    start: bool,
+    had_configure_event: bool,
     refresh_decorations: bool,
     configure: Option<(u32, u32)>,
     dpi: Option<i32>,
+    full_screen: Option<bool>,
 }
 
 impl PendingEvent {
@@ -125,16 +127,29 @@ impl PendingEvent {
                     false
                 }
             }
-            Event::Configure { new_size, .. } => {
-                let changed;
+            Event::Configure { new_size, states } => {
+                let mut changed;
+                self.had_configure_event = true;
                 if let Some(new_size) = new_size {
                     changed = self.configure.is_none();
                     self.configure.replace(new_size);
                 } else {
-                    changed = !self.refresh_decorations;
-                    self.refresh_decorations = true;
+                    changed = true;
                 }
-                self.start = true;
+                let full_screen = states.contains(&State::Fullscreen);
+                log::debug!(
+                    "Config: self.full_screen={:?}, states:{:?} {:?}",
+                    self.full_screen,
+                    full_screen,
+                    states
+                );
+                match (self.full_screen, full_screen) {
+                    (None, false) => {}
+                    _ => {
+                        self.full_screen.replace(full_screen);
+                        changed = true;
+                    }
+                }
                 changed
             }
         }
@@ -218,6 +233,7 @@ impl WaylandWindow {
         window.set_resizable(true);
         window.set_title(name.to_string());
         window.set_frame_config(frame_config());
+        window.set_min_size(Some((32, 32)));
 
         // window.new_seat(&conn.seat);
         conn.keyboard.add_window(window_id, &surface);
@@ -235,6 +251,7 @@ impl WaylandWindow {
             window: Some(window),
             dimensions,
             need_paint: true,
+            full_screen: false,
             last_mouse_coords: Point::new(0, 0),
             mouse_buttons: MouseButtons::NONE,
             modifiers: Modifiers::NONE,
@@ -439,6 +456,15 @@ impl WaylandWindowInner {
             self.window.take();
         }
 
+        if let Some(full_screen) = pending.full_screen.take() {
+            log::debug!(
+                "dispatch_pending_event self.full_screen={} pending:{}",
+                self.full_screen,
+                full_screen
+            );
+            self.full_screen = full_screen;
+        }
+
         if pending.configure.is_none() && pending.dpi.is_some() {
             // Synthesize a pending configure event for the dpi change
             pending.configure.replace((
@@ -489,7 +515,7 @@ impl WaylandWindowInner {
         if pending.refresh_decorations && self.window.is_some() {
             self.refresh_frame();
         }
-        if pending.start && self.window.is_some() && self.wegl_surface.is_none() {
+        if pending.had_configure_event && self.window.is_some() && self.wegl_surface.is_none() {
             self.enable_opengl().unwrap();
         }
     }
@@ -497,7 +523,7 @@ impl WaylandWindowInner {
     fn refresh_frame(&mut self) {
         if let Some(window) = self.window.as_mut() {
             window.refresh();
-            self.surface.commit();
+            window.surface().commit();
         }
     }
 
@@ -587,6 +613,13 @@ impl WindowOps for WaylandWindow {
     fn hide(&self) -> Future<()> {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.hide();
+            Ok(())
+        })
+    }
+
+    fn toggle_fullscreen(&self) -> Future<()> {
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            inner.toggle_fullscreen();
             Ok(())
         })
     }
@@ -773,6 +806,16 @@ impl WindowOpsMut for WaylandWindowInner {
         }
     }
 
+    fn toggle_fullscreen(&mut self) {
+        if let Some(window) = self.window.as_ref() {
+            if self.full_screen {
+                window.unset_fullscreen();
+            } else {
+                window.set_fullscreen(None);
+            }
+        }
+    }
+
     fn show(&mut self) {
         if self.window.is_none() {
             return;
@@ -787,8 +830,6 @@ impl WindowOpsMut for WaylandWindowInner {
             .needs_configure()
         {
             self.do_paint().unwrap();
-        } else {
-            self.refresh_frame();
         }
     }
 
@@ -834,7 +875,7 @@ impl WindowOpsMut for WaylandWindowInner {
             window.refresh();
             // In addition, resize doesn't take effect until
             // the suface is commited
-            self.surface.commit();
+            window.surface().commit();
         }
     }
 
