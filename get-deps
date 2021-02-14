@@ -42,6 +42,7 @@ if test -e /etc/debian_version ; then
     libegl1-mesa-dev \
     libssl-dev \
     libfontconfig1-dev \
+    libsystemd-dev \
     libwayland-dev \
     libx11-xcb-dev \
     libxcb-ewmh-dev \
