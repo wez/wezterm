@@ -70,7 +70,20 @@ impl KeyboardDispatcher {
             loop_handle,
             &seat,
             None,
-            RepeatKind::System,
+            // We use a Fixed rate here because if we use
+            // RepeatKind::System and/or a rate higher than the 25
+            // repeats per second specified here, the repeat machinery
+            // in the toolkit generates synthetic results faster than
+            // can be kept up with. I think there might be a scheduling
+            // issue with the calloop crate. The issue manifests as
+            // the key generating LOTs more presses even after it has
+            // been released.
+            // Capping it to a reasonable (but subjectively not ideal)
+            // value avoids the application effectively hanging.
+            RepeatKind::Fixed {
+                rate: 25,
+                delay: 500,
+            },
             move |evt: KbEvent, _, _| {
                 inner.lock().unwrap().handle_event(evt);
             },
