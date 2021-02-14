@@ -16,6 +16,7 @@ use std::time::{Duration, Instant};
 use toolkit::environment::Environment;
 use toolkit::reexports::calloop::{EventLoop, EventSource, Interest, Mode, Poll, Readiness, Token};
 use toolkit::reexports::client::Display;
+use toolkit::seat::SeatListener;
 use toolkit::WaylandSource;
 
 toolkit::default_environment!(MyEnvironment, desktop);
@@ -37,6 +38,7 @@ pub struct WaylandConnection {
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
     pub(crate) pointer: PointerDispatcher,
     pub(crate) keyboard: KeyboardDispatcher,
+    seat_listener: SeatListener,
     pub(crate) environment: RefCell<Environment<MyEnvironment>>,
     event_q: RefCell<EventLoop<()>>,
     pub(crate) display: RefCell<Display>,
@@ -52,14 +54,17 @@ impl WaylandConnection {
         let mut pointer = None;
 
         for seat in environment.get_all_seats() {
-            if let Some((has_kbd, has_ptr)) = toolkit::seat::with_seat_data(&seat, |seat_data| {
-                (
-                    seat_data.has_keyboard && !seat_data.defunct,
-                    seat_data.has_pointer && !seat_data.defunct,
-                )
-            }) {
+            if let Some((has_kbd, has_ptr, name)) =
+                toolkit::seat::with_seat_data(&seat, |seat_data| {
+                    (
+                        seat_data.has_keyboard && !seat_data.defunct,
+                        seat_data.has_pointer && !seat_data.defunct,
+                        seat_data.name.clone(),
+                    )
+                })
+            {
                 if has_kbd {
-                    keyboard.register(event_loop.handle(), &seat)?;
+                    keyboard.register(event_loop.handle(), &seat, &name)?;
                 }
                 if has_ptr {
                     pointer.replace(PointerDispatcher::register(
@@ -70,6 +75,36 @@ impl WaylandConnection {
                     )?);
                 }
             }
+        }
+
+        let seat_listener;
+        {
+            let loop_handle = event_loop.handle();
+            let keyboard = keyboard.clone();
+            seat_listener = environment.listen_for_seats(move |seat, seat_data, _| {
+                if seat_data.has_keyboard {
+                    if seat_data.defunct {
+                        keyboard.deregister(loop_handle.clone(), &seat_data.name);
+                    } else {
+                        if let Err(err) =
+                            keyboard.register(loop_handle.clone(), &seat, &seat_data.name)
+                        {
+                            log::error!("{:#}", err);
+                        }
+                    }
+                }
+                if seat_data.has_pointer {
+                    // TODO: ideally do something similar to the keyboard state,
+                    // but the pointer state has a lot of other stuff floating
+                    // around it so it's not so clear cut right now.
+                    log::error!(
+                        "seat {} changed; it has a pointer that is
+                        defunct={} and we don't know what to do about it",
+                        seat_data.name,
+                        seat_data.defunct
+                    );
+                }
+            });
         }
 
         WaylandSource::new(event_q)
@@ -86,6 +121,7 @@ impl WaylandConnection {
             windows: RefCell::new(HashMap::new()),
             keyboard,
             pointer: pointer.unwrap(),
+            seat_listener,
             gl_connection: RefCell::new(None),
         })
     }

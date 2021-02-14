@@ -3,10 +3,11 @@ use anyhow::anyhow;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use toolkit::reexports::calloop::LoopHandle;
+use toolkit::reexports::calloop::{LoopHandle, Source};
 use toolkit::seat::keyboard::{
-    map_keyboard_repeat, Event as KbEvent, KeyState, ModifiersState, RepeatKind,
+    map_keyboard_repeat, Event as KbEvent, KeyState, ModifiersState, RepeatKind, RepeatSource,
 };
+use wayland_client::protocol::wl_keyboard::WlKeyboard;
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::protocol::wl_surface::WlSurface;
 use wayland_client::Attached;
@@ -16,6 +17,7 @@ use wezterm_input_types::*;
 struct Inner {
     active_surface_id: u32,
     surface_to_window_id: HashMap<u32, usize>,
+    by_name: HashMap<String, (WlKeyboard, Source<RepeatSource>)>,
 }
 
 impl Inner {
@@ -64,9 +66,10 @@ impl KeyboardDispatcher {
         &self,
         loop_handle: LoopHandle<()>,
         seat: &Attached<WlSeat>,
+        name: &str,
     ) -> anyhow::Result<()> {
         let inner = Arc::clone(&self.inner);
-        let (_kbd, _source) = map_keyboard_repeat(
+        let pair = map_keyboard_repeat(
             loop_handle,
             &seat,
             None,
@@ -90,7 +93,20 @@ impl KeyboardDispatcher {
         )
         .map_err(|e| anyhow!("Failed to configure keyboard callback: {:?}", e))?;
 
+        self.inner
+            .lock()
+            .unwrap()
+            .by_name
+            .insert(name.to_string(), pair);
+
         Ok(())
+    }
+
+    pub fn deregister(&self, loop_handle: LoopHandle<()>, name: &str) {
+        if let Some((kbd, source)) = self.inner.lock().unwrap().by_name.remove(name) {
+            kbd.release();
+            loop_handle.remove(source);
+        }
     }
 
     pub fn add_window(&self, window_id: usize, surface: &WlSurface) {
