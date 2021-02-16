@@ -2746,7 +2746,18 @@ impl TermWindow {
         .to_arrays_transposed();
 
         let alpha_blending = glium::DrawParameters {
-            blend: glium::Blend::alpha_blending(),
+            blend: glium::Blend {
+                color: BlendingFunction::Addition {
+                    source: LinearBlendingFactor::SourceAlpha,
+                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
+                },
+                alpha: BlendingFunction::Addition {
+                    source: LinearBlendingFactor::One,
+                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
+                },
+                constant_value: (0.0, 0.0, 0.0, 0.0),
+            },
+
             ..Default::default()
         };
 

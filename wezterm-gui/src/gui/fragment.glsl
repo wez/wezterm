@@ -60,6 +60,37 @@ vec4 apply_hsv(vec4 c)
   return vec4(hsv2rgb(hsv).rgb, c.a);
 }
 
+// Given glyph, the greyscale rgba value computed by freetype,
+// and color, the desired color, compute the resultant pixel
+// value.
+// The freetype glyph is greyscale (R=G=B=A) when font_antialias=Greyscale,
+// but holds separate intensity values (alpha) for the R, G and
+// B channels when font_antialias=Subpixel, with an approximated A
+// value derived from the RGB values.
+// In terms of computing the color, we can scale each of the color
+// RGB values by the glyph RGB values (which are really intensity).
+// To reduce darker fringes, the RGB values are scaled down by A
+// so that the overall A value doesn't make them too dark at
+// end.
+vec4 colorize(vec4 glyph, vec4 color) {
+  return vec4(glyph.rgb * color.rgb / glyph.a, glyph.a);
+}
+
+// The same thing as colorize above, but carried out by first
+// translating the color to HSV and then scaling the V (intensity)
+// by the glyph alpha level, and then converting back.
+// By manipulating the intensity in HSV colorspace, we more accurately
+// model the perceived brightness of the individual RGB channel values
+// and the appearance of darker AA fringes is reduced.
+// However, because this takes only glyph.a into consideration, it may not
+// be "as good" as `colorize` when font_antialias=Subpixel.
+// To my eye, colorize_hsv looks better than colorize in both of those AA modes.
+vec4 colorize_hsv(vec4 glyph, vec4 color) {
+  vec3 hsv = rgb2hsv(color.rgb);
+  hsv.b *= glyph.a;
+  return vec4(hsv2rgb(hsv) / glyph.a, glyph.a);
+}
+
 void main() {
   if (window_bg_layer) {
     if (o_has_color == 2.0) {
@@ -122,7 +153,7 @@ void main() {
           discard;
           return;
         } else {
-          color = multiply(o_fg_color, color);
+          color = colorize_hsv(color, o_fg_color);
         }
       }
     }
