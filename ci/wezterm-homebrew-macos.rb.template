@@ -12,10 +12,14 @@ class Wezterm < Formula
 
   def install
     prefix.install "WezTerm.app"
-    bin.write_exec_script "#{prefix}/WezTerm.app/wezterm"
-    bin.write_exec_script "#{prefix}/WezTerm.app/wezterm-gui"
-    bin.write_exec_script "#{prefix}/WezTerm.app/wezterm-mux-server"
-    bin.write_exec_script "#{prefix}/WezTerm.app/strip-ansi-escapes"
+    bindir = "#{prefix}/WezTerm.app"
+    macosdir = "#{bindir}/Contents/MacOS"
+    if File.directory?(macosdir) then
+      bindir = macosdir
+    end
+    ["wezterm", "wezterm-gui", "wezterm-mux-server", "strip-ansi-escapes"].each { |tool|
+      bin.write_exec_script "#{bindir}/#{tool}"
+    }
   end
 end
 
