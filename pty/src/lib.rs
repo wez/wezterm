@@ -47,6 +47,7 @@ use anyhow::Error;
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::io::Result as IoResult;
+use libc;
 
 pub mod cmdbuilder;
 pub use cmdbuilder::CommandBuilder;
@@ -115,7 +116,7 @@ pub trait MasterPty: std::io::Write {
 pub trait Child: std::fmt::Debug {
     /// Poll the child to see if it has completed.
     /// Does not block.
-    /// Returns None if the has not yet terminated,
+    /// Returns None if the child has not yet terminated,
     /// else returns its exit status.
     fn try_wait(&mut self) -> IoResult<Option<ExitStatus>>;
     /// Terminate the child process
@@ -187,6 +188,12 @@ impl Child for std::process::Child {
     }
 
     fn kill(&mut self) -> IoResult<()> {
+        #[cfg(unix)]
+        {
+            unsafe { libc::kill(self.id() as i32, libc::SIGHUP) };
+            Ok(())
+        }
+        #[cfg(windows)]
         std::process::Child::kill(self)
     }
 
