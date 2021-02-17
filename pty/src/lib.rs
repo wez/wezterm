@@ -44,10 +44,10 @@
 //! session with an implementation of `PtySystem`, allowing
 //! you to use the same pty interface with remote ptys.
 use anyhow::Error;
+use libc;
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::io::Result as IoResult;
-use libc;
 
 pub mod cmdbuilder;
 pub use cmdbuilder::CommandBuilder;
