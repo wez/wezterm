@@ -8,7 +8,7 @@ pub fn persistent_toast_notification_with_click_to_open_url(title: &str, message
         macos::show_notif(title, message, Some(url));
     }
 
-    #[cfg(all(not(target_os = "macos"), not(windows)))]
+    #[cfg(all(not(target_os = "macos"), not(windows), not(target_os="freebsd")))]
     {
         if let Err(err) = dbus::show_notif(title, message, Some(url)) {
             log::error!("Failed to show notification: {}", err);
@@ -24,7 +24,7 @@ pub fn persistent_toast_notification(title: &str, message: &str) {
         macos::show_notif(title, message, None);
     }
 
-    #[cfg(all(not(target_os = "macos"), not(windows)))]
+    #[cfg(all(not(target_os = "macos"), not(windows), not(target_os="freebsd")))]
     {
         if let Err(err) = dbus::show_notif(title, message, None) {
             log::error!("Failed to show notification: {}", err);

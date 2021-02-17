@@ -1,4 +1,4 @@
-#![cfg(all(not(target_os = "macos"), not(windows)))]
+#![cfg(all(not(target_os = "macos"), not(windows), not(target_os="freebsd")))]
 //! See <https://developer.gnome.org/notification-spec/>
 
 use serde::{Deserialize, Serialize};
