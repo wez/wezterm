@@ -13,7 +13,6 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
     make \
     gcc \
     gcc-c++ \
-    dbus-devel \
     fontconfig-devel \
     openssl-devel \
     perl-interpreter \
@@ -38,11 +37,9 @@ if test -e /etc/debian_version ; then
     fakeroot \
     gcc \
     g++ \
-    libdbus-1-dev \
     libegl1-mesa-dev \
     libssl-dev \
     libfontconfig1-dev \
-    libsystemd-dev \
     libwayland-dev \
     libx11-xcb-dev \
     libxcb-ewmh-dev \
@@ -63,7 +60,6 @@ if test -e /etc/arch-release ; then
   pacman -S --noconfirm --needed \
     'cargo' \
     'cmake' \
-    'dbus' \
     'fontconfig' \
     'git' \
     'hicolor-icon-theme' \
@@ -86,7 +82,6 @@ case $OSTYPE in
     pkg install -y \
       cmake \
       curl \
-      dbus \
       egl-wayland \
       expat \
       fontconfig \

@@ -1,3 +1,4 @@
+mod dbus;
 mod macos;
 
 #[allow(unused_variables)]
@@ -9,28 +10,9 @@ pub fn persistent_toast_notification_with_click_to_open_url(title: &str, message
 
     #[cfg(all(not(target_os = "macos"), not(windows)))]
     {
-        let title = title.to_owned();
-        let message = message.to_owned();
-        let url = url.to_owned();
-
-        std::thread::spawn(move || {
-            if let Ok(notif) = notify_rust::Notification::new()
-                .appname("wezterm")
-                .summary(&title)
-                .body(&message)
-                .icon("org.wezfurlong.wezterm")
-                .hint(notify_rust::Hint::Resident(true))
-                .timeout(notify_rust::Timeout::Never)
-                .action("Show", "Show")
-                .show()
-            {
-                notif.wait_for_action(move |action| {
-                    if action == "Show" {
-                        let _ = open::that(&*url);
-                    }
-                });
-            }
-        });
+        if let Err(err) = dbus::show_notif(title, message, Some(url)) {
+            log::error!("Failed to show notification: {}", err);
+        }
     }
 
     // No impl for the other OS's at this time
@@ -44,16 +26,9 @@ pub fn persistent_toast_notification(title: &str, message: &str) {
 
     #[cfg(all(not(target_os = "macos"), not(windows)))]
     {
-        let mut notif = notify_rust::Notification::new();
-        notif
-            .appname("wezterm")
-            .summary(title)
-            .body(message)
-            .icon("org.wezfurlong.wezterm")
-            .hint(notify_rust::Hint::Resident(true))
-            .timeout(notify_rust::Timeout::Never)
-            .show()
-            .ok();
+        if let Err(err) = dbus::show_notif(title, message, None) {
+            log::error!("Failed to show notification: {}", err);
+        }
     }
 
     #[cfg(windows)]
