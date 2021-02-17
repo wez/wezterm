@@ -1,4 +1,4 @@
-#![cfg(all(not(target_os = "macos"), not(windows), not(target_os="freebsd")))]
+#![cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]
 //! See <https://developer.gnome.org/notification-spec/>
 
 use serde::{Deserialize, Serialize};
@@ -91,7 +91,7 @@ pub fn show_notif(title: &str, message: &str, url: Option<&str>) -> Result<(), z
     let proxy = NotificationsProxy::new(&connection)?;
     let caps = proxy.get_capabilities()?;
 
-    if !caps.iter().any(|cap| cap == "actions") {
+    if url.is_some() && !caps.iter().any(|cap| cap == "actions") {
         // Server doesn't support actions, so skip showing this notification
         // because it might have text that says "click to see more"
         // and that just wouldn't work.
@@ -99,8 +99,7 @@ pub fn show_notif(title: &str, message: &str, url: Option<&str>) -> Result<(), z
     }
 
     let mut hints = HashMap::new();
-    let resident = Value::Bool(true);
-    hints.insert("resident", resident);
+    hints.insert("urgency", Value::U8(2 /* Critical */));
     let notification = proxy.notify(
         "wezterm",
         0,
@@ -116,60 +115,56 @@ pub fn show_notif(title: &str, message: &str, url: Option<&str>) -> Result<(), z
         0, // Never timeout
     )?;
 
-    // If we have a URL, we need to listen for signals to know when/if
-    // the user clicks on it.  The thread will stick around until an
-    // error is encountered or the user clicks/dismisses the notification.
-    if let Some(url) = &url {
-        let url = url.to_string();
+    let url = url.map(|s| s.to_string());
 
-        struct State {
-            notification: u32,
-            done: bool,
-            url: String,
-        }
-
-        let state = Arc::new(Mutex::new(State {
-            notification,
-            done: false,
-            url,
-        }));
-
-        proxy.connect_action_invoked({
-            let state = Arc::clone(&state);
-            move |nid, _action_name| {
-                let mut state = state.lock().unwrap();
-                if nid == state.notification {
-                    let _ = open::that(&state.url);
-                    state.done = true;
-                }
-                Ok(())
-            }
-        })?;
-
-        proxy.connect_notification_closed({
-            let state = Arc::clone(&state);
-            move |nid, reason| {
-                let _reason = Reason::new(reason);
-                let mut state = state.lock().unwrap();
-                if nid == state.notification {
-                    state.done = true;
-                }
-                Ok(())
-            }
-        })?;
-
-        std::thread::spawn(move || {
-            while !state.lock().unwrap().done {
-                match proxy.next_signal() {
-                    Err(err) => {
-                        log::error!("next_signal: {:#}", err);
-                        break;
-                    }
-                    Ok(_) => {}
-                }
-            }
-        });
+    struct State {
+        notification: u32,
+        done: bool,
+        url: Option<String>,
     }
+
+    let state = Arc::new(Mutex::new(State {
+        notification,
+        done: false,
+        url,
+    }));
+
+    proxy.connect_action_invoked({
+        let state = Arc::clone(&state);
+        move |nid, _action_name| {
+            let state = state.lock().unwrap();
+            if nid == state.notification {
+                if let Some(url) = state.url.as_ref() {
+                    let _ = open::that(url);
+                }
+            }
+            Ok(())
+        }
+    })?;
+
+    proxy.connect_notification_closed({
+        let state = Arc::clone(&state);
+        move |nid, reason| {
+            let _reason = Reason::new(reason);
+            let mut state = state.lock().unwrap();
+            if nid == state.notification {
+                state.done = true;
+            }
+            Ok(())
+        }
+    })?;
+
+    std::thread::spawn(move || {
+        while !state.lock().unwrap().done {
+            match proxy.next_signal() {
+                Err(err) => {
+                    log::error!("next_signal: {:#}", err);
+                    break;
+                }
+                Ok(_) => {}
+            }
+        }
+    });
 
     Ok(())
 }

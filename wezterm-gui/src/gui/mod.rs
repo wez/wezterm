@@ -4,6 +4,7 @@ pub use config::FrontEndSelection;
 use mux::{Mux, MuxNotification};
 use std::cell::RefCell;
 use std::rc::Rc;
+use wezterm_toast_notification::*;
 
 mod glyphcache;
 mod overlay;
@@ -63,6 +64,21 @@ impl GuiFrontEnd {
                         }
                     }
                     MuxNotification::PaneOutput(_) => {}
+                    MuxNotification::ToastNotification {
+                        pane_id: _,
+                        notification,
+                    } => {
+                        let title = notification.title.as_ref().unwrap_or(&notification.body);
+                        let message = if notification.title.is_none() {
+                            ""
+                        } else {
+                            &notification.body
+                        };
+                        // FIXME: if notification.focus is true, we should do
+                        // something here to arrange to focus pane_id when the
+                        // notification is clicked
+                        persistent_toast_notification(title, message);
+                    }
                 }
                 true
             } else {

@@ -289,6 +289,7 @@ pub struct TerminalState {
 
     clipboard: Option<Arc<dyn Clipboard>>,
     device_control_handler: Option<Box<dyn DeviceControlHandler>>,
+    notification_handler: Option<Box<dyn ToastNotificationHandler>>,
 
     current_dir: Option<Url>,
 
@@ -433,6 +434,7 @@ impl TerminalState {
             pixel_width: size.pixel_width,
             clipboard: None,
             device_control_handler: None,
+            notification_handler: None,
             current_dir: None,
             term_program: term_program.to_string(),
             term_version: term_version.to_string(),
@@ -447,6 +449,10 @@ impl TerminalState {
 
     pub fn set_device_control_handler(&mut self, handler: Box<dyn DeviceControlHandler>) {
         self.device_control_handler.replace(handler);
+    }
+
+    pub fn set_notification_handler(&mut self, handler: Box<dyn ToastNotificationHandler>) {
+        self.notification_handler.replace(handler);
     }
 
     /// Returns the title text associated with the terminal session.
@@ -3176,7 +3182,15 @@ impl<'a> Performer<'a> {
             }
 
             OperatingSystemCommand::SystemNotification(message) => {
-                error!("Application sends SystemNotification: {}", message);
+                if let Some(handler) = self.notification_handler.as_mut() {
+                    handler.show_notification(ToastNotification {
+                        title: None,
+                        body: message,
+                        focus: true,
+                    });
+                } else {
+                    log::info!("Application sends SystemNotification: {}", message);
+                }
             }
             OperatingSystemCommand::CurrentWorkingDirectory(url) => {
                 self.current_dir = Url::parse(&url).ok();

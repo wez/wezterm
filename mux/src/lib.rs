@@ -33,6 +33,10 @@ use crate::activity::Activity;
 pub enum MuxNotification {
     PaneOutput(PaneId),
     WindowCreated(WindowId),
+    ToastNotification {
+        pane_id: PaneId,
+        notification: wezterm_term::ToastNotification,
+    },
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);

@@ -35,6 +35,21 @@ pub trait DeviceControlHandler {
     fn handle_device_control(&mut self, _control: termwiz::escape::DeviceControlMode);
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToastNotification {
+    /// The title text for the notification.
+    pub title: Option<String>,
+    /// The message body
+    pub body: String,
+    /// Whether clicking on the notification should focus the
+    /// window/tab/pane that generated it
+    pub focus: bool,
+}
+
+pub trait ToastNotificationHandler {
+    fn show_notification(&mut self, notif: ToastNotification);
+}
+
 /// Represents an instance of a terminal emulator.
 pub struct Terminal {
     /// The terminal model/state

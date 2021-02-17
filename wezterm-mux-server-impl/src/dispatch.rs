@@ -81,6 +81,13 @@ where
             Ok(Item::Notif(MuxNotification::PaneOutput(pane_id))) => {
                 handler.schedule_pane_push(pane_id);
             }
+            Ok(Item::Notif(MuxNotification::ToastNotification {
+                pane_id,
+                notification: _,
+            })) => {
+                // FIXME: queue notification to send to client!
+                handler.schedule_pane_push(pane_id);
+            }
             Ok(Item::Notif(MuxNotification::WindowCreated(_window_id))) => {}
             Err(err) => {
                 log::error!("process_async Err {}", err);

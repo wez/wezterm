@@ -2,7 +2,7 @@ use crate::domain::DomainId;
 use crate::pane::{Pane, PaneId, Pattern, SearchResult};
 use crate::renderable::*;
 use crate::tmux::{TmuxDomain, TmuxDomainState};
-use crate::{Domain, Mux};
+use crate::{Domain, Mux, MuxNotification};
 use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
@@ -17,7 +17,7 @@ use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     CellAttributes, Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
-    Terminal,
+    Terminal, ToastNotification, ToastNotificationHandler,
 };
 
 pub struct LocalPane {
@@ -367,6 +367,21 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
     }
 }
 
+struct LocalPaneNotifHandler {
+    pane_id: PaneId,
+}
+
+impl ToastNotificationHandler for LocalPaneNotifHandler {
+    fn show_notification(&mut self, notification: ToastNotification) {
+        if let Some(mux) = Mux::get() {
+            mux.notify(MuxNotification::ToastNotification {
+                pane_id: self.pane_id,
+                notification,
+            });
+        }
+    }
+}
+
 impl LocalPane {
     pub fn new(
         pane_id: PaneId,
@@ -379,6 +394,7 @@ impl LocalPane {
             pane_id,
             tmux_domain: None,
         }));
+        terminal.set_notification_handler(Box::new(LocalPaneNotifHandler { pane_id }));
         Self {
             pane_id,
             terminal: RefCell::new(terminal),
