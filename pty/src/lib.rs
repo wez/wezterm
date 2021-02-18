@@ -195,7 +195,12 @@ impl Child for std::process::Child {
             // signal is to be killed unless it configured a signal handler.
             // In this case the process is responsible of itself, releasing
             // resources and terminating itself, or become a daemon.
-            unsafe { libc::kill(self.id() as i32, libc::SIGHUP) };
+            let result = unsafe { libc::kill(self.id() as i32, libc::SIGHUP) };
+            if result == 0 {
+               Ok(())
+            } else {
+               Err(IoError::last_os_error())
+            }
             Ok(())
         }
         #[cfg(windows)]
