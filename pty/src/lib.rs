@@ -193,12 +193,31 @@ impl Child for std::process::Child {
             // On unix, we send the SIGHUP signal instead of trying to kill
             // the process. The default behavior of a process receiving this
             // signal is to be killed unless it configured a signal handler.
-            // In this case the process is responsible of itself, releasing
-            // resources and terminating itself, or become a daemon.
-            unsafe { libc::kill(self.id() as i32, libc::SIGHUP) };
-            Ok(())
+            let result = unsafe { libc::kill(self.id() as i32, libc::SIGHUP) };
+            if result != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+
+            // We successfully delivered SIGHUP, but the semantics of Child::kill
+            // are that on success the process is dead or shortly about to
+            // terminate.  Since SIGUP doesn't guarantee termination, we
+            // give the process a bit of a grace period to shutdown or do whatever
+            // it is doing in its signal handler befre we proceed with the
+            // full on kill.
+            for attempt in 0..5 {
+                if attempt > 0 {
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+
+                if let Ok(Some(_)) = self.try_wait() {
+                    // It completed, so report success!
+                    return Ok(());
+                }
+            }
+
+            // it's still alive after a grace period, so proceed with a kill
         }
-        #[cfg(windows)]
+
         std::process::Child::kill(self)
     }
 
