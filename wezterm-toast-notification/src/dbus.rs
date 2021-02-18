@@ -85,7 +85,11 @@ impl Reason {
     }
 }
 
-pub fn show_notif(title: &str, message: &str, url: Option<&str>) -> Result<(), zbus::Error> {
+pub fn show_notif(
+    title: &str,
+    message: &str,
+    url: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let connection = zbus::Connection::new_session()?;
 
     let proxy = NotificationsProxy::new(&connection)?;

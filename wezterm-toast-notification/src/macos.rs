@@ -82,7 +82,11 @@ fn nsstring(s: &str) -> StrongPtr {
     unsafe { StrongPtr::new(NSString::alloc(nil).init_str(s)) }
 }
 
-pub fn show_notif(title: &str, message: &str, url: Option<&str>) {
+pub fn show_notif(
+    title: &str,
+    message: &str,
+    url: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error>> {
     unsafe {
         let center: id = msg_send![
             class!(NSUserNotificationCenter),
@@ -104,4 +108,6 @@ pub fn show_notif(title: &str, message: &str, url: Option<&str>) {
         let () = msg_send![center, setDelegate: delegate];
         let () = msg_send![center, deliverNotification: notif];
     }
+
+    Ok(())
 }

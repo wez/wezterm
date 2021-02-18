@@ -1,53 +1,32 @@
 mod dbus;
 mod macos;
+mod windows;
 
-#[allow(unused_variables)]
+#[cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]
+use dbus as backend;
+#[cfg(target_os = "macos")]
+use macos as backend;
+#[cfg(windows)]
+use windows as backend;
+
+mod nop {
+    #[allow(dead_code)]
+    pub fn show_notif(_: &str, _: &str, _: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(())
+    }
+}
+
+#[cfg(target_os = "freebsd")]
+use nop as backend;
+
 pub fn persistent_toast_notification_with_click_to_open_url(title: &str, message: &str, url: &str) {
-    #[cfg(target_os = "macos")]
-    {
-        macos::show_notif(title, message, Some(url));
+    if let Err(err) = backend::show_notif(title, message, Some(url)) {
+        log::error!("Failed to show notification: {}", err);
     }
-
-    #[cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]
-    {
-        if let Err(err) = dbus::show_notif(title, message, Some(url)) {
-            log::error!("Failed to show notification: {}", err);
-        }
-    }
-
-    // No impl for the other OS's at this time
 }
 
 pub fn persistent_toast_notification(title: &str, message: &str) {
-    #[cfg(target_os = "macos")]
-    {
-        macos::show_notif(title, message, None);
-    }
-
-    #[cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]
-    {
-        if let Err(err) = dbus::show_notif(title, message, None) {
-            log::error!("Failed to show notification: {}", err);
-        }
-    }
-
-    #[cfg(windows)]
-    {
-        let title = title.to_owned();
-        let message = message.to_owned();
-
-        // We need to be in a different thread from the caller
-        // in case we get called in the guts of a windows message
-        // loop dispatch and are unable to pump messages
-        std::thread::spawn(move || {
-            use winrt_notification::Toast;
-
-            Toast::new(Toast::POWERSHELL_APP_ID)
-                .title(&title)
-                .text1(&message)
-                .duration(winrt_notification::Duration::Long)
-                .show()
-                .ok();
-        });
+    if let Err(err) = backend::show_notif(title, message, None) {
+        log::error!("Failed to show notification: {}", err);
     }
 }
