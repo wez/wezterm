@@ -1,4 +1,5 @@
 #![cfg(windows)]
+use winrt_notification::{Duration, Toast};
 
 pub fn show_notif(
     title: &str,
@@ -16,12 +17,10 @@ pub fn show_notif(
     // in case we get called in the guts of a windows message
     // loop dispatch and are unable to pump messages
     std::thread::spawn(move || {
-        use winrt_notification::Toast;
-
-        Toast::new(Toast::POWERSHELL_APP_ID)
+        Toast::new("org.wezfurlong.wezterm")
             .title(&title)
             .text1(&message)
-            .duration(winrt_notification::Duration::Long)
+            .duration(Duration::Long)
             .show()
             .ok();
     });

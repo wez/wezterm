@@ -22,4 +22,4 @@ core-foundation = "0.7"
 objc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-winrt-notification = "0.2"
+winrt-notification = "0.3"

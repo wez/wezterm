@@ -380,7 +380,35 @@ fn maybe_show_configuration_error_window() {
     }
 }
 
+#[cfg(windows)]
+mod win_bindings {
+    ::windows::include_bindings!();
+    pub use self::windows::win32::shell::SetCurrentProcessExplicitAppUserModelID;
+}
+
 fn run() -> anyhow::Result<()> {
+    // Inform the system of our AppUserModelID.
+    // Without this, our toast notifications won't be correctly
+    // attributed to our application.
+    #[cfg(windows)]
+    {
+        /// Convert a rust string to a windows wide string
+        fn wide_string(s: &str) -> Vec<u16> {
+            use std::os::windows::ffi::OsStrExt;
+            std::ffi::OsStr::new(s)
+                .encode_wide()
+                .chain(std::iter::once(0))
+                .collect()
+        }
+
+        unsafe {
+            win_bindings::SetCurrentProcessExplicitAppUserModelID(
+                wide_string("org.wezfurlong.wezterm").as_ptr(),
+            )
+            .is_ok();
+        }
+    }
+
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this
