@@ -88,7 +88,7 @@ vec4 colorize(vec4 glyph, vec4 color) {
 vec4 colorize_hsv(vec4 glyph, vec4 color) {
   vec3 hsv = rgb2hsv(color.rgb);
   hsv.b *= glyph.a;
-  return vec4(hsv2rgb(hsv) / glyph.a, glyph.a);
+  return vec4(hsv2rgb(hsv), glyph.a);
 }
 
 void main() {
