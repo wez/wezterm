@@ -44,6 +44,7 @@ pub enum OperatingSystemCommand {
     ResetDynamicColor(DynamicColorNumber),
     CurrentWorkingDirectory(String),
     ResetColors(Vec<u8>),
+    RxvtExtension(Vec<String>),
 
     Unspecified(Vec<Vec<u8>>),
 }
@@ -300,6 +301,13 @@ impl OperatingSystemCommand {
             ITermProprietary => {
                 self::ITermProprietary::parse(osc).map(OperatingSystemCommand::ITermProprietary)
             }
+            RxvtProprietary => {
+                let mut vec = vec![];
+                for slice in osc.iter().skip(1) {
+                    vec.push(String::from_utf8_lossy(slice).to_string());
+                }
+                Ok(OperatingSystemCommand::RxvtExtension(vec))
+            }
             FinalTermSemanticPrompt => self::FinalTermSemanticPrompt::parse(osc)
                 .map(OperatingSystemCommand::FinalTermSemanticPrompt),
             ChangeColorNumber => Self::parse_change_color_number(osc),
@@ -473,6 +481,7 @@ impl Display for OperatingSystemCommand {
             SetIconNameSun(title) => single_string!(SetIconNameSun, title),
             SetHyperlink(Some(link)) => link.fmt(f)?,
             SetHyperlink(None) => write!(f, "8;;")?,
+            RxvtExtension(params) => write!(f, "777;{}", params.join(";"))?,
             Unspecified(v) => {
                 for (idx, item) in v.iter().enumerate() {
                     if idx > 0 {
@@ -1464,6 +1473,21 @@ mod test {
                 }
             ),
         );
+    }
+
+    #[test]
+    fn rxvt() {
+        assert_eq!(
+            parse(
+                &["777", "notify", "alert user", "the tea is ready"],
+                "\x1b]777;notify;alert user;the tea is ready\x1b\\"
+            ),
+            OperatingSystemCommand::RxvtExtension(vec![
+                "notify".into(),
+                "alert user".into(),
+                "the tea is ready".into()
+            ]),
+        )
     }
 
     #[test]

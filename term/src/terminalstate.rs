@@ -3192,6 +3192,27 @@ impl<'a> Performer<'a> {
                     log::info!("Application sends SystemNotification: {}", message);
                 }
             }
+            OperatingSystemCommand::RxvtExtension(params) => {
+                if let Some("notify") = params.get(0).map(String::as_str) {
+                    let title = params.get(1);
+                    let body = params.get(2);
+                    let (title, body) = match (title.cloned(), body.cloned()) {
+                        (Some(title), None) => (None, title),
+                        (Some(title), Some(body)) => (Some(title), body),
+                        _ => {
+                            log::error!("malformed rxvt notify escape: {:?}", params);
+                            return;
+                        }
+                    };
+                    if let Some(handler) = self.notification_handler.as_mut() {
+                        handler.show_notification(ToastNotification {
+                            title,
+                            body,
+                            focus: true,
+                        });
+                    }
+                }
+            }
             OperatingSystemCommand::CurrentWorkingDirectory(url) => {
                 self.current_dir = Url::parse(&url).ok();
             }
