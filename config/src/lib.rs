@@ -734,6 +734,8 @@ pub struct Config {
     pub window_background_image: Option<PathBuf>,
     #[serde(default)]
     pub window_background_image_hsb: Option<HsbTransform>,
+    #[serde(default)]
+    pub foreground_text_hsb: HsbTransform,
 
     /// Specifies the alpha value to use when rendering the background
     /// of the window.  The background is taken either from the

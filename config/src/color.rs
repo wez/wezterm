@@ -3,7 +3,7 @@ use luahelper::impl_lua_conversion;
 use termwiz::cell::CellAttributes;
 use termwiz::color::{ColorSpec, RgbColor};
 
-#[derive(Debug, Default, Copy, Deserialize, Serialize, Clone)]
+#[derive(Debug, Copy, Deserialize, Serialize, Clone)]
 pub struct HsbTransform {
     #[serde(default = "default_one_point_oh")]
     pub hue: f32,
@@ -11,6 +11,16 @@ pub struct HsbTransform {
     pub saturation: f32,
     #[serde(default = "default_one_point_oh")]
     pub brightness: f32,
+}
+
+impl Default for HsbTransform {
+    fn default() -> Self {
+        Self {
+            hue: 1.,
+            saturation: 1.,
+            brightness: 1.,
+        }
+    }
 }
 
 #[derive(Default, Debug, Deserialize, Serialize, Clone)]

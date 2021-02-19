@@ -2776,6 +2776,13 @@ impl TermWindow {
 
         let has_background_image = self.window_background.is_some();
 
+        let foreground_text_hsb = configuration().foreground_text_hsb;
+        let foreground_text_hsb = (
+            foreground_text_hsb.hue,
+            foreground_text_hsb.saturation,
+            foreground_text_hsb.brightness,
+        );
+
         // Pass 1: Draw backgrounds
         frame.draw(
             &*vb,
@@ -2788,6 +2795,7 @@ impl TermWindow {
                 window_bg_layer: true,
                 bg_and_line_layer: false,
                 has_background_image: has_background_image,
+                foreground_text_hsb: foreground_text_hsb,
             },
             &alpha_blending,
         )?;
@@ -2804,6 +2812,7 @@ impl TermWindow {
                 window_bg_layer: false,
                 bg_and_line_layer: true,
                 has_background_image: has_background_image,
+                foreground_text_hsb: foreground_text_hsb,
             },
             &alpha_blending,
         )?;
@@ -2860,6 +2869,7 @@ impl TermWindow {
                 window_bg_layer: false,
                 bg_and_line_layer: false,
                 has_background_image: has_background_image,
+                foreground_text_hsb: foreground_text_hsb,
             },
             &blend_but_set_alpha_to_one,
         )?;

@@ -18,6 +18,8 @@ uniform bool has_background_image;
 uniform sampler2D atlas_nearest_sampler;
 uniform sampler2D atlas_linear_sampler;
 
+uniform vec3 foreground_text_hsb;
+
 out vec4 color;
 
 float multiply_one(float src, float dst, float inv_dst_alpha, float inv_src_alpha) {
@@ -88,7 +90,7 @@ vec4 colorize(vec4 glyph, vec4 color) {
 vec4 colorize_hsv(vec4 glyph, vec4 color) {
   vec3 hsv = rgb2hsv(color.rgb);
   hsv.b *= glyph.a;
-  return vec4(hsv2rgb(hsv), glyph.a);
+  return vec4(hsv2rgb(hsv * foreground_text_hsb), glyph.a);
 }
 
 void main() {
