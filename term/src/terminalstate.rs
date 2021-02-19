@@ -289,7 +289,7 @@ pub struct TerminalState {
 
     clipboard: Option<Arc<dyn Clipboard>>,
     device_control_handler: Option<Box<dyn DeviceControlHandler>>,
-    notification_handler: Option<Box<dyn ToastNotificationHandler>>,
+    alert_handler: Option<Box<dyn AlertHandler>>,
 
     current_dir: Option<Url>,
 
@@ -434,7 +434,7 @@ impl TerminalState {
             pixel_width: size.pixel_width,
             clipboard: None,
             device_control_handler: None,
-            notification_handler: None,
+            alert_handler: None,
             current_dir: None,
             term_program: term_program.to_string(),
             term_version: term_version.to_string(),
@@ -451,8 +451,8 @@ impl TerminalState {
         self.device_control_handler.replace(handler);
     }
 
-    pub fn set_notification_handler(&mut self, handler: Box<dyn ToastNotificationHandler>) {
-        self.notification_handler.replace(handler);
+    pub fn set_notification_handler(&mut self, handler: Box<dyn AlertHandler>) {
+        self.alert_handler.replace(handler);
     }
 
     /// Returns the title text associated with the terminal session.
@@ -2982,7 +2982,13 @@ impl<'a> Performer<'a> {
             ControlCode::HTS => self.c1_hts(),
             ControlCode::IND => self.c1_index(),
             ControlCode::NEL => self.c1_nel(),
-            ControlCode::Bell => log::info!("Ding! (this is the bell)"),
+            ControlCode::Bell => {
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::Bell);
+                } else {
+                    log::info!("Ding! (this is the bell)");
+                }
+            }
             ControlCode::RI => self.c1_reverse_index(),
             _ => error!("unhandled ControlCode {:?}", control),
         }
@@ -3182,8 +3188,8 @@ impl<'a> Performer<'a> {
             }
 
             OperatingSystemCommand::SystemNotification(message) => {
-                if let Some(handler) = self.notification_handler.as_mut() {
-                    handler.show_notification(ToastNotification {
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::ToastNotification {
                         title: None,
                         body: message,
                         focus: true,
@@ -3204,8 +3210,8 @@ impl<'a> Performer<'a> {
                             return;
                         }
                     };
-                    if let Some(handler) = self.notification_handler.as_mut() {
-                        handler.show_notification(ToastNotification {
+                    if let Some(handler) = self.alert_handler.as_mut() {
+                        handler.alert(Alert::ToastNotification {
                             title,
                             body,
                             focus: true,

@@ -81,10 +81,7 @@ where
             Ok(Item::Notif(MuxNotification::PaneOutput(pane_id))) => {
                 handler.schedule_pane_push(pane_id);
             }
-            Ok(Item::Notif(MuxNotification::ToastNotification {
-                pane_id,
-                notification: _,
-            })) => {
+            Ok(Item::Notif(MuxNotification::Alert { pane_id, alert: _ })) => {
                 // FIXME: queue notification to send to client!
                 handler.schedule_pane_push(pane_id);
             }

@@ -16,8 +16,8 @@ use termwiz::surface::Line;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    CellAttributes, Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
-    Terminal, ToastNotification, ToastNotificationHandler,
+    Alert, AlertHandler, CellAttributes, Clipboard, KeyCode, KeyModifiers, MouseEvent,
+    SemanticZone, StableRowIndex, Terminal,
 };
 
 pub struct LocalPane {
@@ -371,12 +371,12 @@ struct LocalPaneNotifHandler {
     pane_id: PaneId,
 }
 
-impl ToastNotificationHandler for LocalPaneNotifHandler {
-    fn show_notification(&mut self, notification: ToastNotification) {
+impl AlertHandler for LocalPaneNotifHandler {
+    fn alert(&mut self, alert: Alert) {
         if let Some(mux) = Mux::get() {
-            mux.notify(MuxNotification::ToastNotification {
+            mux.notify(MuxNotification::Alert {
                 pane_id: self.pane_id,
-                notification,
+                alert,
             });
         }
     }

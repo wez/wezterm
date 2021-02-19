@@ -33,9 +33,9 @@ use crate::activity::Activity;
 pub enum MuxNotification {
     PaneOutput(PaneId),
     WindowCreated(WindowId),
-    ToastNotification {
+    Alert {
         pane_id: PaneId,
-        notification: wezterm_term::ToastNotification,
+        alert: wezterm_term::Alert,
     },
 }
 

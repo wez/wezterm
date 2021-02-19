@@ -36,18 +36,21 @@ pub trait DeviceControlHandler {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ToastNotification {
-    /// The title text for the notification.
-    pub title: Option<String>,
-    /// The message body
-    pub body: String,
-    /// Whether clicking on the notification should focus the
-    /// window/tab/pane that generated it
-    pub focus: bool,
+pub enum Alert {
+    Bell,
+    ToastNotification {
+        /// The title text for the notification.
+        title: Option<String>,
+        /// The message body
+        body: String,
+        /// Whether clicking on the notification should focus the
+        /// window/tab/pane that generated it
+        focus: bool,
+    },
 }
 
-pub trait ToastNotificationHandler {
-    fn show_notification(&mut self, notif: ToastNotification);
+pub trait AlertHandler {
+    fn alert(&mut self, alert: Alert);
 }
 
 /// Represents an instance of a terminal emulator.
