@@ -32,7 +32,7 @@ By default, `CTRL-SHIFT-K` and `CMD-K` will trigger the `ClearScrollback`
 action and discard the contents of the scrollback buffer.  There is no way
 to undo discarding the scrollback.
 
-See the [ClearScrollback](config/keys.html#clearscrollback) docs for information
+See the [ClearScrollback](config/lua/keyassignment/ClearScrollback.md) docs for information
 on rebinding this key.
 
 ### Enable/Disable scrollbar
