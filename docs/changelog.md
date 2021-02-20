@@ -19,6 +19,7 @@ brief notes about them may accumulate here.
 * Wayland: the raw key modifiers are now correctly propagated so that they activate when used with key assignments using the `key = "raw:123"` binding syntax.
 * Wayland: fixed window decoration and full screen handling [#224](https://github.com/wez/wezterm/issues/224)
 * Wayland: fixed an issue where key repeat processing could "run away" and hang the application
+* New: added [foreground_text_hsb](config/lua/config/foreground_text_hsb.md) setting to adjust hue, saturation and brightness when text is rendered.
 
 ### 20210203-095643-70a364eb
 
