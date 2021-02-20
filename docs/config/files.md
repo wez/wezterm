@@ -21,6 +21,13 @@ configuration will be automatically reloaded and the majority of options will
 take effect immediately.  You may also use the `CTRL+SHIFT+R` keyboard shortcut
 to force the configuration to be reloaded.
 
+**The configuration file may be evaluated multiple times for each wezterm
+process** both at startup and in response to the configuration file being
+reloaded.  You should avoid taking actions in the main flow of the config file
+that have side effects; for example, unconditionally launching background
+processes can result in many of them being spawned over time if you launch
+many copies of wezterm, or are frequently reloading your config file.
+
 ## Configuration File Structure
 
 The `wezterm.lua` configuration file is a lua script which allows for a high
