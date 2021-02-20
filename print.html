@@ -282,7 +282,7 @@ that exactly matches your system you can try installing one from an older versio
 of your distribution, or use one of the Debian packages linked below.  Failing that,
 you can try the AppImage download which should work on most Linux systems.</p>
 <table><thead><tr><th>Distro</th><th>Stable</th><th>Nightly</th></tr></thead><tbody>
-<tr><td>Ubuntu16</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Ubuntu16.04.deb">wezterm-20210203-095643-70a364eb.Ubuntu16.04.deb</a></td><td>[{{ ubuntu16_deb_nightly_asset }}]({{ ubuntu16_deb_nightly }})</td></tr>
+<tr><td>Ubuntu16</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Ubuntu16.04.deb">wezterm-20210203-095643-70a364eb.Ubuntu16.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu16.04.deb">wezterm-nightly.Ubuntu16.04.deb</a></td></tr>
 <tr><td>Ubuntu18</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Ubuntu18.04.deb">wezterm-20210203-095643-70a364eb.Ubuntu18.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu18.04.deb">wezterm-nightly.Ubuntu18.04.deb</a></td></tr>
 <tr><td>Ubuntu20</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Ubuntu20.04.deb">wezterm-20210203-095643-70a364eb.Ubuntu20.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu20.04.deb">wezterm-nightly.Ubuntu20.04.deb</a></td></tr>
 <tr><td>Debian9</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Debian9.12.deb">wezterm-20210203-095643-70a364eb.Debian9.12.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Debian9.12.deb">wezterm-nightly.Debian9.12.deb</a></td></tr>
@@ -869,6 +869,12 @@ This is handy for users that want to carry their wezterm install around on a thu
 configuration will be automatically reloaded and the majority of options will
 take effect immediately.  You may also use the <code>CTRL+SHIFT+R</code> keyboard shortcut
 to force the configuration to be reloaded.</p>
+<p><strong>The configuration file may be evaluated multiple times for each wezterm
+process</strong> both at startup and in response to the configuration file being
+reloaded.  You should avoid taking actions in the main flow of the config file
+that have side effects; for example, unconditionally launching background
+processes can result in many of them being spawned over time if you launch
+many copies of wezterm, or are frequently reloading your config file.</p>
 <h2><a class="header" href="#configuration-file-structure" id="configuration-file-structure">Configuration File Structure</a></h2>
 <p>The <code>wezterm.lua</code> configuration file is a lua script which allows for a high
 degree of flexibility.   The script is expected to return a configuration
