@@ -418,6 +418,7 @@ brief notes about them may accumulate here.</p>
 <li>Wayland: the raw key modifiers are now correctly propagated so that they activate when used with key assignments using the <code>key = &quot;raw:123&quot;</code> binding syntax.</li>
 <li>Wayland: fixed window decoration and full screen handling <a href="https://github.com/wez/wezterm/issues/224">#224</a></li>
 <li>Wayland: fixed an issue where key repeat processing could &quot;run away&quot; and hang the application</li>
+<li>New: added <a href="config/lua/config/foreground_text_hsb.html">foreground_text_hsb</a> setting to adjust hue, saturation and brightness when text is rendered.</li>
 </ul>
 <h3><a class="header" href="#20210203-095643-70a364eb" id="20210203-095643-70a364eb">20210203-095643-70a364eb</a></h3>
 <ul>
@@ -5737,10 +5738,23 @@ light.</p>
 <p>The range of these values is 0.0 and up; they are used to multiply the existing
 values, so the default of 1.0 preserves the existing component, whilst 0.5 will
 reduce it by half, and 2.0 will double the value.</p>
-<img src="config/lua/config/../../../screenshots/foreground-text-hsb-1-1-1.png">
-<img src="config/lua/config/../../../screenshots/foreground-text-hsb-1-1.5-1.png">
-<img src="config/lua/config/../../../screenshots/foreground-text-hsb-1-1-1.5.png">
-<img src="config/lua/config/../../../screenshots/foreground-text-hsb-1.5-1-1.png">
+<pre><code class="language-lua">return {
+  -- This increases color saturation by 50%
+  foreground_text_hsb = {
+    hue = 1.0,
+    saturation = 1.5,
+    brightness = 1.0,
+  }
+}
+</code></pre>
+<p><img src="config/lua/config/../../../screenshots/foreground-text-hsb-1-1-1.png"
+     alt="demonstrating the appearance of the default value">
+<img src="config/lua/config/../../../screenshots/foreground-text-hsb-1-1.5-1.png"
+     alt="demonstrating setting saturating to 1.5">
+<img src="config/lua/config/../../../screenshots/foreground-text-hsb-1-1-1.5.png"
+     alt="demonstrating setting brightness to 1.5">
+<img src="config/lua/config/../../../screenshots/foreground-text-hsb-1.5-1-1.png"
+     alt="demonstrating setting hue to 1.5"></p>
 <h1><a class="header" href="#freetype_interpreter_version" id="freetype_interpreter_version"><code>freetype_interpreter_version</code></a></h1>
 <p>Selects the freetype interpret version to use.  Possible values are <code>35</code>, <code>38</code>
 and <code>40</code> which have different characteristics with respective to subpixel
