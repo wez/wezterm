@@ -15,6 +15,7 @@ pretty_env_logger = "0.4"
 
 [dependencies]
 anyhow = "1.0"
+bitflags = "1.0"
 bstr = "0.2"
 dirs-next = "2.0"
 filenamegen = "0.2"

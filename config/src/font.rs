@@ -1,6 +1,87 @@
 use crate::*;
+use bitflags::*;
 use luahelper::impl_lua_conversion;
+use serde::{Deserialize, Deserializer, Serialize};
 use termwiz::color::RgbColor;
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FreeTypeLoadTarget {
+    /// This corresponds to the default hinting algorithm, optimized
+    /// for standard gray-level rendering.
+    Normal,
+    /// A lighter hinting algorithm for non-monochrome modes. Many
+    /// generated glyphs are more fuzzy but better resemble its
+    /// original shape. A bit like rendering on Mac OS X.  This target
+    /// implies FT_LOAD_FORCE_AUTOHINT.
+    Light,
+    /// Strong hinting algorithm that should only be used for
+    /// monochrome output. The result is probably unpleasant if the
+    /// glyph is rendered in non-monochrome modes.
+    Mono,
+    /// A variant of Normal optimized for horizontally decimated LCD displays.
+    HorizontalLcd,
+    /// A variant of Normal optimized for vertically decimated LCD displays.
+    VerticalLcd,
+}
+
+impl Default for FreeTypeLoadTarget {
+    fn default() -> Self {
+        Self::Normal
+    }
+}
+
+bitflags! {
+    // Note that these are strongly coupled with deps/freetype/src/lib.rs,
+    // but we can't directly reference that from here without making config
+    // depend on freetype.
+    #[derive(Default, Deserialize, Serialize)]
+    pub struct FreeTypeLoadFlags: u32 {
+        /// FT_LOAD_DEFAULT
+        const DEFAULT = 0;
+        /// Disable hinting. This generally generates ‘blurrier’
+        /// bitmap glyph when the glyph is rendered in any of the
+        /// anti-aliased modes. See also the note below.  This flag is
+        /// implied by FT_LOAD_NO_SCALE.
+        const NO_HINTING = 2;
+        const NO_BITMAP = 8;
+        /// Indicates that the auto-hinter is preferred over the
+        /// font’s native hinter.
+        const FORCE_AUTOHINT = 32;
+        const MONOCHROME = 4096;
+        /// Disable auto-hinter.
+        const NO_AUTOHINT = 32768;
+    }
+}
+
+impl FreeTypeLoadFlags {
+    pub fn de_string<'de, D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let mut flags = FreeTypeLoadFlags::default();
+
+        for ele in s.split('|') {
+            let ele = ele.trim();
+            match ele {
+                "DEFAULT" => flags |= Self::DEFAULT,
+                "NO_HINTING" => flags |= Self::NO_HINTING,
+                "NO_BITMAP" => flags |= Self::NO_BITMAP,
+                "FORCE_AUTOHINT" => flags |= Self::FORCE_AUTOHINT,
+                "MONOCHROME" => flags |= Self::MONOCHROME,
+                "NO_AUTOHINT" => flags |= Self::NO_AUTOHINT,
+                _ => {
+                    return Err(serde::de::Error::custom(format!(
+                        "invalid FreeTypeLoadFlags {} in {}",
+                        ele, s
+                    )));
+                }
+            }
+        }
+
+        Ok(flags)
+    }
+}
 
 #[derive(Debug, Copy, Deserialize, Serialize, Clone, PartialEq, Eq, Hash)]
 pub enum FontHinting {

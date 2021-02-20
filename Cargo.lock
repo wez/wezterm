@@ -672,6 +672,7 @@ name = "config"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bitflags",
  "bstr 0.2.15",
  "dirs-next",
  "filenamegen",

@@ -571,6 +571,11 @@ pub struct Config {
     #[serde(default)]
     pub font_antialias: FontAntiAliasing,
 
+    #[serde(default)]
+    pub freetype_load_target: FreeTypeLoadTarget,
+    #[serde(default, deserialize_with = "FreeTypeLoadFlags::de_string")]
+    pub freetype_load_flags: FreeTypeLoadFlags,
+
     /// Selects the freetype interpret version to use.
     /// Likely values are 35, 38 and 40 which have different
     /// characteristics with respective to subpixel hinting.

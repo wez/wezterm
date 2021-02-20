@@ -2,7 +2,7 @@
 
 use crate::locator::FontDataHandle;
 use anyhow::{anyhow, Context};
-use config::{configuration, FontAntiAliasing, FontHinting};
+use config::{configuration, FreeTypeLoadTarget};
 pub use freetype::*;
 use std::ptr;
 
@@ -44,33 +44,18 @@ fn render_mode_to_load_target(render_mode: FT_Render_Mode) -> u32 {
 pub fn compute_load_flags_from_config() -> (i32, FT_Render_Mode) {
     let config = configuration();
 
-    let render = match config.font_antialias {
-        FontAntiAliasing::None => FT_Render_Mode::FT_RENDER_MODE_MONO,
-        FontAntiAliasing::Greyscale => FT_Render_Mode::FT_RENDER_MODE_NORMAL,
-        FontAntiAliasing::Subpixel => FT_Render_Mode::FT_RENDER_MODE_LCD,
+    let load_flags = config.freetype_load_flags.bits() | FT_LOAD_COLOR;
+    let render = match config.freetype_load_target {
+        FreeTypeLoadTarget::Mono => FT_Render_Mode::FT_RENDER_MODE_MONO,
+        FreeTypeLoadTarget::Normal => FT_Render_Mode::FT_RENDER_MODE_NORMAL,
+        FreeTypeLoadTarget::Light => FT_Render_Mode::FT_RENDER_MODE_LIGHT,
+        FreeTypeLoadTarget::HorizontalLcd => FT_Render_Mode::FT_RENDER_MODE_LCD,
+        FreeTypeLoadTarget::VerticalLcd => FT_Render_Mode::FT_RENDER_MODE_LCD_V,
     };
 
-    let flags = match config.font_hinting {
-        FontHinting::None => {
-            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_NORMAL) | FT_LOAD_NO_HINTING
-        }
-        FontHinting::Vertical => render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_LIGHT),
-        FontHinting::VerticalSubpixel | FontHinting::Full => {
-            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_LCD)
-        }
-    };
+    let load_flags = load_flags | render_mode_to_load_target(render);
 
-    // If the bitmaps are in color, we want those!
-    let flags = flags | FT_LOAD_COLOR;
-
-    let flags = if config.font_antialias == FontAntiAliasing::None {
-        // When AA is disabled, force outline rendering to monochrome
-        flags | FT_LOAD_MONOCHROME
-    } else {
-        flags
-    } as i32;
-
-    (flags, render)
+    (load_flags as i32, render)
 }
 
 pub struct Face {
