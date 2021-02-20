@@ -215,7 +215,10 @@ clear and convenient.
 
 """,
                     ),
+                    Page("object: SshDomain", "config/lua/SshDomain.md"),
                     Page("object: SpawnCommand", "config/lua/SpawnCommand.md"),
+                    Page("object: TlsDomainClient", "config/lua/TlsDomainClient.md"),
+                    Page("object: TlsDomainServer", "config/lua/TlsDomainServer.md"),
                     Gen(
                         "object: Pane",
                         "config/lua/pane",

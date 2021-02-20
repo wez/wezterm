@@ -275,6 +275,66 @@ return {
 }
 ```
 
+### Using Raw/Scan Codes for key bindings
+
+In some cases it is desirable to assign keys based on their
+physical position rather than their mapped value--perhaps you
+regularly switch between different regional keymaps but you always
+want CTRL-SHIFT plus a number to switch to a tab by ordinal
+position, and you don't want to define the mapping in terms of `!`,
+`@` etc. in the US map and whatever those keys are in some other
+regional keymap.
+
+You can achieve this by matching the `raw_key` value for the key.
+`raw_key` values are hardware and windowing system dependent
+values, so there is no portable way to list which key does what.
+To discover these values, you can set [debug_key_events =
+true](lua/config/debug_key_events.md) and press the keys of
+interest.
+
+You can specify a raw key value of 123 by using `key="raw:123"` in your config
+rather than one of the other key values.
+
+On my linux system the number key row produces sequential raw key values so I
+use configuration like this to enable this key binding; notice how the numbers
+are different between wayland and X11 on the same system!
+
+```lua
+local wezterm = require 'wezterm';
+local keys = {};
+local enable_wayland = false;
+
+if wezterm.target_triple == "x86_64-unknown-linux-gnu" then
+  -- rebind CTRL+SHIFT+<number> to switch to a tab.
+  if os.getenv("WAYLAND_DISPLAY") and enable_wayland then
+    local tab_no = 0
+    for i = 2, 9 do
+      table.insert(keys, {
+        key="raw:"..tostring(i),
+        mods="CTRL|SHIFT",
+        action=wezterm.action{ActivateTab=tab_no},
+      })
+      tab_no = tab_no + 1
+    end
+  else
+    local tab_no = 0
+    for i = 10, 20 do
+      table.insert(keys, {
+        key="raw:"..tostring(i),
+        mods="CTRL|SHIFT",
+        action=wezterm.action{ActivateTab=tab_no},
+      })
+      tab_no = tab_no + 1
+    end
+  end
+end
+
+return {
+  keys = keys,
+  enable_wayland = enable_wayland,
+}
+```
+
 # Available Actions
 
 See the [`KeyAssignment` reference](lua/keyassignment/index.md) for information

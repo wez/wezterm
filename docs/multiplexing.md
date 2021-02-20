@@ -49,6 +49,9 @@ return {
 }
 ```
 
+[See SshDomain](config/lua/SshDomain.md) for more information on possible
+settings to use with SSH domains.
+
 To connect to the system, run:
 
 ```bash
@@ -200,6 +203,9 @@ return {
 }
 ```
 
+[See TlsDomainClient](config/lua/TlsDomainClient.md) for more information on possible
+settings.
+
 ### Configuring the server
 
 ```lua
@@ -213,6 +219,9 @@ return {
   }
 }
 ```
+
+[See TlsDomainServer](config/lua/TlsDomainServer.md) for more information on possible
+settings.
 
 ### Connecting
 
