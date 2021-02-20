@@ -869,12 +869,6 @@ This is handy for users that want to carry their wezterm install around on a thu
 configuration will be automatically reloaded and the majority of options will
 take effect immediately.  You may also use the <code>CTRL+SHIFT+R</code> keyboard shortcut
 to force the configuration to be reloaded.</p>
-<p><strong>The configuration file may be evaluated multiple times for each wezterm
-process</strong> both at startup and in response to the configuration file being
-reloaded.  You should avoid taking actions in the main flow of the config file
-that have side effects; for example, unconditionally launching background
-processes can result in many of them being spawned over time if you launch
-many copies of wezterm, or are frequently reloading your config file.</p>
 <h2><a class="header" href="#configuration-file-structure" id="configuration-file-structure">Configuration File Structure</a></h2>
 <p>The <code>wezterm.lua</code> configuration file is a lua script which allows for a high
 degree of flexibility.   The script is expected to return a configuration
