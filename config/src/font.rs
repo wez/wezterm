@@ -290,19 +290,6 @@ impl TextStyle {
             font.push(default_font);
         }
 
-        #[cfg(target_os = "macos")]
-        font.push(FontAttributes::new_fallback("Apple Symbols"));
-        #[cfg(target_os = "macos")]
-        font.push(FontAttributes::new_fallback("Zapf Dingbats"));
-
-        // Fallback font that has unicode replacement character
-        #[cfg(windows)]
-        font.push(FontAttributes::new_fallback("Segoe UI"));
-        #[cfg(windows)]
-        font.push(FontAttributes::new_fallback("Segoe UI Emoji"));
-        #[cfg(windows)]
-        font.push(FontAttributes::new_fallback("Segoe UI Symbol"));
-
         // We bundle this emoji font as an in-memory fallback
         font.push(FontAttributes::new_fallback("Noto Color Emoji"));
 
