@@ -2774,8 +2774,6 @@ impl TermWindow {
             .magnify_filter(MagnifySamplerFilter::Linear)
             .minify_filter(MinifySamplerFilter::Linear);
 
-        let has_background_image = self.window_background.is_some();
-
         let foreground_text_hsb = configuration().foreground_text_hsb;
         let foreground_text_hsb = (
             foreground_text_hsb.hue,
@@ -2787,14 +2785,10 @@ impl TermWindow {
         frame.draw(
             &*vb,
             &gl_state.glyph_index_buffer,
-            &gl_state.program,
+            &gl_state.background_prog,
             &uniform! {
                 projection: projection,
-                atlas_nearest_sampler:  atlas_nearest_sampler,
                 atlas_linear_sampler:  atlas_linear_sampler,
-                window_bg_layer: true,
-                bg_and_line_layer: false,
-                has_background_image: has_background_image,
                 foreground_text_hsb: foreground_text_hsb,
             },
             &alpha_blending,
@@ -2804,14 +2798,11 @@ impl TermWindow {
         frame.draw(
             &*vb,
             &gl_state.glyph_index_buffer,
-            &gl_state.program,
+            &gl_state.line_prog,
             &uniform! {
                 projection: projection,
                 atlas_nearest_sampler:  atlas_nearest_sampler,
                 atlas_linear_sampler:  atlas_linear_sampler,
-                window_bg_layer: false,
-                bg_and_line_layer: true,
-                has_background_image: has_background_image,
                 foreground_text_hsb: foreground_text_hsb,
             },
             &alpha_blending,
@@ -2861,14 +2852,11 @@ impl TermWindow {
         frame.draw(
             &*vb,
             &gl_state.glyph_index_buffer,
-            &gl_state.program,
+            &gl_state.glyph_prog,
             &uniform! {
                 projection: projection,
                 atlas_nearest_sampler:  atlas_nearest_sampler,
                 atlas_linear_sampler:  atlas_linear_sampler,
-                window_bg_layer: false,
-                bg_and_line_layer: false,
-                has_background_image: has_background_image,
                 foreground_text_hsb: foreground_text_hsb,
             },
             &blend_but_set_alpha_to_one,

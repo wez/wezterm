@@ -1,3 +1,5 @@
+// This file is automatically prepended to the various -frag shaders.
+
 precision highp float;
 
 in float o_has_color;
@@ -10,17 +12,9 @@ in vec4 o_cursor_color;
 in vec4 o_fg_color;
 in vec4 o_underline_color;
 
-uniform mat4 projection;
-uniform bool window_bg_layer;
-uniform bool bg_and_line_layer;
-uniform bool has_background_image;
-
-uniform sampler2D atlas_nearest_sampler;
-uniform sampler2D atlas_linear_sampler;
+out vec4 color;
 
 uniform vec3 foreground_text_hsb;
-
-out vec4 color;
 
 float multiply_one(float src, float dst, float inv_dst_alpha, float inv_src_alpha) {
   return (src * dst) + (src * (inv_dst_alpha)) + (dst * (inv_src_alpha));
@@ -56,9 +50,9 @@ vec3 hsv2rgb(vec3 c)
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-vec4 apply_hsv(vec4 c)
+vec4 apply_hsv(vec4 c, vec3 transform)
 {
-  vec3 hsv = rgb2hsv(c.rgb) * o_hsv;
+  vec3 hsv = rgb2hsv(c.rgb) * transform;
   return vec4(hsv2rgb(hsv).rgb, c.a);
 }
 
@@ -93,73 +87,4 @@ vec4 colorize_hsv(vec4 glyph, vec4 color) {
   return vec4(hsv2rgb(hsv * foreground_text_hsb), glyph.a);
 }
 
-void main() {
-  if (window_bg_layer) {
-    if (o_has_color == 2.0) {
-      // We're the window background image.
-      color = texture(atlas_linear_sampler, o_tex);
-      // Apply window_background_image_opacity to the background image
-      color.a = o_bg_color.a;
-    } else if (o_has_color == 3.0) {
-      color = o_bg_color;
-    } else {
-      // Nothing else should render on the background layer
-      discard;
-    }
-  } else if (bg_and_line_layer) {
-    if (o_has_color >= 2.0) {
-      // Don't render the background image on anything other than
-      // the window_bg_layer.
-      discard;
-      return;
-    }
-    // Note that o_bg_color is set to transparent if the background
-    // color is "default" and there is a window background attachment
-    color = o_bg_color;
 
-    // Sample the underline glyph texture for this location.
-    // Note that the texture is whitespace in the case where this is
-    // no underline or strikethrough.
-    vec4 under_color = texture(atlas_nearest_sampler, o_underline);
-    if (under_color.a != 0.0) {
-        // if the underline glyph isn't transparent in this position then
-        // we take the underline color, otherwise we'll leave the color
-        // at the background color.
-        color = o_underline_color;
-    }
-
-    // Similar to the above: if the cursor texture isn't transparent
-    // in this location, we'll use the cursor color instead of the background.
-    // The cursor color overrides any underline color we might have picked
-    // in the section above.
-    vec4 cursor_outline = texture(atlas_nearest_sampler, o_cursor);
-    if (cursor_outline.a != 0.0) {
-      color = o_cursor_color;
-    }
-  } else {
-    if (o_has_color >= 2.0) {
-      // Don't render the background image on anything other than
-      // the window_bg_layer.
-      discard;
-    } else {
-      color = texture(atlas_nearest_sampler, o_tex);
-      if (o_has_color == 0.0) {
-        // if it's not a color emoji it will be grayscale
-        // and we need to tint with the fg_color
-        if (o_fg_color == o_bg_color) {
-          // However, if we're a monochrome glyph and the foreground and
-          // background colors are the same, just render a transparent pixel
-          // instead; this avoids generating shadowy anti-aliasing artifacts
-          // for something that should otherwise be invisible.
-          color = vec4(0.0, 0.0, 0.0, 0.0);
-          discard;
-          return;
-        } else {
-          color = colorize_hsv(color, o_fg_color);
-        }
-      }
-    }
-  }
-
-  color = apply_hsv(color);
-}

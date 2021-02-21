@@ -4,6 +4,16 @@ use palette::{Blend, LinSrgb, LinSrgba, Srgb, Srgba};
 lazy_static::lazy_static! {
     static ref SRGB_TO_F32_TABLE: [f32;256] = generate_srgb8_to_linear_f32_table();
     static ref F32_TO_U8_TABLE: [u32;104] = generate_linear_f32_to_srgb8_table();
+    static ref RGB_TO_SRGB_TABLE: [u8;256] = generate_rgb_to_srgb8_table();
+}
+
+fn generate_rgb_to_srgb8_table() -> [u8; 256] {
+    let mut table = [0; 256];
+    for (val, entry) in table.iter_mut().enumerate() {
+        let linear = (val as f32) / 255.0;
+        *entry = linear_f32_to_srgb8_using_table(linear);
+    }
+    table
 }
 
 fn generate_srgb8_to_linear_f32_table() -> [f32; 256] {
@@ -106,6 +116,10 @@ fn linear_f32_to_srgbf32(f: f32) -> f32 {
     }
 }
 */
+
+pub fn linear_u8_to_srgb8(f: u8) -> u8 {
+    unsafe { *RGB_TO_SRGB_TABLE.get_unchecked(f as usize) }
+}
 
 #[allow(clippy::unreadable_literal)]
 const ALMOST_ONE: u32 = 0x3f7fffff;
@@ -287,6 +301,16 @@ impl Color {
         #[allow(clippy::cast_lossless)]
         let word = (blue as u32) << 24 | (green as u32) << 16 | (red as u32) << 8 | alpha as u32;
         Color(word.to_be())
+    }
+
+    #[inline]
+    pub fn with_linear_rgba_u8(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
+        Self::rgba(
+            linear_u8_to_srgb8(red),
+            linear_u8_to_srgb8(green),
+            linear_u8_to_srgb8(blue),
+            linear_u8_to_srgb8(alpha),
+        )
     }
 
     #[inline]

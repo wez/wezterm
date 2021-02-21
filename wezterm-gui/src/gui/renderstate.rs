@@ -6,7 +6,6 @@ use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{IndexBuffer, VertexBuffer};
 use ::window::*;
-use anyhow::anyhow;
 use config::configuration;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -16,7 +15,9 @@ pub struct RenderState {
     pub context: Rc<GliumContext>,
     pub glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
     pub util_sprites: UtilSprites<SrgbTexture2d>,
-    pub program: glium::Program,
+    pub background_prog: glium::Program,
+    pub line_prog: glium::Program,
+    pub glyph_prog: glium::Program,
     pub glyph_vertex_buffer: RefCell<VertexBuffer<Vertex>>,
     pub glyph_index_buffer: IndexBuffer<u32>,
     pub quads: Quads,
@@ -37,32 +38,12 @@ impl RenderState {
             let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
-                    let mut errors = vec![];
-                    let mut program = None;
-                    for version in &["330", "300 es"] {
-                        let source = glium::program::ProgramCreationInput::SourceCode {
-                            vertex_shader: &Self::vertex_shader(version),
-                            fragment_shader: &Self::fragment_shader(version),
-                            outputs_srgb: true,
-                            tessellation_control_shader: None,
-                            tessellation_evaluation_shader: None,
-                            transform_feedback_varyings: None,
-                            uses_point_size: false,
-                            geometry_shader: None,
-                        };
-                        log::trace!("compiling a prog with version {}", version);
-                        match glium::Program::new(&context, source) {
-                            Ok(prog) => {
-                                program = Some(prog);
-                                break;
-                            }
-                            Err(err) => errors.push(err.to_string()),
-                        };
-                    }
+                    let background_prog =
+                        Self::compile_prog(&context, false, Self::background_shader)?;
+                    let line_prog = Self::compile_prog(&context, false, Self::line_shader)?;
 
-                    let program = program.ok_or_else(|| {
-                        anyhow!("Failed to compile shaders: {}", errors.join("\n"))
-                    })?;
+                    // Last prog outputs srgb for gamma correction
+                    let glyph_prog = Self::compile_prog(&context, true, Self::glyph_shader)?;
 
                     let (glyph_vertex_buffer, glyph_index_buffer, quads) = Self::compute_vertices(
                         &context,
@@ -75,7 +56,9 @@ impl RenderState {
                         context,
                         glyph_cache,
                         util_sprites,
-                        program,
+                        background_prog,
+                        line_prog,
+                        glyph_prog,
                         glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
                         glyph_index_buffer,
                         quads,
@@ -89,6 +72,36 @@ impl RenderState {
                 }
             };
         }
+    }
+
+    fn compile_prog(
+        context: &Rc<GliumContext>,
+        outputs_srgb: bool,
+        fragment_shader: fn(&str) -> (String, String),
+    ) -> anyhow::Result<glium::Program> {
+        let mut errors = vec![];
+        for version in &["330", "300 es"] {
+            let (vertex_shader, fragment_shader) = fragment_shader(version);
+            let source = glium::program::ProgramCreationInput::SourceCode {
+                vertex_shader: &vertex_shader,
+                fragment_shader: &fragment_shader,
+                outputs_srgb,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                transform_feedback_varyings: None,
+                uses_point_size: false,
+                geometry_shader: None,
+            };
+            log::trace!("compiling a prog with version {}", version);
+            match glium::Program::new(context, source) {
+                Ok(prog) => {
+                    return Ok(prog);
+                }
+                Err(err) => errors.push(err.to_string()),
+            };
+        }
+
+        anyhow::bail!("Failed to compile shaders: {}", errors.join("\n"))
     }
 
     pub fn advise_of_window_size_change(
@@ -110,12 +123,55 @@ impl RenderState {
         Ok(())
     }
 
-    fn vertex_shader(version: &str) -> String {
-        format!("#version {}\n{}", version, include_str!("vertex.glsl"))
+    fn glyph_shader(version: &str) -> (String, String) {
+        (
+            format!(
+                "#version {}\n{}\n{}",
+                version,
+                include_str!("vertex-common.glsl"),
+                include_str!("glyph-vertex.glsl")
+            ),
+            format!(
+                "#version {}\n{}\n{}",
+                version,
+                include_str!("fragment-common.glsl"),
+                include_str!("glyph-frag.glsl")
+            ),
+        )
     }
 
-    fn fragment_shader(version: &str) -> String {
-        format!("#version {}\n{}", version, include_str!("fragment.glsl"))
+    fn line_shader(version: &str) -> (String, String) {
+        (
+            format!(
+                "#version {}\n{}\n{}",
+                version,
+                include_str!("vertex-common.glsl"),
+                include_str!("line-vertex.glsl")
+            ),
+            format!(
+                "#version {}\n{}\n{}",
+                version,
+                include_str!("fragment-common.glsl"),
+                include_str!("line-frag.glsl")
+            ),
+        )
+    }
+
+    fn background_shader(version: &str) -> (String, String) {
+        (
+            format!(
+                "#version {}\n{}\n{}",
+                version,
+                include_str!("vertex-common.glsl"),
+                include_str!("background-vertex.glsl")
+            ),
+            format!(
+                "#version {}\n{}\n{}",
+                version,
+                include_str!("fragment-common.glsl"),
+                include_str!("background-frag.glsl")
+            ),
+        )
     }
 
     /// Compute a vertex buffer to hold the quads that comprise the visible

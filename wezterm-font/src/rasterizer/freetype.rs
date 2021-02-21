@@ -7,6 +7,7 @@ use anyhow::bail;
 use std::cell::RefCell;
 use std::mem;
 use std::slice;
+use window::color::linear_u8_to_srgb8;
 
 pub struct FreeTypeRasterizer {
     has_color: bool,
@@ -112,12 +113,19 @@ impl FreeTypeRasterizer {
             let src_offset = y * pitch;
             let dest_offset = y * width * 4;
             for x in 0..width {
-                let gray = data[src_offset + x];
+                let linear_gray = data[src_offset + x];
+
+                let gray = linear_u8_to_srgb8(linear_gray);
+
+                // Texture is SRGBA, which in OpenGL means
+                // that the RGB values are gamma adjusted
+                // non-linear values, but the A value is
+                // linear!
 
                 rgba[dest_offset + (x * 4)] = gray;
                 rgba[dest_offset + (x * 4) + 1] = gray;
                 rgba[dest_offset + (x * 4) + 2] = gray;
-                rgba[dest_offset + (x * 4) + 3] = gray;
+                rgba[dest_offset + (x * 4) + 3] = linear_gray;
             }
         }
         RasterizedGlyph {
@@ -151,6 +159,16 @@ impl FreeTypeRasterizer {
                 let green = data[src_offset + (x * 3) + 1];
                 let blue = data[src_offset + (x * 3) + 2];
                 let alpha = red.min(green).min(blue);
+
+                // Texture is SRGBA, which in OpenGL means
+                // that the RGB values are gamma adjusted
+                // non-linear values, but the A value is
+                // linear!
+
+                let red = linear_u8_to_srgb8(red);
+                let green = linear_u8_to_srgb8(green);
+                let blue = linear_u8_to_srgb8(blue);
+
                 rgba[dest_offset + (x * 4)] = red;
                 rgba[dest_offset + (x * 4) + 1] = green;
                 rgba[dest_offset + (x * 4) + 2] = blue;
