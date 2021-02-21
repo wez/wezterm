@@ -38,9 +38,13 @@ impl RenderState {
             let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
-                    let background_prog =
-                        Self::compile_prog(&context, false, Self::background_shader)?;
-                    let line_prog = Self::compile_prog(&context, false, Self::line_shader)?;
+                    let background_prog = Self::compile_prog(
+                        &context,
+                        cfg!(target_os = "macos"),
+                        Self::background_shader,
+                    )?;
+                    let line_prog =
+                        Self::compile_prog(&context, cfg!(target_os = "macos"), Self::line_shader)?;
 
                     // Last prog outputs srgb for gamma correction
                     let glyph_prog = Self::compile_prog(&context, true, Self::glyph_shader)?;
