@@ -158,7 +158,7 @@ impl FreeTypeRasterizer {
                 let red = data[src_offset + (x * 3)];
                 let green = data[src_offset + (x * 3) + 1];
                 let blue = data[src_offset + (x * 3) + 2];
-                let alpha = red.min(green).min(blue);
+                let alpha = red.max(green).max(blue);
 
                 // Texture is SRGBA, which in OpenGL means
                 // that the RGB values are gamma adjusted

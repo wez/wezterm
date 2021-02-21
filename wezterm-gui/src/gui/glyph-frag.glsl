@@ -27,7 +27,8 @@ void main() {
       discard;
       return;
     } else {
-      color = colorize_hsv(color, o_fg_color);
+      color = colorize(color, o_fg_color, o_bg_color);
+      color = apply_hsv(color, foreground_text_hsb);
     }
   }
 
