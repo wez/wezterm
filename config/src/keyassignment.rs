@@ -162,6 +162,7 @@ pub enum KeyAssignment {
     IncreaseFontSize,
     DecreaseFontSize,
     ResetFontSize,
+    ResetFontAndWindowSize,
     ActivateTab(isize),
     SendString(String),
     Nop,

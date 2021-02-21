@@ -1976,6 +1976,7 @@ impl TermWindow {
             DecreaseFontSize => self.decrease_font_size(),
             IncreaseFontSize => self.increase_font_size(),
             ResetFontSize => self.reset_font_size(),
+            ResetFontAndWindowSize => self.reset_font_and_window_size()?,
             ActivateTab(n) => {
                 self.activate_tab(*n)?;
             }
@@ -2374,6 +2375,44 @@ impl TermWindow {
     }
     fn reset_font_size(&mut self) {
         self.adjust_font_scale(1.0);
+    }
+
+    fn reset_font_and_window_size(&mut self) -> anyhow::Result<()> {
+        let config = configuration();
+        let size = config.initial_size();
+        let fontconfig = Rc::new(FontConfiguration::new()?);
+        let render_metrics = RenderMetrics::new(&fontconfig)?;
+
+        let terminal_size = PtySize {
+            rows: size.rows as u16,
+            cols: size.cols as u16,
+            pixel_width: (render_metrics.cell_size.width as u16 * size.cols),
+            pixel_height: (render_metrics.cell_size.height as u16 * size.rows),
+        };
+
+        let show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
+
+        let rows_with_tab_bar = if show_tab_bar { 1 } else { 0 } + terminal_size.rows;
+        let dimensions = Dimensions {
+            pixel_width: ((terminal_size.cols * render_metrics.cell_size.width as u16)
+                + config.window_padding.left
+                + effective_right_padding(&config, &render_metrics))
+                as usize,
+            pixel_height: ((rows_with_tab_bar * render_metrics.cell_size.height as u16)
+                + config.window_padding.top
+                + config.window_padding.bottom) as usize,
+            dpi: config.dpi.unwrap_or(::window::DEFAULT_DPI) as usize,
+        };
+
+        self.apply_scale_change(&dimensions, 1.0);
+        self.apply_dimensions(
+            &dimensions,
+            Some(RowsAndCols {
+                rows: size.rows as usize,
+                cols: size.cols as usize,
+            }),
+        );
+        Ok(())
     }
 
     fn close_current_pane(&mut self, confirm: bool) {
