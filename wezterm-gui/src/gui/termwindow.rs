@@ -2,7 +2,6 @@
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
-use crate::gui::glyphcache::{CachedGlyph, GlyphCache};
 use crate::gui::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
     start_overlay, start_overlay_pane, tab_navigator, CopyOverlay, SearchOverlay,
@@ -48,7 +47,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use termwiz::cellcluster::CellCluster;
 use termwiz::color::{ColorAttribute, RgbColor};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::image::ImageData;
@@ -193,116 +191,6 @@ impl PrevCursorPos {
     /// When did the cursor last move?
     fn last_cursor_movement(&self) -> Instant {
         self.when
-    }
-}
-
-#[derive(Debug, PartialEq)]
-struct GlyphPosition {
-    glyph_idx: u32,
-    cluster: u32,
-    num_cells: u8,
-    x_offset: PixelLength,
-    bearing_x: f32,
-    bitmap_pixel_width: u32,
-}
-
-#[derive(Debug)]
-struct ShapedInfo<T>
-where
-    T: Texture2d,
-    T: std::fmt::Debug,
-{
-    glyph: Rc<CachedGlyph<T>>,
-    pos: GlyphPosition,
-}
-
-impl<T> ShapedInfo<T>
-where
-    T: Texture2d,
-    T: std::fmt::Debug,
-{
-    /// Process the results from the shaper.
-    /// Ideally this would not be needed, but the shaper doesn't
-    /// merge certain forms of ligatured cluster, and won't merge
-    /// certain combining sequences for which no glyph could be
-    /// found for the resultant grapheme.
-    /// This function's goal is to handle those two cases.
-    pub fn process(
-        cluster: &CellCluster,
-        infos: &[GlyphInfo],
-        glyphs: &[Rc<CachedGlyph<T>>],
-    ) -> Vec<ShapedInfo<T>> {
-        let mut pos = vec![];
-        let mut run = None;
-        for (info, glyph) in infos.iter().zip(glyphs.iter()) {
-            if !info.is_space && glyph.texture.is_none() {
-                if run.is_none() {
-                    run.replace(ShapedInfo {
-                        pos: GlyphPosition {
-                            glyph_idx: info.glyph_pos,
-                            cluster: info.cluster,
-                            num_cells: info.num_cells,
-                            x_offset: info.x_advance,
-                            bearing_x: 0.,
-                            bitmap_pixel_width: 0,
-                        },
-                        glyph: Rc::clone(glyph),
-                    });
-                    continue;
-                }
-
-                let run = run.as_mut().unwrap();
-                run.pos.num_cells += info.num_cells;
-                run.pos.x_offset += info.x_advance;
-                continue;
-            }
-
-            if let Some(mut run) = run.take() {
-                run.glyph = Rc::clone(glyph);
-                run.pos.glyph_idx = info.glyph_pos;
-                run.pos.num_cells += info.num_cells;
-                run.pos.bitmap_pixel_width = glyph.texture.as_ref().unwrap().coords.width() as u32;
-                run.pos.bearing_x = (run.pos.x_offset.get() + glyph.bearing_x.get() as f64) as f32;
-                run.pos.x_offset = info.x_advance - PixelLength::new(run.pos.bearing_x as f64);
-                pos.push(run);
-            } else {
-                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
-                if let Some(prior) = pos.last() {
-                    let prior_cell_idx = cluster.byte_to_cell_idx[prior.pos.cluster as usize];
-                    if cell_idx <= prior_cell_idx {
-                        // This is a tricky case: if we have a cluster such as
-                        // 1F470 1F3FF 200D 2640 (woman with veil: dark skin tone)
-                        // and the font doesn't define a glyph for it, the shaper
-                        // may give us a sequence of three output clusters, each
-                        // comprising: veil, skin tone and female respectively.
-                        // Those all have the same info.cluster which
-                        // means that they all resolve to the same cell_idx.
-                        // In this case, the cluster is logically a single cell,
-                        // and the best presentation is of the veil, so we pick
-                        // that one and ignore the rest of the glyphs that map to
-                        // this same cell.
-                        // Ideally we'd overlay this with a "something is broken"
-                        // glyph in the corner.
-                        continue;
-                    }
-                }
-                pos.push(ShapedInfo {
-                    pos: GlyphPosition {
-                        glyph_idx: info.glyph_pos,
-                        bitmap_pixel_width: glyph
-                            .texture
-                            .as_ref()
-                            .map_or(0, |t| t.coords.width() as u32),
-                        cluster: info.cluster,
-                        num_cells: info.num_cells,
-                        x_offset: info.x_offset,
-                        bearing_x: glyph.bearing_x.get() as f32,
-                    },
-                    glyph: Rc::clone(glyph),
-                });
-            }
-        }
-        pos
     }
 }
 
@@ -4212,6 +4100,9 @@ fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::gui::glyphcache::GlyphCache;
+    use crate::gui::shapecache::GlyphPosition;
+    use crate::gui::shapecache::ShapedInfo;
     use config::TextStyle;
     use k9::assert_equal as assert_eq;
     use std::rc::Rc;
