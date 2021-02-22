@@ -420,9 +420,12 @@ impl ParsedFont {
                         let x_advance = PixelLength::new(x_advance as f64 * pixel_scale);
                         let y_advance = PixelLength::new(y_advance as f64 * pixel_scale);
 
+                        let is_space = text == " ";
+
                         let info = GlyphInfo {
                             #[cfg(debug_assertions)]
                             text,
+                            is_space,
                             cluster: cluster as u32,
                             num_cells: num_cells as u8,
                             font_idx: font_index,

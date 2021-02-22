@@ -33,9 +33,11 @@ impl<'a> std::fmt::Debug for Info<'a> {
 
 fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
     let num_cells = unicode_column_width(text) as u8;
+    let is_space = text == " ";
     GlyphInfo {
         #[cfg(debug_assertions)]
         text: text.into(),
+        is_space,
         num_cells,
         font_idx,
         glyph_pos: info.codepoint,
@@ -160,7 +162,7 @@ impl HarfbuzzShaper {
         buf.set_language(harfbuzz::language_from_string("en")?);
         buf.add_str(s);
         buf.set_cluster_level(
-            harfbuzz::hb_buffer_cluster_level_t::HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES,
+            harfbuzz::hb_buffer_cluster_level_t::HB_BUFFER_CLUSTER_LEVEL_MONOTONE_CHARACTERS,
         );
 
         let cell_width;
@@ -187,7 +189,7 @@ impl HarfbuzzShaper {
             }
         }
 
-        if font_idx + 1 == self.fonts.len() {
+        if font_idx > 0 && font_idx + 1 == self.fonts.len() {
             // We are the last resort font, so each codepoint is considered
             // to be worthy of a fallback lookup
             for c in s.chars() {
@@ -421,5 +423,173 @@ impl FontShaper for HarfbuzzShaper {
         }
 
         self.metrics_for_idx(metrics_idx, size, dpi)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::FontDatabase;
+    use config::FontAttributes;
+    use k9::assert_equal as assert_eq;
+
+    #[test]
+    fn ligatures() {
+        let _ = pretty_env_logger::formatted_builder()
+            .is_test(true)
+            .filter_level(log::LevelFilter::Trace)
+            .try_init();
+
+        let mut db = FontDatabase::with_built_in().unwrap();
+        let handle = db
+            .resolve(&FontAttributes {
+                family: "JetBrains Mono".into(),
+                bold: false,
+                is_fallback: false,
+                italic: false,
+            })
+            .unwrap()
+            .clone();
+
+        let mut shaper = HarfbuzzShaper::new(&[handle]).unwrap();
+        {
+            let mut no_glyphs = vec![];
+            let info = shaper.shape("abc", 10., 72, &mut no_glyphs).unwrap();
+            assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
+            assert_eq!(
+                info,
+                vec![
+                    GlyphInfo {
+                        cluster: 0,
+                        font_idx: 0,
+                        glyph_pos: 180,
+                        num_cells: 1,
+                        text: "a".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                    GlyphInfo {
+                        cluster: 1,
+                        font_idx: 0,
+                        glyph_pos: 205,
+                        num_cells: 1,
+                        text: "b".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                    GlyphInfo {
+                        cluster: 2,
+                        font_idx: 0,
+                        glyph_pos: 206,
+                        num_cells: 1,
+                        text: "c".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                ]
+            );
+        }
+        {
+            let mut no_glyphs = vec![];
+            let info = shaper.shape("<", 10., 72, &mut no_glyphs).unwrap();
+            assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
+            assert_eq!(
+                info,
+                vec![GlyphInfo {
+                    cluster: 0,
+                    font_idx: 0,
+                    glyph_pos: 726,
+                    num_cells: 1,
+                    text: "<".into(),
+                    x_advance: PixelLength::new(6.),
+                    x_offset: PixelLength::new(0.),
+                    y_advance: PixelLength::new(0.),
+                    y_offset: PixelLength::new(0.),
+                },]
+            );
+        }
+        {
+            // This is a ligatured sequence, but you wouldn't know
+            // from this info :-/
+            let mut no_glyphs = vec![];
+            let info = shaper.shape("<-", 10., 72, &mut no_glyphs).unwrap();
+            assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
+            assert_eq!(
+                info,
+                vec![
+                    GlyphInfo {
+                        cluster: 0,
+                        font_idx: 0,
+                        glyph_pos: 1212,
+                        num_cells: 1,
+                        text: "<".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                    GlyphInfo {
+                        cluster: 1,
+                        font_idx: 0,
+                        glyph_pos: 1065,
+                        num_cells: 1,
+                        text: "-".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                ]
+            );
+        }
+        {
+            let mut no_glyphs = vec![];
+            let info = shaper.shape("<--", 10., 72, &mut no_glyphs).unwrap();
+            assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
+            assert_eq!(
+                info,
+                vec![
+                    GlyphInfo {
+                        cluster: 0,
+                        font_idx: 0,
+                        glyph_pos: 726,
+                        num_cells: 1,
+                        text: "<".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                    GlyphInfo {
+                        cluster: 1,
+                        font_idx: 0,
+                        glyph_pos: 1212,
+                        num_cells: 1,
+                        text: "-".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                    GlyphInfo {
+                        cluster: 2,
+                        font_idx: 0,
+                        glyph_pos: 623,
+                        num_cells: 1,
+                        text: "-".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                ]
+            );
+        }
     }
 }

@@ -1,5 +1,7 @@
 use super::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::{Atlas, Sprite};
+#[cfg(test)]
+use ::window::bitmaps::ImageTexture;
 use ::window::bitmaps::{Image, Texture2d};
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
@@ -128,6 +130,27 @@ pub struct GlyphCache<T: Texture2d> {
     image_cache: HashMap<usize, Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     metrics: RenderMetrics,
+}
+
+#[cfg(test)]
+impl GlyphCache<ImageTexture> {
+    pub fn new_in_memory(
+        fonts: &Rc<FontConfiguration>,
+        size: usize,
+        metrics: &RenderMetrics,
+    ) -> anyhow::Result<Self> {
+        let surface = Rc::new(ImageTexture::new(size, size));
+        let atlas = Atlas::new(&surface).expect("failed to create new texture atlas");
+
+        Ok(Self {
+            fonts: Rc::clone(fonts),
+            glyph_cache: HashMap::new(),
+            image_cache: HashMap::new(),
+            atlas,
+            metrics: metrics.clone(),
+            line_glyphs: HashMap::new(),
+        })
+    }
 }
 
 impl GlyphCache<SrgbTexture2d> {

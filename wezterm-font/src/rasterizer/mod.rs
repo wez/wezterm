@@ -6,6 +6,7 @@ pub mod freetype;
 
 /// A bitmap representation of a glyph.
 /// The data is stored as pre-multiplied RGBA 32bpp.
+#[derive(Debug)]
 pub struct RasterizedGlyph {
     pub data: Vec<u8>,
     pub height: usize,

@@ -254,6 +254,12 @@ pub fn use_default_configuration() {
     CONFIG.use_defaults();
 }
 
+/// Use a config that doesn't depend on the user's
+/// environment and is suitable for unit testing
+pub fn use_test_configuration() {
+    CONFIG.use_test();
+}
+
 /// Returns a handle to the current configuration
 pub fn configuration() -> ConfigHandle {
     CONFIG.get()
@@ -389,6 +395,14 @@ impl ConfigInner {
         self.error.take();
         self.generation += 1;
     }
+
+    fn use_test(&mut self) {
+        FontLocatorSelection::ConfigDirsOnly.set_default();
+        let config = Config::default_config();
+        self.config = Arc::new(config);
+        self.error.take();
+        self.generation += 1;
+    }
 }
 
 pub struct Configuration {
@@ -415,6 +429,13 @@ impl Configuration {
     pub fn use_defaults(&self) {
         let mut inner = self.inner.lock().unwrap();
         inner.use_defaults();
+    }
+
+    /// Use a config that doesn't depend on the user's
+    /// environment and is suitable for unit testing
+    pub fn use_test(&self) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.use_test();
     }
 
     /// Reload the configuration

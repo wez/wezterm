@@ -5,11 +5,12 @@ pub mod allsorts;
 pub mod harfbuzz;
 
 /// Holds information about a shaped glyph
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GlyphInfo {
     /// We only retain text in debug mode for diagnostic purposes
     #[cfg(debug_assertions)]
     pub text: String,
+    pub is_space: bool,
     /// Offset within text
     pub cluster: u32,
     /// How many cells/columns this glyph occupies horizontally

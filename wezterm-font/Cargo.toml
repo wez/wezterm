@@ -39,3 +39,7 @@ winapi = "0.3"
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.9"
 core-text = "19.0"
+
+[dev-dependencies]
+k9 = "0.10.0"
+pretty_env_logger = "0.4"

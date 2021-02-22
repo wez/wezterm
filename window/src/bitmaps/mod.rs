@@ -337,6 +337,15 @@ pub struct Image {
     height: usize,
 }
 
+impl std::fmt::Debug for Image {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fmt.debug_struct("Image")
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .finish()
+    }
+}
+
 impl Into<Vec<u8>> for Image {
     fn into(self) -> Vec<u8> {
         self.data
@@ -490,6 +499,7 @@ impl BitmapImage for Image {
     }
 }
 
+#[derive(Debug)]
 pub struct ImageTexture {
     pub image: RefCell<Image>,
 }
