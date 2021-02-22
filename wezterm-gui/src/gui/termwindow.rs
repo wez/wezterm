@@ -3256,74 +3256,19 @@ impl TermWindow {
                     });
 
                     if let Some(image) = attrs.image() {
-                        // Render iTerm2 style image attributes
-
-                        let padding = self
-                            .render_metrics
-                            .cell_size
-                            .height
-                            .max(self.render_metrics.cell_size.width)
-                            as usize;
-                        let padding = if padding.is_power_of_two() {
-                            padding
-                        } else {
-                            padding.next_power_of_two()
-                        };
-
-                        let sprite = gl_state
-                            .glyph_cache
-                            .borrow_mut()
-                            .cached_image(image.image_data(), Some(padding))?;
-                        let width = sprite.coords.size.width;
-                        let height = sprite.coords.size.height;
-
-                        let top_left = image.top_left();
-                        let bottom_right = image.bottom_right();
-
-                        // We *could* call sprite.texture.to_texture_coords() here,
-                        // but since that takes integer pixel coordinates, we'd
-                        // lose precision and end up with visual artifacts.
-                        // Instead, we compute the texture coords here in floating point.
-
-                        let texture_width = sprite.texture.width() as f32;
-                        let texture_height = sprite.texture.height() as f32;
-                        let origin = TextureCoord::new(
-                            (sprite.coords.origin.x as f32 + (*top_left.x * width as f32))
-                                / texture_width,
-                            (sprite.coords.origin.y as f32 + (*top_left.y * height as f32))
-                                / texture_height,
-                        );
-
-                        let size = TextureSize::new(
-                            (*bottom_right.x - *top_left.x) * width as f32 / texture_width,
-                            (*bottom_right.y - *top_left.y) * height as f32 / texture_height,
-                        );
-
-                        let texture_rect = TextureRect::new(origin, size);
-
-                        let mut quad = match quads
-                            .cell(cell_idx + params.pos.left, params.line_idx + params.pos.top)
-                        {
-                            Ok(quad) => quad,
-                            Err(_) => break,
-                        };
-
-                        quad.set_hsv(hsv);
-                        quad.set_fg_color(glyph_color);
-                        quad.set_underline_color(underline_color);
-                        quad.set_bg_color(bg_color);
-                        quad.set_texture(texture_rect);
-                        quad.set_texture_adjust(0., 0., 0., 0.);
-                        quad.set_underline(white_space);
-                        quad.set_has_color(true);
-                        quad.set_cursor(
-                            gl_state
-                                .util_sprites
-                                .cursor_sprite(cursor_shape)
-                                .texture_coords(),
-                        );
-                        quad.set_cursor_color(params.cursor_border_color);
-
+                        self.populate_image_quad(
+                            image,
+                            gl_state,
+                            quads,
+                            cell_idx,
+                            &params,
+                            hsv,
+                            cursor_shape,
+                            glyph_color,
+                            underline_color,
+                            bg_color,
+                            white_space,
+                        )?;
                         continue;
                     }
 
@@ -3432,6 +3377,86 @@ impl TermWindow {
             );
             quad.set_cursor_color(params.cursor_border_color);
         }
+
+        Ok(())
+    }
+
+    /// Render iTerm2 style image attributes
+    fn populate_image_quad(
+        &self,
+        image: &termwiz::image::ImageCell,
+        gl_state: &RenderState,
+        quads: &mut MappedQuads,
+        cell_idx: usize,
+        params: &RenderScreenLineOpenGLParams,
+        hsv: Option<config::HsbTransform>,
+        cursor_shape: Option<CursorShape>,
+        glyph_color: Color,
+        underline_color: Color,
+        bg_color: Color,
+        white_space: TextureRect,
+    ) -> anyhow::Result<()> {
+        let padding = self
+            .render_metrics
+            .cell_size
+            .height
+            .max(self.render_metrics.cell_size.width) as usize;
+        let padding = if padding.is_power_of_two() {
+            padding
+        } else {
+            padding.next_power_of_two()
+        };
+
+        let sprite = gl_state
+            .glyph_cache
+            .borrow_mut()
+            .cached_image(image.image_data(), Some(padding))?;
+        let width = sprite.coords.size.width;
+        let height = sprite.coords.size.height;
+
+        let top_left = image.top_left();
+        let bottom_right = image.bottom_right();
+
+        // We *could* call sprite.texture.to_texture_coords() here,
+        // but since that takes integer pixel coordinates, we'd
+        // lose precision and end up with visual artifacts.
+        // Instead, we compute the texture coords here in floating point.
+
+        let texture_width = sprite.texture.width() as f32;
+        let texture_height = sprite.texture.height() as f32;
+        let origin = TextureCoord::new(
+            (sprite.coords.origin.x as f32 + (*top_left.x * width as f32)) / texture_width,
+            (sprite.coords.origin.y as f32 + (*top_left.y * height as f32)) / texture_height,
+        );
+
+        let size = TextureSize::new(
+            (*bottom_right.x - *top_left.x) * width as f32 / texture_width,
+            (*bottom_right.y - *top_left.y) * height as f32 / texture_height,
+        );
+
+        let texture_rect = TextureRect::new(origin, size);
+
+        let mut quad =
+            match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
+                Ok(quad) => quad,
+                Err(_) => return Ok(()),
+            };
+
+        quad.set_hsv(hsv);
+        quad.set_fg_color(glyph_color);
+        quad.set_underline_color(underline_color);
+        quad.set_bg_color(bg_color);
+        quad.set_texture(texture_rect);
+        quad.set_texture_adjust(0., 0., 0., 0.);
+        quad.set_underline(white_space);
+        quad.set_has_color(true);
+        quad.set_cursor(
+            gl_state
+                .util_sprites
+                .cursor_sprite(cursor_shape)
+                .texture_coords(),
+        );
+        quad.set_cursor_color(params.cursor_border_color);
 
         Ok(())
     }
