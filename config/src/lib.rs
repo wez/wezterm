@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use luahelper::impl_lua_conversion;
 use mlua::Lua;
 use portable_pty::{CommandBuilder, PtySize};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use smol::channel::{Receiver, Sender};
 use smol::prelude::*;
 use std;
@@ -462,10 +462,42 @@ impl std::ops::Deref for ConfigHandle {
     }
 }
 
+/// Deserialize either an integer or a float as a float
+fn de_number<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Number;
+
+    impl<'de> serde::de::Visitor<'de> for Number {
+        type Value = f64;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("f64 or i64")
+        }
+
+        fn visit_f64<E>(self, value: f64) -> Result<f64, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(value)
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<f64, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(value as f64)
+        }
+    }
+
+    deserializer.deserialize_any(Number)
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     /// The font size, measured in points
-    #[serde(default = "default_font_size")]
+    #[serde(default = "default_font_size", deserialize_with = "de_number")]
     pub font_size: f64,
 
     #[serde(default = "default_one_point_oh_f64")]
