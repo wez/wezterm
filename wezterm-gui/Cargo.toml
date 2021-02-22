@@ -11,7 +11,7 @@ build = "build.rs"
 anyhow = "1.0"
 
 [target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.3"
+embed-resource = "1.6"
 cc = "1.0"
 windows = "0.3"
 
