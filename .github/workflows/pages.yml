@@ -44,7 +44,7 @@ jobs:
         uses: crazy-max/ghaction-github-pages@v2
         with:
           target_branch: gh-pages
-          build_dir: gh_pages/html
+          build_dir: gh_pages
           keep_history: true
           allow_empty_commit: false
         env:
