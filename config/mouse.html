@@ -172,7 +172,7 @@
                         <p>Mouse bindings are configurable.</p>
 <p>The assignments are based around a triggering mouse event which may be combined
 with a set of modifier keys to produce an action.</p>
-<h2><a class="header" href="#default-mouse-assignments" id="default-mouse-assignments">Default Mouse Assignments</a></h2>
+<h2 id="default-mouse-assignments"><a class="header" href="#default-mouse-assignments">Default Mouse Assignments</a></h2>
 <p>In the table below, <code>Triple Left Down</code> means that the left mouse button is
 being triple clicked and that the event matches the downstroke of the third
 quick consecutive press.  <code>Triple Left Up</code> matches the subsequent release event
@@ -199,7 +199,7 @@ you must explicitly register every binding.</p>
   disable_default_mouse_bindings = true,
 }
 </code></pre>
-<h2><a class="header" href="#configuring-mouse-assignments" id="configuring-mouse-assignments">Configuring Mouse Assignments</a></h2>
+<h2 id="configuring-mouse-assignments"><a class="header" href="#configuring-mouse-assignments">Configuring Mouse Assignments</a></h2>
 <p><em>since: 20200607-144723-74889cd4</em></p>
 <p>You can define mouse actions using the <code>mouse_bindings</code> configuration section:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -251,7 +251,7 @@ you wanted quadruple-click bindings you can specify <code>streak=4</code>.</p>
 <tr><td>Double Left Up</td><td><code>event={Up={streak=2, button=&quot;Left&quot;}}</code></td></tr>
 <tr><td>Single Left Drag</td><td><code>event={Drag={streak=1, button=&quot;Left&quot;}}</code></td></tr>
 </tbody></table>
-<h1><a class="header" href="#available-actions" id="available-actions">Available Actions</a></h1>
+<h1 id="available-actions"><a class="header" href="#available-actions">Available Actions</a></h1>
 <p>See the <a href="lua/keyassignment/index.html"><code>KeyAssignment</code> reference</a> for information
 on available actions.</p>
 

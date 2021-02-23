@@ -171,7 +171,7 @@
                     <main>
                         <p><strong>Notice:</strong> <em>multiplexing is still a young feature and is evolving rapidly.
 Your feedback is welcomed!</em></p>
-<h2><a class="header" href="#multiplexing" id="multiplexing">Multiplexing</a></h2>
+<h2 id="multiplexing"><a class="header" href="#multiplexing">Multiplexing</a></h2>
 <p>The out-of-the-box experience with <code>wezterm</code> allows you to multiplex local tabs
 and windows which will persist until they are closed.  With a little extra
 configuration you can enable local terminal multiplexing with features similar
@@ -185,7 +185,7 @@ local native UI, providing a more natural experience for interacting with
 the mouse, clipboard and scrollback features of the terminal.</p>
 <p>Key bindings allow you to spawn new tabs in the default local domain,
 the domain of the current tab, or a specific numbered domain.</p>
-<h2><a class="header" href="#ssh-domains" id="ssh-domains">SSH Domains</a></h2>
+<h2 id="ssh-domains"><a class="header" href="#ssh-domains">SSH Domains</a></h2>
 <p><em>wezterm also supports <a href="ssh.html">regular ad-hoc ssh connections</a>.
 This section of the docs refers to running a wezterm daemon on the remote end
 of a multiplexing session that uses ssh as a channel</em></p>
@@ -219,7 +219,7 @@ strongly recommended!).  Once connected, it will attempt to spawn
 the wezterm multiplexer daemon on the remote host and connect to
 it via a unix domain socket using a similar mechanism to that
 described in the <em>Unix Domains</em> section below.</p>
-<h2><a class="header" href="#unix-domains" id="unix-domains">Unix Domains</a></h2>
+<h2 id="unix-domains"><a class="header" href="#unix-domains">Unix Domains</a></h2>
 <p>A connection to a multiplexer made via a unix socket is referred to
 as a <em>unix domain</em>.  Unix domains are supported on all systems,
 <a href="https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/">even Windows</a>
@@ -270,7 +270,7 @@ when wezterm is launched:</p>
   }
 }
 </code></pre>
-<h3><a class="header" href="#connecting-into-windows-subsystem-for-linux" id="connecting-into-windows-subsystem-for-linux">Connecting into Windows Subsystem for Linux</a></h3>
+<h3 id="connecting-into-windows-subsystem-for-linux"><a class="header" href="#connecting-into-windows-subsystem-for-linux">Connecting into Windows Subsystem for Linux</a></h3>
 <p>Inside your WSL instance, configure <code>.wezterm.lua</code> with this snippet:</p>
 <pre><code class="language-lua">return {
   unix_domains = {
@@ -302,7 +302,7 @@ when wezterm is launched:</p>
 <pre><code class="language-bash">$ wezterm connect wsl
 </code></pre>
 <p>to manually connect into your WSL instance.</p>
-<h2><a class="header" href="#tls-domains" id="tls-domains">TLS Domains</a></h2>
+<h2 id="tls-domains"><a class="header" href="#tls-domains">TLS Domains</a></h2>
 <p>A connection to a multiplexer made via a <a href="https://en.wikipedia.org/wiki/Transport_Layer_Security">TLS</a>
 encrypted TCP connection is referred to as a <em>TLS Domain</em>.</p>
 <p>Starting with version <code>20200202-180558-2489abf9</code>, wezterm can bootstrap a TLS
@@ -310,7 +310,7 @@ session by performing an initial connection via SSH to start the wezterm
 multiplexer on the remote host and securely obtain a key.  Once bootstrapped,
 the client will use a TLS protected TCP connection to communicate with the
 server.</p>
-<h3><a class="header" href="#configuring-the-client" id="configuring-the-client">Configuring the client</a></h3>
+<h3 id="configuring-the-client"><a class="header" href="#configuring-the-client">Configuring the client</a></h3>
 <p>For each server that you wish to connect to, add a client section like this:</p>
 <pre><code class="language-lua">return {
   tls_clients = {
@@ -329,7 +329,7 @@ server.</p>
 </code></pre>
 <p><a href="config/lua/TlsDomainClient.html">See TlsDomainClient</a> for more information on possible
 settings.</p>
-<h3><a class="header" href="#configuring-the-server" id="configuring-the-server">Configuring the server</a></h3>
+<h3 id="configuring-the-server"><a class="header" href="#configuring-the-server">Configuring the server</a></h3>
 <pre><code class="language-lua">return {
   tls_servers = {
     {
@@ -342,7 +342,7 @@ settings.</p>
 </code></pre>
 <p><a href="config/lua/TlsDomainServer.html">See TlsDomainServer</a> for more information on possible
 settings.</p>
-<h3><a class="header" href="#connecting" id="connecting">Connecting</a></h3>
+<h3 id="connecting"><a class="header" href="#connecting">Connecting</a></h3>
 <p>On the client, running this will connect to the server, start up
 the multiplexer and obtain a certificate for the TLS connection.
 A connection window will show the progress and may prompt you for

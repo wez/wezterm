@@ -169,7 +169,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2><a class="header" href="#configuration-files" id="configuration-files">Configuration Files</a></h2>
+                        <h2 id="configuration-files"><a class="header" href="#configuration-files">Configuration Files</a></h2>
 <p><code>wezterm</code> will look for a <a href="https://www.lua.org/manual/5.3/manual.html">lua</a>
 configuration file in the following locations, stopping at the first file that
 it finds:</p>
@@ -196,7 +196,7 @@ reloaded.  You should avoid taking actions in the main flow of the config file
 that have side effects; for example, unconditionally launching background
 processes can result in many of them being spawned over time if you launch
 many copies of wezterm, or are frequently reloading your config file.</p>
-<h2><a class="header" href="#configuration-file-structure" id="configuration-file-structure">Configuration File Structure</a></h2>
+<h2 id="configuration-file-structure"><a class="header" href="#configuration-file-structure">Configuration File Structure</a></h2>
 <p>The <code>wezterm.lua</code> configuration file is a lua script which allows for a high
 degree of flexibility.   The script is expected to return a configuration
 table, so a basic empty configuration file will look like this:</p>

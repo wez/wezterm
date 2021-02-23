@@ -45,20 +45,23 @@ h4, h5 { margin-top: 2em; }
     margin-top: 1em;
 }
 
-h1 a.header:target::before,
-h2 a.header:target::before,
-h3 a.header:target::before,
-h4 a.header:target::before {
+h1:target::before,
+h2:target::before,
+h3:target::before,
+h4:target::before,
+h5:target::before,
+h6:target::before {
     display: inline-block;
     content: "»";
     margin-left: -30px;
     width: 30px;
 }
 
-h1 a.header:target,
-h2 a.header:target,
-h3 a.header:target,
-h4 a.header:target {
+/* This is broken on Safari as of version 14, but is fixed
+   in Safari Technology Preview 117 which I think will be Safari 14.2.
+   https://bugs.webkit.org/show_bug.cgi?id=218076
+*/
+:target {
     scroll-margin-top: calc(var(--menu-bar-height) + 0.5em);
 }
 

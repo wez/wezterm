@@ -169,8 +169,8 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#frequently-asked-questions" id="frequently-asked-questions">Frequently Asked Questions</a></h1>
-<h2><a class="header" href="#unicode-glyphs-render-as-underscores-in-my-tmux" id="unicode-glyphs-render-as-underscores-in-my-tmux">Unicode glyphs render as underscores in my tmux!</a></h2>
+                        <h1 id="frequently-asked-questions"><a class="header" href="#frequently-asked-questions">Frequently Asked Questions</a></h1>
+<h2 id="unicode-glyphs-render-as-underscores-in-my-tmux"><a class="header" href="#unicode-glyphs-render-as-underscores-in-my-tmux">Unicode glyphs render as underscores in my tmux!</a></h2>
 <p>This is likely an issue with LANG and locale.  <code>tmux</code> will substitute unicode
 glyphs with underscores if it believes that your environment doesn't support
 UTF-8.</p>
@@ -181,11 +181,11 @@ restart your tmux server before it will take effect.</p>
 <p>You probably should also review <a href="https://github.com/tmux/tmux/wiki/FAQ#how-do-i-use-utf-8">this relevant section from the
 TMUX FAQ</a>, and
 read on for more information about LANG and locale below.</p>
-<h2><a class="header" href="#some-glyphs-look-messed-up-why-is-that" id="some-glyphs-look-messed-up-why-is-that">Some glyphs look messed up, why is that?</a></h2>
+<h2 id="some-glyphs-look-messed-up-why-is-that"><a class="header" href="#some-glyphs-look-messed-up-why-is-that">Some glyphs look messed up, why is that?</a></h2>
 <p>There's a surprisingly amount of work that goes into rendering text,
 and if you're connected to a remote host, it may span both systems.
 Read on for some gory details!</p>
-<h3><a class="header" href="#lang-and-locale" id="lang-and-locale">LANG and locale</a></h3>
+<h3 id="lang-and-locale"><a class="header" href="#lang-and-locale">LANG and locale</a></h3>
 <p>Terminals operate on byte streams and don't necessarily know anything about the
 encoding of the text that you're sending through.  The unix model for this is
 that the end user (that's you!) will instruct the applications that you're
@@ -209,7 +209,7 @@ that you log in to via ssh or the mux connection protocol.</p>
 <p>If you're seeing multiple garbage characters in your terminal in place of
 what should be a single glyph then you most likely have a problem with your
 locale environment variables.</p>
-<h3><a class="header" href="#fonts-and-fallback" id="fonts-and-fallback">Fonts and fallback</a></h3>
+<h3 id="fonts-and-fallback"><a class="header" href="#fonts-and-fallback">Fonts and fallback</a></h3>
 <p>If you have configured the use of a font that contains only latin characters
 and then try to display a glyph that isn't present in that font (perhaps an
 emoji, or perhaps some kanji) then wezterm will try to locate a fallback
@@ -233,7 +233,7 @@ return {
   })
 }
 </code></pre>
-<h3><a class="header" href="#some-but-not-all-emoji-dont-render-properly" id="some-but-not-all-emoji-dont-render-properly">Some (but not all) Emoji don't render properly</a></h3>
+<h3 id="some-but-not-all-emoji-dont-render-properly"><a class="header" href="#some-but-not-all-emoji-dont-render-properly">Some (but not all) Emoji don't render properly</a></h3>
 <p>To some extent this issue can manifest in a similar way to the LANG and locale
 issue.  There are different versions of the Emoji specifications and the level
 of support in different applications can vary.  Emoji can be comprised from a
@@ -245,7 +245,7 @@ were to emit that same emoji from a script, wezterm would render it correctly.</
 <p>If you're seeing this sort of issue, then you may be able to upgrade the
 affected application on that system to see if a newer version resolves that
 issue.</p>
-<h2><a class="header" href="#how-to-troubleshoot-keys-that-dont-work-or-produce-weird-characters" id="how-to-troubleshoot-keys-that-dont-work-or-produce-weird-characters">How to troubleshoot keys that don't work or produce weird characters!?</a></h2>
+<h2 id="how-to-troubleshoot-keys-that-dont-work-or-produce-weird-characters"><a class="header" href="#how-to-troubleshoot-keys-that-dont-work-or-produce-weird-characters">How to troubleshoot keys that don't work or produce weird characters!?</a></h2>
 <p>There are a number of layers in input processing that can influence this.</p>
 <p>The first thing to note is that <code>wezterm</code> will always and only output <code>UTF-8</code>
 encoded text.  Your <code>LANG</code> and locale related environment must be set to
@@ -280,13 +280,13 @@ that wezterm isn't sending the correct input then please <a href="https://github
 issue</a> and include the <code>xxd</code> hexdump,
 and output from <code>env</code> and any other pertinent information about what you're
 trying and why it doesn't match your expectations.</p>
-<h2><a class="header" href="#i-have-set-convert-meta-on-in-my-inputrc-and-latin-characters-are-broken" id="i-have-set-convert-meta-on-in-my-inputrc-and-latin-characters-are-broken">I have <code>set convert-meta on</code> in my <code>~/.inputrc</code> and latin characters are broken!?</a></h2>
+<h2 id="i-have-set-convert-meta-on-in-my-inputrc-and-latin-characters-are-broken"><a class="header" href="#i-have-set-convert-meta-on-in-my-inputrc-and-latin-characters-are-broken">I have <code>set convert-meta on</code> in my <code>~/.inputrc</code> and latin characters are broken!?</a></h2>
 <p>That setting causes Readline to re-encode latin-1 and other characters
 as a different sequence (eg: <code>£</code> will have the high bit stripped and turn
 it into <code>#</code>).</p>
 <p>You should consider disabling that setting when working with a UTF-8
 environment.</p>
-<h2><a class="header" href="#how-do-i-enable-undercurl-curly-underlines" id="how-do-i-enable-undercurl-curly-underlines">How do I enable undercurl (curly underlines)?</a></h2>
+<h2 id="how-do-i-enable-undercurl-curly-underlines"><a class="header" href="#how-do-i-enable-undercurl-curly-underlines">How do I enable undercurl (curly underlines)?</a></h2>
 <p>Starting in the nightly builds, WezTerm has support for colored and curly underlines.</p>
 <p>The relevant escape sequences are:</p>
 <pre><code> CSI 24 m   -&gt; No underline

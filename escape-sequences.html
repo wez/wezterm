@@ -178,7 +178,7 @@ have so much spare time!</p>
 <p>If you notice that something is inaccurate or missing, please do <a href="https://github.com/wez/wezterm/issues/new/choose">file an issue</a>
 so that it can be resolved!</p>
 </blockquote>
-<h2><a class="header" href="#outputescape-sequences" id="outputescape-sequences">Output/Escape Sequences</a></h2>
+<h2 id="outputescape-sequences"><a class="header" href="#outputescape-sequences">Output/Escape Sequences</a></h2>
 <p>WezTerm considers the output from the terminal to be a UTF-8 encoded stream of
 codepoints.  No other encoding is supported.  As described below, some C1
 control codes have both 7-bit ASCII compatible as well as 8-bit
@@ -186,7 +186,7 @@ representations.  As ASCII is a compatible subset of UTF-8, the 7-bit
 representations are preferred and processed without any special consideration.</p>
 <p>The 8-bit values <em>are</em> recognized, but only if the 8-bit value is treated as a
 unicode code point and encoded via a UTF-8 multi-byte sequence.</p>
-<h3><a class="header" href="#printable-codepoints" id="printable-codepoints">Printable Codepoints</a></h3>
+<h3 id="printable-codepoints"><a class="header" href="#printable-codepoints">Printable Codepoints</a></h3>
 <p>Codepoints with value 0x20 and higher are considered to be printable and are
 applied to the terminal display using the following rules:</p>
 <ul>
@@ -212,7 +212,7 @@ WezTerm will attempt to apply your <a href="config/font-shaping.html">font shapi
 based on runs of graphemes with matching graphic attributes to determine which glyphs
 should be rendered from your fonts; it is at this stage that emoji and ligatures are
 resolved.</p>
-<h3><a class="header" href="#c0-control-codes" id="c0-control-codes">C0 Control Codes</a></h3>
+<h3 id="c0-control-codes"><a class="header" href="#c0-control-codes">C0 Control Codes</a></h3>
 <p>Codepoints in the range <code>0x00-0x1F</code> are considered to be <code>C0</code> control codes.
 <code>C0</code> controls will flush any buffered printable codepoints before triggering
 the action described below.</p>
@@ -250,7 +250,7 @@ the action described below.</p>
 <tr><td>^^</td><td>0x1E</td><td>RS</td><td>Record Separator</td><td>Ignored</td></tr>
 <tr><td>^_</td><td>0x1F</td><td>US</td><td>Unit Separator</td><td>Ignored</td></tr>
 </tbody></table>
-<h3><a class="header" href="#c1-control-codes" id="c1-control-codes">C1 Control Codes</a></h3>
+<h3 id="c1-control-codes"><a class="header" href="#c1-control-codes">C1 Control Codes</a></h3>
 <p>As mentioned above, WezTerm only supports UTF-8 encoding.  C1 control codes
 have an 8-bit representation as well as a multi-codepoint 7-bit escape sequence.</p>
 <p>The 8-bit representation is recognized if the 8-bit value is treated as a
@@ -270,7 +270,7 @@ codepoints before triggering the action described below.</p>
 <tr><td>ESC [</td><td>0x9B</td><td>CSI</td><td>Control Sequence Introducer</td><td>Discussed below</td></tr>
 <tr><td>ESC \</td><td>0x9C</td><td>ST</td><td>String Terminator</td><td>No direct effect; ST is used to delimit the end of OSC style escape sequences</td></tr>
 </tbody></table>
-<h3><a class="header" href="#other-escape-sequences" id="other-escape-sequences">Other Escape Sequences</a></h3>
+<h3 id="other-escape-sequences"><a class="header" href="#other-escape-sequences">Other Escape Sequences</a></h3>
 <p>As these sequences start with an <code>ESC</code>, which is a <code>C0</code> control, these will
 flush any buffered printable codepoints before triggering the associated
 action.</p>
@@ -284,12 +284,12 @@ action.</p>
 <tr><td>ESC (B</td><td></td><td>US ASCII character set</td><td>Disables DEC Line Drawing character translation</td></tr>
 <tr><td>ESC #8</td><td><a href="https://vt100.net/docs/vt510-rm/DECALN.html">DECALN</a></td><td>Screen Alignment Display</td><td>Fills the display with <code>E</code> characters for diagnostic/test purposes (for vttest)</td></tr>
 </tbody></table>
-<h3><a class="header" href="#csi---control-sequence-introducer-sequences" id="csi---control-sequence-introducer-sequences">CSI - Control Sequence Introducer Sequences</a></h3>
+<h3 id="csi---control-sequence-introducer-sequences"><a class="header" href="#csi---control-sequence-introducer-sequences">CSI - Control Sequence Introducer Sequences</a></h3>
 <p>CSI sequences begin with the <code>C1</code> <code>CSI</code> sequence, which is either the 7-bit
 <code>ESC [</code> sequence or the codepoint <code>0x9B</code>.</p>
 <p>WezTerm classifies these sequences into a number of functional families which
 are broken out below.</p>
-<h4><a class="header" href="#graphic-rendition-sgr" id="graphic-rendition-sgr">Graphic Rendition (SGR)</a></h4>
+<h4 id="graphic-rendition-sgr"><a class="header" href="#graphic-rendition-sgr">Graphic Rendition (SGR)</a></h4>
 <p>SGR sequences are of the form <code>CSI DIGITS [; DIGITS ]+ m</code>.  That is, any number
 of semicolon separated numbers, terminated by the <code>m</code> codepoint.  There are a handful
 of slightly more modern sequences that use colon <code>:</code> codepoints to encode additional
@@ -397,12 +397,12 @@ The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal 
 The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal numbers in the range <code>0-255</code>:</p>
 <pre><code>CSI 58 : 2 : : R : G : B m
 </code></pre>
-<h4><a class="header" href="#cursor-movement" id="cursor-movement">Cursor Movement</a></h4>
-<h4><a class="header" href="#editing-functions" id="editing-functions">Editing Functions</a></h4>
-<h4><a class="header" href="#mode-functions" id="mode-functions">Mode Functions</a></h4>
-<h4><a class="header" href="#device-functions" id="device-functions">Device Functions</a></h4>
-<h4><a class="header" href="#window-functions" id="window-functions">Window Functions</a></h4>
-<h3><a class="header" href="#dcs---device-control-string" id="dcs---device-control-string">DCS - Device Control String</a></h3>
+<h4 id="cursor-movement"><a class="header" href="#cursor-movement">Cursor Movement</a></h4>
+<h4 id="editing-functions"><a class="header" href="#editing-functions">Editing Functions</a></h4>
+<h4 id="mode-functions"><a class="header" href="#mode-functions">Mode Functions</a></h4>
+<h4 id="device-functions"><a class="header" href="#device-functions">Device Functions</a></h4>
+<h4 id="window-functions"><a class="header" href="#window-functions">Window Functions</a></h4>
+<h3 id="dcs---device-control-string"><a class="header" href="#dcs---device-control-string">DCS - Device Control String</a></h3>
 <p>The <code>C1</code> <code>DCS</code> escape places the terminal parser into a device control mode until the <code>C1</code> <code>ST</code> is encountered.</p>
 <p>In the table below, <code>DCS</code> can be either the 7-bit representation (<code>ESC P</code>) or the 8-bit codepoint (<code>0x90</code>).</p>
 <table><thead><tr><th>Seq</th><th>Name</th><th>Description</th></tr></thead><tbody>
@@ -412,7 +412,7 @@ The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal 
 <tr><td>DCS [PARAMS] q [DATA] ST</td><td>Sixel Graphic Data</td><td>Decodes <a href="https://vt100.net/docs/vt3xx-gp/chapter14.html">Sixel graphic data</a> and apply the image to the terminal model. Support is preliminary and incomplete; see <a href="https://github.com/wez/wezterm/issues/217">this issue</a> for status.</td></tr>
 <tr><td>DCS 1000 q</td><td>tmux control mode</td><td>Bridges tmux into the WezTerm multiplexer.  Currently incomplete, see <a href="https://github.com/wez/wezterm/issues/336">this issue</a> for status.</td></tr>
 </tbody></table>
-<h3><a class="header" href="#operating-system-command-sequences" id="operating-system-command-sequences">Operating System Command Sequences</a></h3>
+<h3 id="operating-system-command-sequences"><a class="header" href="#operating-system-command-sequences">Operating System Command Sequences</a></h3>
 <p>Operating System Command (OSC) sequences are introduced via <code>ESC ]</code> followed by
 a numeric code and typically have parameters delimited by <code>;</code>.  OSC sequences
 are canonically delimited by the <code>ST</code> (String Terminator) sequence, but WezTerm
@@ -436,7 +436,7 @@ also accepts delimiting them with the <code>BEL</code> control.</p>
 <tr><td>L</td><td>Set Icon Name (Sun)</td><td>Same as OSC 1</td><td><code>\x1b]Ltab-title\x1b\\</code></td></tr>
 <tr><td>l</td><td>Set Window Title (Sun)</td><td>Same as OSC 2</td><td><code>\x1b]lwindow-title\x1b\\</code></td></tr>
 </tbody></table>
-<h1><a class="header" href="#additional-resources" id="additional-resources">Additional Resources</a></h1>
+<h1 id="additional-resources"><a class="header" href="#additional-resources">Additional Resources</a></h1>
 <ul>
 <li><a href="http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt">xterm's escape sequences</a></li>
 <li><a href="https://iterm2.com/documentation-escape-codes.html">iTerm2's escape sequences</a></li>

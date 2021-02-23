@@ -169,7 +169,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2><a class="header" href="#scrollback" id="scrollback">Scrollback</a></h2>
+                        <h2 id="scrollback"><a class="header" href="#scrollback">Scrollback</a></h2>
 <p>WezTerm provides a searchable scrollback buffer with a configurable maximum
 size limit that allows you to review information that doesn't fit in the
 physical window size.  As content is printed to the display the display may be
@@ -179,7 +179,7 @@ down.</p>
 <p>This section describes working with the scrollback and discusses some
 configuration options; be sure to read the <a href="config/files.html">configuration
 docs</a> to learn how to change your settings!</p>
-<h3><a class="header" href="#controlling-the-scrollback-size" id="controlling-the-scrollback-size">Controlling the scrollback size</a></h3>
+<h3 id="controlling-the-scrollback-size"><a class="header" href="#controlling-the-scrollback-size">Controlling the scrollback size</a></h3>
 <p>This value serves as an upper bound on the number of lines.
 The larger this value, the more memory is required to manage the tab.
 If you have a lot of long lived tabs then making this value very large
@@ -190,13 +190,13 @@ you have available.</p>
   scrollback_lines = 3500,
 }
 </code></pre>
-<h3><a class="header" href="#clearing-the-scrollback-buffer" id="clearing-the-scrollback-buffer">Clearing the scrollback buffer</a></h3>
+<h3 id="clearing-the-scrollback-buffer"><a class="header" href="#clearing-the-scrollback-buffer">Clearing the scrollback buffer</a></h3>
 <p>By default, <code>CTRL-SHIFT-K</code> and <code>CMD-K</code> will trigger the <code>ClearScrollback</code>
 action and discard the contents of the scrollback buffer.  There is no way
 to undo discarding the scrollback.</p>
 <p>See the <a href="config/lua/keyassignment/ClearScrollback.html">ClearScrollback</a> docs for information
 on rebinding this key.</p>
-<h3><a class="header" href="#enabledisable-scrollbar" id="enabledisable-scrollbar">Enable/Disable scrollbar</a></h3>
+<h3 id="enabledisable-scrollbar"><a class="header" href="#enabledisable-scrollbar">Enable/Disable scrollbar</a></h3>
 <p>You can control whether WezTerm displays a scrollbar via your configuration
 file:</p>
 <pre><code class="language-lua">return {
@@ -208,12 +208,12 @@ file:</p>
 }
 </code></pre>
 <p>You may <a href="config/appearance.html#defining-your-own-colors">change the color of the scrollbar</a> if you wish!</p>
-<h3><a class="header" href="#scrolling-without-a-scrollbar" id="scrolling-without-a-scrollbar">Scrolling without a scrollbar</a></h3>
+<h3 id="scrolling-without-a-scrollbar"><a class="header" href="#scrolling-without-a-scrollbar">Scrolling without a scrollbar</a></h3>
 <p>By default, <code>SHIFT-PageUp</code> and <code>SHIFT-PageDown</code> will adjust the viewport scrollback position
 by one full screen for each press.</p>
 <p>See the <a href="config/keys.html#scrollbypage">ScrollByPage</a> docs for more information
 on this key binding assignment.</p>
-<h3><a class="header" href="#searching-the-scrollback" id="searching-the-scrollback">Searching the scrollback</a></h3>
+<h3 id="searching-the-scrollback"><a class="header" href="#searching-the-scrollback">Searching the scrollback</a></h3>
 <p>By default, <code>CTRL-SHIFT-F</code> and <code>CMD-F</code> (<code>F</code> for <code>Find</code>) will activate the
 search overlay in the current tab.</p>
 <p>When the search overlay is active the behavior of wezterm changes:</p>
@@ -236,7 +236,7 @@ The matching mode is indicated in the search bar.</li>
 <li><code>Escape</code> will cancel the search overlay, leaving the currently selected text selected
 with the viewport scrolled to that location.</li>
 </ul>
-<h3><a class="header" href="#configuring-saved-searches" id="configuring-saved-searches">Configuring Saved Searches</a></h3>
+<h3 id="configuring-saved-searches"><a class="header" href="#configuring-saved-searches">Configuring Saved Searches</a></h3>
 <p><em>since: 20200607-144723-74889cd4</em></p>
 <p>If you find that you're often searching for the same things then you may wish to assign
 a keybinding to trigger that search.</p>

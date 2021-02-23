@@ -169,7 +169,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h3><a class="header" href="#color-scheme" id="color-scheme">Color Scheme</a></h3>
+                        <h3 id="color-scheme"><a class="header" href="#color-scheme">Color Scheme</a></h3>
 <p>WezTerm ships with the full set of over 200 color schemes available from
 <a href="https://github.com/mbadolato/iTerm2-Color-Schemes#screenshots">iTerm2-Color-Schemes</a>.
 You can select a color scheme with a line like this:</p>
@@ -180,7 +180,7 @@ You can select a color scheme with a line like this:</p>
 <p>You can find a list of available color schemes and screenshots
 in <a href="../colorschemes/index.html">The Color Schemes Section</a>.</p>
 <p>The <code>color_scheme</code> option takes precedence over the <code>colors</code> section below.</p>
-<h3><a class="header" href="#defining-your-own-colors" id="defining-your-own-colors">Defining your own colors</a></h3>
+<h3 id="defining-your-own-colors"><a class="header" href="#defining-your-own-colors">Defining your own colors</a></h3>
 <p>Rather than using a color scheme, you can specify the color palette using the
 <code>colors</code> configuration section.  Note that <code>color_scheme</code> takes precedence
 over this section.</p>
@@ -216,7 +216,7 @@ usual hex notation; eg: <code>#000000</code> is equivalent to <code>black</code>
   }
 }
 </code></pre>
-<h3><a class="header" href="#defining-a-color-scheme-in-your-weztermlua" id="defining-a-color-scheme-in-your-weztermlua">Defining a Color Scheme in your <code>.wezterm.lua</code></a></h3>
+<h3 id="defining-a-color-scheme-in-your-weztermlua"><a class="header" href="#defining-a-color-scheme-in-your-weztermlua">Defining a Color Scheme in your <code>.wezterm.lua</code></a></h3>
 <p>If you'd like to keep a couple of color schemes handy in your configuration
 file, rather than filling out the <code>colors</code> section, place it in a
 <code>color_schemes</code> section as shown below; you can then reference it using the
@@ -238,7 +238,7 @@ to use in the <code>color_schemes</code> sections.</p>
   },
 }
 </code></pre>
-<h3><a class="header" href="#defining-a-color-scheme-in-a-separate-file" id="defining-a-color-scheme-in-a-separate-file">Defining a Color Scheme in a separate file</a></h3>
+<h3 id="defining-a-color-scheme-in-a-separate-file"><a class="header" href="#defining-a-color-scheme-in-a-separate-file">Defining a Color Scheme in a separate file</a></h3>
 <p>If you'd like to factor your color schemes out into separate files, you
 can create a file with a <code>[colors]</code> section; take a look at <a href="https://github.com/wez/wezterm/blob/main/assets/colors/Builtin%20Dark.toml">one of
 the available color schemes for an example</a>.</p>
@@ -255,7 +255,7 @@ will need to instruct wezterm where to look for your scheme files; the
 </code></pre>
 <p>Color scheme names that are defined in files in your <code>color_scheme_dirs</code> list
 take precedence over the built-in color schemes.</p>
-<h3><a class="header" href="#dynamic-color-escape-sequences" id="dynamic-color-escape-sequences">Dynamic Color Escape Sequences</a></h3>
+<h3 id="dynamic-color-escape-sequences"><a class="header" href="#dynamic-color-escape-sequences">Dynamic Color Escape Sequences</a></h3>
 <p>Wezterm supports dynamically changing its color palette via escape sequences.</p>
 <p><a href="https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/dynamic-colors">The dynamic-colors directory</a>
 of the color scheme repo contains shell scripts that can change the color
@@ -267,7 +267,7 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
    bash &quot;$scheme&quot; ; ../tools/screenshotTable.sh; sleep 0.5; done
 </code></pre>
 <p><video width="80%" controls src="../screenshots/wezterm-dynamic-colors.mp4" loop></video></p>
-<h3><a class="header" href="#tab-bar-appearance--colors" id="tab-bar-appearance--colors">Tab Bar Appearance &amp; Colors</a></h3>
+<h3 id="tab-bar-appearance--colors"><a class="header" href="#tab-bar-appearance--colors">Tab Bar Appearance &amp; Colors</a></h3>
 <p>The following options control the appearance of the tab bar:</p>
 <pre><code class="language-lua">return {
   -- set to false to disable the tab bar completely
@@ -332,7 +332,7 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
   }
 }
 </code></pre>
-<h3><a class="header" href="#window-padding" id="window-padding">Window Padding</a></h3>
+<h3 id="window-padding"><a class="header" href="#window-padding">Window Padding</a></h3>
 <p>You may add padding around the edges of the terminal cells:</p>
 <pre><code class="language-lua">return {
   window_padding = {
@@ -345,7 +345,7 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
   }
 }
 </code></pre>
-<h2><a class="header" href="#styling-inactive-panes" id="styling-inactive-panes">Styling Inactive Panes</a></h2>
+<h2 id="styling-inactive-panes"><a class="header" href="#styling-inactive-panes">Styling Inactive Panes</a></h2>
 <p><em>since: 20201031-154415-9614e117</em></p>
 <p>To make it easier to see which pane is active, the inactive panes are dimmed
 and de-saturated slightly.</p>
@@ -372,7 +372,7 @@ light.</p>
 <p>The range of these values is 0.0 and up; they are used to multiply the existing
 values, so the default of 1.0 preserves the existing component, whilst 0.5 will
 reduce it by half, and 2.0 will double the value.</p>
-<h2><a class="header" href="#window-background-image" id="window-background-image">Window Background Image</a></h2>
+<h2 id="window-background-image"><a class="header" href="#window-background-image">Window Background Image</a></h2>
 <img width="100%" height="100%" src="../screenshots/wezterm-vday-screenshot.png" alt="Screenshot">
 <p><em>since: 20201031-154415-9614e117</em></p>
 <p>You can attach an image to the background of the wezterm window:</p>
@@ -408,7 +408,7 @@ return {
 </code></pre>
 <p>See <a href="#style-inactive-panes">Styling Inactive Panes</a> for more information
 on hue, saturation, brigthness transformations.</p>
-<h2><a class="header" href="#window-background-opacity" id="window-background-opacity">Window Background Opacity</a></h2>
+<h2 id="window-background-opacity"><a class="header" href="#window-background-opacity">Window Background Opacity</a></h2>
 <p><em>since: 20201031-154415-9614e117</em></p>
 <p>If your Operating System provides Compositing support then WezTerm is able to
 specify the alpha channel value for the background content, rendering the
@@ -426,7 +426,7 @@ impact render performance.</p>
   window_background_opacity = 1.0,
 }
 </code></pre>
-<h2><a class="header" href="#text-background-opacity" id="text-background-opacity">Text Background Opacity</a></h2>
+<h2 id="text-background-opacity"><a class="header" href="#text-background-opacity">Text Background Opacity</a></h2>
 <p><em>since: 20201031-154415-9614e117</em></p>
 <p>When using a background image or background opacity, the image content can
 have relatively low contrast with respect to the text you are trying to

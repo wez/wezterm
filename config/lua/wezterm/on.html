@@ -169,7 +169,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#weztermonevent_name-callback" id="weztermonevent_name-callback"><code>wezterm.on(event_name, callback)</code></a></h1>
+                        <h1 id="weztermonevent_name-callback"><a class="header" href="#weztermonevent_name-callback"><code>wezterm.on(event_name, callback)</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>This function follows the html/javascript naming for defining event handlers.</p>
 <p><code>wezterm.on</code> causes your specified <code>callback</code> to be called when <code>event_name</code>
@@ -186,8 +186,8 @@ from being taken for the current event.</p>
 <p>There is no way to de-register an event handler.  However, since the Lua
 state is built from scratch when the configuration is reloaded, simply
 reloading the configuration will clear any existing event handlers.</p>
-<h2><a class="header" href="#predefined-events" id="predefined-events">Predefined Events</a></h2>
-<h3><a class="header" href="#open-uri" id="open-uri"><code>open-uri</code></a></h3>
+<h2 id="predefined-events"><a class="header" href="#predefined-events">Predefined Events</a></h2>
+<h3 id="open-uri"><a class="header" href="#open-uri"><code>open-uri</code></a></h3>
 <p>The <code>open-uri</code> event is emitted when the <code>CompleteSelectionOrOpenLinkAtMouseCursor</code>
 key/mouse assignment is triggered.</p>
 <p>The default action is to open the active URI in your browser, but if you
@@ -216,7 +216,7 @@ represents the gui window.</p>
 <p>The second event parameter is a <a href="../pane/index.html"><code>pane</code> object</a> that
 represents the pane.</p>
 <p>The third event parameter is the URI string.</p>
-<h2><a class="header" href="#custom-events" id="custom-events">Custom Events</a></h2>
+<h2 id="custom-events"><a class="header" href="#custom-events">Custom Events</a></h2>
 <p>You may register handlers for arbitrary events for which wezterm itself
 has no special knowledge.  It is recommended that you avoid event names
 that are likely to be used future versions of wezterm in order to avoid

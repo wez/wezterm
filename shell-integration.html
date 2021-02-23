@@ -169,7 +169,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2><a class="header" href="#shell-integration" id="shell-integration">Shell Integration</a></h2>
+                        <h2 id="shell-integration"><a class="header" href="#shell-integration">Shell Integration</a></h2>
 <p>wezterm supports integrating with the shell through the following means:</p>
 <ul>
 <li>OSC 7 Escape sequences to advise the terminal of the working directory</li>
@@ -188,7 +188,7 @@ automatically activate shell integration for Bash and Zsh.</p>
 <p>If you're on another system, more information on how these escapes work
 can be found below.</p>
 <p><a href="https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md">Learn more about OSC 133 Semantic Prompt Escapes</a>.</p>
-<h3><a class="header" href="#osc-7-escape-sequence-to-set-the-working-directory" id="osc-7-escape-sequence-to-set-the-working-directory">OSC 7 Escape sequence to set the working directory</a></h3>
+<h3 id="osc-7-escape-sequence-to-set-the-working-directory"><a class="header" href="#osc-7-escape-sequence-to-set-the-working-directory">OSC 7 Escape sequence to set the working directory</a></h3>
 <p><code>OSC</code> is escape sequence jargon for <em>Operating System Command</em>; <code>OSC 7</code> means
 Operating System Command number 7.  This is an escape sequence that originated
 in the macOS Terminal application that is used to advise the terminal of the
@@ -206,7 +206,7 @@ so that you don't have to manually change the directory</strong>.</p>
 zsh source a <code>vte.sh</code> script that configures the shell to emit this
 sequence.  On other systems you will likely need to configure this
 for yourself.</p>
-<h3><a class="header" href="#osc-7-on-windows-with-cmdexe" id="osc-7-on-windows-with-cmdexe">OSC 7 on Windows with cmd.exe</a></h3>
+<h3 id="osc-7-on-windows-with-cmdexe"><a class="header" href="#osc-7-on-windows-with-cmdexe">OSC 7 on Windows with cmd.exe</a></h3>
 <p><code>cmd.exe</code> doesn't allow a lot of flexibility in configuring the prompt,
 but fortunately it does allow for emitting escape sequences.  You
 can use the <code>set_environment_variables</code> configuration to pre-configure
@@ -220,7 +220,7 @@ span multiple lines:</p>
   }
 }
 </code></pre>
-<h2><a class="header" href="#using-clink-on-windows-systems" id="using-clink-on-windows-systems">Using clink on Windows Systems</a></h2>
+<h2 id="using-clink-on-windows-systems"><a class="header" href="#using-clink-on-windows-systems">Using clink on Windows Systems</a></h2>
 <p><a href="https://github.com/mridgers/clink">Clink</a> brings bash style line editing to
 your Windows cmd.exe experience.  If you haven't installed clink to be the
 global default on your system, you can configure wezterm to launch clink by

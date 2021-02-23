@@ -169,10 +169,10 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2><a class="header" href="#launching-programs" id="launching-programs">Launching Programs</a></h2>
+                        <h2 id="launching-programs"><a class="header" href="#launching-programs">Launching Programs</a></h2>
 <p>By default, when opening new tabs or windows, your shell will be spawned.</p>
 <p>Your shell is determined by the following rules:</p>
-<h3><a class="header" href="#on-posix-systems" id="on-posix-systems">On Posix Systems</a></h3>
+<h3 id="on-posix-systems"><a class="header" href="#on-posix-systems">On Posix Systems</a></h3>
 <ol>
 <li>The value of the <code>$SHELL</code> environment variable is used if it is set</li>
 <li>Otherwise, it will resolve your current uid and try to look up your
@@ -185,12 +185,12 @@ and sets up more environment than a non-login shell.</p>
 have <code>$SHELL</code> set in the environment, you will need to sign out and
 sign back in again for the environment to pick up your new <code>$SHELL</code>
 value.</p>
-<h3><a class="header" href="#on-windows-systems" id="on-windows-systems">On Windows Systems</a></h3>
+<h3 id="on-windows-systems"><a class="header" href="#on-windows-systems">On Windows Systems</a></h3>
 <ol>
 <li>The value of the <code>%COMSPEC%</code> environment variable is used if it is set.</li>
 <li>Otherwise, <code>cmd.exe</code></li>
 </ol>
-<h2><a class="header" href="#changing-the-default-program" id="changing-the-default-program">Changing the default program</a></h2>
+<h2 id="changing-the-default-program"><a class="header" href="#changing-the-default-program">Changing the default program</a></h2>
 <p>If you'd like <code>wezterm</code> to run a different program than the shell as
 described above, you can use the <code>default_prog</code> config setting to specify
 the argument array; the array allows specifying the program and arguments
@@ -200,14 +200,14 @@ portably:</p>
   default_prog = {&quot;/usr/local/bin/fish&quot;, &quot;-l&quot;},
 }
 </code></pre>
-<h2><a class="header" href="#launching-a-different-program-as-a-one-off-via-the-cli" id="launching-a-different-program-as-a-one-off-via-the-cli">Launching a different program as a one off via the CLI</a></h2>
+<h2 id="launching-a-different-program-as-a-one-off-via-the-cli"><a class="header" href="#launching-a-different-program-as-a-one-off-via-the-cli">Launching a different program as a one off via the CLI</a></h2>
 <p>If you want to make a shortcut for your desktop environment that will,
 for example, open an editor in wezterm you can use the <code>start</code> subcommand
 to launch it.  This example opens up a new terminal window running vim
 to edit your wezterm configuration:</p>
 <pre><code class="language-bash">wezterm start -- vim ~/.wezterm.lua
 </code></pre>
-<h2><a class="header" href="#specifying-the-current-working-directory" id="specifying-the-current-working-directory">Specifying the current working directory</a></h2>
+<h2 id="specifying-the-current-working-directory"><a class="header" href="#specifying-the-current-working-directory">Specifying the current working directory</a></h2>
 <p>If you'd like <code>wezterm</code> to start running a program in a specific working
 directory you can do so via the config, CLI, and when using
 <a href="lua/SpawnCommand.html"><code>SpawnCommand</code></a>:</p>
@@ -246,7 +246,7 @@ local Pane. If no <code>cwd</code> can be resolved, then the <code>default_cwd</
 If <code>default_cwd</code> is not specified, then the home directory of the user will be
 used.</p>
 <p><a href="lua/config/default_cwd.html">See <code>default_cwd</code> for an easier to understand visualization</a>.</p>
-<h2><a class="header" href="#passing-environment-variables-to-the-spawned-program" id="passing-environment-variables-to-the-spawned-program">Passing Environment variables to the spawned program</a></h2>
+<h2 id="passing-environment-variables-to-the-spawned-program"><a class="header" href="#passing-environment-variables-to-the-spawned-program">Passing Environment variables to the spawned program</a></h2>
 <p>The <code>set_environment_variables</code> configuration setting can be used to
 add environment variables to the environment of the spawned program.</p>
 <p>The behavior is to take the environment of the <code>wezterm</code> process
@@ -260,7 +260,7 @@ and then set the specified variables for the spawned process.</p>
   },
 }
 </code></pre>
-<h1><a class="header" href="#the-launcher-menu" id="the-launcher-menu">The Launcher Menu</a></h1>
+<h1 id="the-launcher-menu"><a class="header" href="#the-launcher-menu">The Launcher Menu</a></h1>
 <p>The launcher menu is accessed from the new tab button in the tab bar UI; the
 <code>+</code> button to the right of the tabs.  Left clicking on the button will spawn
 a new tab, but right clicking on it will open the launcher menu.  You may also
