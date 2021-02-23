@@ -17,12 +17,15 @@ brief notes about them may accumulate here.
 * Fixed an issue where large pastes could result in a hang
 * Updated bundled JetBrainsMono font to version 2.225
 * Fixed an issue where the window would be redrawn on mouse move. This was most noticeable as a laggy mouse pointer when moving the mouse across a window running on the nouveau display driver on X11 and Wayland systems
+* Wayland: fixed opengl context creation issues.  Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#481](https://github.com/wez/wezterm/pull/481)
 * Wayland: the raw key modifiers are now correctly propagated so that they activate when used with key assignments using the `key = "raw:123"` binding syntax.
 * Wayland: fixed window decoration and full screen handling [#224](https://github.com/wez/wezterm/issues/224)
 * Wayland: fixed an issue where key repeat processing could "run away" and hang the application
 * New: added [foreground_text_hsb](config/lua/config/foreground_text_hsb.md) setting to adjust hue, saturation and brightness when text is rendered.
 * New: added [ResetFontAndWindowSize](config/lua/keyassignment/ResetFontAndWindowSize.md) key assignment.
 * New: added [ScrollByLine](config/lua/keyassignment/ScrollByLine.md) key assignment.
+* Fixed an issue where closing a pane would immediately `SIGKILL` the associated process, rather than sending `SIGHUP`.  Thanks to [@bew](https://github.com/bew)!
+* Search Mode: Added `CTRL-u` key assignment to clear the current search pattern. Thanks to [@bew](https://github.com/bew)! [#465](https://github.com/wez/wezterm/pull/465)
 
 ### 20210203-095643-70a364eb
 
