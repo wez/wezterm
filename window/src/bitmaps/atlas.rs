@@ -208,15 +208,9 @@ impl SpriteSlice {
             // Width of the first cell
             let cell_0 = width.min((self.cell_width as f32) - self.left_offset);
 
-            if self.cell_idx == self.num_cells - 1 {
-                // Width of all the other cells
-                let middle = self.cell_width * (self.num_cells - (PADDING as usize) * 2);
-                cell_0 + middle as f32
-            } else {
-                // Width of all the preceding cells
-                let prev = self.cell_width * self.cell_idx;
-                cell_0 + prev as f32
-            }
+            // Width of all the preceding cells, except the first.
+            let prev = self.cell_width * (self.cell_idx - 1);
+            cell_0 + prev as f32
         }
     }
 

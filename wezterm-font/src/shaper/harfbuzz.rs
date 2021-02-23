@@ -162,7 +162,7 @@ impl HarfbuzzShaper {
         buf.set_language(harfbuzz::language_from_string("en")?);
         buf.add_str(s);
         buf.set_cluster_level(
-            harfbuzz::hb_buffer_cluster_level_t::HB_BUFFER_CLUSTER_LEVEL_MONOTONE_CHARACTERS,
+            harfbuzz::hb_buffer_cluster_level_t::HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES,
         );
 
         let cell_width;
@@ -440,7 +440,7 @@ mod test {
             .filter_level(log::LevelFilter::Trace)
             .try_init();
 
-        let mut db = FontDatabase::with_built_in().unwrap();
+        let db = FontDatabase::with_built_in().unwrap();
         let handle = db
             .resolve(&FontAttributes {
                 family: "JetBrains Mono".into(),
@@ -451,7 +451,7 @@ mod test {
             .unwrap()
             .clone();
 
-        let mut shaper = HarfbuzzShaper::new(&[handle]).unwrap();
+        let shaper = HarfbuzzShaper::new(&[handle]).unwrap();
         {
             let mut no_glyphs = vec![];
             let info = shaper.shape("abc", 10., 72, &mut no_glyphs).unwrap();
@@ -461,6 +461,7 @@ mod test {
                 vec![
                     GlyphInfo {
                         cluster: 0,
+                        is_space: false,
                         font_idx: 0,
                         glyph_pos: 180,
                         num_cells: 1,
@@ -472,6 +473,7 @@ mod test {
                     },
                     GlyphInfo {
                         cluster: 1,
+                        is_space: false,
                         font_idx: 0,
                         glyph_pos: 205,
                         num_cells: 1,
@@ -483,6 +485,7 @@ mod test {
                     },
                     GlyphInfo {
                         cluster: 2,
+                        is_space: false,
                         font_idx: 0,
                         glyph_pos: 206,
                         num_cells: 1,
@@ -503,6 +506,7 @@ mod test {
                 info,
                 vec![GlyphInfo {
                     cluster: 0,
+                    is_space: false,
                     font_idx: 0,
                     glyph_pos: 726,
                     num_cells: 1,
@@ -525,6 +529,7 @@ mod test {
                 vec![
                     GlyphInfo {
                         cluster: 0,
+                        is_space: false,
                         font_idx: 0,
                         glyph_pos: 1212,
                         num_cells: 1,
@@ -536,6 +541,7 @@ mod test {
                     },
                     GlyphInfo {
                         cluster: 1,
+                        is_space: false,
                         font_idx: 0,
                         glyph_pos: 1065,
                         num_cells: 1,
@@ -557,6 +563,7 @@ mod test {
                 vec![
                     GlyphInfo {
                         cluster: 0,
+                        is_space: false,
                         font_idx: 0,
                         glyph_pos: 726,
                         num_cells: 1,
@@ -568,6 +575,7 @@ mod test {
                     },
                     GlyphInfo {
                         cluster: 1,
+                        is_space: false,
                         font_idx: 0,
                         glyph_pos: 1212,
                         num_cells: 1,
@@ -579,6 +587,7 @@ mod test {
                     },
                     GlyphInfo {
                         cluster: 2,
+                        is_space: false,
                         font_idx: 0,
                         glyph_pos: 623,
                         num_cells: 1,

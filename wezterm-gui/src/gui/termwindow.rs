@@ -2,6 +2,8 @@
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
+use crate::gui::glium::texture::SrgbTexture2d;
+use crate::gui::glyphcache::{CachedGlyph, GlyphCache};
 use crate::gui::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
     start_overlay, start_overlay_pane, tab_navigator, CopyOverlay, SearchOverlay,
@@ -28,6 +30,7 @@ use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, MouseEventTrigger,
     SpawnCommand, SpawnTabDomain,
 };
+use config::TextStyle;
 use config::{configuration, ConfigHandle, WindowCloseConfirmation};
 use lru::LruCache;
 use mux::activity::Activity;
@@ -47,6 +50,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
+use termwiz::cellcluster::CellCluster;
 use termwiz::color::{ColorAttribute, RgbColor};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::image::ImageData;
@@ -258,7 +262,8 @@ pub struct TermWindow {
     /// The URL over which we are currently hovering
     current_highlight: Option<Arc<Hyperlink>>,
 
-    shape_cache: RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<GlyphInfo>>>>>,
+    shape_cache:
+        RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
 
     last_blink_paint: Instant,
 
@@ -825,6 +830,7 @@ impl WindowCallbacks for TermWindow {
                     {
                         let result = if pass == 0 {
                             // Let's try clearing out the atlas and trying again
+                            self.shape_cache.borrow_mut().clear();
                             self.render_state
                                 .as_mut()
                                 .unwrap()
@@ -1271,6 +1277,7 @@ impl TermWindow {
     }
 
     fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
+        self.shape_cache.borrow_mut().clear();
         self.render_state.as_mut().unwrap().recreate_texture_atlas(
             &self.fonts,
             &self.render_metrics,
@@ -2507,9 +2514,19 @@ impl TermWindow {
                     let font = self.fonts.resolve_font(style)?;
                     match font.shape(text) {
                         Ok(info) => {
+                            let line = Line::from_text(&text, &CellAttributes::default());
+                            let clusters = line.cluster();
+                            let glyphs = self.glyph_infos_to_glyphs(
+                                &clusters[0],
+                                &line,
+                                &style,
+                                &mut gl_state.glyph_cache.borrow_mut(),
+                                &info,
+                            )?;
+                            let shaped = ShapedInfo::process(&clusters[0], &info, &glyphs);
                             self.shape_cache
                                 .borrow_mut()
-                                .put(key.to_owned(), Ok(Rc::new(info)));
+                                .put(key.to_owned(), Ok(Rc::new(shaped)));
                             self.lookup_cached_shape(&key).unwrap().unwrap()
                         }
                         Err(err) => {
@@ -2522,16 +2539,10 @@ impl TermWindow {
             }
         };
         let first_row_offset = if self.show_tab_bar { 1 } else { 0 };
-        let not_followed_by_space = false;
 
         for info in glyph_info.iter() {
-            let glyph = gl_state.glyph_cache.borrow_mut().cached_glyph(
-                info,
-                style,
-                not_followed_by_space,
-            )?;
-
-            let left = (glyph.x_offset + glyph.bearing_x).get() as f32;
+            let glyph = &info.glyph;
+            let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
             let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)
                 + self.render_metrics.descender)
                 - (glyph.y_offset + glyph.bearing_y))
@@ -2553,7 +2564,7 @@ impl TermWindow {
             for (x, y) in x_y_iter {
                 let slice = SpriteSlice {
                     cell_idx: 0,
-                    num_cells: info.num_cells as usize,
+                    num_cells: info.pos.num_cells as usize,
                     cell_width: self.render_metrics.cell_size.width as usize,
                     scale: glyph.scale as f32,
                     left_offset: left,
@@ -2904,10 +2915,31 @@ impl TermWindow {
         Ok(())
     }
 
+    fn glyph_infos_to_glyphs(
+        &self,
+        cluster: &CellCluster,
+        line: &Line,
+        style: &TextStyle,
+        glyph_cache: &mut GlyphCache<SrgbTexture2d>,
+        infos: &[GlyphInfo],
+    ) -> anyhow::Result<Vec<Rc<CachedGlyph<SrgbTexture2d>>>> {
+        let mut glyphs = vec![];
+        for info in infos {
+            let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
+            let followed_by_space = match line.cells().get(cell_idx + 1) {
+                Some(cell) => cell.str() == " ",
+                None => false,
+            };
+
+            glyphs.push(glyph_cache.cached_glyph(info, &style, followed_by_space)?);
+        }
+        Ok(glyphs)
+    }
+
     fn lookup_cached_shape(
         &self,
         key: &dyn ShapeCacheKeyTrait,
-    ) -> Option<anyhow::Result<Rc<Vec<GlyphInfo>>>> {
+    ) -> Option<anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>> {
         match self.shape_cache.borrow_mut().get(key) {
             Some(Ok(info)) => Some(Ok(Rc::clone(info))),
             Some(Err(err)) => Some(Err(anyhow!("cached shaper error: {}", err))),
@@ -3048,9 +3080,18 @@ impl TermWindow {
                         let font = self.fonts.resolve_font(style)?;
                         match font.shape(&cluster.text) {
                             Ok(info) => {
+                                let glyphs = self.glyph_infos_to_glyphs(
+                                    cluster,
+                                    &params.line,
+                                    &style,
+                                    &mut gl_state.glyph_cache.borrow_mut(),
+                                    &info,
+                                )?;
+                                let shaped = ShapedInfo::process(cluster, &info, &glyphs);
+
                                 self.shape_cache
                                     .borrow_mut()
-                                    .put(key.to_owned(), Ok(Rc::new(info)));
+                                    .put(key.to_owned(), Ok(Rc::new(shaped)));
                                 self.lookup_cached_shape(&key).unwrap().unwrap()
                             }
                             Err(err) => {
@@ -3064,37 +3105,9 @@ impl TermWindow {
             };
 
             for info in glyph_info.iter() {
-                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
+                let cell_idx = cluster.byte_to_cell_idx[info.pos.cluster as usize];
+                let glyph = &info.glyph;
 
-                if last_cell_idx.is_some() && cell_idx <= last_cell_idx.unwrap() {
-                    // This is a tricky case: if we have a cluster such as
-                    // 1F470 1F3FF 200D 2640 (woman with veil: dark skin tone)
-                    // and the font doesn't define a glyph for it, the shaper
-                    // may give us a sequence of three output clusters, each
-                    // comprising: veil, skin tone and female respectively.
-                    // Those all have the same info.cluster which
-                    // means that they all resolve to the same cell_idx.
-                    // In this case, the cluster is logically a single cell,
-                    // and the best presentation is of the veil, so we pick
-                    // that one and ignore the rest of the glyphs that map to
-                    // this same cell.
-                    // Ideally we'd overlay this with a "something is broken"
-                    // glyph in the corner.
-                    continue;
-                }
-
-                let followed_by_space = match params.line.cells().get(cell_idx + 1) {
-                    Some(cell) => cell.str() == " ",
-                    None => false,
-                };
-
-                let glyph = gl_state.glyph_cache.borrow_mut().cached_glyph(
-                    info,
-                    style,
-                    followed_by_space,
-                )?;
-
-                let left = (glyph.x_offset + glyph.bearing_x).get() as f32;
                 let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)
                     + self.render_metrics.descender)
                     - (glyph.y_offset + glyph.bearing_y))
@@ -3115,7 +3128,7 @@ impl TermWindow {
                 // Iterate each cell that comprises this glyph.  There is usually
                 // a single cell per glyph but combining characters, ligatures
                 // and emoji can be 2 or more cells wide.
-                for glyph_idx in 0..info.num_cells as usize {
+                for glyph_idx in 0..info.pos.num_cells as usize {
                     let cell_idx = cell_idx + glyph_idx;
 
                     if cell_idx >= num_cols {
@@ -3165,9 +3178,10 @@ impl TermWindow {
                         .as_ref()
                         .unwrap_or(&gl_state.util_sprites.white_space);
 
+                    let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
                     let slice = SpriteSlice {
                         cell_idx: glyph_idx,
-                        num_cells: info.num_cells as usize,
+                        num_cells: info.pos.num_cells as usize,
                         cell_width: self.render_metrics.cell_size.width as usize,
                         scale: glyph.scale as f32,
                         left_offset: left,
@@ -4095,231 +4109,4 @@ fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input
         result.insert(termwiz::input::Modifiers::LEADER);
     }
     result
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::gui::glyphcache::GlyphCache;
-    use crate::gui::shapecache::GlyphPosition;
-    use crate::gui::shapecache::ShapedInfo;
-    use config::TextStyle;
-    use k9::assert_equal as assert_eq;
-    use std::rc::Rc;
-    use wezterm_font::LoadedFont;
-
-    fn cluster_and_shape<T>(
-        glyph_cache: &mut GlyphCache<T>,
-        style: &TextStyle,
-        font: &Rc<LoadedFont>,
-        text: &str,
-    ) -> Vec<GlyphPosition>
-    where
-        T: Texture2d,
-        T: std::fmt::Debug,
-    {
-        let line = Line::from_text(text, &CellAttributes::default());
-        let cell_clusters = line.cluster();
-        assert_eq!(cell_clusters.len(), 1);
-        let cluster = &cell_clusters[0];
-        let infos = font.shape(&cluster.text).unwrap();
-        let glyphs = infos
-            .iter()
-            .map(|info| {
-                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
-
-                let followed_by_space = match line.cells().get(cell_idx + 1) {
-                    Some(cell) => cell.str() == " ",
-                    None => false,
-                };
-
-                glyph_cache
-                    .cached_glyph(info, &style, followed_by_space)
-                    .unwrap()
-            })
-            .collect::<Vec<_>>();
-
-        eprintln!("infos: {:#?}", infos);
-        eprintln!("glyphs: {:#?}", glyphs);
-        ShapedInfo::process(&cluster, &infos, &glyphs)
-            .into_iter()
-            .map(|p| p.pos)
-            .collect()
-    }
-
-    #[test]
-    fn ligatures() {
-        config::use_test_configuration();
-        let _ = pretty_env_logger::formatted_builder()
-            .is_test(true)
-            .filter_level(log::LevelFilter::Trace)
-            .try_init();
-
-        let fonts = Rc::new(FontConfiguration::new().unwrap());
-        let render_metrics = RenderMetrics::new(&fonts).unwrap();
-        let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128, &render_metrics).unwrap();
-
-        let style = TextStyle::default();
-        let font = fonts.resolve_font(&style).unwrap();
-
-        assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "ab"),
-            vec![
-                GlyphPosition {
-                    glyph_idx: 180,
-                    cluster: 0,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 7,
-                },
-                GlyphPosition {
-                    glyph_idx: 205,
-                    cluster: 1,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 1.0,
-                    bitmap_pixel_width: 6,
-                },
-            ]
-        );
-
-        assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "a b"),
-            vec![
-                GlyphPosition {
-                    glyph_idx: 180,
-                    cluster: 0,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 7,
-                },
-                GlyphPosition {
-                    glyph_idx: 686,
-                    cluster: 1,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 0,
-                },
-                GlyphPosition {
-                    glyph_idx: 205,
-                    cluster: 2,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 1.0,
-                    bitmap_pixel_width: 6,
-                },
-            ]
-        );
-
-        assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "a  b"),
-            vec![
-                GlyphPosition {
-                    glyph_idx: 180,
-                    cluster: 0,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 7,
-                },
-                GlyphPosition {
-                    glyph_idx: 686,
-                    cluster: 1,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 0,
-                },
-                GlyphPosition {
-                    glyph_idx: 686,
-                    cluster: 2,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 0.0,
-                    bitmap_pixel_width: 0,
-                },
-                GlyphPosition {
-                    glyph_idx: 205,
-                    cluster: 3,
-                    num_cells: 1,
-                    x_offset: PixelLength::new(0.0),
-                    bearing_x: 1.0,
-                    bitmap_pixel_width: 6,
-                },
-            ]
-        );
-
-        assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "<-"),
-            vec![GlyphPosition {
-                glyph_idx: 1065,
-                cluster: 0,
-                num_cells: 2,
-                x_offset: PixelLength::new(7.0),
-                bearing_x: 1.0,
-                bitmap_pixel_width: 14,
-            }]
-        );
-
-        assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "<>"),
-            vec![GlyphPosition {
-                glyph_idx: 1089,
-                cluster: 0,
-                num_cells: 2,
-                x_offset: PixelLength::new(6.0),
-                bearing_x: 2.0,
-                bitmap_pixel_width: 12,
-            }]
-        );
-
-        assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "|=>"),
-            vec![GlyphPosition {
-                glyph_idx: 1040,
-                cluster: 0,
-                num_cells: 3,
-                x_offset: PixelLength::new(6.0),
-                bearing_x: 2.0,
-                bitmap_pixel_width: 21,
-            }]
-        );
-
-        assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "<!--"),
-            vec![GlyphPosition {
-                glyph_idx: 1071,
-                cluster: 0,
-                num_cells: 4,
-                x_offset: PixelLength::new(7.0),
-                bearing_x: 1.0,
-                bitmap_pixel_width: 30,
-            }]
-        );
-
-        let deaf_man_medium_light_skin_tone = "\u{1F9CF}\u{1F3FC}\u{200D}\u{2642}\u{FE0F}";
-        println!(
-            "deaf_man_medium_light_skin_tone: {}",
-            deaf_man_medium_light_skin_tone
-        );
-        assert_eq!(
-            cluster_and_shape(
-                &mut glyph_cache,
-                &style,
-                &font,
-                deaf_man_medium_light_skin_tone
-            ),
-            vec![GlyphPosition {
-                glyph_idx: 298,
-                cluster: 0,
-                num_cells: 2,
-                x_offset: PixelLength::new(0.0),
-                bearing_x: 1.0666667,
-                bitmap_pixel_width: 14,
-            }]
-        );
-    }
 }
