@@ -425,7 +425,6 @@ brief notes about them may accumulate here.</p>
 <li>New: added <a href="config/lua/keyassignment/ScrollByLine.html">ScrollByLine</a> key assignment.</li>
 <li>Fixed an issue where closing a pane would immediately <code>SIGKILL</code> the associated process, rather than sending <code>SIGHUP</code>.  Thanks to <a href="https://github.com/bew">@bew</a>!</li>
 <li>Search Mode: Added <code>CTRL-u</code> key assignment to clear the current search pattern. Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/465">#465</a></li>
-<li>New: OSC 777 and OSC 9 escapes now generate Toast Notifications. <code>printf &quot;\e]777;notify;%s;%s\e\\&quot; &quot;title&quot; &quot;body&quot;</code> and <code>printf &quot;\e]9;%s\e\\&quot; &quot;hello there&quot;</code>.  These don't currently pass through multiplexer connections. <a href="https://github.com/wez/wezterm/issues/489">#489</a>.</li>
 </ul>
 <h3 id="20210203-095643-70a364eb"><a class="header" href="#20210203-095643-70a364eb">20210203-095643-70a364eb</a></h3>
 <ul>
@@ -2774,11 +2773,10 @@ also accepts delimiting them with the <code>BEL</code> control.</p>
 <tr><td>6</td><td>iTerm2 Change Title Tab Color</td><td>Ignored</td><td></td></tr>
 <tr><td>7</td><td>Set Current Working Directory</td><td><a href="shell-integration.html#osc-7-escape-sequence-to-set-the-working-directory">See Shell Integration</a></td><td></td></tr>
 <tr><td>8</td><td>Set Hyperlink</td><td><a href="hyperlinks.html#explicit-hyperlinks">See Explicit Hyperlinks</a></td><td></td></tr>
-<tr><td>9</td><td>iTerm2 Show System Notification</td><td>Show a &quot;toast&quot; notification</td><td><code>printf &quot;\e]9;%s\e\\&quot; &quot;hello there&quot;</code></td></tr>
+<tr><td>9</td><td>iTerm2 Show System Notification</td><td>Logs the notification to the stderr of the WezTerm process</td><td></td></tr>
 <tr><td>52</td><td>Manipulate clipboard</td><td>Requests to query the clipboard are ignored. Allows setting or clearing the clipboard</td><td></td></tr>
 <tr><td>104</td><td>ResetColors</td><td>Reset color palette entries to their default values</td><td></td></tr>
 <tr><td>133</td><td>FinalTerm semantic escapes</td><td>Informs the terminal about Input, Output and Prompt regions on the display</td><td><a href="shell-integration.html">See Shell Integration</a></td></tr>
-<tr><td>777</td><td>Call rxvt extension</td><td>Only the notify extension is supported; it shows a &quot;toast&quot; notification</td><td><code>printf &quot;\e]777;notify;%s;%s\e\\&quot; &quot;title&quot; &quot;body&quot;</code></td></tr>
 <tr><td>1337</td><td>iTerm2 File Upload Protocol</td><td>Allows displaying images inline</td><td><a href="imgcat.html">See iTerm Image Protocol</a></td></tr>
 <tr><td>L</td><td>Set Icon Name (Sun)</td><td>Same as OSC 1</td><td><code>\x1b]Ltab-title\x1b\\</code></td></tr>
 <tr><td>l</td><td>Set Window Title (Sun)</td><td>Same as OSC 2</td><td><code>\x1b]lwindow-title\x1b\\</code></td></tr>

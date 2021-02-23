@@ -194,7 +194,6 @@ brief notes about them may accumulate here.</p>
 <li>New: added <a href="config/lua/keyassignment/ScrollByLine.html">ScrollByLine</a> key assignment.</li>
 <li>Fixed an issue where closing a pane would immediately <code>SIGKILL</code> the associated process, rather than sending <code>SIGHUP</code>.  Thanks to <a href="https://github.com/bew">@bew</a>!</li>
 <li>Search Mode: Added <code>CTRL-u</code> key assignment to clear the current search pattern. Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/465">#465</a></li>
-<li>New: OSC 777 and OSC 9 escapes now generate Toast Notifications. <code>printf &quot;\e]777;notify;%s;%s\e\\&quot; &quot;title&quot; &quot;body&quot;</code> and <code>printf &quot;\e]9;%s\e\\&quot; &quot;hello there&quot;</code>.  These don't currently pass through multiplexer connections. <a href="https://github.com/wez/wezterm/issues/489">#489</a>.</li>
 </ul>
 <h3 id="20210203-095643-70a364eb"><a class="header" href="#20210203-095643-70a364eb">20210203-095643-70a364eb</a></h3>
 <ul>
