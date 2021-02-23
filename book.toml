@@ -13,5 +13,5 @@ default-theme = "ayu"
 preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/wez/wezterm"
 
-[output.linkcheck]
-traverse-parent-directories = false
+#[output.linkcheck]
+#traverse-parent-directories = false
