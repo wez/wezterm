@@ -465,6 +465,7 @@ mod test {
                         font_idx: 0,
                         glyph_pos: 180,
                         num_cells: 1,
+                        #[cfg(debug_assertions)]
                         text: "a".into(),
                         x_advance: PixelLength::new(6.),
                         x_offset: PixelLength::new(0.),
@@ -477,6 +478,7 @@ mod test {
                         font_idx: 0,
                         glyph_pos: 205,
                         num_cells: 1,
+                        #[cfg(debug_assertions)]
                         text: "b".into(),
                         x_advance: PixelLength::new(6.),
                         x_offset: PixelLength::new(0.),
@@ -489,6 +491,7 @@ mod test {
                         font_idx: 0,
                         glyph_pos: 206,
                         num_cells: 1,
+                        #[cfg(debug_assertions)]
                         text: "c".into(),
                         x_advance: PixelLength::new(6.),
                         x_offset: PixelLength::new(0.),
@@ -510,6 +513,7 @@ mod test {
                     font_idx: 0,
                     glyph_pos: 726,
                     num_cells: 1,
+                    #[cfg(debug_assertions)]
                     text: "<".into(),
                     x_advance: PixelLength::new(6.),
                     x_offset: PixelLength::new(0.),
@@ -533,6 +537,7 @@ mod test {
                         font_idx: 0,
                         glyph_pos: 1212,
                         num_cells: 1,
+                        #[cfg(debug_assertions)]
                         text: "<".into(),
                         x_advance: PixelLength::new(6.),
                         x_offset: PixelLength::new(0.),
@@ -545,6 +550,7 @@ mod test {
                         font_idx: 0,
                         glyph_pos: 1065,
                         num_cells: 1,
+                        #[cfg(debug_assertions)]
                         text: "-".into(),
                         x_advance: PixelLength::new(6.),
                         x_offset: PixelLength::new(0.),
@@ -567,6 +573,7 @@ mod test {
                         font_idx: 0,
                         glyph_pos: 726,
                         num_cells: 1,
+                        #[cfg(debug_assertions)]
                         text: "<".into(),
                         x_advance: PixelLength::new(6.),
                         x_offset: PixelLength::new(0.),
@@ -579,6 +586,7 @@ mod test {
                         font_idx: 0,
                         glyph_pos: 1212,
                         num_cells: 1,
+                        #[cfg(debug_assertions)]
                         text: "-".into(),
                         x_advance: PixelLength::new(6.),
                         x_offset: PixelLength::new(0.),
@@ -591,6 +599,7 @@ mod test {
                         font_idx: 0,
                         glyph_pos: 623,
                         num_cells: 1,
+                        #[cfg(debug_assertions)]
                         text: "-".into(),
                         x_advance: PixelLength::new(6.),
                         x_offset: PixelLength::new(0.),

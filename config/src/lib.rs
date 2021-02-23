@@ -398,7 +398,11 @@ impl ConfigInner {
 
     fn use_test(&mut self) {
         FontLocatorSelection::ConfigDirsOnly.set_default();
-        let config = Config::default_config();
+        let mut config = Config::default_config();
+        // Specify the same DPI used on non-mac systems so
+        // that we have consistent values regardless of the
+        // operating system that we're running tests on
+        config.dpi.replace(96.0);
         self.config = Arc::new(config);
         self.error.take();
         self.generation += 1;
