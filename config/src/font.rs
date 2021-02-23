@@ -40,8 +40,7 @@ bitflags! {
         const DEFAULT = 0;
         /// Disable hinting. This generally generates ‘blurrier’
         /// bitmap glyph when the glyph is rendered in any of the
-        /// anti-aliased modes. See also the note below.  This flag is
-        /// implied by FT_LOAD_NO_SCALE.
+        /// anti-aliased modes.
         const NO_HINTING = 2;
         const NO_BITMAP = 8;
         /// Indicates that the auto-hinter is preferred over the
