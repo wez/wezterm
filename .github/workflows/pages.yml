@@ -33,7 +33,7 @@ jobs:
         run: |
           mkdir -p ~/mdbook-bin
           (test -x ~/mdbook-bin/mdbook || (cd && cargo install --vers "^0.4" mdbook && cp -p ~/.cargo/bin/mdbook ~/mdbook-bin))
-          (test -x ~/mdbook-bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck && cp -p ~/.cargo/bin/mdbook-linkcheck ~/mdbook-bin))
+          #(test -x ~/mdbook-bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck && cp -p ~/.cargo/bin/mdbook-linkcheck ~/mdbook-bin))
       - name: Build
         run: |
           source $HOME/.cargo/env
