@@ -316,10 +316,11 @@ The table below is keyed by the OSC code.
 |6  |iTerm2 Change Title Tab Color | Ignored | |
 |7  |Set Current Working Directory | [See Shell Integration](shell-integration.html#osc-7-escape-sequence-to-set-the-working-directory) ||
 |8  |Set Hyperlink | [See Explicit Hyperlinks](hyperlinks.html#explicit-hyperlinks) | |
-|9  |iTerm2 Show System Notification | Logs the notification to the stderr of the WezTerm process | |
+|9  |iTerm2 Show System Notification | Show a "toast" notification | `printf "\e]9;%s\e\\" "hello there"` |
 |52 |Manipulate clipboard | Requests to query the clipboard are ignored. Allows setting or clearing the clipboard | |
 |104|ResetColors | Reset color palette entries to their default values | |
-|133|FinalTerm semantic escapes| Informs the terminal about Input, Output and Prompt regions on the display | [See Shell Integration](shell-integration.html) ||
+|133|FinalTerm semantic escapes| Informs the terminal about Input, Output and Prompt regions on the display | [See Shell Integration](shell-integration.html) |
+|777|Call rxvt extension| Only the notify extension is supported; it shows a "toast" notification | `printf "\e]777;notify;%s;%s\e\\" "title" "body"` |
 |1337 |iTerm2 File Upload Protocol | Allows displaying images inline | [See iTerm Image Protocol](imgcat.html) |
 |L  |Set Icon Name (Sun) | Same as OSC 1 | `\x1b]Ltab-title\x1b\\` |
 |l  |Set Window Title (Sun) | Same as OSC 2 | `\x1b]lwindow-title\x1b\\` |
