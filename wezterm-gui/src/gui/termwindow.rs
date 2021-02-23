@@ -1655,6 +1655,23 @@ impl TermWindow {
         Ok(())
     }
 
+    fn scroll_by_line(&mut self, amount: isize) -> anyhow::Result<()> {
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
+            None => return Ok(()),
+        };
+        let dims = pane.get_dimensions();
+        let position = self
+            .get_viewport(pane.pane_id())
+            .unwrap_or(dims.physical_top)
+            .saturating_add(amount);
+        self.set_viewport(pane.pane_id(), Some(position), dims);
+        if let Some(win) = self.window.as_ref() {
+            win.invalidate();
+        }
+        Ok(())
+    }
+
     fn move_tab_relative(&mut self, delta: isize) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let window = mux
@@ -2005,6 +2022,7 @@ impl TermWindow {
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
             ScrollByPage(n) => self.scroll_by_page(*n)?,
+            ScrollByLine(n) => self.scroll_by_line(*n)?,
             ScrollToPrompt(n) => self.scroll_to_prompt(*n)?,
             ShowTabNavigator => self.show_tab_navigator(),
             ShowLauncher => self.show_launcher(),

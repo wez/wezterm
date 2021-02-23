@@ -21,6 +21,7 @@ brief notes about them may accumulate here.
 * Wayland: fixed an issue where key repeat processing could "run away" and hang the application
 * New: added [foreground_text_hsb](config/lua/config/foreground_text_hsb.md) setting to adjust hue, saturation and brightness when text is rendered.
 * New: added [ResetFontAndWindowSize](config/lua/keyassignment/ResetFontAndWindowSize.md) key assignment.
+* New: added [ScrollByLine](config/lua/keyassignment/ScrollByLine.md) key assignment.
 
 ### 20210203-095643-70a364eb
 
