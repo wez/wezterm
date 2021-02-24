@@ -33,7 +33,7 @@ jobs:
         run: |
           mkdir -p ~/mdbook-bin
           (test -x ~/mdbook-bin/mdbook || (cd && cargo install --vers "^0.4" mdbook && cp -p ~/.cargo/bin/mdbook ~/mdbook-bin))
-          #(test -x ~/mdbook-bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck && cp -p ~/.cargo/bin/mdbook-linkcheck ~/mdbook-bin))
+          (test -x ~/mdbook-bin/mdbook-linkcheck || (cd && cargo install mdbook-linkcheck && cp -p ~/.cargo/bin/mdbook-linkcheck ~/mdbook-bin))
       - name: Build
         run: |
           source $HOME/.cargo/env
@@ -44,7 +44,7 @@ jobs:
         uses: crazy-max/ghaction-github-pages@v2
         with:
           target_branch: gh-pages
-          build_dir: gh_pages
+          build_dir: gh_pages/html
           keep_history: true
           allow_empty_commit: false
         env:
