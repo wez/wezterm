@@ -77,7 +77,10 @@ where
                 run.glyph = Rc::clone(glyph);
                 run.pos.glyph_idx = info.glyph_pos;
                 run.pos.num_cells += info.num_cells;
-                run.pos.bitmap_pixel_width = glyph.texture.as_ref().unwrap().coords.width() as u32;
+                run.pos.bitmap_pixel_width = glyph
+                    .texture
+                    .as_ref()
+                    .map_or(0, |t| t.coords.width() as u32);
                 run.pos.bearing_x = (run.pos.x_offset.get() + glyph.bearing_x.get() as f64) as f32;
                 run.pos.x_offset = PixelLength::new(0.);
                 pos.push(run);
