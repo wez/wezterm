@@ -85,10 +85,10 @@ impl Reason {
     }
 }
 
-pub fn show_notif(
-    title: &str,
-    message: &str,
-    url: Option<&str>,
+fn show_notif_impl(
+    title: String,
+    message: String,
+    url: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let connection = zbus::Connection::new_session()?;
 
@@ -108,8 +108,8 @@ pub fn show_notif(
         "wezterm",
         0,
         "org.wezfurlong.wezterm",
-        title,
-        message,
+        &title,
+        &message,
         if url.is_some() {
             &["show", "Show"]
         } else {
@@ -158,17 +158,32 @@ pub fn show_notif(
         }
     })?;
 
-    std::thread::spawn(move || {
-        while !state.lock().unwrap().done {
-            match proxy.next_signal() {
-                Err(err) => {
-                    log::error!("next_signal: {:#}", err);
-                    break;
-                }
-                Ok(_) => {}
+    while !state.lock().unwrap().done {
+        match proxy.next_signal() {
+            Err(err) => {
+                log::error!("next_signal: {:#}", err);
+                break;
             }
+            Ok(_) => {}
+        }
+    }
+    Ok(())
+}
+
+pub fn show_notif(
+    title: &str,
+    message: &str,
+    url: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let title = title.to_string();
+    let message = message.to_string();
+    let url = url.map(|s| s.to_string());
+    // Run this in a separate thread as we don't know if dbus or the notification
+    // service on the other end are up, and we'd otherwise block for some time.
+    std::thread::spawn(move || {
+        if let Err(err) = show_notif_impl(title, message, url) {
+            log::error!("while showing notification: {:#}", err);
         }
     });
-
     Ok(())
 }
