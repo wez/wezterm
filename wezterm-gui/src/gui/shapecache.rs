@@ -48,10 +48,18 @@ where
         infos: &[GlyphInfo],
         glyphs: &[Rc<CachedGlyph<T>>],
     ) -> Vec<ShapedInfo<T>> {
-        let mut pos = vec![];
+        let mut pos: Vec<ShapedInfo<T>> = vec![];
         let mut run = None;
         for (info, glyph) in infos.iter().zip(glyphs.iter()) {
             if !info.is_space && glyph.texture.is_none() {
+                if let Some(shaped) = pos.last_mut() {
+                    if shaped.pos.bitmap_pixel_width as f32 > shaped.pos.bearing_x {
+                        // This space-like glyph belongs to the preceding glyph
+                        shaped.pos.num_cells += 1;
+                        continue;
+                    }
+                }
+
                 if run.is_none() {
                     run.replace(ShapedInfo {
                         pos: GlyphPosition {
@@ -120,6 +128,14 @@ where
                     glyph: Rc::clone(glyph),
                 });
             }
+        }
+        if let Some(run) = run.take() {
+            log::warn!(
+                "leftovers when shaping {:#?} {:#?} -> {:?}",
+                infos,
+                glyphs,
+                run
+            );
         }
         pos
     }
