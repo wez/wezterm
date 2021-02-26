@@ -10,6 +10,7 @@ use core_foundation::string::CFString;
 use core_text::font::*;
 use core_text::font_descriptor::*;
 use std::collections::HashSet;
+use ttf_parser::fonts_in_collection;
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by core text.
@@ -51,15 +52,24 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescripto
 fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandle> {
     let path = descriptor.font_path()?;
     let name = descriptor.display_name();
+    let family_name = descriptor.family_name();
 
-    for index in 0.. {
-        let handle = FontDataHandle::OnDisk {
-            path: path.clone(),
-            index,
-        };
+    let data = std::fs::read(path).ok()?;
+    let size = fonts_in_collection(&data).unwrap_or(1);
+
+    let mut handle = FontDataHandle::Memory {
+        data,
+        name,
+        index: 0,
+    };
+
+    for index in 0..size {
+        if let FontDataHandle::Memory { index: idx, .. } = &mut handle {
+            *idx = index;
+        }
         let parsed = crate::parser::ParsedFont::from_locator(&handle).ok()?;
         let names = parsed.names();
-        if names.full_name == name {
+        if names.full_name == family_name || names.family.as_ref() == Some(&family_name) {
             return Some(handle);
         }
     }
