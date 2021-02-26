@@ -181,6 +181,7 @@ brief notes about them may accumulate here.</p>
 <li>Fonts: <code>font_antialias</code> and <code>font_hinting</code> are now deprecated in favor of the new <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a> and <a href="config/lua/config/freetype_load_flags.html">freetype_load_flags</a> options.  The deprecated options have no effect and will be removed in a future release.  The new options provide more direct control over how freetype rasterizes text.</li>
 <li>Fonts: when computing default <code>font_rules</code> for bold and italic fonts, strip italic and bold components from the family name. eg: if you set <code>font = wezterm.font(&quot;Source Code Pro Medium&quot;)</code> then the <code> Medium</code> text will be stripped from the font name used to locate bold and italic variants so that we don't report an error loading a non-sensical <code>Source Code Pro Medium Bold</code>. <a href="https://github.com/wez/wezterm/issues/456">#456</a></li>
 <li>Fonts: fix a regression where bright windows behind wezterm could &quot;shine through&quot; on the alpha channel, and adjust the tinting operation to avoid anti-aliased dark fringes <a href="https://github.com/wez/wezterm/issues/470">#470</a> <a href="https://github.com/wez/wezterm/issues/491">#491</a></li>
+<li>Fonts: macOS: fix an issue where wezterm could hang whe loading a font located via Core Text <a href="https://github.com/wez/wezterm/issues/475">#475</a></li>
 <li>Added <code>--config-file</code> CLI option to specify an alternate config file location. <a href="config/files.html">Read more about config file resolution</a>. Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/459">#459</a></li>
 <li>Fixed an issue where large pastes could result in a hang</li>
 <li>Updated bundled JetBrainsMono font to version 2.225</li>
@@ -195,6 +196,8 @@ brief notes about them may accumulate here.</p>
 <li>Fixed an issue where closing a pane would immediately <code>SIGKILL</code> the associated process, rather than sending <code>SIGHUP</code>.  Thanks to <a href="https://github.com/bew">@bew</a>!</li>
 <li>Search Mode: Added <code>CTRL-u</code> key assignment to clear the current search pattern. Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/465">#465</a></li>
 <li>New: OSC 777 and OSC 9 escapes now generate Toast Notifications. <code>printf &quot;\e]777;notify;%s;%s\e\\&quot; &quot;title&quot; &quot;body&quot;</code> and <code>printf &quot;\e]9;%s\e\\&quot; &quot;hello there&quot;</code>.  These don't currently pass through multiplexer connections. <a href="https://github.com/wez/wezterm/issues/489">#489</a>.</li>
+<li>OSC 52 (Clipboard manipulation) now respects the difference between PRIMARY and CLIPBOARD on X11 systems.</li>
+<li>Windows: the portable .zip file download now includes ANGLE EGL, just like the setup.exe installer has done since version 20201031-154415-9614e117</li>
 </ul>
 <h3 id="20210203-095643-70a364eb"><a class="header" href="#20210203-095643-70a364eb">20210203-095643-70a364eb</a></h3>
 <ul>
