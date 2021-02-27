@@ -5711,9 +5711,13 @@ the best results.</p>
 There are three possible values:</p>
 <ul>
 <li><code>&quot;Close&quot;</code> - close the corresponding pane as soon as the program exits. This is the default setting.</li>
-<li><code>&quot;Hold&quot;</code> - keep the pane open after the program exits. The pane must be manually closed via <a href="config/lua/config/../keyassignment/CloseCurrentPane.html">CloseCurrentPane</a>, <a href="config/lua/config/../keyassignment/CloseCurrentTab.html">CloseCurrentTab</a> or closeing the window.</li>
+<li><code>&quot;Hold&quot;</code> - keep the pane open after the program exits. The pane must be manually closed via <a href="config/lua/config/../keyassignment/CloseCurrentPane.html">CloseCurrentPane</a>, <a href="config/lua/config/../keyassignment/CloseCurrentTab.html">CloseCurrentTab</a> or closing the window.</li>
 <li><code>&quot;CloseOnCleanExit&quot;</code> - if the shell program exited with a successful status, behave like <code>&quot;Close&quot;</code>, otherwise, behave like <code>&quot;Hold&quot;</code>.</li>
 </ul>
+<pre><code class="language-lua">return {
+  exit_behavior = &quot;Hold&quot;,
+}
+</code></pre>
 <h1 id="font"><a class="header" href="#font"><code>font</code></a></h1>
 <p>Configures the font to use by default.  The <code>font</code> setting can specify
 a set of fallbacks and other options, and is described in more detail
