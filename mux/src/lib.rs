@@ -2,6 +2,7 @@ use crate::pane::{Pane, PaneId};
 use crate::tab::{Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Error};
+use config::{configuration, ExitBehavior};
 use domain::{Domain, DomainId};
 use log::error;
 use portable_pty::ExitStatus;
@@ -115,11 +116,21 @@ fn accumulator(pane_id: PaneId, dead: &Arc<AtomicBool>, rx: Receiver<Vec<u8>>) {
             break;
         }
     }
-    promise::spawn::spawn_into_main_thread(async move {
-        let mux = Mux::get().unwrap();
-        mux.remove_pane(pane_id);
-    })
-    .detach();
+    match configuration().exit_behavior {
+        ExitBehavior::Hold | ExitBehavior::CloseOnCleanExit => {
+            // We don't know if we can unilaterally close
+            // this pane right now, so don't!
+            send_to_mux(pane_id, &dead, b"\n[Process completed]".to_vec());
+            return;
+        }
+        ExitBehavior::Close => {
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get().unwrap();
+                mux.remove_pane(pane_id);
+            })
+            .detach();
+        }
+    }
 }
 
 /// This function is run in a separate thread; its purpose is to perform

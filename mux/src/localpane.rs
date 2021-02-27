@@ -6,6 +6,7 @@ use crate::{Domain, Mux, MuxNotification};
 use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
+use config::{configuration, ExitBehavior};
 use portable_pty::{Child, MasterPty, PtySize};
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
@@ -20,10 +21,23 @@ use wezterm_term::{
     SemanticZone, StableRowIndex, Terminal,
 };
 
+#[derive(Debug)]
+enum ProcessState {
+    Running {
+        child: Box<dyn Child>,
+        // Whether we've explicitly killed the child
+        killed: bool,
+    },
+    DeadPendingClose {
+        killed: bool,
+    },
+    Dead,
+}
+
 pub struct LocalPane {
     pane_id: PaneId,
     terminal: RefCell<Terminal>,
-    process: RefCell<Box<dyn Child>>,
+    process: RefCell<ProcessState>,
     pty: RefCell<Box<dyn MasterPty>>,
     domain_id: DomainId,
     tmux_domain: RefCell<Option<Arc<TmuxDomainState>>>,
@@ -72,16 +86,57 @@ impl Pane for LocalPane {
     }
 
     fn kill(&self) {
-        log::debug!("killing process in pane {}", self.pane_id);
-        self.process.borrow_mut().kill().ok();
+        let mut proc = self.process.borrow_mut();
+        log::debug!(
+            "killing process in pane {}, state is {:?}",
+            self.pane_id,
+            proc
+        );
+        match &mut *proc {
+            ProcessState::Running { child, killed } => {
+                let _ = child.kill();
+                *killed = true;
+            }
+            ProcessState::DeadPendingClose { killed } => {
+                *killed = true;
+            }
+            _ => {}
+        }
     }
 
     fn is_dead(&self) -> bool {
-        if let Ok(None) = self.process.borrow_mut().try_wait() {
-            false
-        } else {
-            log::trace!("Pane id {} is_dead", self.pane_id);
-            true
+        let mut proc = self.process.borrow_mut();
+
+        match &mut *proc {
+            ProcessState::Running { child, killed } => {
+                if let Ok(Some(status)) = child.try_wait() {
+                    match (configuration().exit_behavior, status.success(), killed) {
+                        (ExitBehavior::Close, _, _) => *proc = ProcessState::Dead,
+                        (ExitBehavior::CloseOnCleanExit, false, false) => {
+                            *proc = ProcessState::DeadPendingClose { killed: false }
+                        }
+                        (ExitBehavior::CloseOnCleanExit, ..) => *proc = ProcessState::Dead,
+                        (ExitBehavior::Hold, _, false) => {
+                            *proc = ProcessState::DeadPendingClose { killed: false }
+                        }
+                        (ExitBehavior::Hold, _, true) => *proc = ProcessState::Dead,
+                    }
+                    log::debug!("child terminated, new state is {:?}", proc);
+                }
+            }
+            ProcessState::DeadPendingClose { killed } => {
+                if *killed {
+                    *proc = ProcessState::Dead;
+                    log::debug!("child state -> {:?}", proc);
+                }
+            }
+            ProcessState::Dead => {}
+        }
+
+        match &*proc {
+            ProcessState::Running { .. } => false,
+            ProcessState::DeadPendingClose { .. } => false,
+            ProcessState::Dead => true,
         }
     }
 
@@ -398,7 +453,10 @@ impl LocalPane {
         Self {
             pane_id,
             terminal: RefCell::new(terminal),
-            process: RefCell::new(process),
+            process: RefCell::new(ProcessState::Running {
+                child: process,
+                killed: false,
+            }),
             pty: RefCell::new(pty),
             domain_id,
             tmux_domain: RefCell::new(None),
@@ -506,7 +564,9 @@ impl LocalPane {
 impl Drop for LocalPane {
     fn drop(&mut self) {
         // Avoid lingering zombies
-        self.process.borrow_mut().kill().ok();
-        self.process.borrow_mut().wait().ok();
+        if let ProcessState::Running { child, .. } = &mut *self.process.borrow_mut() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
     }
 }

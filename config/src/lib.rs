@@ -519,6 +519,23 @@ where
     deserializer.deserialize_any(Number)
 }
 
+/// Behavior when the program spawned by wezterm terminates
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+pub enum ExitBehavior {
+    /// Close the associated pane
+    Close,
+    /// Close the associated pane if the process was successful
+    CloseOnCleanExit,
+    /// Hold the pane until it is explicitly closed
+    Hold,
+}
+
+impl Default for ExitBehavior {
+    fn default() -> Self {
+        ExitBehavior::Close
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     /// The font size, measured in points
@@ -595,6 +612,9 @@ pub struct Config {
     /// through configuration or OSC 7 (see docs for `default_cwd` for more
     /// info!)
     pub default_cwd: Option<PathBuf>,
+
+    #[serde(default)]
+    pub exit_behavior: ExitBehavior,
 
     /// Specifies a map of environment variables that should be set
     /// when spawning commands in the local domain.

@@ -1,3 +1,4 @@
+use crate::gui::TermWindow;
 use mux::pane::PaneId;
 use mux::tab::TabId;
 use mux::termwiztermtab::TermWizTerminal;
@@ -164,6 +165,7 @@ pub fn confirm_close_pane(
     pane_id: PaneId,
     mut term: TermWizTerminal,
     mux_window_id: WindowId,
+    window: ::window::Window,
 ) -> anyhow::Result<()> {
     if run_confirmation_app("🛑 Really kill this pane?", &mut term)? {
         promise::spawn::spawn_into_main_thread(async move {
@@ -176,6 +178,7 @@ pub fn confirm_close_pane(
         })
         .detach();
     }
+    TermWindow::schedule_cancel_overlay_for_pane(window, pane_id);
 
     Ok(())
 }
@@ -184,6 +187,7 @@ pub fn confirm_close_tab(
     tab_id: TabId,
     mut term: TermWizTerminal,
     _mux_window_id: WindowId,
+    window: ::window::Window,
 ) -> anyhow::Result<()> {
     if run_confirmation_app(
         "🛑 Really kill this tab and all contained panes?",
@@ -195,6 +199,7 @@ pub fn confirm_close_tab(
         })
         .detach();
     }
+    TermWindow::schedule_cancel_overlay(window, tab_id);
 
     Ok(())
 }
@@ -202,6 +207,8 @@ pub fn confirm_close_tab(
 pub fn confirm_close_window(
     mut term: TermWizTerminal,
     mux_window_id: WindowId,
+    window: ::window::Window,
+    tab_id: TabId,
 ) -> anyhow::Result<()> {
     if run_confirmation_app(
         "🛑 Really kill this window and all contained tabs and panes?",
@@ -213,11 +220,16 @@ pub fn confirm_close_window(
         })
         .detach();
     }
+    TermWindow::schedule_cancel_overlay(window, tab_id);
 
     Ok(())
 }
 
-pub fn confirm_quit_program(mut term: TermWizTerminal) -> anyhow::Result<()> {
+pub fn confirm_quit_program(
+    mut term: TermWizTerminal,
+    window: ::window::Window,
+    tab_id: TabId,
+) -> anyhow::Result<()> {
     if run_confirmation_app("🛑 Really Quit WezTerm?", &mut term)? {
         promise::spawn::spawn_into_main_thread(async move {
             use ::window::{Connection, ConnectionOps};
@@ -226,6 +238,7 @@ pub fn confirm_quit_program(mut term: TermWizTerminal) -> anyhow::Result<()> {
         })
         .detach();
     }
+    TermWindow::schedule_cancel_overlay(window, tab_id);
 
     Ok(())
 }
