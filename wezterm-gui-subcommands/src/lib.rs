@@ -5,6 +5,24 @@ use config::{FrontEndSelection, SshParameters};
 use std::ffi::OsString;
 use structopt::StructOpt;
 
+/// Helper for parsing config overrides
+pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
+    if let Some(eq) = arg.find('=') {
+        let (left, right) = arg.split_at(eq);
+        let left = left.trim();
+        let right = right[1..].trim();
+        if left.is_empty() || right.is_empty() {
+            return Err(format!(
+                "Got empty name/value `{}`; expected name=value",
+                arg
+            ));
+        }
+        Ok((left.to_string(), right.to_string()))
+    } else {
+        Err(format!("Expected name=value, but got {}", arg))
+    }
+}
+
 #[derive(Debug, StructOpt, Default, Clone)]
 pub struct StartCommand {
     #[structopt(

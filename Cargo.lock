@@ -4514,6 +4514,7 @@ dependencies = [
  "promise",
  "structopt",
  "umask",
+ "wezterm-gui-subcommands",
  "wezterm-mux-server-impl",
  "winapi 0.3.9",
 ]

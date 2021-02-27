@@ -9,6 +9,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use structopt::*;
+use wezterm_gui_subcommands::*;
 
 mod daemonize;
 
@@ -31,6 +32,14 @@ struct Opt {
         conflicts_with = "skip-config"
     )]
     config_file: Option<OsString>,
+
+    /// Override specific configuration values
+    #[structopt(
+        long = "config",
+        name = "name=value",
+        parse(try_from_str = name_equals_value),
+        number_of_values = 1)]
+    config_override: Vec<(String, String)>,
 
     /// Detach from the foreground and become a background process
     #[structopt(long = "daemonize")]
@@ -63,12 +72,11 @@ fn run() -> anyhow::Result<()> {
     let _saver = umask::UmaskSaver::new();
 
     let opts = Opt::from_args();
-    if let Some(config_file) = opts.config_file.as_ref() {
-        config::set_config_file_override(std::path::Path::new(config_file));
-    }
-    if !opts.skip_config {
-        config::reload();
-    }
+    config::common_init(
+        opts.config_file.as_ref(),
+        &opts.config_override,
+        opts.skip_config,
+    );
 
     #[cfg(unix)]
     {

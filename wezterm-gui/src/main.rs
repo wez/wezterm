@@ -43,6 +43,14 @@ struct Opt {
     )]
     config_file: Option<OsString>,
 
+    /// Override specific configuration values
+    #[structopt(
+        long = "config",
+        name = "name=value",
+        parse(try_from_str = name_equals_value),
+        number_of_values = 1)]
+    config_override: Vec<(String, String)>,
+
     #[structopt(subcommand)]
     cmd: Option<SubCommand>,
 }
@@ -446,12 +454,11 @@ fn run() -> anyhow::Result<()> {
     let _saver = umask::UmaskSaver::new();
 
     let opts = Opt::from_args();
-    if let Some(config_file) = opts.config_file.as_ref() {
-        config::set_config_file_override(std::path::Path::new(config_file));
-    }
-    if !opts.skip_config {
-        config::reload();
-    }
+    config::common_init(
+        opts.config_file.as_ref(),
+        &opts.config_override,
+        opts.skip_config,
+    );
     let config = config::configuration();
     window::configuration::set_configuration(crate::window_config::ConfigBridge);
 

@@ -60,6 +60,7 @@ lazy_static! {
     pub static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
     static ref CONFIG: Configuration = Configuration::new();
     static ref CONFIG_FILE_OVERRIDE: Mutex<Option<PathBuf>> = Mutex::new(None);
+    static ref CONFIG_OVERRIDES: Mutex<Vec<(String, String)>> = Mutex::new(vec![]);
     static ref MAKE_LUA: Mutex<Option<LuaFactory>> = Mutex::new(Some(lua::make_lua_context));
     static ref SHOW_ERROR: Mutex<Option<ErrorCallback>> =
         Mutex::new(Some(|e| log::error!("{}", e)));
@@ -206,6 +207,47 @@ fn make_lua_context(path: &Path) -> anyhow::Result<Lua> {
     }
 }
 
+fn default_config_with_overrides_applied() -> anyhow::Result<Config> {
+    // Cause the default config to be re-evaluated with the overrides applied
+    let lua = make_lua_context(Path::new("override"))?;
+    let table = mlua::Value::Table(lua.create_table()?);
+    let config = Config::apply_overrides_to(&lua, table)?;
+
+    let cfg: Config = luahelper::from_lua_value(config)
+        .context("Error converting lua value from overrides to Config struct")?;
+    // Compute but discard the key bindings here so that we raise any
+    // problems earlier than we use them.
+    let _ = cfg.key_bindings();
+
+    Ok(cfg)
+}
+
+pub fn common_init(
+    config_file: Option<&OsString>,
+    overrides: &[(String, String)],
+    skip_config: bool,
+) {
+    if let Some(config_file) = config_file {
+        set_config_file_override(Path::new(config_file));
+    }
+    set_config_overrides(overrides);
+    if !skip_config {
+        reload();
+    } else if !overrides.is_empty() {
+        match default_config_with_overrides_applied() {
+            Ok(cfg) => CONFIG.use_this_config(cfg),
+            Err(err) => {
+                log::error!(
+                    "Error while applying command line \
+                     configuration overrides:\n{:#}",
+                    err
+                );
+                std::process::exit(1);
+            }
+        }
+    }
+}
+
 pub fn assign_error_callback(cb: ErrorCallback) {
     let mut factory = SHOW_ERROR.lock().unwrap();
     factory.replace(cb);
@@ -247,9 +289,12 @@ pub fn set_config_file_override(path: &Path) {
         .replace(path.to_path_buf());
 }
 
+pub fn set_config_overrides(items: &[(String, String)]) {
+    *CONFIG_OVERRIDES.lock().unwrap() = items.to_vec();
+}
+
 /// Discard the current configuration and replace it with
 /// the default configuration
-#[allow(dead_code)]
 pub fn use_default_configuration() {
     CONFIG.use_defaults();
 }
@@ -396,6 +441,12 @@ impl ConfigInner {
         self.generation += 1;
     }
 
+    fn use_this_config(&mut self, cfg: Config) {
+        self.config = Arc::new(cfg);
+        self.error.take();
+        self.generation += 1;
+    }
+
     fn use_test(&mut self) {
         FontLocatorSelection::ConfigDirsOnly.set_default();
         let mut config = Config::default_config();
@@ -433,6 +484,11 @@ impl Configuration {
     pub fn use_defaults(&self) {
         let mut inner = self.inner.lock().unwrap();
         inner.use_defaults();
+    }
+
+    fn use_this_config(&self, cfg: Config) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.use_this_config(cfg);
     }
 
     /// Use a config that doesn't depend on the user's
@@ -1135,6 +1191,7 @@ impl Config {
                     .set_name(p.to_string_lossy().as_bytes())?
                     .eval_async(),
             )?;
+            let config = Self::apply_overrides_to(&lua, config)?;
             cfg = luahelper::from_lua_value(config).with_context(|| {
                 format!(
                     "Error converting lua value returned by script {} to Config struct",
@@ -1162,6 +1219,29 @@ impl Config {
             file_name: None,
             lua: None,
         })
+    }
+
+    fn apply_overrides_to<'l>(
+        lua: &'l mlua::Lua,
+        mut config: mlua::Value<'l>,
+    ) -> anyhow::Result<mlua::Value<'l>> {
+        let overrides = CONFIG_OVERRIDES.lock().unwrap();
+        for (key, value) in &*overrides {
+            let code = format!(
+                r#"
+                local wezterm = require 'wezterm';
+                config.{} = {};
+                return config;
+                "#,
+                key, value
+            );
+            let chunk = lua.load(&code);
+            let chunk = chunk.set_name(&format!("--config {}={}", key, value))?;
+            lua.globals().set("config", config.clone())?;
+            log::debug!("Apply {}={} to config", key, value);
+            config = chunk.eval()?;
+        }
+        Ok(config)
     }
 
     pub fn default_config() -> Self {
