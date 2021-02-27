@@ -44,6 +44,7 @@
 //! session with an implementation of `PtySystem`, allowing
 //! you to use the same pty interface with remote ptys.
 use anyhow::Error;
+#[cfg(unix)]
 use libc;
 #[cfg(feature = "serde_support")]
 use serde_derive::*;

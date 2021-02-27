@@ -48,6 +48,7 @@ pub(crate) struct WindowInner {
     last_size: Option<Dimensions>,
     in_size_move: bool,
     dead_pending: Option<(Modifiers, u32)>,
+    saved_placement: Option<WINDOWPLACEMENT>,
 
     keyboard_info: KeyboardLayoutInfo,
 }
@@ -303,6 +304,7 @@ impl Window {
             last_size: None,
             in_size_move: false,
             dead_pending: None,
+            saved_placement: None,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -431,6 +433,54 @@ impl WindowOpsMut for WindowInner {
         let imc = ImmContext::get(self.hwnd.0);
         imc.set_position(cursor.origin.x.max(0) as i32, cursor.origin.y.max(0) as i32);
     }
+
+    fn toggle_fullscreen(&mut self) {
+        unsafe {
+            let hwnd = self.hwnd.0;
+            let style = GetWindowLongW(hwnd, GWL_STYLE);
+            if let Some(placement) = self.saved_placement.take() {
+                promise::spawn::spawn(async move {
+                    SetWindowLongW(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW as i32);
+                    SetWindowPlacement(hwnd, &placement);
+                    SetWindowPos(
+                        hwnd,
+                        std::ptr::null_mut(),
+                        0,
+                        0,
+                        0,
+                        0,
+                        SWP_NOMOVE
+                            | SWP_NOSIZE
+                            | SWP_NOZORDER
+                            | SWP_NOOWNERZORDER
+                            | SWP_FRAMECHANGED,
+                    );
+                })
+                .detach();
+            } else {
+                let mut placement: WINDOWPLACEMENT = std::mem::zeroed();
+                GetWindowPlacement(hwnd, &mut placement);
+
+                self.saved_placement.replace(placement);
+                promise::spawn::spawn(async move {
+                    let mut mi: MONITORINFO = std::mem::zeroed();
+                    mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+                    GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mut mi);
+                    SetWindowLongW(hwnd, GWL_STYLE, style & !(WS_OVERLAPPEDWINDOW as i32));
+                    SetWindowPos(
+                        hwnd,
+                        HWND_TOP,
+                        mi.rcMonitor.left,
+                        mi.rcMonitor.top,
+                        mi.rcMonitor.right - mi.rcMonitor.left,
+                        mi.rcMonitor.bottom - mi.rcMonitor.top,
+                        SWP_NOOWNERZORDER | SWP_FRAMECHANGED,
+                    );
+                })
+                .detach();
+            }
+        }
+    }
 }
 
 impl WindowOps for Window {
@@ -469,6 +519,13 @@ impl WindowOps for Window {
         let title = title.to_owned();
         Connection::with_window_inner(self.0, move |inner| {
             inner.set_title(&title);
+            Ok(())
+        })
+    }
+
+    fn toggle_fullscreen(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.toggle_fullscreen();
             Ok(())
         })
     }
