@@ -73,6 +73,15 @@ impl Window {
         self.tabs.get(idx)
     }
 
+    pub fn can_close_without_prompting(&self) -> bool {
+        for tab in &self.tabs {
+            if !tab.can_close_without_prompting() {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn idx_by_id(&self, id: TabId) -> Option<usize> {
         for (idx, t) in self.tabs.iter().enumerate() {
             if t.tab_id() == id {

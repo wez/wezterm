@@ -199,7 +199,7 @@ pub fn confirm_close_tab(
         })
         .detach();
     }
-    TermWindow::schedule_cancel_overlay(window, tab_id);
+    TermWindow::schedule_cancel_overlay(window, tab_id, None);
 
     Ok(())
 }
@@ -220,7 +220,7 @@ pub fn confirm_close_window(
         })
         .detach();
     }
-    TermWindow::schedule_cancel_overlay(window, tab_id);
+    TermWindow::schedule_cancel_overlay(window, tab_id, None);
 
     Ok(())
 }
@@ -238,7 +238,7 @@ pub fn confirm_quit_program(
         })
         .detach();
     }
-    TermWindow::schedule_cancel_overlay(window, tab_id);
+    TermWindow::schedule_cancel_overlay(window, tab_id, None);
 
     Ok(())
 }

@@ -302,6 +302,14 @@ impl WindowCallbacks for TermWindow {
                 };
 
                 let mux_window_id = self.mux_window_id;
+
+                let can_close = mux
+                    .get_window(mux_window_id)
+                    .map_or(false, |w| w.can_close_without_prompting());
+                if can_close {
+                    mux.kill_window(self.mux_window_id);
+                    return true;
+                }
                 let window = self.window.clone().unwrap();
                 let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
                     confirm_close_window(term, mux_window_id, window, tab_id)
@@ -2455,7 +2463,7 @@ impl TermWindow {
         };
 
         let pane_id = pane.pane_id();
-        if confirm {
+        if confirm && !pane.can_close_without_prompting() {
             let window = self.window.clone().unwrap();
             let (overlay, future) = start_overlay_pane(self, &pane, move |pane_id, term| {
                 confirm_close_pane(pane_id, term, mux_window_id, window)
@@ -2475,7 +2483,7 @@ impl TermWindow {
         };
         let tab_id = tab.tab_id();
         let mux_window_id = self.mux_window_id;
-        if confirm {
+        if confirm && !tab.can_close_without_prompting() {
             let window = self.window.clone().unwrap();
             let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
                 confirm_close_tab(tab_id, term, mux_window_id, window)
@@ -4055,8 +4063,15 @@ impl TermWindow {
         }
     }
 
-    /// Removes any overlay for the specified tab
-    fn cancel_overlay_for_tab(&self, tab_id: TabId) {
+    /// if pane_id.is_none(), removes any overlay for the specified tab.
+    /// Otherwise: if the overlay is the specified pane for that tab, remove it.
+    fn cancel_overlay_for_tab(&self, tab_id: TabId, pane_id: Option<PaneId>) {
+        if pane_id.is_some() {
+            let current = self.tab_state(tab_id).overlay.as_ref().map(|o| o.pane_id());
+            if current != pane_id {
+                return;
+            }
+        }
         if let Some(pane) = self.tab_state(tab_id).overlay.take() {
             Mux::get().unwrap().remove_pane(pane.pane_id());
         }
@@ -4065,10 +4080,10 @@ impl TermWindow {
         }
     }
 
-    pub fn schedule_cancel_overlay(window: Window, tab_id: TabId) {
+    pub fn schedule_cancel_overlay(window: Window, tab_id: TabId, pane_id: Option<PaneId>) {
         window.apply(move |myself, _| {
             if let Some(myself) = myself.downcast_mut::<Self>() {
-                myself.cancel_overlay_for_tab(tab_id);
+                myself.cancel_overlay_for_tab(tab_id, pane_id);
             }
             Ok(())
         });

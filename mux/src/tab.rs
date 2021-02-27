@@ -1200,6 +1200,16 @@ impl Tab {
         }
     }
 
+    pub fn can_close_without_prompting(&self) -> bool {
+        let panes = self.iter_panes();
+        for pos in &panes {
+            if !pos.pane.can_close_without_prompting() {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn is_dead(&self) -> bool {
         let panes = self.iter_panes();
         let mut dead_count = 0;

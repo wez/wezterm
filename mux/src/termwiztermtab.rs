@@ -156,6 +156,10 @@ impl Pane for TermWizTerminalPane {
         self.terminal.borrow_mut().get_title().to_string()
     }
 
+    fn can_close_without_prompting(&self) -> bool {
+        true
+    }
+
     fn send_paste(&self, text: &str) -> anyhow::Result<()> {
         let paste = InputEvent::Paste(text.to_string());
         self.input_tx.send(paste)?;

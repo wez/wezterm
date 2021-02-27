@@ -123,6 +123,11 @@ pub trait Pane: Downcast {
     /// Called to advise on whether this tab has focus
     fn focus_changed(&self, _focused: bool) {}
 
+    /// Certain panes are OK to be closed with impunity (no prompts)
+    fn can_close_without_prompting(&self) -> bool {
+        false
+    }
+
     /// Performs a search.
     /// If the result is empty then there are no matches.
     /// Otherwise, the result shall contain all possible matches.
