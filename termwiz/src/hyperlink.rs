@@ -7,7 +7,7 @@
 use crate::{ensure, format_err, Result};
 use regex::{Captures, Regex};
 #[cfg(feature = "use_serde")]
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::ops::Range;
@@ -123,13 +123,19 @@ impl Display for Hyperlink {
 /// URL to view the details for that issue.
 /// The Rule struct is configuration that is passed to the terminal
 /// and is evaluated when processing mouse hover events.
-#[cfg_attr(feature = "use_serde", derive(Deserialize))]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[derive(Debug, Clone)]
 pub struct Rule {
     /// The compiled regex for the rule.  This is used to match
     /// against a line of text from the screen (typically the line
     /// over which the mouse is hovering).
-    #[cfg_attr(feature = "use_serde", serde(deserialize_with = "deserialize_regex"))]
+    #[cfg_attr(
+        feature = "use_serde",
+        serde(
+            deserialize_with = "deserialize_regex",
+            serialize_with = "serialize_regex"
+        )
+    )]
     regex: Regex,
     /// The format string that defines how to transform the matched
     /// text into a URL.  For example, a format string of `$0` expands
@@ -151,6 +157,15 @@ where
 {
     let s = String::deserialize(deserializer)?;
     Regex::new(&s).map_err(|e| serde::de::Error::custom(format!("{:?}", e)))
+}
+
+#[cfg(feature = "use_serde")]
+fn serialize_regex<S>(regex: &Regex, serializer: S) -> std::result::Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let s = regex.to_string();
+    s.serialize(serializer)
 }
 
 /// Holds a resolved rule match.

@@ -344,7 +344,7 @@ pub struct StyleRule {
 }
 impl_lua_conversion!(StyleRule);
 
-#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum AllowSquareGlyphOverflow {
     Never,
     Always,
@@ -357,7 +357,7 @@ impl Default for AllowSquareGlyphOverflow {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum FontLocatorSelection {
     /// Use fontconfig APIs to resolve fonts (!macos, posix systems)
     FontConfig,
@@ -418,7 +418,7 @@ impl std::str::FromStr for FontLocatorSelection {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub enum FontRasterizerSelection {
     FreeType,
 }
@@ -463,7 +463,7 @@ impl std::str::FromStr for FontRasterizerSelection {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub enum FontShaperSelection {
     Allsorts,
     Harfbuzz,

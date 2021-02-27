@@ -576,7 +576,7 @@ where
 }
 
 /// Behavior when the program spawned by wezterm terminates
-#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum ExitBehavior {
     /// Close the associated pane
     Close,
@@ -592,7 +592,7 @@ impl Default for ExitBehavior {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     /// The font size, measured in points
     #[serde(default = "default_font_size", deserialize_with = "de_number")]
@@ -1005,6 +1005,7 @@ pub struct Config {
     #[serde(default = "default_alternate_buffer_wheel_scroll_speed")]
     pub alternate_buffer_wheel_scroll_speed: u8,
 }
+impl_lua_conversion!(Config);
 
 fn default_alternate_buffer_wheel_scroll_speed() -> u8 {
     3

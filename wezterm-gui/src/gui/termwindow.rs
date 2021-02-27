@@ -221,7 +221,7 @@ pub struct TabState {
 
 pub struct TermWindow {
     pub window: Option<Window>,
-    config: ConfigHandle,
+    pub config: ConfigHandle,
     /// When we most recently received keyboard focus
     focused: Option<Instant>,
     fonts: Rc<FontConfiguration>,

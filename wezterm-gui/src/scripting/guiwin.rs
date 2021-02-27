@@ -55,5 +55,9 @@ impl UserData for GuiWin {
                 .await
             },
         );
+        methods.add_async_method("effective_config", |_, this, _: ()| async move {
+            this.with_term_window(move |term_window, _ops| Ok((*term_window.config).clone()))
+                .await
+        });
     }
 }
