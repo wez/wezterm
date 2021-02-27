@@ -221,6 +221,7 @@ pub struct TabState {
 
 pub struct TermWindow {
     pub window: Option<Window>,
+    config: ConfigHandle,
     /// When we most recently received keyboard focus
     focused: Option<Instant>,
     fonts: Rc<FontConfiguration>,
@@ -241,7 +242,6 @@ pub struct TermWindow {
     last_mouse_terminal_coords: (usize, StableRowIndex),
     scroll_drag_start: Option<isize>,
     split_drag_start: Option<PositionedSplit>,
-    config_generation: usize,
     prev_cursor: PrevCursorPos,
     last_scroll_info: RenderableDimensions,
 
@@ -288,8 +288,7 @@ enum Key {
 impl WindowCallbacks for TermWindow {
     fn can_close(&mut self) -> bool {
         let mux = Mux::get().unwrap();
-        let config = configuration();
-        match config.window_close_confirmation {
+        match self.config.window_close_confirmation {
             WindowCloseConfirmation::NeverPrompt => {
                 // Immediately kill the tabs and allow the window to close
                 mux.kill_window(self.mux_window_id);
@@ -354,7 +353,7 @@ impl WindowCallbacks for TermWindow {
             None => return,
         };
 
-        let config = configuration();
+        let config = &self.config;
         // Round the x coordinate so that we're a bit more forgiving of
         // the horizontal position when selecting cells
         let x = ((event
@@ -511,7 +510,7 @@ impl WindowCallbacks for TermWindow {
             return false;
         }
 
-        if configuration().debug_key_events {
+        if self.config.debug_key_events {
             log::info!("key_event {:?}", window_key);
         } else {
             log::trace!("key_event {:?}", window_key);
@@ -610,7 +609,7 @@ impl WindowCallbacks for TermWindow {
             // While the leader modifier is active, only registered
             // keybindings are recognized.
             if !leader_active {
-                let config = configuration();
+                let config = &self.config;
 
                 // This is a bit ugly.
                 // Not all of our platforms report LEFT|RIGHT ALT; most report just ALT.
@@ -720,6 +719,7 @@ impl WindowCallbacks for TermWindow {
 
         let guts = Box::new(Self {
             window: None,
+            config: self.config.clone(),
             window_background: self.window_background.clone(),
             palette: None,
             focused: None,
@@ -738,7 +738,6 @@ impl WindowCallbacks for TermWindow {
             last_mouse_terminal_coords: self.last_mouse_terminal_coords.clone(),
             scroll_drag_start: self.scroll_drag_start.clone(),
             split_drag_start: self.split_drag_start.clone(),
-            config_generation: self.config_generation,
             prev_cursor: self.prev_cursor.clone(),
             last_scroll_info: self.last_scroll_info.clone(),
             clipboard_contents: Arc::clone(&clipboard_contents),
@@ -818,12 +817,11 @@ impl WindowCallbacks for TermWindow {
 
     fn paint(&mut self, frame: &mut glium::Frame) {
         self.check_for_config_reload();
-        let config = configuration();
         let start = std::time::Instant::now();
 
         {
+            let background_alpha = (self.config.window_background_opacity * 255.0) as u8;
             let palette = self.palette();
-            let background_alpha = (config.window_background_opacity * 255.0) as u8;
             let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
 
             let (r, g, b, a) = background.to_tuple_rgba();
@@ -995,6 +993,7 @@ impl TermWindow {
             Box::new(Self {
                 window: None,
                 window_background,
+                config: config.clone(),
                 palette: None,
                 focused: None,
                 mux_window_id,
@@ -1012,7 +1011,6 @@ impl TermWindow {
                 last_mouse_terminal_coords: (0, 0),
                 scroll_drag_start: None,
                 split_drag_start: None,
-                config_generation: config.generation(),
                 prev_cursor: PrevCursorPos::new(),
                 last_scroll_info: RenderableDimensions::default(),
                 clipboard_contents: Arc::clone(&clipboard_contents),
@@ -1089,8 +1087,6 @@ impl TermWindow {
         // and render any changes
         self.check_for_config_reload();
 
-        let config = configuration();
-
         let panes = self.get_panes_to_render();
         if panes.is_empty() {
             self.window.as_ref().unwrap().close();
@@ -1105,14 +1101,15 @@ impl TermWindow {
             // This is pretty heavyweight: it would be nice to only invalidate
             // the line on which the cursor resides, and then only if the cursor
             // is within the viewport.
-            if config.cursor_blink_rate != 0 && pos.is_active && self.focused.is_some() {
-                let shape = config
+            if self.config.cursor_blink_rate != 0 && pos.is_active && self.focused.is_some() {
+                let shape = self
+                    .config
                     .default_cursor_style
                     .effective_shape(pos.pane.get_cursor_position().shape);
                 if shape.is_blinking() {
                     let now = Instant::now();
                     if now.duration_since(self.last_blink_paint)
-                        > Duration::from_millis(config.cursor_blink_rate)
+                        > Duration::from_millis(self.config.cursor_blink_rate)
                     {
                         needs_invalidate = true;
                         self.last_blink_paint = now;
@@ -1182,14 +1179,14 @@ impl TermWindow {
             WK::Char('\r') => KC::Enter,
             WK::Char('\t') => KC::Tab,
             WK::Char('\u{08}') => {
-                if configuration().swap_backspace_and_delete {
+                if self.config.swap_backspace_and_delete {
                     KC::Delete
                 } else {
                     KC::Backspace
                 }
             }
             WK::Char('\u{7f}') => {
-                if configuration().swap_backspace_and_delete {
+                if self.config.swap_backspace_and_delete {
                     KC::Backspace
                 } else {
                     KC::Delete
@@ -1295,7 +1292,7 @@ impl TermWindow {
     }
 
     fn check_for_config_reload(&mut self) {
-        if self.config_generation != configuration().generation() {
+        if self.config.generation() != configuration().generation() {
             self.config_was_reloaded();
         }
     }
@@ -1309,7 +1306,7 @@ impl TermWindow {
 
     fn config_was_reloaded(&mut self) {
         let config = configuration();
-        self.config_generation = config.generation();
+        self.config = config.clone();
         self.palette.take();
 
         self.window_background = reload_background_image(&config, &self.window_background);
@@ -1367,7 +1364,6 @@ impl TermWindow {
             Some(window) => window,
             _ => return,
         };
-        let config = configuration();
 
         let new_tab_bar = TabBarState::new(
             self.terminal_size.cols as usize,
@@ -1377,8 +1373,8 @@ impl TermWindow {
                 None
             },
             &window,
-            config.colors.as_ref().and_then(|c| c.tab_bar.as_ref()),
-            &config,
+            self.config.colors.as_ref().and_then(|c| c.tab_bar.as_ref()),
+            &self.config,
         );
         if new_tab_bar != self.tab_bar {
             self.tab_bar = new_tab_bar;
@@ -1408,7 +1404,8 @@ impl TermWindow {
                         if pos.is_zoomed { "[Z] " } else { "" },
                         title
                     ));
-                    show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
+                    show_tab_bar =
+                        self.config.enable_tab_bar && !self.config.hide_tab_bar_if_only_one_tab;
                 } else {
                     window.set_title(&format!(
                         "{}[{}/{}] {}",
@@ -1417,7 +1414,7 @@ impl TermWindow {
                         num_tabs,
                         title
                     ));
-                    show_tab_bar = config.enable_tab_bar;
+                    show_tab_bar = self.config.enable_tab_bar;
                 }
 
                 // If the number of tabs changed and caused the tab bar to
@@ -1434,7 +1431,7 @@ impl TermWindow {
     fn update_text_cursor(&mut self, pane: &Rc<dyn Pane>) {
         let cursor = pane.get_cursor_position();
         if let Some(win) = self.window.as_ref() {
-            let config = configuration();
+            let config = &self.config;
             let top = pane.get_dimensions().physical_top + if self.show_tab_bar { -1 } else { 0 };
             let r = Rect::new(
                 Point::new(
@@ -2041,7 +2038,7 @@ impl TermWindow {
             }
             QuitApplication => {
                 let mux = Mux::get().unwrap();
-                let config = configuration();
+                let config = &self.config;
 
                 match config.window_close_confirmation {
                     WindowCloseConfirmation::NeverPrompt => {
@@ -2215,7 +2212,7 @@ impl TermWindow {
     }
 
     fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
-        let config = configuration();
+        let config = &self.config;
         let font_size = config.font_size * font_scale;
         let theoretical_height = font_size * dimensions.dpi as f64 / 72.0;
 
@@ -2275,7 +2272,7 @@ impl TermWindow {
         // final size, which in that case should result in a NOP
         // change to the tab size.
 
-        let config = configuration();
+        let config = &self.config;
 
         let (size, dims) = if let Some(cell_dims) = scale_changed_cells {
             // Scaling preserves existing terminal dimensions, yielding a new
@@ -2391,7 +2388,7 @@ impl TermWindow {
     // the `adjust_window_size_when_changing_font_size` configuration and
     // revises the scaling/resize change accordingly
     fn adjust_font_scale(&mut self, font_scale: f64) {
-        if configuration().adjust_window_size_when_changing_font_size {
+        if self.config.adjust_window_size_when_changing_font_size {
             self.scaling_changed(self.dimensions, font_scale);
         } else {
             let dimensions = self.dimensions;
@@ -2413,7 +2410,7 @@ impl TermWindow {
     }
 
     fn reset_font_and_window_size(&mut self) -> anyhow::Result<()> {
-        let config = configuration();
+        let config = &self.config;
         let size = config.initial_size();
         let fontconfig = Rc::new(FontConfiguration::new()?);
         let render_metrics = RenderMetrics::new(&fontconfig)?;
@@ -2517,7 +2514,7 @@ impl TermWindow {
         let gl_state = self.render_state.as_ref().unwrap();
         let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
         let mut quads = gl_state.quads.map(&mut vb);
-        let config = configuration();
+        let config = &self.config;
         let text = if split.direction == SplitDirection::Horizontal {
             "│"
         } else {
@@ -2649,7 +2646,7 @@ impl TermWindow {
     }
 
     fn paint_pane_opengl(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {
-        let config = configuration();
+        let config = &self.config;
         let palette = pos.pane.palette();
 
         let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
@@ -2734,7 +2731,7 @@ impl TermWindow {
             let top = (self.dimensions.pixel_height as f32 / -2.0) + thumb_top;
             let bottom = top + thumb_size;
 
-            let config = configuration();
+            let config = &self.config;
             let padding = self.effective_right_padding(&config) as f32;
 
             let right = self.dimensions.pixel_width as f32 / 2.;
@@ -2854,7 +2851,7 @@ impl TermWindow {
             .magnify_filter(MagnifySamplerFilter::Linear)
             .minify_filter(MinifySamplerFilter::Linear);
 
-        let foreground_text_hsb = configuration().foreground_text_hsb;
+        let foreground_text_hsb = self.config.foreground_text_hsb;
         let foreground_text_hsb = (
             foreground_text_hsb.hue,
             foreground_text_hsb.saturation,
@@ -3971,7 +3968,7 @@ impl TermWindow {
     }
 
     fn maybe_scroll_to_bottom_for_input(&mut self, pane: &Rc<dyn Pane>) {
-        if configuration().scroll_to_bottom_on_input {
+        if self.config.scroll_to_bottom_on_input {
             self.scroll_to_bottom(pane);
         }
     }
