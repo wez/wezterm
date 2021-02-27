@@ -4,6 +4,7 @@ use super::pane::PaneObject;
 use crate::gui::TermWindow;
 use anyhow::anyhow;
 use config::keyassignment::KeyAssignment;
+use luahelper::JsonLua;
 use mlua::{UserData, UserDataMethods};
 use mux::window::WindowId as MuxWindowId;
 use window::WindowOps;
@@ -59,5 +60,23 @@ impl UserData for GuiWin {
             this.with_term_window(move |term_window, _ops| Ok((*term_window.config).clone()))
                 .await
         });
+        methods.add_async_method("get_config_overrides", |_, this, _: ()| async move {
+            this.with_term_window(move |term_window, _ops| {
+                let wrap = JsonLua(term_window.config_overrides.clone());
+                Ok(wrap)
+            })
+            .await
+        });
+        methods.add_async_method(
+            "set_config_overrides",
+            |_, this, value: JsonLua| async move {
+                this.with_term_window(move |term_window, _ops| {
+                    term_window.config_overrides = value.0.clone();
+                    term_window.config_was_reloaded();
+                    Ok(())
+                })
+                .await
+            },
+        );
     }
 }

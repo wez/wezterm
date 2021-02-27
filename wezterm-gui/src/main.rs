@@ -289,14 +289,6 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
     }
 
     let run = move || -> anyhow::Result<()> {
-        opts.font_locator
-            .unwrap_or(config.font_locator)
-            .set_default();
-        opts.font_shaper.unwrap_or(config.font_shaper).set_default();
-        opts.font_rasterizer
-            .unwrap_or(config.font_rasterizer)
-            .set_default();
-
         let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();
 
         let cmd = if need_builder {

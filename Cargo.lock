@@ -687,6 +687,7 @@ dependencies = [
  "pretty_env_logger",
  "promise",
  "serde",
+ "serde_json",
  "smol",
  "termwiz",
  "toml",
@@ -1929,6 +1930,7 @@ dependencies = [
  "log",
  "mlua",
  "serde",
+ "serde_json",
  "strsim 0.10.0",
  "thiserror",
 ]

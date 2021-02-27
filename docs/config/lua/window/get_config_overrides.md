@@ -1,0 +1,9 @@
+# `window:get_config_overrides()`
+
+*Since: nightly*
+
+Returns a copy of the current set of configuration overrides that is in effect
+for the window.
+
+See [set_config_overrides](set_config_overrides.md) for examples!
+

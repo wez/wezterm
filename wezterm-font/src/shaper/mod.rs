@@ -74,11 +74,15 @@ pub trait FontShaper {
 pub use config::FontShaperSelection;
 
 pub fn new_shaper(
-    shaper: FontShaperSelection,
+    config: &config::ConfigHandle,
     handles: &[FontDataHandle],
 ) -> anyhow::Result<Box<dyn FontShaper>> {
-    match shaper {
-        FontShaperSelection::Harfbuzz => Ok(Box::new(harfbuzz::HarfbuzzShaper::new(handles)?)),
-        FontShaperSelection::Allsorts => Ok(Box::new(allsorts::AllsortsShaper::new(handles)?)),
+    match config.font_shaper {
+        FontShaperSelection::Harfbuzz => {
+            Ok(Box::new(harfbuzz::HarfbuzzShaper::new(config, handles)?))
+        }
+        FontShaperSelection::Allsorts => {
+            Ok(Box::new(allsorts::AllsortsShaper::new(config, handles)?))
+        }
     }
 }

@@ -369,10 +369,6 @@ pub enum FontLocatorSelection {
     ConfigDirsOnly,
 }
 
-lazy_static::lazy_static! {
-    static ref DEFAULT_LOCATOR: Mutex<FontLocatorSelection> = Mutex::new(Default::default());
-}
-
 impl Default for FontLocatorSelection {
     fn default() -> Self {
         if cfg!(windows) {
@@ -386,16 +382,6 @@ impl Default for FontLocatorSelection {
 }
 
 impl FontLocatorSelection {
-    pub fn set_default(self) {
-        let mut def = DEFAULT_LOCATOR.lock().unwrap();
-        *def = self;
-    }
-
-    pub fn get_default() -> Self {
-        let def = DEFAULT_LOCATOR.lock().unwrap();
-        *def
-    }
-
     pub fn variants() -> Vec<&'static str> {
         vec!["FontConfig", "CoreText", "ConfigDirsOnly", "Gdi"]
     }
@@ -423,10 +409,6 @@ pub enum FontRasterizerSelection {
     FreeType,
 }
 
-lazy_static::lazy_static! {
-    static ref DEFAULT_RASTER: Mutex<FontRasterizerSelection> = Mutex::new(Default::default());
-}
-
 impl Default for FontRasterizerSelection {
     fn default() -> Self {
         FontRasterizerSelection::FreeType
@@ -434,16 +416,6 @@ impl Default for FontRasterizerSelection {
 }
 
 impl FontRasterizerSelection {
-    pub fn set_default(self) {
-        let mut def = DEFAULT_RASTER.lock().unwrap();
-        *def = self;
-    }
-
-    pub fn get_default() -> Self {
-        let def = DEFAULT_RASTER.lock().unwrap();
-        *def
-    }
-
     pub fn variants() -> Vec<&'static str> {
         vec!["FreeType"]
     }
@@ -469,10 +441,6 @@ pub enum FontShaperSelection {
     Harfbuzz,
 }
 
-lazy_static::lazy_static! {
-    static ref DEFAULT_SHAPER: Mutex<FontShaperSelection> = Mutex::new(Default::default());
-}
-
 impl Default for FontShaperSelection {
     fn default() -> Self {
         FontShaperSelection::Harfbuzz
@@ -480,16 +448,6 @@ impl Default for FontShaperSelection {
 }
 
 impl FontShaperSelection {
-    pub fn set_default(self) {
-        let mut def = DEFAULT_SHAPER.lock().unwrap();
-        *def = self;
-    }
-
-    pub fn get_default() -> Self {
-        let def = DEFAULT_SHAPER.lock().unwrap();
-        *def
-    }
-
     pub fn variants() -> Vec<&'static str> {
         vec!["Harfbuzz", "AllSorts"]
     }

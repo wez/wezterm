@@ -452,7 +452,7 @@ pub struct AllsortsShaper {
 }
 
 impl AllsortsShaper {
-    pub fn new(handles: &[FontDataHandle]) -> anyhow::Result<Self> {
+    pub fn new(_: &config::ConfigHandle, handles: &[FontDataHandle]) -> anyhow::Result<Self> {
         let mut fonts = vec![];
         let mut success = false;
         for handle in handles {

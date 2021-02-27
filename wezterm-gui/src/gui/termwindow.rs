@@ -222,6 +222,7 @@ pub struct TabState {
 pub struct TermWindow {
     pub window: Option<Window>,
     pub config: ConfigHandle,
+    pub config_overrides: serde_json::Value,
     /// When we most recently received keyboard focus
     focused: Option<Instant>,
     fonts: Rc<FontConfiguration>,
@@ -720,6 +721,7 @@ impl WindowCallbacks for TermWindow {
         let guts = Box::new(Self {
             window: None,
             config: self.config.clone(),
+            config_overrides: self.config_overrides.clone(),
             window_background: self.window_background.clone(),
             palette: None,
             focused: None,
@@ -935,7 +937,7 @@ impl TermWindow {
 
         let window_background = load_background_image(&config);
 
-        let fontconfig = Rc::new(FontConfiguration::new()?);
+        let fontconfig = Rc::new(FontConfiguration::new(Some(config.clone()))?);
         let mux = Mux::get().expect("to be main thread with mux running");
         let size = match mux.get_active_tab_for_window(mux_window_id) {
             Some(tab) => tab.get_size(),
@@ -994,6 +996,7 @@ impl TermWindow {
                 window: None,
                 window_background,
                 config: config.clone(),
+                config_overrides: serde_json::Value::default(),
                 palette: None,
                 focused: None,
                 mux_window_id,
@@ -1304,8 +1307,22 @@ impl TermWindow {
         self.palette.as_ref().unwrap()
     }
 
-    fn config_was_reloaded(&mut self) {
-        let config = configuration();
+    pub fn config_was_reloaded(&mut self) {
+        log::debug!(
+            "config was reloaded, overrides: {:?}",
+            self.config_overrides
+        );
+        let config = match config::overridden_config(&self.config_overrides) {
+            Ok(config) => config,
+            Err(err) => {
+                log::error!(
+                    "Failed to apply config overrides to window: {:#}: {:?}",
+                    err,
+                    self.config_overrides
+                );
+                configuration()
+            }
+        };
         self.config = config.clone();
         self.palette.take();
 
@@ -1328,6 +1345,10 @@ impl TermWindow {
         self.leader_is_down = None;
         let dimensions = self.dimensions;
         let cell_dims = self.current_cell_dimensions();
+
+        if let Err(err) = self.fonts.config_changed(&config) {
+            log::error!("Failed to load font configuration: {:#}", err);
+        }
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
         self.apply_dimensions(&dimensions, Some(cell_dims));
         if let Some(window) = self.window.as_ref() {
@@ -2412,7 +2433,7 @@ impl TermWindow {
     fn reset_font_and_window_size(&mut self) -> anyhow::Result<()> {
         let config = &self.config;
         let size = config.initial_size();
-        let fontconfig = Rc::new(FontConfiguration::new()?);
+        let fontconfig = Rc::new(FontConfiguration::new(Some(config.clone()))?);
         let render_metrics = RenderMetrics::new(&fontconfig)?;
 
         let terminal_size = PtySize {

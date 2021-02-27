@@ -270,7 +270,7 @@ mod test {
             .filter_level(log::LevelFilter::Trace)
             .try_init();
 
-        let fonts = Rc::new(FontConfiguration::new().unwrap());
+        let fonts = Rc::new(FontConfiguration::new(None).unwrap());
         let render_metrics = RenderMetrics::new(&fonts).unwrap();
         let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128, &render_metrics).unwrap();
 

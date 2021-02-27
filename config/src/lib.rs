@@ -310,6 +310,12 @@ pub fn configuration() -> ConfigHandle {
     CONFIG.get()
 }
 
+/// Returns a version of the config (loaded from the config file)
+/// with some field overridden based on the supplied overrides object.
+pub fn overridden_config(overrides: &serde_json::Value) -> Result<ConfigHandle, Error> {
+    CONFIG.overridden(overrides)
+}
+
 pub fn reload() {
     CONFIG.reload();
 }
@@ -447,9 +453,17 @@ impl ConfigInner {
         self.generation += 1;
     }
 
+    fn overridden(&mut self, overrides: &serde_json::Value) -> Result<ConfigHandle, Error> {
+        let config = Config::load_with_overrides(overrides)?;
+        Ok(ConfigHandle {
+            config: Arc::new(config.config),
+            generation: self.generation,
+        })
+    }
+
     fn use_test(&mut self) {
-        FontLocatorSelection::ConfigDirsOnly.set_default();
         let mut config = Config::default_config();
+        config.font_locator = FontLocatorSelection::ConfigDirsOnly;
         // Specify the same DPI used on non-mac systems so
         // that we have consistent values regardless of the
         // operating system that we're running tests on
@@ -489,6 +503,11 @@ impl Configuration {
     fn use_this_config(&self, cfg: Config) {
         let mut inner = self.inner.lock().unwrap();
         inner.use_this_config(cfg);
+    }
+
+    fn overridden(&self, overrides: &serde_json::Value) -> Result<ConfigHandle, Error> {
+        let mut inner = self.inner.lock().unwrap();
+        inner.overridden(overrides)
     }
 
     /// Use a config that doesn't depend on the user's
@@ -1136,6 +1155,10 @@ impl PathPossibility {
 
 impl Config {
     pub fn load() -> Result<LoadedConfig, Error> {
+        Self::load_with_overrides(&serde_json::Value::default())
+    }
+
+    pub fn load_with_overrides(overrides: &serde_json::Value) -> Result<LoadedConfig, Error> {
         // Note that the directories crate has methods for locating project
         // specific config directories, but only returns one of them, not
         // multiple.  In addition, it spawns a lot of subprocesses,
@@ -1193,6 +1216,7 @@ impl Config {
                     .eval_async(),
             )?;
             let config = Self::apply_overrides_to(&lua, config)?;
+            let config = Self::apply_overrides_obj_to(config, overrides)?;
             cfg = luahelper::from_lua_value(config).with_context(|| {
                 format!(
                     "Error converting lua value returned by script {} to Config struct",
@@ -1220,6 +1244,24 @@ impl Config {
             file_name: None,
             lua: None,
         })
+    }
+
+    fn apply_overrides_obj_to<'l>(
+        mut config: mlua::Value<'l>,
+        overrides: &serde_json::Value,
+    ) -> anyhow::Result<mlua::Value<'l>> {
+        match overrides {
+            serde_json::Value::Object(obj) => {
+                if let mlua::Value::Table(tbl) = &mut config {
+                    for (key, value) in obj {
+                        let value = luahelper::JsonLua(value.clone());
+                        tbl.set(key.as_str(), value)?;
+                    }
+                }
+                Ok(config)
+            }
+            _ => Ok(config),
+        }
     }
 
     fn apply_overrides_to<'l>(

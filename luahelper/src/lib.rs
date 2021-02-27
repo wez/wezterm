@@ -1,5 +1,7 @@
 #![macro_use]
 
+use serde::{Deserialize, Serialize};
+
 mod serde_lua;
 pub use mlua;
 pub use serde_lua::from_lua_value;
@@ -19,7 +21,7 @@ macro_rules! impl_lua_conversion {
                 self,
                 lua: &'lua $crate::mlua::Lua,
             ) -> Result<$crate::mlua::Value<'lua>, $crate::mlua::Error> {
-                Ok(luahelper::to_lua_value(lua, self)?)
+                Ok($crate::to_lua_value(lua, self)?)
             }
         }
 
@@ -28,8 +30,13 @@ macro_rules! impl_lua_conversion {
                 value: $crate::mlua::Value<'lua>,
                 _lua: &'lua $crate::mlua::Lua,
             ) -> Result<Self, $crate::mlua::Error> {
-                Ok(luahelper::from_lua_value(value)?)
+                Ok($crate::from_lua_value(value)?)
             }
         }
     };
 }
+
+#[derive(Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct JsonLua(pub serde_json::Value);
+impl_lua_conversion!(JsonLua);

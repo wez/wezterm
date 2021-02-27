@@ -4,7 +4,7 @@ use crate::locator::FontDataHandle;
 use crate::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::units::*;
 use anyhow::anyhow;
-use config::configuration;
+use config::ConfigHandle;
 use log::error;
 use ordered_float::NotNan;
 use std::cell::{RefCell, RefMut};
@@ -66,6 +66,7 @@ pub struct HarfbuzzShaper {
     fonts: Vec<RefCell<Option<FontPair>>>,
     lib: ftwrap::Library,
     metrics: RefCell<HashMap<MetricsKey, FontMetrics>>,
+    config: ConfigHandle,
 }
 
 #[derive(Error, Debug)]
@@ -102,7 +103,7 @@ fn is_question_string(s: &str) -> bool {
 }
 
 impl HarfbuzzShaper {
-    pub fn new(handles: &[FontDataHandle]) -> anyhow::Result<Self> {
+    pub fn new(config: &ConfigHandle, handles: &[FontDataHandle]) -> anyhow::Result<Self> {
         let lib = ftwrap::Library::new()?;
         let handles = handles.to_vec();
         let mut fonts = vec![];
@@ -114,6 +115,7 @@ impl HarfbuzzShaper {
             handles,
             lib,
             metrics: RefCell::new(HashMap::new()),
+            config: config.clone(),
         })
     }
 
@@ -149,7 +151,7 @@ impl HarfbuzzShaper {
         dpi: u32,
         no_glyphs: &mut Vec<char>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
-        let config = configuration();
+        let config = &self.config;
         let features: Vec<harfbuzz::hb_feature_t> = config
             .harfbuzz_features
             .iter()
@@ -451,7 +453,9 @@ mod test {
             .unwrap()
             .clone();
 
-        let shaper = HarfbuzzShaper::new(&[handle]).unwrap();
+        let config = config::configuration();
+
+        let shaper = HarfbuzzShaper::new(&config, &[handle]).unwrap();
         {
             let mut no_glyphs = vec![];
             let info = shaper.shape("abc", 10., 72, &mut no_glyphs).unwrap();

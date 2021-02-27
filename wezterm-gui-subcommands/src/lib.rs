@@ -1,6 +1,3 @@
-use config::FontLocatorSelection;
-use config::FontRasterizerSelection;
-use config::FontShaperSelection;
 use config::{FrontEndSelection, SshParameters};
 use std::ffi::OsString;
 use structopt::StructOpt;
@@ -31,27 +28,6 @@ pub struct StartCommand {
         case_insensitive = true
     )]
     pub front_end: Option<FrontEndSelection>,
-
-    #[structopt(
-        long = "font-locator",
-        possible_values = &FontLocatorSelection::variants(),
-        case_insensitive = true
-    )]
-    pub font_locator: Option<FontLocatorSelection>,
-
-    #[structopt(
-        long = "font-rasterizer",
-        possible_values = &FontRasterizerSelection::variants(),
-        case_insensitive = true
-    )]
-    pub font_rasterizer: Option<FontRasterizerSelection>,
-
-    #[structopt(
-        long = "font-shaper",
-        possible_values = &FontShaperSelection::variants(),
-        case_insensitive = true
-    )]
-    pub font_shaper: Option<FontShaperSelection>,
 
     /// If true, do not connect to domains marked as connect_automatically
     /// in your wezterm.toml configuration file.

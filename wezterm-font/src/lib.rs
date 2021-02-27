@@ -1,7 +1,7 @@
 use crate::db::FontDatabase;
-use crate::locator::{new_locator, FontDataHandle, FontLocator, FontLocatorSelection};
+use crate::locator::{new_locator, FontDataHandle, FontLocator};
 use crate::rasterizer::{new_rasterizer, FontRasterizer};
-use crate::shaper::{new_shaper, FontShaper, FontShaperSelection};
+use crate::shaper::{new_shaper, FontShaper};
 use anyhow::{Context, Error};
 use config::{configuration, ConfigHandle, FontRasterizerSelection, TextStyle};
 use std::cell::RefCell;
@@ -60,8 +60,10 @@ impl LoadedFont {
             }
         }
         if loaded {
-            *self.shaper.borrow_mut() =
-                new_shaper(FontShaperSelection::get_default(), &self.handles.borrow())?;
+            if let Some(font_config) = self.font_config.upgrade() {
+                *self.shaper.borrow_mut() =
+                    new_shaper(&*font_config.config.borrow(), &self.handles.borrow())?;
+            }
         }
         Ok(loaded)
     }
@@ -152,10 +154,13 @@ impl LoadedFont {
         if let Some(raster) = rasterizers.get(&fallback) {
             raster.rasterize_glyph(glyph_pos, self.font_size, self.dpi)
         } else {
-            let raster = new_rasterizer(
-                FontRasterizerSelection::get_default(),
-                &(self.handles.borrow())[fallback],
-            )?;
+            let raster_selection = self
+                .font_config
+                .upgrade()
+                .map_or(FontRasterizerSelection::default(), |c| {
+                    c.config.borrow().font_rasterizer
+                });
+            let raster = new_rasterizer(raster_selection, &(self.handles.borrow())[fallback])?;
             let result = raster.rasterize_glyph(glyph_pos, self.font_size, self.dpi);
             rasterizers.insert(fallback, raster);
             result
@@ -168,7 +173,7 @@ struct FontConfigInner {
     metrics: RefCell<Option<FontMetrics>>,
     dpi_scale: RefCell<f64>,
     font_scale: RefCell<f64>,
-    config_generation: RefCell<usize>,
+    config: RefCell<ConfigHandle>,
     locator: Box<dyn FontLocator>,
     font_dirs: RefCell<FontDatabase>,
     built_in: RefCell<FontDatabase>,
@@ -181,35 +186,42 @@ pub struct FontConfiguration {
 
 impl FontConfigInner {
     /// Create a new empty configuration
-    pub fn new() -> anyhow::Result<Self> {
-        let locator = new_locator(FontLocatorSelection::get_default());
-        let config = configuration();
+    pub fn new(config: Option<ConfigHandle>) -> anyhow::Result<Self> {
+        let config = config.unwrap_or_else(|| configuration());
+        let locator = new_locator(config.font_locator);
         Ok(Self {
             fonts: RefCell::new(HashMap::new()),
             locator,
             metrics: RefCell::new(None),
             font_scale: RefCell::new(1.0),
             dpi_scale: RefCell::new(1.0),
-            config_generation: RefCell::new(config.generation()),
+            config: RefCell::new(config.clone()),
             font_dirs: RefCell::new(FontDatabase::with_font_dirs(&config)?),
             built_in: RefCell::new(FontDatabase::with_built_in()?),
         })
     }
 
+    fn config_changed(&self, config: &ConfigHandle) -> anyhow::Result<()> {
+        let mut fonts = self.fonts.borrow_mut();
+        *self.config.borrow_mut() = config.clone();
+        // Config was reloaded, invalidate our caches
+        fonts.clear();
+        self.metrics.borrow_mut().take();
+        *self.font_dirs.borrow_mut() = FontDatabase::with_font_dirs(config)?;
+        Ok(())
+    }
+
     /// Given a text style, load (with caching) the font that best
     /// matches according to the fontconfig pattern.
     fn resolve_font(&self, myself: &Rc<Self>, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
-        let mut fonts = self.fonts.borrow_mut();
-
-        let config = configuration();
-        let current_generation = config.generation();
-        if current_generation != *self.config_generation.borrow() {
-            // Config was reloaded, invalidate our caches
-            fonts.clear();
-            self.metrics.borrow_mut().take();
-            *self.font_dirs.borrow_mut() = FontDatabase::with_font_dirs(&config)?;
-            *self.config_generation.borrow_mut() = current_generation;
+        let global_config = configuration();
+        let current_generation = global_config.generation();
+        if current_generation != self.config.borrow().generation() {
+            self.config_changed(&global_config)?;
         }
+        let config = self.config.borrow();
+
+        let mut fonts = self.fonts.borrow_mut();
 
         if let Some(entry) = fonts.get(style) {
             return Ok(Rc::clone(entry));
@@ -284,9 +296,8 @@ impl FontConfigInner {
             }
         }
 
-        let shaper = new_shaper(FontShaperSelection::get_default(), &handles)?;
+        let shaper = new_shaper(&*config, &handles)?;
 
-        let config = configuration();
         let font_size = config.font_size * *self.font_scale.borrow();
         let dpi =
             *self.dpi_scale.borrow() as u32 * config.dpi.unwrap_or(::window::DEFAULT_DPI) as u32;
@@ -326,7 +337,7 @@ impl FontConfigInner {
 
     /// Returns the baseline font specified in the configuration
     pub fn default_font(&self, myself: &Rc<Self>) -> anyhow::Result<Rc<LoadedFont>> {
-        self.resolve_font(myself, &configuration().font)
+        self.resolve_font(myself, &self.config.borrow().font)
     }
 
     pub fn get_font_scale(&self) -> f64 {
@@ -392,9 +403,13 @@ impl FontConfigInner {
 
 impl FontConfiguration {
     /// Create a new empty configuration
-    pub fn new() -> anyhow::Result<Self> {
-        let inner = Rc::new(FontConfigInner::new()?);
+    pub fn new(config: Option<ConfigHandle>) -> anyhow::Result<Self> {
+        let inner = Rc::new(FontConfigInner::new(config)?);
         Ok(Self { inner })
+    }
+
+    pub fn config_changed(&self, config: &ConfigHandle) -> anyhow::Result<()> {
+        self.inner.config_changed(config)
     }
 
     /// Given a text style, load (with caching) the font that best

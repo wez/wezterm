@@ -11,5 +11,6 @@ bstr = "0.2"
 log = "0.4"
 mlua = "0.5"
 serde = {version="1.0", features = ["rc", "derive"]}
+serde_json = "1.0"
 strsim = "0.10"
 thiserror = "1.0"

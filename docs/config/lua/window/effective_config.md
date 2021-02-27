@@ -10,6 +10,8 @@ configuration, including any CLI or per-window configuration overrides.
 Note: changing the config table will NOT change the effective window config;
 it is just a copy of that information.
 
+If you want to change the configuration in a window, look at [set_config_overrides](set_config_overrides.md).
+
 This example will log the configured font size when `CTRL-SHIFT-E` is pressed:
 
 ```lua
