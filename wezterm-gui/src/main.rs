@@ -1,7 +1,7 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
-use crate::gui::front_end;
+use crate::frontend::front_end;
 use anyhow::anyhow;
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
@@ -16,6 +16,7 @@ use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
 use wezterm_gui_subcommands::*;
 use wezterm_toast_notification::*;
 
+mod frontend;
 mod gui;
 mod markdown;
 mod scripting;
@@ -113,7 +114,7 @@ fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     Mux::set_mux(&mux);
     crate::update::load_last_release_info_and_set_banner();
 
-    let gui = crate::gui::try_new()?;
+    let gui = crate::frontend::try_new()?;
 
     // Keep the frontend alive until we've run through the ssh authentication
     // phase.  This is passed into the thread and dropped when it is done.
@@ -148,7 +149,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     Mux::set_mux(&mux);
     crate::update::load_last_release_info_and_set_banner();
 
-    let gui = crate::gui::try_new()?;
+    let gui = crate::frontend::try_new()?;
     block_on(domain.attach())?; // FIXME: blocking
 
     {
@@ -193,7 +194,7 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
     Mux::set_mux(&mux);
     crate::update::load_last_release_info_and_set_banner();
 
-    let gui = crate::gui::try_new()?;
+    let gui = crate::frontend::try_new()?;
     let opts = opts.clone();
 
     let cmd = if !opts.prog.is_empty() {
@@ -307,7 +308,7 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
         Mux::set_mux(&mux);
         crate::update::load_last_release_info_and_set_banner();
 
-        let gui = crate::gui::try_new()?;
+        let gui = crate::frontend::try_new()?;
         let activity = Activity::new();
         let do_auto_connect = !opts.no_auto_connect;
 
@@ -366,7 +367,7 @@ fn main() {
         terminate_with_error(e);
     }
     Mux::shutdown();
-    gui::shutdown();
+    frontend::shutdown();
 }
 
 fn maybe_show_configuration_error_window() {
