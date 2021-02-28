@@ -876,6 +876,9 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub prefer_egl: bool,
 
+    #[serde(default = "default_true")]
+    pub custom_block_glyphs: bool,
+
     /// Controls the amount of padding to use around the terminal cell area
     #[serde(default)]
     pub window_padding: WindowPadding,

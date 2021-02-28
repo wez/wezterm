@@ -10,6 +10,7 @@ use anyhow::{anyhow, Context};
 use config::{configuration, AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use std::collections::HashMap;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use termwiz::image::ImageData;
@@ -123,12 +124,104 @@ struct LineKey {
     overline: bool,
 }
 
+bitflags::bitflags! {
+    pub struct Quadrant: u8{
+        const UPPER_LEFT = 1<<1;
+        const UPPER_RIGHT = 1<<2;
+        const LOWER_LEFT = 1<<3;
+        const LOWER_RIGHT = 1<<4;
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+pub enum BlockAlpha {
+    /// 100%
+    Full,
+    /// 75%
+    Dark,
+    /// 50%
+    Medium,
+    /// 25%
+    Light,
+}
+
+/// Represents a Block Element glyph, decoded from
+/// <https://en.wikipedia.org/wiki/Block_Elements>
+/// <https://www.unicode.org/charts/PDF/U2580.pdf>
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+pub enum BlockKey {
+    /// Number of 1/8ths in the upper half
+    Upper(u8),
+    /// Number of 1/8ths in the lower half
+    Lower(u8),
+    /// Number of 1/8ths in the left half
+    Left(u8),
+    /// Number of 1/8ths in the right half
+    Right(u8),
+    /// Full block with alpha level
+    Full(BlockAlpha),
+    /// A combination of quadrants
+    Quadrants(Quadrant),
+}
+
+impl BlockKey {
+    pub fn from_char(c: char) -> Option<Self> {
+        let c = c as u32;
+        Some(match c {
+            // Upper half block
+            0x2580 => Self::Upper(4),
+            // Lower 1..7 eighths
+            0x2581..=0x2587 => Self::Lower((c - 0x2580) as u8),
+            0x2588 => Self::Full(BlockAlpha::Full),
+            // Left 7..1 eighths
+            0x2589..=0x258f => Self::Left((0x2590 - c) as u8),
+            // Right half
+            0x2590 => Self::Right(4),
+            0x2591 => Self::Full(BlockAlpha::Light),
+            0x2592 => Self::Full(BlockAlpha::Medium),
+            0x2593 => Self::Full(BlockAlpha::Dark),
+            0x2594 => Self::Upper(1),
+            0x2595 => Self::Right(1),
+            0x2596 => Self::Quadrants(Quadrant::LOWER_LEFT),
+            0x2597 => Self::Quadrants(Quadrant::LOWER_RIGHT),
+            0x2598 => Self::Quadrants(Quadrant::UPPER_LEFT),
+            0x2599 => {
+                Self::Quadrants(Quadrant::UPPER_LEFT | Quadrant::LOWER_LEFT | Quadrant::LOWER_RIGHT)
+            }
+            0x259a => Self::Quadrants(Quadrant::UPPER_LEFT | Quadrant::LOWER_RIGHT),
+            0x259b => {
+                Self::Quadrants(Quadrant::UPPER_LEFT | Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT)
+            }
+            0x259c => Self::Quadrants(
+                Quadrant::UPPER_LEFT | Quadrant::UPPER_RIGHT | Quadrant::LOWER_RIGHT,
+            ),
+            0x259d => Self::Quadrants(Quadrant::UPPER_RIGHT),
+            0x259e => Self::Quadrants(Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT),
+            0x259f => Self::Quadrants(
+                Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT | Quadrant::LOWER_RIGHT,
+            ),
+            _ => return None,
+        })
+    }
+
+    pub fn from_cell(cell: &termwiz::cell::Cell) -> Option<Self> {
+        let mut chars = cell.str().chars();
+        let first_char = chars.next()?;
+        if chars.next().is_some() {
+            None
+        } else {
+            Self::from_char(first_char)
+        }
+    }
+}
+
 pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
     image_cache: HashMap<usize, Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
+    block_glyphs: HashMap<BlockKey, Sprite<T>>,
     metrics: RenderMetrics,
 }
 
@@ -149,6 +242,7 @@ impl GlyphCache<ImageTexture> {
             atlas,
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
+            block_glyphs: HashMap::new(),
         })
     }
 }
@@ -176,6 +270,7 @@ impl GlyphCache<SrgbTexture2d> {
             atlas,
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
+            block_glyphs: HashMap::new(),
         })
     }
 
@@ -184,6 +279,7 @@ impl GlyphCache<SrgbTexture2d> {
         self.image_cache.clear();
         self.glyph_cache.clear();
         self.line_glyphs.clear();
+        self.block_glyphs.clear();
     }
 }
 
@@ -347,6 +443,144 @@ impl<T: Texture2d> GlyphCache<T> {
         self.image_cache.insert(image_data.id(), sprite.clone());
 
         Ok(sprite)
+    }
+
+    fn block_sprite(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {
+        let mut buffer = Image::new(
+            self.metrics.cell_size.width as usize,
+            self.metrics.cell_size.height as usize,
+        );
+        let black = ::window::color::Color::rgba(0, 0, 0, 0);
+        let white = ::window::color::Color::rgb(0xff, 0xff, 0xff);
+
+        let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
+
+        let y_eighth = (self.metrics.cell_size.height / 8) as usize;
+        let x_eighth = (self.metrics.cell_size.width / 8) as usize;
+
+        buffer.clear_rect(cell_rect, black);
+
+        let draw_horizontal = |buffer: &mut Image, y: usize| {
+            buffer.draw_line(
+                Point::new(cell_rect.origin.x, cell_rect.origin.y + y as isize),
+                Point::new(
+                    cell_rect.origin.x + self.metrics.cell_size.width,
+                    cell_rect.origin.y + y as isize,
+                ),
+                white,
+                Operator::Source,
+            );
+        };
+
+        let draw_vertical = |buffer: &mut Image, x: usize| {
+            buffer.draw_line(
+                Point::new(cell_rect.origin.x + x as isize, cell_rect.origin.y),
+                Point::new(
+                    cell_rect.origin.x + x as isize,
+                    cell_rect.origin.y + self.metrics.cell_size.height,
+                ),
+                white,
+                Operator::Source,
+            );
+        };
+
+        let draw_quad = |buffer: &mut Image, x: Range<usize>, y: Range<usize>| {
+            for y in y {
+                buffer.draw_line(
+                    Point::new(
+                        cell_rect.origin.x + x.start as isize,
+                        cell_rect.origin.y + y as isize,
+                    ),
+                    Point::new(
+                        cell_rect.origin.x + x.end as isize,
+                        cell_rect.origin.y + y as isize,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+            }
+        };
+
+        match block {
+            BlockKey::Upper(num) => {
+                for n in 0..usize::from(num) {
+                    for a in 0..y_eighth {
+                        draw_horizontal(&mut buffer, (n * y_eighth) + a);
+                    }
+                }
+            }
+            BlockKey::Lower(num) => {
+                for n in 0..usize::from(num) {
+                    let y = (self.metrics.cell_size.height - 1) as usize - (n * y_eighth);
+                    for a in 0..y_eighth {
+                        draw_horizontal(&mut buffer, y + a);
+                    }
+                }
+            }
+            BlockKey::Left(num) => {
+                for n in 0..usize::from(num) {
+                    for a in 0..x_eighth {
+                        draw_vertical(&mut buffer, (n * x_eighth) + a);
+                    }
+                }
+            }
+            BlockKey::Right(num) => {
+                for n in 0..usize::from(num) {
+                    let x = (self.metrics.cell_size.width - 1) as usize - (n * x_eighth);
+                    for a in 0..x_eighth {
+                        draw_vertical(&mut buffer, x + a);
+                    }
+                }
+            }
+            BlockKey::Full(alpha) => {
+                let alpha = match alpha {
+                    BlockAlpha::Full => 0xff,
+                    BlockAlpha::Dark => (0.75 * 255.) as u8,
+                    BlockAlpha::Medium => (0.5 * 255.) as u8,
+                    BlockAlpha::Light => (0.25 * 255.) as u8,
+                };
+                let fill = ::window::color::Color::with_linear_rgba_u8(alpha, alpha, alpha, alpha);
+
+                buffer.clear_rect(cell_rect, fill);
+            }
+            BlockKey::Quadrants(quads) => {
+                if quads.contains(Quadrant::UPPER_LEFT) {
+                    draw_quad(&mut buffer, 0..(x_eighth * 4), 0..(y_eighth * 4));
+                }
+                if quads.contains(Quadrant::UPPER_RIGHT) {
+                    draw_quad(
+                        &mut buffer,
+                        (x_eighth * 4)..(x_eighth * 8),
+                        0..(y_eighth * 4),
+                    );
+                }
+                if quads.contains(Quadrant::LOWER_LEFT) {
+                    draw_quad(
+                        &mut buffer,
+                        0..(x_eighth * 4),
+                        (y_eighth * 4)..(y_eighth * 8),
+                    );
+                }
+                if quads.contains(Quadrant::LOWER_RIGHT) {
+                    draw_quad(
+                        &mut buffer,
+                        (x_eighth * 4)..(x_eighth * 8),
+                        (y_eighth * 4)..(y_eighth * 8),
+                    );
+                }
+            }
+        }
+
+        let sprite = self.atlas.allocate(&buffer)?;
+        self.block_glyphs.insert(block, sprite.clone());
+        Ok(sprite)
+    }
+
+    pub fn cached_block(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {
+        if let Some(s) = self.block_glyphs.get(&block) {
+            return Ok(s.clone());
+        }
+        self.block_sprite(block)
     }
 
     fn line_sprite(&mut self, key: LineKey) -> anyhow::Result<Sprite<T>> {
