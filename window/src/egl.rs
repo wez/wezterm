@@ -44,6 +44,13 @@ struct EglWrapper {
     egl: ffi::Egl,
 }
 
+impl std::fmt::Debug for EglWrapper {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt.debug_struct("EglWrapper").finish()
+    }
+}
+
+#[derive(Debug)]
 pub struct GlConnection {
     egl: EglWrapper,
     display: ffi::types::EGLDisplay,
@@ -65,6 +72,7 @@ impl Drop for GlConnection {
     }
 }
 
+#[derive(Debug)]
 pub struct GlState {
     connection: Rc<GlConnection>,
     surface: ffi::types::EGLSurface,
@@ -639,11 +647,15 @@ unsafe impl glium::backend::Backend for GlState {
     }
 
     unsafe fn make_current(&self) {
-        self.connection.MakeCurrent(
+        if self.connection.MakeCurrent(
             self.connection.display,
             self.surface,
             self.surface,
             self.context,
-        );
+        ) == 0
+        {
+            let err = self.connection.egl.error("MakeCurrent");
+            log::error!("make_current failed {:?} {:?}", self, err);
+        }
     }
 }
