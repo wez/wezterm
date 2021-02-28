@@ -31,7 +31,7 @@ impl WindowConfiguration for ConfigBridge {
     fn prefer_swrast(&self) -> bool {
         #[cfg(windows)]
         {
-            if is_running_in_rdp_session() {
+            if crate::os::windows::is_running_in_rdp_session() {
                 // Using OpenGL in RDP has problematic behavior upon
                 // disconnect, so we force the use of software rendering.
                 log::trace!("Running in an RDP session, use SWRAST");

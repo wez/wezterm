@@ -464,7 +464,7 @@ fn run() -> anyhow::Result<()> {
         opts.skip_config,
     );
     let config = config::configuration();
-    window::configuration::set_configuration(crate::window_config::ConfigBridge);
+    ::window::configuration::set_configuration(crate::window_config::ConfigBridge);
 
     match opts
         .cmd
