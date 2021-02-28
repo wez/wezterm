@@ -32,7 +32,7 @@ use lru::LruCache;
 use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
-use mux::renderable::{RenderableDimensions, StableCursorPosition};
+use mux::renderable::RenderableDimensions;
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, TabId};
 use mux::window::WindowId as MuxWindowId;
 use mux::Mux;
@@ -57,9 +57,11 @@ use wezterm_term::input::LastMouseClick;
 use wezterm_term::{Line, StableRowIndex, TerminalConfiguration};
 
 pub mod clipboard;
+mod prevcursor;
 mod render;
 pub mod spawn;
 use clipboard::ClipboardHelper;
+use prevcursor::PrevCursorPos;
 use spawn::SpawnWhere;
 
 const ATLAS_SIZE: usize = 128;
@@ -78,39 +80,6 @@ pub fn set_window_class(cls: &str) {
 struct RowsAndCols {
     rows: usize,
     cols: usize,
-}
-
-#[derive(Clone)]
-struct PrevCursorPos {
-    pos: StableCursorPosition,
-    when: Instant,
-}
-
-impl PrevCursorPos {
-    fn new() -> Self {
-        PrevCursorPos {
-            pos: StableCursorPosition::default(),
-            when: Instant::now(),
-        }
-    }
-
-    /// Make the cursor look like it moved
-    fn bump(&mut self) {
-        self.when = Instant::now();
-    }
-
-    /// Update the cursor position if its different
-    fn update(&mut self, newpos: &StableCursorPosition) {
-        if &self.pos != newpos {
-            self.pos = *newpos;
-            self.when = Instant::now();
-        }
-    }
-
-    /// When did the cursor last move?
-    fn last_cursor_movement(&self) -> Instant {
-        self.when
-    }
 }
 
 #[derive(Default, Clone)]
