@@ -1,10 +1,7 @@
-use crate::gui::termwindow::rgbcolor_alpha_to_window_color;
-use crate::gui::termwindow::rgbcolor_to_window_color;
-use crate::gui::termwindow::BorrowedShapeCacheKey;
-use crate::gui::termwindow::MappedQuads;
-use crate::gui::termwindow::RenderState;
-use crate::gui::termwindow::ScrollHit;
-use crate::gui::termwindow::ShapedInfo;
+use crate::gui::termwindow::{
+    rgbcolor_alpha_to_window_color, rgbcolor_to_window_color, BorrowedShapeCacheKey, MappedQuads,
+    RenderState, ScrollHit, ShapedInfo,
+};
 use ::window::bitmaps::{Texture2d, TextureCoord, TextureRect, TextureSize};
 use ::window::glium;
 use ::window::glium::uniforms::{
@@ -21,9 +18,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::PixelLength;
-use wezterm_term::color::ColorAttribute;
-use wezterm_term::color::ColorPalette;
-use wezterm_term::color::RgbColor;
+use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::bitmaps::atlas::SpriteSlice;
 use window::Color;

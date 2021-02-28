@@ -5,7 +5,8 @@
 //! be rendered as a popup/context menu if the system supports it; at the
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
-use crate::gui::termwindow::{ClipboardHelper, SpawnWhere, TermWindow};
+use crate::gui::termwindow::spawn::SpawnWhere;
+use crate::gui::termwindow::{ClipboardHelper, TermWindow};
 use anyhow::anyhow;
 use config::configuration;
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
