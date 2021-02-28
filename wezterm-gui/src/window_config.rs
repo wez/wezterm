@@ -28,6 +28,19 @@ impl WindowConfiguration for ConfigBridge {
         configuration().prefer_egl
     }
 
+    fn prefer_swrast(&self) -> bool {
+        #[cfg(windows)]
+        {
+            if is_running_in_rdp_session() {
+                // Using OpenGL in RDP has problematic behavior upon
+                // disconnect, so we force the use of software rendering.
+                log::trace!("Running in an RDP session, use SWRAST");
+                return true;
+            }
+        }
+        configuration().front_end == config::FrontEndSelection::Software
+    }
+
     fn native_macos_fullscreen_mode(&self) -> bool {
         configuration().native_macos_fullscreen_mode
     }

@@ -27,6 +27,10 @@ pub trait WindowConfiguration {
         true
     }
 
+    fn prefer_swrast(&self) -> bool {
+        false
+    }
+
     fn native_macos_fullscreen_mode(&self) -> bool {
         false
     }

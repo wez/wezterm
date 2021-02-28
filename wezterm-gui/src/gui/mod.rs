@@ -34,22 +34,7 @@ impl Drop for GuiFrontEnd {
 }
 
 impl GuiFrontEnd {
-    pub fn try_new_swrast() -> anyhow::Result<Rc<GuiFrontEnd>> {
-        ::window::prefer_swrast();
-        Self::try_new()
-    }
-
     pub fn try_new() -> anyhow::Result<Rc<GuiFrontEnd>> {
-        #[cfg(windows)]
-        {
-            if is_running_in_rdp_session() {
-                // Using OpenGL in RDP has problematic behavior upon
-                // disconnect, so we force the use of software rendering.
-                log::trace!("Running in an RDP session, use SWRAST");
-                prefer_swrast();
-            }
-        }
-
         let connection = Connection::init()?;
         let front_end = Rc::new(GuiFrontEnd { connection });
         let mux = Mux::get().expect("mux started and running on main thread");
@@ -131,15 +116,8 @@ pub fn shutdown() {
     FRONT_END.with(|f| drop(f.borrow_mut().take()));
 }
 
-pub fn try_new(sel: FrontEndSelection) -> Result<Rc<GuiFrontEnd>, Error> {
-    let front_end = match sel {
-        FrontEndSelection::Software => GuiFrontEnd::try_new_swrast(),
-        FrontEndSelection::OpenGL => GuiFrontEnd::try_new(),
-    };
-
-    let front_end = front_end?;
-
+pub fn try_new() -> Result<Rc<GuiFrontEnd>, Error> {
+    let front_end = GuiFrontEnd::try_new()?;
     FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
-
     Ok(front_end)
 }

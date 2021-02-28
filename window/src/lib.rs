@@ -1,6 +1,5 @@
 use promise::Future;
 use std::any::Any;
-use std::sync::atomic::{AtomicBool, Ordering};
 pub mod bitmaps;
 pub mod color;
 pub mod configuration;
@@ -251,14 +250,4 @@ pub trait WindowOpsMut {
     fn toggle_fullscreen(&mut self) {}
 
     fn config_did_change(&mut self) {}
-}
-
-static PREFER_SWRAST: AtomicBool = AtomicBool::new(false);
-
-pub fn prefer_swrast() {
-    PREFER_SWRAST.store(true, Ordering::Release);
-}
-
-pub fn is_swrast_preferred() -> bool {
-    PREFER_SWRAST.load(Ordering::Acquire)
 }

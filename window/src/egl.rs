@@ -1,4 +1,3 @@
-use crate::{is_swrast_preferred, prefer_swrast};
 use anyhow::{anyhow, bail, ensure, Error};
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -405,9 +404,10 @@ impl GlState {
         }
 
         let mut errors = vec![];
+        let mut prefer_swrast = crate::configuration::config().prefer_swrast();
 
         for _ in 0..2 {
-            if is_swrast_preferred() {
+            if prefer_swrast {
                 // Assuming that we're using Mesa, set an environment
                 // variable that should select CPU based rendering.
                 std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "true");
@@ -445,7 +445,10 @@ impl GlState {
             if cfg!(windows) {
                 break;
             }
-            prefer_swrast();
+            if prefer_swrast {
+                break;
+            }
+            prefer_swrast = true;
         }
         bail!("with_egl_lib failed: {}", errors.join(", "))
     }

@@ -1,4 +1,4 @@
-use config::{FrontEndSelection, SshParameters};
+use config::SshParameters;
 use std::ffi::OsString;
 use structopt::StructOpt;
 
@@ -22,13 +22,6 @@ pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
 
 #[derive(Debug, StructOpt, Default, Clone)]
 pub struct StartCommand {
-    #[structopt(
-        long = "front-end",
-        possible_values = &FrontEndSelection::variants(),
-        case_insensitive = true
-    )]
-    pub front_end: Option<FrontEndSelection>,
-
     /// If true, do not connect to domains marked as connect_automatically
     /// in your wezterm.toml configuration file.
     #[structopt(long = "no-auto-connect")]
@@ -58,13 +51,6 @@ pub struct StartCommand {
 
 #[derive(Debug, StructOpt, Clone)]
 pub struct SshCommand {
-    #[structopt(
-        long = "front-end",
-        possible_values = &FrontEndSelection::variants(),
-        case_insensitive = true
-    )]
-    pub front_end: Option<FrontEndSelection>,
-
     /// Specifies the remote system using the form:
     /// `[username@]host[:port]`.
     /// If `username@` is omitted, then your local $USER is used
@@ -82,13 +68,6 @@ pub struct SshCommand {
 
 #[derive(Debug, StructOpt, Clone)]
 pub struct SerialCommand {
-    #[structopt(
-        long = "front-end",
-        possible_values = &FrontEndSelection::variants(),
-        case_insensitive = true
-    )]
-    pub front_end: Option<FrontEndSelection>,
-
     /// Set the baud rate.  The default is 9600 baud.
     #[structopt(long = "baud")]
     pub baud: Option<usize>,
@@ -102,13 +81,6 @@ pub struct SerialCommand {
 
 #[derive(Debug, StructOpt, Clone)]
 pub struct ConnectCommand {
-    #[structopt(
-        long = "front-end",
-        possible_values = &FrontEndSelection::variants(),
-        case_insensitive = true
-    )]
-    pub front_end: Option<FrontEndSelection>,
-
     /// Name of the multiplexer domain section from the configuration
     /// to which you'd like to connect
     pub domain_name: String,

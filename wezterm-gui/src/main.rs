@@ -105,7 +105,7 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()> {
+fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     // Set up the mux with no default domain; there's a good chance that
     // we'll need to show authentication UI and we don't want its domain
     // to become the default domain.
@@ -113,8 +113,7 @@ fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()>
     Mux::set_mux(&mux);
     crate::update::load_last_release_info_and_set_banner();
 
-    let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = crate::gui::try_new(front_end_selection)?;
+    let gui = crate::gui::try_new()?;
 
     // Keep the frontend alive until we've run through the ssh authentication
     // phase.  This is passed into the thread and dropped when it is done.
@@ -149,8 +148,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     Mux::set_mux(&mux);
     crate::update::load_last_release_info_and_set_banner();
 
-    let front_end = opts.front_end.unwrap_or(config.front_end);
-    let gui = crate::gui::try_new(front_end)?;
+    let gui = crate::gui::try_new()?;
     block_on(domain.attach())?; // FIXME: blocking
 
     {
@@ -195,8 +193,7 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
     Mux::set_mux(&mux);
     crate::update::load_last_release_info_and_set_banner();
 
-    let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-    let gui = crate::gui::try_new(front_end_selection)?;
+    let gui = crate::gui::try_new()?;
     let opts = opts.clone();
 
     let cmd = if !opts.prog.is_empty() {
@@ -268,7 +265,7 @@ async fn async_run_terminal_gui(
     spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
 }
 
-fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow::Result<()> {
+fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::gui::set_window_class(cls);
     }
@@ -310,8 +307,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
         Mux::set_mux(&mux);
         crate::update::load_last_release_info_and_set_banner();
 
-        let front_end_selection = opts.front_end.unwrap_or(config.front_end);
-        let gui = crate::gui::try_new(front_end_selection)?;
+        let gui = crate::gui::try_new()?;
         let activity = Activity::new();
         let do_auto_connect = !opts.no_auto_connect;
 
@@ -462,9 +458,9 @@ fn run() -> anyhow::Result<()> {
     {
         SubCommand::Start(start) => {
             log::trace!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
-            run_terminal_gui(config, start)
+            run_terminal_gui(start)
         }
-        SubCommand::Ssh(ssh) => run_ssh(config, ssh),
+        SubCommand::Ssh(ssh) => run_ssh(ssh),
         SubCommand::Serial(serial) => run_serial(config, &serial),
         SubCommand::Connect(connect) => run_mux_client(config, &connect),
     }
