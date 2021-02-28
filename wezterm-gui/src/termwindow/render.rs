@@ -1,9 +1,7 @@
-use crate::gui::glium::texture::SrgbTexture2d;
-use crate::gui::glyphcache::{CachedGlyph, GlyphCache};
-use crate::gui::shapecache::*;
-use crate::gui::termwindow::{
-    BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo,
-};
+use crate::glium::texture::SrgbTexture2d;
+use crate::glyphcache::{CachedGlyph, GlyphCache};
+use crate::shapecache::*;
+use crate::termwindow::{BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
 use ::window::glium;

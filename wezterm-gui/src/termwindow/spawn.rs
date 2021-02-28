@@ -1,4 +1,4 @@
-use crate::gui::termwindow::{ClipboardHelper, MuxWindowId};
+use crate::termwindow::{ClipboardHelper, MuxWindowId};
 use anyhow::{anyhow, bail};
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use mux::activity::Activity;

@@ -1,4 +1,4 @@
-use crate::gui::ICON_DATA;
+use crate::ICON_DATA;
 use anyhow::anyhow;
 use config::configuration;
 use config::wezterm_version;

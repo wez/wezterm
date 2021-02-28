@@ -1,7 +1,7 @@
 //! GuiWin represents a Gui TermWindow (as opposed to a Mux window) in lua code
 use super::luaerr;
 use super::pane::PaneObject;
-use crate::gui::TermWindow;
+use crate::TermWindow;
 use anyhow::anyhow;
 use config::keyassignment::KeyAssignment;
 use luahelper::JsonLua;

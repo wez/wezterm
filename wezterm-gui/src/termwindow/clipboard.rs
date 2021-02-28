@@ -1,4 +1,4 @@
-use crate::gui::TermWindow;
+use crate::TermWindow;
 use config::keyassignment::{ClipboardCopyDestination, ClipboardPasteSource};
 use mux::pane::Pane;
 use mux::window::WindowId as MuxWindowId;

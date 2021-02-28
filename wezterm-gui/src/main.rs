@@ -2,6 +2,7 @@
 #![windows_subsystem = "windows"]
 
 use crate::frontend::front_end;
+use ::window::*;
 use anyhow::anyhow;
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
@@ -17,12 +18,26 @@ use wezterm_gui_subcommands::*;
 use wezterm_toast_notification::*;
 
 mod frontend;
-mod gui;
+mod glyphcache;
 mod markdown;
+mod overlay;
+mod quad;
+mod renderstate;
 mod scripting;
+mod scrollbar;
+mod selection;
+mod shapecache;
 mod stats;
+mod tabbar;
+mod termwindow;
 mod update;
+mod utilsprites;
 mod window_config;
+
+pub use selection::SelectionMode;
+pub use termwindow::set_window_class;
+pub use termwindow::TermWindow;
+pub use termwindow::ICON_DATA;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -268,7 +283,7 @@ async fn async_run_terminal_gui(
 
 fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
-        crate::gui::set_window_class(cls);
+        crate::set_window_class(cls);
     }
 
     let unix_socket_path =

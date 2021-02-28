@@ -1,4 +1,4 @@
-use crate::gui::utilsprites::RenderMetrics;
+use crate::utilsprites::RenderMetrics;
 use ::window::{Dimensions, WindowOps};
 use config::ConfigHandle;
 use mux::Mux;

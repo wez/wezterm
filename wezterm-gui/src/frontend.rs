@@ -1,4 +1,4 @@
-use crate::gui::TermWindow;
+use crate::TermWindow;
 use ::window::*;
 use anyhow::Error;
 pub use config::FrontEndSelection;

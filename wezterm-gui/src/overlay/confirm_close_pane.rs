@@ -1,4 +1,4 @@
-use crate::gui::TermWindow;
+use crate::TermWindow;
 use mux::pane::PaneId;
 use mux::tab::TabId;
 use mux::termwiztermtab::TermWizTerminal;
@@ -16,7 +16,7 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
     let size = term.get_screen_size()?;
 
     /*
-    use crate::gui::termwindow::ICON_DATA;
+    use crate::termwindow::ICON_DATA;
     use image::GenericImageView;
     use std::sync::Arc;
     use termwiz::surface::change::ImageData;

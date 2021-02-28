@@ -1,5 +1,5 @@
-use crate::gui::selection::{SelectionCoordinate, SelectionRange};
-use crate::gui::termwindow::TermWindow;
+use crate::selection::{SelectionCoordinate, SelectionRange};
+use crate::termwindow::TermWindow;
 use config::keyassignment::ScrollbackEraseMode;
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId};

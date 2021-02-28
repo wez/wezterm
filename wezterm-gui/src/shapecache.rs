@@ -1,4 +1,4 @@
-use crate::gui::glyphcache::CachedGlyph;
+use crate::glyphcache::CachedGlyph;
 use ::window::bitmaps::Texture2d;
 use config::TextStyle;
 use std::rc::Rc;
@@ -210,10 +210,10 @@ impl<'a> std::hash::Hash for (dyn ShapeCacheKeyTrait + 'a) {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::gui::glyphcache::GlyphCache;
-    use crate::gui::shapecache::GlyphPosition;
-    use crate::gui::shapecache::ShapedInfo;
-    use crate::gui::utilsprites::RenderMetrics;
+    use crate::glyphcache::GlyphCache;
+    use crate::shapecache::GlyphPosition;
+    use crate::shapecache::ShapedInfo;
+    use crate::utilsprites::RenderMetrics;
     use config::TextStyle;
     use k9::assert_equal as assert_eq;
     use std::rc::Rc;

@@ -1,4 +1,4 @@
-use crate::gui::selection::{SelectionCoordinate, SelectionMode, SelectionRange};
+use crate::selection::{SelectionCoordinate, SelectionMode, SelectionRange};
 use ::window::WindowOps;
 use mux::pane::Pane;
 use std::rc::Rc;

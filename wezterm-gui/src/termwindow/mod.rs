@@ -2,17 +2,17 @@
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
-use crate::gui::glium::texture::SrgbTexture2d;
-use crate::gui::overlay::{
+use crate::glium::texture::SrgbTexture2d;
+use crate::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
     start_overlay, start_overlay_pane, tab_navigator, CopyOverlay, SearchOverlay,
 };
-use crate::gui::scrollbar::*;
-use crate::gui::selection::Selection;
-use crate::gui::shapecache::*;
-use crate::gui::tabbar::TabBarState;
 use crate::scripting::guiwin::GuiWin;
 use crate::scripting::pane::PaneObject;
+use crate::scrollbar::*;
+use crate::selection::Selection;
+use crate::shapecache::*;
+use crate::tabbar::TabBarState;
 use ::wezterm_term::input::MouseButton as TMB;
 use ::window::*;
 use anyhow::{anyhow, ensure};
@@ -62,7 +62,7 @@ lazy_static::lazy_static! {
     static ref WINDOW_CLASS: Mutex<String> = Mutex::new("org.wezfurlong.wezterm".to_owned());
 }
 
-pub const ICON_DATA: &'static [u8] = include_bytes!("../../../../assets/icon/terminal.png");
+pub const ICON_DATA: &'static [u8] = include_bytes!("../../../assets/icon/terminal.png");
 
 pub fn set_window_class(cls: &str) {
     *WINDOW_CLASS.lock().unwrap() = cls.to_owned();

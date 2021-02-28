@@ -1,6 +1,6 @@
-use crate::gui::tabbar::TabBarItem;
-use crate::gui::termwindow::keyevent::window_mods_to_termwiz_mods;
-use crate::gui::termwindow::{ScrollHit, TMB};
+use crate::tabbar::TabBarItem;
+use crate::termwindow::keyevent::window_mods_to_termwiz_mods;
+use crate::termwindow::{ScrollHit, TMB};
 use ::window::{
     Modifiers, MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress,
     WindowOps,
