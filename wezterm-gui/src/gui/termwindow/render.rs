@@ -1,8 +1,12 @@
+use crate::gui::glium::texture::SrgbTexture2d;
+use crate::gui::glyphcache::{CachedGlyph, GlyphCache};
+use crate::gui::shapecache::*;
 use crate::gui::termwindow::{
-    rgbcolor_alpha_to_window_color, rgbcolor_to_window_color, BorrowedShapeCacheKey, MappedQuads,
+    BorrowedShapeCacheKey, MappedQuads,
     RenderState, ScrollHit, ShapedInfo,
 };
-use ::window::bitmaps::{Texture2d, TextureCoord, TextureRect, TextureSize};
+use ::window::bitmaps::atlas::OutOfTextureSpace;
+use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
 use ::window::glium;
 use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
@@ -10,17 +14,21 @@ use ::window::glium::uniforms::{
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use anyhow::anyhow;
 use config::ConfigHandle;
+use config::TextStyle;
 use mux::pane::Pane;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
+use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::PixelLength;
+use wezterm_font::GlyphInfo;
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::bitmaps::atlas::SpriteSlice;
+use window::bitmaps::Texture2d;
 use window::Color;
 
 pub struct RenderScreenLineOpenGLParams<'a> {
@@ -58,6 +66,60 @@ pub struct ComputeCellFgBgResult {
 }
 
 impl super::TermWindow {
+    pub fn paint_impl(&mut self, frame: &mut glium::Frame) {
+        self.check_for_config_reload();
+        let start = std::time::Instant::now();
+
+        {
+            let background_alpha = (self.config.window_background_opacity * 255.0) as u8;
+            let palette = self.palette();
+            let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
+
+            let (r, g, b, a) = background.to_tuple_rgba();
+            frame.clear_color_srgb(r, g, b, a);
+        }
+
+        for pass in 0.. {
+            match self.paint_opengl_pass() {
+                Ok(_) => break,
+                Err(err) => {
+                    if let Some(&OutOfTextureSpace { size: Some(size) }) =
+                        err.downcast_ref::<OutOfTextureSpace>()
+                    {
+                        let result = if pass == 0 {
+                            // Let's try clearing out the atlas and trying again
+                            self.shape_cache.borrow_mut().clear();
+                            self.render_state
+                                .as_mut()
+                                .unwrap()
+                                .clear_texture_atlas(&self.render_metrics)
+                        } else {
+                            log::trace!("grow texture atlas to {}", size);
+                            self.recreate_texture_atlas(Some(size))
+                        };
+
+                        if let Err(err) = result {
+                            log::error!(
+                                "Failed to {} texture: {}",
+                                if pass == 0 { "clear" } else { "resize" },
+                                err
+                            );
+                            break;
+                        }
+                    } else {
+                        log::error!("paint_opengl_pass failed: {:#}", err);
+                        break;
+                    }
+                }
+            }
+        }
+
+        self.call_draw(frame).ok();
+        log::debug!("paint_pane_opengl elapsed={:?}", start.elapsed());
+        metrics::histogram!("gui.paint.opengl", start.elapsed());
+        self.update_title();
+    }
+
     pub fn paint_pane_opengl(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {
         let config = &self.config;
         let palette = pos.pane.palette();
@@ -988,4 +1050,53 @@ impl super::TermWindow {
             },
         }
     }
+
+    fn glyph_infos_to_glyphs(
+        &self,
+        cluster: &CellCluster,
+        line: &Line,
+        style: &TextStyle,
+        glyph_cache: &mut GlyphCache<SrgbTexture2d>,
+        infos: &[GlyphInfo],
+    ) -> anyhow::Result<Vec<Rc<CachedGlyph<SrgbTexture2d>>>> {
+        let mut glyphs = vec![];
+        for info in infos {
+            let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
+            let followed_by_space = match line.cells().get(cell_idx + 1) {
+                Some(cell) => cell.str() == " ",
+                None => false,
+            };
+
+            glyphs.push(glyph_cache.cached_glyph(info, &style, followed_by_space)?);
+        }
+        Ok(glyphs)
+    }
+
+    fn lookup_cached_shape(
+        &self,
+        key: &dyn ShapeCacheKeyTrait,
+    ) -> Option<anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>> {
+        match self.shape_cache.borrow_mut().get(key) {
+            Some(Ok(info)) => Some(Ok(Rc::clone(info))),
+            Some(Err(err)) => Some(Err(anyhow!("cached shaper error: {}", err))),
+            None => None,
+        }
+    }
+
+    fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
+        self.shape_cache.borrow_mut().clear();
+        self.render_state.as_mut().unwrap().recreate_texture_atlas(
+            &self.fonts,
+            &self.render_metrics,
+            size,
+        )
+    }
+}
+
+fn rgbcolor_to_window_color(color: RgbColor) -> Color {
+    rgbcolor_alpha_to_window_color(color, 0xff)
+}
+
+fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> Color {
+    Color::rgba(color.red, color.green, color.blue, alpha)
 }
