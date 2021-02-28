@@ -1,6 +1,6 @@
 use crate::gui::tabbar::TabBarItem;
 use crate::gui::termwindow::keyevent::window_mods_to_termwiz_mods;
-use crate::gui::termwindow::{mouse_press_to_tmb, ScrollHit, TMB};
+use crate::gui::termwindow::{ScrollHit, TMB};
 use ::window::{
     Modifiers, MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress,
     WindowOps,
@@ -478,5 +478,13 @@ impl super::TermWindow {
                 context.invalidate();
             }
         }
+    }
+}
+
+fn mouse_press_to_tmb(press: &MousePress) -> TMB {
+    match press {
+        MousePress::Left => TMB::Left,
+        MousePress::Right => TMB::Right,
+        MousePress::Middle => TMB::Middle,
     }
 }

@@ -196,7 +196,7 @@ impl RenderState {
         let mut indices = Vec::new();
 
         let config = configuration();
-        let padding_right = super::termwindow::effective_right_padding(&config, metrics);
+        let padding_right = super::termwindow::resize::effective_right_padding(&config, metrics);
         let avail_width =
             (width as usize).saturating_sub((config.window_padding.left + padding_right) as usize);
         let avail_height = (height as usize)
