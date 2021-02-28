@@ -455,8 +455,12 @@ impl<T: Texture2d> GlyphCache<T> {
 
         let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
 
-        let y_eighth = (self.metrics.cell_size.height / 8) as usize;
-        let x_eighth = (self.metrics.cell_size.width / 8) as usize;
+        let y_eighth = self.metrics.cell_size.height as f32 / 8.;
+        let x_eighth = self.metrics.cell_size.width as f32 / 8.;
+
+        fn scale(f: f32) -> usize {
+            f.ceil().max(1.) as usize
+        }
 
         buffer.clear_rect(cell_rect, black);
 
@@ -504,30 +508,32 @@ impl<T: Texture2d> GlyphCache<T> {
         match block {
             BlockKey::Upper(num) => {
                 for n in 0..usize::from(num) {
-                    for a in 0..y_eighth {
-                        draw_horizontal(&mut buffer, (n * y_eighth) + a);
+                    for a in 0..scale(y_eighth) {
+                        draw_horizontal(&mut buffer, scale(n as f32 * y_eighth) + a);
                     }
                 }
             }
             BlockKey::Lower(num) => {
                 for n in 0..usize::from(num) {
-                    let y = (self.metrics.cell_size.height - 1) as usize - (n * y_eighth);
-                    for a in 0..y_eighth {
+                    let y =
+                        (self.metrics.cell_size.height - 1) as usize - scale(n as f32 * y_eighth);
+                    for a in 0..scale(y_eighth) {
                         draw_horizontal(&mut buffer, y + a);
                     }
                 }
             }
             BlockKey::Left(num) => {
                 for n in 0..usize::from(num) {
-                    for a in 0..x_eighth {
-                        draw_vertical(&mut buffer, (n * x_eighth) + a);
+                    for a in 0..scale(x_eighth) {
+                        draw_vertical(&mut buffer, scale(n as f32 * x_eighth) + a);
                     }
                 }
             }
             BlockKey::Right(num) => {
                 for n in 0..usize::from(num) {
-                    let x = (self.metrics.cell_size.width - 1) as usize - (n * x_eighth);
-                    for a in 0..x_eighth {
+                    let x =
+                        (self.metrics.cell_size.width - 1) as usize - scale(n as f32 * x_eighth);
+                    for a in 0..scale(x_eighth) {
                         draw_vertical(&mut buffer, x + a);
                     }
                 }
@@ -545,27 +551,31 @@ impl<T: Texture2d> GlyphCache<T> {
             }
             BlockKey::Quadrants(quads) => {
                 if quads.contains(Quadrant::UPPER_LEFT) {
-                    draw_quad(&mut buffer, 0..(x_eighth * 4), 0..(y_eighth * 4));
+                    draw_quad(
+                        &mut buffer,
+                        0..scale(x_eighth * 4.),
+                        0..scale(y_eighth * 4.),
+                    );
                 }
                 if quads.contains(Quadrant::UPPER_RIGHT) {
                     draw_quad(
                         &mut buffer,
-                        (x_eighth * 4)..(x_eighth * 8),
-                        0..(y_eighth * 4),
+                        scale(x_eighth * 4.)..scale(x_eighth * 8.),
+                        0..scale(y_eighth * 4.),
                     );
                 }
                 if quads.contains(Quadrant::LOWER_LEFT) {
                     draw_quad(
                         &mut buffer,
-                        0..(x_eighth * 4),
-                        (y_eighth * 4)..(y_eighth * 8),
+                        0..scale(x_eighth * 4.),
+                        scale(y_eighth * 4.)..scale(y_eighth * 8.),
                     );
                 }
                 if quads.contains(Quadrant::LOWER_RIGHT) {
                     draw_quad(
                         &mut buffer,
-                        (x_eighth * 4)..(x_eighth * 8),
-                        (y_eighth * 4)..(y_eighth * 8),
+                        scale(x_eighth * 4.)..scale(x_eighth * 8.),
+                        scale(y_eighth * 4.)..scale(y_eighth * 8.),
                     );
                 }
             }
