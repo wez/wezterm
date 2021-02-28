@@ -607,7 +607,7 @@ pub enum ExitBehavior {
 
 impl Default for ExitBehavior {
     fn default() -> Self {
-        ExitBehavior::Close
+        ExitBehavior::CloseOnCleanExit
     }
 }
 
