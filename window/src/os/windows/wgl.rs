@@ -1,5 +1,4 @@
 use super::*;
-use crate::is_swrast_preferred;
 use glium::backend::Backend;
 use std::ffi::CStr;
 use std::io::Error as IoError;
@@ -94,7 +93,7 @@ impl WglWrapper {
     }
 
     fn create() -> anyhow::Result<Self> {
-        if is_swrast_preferred() {
+        if crate::configuration::config().prefer_swrast() {
             let mesa_dir = std::env::current_exe()
                 .unwrap()
                 .parent()
