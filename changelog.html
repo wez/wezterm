@@ -201,8 +201,9 @@ brief notes about them may accumulate here.</p>
 <li>Windows: Fixed <a href="config/lua/keyassignment/ToggleFullScreen.html">ToggleFullScreen</a> so that it once again toggles between full screen and normal placement. <a href="https://github.com/wez/wezterm/issues/177">#177</a></li>
 <li>New: <a href="config/lua/config/exit_behavior.html">exit_behavior</a> config option to keep panes open after the program has completed. <a href="https://github.com/wez/wezterm/issues/499">#499</a></li>
 <li>Closing the configuration error window no longer requires confirmation</li>
-<li>New: added <code>--config name=value</code> options to <code>wezterm</code>, <code>wezterm-gui</code> and <code>wezterm-mux-server</code>.  The <code>--font-locator</code>, <code>--font-rasterizer</code> and <code>--font-shaper</code> CLI options have been removed in favor of this new mechanism.</li>
+<li>New: added <code>--config name=value</code> options to <code>wezterm</code>, <code>wezterm-gui</code> and <code>wezterm-mux-server</code>.  The <code>--front-end</code>, <code>--font-locator</code>, <code>--font-rasterizer</code> and <code>--font-shaper</code> CLI options have been removed in favor of this new mechanism.</li>
 <li>New: <a href="config/lua/window/set_config_overrides.html">window:set_config_overrides</a> method that can be used to override GUI related configuration options on a per-window basis. Click through to see examples of dynamically toggling ligatures and window opacity. <a href="https://github.com/wez/wezterm/issues/469">#469</a> <a href="https://github.com/wez/wezterm/issues/329">#329</a></li>
+<li>Fixed: line-based mouse selection (default: triple click) now extends forwards to include wrapped lines. <a href="https://github.com/wez/wezterm/issues/466">#466</a></li>
 </ul>
 <h3 id="20210203-095643-70a364eb"><a class="header" href="#20210203-095643-70a364eb">20210203-095643-70a364eb</a></h3>
 <ul>
