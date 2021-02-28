@@ -5718,14 +5718,14 @@ that removes the ambiguity in a mostly-backwards-compatible way, but that
 requires that applications also know about this encoding scheme to have
 the best results.</p>
 <p>The default for this option is <code>false</code>.</p>
-<h2 id="exit_behavior--close"><a class="header" href="#exit_behavior--close"><code>exit_behavior = &quot;Close&quot;</code></a></h2>
+<h2 id="exit_behavior--closeoncleanexit"><a class="header" href="#exit_behavior--closeoncleanexit"><code>exit_behavior = &quot;CloseOnCleanExit&quot;</code></a></h2>
 <p><em>Since: nightly builds only</em></p>
 <p>Controls the behavior when the shell program spawned by the terminal exits.
 There are three possible values:</p>
 <ul>
-<li><code>&quot;Close&quot;</code> - close the corresponding pane as soon as the program exits. This is the default setting.</li>
+<li><code>&quot;Close&quot;</code> - close the corresponding pane as soon as the program exits.</li>
 <li><code>&quot;Hold&quot;</code> - keep the pane open after the program exits. The pane must be manually closed via <a href="config/lua/config/../keyassignment/CloseCurrentPane.html">CloseCurrentPane</a>, <a href="config/lua/config/../keyassignment/CloseCurrentTab.html">CloseCurrentTab</a> or closing the window.</li>
-<li><code>&quot;CloseOnCleanExit&quot;</code> - if the shell program exited with a successful status, behave like <code>&quot;Close&quot;</code>, otherwise, behave like <code>&quot;Hold&quot;</code>.</li>
+<li><code>&quot;CloseOnCleanExit&quot;</code> - if the shell program exited with a successful status, behave like <code>&quot;Close&quot;</code>, otherwise, behave like <code>&quot;Hold&quot;</code>.  This is the default setting.</li>
 </ul>
 <pre><code class="language-lua">return {
   exit_behavior = &quot;Hold&quot;,
