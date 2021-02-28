@@ -53,7 +53,12 @@ where
         for (info, glyph) in infos.iter().zip(glyphs.iter()) {
             if !info.is_space && glyph.texture.is_none() {
                 if let Some(shaped) = pos.last_mut() {
-                    if shaped.pos.bitmap_pixel_width as f32 > shaped.pos.bearing_x {
+                    // if bearing_x == 0, then the glyph could be a blank
+                    // in a <blank>, <blank>, "..." sequence, and it shouldn't
+                    // be swept into the "a" in a sequence like "a..."
+                    if shaped.pos.bearing_x > 0.
+                        && shaped.pos.bitmap_pixel_width as f32 > shaped.pos.bearing_x
+                    {
                         // This space-like glyph belongs to the preceding glyph
                         shaped.pos.num_cells += 1;
                         continue;
@@ -214,7 +219,7 @@ mod test {
     use crate::shapecache::GlyphPosition;
     use crate::shapecache::ShapedInfo;
     use crate::utilsprites::RenderMetrics;
-    use config::TextStyle;
+    use config::{FontAttributes, TextStyle};
     use k9::assert_equal as assert_eq;
     use std::rc::Rc;
     use termwiz::cell::CellAttributes;
@@ -263,7 +268,55 @@ mod test {
     }
 
     #[test]
-    fn ligatures() {
+    fn ligatures_fira() {
+        config::use_test_configuration();
+        let _ = pretty_env_logger::formatted_builder()
+            .is_test(true)
+            .filter_level(log::LevelFilter::Trace)
+            .try_init();
+
+        let config = config::configuration();
+        let mut config: config::Config = (*config).clone();
+        config.font = TextStyle {
+            font: vec![FontAttributes::new("Fira Code")],
+            foreground: None,
+        };
+        config.font_rules.clear();
+        config.compute_extra_defaults(None);
+        config::use_this_configuration(config);
+
+        let fonts = Rc::new(FontConfiguration::new(None).unwrap());
+        let render_metrics = RenderMetrics::new(&fonts).unwrap();
+        let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128, &render_metrics).unwrap();
+
+        let style = TextStyle::default();
+        let font = fonts.resolve_font(&style).unwrap();
+
+        assert_eq!(
+            cluster_and_shape(&mut glyph_cache, &style, &font, "a..."),
+            vec![
+                GlyphPosition {
+                    glyph_idx: 180,
+                    cluster: 0,
+                    num_cells: 1,
+                    x_offset: PixelLength::new(0.0),
+                    bearing_x: 0.0,
+                    bitmap_pixel_width: 7,
+                },
+                GlyphPosition {
+                    glyph_idx: 637,
+                    cluster: 1,
+                    num_cells: 3,
+                    x_offset: PixelLength::new(0.0),
+                    bearing_x: 4.0,
+                    bitmap_pixel_width: 16,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn ligatures_jetbrains() {
         config::use_test_configuration();
         let _ = pretty_env_logger::formatted_builder()
             .is_test(true)
@@ -325,6 +378,28 @@ mod test {
                     x_offset: PixelLength::new(0.0),
                     bearing_x: 1.0,
                     bitmap_pixel_width: 6,
+                },
+            ]
+        );
+
+        assert_eq!(
+            cluster_and_shape(&mut glyph_cache, &style, &font, "a..."),
+            vec![
+                GlyphPosition {
+                    glyph_idx: 180,
+                    cluster: 0,
+                    num_cells: 1,
+                    x_offset: PixelLength::new(0.0),
+                    bearing_x: 0.0,
+                    bitmap_pixel_width: 7,
+                },
+                GlyphPosition {
+                    glyph_idx: 637,
+                    cluster: 1,
+                    num_cells: 3,
+                    x_offset: PixelLength::new(0.0),
+                    bearing_x: 4.0,
+                    bitmap_pixel_width: 16,
                 },
             ]
         );

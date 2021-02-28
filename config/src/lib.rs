@@ -305,6 +305,10 @@ pub fn use_test_configuration() {
     CONFIG.use_test();
 }
 
+pub fn use_this_configuration(config: Config) {
+    CONFIG.use_this_config(config);
+}
+
 /// Returns a handle to the current configuration
 pub fn configuration() -> ConfigHandle {
     CONFIG.get()
@@ -464,6 +468,10 @@ impl ConfigInner {
     fn use_test(&mut self) {
         let mut config = Config::default_config();
         config.font_locator = FontLocatorSelection::ConfigDirsOnly;
+        let exe_name = std::env::current_exe().unwrap();
+        config
+            .font_dirs
+            .push(exe_name.parent().unwrap().join("../../../assets/fonts"));
         // Specify the same DPI used on non-mac systems so
         // that we have consistent values regardless of the
         // operating system that we're running tests on
@@ -1317,7 +1325,7 @@ impl Config {
 
     /// In some cases we need to compute expanded values based
     /// on those provided by the user.  This is where we do that.
-    fn compute_extra_defaults(&self, config_path: Option<&Path>) -> Self {
+    pub fn compute_extra_defaults(&self, config_path: Option<&Path>) -> Self {
         let mut cfg = self.clone();
 
         // Convert any relative font dirs to their config file relative locations

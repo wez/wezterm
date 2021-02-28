@@ -218,6 +218,7 @@ impl TextStyle {
                 .trim_end_matches(" Thin")
                 .trim_end_matches(" Extra Light")
                 .trim_end_matches(" Normal")
+                .trim_end_matches(" Regular")
                 .trim_end_matches(" Medium")
                 .trim_end_matches(" Semi Bold")
                 .trim_end_matches(" Bold")

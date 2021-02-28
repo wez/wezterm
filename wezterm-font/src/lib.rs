@@ -214,11 +214,6 @@ impl FontConfigInner {
     /// Given a text style, load (with caching) the font that best
     /// matches according to the fontconfig pattern.
     fn resolve_font(&self, myself: &Rc<Self>, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
-        let global_config = configuration();
-        let current_generation = global_config.generation();
-        if current_generation != self.config.borrow().generation() {
-            self.config_changed(&global_config)?;
-        }
         let config = self.config.borrow();
 
         let mut fonts = self.fonts.borrow_mut();
