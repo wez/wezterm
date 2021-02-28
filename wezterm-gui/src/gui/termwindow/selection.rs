@@ -99,8 +99,8 @@ impl super::TermWindow {
 
         // This is similar to the logic in the copy mode overlay, but the gap
         // is smaller because it feels more natural for mouse selection to have
-        // a smaller gpa.
-        const VERTICAL_GAP: isize = 2;
+        // a smaller gap.
+        const VERTICAL_GAP: isize = 1;
         let dims = pane.get_dimensions();
         let top = self
             .get_viewport(pane.pane_id())
