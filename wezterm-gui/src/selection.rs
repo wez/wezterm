@@ -67,12 +67,22 @@ impl SelectionRange {
     }
 
     /// Computes the selection range for the line around the specified coords
-    pub fn line_around(start: SelectionCoordinate) -> Self {
+    pub fn line_around(start: SelectionCoordinate, pane: &dyn Pane) -> Self {
+        let mut end_y = start.y;
+        loop {
+            let next_y = end_y + 1;
+            let (_, lines) = pane.get_lines(end_y..next_y);
+            if !lines[0].last_cell_was_wrapped() {
+                break;
+            }
+            end_y = next_y;
+        }
+
         Self {
             start: SelectionCoordinate { x: 0, y: start.y },
             end: SelectionCoordinate {
                 x: usize::max_value(),
-                y: start.y,
+                y: end_y,
             },
         }
     }

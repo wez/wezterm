@@ -66,14 +66,14 @@ impl super::TermWindow {
                 self.selection(pane.pane_id()).range = Some(selection_range);
             }
             SelectionMode::Line => {
-                let end_line = SelectionRange::line_around(SelectionCoordinate { x, y });
+                let end_line = SelectionRange::line_around(SelectionCoordinate { x, y }, &**pane);
 
                 let start_coord = self
                     .selection(pane.pane_id())
                     .start
                     .clone()
                     .unwrap_or(end_line.start);
-                let start_line = SelectionRange::line_around(start_coord);
+                let start_line = SelectionRange::line_around(start_coord, &**pane);
 
                 let selection_range = start_line.extend_with(end_line);
                 self.selection(pane.pane_id()).range = Some(selection_range);
@@ -129,7 +129,7 @@ impl super::TermWindow {
         match mode {
             SelectionMode::Line => {
                 let start = SelectionCoordinate { x, y };
-                let selection_range = SelectionRange::line_around(start);
+                let selection_range = SelectionRange::line_around(start, &**pane);
 
                 self.selection(pane.pane_id()).start = Some(start);
                 self.selection(pane.pane_id()).range = Some(selection_range);
