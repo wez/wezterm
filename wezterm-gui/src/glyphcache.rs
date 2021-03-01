@@ -496,7 +496,11 @@ impl<T: Texture2d> GlyphCache<T> {
                         cell_rect.origin.y + y as isize,
                     ),
                     Point::new(
-                        cell_rect.origin.x + x.end as isize,
+                        // Note: draw_line uses inclusive coordinates, but our
+                        // range is exclusive coordinates, so compensate here!
+                        // We don't need to do this for `y` since we are already
+                        // iterating over the correct set of `y` values in our loop.
+                        cell_rect.origin.x + x.end.saturating_sub(1) as isize,
                         cell_rect.origin.y + y as isize,
                     ),
                     white,
@@ -550,33 +554,21 @@ impl<T: Texture2d> GlyphCache<T> {
                 buffer.clear_rect(cell_rect, fill);
             }
             BlockKey::Quadrants(quads) => {
+                let y_half = self.metrics.cell_size.height as f32 / 2.;
+                let x_half = self.metrics.cell_size.width as f32 / 2.;
+                let width = self.metrics.cell_size.width as usize;
+                let height = self.metrics.cell_size.height as usize;
                 if quads.contains(Quadrant::UPPER_LEFT) {
-                    draw_quad(
-                        &mut buffer,
-                        0..scale(x_eighth * 4.),
-                        0..scale(y_eighth * 4.),
-                    );
+                    draw_quad(&mut buffer, 0..scale(x_half), 0..scale(y_half));
                 }
                 if quads.contains(Quadrant::UPPER_RIGHT) {
-                    draw_quad(
-                        &mut buffer,
-                        scale(x_eighth * 4.)..scale(x_eighth * 8.),
-                        0..scale(y_eighth * 4.),
-                    );
+                    draw_quad(&mut buffer, scale(x_half)..width, 0..scale(y_half));
                 }
                 if quads.contains(Quadrant::LOWER_LEFT) {
-                    draw_quad(
-                        &mut buffer,
-                        0..scale(x_eighth * 4.),
-                        scale(y_eighth * 4.)..scale(y_eighth * 8.),
-                    );
+                    draw_quad(&mut buffer, 0..scale(x_half), scale(y_half)..height);
                 }
                 if quads.contains(Quadrant::LOWER_RIGHT) {
-                    draw_quad(
-                        &mut buffer,
-                        scale(x_eighth * 4.)..scale(x_eighth * 8.),
-                        scale(y_eighth * 4.)..scale(y_eighth * 8.),
-                    );
+                    draw_quad(&mut buffer, scale(x_half)..width, scale(y_half)..height);
                 }
             }
         }
