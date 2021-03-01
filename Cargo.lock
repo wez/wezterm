@@ -2426,10 +2426,11 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "open"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c283bf0114efea9e42f1a60edea9859e8c47528eae09d01df4b29c1e489cc48"
+checksum = "8e288ead50d896dde82f3c18b64e40a2bf3e941225aa5c6b35a3e8e7b6b21d6f"
 dependencies = [
+ "which",
  "winapi 0.3.9",
 ]
 
@@ -4582,6 +4583,16 @@ dependencies = [
  "winrt-notification",
  "zbus",
  "zvariant",
+]
+
+[[package]]
+name = "which"
+version = "4.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87c14ef7e1b8b8ecfc75d5eca37949410046e66f15d185c01d70824f1f8111ef"
+dependencies = [
+ "libc",
+ "thiserror",
 ]
 
 [[package]]
