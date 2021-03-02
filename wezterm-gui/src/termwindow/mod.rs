@@ -109,6 +109,7 @@ pub struct TermWindow {
     show_tab_bar: bool,
     show_scroll_bar: bool,
     tab_bar: TabBarState,
+    pub right_status: String,
     last_mouse_coords: (usize, i64),
     last_mouse_terminal_coords: (usize, StableRowIndex),
     scroll_drag_start: Option<isize>,
@@ -253,6 +254,7 @@ impl WindowCallbacks for TermWindow {
             show_tab_bar: self.show_tab_bar,
             show_scroll_bar: self.show_scroll_bar,
             tab_bar: self.tab_bar.clone(),
+            right_status: self.right_status.clone(),
             last_mouse_coords: self.last_mouse_coords.clone(),
             last_mouse_terminal_coords: self.last_mouse_terminal_coords.clone(),
             scroll_drag_start: self.scroll_drag_start.clone(),
@@ -465,6 +467,7 @@ impl TermWindow {
                 show_tab_bar,
                 show_scroll_bar: config.enable_scroll_bar,
                 tab_bar: TabBarState::default(),
+                right_status: String::new(),
                 last_mouse_coords: (0, -1),
                 last_mouse_terminal_coords: (0, 0),
                 scroll_drag_start: None,
@@ -503,17 +506,63 @@ impl TermWindow {
     }
 
     fn start_periodic_maintenance(window: Window) {
-        Connection::get().unwrap().schedule_timer(
-            std::time::Duration::from_millis(35),
-            move || {
+        Connection::get()
+            .unwrap()
+            .schedule_timer(std::time::Duration::from_millis(35), {
+                let window = window.clone();
+                move || {
+                    window.apply(move |myself, window| {
+                        if let Some(myself) = myself.downcast_mut::<Self>() {
+                            myself.periodic_window_maintenance(window)?;
+                        }
+                        Ok(())
+                    });
+                }
+            });
+        Connection::get()
+            .unwrap()
+            .schedule_timer(std::time::Duration::from_secs(1), move || {
                 window.apply(move |myself, window| {
                     if let Some(myself) = myself.downcast_mut::<Self>() {
-                        myself.periodic_window_maintenance(window)?;
+                        myself.emit_status_event(window)?;
                     }
                     Ok(())
                 });
-            },
-        );
+            });
+    }
+
+    fn emit_status_event(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
+            None => return Ok(()),
+        };
+
+        let window = GuiWin::new(self);
+        let pane = PaneObject::new(&pane);
+
+        async fn do_status(
+            lua: Option<Rc<mlua::Lua>>,
+            window: GuiWin,
+            pane: PaneObject,
+        ) -> anyhow::Result<()> {
+            if let Some(lua) = lua {
+                let args = lua.pack_multi((window, pane))?;
+
+                config::lua::emit_event(&lua, ("update-right-status".to_string(), args))
+                    .await
+                    .map_err(|e| {
+                        log::error!("while processing update-right-status event: {:#}", e);
+                        e
+                    })?;
+            }
+            Ok(())
+        }
+
+        promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+            do_status(lua, window, pane)
+        }))
+        .detach();
+        Ok(())
     }
 
     fn periodic_window_maintenance(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
@@ -694,7 +743,7 @@ impl TermWindow {
         }
     }
 
-    fn update_title(&mut self) {
+    pub fn update_title(&mut self) {
         let mux = Mux::get().unwrap();
         let window = match mux.get_window(self.mux_window_id) {
             Some(window) => window,
@@ -711,6 +760,7 @@ impl TermWindow {
             &window,
             self.config.colors.as_ref().and_then(|c| c.tab_bar.as_ref()),
             &self.config,
+            &self.right_status,
         );
         if new_tab_bar != self.tab_bar {
             self.tab_bar = new_tab_bar;

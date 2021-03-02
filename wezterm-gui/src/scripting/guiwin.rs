@@ -47,6 +47,14 @@ impl GuiWin {
 impl UserData for GuiWin {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method("window_id", |_, this, _: ()| Ok(this.mux_window_id));
+        methods.add_async_method("set_right_status", |_, this, status: String| async move {
+            this.with_term_window(move |term_window, _ops| {
+                term_window.right_status = status.clone();
+                term_window.update_title();
+                Ok(())
+            })
+            .await
+        });
         methods.add_async_method(
             "perform_action",
             |_, this, (assignment, pane): (KeyAssignment, PaneObject)| async move {

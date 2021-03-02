@@ -4,6 +4,9 @@ use std::cell::Ref;
 use termwiz::cell::unicode_column_width;
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::ColorSpec;
+use termwiz::escape::csi::Sgr;
+use termwiz::escape::parser::Parser;
+use termwiz::escape::{Action, ControlCode, CSI};
 use unicode_segmentation::UnicodeSegmentation;
 use wezterm_term::Line;
 
@@ -49,6 +52,7 @@ impl TabBarState {
         window: &Ref<MuxWindow>,
         colors: Option<&TabBarColors>,
         config: &ConfigHandle,
+        right_status: &str,
     ) -> Self {
         // We ultimately want to produce a line looking like this:
         // ` | tab1-title x | tab2-title x |  +      . - X `
@@ -180,8 +184,17 @@ impl TabBarState {
                 .set_background(ColorSpec::TrueColor(colors.background))
                 .clone(),
         );
+
         for idx in x..title_width {
             line.set_cell(idx, black_cell.clone());
+        }
+
+        let rhs_cells = parse_status_text(right_status, black_cell.attrs().clone());
+        let rhs_len = rhs_cells.len().min(title_width.saturating_sub(x));
+        let skip = rhs_cells.len() - rhs_len;
+
+        for (idx, cell) in rhs_cells.into_iter().skip(skip).rev().enumerate() {
+            line.set_cell(title_width - (1 + idx), cell);
         }
 
         Self { line, items }
@@ -196,4 +209,94 @@ impl TabBarState {
         }
         TabBarItem::None
     }
+}
+
+fn parse_status_text(text: &str, default_cell: CellAttributes) -> Vec<Cell> {
+    let mut pen = default_cell.clone();
+    let mut cells = vec![];
+    let mut ignoring = false;
+    let mut print_buffer = String::new();
+
+    fn flush_print(buf: &mut String, cells: &mut Vec<Cell>, pen: &CellAttributes) {
+        for g in unicode_segmentation::UnicodeSegmentation::graphemes(buf.as_str(), true) {
+            cells.push(Cell::new_grapheme(g, pen.clone()));
+        }
+        buf.clear();
+    }
+
+    let mut parser = Parser::new();
+    parser.parse(text.as_bytes(), |action| {
+        if ignoring {
+            return;
+        }
+        match action {
+            Action::Print(c) => print_buffer.push(c),
+            Action::Control(c) => {
+                flush_print(&mut print_buffer, &mut cells, &pen);
+                match c {
+                    ControlCode::CarriageReturn | ControlCode::LineFeed => {
+                        ignoring = true;
+                    }
+                    _ => {}
+                }
+            }
+            Action::CSI(csi) => {
+                flush_print(&mut print_buffer, &mut cells, &pen);
+                match csi {
+                    CSI::Sgr(sgr) => match sgr {
+                        Sgr::Reset => pen = default_cell.clone(),
+                        Sgr::Intensity(i) => {
+                            pen.set_intensity(i);
+                        }
+                        Sgr::Underline(u) => {
+                            pen.set_underline(u);
+                        }
+                        Sgr::Overline(o) => {
+                            pen.set_overline(o);
+                        }
+                        Sgr::Blink(b) => {
+                            pen.set_blink(b);
+                        }
+                        Sgr::Italic(i) => {
+                            pen.set_italic(i);
+                        }
+                        Sgr::Inverse(inverse) => {
+                            pen.set_reverse(inverse);
+                        }
+                        Sgr::Invisible(invis) => {
+                            pen.set_invisible(invis);
+                        }
+                        Sgr::StrikeThrough(strike) => {
+                            pen.set_strikethrough(strike);
+                        }
+                        Sgr::Foreground(col) => {
+                            pen.set_foreground(col);
+                        }
+                        Sgr::Background(col) => {
+                            pen.set_background(col);
+                        }
+                        Sgr::UnderlineColor(col) => {
+                            pen.set_underline_color(col);
+                        }
+                        Sgr::Font(_) => {}
+                    },
+                    _ => {}
+                }
+            }
+            Action::Esc(_) => {
+                flush_print(&mut print_buffer, &mut cells, &pen);
+            }
+            Action::Sixel(_) => {
+                flush_print(&mut print_buffer, &mut cells, &pen);
+            }
+            Action::DeviceControl(_) => {
+                flush_print(&mut print_buffer, &mut cells, &pen);
+            }
+            Action::OperatingSystemCommand(_) => {
+                flush_print(&mut print_buffer, &mut cells, &pen);
+            }
+        }
+    });
+    flush_print(&mut print_buffer, &mut cells, &pen);
+    cells
 }
