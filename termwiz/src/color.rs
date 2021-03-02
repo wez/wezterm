@@ -7,7 +7,8 @@ use num_derive::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, FromPrimitive)]
+#[derive(Debug, Clone, Copy, FromPrimitive, PartialEq, Eq)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[repr(u8)]
 /// These correspond to the classic ANSI color indices and are
 /// used for convenience/readability in code

@@ -7,7 +7,10 @@ use mlua::{Lua, Table, Value};
 use serde::*;
 use smol::prelude::*;
 use std::path::Path;
+use termwiz::cell::{AttributeChange, CellAttributes};
+use termwiz::color::{AnsiColor, ColorAttribute, ColorSpec, RgbColor};
 use termwiz::input::Modifiers;
+use termwiz::surface::change::Change;
 
 /// Set up a lua context for executing some code.
 /// The path to the directory containing the configuration is
@@ -129,6 +132,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("on", lua.create_function(register_event)?)?;
         wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
         wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
+        wezterm_mod.set("format", lua.create_function(format)?)?;
 
         package.set("path", path_array.join(";"))?;
 
@@ -137,6 +141,110 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
     }
 
     Ok(lua)
+}
+
+use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
+use termwiz::render::terminfo::TerminfoRenderer;
+
+fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
+    let data = include_bytes!("../../termwiz/data/xterm-256color");
+    let db = terminfo::Database::from_buffer(&data[..]).unwrap();
+
+    TerminfoRenderer::new(
+        Capabilities::new_with_hints(
+            ProbeHints::new_from_env()
+                .term(Some("xterm-256color".into()))
+                .terminfo_db(Some(db))
+                .color_level(Some(ColorLevel::TrueColor))
+                .colorterm(None)
+                .colorterm_bce(None)
+                .term_program(Some("WezTerm".into()))
+                .term_program_version(Some(crate::wezterm_version().into())),
+        )
+        .expect("cannot fail to make internal Capabilities"),
+    )
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(transparent)]
+struct ChangeWrap(Change);
+impl_lua_conversion!(ChangeWrap);
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+enum FormatColor {
+    AnsiColor(AnsiColor),
+    Color(String),
+}
+
+impl FormatColor {
+    fn to_attr(self) -> ColorAttribute {
+        let spec: ColorSpec = self.into();
+        let attr: ColorAttribute = spec.into();
+        attr
+    }
+}
+
+impl Into<ColorSpec> for FormatColor {
+    fn into(self) -> ColorSpec {
+        match self {
+            FormatColor::AnsiColor(c) => c.into(),
+            FormatColor::Color(s) => {
+                let rgb = RgbColor::from_named_or_rgb_string(&s)
+                    .unwrap_or(RgbColor::new(0xff, 0xff, 0xff));
+                rgb.into()
+            }
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+enum FormatItem {
+    Foreground(FormatColor),
+    Background(FormatColor),
+    Attribute(AttributeChange),
+    Text(String),
+}
+impl_lua_conversion!(FormatItem);
+
+impl Into<Change> for FormatItem {
+    fn into(self) -> Change {
+        match self {
+            Self::Attribute(change) => change.into(),
+            Self::Text(t) => t.into(),
+            Self::Foreground(c) => AttributeChange::Foreground(c.to_attr()).into(),
+            Self::Background(c) => AttributeChange::Background(c.to_attr()).into(),
+        }
+    }
+}
+
+struct FormatTarget {
+    target: Vec<u8>,
+}
+
+impl std::io::Write for FormatTarget {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        std::io::Write::write(&mut self.target, buf)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+impl termwiz::render::RenderTty for FormatTarget {
+    fn get_size_in_cells(&mut self) -> termwiz::Result<(usize, usize)> {
+        Ok((80, 24))
+    }
+}
+
+fn format<'lua>(_: &'lua Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
+    let mut changes: Vec<Change> = items.into_iter().map(Into::into).collect();
+    changes.push(Change::AllAttributes(CellAttributes::default()).into());
+    let mut renderer = new_wezterm_terminfo_renderer();
+    let mut target = FormatTarget { target: vec![] };
+    renderer
+        .render_to(&changes, &mut target)
+        .map_err(|e| mlua::Error::external(e))?;
+    String::from_utf8(target.target).map_err(|e| mlua::Error::external(e))
 }
 
 async fn sleep_ms<'lua>(_: &'lua Lua, milliseconds: u64) -> mlua::Result<()> {

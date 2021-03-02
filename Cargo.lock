@@ -689,6 +689,7 @@ dependencies = [
  "serde",
  "serde_json",
  "smol",
+ "terminfo",
  "termwiz",
  "toml",
  "umask",
