@@ -2990,6 +2990,10 @@ impl<'a> Performer<'a> {
                 }
             }
             ControlCode::RI => self.c1_reverse_index(),
+            ControlCode::ShiftIn | ControlCode::ShiftOut => {
+                // These sequences are used to switch between character sets.
+                // wezterm only supports UTF-8, so these do nothing.
+            }
             _ => error!("unhandled ControlCode {:?}", control),
         }
     }
