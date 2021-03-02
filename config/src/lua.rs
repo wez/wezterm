@@ -89,6 +89,20 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
                 Ok(())
             })?,
         )?;
+        wezterm_mod.set(
+            "log_info",
+            lua.create_function(|_, msg: String| {
+                log::info!("lua: {}", msg);
+                Ok(())
+            })?,
+        )?;
+        wezterm_mod.set(
+            "log_warn",
+            lua.create_function(|_, msg: String| {
+                log::warn!("lua: {}", msg);
+                Ok(())
+            })?,
+        )?;
 
         wezterm_mod.set("font", lua.create_function(font)?)?;
         wezterm_mod.set(
