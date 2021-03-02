@@ -15,6 +15,7 @@ A clear and concise description of what the bug is.
 
  - OS: [e.g. Linux X11, Linux Wayland, macOS, Windows]
  - Version: please run `wezterm -V` and include its output here
+ - The active keyboard layout name (eg: ENG, DEU and so on)
 
 ## To Reproduce
 
