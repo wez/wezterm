@@ -555,6 +555,7 @@ dependencies = [
  "libc",
  "num-integer",
  "num-traits 0.2.14",
+ "pure-rust-locales",
  "time",
  "winapi 0.3.9",
 ]
@@ -674,6 +675,7 @@ dependencies = [
  "anyhow",
  "bitflags",
  "bstr 0.2.15",
+ "chrono",
  "dirs-next",
  "filenamegen",
  "hostname",
@@ -2868,6 +2870,12 @@ dependencies = [
  "memchr",
  "unicase",
 ]
+
+[[package]]
+name = "pure-rust-locales"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f72f6d09f6d70d4e704070c8d6d77e759f9b7f7820609ac0fe7776bbc7ce09d"
 
 [[package]]
 name = "quick-error"

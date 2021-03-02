@@ -133,6 +133,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
         wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
         wezterm_mod.set("format", lua.create_function(format)?)?;
+        wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
 
         package.set("path", path_array.join(";"))?;
 
@@ -234,6 +235,12 @@ impl termwiz::render::RenderTty for FormatTarget {
     fn get_size_in_cells(&mut self) -> termwiz::Result<(usize, usize)> {
         Ok((80, 24))
     }
+}
+
+fn strftime<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
+    use chrono::prelude::*;
+    let local: DateTime<Local> = Local::now();
+    Ok(local.format(&format).to_string())
 }
 
 fn format<'lua>(_: &'lua Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
