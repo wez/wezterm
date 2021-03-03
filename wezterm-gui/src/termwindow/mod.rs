@@ -519,9 +519,28 @@ impl TermWindow {
                     });
                 }
             });
+
+        // Trigger an initial status update
+        {
+            let window = window.clone();
+            promise::spawn::spawn(async move {
+                window
+                    .apply(move |tw, ops| {
+                        if let Some(term_window) = tw.downcast_mut::<TermWindow>() {
+                            term_window.emit_status_event(ops)?;
+                        }
+                        Ok(())
+                    })
+                    .await
+            })
+            .detach();
+        }
+
+        let interval = configuration().status_update_interval;
+        let interval = std::time::Duration::from_millis(interval);
         Connection::get()
             .unwrap()
-            .schedule_timer(std::time::Duration::from_secs(1), move || {
+            .schedule_timer(interval, move || {
                 window.apply(move |myself, window| {
                     if let Some(myself) = myself.downcast_mut::<Self>() {
                         myself.emit_status_event(window)?;

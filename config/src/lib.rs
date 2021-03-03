@@ -1039,8 +1039,15 @@ pub struct Config {
 
     #[serde(default = "default_alternate_buffer_wheel_scroll_speed")]
     pub alternate_buffer_wheel_scroll_speed: u8,
+
+    #[serde(default = "default_status_update_interval")]
+    pub status_update_interval: u64,
 }
 impl_lua_conversion!(Config);
+
+fn default_status_update_interval() -> u64 {
+    1_000
+}
 
 fn default_alternate_buffer_wheel_scroll_speed() -> u8 {
     3
