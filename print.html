@@ -2963,6 +2963,16 @@ directory:</p>
 undercurl:</p>
 <pre><code class="language-bash">env TERM=wezterm nvim
 </code></pre>
+<h2 id="i-use-powershell-for-my-shell-and-i-have-problems-with-cursor-keys-in-other-apps"><a class="header" href="#i-use-powershell-for-my-shell-and-i-have-problems-with-cursor-keys-in-other-apps">I use Powershell for my shell, and I have problems with cursor keys in other apps</a></h2>
+<p>Powershell has <a href="https://github.com/PowerShell/PowerShell/issues/12268">an open issue</a> where it
+enables the <a href="https://vt100.net/docs/vt510-rm/DECCKM">DECCKM</a> mode of the terminal and does
+not restore it prior to launching external commands.</p>
+<p>The consequence of enabling DECCKM is that cursor keys switch from being
+reported as eg: <code>ESC [ A</code> (for UpArrow) to <code>ESC O A</code>.</p>
+<p>Some applications don't know how to deal with this and as a consequence, won't
+see the cursor keys.</p>
+<p>This is not an issue in WezTerm; the same issue manifests in any terminal
+emulator that runs powershell.</p>
 <h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
 <p>This is a spare time project, so please bear with me.  There are a couple of channels for support:</p>
 <ul>
