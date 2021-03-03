@@ -49,8 +49,10 @@ impl UserData for GuiWin {
         methods.add_method("window_id", |_, this, _: ()| Ok(this.mux_window_id));
         methods.add_async_method("set_right_status", |_, this, status: String| async move {
             this.with_term_window(move |term_window, _ops| {
-                term_window.right_status = status.clone();
-                term_window.update_title();
+                if status != term_window.right_status {
+                    term_window.right_status = status.clone();
+                    term_window.update_title_post_status();
+                }
                 Ok(())
             })
             .await

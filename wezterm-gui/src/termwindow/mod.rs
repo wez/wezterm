@@ -505,6 +505,23 @@ impl TermWindow {
         Ok(())
     }
 
+    fn schedule_status_update(&self) {
+        if let Some(window) = self.window.as_ref() {
+            let window = window.clone();
+            promise::spawn::spawn(async move {
+                window
+                    .apply(move |tw, ops| {
+                        if let Some(term_window) = tw.downcast_mut::<TermWindow>() {
+                            term_window.emit_status_event(ops)?;
+                        }
+                        Ok(())
+                    })
+                    .await
+            })
+            .detach();
+        }
+    }
+
     fn start_periodic_maintenance(window: Window) {
         Connection::get()
             .unwrap()
@@ -762,7 +779,21 @@ impl TermWindow {
         }
     }
 
-    pub fn update_title(&mut self) {
+    /// Called by various bits of code to update the title bar.
+    /// Let's also trigger the status event so that it can choose
+    /// to update the right-status.
+    fn update_title(&mut self) {
+        self.schedule_status_update();
+        self.update_title_impl();
+    }
+
+    /// Called by window:set_right_status after the status has
+    /// been updated; let's update the bar
+    pub fn update_title_post_status(&mut self) {
+        self.update_title_impl();
+    }
+
+    fn update_title_impl(&mut self) {
         let mux = Mux::get().unwrap();
         let window = match mux.get_window(self.mux_window_id) {
             Some(window) => window,
