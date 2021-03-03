@@ -216,3 +216,18 @@ undercurl:
 env TERM=wezterm nvim
 ```
 
+## I use Powershell for my shell, and I have problems with cursor keys in other apps
+
+Powershell has [an open issue](https://github.com/PowerShell/PowerShell/issues/12268) where it
+enables the [DECCKM](https://vt100.net/docs/vt510-rm/DECCKM) mode of the terminal and does
+not restore it prior to launching external commands.
+
+The consequence of enabling DECCKM is that cursor keys switch from being
+reported as eg: `ESC [ A` (for UpArrow) to `ESC O A`.
+
+Some applications don't know how to deal with this and as a consequence, won't
+see the cursor keys.
+
+This is not an issue in WezTerm; the same issue manifests in any terminal
+emulator that runs powershell.
+
