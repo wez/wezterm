@@ -30,6 +30,7 @@ CATEGORIZE = {
     r"^WezTerm-.*.setup.exe$": "windows_exe",
 }
 
+
 def categorize(rel):
     downloads = {}
 
@@ -44,8 +45,10 @@ def categorize(rel):
 
     return downloads
 
+
 def pretty(o):
-    return json.dumps(o, indent=4, sort_keys=True, separators=(',', ':'))
+    return json.dumps(o, indent=4, sort_keys=True, separators=(",", ":"))
+
 
 def build_subst(subst, stable, categorized):
     for (kind, info) in categorized.items():
@@ -56,6 +59,7 @@ def build_subst(subst, stable, categorized):
         subst["{{ %s }}" % kind] = url
         subst["{{ %s_asset }}" % kind] = name
         subst["{{ %s_dir }}" % kind] = dir
+
 
 def load_release_info():
     with open("/tmp/wezterm.releases.json") as f:
@@ -71,15 +75,21 @@ def load_release_info():
     latest = categorize(latest)
     nightly = categorize(nightly)
 
-    print('latest: ', pretty(latest))
-    print('nightly: ', pretty(nightly))
+    print("latest: ", pretty(latest))
+    print("nightly: ", pretty(nightly))
 
     subst = {}
     build_subst(subst, "stable", latest)
     build_subst(subst, "nightly", nightly)
     print(pretty(subst))
 
-    for name in ['install/windows', 'install/macos', 'install/linux', 'install/source']:
+    for name in [
+        "install/windows",
+        "install/macos",
+        "install/linux",
+        "install/source",
+        "install/freebsd",
+    ]:
         with open(f"docs/{name}.markdown", "r") as input:
             with open(f"docs/{name}.md", "w") as output:
                 for line in input:
@@ -87,7 +97,9 @@ def load_release_info():
                         line = line.replace(search, replace)
                     output.write(line)
 
+
 def main():
     load_release_info()
+
 
 main()
