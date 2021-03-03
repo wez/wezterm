@@ -3096,6 +3096,7 @@ impl<'a> Performer<'a> {
                 self.left_and_right_margins = 0..self.screen().physical_cols;
 
                 self.screen.activate_primary_screen();
+                self.erase_in_display(EraseInDisplay::EraseScrollback);
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
             }
 
