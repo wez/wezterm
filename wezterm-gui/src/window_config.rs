@@ -50,11 +50,6 @@ impl WindowConfiguration for ConfigBridge {
     }
 
     fn decorations(&self) -> ::window::WindowDecorations {
-        use ::config::WindowDecorations as CWD;
-        use ::window::WindowDecorations as WD;
-        match configuration().window_decorations {
-            CWD::Full => WD::Full,
-            CWD::None => WD::None,
-        }
+        configuration().window_decorations
     }
 }

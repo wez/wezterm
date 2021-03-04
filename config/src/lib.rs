@@ -25,7 +25,7 @@ use std::time::Duration;
 use termwiz::hyperlink;
 use termwiz::surface::CursorShape;
 use toml;
-use wezterm_input_types::{KeyCode, Modifiers};
+use wezterm_input_types::{KeyCode, Modifiers, WindowDecorations};
 
 mod color;
 mod daemon;
@@ -1158,18 +1158,6 @@ pub struct LoadedConfig {
     config: Config,
     file_name: Option<PathBuf>,
     lua: Option<mlua::Lua>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum WindowDecorations {
-    Full,
-    None,
-}
-
-impl Default for WindowDecorations {
-    fn default() -> Self {
-        Self::Full
-    }
 }
 
 struct PathPossibility {

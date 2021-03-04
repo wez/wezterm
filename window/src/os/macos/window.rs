@@ -859,14 +859,24 @@ impl WindowOpsMut for WindowInner {
 }
 
 fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
-    match decorations {
-        WindowDecorations::Full => {
-            NSWindowStyleMask::NSTitledWindowMask
-                | NSWindowStyleMask::NSClosableWindowMask
-                | NSWindowStyleMask::NSMiniaturizableWindowMask
-                | NSWindowStyleMask::NSResizableWindowMask
-        }
-        WindowDecorations::None => NSWindowStyleMask::NSResizableWindowMask,
+    if decorations == WindowDecorations::TITLE | WindowDecorations::RESIZE {
+        NSWindowStyleMask::NSTitledWindowMask
+            | NSWindowStyleMask::NSClosableWindowMask
+            | NSWindowStyleMask::NSMiniaturizableWindowMask
+            | NSWindowStyleMask::NSResizableWindowMask
+    } else if decorations == WindowDecorations::RESIZE {
+        NSWindowStyleMask::NSResizableWindowMask
+    } else if decorations == WindowDecorations::NONE {
+        NSWindowStyleMask::NSBorderlessWindowMask
+    } else if decorations == WindowDecorations::TITLE {
+        NSWindowStyleMask::NSTitledWindowMask
+            | NSWindowStyleMask::NSClosableWindowMask
+            | NSWindowStyleMask::NSMiniaturizableWindowMask
+    } else {
+        NSWindowStyleMask::NSTitledWindowMask
+            | NSWindowStyleMask::NSClosableWindowMask
+            | NSWindowStyleMask::NSMiniaturizableWindowMask
+            | NSWindowStyleMask::NSResizableWindowMask
     }
 }
 

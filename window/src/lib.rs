@@ -78,18 +78,6 @@ pub enum MouseCursor {
     SizeLeftRight,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WindowDecorations {
-    Full,
-    None,
-}
-
-impl Default for WindowDecorations {
-    fn default() -> Self {
-        Self::Full
-    }
-}
-
 #[allow(unused_variables)]
 pub trait WindowCallbacks: Any {
     /// Called when the window close button is clicked.

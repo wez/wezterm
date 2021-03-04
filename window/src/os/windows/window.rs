@@ -64,14 +64,14 @@ fn rect_height(r: &RECT) -> i32 {
     r.bottom - r.top
 }
 
-fn adjust_client_to_window_dimensions(width: usize, height: usize) -> (i32, i32) {
+fn adjust_client_to_window_dimensions(style: u32, width: usize, height: usize) -> (i32, i32) {
     let mut rect = RECT {
         left: 0,
         top: 0,
         right: width as _,
         bottom: height as _,
     };
-    unsafe { AdjustWindowRect(&mut rect, WS_POPUP | WS_SYSMENU | WS_CAPTION, 0) };
+    unsafe { AdjustWindowRect(&mut rect, style, 0) };
 
     (rect_width(&rect), rect_height(&rect))
 }
@@ -215,34 +215,46 @@ impl WindowInner {
 
     fn apply_decoration(&mut self) {
         let hwnd = self.hwnd.0;
-        promise::spawn::spawn(async move {
-            unsafe {
-                let orig_style = GetWindowLongW(hwnd, GWL_STYLE);
-                let style = decorations_to_style(config().decorations());
-                SetWindowLongW(
-                    hwnd,
-                    GWL_STYLE,
-                    (orig_style & !(WS_OVERLAPPEDWINDOW as i32)) | style as i32,
-                );
-                SetWindowPos(
-                    hwnd,
-                    std::ptr::null_mut(),
-                    0,
-                    0,
-                    0,
-                    0,
-                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED,
-                );
-            }
-        })
-        .detach();
+        schedule_apply_decoration(hwnd, config().decorations());
+    }
+}
+
+fn schedule_apply_decoration(hwnd: HWND, decorations: WindowDecorations) {
+    promise::spawn::spawn(async move {
+        apply_decoration_immediate(hwnd, decorations);
+    })
+    .detach();
+}
+
+fn apply_decoration_immediate(hwnd: HWND, decorations: WindowDecorations) {
+    unsafe {
+        let orig_style = GetWindowLongW(hwnd, GWL_STYLE);
+        let style = decorations_to_style(decorations);
+        let new_style = (orig_style & !(WS_OVERLAPPEDWINDOW as i32)) | style as i32;
+        SetWindowLongW(hwnd, GWL_STYLE, new_style);
+        SetWindowPos(
+            hwnd,
+            std::ptr::null_mut(),
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED,
+        );
     }
 }
 
 fn decorations_to_style(decorations: WindowDecorations) -> u32 {
-    match decorations {
-        WindowDecorations::Full => WS_OVERLAPPEDWINDOW,
-        WindowDecorations::None => WS_THICKFRAME,
+    if decorations == WindowDecorations::RESIZE {
+        WS_THICKFRAME
+    } else if decorations == WindowDecorations::TITLE {
+        WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
+    } else if decorations == WindowDecorations::NONE {
+        WS_POPUP
+    } else if decorations == WindowDecorations::TITLE | WindowDecorations::RESIZE {
+        WS_OVERLAPPEDWINDOW
+    } else {
+        WS_OVERLAPPEDWINDOW
     }
 }
 
@@ -291,9 +303,33 @@ impl Window {
             }
         }
 
-        let (width, height) = adjust_client_to_window_dimensions(width, height);
+        let decorations = config().decorations();
+        let style = decorations_to_style(decorations);
+        let (width, height) = adjust_client_to_window_dimensions(style, width, height);
 
-        let style = decorations_to_style(config().decorations());
+        let (x, y) = if (style & WS_POPUP) == 0 {
+            (CW_USEDEFAULT, CW_USEDEFAULT)
+        } else {
+            // WS_POPUP windows need to specify the initial position.
+            // We pick the middle of the primary monitor
+
+            unsafe {
+                let mut mi: MONITORINFO = std::mem::zeroed();
+                mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+                GetMonitorInfoW(
+                    MonitorFromWindow(std::ptr::null_mut(), MONITOR_DEFAULTTOPRIMARY),
+                    &mut mi,
+                );
+
+                let mon_width = mi.rcMonitor.right - mi.rcMonitor.left;
+                let mon_height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+
+                (
+                    mi.rcMonitor.left + (mon_width - width) / 2,
+                    mi.rcMonitor.top + (mon_height - height) / 2,
+                )
+            }
+        };
 
         let name = wide_string(name);
         let hwnd = unsafe {
@@ -302,8 +338,8 @@ impl Window {
                 class_name.as_ptr(),
                 name.as_ptr(),
                 style,
-                CW_USEDEFAULT,
-                CW_USEDEFAULT,
+                x,
+                y,
                 width,
                 height,
                 null_mut(),
@@ -317,6 +353,10 @@ impl Window {
             let err = IoError::last_os_error();
             bail!("CreateWindowExW: {}", err);
         }
+
+        // We have to re-apply the styles otherwise they don't
+        // completely stick
+        schedule_apply_decoration(hwnd, decorations);
 
         Ok(hwnd)
     }
@@ -410,7 +450,11 @@ impl WindowOpsMut for WindowInner {
     }
 
     fn set_inner_size(&mut self, width: usize, height: usize) {
-        let (width, height) = adjust_client_to_window_dimensions(width, height);
+        let (width, height) = adjust_client_to_window_dimensions(
+            decorations_to_style(config().decorations()),
+            width,
+            height,
+        );
         let hwnd = self.hwnd;
         promise::spawn::spawn(async move {
             unsafe {

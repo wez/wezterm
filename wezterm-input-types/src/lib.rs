@@ -1,5 +1,6 @@
 use bitflags::*;
 use serde::*;
+use std::convert::TryFrom;
 
 pub struct PixelUnit;
 pub struct ScreenPixelUnit;
@@ -251,5 +252,41 @@ impl KeyEvent {
         }
 
         self
+    }
+}
+
+bitflags! {
+    #[derive(Deserialize, Serialize)]
+    #[serde(try_from = "String")]
+    pub struct WindowDecorations: u8 {
+        const TITLE = 1;
+        const RESIZE = 2;
+        const NONE = 0;
+    }
+}
+
+impl TryFrom<String> for WindowDecorations {
+    type Error = String;
+    fn try_from(s: String) -> std::result::Result<WindowDecorations, String> {
+        let mut flags = Self::NONE;
+        for ele in s.split('|') {
+            let ele = ele.trim();
+            if ele == "TITLE" {
+                flags |= Self::TITLE;
+            } else if ele == "NONE" || ele == "None" {
+                flags = Self::NONE;
+            } else if ele == "RESIZE" {
+                flags |= Self::RESIZE;
+            } else {
+                return Err(format!("invalid WindowDecoration name {} in {}", ele, s));
+            }
+        }
+        Ok(flags)
+    }
+}
+
+impl Default for WindowDecorations {
+    fn default() -> Self {
+        WindowDecorations::TITLE | WindowDecorations::RESIZE
     }
 }

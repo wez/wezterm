@@ -611,13 +611,13 @@ impl XWindowInner {
                 xcb::ClientMessageData::from_data32(data),
             ),
         );
-        self.adjust_decorations(config().decorations() == WindowDecorations::Full)?;
+        self.adjust_decorations(config().decorations())?;
 
         Ok(())
     }
 
     #[allow(clippy::identity_op)]
-    fn adjust_decorations(&mut self, enable: bool) -> anyhow::Result<()> {
+    fn adjust_decorations(&mut self, decorations: WindowDecorations) -> anyhow::Result<()> {
         // Set the motif hints to disable decorations.
         // See https://stackoverflow.com/a/1909708
         #[repr(C)]
@@ -632,18 +632,28 @@ impl XWindowInner {
         const HINTS_DECORATIONS: u32 = 1 << 1;
         const FUNC_ALL: u32 = 1 << 0;
         const FUNC_RESIZE: u32 = 1 << 1;
-        /*
-        const HINTS_FUNCTIONS: u32 = 1 << 0;
+        // const HINTS_FUNCTIONS: u32 = 1 << 0;
         const FUNC_MOVE: u32 = 1 << 2;
         const FUNC_MINIMIZE: u32 = 1 << 3;
         const FUNC_MAXIMIZE: u32 = 1 << 4;
         const FUNC_CLOSE: u32 = 1 << 5;
-        */
+
+        let decorations = if decorations == WindowDecorations::TITLE | WindowDecorations::RESIZE {
+            FUNC_ALL
+        } else if decorations == WindowDecorations::RESIZE {
+            FUNC_RESIZE
+        } else if decorations == WindowDecorations::TITLE {
+            FUNC_MOVE | FUNC_MINIMIZE | FUNC_MAXIMIZE | FUNC_CLOSE
+        } else if decorations == WindowDecorations::NONE {
+            0
+        } else {
+            FUNC_ALL
+        };
 
         let hints = MwmHints {
             flags: HINTS_DECORATIONS,
             functions: 0,
-            decorations: if enable { FUNC_ALL } else { FUNC_RESIZE },
+            decorations,
             input_mode: 0,
             status: 0,
         };
@@ -792,7 +802,7 @@ impl XWindow {
         window
             .lock()
             .unwrap()
-            .adjust_decorations(config().decorations() == WindowDecorations::Full)?;
+            .adjust_decorations(config().decorations())?;
 
         let window_handle = Window::X11(XWindow::from_id(window_id));
 
@@ -840,7 +850,7 @@ impl WindowOpsMut for XWindowInner {
     }
 
     fn config_did_change(&mut self) {
-        let _ = self.adjust_decorations(config().decorations() == WindowDecorations::Full);
+        let _ = self.adjust_decorations(config().decorations());
     }
 
     fn set_inner_size(&mut self, width: usize, height: usize) {
