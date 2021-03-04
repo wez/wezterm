@@ -138,6 +138,7 @@ pub struct TermWindow {
         RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
 
     last_blink_paint: Instant,
+    last_status_call: Instant,
 
     palette: Option<ColorPalette>,
 }
@@ -269,6 +270,7 @@ impl WindowCallbacks for TermWindow {
             current_highlight: self.current_highlight.clone(),
             shape_cache: RefCell::new(LruCache::new(65536)),
             last_blink_paint: Instant::now(),
+            last_status_call: Instant::now(),
         });
         prior_window.close();
 
@@ -482,6 +484,7 @@ impl TermWindow {
                 current_highlight: None,
                 shape_cache: RefCell::new(LruCache::new(65536)),
                 last_blink_paint: Instant::now(),
+                last_status_call: Instant::now(),
             }),
         )?;
 
@@ -552,19 +555,6 @@ impl TermWindow {
             })
             .detach();
         }
-
-        let interval = configuration().status_update_interval;
-        let interval = std::time::Duration::from_millis(interval);
-        Connection::get()
-            .unwrap()
-            .schedule_timer(interval, move || {
-                window.apply(move |myself, window| {
-                    if let Some(myself) = myself.downcast_mut::<Self>() {
-                        myself.emit_status_event(window)?;
-                    }
-                    Ok(())
-                });
-            });
     }
 
     fn emit_status_event(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
@@ -615,6 +605,14 @@ impl TermWindow {
             return Ok(());
         }
 
+        let now = Instant::now();
+        if now.duration_since(self.last_status_call)
+            > Duration::from_millis(self.config.status_update_interval)
+        {
+            self.last_status_call = now;
+            self.schedule_status_update();
+        }
+
         for pos in panes {
             // If blinking is permitted, and the cursor shape is set
             // to a blinking variant, and it's been longer than the
@@ -629,7 +627,6 @@ impl TermWindow {
                     .default_cursor_style
                     .effective_shape(pos.pane.get_cursor_position().shape);
                 if shape.is_blinking() {
-                    let now = Instant::now();
                     if now.duration_since(self.last_blink_paint)
                         > Duration::from_millis(self.config.cursor_blink_rate)
                     {
