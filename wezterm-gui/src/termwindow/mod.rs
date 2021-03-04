@@ -115,6 +115,7 @@ pub struct TermWindow {
     scroll_drag_start: Option<isize>,
     split_drag_start: Option<PositionedSplit>,
     window_drag_position: Option<MouseEvent>,
+    current_mouse_event: Option<MouseEvent>,
     prev_cursor: PrevCursorPos,
     last_scroll_info: RenderableDimensions,
 
@@ -262,6 +263,7 @@ impl WindowCallbacks for TermWindow {
             scroll_drag_start: self.scroll_drag_start.clone(),
             split_drag_start: self.split_drag_start.clone(),
             window_drag_position: None,
+            current_mouse_event: None,
             prev_cursor: self.prev_cursor.clone(),
             last_scroll_info: self.last_scroll_info.clone(),
             clipboard_contents: Arc::clone(&clipboard_contents),
@@ -477,6 +479,7 @@ impl TermWindow {
                 scroll_drag_start: None,
                 split_drag_start: None,
                 window_drag_position: None,
+                current_mouse_event: None,
                 prev_cursor: PrevCursorPos::new(),
                 last_scroll_info: RenderableDimensions::default(),
                 clipboard_contents: Arc::clone(&clipboard_contents),
@@ -1250,6 +1253,9 @@ impl TermWindow {
             SelectTextAtMouseCursor(mode) => self.select_text_at_mouse_cursor(*mode, pane),
             ExtendSelectionToMouseCursor(mode) => {
                 self.extend_selection_at_mouse_cursor(*mode, pane)
+            }
+            StartWindowDrag => {
+                self.window_drag_position = self.current_mouse_event.clone();
             }
             OpenLinkAtMouseCursor => {
                 // They clicked on a link, so let's open it!

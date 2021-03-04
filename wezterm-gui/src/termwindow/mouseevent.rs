@@ -24,6 +24,8 @@ impl super::TermWindow {
             None => return,
         };
 
+        self.current_mouse_event.replace(event.clone());
+
         let config = &self.config;
         // Round the x coordinate so that we're a bit more forgiving of
         // the horizontal position when selecting cells

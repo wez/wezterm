@@ -38,6 +38,8 @@ brief notes about them may accumulate here.
 * Fixed: line-based mouse selection (default: triple click) now extends forwards to include wrapped lines. [#466](https://github.com/wez/wezterm/issues/466)
 * New: introduced [custom_block_glyphs](config/lua/config/custom_block_glyphs.md) option to ensure that block glyphs don't have gaps. [#433](https://github.com/wez/wezterm/issues/433)
 * Fixed: the [RIS](https://vt100.net/docs/vt510-rm/RIS) escape wasn't clearing the scrollback. [#511](https://github.com/wez/wezterm/issues/511)
+* New: you can now drag the wezterm window via the tab bar
+* New: holding SUPER+Drag will drag the wezterm window. This is assignable, but not yet documented.
 
 ### 20210203-095643-70a364eb
 

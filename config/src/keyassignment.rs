@@ -193,6 +193,7 @@ pub enum KeyAssignment {
     OpenLinkAtMouseCursor,
     CompleteSelection(ClipboardCopyDestination),
     CompleteSelectionOrOpenLinkAtMouseCursor(ClipboardCopyDestination),
+    StartWindowDrag,
 
     AdjustPaneSize(PaneDirection, usize),
     ActivatePaneDirection(PaneDirection),
@@ -531,6 +532,14 @@ impl InputMap {
                         button: MouseButton::Middle
                     },
                     PasteFrom(ClipboardPasteSource::PrimarySelection)
+                ],
+                [
+                    Modifiers::SUPER,
+                    MouseEventTrigger::Drag {
+                        streak: 1,
+                        button: MouseButton::Left,
+                    },
+                    StartWindowDrag
                 ],
             );
         }
