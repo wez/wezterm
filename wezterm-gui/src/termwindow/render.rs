@@ -114,7 +114,7 @@ impl super::TermWindow {
         self.call_draw(frame).ok();
         log::debug!("paint_pane_opengl elapsed={:?}", start.elapsed());
         metrics::histogram!("gui.paint.opengl", start.elapsed());
-        self.update_title();
+        self.update_title_post_status();
     }
 
     pub fn paint_pane_opengl(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {

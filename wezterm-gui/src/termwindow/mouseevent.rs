@@ -220,7 +220,7 @@ impl super::TermWindow {
             },
             _ => {}
         }
-        self.update_title();
+        self.update_title_post_status();
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
