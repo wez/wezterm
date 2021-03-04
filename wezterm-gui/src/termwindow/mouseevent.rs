@@ -62,6 +62,10 @@ impl super::TermWindow {
                     // Completed a split drag
                     return;
                 }
+                if press == &MousePress::Left && self.window_drag_position.take().is_some() {
+                    // Completed a window drag
+                    return;
+                }
             }
 
             WMEK::Press(ref press) => {
@@ -96,6 +100,27 @@ impl super::TermWindow {
             }
 
             WMEK::Move => {
+                if let Some(start) = self.window_drag_position.as_ref() {
+                    // Dragging the window
+                    // Compute the distance since the initial event
+                    let delta_x = start.screen_coords.x - event.screen_coords.x;
+                    let delta_y = start.screen_coords.y - event.screen_coords.y;
+
+                    // Now compute a new window position.
+                    // We don't have a direct way to get the position,
+                    // but we can infer it by comparing the mouse coords
+                    // with the screen coords in the initial event.
+                    // This computes the original top_left position,
+                    // and applies the total drag delta to it.
+                    let top_left = ::window::ScreenPoint::new(
+                        (start.screen_coords.x - start.coords.x) - delta_x,
+                        (start.screen_coords.y - start.coords.y) - delta_y,
+                    );
+                    // and now tell the window to go there
+                    context.set_window_position(top_left);
+                    return;
+                }
+
                 let current_viewport = self.get_viewport(pane.pane_id());
                 if let Some(from_top) = self.scroll_drag_start.as_ref() {
                     // Dragging the scroll bar
@@ -171,7 +196,10 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton => {
                     self.spawn_tab(&SpawnTabDomain::CurrentPaneDomain);
                 }
-                TabBarItem::None => {}
+                TabBarItem::None => {
+                    // Potentially starting a drag by the tab bar
+                    self.window_drag_position.replace(event.clone());
+                }
             },
             WMEK::Press(MousePress::Middle) => match self.tab_bar.hit_test(x) {
                 TabBarItem::Tab(tab_idx) => {
