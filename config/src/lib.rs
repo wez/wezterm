@@ -636,6 +636,9 @@ pub struct Config {
     #[serde(default)]
     pub allow_square_glyphs_to_overflow_width: AllowSquareGlyphOverflow,
 
+    #[serde(default)]
+    pub window_decorations: WindowDecorations,
+
     /// When using FontKitXXX font systems, a set of directories to
     /// search ahead of the standard font locations for fonts.
     /// Relative paths are taken to be relative to the directory
@@ -1155,6 +1158,18 @@ pub struct LoadedConfig {
     config: Config,
     file_name: Option<PathBuf>,
     lua: Option<mlua::Lua>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum WindowDecorations {
+    Full,
+    None,
+}
+
+impl Default for WindowDecorations {
+    fn default() -> Self {
+        Self::Full
+    }
 }
 
 struct PathPossibility {

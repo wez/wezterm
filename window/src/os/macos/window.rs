@@ -6,7 +6,7 @@ use crate::connection::ConnectionOps;
 use crate::{
     config, Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
     MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size,
-    WindowCallbacks, WindowOps, WindowOpsMut,
+    WindowCallbacks, WindowDecorations, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
@@ -358,10 +358,7 @@ impl Window {
         callbacks: Box<dyn WindowCallbacks>,
     ) -> anyhow::Result<Window> {
         unsafe {
-            let style_mask = NSWindowStyleMask::NSTitledWindowMask
-                | NSWindowStyleMask::NSClosableWindowMask
-                | NSWindowStyleMask::NSMiniaturizableWindowMask
-                | NSWindowStyleMask::NSResizableWindowMask;
+            let style_mask = decoration_to_mask(config().decorations());
             let rect = NSRect::new(
                 NSPoint::new(0., 0.),
                 NSSize::new(width as f64, height as f64),
@@ -618,6 +615,35 @@ fn screen_point_to_cartesian(point: ScreenPoint) -> NSPoint {
 }
 
 impl WindowInner {
+    fn is_fullscreen(&mut self) -> bool {
+        if self.is_native_fullscreen() {
+            true
+        } else if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
+            window_view.inner.borrow().fullscreen.is_some()
+        } else {
+            false
+        }
+    }
+
+    fn apply_decorations(&mut self) {
+        if !self.is_fullscreen() {
+            let mask = decoration_to_mask(config().decorations());
+            unsafe {
+                self.window.setStyleMask_(mask);
+                /*
+                NSWindow::setMovableByWindowBackground_(
+                    *self.window,
+                    if mask == NSWindowStyleMask::NSResizableWindowMask {
+                        YES
+                    } else {
+                        NO
+                    },
+                );
+                */
+            }
+        }
+    }
+
     fn toggle_native_fullscreen(&mut self) {
         unsafe {
             NSWindow::toggleFullScreen_(*self.window, nil);
@@ -663,13 +689,8 @@ impl WindowInner {
                 Some(saved_rect) => unsafe {
                     // Restore prior dimensions
                     self.window.orderOut_(nil);
-                    self.window.setStyleMask_(
-                        NSWindowStyleMask::NSTitledWindowMask
-                            | NSWindowStyleMask::NSClosableWindowMask
-                            | NSWindowStyleMask::NSMiniaturizableWindowMask
-                            | NSWindowStyleMask::NSResizableWindowMask,
-                    );
-
+                    self.window
+                        .setStyleMask_(decoration_to_mask(config().decorations()));
                     self.window.setFrame_display_(saved_rect, YES);
                     self.window.makeKeyAndOrderFront_(nil);
                     self.window.setOpaque_(NO);
@@ -833,6 +854,19 @@ impl WindowOpsMut for WindowInner {
 
     fn config_did_change(&mut self) {
         self.update_window_shadow();
+        self.apply_decorations();
+    }
+}
+
+fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
+    match decorations {
+        WindowDecorations::Full => {
+            NSWindowStyleMask::NSTitledWindowMask
+                | NSWindowStyleMask::NSClosableWindowMask
+                | NSWindowStyleMask::NSMiniaturizableWindowMask
+                | NSWindowStyleMask::NSResizableWindowMask
+        }
+        WindowDecorations::None => NSWindowStyleMask::NSResizableWindowMask,
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::WindowDecorations;
 use std::sync::{Arc, Mutex};
 
 pub trait WindowConfiguration {
@@ -43,6 +44,10 @@ pub trait WindowConfiguration {
     /// when the window is transparent.
     fn window_background_opacity(&self) -> f32 {
         1.0
+    }
+
+    fn decorations(&self) -> WindowDecorations {
+        WindowDecorations::default()
     }
 }
 

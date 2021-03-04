@@ -48,4 +48,13 @@ impl WindowConfiguration for ConfigBridge {
     fn window_background_opacity(&self) -> f32 {
         configuration().window_background_opacity
     }
+
+    fn decorations(&self) -> ::window::WindowDecorations {
+        use ::config::WindowDecorations as CWD;
+        use ::window::WindowDecorations as WD;
+        match configuration().window_decorations {
+            CWD::Full => WD::Full,
+            CWD::None => WD::None,
+        }
+    }
 }
