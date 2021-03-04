@@ -2,8 +2,8 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::{
     config, Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
-    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks, WindowOps,
-    WindowOpsMut,
+    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks,
+    WindowDecorations, WindowOps, WindowOpsMut,
 };
 use anyhow::{bail, Context};
 use lazy_static::lazy_static;
@@ -212,6 +212,38 @@ impl WindowInner {
 
         !same
     }
+
+    fn apply_decoration(&mut self) {
+        let hwnd = self.hwnd.0;
+        promise::spawn::spawn(async move {
+            unsafe {
+                let orig_style = GetWindowLongW(hwnd, GWL_STYLE);
+                let style = decorations_to_style(config().decorations());
+                SetWindowLongW(
+                    hwnd,
+                    GWL_STYLE,
+                    (orig_style & !(WS_OVERLAPPEDWINDOW as i32)) | style as i32,
+                );
+                SetWindowPos(
+                    hwnd,
+                    std::ptr::null_mut(),
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED,
+                );
+            }
+        })
+        .detach();
+    }
+}
+
+fn decorations_to_style(decorations: WindowDecorations) -> u32 {
+    match decorations {
+        WindowDecorations::Full => WS_OVERLAPPEDWINDOW,
+        WindowDecorations::None => WS_THICKFRAME,
+    }
 }
 
 impl Window {
@@ -261,13 +293,15 @@ impl Window {
 
         let (width, height) = adjust_client_to_window_dimensions(width, height);
 
+        let style = decorations_to_style(config().decorations());
+
         let name = wide_string(name);
         let hwnd = unsafe {
             CreateWindowExW(
                 0,
                 class_name.as_ptr(),
                 name.as_ptr(),
-                WS_OVERLAPPEDWINDOW,
+                style,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
                 width,
@@ -396,30 +430,32 @@ impl WindowOpsMut for WindowInner {
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {
-        let hwnd = self.hwnd;
+        let hwnd = self.hwnd.0;
+        promise::spawn::spawn(async move {
+            let mut rect = RECT {
+                left: 0,
+                bottom: 0,
+                right: 0,
+                top: 0,
+            };
+            unsafe {
+                GetWindowRect(hwnd, &mut rect);
 
-        let mut rect = RECT {
-            left: 0,
-            bottom: 0,
-            right: 0,
-            top: 0,
-        };
-        unsafe {
-            GetWindowRect(hwnd.0, &mut rect);
+                let origin = client_to_screen(hwnd, Point::new(0, 0));
+                let delta_x = origin.x as i32 - rect.left;
+                let delta_y = origin.y as i32 - rect.top;
 
-            let origin = client_to_screen(hwnd.0, Point::new(0, 0));
-            let delta_x = origin.x as i32 - rect.left;
-            let delta_y = origin.y as i32 - rect.top;
-
-            MoveWindow(
-                hwnd.0,
-                coords.x as i32 - delta_x,
-                coords.y as i32 - delta_y,
-                rect_width(&rect),
-                rect_height(&rect),
-                1,
-            );
-        }
+                MoveWindow(
+                    hwnd,
+                    coords.x as i32 - delta_x,
+                    coords.y as i32 - delta_y,
+                    rect_width(&rect),
+                    rect_height(&rect),
+                    1,
+                );
+            }
+        })
+        .detach();
     }
 
     fn set_title(&mut self, title: &str) {
@@ -434,13 +470,18 @@ impl WindowOpsMut for WindowInner {
         imc.set_position(cursor.origin.x.max(0) as i32, cursor.origin.y.max(0) as i32);
     }
 
+    fn config_did_change(&mut self) {
+        self.apply_decoration();
+    }
+
     fn toggle_fullscreen(&mut self) {
         unsafe {
             let hwnd = self.hwnd.0;
             let style = GetWindowLongW(hwnd, GWL_STYLE);
             if let Some(placement) = self.saved_placement.take() {
                 promise::spawn::spawn(async move {
-                    SetWindowLongW(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW as i32);
+                    let style = decorations_to_style(config().decorations());
+                    SetWindowLongW(hwnd, GWL_STYLE, style as i32);
                     SetWindowPlacement(hwnd, &placement);
                     SetWindowPos(
                         hwnd,
@@ -526,6 +567,13 @@ impl WindowOps for Window {
     fn toggle_fullscreen(&self) -> Future<()> {
         Connection::with_window_inner(self.0, move |inner| {
             inner.toggle_fullscreen();
+            Ok(())
+        })
+    }
+
+    fn config_did_change(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.config_did_change();
             Ok(())
         })
     }

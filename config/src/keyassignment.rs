@@ -541,6 +541,14 @@ impl InputMap {
                     },
                     StartWindowDrag
                 ],
+                [
+                    ctrl_shift,
+                    MouseEventTrigger::Drag {
+                        streak: 1,
+                        button: MouseButton::Left,
+                    },
+                    StartWindowDrag
+                ],
             );
         }
 
