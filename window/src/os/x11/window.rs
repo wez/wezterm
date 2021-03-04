@@ -1,11 +1,12 @@
 use super::*;
 use crate::bitmaps::*;
+use crate::configuration::config;
 use crate::connection::ConnectionOps;
 use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
     Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
+    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowDecorations, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, Context as _};
 use promise::{Future, Promise};
@@ -610,11 +611,12 @@ impl XWindowInner {
                 xcb::ClientMessageData::from_data32(data),
             ),
         );
+        self.adjust_decorations(config().decorations() == WindowDecorations::Full)?;
 
         Ok(())
     }
 
-    #[allow(dead_code, clippy::identity_op)]
+    #[allow(clippy::identity_op)]
     fn adjust_decorations(&mut self, enable: bool) -> anyhow::Result<()> {
         // Set the motif hints to disable decorations.
         // See https://stackoverflow.com/a/1909708
@@ -627,19 +629,21 @@ impl XWindowInner {
             status: u32,
         }
 
-        const HINTS_FUNCTIONS: u32 = 1 << 0;
         const HINTS_DECORATIONS: u32 = 1 << 1;
         const FUNC_ALL: u32 = 1 << 0;
         const FUNC_RESIZE: u32 = 1 << 1;
+        /*
+        const HINTS_FUNCTIONS: u32 = 1 << 0;
         const FUNC_MOVE: u32 = 1 << 2;
         const FUNC_MINIMIZE: u32 = 1 << 3;
         const FUNC_MAXIMIZE: u32 = 1 << 4;
         const FUNC_CLOSE: u32 = 1 << 5;
+        */
 
         let hints = MwmHints {
             flags: HINTS_DECORATIONS,
             functions: 0,
-            decorations: if enable { FUNC_ALL } else { 0 },
+            decorations: if enable { FUNC_ALL } else { FUNC_RESIZE },
             input_mode: 0,
             status: 0,
         };
@@ -785,7 +789,10 @@ impl XWindow {
             &[conn.atom_delete],
         );
 
-        // window.lock().unwrap().disable_decorations()?;
+        window
+            .lock()
+            .unwrap()
+            .adjust_decorations(config().decorations() == WindowDecorations::Full)?;
 
         let window_handle = Window::X11(XWindow::from_id(window_id));
 
@@ -830,6 +837,10 @@ impl WindowOpsMut for XWindowInner {
             }
         };
         self.set_fullscreen_hint(!fullscreen).ok();
+    }
+
+    fn config_did_change(&mut self) {
+        let _ = self.adjust_decorations(config().decorations() == WindowDecorations::Full);
     }
 
     fn set_inner_size(&mut self, width: usize, height: usize) {
@@ -910,6 +921,13 @@ impl WindowOps for XWindow {
     fn toggle_fullscreen(&self) -> Future<()> {
         XConnection::with_window_inner(self.0, |inner| {
             inner.toggle_fullscreen();
+            Ok(())
+        })
+    }
+
+    fn config_did_change(&self) -> Future<()> {
+        XConnection::with_window_inner(self.0, |inner| {
+            inner.config_did_change();
             Ok(())
         })
     }

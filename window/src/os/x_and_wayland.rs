@@ -142,6 +142,14 @@ impl WindowOps for Window {
         }
     }
 
+    fn config_did_change(&self) -> Future<()> {
+        match self {
+            Self::X11(x) => x.config_did_change(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.config_did_change(),
+        }
+    }
+
     fn show(&self) -> Future<()> {
         match self {
             Self::X11(x) => x.show(),
