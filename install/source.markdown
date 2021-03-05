@@ -8,7 +8,7 @@ macOS.
   [Install rustup](https://www.rust-lang.org/en-US/install.html)
 * Rust version 1.41 or later is required
 * Build in release mode: `cargo build --release`
-* Run it via either `cargo run --release` or `target/release/wezterm`
+* Run it via either `cargo run --release --bin wezterm` or `target/release/wezterm`
 
 You will need a collection of support libraries; the [`get-deps`](https://github.com/wez/wezterm/blob/main/get-deps) script will
 attempt to install them for you.  If it doesn't know about your system,
@@ -24,7 +24,7 @@ tar -xzf {{ src_stable_asset }}
 cd {{ src_stable_dir }}
 sudo ./get-deps
 cargo build --release
-cargo run --release -- start
+cargo run --release --bin wezterm -- start
 ```
 
 Alternatively, use the full git repo:
@@ -36,7 +36,7 @@ cd wezterm
 git submodule update --init --recursive
 sudo ./get-deps
 cargo build --release
-cargo run --release -- start
+cargo run --release --bin wezterm -- start
 ```
 
 **If you get an error about zlib then you most likely didn't initialize the submodules;
