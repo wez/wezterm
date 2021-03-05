@@ -514,7 +514,7 @@ impl WindowOpsMut for WindowInner {
         imc.set_position(cursor.origin.x.max(0) as i32, cursor.origin.y.max(0) as i32);
     }
 
-    fn config_did_change(&mut self) {
+    fn config_did_change(&mut self, _config: &WindowConfigHandle) {
         self.apply_decoration();
     }
 
@@ -615,9 +615,10 @@ impl WindowOps for Window {
         })
     }
 
-    fn config_did_change(&self) -> Future<()> {
+    fn config_did_change(&self, config: &WindowConfigHandle) -> Future<()> {
+        let config = Arc::clone(config);
         Connection::with_window_inner(self.0, move |inner| {
-            inner.config_did_change();
+            inner.config_did_change(&config);
             Ok(())
         })
     }

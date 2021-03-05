@@ -8,7 +8,7 @@ pub mod os;
 mod spawn;
 mod timerlist;
 
-use configuration::config;
+use configuration::{config, WindowConfigHandle};
 
 #[cfg(target_os = "macos")]
 pub const DEFAULT_DPI: f64 = 72.0;
@@ -204,7 +204,7 @@ pub trait WindowOps {
         Future::ok(())
     }
 
-    fn config_did_change(&self) -> Future<()> {
+    fn config_did_change(&self, _config: &WindowConfigHandle) -> Future<()> {
         Future::ok(())
     }
 }
@@ -249,5 +249,5 @@ pub trait WindowOpsMut {
 
     fn toggle_fullscreen(&mut self) {}
 
-    fn config_did_change(&mut self) {}
+    fn config_did_change(&mut self, _config: &WindowConfigHandle) {}
 }

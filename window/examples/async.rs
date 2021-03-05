@@ -64,6 +64,7 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
             allow_close: false,
             cursor_pos: Point::new(100, 200),
         }),
+        None,
     )?;
 
     eprintln!("before show");

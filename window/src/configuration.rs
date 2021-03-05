@@ -55,11 +55,13 @@ lazy_static::lazy_static! {
     static ref CONFIG: Mutex<Arc<dyn WindowConfiguration + Send + Sync>> = default_config();
 }
 
-pub(crate) fn config() -> Arc<dyn WindowConfiguration + Send + Sync> {
+pub type WindowConfigHandle = Arc<dyn WindowConfiguration + Send + Sync>;
+
+pub(crate) fn config() -> WindowConfigHandle {
     Arc::clone(&CONFIG.lock().unwrap())
 }
 
-fn default_config() -> Mutex<Arc<dyn WindowConfiguration + Send + Sync>> {
+fn default_config() -> Mutex<WindowConfigHandle> {
     struct DefConfig;
     impl WindowConfiguration for DefConfig {}
     Mutex::new(Arc::new(DefConfig))

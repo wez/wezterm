@@ -238,6 +238,7 @@ impl WindowCallbacks for TermWindow {
         let clipboard_contents = Arc::clone(&self.clipboard_contents);
         let dimensions = self.dimensions.clone();
         let mux_window_id = self.mux_window_id;
+        let config = self.config.clone();
 
         let guts = Box::new(Self {
             window: None,
@@ -287,6 +288,7 @@ impl WindowCallbacks for TermWindow {
                 dimensions.pixel_width,
                 dimensions.pixel_height,
                 guts,
+                Some(&crate::window_config::ConfigInstance::new(config)),
             )?;
 
             Self::apply_icon(&window)?;
@@ -492,6 +494,7 @@ impl TermWindow {
                 last_blink_paint: Instant::now(),
                 last_status_call: Instant::now(),
             }),
+            Some(&crate::window_config::ConfigInstance::new(config)),
         )?;
 
         Self::apply_icon(&window)?;
@@ -755,7 +758,7 @@ impl TermWindow {
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
         self.apply_dimensions(&dimensions, Some(cell_dims));
         if let Some(window) = self.window.as_ref() {
-            window.config_did_change();
+            window.config_did_change(&crate::window_config::ConfigInstance::new(config));
             window.invalidate();
         }
     }

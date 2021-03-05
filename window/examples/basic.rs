@@ -170,6 +170,7 @@ fn spawn_window() -> anyhow::Result<()> {
             cursor_pos: Point::new(100, 200),
             gl: None,
         }),
+        None,
     )?;
 
     win.show();

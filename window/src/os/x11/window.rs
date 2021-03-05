@@ -849,7 +849,7 @@ impl WindowOpsMut for XWindowInner {
         self.set_fullscreen_hint(!fullscreen).ok();
     }
 
-    fn config_did_change(&mut self) {
+    fn config_did_change(&mut self, _config: &WindowConfigHandle) {
         let _ = self.adjust_decorations(config().decorations());
     }
 
@@ -935,9 +935,10 @@ impl WindowOps for XWindow {
         })
     }
 
-    fn config_did_change(&self) -> Future<()> {
+    fn config_did_change(&self, config: &WindowConfigHandle) -> Future<()> {
+        let config = Arc::clone(config);
         XConnection::with_window_inner(self.0, |inner| {
-            inner.config_did_change();
+            inner.config_did_change(&config);
             Ok(())
         })
     }

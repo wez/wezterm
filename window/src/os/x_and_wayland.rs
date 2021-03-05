@@ -142,11 +142,11 @@ impl WindowOps for Window {
         }
     }
 
-    fn config_did_change(&self) -> Future<()> {
+    fn config_did_change(&self, config: &WindowConfigHandle) -> Future<()> {
         match self {
-            Self::X11(x) => x.config_did_change(),
+            Self::X11(x) => x.config_did_change(config),
             #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.config_did_change(),
+            Self::Wayland(w) => w.config_did_change(config),
         }
     }
 
