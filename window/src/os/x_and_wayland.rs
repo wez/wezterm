@@ -7,6 +7,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
+use crate::WindowConfigHandle;
 use crate::{config, Clipboard, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
 use promise::*;
 use std::any::Any;
@@ -51,12 +52,13 @@ impl Connection {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
+        config: Option<&WindowConfigHandle>,
     ) -> anyhow::Result<Window> {
         match self {
-            Self::X11(_) => XWindow::new_window(class_name, name, width, height, callbacks),
+            Self::X11(_) => XWindow::new_window(class_name, name, width, height, callbacks, config),
             #[cfg(feature = "wayland")]
             Self::Wayland(_) => {
-                WaylandWindow::new_window(class_name, name, width, height, callbacks)
+                WaylandWindow::new_window(class_name, name, width, height, callbacks, config)
             }
         }
     }
@@ -110,10 +112,11 @@ impl Window {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
+        config: Option<&WindowConfigHandle>,
     ) -> anyhow::Result<Window> {
         Connection::get()
             .unwrap()
-            .new_window(class_name, name, width, height, callbacks)
+            .new_window(class_name, name, width, height, callbacks, config)
     }
 }
 

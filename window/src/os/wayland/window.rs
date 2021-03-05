@@ -4,6 +4,7 @@ use super::pointer::*;
 use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
+use crate::WindowConfigHandle;
 use crate::{
     Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowCallbacks,
     WindowOps, WindowOpsMut,
@@ -166,6 +167,7 @@ impl WaylandWindow {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
+        _config: Option<&WindowConfigHandle>,
     ) -> anyhow::Result<Window> {
         let conn = WaylandConnection::get()
             .ok_or_else(|| {

@@ -1,5 +1,6 @@
 use super::*;
 use crate::connection::ConnectionOps;
+use crate::WindowConfigHandle;
 use crate::{
     config, Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
     MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks,
@@ -367,7 +368,12 @@ impl Window {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
+        config: Option<&WindowConfigHandle>,
     ) -> anyhow::Result<Window> {
+        let config = match config {
+            Some(c) => Arc::clone(c),
+            None => crate::config(),
+        };
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),
             callbacks: RefCell::new(callbacks),

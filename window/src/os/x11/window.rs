@@ -1,9 +1,9 @@
 use super::*;
 use crate::bitmaps::*;
-use crate::configuration::config;
 use crate::connection::ConnectionOps;
 use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
+use crate::WindowConfigHandle;
 use crate::{
     Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
     Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowDecorations, WindowOps, WindowOpsMut,
@@ -73,6 +73,7 @@ pub(crate) struct XWindowInner {
     cursor: Option<MouseCursor>,
     cursors: HashMap<Option<MouseCursor>, XcbCursor>,
     copy_and_paste: CopyAndPaste,
+    config: WindowConfigHandle,
     gl_state: Option<Rc<glium::backend::Context>>,
 }
 
@@ -611,7 +612,7 @@ impl XWindowInner {
                 xcb::ClientMessageData::from_data32(data),
             ),
         );
-        self.adjust_decorations(config().decorations())?;
+        self.adjust_decorations(self.config.decorations())?;
 
         Ok(())
     }
@@ -700,7 +701,12 @@ impl XWindow {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
+        config: Option<&WindowConfigHandle>,
     ) -> anyhow::Result<Window> {
+        let config = match config {
+            Some(c) => Arc::clone(c),
+            None => crate::config(),
+        };
         let conn = Connection::get()
             .ok_or_else(|| {
                 anyhow!(
@@ -781,6 +787,7 @@ impl XWindow {
                 cursor: None,
                 cursors: HashMap::new(),
                 gl_state: None,
+                config: Arc::clone(&config),
             }))
         };
 
@@ -802,7 +809,7 @@ impl XWindow {
         window
             .lock()
             .unwrap()
-            .adjust_decorations(config().decorations())?;
+            .adjust_decorations(config.decorations())?;
 
         let window_handle = Window::X11(XWindow::from_id(window_id));
 
@@ -849,8 +856,9 @@ impl WindowOpsMut for XWindowInner {
         self.set_fullscreen_hint(!fullscreen).ok();
     }
 
-    fn config_did_change(&mut self, _config: &WindowConfigHandle) {
-        let _ = self.adjust_decorations(config().decorations());
+    fn config_did_change(&mut self, config: &WindowConfigHandle) {
+        self.config = Arc::clone(config);
+        let _ = self.adjust_decorations(config.decorations());
     }
 
     fn set_inner_size(&mut self, width: usize, height: usize) {
@@ -937,7 +945,7 @@ impl WindowOps for XWindow {
 
     fn config_did_change(&self, config: &WindowConfigHandle) -> Future<()> {
         let config = Arc::clone(config);
-        XConnection::with_window_inner(self.0, |inner| {
+        XConnection::with_window_inner(self.0, move |inner| {
             inner.config_did_change(&config);
             Ok(())
         })
