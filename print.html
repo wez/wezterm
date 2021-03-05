@@ -362,7 +362,7 @@ macOS.</p>
 <a href="https://www.rust-lang.org/en-US/install.html">Install rustup</a></li>
 <li>Rust version 1.41 or later is required</li>
 <li>Build in release mode: <code>cargo build --release</code></li>
-<li>Run it via either <code>cargo run --release --bin wezterm</code> or <code>target/release/wezterm</code></li>
+<li>Run it via either <code>cargo run --release</code> or <code>target/release/wezterm</code></li>
 </ul>
 <p>You will need a collection of support libraries; the <a href="https://github.com/wez/wezterm/blob/main/get-deps"><code>get-deps</code></a> script will
 attempt to install them for you.  If it doesn't know about your system,
@@ -375,7 +375,7 @@ tar -xzf wezterm-20210203-095643-70a364eb-src.tar.gz
 cd wezterm-20210203-095643-70a364eb
 sudo ./get-deps
 cargo build --release
-cargo run --release --bin wezterm -- start
+cargo run --release -- start
 </code></pre>
 <p>Alternatively, use the full git repo:</p>
 <pre><code class="language-bash">curl https://sh.rustup.rs -sSf | sh -s
@@ -384,7 +384,7 @@ cd wezterm
 git submodule update --init --recursive
 sudo ./get-deps
 cargo build --release
-cargo run --release --bin wezterm -- start
+cargo run --release -- start
 </code></pre>
 <p><strong>If you get an error about zlib then you most likely didn't initialize the submodules;
 take a closer look at the instructions!</strong></p>
