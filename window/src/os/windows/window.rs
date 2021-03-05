@@ -19,6 +19,7 @@ use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
+use std::sync::Arc;
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
