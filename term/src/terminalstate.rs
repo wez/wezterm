@@ -90,7 +90,7 @@ impl TabStop {
                     *t = false;
                 }
             }
-            _ => log::error!("unhandled TabulationClear {:?}", to_clear),
+            _ => log::warn!("unhandled TabulationClear {:?}", to_clear),
         }
     }
 }
@@ -1923,27 +1923,27 @@ impl TerminalState {
             }
             Mode::SaveDecPrivateMode(DecPrivateMode::Code(n))
             | Mode::RestoreDecPrivateMode(DecPrivateMode::Code(n)) => {
-                error!("save/restore dec mode {:?} unimplemented", n)
+                log::warn!("save/restore dec mode {:?} unimplemented", n)
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(n))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Unspecified(n))
             | Mode::SaveDecPrivateMode(DecPrivateMode::Unspecified(n))
             | Mode::RestoreDecPrivateMode(DecPrivateMode::Unspecified(n)) => {
-                error!("unhandled DecPrivateMode {}", n);
+                log::warn!("unhandled DecPrivateMode {}", n);
             }
 
             Mode::SetMode(TerminalMode::Unspecified(n))
             | Mode::ResetMode(TerminalMode::Unspecified(n)) => {
-                error!("unhandled TerminalMode {}", n);
+                log::warn!("unhandled TerminalMode {}", n);
             }
 
             Mode::SetMode(m) | Mode::ResetMode(m) => {
-                error!("unhandled TerminalMode {:?}", m);
+                log::warn!("unhandled TerminalMode {:?}", m);
             }
 
             Mode::XtermKeyMode { resource, value } => {
-                error!("unhandled XtermKeyMode {:?} {:?}", resource, value);
+                log::warn!("unhandled XtermKeyMode {:?} {:?}", resource, value);
             }
         }
     }
@@ -2065,7 +2065,7 @@ impl TerminalState {
             | Window::PushIconTitle
             | Window::PushWindowTitle => {}
 
-            _ => error!("unhandled Window CSI {:?}", window),
+            _ => log::warn!("unhandled Window CSI {:?}", window),
         }
     }
 
@@ -2891,19 +2891,19 @@ impl<'a> Performer<'a> {
                                 self.writer.flush().ok();
                             }
                             _ => {
-                                log::error!("unhandled DECRQSS {:?}", s);
+                                log::warn!("unhandled DECRQSS {:?}", s);
                                 // Reply that the request is invalid
                                 write!(self.writer, "{}0$r{}", DCS, ST).ok();
                                 self.writer.flush().ok();
                             }
                         }
                     }
-                    _ => log::error!("unhandled {:?}", s),
+                    _ => log::warn!("unhandled {:?}", s),
                 }
             }
             _ => match self.device_control_handler.as_mut() {
                 Some(handler) => handler.handle_device_control(ctrl),
-                None => log::error!("unhandled {:?}", ctrl),
+                None => log::warn!("unhandled {:?}", ctrl),
             },
         }
     }
@@ -2994,7 +2994,7 @@ impl<'a> Performer<'a> {
                 // These sequences are used to switch between character sets.
                 // wezterm only supports UTF-8, so these do nothing.
             }
-            _ => error!("unhandled ControlCode {:?}", control),
+            _ => log::warn!("unhandled ControlCode {:?}", control),
         }
     }
 
@@ -3009,7 +3009,7 @@ impl<'a> Performer<'a> {
             CSI::Mouse(mouse) => error!("mouse report sent by app? {:?}", mouse),
             CSI::Window(window) => self.state.perform_csi_window(window),
             CSI::Unspecified(unspec) => {
-                error!("unknown unspecified CSI: {:?}", format!("{}", unspec))
+                log::warn!("unknown unspecified CSI: {:?}", format!("{}", unspec))
             }
         };
     }
@@ -3100,7 +3100,7 @@ impl<'a> Performer<'a> {
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
             }
 
-            _ => error!("ESC: unhandled {:?}", esc),
+            _ => log::warn!("ESC: unhandled {:?}", esc),
         }
     }
 
@@ -3133,7 +3133,7 @@ impl<'a> Performer<'a> {
                 for item in unspec {
                     write!(&mut output, " {}", String::from_utf8_lossy(&item)).ok();
                 }
-                error!("{}", output);
+                log::warn!("{}", output);
             }
 
             OperatingSystemCommand::ClearSelection(selection) => {
@@ -3150,7 +3150,7 @@ impl<'a> Performer<'a> {
             }
             OperatingSystemCommand::ITermProprietary(iterm) => match iterm {
                 ITermProprietary::File(image) => self.set_image(*image),
-                _ => error!("unhandled iterm2: {:?}", iterm),
+                _ => log::warn!("unhandled iterm2: {:?}", iterm),
             },
 
             OperatingSystemCommand::FinalTermSemanticPrompt(FinalTermSemanticPrompt::FreshLine) => {
@@ -3189,7 +3189,7 @@ impl<'a> Performer<'a> {
             ) => {}
 
             OperatingSystemCommand::FinalTermSemanticPrompt(ft) => {
-                error!("unhandled: {:?}", ft);
+                log::warn!("unhandled: {:?}", ft);
             }
 
             OperatingSystemCommand::SystemNotification(message) => {
@@ -3211,7 +3211,7 @@ impl<'a> Performer<'a> {
                         (Some(title), None) => (None, title),
                         (Some(title), Some(body)) => (Some(title), body),
                         _ => {
-                            log::error!("malformed rxvt notify escape: {:?}", params);
+                            log::warn!("malformed rxvt notify escape: {:?}", params);
                             return;
                         }
                     };
