@@ -83,7 +83,16 @@ where
             prior_info.replace(info);
 
             if glyph.texture.is_some() {
-                assert!(pos[idx].is_none());
+                if let Some(existing) = pos.get(idx) {
+                    log::warn!(
+                        "idx={} is already assigned to {:#?} in: {:#?}.  infos={:#?}, glyphs={:#?}",
+                        idx,
+                        existing,
+                        pos,
+                        infos,
+                        glyphs
+                    );
+                }
                 let bitmap_pixel_width = glyph
                     .texture
                     .as_ref()
