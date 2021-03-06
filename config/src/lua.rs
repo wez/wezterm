@@ -134,6 +134,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
         wezterm_mod.set("format", lua.create_function(format)?)?;
         wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
+        wezterm_mod.set("battery_info", lua.create_function(battery_info)?)?;
 
         package.set("path", path_array.join(";"))?;
 
@@ -252,6 +253,52 @@ fn format<'lua>(_: &'lua Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
         .render_to(&changes, &mut target)
         .map_err(|e| mlua::Error::external(e))?;
     String::from_utf8(target.target).map_err(|e| mlua::Error::external(e))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct BatteryInfo {
+    state_of_charge: f32,
+    vendor: String,
+    model: String,
+    state: String,
+    serial: String,
+    time_to_full: Option<f32>,
+    time_to_empty: Option<f32>,
+}
+impl_lua_conversion!(BatteryInfo);
+
+fn opt_string(s: Option<&str>) -> String {
+    match s {
+        Some(s) => s,
+        None => "unknown",
+    }
+    .to_string()
+}
+
+fn battery_info<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<Vec<BatteryInfo>> {
+    use battery::{Manager, State};
+    let manager = Manager::new().map_err(|e| mlua::Error::external(e))?;
+    let mut result = vec![];
+    for b in manager.batteries().map_err(|e| mlua::Error::external(e))? {
+        let bat = b.map_err(|e| mlua::Error::external(e))?;
+        result.push(BatteryInfo {
+            state_of_charge: bat.state_of_charge().value,
+            vendor: opt_string(bat.vendor()),
+            model: opt_string(bat.model()),
+            serial: opt_string(bat.serial_number()),
+            state: match bat.state() {
+                State::Charging => "charging",
+                State::Discharging => "Discharging",
+                State::Empty => "Empty",
+                State::Full => "Full",
+                State::Unknown | _ => "Unknown",
+            }
+            .to_string(),
+            time_to_full: bat.time_to_full().map(|q| q.value),
+            time_to_empty: bat.time_to_empty().map(|q| q.value),
+        })
+    }
+    Ok(result)
 }
 
 async fn sleep_ms<'lua>(_: &'lua Lua, milliseconds: u64) -> mlua::Result<()> {
