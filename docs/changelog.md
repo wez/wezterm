@@ -39,7 +39,8 @@ brief notes about them may accumulate here.
 * New: introduced [custom_block_glyphs](config/lua/config/custom_block_glyphs.md) option to ensure that block glyphs don't have gaps. [#433](https://github.com/wez/wezterm/issues/433)
 * Fixed: the [RIS](https://vt100.net/docs/vt510-rm/RIS) escape wasn't clearing the scrollback. [#511](https://github.com/wez/wezterm/issues/511)
 * New: you can now drag the wezterm window via the tab bar
-* New: holding SUPER+Drag will drag the wezterm window. This is assignable, but not yet documented.
+* New: holding SUPER+Drag (or CTRL+SHIFT+Drag) will drag the wezterm window.  Use [StartWindowDrag](config/lua/keyassignment/StartWindowDrag.md) to configure your own binding.
+* New: configure [window_decorations](config/lua/config/window_decorations.md) to remove the title bar and/or window border
 
 ### 20210203-095643-70a364eb
 
