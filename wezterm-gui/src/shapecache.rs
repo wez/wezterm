@@ -46,7 +46,7 @@ where
     /// This function's goal is to handle those two cases.
     pub fn process(
         render_metrics: &RenderMetrics,
-        cluster: &CellCluster,
+        _cluster: &CellCluster,
         infos: &[GlyphInfo],
         glyphs: &[Rc<CachedGlyph<T>>],
     ) -> Vec<ShapedInfo<T>> {

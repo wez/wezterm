@@ -85,11 +85,7 @@ impl super::TermWindow {
                     {
                         let result = if pass == 0 {
                             // Let's try clearing out the atlas and trying again
-                            self.shape_cache.borrow_mut().clear();
-                            self.render_state
-                                .as_mut()
-                                .unwrap()
-                                .clear_texture_atlas(&self.render_metrics)
+                            self.clear_texture_atlas()
                         } else {
                             log::trace!("grow texture atlas to {}", size);
                             self.recreate_texture_atlas(Some(size))
@@ -1154,13 +1150,20 @@ impl super::TermWindow {
         }
     }
 
-    fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
+    pub fn clear_texture_atlas(&mut self) -> anyhow::Result<()> {
         self.shape_cache.borrow_mut().clear();
-        self.render_state.as_mut().unwrap().recreate_texture_atlas(
-            &self.fonts,
-            &self.render_metrics,
-            size,
-        )
+        if let Some(render_state) = self.render_state.as_mut() {
+            render_state.clear_texture_atlas(&self.render_metrics)?;
+        }
+        Ok(())
+    }
+
+    pub fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
+        self.shape_cache.borrow_mut().clear();
+        if let Some(render_state) = self.render_state.as_mut() {
+            render_state.recreate_texture_atlas(&self.fonts, &self.render_metrics, size)?;
+        }
+        Ok(())
     }
 }
 

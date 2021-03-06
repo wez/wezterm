@@ -47,13 +47,8 @@ impl super::TermWindow {
                 self.fonts.change_scaling(prior_font, prior_dpi);
             }
         }
-        self.shape_cache.borrow_mut().clear();
-
-        if let Some(render_state) = self.render_state.as_mut() {
-            render_state.glyph_cache.borrow_mut().clear();
-            render_state
-                .recreate_texture_atlas(&self.fonts, &self.render_metrics, None)
-                .unwrap();
+        if let Err(err) = self.recreate_texture_atlas(None) {
+            log::error!("recreate_texture_atlas: {:#}", err);
         }
     }
 
