@@ -1,4 +1,5 @@
 use crate::glyphcache::CachedGlyph;
+use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::Texture2d;
 use config::TextStyle;
 use std::rc::Rc;
@@ -44,81 +45,80 @@ where
     /// found for the resultant grapheme.
     /// This function's goal is to handle those two cases.
     pub fn process(
+        render_metrics: &RenderMetrics,
         cluster: &CellCluster,
         infos: &[GlyphInfo],
         glyphs: &[Rc<CachedGlyph<T>>],
     ) -> Vec<ShapedInfo<T>> {
-        let mut pos: Vec<ShapedInfo<T>> = vec![];
-        let mut run = None;
+        let mut pos: Vec<Option<ShapedInfo<T>>> = vec![];
+        let mut x = 0.;
+        let mut prior_info: Option<&GlyphInfo> = None;
         for (info, glyph) in infos.iter().zip(glyphs.iter()) {
-            if !info.is_space && glyph.texture.is_none() {
-                if let Some(shaped) = pos.last_mut() {
-                    // if bearing_x == 0, then the glyph could be a blank
-                    // in a <blank>, <blank>, "..." sequence, and it shouldn't
-                    // be swept into the "a" in a sequence like "a..."
-                    if shaped.pos.bearing_x > 0.
-                        && shaped.pos.bitmap_pixel_width as f32 > shaped.pos.bearing_x
-                    {
-                        // This space-like glyph belongs to the preceding glyph
-                        shaped.pos.num_cells += 1;
-                        continue;
-                    }
-                }
-
-                if run.is_none() {
-                    run.replace(ShapedInfo {
-                        pos: GlyphPosition {
-                            glyph_idx: info.glyph_pos,
-                            cluster: info.cluster,
-                            num_cells: info.num_cells,
-                            x_offset: info.x_advance,
-                            bearing_x: 0.,
-                            bitmap_pixel_width: 0,
-                        },
-                        glyph: Rc::clone(glyph),
-                    });
-                    continue;
-                }
-
-                let run = run.as_mut().unwrap();
-                run.pos.num_cells += info.num_cells;
-                run.pos.x_offset += info.x_advance;
-                continue;
+            let idx = ((x + info.x_offset.get() + glyph.bearing_x.get())
+                / render_metrics.cell_size.width as f64)
+                .floor() as usize;
+            if idx >= pos.len() {
+                pos.resize_with(idx + 1, || None);
             }
 
-            if let Some(mut run) = run.take() {
-                run.glyph = Rc::clone(glyph);
-                run.pos.glyph_idx = info.glyph_pos;
-                run.pos.num_cells += info.num_cells;
-                run.pos.bitmap_pixel_width = glyph
+            if let Some(prior) = prior_info.take() {
+                if prior.cluster == info.cluster {
+                    // This is a tricky case: if we have a cluster such as
+                    // 1F470 1F3FF 200D 2640 (woman with veil: dark skin tone)
+                    // and the font doesn't define a glyph for it, the shaper
+                    // may give us a sequence of three output clusters, each
+                    // comprising: veil, skin tone and female respectively.
+                    // Those all have the same info.cluster which
+                    // means that they all resolve to the same cell_idx.
+                    // In this case, the cluster is logically a single cell,
+                    // and the best presentation is of the veil, so we pick
+                    // that one and ignore the rest of the glyphs that map to
+                    // this same cell.
+                    // Ideally we'd overlay this with a "something is broken"
+                    // glyph in the corner.
+                    prior_info.replace(info);
+                    continue;
+                }
+            }
+            prior_info.replace(info);
+
+            if glyph.texture.is_some() {
+                assert!(pos[idx].is_none());
+                let bitmap_pixel_width = glyph
                     .texture
                     .as_ref()
                     .map_or(0, |t| t.coords.width() as u32);
-                run.pos.bearing_x = (run.pos.x_offset.get() + glyph.bearing_x.get() as f64) as f32;
-                run.pos.x_offset = PixelLength::new(0.);
-                pos.push(run);
-            } else {
-                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
-                if let Some(prior) = pos.last() {
-                    let prior_cell_idx = cluster.byte_to_cell_idx[prior.pos.cluster as usize];
-                    if cell_idx <= prior_cell_idx {
-                        // This is a tricky case: if we have a cluster such as
-                        // 1F470 1F3FF 200D 2640 (woman with veil: dark skin tone)
-                        // and the font doesn't define a glyph for it, the shaper
-                        // may give us a sequence of three output clusters, each
-                        // comprising: veil, skin tone and female respectively.
-                        // Those all have the same info.cluster which
-                        // means that they all resolve to the same cell_idx.
-                        // In this case, the cluster is logically a single cell,
-                        // and the best presentation is of the veil, so we pick
-                        // that one and ignore the rest of the glyphs that map to
-                        // this same cell.
-                        // Ideally we'd overlay this with a "something is broken"
-                        // glyph in the corner.
-                        continue;
-                    }
-                }
-                pos.push(ShapedInfo {
+                let glyph_width = (info.x_advance - glyph.bearing_x).get().ceil();
+                let num_cells =
+                    if info.num_cells == 1 && glyph_width > render_metrics.cell_size.width as f64 {
+                        (glyph_width / render_metrics.cell_size.width as f64).ceil() as u8
+                    } else {
+                        info.num_cells
+                    };
+                let cluster = if num_cells > info.num_cells {
+                    info.cluster - (num_cells - info.num_cells) as u32
+                } else {
+                    info.cluster
+                };
+                let bearing_x = if num_cells > info.num_cells && glyph.bearing_x.get() < 0. {
+                    ((num_cells - info.num_cells) as f64 * render_metrics.cell_size.width as f64)
+                        + glyph.bearing_x.get()
+                } else {
+                    glyph.bearing_x.get()
+                };
+                pos[idx].replace(ShapedInfo {
+                    glyph: Rc::clone(&glyph),
+                    pos: GlyphPosition {
+                        glyph_idx: info.glyph_pos,
+                        cluster,
+                        num_cells,
+                        x_offset: info.x_offset,
+                        bearing_x: bearing_x as f32,
+                        bitmap_pixel_width,
+                    },
+                });
+            } else if info.is_space {
+                pos[idx].replace(ShapedInfo {
                     pos: GlyphPosition {
                         glyph_idx: info.glyph_pos,
                         bitmap_pixel_width: glyph
@@ -133,16 +133,10 @@ where
                     glyph: Rc::clone(glyph),
                 });
             }
+            x += info.x_advance.get();
         }
-        if let Some(run) = run.take() {
-            log::warn!(
-                "leftovers when shaping {:#?} {:#?} -> {:?}",
-                infos,
-                glyphs,
-                run
-            );
-        }
-        pos
+
+        pos.into_iter().filter_map(|n| n).collect()
     }
 }
 
@@ -228,6 +222,7 @@ mod test {
     use wezterm_font::LoadedFont;
 
     fn cluster_and_shape<T>(
+        render_metrics: &RenderMetrics,
         glyph_cache: &mut GlyphCache<T>,
         style: &TextStyle,
         font: &Rc<LoadedFont>,
@@ -261,7 +256,7 @@ mod test {
 
         eprintln!("infos: {:#?}", infos);
         eprintln!("glyphs: {:#?}", glyphs);
-        ShapedInfo::process(&cluster, &infos, &glyphs)
+        ShapedInfo::process(render_metrics, &cluster, &infos, &glyphs)
             .into_iter()
             .map(|p| p.pos)
             .collect()
@@ -293,7 +288,7 @@ mod test {
         let font = fonts.resolve_font(&style).unwrap();
 
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "a..."),
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "a..."),
             vec![
                 GlyphPosition {
                     glyph_idx: 180,
@@ -331,7 +326,7 @@ mod test {
         let font = fonts.resolve_font(&style).unwrap();
 
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "ab"),
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "ab"),
             vec![
                 GlyphPosition {
                     glyph_idx: 180,
@@ -353,7 +348,7 @@ mod test {
         );
 
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "a b"),
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "a b"),
             vec![
                 GlyphPosition {
                     glyph_idx: 180,
@@ -383,7 +378,7 @@ mod test {
         );
 
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "a..."),
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "a..."),
             vec![
                 GlyphPosition {
                     glyph_idx: 180,
@@ -405,7 +400,7 @@ mod test {
         );
 
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "a  b"),
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "a  b"),
             vec![
                 GlyphPosition {
                     glyph_idx: 180,
@@ -443,7 +438,7 @@ mod test {
         );
 
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "<-"),
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "<-"),
             vec![GlyphPosition {
                 glyph_idx: 1065,
                 cluster: 0,
@@ -455,7 +450,7 @@ mod test {
         );
 
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "<>"),
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "<>"),
             vec![GlyphPosition {
                 glyph_idx: 1089,
                 cluster: 0,
@@ -467,7 +462,7 @@ mod test {
         );
 
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "|=>"),
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "|=>"),
             vec![GlyphPosition {
                 glyph_idx: 1040,
                 cluster: 0,
@@ -479,7 +474,7 @@ mod test {
         );
 
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, "<!--"),
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "<!--"),
             vec![GlyphPosition {
                 glyph_idx: 1071,
                 cluster: 0,
@@ -497,6 +492,7 @@ mod test {
         );
         assert_eq!(
             cluster_and_shape(
+                &render_metrics,
                 &mut glyph_cache,
                 &style,
                 &font,
@@ -515,7 +511,13 @@ mod test {
         let england_flag = "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}";
         println!("england_flag: {}", england_flag);
         assert_eq!(
-            cluster_and_shape(&mut glyph_cache, &style, &font, england_flag),
+            cluster_and_shape(
+                &render_metrics,
+                &mut glyph_cache,
+                &style,
+                &font,
+                england_flag
+            ),
             vec![GlyphPosition {
                 glyph_idx: 1583,
                 cluster: 0,

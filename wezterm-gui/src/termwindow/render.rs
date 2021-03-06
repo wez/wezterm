@@ -458,7 +458,12 @@ impl super::TermWindow {
                                 &mut gl_state.glyph_cache.borrow_mut(),
                                 &info,
                             )?;
-                            let shaped = ShapedInfo::process(&clusters[0], &info, &glyphs);
+                            let shaped = ShapedInfo::process(
+                                &self.render_metrics,
+                                &clusters[0],
+                                &info,
+                                &glyphs,
+                            );
                             self.shape_cache
                                 .borrow_mut()
                                 .put(key.to_owned(), Ok(Rc::new(shaped)));
@@ -693,7 +698,12 @@ impl super::TermWindow {
                                     &mut gl_state.glyph_cache.borrow_mut(),
                                     &info,
                                 )?;
-                                let shaped = ShapedInfo::process(cluster, &info, &glyphs);
+                                let shaped = ShapedInfo::process(
+                                    &self.render_metrics,
+                                    cluster,
+                                    &info,
+                                    &glyphs,
+                                );
 
                                 self.shape_cache
                                     .borrow_mut()
