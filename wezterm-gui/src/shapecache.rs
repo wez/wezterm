@@ -53,10 +53,27 @@ where
         let mut pos: Vec<Option<ShapedInfo<T>>> = vec![];
         let mut x = 0.;
         let mut prior_info: Option<&GlyphInfo> = None;
+
+        let cell_width = render_metrics.cell_size.width as f64;
+
         for (info, glyph) in infos.iter().zip(glyphs.iter()) {
-            let idx = ((x + info.x_offset.get() + glyph.bearing_x.get())
-                / render_metrics.cell_size.width as f64)
+            let glyph_width = (info.x_advance - glyph.bearing_x).get().ceil();
+
+            let x_offset = info.x_offset.get();
+            let bearing_x = glyph.bearing_x.get();
+
+            let idx = (((x + x_offset)
+                        // Only jump cells if the width of this one is large enough.
+                        // This is important because operator mono italic's `_`
+                        // glyph is 1 pixel wider than the computed cell width
+                + (if bearing_x.abs() > cell_width {
+                    bearing_x
+                } else {
+                    0.
+                }))
+                / cell_width)
                 .floor() as usize;
+
             if idx >= pos.len() {
                 pos.resize_with(idx + 1, || None);
             }
@@ -83,7 +100,7 @@ where
             prior_info.replace(info);
 
             if glyph.texture.is_some() {
-                if let Some(existing) = pos.get(idx) {
+                if let Some(Some(existing)) = pos.get(idx) {
                     log::warn!(
                         "idx={} is already assigned to {:#?} in: {:#?}.  infos={:#?}, glyphs={:#?}",
                         idx,
@@ -97,15 +114,17 @@ where
                     .texture
                     .as_ref()
                     .map_or(0, |t| t.coords.width() as u32);
-                let glyph_width = (info.x_advance - glyph.bearing_x).get().ceil();
-                let num_cells =
-                    if info.num_cells == 1 && glyph_width > render_metrics.cell_size.width as f64 {
-                        (glyph_width / render_metrics.cell_size.width as f64).ceil() as u8
-                    } else {
-                        info.num_cells
-                    };
+                let num_cells = if info.num_cells == 1
+                    // Only adjust the cell count if this glyph is wide enough
+                    && glyph_width > (1.5 * render_metrics.cell_size.width as f64)
+                {
+                    (glyph_width / render_metrics.cell_size.width as f64).ceil() as u8
+                } else {
+                    info.num_cells
+                };
                 let cluster = if num_cells > info.num_cells {
-                    info.cluster - (num_cells - info.num_cells) as u32
+                    info.cluster
+                        .saturating_sub((num_cells - info.num_cells) as u32)
                 } else {
                     info.cluster
                 };
@@ -144,6 +163,8 @@ where
             }
             x += info.x_advance.get();
         }
+
+        // log::info!("{:#?}\n{:#?}\n{:#?}", infos, glyphs, pos);
 
         pos.into_iter().filter_map(|n| n).collect()
     }
@@ -404,6 +425,52 @@ mod test {
                     x_offset: PixelLength::new(0.0),
                     bearing_x: 4.0,
                     bitmap_pixel_width: 16,
+                },
+            ]
+        );
+
+        assert_eq!(
+            cluster_and_shape(&render_metrics, &mut glyph_cache, &style, &font, "e_or_"),
+            vec![
+                GlyphPosition {
+                    glyph_idx: 216,
+                    cluster: 0,
+                    num_cells: 1,
+                    x_offset: PixelLength::new(0.0),
+                    bearing_x: 1.0,
+                    bitmap_pixel_width: 6,
+                },
+                GlyphPosition {
+                    glyph_idx: 610,
+                    cluster: 1,
+                    num_cells: 1,
+                    x_offset: PixelLength::new(0.0),
+                    bearing_x: 0.0,
+                    bitmap_pixel_width: 8,
+                },
+                GlyphPosition {
+                    glyph_idx: 279,
+                    cluster: 2,
+                    num_cells: 1,
+                    x_offset: PixelLength::new(0.0),
+                    bearing_x: 1.0,
+                    bitmap_pixel_width: 6,
+                },
+                GlyphPosition {
+                    glyph_idx: 308,
+                    cluster: 3,
+                    num_cells: 1,
+                    x_offset: PixelLength::new(0.0),
+                    bearing_x: 1.0,
+                    bitmap_pixel_width: 6,
+                },
+                GlyphPosition {
+                    glyph_idx: 610,
+                    cluster: 4,
+                    num_cells: 1,
+                    x_offset: PixelLength::new(0.0),
+                    bearing_x: 0.0,
+                    bitmap_pixel_width: 8,
                 },
             ]
         );
