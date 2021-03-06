@@ -1638,7 +1638,13 @@ impl TermWindow {
 
     fn cancel_overlay_for_pane(&self, pane_id: PaneId) {
         if let Some(pane) = self.pane_state(pane_id).overlay.take() {
-            Mux::get().unwrap().remove_pane(pane.pane_id());
+            // Ungh, when I built the CopyOverlay, its pane doesn't get
+            // added to the mux and instead it reports the overlaid
+            // pane id.  Take care to avoid killing ourselves off
+            // when closing the CopyOverlay
+            if pane_id != pane.pane_id() {
+                Mux::get().unwrap().remove_pane(pane.pane_id());
+            }
         }
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
