@@ -134,7 +134,6 @@ TOC = [
                     Page("Launching Programs", "config/launch.md"),
                     Page("Fonts", "config/fonts.md"),
                     Page("Font Shaping", "config/font-shaping.md"),
-                    Page("Misc", "config/misc.md"),
                     Page("Key Binding", "config/keys.md"),
                     Page("Mouse Binding", "config/mouse.md"),
                     Page("Colors & Appearance", "config/appearance.md"),
