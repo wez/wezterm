@@ -100,6 +100,24 @@ return {
 }
 ```
 
+### Microsoft Windows and Ctrl-Alt <-> AltGr
+
+*since: nightly*
+
+If you are using a layout with an *AltGr* key, you may experience issues
+when running inside a VNC session, because VNC emulates the AltGr keypresses
+by sending plain *Ctrl-Alt* keys, which won't be understood as AltGr.
+
+To fix this behavior you can tell WezTerm to treat left *Ctrl-Alt* keys as
+*AltGr* with the option `treat_left_ctrlalt_as_altgr`. Note that the key bindings using separate Ctrl and Alt won't be triggered anymore.
+
+```lua
+return {
+  treat_left_ctrlalt_as_altgr = true
+}
+```
+
+
 ### Defining Assignments for key combinations that may be composed
 
 When a key combination produces a composed key result, wezterm will look up
