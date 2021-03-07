@@ -14,6 +14,10 @@ pub trait WindowConfiguration {
         true
     }
 
+    fn treat_left_ctrlalt_as_altgr(&self) -> bool {
+        false
+    }
+
     // Applies to Windows only.
     // For macos, see send_composed_key_when_XXX_alt_is_pressed
     fn use_dead_keys(&self) -> bool {

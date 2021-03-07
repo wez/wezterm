@@ -843,6 +843,9 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub send_composed_key_when_right_alt_is_pressed: bool,
 
+    #[serde(default)]
+    pub treat_left_ctrlalt_as_altgr: bool,
+
     /// If true, the `Backspace` and `Delete` keys generate `Delete` and `Backspace`
     /// keypresses, respectively, rather than their normal keycodes.
     /// On macOS the default for this is true because its Backspace key

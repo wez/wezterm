@@ -32,6 +32,10 @@ impl WindowConfiguration for ConfigInstance {
         self.0.send_composed_key_when_right_alt_is_pressed
     }
 
+    fn treat_left_ctrlalt_as_altgr(&self) -> bool {
+        self.0.treat_left_ctrlalt_as_altgr
+    }
+
     fn enable_wayland(&self) -> bool {
         self.0.enable_wayland
     }
@@ -85,6 +89,10 @@ impl WindowConfiguration for ConfigBridge {
 
     fn send_composed_key_when_right_alt_is_pressed(&self) -> bool {
         global().send_composed_key_when_right_alt_is_pressed()
+    }
+
+    fn treat_left_ctrlalt_as_altgr(&self) -> bool {
+        global().treat_left_ctrlalt_as_altgr()
     }
 
     fn enable_wayland(&self) -> bool {
