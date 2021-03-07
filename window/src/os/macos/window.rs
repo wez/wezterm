@@ -464,11 +464,15 @@ impl Window {
             // Synthesize a resize event immediately; this allows
             // the embedding application an opportunity to discover
             // the dpi and adjust for display scaling
-            inner.borrow_mut().callbacks.resize(Dimensions {
-                pixel_width: width as usize,
-                pixel_height: height as usize,
-                dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width)) as usize,
-            });
+            inner.borrow_mut().callbacks.resize(
+                Dimensions {
+                    pixel_width: width as usize,
+                    pixel_height: height as usize,
+                    dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
+                        as usize,
+                },
+                false,
+            );
 
             Ok(window)
         }
@@ -1747,11 +1751,15 @@ impl WindowView {
         let width = backing_frame.size.width;
         let height = backing_frame.size.height;
         if let Some(this) = Self::get_this(this) {
-            this.inner.borrow_mut().callbacks.resize(Dimensions {
-                pixel_width: width as usize,
-                pixel_height: height as usize,
-                dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width)) as usize,
-            });
+            this.inner.borrow_mut().callbacks.resize(
+                Dimensions {
+                    pixel_width: width as usize,
+                    pixel_height: height as usize,
+                    dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
+                        as usize,
+                },
+                this.inner.is_fullscreen,
+            );
         }
     }
 

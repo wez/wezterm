@@ -503,7 +503,7 @@ impl WaylandWindowInner {
                 if new_dimensions != self.dimensions {
                     self.dimensions = new_dimensions;
 
-                    self.callbacks.resize(self.dimensions);
+                    self.callbacks.resize(self.dimensions, self.full_screen);
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
                         wegl_surface.resize(pixel_width, pixel_height, 0, 0);
                     }

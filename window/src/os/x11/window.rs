@@ -253,11 +253,14 @@ impl XWindowInner {
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
                 self.width = cfg.width();
                 self.height = cfg.height();
-                self.callbacks.resize(Dimensions {
-                    pixel_width: self.width as usize,
-                    pixel_height: self.height as usize,
-                    dpi: crate::DEFAULT_DPI as usize,
-                })
+                self.callbacks.resize(
+                    Dimensions {
+                        pixel_width: self.width as usize,
+                        pixel_height: self.height as usize,
+                        dpi: crate::DEFAULT_DPI as usize,
+                    },
+                    self.is_fullscreen().unwrap_or(false),
+                )
             }
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };

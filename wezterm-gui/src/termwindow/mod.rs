@@ -97,7 +97,8 @@ pub struct TermWindow {
     focused: Option<Instant>,
     fonts: Rc<FontConfiguration>,
     /// Window dimensions and dpi
-    dimensions: Dimensions,
+    pub dimensions: Dimensions,
+    pub is_full_screen: bool,
     /// Terminal dimensions
     terminal_size: PtySize,
     pub mux_window_id: MuxWindowId,
@@ -211,18 +212,21 @@ impl WindowCallbacks for TermWindow {
         self.mouse_event_impl(event, context)
     }
 
-    fn resize(&mut self, dimensions: Dimensions) {
+    fn resize(&mut self, dimensions: Dimensions, is_full_screen: bool) {
         log::trace!(
-            "resize event, current cells: {:?}, new dims: {:?}",
+            "resize event, current cells: {:?}, new dims: {:?} is_full_screen:{}",
             self.current_cell_dimensions(),
-            dimensions
+            dimensions,
+            is_full_screen,
         );
         if dimensions.pixel_width == 0 || dimensions.pixel_height == 0 {
             // on windows, this can happen when minimizing the window.
             // NOP!
             return;
         }
+        self.is_full_screen = is_full_screen;
         self.scaling_changed(dimensions, self.fonts.get_font_scale());
+        self.emit_resize_event();
     }
 
     fn key_event(&mut self, window_key: &KeyEvent, context: &dyn WindowOps) -> bool {
@@ -251,6 +255,7 @@ impl WindowCallbacks for TermWindow {
             fonts: Rc::clone(&self.fonts),
             render_metrics: self.render_metrics.clone(),
             dimensions,
+            is_full_screen: self.is_full_screen,
             terminal_size: self.terminal_size.clone(),
             render_state,
             input_map: InputMap::new(),
@@ -313,6 +318,7 @@ impl WindowCallbacks for TermWindow {
         self.render_state = None;
 
         match RenderState::new(
+            &self.config,
             ctx,
             &self.fonts,
             &self.render_metrics,
@@ -468,6 +474,7 @@ impl TermWindow {
                 fonts: fontconfig,
                 render_metrics,
                 dimensions,
+                is_full_screen: false,
                 terminal_size,
                 render_state,
                 input_map: InputMap::new(),
@@ -598,6 +605,39 @@ impl TermWindow {
         }))
         .detach();
         Ok(())
+    }
+
+    fn emit_resize_event(&mut self) {
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
+            None => return,
+        };
+
+        let window = GuiWin::new(self);
+        let pane = PaneObject::new(&pane);
+
+        async fn do_resize(
+            lua: Option<Rc<mlua::Lua>>,
+            window: GuiWin,
+            pane: PaneObject,
+        ) -> anyhow::Result<()> {
+            if let Some(lua) = lua {
+                let args = lua.pack_multi((window, pane))?;
+
+                config::lua::emit_event(&lua, ("window-resized".to_string(), args))
+                    .await
+                    .map_err(|e| {
+                        log::error!("while processing window-resized event: {:#}", e);
+                        e
+                    })?;
+            }
+            Ok(())
+        }
+
+        promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+            do_resize(lua, window, pane)
+        }))
+        .detach();
     }
 
     fn periodic_window_maintenance(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
@@ -750,13 +790,12 @@ impl TermWindow {
         self.input_map = InputMap::new();
         self.leader_is_down = None;
         let dimensions = self.dimensions;
-        let cell_dims = self.current_cell_dimensions();
 
         if let Err(err) = self.fonts.config_changed(&config) {
             log::error!("Failed to load font configuration: {:#}", err);
         }
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
-        self.apply_dimensions(&dimensions, Some(cell_dims));
+        self.apply_dimensions(&dimensions, None);
         if let Some(window) = self.window.as_ref() {
             window.config_did_change(&crate::window_config::ConfigInstance::new(config));
             window.invalidate();

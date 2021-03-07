@@ -133,8 +133,8 @@ impl WindowCallbacks for MyWindow {
             .unwrap();
     }
 
-    fn resize(&mut self, dims: Dimensions) {
-        eprintln!("resize {:?}", dims);
+    fn resize(&mut self, dims: Dimensions, is_full_screen: bool) {
+        eprintln!("resize {:?} is_full_screen={}", dims, is_full_screen);
     }
 
     fn key_event(&mut self, key: &KeyEvent, ctx: &dyn WindowOps) -> bool {

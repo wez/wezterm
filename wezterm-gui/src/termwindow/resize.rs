@@ -122,6 +122,7 @@ impl super::TermWindow {
 
         if let Some(render_state) = self.render_state.as_mut() {
             if let Err(err) = render_state.advise_of_window_size_change(
+                &config,
                 &self.render_metrics,
                 dimensions.pixel_width,
                 dimensions.pixel_height,
@@ -185,7 +186,7 @@ impl super::TermWindow {
     /// the `adjust_window_size_when_changing_font_size` configuration and
     /// revises the scaling/resize change accordingly
     pub fn adjust_font_scale(&mut self, font_scale: f64) {
-        if self.config.adjust_window_size_when_changing_font_size {
+        if !self.is_full_screen && self.config.adjust_window_size_when_changing_font_size {
             self.scaling_changed(self.dimensions, font_scale);
         } else {
             let dimensions = self.dimensions;

@@ -209,7 +209,9 @@ impl WindowInner {
             let imc = ImmContext::get(self.hwnd.0);
             imc.set_position(0, 0);
 
-            self.callbacks.borrow_mut().resize(current_dims);
+            self.callbacks
+                .borrow_mut()
+                .resize(current_dims, self.saved_placement.is_some());
         }
 
         !same

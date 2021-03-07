@@ -91,7 +91,7 @@ pub trait WindowCallbacks: Any {
     fn destroy(&mut self) {}
 
     /// Called when the window is resized, or when the dpi has changed
-    fn resize(&mut self, dimensions: Dimensions) {}
+    fn resize(&mut self, dimensions: Dimensions, is_full_screen: bool) {}
 
     /// Called when window gains/loses focus
     fn focus_change(&mut self, focused: bool) {}

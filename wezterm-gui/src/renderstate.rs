@@ -6,7 +6,7 @@ use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{IndexBuffer, VertexBuffer};
 use ::window::*;
-use config::configuration;
+use config::ConfigHandle;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
@@ -25,6 +25,7 @@ pub struct RenderState {
 
 impl RenderState {
     pub fn new(
+        config: &ConfigHandle,
         context: Rc<GliumContext>,
         fonts: &Rc<FontConfiguration>,
         metrics: &RenderMetrics,
@@ -50,6 +51,7 @@ impl RenderState {
                     let glyph_prog = Self::compile_prog(&context, true, Self::glyph_shader)?;
 
                     let (glyph_vertex_buffer, glyph_index_buffer, quads) = Self::compute_vertices(
+                        config,
                         &context,
                         metrics,
                         pixel_width as f32,
@@ -110,11 +112,13 @@ impl RenderState {
 
     pub fn advise_of_window_size_change(
         &mut self,
+        config: &ConfigHandle,
         metrics: &RenderMetrics,
         pixel_width: usize,
         pixel_height: usize,
     ) -> anyhow::Result<()> {
         let (glyph_vertex_buffer, glyph_index_buffer, quads) = Self::compute_vertices(
+            config,
             &self.context,
             metrics,
             pixel_width as f32,
@@ -185,6 +189,7 @@ impl RenderState {
     /// to a changed cell when we need to repaint the screen, and then just
     /// let the GPU figure out the rest.
     fn compute_vertices(
+        config: &ConfigHandle,
         context: &Rc<GliumContext>,
         metrics: &RenderMetrics,
         width: f32,
@@ -195,7 +200,6 @@ impl RenderState {
         let mut verts = Vec::new();
         let mut indices = Vec::new();
 
-        let config = configuration();
         let padding_right = super::termwindow::resize::effective_right_padding(&config, metrics);
         let avail_width =
             (width as usize).saturating_sub((config.window_padding.left + padding_right) as usize);

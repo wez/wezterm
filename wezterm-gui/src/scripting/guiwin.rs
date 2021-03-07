@@ -4,9 +4,10 @@ use super::pane::PaneObject;
 use crate::TermWindow;
 use anyhow::anyhow;
 use config::keyassignment::KeyAssignment;
-use luahelper::JsonLua;
+use luahelper::*;
 use mlua::{UserData, UserDataMethods};
 use mux::window::WindowId as MuxWindowId;
+use serde::*;
 use window::WindowOps;
 
 #[derive(Clone)]
@@ -54,6 +55,27 @@ impl UserData for GuiWin {
                     term_window.update_title_post_status();
                 }
                 Ok(())
+            })
+            .await
+        });
+        methods.add_async_method("get_dimensions", |_, this, _: ()| async move {
+            this.with_term_window(move |term_window, _ops| {
+                #[derive(Serialize, Deserialize)]
+                struct Dims {
+                    pixel_width: usize,
+                    pixel_height: usize,
+                    dpi: usize,
+                    is_full_screen: bool,
+                }
+                impl_lua_conversion!(Dims);
+
+                let dims = Dims {
+                    pixel_width: term_window.dimensions.pixel_width,
+                    pixel_height: term_window.dimensions.pixel_height,
+                    dpi: term_window.dimensions.dpi,
+                    is_full_screen: term_window.is_full_screen,
+                };
+                Ok(dims)
             })
             .await
         });
