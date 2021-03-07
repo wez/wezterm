@@ -329,6 +329,7 @@ pub(crate) fn load_built_in_fonts(
         font!("../../assets/fonts/JetBrainsMono-ThinItalic.ttf"),
         font!("../../assets/fonts/JetBrainsMono-Thin.ttf"),
         font!("../../assets/fonts/NotoColorEmoji.ttf"),
+        font!("../../assets/fonts/PowerlineExtraSymbols.otf"),
         font!("../../assets/fonts/LastResortHE-Regular.ttf"),
     ] {
         let face = Face::from_slice(data, 0)?;
