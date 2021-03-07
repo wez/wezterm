@@ -607,6 +607,28 @@ impl TermWindow {
         Ok(())
     }
 
+    fn emit_reloaded_event(&mut self) {
+        let window = GuiWin::new(self);
+
+        async fn do_reload(lua: Option<Rc<mlua::Lua>>, window: GuiWin) -> anyhow::Result<()> {
+            if let Some(lua) = lua {
+                let args = lua.pack_multi(window)?;
+                config::lua::emit_event(&lua, ("window-config-reloaded".to_string(), args))
+                    .await
+                    .map_err(|e| {
+                        log::error!("while processing window-config-reloaded event: {:#}", e);
+                        e
+                    })?;
+            }
+            Ok(())
+        }
+
+        promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+            do_reload(lua, window)
+        }))
+        .detach();
+    }
+
     fn emit_resize_event(&mut self) {
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
@@ -800,6 +822,8 @@ impl TermWindow {
             window.config_did_change(&crate::window_config::ConfigInstance::new(config));
             window.invalidate();
         }
+
+        self.emit_reloaded_event();
     }
 
     fn update_scrollbar(&mut self) {
