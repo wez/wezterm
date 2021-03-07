@@ -102,20 +102,7 @@ return {
 
 ### Microsoft Windows and Ctrl-Alt <-> AltGr
 
-*since: nightly*
-
-If you are using a layout with an *AltGr* key, you may experience issues
-when running inside a VNC session, because VNC emulates the AltGr keypresses
-by sending plain *Ctrl-Alt* keys, which won't be understood as AltGr.
-
-To fix this behavior you can tell WezTerm to treat left *Ctrl-Alt* keys as
-*AltGr* with the option `treat_left_ctrlalt_as_altgr`. Note that the key bindings using separate Ctrl and Alt won't be triggered anymore.
-
-```lua
-return {
-  treat_left_ctrlalt_as_altgr = true
-}
-```
+If you are using VNC and a keyboard layout with dead keys, then you may wish to enable [treat_left_ctrlalt_as_altgr](lua/config/treat_left_ctrlalt_as_altgr.md).
 
 
 ### Defining Assignments for key combinations that may be composed
