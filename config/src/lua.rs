@@ -287,7 +287,7 @@ fn battery_info<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<Vec<BatteryInfo>> {
             model: opt_string(bat.model()),
             serial: opt_string(bat.serial_number()),
             state: match bat.state() {
-                State::Charging => "charging",
+                State::Charging => "Charging",
                 State::Discharging => "Discharging",
                 State::Empty => "Empty",
                 State::Full => "Full",
