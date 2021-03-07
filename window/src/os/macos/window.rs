@@ -379,6 +379,7 @@ impl Window {
             let inner = Rc::new(RefCell::new(Inner {
                 callbacks,
                 view_id: None,
+                window: None,
                 window_id,
                 screen_changed: false,
                 gl_context_pair: None,
@@ -447,12 +448,14 @@ impl Window {
             let width = backing_frame.size.width;
             let height = backing_frame.size.height;
 
+            let weak_window = window.weak();
             let window_inner = Rc::new(RefCell::new(WindowInner {
                 window_id,
                 window,
                 view,
                 config: Arc::clone(&config),
             }));
+            inner.borrow_mut().window.replace(weak_window);
             conn.windows
                 .borrow_mut()
                 .insert(window_id, Rc::clone(&window_inner));
@@ -902,6 +905,7 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
 struct Inner {
     callbacks: Box<dyn WindowCallbacks>,
     view_id: Option<WeakPtr>,
+    window: Option<WeakPtr>,
     window_id: usize,
     screen_changed: bool,
     gl_context_pair: Option<GlContextPair>,
@@ -1751,14 +1755,29 @@ impl WindowView {
         let width = backing_frame.size.width;
         let height = backing_frame.size.height;
         if let Some(this) = Self::get_this(this) {
-            this.inner.borrow_mut().callbacks.resize(
+            let mut inner = this.inner.borrow_mut();
+
+            // This is a little gross; ideally we'd call
+            // WindowInner:is_fullscreen to determine this, but
+            // we can't get a mutable reference to it from here
+            // as we can be called in a context where something
+            // higher up the callstack already has a mutable
+            // reference and we'd panic.
+            let is_fullscreen = inner.fullscreen.is_some()
+                || inner.window.as_ref().map_or(false, |window| {
+                    let window = window.load();
+                    let style_mask = unsafe { NSWindow::styleMask(*window) };
+                    style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
+                });
+
+            inner.callbacks.resize(
                 Dimensions {
                     pixel_width: width as usize,
                     pixel_height: height as usize,
                     dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
                         as usize,
                 },
-                this.inner.is_fullscreen,
+                is_fullscreen,
             );
         }
     }
