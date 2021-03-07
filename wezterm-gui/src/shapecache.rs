@@ -55,8 +55,27 @@ where
         let mut prior_info: Option<&GlyphInfo> = None;
 
         let cell_width = render_metrics.cell_size.width as f64;
+        let simple_mode = !config::configuration().experimental_shape_post_processing;
 
         for (info, glyph) in infos.iter().zip(glyphs.iter()) {
+            if simple_mode {
+                pos.push(Some(ShapedInfo {
+                    pos: GlyphPosition {
+                        glyph_idx: info.glyph_pos,
+                        bitmap_pixel_width: glyph
+                            .texture
+                            .as_ref()
+                            .map_or(0, |t| t.coords.width() as u32),
+                        cluster: info.cluster,
+                        num_cells: info.num_cells,
+                        x_offset: info.x_offset,
+                        bearing_x: glyph.bearing_x.get() as f32,
+                    },
+                    glyph: Rc::clone(glyph),
+                }));
+                continue;
+            }
+
             let glyph_width = (info.x_advance - glyph.bearing_x).get().ceil();
 
             let x_offset = info.x_offset.get();
@@ -301,6 +320,10 @@ mod test {
             .try_init();
 
         let config = config::configuration();
+        if !config.experimental_shape_post_processing {
+            return;
+        }
+
         let mut config: config::Config = (*config).clone();
         config.font = TextStyle {
             font: vec![FontAttributes::new("Fira Code")],
@@ -347,6 +370,9 @@ mod test {
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
             .try_init();
+        if !config::configuration().experimental_shape_post_processing {
+            return;
+        }
 
         let fonts = Rc::new(FontConfiguration::new(None).unwrap());
         let render_metrics = RenderMetrics::new(&fonts).unwrap();
@@ -546,6 +572,44 @@ mod test {
                 x_offset: PixelLength::new(0.0),
                 bearing_x: 2.0,
                 bitmap_pixel_width: 21,
+            }]
+        );
+
+        let block_bottom_one_eighth = "\u{2581}";
+        assert_eq!(
+            cluster_and_shape(
+                &render_metrics,
+                &mut glyph_cache,
+                &style,
+                &font,
+                block_bottom_one_eighth
+            ),
+            vec![GlyphPosition {
+                glyph_idx: 790,
+                cluster: 0,
+                num_cells: 1,
+                x_offset: PixelLength::new(0.0),
+                bearing_x: 0.0,
+                bitmap_pixel_width: 8,
+            }]
+        );
+
+        let powerline_extra_honeycomb = "\u{e0cc}";
+        assert_eq!(
+            cluster_and_shape(
+                &render_metrics,
+                &mut glyph_cache,
+                &style,
+                &font,
+                powerline_extra_honeycomb,
+            ),
+            vec![GlyphPosition {
+                glyph_idx: 32,
+                cluster: 0,
+                num_cells: 2,
+                x_offset: PixelLength::new(0.0),
+                bearing_x: 7.0,
+                bitmap_pixel_width: 15,
             }]
         );
 

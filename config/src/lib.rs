@@ -1045,6 +1045,9 @@ pub struct Config {
 
     #[serde(default = "default_status_update_interval")]
     pub status_update_interval: u64,
+
+    #[serde(default)]
+    pub experimental_shape_post_processing: bool,
 }
 impl_lua_conversion!(Config);
 
