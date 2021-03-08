@@ -11,24 +11,10 @@ use crate::{
 use anyhow::{anyhow, Context as _};
 use promise::{Future, Promise};
 use std::any::Any;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
-use xcb::ffi::xcb_cursor_t;
-
-struct XcbCursor {
-    id: xcb_cursor_t,
-    conn: Weak<XConnection>,
-}
-
-impl Drop for XcbCursor {
-    fn drop(&mut self) {
-        if let Some(conn) = self.conn.upgrade() {
-            xcb::free_cursor(&conn.conn, self.id);
-        }
-    }
-}
 
 #[derive(Default)]
 struct CopyAndPaste {
@@ -70,8 +56,7 @@ pub(crate) struct XWindowInner {
     height: u16,
     expose: VecDeque<Rect>,
     paint_all: bool,
-    cursor: Option<MouseCursor>,
-    cursors: HashMap<Option<MouseCursor>, XcbCursor>,
+    cursors: CursorInfo,
     copy_and_paste: CopyAndPaste,
     config: WindowConfigHandle,
     gl_state: Option<Rc<glium::backend::Context>>,
@@ -184,61 +169,7 @@ impl XWindowInner {
     }
 
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) -> anyhow::Result<()> {
-        if cursor == self.cursor {
-            return Ok(());
-        }
-
-        let conn = self.conn();
-
-        let cursor_id = match self.cursors.get(&cursor) {
-            Some(cursor) => cursor.id,
-            None => {
-                let id_no = match cursor.unwrap_or(MouseCursor::Arrow) {
-                    // `/usr/include/X11/cursorfont.h`
-                    MouseCursor::Arrow => 132,
-                    MouseCursor::Hand => 58,
-                    MouseCursor::Text => 152,
-                    MouseCursor::SizeUpDown => 116,
-                    MouseCursor::SizeLeftRight => 108,
-                };
-
-                let cursor_id: xcb::ffi::xcb_cursor_t = conn.generate_id();
-                xcb::create_glyph_cursor(
-                    &conn,
-                    cursor_id,
-                    conn.cursor_font_id,
-                    conn.cursor_font_id,
-                    id_no,
-                    id_no + 1,
-                    0xffff,
-                    0xffff,
-                    0xffff,
-                    0,
-                    0,
-                    0,
-                );
-
-                self.cursors.insert(
-                    cursor,
-                    XcbCursor {
-                        id: cursor_id,
-                        conn: Rc::downgrade(&conn),
-                    },
-                );
-
-                cursor_id
-            }
-        };
-
-        xcb::change_window_attributes(
-            &conn,
-            self.window_id,
-            &[(xcb::ffi::XCB_CW_CURSOR, cursor_id)],
-        );
-
-        self.cursor = cursor;
-
-        Ok(())
+        self.cursors.set_cursor(self.window_id, cursor)
     }
 
     pub fn dispatch_event(&mut self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
@@ -787,8 +718,7 @@ impl XWindow {
                 expose: VecDeque::new(),
                 paint_all: true,
                 copy_and_paste: CopyAndPaste::default(),
-                cursor: None,
-                cursors: HashMap::new(),
+                cursors: CursorInfo::new(Rc::downgrade(&conn)),
                 gl_state: None,
                 config: Arc::clone(&config),
             }))
