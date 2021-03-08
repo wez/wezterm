@@ -26,7 +26,7 @@ impl GuiWin {
         }
     }
 
-    async fn with_term_window<F, T>(&self, mut f: F) -> mlua::Result<T>
+    pub async fn with_term_window<F, T>(&self, mut f: F) -> mlua::Result<T>
     where
         F: FnMut(&mut TermWindow, &dyn WindowOps) -> anyhow::Result<T>,
         F: Send + 'static,

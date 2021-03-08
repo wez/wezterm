@@ -89,6 +89,21 @@ pub struct TabState {
     pub overlay: Option<Rc<dyn Pane>>,
 }
 
+/// Manages the state/queue of lua based event handlers.
+/// We don't want to queue more than 1 event at a time,
+/// so we use this enum to allow for at most 1 executing
+/// and 1 pending event.
+#[derive(Copy, Clone, Debug)]
+enum EventState {
+    /// The event is not running
+    None,
+    /// The event is running
+    InProgress,
+    /// The event is running, and we have another one ready to
+    /// run once it completes
+    InProgressWithQueued,
+}
+
 pub struct TermWindow {
     pub window: Option<Window>,
     pub config: ConfigHandle,
@@ -144,6 +159,8 @@ pub struct TermWindow {
     last_status_call: Instant,
 
     palette: Option<ColorPalette>,
+
+    event_states: HashMap<String, EventState>,
 }
 
 impl WindowCallbacks for TermWindow {
@@ -226,7 +243,7 @@ impl WindowCallbacks for TermWindow {
         }
         self.is_full_screen = is_full_screen;
         self.scaling_changed(dimensions, self.fonts.get_font_scale());
-        self.emit_resize_event();
+        self.emit_window_event("window-resized");
     }
 
     fn key_event(&mut self, window_key: &KeyEvent, context: &dyn WindowOps) -> bool {
@@ -281,6 +298,7 @@ impl WindowCallbacks for TermWindow {
             shape_cache: RefCell::new(LruCache::new(65536)),
             last_blink_paint: Instant::now(),
             last_status_call: Instant::now(),
+            event_states: HashMap::new(),
         });
         prior_window.close();
 
@@ -500,6 +518,7 @@ impl TermWindow {
                 shape_cache: RefCell::new(LruCache::new(65536)),
                 last_blink_paint: Instant::now(),
                 last_status_call: Instant::now(),
+                event_states: HashMap::new(),
             }),
             Some(&crate::window_config::ConfigInstance::new(config)),
         )?;
@@ -529,9 +548,9 @@ impl TermWindow {
             let window = window.clone();
             promise::spawn::spawn(async move {
                 window
-                    .apply(move |tw, ops| {
+                    .apply(move |tw, _ops| {
                         if let Some(term_window) = tw.downcast_mut::<TermWindow>() {
-                            term_window.emit_status_event(ops)?;
+                            term_window.emit_status_event();
                         }
                         Ok(())
                     })
@@ -561,9 +580,9 @@ impl TermWindow {
             let window = window.clone();
             promise::spawn::spawn(async move {
                 window
-                    .apply(move |tw, ops| {
+                    .apply(move |tw, _ops| {
                         if let Some(term_window) = tw.downcast_mut::<TermWindow>() {
-                            term_window.emit_status_event(ops)?;
+                            term_window.emit_status_event();
                         }
                         Ok(())
                     })
@@ -573,93 +592,109 @@ impl TermWindow {
         }
     }
 
-    fn emit_status_event(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
-        let pane = match self.get_active_pane_or_overlay() {
-            Some(pane) => pane,
-            None => return Ok(()),
-        };
-
-        let window = GuiWin::new(self);
-        let pane = PaneObject::new(&pane);
-
-        async fn do_status(
-            lua: Option<Rc<mlua::Lua>>,
-            window: GuiWin,
-            pane: PaneObject,
-        ) -> anyhow::Result<()> {
-            if let Some(lua) = lua {
-                let args = lua.pack_multi((window, pane))?;
-
-                config::lua::emit_event(&lua, ("update-right-status".to_string(), args))
-                    .await
-                    .map_err(|e| {
-                        log::error!("while processing update-right-status event: {:#}", e);
-                        e
-                    })?;
-            }
-            Ok(())
-        }
-
-        promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-            do_status(lua, window, pane)
-        }))
-        .detach();
-        Ok(())
+    fn emit_status_event(&mut self) {
+        self.emit_window_event("update-right-status");
     }
 
-    fn emit_reloaded_event(&mut self) {
+    fn schedule_window_event(&mut self, name: &str) {
         let window = GuiWin::new(self);
-
-        async fn do_reload(lua: Option<Rc<mlua::Lua>>, window: GuiWin) -> anyhow::Result<()> {
-            if let Some(lua) = lua {
-                let args = lua.pack_multi(window)?;
-                config::lua::emit_event(&lua, ("window-config-reloaded".to_string(), args))
-                    .await
-                    .map_err(|e| {
-                        log::error!("while processing window-config-reloaded event: {:#}", e);
-                        e
-                    })?;
-            }
-            Ok(())
-        }
-
-        promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-            do_reload(lua, window)
-        }))
-        .detach();
-    }
-
-    fn emit_resize_event(&mut self) {
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
             None => return,
         };
-
-        let window = GuiWin::new(self);
         let pane = PaneObject::new(&pane);
+        let name = name.to_string();
 
-        async fn do_resize(
+        async fn do_event(
             lua: Option<Rc<mlua::Lua>>,
+            name: String,
             window: GuiWin,
             pane: PaneObject,
         ) -> anyhow::Result<()> {
-            if let Some(lua) = lua {
-                let args = lua.pack_multi((window, pane))?;
+            let again = if let Some(lua) = lua {
+                let args = lua.pack_multi((window.clone(), pane))?;
 
-                config::lua::emit_event(&lua, ("window-resized".to_string(), args))
-                    .await
-                    .map_err(|e| {
-                        log::error!("while processing window-resized event: {:#}", e);
-                        e
-                    })?;
+                if let Err(err) = config::lua::emit_event(&lua, (name.clone(), args)).await {
+                    log::error!("while processing {} event: {:#}", name, err);
+                }
+                true
+            } else {
+                false
+            };
+
+            let name_copy = name.clone();
+
+            if let Err(err) = window
+                .with_term_window(move |myself, _| {
+                    myself.finish_window_event(&name, again);
+                    Ok(())
+                })
+                .await
+            {
+                log::error!("while finishing {} event: {:#}", name_copy, err);
             }
+
             Ok(())
         }
 
         promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-            do_resize(lua, window, pane)
+            do_event(lua, name, window, pane)
         }))
         .detach();
+    }
+
+    /// Called as part of finishing up a callout to lua.
+    /// If again==false it means that there isn't a lua config
+    /// to execute against, so we should just mark as done.
+    /// Otherwise, if there is a queued item, schedule it now.
+    fn finish_window_event(&mut self, name: &str, again: bool) {
+        let state = self
+            .event_states
+            .entry(name.to_string())
+            .or_insert(EventState::None);
+        if again {
+            match state {
+                EventState::InProgress => {
+                    *state = EventState::None;
+                }
+                EventState::InProgressWithQueued => {
+                    *state = EventState::InProgress;
+                    self.schedule_window_event(name);
+                }
+                EventState::None => {}
+            }
+        } else {
+            *state = EventState::None;
+        }
+    }
+
+    fn emit_window_event(&mut self, name: &str) {
+        if self.get_active_pane_or_overlay().is_none() {
+            return;
+        }
+
+        let state = self
+            .event_states
+            .entry(name.to_string())
+            .or_insert(EventState::None);
+        match state {
+            EventState::InProgress => {
+                // Flag that we want to run again when the currently
+                // executing event calls finish_window_event().
+                *state = EventState::InProgressWithQueued;
+                return;
+            }
+            EventState::InProgressWithQueued => {
+                // We've already got one copy executing and another
+                // pending dispatch, so don't queue another.
+                return;
+            }
+            EventState::None => {
+                // Nothing pending, so schedule a call now
+                *state = EventState::InProgress;
+                self.schedule_window_event(name);
+            }
+        }
     }
 
     fn periodic_window_maintenance(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
@@ -823,7 +858,7 @@ impl TermWindow {
             window.invalidate();
         }
 
-        self.emit_reloaded_event();
+        self.emit_window_event("window-config-reloaded");
     }
 
     fn update_scrollbar(&mut self) {
@@ -1369,32 +1404,7 @@ impl TermWindow {
                 }
             }
             EmitEvent(name) => {
-                let window = GuiWin::new(self);
-                let pane = PaneObject::new(pane);
-
-                async fn emit_event(
-                    lua: Option<Rc<mlua::Lua>>,
-                    name: String,
-                    window: GuiWin,
-                    pane: PaneObject,
-                ) -> anyhow::Result<()> {
-                    if let Some(lua) = lua {
-                        let args = lua.pack_multi((window, pane))?;
-                        config::lua::emit_event(&lua, (name.clone(), args))
-                            .await
-                            .map_err(|e| {
-                                log::error!("while processing EmitEvent({}): {:#}", name, e);
-                                e
-                            })?;
-                    }
-                    Ok(())
-                }
-
-                let name = name.to_string();
-                promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-                    emit_event(lua, name, window, pane)
-                }))
-                .detach();
+                self.emit_window_event(name);
             }
             CompleteSelectionOrOpenLinkAtMouseCursor(dest) => {
                 let text = self.selection_text(pane);
