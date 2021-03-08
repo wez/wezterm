@@ -15,7 +15,7 @@ return {
 }
 ```
 
-The following options impact how text & glyphs are rendered:
+The following options impact how text & glyphs are rendered. **Note for high density screen users**: if you have an unreadably small prompt on e.g. a 4K laptop screen, you will need to adjust the DPI (dots per inch) upwards. Wezterm will not automatically get the scaling factor applied by every OS, especially under X11. See `dpi` below:
 
 ```lua
 return {
@@ -23,8 +23,9 @@ return {
   font_size = 11.0,
 
   -- The DPI to assume, measured in dots-per-inch
-  -- This is not automatically probed!  If you experience blurry text
-  -- or notice slight differences when comparing with other terminal
+  -- This is not automatically probed!  If you experience blurry
+  -- or tiny text despite a normal font size, or notice slight
+  -- differences when comparing with other terminal
   -- emulators, you may wish to tune this value!
   dpi = 96.0,
 
