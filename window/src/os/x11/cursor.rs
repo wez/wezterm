@@ -52,11 +52,12 @@ impl CursorInfo {
             None => {
                 let id_no = match cursor.unwrap_or(MouseCursor::Arrow) {
                     // `/usr/include/X11/cursorfont.h`
-                    MouseCursor::Arrow => 132,
-                    MouseCursor::Hand => 58,
-                    MouseCursor::Text => 152,
-                    MouseCursor::SizeUpDown => 116,
-                    MouseCursor::SizeLeftRight => 108,
+                    // <https://docs.rs/xcb-util/0.3.0/src/xcb_util/cursor.rs.html>
+                    MouseCursor::Arrow => xcb_util::cursor::TOP_LEFT_ARROW,
+                    MouseCursor::Hand => xcb_util::cursor::HAND1,
+                    MouseCursor::Text => xcb_util::cursor::XTERM,
+                    MouseCursor::SizeUpDown => xcb_util::cursor::SB_V_DOUBLE_ARROW,
+                    MouseCursor::SizeLeftRight => xcb_util::cursor::SB_H_DOUBLE_ARROW,
                 };
 
                 let cursor_id: xcb::ffi::xcb_cursor_t = conn.generate_id();
