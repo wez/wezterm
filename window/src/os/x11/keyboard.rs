@@ -138,9 +138,10 @@ impl Keyboard {
         // modifier state.  eg: SHIFT-c in an US layout produces `Char('C')`.
         // So, if we have `Char`, remove SHIFT from the processed modifier
         // state.  Not doing so can produce frustration such as that in
-        // https://github.com/wez/wezterm/issues/394
+        // https://github.com/wez/wezterm/issues/394, but take care to avoid
+        // eliminating it for eg: Enter (https://github.com/wez/wezterm/issues/516)
         let modifiers = match (&kc, raw_modifiers) {
-            (crate::KeyCode::Char(_), mods) => mods - Modifiers::SHIFT,
+            (crate::KeyCode::Char(c), mods) if !c.is_ascii_whitespace() => mods - Modifiers::SHIFT,
             (_, mods) => mods,
         };
 
