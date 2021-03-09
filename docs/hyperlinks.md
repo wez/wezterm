@@ -22,13 +22,17 @@ return {
       format = "$0",
     },
 
-    -- Un-comment this if you want to linkify email addresses
-    --[[
+    -- linkify email addresses
     {
       regex = "\\b\\w+@[\\w-]+(\\.[\\w-]+)+\\b",
       format = "mailto:$0",
     },
-    ]]
+
+    -- file:// URI
+    {
+      regex = "\bfile://\S*\b",
+      format = "$0",
+    },
 
     -- Make task numbers clickable
     --[[
