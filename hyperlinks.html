@@ -188,13 +188,17 @@ configuration in your <code>~/.wezterm.lua</code>:</p>
       format = &quot;$0&quot;,
     },
 
-    -- Un-comment this if you want to linkify email addresses
-    --[[
+    -- linkify email addresses
     {
       regex = &quot;\\b\\w+@[\\w-]+(\\.[\\w-]+)+\\b&quot;,
       format = &quot;mailto:$0&quot;,
     },
-    ]]
+
+    -- file:// URI
+    {
+      regex = &quot;\bfile://\S*\b&quot;,
+      format = &quot;$0&quot;,
+    },
 
     -- Make task numbers clickable
     --[[
