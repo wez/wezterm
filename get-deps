@@ -48,7 +48,6 @@ if test -e /etc/debian_version ; then
     libxcb-image0-dev \
     libxcb-keysyms1-dev \
     libxcb-render0-dev \
-    libxcb-shm0-dev \
     libxcb-xkb-dev \
     libxkbcommon-dev \
     libxkbcommon-x11-dev \

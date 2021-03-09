@@ -33,7 +33,6 @@ pub struct XConnection {
     pub(crate) xrm: HashMap<String, String>,
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<XWindowInner>>>>,
     should_terminate: RefCell<bool>,
-    pub(crate) shm_available: bool,
     timers: RefCell<TimerList>,
     pub(crate) visual: xcb::xproto::Visualtype,
     pub(crate) depth: u8,
@@ -142,35 +141,6 @@ fn connect_with_xlib_display() -> anyhow::Result<(xcb::Connection, i32)> {
     let conn = unsafe { xcb::Connection::new_from_xlib_display(display) };
     conn.set_event_queue_owner(xcb::EventQueueOwner::Xcb);
     Ok((conn, default_screen))
-}
-
-/// Determine whether the server supports SHM.
-/// We can't simply run this on the main connection that we establish
-/// as lack of support is reported through the connection getting
-/// closed on us!  Instead we need to open a separate session to
-/// make this check.
-fn server_supports_shm() -> bool {
-    let conn = match connect_with_xlib_display() {
-        Ok((conn, _default_screen)) => conn,
-        _ => return false,
-    };
-
-    // Take care here: xcb_shm_query_version can successfully return
-    // a nullptr, and a subsequent deref will segfault, so we need
-    // to check the ptr before accessing it!
-    match xcb::shm::query_version(&conn).get_reply() {
-        Ok(reply) => {
-            if let Err(err) = conn.has_error() {
-                eprintln!("While probing for X SHM support: {}", err);
-                return false;
-            }
-            !reply.ptr.is_null() && reply.shared_pixmaps()
-        }
-        Err(err) => {
-            eprintln!("While probing for X SHM support: {}", err);
-            false
-        }
-    }
 }
 
 impl ConnectionOps for XConnection {
@@ -348,8 +318,6 @@ impl XConnection {
 
         let keysyms = unsafe { xcb_key_symbols_alloc((*conn).get_raw_conn()) };
 
-        let shm_available = server_supports_shm();
-
         let screen = conn
             .get_setup()
             .roots()
@@ -425,7 +393,6 @@ impl XConnection {
             atom_targets,
             windows: RefCell::new(HashMap::new()),
             should_terminate: RefCell::new(false),
-            shm_available,
             timers: RefCell::new(TimerList::new()),
             depth,
             visual,

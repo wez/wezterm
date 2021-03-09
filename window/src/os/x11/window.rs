@@ -757,12 +757,6 @@ impl XWindow {
     }
 }
 
-impl Drawable for XWindow {
-    fn as_drawable(&self) -> xcb::xproto::Drawable {
-        self.0
-    }
-}
-
 impl WindowOpsMut for XWindowInner {
     fn close(&mut self) {
         xcb::destroy_window(self.conn().conn(), self.window_id);
