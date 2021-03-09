@@ -45,6 +45,7 @@ if test -e /etc/debian_version ; then
     libx11-xcb-dev \
     libxcb-ewmh-dev \
     libxcb-icccm4-dev \
+    libxcb-image0-dev \
     libxcb-keysyms1-dev \
     libxcb-shm0-dev \
     libxcb-xkb-dev \
@@ -70,6 +71,7 @@ if test -e /etc/arch-release ; then
     'python3' \
     'rust' \
     'wayland' \
+    'xcb-util-image' \
     'xcb-util-keysyms' \
     'xcb-util-wm'
   exit $?
@@ -100,6 +102,7 @@ case $OSTYPE in
       python3 \
       rust \
       wayland \
+      xcb-util-image \
       xcb-util-keysyms \
       xcb-util-wm \
       z \
