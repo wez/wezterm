@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::{Rc, Weak};
 use wezterm_term::CellAttributes;
+use window::default_dpi;
 
 mod hbwrap;
 
@@ -295,7 +296,7 @@ impl FontConfigInner {
 
         let font_size = config.font_size * *self.font_scale.borrow();
         let dpi =
-            *self.dpi_scale.borrow() as u32 * config.dpi.unwrap_or(::window::DEFAULT_DPI) as u32;
+            *self.dpi_scale.borrow() as u32 * config.dpi.unwrap_or_else(|| default_dpi()) as u32;
         let metrics = shaper.metrics(font_size, dpi).with_context(|| {
             format!(
                 "obtaining metrics for font_size={} @ dpi {}",

@@ -22,6 +22,10 @@ pub trait ConnectionOps {
         res
     }
 
+    fn default_dpi(&self) -> f64 {
+        crate::DEFAULT_DPI
+    }
+
     fn init() -> Fallible<Rc<Connection>> {
         let conn = Rc::new(Connection::create_new()?);
         CONN.with(|m| *m.borrow_mut() = Some(Rc::clone(&conn)));

@@ -188,7 +188,7 @@ impl XWindowInner {
                     Dimensions {
                         pixel_width: self.width as usize,
                         pixel_height: self.height as usize,
-                        dpi: crate::DEFAULT_DPI as usize,
+                        dpi: conn.default_dpi as usize,
                     },
                     self.is_fullscreen().unwrap_or(false),
                 )

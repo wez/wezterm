@@ -31,7 +31,7 @@ impl super::TermWindow {
 
         let (prior_font, prior_dpi) = self
             .fonts
-            .change_scaling(font_scale, dimensions.dpi as f64 / ::window::DEFAULT_DPI);
+            .change_scaling(font_scale, dimensions.dpi as f64 / ::window::default_dpi());
         match RenderMetrics::new(&self.fonts) {
             Ok(metrics) => {
                 self.render_metrics = metrics;
@@ -233,7 +233,7 @@ impl super::TermWindow {
             pixel_height: ((rows_with_tab_bar * render_metrics.cell_size.height as u16)
                 + config.window_padding.top
                 + config.window_padding.bottom) as usize,
-            dpi: config.dpi.unwrap_or(::window::DEFAULT_DPI) as usize,
+            dpi: config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
         };
 
         self.apply_scale_change(&dimensions, 1.0);

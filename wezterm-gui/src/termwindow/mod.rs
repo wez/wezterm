@@ -462,7 +462,7 @@ impl TermWindow {
             pixel_height: ((rows_with_tab_bar * render_metrics.cell_size.height as u16)
                 + config.window_padding.top
                 + config.window_padding.bottom) as usize,
-            dpi: config.dpi.unwrap_or(::window::DEFAULT_DPI) as usize,
+            dpi: config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
         };
 
         log::trace!(

@@ -17,6 +17,7 @@ use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_ke
 
 pub struct XConnection {
     pub conn: xcb_util::ewmh::Connection,
+    pub default_dpi: f64,
     pub screen_num: i32,
     pub root: xcb::xproto::Window,
     pub keyboard: Keyboard,
@@ -175,6 +176,10 @@ fn server_supports_shm() -> bool {
 impl ConnectionOps for XConnection {
     fn terminate_message_loop(&self) {
         *self.should_terminate.borrow_mut() = true;
+    }
+
+    fn default_dpi(&self) -> f64 {
+        self.default_dpi
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
@@ -394,9 +399,17 @@ impl XConnection {
 
         let xrm =
             crate::x11::xrm::parse_root_resource_manager(&conn, root).unwrap_or(HashMap::new());
+        let default_dpi = xrm
+            .get("Xft.dpi")
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("96")
+            .parse::<f64>()
+            .unwrap_or(crate::DEFAULT_DPI);
 
         let conn = XConnection {
             conn,
+            default_dpi,
             cursor_font_id,
             screen_num,
             root,

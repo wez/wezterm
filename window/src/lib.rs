@@ -11,9 +11,16 @@ mod timerlist;
 use configuration::{config, WindowConfigHandle};
 
 #[cfg(target_os = "macos")]
-pub const DEFAULT_DPI: f64 = 72.0;
+pub(crate) const DEFAULT_DPI: f64 = 72.0;
 #[cfg(not(target_os = "macos"))]
-pub const DEFAULT_DPI: f64 = 96.0;
+pub(crate) const DEFAULT_DPI: f64 = 96.0;
+
+pub fn default_dpi() -> f64 {
+    match Connection::get() {
+        Some(conn) => conn.default_dpi(),
+        None => DEFAULT_DPI,
+    }
+}
 
 mod egl;
 
