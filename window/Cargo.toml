@@ -51,10 +51,11 @@ clipboard-win = "2.2"
 shared_library = "0.1"
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
+dirs-next = "2.0"
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 x11 = {version ="2.18", features = ["xlib_xcb"]}
-xcb = {version="0.9", features=["shm", "xkb", "xlib_xcb"]}
-xcb-util = { features = [ "cursor", "icccm", "ewmh", "keysyms", "shm"], version = "0.3" }
+xcb = {version="0.9", features=["render", "shm", "xkb", "xlib_xcb"]}
+xcb-util = { features = [ "cursor", "image", "icccm", "ewmh", "keysyms", "shm"], version = "0.3" }
 xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://github.com/wez/xkbcommon-rs.git", rev="01a0a0cd5663405e6e4abb1ad3add9add1496f58"}
 mio = "0.6"
 libc = "0.2"

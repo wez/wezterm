@@ -4690,6 +4690,7 @@ dependencies = [
  "cocoa",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
+ "dirs-next",
  "euclid",
  "filedescriptor",
  "gl_generator",

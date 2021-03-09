@@ -29,6 +29,7 @@ pub struct XConnection {
     pub atom_targets: xcb::Atom,
     pub atom_clipboard: xcb::Atom,
     keysyms: *mut xcb_key_symbols_t,
+    pub(crate) xrm: HashMap<String, String>,
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<XWindowInner>>>>,
     should_terminate: RefCell<bool>,
     pub(crate) shm_available: bool,
@@ -391,11 +392,15 @@ impl XConnection {
 
         let root = screen.root();
 
+        let xrm =
+            crate::x11::xrm::parse_root_resource_manager(&conn, root).unwrap_or(HashMap::new());
+
         let conn = XConnection {
             conn,
             cursor_font_id,
             screen_num,
             root,
+            xrm,
             atom_protocols,
             atom_clipboard,
             atom_delete,

@@ -718,7 +718,7 @@ impl XWindow {
                 expose: VecDeque::new(),
                 paint_all: true,
                 copy_and_paste: CopyAndPaste::default(),
-                cursors: CursorInfo::new(Rc::downgrade(&conn)),
+                cursors: CursorInfo::new(&conn),
                 gl_state: None,
                 config: Arc::clone(&config),
             }))
