@@ -252,6 +252,15 @@ TermWindow running in the wezterm process.
 
 """,
                     ),
+                    Gen(
+                        "events: Window",
+                        "config/lua/window-events",
+                        index="""
+# Events emitted by the `Window` object
+
+The following events can be handled using [wezterm.on](../wezterm/on.md):
+""",
+                    ),
                 ],
             ),
         ],

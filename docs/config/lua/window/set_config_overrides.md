@@ -11,6 +11,12 @@ This can be used to override configuration on a per-window basis;
 this is only useful for options that apply to the GUI window, such
 as rendering the GUI.
 
+Each call to `window:set_config_overrides` will emit the
+[window-config-reloaded](../window-events/window-config-reloaded.md) event for
+the window.  If you are calling this method from inside the handler
+for `window-config-reloaded` you should take care to only call `window:set_config_overrides`
+if the actual override values have changed to avoid a loop.
+
 In this example, a key assignment (`CTRL-SHIFT-E`) is used to toggle the use of
 ligatures in the current window:
 
