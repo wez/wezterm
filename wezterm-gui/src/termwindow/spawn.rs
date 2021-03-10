@@ -20,7 +20,7 @@ impl super::TermWindow {
         Self::spawn_command_impl(
             spawn,
             spawn_where,
-            self.terminal_size,
+            self.config.initial_size(),
             self.mux_window_id,
             ClipboardHelper {
                 window: self.window.as_ref().unwrap().clone(),
