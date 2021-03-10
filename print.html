@@ -914,6 +914,20 @@ reloaded.  You should avoid taking actions in the main flow of the config file
 that have side effects; for example, unconditionally launching background
 processes can result in many of them being spawned over time if you launch
 many copies of wezterm, or are frequently reloading your config file.</p>
+<h3 id="configuration-overrides"><a class="header" href="#configuration-overrides">Configuration Overrides</a></h3>
+<p><em>since: nightly builds only</em></p>
+<p><code>wezterm</code> allows overriding configuration values via the command line; here are
+a couple of examples:</p>
+<pre><code class="language-bash">$ wezterm --config enable_scroll_bar=true
+$ wezterm --config 'exit_behavior=&quot;Hold&quot;'
+</code></pre>
+<p>Configuration specified via the command line will always override the values
+provided by the configuration file, even if the configuration file is reloaded.</p>
+<p>Each window can have an additional set of window-specific overrides applied to
+it by code in your configuration file.  That's useful for eg: setting
+transparency or any other arbitrary option on a per-window basis.  Read the
+<a href="config/lua/window/set_config_overrides.html">window:set_config_overrides</a> documentation
+for more information and examples of how to use that functionality.</p>
 <h2 id="configuration-file-structure"><a class="header" href="#configuration-file-structure">Configuration File Structure</a></h2>
 <p>The <code>wezterm.lua</code> configuration file is a lua script which allows for a high
 degree of flexibility.   The script is expected to return a configuration
