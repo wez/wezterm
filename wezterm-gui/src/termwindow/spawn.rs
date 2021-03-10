@@ -17,10 +17,15 @@ pub enum SpawnWhere {
 
 impl super::TermWindow {
     pub fn spawn_command(&mut self, spawn: &SpawnCommand, spawn_where: SpawnWhere) {
+        let size = if spawn_where == SpawnWhere::NewWindow {
+            self.config.initial_size()
+        } else {
+            self.terminal_size
+        };
         Self::spawn_command_impl(
             spawn,
             spawn_where,
-            self.config.initial_size(),
+            size,
             self.mux_window_id,
             ClipboardHelper {
                 window: self.window.as_ref().unwrap().clone(),
