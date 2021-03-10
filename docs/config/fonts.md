@@ -15,18 +15,16 @@ return {
 }
 ```
 
-The following options impact how text & glyphs are rendered:
+The following options impact how text & glyphs are rendered.
+
+*Note*: for high-density (eg: 4K or Retina) display owners, you
+may need to [adjust the DPI settings on some systems](lua/config/dpi.md)
+to avoid blurry or tiny fonts.
 
 ```lua
 return {
   -- The font size, measured in points
   font_size = 11.0,
-
-  -- The DPI to assume, measured in dots-per-inch
-  -- This is not automatically probed!  If you experience blurry text
-  -- or notice slight differences when comparing with other terminal
-  -- emulators, you may wish to tune this value!
-  dpi = 96.0,
 
   -- (available starting in version 20210203-095643-70a364eb)
   -- Scale the effective cell height.
