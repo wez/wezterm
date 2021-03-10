@@ -28,6 +28,27 @@ that have side effects; for example, unconditionally launching background
 processes can result in many of them being spawned over time if you launch
 many copies of wezterm, or are frequently reloading your config file.
 
+### Configuration Overrides
+
+*since: nightly builds only*
+
+`wezterm` allows overriding configuration values via the command line; here are
+a couple of examples:
+
+```bash
+$ wezterm --config enable_scroll_bar=true
+$ wezterm --config 'exit_behavior="Hold"'
+```
+
+Configuration specified via the command line will always override the values
+provided by the configuration file, even if the configuration file is reloaded.
+
+Each window can have an additional set of window-specific overrides applied to
+it by code in your configuration file.  That's useful for eg: setting
+transparency or any other arbitrary option on a per-window basis.  Read the
+[window:set_config_overrides](lua/window/set_config_overrides.md) documentation
+for more information and examples of how to use that functionality.
+
 ## Configuration File Structure
 
 The `wezterm.lua` configuration file is a lua script which allows for a high
