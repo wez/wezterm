@@ -30,7 +30,7 @@ return {
 
     -- file:// URI
     {
-      regex = "\bfile://\S*\b",
+      regex = "\\bfile://\S*\\b",
       format = "$0",
     },
 
