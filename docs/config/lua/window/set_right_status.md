@@ -14,7 +14,7 @@ the string.
 
 Here's a basic example that displays the time in the status area:
 
-<img width="100%" height="100%" src="../screenshots/wezterm-status-date.png"
+<img width="100%" height="100%" src="../../../screenshots/wezterm-status-date.png"
   alt="Demonstrating setting the right status area to the current date and time">
 
 ```lua
@@ -40,7 +40,7 @@ working directory and hostname from the current pane. That way
 it can potentially pick up the remote hostname if your remote shell session is using
 [OSC 7 shell integration](../../../shell-integration.html#osc-7-escape-sequence-to-set-the-working-directory).
 
-<img width="100%" height="100%" src="../screenshots/wezterm-status-powerline.png"
+<img width="100%" height="100%" src="../../../screenshots/wezterm-status-powerline.png"
   alt="Demonstrating setting the right status area with powerline styling">
 
 ```lua
