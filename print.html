@@ -456,6 +456,7 @@ brief notes about them may accumulate here.</p>
 <li>X11: improved DPI detection for high-DPI displays. <a href="https://github.com/wez/wezterm/issues/515">#515</a></li>
 <li>X11: we now load the XCursor themes when possible, which means that the mouse cursor is now generally a bit larger and clearer as well as conforming more with the prevailing style of the desktop environment. <a href="https://github.com/wez/wezterm/issues/524">#524</a></li>
 <li>New: <a href="config/lua/window/set_right_status.html">window:set_right_status</a> allows setting additional status information in the tab bar. <a href="https://github.com/wez/wezterm/issues/500">#500</a></li>
+<li>Changed the default <a href="config/lua/config/font_size.html">font_size</a> to 12 points. <a href="https://github.com/wez/wezterm/discussions/517">#517</a></li>
 </ul>
 <h3 id="20210203-095643-70a364eb"><a class="header" href="#20210203-095643-70a364eb">20210203-095643-70a364eb</a></h3>
 <ul>
@@ -5915,8 +5916,10 @@ composition.  The default is <code>Harfbuzz</code> and we have very preliminary 
 for <code>Allsorts</code>.</p>
 <h1 id="font_size--100"><a class="header" href="#font_size--100"><code>font_size = 10.0</code></a></h1>
 <p>Specifies the size of the font, measured in points.</p>
-<p>The default font size is 10 points.</p>
 <p>You may use fractional point sizes, such as <code>13.3</code>, to fine tune the size.</p>
+<p>The default font size is <code>10.0</code> points.</p>
+<p><em>Since: nightly builds</em></p>
+<p>The default font size is now <code>12.0</code> points.</p>
 <h1 id="foreground_text_hsb"><a class="header" href="#foreground_text_hsb">foreground_text_hsb</a></h1>
 <p><em>Since: nightly builds only</em></p>
 <p>Configures a Hue, Saturation, Brightness transformation that is applied to
