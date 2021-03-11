@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use termwiz::image::ImageData;
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo};
@@ -215,11 +216,83 @@ impl BlockKey {
     }
 }
 
+struct ImageFrame {
+    duration: Duration,
+    image: ::window::bitmaps::Image,
+}
+
+struct DecodedImage {
+    frame_start: Instant,
+    current_frame: usize,
+    frames: Vec<ImageFrame>,
+}
+
+impl DecodedImage {
+    fn with_frames(frames: Vec<image::Frame>) -> Self {
+        let frames = frames
+            .into_iter()
+            .map(|frame| {
+                let duration: Duration = frame.delay().into();
+                let image = image::DynamicImage::ImageRgba8(frame.into_buffer()).to_bgra8();
+                let (w, h) = image.dimensions();
+                let width = w as usize;
+                let height = h as usize;
+                let image = ::window::bitmaps::Image::from_raw(width, height, image.into_vec());
+                ImageFrame { duration, image }
+            })
+            .collect();
+        Self {
+            frame_start: Instant::now(),
+            current_frame: 1,
+            frames,
+        }
+    }
+
+    fn with_single(image_data: &Arc<ImageData>) -> anyhow::Result<Self> {
+        let image = image::load_from_memory(image_data.data())?.to_bgra8();
+        let (width, height) = image.dimensions();
+        let width = width as usize;
+        let height = height as usize;
+        let image = ::window::bitmaps::Image::from_raw(width, height, image.into_vec());
+        Ok(Self {
+            frame_start: Instant::now(),
+            current_frame: 1,
+            frames: vec![ImageFrame {
+                duration: Default::default(),
+                image,
+            }],
+        })
+    }
+
+    fn load(image_data: &Arc<ImageData>) -> anyhow::Result<Self> {
+        use image::{AnimationDecoder, ImageFormat};
+        let format = image::guess_format(image_data.data())?;
+        match format {
+            ImageFormat::Gif => {
+                let decoder = image::gif::GifDecoder::new(image_data.data())?;
+                let frames = decoder.into_frames().collect_frames()?;
+                Ok(Self::with_frames(frames))
+            }
+            ImageFormat::Png => {
+                let decoder = image::png::PngDecoder::new(image_data.data())?;
+                if decoder.is_apng() {
+                    let frames = decoder.apng().into_frames().collect_frames()?;
+                    Ok(Self::with_frames(frames))
+                } else {
+                    Self::with_single(image_data)
+                }
+            }
+            _ => Self::with_single(image_data),
+        }
+    }
+}
+
 pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
-    image_cache: HashMap<usize, Sprite<T>>,
+    image_cache: HashMap<usize, DecodedImage>,
+    frame_cache: HashMap<(usize, usize), Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     block_glyphs: HashMap<BlockKey, Sprite<T>>,
     metrics: RenderMetrics,
@@ -239,6 +312,7 @@ impl GlyphCache<ImageTexture> {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
             image_cache: HashMap::new(),
+            frame_cache: HashMap::new(),
             atlas,
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
@@ -267,6 +341,7 @@ impl GlyphCache<SrgbTexture2d> {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
             image_cache: HashMap::new(),
+            frame_cache: HashMap::new(),
             atlas,
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
@@ -276,7 +351,8 @@ impl GlyphCache<SrgbTexture2d> {
 
     pub fn clear(&mut self) {
         self.atlas.clear();
-        self.image_cache.clear();
+        // self.image_cache.clear(); - relatively expensive to re-populate
+        self.frame_cache.clear();
         self.glyph_cache.clear();
         self.line_glyphs.clear();
         self.block_glyphs.clear();
@@ -425,24 +501,47 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         image_data: &Arc<ImageData>,
         padding: Option<usize>,
-    ) -> anyhow::Result<Sprite<T>> {
-        if let Some(sprite) = self.image_cache.get(&image_data.id()) {
-            return Ok(sprite.clone());
+    ) -> anyhow::Result<(Sprite<T>, usize)> {
+        let id = image_data.id();
+        if let Some(decoded) = self.image_cache.get_mut(&id) {
+            if decoded.frames.len() > 1 {
+                let now = Instant::now();
+                if now.duration_since(decoded.frame_start)
+                    >= decoded.frames[decoded.current_frame].duration
+                {
+                    // Advance to next frame
+                    decoded.current_frame += 1;
+                    if decoded.current_frame == decoded.frames.len() {
+                        decoded.current_frame = 0;
+                    }
+                    decoded.frame_start = now;
+                }
+            }
+
+            if let Some(sprite) = self.frame_cache.get(&(id, decoded.current_frame)) {
+                return Ok((sprite.clone(), decoded.frames.len()));
+            }
+
+            let sprite = self
+                .atlas
+                .allocate_with_padding(&decoded.frames[decoded.current_frame].image, padding)?;
+
+            self.frame_cache
+                .insert((id, decoded.current_frame), sprite.clone());
+
+            return Ok((sprite, decoded.frames.len()));
         }
 
-        let decoded_image = image::load_from_memory(image_data.data())?.to_bgra8();
-        let (width, height) = decoded_image.dimensions();
-        let image = ::window::bitmaps::Image::from_raw(
-            width as usize,
-            height as usize,
-            decoded_image.to_vec(),
-        );
+        let decoded = DecodedImage::load(image_data)?;
+        let num_frames = decoded.frames.len();
+        let sprite = self
+            .atlas
+            .allocate_with_padding(&decoded.frames[0].image, padding)?;
+        self.frame_cache
+            .insert((id, decoded.current_frame), sprite.clone());
+        self.image_cache.insert(id, decoded);
 
-        let sprite = self.atlas.allocate_with_padding(&image, padding)?;
-
-        self.image_cache.insert(image_data.id(), sprite.clone());
-
-        Ok(sprite)
+        Ok((sprite, num_frames))
     }
 
     fn block_sprite(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {

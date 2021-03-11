@@ -64,6 +64,10 @@ pub struct ComputeCellFgBgResult {
 
 impl super::TermWindow {
     pub fn paint_impl(&mut self, frame: &mut glium::Frame) {
+        // If nothing on screen needs animating, then we can avoid
+        // invalidating as frequently
+        *self.has_animation.borrow_mut() = false;
+
         self.check_for_config_reload();
         let start = std::time::Instant::now();
 
@@ -230,7 +234,11 @@ impl super::TermWindow {
             let color = rgbcolor_alpha_to_window_color(palette.background, background_image_alpha);
 
             if let Some(im) = self.window_background.as_ref() {
-                let sprite = gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
+                let (sprite, num_frames) =
+                    gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
+                if num_frames > 1 {
+                    *self.has_animation.borrow_mut() = true;
+                }
                 quad.set_texture(sprite.texture_coords());
                 quad.set_is_background_image();
             } else {
@@ -985,10 +993,13 @@ impl super::TermWindow {
             padding.next_power_of_two()
         };
 
-        let sprite = gl_state
+        let (sprite, num_frames) = gl_state
             .glyph_cache
             .borrow_mut()
             .cached_image(image.image_data(), Some(padding))?;
+        if num_frames > 1 {
+            *self.has_animation.borrow_mut() = true;
+        }
         let width = sprite.coords.size.width;
         let height = sprite.coords.size.height;
 
