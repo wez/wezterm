@@ -2,9 +2,9 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::WindowConfigHandle;
 use crate::{
-    config, Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
-    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks,
-    WindowDecorations, WindowOps, WindowOpsMut,
+    Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
+    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks, WindowDecorations,
+    WindowOps, WindowOpsMut,
 };
 use anyhow::{bail, Context};
 use lazy_static::lazy_static;
@@ -53,6 +53,8 @@ pub(crate) struct WindowInner {
     saved_placement: Option<WINDOWPLACEMENT>,
 
     keyboard_info: KeyboardLayoutInfo,
+
+    config: WindowConfigHandle,
 }
 
 #[derive(Debug, Clone)]
@@ -123,7 +125,7 @@ impl WindowInner {
         let window = Window(self.hwnd);
         let conn = Connection::get().unwrap();
 
-        let gl_state = if config().prefer_egl() {
+        let gl_state = if self.config.prefer_egl() {
             match conn.gl_connection.borrow().as_ref() {
                 None => crate::egl::GlState::create(None, self.hwnd.0),
                 Some(glconn) => {
@@ -219,7 +221,7 @@ impl WindowInner {
 
     fn apply_decoration(&mut self) {
         let hwnd = self.hwnd.0;
-        schedule_apply_decoration(hwnd, config().decorations());
+        schedule_apply_decoration(hwnd, self.config.decorations());
     }
 }
 
@@ -268,6 +270,7 @@ impl Window {
     }
 
     fn create_window(
+        config: WindowConfigHandle,
         class_name: &str,
         name: &str,
         width: usize,
@@ -307,7 +310,7 @@ impl Window {
             }
         }
 
-        let decorations = config().decorations();
+        let decorations = config.decorations();
         let style = decorations_to_style(decorations);
         let (width, height) = adjust_client_to_window_dimensions(style, width, height);
 
@@ -388,12 +391,13 @@ impl Window {
             in_size_move: false,
             dead_pending: None,
             saved_placement: None,
+            config: config.clone(),
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
         let raw = rc_to_pointer(&inner);
 
-        let hwnd = match Self::create_window(class_name, name, width, height, raw) {
+        let hwnd = match Self::create_window(config, class_name, name, width, height, raw) {
             Ok(hwnd) => HWindow(hwnd),
             Err(err) => {
                 // Ensure that we drop the extra ref to raw before we return
@@ -460,7 +464,7 @@ impl WindowOpsMut for WindowInner {
 
     fn set_inner_size(&mut self, width: usize, height: usize) {
         let (width, height) = adjust_client_to_window_dimensions(
-            decorations_to_style(config().decorations()),
+            decorations_to_style(self.config.decorations()),
             width,
             height,
         );
@@ -523,7 +527,8 @@ impl WindowOpsMut for WindowInner {
         imc.set_position(cursor.origin.x.max(0) as i32, cursor.origin.y.max(0) as i32);
     }
 
-    fn config_did_change(&mut self, _config: &WindowConfigHandle) {
+    fn config_did_change(&mut self, config: &WindowConfigHandle) {
+        self.config = config.clone();
         self.apply_decoration();
     }
 
@@ -531,9 +536,10 @@ impl WindowOpsMut for WindowInner {
         unsafe {
             let hwnd = self.hwnd.0;
             let style = GetWindowLongW(hwnd, GWL_STYLE);
+            let config = self.config.clone();
             if let Some(placement) = self.saved_placement.take() {
                 promise::spawn::spawn(async move {
-                    let style = decorations_to_style(config().decorations());
+                    let style = decorations_to_style(config.decorations());
                     SetWindowLongW(hwnd, GWL_STYLE, style as i32);
                     SetWindowPlacement(hwnd, &placement);
                     SetWindowPos(
@@ -1583,7 +1589,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // resolution can do the right thing.
             modifiers |= Modifiers::RIGHT_ALT;
         } else if inner.keyboard_info.has_alt_gr()
-            && config().treat_left_ctrlalt_as_altgr()
+            && inner.config.treat_left_ctrlalt_as_altgr()
             && (keys[VK_MENU as usize] & 0x80 != 0)
             && (keys[VK_CONTROL as usize] & 0x80 != 0)
         {
@@ -1789,7 +1795,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                     // They pressed a dead key.
                     // If they want dead key processing, then record that and
                     // wait for a subsequent keypress.
-                    if config().use_dead_keys() {
+                    if inner.config.use_dead_keys() {
                         inner.dead_pending.replace((modifiers, vk));
                         return Some(0);
                     }
