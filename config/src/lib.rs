@@ -1606,7 +1606,7 @@ fn default_term() -> String {
 }
 
 fn default_font_size() -> f64 {
-    10.0
+    12.0
 }
 
 fn compute_runtime_dir() -> Result<PathBuf, Error> {
