@@ -66,7 +66,7 @@ Root: HKA; Subkey: "Software\Classes\Drive\shell\Open WezTerm here"; ValueName: 
 Root: HKA; Subkey: "Software\Classes\Drive\shell\Open WezTerm here\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" start --no-auto-connect --cwd ""%V\"""; Flags: uninsdeletekey;
 Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\Open WezTerm here"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\Open WezTerm here"; ValueName: "icon"; ValueType: string; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletekey;
-Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\Open WezTerm here\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" start --no-auto-connect --cwd ""%V\\"""; Flags: uninsdeletekey;
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\Open WezTerm here\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" start --no-auto-connect --cwd ""%V"; Flags: uninsdeletekey;
 Root: HKA; Subkey: "Software\Classes\Directory\shell\Open WezTerm here"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Directory\shell\Open WezTerm here"; ValueName: "icon"; ValueType: string; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletekey;
 Root: HKA; Subkey: "Software\Classes\Directory\shell\Open WezTerm here\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" start --no-auto-connect --cwd ""%V\\"""; Flags: uninsdeletekey;
