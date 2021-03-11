@@ -46,6 +46,7 @@ brief notes about them may accumulate here.
 * X11: fix an issue where SHIFT-Enter was not recognized [#516](https://github.com/wez/wezterm/issues/516)
 * X11: improved DPI detection for high-DPI displays. [#515](https://github.com/wez/wezterm/issues/515)
 * X11: we now load the XCursor themes when possible, which means that the mouse cursor is now generally a bit larger and clearer as well as conforming more with the prevailing style of the desktop environment. [#524](https://github.com/wez/wezterm/issues/524)
+* New: [window:set_right_status](config/lua/window/set_right_status.md) allows setting additional status information in the tab bar. [#500](https://github.com/wez/wezterm/issues/500)
 
 ### 20210203-095643-70a364eb
 
