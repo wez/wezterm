@@ -18,6 +18,7 @@ use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::Instant;
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::PixelLength;
@@ -66,7 +67,7 @@ impl super::TermWindow {
     pub fn paint_impl(&mut self, frame: &mut glium::Frame) {
         // If nothing on screen needs animating, then we can avoid
         // invalidating as frequently
-        *self.has_animation.borrow_mut() = false;
+        *self.has_animation.borrow_mut() = None;
 
         self.check_for_config_reload();
         let start = std::time::Instant::now();
@@ -115,6 +116,21 @@ impl super::TermWindow {
         log::debug!("paint_pane_opengl elapsed={:?}", start.elapsed());
         metrics::histogram!("gui.paint.opengl", start.elapsed());
         self.update_title_post_status();
+    }
+
+    fn update_next_frame_time(&self, next_due: Option<Instant>) {
+        if let Some(next_due) = next_due {
+            let mut has_anim = self.has_animation.borrow_mut();
+            match *has_anim {
+                None => {
+                    has_anim.replace(next_due);
+                }
+                Some(t) if next_due < t => {
+                    has_anim.replace(next_due);
+                }
+                _ => {}
+            }
+        }
     }
 
     pub fn paint_pane_opengl(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {
@@ -234,11 +250,9 @@ impl super::TermWindow {
             let color = rgbcolor_alpha_to_window_color(palette.background, background_image_alpha);
 
             if let Some(im) = self.window_background.as_ref() {
-                let (sprite, num_frames) =
+                let (sprite, next_due) =
                     gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
-                if num_frames > 1 {
-                    *self.has_animation.borrow_mut() = true;
-                }
+                self.update_next_frame_time(next_due);
                 quad.set_texture(sprite.texture_coords());
                 quad.set_is_background_image();
             } else {
@@ -993,13 +1007,11 @@ impl super::TermWindow {
             padding.next_power_of_two()
         };
 
-        let (sprite, num_frames) = gl_state
+        let (sprite, next_due) = gl_state
             .glyph_cache
             .borrow_mut()
             .cached_image(image.image_data(), Some(padding))?;
-        if num_frames > 1 {
-            *self.has_animation.borrow_mut() = true;
-        }
+        self.update_next_frame_time(next_due);
         let width = sprite.coords.size.width;
         let height = sprite.coords.size.height;
 

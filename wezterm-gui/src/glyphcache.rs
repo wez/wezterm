@@ -501,25 +501,29 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         image_data: &Arc<ImageData>,
         padding: Option<usize>,
-    ) -> anyhow::Result<(Sprite<T>, usize)> {
+    ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
         let id = image_data.id();
         if let Some(decoded) = self.image_cache.get_mut(&id) {
+            let mut next = None;
             if decoded.frames.len() > 1 {
                 let now = Instant::now();
-                if now.duration_since(decoded.frame_start)
-                    >= decoded.frames[decoded.current_frame].duration
-                {
+                let mut next_due =
+                    decoded.frame_start + decoded.frames[decoded.current_frame].duration;
+                if now >= next_due {
                     // Advance to next frame
                     decoded.current_frame += 1;
                     if decoded.current_frame == decoded.frames.len() {
                         decoded.current_frame = 0;
                     }
                     decoded.frame_start = now;
+                    next_due = decoded.frame_start + decoded.frames[decoded.current_frame].duration;
                 }
+
+                next.replace(next_due);
             }
 
             if let Some(sprite) = self.frame_cache.get(&(id, decoded.current_frame)) {
-                return Ok((sprite.clone(), decoded.frames.len()));
+                return Ok((sprite.clone(), next));
             }
 
             let sprite = self
@@ -529,19 +533,26 @@ impl<T: Texture2d> GlyphCache<T> {
             self.frame_cache
                 .insert((id, decoded.current_frame), sprite.clone());
 
-            return Ok((sprite, decoded.frames.len()));
+            return Ok((
+                sprite,
+                Some(decoded.frame_start + decoded.frames[decoded.current_frame].duration),
+            ));
         }
 
         let decoded = DecodedImage::load(image_data)?;
-        let num_frames = decoded.frames.len();
         let sprite = self
             .atlas
             .allocate_with_padding(&decoded.frames[0].image, padding)?;
         self.frame_cache
             .insert((id, decoded.current_frame), sprite.clone());
+        let next = if decoded.frames.len() > 1 {
+            Some(decoded.frame_start + decoded.frames[decoded.current_frame].duration)
+        } else {
+            None
+        };
         self.image_cache.insert(id, decoded);
 
-        Ok((sprite, num_frames))
+        Ok((sprite, next))
     }
 
     fn block_sprite(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {

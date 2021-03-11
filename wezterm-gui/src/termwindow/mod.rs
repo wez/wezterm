@@ -161,7 +161,7 @@ pub struct TermWindow {
     palette: Option<ColorPalette>,
 
     event_states: HashMap<String, EventState>,
-    has_animation: RefCell<bool>,
+    has_animation: RefCell<Option<Instant>>,
 }
 
 impl WindowCallbacks for TermWindow {
@@ -300,7 +300,7 @@ impl WindowCallbacks for TermWindow {
             last_blink_paint: Instant::now(),
             last_status_call: Instant::now(),
             event_states: HashMap::new(),
-            has_animation: RefCell::new(false),
+            has_animation: RefCell::new(None),
         });
         prior_window.close();
 
@@ -521,7 +521,7 @@ impl TermWindow {
                 last_blink_paint: Instant::now(),
                 last_status_call: Instant::now(),
                 event_states: HashMap::new(),
-                has_animation: RefCell::new(false),
+                has_animation: RefCell::new(None),
             }),
             Some(&crate::window_config::ConfigInstance::new(config)),
         )?;
@@ -722,6 +722,17 @@ impl TermWindow {
             self.schedule_status_update();
         }
 
+        // If self.has_animation is some, then the last render detected
+        // image attachments with multiple frames, so we also need to
+        // invalidate the viewport when the next frame is due
+        if self.focused.is_some() {
+            if let Some(next_due) = *self.has_animation.borrow() {
+                if now >= next_due {
+                    needs_invalidate = true;
+                }
+            }
+        }
+
         for pos in panes {
             // If blinking is permitted, and the cursor shape is set
             // to a blinking variant, and it's been longer than the
@@ -730,16 +741,12 @@ impl TermWindow {
             // This is pretty heavyweight: it would be nice to only invalidate
             // the line on which the cursor resides, and then only if the cursor
             // is within the viewport.
-            //
-            // If self.has_animation is true, then the last render detected
-            // image attachments with multiple frames, so we also need to
-            // invalidate the viewport.
             if self.config.cursor_blink_rate != 0 && pos.is_active && self.focused.is_some() {
                 let shape = self
                     .config
                     .default_cursor_style
                     .effective_shape(pos.pane.get_cursor_position().shape);
-                if shape.is_blinking() || *self.has_animation.borrow() {
+                if shape.is_blinking() {
                     if now.duration_since(self.last_blink_paint)
                         > Duration::from_millis(self.config.cursor_blink_rate)
                     {
