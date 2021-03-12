@@ -541,6 +541,13 @@ impl TerminfoRenderer {
                 },
                 Change::CursorVisibility(visibility) => match visibility {
                     CursorVisibility::Visible => {
+                        // tmux doesn't transition from hidden->visible with just visible
+                        // when using `TERM=screen`.  The recommendation is to also set
+                        // the cursor back to normal, so that's what we do.
+                        // <https://github.com/markbt/streampager/issues/37#issuecomment-797241725>
+                        if let Some(show) = self.get_capability::<cap::CursorNormal>() {
+                            show.expand().to(out.by_ref())?;
+                        }
                         if let Some(show) = self.get_capability::<cap::CursorVisible>() {
                             show.expand().to(out.by_ref())?;
                         }
