@@ -242,6 +242,8 @@ impl TabBarState {
                 x += 1;
             }
             line.set_cell(x, Cell::new('+', cell_attrs.clone()));
+            x += 1;
+
             for c in right {
                 line.set_cell(x, c.clone());
                 x += 1;
