@@ -281,11 +281,16 @@ impl DecodedImage {
         use image::{AnimationDecoder, ImageFormat};
         let format = image::guess_format(image_data.data())?;
         match format {
-            ImageFormat::Gif => {
-                let decoder = image::gif::GifDecoder::new(image_data.data())?;
-                let frames = decoder.into_frames().collect_frames()?;
-                Ok(Self::with_frames(frames))
-            }
+            ImageFormat::Gif => image::gif::GifDecoder::new(image_data.data())
+                .and_then(|decoder| decoder.into_frames().collect_frames())
+                .and_then(|frames| Ok(Self::with_frames(frames)))
+                .or_else(|err| {
+                    log::error!(
+                        "Unable to parse animated gif: {:#}, trying as single frame",
+                        err
+                    );
+                    Self::with_single(image_data)
+                }),
             ImageFormat::Png => {
                 let decoder = image::png::PngDecoder::new(image_data.data())?;
                 if decoder.is_apng() {
