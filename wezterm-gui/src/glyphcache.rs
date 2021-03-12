@@ -228,6 +228,19 @@ struct DecodedImage {
 }
 
 impl DecodedImage {
+    fn placeholder() -> Self {
+        let image = ::window::bitmaps::Image::new(1, 1);
+        let frame = ImageFrame {
+            duration: Duration::default(),
+            image,
+        };
+        Self {
+            frame_start: Instant::now(),
+            current_frame: 1,
+            frames: vec![frame],
+        }
+    }
+
     fn with_frames(frames: Vec<image::Frame>) -> Self {
         let frames = frames
             .into_iter()
@@ -539,7 +552,12 @@ impl<T: Texture2d> GlyphCache<T> {
             ));
         }
 
-        let decoded = DecodedImage::load(image_data)?;
+        let decoded =
+            DecodedImage::load(image_data).or_else(|e| -> anyhow::Result<DecodedImage> {
+                log::error!("Failed to decode image: {:#}", e);
+                // Use a placeholder instead
+                Ok(DecodedImage::placeholder())
+            })?;
         let sprite = self
             .atlas
             .allocate_with_padding(&decoded.frames[0].image, padding)?;
