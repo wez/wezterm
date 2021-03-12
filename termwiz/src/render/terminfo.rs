@@ -541,7 +541,7 @@ impl TerminfoRenderer {
                 },
                 Change::CursorVisibility(visibility) => match visibility {
                     CursorVisibility::Visible => {
-                        if let Some(show) = self.get_capability::<cap::CursorVisible>() {
+                        if let Some(show) = self.get_capability::<cap::CursorNormal>() {
                             show.expand().to(out.by_ref())?;
                         }
                     }
