@@ -270,21 +270,6 @@ impl Capabilities {
             }
         });
 
-        // When running under tmux, it is preferable to use the tmux
-        // terminfo, but it is common for TERM=screen to be set.
-        // If it looks like we're in tmux in this situation, if we can
-        // resolve the tmux terminfo, let's use that.
-        // That will help us restore the cursor visibility for example.
-        // <https://github.com/markbt/streampager/issues/37>
-        let mut terminfo_db = hints.terminfo_db;
-        if let Some("screen") = hints.term.as_ref().map(|t| t.as_str()) {
-            if std::env::var_os("TMUX").is_some() {
-                if let Ok(tmux) = terminfo::Database::from_name("tmux") {
-                    terminfo_db = Some(tmux);
-                }
-            }
-        }
-
         let bracketed_paste = hints.bracketed_paste.unwrap_or(true);
         let mouse_reporting = hints.mouse_reporting.unwrap_or(true);
 
@@ -294,7 +279,7 @@ impl Capabilities {
             hyperlinks,
             iterm2_image,
             bce,
-            terminfo_db,
+            terminfo_db: hints.terminfo_db,
             bracketed_paste,
             mouse_reporting,
         })
