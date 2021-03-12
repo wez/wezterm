@@ -216,11 +216,13 @@ impl BlockKey {
     }
 }
 
+#[derive(Debug)]
 struct ImageFrame {
     duration: Duration,
     image: ::window::bitmaps::Image,
 }
 
+#[derive(Debug)]
 struct DecodedImage {
     frame_start: Instant,
     current_frame: usize,
@@ -236,7 +238,7 @@ impl DecodedImage {
         };
         Self {
             frame_start: Instant::now(),
-            current_frame: 1,
+            current_frame: 0,
             frames: vec![frame],
         }
     }
@@ -256,7 +258,7 @@ impl DecodedImage {
             .collect();
         Self {
             frame_start: Instant::now(),
-            current_frame: 1,
+            current_frame: 0,
             frames,
         }
     }
@@ -269,7 +271,7 @@ impl DecodedImage {
         let image = ::window::bitmaps::Image::from_raw(width, height, image.into_vec());
         Ok(Self {
             frame_start: Instant::now(),
-            current_frame: 1,
+            current_frame: 0,
             frames: vec![ImageFrame {
                 duration: Default::default(),
                 image,
@@ -530,7 +532,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 if now >= next_due {
                     // Advance to next frame
                     decoded.current_frame += 1;
-                    if decoded.current_frame == decoded.frames.len() {
+                    if decoded.current_frame >= decoded.frames.len() {
                         decoded.current_frame = 0;
                     }
                     decoded.frame_start = now;
