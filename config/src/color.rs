@@ -1,3 +1,4 @@
+use crate::lua::{format_as_escapes, FormatItem};
 use crate::*;
 use luahelper::impl_lua_conversion;
 use termwiz::cell::CellAttributes;
@@ -179,6 +180,56 @@ impl Default for TabBarColors {
             active_tab: default_active_tab(),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct TabBarStyle {
+    #[serde(default = "default_tab_left")]
+    pub active_tab_left: String,
+    #[serde(default = "default_tab_right")]
+    pub active_tab_right: String,
+    #[serde(default = "default_tab_left")]
+    pub inactive_tab_left: String,
+    #[serde(default = "default_tab_right")]
+    pub inactive_tab_right: String,
+    #[serde(default = "default_tab_left")]
+    pub inactive_tab_hover_left: String,
+    #[serde(default = "default_tab_right")]
+    pub inactive_tab_hover_right: String,
+
+    #[serde(default = "default_tab_left")]
+    pub new_tab_left: String,
+    #[serde(default = "default_tab_right")]
+    pub new_tab_right: String,
+    #[serde(default = "default_tab_left")]
+    pub new_tab_hover_left: String,
+    #[serde(default = "default_tab_right")]
+    pub new_tab_hover_right: String,
+}
+
+impl Default for TabBarStyle {
+    fn default() -> Self {
+        Self {
+            active_tab_left: default_tab_left(),
+            active_tab_right: default_tab_right(),
+            inactive_tab_left: default_tab_left(),
+            inactive_tab_right: default_tab_right(),
+            inactive_tab_hover_left: default_tab_left(),
+            inactive_tab_hover_right: default_tab_right(),
+            new_tab_left: default_tab_left(),
+            new_tab_right: default_tab_right(),
+            new_tab_hover_left: default_tab_left(),
+            new_tab_hover_right: default_tab_right(),
+        }
+    }
+}
+
+fn default_tab_left() -> String {
+    format_as_escapes(vec![FormatItem::Text(" ".to_string())]).unwrap()
+}
+
+fn default_tab_right() -> String {
+    format_as_escapes(vec![FormatItem::Text(" ".to_string())]).unwrap()
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

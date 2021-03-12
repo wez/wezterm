@@ -173,9 +173,10 @@ struct ChangeWrap(Change);
 impl_lua_conversion!(ChangeWrap);
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-enum FormatColor {
+pub enum FormatColor {
     AnsiColor(AnsiColor),
     Color(String),
+    Default,
 }
 
 impl FormatColor {
@@ -195,12 +196,13 @@ impl Into<ColorSpec> for FormatColor {
                     .unwrap_or(RgbColor::new(0xff, 0xff, 0xff));
                 rgb.into()
             }
+            FormatColor::Default => ColorSpec::Default,
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-enum FormatItem {
+pub enum FormatItem {
     Foreground(FormatColor),
     Background(FormatColor),
     Attribute(AttributeChange),
@@ -244,15 +246,17 @@ fn strftime<'lua>(_: &'lua Lua, format: String) -> mlua::Result<String> {
     Ok(local.format(&format).to_string())
 }
 
-fn format<'lua>(_: &'lua Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
+pub fn format_as_escapes(items: Vec<FormatItem>) -> anyhow::Result<String> {
     let mut changes: Vec<Change> = items.into_iter().map(Into::into).collect();
     changes.push(Change::AllAttributes(CellAttributes::default()).into());
     let mut renderer = new_wezterm_terminfo_renderer();
     let mut target = FormatTarget { target: vec![] };
-    renderer
-        .render_to(&changes, &mut target)
-        .map_err(|e| mlua::Error::external(e))?;
-    String::from_utf8(target.target).map_err(|e| mlua::Error::external(e))
+    renderer.render_to(&changes, &mut target)?;
+    Ok(String::from_utf8(target.target)?)
+}
+
+fn format<'lua>(_: &'lua Lua, items: Vec<FormatItem>) -> mlua::Result<String> {
+    format_as_escapes(items).map_err(|e| mlua::Error::external(e))
 }
 
 #[derive(Serialize, Deserialize, Debug)]

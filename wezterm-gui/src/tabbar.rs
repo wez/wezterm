@@ -54,13 +54,59 @@ impl TabBarState {
         config: &ConfigHandle,
         right_status: &str,
     ) -> Self {
+        let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
+
+        let active_cell_attrs = colors.active_tab.as_cell_attributes();
+        let inactive_hover_attrs = colors.inactive_tab_hover.as_cell_attributes();
+        let inactive_cell_attrs = colors.inactive_tab.as_cell_attributes();
+
+        let active_tab_left = parse_status_text(
+            &config.tab_bar_style.active_tab_left,
+            active_cell_attrs.clone(),
+        );
+        let active_tab_right = parse_status_text(
+            &config.tab_bar_style.active_tab_right,
+            active_cell_attrs.clone(),
+        );
+        let inactive_tab_left = parse_status_text(
+            &config.tab_bar_style.inactive_tab_left,
+            inactive_cell_attrs.clone(),
+        );
+        let inactive_tab_right = parse_status_text(
+            &config.tab_bar_style.inactive_tab_right,
+            inactive_cell_attrs.clone(),
+        );
+        let inactive_tab_hover_left = parse_status_text(
+            &config.tab_bar_style.inactive_tab_hover_left,
+            inactive_hover_attrs.clone(),
+        );
+        let inactive_tab_hover_right = parse_status_text(
+            &config.tab_bar_style.inactive_tab_hover_right,
+            inactive_hover_attrs.clone(),
+        );
+
+        let new_tab_left = parse_status_text(
+            &config.tab_bar_style.new_tab_left,
+            inactive_cell_attrs.clone(),
+        );
+        let new_tab_right = parse_status_text(
+            &config.tab_bar_style.new_tab_right,
+            inactive_cell_attrs.clone(),
+        );
+        let new_tab_hover_left = parse_status_text(
+            &config.tab_bar_style.new_tab_hover_left,
+            inactive_hover_attrs.clone(),
+        );
+        let new_tab_hover_right = parse_status_text(
+            &config.tab_bar_style.new_tab_hover_right,
+            inactive_hover_attrs.clone(),
+        );
+
         // We ultimately want to produce a line looking like this:
         // ` | tab1-title x | tab2-title x |  +      . - X `
         // Where the `+` sign will spawn a new tab (or show a context
         // menu with tab creation options) and the other three chars
         // are symbols representing minimize, maximize and close.
-        let per_tab_overhead = 2;
-        let system_overhead = 3;
 
         let tab_titles: Vec<String> = window
             .iter()
@@ -95,8 +141,11 @@ impl TabBarState {
         let titles_len: usize = tab_titles.iter().map(|s| unicode_column_width(s)).sum();
         let number_of_tabs = tab_titles.len();
 
-        let available_cells =
-            title_width.saturating_sub((number_of_tabs * per_tab_overhead) + system_overhead);
+        let available_cells = title_width.saturating_sub(
+            (number_of_tabs.saturating_sub(1)
+                * (inactive_tab_left.len() + inactive_tab_right.len()))
+                + (new_tab_left.len() + new_tab_right.len() + 1),
+        );
         let tab_width_max = if available_cells >= titles_len {
             // We can render each title with its full width
             usize::max_value()
@@ -105,8 +154,6 @@ impl TabBarState {
             available_cells / number_of_tabs
         }
         .min(config.tab_max_width);
-
-        let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
 
         let mut line = Line::with_width(title_width);
 
@@ -117,23 +164,39 @@ impl TabBarState {
         for (tab_idx, tab_title) in tab_titles.iter().enumerate() {
             let tab_title_len = unicode_column_width(tab_title).min(tab_width_max);
 
-            let hover = mouse_x
-                .map(|mouse_x| mouse_x >= x && mouse_x < x + tab_title_len + per_tab_overhead)
-                .unwrap_or(false);
             let active = tab_idx == active_tab_no;
+            let hover = !active
+                && mouse_x
+                    .map(|mouse_x| {
+                        mouse_x >= x
+                            && mouse_x
+                                < x + tab_title_len
+                                    + (inactive_tab_left.len() + inactive_tab_right.len())
+                    })
+                    .unwrap_or(false);
 
-            let cell_attrs = if active {
-                colors.active_tab.as_cell_attributes()
+            let (cell_attrs, left, right) = if active {
+                (&active_cell_attrs, &active_tab_left, &active_tab_right)
             } else if hover {
-                colors.inactive_tab_hover.as_cell_attributes()
+                (
+                    &inactive_hover_attrs,
+                    &inactive_tab_hover_left,
+                    &inactive_tab_hover_right,
+                )
             } else {
-                colors.inactive_tab.as_cell_attributes()
+                (
+                    &inactive_cell_attrs,
+                    &inactive_tab_left,
+                    &inactive_tab_right,
+                )
             };
 
             let tab_start_idx = x;
 
-            line.set_cell(x, Cell::new(' ', cell_attrs.clone()));
-            x += 1;
+            for c in left {
+                line.set_cell(x, c.clone());
+                x += 1;
+            }
 
             for (idx, sub) in tab_title.graphemes(true).enumerate() {
                 if idx >= tab_width_max {
@@ -144,8 +207,10 @@ impl TabBarState {
                 x += 1;
             }
 
-            line.set_cell(x, Cell::new(' ', cell_attrs));
-            x += 1;
+            for c in right {
+                line.set_cell(x, c.clone());
+                x += 1;
+            }
 
             items.push(TabEntry {
                 item: TabBarItem::Tab(tab_idx),
@@ -160,22 +225,33 @@ impl TabBarState {
                 .map(|mouse_x| mouse_x >= x && mouse_x < x + 3)
                 .unwrap_or(false);
 
-            let cell_attrs = if hover {
-                colors.inactive_tab_hover.as_cell_attributes()
+            let (cell_attrs, left, right) = if hover {
+                (
+                    &inactive_hover_attrs,
+                    &new_tab_hover_left,
+                    &new_tab_hover_right,
+                )
             } else {
-                colors.inactive_tab.as_cell_attributes()
+                (&inactive_cell_attrs, &new_tab_left, &new_tab_right)
             };
+
+            let button_start = x;
+
+            for c in left {
+                line.set_cell(x, c.clone());
+                x += 1;
+            }
+            line.set_cell(x, Cell::new('+', cell_attrs.clone()));
+            for c in right {
+                line.set_cell(x, c.clone());
+                x += 1;
+            }
 
             items.push(TabEntry {
                 item: TabBarItem::NewTabButton,
-                x,
-                width: 3,
+                x: button_start,
+                width: x - button_start,
             });
-
-            line.set_cell(x, Cell::new(' ', cell_attrs.clone()));
-            line.set_cell(x + 1, Cell::new('+', cell_attrs.clone()));
-            line.set_cell(x + 2, Cell::new(' ', cell_attrs));
-            x += 3;
         }
 
         let black_cell = Cell::new(
@@ -270,10 +346,18 @@ fn parse_status_text(text: &str, default_cell: CellAttributes) -> Vec<Cell> {
                             pen.set_strikethrough(strike);
                         }
                         Sgr::Foreground(col) => {
-                            pen.set_foreground(col);
+                            if let ColorSpec::Default = col {
+                                pen.set_foreground(default_cell.foreground);
+                            } else {
+                                pen.set_foreground(col);
+                            }
                         }
                         Sgr::Background(col) => {
-                            pen.set_background(col);
+                            if let ColorSpec::Default = col {
+                                pen.set_background(default_cell.background);
+                            } else {
+                                pen.set_background(col);
+                            }
                         }
                         Sgr::UnderlineColor(col) => {
                             pen.set_underline_color(col);

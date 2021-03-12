@@ -670,6 +670,9 @@ pub struct Config {
     /// The color palette
     pub colors: Option<Palette>,
 
+    #[serde(default)]
+    pub tab_bar_style: TabBarStyle,
+
     #[serde(skip)]
     pub resolved_palette: Palette,
 
