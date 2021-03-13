@@ -558,7 +558,7 @@ impl TerminfoRenderer {
                         {
                             // The whole image is requested, so we can send the
                             // original image bytes over
-                            image.image.data().to_vec()
+                            image.image.data().to_vec().into_boxed_slice()
                         } else {
                             // TODO: slice out the requested region of the image,
                             // and encode as a PNG.

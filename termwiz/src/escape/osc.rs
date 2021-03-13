@@ -846,7 +846,7 @@ pub struct ITermFileData {
     /// the users download directory
     pub inline: bool,
     /// The data to transfer
-    pub data: Vec<u8>,
+    pub data: Box<[u8]>,
 }
 
 impl ITermFileData {
@@ -874,7 +874,7 @@ impl ITermFileData {
             let param = if idx == last {
                 // The final argument contains `:base64`, so look for that
                 if let Some(colon) = param.iter().position(|c| *c == b':') {
-                    data = Some(base64::decode(&param[colon + 1..])?);
+                    data = Some(base64::decode(&param[colon + 1..])?.into_boxed_slice());
                     &param[..colon]
                 } else {
                     // If we don't find the colon in the last piece, we've
@@ -1566,7 +1566,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
-                    data: b"hello".to_vec()
+                    data: b"hello".to_vec().into_boxed_slice(),
                 }
             )))
         );
@@ -1584,7 +1584,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
-                    data: b"hello".to_vec()
+                    data: b"hello".to_vec().into_boxed_slice(),
                 }
             )))
         );
@@ -1602,7 +1602,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
-                    data: b"hello".to_vec()
+                    data: b"hello".to_vec().into_boxed_slice(),
                 }
             )))
         );
@@ -1620,7 +1620,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
-                    data: b"hello".to_vec()
+                    data: b"hello".to_vec().into_boxed_slice(),
                 }
             )))
         );
@@ -1643,7 +1643,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
-                    data: b"hello".to_vec()
+                    data: b"hello".to_vec().into_boxed_slice(),
                 }
             )))
         );
@@ -1661,7 +1661,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
-                    data: b"hello".to_vec()
+                    data: b"hello".to_vec().into_boxed_slice(),
                 }
             )))
         );
@@ -1685,7 +1685,7 @@ mod test {
                     height: ITermDimension::Percent(10),
                     preserve_aspect_ratio: true,
                     inline: false,
-                    data: b"hello".to_vec()
+                    data: b"hello".to_vec().into_boxed_slice(),
                 }
             )))
         );
@@ -1703,7 +1703,7 @@ mod test {
                     height: ITermDimension::Pixels(10),
                     preserve_aspect_ratio: false,
                     inline: true,
-                    data: b"hello".to_vec()
+                    data: b"hello".to_vec().into_boxed_slice(),
                 }
             )))
         );

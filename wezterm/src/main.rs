@@ -168,6 +168,8 @@ impl ImgCatCommand {
             stdin.read_to_end(&mut data)?;
         }
 
+        let data = data.into_boxed_slice();
+
         let osc = OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
             ITermFileData {
                 name: None,

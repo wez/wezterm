@@ -381,7 +381,7 @@ fn load_background_image(config: &ConfigHandle) -> Option<Arc<ImageData>> {
         Some(p) => match std::fs::read(p) {
             Ok(data) => {
                 log::error!("loaded {}", p.display());
-                Some(Arc::new(ImageData::with_raw_data(data)))
+                Some(Arc::new(ImageData::with_raw_data(data.into_boxed_slice())))
             }
             Err(err) => {
                 log::error!(
@@ -408,7 +408,7 @@ fn reload_background_image(
                         return Some(Arc::clone(existing));
                     }
                 }
-                Some(Arc::new(ImageData::with_raw_data(data)))
+                Some(Arc::new(ImageData::with_raw_data(data.into_boxed_slice())))
             }
             Err(err) => {
                 log::error!(

@@ -1470,12 +1470,12 @@ impl TerminalState {
             return;
         }
 
-        let image_data = self.raw_image_to_image_data(png_image_data);
+        let image_data = self.raw_image_to_image_data(png_image_data.into_boxed_slice());
         self.assign_image_to_cells(width, height, image_data, false);
     }
 
     /// cache recent images and avoid assigning a new id for repeated data!
-    fn raw_image_to_image_data(&mut self, raw_data: Vec<u8>) -> Arc<ImageData> {
+    fn raw_image_to_image_data(&mut self, raw_data: Box<[u8]>) -> Arc<ImageData> {
         use sha2::Digest;
         let mut hasher = sha2::Sha256::new();
         hasher.update(&raw_data);

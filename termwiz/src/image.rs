@@ -118,12 +118,12 @@ static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicU
 pub struct ImageData {
     id: usize,
     /// The image data bytes.  Data is the native image file format
-    data: Vec<u8>,
+    data: Box<[u8]>,
 }
 
 impl ImageData {
     /// Create a new ImageData struct with the provided raw data.
-    pub fn with_raw_data(data: Vec<u8>) -> Self {
+    pub fn with_raw_data(data: Box<[u8]>) -> Self {
         let id = IMAGE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
         Self { id, data }
     }
