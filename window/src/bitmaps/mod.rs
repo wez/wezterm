@@ -483,6 +483,19 @@ impl Image {
         let height = (self.height as f64 * scale) as usize;
         self.resize(width, height)
     }
+
+    #[allow(dead_code)]
+    pub fn log_bits(&self) {
+        log::info!("Image pixels:");
+        for y in 0..self.height {
+            let row = self.horizontal_pixel_range(0, self.width, y);
+            let mut line = String::new();
+            for p in row {
+                line.push_str(&format!("{:08x} ", *p));
+            }
+            log::info!("{}", line);
+        }
+    }
 }
 
 impl BitmapImage for Image {

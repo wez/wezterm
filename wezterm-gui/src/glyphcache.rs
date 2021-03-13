@@ -135,7 +135,7 @@ bitflags::bitflags! {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BlockAlpha {
     /// 100%
     Full,
@@ -150,7 +150,7 @@ pub enum BlockAlpha {
 /// Represents a Block Element glyph, decoded from
 /// <https://en.wikipedia.org/wiki/Block_Elements>
 /// <https://www.unicode.org/charts/PDF/U2580.pdf>
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BlockKey {
     /// Number of 1/8ths in the upper half
     Upper(u8),
@@ -668,7 +668,7 @@ impl<T: Texture2d> GlyphCache<T> {
             BlockKey::Upper(num) => {
                 for n in 0..usize::from(num) {
                     for a in 0..scale(y_eighth) {
-                        draw_horizontal(&mut buffer, scale(n as f32 * y_eighth) + a);
+                        draw_horizontal(&mut buffer, (n as f32 * y_eighth).floor() as usize + a);
                     }
                 }
             }
@@ -684,7 +684,7 @@ impl<T: Texture2d> GlyphCache<T> {
             BlockKey::Left(num) => {
                 for n in 0..usize::from(num) {
                     for a in 0..scale(x_eighth) {
-                        draw_vertical(&mut buffer, scale(n as f32 * x_eighth) + a);
+                        draw_vertical(&mut buffer, (n as f32 * x_eighth).floor() as usize + a);
                     }
                 }
             }
@@ -727,6 +727,11 @@ impl<T: Texture2d> GlyphCache<T> {
                 }
             }
         }
+
+        /*
+        log::info!("{:?}", block);
+        buffer.log_bits();
+        */
 
         let sprite = self.atlas.allocate(&buffer)?;
         self.block_glyphs.insert(block, sprite.clone());
