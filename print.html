@@ -419,47 +419,47 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.</p>
 <ul>
-<li>Fonts: <code>font_antialias</code> and <code>font_hinting</code> are now deprecated in favor of the new <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a> and <a href="config/lua/config/freetype_load_flags.html">freetype_load_flags</a> options.  The deprecated options have no effect and will be removed in a future release.  The new options provide more direct control over how freetype rasterizes text.</li>
-<li>Fonts: when computing default <code>font_rules</code> for bold and italic fonts, strip italic and bold components from the family name. eg: if you set <code>font = wezterm.font(&quot;Source Code Pro Medium&quot;)</code> then the <code> Medium</code> text will be stripped from the font name used to locate bold and italic variants so that we don't report an error loading a non-sensical <code>Source Code Pro Medium Bold</code>. <a href="https://github.com/wez/wezterm/issues/456">#456</a></li>
-<li>Fonts: fix a regression where bright windows behind wezterm could &quot;shine through&quot; on the alpha channel, and adjust the tinting operation to avoid anti-aliased dark fringes <a href="https://github.com/wez/wezterm/issues/470">#470</a> <a href="https://github.com/wez/wezterm/issues/491">#491</a></li>
-<li>Fonts: macOS: fix an issue where wezterm could hang whe loading a font located via Core Text <a href="https://github.com/wez/wezterm/issues/475">#475</a></li>
-<li>Added <code>--config-file</code> CLI option to specify an alternate config file location. <a href="config/files.html">Read more about config file resolution</a>. Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/459">#459</a></li>
-<li>Fixed an issue where large pastes could result in a hang</li>
-<li>Updated bundled JetBrainsMono font to version 2.225</li>
-<li>Fixed an issue where the window would be redrawn on mouse move. This was most noticeable as a laggy mouse pointer when moving the mouse across a window running on the nouveau display driver on X11 and Wayland systems</li>
-<li>Wayland: fixed opengl context creation issues.  Thanks to <a href="https://github.com/unrelentingtech">@unrelentingtech</a>! <a href="https://github.com/wez/wezterm/pull/481">#481</a></li>
-<li>Wayland: the raw key modifiers are now correctly propagated so that they activate when used with key assignments using the <code>key = &quot;raw:123&quot;</code> binding syntax.</li>
-<li>Wayland: fixed window decoration and full screen handling <a href="https://github.com/wez/wezterm/issues/224">#224</a></li>
-<li>Wayland: fixed an issue where key repeat processing could &quot;run away&quot; and hang the application</li>
+<li>New: <a href="config/lua/config/tab_bar_style.html">tab_bar_style</a> allows customizing the appearance of the rest of tha tab bar.</li>
+<li>New: animated gif and png images displayed via <code>wezterm imgcat</code> (the iTerm2 image protocol), or attached to the window background via <a href="config/appearance.html#window-background-image">window_background_image</a> will now animate while the window has focus.</li>
 <li>New: added <a href="config/lua/config/foreground_text_hsb.html">foreground_text_hsb</a> setting to adjust hue, saturation and brightness when text is rendered.</li>
 <li>New: added <a href="config/lua/keyassignment/ResetFontAndWindowSize.html">ResetFontAndWindowSize</a> key assignment.</li>
 <li>New: added <a href="config/lua/keyassignment/ScrollByLine.html">ScrollByLine</a> key assignment.</li>
-<li>Fixed an issue where closing a pane would immediately <code>SIGKILL</code> the associated process, rather than sending <code>SIGHUP</code>.  Thanks to <a href="https://github.com/bew">@bew</a>!</li>
-<li>Search Mode: Added <code>CTRL-u</code> key assignment to clear the current search pattern. Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/465">#465</a></li>
 <li>New: OSC 777 and OSC 9 escapes now generate Toast Notifications. <code>printf &quot;\e]777;notify;%s;%s\e\\&quot; &quot;title&quot; &quot;body&quot;</code> and <code>printf &quot;\e]9;%s\e\\&quot; &quot;hello there&quot;</code>.  These don't currently pass through multiplexer connections. <a href="https://github.com/wez/wezterm/issues/489">#489</a>.</li>
-<li>OSC 52 (Clipboard manipulation) now respects the difference between PRIMARY and CLIPBOARD on X11 systems.</li>
-<li>Windows: the portable .zip file download now includes ANGLE EGL, just like the setup.exe installer has done since version 20201031-154415-9614e117</li>
-<li>Windows: Fixed <a href="config/lua/keyassignment/ToggleFullScreen.html">ToggleFullScreen</a> so that it once again toggles between full screen and normal placement. <a href="https://github.com/wez/wezterm/issues/177">#177</a></li>
 <li>New: <a href="config/lua/config/exit_behavior.html">exit_behavior</a> config option to keep panes open after the program has completed. <a href="https://github.com/wez/wezterm/issues/499">#499</a></li>
-<li>Closing the configuration error window no longer requires confirmation</li>
 <li>New: added <code>--config name=value</code> options to <code>wezterm</code>, <code>wezterm-gui</code> and <code>wezterm-mux-server</code>.  The <code>--front-end</code>, <code>--font-locator</code>, <code>--font-rasterizer</code> and <code>--font-shaper</code> CLI options have been removed in favor of this new mechanism.</li>
 <li>New: <a href="config/lua/window/set_config_overrides.html">window:set_config_overrides</a> method that can be used to override GUI related configuration options on a per-window basis. Click through to see examples of dynamically toggling ligatures and window opacity. <a href="https://github.com/wez/wezterm/issues/469">#469</a> <a href="https://github.com/wez/wezterm/issues/329">#329</a></li>
-<li>Fixed: line-based mouse selection (default: triple click) now extends forwards to include wrapped lines. <a href="https://github.com/wez/wezterm/issues/466">#466</a></li>
 <li>New: introduced <a href="config/lua/config/custom_block_glyphs.html">custom_block_glyphs</a> option to ensure that block glyphs don't have gaps. <a href="https://github.com/wez/wezterm/issues/433">#433</a></li>
-<li>Fixed: the <a href="https://vt100.net/docs/vt510-rm/RIS">RIS</a> escape wasn't clearing the scrollback. <a href="https://github.com/wez/wezterm/issues/511">#511</a></li>
 <li>New: you can now drag the wezterm window via the tab bar</li>
 <li>New: holding SUPER+Drag (or CTRL+SHIFT+Drag) will drag the wezterm window.  Use <a href="config/lua/keyassignment/StartWindowDrag.html">StartWindowDrag</a> to configure your own binding.</li>
 <li>New: configure <a href="config/lua/config/window_decorations.html">window_decorations</a> to remove the title bar and/or window border</li>
 <li>New: we now bundle <a href="https://github.com/ryanoasis/powerline-extra-symbols">PowerlineExtraSymbols</a> as a built-in fallback font, so that you can use powerline glyphs with any font without patching the font.</li>
+<li>New: <a href="config/lua/window/set_right_status.html">window:set_right_status</a> allows setting additional status information in the tab bar. <a href="https://github.com/wez/wezterm/issues/500">#500</a></li>
+<li>New: Search Mode: Added <code>CTRL-u</code> key assignment to clear the current search pattern. Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/465">#465</a></li>
+<li>Fonts: <code>font_antialias</code> and <code>font_hinting</code> are now deprecated in favor of the new <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a> and <a href="config/lua/config/freetype_load_flags.html">freetype_load_flags</a> options.  The deprecated options have no effect and will be removed in a future release.  The new options provide more direct control over how freetype rasterizes text.</li>
+<li>Fonts: when computing default <code>font_rules</code> for bold and italic fonts, strip italic and bold components from the family name. eg: if you set <code>font = wezterm.font(&quot;Source Code Pro Medium&quot;)</code> then the <code> Medium</code> text will be stripped from the font name used to locate bold and italic variants so that we don't report an error loading a non-sensical <code>Source Code Pro Medium Bold</code>. <a href="https://github.com/wez/wezterm/issues/456">#456</a></li>
+<li>Fonts: fix a regression where bright windows behind wezterm could &quot;shine through&quot; on the alpha channel, and adjust the tinting operation to avoid anti-aliased dark fringes <a href="https://github.com/wez/wezterm/issues/470">#470</a> <a href="https://github.com/wez/wezterm/issues/491">#491</a></li>
+<li>Fonts: macOS: fix an issue where wezterm could hang when loading a font located via Core Text <a href="https://github.com/wez/wezterm/issues/475">#475</a></li>
+<li>Fonts: Changed the default <a href="config/lua/config/font_size.html">font_size</a> to 12 points. <a href="https://github.com/wez/wezterm/discussions/517">#517</a></li>
+<li>Fonts: Updated bundled JetBrainsMono font to version 2.225</li>
+<li>Added <code>--config-file</code> CLI option to specify an alternate config file location. <a href="config/files.html">Read more about config file resolution</a>. Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/459">#459</a></li>
+<li>OSC 52 (Clipboard manipulation) now respects the difference between PRIMARY and CLIPBOARD on X11 systems.</li>
+<li>Fixed an issue where large pastes could result in a hang</li>
+<li>Closing the configuration error window no longer requires confirmation</li>
+<li>Fixed: an issue where the window would be redrawn on mouse move. This was most noticeable as a laggy mouse pointer when moving the mouse across a window running on the nouveau display driver on X11 and Wayland systems</li>
+<li>Fixed: an issue where closing a pane would immediately <code>SIGKILL</code> the associated process, rather than sending <code>SIGHUP</code>.  Thanks to <a href="https://github.com/bew">@bew</a>!</li>
+<li>Fixed: line-based mouse selection (default: triple click) now extends forwards to include wrapped lines. <a href="https://github.com/wez/wezterm/issues/466">#466</a></li>
+<li>Fixed: the <a href="https://vt100.net/docs/vt510-rm/RIS">RIS</a> escape wasn't clearing the scrollback. <a href="https://github.com/wez/wezterm/issues/511">#511</a></li>
+<li>Wayland: fixed opengl context creation issues.  Thanks to <a href="https://github.com/unrelentingtech">@unrelentingtech</a>! <a href="https://github.com/wez/wezterm/pull/481">#481</a></li>
+<li>Wayland: the raw key modifiers are now correctly propagated so that they activate when used with key assignments using the <code>key = &quot;raw:123&quot;</code> binding syntax.</li>
+<li>Wayland: fixed window decoration and full screen handling <a href="https://github.com/wez/wezterm/issues/224">#224</a></li>
+<li>Wayland: fixed an issue where key repeat processing could &quot;run away&quot; and hang the application</li>
+<li>Windows: the portable .zip file download now includes ANGLE EGL, just like the setup.exe installer has done since version 20201031-154415-9614e117</li>
+<li>Windows: Fixed <a href="config/lua/keyassignment/ToggleFullScreen.html">ToggleFullScreen</a> so that it once again toggles between full screen and normal placement. <a href="https://github.com/wez/wezterm/issues/177">#177</a></li>
 <li>Windows: fix the unexpected default behavior of Ctrl-Alt being converted to AltGr for layouts supporting this key, the previous behavior is still possible by enabling the option <a href="config/lua/config/treat_left_ctrlalt_as_altgr.html"><code>treat_left_ctrlalt_as_altgr</code></a> (to solve <a href="https://github.com/wez/wezterm/issues/392">#392</a>). Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/512">#512</a></li>
+<li>Windows: fixed &quot;Open WezTerm Here&quot; context menu in explorer when used on the root of a drive (eg: <code>C:\</code>).  Thanks to <a href="https://github.com/flyxyz123">@flyxyz123</a>! <a href="https://github.com/wez/wezterm/issues/526">#526</a> <a href="https://github.com/wez/wezterm/issues/451">#451</a></li>
 <li>X11: fix an issue where SHIFT-Enter was not recognized <a href="https://github.com/wez/wezterm/issues/516">#516</a></li>
 <li>X11: improved DPI detection for high-DPI displays. <a href="https://github.com/wez/wezterm/issues/515">#515</a></li>
 <li>X11: we now load the XCursor themes when possible, which means that the mouse cursor is now generally a bit larger and clearer as well as conforming more with the prevailing style of the desktop environment. <a href="https://github.com/wez/wezterm/issues/524">#524</a></li>
-<li>New: <a href="config/lua/window/set_right_status.html">window:set_right_status</a> allows setting additional status information in the tab bar. <a href="https://github.com/wez/wezterm/issues/500">#500</a></li>
-<li>New: <a href="config/lua/config/tab_bar_style.html">tab_bar_style</a> allows customizing the appearance of the rest of tha tab bar.</li>
-<li>Changed the default <a href="config/lua/config/font_size.html">font_size</a> to 12 points. <a href="https://github.com/wez/wezterm/discussions/517">#517</a></li>
-<li>Window: fixed &quot;Open WezTerm Here&quot; context menu in explorer when used on the root of a drive (eg: <code>C:\</code>).  Thanks to <a href="https://github.com/flyxyz123">@flyxyz123</a>! <a href="https://github.com/wez/wezterm/issues/526">#526</a> <a href="https://github.com/wez/wezterm/issues/451">#451</a></li>
-<li>New: animated gif and png images displayed via the <code>wezterm imgcat</code> (the iTerm2 image protocol), or attached to the window background via <a href="config/appearance.html#window-background-image">window_background_image</a> will now animate while the window has focus.</li>
 </ul>
 <h3 id="20210203-095643-70a364eb"><a class="header" href="#20210203-095643-70a364eb">20210203-095643-70a364eb</a></h3>
 <ul>
