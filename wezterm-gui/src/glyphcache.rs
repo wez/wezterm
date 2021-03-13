@@ -338,7 +338,7 @@ impl GlyphCache<ImageTexture> {
         Ok(Self {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
-            image_cache: HashMap::new(),
+            image_cache: LruCache::new(16),
             frame_cache: HashMap::new(),
             atlas,
             metrics: metrics.clone(),
