@@ -355,6 +355,7 @@ impl WindowCallbacks for TermWindow {
                     config::wezterm_version(),
                 );
                 self.render_state.replace(gl);
+                Self::start_periodic_maintenance(window.clone());
             }
             Err(err) => {
                 log::error!("failed to create OpenGLRenderState: {}", err);
@@ -527,7 +528,6 @@ impl TermWindow {
         )?;
 
         Self::apply_icon(&window)?;
-        Self::start_periodic_maintenance(window.clone());
         Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
 
         crate::update::start_update_checker();
