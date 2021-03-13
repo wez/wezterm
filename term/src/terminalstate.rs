@@ -1599,10 +1599,32 @@ impl TerminalState {
         let aspect = decoded_image.width() as f32 / decoded_image.height() as f32;
 
         let (width, height) = match (width, height) {
-            (None, None) => (
-                decoded_image.width() as usize,
-                decoded_image.height() as usize,
-            ),
+            (None, None) => {
+                // Take the image's native size
+                let width = decoded_image.width() as usize;
+                let height = decoded_image.height() as usize;
+                // but ensure that it fits
+                if width as usize > self.pixel_width || height as usize > self.pixel_height {
+                    let width = width as f32;
+                    let height = height as f32;
+                    let mut candidates = vec![];
+
+                    let x_scale = self.pixel_width as f32 / width;
+                    if height * x_scale <= self.pixel_height as f32 {
+                        candidates.push((self.pixel_width, (height * x_scale) as usize));
+                    }
+                    let y_scale = self.pixel_height as f32 / height;
+                    if width * y_scale <= self.pixel_width as f32 {
+                        candidates.push(((width * y_scale) as usize, self.pixel_height));
+                    }
+
+                    candidates.sort_by(|a, b| (a.0 * a.1).cmp(&(b.0 * b.1)));
+
+                    candidates.pop().unwrap()
+                } else {
+                    (width, height)
+                }
+            }
             (Some(w), None) => {
                 let h = w as f32 / aspect;
                 (w, h as usize)
