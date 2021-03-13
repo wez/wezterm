@@ -4,7 +4,6 @@
 use super::*;
 use crate::color::{ColorPalette, RgbColor};
 use anyhow::bail;
-use image::{self, GenericImageView};
 use log::{debug, error};
 use num_traits::FromPrimitive;
 use ordered_float::NotNan;
@@ -1572,9 +1571,14 @@ impl TerminalState {
             return;
         }
 
-        // Decode the image data
-        let decoded_image = match image::load_from_memory(&image.data) {
-            Ok(im) => im,
+        fn dimensions(data: &[u8]) -> anyhow::Result<(u32, u32)> {
+            let reader =
+                image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
+            Ok(reader.into_dimensions()?)
+        }
+
+        let (image_width, image_height) = match dimensions(&image.data) {
+            Ok(dims) => dims,
             Err(e) => {
                 error!(
                     "Unable to decode image: {}: size={} {:?}",
@@ -1596,13 +1600,13 @@ impl TerminalState {
         let height = image.height.to_pixels(cell_pixel_height, physical_rows);
 
         // Compute any Automatic dimensions
-        let aspect = decoded_image.width() as f32 / decoded_image.height() as f32;
+        let aspect = image_width as f32 / image_height as f32;
 
         let (width, height) = match (width, height) {
             (None, None) => {
                 // Take the image's native size
-                let width = decoded_image.width() as usize;
-                let height = decoded_image.height() as usize;
+                let width = image_width as usize;
+                let height = image_height as usize;
                 // but ensure that it fits
                 if width as usize > self.pixel_width || height as usize > self.pixel_height {
                     let width = width as f32;
