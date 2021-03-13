@@ -90,11 +90,13 @@ fn accumulator(pane_id: PaneId, dead: &Arc<AtomicBool>, rx: Receiver<Vec<u8>>) {
         buf.append(&mut data);
 
         while !buf.is_empty() {
+            /*
             if let Some(idx) = buf.iter().rposition(|&b| b == b'\n') {
                 let mut split = buf.split_off(idx + 1);
                 std::mem::swap(&mut split, &mut buf);
                 send_to_mux(pane_id, &dead, split);
             }
+            */
 
             match rx.try_recv() {
                 Ok(mut extra) => {
