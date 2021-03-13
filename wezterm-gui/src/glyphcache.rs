@@ -9,6 +9,7 @@ use ::window::*;
 use anyhow::{anyhow, Context};
 use config::{configuration, AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
+use lru::LruCache;
 use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
@@ -223,6 +224,12 @@ struct ImageFrame {
 }
 
 #[derive(Debug)]
+enum CachedImage {
+    Animation(DecodedImage),
+    SingleFrame,
+}
+
+#[derive(Debug)]
 struct DecodedImage {
     frame_start: Instant,
     current_frame: usize,
@@ -311,7 +318,7 @@ pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
-    image_cache: HashMap<usize, DecodedImage>,
+    image_cache: LruCache<usize, CachedImage>,
     frame_cache: HashMap<(usize, usize), Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     block_glyphs: HashMap<BlockKey, Sprite<T>>,
@@ -360,7 +367,7 @@ impl GlyphCache<SrgbTexture2d> {
         Ok(Self {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
-            image_cache: HashMap::new(),
+            image_cache: LruCache::new(16),
             frame_cache: HashMap::new(),
             atlas,
             metrics: metrics.clone(),
@@ -523,61 +530,75 @@ impl<T: Texture2d> GlyphCache<T> {
         padding: Option<usize>,
     ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
         let id = image_data.id();
-        if let Some(decoded) = self.image_cache.get_mut(&id) {
-            let mut next = None;
-            if decoded.frames.len() > 1 {
-                let now = Instant::now();
-                let mut next_due =
-                    decoded.frame_start + decoded.frames[decoded.current_frame].duration;
-                if now >= next_due {
-                    // Advance to next frame
-                    decoded.current_frame += 1;
-                    if decoded.current_frame >= decoded.frames.len() {
-                        decoded.current_frame = 0;
+        if let Some(cached) = self.image_cache.get_mut(&id) {
+            match cached {
+                CachedImage::SingleFrame => {
+                    // We can simply use the frame cache to manage
+                    // the texture space; the frame is always 0 for
+                    // a single frame
+                    if let Some(sprite) = self.frame_cache.get(&(id, 0)) {
+                        return Ok((sprite.clone(), None));
                     }
-                    decoded.frame_start = now;
-                    next_due = decoded.frame_start + decoded.frames[decoded.current_frame].duration;
+                    log::info!("cache miss for single frame id={}", id);
                 }
+                CachedImage::Animation(decoded) => {
+                    let mut next = None;
+                    if decoded.frames.len() > 1 {
+                        let now = Instant::now();
+                        let mut next_due =
+                            decoded.frame_start + decoded.frames[decoded.current_frame].duration;
+                        if now >= next_due {
+                            // Advance to next frame
+                            decoded.current_frame += 1;
+                            if decoded.current_frame >= decoded.frames.len() {
+                                decoded.current_frame = 0;
+                            }
+                            decoded.frame_start = now;
+                            next_due = decoded.frame_start
+                                + decoded.frames[decoded.current_frame].duration;
+                        }
 
-                next.replace(next_due);
+                        next.replace(next_due);
+                    }
+
+                    if let Some(sprite) = self.frame_cache.get(&(id, decoded.current_frame)) {
+                        return Ok((sprite.clone(), next));
+                    }
+
+                    let sprite = self.atlas.allocate_with_padding(
+                        &decoded.frames[decoded.current_frame].image,
+                        padding,
+                    )?;
+
+                    self.frame_cache
+                        .insert((id, decoded.current_frame), sprite.clone());
+
+                    return Ok((
+                        sprite,
+                        Some(decoded.frame_start + decoded.frames[decoded.current_frame].duration),
+                    ));
+                }
             }
-
-            if let Some(sprite) = self.frame_cache.get(&(id, decoded.current_frame)) {
-                return Ok((sprite.clone(), next));
-            }
-
-            let sprite = self
-                .atlas
-                .allocate_with_padding(&decoded.frames[decoded.current_frame].image, padding)?;
-
-            self.frame_cache
-                .insert((id, decoded.current_frame), sprite.clone());
-
-            return Ok((
-                sprite,
-                Some(decoded.frame_start + decoded.frames[decoded.current_frame].duration),
-            ));
         }
 
         let decoded =
             DecodedImage::load(image_data).or_else(|e| -> anyhow::Result<DecodedImage> {
-                log::error!("Failed to decode image: {:#}", e);
+                log::debug!("Failed to decode image: {:#}", e);
                 // Use a placeholder instead
                 Ok(DecodedImage::placeholder())
             })?;
         let sprite = self
             .atlas
             .allocate_with_padding(&decoded.frames[0].image, padding)?;
-        self.frame_cache
-            .insert((id, decoded.current_frame), sprite.clone());
-        let next = if decoded.frames.len() > 1 {
-            Some(decoded.frame_start + decoded.frames[decoded.current_frame].duration)
+        self.frame_cache.insert((id, 0), sprite.clone());
+        if decoded.frames.len() > 1 {
+            let next = Some(decoded.frame_start + decoded.frames[0].duration);
+            self.image_cache.put(id, CachedImage::Animation(decoded));
+            Ok((sprite, next))
         } else {
-            None
-        };
-        self.image_cache.insert(id, decoded);
-
-        Ok((sprite, next))
+            self.image_cache.put(id, CachedImage::SingleFrame);
+            Ok((sprite, None))
+        }
     }
 
     fn block_sprite(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {
