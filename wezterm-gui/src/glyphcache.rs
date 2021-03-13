@@ -539,7 +539,6 @@ impl<T: Texture2d> GlyphCache<T> {
                     if let Some(sprite) = self.frame_cache.get(&(id, 0)) {
                         return Ok((sprite.clone(), None));
                     }
-                    log::info!("cache miss for single frame id={}", id);
                 }
                 CachedImage::Animation(decoded) => {
                     let mut next = None;
