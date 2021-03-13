@@ -76,6 +76,7 @@ impl Line {
         let blank = Cell::default();
         self.cells.clear();
         self.cells.resize(width, blank);
+        self.cells.shrink_to_fit();
         self.bits = LineBits::DIRTY;
     }
 
