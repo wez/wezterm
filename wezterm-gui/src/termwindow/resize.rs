@@ -113,8 +113,12 @@ impl super::TermWindow {
             let size = PtySize {
                 rows: rows as u16,
                 cols: cols as u16,
-                pixel_height: avail_height as u16,
-                pixel_width: avail_width as u16,
+                // Take care to use the exact pixel dimensions of the cells, rather
+                // than the available space, so that apps that are sensitive to
+                // the pixels-per-cell have consistent values at a given font size.
+                // https://github.com/wez/wezterm/issues/535
+                pixel_height: rows as u16 * self.render_metrics.cell_size.height as u16,
+                pixel_width: cols as u16 * self.render_metrics.cell_size.width as u16,
             };
 
             (size, *dimensions)
