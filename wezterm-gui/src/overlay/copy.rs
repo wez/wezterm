@@ -482,8 +482,8 @@ impl Pane for CopyOverlay {
         anyhow::bail!("ignoring mouse while copying");
     }
 
-    fn advance_bytes(&self, buf: &[u8]) {
-        self.delegate.advance_bytes(buf)
+    fn perform_actions(&self, actions: Vec<termwiz::escape::Action>) {
+        self.delegate.perform_actions(actions)
     }
 
     fn is_dead(&self) -> bool {

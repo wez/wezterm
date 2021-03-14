@@ -112,7 +112,7 @@ pub trait Pane: Downcast {
     fn set_zoomed(&self, _zoomed: bool) {}
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()>;
-    fn advance_bytes(&self, buf: &[u8]);
+    fn perform_actions(&self, _actions: Vec<termwiz::escape::Action>) {}
     fn is_dead(&self) -> bool;
     fn kill(&self) {}
     fn palette(&self) -> ColorPalette;

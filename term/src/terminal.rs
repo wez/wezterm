@@ -126,4 +126,11 @@ impl Terminal {
 
         self.parser.parse(bytes, |action| performer.perform(action));
     }
+
+    pub fn perform_actions(&mut self, actions: Vec<termwiz::escape::Action>) {
+        let mut performer = Performer::new(&mut self.state);
+        for action in actions {
+            performer.perform(action);
+        }
+    }
 }

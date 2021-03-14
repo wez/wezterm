@@ -144,8 +144,8 @@ impl Pane for LocalPane {
         self.terminal.borrow_mut().set_clipboard(clipboard);
     }
 
-    fn advance_bytes(&self, buf: &[u8]) {
-        self.terminal.borrow_mut().advance_bytes(buf)
+    fn perform_actions(&self, actions: Vec<termwiz::escape::Action>) {
+        self.terminal.borrow_mut().perform_actions(actions)
     }
 
     fn mouse_event(&self, event: MouseEvent) -> Result<(), Error> {

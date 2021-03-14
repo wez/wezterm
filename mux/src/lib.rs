@@ -11,9 +11,9 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::mpsc::{sync_channel, Receiver, TryRecvError};
 use std::sync::Arc;
 use std::thread;
+use termwiz::escape::Action;
 use thiserror::*;
 
 pub mod activity;
@@ -53,111 +53,44 @@ pub struct Mux {
     banner: RefCell<Option<String>>,
 }
 
-/// This function bounces the data over to the main thread to feed to
-/// the pty in the mux.  It blocks until the mux has finished consuming
-/// the data.
-fn send_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, data: Vec<u8>) {
+/// This function bounces parsed actions over to the main thread to feed to
+/// the pty in the mux.
+/// It blocks until the mux has finished consuming the data, which provides
+/// some back-pressure so that eg: ctrl-c can remain responsive.
+fn send_actions_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, actions: Vec<Action>) {
     promise::spawn::block_on(promise::spawn::spawn_into_main_thread_with_low_priority({
         let dead = Arc::clone(&dead);
         async move {
             let mux = Mux::get().unwrap();
             if let Some(pane) = mux.get_pane(pane_id) {
-                pane.advance_bytes(&data);
+                pane.perform_actions(actions);
                 mux.notify(MuxNotification::PaneOutput(pane_id));
             } else {
                 // Something else removed the pane from
-                // the mux, so we should stop trying to
-                // process it.
+                // the mux, so signal that we should stop
+                // trying to process it in read_from_pane_pty.
                 dead.store(true, Ordering::Relaxed);
             }
         }
     }));
 }
 
-/// The accumulator tries to keep runs of text together, which is important
-/// with various emoji sequences as it is not possible to detect all kinds
-/// of combining sequences based on their leading bytes.
-/// This function prefers to send lines of text to the output parser.
-/// If it doesn't find a complete line then it will do a non-blocking poll
-/// to allow additional data to appear in the channel so that it can be
-/// combined together.
-/// If this function takes too long to batch the data together then text
-/// input/output latency suffers and feels janky.
-fn accumulator(pane_id: PaneId, dead: &Arc<AtomicBool>, rx: Receiver<Vec<u8>>) {
-    let mut buf = vec![];
-
-    'outer: while let Ok(mut data) = rx.recv() {
-        buf.append(&mut data);
-
-        while !buf.is_empty() {
-            /*
-            if let Some(idx) = buf.iter().rposition(|&b| b == b'\n') {
-                let mut split = buf.split_off(idx + 1);
-                std::mem::swap(&mut split, &mut buf);
-                send_to_mux(pane_id, &dead, split);
-            }
-            */
-
-            match rx.try_recv() {
-                Ok(mut extra) => {
-                    buf.append(&mut extra);
-                }
-                Err(TryRecvError::Empty) => {
-                    // No more data to read right now, so pass whatever
-                    // we have pending on to the mux thread and then block
-                    // waiting for the next.
-                    let mut to_send = vec![];
-                    std::mem::swap(&mut to_send, &mut buf);
-                    send_to_mux(pane_id, &dead, to_send);
-                }
-                Err(TryRecvError::Disconnected) => break 'outer,
-            }
-        }
-
-        if dead.load(Ordering::Relaxed) {
-            break;
-        }
-    }
-    match configuration().exit_behavior {
-        ExitBehavior::Hold | ExitBehavior::CloseOnCleanExit => {
-            // We don't know if we can unilaterally close
-            // this pane right now, so don't!
-            send_to_mux(pane_id, &dead, b"\n[Process completed]".to_vec());
-            return;
-        }
-        ExitBehavior::Close => {
-            promise::spawn::spawn_into_main_thread(async move {
-                let mux = Mux::get().unwrap();
-                mux.remove_pane(pane_id);
-            })
-            .detach();
-        }
-    }
-}
-
 /// This function is run in a separate thread; its purpose is to perform
 /// blocking reads from the pty (non-blocking reads are not portable to
-/// all platforms and pty/tty types) and relay the data to the `accumulator`
-/// function above that this function spawns a new thread.
+/// all platforms and pty/tty types), parse the escape sequences and
+/// relay the actions to the mux thread to apply them to the pane.
 fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<dyn std::io::Read>) {
     const BUFSIZE: usize = 4 * 1024;
     let mut buf = [0; BUFSIZE];
 
     // This is used to signal that an error occurred either in this thread,
-    // in the accumulator, or in the main mux thread.  If `true`, both this
-    // and the accumulator thread will terminate
+    // or in the main mux thread.  If `true`, this thread will terminate.
     let dead = Arc::new(AtomicBool::new(false));
 
-    let (tx, rx) = sync_channel(1);
-    std::thread::spawn({
-        let dead = Arc::clone(&dead);
-        move || {
-            accumulator(pane_id, &dead, rx);
-        }
-    });
+    let mut parser = termwiz::escape::parser::Parser::new();
 
     if let Some(banner) = banner {
-        tx.send(banner.into_bytes()).ok();
+        send_actions_to_mux(pane_id, &dead, parser.parse_as_vec(banner.as_bytes()));
     }
 
     while !dead.load(Ordering::Relaxed) {
@@ -172,14 +105,35 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
             }
             Ok(size) => {
                 let buf = &buf[..size];
-                if tx.send(buf.to_vec()).is_err() {
-                    break;
+                let actions = parser.parse_as_vec(&buf);
+                if !actions.is_empty() {
+                    send_actions_to_mux(pane_id, &dead, actions);
                 }
             }
         }
     }
 
     dead.store(true, Ordering::Relaxed);
+
+    match configuration().exit_behavior {
+        ExitBehavior::Hold | ExitBehavior::CloseOnCleanExit => {
+            // We don't know if we can unilaterally close
+            // this pane right now, so don't!
+            send_actions_to_mux(
+                pane_id,
+                &dead,
+                parser.parse_as_vec(b"\n[Process completed]"),
+            );
+            return;
+        }
+        ExitBehavior::Close => {
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get().unwrap();
+                mux.remove_pane(pane_id);
+            })
+            .detach();
+        }
+    }
 }
 
 thread_local! {

@@ -15,8 +15,6 @@ use wezterm_client::client::{unix_connect_with_retry, Client};
 use wezterm_gui_subcommands::*;
 
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
-//    terminal.advance_bytes(message);
-// !=
 
 #[derive(Debug, StructOpt)]
 #[structopt(

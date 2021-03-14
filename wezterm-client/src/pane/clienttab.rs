@@ -306,10 +306,6 @@ impl Pane for ClientPane {
         Ok(())
     }
 
-    fn advance_bytes(&self, _buf: &[u8]) {
-        panic!("ClientPane::advance_bytes not impl");
-    }
-
     fn is_dead(&self) -> bool {
         self.renderable.borrow().inner.borrow().dead
     }

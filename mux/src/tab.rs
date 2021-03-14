@@ -1555,9 +1555,6 @@ mod test {
         fn mouse_event(&self, _event: MouseEvent) -> anyhow::Result<()> {
             unimplemented!()
         }
-        fn advance_bytes(&self, _buf: &[u8]) {
-            unimplemented!()
-        }
         fn is_dead(&self) -> bool {
             false
         }
