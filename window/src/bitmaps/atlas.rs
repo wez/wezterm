@@ -12,6 +12,7 @@ const PADDING: i32 = 1;
 #[error("Texture Size exceeded, need {:?}", size)]
 pub struct OutOfTextureSpace {
     pub size: Option<usize>,
+    pub current_size: usize,
 }
 
 /// Atlases are bitmaps of srgba data that are sized as a power of 2.
@@ -72,12 +73,14 @@ where
 
         // If we can't convert the sizes to i32, then we'll never
         // be able to store this image
-        let reserve_width: i32 = width
-            .try_into()
-            .map_err(|_| OutOfTextureSpace { size: None })?;
-        let reserve_height: i32 = height
-            .try_into()
-            .map_err(|_| OutOfTextureSpace { size: None })?;
+        let reserve_width: i32 = width.try_into().map_err(|_| OutOfTextureSpace {
+            size: None,
+            current_size: self.side,
+        })?;
+        let reserve_height: i32 = height.try_into().map_err(|_| OutOfTextureSpace {
+            size: None,
+            current_size: self.side,
+        })?;
 
         // We pad each sprite reservation with blank space to avoid
         // surprising and unexpected artifacts when the texture is
@@ -107,6 +110,7 @@ where
             let size = (reserve_width.max(reserve_height) as usize).next_power_of_two();
             Err(OutOfTextureSpace {
                 size: Some((self.side * 2).max(size)),
+                current_size: self.side,
             })
         }
     }

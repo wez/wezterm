@@ -55,7 +55,6 @@ impl Texture2d for SrgbTexture2d {
                 .pixels()
                 .iter()
                 .map(|&p| {
-                    let (r, g, b, a) = Color(p).as_rgba();
                     // convert from linear to srgb.
                     // This brightens up the emoji glyphs so that the
                     // colors match those of the software renderer and
@@ -63,22 +62,23 @@ impl Texture2d for SrgbTexture2d {
                     // I haven't run down exactly why this is needed but
                     // suspect that it would be resolved if we could teach
                     // glium to use SRGB for the texture.
-                    fn conv(v: u8) -> u8 {
-                        let f = (v as f32) / 255.;
-                        let c = if f <= 0.003_130_8 {
-                            f * 12.92
-                        } else {
-                            f.powf(1.0 / 2.4) * 1.055 - 0.055
-                        };
-                        (c * 255.).ceil() as u8
-                    }
-                    Color::rgba(conv(b), conv(g), conv(r), conv(a)).0
+                    let (r, g, b, a) = Color(p).as_rgba();
+                    // Switch from bgra to rgba
+                    Color::with_linear_rgba_u8(b, g, r, a).0
                 })
                 .collect(),
             width: im_width as u32,
             height: im_height as u32,
             format: glium::texture::ClientFormat::U8U8U8U8,
         };
+        /* Aspirationally, we want this:
+        let source = glium::texture::RawImage2d {
+            data: std::borrow::Cow::Borrowed(im .pixels()),
+            width: im_width as u32,
+            height: im_height as u32,
+            format: glium::texture::ClientFormat::U8U8U8U8,
+        };
+        */
 
         SrgbTexture2d::write(
             self,

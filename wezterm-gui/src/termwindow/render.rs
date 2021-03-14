@@ -85,12 +85,15 @@ impl super::TermWindow {
             match self.paint_opengl_pass() {
                 Ok(_) => break,
                 Err(err) => {
-                    if let Some(&OutOfTextureSpace { size: Some(size) }) =
-                        err.downcast_ref::<OutOfTextureSpace>()
+                    if let Some(&OutOfTextureSpace {
+                        size: Some(size),
+                        current_size,
+                    }) = err.downcast_ref::<OutOfTextureSpace>()
                     {
                         let result = if pass == 0 {
                             // Let's try clearing out the atlas and trying again
-                            self.clear_texture_atlas()
+                            // self.clear_texture_atlas()
+                            self.recreate_texture_atlas(Some(current_size))
                         } else {
                             log::trace!("grow texture atlas to {}", size);
                             self.recreate_texture_atlas(Some(size))

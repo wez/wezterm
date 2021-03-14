@@ -70,10 +70,12 @@ impl RenderState {
                         quads,
                     });
                 }
-                Err(OutOfTextureSpace { size: Some(size) }) => {
+                Err(OutOfTextureSpace {
+                    size: Some(size), ..
+                }) => {
                     atlas_size = size;
                 }
-                Err(OutOfTextureSpace { size: None }) => {
+                Err(OutOfTextureSpace { size: None, .. }) => {
                     anyhow::bail!("requested texture size is impossible!?")
                 }
             };
@@ -326,6 +328,7 @@ impl RenderState {
 
                     if let Some(&OutOfTextureSpace {
                         size: Some(needed_size),
+                        ..
                     }) = err.downcast_ref::<OutOfTextureSpace>()
                     {
                         size.replace(needed_size);
