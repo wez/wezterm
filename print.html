@@ -198,7 +198,7 @@ source, you may also build it for yourself.</p>
 a setup.exe style installer to guide the installation (requires admin privileges)
 or a simple zip file and manage the files for yourself (no special privileges
 required).</p>
-<p><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-20210203-095643-70a364eb-setup.exe" class="btn">Windows (setup.exe)</a>
+<p><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/WezTerm-20210314-114017-04b7cedd-setup.exe" class="btn">Windows (setup.exe)</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly-setup.exe" class="btn">Nightly Windows (setup.exe)</a></p>
 <p>WezTerm is available in a setup.exe style installer; the installer is produced
 with Inno Setup and will install wezterm to your program files directory and
@@ -206,13 +206,13 @@ register that location in your PATH environment.  The installer can be run
 as a GUI to guide you through the install, but also offers the <a href="https://jrsoftware.org/ishelp/index.php?topic=setupcmdline">standard
 Inno Setup command line options</a>
 to configure/script the installation process.</p>
-<p><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-windows-20210203-095643-70a364eb.zip" class="btn">Windows (zip)</a>
+<p><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/WezTerm-windows-20210314-114017-04b7cedd.zip" class="btn">Windows (zip)</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-windows-nightly.zip" class="btn">Nightly Windows (zip)</a></p>
 <p>WezTerm is also available in a simple zip file that can be extracted and
 run from anywhere, including a flash drive for a portable/relocatable
 installation.</p>
 <ol>
-<li>Download <a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-windows-20210203-095643-70a364eb.zip">Release</a></li>
+<li>Download <a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/WezTerm-windows-20210314-114017-04b7cedd.zip">Release</a></li>
 <li>Extract the zipfile and double-click <code>wezterm.exe</code> to run the UI</li>
 <li>Configuration instructions can be <a href="install/../config/files.html">found here</a></li>
 </ol>
@@ -230,10 +230,10 @@ scoop install wezterm
 been tested.</p>
 <p>Starting with version 20210203-095643-70a364eb, WezTerm is a Universal binary
 with support for both Apple Silicon and Intel hardware.</p>
-<p><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-macos-20210203-095643-70a364eb.zip" class="btn">Download for macOS</a>
+<p><a href="install/{{ macos_zip_stable }}" class="btn">Download for macOS</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-macos-nightly.zip" class="btn">Nightly for macOS</a></p>
 <ol>
-<li>Download <a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-macos-20210203-095643-70a364eb.zip">Release</a></li>
+<li>Download <a href="install/{{ macos_zip_stable }}">Release</a></li>
 <li>Extract the zipfile and drag the <code>WezTerm.app</code> bundle to your <code>Applications</code> folder</li>
 <li>First time around, you may need to right click and select <code>Open</code> to allow launching
 the application that your just downloaded from the internet.</li>
@@ -259,18 +259,18 @@ self-contained single file that doesn't require installation or
 any special privileges to run, and that is compatible with a wide
 range of Linux distributions.</p>
 <p>Download and make the file executable and you're ready to run!</p>
-<p><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-20210203-095643-70a364eb-Ubuntu16.04.AppImage" class="btn">AppImage</a>
+<p><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/WezTerm-20210314-114017-04b7cedd-Ubuntu16.04.AppImage" class="btn">AppImage</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly-Ubuntu16.04.AppImage" class="btn">Nightly AppImage</a></p>
-<pre><code class="language-bash">curl -LO https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/WezTerm-20210203-095643-70a364eb-Ubuntu16.04.AppImage
-chmod +x WezTerm-20210203-095643-70a364eb-Ubuntu16.04.AppImage
+<pre><code class="language-bash">curl -LO https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/WezTerm-20210314-114017-04b7cedd-Ubuntu16.04.AppImage
+chmod +x WezTerm-20210314-114017-04b7cedd-Ubuntu16.04.AppImage
 </code></pre>
 <p>You may then execute the appimage directly to launch wezterm, with no
 specific installation steps required:</p>
-<pre><code class="language-bash">./WezTerm-20210203-095643-70a364eb-Ubuntu16.04.AppImage
+<pre><code class="language-bash">./WezTerm-20210314-114017-04b7cedd-Ubuntu16.04.AppImage
 </code></pre>
 <p>That said, you may wish to make it a bit more convenient:</p>
 <pre><code class="language-bash">mkdir ~/bin
-mv ./WezTerm-20210203-095643-70a364eb-Ubuntu16.04.AppImage ~/bin/wezterm
+mv ./WezTerm-20210314-114017-04b7cedd-Ubuntu16.04.AppImage ~/bin/wezterm
 ~/bin/wezterm
 </code></pre>
 <ul>
@@ -283,16 +283,16 @@ that exactly matches your system you can try installing one from an older versio
 of your distribution, or use one of the Debian packages linked below.  Failing that,
 you can try the AppImage download which should work on most Linux systems.</p>
 <table><thead><tr><th>Distro</th><th>Stable</th><th>Nightly</th></tr></thead><tbody>
-<tr><td>Ubuntu16</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Ubuntu16.04.deb">wezterm-20210203-095643-70a364eb.Ubuntu16.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu16.04.deb">wezterm-nightly.Ubuntu16.04.deb</a></td></tr>
-<tr><td>Ubuntu18</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Ubuntu18.04.deb">wezterm-20210203-095643-70a364eb.Ubuntu18.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu18.04.deb">wezterm-nightly.Ubuntu18.04.deb</a></td></tr>
-<tr><td>Ubuntu20</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Ubuntu20.04.deb">wezterm-20210203-095643-70a364eb.Ubuntu20.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu20.04.deb">wezterm-nightly.Ubuntu20.04.deb</a></td></tr>
-<tr><td>Debian9</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Debian9.12.deb">wezterm-20210203-095643-70a364eb.Debian9.12.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Debian9.12.deb">wezterm-nightly.Debian9.12.deb</a></td></tr>
-<tr><td>Debian10</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Debian10.deb">wezterm-20210203-095643-70a364eb.Debian10.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Debian10.deb">wezterm-nightly.Debian10.deb</a></td></tr>
+<tr><td>Ubuntu16</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314-114017-04b7cedd.Ubuntu16.04.deb">wezterm-20210314-114017-04b7cedd.Ubuntu16.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu16.04.deb">wezterm-nightly.Ubuntu16.04.deb</a></td></tr>
+<tr><td>Ubuntu18</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314-114017-04b7cedd.Ubuntu18.04.deb">wezterm-20210314-114017-04b7cedd.Ubuntu18.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu18.04.deb">wezterm-nightly.Ubuntu18.04.deb</a></td></tr>
+<tr><td>Ubuntu20</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314-114017-04b7cedd.Ubuntu20.04.deb">wezterm-20210314-114017-04b7cedd.Ubuntu20.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu20.04.deb">wezterm-nightly.Ubuntu20.04.deb</a></td></tr>
+<tr><td>Debian9</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314-114017-04b7cedd.Debian9.12.deb">wezterm-20210314-114017-04b7cedd.Debian9.12.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Debian9.12.deb">wezterm-nightly.Debian9.12.deb</a></td></tr>
+<tr><td>Debian10</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314-114017-04b7cedd.Debian10.deb">wezterm-20210314-114017-04b7cedd.Debian10.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Debian10.deb">wezterm-nightly.Debian10.deb</a></td></tr>
 </tbody></table>
 <p>To download and install from the CLI, you can use something like this, which
 shows how to install the Ubuntu 16 package:</p>
-<pre><code class="language-bash">curl -LO https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Ubuntu16.04.deb
-sudo apt install -y ./wezterm-20210203-095643-70a364eb.Ubuntu16.04.deb
+<pre><code class="language-bash">curl -LO https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314-114017-04b7cedd.Ubuntu16.04.deb
+sudo apt install -y ./wezterm-20210314-114017-04b7cedd.Ubuntu16.04.deb
 </code></pre>
 <ul>
 <li>The package installs <code>/usr/bin/wezterm</code> and <code>/usr/share/applications/org.wezfurlong.wezterm.desktop</code></li>
@@ -304,15 +304,15 @@ These are likely compatible with other rpm-based distributions.
 Alternatively, you can try the AppImage download with should work
 on most Linux systems.</p>
 <table><thead><tr><th>Distro</th><th>Stable</th><th>Nightly</th></tr></thead><tbody>
-<tr><td>CentOS7</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.el7.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.el7.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos7.rpm">wezterm-nightly-centos7.rpm</a></td></tr>
-<tr><td>CentOS8</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.el8.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.el8.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos8.rpm">wezterm-nightly-centos8.rpm</a></td></tr>
-<tr><td>Fedora31</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc31.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.fc31.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora31.rpm">wezterm-nightly-fedora31.rpm</a></td></tr>
-<tr><td>Fedora32</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc32.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.fc32.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora32.rpm">wezterm-nightly-fedora32.rpm</a></td></tr>
-<tr><td>Fedora33</td><td><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc33.x86_64.rpm">wezterm-20210203_095643_70a364eb-1.fc33.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora33.rpm">wezterm-nightly-fedora33.rpm</a></td></tr>
+<tr><td>CentOS7</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314_114017_04b7cedd-1.el7.x86_64.rpm">wezterm-20210314_114017_04b7cedd-1.el7.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos7.rpm">wezterm-nightly-centos7.rpm</a></td></tr>
+<tr><td>CentOS8</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314_114017_04b7cedd-1.el8.x86_64.rpm">wezterm-20210314_114017_04b7cedd-1.el8.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos8.rpm">wezterm-nightly-centos8.rpm</a></td></tr>
+<tr><td>Fedora31</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314_114017_04b7cedd-1.fc31.x86_64.rpm">wezterm-20210314_114017_04b7cedd-1.fc31.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora31.rpm">wezterm-nightly-fedora31.rpm</a></td></tr>
+<tr><td>Fedora32</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314_114017_04b7cedd-1.fc32.x86_64.rpm">wezterm-20210314_114017_04b7cedd-1.fc32.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora32.rpm">wezterm-nightly-fedora32.rpm</a></td></tr>
+<tr><td>Fedora33</td><td><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314_114017_04b7cedd-1.fc33.x86_64.rpm">wezterm-20210314_114017_04b7cedd-1.fc33.x86_64.rpm</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora33.rpm">wezterm-nightly-fedora33.rpm</a></td></tr>
 </tbody></table>
 <p>To download and install form the CLI you can use something like this, which
 shows how to install the Fedora 31 package:</p>
-<pre><code class="language-bash">sudo dnf install -y https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203_095643_70a364eb-1.fc31.x86_64.rpm
+<pre><code class="language-bash">sudo dnf install -y https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314_114017_04b7cedd-1.fc31.x86_64.rpm
 </code></pre>
 <ul>
 <li>The package installs <code>/usr/bin/wezterm</code> and <code>/usr/share/applications/org.wezfurlong.wezterm.desktop</code></li>
@@ -342,7 +342,7 @@ $ brew install --HEAD wezterm
 <h2 id="raw-linux-binary"><a class="header" href="#raw-linux-binary">Raw Linux Binary</a></h2>
 <p>Another option for linux is a raw binary archive.  These are the same binaries that
 are built for Ubuntu but provided in a tarball.</p>
-<p><a href="https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb.Ubuntu16.04.tar.xz" class="btn">Download raw Linux binaries</a>
+<p><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314-114017-04b7cedd.Ubuntu16.04.tar.xz" class="btn">Download raw Linux binaries</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu16.04.tar.xz" class="btn">Nightly raw Linux binaries</a></p>
 <h2 id="installing-on-freebsd"><a class="header" href="#installing-on-freebsd">Installing on FreeBSD</a></h2>
 <p>WezTerm is available <a href="https://www.freshports.org/x11/wezterm/">via the ports system</a>.</p>
@@ -370,9 +370,9 @@ attempt to install them for you.  If it doesn't know about your system,
 <p>If you don't plan to submit a pull request to the wezterm repo, you can
 download a smaller source tarball using these steps:</p>
 <pre><code class="language-bash">curl https://sh.rustup.rs -sSf | sh -s
-curl -LO https://github.com/wez/wezterm/releases/download/20210203-095643-70a364eb/wezterm-20210203-095643-70a364eb-src.tar.gz
-tar -xzf wezterm-20210203-095643-70a364eb-src.tar.gz
-cd wezterm-20210203-095643-70a364eb
+curl -LO https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314-114017-04b7cedd-src.tar.gz
+tar -xzf wezterm-20210314-114017-04b7cedd-src.tar.gz
+cd wezterm-20210314-114017-04b7cedd
 sudo ./get-deps
 cargo build --release
 cargo run --release --bin wezterm -- start
