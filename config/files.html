@@ -174,11 +174,11 @@
 configuration file in the following locations, stopping at the first file that
 it finds:</p>
 <ul>
-<li>(in the nightly builds) if the <code>--config-file</code> CLI argument was specified, then
+<li>(since version 20210314-114017-04b7cedd) if the <code>--config-file</code> CLI argument was specified, then
 that path will be used.  If that path fails to load, then the defaults will be
 used instead.</li>
 <li>If the environment variable <code>$WEZTERM_CONFIG_FILE</code> is set, it will be treated as the
-path to a configuration file.  In the nightly builds: if that path fails to load
+path to a configuration file.  Since version 20210314-114017-04b7cedd: if that path fails to load
 then the defaults will be used instead.  In earlier releases, the following steps
 would be used as a fallback.</li>
 <li>On Windows, <code>wezterm.lua</code> from the directory that contains <code>wezterm.exe</code>.
@@ -197,7 +197,7 @@ that have side effects; for example, unconditionally launching background
 processes can result in many of them being spawned over time if you launch
 many copies of wezterm, or are frequently reloading your config file.</p>
 <h3 id="configuration-overrides"><a class="header" href="#configuration-overrides">Configuration Overrides</a></h3>
-<p><em>since: nightly builds only</em></p>
+<p><em>since: 20210314-114017-04b7cedd</em></p>
 <p><code>wezterm</code> allows overriding configuration values via the command line; here are
 a couple of examples:</p>
 <pre><code class="language-bash">$ wezterm --config enable_scroll_bar=true

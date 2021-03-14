@@ -230,10 +230,10 @@ scoop install wezterm
 been tested.</p>
 <p>Starting with version 20210203-095643-70a364eb, WezTerm is a Universal binary
 with support for both Apple Silicon and Intel hardware.</p>
-<p><a href="install/{{ macos_zip_stable }}" class="btn">Download for macOS</a>
+<p><a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/WezTerm-macos-20210314-114017-04b7cedd.zip" class="btn">Download for macOS</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-macos-nightly.zip" class="btn">Nightly for macOS</a></p>
 <ol>
-<li>Download <a href="install/{{ macos_zip_stable }}">Release</a></li>
+<li>Download <a href="https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/WezTerm-macos-20210314-114017-04b7cedd.zip">Release</a></li>
 <li>Extract the zipfile and drag the <code>WezTerm.app</code> bundle to your <code>Applications</code> folder</li>
 <li>First time around, you may need to right click and select <code>Open</code> to allow launching
 the application that your just downloaded from the internet.</li>
@@ -400,7 +400,7 @@ take a closer look at the instructions!</strong></p>
 <li>Render underline, double-underline, italic, bold, strikethrough (most other terminal emulators do not support as many render attributes)</li>
 <li>Configuration via a <a href="config/files.html">configuration file</a> with hot reloading</li>
 <li>Multiple Windows (Hotkey: <code>Super-N</code>)</li>
-<li>Splits/Panes (currently only in the nightly builds)</li>
+<li>Splits/Panes</li>
 <li>Tabs (Hotkey: <code>Super-T</code>, next/prev: <code>Super-[</code> and <code>Super-]</code>, go-to: <code>Super-[1-9]</code>)
 <video width="80%" controls src="screenshots/wezterm-tabs.mp4" loop></video></li>
 <li><a href="ssh.html">SSH client with native tabs</a></li>
@@ -418,6 +418,10 @@ hash.</p>
 daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.</p>
+<ul>
+<li>Not yet!</li>
+</ul>
+<h3 id="20210314-114017-04b7cedd"><a class="header" href="#20210314-114017-04b7cedd">20210314-114017-04b7cedd</a></h3>
 <ul>
 <li>New: <a href="config/lua/config/tab_bar_style.html">tab_bar_style</a> allows customizing the appearance of the rest of tha tab bar.</li>
 <li>New: animated gif and png images displayed via <code>wezterm imgcat</code> (the iTerm2 image protocol), or attached to the window background via <a href="config/appearance.html#window-background-image">window_background_image</a> will now animate while the window has focus.</li>
@@ -898,11 +902,11 @@ font_hinting = &quot;Full&quot; # None, Vertical, VerticalSubpixel, Full
 configuration file in the following locations, stopping at the first file that
 it finds:</p>
 <ul>
-<li>(in the nightly builds) if the <code>--config-file</code> CLI argument was specified, then
+<li>(since version 20210314-114017-04b7cedd) if the <code>--config-file</code> CLI argument was specified, then
 that path will be used.  If that path fails to load, then the defaults will be
 used instead.</li>
 <li>If the environment variable <code>$WEZTERM_CONFIG_FILE</code> is set, it will be treated as the
-path to a configuration file.  In the nightly builds: if that path fails to load
+path to a configuration file.  Since version 20210314-114017-04b7cedd: if that path fails to load
 then the defaults will be used instead.  In earlier releases, the following steps
 would be used as a fallback.</li>
 <li>On Windows, <code>wezterm.lua</code> from the directory that contains <code>wezterm.exe</code>.
@@ -921,7 +925,7 @@ that have side effects; for example, unconditionally launching background
 processes can result in many of them being spawned over time if you launch
 many copies of wezterm, or are frequently reloading your config file.</p>
 <h3 id="configuration-overrides"><a class="header" href="#configuration-overrides">Configuration Overrides</a></h3>
-<p><em>since: nightly builds only</em></p>
+<p><em>since: 20210314-114017-04b7cedd</em></p>
 <p><code>wezterm</code> allows overriding configuration values via the command line; here are
 a couple of examples:</p>
 <pre><code class="language-bash">$ wezterm --config enable_scroll_bar=true
@@ -1664,7 +1668,7 @@ that order.</p>
 <tr><td>Double Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Word&quot;</code></td></tr>
 <tr><td>Triple Left Drag</td><td><code>NONE</code></td><td><code>ExtendSelectionToMouseCursor=&quot;Line&quot;</code></td></tr>
 <tr><td>Single Middle Down</td><td><code>NONE</code></td><td><code>PasteFrom=&quot;PrimarySelection&quot;</code></td></tr>
-<tr><td>Single Left Drag</td><td><code>SUPER</code></td><td><code>StartWindowDrag</code> (<em>since nightly</em>)</td></tr>
+<tr><td>Single Left Drag</td><td><code>SUPER</code></td><td><code>StartWindowDrag</code> (<em>since 20210314-114017-04b7cedd</em>)</td></tr>
 <tr><td>Single Left Drag</td><td>`CTRL</td><td>SHIFT`</td></tr>
 </tbody></table>
 <p>If you don't want the default assignments to be registered, you can
@@ -2215,7 +2219,7 @@ or <a href="config/lua/keyassignment/SelectTextAtMouseCursor.html">conveniently 
 shell program to emit the escape sequences at the appropriate place.</p>
 <p>You can find some <a href="https://github.com/wez/wezterm/tree/main/assets/shell-integration">examples for various shells in the wezterm
 repo</a>.</p>
-<p>In the most recently nightly builds the Fedora and Debian packages
+<p>Starting with version 20210314-114017-04b7cedd, the Fedora and Debian packages
 automatically activate shell integration for Bash and Zsh.</p>
 <p>If you're on another system, more information on how these escapes work
 can be found below.</p>
@@ -2902,7 +2906,7 @@ it into <code>#</code>).</p>
 <p>You should consider disabling that setting when working with a UTF-8
 environment.</p>
 <h2 id="how-do-i-enable-undercurl-curly-underlines"><a class="header" href="#how-do-i-enable-undercurl-curly-underlines">How do I enable undercurl (curly underlines)?</a></h2>
-<p>Starting in the nightly builds, WezTerm has support for colored and curly underlines.</p>
+<p>Starting in version 20210314-114017-04b7cedd, WezTerm has support for colored and curly underlines.</p>
 <p>The relevant escape sequences are:</p>
 <pre><code> CSI 24 m   -&gt; No underline
  CSI 4 m    -&gt; Single underline
@@ -4774,7 +4778,7 @@ newly developed features are not yet documented and an enterprising user may
 wish to go spelunking to figure them out!</p>
 <p><a href="config/lua/wezterm/../keyassignment/index.html">You can find the reference for available KeyAssignment values here</a>.</p>
 <h1 id="weztermbattery_info"><a class="header" href="#weztermbattery_info"><code>wezterm.battery_info()</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function returns battery information for each of the installed
 batteries on the system.  This is useful for example to assemble
 status information for the status bar.</p>
@@ -4866,7 +4870,7 @@ return {
 </code></pre>
 <p>The second parameter behaves the same as that of <code>wezterm.font</code>.</p>
 <h1 id="weztermformat"><a class="header" href="#weztermformat"><code>wezterm.format({})</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p><code>wezterm.format</code> can be used to produce a formatted string
 with terminal graphic attributes such as bold, italic and colors.
 The resultant string is rendered into a string with wezterm
@@ -4956,7 +4960,7 @@ wezterm.log_error(&quot;Hello!&quot;);
 </code></pre>
 <p>See also <a href="config/lua/wezterm/log_info.html">log_info</a> and <a href="config/lua/wezterm/log_warn.html">log_warn</a>.</p>
 <h1 id="weztermlog_infomsg"><a class="header" href="#weztermlog_infomsg"><code>wezterm.log_info(msg)</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'INFO' level.  If you started wezterm from a terminal that text will print
 to the stdout of that terminal.  If running as a daemon for the multiplexer
@@ -4966,7 +4970,7 @@ wezterm.log_info(&quot;Hello!&quot;);
 </code></pre>
 <p>See also <a href="config/lua/wezterm/log_error.html">log_error</a> and <a href="config/lua/wezterm/log_warn.html">log_warn</a>.</p>
 <h1 id="weztermlog_warnmsg"><a class="header" href="#weztermlog_warnmsg"><code>wezterm.log_warn(msg)</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'WARN' level.  If you started wezterm from a terminal that text will print
 to the stdout of that terminal.  If running as a daemon for the multiplexer
@@ -5468,7 +5472,7 @@ for _, line in ipairs(wezterm.split_by_newlines(example)) do
 end
 </code></pre>
 <h1 id="weztermstrftimeformat"><a class="header" href="#weztermstrftimeformat"><code>wezterm.strftime(format)</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Formats the current local date/time into a string using <a href="https://docs.rs/chrono/0.4.19/chrono/format/strftime/index.html">the Rust chrono
 strftime syntax</a>.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -5663,7 +5667,7 @@ relatively costly to keep re-rendering for the blink!</p>
 }
 </code></pre>
 <h2 id="custom_block_glyphs--true"><a class="header" href="#custom_block_glyphs--true"><code>custom_block_glyphs = true</code></a></h2>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>When set to <code>true</code> (the default), WezTerm will compute its own idea of what the
 <a href="https://www.unicode.org/charts/PDF/U2580.pdf">U2580</a> unicode block elements
 range, instead of using glyphs resolved from a font.</p>
@@ -5821,7 +5825,7 @@ Wayland).</p>
 <tr><td>macOS</td><td>72.0</td><td>144.0</td></tr>
 <tr><td>Windows</td><td>Probed from the display</td><td>Probed from the display</td></tr>
 <tr><td>X11</td><td>96.0</td><td>96.0</td></tr>
-<tr><td>X11 (<em>nightly builds of WezTerm</em>)</td><td>Probed from <code>Xft.dpi</code>, fallback to 96.0</td><td>Probed from <code>Xft.dpi</code>, fallback to 96.0</td></tr>
+<tr><td>X11 (<em>version 20210314-114017-04b7cedd and later</em>)</td><td>Probed from <code>Xft.dpi</code>, fallback to 96.0</td><td>Probed from <code>Xft.dpi</code>, fallback to 96.0</td></tr>
 <tr><td>Wayland</td><td>96.0</td><td>192.0</td></tr>
 </tbody></table>
 <p>In macOS and Wayland environments there isn't strictly a system DPI value that
@@ -5876,7 +5880,7 @@ has no effect on macOS or Windows.</p>
 }
 </code></pre>
 <h2 id="exit_behavior--closeoncleanexit"><a class="header" href="#exit_behavior--closeoncleanexit"><code>exit_behavior = &quot;CloseOnCleanExit&quot;</code></a></h2>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Controls the behavior when the shell program spawned by the terminal exits.
 There are three possible values:</p>
 <ul>
@@ -5893,12 +5897,12 @@ There are three possible values:</p>
 a set of fallbacks and other options, and is described in more detail
 in the <a href="config/lua/config/../../fonts.html">Fonts</a> section.</p>
 <h1 id="font_antialias--greyscale"><a class="header" href="#font_antialias--greyscale"><code>font_antialias = &quot;Greyscale&quot;</code></a></h1>
-<p><em>Deprecated in the nightly; this option no longer does anything and will be removed in a future release. Use <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a> instead</em></p>
+<p><em>Deprecated starting in version 20210314-114017-04b7cedd; this option no longer does anything and will be removed in a future release. Use <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a> instead</em></p>
 <p>Adjusts the anti-aliasing portion of the font rasterizer.</p>
 <p>Possible values are <code>None</code>, <code>Greyscale</code>, <code>Subpixel</code>.</p>
 <p>The default value is <code>Greyscale</code>.</p>
 <h1 id="font_hinting--full"><a class="header" href="#font_hinting--full"><code>font_hinting = &quot;Full&quot;</code></a></h1>
-<p><em>Deprecated in the nightly; this option no longer does anything and will be removed in a future release. Use <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a> instead</em></p>
+<p><em>Deprecated starting in version 20210314-114017-04b7cedd; this option no longer does anything and will be removed in a future release. Use <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a> instead</em></p>
 <p>Adjust the hinting portion of the font rasterizer.</p>
 <p>Possible values are <code>None</code>, <code>Vertical</code>, <code>VerticalSubpixel</code>, <code>Full</code>.</p>
 <h1 id="font_locator"><a class="header" href="#font_locator"><code>font_locator</code></a></h1>
@@ -5923,10 +5927,10 @@ for <code>Allsorts</code>.</p>
 <p>Specifies the size of the font, measured in points.</p>
 <p>You may use fractional point sizes, such as <code>13.3</code>, to fine tune the size.</p>
 <p>The default font size is <code>10.0</code> points.</p>
-<p><em>Since: nightly builds</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>The default font size is now <code>12.0</code> points.</p>
 <h1 id="foreground_text_hsb"><a class="header" href="#foreground_text_hsb">foreground_text_hsb</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Configures a Hue, Saturation, Brightness transformation that is applied to
 monochrome glyphs.</p>
 <p>The transform works by converting the RGB colors to HSV values and
@@ -5963,7 +5967,7 @@ reduce it by half, and 2.0 will double the value.</p>
 and <code>40</code> which have different characteristics with respective to subpixel
 hinting.  See <a href="https://freetype.org/freetype2/docs/subpixel-hinting.html">https://freetype.org/freetype2/docs/subpixel-hinting.html</a></p>
 <h1 id="freetype_load_flags--default"><a class="header" href="#freetype_load_flags--default"><code>freetype_load_flags = &quot;DEFAULT&quot;</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>An advanced option to fine tune the freetype rasterizer.  This is a bitfield,
 so you can combine one or more of these options together, separated by the <code>|</code>
 character, although not many of the available options necessarily make sense to
@@ -5988,7 +5992,7 @@ This option doesn't impact the hinter.</li>
 }
 </code></pre>
 <h1 id="freetype_load_target--normal"><a class="header" href="#freetype_load_target--normal"><code>freetype_load_target = &quot;Normal&quot;</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Configures the rendering mode used with the freetype rasterizer.
 The following values are possible:</p>
 <ul>
@@ -6101,7 +6105,7 @@ the automatic update checks.</p>
 <p>Configures SSH multiplexing domains.  <a href="config/lua/config/../../../multiplexing.html#ssh-domains">Read more about SSH Domains</a>.</p>
 <p>This option accepts a list of <a href="config/lua/config/../SshDomain.html">SshDomain</a> objects.</p>
 <h1 id="status_update_interval--1000"><a class="header" href="#status_update_interval--1000"><code>status_update_interval = 1000</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Specifies the number of milliseconds that need to elapse between triggering the
 <a href="config/lua/config/../window-events/update-right-status.html">update-right-status</a> hook.</p>
 <h1 id="swap_backspace_and_delete--false"><a class="header" href="#swap_backspace_and_delete--false"><code>swap_backspace_and_delete = false</code></a></h1>
@@ -6111,7 +6115,7 @@ the automatic update checks.</p>
 <p>If <code>true</code>, <a href="config/lua/config/show_tab_index_in_tab_bar.html">show_tab_index_in_tab_bar</a> uses a
 zero-based index.  The default is <code>false</code> and the tab shows a one-based index.</p>
 <h1 id="tab_bar_style"><a class="header" href="#tab_bar_style"><code>tab_bar_style</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This config option allows styling the elements that appear in the tab bar.
 This configuration supplements the <a href="config/lua/config/../../../config/appearance.html#tab-bar-appearance--colors">tab bar color</a>
 options.</p>
@@ -6195,7 +6199,7 @@ terminfo will also enable italics and true color support.</p>
 <p>Configures TLS multiplexing domains.  <a href="config/lua/config/../../../multiplexing.html#tls-domains">Read more about TLS Domains</a>.</p>
 <p>This option accepts a list of <a href="config/lua/config/../TlsDomainServer.html">TlsDomainServer</a> objects.</p>
 <h1 id="treat_left_ctrlalt_as_altgr--false"><a class="header" href="#treat_left_ctrlalt_as_altgr--false"><code>treat_left_ctrlalt_as_altgr = false</code></a></h1>
-<p><em>since: nightly</em></p>
+<p><em>since: 20210314-114017-04b7cedd</em></p>
 <p>If you are using a layout with an <em>AltGr</em> key, you may experience issues
 when running inside a VNC session, because VNC emulates the AltGr keypresses
 by sending plain <em>Ctrl-Alt</em> keys, which won't be understood as AltGr.</p>
@@ -6218,7 +6222,7 @@ windows every time.</p>
 }
 </code></pre>
 <h1 id="window_decorations--title--resize"><a class="header" href="#window_decorations--title--resize"><code>window_decorations = &quot;TITLE | RESIZE&quot;</code></a></h1>
-<p><em>Since nightly builds only</em></p>
+<p><em>Since 20210314-114017-04b7cedd</em></p>
 <p>Configures whether the window has a title bar and/or resizable border.</p>
 <p>The value is a set of of flags:</p>
 <ul>
@@ -6724,7 +6728,7 @@ return {
 }
 </code></pre>
 <h1 id="resetfontandwindowsize"><a class="header" href="#resetfontandwindowsize">ResetFontAndWindowSize</a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Reset both the font size and the terminal dimensions for the current window to
 the values specified by your <code>font</code>, <code>initial_rows</code>, and <code>initial_cols</code> configuration.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -6744,7 +6748,7 @@ return {
 }
 </code></pre>
 <h1 id="scrollbyline"><a class="header" href="#scrollbyline">ScrollByLine</a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Adjusts the scroll position by the number of lines specified by the argument.
 Negative values scroll upwards, while positive values scroll downwards.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -6989,7 +6993,7 @@ return {
 }
 </code></pre>
 <h1 id="startwindowdrag"><a class="header" href="#startwindowdrag">StartWindowDrag</a></h1>
-<p><em>since: nightly builds only</em></p>
+<p><em>since: 20210314-114017-04b7cedd</em></p>
 <p>Places the window in the drag-to-move state, which means that the window will
 move to follow your mouse pointer until the mouse button is released.</p>
 <p>By default this is bound to SUPER + left mouse drag, as well as CTRL-SHIFT + left mouse drag.</p>
@@ -7317,7 +7321,7 @@ TermWindow running in the wezterm process.</p>
 <li><a href="config/lua/window/window_id.html">window_id</a></li>
 </ul>
 <h1 id="windoweffective_config"><a class="header" href="#windoweffective_config"><code>window:effective_config()</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Returns a lua table representing the effective configuration for the Window.
 The table is in the same format as that used to specify the config in
 the <code>wezterm.lua</code> file, but represents the fully-populated state of the
@@ -7339,7 +7343,7 @@ return {
 }
 </code></pre>
 <h1 id="windowget_config_overrides"><a class="header" href="#windowget_config_overrides"><code>window:get_config_overrides()</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Returns a copy of the current set of configuration overrides that is in effect
 for the window.</p>
 <p>See <a href="config/lua/window/set_config_overrides.html">set_config_overrides</a> for examples!</p>
@@ -7353,7 +7357,7 @@ a <code>window</code> when configured via the <code>keys</code> and <code>mouse<
 <p>The second parameter is a <code>pane</code> object passed to your event callback.</p>
 <p>For an example of this method in action, see <a href="config/lua/window/../wezterm/on.html#custom-events"><code>wezterm.on Custom Events</code></a>.</p>
 <h1 id="windowset_config_overridesoverrides"><a class="header" href="#windowset_config_overridesoverrides"><code>window:set_config_overrides(overrides)</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Changes the set of configuration overrides for the window.
 The config file is re-evaluated and any CLI overrides are
 applied, followed by the keys and values from the <code>overrides</code>
@@ -7409,7 +7413,7 @@ return {
 }
 </code></pre>
 <h1 id="windowset_right_statusstring"><a class="header" href="#windowset_right_statusstring"><code>window:set_right_status(string)</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This method can be used to change the content that is displayed in the tab bar,
 to the right of the tabs and new tab button.  The content is displayed
 right-aligned and will be clipped from the left edge to fit in the available
@@ -7565,7 +7569,7 @@ represents the gui window.</p>
 represents the pane.</p>
 <p>The third event parameter is the URI string.</p>
 <h1 id="update-right-status"><a class="header" href="#update-right-status"><code>update-right-status</code></a></h1>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>The <code>update-right-status</code> event is emitted periodically (based on the
 interval specified by the <a href="config/lua/window-events/../config/status_update_interval.html">status_update_interval</a>
 configuration value).</p>
@@ -7582,7 +7586,7 @@ if the hook takes longer than the
 <code>wezterm</code> won't schedule another call until <code>status_update_interval</code>
 milliseconds have elapsed since the last call completed.</p>
 <h1 id="window-config-reloaded"><a class="header" href="#window-config-reloaded"><code>window-config-reloaded</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>The <code>window-config-reloaded</code> event is emitted when the configuration for a
 window has been reloaded.  This can occur when the configuration file is
 detected as changed (when
@@ -7608,7 +7612,7 @@ wezterm.on(&quot;window-config-reloaded&quot;, function(window, pane)
 end)
 </code></pre>
 <h1 id="window-resized"><a class="header" href="#window-resized"><code>window-resized</code></a></h1>
-<p><em>Since: nightly</em></p>
+<p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>The <code>window-resized</code> event is emitted when the window is resized and when
 transitioning between full-screen and regular windowed mode.</p>
 <p>The event is triggered asynchronously with respect to the potentially-ongoing
