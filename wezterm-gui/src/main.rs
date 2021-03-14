@@ -404,20 +404,8 @@ fn run() -> anyhow::Result<()> {
     // attributed to our application.
     #[cfg(windows)]
     {
-        /// Convert a rust string to a windows wide string
-        fn wide_string(s: &str) -> Vec<u16> {
-            use std::os::windows::ffi::OsStrExt;
-            std::ffi::OsStr::new(s)
-                .encode_wide()
-                .chain(std::iter::once(0))
-                .collect()
-        }
-
         unsafe {
-            win_bindings::SetCurrentProcessExplicitAppUserModelID(
-                wide_string("org.wezfurlong.wezterm").as_ptr(),
-            )
-            .is_ok();
+            win_bindings::SetCurrentProcessExplicitAppUserModelID("org.wezfurlong.wezterm").is_ok();
         }
     }
 
