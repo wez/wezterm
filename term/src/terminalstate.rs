@@ -4,6 +4,8 @@
 use super::*;
 use crate::color::{ColorPalette, RgbColor};
 use anyhow::bail;
+use image::imageops::FilterType;
+use image::ImageFormat;
 use log::{debug, error};
 use num_traits::FromPrimitive;
 use ordered_float::NotNan;
@@ -1571,13 +1573,27 @@ impl TerminalState {
             return;
         }
 
-        fn dimensions(data: &[u8]) -> anyhow::Result<(u32, u32)> {
-            let reader =
-                image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
-            Ok(reader.into_dimensions()?)
+        struct Info {
+            width: u32,
+            height: u32,
+            format: ImageFormat,
         }
 
-        let (image_width, image_height) = match dimensions(&image.data) {
+        fn dimensions(data: &[u8]) -> anyhow::Result<Info> {
+            let reader =
+                image::io::Reader::new(std::io::Cursor::new(data)).with_guessed_format()?;
+            let format = reader
+                .format()
+                .ok_or_else(|| anyhow::anyhow!("unknown format!?"))?;
+            let (width, height) = reader.into_dimensions()?;
+            Ok(Info {
+                width,
+                height,
+                format,
+            })
+        }
+
+        let info = match dimensions(&image.data) {
             Ok(dims) => dims,
             Err(e) => {
                 error!(
@@ -1600,13 +1616,13 @@ impl TerminalState {
         let height = image.height.to_pixels(cell_pixel_height, physical_rows);
 
         // Compute any Automatic dimensions
-        let aspect = image_width as f32 / image_height as f32;
+        let aspect = info.width as f32 / info.height as f32;
 
         let (width, height) = match (width, height) {
             (None, None) => {
                 // Take the image's native size
-                let width = image_width as usize;
-                let height = image_height as usize;
+                let width = info.width as usize;
+                let height = info.height as usize;
                 // but ensure that it fits
                 if width as usize > self.pixel_width || height as usize > self.pixel_height {
                     let width = width as f32;
@@ -1644,7 +1660,27 @@ impl TerminalState {
             (Some(w), Some(h)) => (w, h),
         };
 
-        let image_data = self.raw_image_to_image_data(image.data);
+        let downscaled = (width < info.width as usize) || (height < info.height as usize);
+        let data = match (downscaled, info.format) {
+            (true, ImageFormat::Gif) | (true, ImageFormat::Png) | (false, _) => {
+                // Don't resample things that might be animations,
+                // or things that don't need resampling
+                image.data
+            }
+            (true, _) => match image::load_from_memory(&image.data) {
+                Ok(im) => {
+                    let im = im.resize_exact(width as u32, height as u32, FilterType::CatmullRom);
+                    let mut data = vec![];
+                    match im.write_to(&mut data, ImageFormat::Png) {
+                        Ok(_) => data.into_boxed_slice(),
+                        Err(_) => image.data,
+                    }
+                }
+                Err(_) => image.data,
+            },
+        };
+
+        let image_data = self.raw_image_to_image_data(data);
         self.assign_image_to_cells(width as u32, height as u32, image_data, true);
     }
 
