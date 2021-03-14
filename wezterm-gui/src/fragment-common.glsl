@@ -88,4 +88,22 @@ vec4 colorize(vec4 glyph, vec4 color, vec4 background) {
 //  return vec4(glyph.rgb * color.rgb, glyph.a);
 }
 
+vec4 from_linear(vec4 v) {
+  return pow(v, vec4(2.2));
+}
 
+vec4 to_gamma(vec4 v) {
+  return pow(v, vec4(1.0/2.2));
+}
+
+// For reasons that I haven't been able to figure out, we need
+// to gamma correct the data that we read from the textures that
+// are supplied to OpenGL, otherwise they appear too dark.
+// AFAICT, I've done what I thought were all of the right things
+// (but are perhaps only some of the right things) to tell OpenGL/EGL
+// that everything is already SRGB, so this function should really
+// just be a call to `texture` and not do the gamma conversion.
+vec4 sample_texture(sampler2D s, vec2 coords) {
+  vec4 color = texture(s, coords);
+  return to_gamma(color);
+}

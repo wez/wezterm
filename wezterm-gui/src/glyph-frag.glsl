@@ -14,7 +14,7 @@ void main() {
     return;
   }
 
-  color = texture(atlas_nearest_sampler, o_tex);
+  color = sample_texture(atlas_nearest_sampler, o_tex);
   if (o_has_color == 0.0) {
     // if it's not a color emoji it will be grayscale
     // and we need to tint with the fg_color

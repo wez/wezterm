@@ -255,7 +255,7 @@ impl DecodedImage {
             .into_iter()
             .map(|frame| {
                 let duration: Duration = frame.delay().into();
-                let image = image::DynamicImage::ImageRgba8(frame.into_buffer()).to_bgra8();
+                let image = image::DynamicImage::ImageRgba8(frame.into_buffer()).to_rgba8();
                 let (w, h) = image.dimensions();
                 let width = w as usize;
                 let height = h as usize;
@@ -271,7 +271,7 @@ impl DecodedImage {
     }
 
     fn with_single(image_data: &Arc<ImageData>) -> anyhow::Result<Self> {
-        let image = image::load_from_memory(image_data.data())?.to_bgra8();
+        let image = image::load_from_memory(image_data.data())?.to_rgba8();
         let (width, height) = image.dimensions();
         let width = width as usize;
         let height = height as usize;
