@@ -2,12 +2,12 @@ mod dbus;
 mod macos;
 mod windows;
 
+#[cfg(windows)]
+use crate::windows as backend;
 #[cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]
 use dbus as backend;
 #[cfg(target_os = "macos")]
 use macos as backend;
-#[cfg(windows)]
-use windows as backend;
 
 mod nop {
     #[allow(dead_code)]

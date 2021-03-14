@@ -3665,27 +3665,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "strum"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7318c509b5ba57f18533982607f24070a55d353e90d4cae30c467cdb2ad5ac5c"
-dependencies = [
- "strum_macros",
-]
-
-[[package]]
-name = "strum_macros"
-version = "0.20.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee8bc6b87a5112aeeab1f4a9f7ab634fe6cbefc4850006df31267f4cfb9e3149"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "svg_fmt"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4520,7 +4499,7 @@ dependencies = [
  "wezterm-toast-notification",
  "winapi 0.3.9",
  "window",
- "windows",
+ "windows 0.3.1",
 ]
 
 [[package]]
@@ -4619,7 +4598,8 @@ dependencies = [
  "objc",
  "open",
  "serde",
- "winrt-notification",
+ "windows 0.4.0",
+ "xml-rs",
  "zbus",
  "zvariant",
 ]
@@ -4731,9 +4711,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "426842497696b65fbfc575691d94ef65befb248ed1a8c4361e293c724e7ebe61"
 dependencies = [
  "const-sha1",
- "windows_gen",
- "windows_macros",
+ "windows_gen 0.3.1",
+ "windows_macros 0.3.1",
  "windows_winmd",
+]
+
+[[package]]
+name = "windows"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "015de964f21e0b20b9744ebc6f3a3e4dfdd1788f133a4aeec09c035748f88a21"
+dependencies = [
+ "const-sha1",
+ "windows_gen 0.4.0",
+ "windows_macros 0.4.0",
 ]
 
 [[package]]
@@ -4746,8 +4737,21 @@ dependencies = [
  "quote",
  "squote",
  "syn",
- "windows_gen_macros",
+ "windows_gen_macros 0.3.1",
  "windows_winmd",
+]
+
+[[package]]
+name = "windows_gen"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70028758c92f5ed61ce12ab8e7482dce152418bac41dbefe794511b9fb673022"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "squote",
+ "syn",
+ "windows_gen_macros 0.4.0",
 ]
 
 [[package]]
@@ -4755,6 +4759,17 @@ name = "windows_gen_macros"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23eac2169a20173b890c496f9e0e1149a92ef29fe4ba96026b72eec363b993f9"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "windows_gen_macros"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a4e4aa3c108fc3112bb797662b14958d088d3b989f2560d89335775c566c88d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4771,8 +4786,21 @@ dependencies = [
  "quote",
  "squote",
  "syn",
- "windows_gen",
+ "windows_gen 0.3.1",
  "windows_winmd",
+]
+
+[[package]]
+name = "windows_macros"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87e5b872245607ec18bf35eaa7a6146831c07449c0b724afd7403d732c6da856"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "squote",
+ "syn",
+ "windows_gen 0.4.0",
 ]
 
 [[package]]
@@ -4811,17 +4839,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d107f8c6e916235c4c01cabb3e8acf7bea8ef6a63ca2e7fa0527c049badfc48c"
 dependencies = [
  "winapi 0.3.9",
-]
-
-[[package]]
-name = "winrt-notification"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c285268f30382d46eac2c5a8068fa9bbf90b07a3b57196e171aea0cefbb7540"
-dependencies = [
- "strum",
- "windows",
- "xml-rs",
 ]
 
 [[package]]
