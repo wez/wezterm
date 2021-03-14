@@ -218,19 +218,19 @@ impl BlockKey {
 }
 
 #[derive(Debug)]
-struct ImageFrame {
+pub struct ImageFrame {
     duration: Duration,
     image: ::window::bitmaps::Image,
 }
 
 #[derive(Debug)]
-enum CachedImage {
+pub enum CachedImage {
     Animation(DecodedImage),
     SingleFrame,
 }
 
 #[derive(Debug)]
-struct DecodedImage {
+pub struct DecodedImage {
     frame_start: Instant,
     current_frame: usize,
     frames: Vec<ImageFrame>,
@@ -318,7 +318,7 @@ pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
-    image_cache: LruCache<usize, CachedImage>,
+    pub image_cache: LruCache<usize, CachedImage>,
     frame_cache: HashMap<(usize, usize), Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     block_glyphs: HashMap<BlockKey, Sprite<T>>,

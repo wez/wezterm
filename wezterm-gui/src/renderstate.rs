@@ -348,9 +348,19 @@ impl RenderState {
         size: Option<usize>,
     ) -> anyhow::Result<()> {
         let size = size.unwrap_or_else(|| self.glyph_cache.borrow().atlas.size());
-        let mut glyph_cache = GlyphCache::new_gl(&self.context, fonts, size, metrics)?;
-        self.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
-        *self.glyph_cache.borrow_mut() = glyph_cache;
+        let mut new_glyph_cache = GlyphCache::new_gl(&self.context, fonts, size, metrics)?;
+        self.util_sprites = UtilSprites::new(&mut new_glyph_cache, metrics)?;
+
+        let mut glyph_cache = self.glyph_cache.borrow_mut();
+
+        // Steal the decoded image cache; without this, any animating gifs
+        // would reset back to frame 0 each time we filled the texture
+        std::mem::swap(
+            &mut glyph_cache.image_cache,
+            &mut new_glyph_cache.image_cache,
+        );
+
+        *glyph_cache = new_glyph_cache;
         Ok(())
     }
 }
