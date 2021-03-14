@@ -1,6 +1,6 @@
 # `freetype_load_flags = "DEFAULT"`
 
-*Since: nightly*
+*Since: 20210314-114017-04b7cedd*
 
 An advanced option to fine tune the freetype rasterizer.  This is a bitfield,
 so you can combine one or more of these options together, separated by the `|`

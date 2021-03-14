@@ -1,6 +1,6 @@
 # `window:get_config_overrides()`
 
-*Since: nightly*
+*Since: 20210314-114017-04b7cedd*
 
 Returns a copy of the current set of configuration overrides that is in effect
 for the window.

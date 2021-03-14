@@ -1,6 +1,6 @@
 # `wezterm.log_warn(msg)`
 
-*Since: nightly*
+*Since: 20210314-114017-04b7cedd*
 
 This function logs the provided message string through wezterm's logging layer
 at 'WARN' level.  If you started wezterm from a terminal that text will print

@@ -1,6 +1,6 @@
 # `tab_bar_style`
 
-*Since: nightly builds only*
+*Since: 20210314-114017-04b7cedd*
 
 This config option allows styling the elements that appear in the tab bar.
 This configuration supplements the [tab bar color](../../../config/appearance.html#tab-bar-appearance--colors)

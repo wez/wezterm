@@ -1,6 +1,6 @@
 # `wezterm.format({})`
 
-*Since: nightly*
+*Since: 20210314-114017-04b7cedd*
 
 `wezterm.format` can be used to produce a formatted string
 with terminal graphic attributes such as bold, italic and colors.

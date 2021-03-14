@@ -1,6 +1,6 @@
 ## `custom_block_glyphs = true`
 
-*Since: nightly builds only*
+*Since: 20210314-114017-04b7cedd*
 
 When set to `true` (the default), WezTerm will compute its own idea of what the
 [U2580](https://www.unicode.org/charts/PDF/U2580.pdf) unicode block elements

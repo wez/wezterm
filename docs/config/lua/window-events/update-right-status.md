@@ -1,6 +1,6 @@
 # `update-right-status`
 
-*Since: nightly builds only*
+*Since: 20210314-114017-04b7cedd*
 
 The `update-right-status` event is emitted periodically (based on the
 interval specified by the [status_update_interval](../config/status_update_interval.md)

@@ -1,6 +1,6 @@
 # `treat_left_ctrlalt_as_altgr = false`
 
-*since: nightly*
+*since: 20210314-114017-04b7cedd*
 
 If you are using a layout with an *AltGr* key, you may experience issues
 when running inside a VNC session, because VNC emulates the AltGr keypresses

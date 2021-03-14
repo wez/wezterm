@@ -1,6 +1,6 @@
 # `window:set_config_overrides(overrides)`
 
-*Since: nightly*
+*Since: 20210314-114017-04b7cedd*
 
 Changes the set of configuration overrides for the window.
 The config file is re-evaluated and any CLI overrides are

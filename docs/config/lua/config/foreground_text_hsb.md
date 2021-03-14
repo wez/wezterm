@@ -1,6 +1,6 @@
 # foreground_text_hsb
 
-*Since: nightly builds only*
+*Since: 20210314-114017-04b7cedd*
 
 Configures a Hue, Saturation, Brightness transformation that is applied to
 monochrome glyphs.

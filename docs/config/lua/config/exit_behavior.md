@@ -1,6 +1,6 @@
 ## `exit_behavior = "CloseOnCleanExit"`
 
-*Since: nightly builds only*
+*Since: 20210314-114017-04b7cedd*
 
 Controls the behavior when the shell program spawned by the terminal exits.
 There are three possible values:

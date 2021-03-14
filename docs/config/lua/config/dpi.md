@@ -13,7 +13,7 @@ The default value is system specific:
 |macOS          |72.0                    |144.0       |
 |Windows        |Probed from the display |Probed from the display |
 |X11            |96.0                    |96.0                    |
-|X11 (*nightly builds of WezTerm*)|Probed from `Xft.dpi`, fallback to 96.0 |Probed from `Xft.dpi`, fallback to 96.0 |
+|X11 (*version 20210314-114017-04b7cedd and later*)|Probed from `Xft.dpi`, fallback to 96.0 |Probed from `Xft.dpi`, fallback to 96.0 |
 |Wayland        |96.0                    |192.0       |
 
 In macOS and Wayland environments there isn't strictly a system DPI value that

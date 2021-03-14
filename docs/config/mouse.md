@@ -25,8 +25,8 @@ that order.
 | Double Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Word"`  |
 | Triple Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Line"`  |
 | Single Middle Down | `NONE`   | `PasteFrom="PrimarySelection"`  |
-| Single Left Drag | `SUPER` | `StartWindowDrag` (*since nightly*) |
-| Single Left Drag | `CTRL|SHIFT` | `StartWindowDrag` (*since nightly*) |
+| Single Left Drag | `SUPER` | `StartWindowDrag` (*since 20210314-114017-04b7cedd*) |
+| Single Left Drag | `CTRL|SHIFT` | `StartWindowDrag` (*since 20210314-114017-04b7cedd*) |
 
 If you don't want the default assignments to be registered, you can
 disable all of them with this configuration; if you chose to do this,

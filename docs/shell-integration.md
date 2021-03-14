@@ -16,7 +16,7 @@ shell program to emit the escape sequences at the appropriate place.
 You can find some [examples for various shells in the wezterm
 repo](https://github.com/wez/wezterm/tree/main/assets/shell-integration).
 
-In the most recently nightly builds the Fedora and Debian packages
+Starting with version 20210314-114017-04b7cedd, the Fedora and Debian packages
 automatically activate shell integration for Bash and Zsh.
 
 If you're on another system, more information on how these escapes work

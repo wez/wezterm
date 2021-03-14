@@ -158,7 +158,7 @@ environment.
 
 ## How do I enable undercurl (curly underlines)?
 
-Starting in the nightly builds, WezTerm has support for colored and curly underlines.
+Starting in version 20210314-114017-04b7cedd, WezTerm has support for colored and curly underlines.
 
 The relevant escape sequences are:
 

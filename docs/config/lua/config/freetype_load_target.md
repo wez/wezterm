@@ -1,6 +1,6 @@
 # `freetype_load_target = "Normal"`
 
-*Since: nightly*
+*Since: 20210314-114017-04b7cedd*
 
 Configures the rendering mode used with the freetype rasterizer.
 The following values are possible:

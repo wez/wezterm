@@ -1,6 +1,6 @@
 # `window_decorations = "TITLE | RESIZE"`
 
-*Since nightly builds only*
+*Since 20210314-114017-04b7cedd*
 
 Configures whether the window has a title bar and/or resizable border.
 

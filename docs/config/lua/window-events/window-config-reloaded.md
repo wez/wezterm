@@ -1,6 +1,6 @@
 # `window-config-reloaded`
 
-*Since: nightly*
+*Since: 20210314-114017-04b7cedd*
 
 The `window-config-reloaded` event is emitted when the configuration for a
 window has been reloaded.  This can occur when the configuration file is

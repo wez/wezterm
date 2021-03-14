@@ -1,6 +1,6 @@
 # `window:set_right_status(string)`
 
-*Since: nightly builds only*
+*Since: 20210314-114017-04b7cedd*
 
 This method can be used to change the content that is displayed in the tab bar,
 to the right of the tabs and new tab button.  The content is displayed

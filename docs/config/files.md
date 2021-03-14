@@ -4,11 +4,11 @@
 configuration file in the following locations, stopping at the first file that
 it finds:
 
-* (in the nightly builds) if the `--config-file` CLI argument was specified, then
+* (since version 20210314-114017-04b7cedd) if the `--config-file` CLI argument was specified, then
   that path will be used.  If that path fails to load, then the defaults will be
   used instead.
 * If the environment variable `$WEZTERM_CONFIG_FILE` is set, it will be treated as the
-  path to a configuration file.  In the nightly builds: if that path fails to load
+  path to a configuration file.  Since version 20210314-114017-04b7cedd: if that path fails to load
   then the defaults will be used instead.  In earlier releases, the following steps
   would be used as a fallback.
 * On Windows, `wezterm.lua` from the directory that contains `wezterm.exe`.
@@ -30,7 +30,7 @@ many copies of wezterm, or are frequently reloading your config file.
 
 ### Configuration Overrides
 
-*since: nightly builds only*
+*since: 20210314-114017-04b7cedd*
 
 `wezterm` allows overriding configuration values via the command line; here are
 a couple of examples:
