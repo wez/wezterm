@@ -361,7 +361,13 @@ impl Mux {
         let dead_tab_ids: Vec<TabId>;
 
         {
-            let mut windows = self.windows.borrow_mut();
+            let mut windows = match self.windows.try_borrow_mut() {
+                Ok(w) => w,
+                Err(_) => {
+                    // It's ok if our caller already locked it; we can prune later.
+                    return;
+                }
+            };
             for (window_id, win) in windows.iter_mut() {
                 win.prune_dead_tabs(&live_tab_ids);
                 if win.is_empty() {
