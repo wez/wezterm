@@ -1,0 +1,14 @@
+[package]
+name = "wezterm-ssh"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dirs-next = "2.0"
+regex = "1"
+
+[dev-dependencies]
+k9 = "0.10"

@@ -4565,6 +4565,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "wezterm-ssh"
+version = "0.1.0"
+dependencies = [
+ "dirs-next",
+ "k9",
+ "regex",
+]
+
+[[package]]
 name = "wezterm-term"
 version = "0.1.0"
 dependencies = [
