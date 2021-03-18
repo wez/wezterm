@@ -713,7 +713,6 @@ dependencies = [
  "termwiz",
  "toml",
  "umask",
- "vergen",
  "wezterm-input-types",
  "wezterm-term",
  "winapi 0.3.9",
@@ -2565,7 +2564,7 @@ checksum = "f842b1982eb6c2fe34036a4fbfb06dd185a3f5c8edfaacdf7d1ea10b07de6252"
 dependencies = [
  "lock_api 0.3.4",
  "parking_lot_core 0.6.2",
- "rustc_version 0.2.3",
+ "rustc_version",
 ]
 
 [[package]]
@@ -2588,7 +2587,7 @@ dependencies = [
  "cloudabi",
  "libc",
  "redox_syscall 0.1.57",
- "rustc_version 0.2.3",
+ "rustc_version",
  "smallvec 0.6.14",
  "winapi 0.3.9",
 ]
@@ -3229,15 +3228,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 dependencies = [
  "semver 0.9.0",
-]
-
-[[package]]
-name = "rustc_version"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0dfe2087c51c460008730de8b57e6a320782fbfb312e1f4d520e6c6fae155ee"
-dependencies = [
- "semver 0.11.0",
 ]
 
 [[package]]
@@ -4065,17 +4055,6 @@ name = "vec_map"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
-
-[[package]]
-name = "vergen"
-version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7141e445af09c8919f1d5f8a20dae0b20c3b57a45dee0d5823c6ed5d237f15a"
-dependencies = [
- "bitflags",
- "chrono",
- "rustc_version 0.3.3",
-]
 
 [[package]]
 name = "version_check"

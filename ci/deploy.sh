@@ -4,7 +4,7 @@ set -e
 
 TARGET_DIR=${1:-target}
 
-TAG_NAME=${TAG_NAME:-$(git describe --tags)}
+TAG_NAME=${TAG_NAME:-$(git describe --tags --match '20*')}
 TAG_NAME=${TAG_NAME:-$(date +'%Y%m%d-%H%M%S')-$(git log --format=%h -1)}
 
 HERE=$(pwd)

@@ -1,5 +1,4 @@
 use std::path::Path;
-use vergen::{generate_cargo_keys, ConstantsFlags};
 
 fn bake_color_schemes() {
     let dir = std::fs::read_dir("../assets/colors").unwrap();
@@ -45,12 +44,6 @@ fn bake_color_schemes() {
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
-    let mut flags = ConstantsFlags::all();
-    flags.remove(ConstantsFlags::SEMVER_FROM_CARGO_PKG);
-
-    // Generate the 'cargo:' key output
-    generate_cargo_keys(ConstantsFlags::all()).expect("Unable to generate the cargo keys!");
-
     bake_color_schemes();
 
     // If a file named `.tag` is present, we'll take its contents for the
@@ -61,7 +54,25 @@ fn main() {
             ci_tag = s.trim().to_string();
             println!("cargo:rerun-if-changed=../.tag");
         }
+    } else {
+        // Otherwise we'll derive it from the git information
+        let head = Path::new("../.git/HEAD");
+        if head.exists() {
+            let head = head.canonicalize().unwrap();
+            println!("cargo:rerun-if-changed={}", head.display());
+            if let Ok(output) = std::process::Command::new("git")
+                .args(&["describe", "--tags", "--match", "20*"])
+                .output()
+            {
+                let info = String::from_utf8_lossy(&output.stdout);
+                ci_tag = info.trim().to_string();
+            }
+        }
     }
+
+    let target = std::env::var("TARGET").unwrap_or("unknown".to_string());
+
+    println!("cargo:rustc-env=WEZTERM_TARGET_TRIPLE={}", target);
     println!("cargo:rustc-env=WEZTERM_CI_TAG={}", ci_tag);
     println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.9");
 }
