@@ -543,6 +543,20 @@ impl Tab {
         }
     }
 
+    pub fn contains_pane(&self, pane: PaneId) -> bool {
+        fn contains(tree: &Tree, pane: PaneId) -> bool {
+            match tree {
+                Tree::Empty => false,
+                Tree::Node { left, right, .. } => contains(left, pane) || contains(right, pane),
+                Tree::Leaf(p) => p.pane_id() == pane,
+            }
+        }
+        match &*self.pane.borrow() {
+            Some(root) => contains(root, pane),
+            None => false,
+        }
+    }
+
     /// Walks the pane tree to produce the topologically ordered flattened
     /// list of PositionedPane instances along with their positioning information.
     pub fn iter_panes(&self) -> Vec<PositionedPane> {

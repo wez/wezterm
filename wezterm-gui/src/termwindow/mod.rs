@@ -27,15 +27,15 @@ use mux::pane::{Pane, PaneId};
 use mux::renderable::RenderableDimensions;
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, TabId};
 use mux::window::WindowId as MuxWindowId;
-use mux::Mux;
+use mux::{Mux, MuxNotification};
 use portable_pty::PtySize;
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::Add;
 use std::rc::Rc;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::image::ImageData;
@@ -585,6 +585,7 @@ impl TermWindow {
                 window
                     .apply(move |tw, _ops| {
                         if let Some(term_window) = tw.downcast_mut::<TermWindow>() {
+                            term_window.subscribe_to_pane_updates();
                             term_window.emit_status_event();
                         }
                         Ok(())
@@ -593,6 +594,75 @@ impl TermWindow {
             })
             .detach();
         }
+    }
+
+    fn mux_pane_output_event(&mut self, pane_id: PaneId) {
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            if pane.pane_id() == pane_id {
+                let mux = Mux::get().expect("mux started and running on main thread");
+
+                if let Some(mut mux_window) = mux.get_window_mut(self.mux_window_id) {
+                    mux_window.check_and_reset_invalidated();
+                }
+                if let Some(ref win) = self.window {
+                    win.invalidate();
+                }
+            }
+        }
+    }
+
+    fn mux_pane_output_event_callback(
+        n: MuxNotification,
+        window: &Window,
+        mux_window_id: MuxWindowId,
+        dead: &Arc<AtomicBool>,
+    ) -> bool {
+        if dead.load(Ordering::Relaxed) {
+            // Subscription cancelled asynchronously
+            return false;
+        }
+
+        if let MuxNotification::PaneOutput(pane_id) = n {
+            let mut pane_in_window = false;
+
+            let mux = Mux::get().expect("mux is calling us");
+            if let Some(mux_window) = mux.get_window(mux_window_id) {
+                for tab in mux_window.iter() {
+                    if tab.contains_pane(pane_id) {
+                        pane_in_window = true;
+                        break;
+                    }
+                }
+            } else {
+                // Something inconsistent: cancel subscription
+                return false;
+            }
+
+            if pane_in_window {
+                let dead = Arc::clone(dead);
+                window.apply(move |myself, _window| {
+                    if let Some(myself) = myself.downcast_mut::<Self>() {
+                        myself.mux_pane_output_event(pane_id);
+                    } else {
+                        // Something inconsistent: cancel subscription
+                        dead.store(true, Ordering::Relaxed);
+                    }
+                    Ok(())
+                });
+            }
+        }
+
+        true
+    }
+
+    fn subscribe_to_pane_updates(&self) {
+        let window = self.window.clone().expect("window to be valid on startup");
+        let mux_window_id = self.mux_window_id;
+        let mux = Mux::get().expect("mux started and running on main thread");
+        let dead = Arc::new(AtomicBool::new(false));
+        mux.subscribe(move |n| {
+            Self::mux_pane_output_event_callback(n, &window, mux_window_id, &dead)
+        });
     }
 
     fn emit_status_event(&mut self) {
