@@ -123,6 +123,22 @@ impl FontLocator for CoreTextFontLocator {
             }
         }
 
+        // Some of the fallback fonts are special fonts that don't exist on
+        // disk, and that we can't open.
+        // In particular, `.AppleSymbolsFB` is one such font.  Let's try
+        // a nearby approximation.
+        let symbols = FontAttributes {
+            family: "Apple Symbols".to_string(),
+            bold: false,
+            italic: false,
+            is_fallback: true,
+        };
+        if let Ok(descriptor) = descriptor_from_attr(&symbols) {
+            if let Some(handle) = handle_from_descriptor(&descriptor) {
+                fonts.push(handle);
+            }
+        }
+
         Ok(fonts)
     }
 }
