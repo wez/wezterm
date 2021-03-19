@@ -4569,9 +4569,19 @@ dependencies = [
 name = "wezterm-ssh"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "base64",
  "dirs-next",
+ "filedescriptor",
  "k9",
+ "log",
+ "portable-pty",
  "regex",
+ "shell-words",
+ "smol",
+ "ssh2",
+ "structopt",
+ "termwiz",
 ]
 
 [[package]]
