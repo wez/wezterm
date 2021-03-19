@@ -242,6 +242,10 @@ impl WindowCallbacks for TermWindow {
             // NOP!
             return;
         }
+        if self.dimensions == dimensions && self.is_full_screen == is_full_screen {
+            // It didn't really change
+            return;
+        }
         self.is_full_screen = is_full_screen;
         self.scaling_changed(dimensions, self.fonts.get_font_scale());
         self.emit_window_event("window-resized");
