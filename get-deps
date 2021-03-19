@@ -30,6 +30,28 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
   exit $?
 fi
 
+if test `lsb_release -si` = "openSUSE"; then
+  zypper install -y perl-FindBin perl-File-Compare || true
+  zypper install -y \
+    make \
+    gcc \
+    gcc-c++ \
+    fontconfig-devel \
+    openssl-devel \
+    perl \
+    python3 \
+    libxcb-devel \
+    libxkbcommon-devel \
+    libxkbcommon-x11-devel \
+    wayland-devel \
+    Mesa-libEGL-devel \
+    xcb-util-keysyms-devel \
+    xcb-util-image-devel \
+    xcb-util-wm-devel \
+    rpm-build
+  exit $?
+fi
+
 if test -e /etc/debian_version ; then
   apt-get install -y \
     bsdutils \
