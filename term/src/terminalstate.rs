@@ -326,6 +326,53 @@ fn is_ambiguous_ascii_ctrl(c: char) -> bool {
     }
 }
 
+/// Map c to its Ctrl equivalent.
+/// In theory, this mapping is simply translating alpha characters
+/// to upper case and then masking them by 0x1f, but xterm inherits
+/// some built-in translation from legacy X11 so that are some
+/// aliased mappings and a couple that might be technically tied
+/// to US keyboard layout (particularly the punctuation characters
+/// produced in combination with SHIFT) that may not be 100%
+/// the right thing to do here for users with non-US layouts.
+fn ctrl_mapping(c: char) -> Option<char> {
+    Some(match c {
+        '@' | '`' | ' ' | '2' => '\x00',
+        'A' | 'a' => '\x01',
+        'B' | 'b' => '\x02',
+        'C' | 'c' => '\x03',
+        'D' | 'd' => '\x04',
+        'E' | 'e' => '\x05',
+        'F' | 'f' => '\x06',
+        'G' | 'g' => '\x07',
+        'H' | 'h' => '\x08',
+        'I' | 'i' => '\x09',
+        'J' | 'j' => '\x0a',
+        'K' | 'k' => '\x0b',
+        'L' | 'l' => '\x0c',
+        'M' | 'm' => '\x0d',
+        'N' | 'n' => '\x0e',
+        'O' | 'o' => '\x0f',
+        'P' | 'p' => '\x10',
+        'Q' | 'q' => '\x11',
+        'R' | 'r' => '\x12',
+        'S' | 's' => '\x13',
+        'T' | 't' => '\x14',
+        'U' | 'u' => '\x15',
+        'V' | 'v' => '\x16',
+        'W' | 'w' => '\x17',
+        'X' | 'x' => '\x18',
+        'Y' | 'y' => '\x19',
+        'Z' | 'z' => '\x1a',
+        '[' | '3' | '{' => '\x1b',
+        '\\' | '4' | '|' => '\x1c',
+        ']' | '5' | '}' => '\x1d',
+        '^' | '6' | '~' => '\x1e',
+        '_' | '7' | '/' => '\x1f',
+        '8' | '?' => '\x7f', // `Delete`
+        _ => return None,
+    })
+}
+
 fn default_color_map() -> HashMap<u16, RgbColor> {
     let mut color_map = HashMap::new();
     color_map.insert(0, RgbColor::new(0, 0, 0));
@@ -848,8 +895,8 @@ impl TerminalState {
         if self.config.enable_csi_u_key_encoding() {
             write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
         } else {
-            let c = if mods.contains(KeyModifiers::CTRL) {
-                ((c as u8) & 0x1f) as char
+            let c = if mods.contains(KeyModifiers::CTRL) && ctrl_mapping(c).is_some() {
+                ctrl_mapping(c).unwrap()
             } else {
                 c
             };
@@ -907,11 +954,8 @@ impl TerminalState {
                 buf.as_str()
             }
 
-            Char(c)
-                if (c.is_ascii_alphanumeric() || c.is_ascii_punctuation() || c == ' ')
-                    && mods.contains(KeyModifiers::CTRL) =>
-            {
-                let c = ((c as u8) & 0x1f) as char;
+            Char(c) if mods.contains(KeyModifiers::CTRL) && ctrl_mapping(c).is_some() => {
+                let c = ctrl_mapping(c).unwrap();
                 if mods.contains(KeyModifiers::ALT) {
                     buf.push(0x1b as char);
                 }
