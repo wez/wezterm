@@ -561,12 +561,25 @@ impl LocalPane {
     }
 }
 
+fn bounded_kill_wait(child: &mut Box<dyn Child + 'static>) {
+    for attempt in 0..5 {
+        let _ = child.kill();
+        if attempt > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+
+        if let Ok(Some(_)) = child.try_wait() {
+            break;
+        }
+    }
+}
+
 impl Drop for LocalPane {
     fn drop(&mut self) {
-        // Avoid lingering zombies
+        // Avoid lingering zombies if we can, but don't block forever.
+        // <https://github.com/wez/wezterm/issues/558>
         if let ProcessState::Running { child, .. } = &mut *self.process.borrow_mut() {
-            let _ = child.kill();
-            let _ = child.wait();
+            bounded_kill_wait(child);
         }
     }
 }
