@@ -122,7 +122,7 @@ bind a key to the `ShowLauncher` action to trigger the menu.
 The launcher menu by default lists the various multiplexer domains and offers
 the option of connecting and spawning tabs/windows in those domains.
 
-*Since 20200503-171512-b13ef15f*: You can define you own entries using the
+*Since 20200503-171512-b13ef15f*: You can define your own entries using the
 `launch_menu` configuration setting.  The snippet below adds two new entries to
 the menu; one that runs the `top` program to monitor process activity and a
 second one that explicitly launches the `bash` shell.
