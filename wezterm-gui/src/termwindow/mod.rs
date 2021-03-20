@@ -360,6 +360,11 @@ impl WindowCallbacks for TermWindow {
                 );
                 self.render_state.replace(gl);
                 Self::start_periodic_maintenance(window.clone());
+                // Update dimensions: the goal here is to factor in the dpi and font
+                // size adjusted GUI window dimensions and apply those to the dimensions
+                // of the pty in the Mux layer.
+                let dims = self.dimensions.clone();
+                self.apply_dimensions(&dims, None);
             }
             Err(err) => {
                 log::error!("failed to create OpenGLRenderState: {}", err);
