@@ -89,7 +89,14 @@ impl Face {
             }
         }
 
-        log::debug!("set_char_size computing {} dpi={}", point_size, dpi);
+        let pixel_height = point_size * dpi as f64 / 72.0;
+        log::debug!(
+            "set_char_size computing {} dpi={} (pixel height={})",
+            point_size,
+            dpi,
+            pixel_height
+        );
+
         // Scaling before truncating to integer minimizes the chances of hitting
         // the fallback code for set_pixel_sizes below.
         let size = (point_size * 64.0) as FT_F26Dot6;
@@ -100,6 +107,8 @@ impl Face {
                 self.cell_metrics()
             }
             Err(err) => {
+                log::debug!("set_char_size: {:?}, will inspect strikes", err);
+
                 let sizes = unsafe {
                     let rec = &(*self.face);
                     std::slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
@@ -107,24 +116,42 @@ impl Face {
                 if sizes.is_empty() {
                     return Err(err);
                 }
-                // Find the best matching size.
-                // We just take the biggest.
-                let mut best = 0;
-                let mut best_size = 0;
-                let mut cell_width = 0;
-                let mut cell_height = 0;
+                // Find the best matching size; we look for the strike whose height
+                // is closest to the desired size.
+                struct Best {
+                    idx: usize,
+                    distance: usize,
+                    height: i16,
+                    width: i16,
+                }
+                let mut best: Option<Best> = None;
 
                 for (idx, info) in sizes.iter().enumerate() {
-                    let size = best_size.max(info.height);
-                    if size > best_size {
-                        best = idx;
-                        best_size = size;
-                        cell_width = info.width;
-                        cell_height = info.height;
+                    log::debug!("idx={} info={:?}", idx, info);
+                    let distance = (info.height - (pixel_height as i16)).abs() as usize;
+                    let candidate = Best {
+                        idx,
+                        distance,
+                        height: info.height,
+                        width: info.width,
+                    };
+
+                    match best.take() {
+                        Some(existing) => {
+                            best.replace(if candidate.distance < existing.distance {
+                                candidate
+                            } else {
+                                existing
+                            });
+                        }
+                        None => {
+                            best.replace(candidate);
+                        }
                     }
                 }
-                self.select_size(best)?;
-                (f64::from(cell_width), f64::from(cell_height))
+                let best = best.unwrap();
+                self.select_size(best.idx)?;
+                (f64::from(best.width), f64::from(best.height))
             }
         };
 
@@ -157,7 +184,15 @@ impl Face {
             },
             (),
         )
-        .context("FT_Set_Char_Size")
+        .context("FT_Set_Char_Size")?;
+
+        unsafe {
+            if (*self.face).height == 0 {
+                anyhow::bail!("font has 0 height, fallback to bitmaps");
+            }
+        }
+
+        Ok(())
     }
 
     fn select_size(&mut self, idx: usize) -> anyhow::Result<()> {
