@@ -8,10 +8,13 @@ use log::error;
 use portable_pty::ExitStatus;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::io::Read;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Condvar, Mutex};
+use std::time::Duration;
+
 use std::thread;
 use termwiz::escape::Action;
 use thiserror::*;
@@ -58,7 +61,7 @@ pub struct Mux {
 /// It blocks until the mux has finished consuming the data, which provides
 /// some back-pressure so that eg: ctrl-c can remain responsive.
 fn send_actions_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, actions: Vec<Action>) {
-    promise::spawn::block_on(promise::spawn::spawn_into_main_thread_with_low_priority({
+    promise::spawn::block_on(promise::spawn::spawn_into_main_thread({
         let dead = Arc::clone(&dead);
         async move {
             let mux = Mux::get().unwrap();
@@ -75,6 +78,64 @@ fn send_actions_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, actions: Vec<Act
     }));
 }
 
+struct BufState {
+    queue: Mutex<VecDeque<u8>>,
+    cond: Condvar,
+    dead: Arc<AtomicBool>,
+}
+
+impl BufState {
+    fn write(&self, buf: &[u8]) {
+        let mut queue = self.queue.lock().unwrap();
+        queue.extend(buf);
+        self.cond.notify_one();
+    }
+}
+
+fn parse_buffered_data(pane_id: PaneId, state: &Arc<BufState>) {
+    let mut parser = termwiz::escape::parser::Parser::new();
+    let mut queue = state.queue.lock().unwrap();
+
+    loop {
+        if queue.is_empty() {
+            if state.dead.load(Ordering::Relaxed) {
+                return;
+            }
+            queue = state.cond.wait(queue).unwrap();
+            continue;
+        }
+
+        let mut actions = vec![];
+        let buf = queue.make_contiguous();
+        parser.parse(buf, |action| actions.push(action));
+        queue.truncate(0);
+
+        // Yield briefly to see if more data showed up and
+        // lump it together with what we've got
+        loop {
+            let wait_res = state
+                .cond
+                .wait_timeout(queue, Duration::from_millis(1))
+                .unwrap();
+            queue = wait_res.0;
+            if queue.is_empty() {
+                break;
+            }
+            let buf = queue.make_contiguous();
+            parser.parse(buf, |action| actions.push(action));
+            queue.truncate(0);
+            if !actions.is_empty() {
+                // Don't delay very long if we've got stuff to display!
+                break;
+            }
+        }
+
+        if !actions.is_empty() {
+            send_actions_to_mux(pane_id, &state.dead, actions);
+        }
+    }
+}
+
 /// This function is run in a separate thread; its purpose is to perform
 /// blocking reads from the pty (non-blocking reads are not portable to
 /// all platforms and pty/tty types), parse the escape sequences and
@@ -87,10 +148,19 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
     // or in the main mux thread.  If `true`, this thread will terminate.
     let dead = Arc::new(AtomicBool::new(false));
 
-    let mut parser = termwiz::escape::parser::Parser::new();
+    let state = Arc::new(BufState {
+        queue: Mutex::new(VecDeque::new()),
+        cond: Condvar::new(),
+        dead: Arc::clone(&dead),
+    });
+
+    std::thread::spawn({
+        let state = Arc::clone(&state);
+        move || parse_buffered_data(pane_id, &state)
+    });
 
     if let Some(banner) = banner {
-        send_actions_to_mux(pane_id, &dead, parser.parse_as_vec(banner.as_bytes()));
+        state.write(banner.as_bytes());
     }
 
     while !dead.load(Ordering::Relaxed) {
@@ -104,27 +174,16 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
                 break;
             }
             Ok(size) => {
-                let buf = &buf[..size];
-                let actions = parser.parse_as_vec(&buf);
-                if !actions.is_empty() {
-                    send_actions_to_mux(pane_id, &dead, actions);
-                }
+                state.write(&buf[..size]);
             }
         }
     }
-
-    dead.store(true, Ordering::Relaxed);
 
     match configuration().exit_behavior {
         ExitBehavior::Hold | ExitBehavior::CloseOnCleanExit => {
             // We don't know if we can unilaterally close
             // this pane right now, so don't!
-            send_actions_to_mux(
-                pane_id,
-                &dead,
-                parser.parse_as_vec(b"\n[Process completed]"),
-            );
-            return;
+            state.write(b"\n[Process completed]");
         }
         ExitBehavior::Close => {
             promise::spawn::spawn_into_main_thread(async move {
@@ -134,6 +193,8 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
             .detach();
         }
     }
+
+    dead.store(true, Ordering::Relaxed);
 }
 
 thread_local! {
