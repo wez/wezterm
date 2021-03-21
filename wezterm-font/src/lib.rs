@@ -128,10 +128,7 @@ impl LoadedFont {
                         log::trace!("handles is now: {:#?}", self.handles);
                         return self.shape(text);
                     } else {
-                        log::error!(
-                            "No fonts have glyphs for {}, even though fallback suggested some.",
-                            fallback_str.escape_debug()
-                        )
+                        log::error!("No fonts have glyphs for {}", fallback_str.escape_debug())
                     }
                 }
             }
