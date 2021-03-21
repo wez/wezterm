@@ -323,11 +323,33 @@ impl Library {
         P: AsRef<std::path::Path>,
     {
         let mut face = ptr::null_mut();
+
+        if let Some(path_str) = path.as_ref().to_str() {
+            if let Ok(path_cstr) = std::ffi::CString::new(path_str) {
+                let res = unsafe {
+                    FT_New_Face(
+                        self.lib,
+                        path_cstr.as_ptr(),
+                        face_index,
+                        &mut face as *mut _,
+                    )
+                };
+                return Ok(Face {
+                    face: ft_result(res, face).with_context(|| {
+                        format!(
+                            "FT_New_Face for {} index {}",
+                            path.as_ref().display(),
+                            face_index
+                        )
+                    })?,
+                    _bytes: vec![],
+                    size: None,
+                });
+            }
+        }
+
         let path = path.as_ref();
 
-        // We open the file for ourselves and treat it as a memory based
-        // face because freetype doesn't use O_CLOEXEC and keeps the fd
-        // floating around for a long time!
         let data = std::fs::read(path)?;
         log::trace!(
             "Loading {} ({} bytes) for freetype!",
