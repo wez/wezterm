@@ -15,6 +15,7 @@ brief notes about them may accumulate here.
 * Fixed: detection and handling of fonts such as terminus-bold.otb that contain only bitmap strikes. [#560](https://github.com/wez/wezterm/issues/560)
 * Fixed: the pixel size reported by the pty to the kernel wasn't adjusted for font metrics/dpi until the config was reloaded or window resized. [#563](https://github.com/wez/wezterm/issues/563)
 * Fixed: greatly reduce memory consumption when system fallback fonts are loaded [#559](https://github.com/wez/wezterm/issues/559)
+* Fixed: Windows: `window_background_opacity` was only taking effect when `window_decorations="NONE"` [#553](https://github.com/wez/wezterm/issues/553)
 
 ### 20210314-114017-04b7cedd
 

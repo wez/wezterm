@@ -729,16 +729,21 @@ unsafe fn wm_ncdestroy(
 fn enable_blur_behind(hwnd: HWND) {
     use winapi::shared::minwindef::*;
     use winapi::um::dwmapi::*;
-
-    let bb = DWM_BLURBEHIND {
-        dwFlags: DWM_BB_ENABLE,
-        fEnable: TRUE,
-        hRgnBlur: null_mut(),
-        fTransitionOnMaximized: FALSE,
-    };
+    use winapi::um::wingdi::*;
 
     unsafe {
+        let region = CreateRectRgn(0, 0, -1, -1);
+
+        let bb = DWM_BLURBEHIND {
+            dwFlags: DWM_BB_ENABLE | DWM_BB_BLURREGION,
+            fEnable: TRUE,
+            hRgnBlur: region,
+            fTransitionOnMaximized: FALSE,
+        };
+
         DwmEnableBlurBehindWindow(hwnd, &bb);
+
+        DeleteObject(region as _);
     }
 }
 
