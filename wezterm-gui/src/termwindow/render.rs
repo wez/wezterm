@@ -3,12 +3,16 @@ use crate::glyphcache::{BlockKey, CachedGlyph, GlyphCache};
 use crate::shapecache::*;
 use crate::termwindow::{BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
+use ::window::bitmaps::atlas::SpriteSlice;
+use ::window::bitmaps::Texture2d;
 use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
+use ::window::color::LinearRgba;
 use ::window::glium;
 use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
+use ::window::GlInfo;
 use anyhow::anyhow;
 use config::ConfigHandle;
 use config::TextStyle;
@@ -25,9 +29,6 @@ use wezterm_font::units::PixelLength;
 use wezterm_font::GlyphInfo;
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
-use window::bitmaps::atlas::SpriteSlice;
-use window::bitmaps::Texture2d;
-use window::color::LinearRgba;
 
 pub struct RenderScreenLineOpenGLParams<'a> {
     pub line_idx: usize,
@@ -382,8 +383,62 @@ impl super::TermWindow {
             foreground_text_hsb.brightness,
         );
 
-        let apply_gamma_to_texture = cfg!(windows) && self.config.prefer_egl;
-        let apply_gamma_to_colorize = !apply_gamma_to_texture;
+        #[derive(Clone, Copy, PartialEq, Eq)]
+        #[allow(dead_code)]
+        enum GammaColor {
+            ToLinear,
+            FromLinear,
+            Identity,
+        }
+
+        impl Into<u32> for GammaColor {
+            fn into(self) -> u32 {
+                match self {
+                    GammaColor::Identity => 0,
+                    GammaColor::ToLinear => 1,
+                    GammaColor::FromLinear => 2,
+                }
+            }
+        }
+
+        let colorize_gamma: u32 = match self.glinfo {
+            GlInfo::Egl {
+                supports_srgb: true,
+            } => GammaColor::ToLinear,
+            GlInfo::Egl {
+                supports_srgb: false,
+            } => GammaColor::Identity,
+            GlInfo::Wgl => GammaColor::Identity,
+            GlInfo::Cgl => GammaColor::ToLinear,
+            GlInfo::Generic => GammaColor::ToLinear,
+        }
+        .into();
+
+        let sample_gamma: u32 = match self.glinfo {
+            GlInfo::Egl {
+                supports_srgb: true,
+            } => GammaColor::Identity,
+            GlInfo::Egl {
+                supports_srgb: false,
+            } => GammaColor::Identity,
+            GlInfo::Wgl => GammaColor::Identity,
+            GlInfo::Cgl => GammaColor::Identity,
+            GlInfo::Generic => GammaColor::Identity,
+        }
+        .into();
+
+        let output_gamma: u32 = match self.glinfo {
+            GlInfo::Egl {
+                supports_srgb: true,
+            } => GammaColor::Identity,
+            GlInfo::Egl {
+                supports_srgb: false,
+            } => GammaColor::ToLinear,
+            GlInfo::Wgl => GammaColor::Identity,
+            GlInfo::Cgl => GammaColor::Identity,
+            GlInfo::Generic => GammaColor::Identity,
+        }
+        .into();
 
         // Pass 1: Draw backgrounds
         frame.draw(
@@ -394,8 +449,9 @@ impl super::TermWindow {
                 projection: projection,
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
-                apply_gamma_to_texture: apply_gamma_to_texture,
-                apply_gamma_to_colorize: apply_gamma_to_colorize,
+                colorize_gamma: colorize_gamma,
+                sample_gamma: sample_gamma,
+                output_gamma: output_gamma,
             },
             &alpha_blending,
         )?;
@@ -410,8 +466,9 @@ impl super::TermWindow {
                 atlas_nearest_sampler:  atlas_nearest_sampler,
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
-                apply_gamma_to_texture: apply_gamma_to_texture,
-                apply_gamma_to_colorize: apply_gamma_to_colorize,
+                colorize_gamma: colorize_gamma,
+                sample_gamma: sample_gamma,
+                output_gamma: output_gamma,
             },
             &alpha_blending,
         )?;
@@ -466,8 +523,9 @@ impl super::TermWindow {
                 atlas_nearest_sampler:  atlas_nearest_sampler,
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
-                apply_gamma_to_texture: apply_gamma_to_texture,
-                apply_gamma_to_colorize: apply_gamma_to_colorize,
+                colorize_gamma: colorize_gamma,
+                sample_gamma: sample_gamma,
+                output_gamma: output_gamma,
             },
             &blend_but_set_alpha_to_one,
         )?;

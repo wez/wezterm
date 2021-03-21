@@ -17,7 +17,5 @@ void main() {
     discard;
   }
   color = apply_hsv(color, o_hsv);
-  if (apply_gamma_to_texture) {
-    color = to_linear(color);
-  }
+  color = apply_gamma(color, output_gamma);
 }

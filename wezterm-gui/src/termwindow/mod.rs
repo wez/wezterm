@@ -119,6 +119,7 @@ pub struct TermWindow {
     pub mux_window_id: MuxWindowId,
     pub render_metrics: RenderMetrics,
     render_state: Option<RenderState>,
+    glinfo: GlInfo,
     input_map: InputMap,
     /// If is_some, the LEADER modifier is active until the specified instant.
     leader_is_down: Option<std::time::Instant>,
@@ -280,6 +281,7 @@ impl WindowCallbacks for TermWindow {
             is_full_screen: self.is_full_screen,
             terminal_size: self.terminal_size.clone(),
             render_state,
+            glinfo: GlInfo::Generic,
             input_map: InputMap::new(),
             leader_is_down: None,
             show_tab_bar: self.show_tab_bar,
@@ -336,10 +338,11 @@ impl WindowCallbacks for TermWindow {
         &mut self,
         window: &Window,
         ctx: std::rc::Rc<glium::backend::Context>,
+        glinfo: GlInfo,
     ) -> anyhow::Result<()> {
         self.window.replace(window.clone());
-
         self.render_state = None;
+        self.glinfo = glinfo;
 
         match RenderState::new(
             &self.config,
@@ -352,9 +355,10 @@ impl WindowCallbacks for TermWindow {
         ) {
             Ok(gl) => {
                 log::info!(
-                    "OpenGL initialized! {} {} is_context_loss_possible={} wezterm version: {}",
+                    "OpenGL initialized! {} {} {:?} is_context_loss_possible={} wezterm version: {}",
                     gl.context.get_opengl_renderer_string(),
                     gl.context.get_opengl_version_string(),
+                    glinfo,
                     gl.context.is_context_loss_possible(),
                     config::wezterm_version(),
                 );
@@ -507,6 +511,7 @@ impl TermWindow {
                 is_full_screen: false,
                 terminal_size,
                 render_state,
+                glinfo: GlInfo::Generic,
                 input_map: InputMap::new(),
                 leader_is_down: None,
                 show_tab_bar,

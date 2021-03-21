@@ -2,9 +2,9 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::WindowConfigHandle;
 use crate::{
-    Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks, WindowDecorations,
-    WindowOps, WindowOpsMut,
+    Clipboard, Dimensions, GlInfo, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
+    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks,
+    WindowDecorations, WindowOps, WindowOpsMut,
 };
 use anyhow::{bail, Context};
 use lazy_static::lazy_static;
@@ -125,7 +125,7 @@ impl WindowInner {
         let window = Window(self.hwnd);
         let conn = Connection::get().unwrap();
 
-        let gl_state = if self.config.prefer_egl() {
+        let (gl_state, info) = if self.config.prefer_egl() {
             match conn.gl_connection.borrow().as_ref() {
                 None => crate::egl::GlState::create(None, self.hwnd.0),
                 Some(glconn) => {
@@ -137,30 +137,31 @@ impl WindowInner {
         }
         .and_then(|egl| unsafe {
             log::trace!("Initialized EGL!");
+            let info = GlInfo::Egl {
+                supports_srgb: egl.has_srgb_support(),
+            };
             conn.gl_connection
                 .borrow_mut()
                 .replace(Rc::clone(egl.get_connection()));
             let backend = Rc::new(egl);
-            Ok(glium::backend::Context::new(
-                backend,
-                true,
-                callback_behavior(),
-            )?)
+            Ok((
+                glium::backend::Context::new(backend, true, callback_behavior())?,
+                info,
+            ))
         })
         .or_else(|err| {
             log::warn!("EGL init failed {:?}, fall back to WGL", err);
             super::wgl::GlState::create(self.hwnd.0).and_then(|state| unsafe {
-                Ok(glium::backend::Context::new(
-                    Rc::new(state),
-                    true,
-                    callback_behavior(),
-                )?)
+                Ok((
+                    glium::backend::Context::new(Rc::new(state), true, callback_behavior())?,
+                    GlInfo::Wgl,
+                ))
             })
         })?;
 
         self.gl_state.replace(gl_state.clone());
 
-        if let Err(err) = self.callbacks.borrow_mut().created(&window, gl_state) {
+        if let Err(err) = self.callbacks.borrow_mut().created(&window, gl_state, info) {
             self.gl_state.take();
             Err(err)
         } else {

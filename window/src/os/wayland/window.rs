@@ -6,8 +6,8 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::WindowConfigHandle;
 use crate::{
-    Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowCallbacks,
-    WindowOps, WindowOpsMut,
+    Clipboard, Connection, Dimensions, GlInfo, MouseCursor, Point, ScreenPoint, Window,
+    WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, Context};
 use filedescriptor::FileDescriptor;
@@ -554,26 +554,32 @@ impl WaylandWindowInner {
                 ),
             }
         };
-        let gl_state = gl_state.map(Rc::new).and_then(|state| unsafe {
+        let (gl_state, info) = gl_state.map(Rc::new).and_then(|state| unsafe {
+            let info = GlInfo::Egl {
+                supports_srgb: state.has_srgb_support(),
+            };
             wayland_conn
                 .gl_connection
                 .borrow_mut()
                 .replace(Rc::clone(state.get_connection()));
-            Ok(glium::backend::Context::new(
-                Rc::clone(&state),
-                true,
-                if cfg!(debug_assertions) {
-                    glium::debug::DebugCallbackBehavior::DebugMessageOnError
-                } else {
-                    glium::debug::DebugCallbackBehavior::Ignore
-                },
-            )?)
+            Ok((
+                glium::backend::Context::new(
+                    Rc::clone(&state),
+                    true,
+                    if cfg!(debug_assertions) {
+                        glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                    } else {
+                        glium::debug::DebugCallbackBehavior::Ignore
+                    },
+                )?,
+                info,
+            ))
         })?;
 
         self.gl_state.replace(gl_state.clone());
         self.wegl_surface = wegl_surface;
 
-        self.callbacks.created(&window, gl_state)
+        self.callbacks.created(&window, gl_state, info)
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {

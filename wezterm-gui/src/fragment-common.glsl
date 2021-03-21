@@ -15,8 +15,9 @@ in vec4 o_underline_color;
 out vec4 color;
 
 uniform vec3 foreground_text_hsb;
-uniform bool apply_gamma_to_texture;
-uniform bool apply_gamma_to_colorize;
+uniform uint colorize_gamma;
+uniform uint output_gamma;
+uniform uint sample_gamma;
 
 float multiply_one(float src, float dst, float inv_dst_alpha, float inv_src_alpha) {
   return (src * dst) + (src * (inv_dst_alpha)) + (dst * (inv_src_alpha));
@@ -71,6 +72,16 @@ vec4 to_linear(vec4 v) {
   return pow(v, vec4(1.0/2.2));
 }
 
+vec4 apply_gamma(vec4 v, uint tform) {
+  if (tform == 0u) {
+    return v;
+  } else if (tform == 1u) {
+    return to_linear(v);
+  } else /* tform == 2 */ {
+    return from_linear(v);
+  }
+}
+
 // Given glyph, the greyscale rgba value computed by freetype,
 // and color, the desired color, compute the resultant pixel
 // value for rendering over the top of the given background
@@ -100,9 +111,7 @@ vec4 colorize(vec4 glyph, vec4 color, vec4 background) {
   // Assuming that GL is respecting the surface's SRGB encoding,
   // the values we get here should be automatically linearized
   // by this point, so we shouldn't need to linearize them again.
-  if (apply_gamma_to_colorize) {
-    glyph = to_linear(glyph);
-  }
+  glyph = apply_gamma(glyph, colorize_gamma);
 
   float r = glyph.r * color.r + (1.0 - glyph.r) * background.r;
   float g = glyph.g * color.g + (1.0 - glyph.g) * background.g;
@@ -114,8 +123,5 @@ vec4 colorize(vec4 glyph, vec4 color, vec4 background) {
 
 vec4 texture_sample(sampler2D sampler, vec2 coords) {
   vec4 color = texture(sampler, coords);
-  if (apply_gamma_to_texture) {
-    return to_linear(color);
-  }
-  return color;
+  return apply_gamma(color, sample_gamma);
 }

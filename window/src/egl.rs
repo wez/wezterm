@@ -77,6 +77,7 @@ pub struct GlState {
     connection: Rc<GlConnection>,
     surface: ffi::types::EGLSurface,
     context: ffi::types::EGLContext,
+    supports_srgb: bool,
 }
 
 impl Drop for GlState {
@@ -336,7 +337,7 @@ impl EglWrapper {
         display: ffi::types::EGLDisplay,
         config: ffi::types::EGLConfig,
         window: ffi::EGLNativeWindowType,
-    ) -> anyhow::Result<ffi::types::EGLSurface> {
+    ) -> anyhow::Result<(ffi::types::EGLSurface, bool)> {
         fn get_extensions(egl: &ffi::Egl, display: ffi::types::EGLDisplay) -> Vec<String> {
             let p = unsafe {
                 std::ffi::CStr::from_ptr(egl.QueryString(display, ffi::EXTENSIONS as i32))
@@ -348,6 +349,7 @@ impl EglWrapper {
         let mut attributes = vec![];
         let extensions = get_extensions(&self.egl, display);
         log::debug!("Supported extensions {:?}", extensions);
+        let mut supports_srgb = false;
 
         if extensions
             .iter()
@@ -356,6 +358,7 @@ impl EglWrapper {
             log::debug!("Supports EGL_KHR_gl_colorspace, enable SRGB on surface");
             attributes.push(ffi::GL_COLORSPACE as i32);
             attributes.push(ffi::GL_COLORSPACE_SRGB as i32);
+            supports_srgb = true;
         }
         attributes.push(ffi::NONE as i32);
 
@@ -366,7 +369,7 @@ impl EglWrapper {
         if surface.is_null() {
             Err(self.error("EGL CreateWindowSurface"))
         } else {
-            Ok(surface)
+            Ok((surface, supports_srgb))
         }
     }
 
@@ -401,6 +404,10 @@ impl GlState {
     #[cfg_attr(any(windows, target_os = "macos"), allow(unused))]
     pub fn get_connection(&self) -> &Rc<GlConnection> {
         &self.connection
+    }
+
+    pub fn has_srgb_support(&self) -> bool {
+        self.supports_srgb
     }
 
     fn with_egl_lib<F: FnMut(EglWrapper) -> anyhow::Result<Self>>(
@@ -578,7 +585,7 @@ impl GlState {
         let mut errors = String::new();
 
         for config in configs {
-            let surface =
+            let (surface, supports_srgb) =
                 match connection
                     .egl
                     .create_window_surface(connection.display, config, window)
@@ -624,6 +631,7 @@ impl GlState {
                 connection: Rc::clone(connection),
                 context,
                 surface,
+                supports_srgb,
             });
         }
 

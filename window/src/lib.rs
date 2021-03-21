@@ -109,6 +109,7 @@ pub trait WindowCallbacks: Any {
         &mut self,
         _window: &Window,
         _context: std::rc::Rc<glium::backend::Context>,
+        _glinfo: GlInfo,
     ) -> anyhow::Result<()> {
         Ok(())
     }
@@ -119,6 +120,14 @@ pub trait WindowCallbacks: Any {
     /// https://stackoverflow.com/q/46045298/149111 and others have
     /// some rationale on why Rust works this way.
     fn as_any(&mut self) -> &mut dyn Any;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GlInfo {
+    Egl { supports_srgb: bool },
+    Wgl,
+    Cgl,
+    Generic,
 }
 
 pub trait WindowOps {
