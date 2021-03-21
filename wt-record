@@ -7,7 +7,7 @@ PATH=$PWD/target/release:$PATH
 
 case $OSTYPE in
   darwin*)
-    wezterm start -- script -r $NOW.typescript
+    wezterm start -- script -r $PWD/$NOW.typescript
     tar -cz -f $NOW.tgz $NOW.typescript
     ;;
 
