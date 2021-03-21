@@ -337,9 +337,31 @@ impl EglWrapper {
         config: ffi::types::EGLConfig,
         window: ffi::EGLNativeWindowType,
     ) -> anyhow::Result<ffi::types::EGLSurface> {
+        fn get_extensions(egl: &ffi::Egl, display: ffi::types::EGLDisplay) -> Vec<String> {
+            let p = unsafe {
+                std::ffi::CStr::from_ptr(egl.QueryString(display, ffi::EXTENSIONS as i32))
+            };
+            let list = String::from_utf8_lossy(p.to_bytes());
+            list.split(' ').map(|e| e.to_string()).collect()
+        }
+
+        let mut attributes = vec![];
+        let extensions = get_extensions(&self.egl, display);
+        log::debug!("Supported extensions {:?}", extensions);
+
+        if extensions
+            .iter()
+            .any(|s| s.as_str() == "EGL_KHR_gl_colorspace")
+        {
+            log::debug!("Supports EGL_KHR_gl_colorspace, enable SRGB on surface");
+            attributes.push(ffi::GL_COLORSPACE as i32);
+            attributes.push(ffi::GL_COLORSPACE_SRGB as i32);
+        }
+        attributes.push(ffi::NONE as i32);
+
         let surface = unsafe {
             self.egl
-                .CreateWindowSurface(display, config, window, std::ptr::null())
+                .CreateWindowSurface(display, config, window, attributes.as_ptr())
         };
         if surface.is_null() {
             Err(self.error("EGL CreateWindowSurface"))
@@ -474,6 +496,17 @@ impl GlState {
         window: ffi::EGLNativeWindowType,
     ) -> anyhow::Result<Self> {
         Self::with_egl_lib(|egl| {
+            unsafe {
+                // OPENGL_API makes SRGB work better
+                if egl.egl.BindAPI(ffi::OPENGL_API) == 0 {
+                    if egl.egl.BindAPI(ffi::OPENGL_ES_API) == 0 {
+                        log::error!(
+                            "EGL implementation doesn't support OPENGL_API or OPENGL_ES_API!?"
+                        );
+                    }
+                }
+            }
+
             let egl_display = egl.get_display(display)?;
 
             let (major, minor) = egl.initialize_and_get_version(egl_display)?;

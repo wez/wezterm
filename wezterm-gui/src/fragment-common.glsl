@@ -104,6 +104,6 @@ vec4 to_gamma(vec4 v) {
 // that everything is already SRGB, so this function should really
 // just be a call to `texture` and not do the gamma conversion.
 vec4 sample_texture(sampler2D s, vec2 coords) {
-  vec4 color = texture(s, coords);
-  return to_gamma(color);
+  return texture(s, coords);
+  //return to_gamma(texture(s, coords));
 }

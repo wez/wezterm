@@ -38,22 +38,32 @@ impl RenderState {
         pixel_width: usize,
         pixel_height: usize,
     ) -> anyhow::Result<Self> {
+        // Ugh, this is more complex than it should be.
+        // On macOS, we get SRGB support in both texture source and framebuffer
+        // output, so we always enable SRGB output there.
+        // On other platforms, we only enable SRGB for the final stage, when we
+        // target the underlying framebuffer.
+        // On Linux with EGL, if we've enabled OPENGL_API (which makes
+        // SRGB texture sources work), then we don't want to enable output
+        // as SRGB for any stage, because it over-corrects the gamma.
+        // Even so, it leaves the text too spindly.
+        let early_stage_srgb = cfg!(target_os = "macos");
+        let last_stage_srgb = cfg!(target_os = "macos") || cfg!(windows);
+
         loop {
             let glyph_cache =
                 RefCell::new(GlyphCache::new_gl(&context, fonts, atlas_size, metrics)?);
             let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
-                    let background_prog = Self::compile_prog(
-                        &context,
-                        cfg!(target_os = "macos"),
-                        Self::background_shader,
-                    )?;
+                    let background_prog =
+                        Self::compile_prog(&context, early_stage_srgb, Self::background_shader)?;
                     let line_prog =
-                        Self::compile_prog(&context, cfg!(target_os = "macos"), Self::line_shader)?;
+                        Self::compile_prog(&context, early_stage_srgb, Self::line_shader)?;
 
                     // Last prog outputs srgb for gamma correction
-                    let glyph_prog = Self::compile_prog(&context, true, Self::glyph_shader)?;
+                    let glyph_prog =
+                        Self::compile_prog(&context, last_stage_srgb, Self::glyph_shader)?;
 
                     let (glyph_vertex_buffer, glyph_index_buffer, quads) = Self::compute_vertices(
                         config,

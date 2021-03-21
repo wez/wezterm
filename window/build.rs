@@ -22,6 +22,7 @@ fn main() {
             "EGL_KHR_platform_android",
             "EGL_KHR_platform_wayland",
             "EGL_KHR_platform_gbm",
+            "EGL_KHR_gl_colorspace",
             "EGL_EXT_platform_base",
             "EGL_EXT_platform_x11",
             "EGL_MESA_platform_gbm",

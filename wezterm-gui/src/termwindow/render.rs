@@ -1243,8 +1243,5 @@ fn rgbcolor_to_window_color(color: RgbColor) -> LinearRgba {
 }
 
 fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> LinearRgba {
-    // Note `RgbColor` is intended to be SRGB, but in practice it appears
-    // as though it is linear RGB, hence this is using with_rgba rather than
-    // with_srgba.
-    LinearRgba::with_rgba(color.red, color.green, color.blue, alpha)
+    LinearRgba::with_srgba(color.red, color.green, color.blue, alpha)
 }
