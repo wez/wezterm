@@ -38,17 +38,8 @@ impl RenderState {
         pixel_width: usize,
         pixel_height: usize,
     ) -> anyhow::Result<Self> {
-        // Ugh, this is more complex than it should be.
-        // On macOS, we get SRGB support in both texture source and framebuffer
-        // output, so we always enable SRGB output there.
-        // On other platforms, we only enable SRGB for the final stage, when we
-        // target the underlying framebuffer.
-        // On Linux with EGL, if we've enabled OPENGL_API (which makes
-        // SRGB texture sources work), then we don't want to enable output
-        // as SRGB for any stage, because it over-corrects the gamma.
-        // Even so, it leaves the text too spindly.
-        let early_stage_srgb = cfg!(target_os = "macos");
-        let last_stage_srgb = cfg!(target_os = "macos") || cfg!(windows);
+        let early_stage_srgb = false;
+        let last_stage_srgb = false;
 
         loop {
             let glyph_cache =

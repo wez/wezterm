@@ -61,6 +61,14 @@ vec4 apply_hsv(vec4 c, vec3 transform)
   return vec4(hsv2rgb(hsv).rgb, c.a);
 }
 
+vec4 from_linear(vec4 v) {
+  return pow(v, vec4(2.2));
+}
+
+vec4 to_linear(vec4 v) {
+  return pow(v, vec4(1.0/2.2));
+}
+
 // Given glyph, the greyscale rgba value computed by freetype,
 // and color, the desired color, compute the resultant pixel
 // value for rendering over the top of the given background
@@ -80,30 +88,22 @@ vec4 apply_hsv(vec4 c, vec3 transform)
 //
 // See also: https://www.puredevsoftware.com/blog/2019/01/22/sub-pixel-gamma-correct-font-rendering/
 vec4 colorize(vec4 glyph, vec4 color, vec4 background) {
+  // Why do we linearize the glyph here?
+  // I don't think that this is needed, but! without it, the
+  // text doesn't render as bold as it used to prior to "fixing"
+  // the textures to be properly srgb input and preventing the
+  // shader from outputting SRGB directly.
+  // The glyph data is populated by the rasterizer and it takes
+  // care to convert RGB to SRGB to match the texture format.
+  // Assuming that GL is respecting the surface's SRGB encoding,
+  // the values we get here should be automatically linearized
+  // by this point, so we shouldn't need to linearize them again.
+  glyph = to_linear(glyph);
+
   float r = glyph.r * color.r + (1.0 - glyph.r) * background.r;
   float g = glyph.g * color.g + (1.0 - glyph.g) * background.g;
   float b = glyph.b * color.b + (1.0 - glyph.b) * background.b;
 
   return vec4(r, g, b, glyph.a);
 //  return vec4(glyph.rgb * color.rgb, glyph.a);
-}
-
-vec4 from_linear(vec4 v) {
-  return pow(v, vec4(2.2));
-}
-
-vec4 to_gamma(vec4 v) {
-  return pow(v, vec4(1.0/2.2));
-}
-
-// For reasons that I haven't been able to figure out, we need
-// to gamma correct the data that we read from the textures that
-// are supplied to OpenGL, otherwise they appear too dark.
-// AFAICT, I've done what I thought were all of the right things
-// (but are perhaps only some of the right things) to tell OpenGL/EGL
-// that everything is already SRGB, so this function should really
-// just be a call to `texture` and not do the gamma conversion.
-vec4 sample_texture(sampler2D s, vec2 coords) {
-  return texture(s, coords);
-  //return to_gamma(texture(s, coords));
 }

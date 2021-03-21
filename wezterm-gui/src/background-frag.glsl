@@ -7,7 +7,7 @@ uniform sampler2D atlas_linear_sampler;
 void main() {
   if (o_has_color == 2.0) {
     // We're the window background image.
-    color = sample_texture(atlas_linear_sampler, o_tex);
+    color = texture(atlas_linear_sampler, o_tex);
     // Apply window_background_image_opacity to the background image
     color.a = o_bg_color.a;
   } else if (o_has_color == 3.0) {

@@ -20,7 +20,7 @@ void main() {
   // Sample the underline glyph texture for this location.
   // Note that the texture is whitespace in the case where this is
   // no underline or strikethrough.
-  vec4 under_color = sample_texture(atlas_nearest_sampler, o_underline);
+  vec4 under_color = texture(atlas_nearest_sampler, o_underline);
   if (under_color.a != 0.0) {
     // if the underline glyph isn't transparent in this position then
     // we take the underline color, otherwise we'll leave the color
@@ -32,7 +32,7 @@ void main() {
   // in this location, we'll use the cursor color instead of the background.
   // The cursor color overrides any underline color we might have picked
   // in the section above.
-  vec4 cursor_outline = sample_texture(atlas_nearest_sampler, o_cursor);
+  vec4 cursor_outline = texture(atlas_nearest_sampler, o_cursor);
   if (cursor_outline.a != 0.0) {
     color = o_cursor_color;
   }
