@@ -54,7 +54,7 @@ fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandl
     let name = descriptor.display_name();
     let family_name = descriptor.family_name();
 
-    let data = std::fs::read(path).ok()?;
+    let data = std::fs::read(&path).ok()?;
     let size = fonts_in_collection(&data).unwrap_or(1);
 
     let mut handle = FontDataHandle::Memory {
@@ -70,7 +70,9 @@ fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandl
         let parsed = crate::parser::ParsedFont::from_locator(&handle).ok()?;
         let names = parsed.names();
         if names.full_name == family_name || names.family.as_ref() == Some(&family_name) {
-            return Some(handle);
+            // Switch to an OnDisk handle so that we don't hold
+            // all of the fallback fonts in memory
+            return Some(FontDataHandle::OnDisk { path, index });
         }
     }
 
