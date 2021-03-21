@@ -2,9 +2,10 @@
 
 use crate::locator::{FontDataHandle, FontLocator};
 use config::FontAttributes;
-use dwrote::{FontStretch, FontStyle, FontWeight};
+use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
 use std::collections::HashSet;
+use ttf_parser::fonts_in_collection;
 use winapi::shared::windef::HFONT;
 use winapi::um::dwrite::*;
 use winapi::um::wingdi::{
@@ -116,6 +117,61 @@ fn load_font(font_attr: &FontAttributes) -> anyhow::Result<FontDataHandle> {
     }
 }
 
+fn attributes_to_descriptor(font_attr: &FontAttributes) -> FontDescriptor {
+    FontDescriptor {
+        family_name: font_attr.family.to_string(),
+        weight: if font_attr.bold {
+            FontWeight::Bold
+        } else {
+            FontWeight::Regular
+        },
+        stretch: FontStretch::Normal,
+        style: if font_attr.italic {
+            FontStyle::Italic
+        } else {
+            FontStyle::Normal
+        },
+    }
+}
+
+fn handle_from_descriptor(
+    collection: &dwrote::FontCollection,
+    descriptor: &FontDescriptor,
+) -> Option<FontDataHandle> {
+    let font = collection.get_font_from_descriptor(&descriptor)?;
+    let face = font.create_font_face();
+    for file in face.get_files() {
+        if let Some(path) = file.get_font_file_path() {
+            let family_name = font.family_name();
+            log::debug!("{} -> {}", family_name, path.display());
+            if let Ok(data) = std::fs::read(&path) {
+                let size = fonts_in_collection(&data).unwrap_or(1);
+
+                let mut handle = FontDataHandle::Memory {
+                    data: Cow::Owned(data),
+                    name: family_name.clone(),
+                    index: 0,
+                };
+
+                for index in 0..size {
+                    if let FontDataHandle::Memory { index: idx, .. } = &mut handle {
+                        *idx = index;
+                    }
+                    let parsed = crate::parser::ParsedFont::from_locator(&handle).ok()?;
+                    let names = parsed.names();
+                    if names.full_name == family_name || names.family.as_ref() == Some(&family_name)
+                    {
+                        // Switch to an OnDisk handle so that we don't hold
+                        // all of the fallback fonts in memory
+                        return Some(FontDataHandle::OnDisk { path, index });
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 impl FontLocator for GdiFontLocator {
     fn load_fonts(
         &self,
@@ -123,7 +179,22 @@ impl FontLocator for GdiFontLocator {
         loaded: &mut HashSet<FontAttributes>,
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut fonts = Vec::new();
+        let collection = dwrote::FontCollection::system();
+
         for font_attr in fonts_selection {
+            let descriptor = attributes_to_descriptor(font_attr);
+
+            if let Some(handle) = handle_from_descriptor(&collection, &descriptor) {
+                if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
+                    if crate::parser::font_info_matches(font_attr, parsed.names()) {
+                        log::debug!("Got {:?} from dwrote", handle);
+                        fonts.push(handle);
+                        loaded.insert(font_attr.clone());
+                        continue;
+                    }
+                }
+            }
+
             if let Ok(handle) = load_font(font_attr) {
                 if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
                     if crate::parser::font_info_matches(font_attr, parsed.names()) {
@@ -193,6 +264,7 @@ impl FontLocator for GdiFontLocator {
                         font.family_name(),
                         font.face_name()
                     );
+
                     let attr = FontAttributes {
                         bold: match font.weight() {
                             FontWeight::Thin
@@ -216,9 +288,9 @@ impl FontLocator for GdiFontLocator {
                     if !resolved.contains(&attr) {
                         resolved.insert(attr.clone());
 
-                        match load_font(&attr) {
-                            Ok(handle) => handles.push(handle),
-                            Err(err) => log::error!("Failed to load {:?} {:?}", attr, err),
+                        let descriptor = attributes_to_descriptor(&attr);
+                        if let Some(handle) = handle_from_descriptor(&collection, &descriptor) {
+                            handles.push(handle);
                         }
                     }
                 }
