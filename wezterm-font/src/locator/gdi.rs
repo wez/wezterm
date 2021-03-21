@@ -4,7 +4,6 @@ use crate::locator::{FontDataHandle, FontLocator};
 use config::FontAttributes;
 use dwrote::{FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
-use std::borrow::Cow;
 use std::collections::HashSet;
 use winapi::shared::windef::HFONT;
 use winapi::um::dwrite::*;
