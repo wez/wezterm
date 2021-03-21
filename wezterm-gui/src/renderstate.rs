@@ -286,7 +286,7 @@ impl RenderState {
         quads.scroll_thumb = define_quad(0.0, 0.0, 0.0, 0.0) as usize;
 
         Ok((
-            VertexBuffer::dynamic(context, &verts)?,
+            VertexBuffer::immutable(context, &verts)?,
             IndexBuffer::new(
                 context,
                 glium::index::PrimitiveType::TrianglesList,

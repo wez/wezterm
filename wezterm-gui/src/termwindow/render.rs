@@ -167,7 +167,10 @@ impl super::TermWindow {
 
         let gl_state = self.render_state.as_ref().unwrap();
         let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
+
+        let start = Instant::now();
         let mut quads = gl_state.quads.map(&mut vb);
+        log::trace!("quad map elapsed {:?}", start.elapsed());
 
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
         let foreground = rgbcolor_to_window_color(palette.foreground);
@@ -298,6 +301,10 @@ impl super::TermWindow {
                 &mut quads,
             )?;
         }
+
+        let start = Instant::now();
+        drop(quads);
+        log::trace!("quad drop elapsed {:?}", start.elapsed());
 
         Ok(())
     }
