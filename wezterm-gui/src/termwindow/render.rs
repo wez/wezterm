@@ -43,6 +43,11 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub cursor_border_color: Color,
     pub foreground: Color,
     pub is_active: bool,
+
+    pub selection_fg: Color,
+    pub selection_bg: Color,
+    pub cursor_fg: Color,
+    pub cursor_bg: Color,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -55,6 +60,10 @@ pub struct ComputeCellFgBgParams<'a> {
     pub palette: &'a ColorPalette,
     pub is_active_pane: bool,
     pub config: &'a ConfigHandle,
+    pub selection_fg: Color,
+    pub selection_bg: Color,
+    pub cursor_fg: Color,
+    pub cursor_bg: Color,
 }
 
 pub struct ComputeCellFgBgResult {
@@ -194,6 +203,10 @@ impl super::TermWindow {
                     foreground,
                     pos,
                     is_active: true,
+                    selection_fg: Color(0),
+                    selection_bg: Color(0),
+                    cursor_fg: Color(0),
+                    cursor_bg: Color(0),
                 },
                 &mut quads,
             )?;
@@ -277,11 +290,15 @@ impl super::TermWindow {
 
         let selrange = self.selection(pos.pane.pane_id()).range.clone();
 
+        let start = Instant::now();
+        let selection_fg = rgbcolor_to_window_color(palette.selection_fg);
+        let selection_bg = rgbcolor_to_window_color(palette.selection_bg);
+        let cursor_fg = rgbcolor_to_window_color(palette.cursor_fg);
+        let cursor_bg = rgbcolor_to_window_color(palette.cursor_bg);
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
-            let selrange = selrange
-                .map(|sel| sel.cols_for_row(stable_row))
-                .unwrap_or(0..0);
+
+            let selrange = selrange.map_or(0..0, |sel| sel.cols_for_row(stable_row));
 
             self.render_screen_line_opengl(
                 RenderScreenLineOpenGLParams {
@@ -297,10 +314,15 @@ impl super::TermWindow {
                     foreground,
                     pos,
                     is_active: pos.is_active,
+                    selection_fg,
+                    selection_bg,
+                    cursor_fg,
+                    cursor_bg,
                 },
                 &mut quads,
             )?;
         }
+        log::trace!("lines elapsed {:?}", start.elapsed());
 
         let start = Instant::now();
         drop(quads);
@@ -638,14 +660,28 @@ impl super::TermWindow {
 
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = params.line.cluster();
-        let mut last_cell_idx = None;
+
+        let mut last_cell_idx = 0;
+
         for cluster in &cell_clusters {
             let attrs = &cluster.attrs;
+
             let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
                 (Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
                 _ => false,
             };
             let style = self.fonts.match_style(params.config, attrs);
+            // underline and strikethrough
+            let underline_tex_rect = gl_state
+                .glyph_cache
+                .borrow_mut()
+                .cached_line_sprite(
+                    is_highlited_hyperlink,
+                    attrs.strikethrough(),
+                    attrs.underline(),
+                    attrs.overline(),
+                )?
+                .texture_coords();
 
             let bg_is_default = attrs.background == ColorAttribute::Default;
             let bg_color = params.palette.resolve_bg(attrs.background);
@@ -764,18 +800,6 @@ impl super::TermWindow {
                     - (glyph.y_offset + glyph.bearing_y))
                     .get() as f32;
 
-                // underline and strikethrough
-                let underline_tex_rect = gl_state
-                    .glyph_cache
-                    .borrow_mut()
-                    .cached_line_sprite(
-                        is_highlited_hyperlink,
-                        attrs.strikethrough(),
-                        attrs.underline(),
-                        attrs.overline(),
-                    )?
-                    .texture_coords();
-
                 // Iterate each cell that comprises this glyph.  There is usually
                 // a single cell per glyph but combining characters, ligatures
                 // and emoji can be 2 or more cells wide.
@@ -789,7 +813,7 @@ impl super::TermWindow {
                         break;
                     }
 
-                    last_cell_idx.replace(cell_idx);
+                    last_cell_idx = cell_idx;
 
                     let ComputeCellFgBgResult {
                         fg_color: glyph_color,
@@ -805,6 +829,10 @@ impl super::TermWindow {
                         palette: params.palette,
                         is_active_pane: params.pos.is_active,
                         config: params.config,
+                        selection_fg: params.selection_fg,
+                        selection_bg: params.selection_bg,
+                        cursor_fg: params.cursor_fg,
+                        cursor_bg: params.cursor_bg,
                     });
 
                     if let Some(image) = attrs.image() {
@@ -908,7 +936,7 @@ impl super::TermWindow {
             },
         );
 
-        for cell_idx in last_cell_idx.unwrap_or(0) + 1..num_cols {
+        for cell_idx in last_cell_idx + 1..num_cols {
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
@@ -927,6 +955,10 @@ impl super::TermWindow {
                 palette: params.palette,
                 is_active_pane: params.pos.is_active,
                 config: params.config,
+                selection_fg: params.selection_fg,
+                selection_bg: params.selection_bg,
+                cursor_fg: params.cursor_fg,
+                cursor_bg: params.cursor_bg,
             });
 
             let mut quad =
@@ -1135,16 +1167,12 @@ impl super::TermWindow {
             visibility,
         ) {
             // Selected text overrides colors
-            (true, _, _, CursorVisibility::Hidden) => (
-                rgbcolor_to_window_color(params.palette.selection_fg),
-                rgbcolor_to_window_color(params.palette.selection_bg),
-            ),
+            (true, _, _, CursorVisibility::Hidden) => (params.selection_fg, params.selection_bg),
             // Cursor cell overrides colors
             (_, true, CursorShape::BlinkingBlock, CursorVisibility::Visible)
-            | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => (
-                rgbcolor_to_window_color(params.palette.cursor_fg),
-                rgbcolor_to_window_color(params.palette.cursor_bg),
-            ),
+            | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => {
+                (params.cursor_fg, params.cursor_bg)
+            }
             // Normally, render the cell as configured (or if the window is unfocused)
             _ => (params.fg_color, params.bg_color),
         };
