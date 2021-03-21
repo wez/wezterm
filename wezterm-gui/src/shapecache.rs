@@ -194,7 +194,7 @@ where
 /// It's a bit involved to make this work; more details can be
 /// found in the excellent guide here:
 /// <https://github.com/sunshowers/borrow-complex-key-example/blob/master/src/lib.rs>
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BorrowedShapeCacheKey<'a> {
     pub style: &'a TextStyle,
     pub text: &'a str,

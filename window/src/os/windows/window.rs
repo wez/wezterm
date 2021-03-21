@@ -457,8 +457,9 @@ impl WindowOpsMut for WindowInner {
     }
 
     fn invalidate(&mut self) {
+        log::trace!("WindowOpsMut::invalidate");
         unsafe {
-            InvalidateRect(self.hwnd.0, null(), 1);
+            InvalidateRect(self.hwnd.0, null(), 0);
         }
     }
 
@@ -609,10 +610,12 @@ impl WindowOps for Window {
     }
 
     fn invalidate(&self) -> Future<()> {
-        Connection::with_window_inner(self.0, |inner| {
-            inner.invalidate();
-            Ok(())
-        })
+        let hwnd = self.0 .0;
+        log::trace!("WindowOps::invalidate calling InvalidateRect");
+        unsafe {
+            InvalidateRect(hwnd, null(), 0);
+        }
+        Future::ok(())
     }
 
     fn set_title(&self, title: &str) -> Future<()> {
@@ -1909,6 +1912,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         | WM_RBUTTONDOWN | WM_RBUTTONUP | WM_MBUTTONDOWN | WM_MBUTTONUP => {
             mouse_button(hwnd, msg, wparam, lparam)
         }
+        WM_ERASEBKGND => Some(1),
         WM_CLOSE => {
             if let Some(inner) = rc_from_hwnd(hwnd) {
                 let inner = inner.borrow();

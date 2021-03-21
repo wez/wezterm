@@ -70,7 +70,7 @@ impl super::TermWindow {
         *self.has_animation.borrow_mut() = None;
 
         self.check_for_config_reload();
-        let start = std::time::Instant::now();
+        let start = Instant::now();
 
         {
             let background_alpha = (self.config.window_background_opacity * 255.0) as u8;
@@ -93,6 +93,7 @@ impl super::TermWindow {
                         let result = if pass == 0 {
                             // Let's try clearing out the atlas and trying again
                             // self.clear_texture_atlas()
+                            log::trace!("recreate_texture_atlas");
                             self.recreate_texture_atlas(Some(current_size))
                         } else {
                             log::trace!("grow texture atlas to {}", size);
@@ -114,9 +115,10 @@ impl super::TermWindow {
                 }
             }
         }
+        log::debug!("paint_impl before call_draw elapsed={:?}", start.elapsed());
 
         self.call_draw(frame).ok();
-        log::debug!("paint_pane_opengl elapsed={:?}", start.elapsed());
+        log::debug!("paint_impl elapsed={:?}", start.elapsed());
         metrics::histogram!("gui.paint.opengl", start.elapsed());
         self.update_title_post_status();
     }
@@ -885,6 +887,15 @@ impl super::TermWindow {
         // the right pane with its prior contents instead of showing the
         // cleared lines from the shell in the main screen.
 
+        let bg_color = rgbcolor_alpha_to_window_color(
+            params.palette.resolve_bg(ColorAttribute::Default),
+            if window_is_transparent {
+                0x00
+            } else {
+                (params.config.text_background_opacity * 255.0) as u8
+            },
+        );
+
         for cell_idx in last_cell_idx.unwrap_or(0) + 1..num_cols {
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
@@ -900,14 +911,7 @@ impl super::TermWindow {
                 cursor: params.cursor,
                 selection: &params.selection,
                 fg_color: params.foreground,
-                bg_color: rgbcolor_alpha_to_window_color(
-                    params.palette.resolve_bg(ColorAttribute::Default),
-                    if window_is_transparent {
-                        0x00
-                    } else {
-                        (params.config.text_background_opacity * 255.0) as u8
-                    },
-                ),
+                bg_color,
                 palette: params.palette,
                 is_active_pane: params.pos.is_active,
                 config: params.config,
@@ -1177,6 +1181,7 @@ impl super::TermWindow {
     }
 
     pub fn clear_texture_atlas(&mut self) -> anyhow::Result<()> {
+        log::trace!("clear_texture_atlas");
         self.shape_cache.borrow_mut().clear();
         if let Some(render_state) = self.render_state.as_mut() {
             render_state.clear_texture_atlas(&self.render_metrics)?;
