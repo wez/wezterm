@@ -2,8 +2,8 @@
 // this warning to its use
 #![allow(clippy::unneeded_field_pattern)]
 
+use crate::renderstate::TripleVertexBuffer;
 use ::window::bitmaps::TextureRect;
-use ::window::glium::VertexBuffer;
 use ::window::*;
 use std::cell::RefMut;
 
@@ -113,8 +113,12 @@ impl<'a> MappedQuads<'a> {
 }
 
 impl Quads {
-    pub fn map<'a>(&self, vb: &'a mut RefMut<VertexBuffer<Vertex>>) -> MappedQuads<'a> {
-        let mapping = vb.slice_mut(..).expect("to map vertex buffer").map();
+    pub fn map<'a>(&self, tb: &'a mut RefMut<TripleVertexBuffer>) -> MappedQuads<'a> {
+        let index = tb.index;
+        let mapping = tb.bufs[index]
+            .slice_mut(..)
+            .expect("to map vertex buffer")
+            .map();
         MappedQuads {
             mapping,
             quads: self.clone(),

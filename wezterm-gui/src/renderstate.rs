@@ -11,6 +11,11 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
 
+pub struct TripleVertexBuffer {
+    pub index: usize,
+    pub bufs: [VertexBuffer<Vertex>; 3],
+}
+
 pub struct RenderState {
     pub context: Rc<GliumContext>,
     pub glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
@@ -18,7 +23,7 @@ pub struct RenderState {
     pub background_prog: glium::Program,
     pub line_prog: glium::Program,
     pub glyph_prog: glium::Program,
-    pub glyph_vertex_buffer: RefCell<VertexBuffer<Vertex>>,
+    pub glyph_vertex_buffer: RefCell<TripleVertexBuffer>,
     pub glyph_index_buffer: IndexBuffer<u32>,
     pub quads: Quads,
 }
@@ -196,7 +201,7 @@ impl RenderState {
         metrics: &RenderMetrics,
         width: f32,
         height: f32,
-    ) -> anyhow::Result<(VertexBuffer<Vertex>, IndexBuffer<u32>, Quads)> {
+    ) -> anyhow::Result<(TripleVertexBuffer, IndexBuffer<u32>, Quads)> {
         let cell_width = metrics.cell_size.width as f32;
         let cell_height = metrics.cell_size.height as f32;
         let mut verts = Vec::new();
@@ -285,8 +290,17 @@ impl RenderState {
         // And a quad for the scrollbar thumb
         quads.scroll_thumb = define_quad(0.0, 0.0, 0.0, 0.0) as usize;
 
+        let buffer = TripleVertexBuffer {
+            index: 0,
+            bufs: [
+                VertexBuffer::persistent(context, &verts)?,
+                VertexBuffer::persistent(context, &verts)?,
+                VertexBuffer::persistent(context, &verts)?,
+            ],
+        };
+
         Ok((
-            VertexBuffer::immutable(context, &verts)?,
+            buffer,
             IndexBuffer::new(
                 context,
                 glium::index::PrimitiveType::TrianglesList,

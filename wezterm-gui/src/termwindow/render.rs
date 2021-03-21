@@ -311,7 +311,7 @@ impl super::TermWindow {
 
     pub fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = gl_state.glyph_vertex_buffer.borrow_mut();
+        let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
 
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
         let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
@@ -362,7 +362,7 @@ impl super::TermWindow {
 
         // Pass 1: Draw backgrounds
         frame.draw(
-            &*vb,
+            &vb.bufs[vb.index],
             &gl_state.glyph_index_buffer,
             &gl_state.background_prog,
             &uniform! {
@@ -375,7 +375,7 @@ impl super::TermWindow {
 
         // Pass 2: strikethrough and underline
         frame.draw(
-            &*vb,
+            &vb.bufs[vb.index],
             &gl_state.glyph_index_buffer,
             &gl_state.line_prog,
             &uniform! {
@@ -429,7 +429,7 @@ impl super::TermWindow {
 
         // Pass 3: Draw glyphs
         frame.draw(
-            &*vb,
+            &vb.bufs[vb.index],
             &gl_state.glyph_index_buffer,
             &gl_state.glyph_prog,
             &uniform! {
@@ -440,6 +440,11 @@ impl super::TermWindow {
             },
             &blend_but_set_alpha_to_one,
         )?;
+
+        vb.index += 1;
+        if vb.index >= 3 {
+            vb.index = 0;
+        }
 
         Ok(())
     }
