@@ -4,6 +4,7 @@ use crate::locator::{FontDataHandle, FontLocator};
 use config::FontAttributes;
 use dwrote::{FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
+use std::borrow::Cow;
 use std::collections::HashSet;
 use winapi::shared::windef::HFONT;
 use winapi::um::dwrite::*;
@@ -43,7 +44,7 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
             let index =
                 crate::parser::resolve_font_from_ttc_data(&attr, &data)?.unwrap_or(0) as u32;
             Ok(FontDataHandle::Memory {
-                data,
+                data: Cow::Owned(data),
                 index,
                 name: attr.family.clone(),
             })
@@ -56,7 +57,7 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
                     let mut data = vec![0u8; size as usize];
                     GetFontData(hdc, 0, 0, data.as_mut_ptr() as *mut _, size);
                     Ok(FontDataHandle::Memory {
-                        data,
+                        data: Cow::Owned(data),
                         index: 0,
                         name: attr.family.clone(),
                     })

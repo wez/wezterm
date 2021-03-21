@@ -329,7 +329,11 @@ impl Library {
         // face because freetype doesn't use O_CLOEXEC and keeps the fd
         // floating around for a long time!
         let data = std::fs::read(path)?;
-        log::trace!("Loading {} for freetype!", path.display());
+        log::trace!(
+            "Loading {} ({} bytes) for freetype!",
+            path.display(),
+            data.len()
+        );
 
         let res = unsafe {
             FT_New_Memory_Face(

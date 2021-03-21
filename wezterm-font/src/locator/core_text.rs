@@ -9,6 +9,7 @@ use core_foundation::number::CFNumber;
 use core_foundation::string::CFString;
 use core_text::font::*;
 use core_text::font_descriptor::*;
+use std::borrow::Cow;
 use std::collections::HashSet;
 use ttf_parser::fonts_in_collection;
 
@@ -58,7 +59,7 @@ fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandl
     let size = fonts_in_collection(&data).unwrap_or(1);
 
     let mut handle = FontDataHandle::Memory {
-        data,
+        data: Cow::Owned(data),
         name,
         index: 0,
     };

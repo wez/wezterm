@@ -19,10 +19,9 @@ pub enum FontDataHandle {
         path: PathBuf,
         index: u32,
     },
-    #[allow(dead_code)]
     Memory {
         name: String,
-        data: Vec<u8>,
+        data: std::borrow::Cow<'static, [u8]>,
         index: u32,
     },
 }

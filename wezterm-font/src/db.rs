@@ -5,6 +5,7 @@ use crate::FontDataHandle;
 use anyhow::{anyhow, Context};
 use config::{Config, FontAttributes};
 use rangeset::RangeSet;
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -22,17 +23,16 @@ impl Entry {
     /// the set of codepoints for which the font has coverage.
     fn compute_coverage(&self) -> anyhow::Result<RangeSet<u32>> {
         use ttf_parser::Face;
-        let on_disk_data;
         let (data, index) = match &self.handle {
-            FontDataHandle::Memory { data, index, .. } => (data, *index),
+            FontDataHandle::Memory { data, index, .. } => (data.clone(), *index),
             FontDataHandle::OnDisk { path, index } => {
-                on_disk_data = std::fs::read(path)
+                let data = std::fs::read(path)
                     .with_context(|| anyhow!("reading font data from {}", path.display()))?;
-                (&on_disk_data, *index)
+                (Cow::Owned(data), *index)
             }
         };
 
-        let face = Face::from_slice(data, index)?;
+        let face = Face::from_slice(&data, index)?;
         let mut coverage = RangeSet::new();
 
         for table in face.character_mapping_subtables() {

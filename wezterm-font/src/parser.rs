@@ -2,6 +2,7 @@ use crate::locator::FontDataHandle;
 use crate::shaper::GlyphInfo;
 use anyhow::anyhow;
 use config::FontAttributes;
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use ttf_parser::{fonts_in_collection, Face, Name, PlatformId};
 
@@ -338,7 +339,7 @@ pub(crate) fn load_built_in_fonts(
             names,
             PathBuf::from(name),
             FontDataHandle::Memory {
-                data: data.to_vec(),
+                data: Cow::Borrowed(data),
                 index: 0,
                 name: name.to_string(),
             },
