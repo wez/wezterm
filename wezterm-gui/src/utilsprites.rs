@@ -1,7 +1,8 @@
 use super::glyphcache::GlyphCache;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, Texture2d};
-use ::window::*;
+use ::window::color::SrgbaPixel;
+use ::window::{Point, Rect, Size};
 use anyhow::Context;
 use config::configuration;
 use std::rc::Rc;
@@ -68,8 +69,8 @@ impl<T: Texture2d> UtilSprites<T> {
             metrics.cell_size.height as usize,
         );
 
-        let black = ::window::color::Color::rgba(0, 0, 0, 0);
-        let white = ::window::color::Color::rgb(0xff, 0xff, 0xff);
+        let black = SrgbaPixel::rgba(0, 0, 0, 0);
+        let white = SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff);
 
         let cell_rect = Rect::new(Point::new(0, 0), metrics.cell_size);
 
@@ -92,7 +93,6 @@ impl<T: Texture2d> UtilSprites<T> {
                     cell_rect.origin.y + i,
                 ),
                 white,
-                Operator::Source,
             );
             // Bottom border
             buffer.draw_line(
@@ -105,7 +105,6 @@ impl<T: Texture2d> UtilSprites<T> {
                     cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
                 ),
                 white,
-                Operator::Source,
             );
         }
         for i in 0..border_width {
@@ -117,7 +116,6 @@ impl<T: Texture2d> UtilSprites<T> {
                     cell_rect.origin.y + metrics.cell_size.height,
                 ),
                 white,
-                Operator::Source,
             );
             // Right border
             buffer.draw_line(
@@ -130,7 +128,6 @@ impl<T: Texture2d> UtilSprites<T> {
                     cell_rect.origin.y + metrics.cell_size.height,
                 ),
                 white,
-                Operator::Source,
             );
         }
         let cursor_box = glyph_cache.atlas.allocate(&buffer)?;
@@ -145,7 +142,6 @@ impl<T: Texture2d> UtilSprites<T> {
                     cell_rect.origin.y + metrics.cell_size.height,
                 ),
                 white,
-                Operator::Source,
             );
         }
         let cursor_i_beam = glyph_cache.atlas.allocate(&buffer)?;
@@ -163,7 +159,6 @@ impl<T: Texture2d> UtilSprites<T> {
                     cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
                 ),
                 white,
-                Operator::Source,
             );
         }
         let cursor_underline = glyph_cache.atlas.allocate(&buffer)?;

@@ -4654,7 +4654,6 @@ dependencies = [
  "metrics",
  "mio",
  "objc",
- "palette",
  "pretty_env_logger",
  "promise",
  "resize",

@@ -2,10 +2,12 @@ use super::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::{Atlas, Sprite};
 #[cfg(test)]
 use ::window::bitmaps::ImageTexture;
-use ::window::bitmaps::{Image, Texture2d};
+use ::window::bitmaps::{BitmapImage, Image, Texture2d};
+use ::window::color::{LinearRgba, SrgbaPixel};
+use ::window::glium;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
-use ::window::*;
+use ::window::{Point, Rect};
 use anyhow::{anyhow, Context};
 use config::{configuration, AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
@@ -605,8 +607,8 @@ impl<T: Texture2d> GlyphCache<T> {
             self.metrics.cell_size.width as usize,
             self.metrics.cell_size.height as usize,
         );
-        let black = ::window::color::Color::rgba(0, 0, 0, 0);
-        let white = ::window::color::Color::rgb(0xff, 0xff, 0xff);
+        let black = SrgbaPixel::rgba(0, 0, 0, 0);
+        let white = SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff);
 
         let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
 
@@ -627,7 +629,6 @@ impl<T: Texture2d> GlyphCache<T> {
                     cell_rect.origin.y + y as isize,
                 ),
                 white,
-                Operator::Source,
             );
         };
 
@@ -639,7 +640,6 @@ impl<T: Texture2d> GlyphCache<T> {
                     cell_rect.origin.y + self.metrics.cell_size.height,
                 ),
                 white,
-                Operator::Source,
             );
         };
 
@@ -659,7 +659,6 @@ impl<T: Texture2d> GlyphCache<T> {
                         cell_rect.origin.y + y as isize,
                     ),
                     white,
-                    Operator::Source,
                 );
             }
         };
@@ -699,14 +698,14 @@ impl<T: Texture2d> GlyphCache<T> {
             }
             BlockKey::Full(alpha) => {
                 let alpha = match alpha {
-                    BlockAlpha::Full => 0xff,
-                    BlockAlpha::Dark => (0.75 * 255.) as u8,
-                    BlockAlpha::Medium => (0.5 * 255.) as u8,
-                    BlockAlpha::Light => (0.25 * 255.) as u8,
+                    BlockAlpha::Full => 1.0,
+                    BlockAlpha::Dark => 0.75,
+                    BlockAlpha::Medium => 0.5,
+                    BlockAlpha::Light => 0.25,
                 };
-                let fill = ::window::color::Color::with_linear_rgba_u8(alpha, alpha, alpha, alpha);
+                let fill = LinearRgba::with_components(alpha, alpha, alpha, alpha);
 
-                buffer.clear_rect(cell_rect, fill);
+                buffer.clear_rect(cell_rect, fill.srgba_pixel());
             }
             BlockKey::Quadrants(quads) => {
                 let y_half = self.metrics.cell_size.height as f32 / 2.;
@@ -750,8 +749,8 @@ impl<T: Texture2d> GlyphCache<T> {
             self.metrics.cell_size.width as usize,
             self.metrics.cell_size.height as usize,
         );
-        let black = ::window::color::Color::rgba(0, 0, 0, 0);
-        let white = ::window::color::Color::rgb(0xff, 0xff, 0xff);
+        let black = SrgbaPixel::rgba(0, 0, 0, 0);
+        let white = SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff);
 
         let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
 
@@ -767,7 +766,6 @@ impl<T: Texture2d> GlyphCache<T> {
                         cell_rect.origin.y + self.metrics.descender_row + row,
                     ),
                     white,
-                    Operator::Source,
                 );
             }
         };
@@ -785,7 +783,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 let range =
                     buffer.horizontal_pixel_range_mut(0, self.metrics.cell_size.width as usize, y);
                 for c in range.iter_mut() {
-                    *c = color.0;
+                    *c = color.as_srgba32();
                     count -= 1;
                     if count == 0 {
                         color = if color == white { black } else { white };
@@ -807,7 +805,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 let range =
                     buffer.horizontal_pixel_range_mut(0, self.metrics.cell_size.width as usize, y);
                 for c in range.iter_mut() {
-                    *c = color.0;
+                    *c = color.as_srgba32();
                     count -= 1;
                     if count == 0 {
                         color = if color == white { black } else { white };
@@ -832,9 +830,9 @@ impl<T: Texture2d> GlyphCache<T> {
             fn add(x: usize, y: usize, val: u8, max_y: usize, buffer: &mut Image) {
                 let y = y.min(max_y);
                 let pixel = buffer.pixel_mut(x, y);
-                let (current, _, _, _) = Color(*pixel).as_rgba();
+                let (current, _, _, _) = SrgbaPixel::with_srgba_u32(*pixel).as_rgba();
                 let value = current.saturating_add(val);
-                *pixel = Color::rgb(value, value, value).0;
+                *pixel = SrgbaPixel::rgba(value, value, value, 0xff).as_srgba32();
             }
 
             for x in 0..self.metrics.cell_size.width as usize {
@@ -864,7 +862,6 @@ impl<T: Texture2d> GlyphCache<T> {
                         cell_rect.origin.y + first_line + row,
                     ),
                     white,
-                    Operator::Source,
                 );
                 buffer.draw_line(
                     Point::new(
@@ -876,7 +873,6 @@ impl<T: Texture2d> GlyphCache<T> {
                         cell_rect.origin.y + self.metrics.descender_plus_two + row,
                     ),
                     white,
-                    Operator::Source,
                 );
             }
         };
@@ -893,7 +889,6 @@ impl<T: Texture2d> GlyphCache<T> {
                         cell_rect.origin.y + self.metrics.strike_row + row,
                     ),
                     white,
-                    Operator::Source,
                 );
             }
         };
@@ -907,7 +902,6 @@ impl<T: Texture2d> GlyphCache<T> {
                         cell_rect.origin.y + row,
                     ),
                     white,
-                    Operator::Source,
                 );
             }
         };

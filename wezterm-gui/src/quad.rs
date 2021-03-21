@@ -4,7 +4,8 @@
 
 use crate::renderstate::TripleVertexBuffer;
 use ::window::bitmaps::TextureRect;
-use ::window::*;
+use ::window::color::LinearRgba;
+use ::window::glium::buffer::Mapping;
 use std::cell::RefMut;
 
 /// Each cell is composed of two triangles built from 4 vertices.
@@ -75,7 +76,7 @@ pub struct Quads {
 }
 
 pub struct MappedQuads<'a> {
-    mapping: glium::buffer::Mapping<'a, [Vertex]>,
+    mapping: Mapping<'a, [Vertex]>,
     quads: Quads,
 }
 
@@ -170,24 +171,21 @@ impl<'a> Quad<'a> {
         }
     }
 
-    pub fn set_fg_color(&mut self, color: Color) {
-        let color = color.to_tuple_rgba();
+    pub fn set_fg_color(&mut self, color: LinearRgba) {
         for v in self.vert.iter_mut() {
-            v.fg_color = color;
+            v.fg_color = color.tuple();
         }
     }
 
-    pub fn set_underline_color(&mut self, color: Color) {
-        let color = color.to_tuple_rgba();
+    pub fn set_underline_color(&mut self, color: LinearRgba) {
         for v in self.vert.iter_mut() {
-            v.underline_color = color;
+            v.underline_color = color.tuple();
         }
     }
 
-    pub fn set_bg_color(&mut self, color: Color) {
-        let color = color.to_tuple_rgba();
+    pub fn set_bg_color(&mut self, color: LinearRgba) {
         for v in self.vert.iter_mut() {
-            v.bg_color = color;
+            v.bg_color = color.tuple();
         }
     }
 
@@ -206,10 +204,9 @@ impl<'a> Quad<'a> {
         self.vert[V_BOT_RIGHT].cursor = (coords.max_x(), coords.max_y());
     }
 
-    pub fn set_cursor_color(&mut self, color: Color) {
-        let color = color.to_tuple_rgba();
+    pub fn set_cursor_color(&mut self, color: LinearRgba) {
         for v in self.vert.iter_mut() {
-            v.cursor_color = color;
+            v.cursor_color = color.tuple();
         }
     }
 

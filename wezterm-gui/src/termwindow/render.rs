@@ -27,7 +27,7 @@ use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::bitmaps::atlas::SpriteSlice;
 use window::bitmaps::Texture2d;
-use window::Color;
+use window::color::LinearRgba;
 
 pub struct RenderScreenLineOpenGLParams<'a> {
     pub line_idx: usize,
@@ -40,14 +40,14 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub config: &'a ConfigHandle,
     pub pos: &'a PositionedPane,
 
-    pub cursor_border_color: Color,
-    pub foreground: Color,
+    pub cursor_border_color: LinearRgba,
+    pub foreground: LinearRgba,
     pub is_active: bool,
 
-    pub selection_fg: Color,
-    pub selection_bg: Color,
-    pub cursor_fg: Color,
-    pub cursor_bg: Color,
+    pub selection_fg: LinearRgba,
+    pub selection_bg: LinearRgba,
+    pub cursor_fg: LinearRgba,
+    pub cursor_bg: LinearRgba,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -55,20 +55,20 @@ pub struct ComputeCellFgBgParams<'a> {
     pub cell_idx: usize,
     pub cursor: &'a StableCursorPosition,
     pub selection: &'a Range<usize>,
-    pub fg_color: Color,
-    pub bg_color: Color,
+    pub fg_color: LinearRgba,
+    pub bg_color: LinearRgba,
     pub palette: &'a ColorPalette,
     pub is_active_pane: bool,
     pub config: &'a ConfigHandle,
-    pub selection_fg: Color,
-    pub selection_bg: Color,
-    pub cursor_fg: Color,
-    pub cursor_bg: Color,
+    pub selection_fg: LinearRgba,
+    pub selection_bg: LinearRgba,
+    pub cursor_fg: LinearRgba,
+    pub cursor_bg: LinearRgba,
 }
 
 pub struct ComputeCellFgBgResult {
-    pub fg_color: Color,
-    pub bg_color: Color,
+    pub fg_color: LinearRgba,
+    pub bg_color: LinearRgba,
     pub cursor_shape: Option<CursorShape>,
 }
 
@@ -86,8 +86,8 @@ impl super::TermWindow {
             let palette = self.palette();
             let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
 
-            let (r, g, b, a) = background.to_tuple_rgba();
-            frame.clear_color_srgb(r, g, b, a);
+            let (r, g, b, a) = background.tuple();
+            frame.clear_color(r, g, b, a);
         }
 
         for pass in 0.. {
@@ -203,10 +203,10 @@ impl super::TermWindow {
                     foreground,
                     pos,
                     is_active: true,
-                    selection_fg: Color(0),
-                    selection_bg: Color(0),
-                    cursor_fg: Color(0),
-                    cursor_bg: Color(0),
+                    selection_fg: LinearRgba::default(),
+                    selection_bg: LinearRgba::default(),
+                    cursor_fg: LinearRgba::default(),
+                    cursor_bg: LinearRgba::default(),
                 },
                 &mut quads,
             )?;
@@ -996,9 +996,9 @@ impl super::TermWindow {
         params: &RenderScreenLineOpenGLParams,
         hsv: Option<config::HsbTransform>,
         cursor_shape: Option<CursorShape>,
-        glyph_color: Color,
-        underline_color: Color,
-        bg_color: Color,
+        glyph_color: LinearRgba,
+        underline_color: LinearRgba,
+        bg_color: LinearRgba,
         white_space: TextureRect,
     ) -> anyhow::Result<()> {
         let sprite = gl_state
@@ -1042,9 +1042,9 @@ impl super::TermWindow {
         params: &RenderScreenLineOpenGLParams,
         hsv: Option<config::HsbTransform>,
         cursor_shape: Option<CursorShape>,
-        glyph_color: Color,
-        underline_color: Color,
-        bg_color: Color,
+        glyph_color: LinearRgba,
+        underline_color: LinearRgba,
+        bg_color: LinearRgba,
         white_space: TextureRect,
     ) -> anyhow::Result<()> {
         let padding = self
@@ -1238,10 +1238,13 @@ impl super::TermWindow {
     }
 }
 
-fn rgbcolor_to_window_color(color: RgbColor) -> Color {
+fn rgbcolor_to_window_color(color: RgbColor) -> LinearRgba {
     rgbcolor_alpha_to_window_color(color, 0xff)
 }
 
-fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> Color {
-    Color::rgba(color.red, color.green, color.blue, alpha)
+fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> LinearRgba {
+    // Note `RgbColor` is intended to be SRGB, but in practice it appears
+    // as though it is linear RGB, hence this is using with_rgba rather than
+    // with_srgba.
+    LinearRgba::with_rgba(color.red, color.green, color.blue, alpha)
 }

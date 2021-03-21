@@ -1,10 +1,8 @@
-use crate::Operator;
-use palette::{Blend, LinSrgb, LinSrgba, Srgb, Srgba};
-
 lazy_static::lazy_static! {
     static ref SRGB_TO_F32_TABLE: [f32;256] = generate_srgb8_to_linear_f32_table();
     static ref F32_TO_U8_TABLE: [u32;104] = generate_linear_f32_to_srgb8_table();
     static ref RGB_TO_SRGB_TABLE: [u8;256] = generate_rgb_to_srgb8_table();
+    static ref RGB_TO_F32_TABLE: [f32;256] = generate_rgb_to_linear_f32_table();
 }
 
 fn generate_rgb_to_srgb8_table() -> [u8; 256] {
@@ -16,11 +14,19 @@ fn generate_rgb_to_srgb8_table() -> [u8; 256] {
     table
 }
 
+fn generate_rgb_to_linear_f32_table() -> [f32; 256] {
+    let mut table = [0.; 256];
+    for (val, entry) in table.iter_mut().enumerate() {
+        *entry = (val as f32) / 255.0;
+    }
+    table
+}
+
 fn generate_srgb8_to_linear_f32_table() -> [f32; 256] {
     let mut table = [0.; 256];
     for (val, entry) in table.iter_mut().enumerate() {
         let c = (val as f32) / 255.0;
-        *entry = if c < 0.04045 {
+        *entry = if c <= 0.04045 {
             c / 12.92
         } else {
             ((c + 0.055) / 1.055).powf(2.4)
@@ -148,171 +154,28 @@ fn linear_f32_to_srgb8_using_table(f: f32) -> u8 {
     ((bias + scale * t) >> 16) as u8
 }
 
-#[cfg(target_arch = "x86_64")]
-#[allow(clippy::unreadable_literal)]
-fn linear_f32_to_srgb8_vec(s: LinSrgba) -> Color {
-    use std::arch::x86_64::*;
-
-    unsafe fn i32_get(m: *const __m128i, idx: isize) -> i32 {
-        let u: *const i32 = m as _;
-        *u.offset(idx)
-    }
-
-    unsafe {
-        let clamp_min_4 = _mm_set1_epi32((127 - 13) << 23);
-        let almost_one_4 = _mm_set1_epi32(0x3f7fffff);
-        let mant_mask_4 = _mm_set1_epi32(0xff);
-        let top_scale_4 = _mm_set1_epi32(0x02000000);
-
-        let f = _mm_set_ps(s.red, s.green, s.blue, s.alpha);
-
-        let clamped = _mm_min_ps(
-            _mm_max_ps(f, _mm_castsi128_ps(clamp_min_4)),
-            _mm_castsi128_ps(almost_one_4),
-        );
-
-        let tabidx = _mm_srli_epi32(_mm_castps_si128(clamped), 20);
-
-        let tabval = _mm_set_epi32(
-            *F32_TO_U8_TABLE.get_unchecked((i32_get(&tabidx, 0) - (127 - 13) * 8) as usize) as i32,
-            *F32_TO_U8_TABLE.get_unchecked((i32_get(&tabidx, 1) - (127 - 13) * 8) as usize) as i32,
-            *F32_TO_U8_TABLE.get_unchecked((i32_get(&tabidx, 2) - (127 - 13) * 8) as usize) as i32,
-            *F32_TO_U8_TABLE.get_unchecked((i32_get(&tabidx, 3) - (127 - 13) * 8) as usize) as i32,
-        );
-
-        let tabmult1 = _mm_srli_epi32(_mm_castps_si128(clamped), 12);
-        let tabmult2 = _mm_and_si128(tabmult1, mant_mask_4);
-        let tabmult3 = _mm_or_si128(tabmult2, top_scale_4);
-        let tabprod = _mm_madd_epi16(tabval, tabmult3);
-        let result = _mm_srli_epi32(tabprod, 16);
-
-        Color::rgba(
-            i32_get(&result, 0) as u8,
-            i32_get(&result, 1) as u8,
-            i32_get(&result, 2) as u8,
-            i32_get(&result, 3) as u8,
-        )
-    }
-}
-
 /// Convert from srgb in u8 0-255 to linear floating point rgb 0-1.0
 fn srgb8_to_linear_f32(val: u8) -> f32 {
     unsafe { *SRGB_TO_F32_TABLE.get_unchecked(val as usize) }
 }
 
-/// A color stored as big endian bgra32
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Color(pub u32);
-
-impl From<LinSrgba> for Color {
-    #[inline]
-    #[allow(clippy::many_single_char_names)]
-    fn from(s: LinSrgba) -> Color {
-        #[cfg(target_arch = "x86_64")]
-        {
-            if is_x86_feature_detected!("sse2") {
-                return linear_f32_to_srgb8_vec(s);
-            }
-        }
-
-        let r = linear_f32_to_srgb8_using_table(s.red);
-        let g = linear_f32_to_srgb8_using_table(s.green);
-        let b = linear_f32_to_srgb8_using_table(s.blue);
-        let a = linear_f32_to_srgb8_using_table(s.alpha);
-        Color::rgba(r, g, b, a)
-    }
+fn rgb_to_linear_f32(val: u8) -> f32 {
+    unsafe { *RGB_TO_F32_TABLE.get_unchecked(val as usize) }
 }
 
-impl From<Srgb> for Color {
-    #[inline]
-    fn from(s: Srgb) -> Color {
-        let b: Srgb<u8> = s.into_format();
-        let b = b.into_components();
-        Color::rgb(b.0, b.1, b.2)
-    }
-}
+/// A pixel holding SRGBA32 data in big endian format
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct SrgbaPixel(u32);
 
-impl From<Srgba> for Color {
-    #[inline]
-    fn from(s: Srgba) -> Color {
-        let b: Srgba<u8> = s.into_format();
-        let b = b.into_components();
-        Color::rgba(b.0, b.1, b.2, b.3)
-    }
-}
-
-impl From<Color> for LinSrgb {
-    #[inline]
-    fn from(c: Color) -> LinSrgb {
-        let c = c.as_rgba();
-        LinSrgb::new(
-            srgb8_to_linear_f32(c.0),
-            srgb8_to_linear_f32(c.1),
-            srgb8_to_linear_f32(c.2),
-        )
-    }
-}
-
-impl From<Color> for LinSrgba {
-    #[inline]
-    fn from(c: Color) -> LinSrgba {
-        let c = c.as_rgba();
-        LinSrgba::new(
-            srgb8_to_linear_f32(c.0),
-            srgb8_to_linear_f32(c.1),
-            srgb8_to_linear_f32(c.2),
-            srgb8_to_linear_f32(c.3),
-        )
-    }
-}
-
-impl From<Color> for Srgb {
-    #[inline]
-    fn from(c: Color) -> Srgb {
-        let c = c.as_rgba();
-        let s = Srgb::<u8>::new(c.0, c.1, c.2);
-        s.into_format()
-    }
-}
-
-impl From<Color> for Srgba {
-    #[inline]
-    fn from(c: Color) -> Srgba {
-        let c = c.as_rgba();
-        let s = Srgba::<u8>::new(c.0, c.1, c.2, c.3);
-        s.into_format()
-    }
-}
-
-impl Color {
-    #[inline]
-    pub fn rgb(red: u8, green: u8, blue: u8) -> Color {
-        Color::rgba(red, green, blue, 0xff)
-    }
-
-    #[inline]
-    pub fn with_alpha(self, alpha: u8) -> Self {
-        let (r, g, b, _) = self.as_rgba();
-        Self::rgba(r, g, b, alpha)
-    }
-
-    #[inline]
-    pub fn rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
+impl SrgbaPixel {
+    /// Create a pixel with the provided sRGBA values in u8 format
+    pub fn rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
         #[allow(clippy::cast_lossless)]
         let word = (blue as u32) << 24 | (green as u32) << 16 | (red as u32) << 8 | alpha as u32;
-        Color(word.to_be())
+        Self(word.to_be())
     }
 
-    #[inline]
-    pub fn with_linear_rgba_u8(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
-        Self::rgba(
-            linear_u8_to_srgb8(red),
-            linear_u8_to_srgb8(green),
-            linear_u8_to_srgb8(blue),
-            linear_u8_to_srgb8(alpha),
-        )
-    }
-
+    /// Returns the unpacked sRGBA components as u8
     #[inline]
     pub fn as_rgba(self) -> (u8, u8, u8, u8) {
         let host = u32::from_be(self.0);
@@ -324,42 +187,67 @@ impl Color {
         )
     }
 
-    #[inline]
-    pub fn to_tuple_rgba(self) -> (f32, f32, f32, f32) {
-        let c: Srgba = self.into();
-        c.into_format().into_components()
+    /// Returns RGBA channels in linear f32 format
+    pub fn to_linear(self) -> LinearRgba {
+        let (r, g, b, a) = self.as_rgba();
+        LinearRgba::with_srgba(r, g, b, a)
     }
 
-    /// Compute the composite of two colors according to the supplied operator.
-    /// self is the src operand, dest is the dest operand.
-    #[inline]
-    pub fn composite(self, dest: Color, operator: Operator) -> Color {
-        match operator {
-            Operator::Over => {
-                let src: LinSrgba = self.into();
-                let dest: LinSrgba = dest.into();
-                src.over(dest).into()
-            }
-            Operator::Source => self,
-            Operator::Multiply => {
-                let src: LinSrgba = self.into();
-                let dest: LinSrgba = dest.into();
-                let result: Color = src.multiply(dest).into();
-                result
-            }
-            Operator::MultiplyThenOver(ref tint) => {
-                // First multiply by the tint color.  This colorizes the glyph.
-                let src: LinSrgba = self.into();
-                let tint: LinSrgba = (*tint).into();
-                let mut tinted = src.multiply(tint);
-                // We take the alpha from the source.  This is important because
-                // we're using Multiply to tint the glyph and if we don't reset the
-                // alpha we tend to end up with a background square of the tint color.
-                tinted.alpha = src.alpha;
-                // Then blend the tinted glyph over the destination background
-                let dest: LinSrgba = dest.into();
-                tinted.over(dest).into()
-            }
-        }
+    /// Create a pixel with the provided big-endian u32 SRGBA data
+    pub fn with_srgba_u32(word: u32) -> Self {
+        Self(word)
+    }
+
+    /// Returns the underlying big-endian u32 SRGBA data
+    pub fn as_srgba32(self) -> u32 {
+        self.0
+    }
+}
+
+/// A pixel value encoded as linear RGBA values in f32 format (range: 0.0-1.0)
+#[derive(Copy, Clone, Debug, Default)]
+pub struct LinearRgba(f32, f32, f32, f32);
+
+impl LinearRgba {
+    /// Convert SRGBA u8 components to LinearRgba.
+    /// Note that alpha in SRGBA colorspace is already linear,
+    /// so this only applies gamma correction to RGB.
+    pub fn with_srgba(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
+        Self(
+            srgb8_to_linear_f32(red),
+            srgb8_to_linear_f32(green),
+            srgb8_to_linear_f32(blue),
+            rgb_to_linear_f32(alpha),
+        )
+    }
+
+    /// Convert linear RGBA u8 components to LinearRgba (f32)
+    pub fn with_rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
+        Self(
+            rgb_to_linear_f32(red),
+            rgb_to_linear_f32(green),
+            rgb_to_linear_f32(blue),
+            rgb_to_linear_f32(alpha),
+        )
+    }
+
+    /// Create using the provided f32 components in the range 0.0-1.0
+    pub fn with_components(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+        Self(red, green, blue, alpha)
+    }
+
+    /// Convert to an SRGB u32 pixel
+    pub fn srgba_pixel(self) -> SrgbaPixel {
+        SrgbaPixel::rgba(
+            linear_f32_to_srgb8_using_table(self.0),
+            linear_f32_to_srgb8_using_table(self.1),
+            linear_f32_to_srgb8_using_table(self.2),
+            (self.3 * 255.) as u8,
+        )
+    }
+
+    /// Returns the individual RGBA channels as f32 components 0.0-1.0
+    pub fn tuple(self) -> (f32, f32, f32, f32) {
+        (self.0, self.1, self.2, self.3)
     }
 }

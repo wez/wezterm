@@ -1,7 +1,6 @@
-use crate::color::Color;
-use crate::{Operator, Point, Rect, Size};
+use crate::color::{LinearRgba, SrgbaPixel};
+use crate::{Point, Rect, Size};
 use glium::texture::SrgbTexture2d;
-use palette::LinSrgba;
 use std::cell::RefCell;
 
 pub mod atlas;
@@ -158,13 +157,13 @@ pub trait BitmapImage {
     }
 
     /// Clear the entire image to the specific color
-    fn clear(&mut self, color: Color) {
+    fn clear(&mut self, color: SrgbaPixel) {
         for c in self.pixels_mut() {
-            *c = color.0;
+            *c = color.as_srgba32();
         }
     }
 
-    fn clear_rect(&mut self, rect: Rect, color: Color) {
+    fn clear_rect(&mut self, rect: Rect, color: SrgbaPixel) {
         let (dim_width, dim_height) = self.image_dimensions();
         let max_x = rect.max_x().min(dim_width as isize) as usize;
         let max_y = rect.max_y().min(dim_height as isize) as usize;
@@ -178,18 +177,17 @@ pub trait BitmapImage {
         for y in dest_y..max_y {
             let range = self.horizontal_pixel_range_mut(dest_x, max_x, y);
             for c in range {
-                *c = color.0;
+                *c = color.as_srgba32();
             }
         }
     }
 
     /// Draw a line starting at `start` and ending at `end`.
-    /// The line will be anti-aliased and applied to the surface using the
-    /// specified Operator.
-    fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {
+    /// The line will be anti-aliased and applied to the surface.
+    fn draw_line(&mut self, start: Point, end: Point, color: SrgbaPixel) {
         let (dim_width, dim_height) = self.image_dimensions();
-        let linear: LinSrgba = color.into();
-        let (red, green, blue, alpha) = linear.into_components();
+        let linear = color.to_linear();
+        let (red, green, blue, alpha) = linear.tuple();
 
         for ((x, y), value) in line_drawing::XiaolinWu::<f32, isize>::new(
             (start.x as f32, start.y as f32),
@@ -203,13 +201,13 @@ pub trait BitmapImage {
             }
             let pix = self.pixel_mut(x as usize, y as usize);
 
-            let color: Color = LinSrgba::from_components((red, green, blue, alpha * value)).into();
-            *pix = color.composite(Color(*pix), operator).0;
+            let color = LinearRgba::with_components(red, green, blue, alpha * value);
+            *pix = color.srgba_pixel().as_srgba32();
         }
     }
 
     /// Draw a 1-pixel wide rectangle
-    fn draw_rect(&mut self, rect: Rect, color: Color, operator: Operator) {
+    fn draw_rect(&mut self, rect: Rect, color: SrgbaPixel) {
         let bottom_right = rect.origin.add_size(&rect.size);
 
         // Draw the vertical lines down either side
@@ -217,36 +215,26 @@ pub trait BitmapImage {
             rect.origin,
             Point::new(rect.origin.x, bottom_right.y),
             color,
-            operator,
         );
         self.draw_line(
             Point::new(bottom_right.x, rect.origin.y),
             bottom_right,
             color,
-            operator,
         );
         // And the horizontals for the top and bottom
         self.draw_line(
             rect.origin,
             Point::new(bottom_right.x, rect.origin.y),
             color,
-            operator,
         );
         self.draw_line(
             Point::new(rect.origin.x, bottom_right.y),
             bottom_right,
             color,
-            operator,
         );
     }
 
-    fn draw_image(
-        &mut self,
-        dest_top_left: Point,
-        src_rect: Option<Rect>,
-        im: &dyn BitmapImage,
-        operator: Operator,
-    ) {
+    fn draw_image(&mut self, dest_top_left: Point, src_rect: Option<Rect>, im: &dyn BitmapImage) {
         let (im_width, im_height) = im.image_dimensions();
         let src_rect = src_rect
             .unwrap_or_else(|| Rect::from_size(Size::new(im_width as isize, im_height as isize)));
@@ -295,7 +283,7 @@ pub trait BitmapImage {
                 dest_y as usize,
             );
             for (src_pix, dest_pix) in src_pixels.iter().zip(dest_pixels.iter_mut()) {
-                *dest_pix = Color(*src_pix).composite(Color(*dest_pix), operator).0;
+                *dest_pix = *src_pix;
             }
         }
     }
@@ -441,7 +429,7 @@ impl ImageTexture {
 impl Texture2d for ImageTexture {
     fn write(&self, rect: Rect, im: &dyn BitmapImage) {
         let mut image = self.image.borrow_mut();
-        image.draw_image(rect.origin, None, im, Operator::Source);
+        image.draw_image(rect.origin, None, im);
     }
 
     fn read(&self, _rect: Rect, _im: &mut dyn BitmapImage) {
