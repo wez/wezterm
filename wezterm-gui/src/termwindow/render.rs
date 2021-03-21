@@ -382,6 +382,9 @@ impl super::TermWindow {
             foreground_text_hsb.brightness,
         );
 
+        let apply_gamma_to_texture = cfg!(windows) && self.config.prefer_egl;
+        let apply_gamma_to_colorize = !apply_gamma_to_texture;
+
         // Pass 1: Draw backgrounds
         frame.draw(
             &vb.bufs[vb.index],
@@ -391,6 +394,8 @@ impl super::TermWindow {
                 projection: projection,
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
+                apply_gamma_to_texture: apply_gamma_to_texture,
+                apply_gamma_to_colorize: apply_gamma_to_colorize,
             },
             &alpha_blending,
         )?;
@@ -405,6 +410,8 @@ impl super::TermWindow {
                 atlas_nearest_sampler:  atlas_nearest_sampler,
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
+                apply_gamma_to_texture: apply_gamma_to_texture,
+                apply_gamma_to_colorize: apply_gamma_to_colorize,
             },
             &alpha_blending,
         )?;
@@ -459,6 +466,8 @@ impl super::TermWindow {
                 atlas_nearest_sampler:  atlas_nearest_sampler,
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
+                apply_gamma_to_texture: apply_gamma_to_texture,
+                apply_gamma_to_colorize: apply_gamma_to_colorize,
             },
             &blend_but_set_alpha_to_one,
         )?;

@@ -15,6 +15,8 @@ in vec4 o_underline_color;
 out vec4 color;
 
 uniform vec3 foreground_text_hsb;
+uniform bool apply_gamma_to_texture;
+uniform bool apply_gamma_to_colorize;
 
 float multiply_one(float src, float dst, float inv_dst_alpha, float inv_src_alpha) {
   return (src * dst) + (src * (inv_dst_alpha)) + (dst * (inv_src_alpha));
@@ -98,7 +100,9 @@ vec4 colorize(vec4 glyph, vec4 color, vec4 background) {
   // Assuming that GL is respecting the surface's SRGB encoding,
   // the values we get here should be automatically linearized
   // by this point, so we shouldn't need to linearize them again.
-  glyph = to_linear(glyph);
+  if (apply_gamma_to_colorize) {
+    glyph = to_linear(glyph);
+  }
 
   float r = glyph.r * color.r + (1.0 - glyph.r) * background.r;
   float g = glyph.g * color.g + (1.0 - glyph.g) * background.g;
@@ -106,4 +110,12 @@ vec4 colorize(vec4 glyph, vec4 color, vec4 background) {
 
   return vec4(r, g, b, glyph.a);
 //  return vec4(glyph.rgb * color.rgb, glyph.a);
+}
+
+vec4 texture_sample(sampler2D sampler, vec2 coords) {
+  vec4 color = texture(sampler, coords);
+  if (apply_gamma_to_texture) {
+    return to_linear(color);
+  }
+  return color;
 }

@@ -51,8 +51,6 @@ impl RenderState {
                         Self::compile_prog(&context, early_stage_srgb, Self::background_shader)?;
                     let line_prog =
                         Self::compile_prog(&context, early_stage_srgb, Self::line_shader)?;
-
-                    // Last prog outputs srgb for gamma correction
                     let glyph_prog =
                         Self::compile_prog(&context, last_stage_srgb, Self::glyph_shader)?;
 
