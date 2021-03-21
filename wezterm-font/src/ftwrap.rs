@@ -4,6 +4,7 @@ use crate::locator::FontDataHandle;
 use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadTarget};
 pub use freetype::*;
+use std::borrow::Cow;
 use std::ptr;
 
 #[inline]
@@ -58,9 +59,11 @@ pub fn compute_load_flags_from_config() -> (i32, FT_Render_Mode) {
     (load_flags as i32, render)
 }
 
+type CowVecU8 = Cow<'static, [u8]>;
+
 pub struct Face {
     pub face: FT_Face,
-    _bytes: Vec<u8>,
+    _bytes: CowVecU8,
     size: Option<FaceSize>,
 }
 
@@ -313,7 +316,7 @@ impl Library {
                 self.new_face(path.to_str().unwrap(), *index as _)
             }
             FontDataHandle::Memory { data, index, .. } => {
-                self.new_face_from_slice(&data, *index as _)
+                self.new_face_from_slice(data.clone(), *index as _)
             }
         }
     }
@@ -342,7 +345,7 @@ impl Library {
                             face_index
                         )
                     })?,
-                    _bytes: vec![],
+                    _bytes: CowVecU8::Borrowed(b""),
                     size: None,
                 });
             }
@@ -356,6 +359,7 @@ impl Library {
             path.display(),
             data.len()
         );
+        let data = CowVecU8::Owned(data);
 
         let res = unsafe {
             FT_New_Memory_Face(
@@ -379,8 +383,7 @@ impl Library {
         })
     }
 
-    pub fn new_face_from_slice(&self, data: &[u8], face_index: FT_Long) -> anyhow::Result<Face> {
-        let data = data.to_vec();
+    pub fn new_face_from_slice(&self, data: CowVecU8, face_index: FT_Long) -> anyhow::Result<Face> {
         let mut face = ptr::null_mut();
 
         let res = unsafe {
