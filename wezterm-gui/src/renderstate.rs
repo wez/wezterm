@@ -293,9 +293,9 @@ impl RenderState {
         let buffer = TripleVertexBuffer {
             index: 0,
             bufs: [
-                VertexBuffer::persistent(context, &verts)?,
-                VertexBuffer::persistent(context, &verts)?,
-                VertexBuffer::persistent(context, &verts)?,
+                VertexBuffer::dynamic(context, &verts)?,
+                VertexBuffer::dynamic(context, &verts)?,
+                VertexBuffer::dynamic(context, &verts)?,
             ],
         };
 
