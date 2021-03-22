@@ -121,14 +121,14 @@ impl LoadedFont {
                 }
 
                 if extra_handles.is_empty() {
-                    log::error!("No fonts have glyphs for {}", fallback_str.escape_debug());
+                    log::warn!("No fonts have glyphs for {}", fallback_str.escape_debug());
                 } else {
                     let loaded = self.insert_fallback_handles(extra_handles)?;
                     if loaded {
                         log::trace!("handles is now: {:#?}", self.handles);
                         return self.shape(text);
                     } else {
-                        log::error!("No fonts have glyphs for {}", fallback_str.escape_debug())
+                        log::warn!("No fonts have glyphs for {}", fallback_str.escape_debug())
                     }
                 }
             }

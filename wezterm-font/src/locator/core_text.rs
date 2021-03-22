@@ -13,6 +13,10 @@ use std::borrow::Cow;
 use std::collections::HashSet;
 use ttf_parser::fonts_in_collection;
 
+lazy_static::lazy_static! {
+    static ref FALLBACK: Vec<FontDataHandle> = build_fallback_list();
+}
+
 /// A FontLocator implemented using the system font loading
 /// functions provided by core text.
 pub struct CoreTextFontLocator {}
@@ -112,36 +116,47 @@ impl FontLocator for CoreTextFontLocator {
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         // We don't have an API to resolve a font for the codepoints, so instead we
         // just get the system fallback list and add the whole thing to the fallback.
-        let font =
-            new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
-        let lang = "en"
-            .parse::<CFString>()
-            .map_err(|_| anyhow::anyhow!("failed to parse lang name en as CFString"))?;
-        let langs = CFArray::from_CFTypes(&[lang]);
-        let cascade = cascade_list_for_languages(&font, &langs);
-        let mut fonts = vec![];
-        for descriptor in &cascade {
-            if let Some(handle) = handle_from_descriptor(&descriptor) {
-                fonts.push(handle);
-            }
-        }
-
-        // Some of the fallback fonts are special fonts that don't exist on
-        // disk, and that we can't open.
-        // In particular, `.AppleSymbolsFB` is one such font.  Let's try
-        // a nearby approximation.
-        let symbols = FontAttributes {
-            family: "Apple Symbols".to_string(),
-            bold: false,
-            italic: false,
-            is_fallback: true,
-        };
-        if let Ok(descriptor) = descriptor_from_attr(&symbols) {
-            if let Some(handle) = handle_from_descriptor(&descriptor) {
-                fonts.push(handle);
-            }
-        }
-
-        Ok(fonts)
+        Ok(FALLBACK.clone())
     }
+}
+
+fn build_fallback_list() -> Vec<FontDataHandle> {
+    build_fallback_list_impl().unwrap_or_else(|err| {
+        log::error!("Error getting system fallback fonts: {:#}", err);
+        Vec::new()
+    })
+}
+
+fn build_fallback_list_impl() -> anyhow::Result<Vec<FontDataHandle>> {
+    let font =
+        new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
+    let lang = "en"
+        .parse::<CFString>()
+        .map_err(|_| anyhow::anyhow!("failed to parse lang name en as CFString"))?;
+    let langs = CFArray::from_CFTypes(&[lang]);
+    let cascade = cascade_list_for_languages(&font, &langs);
+    let mut fonts = vec![];
+    for descriptor in &cascade {
+        if let Some(handle) = handle_from_descriptor(&descriptor) {
+            fonts.push(handle);
+        }
+    }
+
+    // Some of the fallback fonts are special fonts that don't exist on
+    // disk, and that we can't open.
+    // In particular, `.AppleSymbolsFB` is one such font.  Let's try
+    // a nearby approximation.
+    let symbols = FontAttributes {
+        family: "Apple Symbols".to_string(),
+        bold: false,
+        italic: false,
+        is_fallback: true,
+    };
+    if let Ok(descriptor) = descriptor_from_attr(&symbols) {
+        if let Some(handle) = handle_from_descriptor(&descriptor) {
+            fonts.push(handle);
+        }
+    }
+
+    Ok(fonts)
 }
