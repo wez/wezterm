@@ -402,7 +402,7 @@ impl super::TermWindow {
         }
 
         let colorize_gamma: u32 = match self.glinfo {
-            GlInfo::Egl { srgb: true } => GammaColor::ToLinear,
+            GlInfo::Egl { srgb: true } => GammaColor::Identity,
             GlInfo::Egl { srgb: false } => GammaColor::Identity,
             GlInfo::Wgl => GammaColor::ToLinear,
             GlInfo::Cgl => GammaColor::ToLinear,
@@ -411,7 +411,7 @@ impl super::TermWindow {
         .into();
 
         let sample_gamma: u32 = match self.glinfo {
-            GlInfo::Egl { srgb: true } => GammaColor::Identity,
+            GlInfo::Egl { srgb: true } => GammaColor::ToLinear,
             GlInfo::Egl { srgb: false } => GammaColor::ToLinear,
             GlInfo::Wgl => GammaColor::Identity,
             GlInfo::Cgl => GammaColor::Identity,
