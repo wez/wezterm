@@ -556,7 +556,7 @@ impl WaylandWindowInner {
         };
         let (gl_state, info) = gl_state.map(Rc::new).and_then(|state| unsafe {
             let info = GlInfo::Egl {
-                supports_srgb: state.has_srgb_support(),
+                srgb: state.has_srgb_support(),
             };
             wayland_conn
                 .gl_connection

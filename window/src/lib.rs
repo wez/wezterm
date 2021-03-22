@@ -124,7 +124,7 @@ pub trait WindowCallbacks: Any {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GlInfo {
-    Egl { supports_srgb: bool },
+    Egl { srgb: bool },
     Wgl,
     Cgl,
     Generic,

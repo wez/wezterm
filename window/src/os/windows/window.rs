@@ -138,7 +138,7 @@ impl WindowInner {
         .and_then(|egl| unsafe {
             log::trace!("Initialized EGL!");
             let info = GlInfo::Egl {
-                supports_srgb: egl.has_srgb_support(),
+                srgb: egl.has_srgb_support(),
             };
             conn.gl_connection
                 .borrow_mut()

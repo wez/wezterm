@@ -99,7 +99,7 @@ impl XWindowInner {
         // Don't chain on the end of the above to avoid borrowing gl_connection twice.
         let (gl_state, info) = gl_state.map(Rc::new).and_then(|state| unsafe {
             let info = GlInfo::Egl {
-                supports_srgb: state.has_srgb_support(),
+                srgb: state.has_srgb_support(),
             };
             conn.gl_connection
                 .borrow_mut()

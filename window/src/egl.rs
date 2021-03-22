@@ -77,7 +77,7 @@ pub struct GlState {
     connection: Rc<GlConnection>,
     surface: ffi::types::EGLSurface,
     context: ffi::types::EGLContext,
-    supports_srgb: bool,
+    srgb: bool,
 }
 
 impl Drop for GlState {
@@ -349,16 +349,17 @@ impl EglWrapper {
         let mut attributes = vec![];
         let extensions = get_extensions(&self.egl, display);
         log::debug!("Supported extensions {:?}", extensions);
-        let mut supports_srgb = false;
+        let mut srgb = false;
 
-        if extensions
-            .iter()
-            .any(|s| s.as_str() == "EGL_KHR_gl_colorspace")
+        if unsafe { self.egl.QueryAPI() == ffi::OPENGL_API }
+            && extensions
+                .iter()
+                .any(|s| s.as_str() == "EGL_KHR_gl_colorspace")
         {
             log::debug!("Supports EGL_KHR_gl_colorspace, enable SRGB on surface");
             attributes.push(ffi::GL_COLORSPACE as i32);
             attributes.push(ffi::GL_COLORSPACE_SRGB as i32);
-            supports_srgb = true;
+            srgb = true;
         }
         attributes.push(ffi::NONE as i32);
 
@@ -369,7 +370,7 @@ impl EglWrapper {
         if surface.is_null() {
             Err(self.error("EGL CreateWindowSurface"))
         } else {
-            Ok((surface, supports_srgb))
+            Ok((surface, srgb))
         }
     }
 
@@ -407,7 +408,7 @@ impl GlState {
     }
 
     pub fn has_srgb_support(&self) -> bool {
-        self.supports_srgb
+        self.srgb
     }
 
     fn with_egl_lib<F: FnMut(EglWrapper) -> anyhow::Result<Self>>(
@@ -585,7 +586,7 @@ impl GlState {
         let mut errors = String::new();
 
         for config in configs {
-            let (surface, supports_srgb) =
+            let (surface, srgb) =
                 match connection
                     .egl
                     .create_window_surface(connection.display, config, window)
@@ -631,7 +632,7 @@ impl GlState {
                 connection: Rc::clone(connection),
                 context,
                 surface,
-                supports_srgb,
+                srgb,
             });
         }
 

@@ -65,10 +65,12 @@ vec4 apply_hsv(vec4 c, vec3 transform)
 }
 
 vec4 from_linear(vec4 v) {
+  //return vec4(pow(v.rgb, vec3(2.2)), v.a);
   return pow(v, vec4(2.2));
 }
 
 vec4 to_linear(vec4 v) {
+  //return vec4(pow(v.rgb, vec3(1.0/2.2)), v.a);
   return pow(v, vec4(1.0/2.2));
 }
 

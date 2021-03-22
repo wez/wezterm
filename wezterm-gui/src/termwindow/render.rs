@@ -402,12 +402,8 @@ impl super::TermWindow {
         }
 
         let colorize_gamma: u32 = match self.glinfo {
-            GlInfo::Egl {
-                supports_srgb: true,
-            } => GammaColor::ToLinear,
-            GlInfo::Egl {
-                supports_srgb: false,
-            } => GammaColor::Identity,
+            GlInfo::Egl { srgb: true } => GammaColor::ToLinear,
+            GlInfo::Egl { srgb: false } => GammaColor::Identity,
             GlInfo::Wgl => GammaColor::Identity,
             GlInfo::Cgl => GammaColor::ToLinear,
             GlInfo::Generic => GammaColor::ToLinear,
@@ -415,12 +411,8 @@ impl super::TermWindow {
         .into();
 
         let sample_gamma: u32 = match self.glinfo {
-            GlInfo::Egl {
-                supports_srgb: true,
-            } => GammaColor::Identity,
-            GlInfo::Egl {
-                supports_srgb: false,
-            } => GammaColor::Identity,
+            GlInfo::Egl { srgb: true } => GammaColor::Identity,
+            GlInfo::Egl { srgb: false } => GammaColor::ToLinear,
             GlInfo::Wgl => GammaColor::Identity,
             GlInfo::Cgl => GammaColor::Identity,
             GlInfo::Generic => GammaColor::Identity,
@@ -428,12 +420,8 @@ impl super::TermWindow {
         .into();
 
         let output_gamma: u32 = match self.glinfo {
-            GlInfo::Egl {
-                supports_srgb: true,
-            } => GammaColor::Identity,
-            GlInfo::Egl {
-                supports_srgb: false,
-            } => GammaColor::ToLinear,
+            GlInfo::Egl { srgb: true } => GammaColor::FromLinear,
+            GlInfo::Egl { srgb: false } => GammaColor::Identity,
             GlInfo::Wgl => GammaColor::Identity,
             GlInfo::Cgl => GammaColor::Identity,
             GlInfo::Generic => GammaColor::Identity,
@@ -1310,5 +1298,5 @@ fn rgbcolor_to_window_color(color: RgbColor) -> LinearRgba {
 }
 
 fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> LinearRgba {
-    LinearRgba::with_srgba(color.red, color.green, color.blue, alpha)
+    LinearRgba::with_rgba(color.red, color.green, color.blue, alpha)
 }
