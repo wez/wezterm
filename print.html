@@ -426,6 +426,9 @@ brief notes about them may accumulate here.</p>
 <li>Fixed: greatly reduce memory consumption when system fallback fonts are loaded <a href="https://github.com/wez/wezterm/issues/559">#559</a></li>
 <li>Fixed: Windows: <code>window_background_opacity</code> was only taking effect when <code>window_decorations=&quot;NONE&quot;</code> <a href="https://github.com/wez/wezterm/issues/553">#553</a></li>
 <li>Fixed: an issue where wezterm could hang if the process spawned by a pane doesn't quit when asked <a href="https://github.com/wez/wezterm/issues/558">#558</a></li>
+<li>Fixed: panic when dismissing the tab navigator <a href="https://github.com/wez/wezterm/issues/542">#542</a></li>
+<li>Fixed: font fallback on macOS returns unresolvable <code>.AppleSymbolsFB</code> rather than <code>Apple Symbols</code>, leading to slowdowns when rendering symbols <a href="https://github.com/wez/wezterm/issues/506">#506</a></li>
+<li>Fixed: laggy repaints for large windows particularly on Windows, but applicable to all systems.  Tuned and triple-buffered vertex buffer updates. <a href="https://github.com/wez/wezterm/issues/546">#546</a></li>
 </ul>
 <h3 id="20210314-114017-04b7cedd"><a class="header" href="#20210314-114017-04b7cedd">20210314-114017-04b7cedd</a></h3>
 <ul>
