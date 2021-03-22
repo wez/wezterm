@@ -1,4 +1,6 @@
 use config::FontAttributes;
+use std::borrow::Cow;
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -13,7 +15,7 @@ pub mod gdi;
 /// The `index` parameter is the index into a font
 /// collection if the data represents a collection of
 /// fonts.
-#[derive(Clone, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Clone)]
 pub enum FontDataHandle {
     OnDisk {
         path: PathBuf,
@@ -24,6 +26,67 @@ pub enum FontDataHandle {
         data: std::borrow::Cow<'static, [u8]>,
         index: u32,
     },
+}
+
+impl FontDataHandle {
+    fn name_or_path_str(&self) -> Cow<str> {
+        match self {
+            Self::OnDisk { path, .. } => path.to_string_lossy(),
+            Self::Memory { name, .. } => Cow::Borrowed(name),
+        }
+    }
+    fn index(&self) -> u32 {
+        match self {
+            Self::OnDisk { index, .. } => *index,
+            Self::Memory { index, .. } => *index,
+        }
+    }
+}
+
+impl Eq for FontDataHandle {}
+
+impl PartialEq for FontDataHandle {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::OnDisk {
+                    path: path_a,
+                    index: index_a,
+                },
+                Self::OnDisk {
+                    path: path_b,
+                    index: index_b,
+                },
+            ) => path_a == path_b && index_a == index_b,
+            (
+                Self::Memory {
+                    name: name_a,
+                    index: index_a,
+                    ..
+                },
+                Self::Memory {
+                    name: name_b,
+                    index: index_b,
+                    ..
+                },
+            ) => name_a == name_b && index_a == index_b,
+            _ => false,
+        }
+    }
+}
+
+impl Ord for FontDataHandle {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let a = (self.name_or_path_str(), self.index());
+        let b = (other.name_or_path_str(), other.index());
+        a.cmp(&b)
+    }
+}
+
+impl PartialOrd for FontDataHandle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl std::fmt::Debug for FontDataHandle {
