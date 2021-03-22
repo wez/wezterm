@@ -1,5 +1,9 @@
 # `window_close_confirmation`
 
+Whether to display a confirmation prompt when the window is closed by the
+windowing environment, either because the user closed it with the window
+decorations, or instructed their window managed to close it.
+
 Set this to `"NeverPrompt"` if you don't like confirming closing
 windows every time.
 
@@ -8,3 +12,8 @@ return {
   window_close_confirmation = "AlwaysPrompt",
 }
 ```
+
+Note that this doesn't apply to the default `CTRL-SHIFT-W` or `CMD-w`
+key assignments; if you want to change prompts for those, you will need to
+override the key shortcut as shown in the
+[CloseCurrentTab](../keyassignment/CloseCurrentTab.md) documentation.
