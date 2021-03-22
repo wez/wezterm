@@ -8,7 +8,7 @@ use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
 use crate::WindowConfigHandle;
-use crate::{config, Clipboard, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
+use crate::{Clipboard, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
 use promise::*;
 use std::any::Any;
 use std::rc::Rc;
@@ -30,7 +30,7 @@ impl Connection {
     pub(crate) fn create_new() -> anyhow::Result<Connection> {
         #[cfg(feature = "wayland")]
         {
-            if config().enable_wayland() {
+            if crate::config().enable_wayland() {
                 match WaylandConnection::create_new() {
                     Ok(w) => {
                         log::debug!("Using wayland connection!");
