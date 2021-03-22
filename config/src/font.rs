@@ -354,7 +354,7 @@ pub enum AllowSquareGlyphOverflow {
 
 impl Default for AllowSquareGlyphOverflow {
     fn default() -> Self {
-        Self::Never
+        Self::WhenFollowedBySpace
     }
 }
 

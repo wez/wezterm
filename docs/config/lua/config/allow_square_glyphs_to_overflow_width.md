@@ -9,3 +9,11 @@ Configures how square symbol glyph's cell is rendered:
 * "Always" - overflow the cell regardless of the next cell
   being a space.
 * "Never" (the default) - strictly respect the cell width.
+
+*Since: nightly builds*
+
+This setting now applies to any glyph with an aspect ratio
+larger than 0.9, which covers more symbol glyphs than in
+earlier releases.
+
+The default value for this setting has changed to `WhenFollowedBySpace`.

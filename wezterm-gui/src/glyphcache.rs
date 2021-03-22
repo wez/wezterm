@@ -440,9 +440,9 @@ impl<T: Texture2d> GlyphCache<T> {
             base_metrics.cell_width.get() / (idx_metrics.cell_width.get() / info.num_cells as f64);
 
         let aspect = (idx_metrics.cell_height / idx_metrics.cell_width).get();
-        let is_square = aspect >= 0.9 && aspect <= 1.1;
+        let is_square_or_wide = aspect >= 0.9;
 
-        let allow_width_overflow = if is_square {
+        let allow_width_overflow = if is_square_or_wide {
             match configuration().allow_square_glyphs_to_overflow_width {
                 AllowSquareGlyphOverflow::Never => false,
                 AllowSquareGlyphOverflow::Always => true,
@@ -489,13 +489,14 @@ impl<T: Texture2d> GlyphCache<T> {
 
             let (scale, raw_im) = if scale != 1.0 {
                 log::trace!(
-                    "physically scaling {:?} by {} bcos {}x{} > {:?}x{:?}",
+                    "physically scaling {:?} by {} bcos {}x{} > {:?}x{:?}. aspect={}",
                     info,
                     scale,
                     glyph.width,
                     glyph.height,
                     cell_width,
-                    cell_height
+                    cell_height,
+                    aspect,
                 );
                 (1.0, raw_im.scale_by(scale))
             } else {
