@@ -4,7 +4,7 @@
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::{
-    config, Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
+    config, Clipboard, Connection, Dimensions, GlInfo, KeyCode, KeyEvent, Modifiers, MouseButtons,
     MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size,
     WindowCallbacks, WindowConfigHandle, WindowDecorations, WindowOps, WindowOpsMut,
 };
@@ -985,10 +985,16 @@ impl Inner {
 
         let view = self.view_id.as_ref().unwrap().load();
         let glium_context = GlContextPair::create(*view)?;
+        let info = match &glium_context.backend {
+            BackendImpl::Cgl(_) => GlInfo::Cgl,
+            BackendImpl::Egl(egl) => GlInfo::Egl {
+                srgb: egl.has_srgb_support(),
+            },
+        };
 
         self.gl_context_pair.replace(glium_context.clone());
 
-        self.callbacks.created(&window, glium_context.context)
+        self.callbacks.created(&window, glium_context.context, info)
     }
 
     /// <https://stackoverflow.com/a/22677690>
