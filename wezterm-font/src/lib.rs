@@ -95,29 +95,34 @@ impl LoadedFont {
                         fallback_str.escape_debug()
                     ),
                 }
-                match font_config
-                    .locator
-                    .locate_fallback_for_codepoints(&no_glyphs)
-                {
-                    Ok(ref mut handles) => extra_handles.append(handles),
-                    Err(err) => log::error!(
-                        "Error: {} while resolving fallback for {} from font-locator",
-                        err,
-                        fallback_str.escape_debug()
-                    ),
+
+                if extra_handles.is_empty() {
+                    match font_config
+                        .built_in
+                        .borrow()
+                        .locate_fallback_for_codepoints(&no_glyphs)
+                    {
+                        Ok(ref mut handles) => extra_handles.append(handles),
+                        Err(err) => log::error!(
+                            "Error: {} while resolving fallback for {} for built-in fonts",
+                            err,
+                            fallback_str.escape_debug()
+                        ),
+                    }
                 }
 
-                match font_config
-                    .built_in
-                    .borrow()
-                    .locate_fallback_for_codepoints(&no_glyphs)
-                {
-                    Ok(ref mut handles) => extra_handles.append(handles),
-                    Err(err) => log::error!(
-                        "Error: {} while resolving fallback for {} for built-in fonts",
-                        err,
-                        fallback_str.escape_debug()
-                    ),
+                if extra_handles.is_empty() {
+                    match font_config
+                        .locator
+                        .locate_fallback_for_codepoints(&no_glyphs)
+                    {
+                        Ok(ref mut handles) => extra_handles.append(handles),
+                        Err(err) => log::error!(
+                            "Error: {} while resolving fallback for {} from font-locator",
+                            err,
+                            fallback_str.escape_debug()
+                        ),
+                    }
                 }
 
                 if extra_handles.is_empty() {
