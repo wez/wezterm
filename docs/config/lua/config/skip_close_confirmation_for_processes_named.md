@@ -2,7 +2,7 @@
 
 *Since: nightly*
 
-This currently only applies to linux systems.
+This only applies to linux and macOS systems.
 
 This configuration specifies a list of process names that are
 considered to be "stateless" and that are safe to close without

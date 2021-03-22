@@ -11,6 +11,7 @@ use portable_pty::{Child, MasterPty, PtySize};
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
 use std::ops::Range;
+use std::path::Path;
 use std::sync::Arc;
 use termwiz::escape::DeviceControlMode;
 use termwiz::surface::Line;
@@ -244,7 +245,6 @@ impl Pane for LocalPane {
 
     fn can_close_without_prompting(&self) -> bool {
         if let Some(proc) = self.divine_foreground_proc() {
-            log::info!("can_close_without_prompting: proc is {}", proc);
             configuration()
                 .skip_close_confirmation_for_processes_named
                 .iter()
@@ -593,10 +593,41 @@ impl LocalPane {
         None
     }
 
+    #[cfg(target_os = "macos")]
+    fn divine_foreground_proc_macos(&self) -> Option<String> {
+        if let Some(pid) = self.pty.borrow().process_group_leader() {
+            extern "C" {
+                fn proc_pidpath(
+                    pid: libc::pid_t,
+                    buffer: *mut u8,
+                    buffersize: libc::c_int,
+                ) -> libc::c_int;
+            }
+
+            let mut buf = [0u8; 4096];
+
+            let ret = unsafe { proc_pidpath(pid, buf.as_mut_ptr(), buf.len() as libc::c_int) };
+            if ret > 0 {
+                use std::ffi::OsStr;
+                use std::os::unix::ffi::OsStrExt;
+                let buf = &buf[..ret as usize];
+                let path = Path::new(OsStr::from_bytes(buf));
+                let name = path.file_name()?;
+                return name.to_str().map(|s| s.to_string());
+            }
+        }
+        None
+    }
+
     fn divine_foreground_proc(&self) -> Option<String> {
         #[cfg(target_os = "linux")]
         {
             return self.divine_foreground_proc_linux();
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            return self.divine_foreground_proc_macos();
         }
 
         #[allow(unreachable_code)]
