@@ -126,14 +126,14 @@ impl LoadedFont {
                 }
 
                 if extra_handles.is_empty() {
-                    log::warn!("No fonts have glyphs for {}", fallback_str.escape_debug());
+                    font_config.advise_no_glyphs(&fallback_str);
                 } else {
                     let loaded = self.insert_fallback_handles(extra_handles)?;
                     if loaded {
                         log::trace!("handles is now: {:#?}", self.handles);
                         return self.shape(text);
                     } else {
-                        log::warn!("No fonts have glyphs for {}", fallback_str.escape_debug())
+                        font_config.advise_no_glyphs(&fallback_str);
                     }
                 }
             }
@@ -180,6 +180,7 @@ struct FontConfigInner {
     locator: Box<dyn FontLocator>,
     font_dirs: RefCell<FontDatabase>,
     built_in: RefCell<FontDatabase>,
+    no_glyphs: RefCell<HashSet<char>>,
 }
 
 /// Matches and loads fonts for a given input style
@@ -201,6 +202,7 @@ impl FontConfigInner {
             config: RefCell::new(config.clone()),
             font_dirs: RefCell::new(FontDatabase::with_font_dirs(&config)?),
             built_in: RefCell::new(FontDatabase::with_built_in()?),
+            no_glyphs: RefCell::new(HashSet::new()),
         })
     }
 
@@ -210,8 +212,28 @@ impl FontConfigInner {
         // Config was reloaded, invalidate our caches
         fonts.clear();
         self.metrics.borrow_mut().take();
+        self.no_glyphs.borrow_mut().clear();
         *self.font_dirs.borrow_mut() = FontDatabase::with_font_dirs(config)?;
         Ok(())
+    }
+
+    fn advise_no_glyphs(&self, fallback_str: &str) {
+        let mut no_glyphs = self.no_glyphs.borrow_mut();
+        let mut notif = String::new();
+        for c in fallback_str.chars() {
+            if !no_glyphs.contains(&c) {
+                notif.push(c);
+                no_glyphs.insert(c);
+            }
+        }
+        if !notif.is_empty() {
+            mux::connui::show_configuration_error_message(&format!(
+                "Unable to resolve a font containing glyphs for {}. \
+                A glyph from the built-in \"last resort\" font is being \
+                used instead.",
+                notif.escape_unicode()
+            ));
+        }
     }
 
     /// Given a text style, load (with caching) the font that best
