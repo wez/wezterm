@@ -242,6 +242,28 @@ impl Pane for LocalPane {
             .or_else(|| self.divine_current_working_dir())
     }
 
+    fn can_close_without_prompting(&self) -> bool {
+        if let Some(proc) = self.divine_foreground_proc() {
+            log::info!("can_close_without_prompting: proc is {}", proc);
+            configuration()
+                .skip_close_confirmation_for_processes_named
+                .iter()
+                .any(|a| a == &proc)
+        } else {
+            #[cfg(unix)]
+            {
+                // If the process is dead but exit_behavior is holding the
+                // window, we don't need to prompt to confirm closing.
+                // That is detectable as no longer having a process group leader.
+                if self.pty.borrow().process_group_leader().is_none() {
+                    return true;
+                }
+            }
+
+            false
+        }
+    }
+
     fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
         let term = self.terminal.borrow();
         term.get_semantic_zones()
@@ -554,6 +576,27 @@ impl LocalPane {
         #[cfg(target_os = "macos")]
         {
             return self.divine_current_working_dir_macos();
+        }
+
+        #[allow(unreachable_code)]
+        None
+    }
+
+    #[cfg(target_os = "linux")]
+    fn divine_foreground_proc_linux(&self) -> Option<String> {
+        if let Some(pid) = self.pty.borrow().process_group_leader() {
+            if let Ok(path) = std::fs::read_link(format!("/proc/{}/exe", pid)) {
+                let name = path.file_name()?;
+                return name.to_str().map(|s| s.to_string());
+            }
+        }
+        None
+    }
+
+    fn divine_foreground_proc(&self) -> Option<String> {
+        #[cfg(target_os = "linux")]
+        {
+            return self.divine_foreground_proc_linux();
         }
 
         #[allow(unreachable_code)]

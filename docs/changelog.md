@@ -22,6 +22,7 @@ brief notes about them may accumulate here.
 * Fixed: laggy repaints for large windows particularly on Windows, but applicable to all systems.  Tuned and triple-buffered vertex buffer updates. [#546](https://github.com/wez/wezterm/issues/546)
 * Changed: [allow_square_glyphs_to_overflow_width](config/lua/config/allow_square_glyphs_to_overflow_width.md) now defaults to `WhenFollowedBySpace` and applies to more symbol glyphs. [#565](https://github.com/wez/wezterm/issues/565)
 * Changed: macOS: `CMD-Q` is now bound by default to [QuitApplication](config/lua/keyassignment/QuitApplication.md)
+* New: added [skip_close_confirmation_for_processes_named](config/lua/config/skip_close_confirmation_for_processes_named.md) option which specifies a list of processes for which it is considered safe to allow closing a pane/tab/window without a prompt. [#562](https://github.com/wez/wezterm/issues/562)
 
 ### 20210314-114017-04b7cedd
 

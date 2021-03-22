@@ -13,7 +13,10 @@ return {
 }
 ```
 
-Note that this doesn't apply to the default `CTRL-SHIFT-W` or `CMD-w`
-key assignments; if you want to change prompts for those, you will need to
-override the key shortcut as shown in the
+See also
+[skip_close_confirmation_for_processes_named](../config/skip_close_confirmation_for_processes_named.md).
+
+Note that this `window_close_confirmation` option doesn't apply to the default
+`CTRL-SHIFT-W` or `CMD-w` key assignments; if you want to change prompts for
+those, you will need to override the key shortcut as shown in the
 [CloseCurrentTab](../keyassignment/CloseCurrentTab.md) documentation.

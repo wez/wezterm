@@ -1054,8 +1054,18 @@ pub struct Config {
 
     #[serde(default)]
     pub experimental_shape_post_processing: bool,
+
+    #[serde(default = "default_stateless_process_list")]
+    pub skip_close_confirmation_for_processes_named: Vec<String>,
 }
 impl_lua_conversion!(Config);
+
+fn default_stateless_process_list() -> Vec<String> {
+    ["bash", "sh", "zsh", "fish", "tmux"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
+}
 
 fn default_status_update_interval() -> u64 {
     1_000

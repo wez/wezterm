@@ -16,8 +16,9 @@ return {
 }
 ```
 
-When `confirm` is true, an overlay will render over the pane to
-ask you to confirm whether you want to close it.
+When `confirm` is true, an overlay will render over the pane to ask you to
+confirm whether you want to close it.  See also
+[skip_close_confirmation_for_processes_named](../config/skip_close_confirmation_for_processes_named.md).
 
 If `confirm` is false then this action will immediately close
 the pane without prompting.
