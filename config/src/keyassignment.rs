@@ -438,7 +438,10 @@ impl InputMap {
             );
 
             #[cfg(target_os = "macos")]
-            k!([Modifiers::SUPER, KeyCode::Char('h'), HideApplication],);
+            k!(
+                [Modifiers::SUPER, KeyCode::Char('h'), HideApplication],
+                [Modifiers::SUPER, KeyCode::Char('q'), QuitApplication],
+            );
         }
 
         if !config.disable_default_mouse_bindings {

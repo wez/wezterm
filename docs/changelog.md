@@ -21,6 +21,7 @@ brief notes about them may accumulate here.
 * Fixed: font fallback on macOS returns unresolvable `.AppleSymbolsFB` rather than `Apple Symbols`, leading to slowdowns when rendering symbols [#506](https://github.com/wez/wezterm/issues/506)
 * Fixed: laggy repaints for large windows particularly on Windows, but applicable to all systems.  Tuned and triple-buffered vertex buffer updates. [#546](https://github.com/wez/wezterm/issues/546)
 * Changed: [allow_square_glyphs_to_overflow_width](config/lua/config/allow_square_glyphs_to_overflow_width.md) now defaults to `WhenFollowedBySpace` and applies to more symbol glyphs. [#565](https://github.com/wez/wezterm/issues/565)
+* Changed: macOS: `CMD-Q` is now bound by default to [QuitApplication](config/lua/keyassignment/QuitApplication.md)
 
 ### 20210314-114017-04b7cedd
 
