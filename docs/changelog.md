@@ -18,6 +18,8 @@ brief notes about them may accumulate here.
 * Fixed: Windows: `window_background_opacity` was only taking effect when `window_decorations="NONE"` [#553](https://github.com/wez/wezterm/issues/553)
 * Fixed: an issue where wezterm could hang if the process spawned by a pane doesn't quit when asked [#558](https://github.com/wez/wezterm/issues/558)
 * Fixed: panic when dismissing the tab navigator [#542](https://github.com/wez/wezterm/issues/542)
+* Fixed: font fallback on macOS returns unresolvable `.AppleSymbolsFB` rather than `Apple Symbols`, leading to slowdowns when rendering symbols [#506](https://github.com/wez/wezterm/issues/506)
+* Fixed: laggy repaints for large windows particularly on Windows, but applicable to all systems.  Tuned and triple-buffered vertex buffer updates. [#546](https://github.com/wez/wezterm/issues/546)
 
 ### 20210314-114017-04b7cedd
 
