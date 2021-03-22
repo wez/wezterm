@@ -405,7 +405,7 @@ impl super::TermWindow {
             GlInfo::Egl { srgb: true } => GammaColor::Identity,
             GlInfo::Egl { srgb: false } => GammaColor::Identity,
             GlInfo::Wgl => GammaColor::ToLinear,
-            GlInfo::Cgl => GammaColor::ToLinear,
+            GlInfo::Cgl => GammaColor::Identity,
             GlInfo::Generic => GammaColor::ToLinear,
         }
         .into();
@@ -414,7 +414,7 @@ impl super::TermWindow {
             GlInfo::Egl { srgb: true } => GammaColor::ToLinear,
             GlInfo::Egl { srgb: false } => GammaColor::ToLinear,
             GlInfo::Wgl => GammaColor::Identity,
-            GlInfo::Cgl => GammaColor::Identity,
+            GlInfo::Cgl => GammaColor::ToLinear,
             GlInfo::Generic => GammaColor::Identity,
         }
         .into();
@@ -423,7 +423,7 @@ impl super::TermWindow {
             GlInfo::Egl { srgb: true } => GammaColor::FromLinear,
             GlInfo::Egl { srgb: false } => GammaColor::Identity,
             GlInfo::Wgl => GammaColor::FromLinear,
-            GlInfo::Cgl => GammaColor::Identity,
+            GlInfo::Cgl => GammaColor::FromLinear,
             GlInfo::Generic => GammaColor::Identity,
         }
         .into();
