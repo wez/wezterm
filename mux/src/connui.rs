@@ -1,6 +1,6 @@
 use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context as _};
-use crossbeam::channel::{bounded, Receiver, Sender};
+use crossbeam::channel::{unbounded, Receiver, Sender};
 use portable_pty::PtySize;
 use promise::spawn::block_on;
 use promise::Promise;
@@ -244,7 +244,7 @@ impl ConnectionUI {
     }
 
     pub fn with_dimensions(size: PtySize, enable_close_delay: bool) -> Self {
-        let (tx, rx) = bounded(16);
+        let (tx, rx) = unbounded();
         promise::spawn::spawn_into_main_thread(termwiztermtab::run(size, move |term| {
             let mut ui = ConnectionUIImpl { term, rx };
             let status = ui.run().unwrap_or_else(|e| {
@@ -271,7 +271,7 @@ impl ConnectionUI {
     }
 
     pub fn new_headless() -> Self {
-        let (tx, rx) = bounded(16);
+        let (tx, rx) = unbounded();
         std::thread::spawn(move || {
             let mut ui = HeadlessImpl { rx };
             ui.run()

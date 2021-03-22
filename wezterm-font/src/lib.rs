@@ -92,7 +92,7 @@ impl LoadedFont {
                     Err(err) => log::error!(
                         "Error: {} while resolving fallback for {} from font_dirs",
                         err,
-                        fallback_str.escape_debug()
+                        fallback_str.escape_unicode()
                     ),
                 }
 
@@ -106,7 +106,7 @@ impl LoadedFont {
                         Err(err) => log::error!(
                             "Error: {} while resolving fallback for {} for built-in fonts",
                             err,
-                            fallback_str.escape_debug()
+                            fallback_str.escape_unicode()
                         ),
                     }
                 }
@@ -120,7 +120,7 @@ impl LoadedFont {
                         Err(err) => log::error!(
                             "Error: {} while resolving fallback for {} from font-locator",
                             err,
-                            fallback_str.escape_debug()
+                            fallback_str.escape_unicode()
                         ),
                     }
                 }
@@ -128,12 +128,18 @@ impl LoadedFont {
                 if extra_handles.is_empty() {
                     font_config.advise_no_glyphs(&fallback_str);
                 } else {
-                    let loaded = self.insert_fallback_handles(extra_handles)?;
-                    if loaded {
-                        log::trace!("handles is now: {:#?}", self.handles);
-                        return self.shape(text);
-                    } else {
-                        font_config.advise_no_glyphs(&fallback_str);
+                    match self.insert_fallback_handles(extra_handles) {
+                        Ok(true) => {
+                            log::trace!("handles is now: {:#?}", self.handles);
+                            return self.shape(text);
+                        }
+                        Err(err) => {
+                            log::error!("Failed to insert fallback handles: {:#}", err);
+                            font_config.advise_no_glyphs(&fallback_str);
+                        }
+                        Ok(false) => {
+                            font_config.advise_no_glyphs(&fallback_str);
+                        }
                     }
                 }
             }
