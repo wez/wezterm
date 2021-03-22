@@ -17,6 +17,7 @@ brief notes about them may accumulate here.
 * Fixed: greatly reduce memory consumption when system fallback fonts are loaded [#559](https://github.com/wez/wezterm/issues/559)
 * Fixed: Windows: `window_background_opacity` was only taking effect when `window_decorations="NONE"` [#553](https://github.com/wez/wezterm/issues/553)
 * Fixed: an issue where wezterm could hang if the process spawned by a pane doesn't quit when asked [#558](https://github.com/wez/wezterm/issues/558)
+* Fixed: panic when dismissing the tab navigator [#542](https://github.com/wez/wezterm/issues/542)
 
 ### 20210314-114017-04b7cedd
 
