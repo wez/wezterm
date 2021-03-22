@@ -1828,14 +1828,19 @@ impl TermWindow {
 
     pub fn assign_overlay_for_pane(&mut self, pane_id: PaneId, overlay: Rc<dyn Pane>) {
         if let Some(prior) = self.pane_state(pane_id).overlay.replace(overlay) {
-            Mux::get().unwrap().remove_pane(prior.pane_id());
+            if pane_id != prior.pane_id() {
+                Mux::get().unwrap().remove_pane(prior.pane_id());
+            }
         }
         self.update_title();
     }
 
     pub fn assign_overlay(&mut self, tab_id: TabId, overlay: Rc<dyn Pane>) {
+        let pane_id = overlay.pane_id();
         if let Some(prior) = self.tab_state(tab_id).overlay.replace(overlay) {
-            Mux::get().unwrap().remove_pane(prior.pane_id());
+            if pane_id != prior.pane_id() {
+                Mux::get().unwrap().remove_pane(prior.pane_id());
+            }
         }
         self.update_title();
     }
