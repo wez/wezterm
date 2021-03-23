@@ -598,10 +598,10 @@ impl LocalPane {
         let mut proc_names = vec![];
         if let ProcessState::Running { child, .. } = &*self.process.borrow() {
             if let Some(pid) = child.process_id() {
-                use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
+                use sysinfo::{Pid, ProcessExt, RefreshKind, System, SystemExt};
                 let system = System::new_with_specifics(RefreshKind::new().with_processes());
                 let procs = system.get_processes();
-                let mut pids_to_do = vec![pid as i32];
+                let mut pids_to_do = vec![pid as Pid];
 
                 while let Some(pid) = pids_to_do.pop() {
                     if let Some(proc) = procs.get(&pid) {
