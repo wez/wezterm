@@ -402,7 +402,7 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                     && mode.params[0] == 1000
                     && mode.intermediates.is_empty()
                 {
-                    log::error!("tmux -CC mode requested");
+                    log::info!("tmux -CC mode requested");
 
                     // Create a new domain to host these tmux tabs
                     let domain = TmuxDomain::new(self.pane_id);
@@ -425,7 +425,7 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                 // if so we should arrange to call domain.attach() and make
                 // it do the right thing.
                 } else {
-                    log::error!("unknown DeviceControlMode::Enter {:?}", mode,);
+                    log::warn!("unknown DeviceControlMode::Enter {:?}", mode,);
                 }
             }
             DeviceControlMode::Exit => {
@@ -442,7 +442,7 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                 if let Some(tmux) = self.tmux_domain.as_ref() {
                     tmux.advance(c);
                 } else {
-                    log::error!(
+                    log::warn!(
                         "unhandled DeviceControlMode::Data {:x} {}",
                         c,
                         (c as char).escape_debug()
@@ -450,7 +450,7 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                 }
             }
             _ => {
-                log::error!("unhandled: {:?}", control);
+                log::warn!("unhandled: {:?}", control);
             }
         }
     }
