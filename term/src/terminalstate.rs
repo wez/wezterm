@@ -578,14 +578,15 @@ impl TerminalState {
         Ok(())
     }
 
+    /// Encode a coordinate value using X10 encoding.
+    /// X10 has a theoretical maximum coordinate value of 255-33, but
+    /// because we emit UTF-8 we are effectively capped at the maximum
+    /// single byte character value of 127, with coordinates capping
+    /// out at 127-33.
+    /// This isn't "fixable" in X10 encoding, applications should
+    /// use the superior SGR mouse encoding scheme instead.
     fn legacy_mouse_coord(position: i64) -> char {
-        let pos = if position < 0 || position > 255 - 32 {
-            0 as u8
-        } else {
-            position as u8
-        };
-
-        (pos + 1 + 32) as char
+        position.max(0).saturating_add(1 + 32).min(127) as u8 as char
     }
 
     fn mouse_report_button_number(&self, event: &MouseEvent) -> i8 {
