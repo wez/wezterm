@@ -77,6 +77,15 @@ impl Child for WinChild {
             Err(IoError::last_os_error())
         }
     }
+
+    fn process_id(&self) -> Option<u32> {
+        let res = unsafe { GetProcessId(self.proc.lock().unwrap().as_raw_handle()) };
+        if res == 0 {
+            None
+        } else {
+            Some(res)
+        }
+    }
 }
 
 impl std::future::Future for WinChild {

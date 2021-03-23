@@ -125,6 +125,9 @@ pub trait Child: std::fmt::Debug {
     /// Blocks execution until the child process has completed,
     /// yielding its exit status.
     fn wait(&mut self) -> IoResult<ExitStatus>;
+    /// Returns the process identifier of the child process,
+    /// if applicable
+    fn process_id(&self) -> Option<u32>;
 }
 
 /// Represents the slave side of a pty.
@@ -224,6 +227,10 @@ impl Child for std::process::Child {
 
     fn wait(&mut self) -> IoResult<ExitStatus> {
         std::process::Child::wait(self).map(Into::into)
+    }
+
+    fn process_id(&self) -> Option<u32> {
+        Some(self.id())
     }
 }
 

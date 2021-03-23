@@ -256,6 +256,10 @@ impl Child for SshChild {
             Ok(ExitStatus::with_exit_code(channel.exit_status()? as u32))
         })
     }
+
+    fn process_id(&self) -> Option<u32> {
+        None
+    }
 }
 
 struct SshReader {

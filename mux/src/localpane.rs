@@ -10,8 +10,8 @@ use config::{configuration, ExitBehavior};
 use portable_pty::{Child, MasterPty, PtySize};
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
+use std::collections::HashSet;
 use std::ops::Range;
-use std::path::Path;
 use std::sync::Arc;
 use termwiz::escape::DeviceControlMode;
 use termwiz::surface::Line;
@@ -244,11 +244,23 @@ impl Pane for LocalPane {
     }
 
     fn can_close_without_prompting(&self) -> bool {
-        if let Some(proc) = self.divine_foreground_proc() {
-            configuration()
+        let proc_list = self.divine_process_list();
+        if !proc_list.is_empty() {
+            log::trace!("can_close_without_prompting? procs in pane {:?}", proc_list);
+
+            let skip = configuration()
                 .skip_close_confirmation_for_processes_named
                 .iter()
-                .any(|a| a == &proc)
+                .cloned()
+                .collect::<HashSet<_>>();
+
+            for proc in &proc_list {
+                if !skip.contains(proc) {
+                    return false;
+                }
+            }
+
+            return true;
         } else {
             #[cfg(unix)]
             {
@@ -582,56 +594,34 @@ impl LocalPane {
         None
     }
 
-    #[cfg(target_os = "linux")]
-    fn divine_foreground_proc_linux(&self) -> Option<String> {
-        if let Some(pid) = self.pty.borrow().process_group_leader() {
-            if let Ok(path) = std::fs::read_link(format!("/proc/{}/exe", pid)) {
-                let name = path.file_name()?;
-                return name.to_str().map(|s| s.to_string());
+    fn divine_process_list(&self) -> Vec<String> {
+        let mut proc_names = vec![];
+        if let ProcessState::Running { child, .. } = &*self.process.borrow() {
+            if let Some(pid) = child.process_id() {
+                use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
+                let system = System::new_with_specifics(RefreshKind::new().with_processes());
+                let procs = system.get_processes();
+                let mut pids_to_do = vec![pid as i32];
+
+                while let Some(pid) = pids_to_do.pop() {
+                    if let Some(proc) = procs.get(&pid) {
+                        if let Some(exe) = proc.exe().file_name() {
+                            proc_names.push(exe.to_string_lossy().into_owned());
+                        }
+                    }
+
+                    for (child_pid, proc) in procs {
+                        if let Some(parent) = proc.parent() {
+                            if parent == pid {
+                                pids_to_do.push(*child_pid);
+                            }
+                        }
+                    }
+                }
             }
         }
-        None
-    }
 
-    #[cfg(target_os = "macos")]
-    fn divine_foreground_proc_macos(&self) -> Option<String> {
-        if let Some(pid) = self.pty.borrow().process_group_leader() {
-            extern "C" {
-                fn proc_pidpath(
-                    pid: libc::pid_t,
-                    buffer: *mut u8,
-                    buffersize: libc::c_int,
-                ) -> libc::c_int;
-            }
-
-            let mut buf = [0u8; 4096];
-
-            let ret = unsafe { proc_pidpath(pid, buf.as_mut_ptr(), buf.len() as libc::c_int) };
-            if ret > 0 {
-                use std::ffi::OsStr;
-                use std::os::unix::ffi::OsStrExt;
-                let buf = &buf[..ret as usize];
-                let path = Path::new(OsStr::from_bytes(buf));
-                let name = path.file_name()?;
-                return name.to_str().map(|s| s.to_string());
-            }
-        }
-        None
-    }
-
-    fn divine_foreground_proc(&self) -> Option<String> {
-        #[cfg(target_os = "linux")]
-        {
-            return self.divine_foreground_proc_linux();
-        }
-
-        #[cfg(target_os = "macos")]
-        {
-            return self.divine_foreground_proc_macos();
-        }
-
-        #[allow(unreachable_code)]
-        None
+        proc_names
     }
 }
 

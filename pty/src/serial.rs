@@ -138,6 +138,10 @@ impl Child for SerialChild {
             "cannot wait for a serial connection to die",
         ))
     }
+
+    fn process_id(&self) -> Option<u32> {
+        None
+    }
 }
 
 struct Master {
