@@ -882,7 +882,7 @@ impl super::TermWindow {
                         continue;
                     }
 
-                    if self.config.custom_block_glyphs {
+                    if self.config.custom_block_glyphs && glyph_idx == 0 {
                         if let Some(block) = BlockKey::from_cell(&params.line.cells()[cell_idx]) {
                             self.populate_block_quad(
                                 block,
