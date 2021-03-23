@@ -9,6 +9,7 @@ use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
+use ::window::WindowOps;
 use anyhow::anyhow;
 use config::ConfigHandle;
 use config::TextStyle;
@@ -22,7 +23,7 @@ use std::time::Instant;
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::PixelLength;
-use wezterm_font::GlyphInfo;
+use wezterm_font::{ClearShapeCache, GlyphInfo};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::bitmaps::atlas::SpriteSlice;
@@ -97,7 +98,7 @@ impl super::TermWindow {
                     if let Some(&OutOfTextureSpace {
                         size: Some(size),
                         current_size,
-                    }) = err.downcast_ref::<OutOfTextureSpace>()
+                    }) = err.root_cause().downcast_ref::<OutOfTextureSpace>()
                     {
                         let result = if pass == 0 {
                             // Let's try clearing out the atlas and trying again
@@ -117,6 +118,8 @@ impl super::TermWindow {
                             );
                             break;
                         }
+                    } else if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
+                        self.shape_cache.borrow_mut().clear();
                     } else {
                         log::error!("paint_opengl_pass failed: {:#}", err);
                         break;
@@ -504,7 +507,8 @@ impl super::TermWindow {
                 Some(Err(err)) => return Err(err),
                 None => {
                     let font = self.fonts.resolve_font(style)?;
-                    match font.shape(text) {
+                    let window = self.window.as_ref().unwrap().clone();
+                    match font.shape(text, || Self::invalidate_post_font_resolve(window)) {
                         Ok(info) => {
                             let line = Line::from_text(&text, &CellAttributes::default());
                             let clusters = line.cluster();
@@ -527,6 +531,10 @@ impl super::TermWindow {
                             self.lookup_cached_shape(&key).unwrap().unwrap()
                         }
                         Err(err) => {
+                            if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
+                                return Err(err);
+                            }
+
                             let res = anyhow!("shaper error: {}", err);
                             self.shape_cache.borrow_mut().put(key.to_owned(), Err(err));
                             return Err(res);
@@ -613,6 +621,21 @@ impl super::TermWindow {
         }
 
         Ok(())
+    }
+
+    fn invalidate_post_font_resolve(window: ::window::Window) {
+        promise::spawn::spawn_into_main_thread(async move {
+            window
+                .apply(move |tw, _| {
+                    if let Some(tw) = tw.downcast_mut::<Self>() {
+                        tw.shape_cache.borrow_mut().clear();
+                        tw.window.as_ref().unwrap().invalidate();
+                    }
+                    Ok(())
+                })
+                .await
+        })
+        .detach();
     }
 
     /// "Render" a line of the terminal screen into the vertex buffer.
@@ -760,7 +783,10 @@ impl super::TermWindow {
                     Some(Err(err)) => return Err(err),
                     None => {
                         let font = self.fonts.resolve_font(style)?;
-                        match font.shape(&cluster.text) {
+                        let window = self.window.as_ref().unwrap().clone();
+                        match font
+                            .shape(&cluster.text, || Self::invalidate_post_font_resolve(window))
+                        {
                             Ok(info) => {
                                 let glyphs = self.glyph_infos_to_glyphs(
                                     cluster,
@@ -782,6 +808,10 @@ impl super::TermWindow {
                                 self.lookup_cached_shape(&key).unwrap().unwrap()
                             }
                             Err(err) => {
+                                if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
+                                    return Err(err);
+                                }
+
                                 let res = anyhow!("shaper error: {}", err);
                                 self.shape_cache.borrow_mut().put(key.to_owned(), Err(err));
                                 return Err(res);

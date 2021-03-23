@@ -6,16 +6,15 @@ use anyhow::{anyhow, Context};
 use config::{Config, FontAttributes};
 use rangeset::RangeSet;
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 struct Entry {
     names: Names,
     handle: FontDataHandle,
-    coverage: RefCell<Option<RangeSet<u32>>>,
+    coverage: Mutex<Option<RangeSet<u32>>>,
 }
 
 impl Entry {
@@ -50,7 +49,7 @@ impl Entry {
     /// Computes the codepoint coverage for this font entry if we haven't
     /// already done so.
     fn coverage_intersection(&self, wanted: &RangeSet<u32>) -> anyhow::Result<RangeSet<u32>> {
-        let mut coverage = self.coverage.borrow_mut();
+        let mut coverage = self.coverage.lock().unwrap();
         if coverage.is_none() {
             let t = std::time::Instant::now();
             coverage.replace(self.compute_coverage()?);
@@ -68,8 +67,8 @@ impl Entry {
 }
 
 pub struct FontDatabase {
-    by_family: HashMap<String, Vec<Rc<Entry>>>,
-    by_full_name: HashMap<String, Rc<Entry>>,
+    by_family: HashMap<String, Vec<Arc<Entry>>>,
+    by_full_name: HashMap<String, Arc<Entry>>,
 }
 
 impl FontDatabase {
@@ -82,17 +81,17 @@ impl FontDatabase {
 
     fn load_font_info(&mut self, font_info: Vec<(Names, PathBuf, FontDataHandle)>) {
         for (names, _path, handle) in font_info {
-            let entry = Rc::new(Entry {
+            let entry = Arc::new(Entry {
                 names,
                 handle,
-                coverage: RefCell::new(None),
+                coverage: Mutex::new(None),
             });
 
             if let Some(family) = entry.names.family.as_ref() {
                 self.by_family
                     .entry(family.to_string())
                     .or_insert_with(Vec::new)
-                    .push(Rc::clone(&entry));
+                    .push(Arc::clone(&entry));
             }
 
             self.by_full_name

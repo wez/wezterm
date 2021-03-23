@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 pub mod core_text;
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -122,27 +123,27 @@ pub trait FontLocator {
     ) -> anyhow::Result<Vec<FontDataHandle>>;
 }
 
-pub fn new_locator(locator: FontLocatorSelection) -> Box<dyn FontLocator> {
+pub fn new_locator(locator: FontLocatorSelection) -> Arc<dyn FontLocator + Send + Sync> {
     match locator {
         FontLocatorSelection::FontConfig => {
             #[cfg(all(unix, not(target_os = "macos")))]
-            return Box::new(font_config::FontConfigFontLocator {});
+            return Arc::new(font_config::FontConfigFontLocator {});
             #[cfg(not(all(unix, not(target_os = "macos"))))]
             panic!("fontconfig not compiled in");
         }
         FontLocatorSelection::CoreText => {
             #[cfg(target_os = "macos")]
-            return Box::new(core_text::CoreTextFontLocator {});
+            return Arc::new(core_text::CoreTextFontLocator {});
             #[cfg(not(target_os = "macos"))]
             panic!("CoreText not compiled in");
         }
         FontLocatorSelection::Gdi => {
             #[cfg(windows)]
-            return Box::new(gdi::GdiFontLocator {});
+            return Arc::new(gdi::GdiFontLocator {});
             #[cfg(not(windows))]
             panic!("Gdi not compiled in");
         }
-        FontLocatorSelection::ConfigDirsOnly => Box::new(NopSystemSource {}),
+        FontLocatorSelection::ConfigDirsOnly => Arc::new(NopSystemSource {}),
     }
 }
 

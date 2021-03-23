@@ -7,6 +7,8 @@ use config::{configuration, ConfigHandle, FontRasterizerSelection, TextStyle};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::{Rc, Weak};
+use std::sync::{Arc, Mutex};
+use thiserror::Error;
 use wezterm_term::CellAttributes;
 use window::default_dpi;
 
@@ -26,6 +28,10 @@ pub mod fcwrap;
 pub use crate::rasterizer::RasterizedGlyph;
 pub use crate::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 
+#[derive(Debug, Error)]
+#[error("Font fallback recalculated")]
+pub struct ClearShapeCache {}
+
 pub struct LoadedFont {
     rasterizers: RefCell<HashMap<FallbackIdx, Box<dyn FontRasterizer>>>,
     handles: RefCell<Vec<FontDataHandle>>,
@@ -34,6 +40,7 @@ pub struct LoadedFont {
     font_size: f64,
     dpi: u32,
     font_config: Weak<FontConfigInner>,
+    pending_fallback: Arc<Mutex<Vec<FontDataHandle>>>,
 }
 
 impl LoadedFont {
@@ -47,17 +54,14 @@ impl LoadedFont {
             let mut handles = self.handles.borrow_mut();
             for h in extra_handles {
                 if !handles.iter().any(|existing| *existing == h) {
-                    match crate::parser::ParsedFont::from_locator(&h) {
-                        Ok(_parsed) => {
-                            let idx = handles.len() - 1;
-                            handles.insert(idx, h);
-                            loaded = true;
-                        }
-                        Err(err) => {
-                            log::error!("Failed to parse font from {:?}: {:?}", h, err);
-                        }
-                    }
+                    let idx = handles.len() - 1;
+                    handles.insert(idx, h);
+                    self.rasterizers.borrow_mut().remove(&idx);
+                    loaded = true;
                 }
+            }
+            if loaded {
+                log::trace!("revised fallback: {:?}", handles);
             }
         }
         if loaded {
@@ -69,79 +73,38 @@ impl LoadedFont {
         Ok(loaded)
     }
 
-    pub fn shape(&self, text: &str) -> anyhow::Result<Vec<GlyphInfo>> {
+    pub fn shape<F: FnOnce() + Send + Sync + 'static>(
+        &self,
+        text: &str,
+        completion: F,
+    ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut no_glyphs = vec![];
+
+        {
+            let mut pending = self.pending_fallback.lock().unwrap();
+            if !pending.is_empty() {
+                match self.insert_fallback_handles(pending.split_off(0)) {
+                    Ok(true) => return Err(ClearShapeCache {})?,
+                    Ok(false) => {}
+                    Err(err) => {
+                        log::error!("Error adding fallback: {:#}", err);
+                    }
+                }
+            }
+        }
+
         let result = self
             .shaper
             .borrow()
             .shape(text, self.font_size, self.dpi, &mut no_glyphs);
 
         if !no_glyphs.is_empty() {
-            no_glyphs.sort();
-            no_glyphs.dedup();
             if let Some(font_config) = self.font_config.upgrade() {
-                let mut extra_handles = vec![];
-                let fallback_str = no_glyphs.iter().collect::<String>();
-
-                match font_config
-                    .font_dirs
-                    .borrow()
-                    .locate_fallback_for_codepoints(&no_glyphs)
-                {
-                    Ok(ref mut handles) => extra_handles.append(handles),
-                    Err(err) => log::error!(
-                        "Error: {} while resolving fallback for {} from font_dirs",
-                        err,
-                        fallback_str.escape_unicode()
-                    ),
-                }
-
-                if extra_handles.is_empty() {
-                    match font_config
-                        .built_in
-                        .borrow()
-                        .locate_fallback_for_codepoints(&no_glyphs)
-                    {
-                        Ok(ref mut handles) => extra_handles.append(handles),
-                        Err(err) => log::error!(
-                            "Error: {} while resolving fallback for {} for built-in fonts",
-                            err,
-                            fallback_str.escape_unicode()
-                        ),
-                    }
-                }
-
-                if extra_handles.is_empty() {
-                    match font_config
-                        .locator
-                        .locate_fallback_for_codepoints(&no_glyphs)
-                    {
-                        Ok(ref mut handles) => extra_handles.append(handles),
-                        Err(err) => log::error!(
-                            "Error: {} while resolving fallback for {} from font-locator",
-                            err,
-                            fallback_str.escape_unicode()
-                        ),
-                    }
-                }
-
-                if extra_handles.is_empty() {
-                    font_config.advise_no_glyphs(&fallback_str);
-                } else {
-                    match self.insert_fallback_handles(extra_handles) {
-                        Ok(true) => {
-                            log::trace!("handles is now: {:#?}", self.handles);
-                            return self.shape(text);
-                        }
-                        Err(err) => {
-                            log::error!("Failed to insert fallback handles: {:#}", err);
-                            font_config.advise_no_glyphs(&fallback_str);
-                        }
-                        Ok(false) => {
-                            font_config.advise_no_glyphs(&fallback_str);
-                        }
-                    }
-                }
+                font_config.schedule_fallback_resolve(
+                    no_glyphs,
+                    &self.pending_fallback,
+                    completion,
+                );
             }
         }
 
@@ -183,9 +146,9 @@ struct FontConfigInner {
     dpi_scale: RefCell<f64>,
     font_scale: RefCell<f64>,
     config: RefCell<ConfigHandle>,
-    locator: Box<dyn FontLocator>,
-    font_dirs: RefCell<FontDatabase>,
-    built_in: RefCell<FontDatabase>,
+    locator: Arc<dyn FontLocator + Send + Sync>,
+    font_dirs: RefCell<Arc<FontDatabase>>,
+    built_in: RefCell<Arc<FontDatabase>>,
     no_glyphs: RefCell<HashSet<char>>,
 }
 
@@ -206,8 +169,8 @@ impl FontConfigInner {
             font_scale: RefCell::new(1.0),
             dpi_scale: RefCell::new(1.0),
             config: RefCell::new(config.clone()),
-            font_dirs: RefCell::new(FontDatabase::with_font_dirs(&config)?),
-            built_in: RefCell::new(FontDatabase::with_built_in()?),
+            font_dirs: RefCell::new(Arc::new(FontDatabase::with_font_dirs(&config)?)),
+            built_in: RefCell::new(Arc::new(FontDatabase::with_built_in()?)),
             no_glyphs: RefCell::new(HashSet::new()),
         })
     }
@@ -219,27 +182,66 @@ impl FontConfigInner {
         fonts.clear();
         self.metrics.borrow_mut().take();
         self.no_glyphs.borrow_mut().clear();
-        *self.font_dirs.borrow_mut() = FontDatabase::with_font_dirs(config)?;
+        *self.font_dirs.borrow_mut() = Arc::new(FontDatabase::with_font_dirs(config)?);
         Ok(())
     }
 
-    fn advise_no_glyphs(&self, fallback_str: &str) {
-        let mut no_glyphs = self.no_glyphs.borrow_mut();
-        let mut notif = String::new();
-        for c in fallback_str.chars() {
-            if !no_glyphs.contains(&c) {
-                notif.push(c);
-                no_glyphs.insert(c);
+    fn schedule_fallback_resolve<F: FnOnce() + Send + Sync + 'static>(
+        &self,
+        mut no_glyphs: Vec<char>,
+        pending: &Arc<Mutex<Vec<FontDataHandle>>>,
+        completion: F,
+    ) {
+        let mut ng = self.no_glyphs.borrow_mut();
+        no_glyphs.retain(|c| !ng.contains(c));
+        for c in &no_glyphs {
+            ng.insert(*c);
+        }
+        if no_glyphs.is_empty() {
+            return;
+        }
+
+        let font_dirs = Arc::clone(&*self.font_dirs.borrow());
+        let built_in = Arc::clone(&*self.built_in.borrow());
+        let locator = Arc::clone(&self.locator);
+        let pending = Arc::clone(pending);
+        std::thread::spawn(move || {
+            let fallback_str = no_glyphs.iter().collect::<String>();
+            let mut extra_handles = vec![];
+
+            match font_dirs.locate_fallback_for_codepoints(&no_glyphs) {
+                Ok(ref mut handles) => extra_handles.append(handles),
+                Err(err) => log::error!(
+                    "Error: {} while resolving fallback for {} from font_dirs",
+                    err,
+                    fallback_str.escape_unicode()
+                ),
             }
-        }
-        if !notif.is_empty() {
-            mux::connui::show_configuration_error_message(&format!(
-                "Unable to resolve a font containing glyphs for {}. \
-                A glyph from the built-in \"last resort\" font is being \
-                used instead.",
-                notif.escape_unicode()
-            ));
-        }
+
+            match built_in.locate_fallback_for_codepoints(&no_glyphs) {
+                Ok(ref mut handles) => extra_handles.append(handles),
+                Err(err) => log::error!(
+                    "Error: {} while resolving fallback for {} for built-in fonts",
+                    err,
+                    fallback_str.escape_unicode()
+                ),
+            }
+
+            match locator.locate_fallback_for_codepoints(&no_glyphs) {
+                Ok(ref mut handles) => extra_handles.append(handles),
+                Err(err) => log::error!(
+                    "Error: {} while resolving fallback for {} from font-locator",
+                    err,
+                    fallback_str.escape_unicode()
+                ),
+            }
+
+            if !extra_handles.is_empty() {
+                let mut pending = pending.lock().unwrap();
+                pending.append(&mut extra_handles);
+                completion();
+            }
+        });
     }
 
     /// Given a text style, load (with caching) the font that best
@@ -342,6 +344,7 @@ impl FontConfigInner {
             font_size,
             dpi,
             font_config: Rc::downgrade(myself),
+            pending_fallback: Arc::new(Mutex::new(vec![])),
         });
 
         fonts.insert(style.clone(), Rc::clone(&loaded));
