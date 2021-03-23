@@ -286,7 +286,7 @@ mod test {
         let cell_clusters = line.cluster();
         assert_eq!(cell_clusters.len(), 1);
         let cluster = &cell_clusters[0];
-        let infos = font.shape(&cluster.text).unwrap();
+        let infos = font.shape(&cluster.text, || {}).unwrap();
         let glyphs = infos
             .iter()
             .map(|info| {
