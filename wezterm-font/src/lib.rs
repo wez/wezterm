@@ -360,6 +360,7 @@ impl FontConfigInner {
         *self.font_scale.borrow_mut() = font_scale;
         self.fonts.borrow_mut().clear();
         self.metrics.borrow_mut().take();
+        self.no_glyphs.borrow_mut().clear();
 
         (prior_font, prior_dpi)
     }
