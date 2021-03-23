@@ -26,7 +26,6 @@ ratelim= { path = "../ratelim" }
 regex = "1"
 serde = {version="1.0", features = ["rc", "derive"]}
 ssh2 = "0.9"
-sysinfo = "0.16"
 terminfo = "0.7"
 termwiz = { path = "../termwiz" }
 textwrap = "0.13"
@@ -35,3 +34,6 @@ tmux-cc = { path = "../tmux-cc" }
 unicode-segmentation = "1.7"
 url = "2"
 wezterm-term = { path = "../term", features=["use_serde"] }
+
+[target.'cfg(all(windows, target_os="linux", target_os="macos"))'.dependencies]
+sysinfo = "0.16"

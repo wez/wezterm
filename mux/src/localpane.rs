@@ -595,7 +595,10 @@ impl LocalPane {
     }
 
     fn divine_process_list(&self) -> Vec<String> {
+        #[allow(unused_mut)]
         let mut proc_names = vec![];
+
+        #[cfg(all(windows, target_os = "linux", target_os = "macos"))]
         if let ProcessState::Running { child, .. } = &*self.process.borrow() {
             if let Some(pid) = child.process_id() {
                 use sysinfo::{Pid, ProcessExt, RefreshKind, System, SystemExt};
