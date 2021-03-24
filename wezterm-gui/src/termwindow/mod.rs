@@ -317,7 +317,7 @@ impl WindowCallbacks for TermWindow {
                 dimensions.pixel_width,
                 dimensions.pixel_height,
                 guts,
-                Some(&crate::window_config::ConfigInstance::new(config)),
+                Some(&config),
             )?;
 
             Self::apply_icon(&window)?;
@@ -533,7 +533,7 @@ impl TermWindow {
                 event_states: HashMap::new(),
                 has_animation: RefCell::new(None),
             }),
-            Some(&crate::window_config::ConfigInstance::new(config)),
+            Some(&config),
         )?;
 
         Self::apply_icon(&window)?;
@@ -947,7 +947,7 @@ impl TermWindow {
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
         self.apply_dimensions(&dimensions, None);
         if let Some(window) = self.window.as_ref() {
-            window.config_did_change(&crate::window_config::ConfigInstance::new(config));
+            window.config_did_change(&config);
             window.invalidate();
         }
 

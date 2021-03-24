@@ -412,7 +412,7 @@ impl GlState {
         }
 
         let mut errors = vec![];
-        let mut prefer_swrast = crate::configuration::config().prefer_swrast();
+        let mut prefer_swrast = crate::configuration::prefer_swrast();
 
         for _ in 0..2 {
             if prefer_swrast {

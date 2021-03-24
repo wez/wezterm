@@ -4,9 +4,9 @@
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::{
-    config, Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
-    MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size,
-    WindowCallbacks, WindowConfigHandle, WindowDecorations, WindowOps, WindowOpsMut,
+    Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
+    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size, WindowCallbacks,
+    WindowDecorations, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
@@ -18,6 +18,7 @@ use cocoa::appkit::{
 use cocoa::base::*;
 use cocoa::foundation::NSAutoreleasePool;
 use cocoa::foundation::{NSArray, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger};
+use config::ConfigHandle;
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};
@@ -33,7 +34,6 @@ use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::Arc;
 use std::time::Instant;
 
 fn round_away_from_zerof(value: f64) -> f64 {
@@ -125,7 +125,7 @@ impl GlContextPair {
         };
 
         // Let's first try to initialize EGL...
-        let (context, backend) = match if config().prefer_egl() {
+        let (context, backend) = match if config::configuration().prefer_egl {
             // ANGLE wants a layer, so tell the view to create one.
             // Importantly, we must set its scale to 1.0 prior to initializing
             // EGL to prevent undesirable scaling.
@@ -318,7 +318,7 @@ pub(crate) struct WindowInner {
     window_id: usize,
     view: StrongPtr,
     window: StrongPtr,
-    config: WindowConfigHandle,
+    config: ConfigHandle,
 }
 
 fn function_key_to_keycode(function_key: char) -> KeyCode {
@@ -358,15 +358,15 @@ impl Window {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-        config: Option<&WindowConfigHandle>,
+        config: Option<&ConfigHandle>,
     ) -> anyhow::Result<Window> {
         let config = match config {
-            Some(c) => Arc::clone(c),
-            None => crate::config(),
+            Some(c) => c.clone(),
+            None => config::configuration(),
         };
 
         unsafe {
-            let style_mask = decoration_to_mask(config.decorations());
+            let style_mask = decoration_to_mask(config.window_decorations);
             let rect = NSRect::new(
                 NSPoint::new(0., 0.),
                 NSSize::new(width as f64, height as f64),
@@ -390,7 +390,7 @@ impl Window {
                 key_is_down: None,
                 dead_pending: None,
                 fullscreen: None,
-                config: Arc::clone(&config),
+                config: config.clone(),
             }));
 
             let window: id = msg_send![get_window_class(), alloc];
@@ -453,7 +453,7 @@ impl Window {
                 window_id,
                 window,
                 view,
-                config: Arc::clone(&config),
+                config: config.clone(),
             }));
             inner.borrow_mut().window.replace(weak_window);
             conn.windows
@@ -591,8 +591,8 @@ impl WindowOps for Window {
         })
     }
 
-    fn config_did_change(&self, config: &WindowConfigHandle) -> Future<()> {
-        let config = Arc::clone(config);
+    fn config_did_change(&self, config: &ConfigHandle) -> Future<()> {
+        let config = config.clone();
         Connection::with_window_inner(self.0, move |inner| {
             inner.config_did_change(&config);
             Ok(())
@@ -645,7 +645,7 @@ impl WindowInner {
 
     fn apply_decorations(&mut self) {
         if !self.is_fullscreen() {
-            let mask = decoration_to_mask(self.config.decorations());
+            let mask = decoration_to_mask(self.config.window_decorations);
             unsafe {
                 self.window.setStyleMask_(mask);
                 /*
@@ -708,7 +708,7 @@ impl WindowInner {
                     // Restore prior dimensions
                     self.window.orderOut_(nil);
                     self.window
-                        .setStyleMask_(decoration_to_mask(self.config.decorations()));
+                        .setStyleMask_(decoration_to_mask(self.config.window_decorations));
                     self.window.setFrame_display_(saved_rect, YES);
                     self.window.makeKeyAndOrderFront_(nil);
                     self.window.setOpaque_(NO);
@@ -744,7 +744,7 @@ impl WindowInner {
     }
 
     fn update_window_shadow(&mut self) {
-        let is_opaque = if self.config.window_background_opacity() >= 1.0 {
+        let is_opaque = if self.config.window_background_opacity >= 1.0 {
             YES
         } else {
             NO
@@ -844,7 +844,7 @@ impl WindowOpsMut for WindowInner {
         if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
             window_view.inner.borrow_mut().text_cursor_position = cursor;
         }
-        if self.config.use_ime() {
+        if self.config.use_ime {
             unsafe {
                 let input_context: id = msg_send![&**self.view, inputContext];
                 let () = msg_send![input_context, invalidateCharacterCoordinates];
@@ -853,7 +853,7 @@ impl WindowOpsMut for WindowInner {
     }
 
     fn toggle_fullscreen(&mut self) {
-        let native_fullscreen = self.config.native_macos_fullscreen_mode();
+        let native_fullscreen = self.config.native_macos_fullscreen_mode;
 
         // If they changed their config since going full screen, be sure
         // to undo whichever fullscreen mode they had active rather than
@@ -870,10 +870,10 @@ impl WindowOpsMut for WindowInner {
         }
     }
 
-    fn config_did_change(&mut self, config: &WindowConfigHandle) {
-        self.config = Arc::clone(config);
+    fn config_did_change(&mut self, config: &ConfigHandle) {
+        self.config = config.clone();
         if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
-            window_view.inner.borrow_mut().config = Arc::clone(config);
+            window_view.inner.borrow_mut().config = config.clone();
         }
         self.update_window_shadow();
         self.apply_decorations();
@@ -924,7 +924,7 @@ struct Inner {
     /// the window dimensions that need to be restored
     fullscreen: Option<NSRect>,
 
-    config: WindowConfigHandle,
+    config: ConfigHandle,
 }
 
 #[repr(C)]
@@ -1027,12 +1027,12 @@ impl Inner {
 
         let config = &self.config;
 
-        let use_dead_keys = if !config.use_dead_keys() {
+        let use_dead_keys = if !config.use_dead_keys {
             false
         } else if mods.contains(Modifiers::LEFT_ALT) {
-            config.send_composed_key_when_left_alt_is_pressed()
+            config.send_composed_key_when_left_alt_is_pressed
         } else if mods.contains(Modifiers::RIGHT_ALT) {
-            config.send_composed_key_when_right_alt_is_pressed()
+            config.send_composed_key_when_right_alt_is_pressed
         } else {
             true
         };
@@ -1615,7 +1615,7 @@ impl WindowView {
             return;
         };
 
-        let use_ime = config().use_ime();
+        let use_ime = config::configuration().use_ime;
 
         // `Delete` on macos is really Backspace and emits BS.
         // `Fn-Delete` emits DEL.

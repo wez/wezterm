@@ -2,13 +2,11 @@ use promise::Future;
 use std::any::Any;
 pub mod bitmaps;
 pub mod color;
-pub mod configuration;
+mod configuration;
 pub mod connection;
 pub mod os;
 mod spawn;
 mod timerlist;
-
-use configuration::{config, WindowConfigHandle};
 
 #[cfg(target_os = "macos")]
 pub(crate) const DEFAULT_DPI: f64 = 72.0;
@@ -187,7 +185,7 @@ pub trait WindowOps {
         Future::ok(())
     }
 
-    fn config_did_change(&self, _config: &WindowConfigHandle) -> Future<()> {
+    fn config_did_change(&self, _config: &config::ConfigHandle) -> Future<()> {
         Future::ok(())
     }
 }
@@ -232,5 +230,5 @@ pub trait WindowOpsMut {
 
     fn toggle_fullscreen(&mut self) {}
 
-    fn config_did_change(&mut self, _config: &WindowConfigHandle) {}
+    fn config_did_change(&mut self, _config: &config::ConfigHandle) {}
 }

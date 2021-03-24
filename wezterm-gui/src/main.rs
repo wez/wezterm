@@ -32,7 +32,6 @@ mod tabbar;
 mod termwindow;
 mod update;
 mod utilsprites;
-mod window_config;
 
 pub use selection::SelectionMode;
 pub use termwindow::set_window_class;
@@ -452,7 +451,6 @@ fn run() -> anyhow::Result<()> {
         opts.skip_config,
     );
     let config = config::configuration();
-    ::window::configuration::set_configuration(crate::window_config::ConfigBridge);
 
     match opts
         .cmd

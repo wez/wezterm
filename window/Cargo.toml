@@ -17,6 +17,7 @@ gl_generator = "0.14"
 [dependencies]
 async-task = "4.0"
 anyhow = "1.0"
+config = { path = "../config" }
 thiserror = "1.0"
 bitflags = "1.0"
 euclid = "0.22"
