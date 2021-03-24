@@ -25,6 +25,7 @@ brief notes about them may accumulate here.
 * New: added [skip_close_confirmation_for_processes_named](config/lua/config/skip_close_confirmation_for_processes_named.md) option which specifies a list of processes for which it is considered safe to allow closing a pane/tab/window without a prompt. [#562](https://github.com/wez/wezterm/issues/562)
 * Fixed: triggering the search overlay again while the search overlay is active no longer closes the underlying pane [#572](https://github.com/wez/wezterm/issues/572)
 * Fixed: X10 mouse coordinate reporting encoding could produce invalid outputs for large windows. Capped coordinate values to the maximum value that is representable in UTF-8 encoding
+* Fixed: font fallback now happens asynchronously from painting [#508](https://github.com/wez/wezterm/issues/508)
 
 ### 20210314-114017-04b7cedd
 
