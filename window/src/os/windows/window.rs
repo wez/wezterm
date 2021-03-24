@@ -19,7 +19,6 @@ use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
-use std::sync::Arc;
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
@@ -1282,7 +1281,7 @@ impl KeyboardLayoutInfo {
         state[VK_MENU as usize] = 0x80;
 
         for vk in 0..=255u32 {
-            if vk == VK_PACKET as _ {
+            if vk == VK_PACKET as u32 {
                 // Avoid false positives
                 continue;
             }
@@ -1331,7 +1330,7 @@ impl KeyboardLayoutInfo {
             Self::apply_mods(mods, &mut state);
 
             for vk in 0..=255u32 {
-                if vk == VK_PACKET as _ {
+                if vk == VK_PACKET as u32 {
                     // Avoid false positives
                     continue;
                 }
@@ -1523,7 +1522,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let repeat = (lparam & 0xffff) as u16;
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
-        let ime_active = wparam == VK_PROCESSKEY as _;
+        let ime_active = wparam == VK_PROCESSKEY as WPARAM;
 
         /*
         let alt_pressed = (lparam & (1 << 29)) != 0;

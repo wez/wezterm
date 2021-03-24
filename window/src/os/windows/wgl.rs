@@ -93,7 +93,7 @@ impl WglWrapper {
     }
 
     fn create() -> anyhow::Result<Self> {
-        if crate::configuration::config().prefer_swrast() {
+        if crate::configuration::prefer_swrast() {
             let mesa_dir = std::env::current_exe()
                 .unwrap()
                 .parent()
