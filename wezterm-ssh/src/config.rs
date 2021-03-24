@@ -254,6 +254,10 @@ impl Config {
         }
 
         result
+            .entry("hostname".to_string())
+            .or_insert_with(|| host.to_string());
+
+        result
     }
 
     /// Return true if a given option name is subject to environment variable
@@ -444,6 +448,7 @@ Config {
             opts,
             r#"
 {
+    "hostname": "random",
     "something": "first",
 }
 "#
@@ -455,6 +460,7 @@ Config {
             r#"
 {
     "fowardagent": "yes",
+    "hostname": "192.168.1.8",
     "identityfile": "/home/me/.ssh/id_pub.dsa",
     "something": "first",
 }
@@ -466,6 +472,7 @@ Config {
             opts,
             r#"
 {
+    "hostname": "a.b",
     "something": "first",
 }
 "#
@@ -477,6 +484,7 @@ Config {
             r#"
 {
     "forwardagent": "no",
+    "hostname": "b.b",
     "identityagent": "/home/me/.ssh/agent",
     "something": "first",
 }
