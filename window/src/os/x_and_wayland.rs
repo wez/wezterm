@@ -7,8 +7,8 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::WindowConfigHandle;
 use crate::{Clipboard, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
+use config::ConfigHandle;
 use promise::*;
 use std::any::Any;
 use std::rc::Rc;
@@ -30,7 +30,7 @@ impl Connection {
     pub(crate) fn create_new() -> anyhow::Result<Connection> {
         #[cfg(feature = "wayland")]
         {
-            if crate::config().enable_wayland() {
+            if config::configuration().enable_wayland {
                 match WaylandConnection::create_new() {
                     Ok(w) => {
                         log::debug!("Using wayland connection!");
@@ -52,7 +52,7 @@ impl Connection {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-        config: Option<&WindowConfigHandle>,
+        config: Option<&ConfigHandle>,
     ) -> anyhow::Result<Window> {
         match self {
             Self::X11(_) => XWindow::new_window(class_name, name, width, height, callbacks, config),
@@ -112,7 +112,7 @@ impl Window {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-        config: Option<&WindowConfigHandle>,
+        config: Option<&ConfigHandle>,
     ) -> anyhow::Result<Window> {
         Connection::get()
             .unwrap()
@@ -145,7 +145,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn config_did_change(&self, config: &WindowConfigHandle) -> Future<()> {
+    fn config_did_change(&self, config: &ConfigHandle) -> Future<()> {
         match self {
             Self::X11(x) => x.config_did_change(config),
             #[cfg(feature = "wayland")]

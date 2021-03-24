@@ -4,12 +4,12 @@ use super::pointer::*;
 use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
-use crate::WindowConfigHandle;
 use crate::{
     Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowCallbacks,
     WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, Context};
+use config::ConfigHandle;
 use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
 use smithay_client_toolkit as toolkit;
@@ -167,7 +167,7 @@ impl WaylandWindow {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-        _config: Option<&WindowConfigHandle>,
+        _config: Option<&ConfigHandle>,
     ) -> anyhow::Result<Window> {
         let conn = WaylandConnection::get()
             .ok_or_else(|| {

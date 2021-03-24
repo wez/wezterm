@@ -329,7 +329,7 @@ impl XConnection {
             let depth_bpp = depth.depth();
             if depth_bpp == 24 || depth_bpp == 32 {
                 for vis in depth.visuals() {
-                    if vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as _
+                    if vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as u8
                         && vis.bits_per_rgb_value() == 8
                     {
                         visuals.push((depth_bpp, vis));
