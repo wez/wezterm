@@ -5,13 +5,15 @@ use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
-    Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowCallbacks,
-    WindowOps, WindowOpsMut,
+    Clipboard, Connection, Dimensions, GpuContext, MouseCursor, Point, ScreenPoint, Window,
+    WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, Context};
 use config::ConfigHandle;
 use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
+use raw_window_handle::unix::WaylandHandle;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use smithay_client_toolkit as toolkit;
 use std::any::Any;
 use std::cell::RefCell;
@@ -25,7 +27,6 @@ use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEve
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::window::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame, Event, State};
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
-use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_input_types::*;
 
 const DARK_GRAY: [u8; 4] = [0xff, 0x35, 0x35, 0x35];
@@ -92,11 +93,7 @@ pub struct WaylandWindowInner {
     modifiers: Modifiers,
     pending_event: Arc<Mutex<PendingEvent>>,
     pending_mouse: Arc<Mutex<PendingMouse>>,
-    // wegl_surface is listed before gl_state because it
-    // must be dropped before gl_state otherwise the underlying
-    // libraries will segfault on shutdown
-    wegl_surface: Option<WlEglSurface>,
-    gl_state: Option<Rc<glium::backend::Context>>,
+    gpu_context: Option<Rc<RefCell<GpuContext>>>,
 }
 
 #[derive(Default, Clone, Debug)]
@@ -161,7 +158,7 @@ impl PendingEvent {
 pub struct WaylandWindow(usize);
 
 impl WaylandWindow {
-    pub fn new_window(
+    pub async fn new_window(
         class_name: &str,
         name: &str,
         width: usize,
@@ -259,8 +256,7 @@ impl WaylandWindow {
             modifiers: Modifiers::NONE,
             pending_event,
             pending_mouse,
-            gl_state: None,
-            wegl_surface: None,
+            gpu_context: None,
         }));
 
         let window_handle = Window::Wayland(WaylandWindow(window_id));
@@ -268,6 +264,18 @@ impl WaylandWindow {
         conn.windows.borrow_mut().insert(window_id, inner.clone());
 
         Ok(window_handle)
+    }
+}
+
+unsafe impl HasRawWindowHandle for WaylandWindowInner {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        let conn = WaylandConnection::get().unwrap().wayland();
+        let display = conn.display.borrow();
+        RawWindowHandle::Wayland(WaylandHandle {
+            surface: self.surface.as_ref().c_ptr() as *mut _,
+            display: display.c_ptr() as *mut _,
+            ..WaylandHandle::empty()
+        })
     }
 }
 
@@ -503,9 +511,19 @@ impl WaylandWindowInner {
                 if new_dimensions != self.dimensions {
                     self.dimensions = new_dimensions;
 
+                    if let Some(gpu_context) = self.gpu_context.as_ref() {
+                        let mut gpu_context = gpu_context.borrow_mut();
+                        gpu_context.sc_desc.width = pixel_width as u32;
+                        gpu_context.sc_desc.height = pixel_height as u32;
+                    }
+
                     self.callbacks.resize(self.dimensions, self.full_screen);
-                    if let Some(wegl_surface) = self.wegl_surface.as_mut() {
-                        wegl_surface.resize(pixel_width, pixel_height, 0, 0);
+
+                    if let Some(gpu_context) = self.gpu_context.as_ref() {
+                        let mut gpu_context = gpu_context.borrow_mut();
+                        gpu_context.swap_chain = gpu_context
+                            .device
+                            .create_swap_chain(&gpu_context.surface, &gpu_context.sc_desc);
                     }
                 }
 
@@ -517,8 +535,10 @@ impl WaylandWindowInner {
         if pending.refresh_decorations && self.window.is_some() {
             self.refresh_frame();
         }
-        if pending.had_configure_event && self.window.is_some() && self.wegl_surface.is_none() {
-            self.enable_opengl().unwrap();
+        if pending.had_configure_event && self.window.is_some() && self.gpu_context.is_none() {
+            promise::spawn::block_on(self.enable_wgpu()).unwrap();
+            // Need to invalidate now in order for the window to be displayed at all
+            self.invalidate();
         }
     }
 
@@ -529,76 +549,86 @@ impl WaylandWindowInner {
         }
     }
 
-    fn enable_opengl(&mut self) -> anyhow::Result<()> {
-        let window = Window::Wayland(WaylandWindow(self.window_id));
-        let wayland_conn = Connection::get().unwrap().wayland();
-        let mut wegl_surface = None;
+    async fn enable_wgpu(&mut self) -> anyhow::Result<()> {
+        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
 
-        let gl_state = if !egl_is_available() {
-            Err(anyhow!("!egl_is_available"))
-        } else {
-            wegl_surface = Some(WlEglSurface::new(
-                &self.surface,
-                self.dimensions.pixel_width as i32,
-                self.dimensions.pixel_height as i32,
-            ));
+        let surface = unsafe { instance.create_surface(self) };
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::LowPower,
+                compatible_surface: Some(&surface),
+            })
+            .await
+            .ok_or_else(|| anyhow::anyhow!("No suitable GPU adapters found on the system!"))?;
 
-            match wayland_conn.gl_connection.borrow().as_ref() {
-                Some(glconn) => crate::egl::GlState::create_wayland_with_existing_connection(
-                    glconn,
-                    wegl_surface.as_ref().unwrap(),
-                ),
-                None => crate::egl::GlState::create_wayland(
-                    Some(wayland_conn.display.borrow().get_display_ptr() as *const _),
-                    wegl_surface.as_ref().unwrap(),
-                ),
-            }
-        };
-        let gl_state = gl_state.map(Rc::new).and_then(|state| unsafe {
-            wayland_conn
-                .gl_connection
-                .borrow_mut()
-                .replace(Rc::clone(state.get_connection()));
-            Ok(glium::backend::Context::new(
-                Rc::clone(&state),
-                true,
-                if cfg!(debug_assertions) {
-                    glium::debug::DebugCallbackBehavior::DebugMessageOnError
-                } else {
-                    glium::debug::DebugCallbackBehavior::Ignore
+        let adapter_info = adapter.get_info();
+        log::info!("wgpu adapter: {:?} {:?}", adapter_info, adapter.features());
+
+        let (device, queue) = adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    label: None,
+                    features: wgpu::Features::empty(),
+                    limits: wgpu::Limits::default(),
                 },
-            )?)
-        })?;
+                None,
+            )
+            .await
+            .context("Unable to find a suitable GPU adapter!")?;
 
-        self.gl_state.replace(gl_state.clone());
-        self.wegl_surface = wegl_surface;
+        log::info!("wgpu device features: {:?}", device.features());
+        log::info!("wgpu device limits: {:?}", device.limits());
 
-        self.callbacks.created(&window, gl_state)
+        let sc_desc = wgpu::SwapChainDescriptor {
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+            format: adapter.get_swap_chain_preferred_format(&surface),
+            width: self.dimensions.pixel_width as u32,
+            height: self.dimensions.pixel_height as u32,
+            present_mode: wgpu::PresentMode::Mailbox,
+        };
+        let swap_chain = device.create_swap_chain(&surface, &sc_desc);
+
+        let context = GpuContext {
+            swap_chain,
+            sc_desc,
+            adapter,
+            device,
+            queue,
+            surface,
+        };
+
+        self.gpu_context.replace(Rc::new(RefCell::new(context)));
+        let window = Window::Wayland(WaylandWindow(self.window_id));
+        log::info!("calling out to created callback");
+        self.callbacks.created(
+            &window,
+            &mut *self.gpu_context.as_ref().unwrap().borrow_mut(),
+        )?;
+
+        Ok(())
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
-        if let Some(gl_context) = self.gl_state.as_ref() {
-            if gl_context.is_context_lost() {
-                log::error!("opengl context was lost; should reinit");
-                drop(self.gl_state.take());
-                self.enable_opengl()?;
-                return self.do_paint();
-            }
+        if let Some(gpu_context) = self.gpu_context.as_ref() {
+            let mut gpu_context = gpu_context.borrow_mut();
+            let frame = match gpu_context.swap_chain.get_current_frame() {
+                Ok(frame) => frame,
+                Err(err) => {
+                    log::info!("get_current_frame: {:#}", err);
+                    gpu_context.swap_chain = gpu_context
+                        .device
+                        .create_swap_chain(&gpu_context.surface, &gpu_context.sc_desc);
+                    gpu_context
+                        .swap_chain
+                        .get_current_frame()
+                        .expect("Failed to acquire next swap chain texture!")
+                }
+            };
 
-            let mut frame = glium::Frame::new(
-                Rc::clone(&gl_context),
-                (
-                    self.dimensions.pixel_width as u32,
-                    self.dimensions.pixel_height as u32,
-                ),
-            );
-
-            self.callbacks.paint(&mut frame);
-            frame.finish()?;
-            // self.damage();
-            self.refresh_frame();
+            self.callbacks.render(&frame.output, &mut *gpu_context);
             self.need_paint = false;
         }
+        self.refresh_frame();
 
         Ok(())
     }

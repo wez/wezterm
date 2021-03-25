@@ -35,7 +35,6 @@ pub struct WaylandConnection {
     // they appear in the struct, so the Display must be at the
     // bottom of this list, and opengl, which depends on everything
     // must be ahead of the rest.
-    pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
     pub(crate) pointer: PointerDispatcher,
     pub(crate) keyboard: KeyboardDispatcher,
     seat_listener: SeatListener,
@@ -122,7 +121,6 @@ impl WaylandConnection {
             keyboard,
             pointer: pointer.unwrap(),
             seat_listener,
-            gl_connection: RefCell::new(None),
         })
     }
 

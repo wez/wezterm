@@ -4,13 +4,17 @@ use crate::connection::ConnectionOps;
 use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
-    Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowDecorations, WindowOps, WindowOpsMut,
+    Clipboard, Dimensions, GpuContext, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
+    MousePress, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowDecorations, WindowOps,
+    WindowOpsMut,
 };
 use anyhow::{anyhow, Context as _};
 use config::ConfigHandle;
 use promise::{Future, Promise};
+use raw_window_handle::unix::XcbHandle;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
+use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
@@ -59,7 +63,7 @@ pub(crate) struct XWindowInner {
     cursors: CursorInfo,
     copy_and_paste: CopyAndPaste,
     config: ConfigHandle,
-    gl_state: Option<Rc<glium::backend::Context>>,
+    gpu_context: Option<Rc<RefCell<GpuContext>>>,
 }
 
 fn enclosing_boundary_with(a: &Rect, b: &Rect) -> Rect {
@@ -80,40 +84,73 @@ impl Drop for XWindowInner {
     }
 }
 
-impl XWindowInner {
-    fn enable_opengl(&mut self) -> anyhow::Result<()> {
-        let conn = self.conn();
+unsafe impl HasRawWindowHandle for XWindowInner {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        RawWindowHandle::Xcb(XcbHandle {
+            window: self.window_id,
+            connection: self.conn.upgrade().unwrap().get_raw_conn() as *mut _,
+            ..XcbHandle::empty()
+        })
+    }
+}
 
-        let gl_state = match conn.gl_connection.borrow().as_ref() {
-            None => crate::egl::GlState::create(
-                Some(conn.conn.get_raw_dpy() as *const _),
-                self.window_id as *mut _,
-            ),
-            Some(glconn) => crate::egl::GlState::create_with_existing_connection(
-                glconn,
-                self.window_id as *mut _,
-            ),
+impl XWindowInner {
+    async fn enable_wgpu(&mut self) -> anyhow::Result<()> {
+        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
+
+        let surface = unsafe { instance.create_surface(self) };
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::LowPower,
+                compatible_surface: Some(&surface),
+            })
+            .await
+            .ok_or_else(|| anyhow::anyhow!("No suitable GPU adapters found on the system!"))?;
+
+        let adapter_info = adapter.get_info();
+        log::info!("wgpu adapter: {:?}", adapter_info);
+
+        let (device, queue) = adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    label: None,
+                    features: wgpu::Features::empty(),
+                    limits: wgpu::Limits::default(),
+                },
+                None,
+            )
+            .await
+            .context("Unable to find a suitable GPU adapter!")?;
+
+        log::info!("wgpu device features: {:?}", device.features());
+        log::info!("wgpu device limits: {:?}", device.limits());
+
+        let sc_desc = wgpu::SwapChainDescriptor {
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+            format: adapter.get_swap_chain_preferred_format(&surface),
+            width: self.width as u32,
+            height: self.height as u32,
+            present_mode: wgpu::PresentMode::Mailbox,
+        };
+        let swap_chain = device.create_swap_chain(&surface, &sc_desc);
+
+        let context = GpuContext {
+            swap_chain,
+            sc_desc,
+            adapter,
+            device,
+            queue,
+            surface,
         };
 
-        // Don't chain on the end of the above to avoid borrowing gl_connection twice.
-        let gl_state = gl_state.map(Rc::new).and_then(|state| unsafe {
-            conn.gl_connection
-                .borrow_mut()
-                .replace(Rc::clone(state.get_connection()));
-            Ok(glium::backend::Context::new(
-                Rc::clone(&state),
-                true,
-                if cfg!(debug_assertions) {
-                    glium::debug::DebugCallbackBehavior::DebugMessageOnError
-                } else {
-                    glium::debug::DebugCallbackBehavior::Ignore
-                },
-            )?)
-        })?;
+        self.gpu_context.replace(Rc::new(RefCell::new(context)));
+        let window = Window::X11(XWindow::from_id(self.window_id));
+        self.callbacks.created(
+            &window,
+            &mut *self.gpu_context.as_ref().unwrap().borrow_mut(),
+        )?;
 
-        self.gl_state.replace(gl_state.clone());
-        let window_handle = Window::X11(XWindow::from_id(self.window_id));
-        self.callbacks.created(&window_handle, gl_state)
+        Ok(())
     }
 
     pub fn paint(&mut self) -> anyhow::Result<()> {
@@ -123,21 +160,23 @@ impl XWindowInner {
         self.paint_all = false;
         self.expose.clear();
 
-        if let Some(gl_context) = self.gl_state.as_ref() {
-            if gl_context.is_context_lost() {
-                log::error!("opengl context was lost; should reinit");
-                drop(self.gl_state.take());
-                self.enable_opengl()?;
-                return self.paint();
-            }
+        if let Some(gpu_context) = self.gpu_context.as_ref() {
+            let mut gpu_context = gpu_context.borrow_mut();
+            let frame = match gpu_context.swap_chain.get_current_frame() {
+                Ok(frame) => frame,
+                Err(err) => {
+                    log::info!("get_current_frame: {:#}", err);
+                    gpu_context.swap_chain = gpu_context
+                        .device
+                        .create_swap_chain(&gpu_context.surface, &gpu_context.sc_desc);
+                    gpu_context
+                        .swap_chain
+                        .get_current_frame()
+                        .expect("Failed to acquire next swap chain texture!")
+                }
+            };
 
-            let mut frame = glium::Frame::new(
-                Rc::clone(&gl_context),
-                (u32::from(self.width), u32::from(self.height)),
-            );
-
-            self.callbacks.paint(&mut frame);
-            frame.finish()?;
+            self.callbacks.render(&frame.output, &mut *gpu_context);
         }
 
         Ok(())
@@ -184,6 +223,13 @@ impl XWindowInner {
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
                 self.width = cfg.width();
                 self.height = cfg.height();
+
+                if let Some(gpu_context) = self.gpu_context.as_ref() {
+                    let mut gpu_context = gpu_context.borrow_mut();
+                    gpu_context.sc_desc.width = self.width as u32;
+                    gpu_context.sc_desc.height = self.height as u32;
+                }
+
                 self.callbacks.resize(
                     Dimensions {
                         pixel_width: self.width as usize,
@@ -191,7 +237,13 @@ impl XWindowInner {
                         dpi: conn.default_dpi as usize,
                     },
                     self.is_fullscreen().unwrap_or(false),
-                )
+                );
+                if let Some(gpu_context) = self.gpu_context.as_ref() {
+                    let mut gpu_context = gpu_context.borrow_mut();
+                    gpu_context.swap_chain = gpu_context
+                        .device
+                        .create_swap_chain(&gpu_context.surface, &gpu_context.sc_desc);
+                }
             }
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
@@ -629,7 +681,7 @@ impl XWindow {
 
     /// Create a new window on the specified screen with the specified
     /// dimensions
-    pub fn new_window(
+    pub async fn new_window(
         class_name: &str,
         name: &str,
         width: usize,
@@ -719,7 +771,7 @@ impl XWindow {
                 paint_all: true,
                 copy_and_paste: CopyAndPaste::default(),
                 cursors: CursorInfo::new(&conn),
-                gl_state: None,
+                gpu_context: None,
                 config: config.clone(),
             }))
         };
@@ -746,7 +798,7 @@ impl XWindow {
 
         let window_handle = Window::X11(XWindow::from_id(window_id));
 
-        window.lock().unwrap().enable_opengl()?;
+        window.lock().unwrap().enable_wgpu().await?;
 
         conn.windows.borrow_mut().insert(window_id, window);
 
