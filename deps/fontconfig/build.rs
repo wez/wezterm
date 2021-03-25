@@ -1,5 +1,3 @@
-use pkg_config;
-
 fn main() {
     if let Ok(lib) = pkg_config::Config::new()
         .atleast_version("2.10.1")

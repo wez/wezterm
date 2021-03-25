@@ -63,10 +63,10 @@ impl Default for CursorShape {
 
 impl CursorShape {
     pub fn is_blinking(self) -> bool {
-        match self {
-            Self::BlinkingBlock | Self::BlinkingUnderline | Self::BlinkingBar => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            Self::BlinkingBlock | Self::BlinkingUnderline | Self::BlinkingBar
+        )
     }
 }
 
@@ -584,12 +584,12 @@ impl Surface {
     }
 
     fn repaint_all(&self) -> Vec<Change> {
-        let mut result = Vec::new();
-
-        // Home the cursor and clear the screen to defaults.  Hide the
-        // cursor while we're repainting.
-        result.push(Change::CursorVisibility(CursorVisibility::Hidden));
-        result.push(Change::ClearScreen(Default::default()));
+        let mut result = vec![
+            // Home the cursor and clear the screen to defaults.  Hide the
+            // cursor while we're repainting.
+            Change::CursorVisibility(CursorVisibility::Hidden),
+            Change::ClearScreen(Default::default()),
+        ];
 
         if !self.title.is_empty() {
             result.push(Change::Title(self.title.to_owned()));

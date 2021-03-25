@@ -7,6 +7,7 @@ bindgen bindings.h -o src/lib.rs \
   --raw-line "#![allow(non_camel_case_types)]" \
   --raw-line "#![allow(non_upper_case_globals)]" \
   --raw-line "#![allow(clippy::unreadable_literal)]" \
+  --raw-line "#![allow(clippy::upper_case_acronyms)]" \
   --default-enum-style rust \
   --generate=functions,types,vars \
   --whitelist-function="hb_.*" \

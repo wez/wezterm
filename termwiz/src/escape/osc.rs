@@ -1,7 +1,6 @@
 use crate::color::RgbColor;
 pub use crate::hyperlink::Hyperlink;
 use crate::{bail, ensure, Result};
-use base64;
 use bitflags::bitflags;
 use num_derive::*;
 use num_traits::FromPrimitive;

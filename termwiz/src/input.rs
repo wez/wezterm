@@ -8,7 +8,6 @@ use crate::readbuf::ReadBuffer;
 use bitflags::bitflags;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
-use std;
 
 #[cfg(windows)]
 use winapi::um::wincon::{
@@ -199,23 +198,23 @@ impl KeyCode {
 
     /// Return true if the key represents a modifier key.
     pub fn is_modifier(self) -> bool {
-        match self {
+        matches!(
+            self,
             Self::Hyper
-            | Self::Super
-            | Self::Meta
-            | Self::Shift
-            | Self::LeftShift
-            | Self::RightShift
-            | Self::Control
-            | Self::LeftControl
-            | Self::RightControl
-            | Self::Alt
-            | Self::LeftAlt
-            | Self::RightAlt
-            | Self::LeftWindows
-            | Self::RightWindows => true,
-            _ => false,
-        }
+                | Self::Super
+                | Self::Meta
+                | Self::Shift
+                | Self::LeftShift
+                | Self::RightShift
+                | Self::Control
+                | Self::LeftControl
+                | Self::RightControl
+                | Self::Alt
+                | Self::LeftAlt
+                | Self::RightAlt
+                | Self::LeftWindows
+                | Self::RightWindows
+        )
     }
 }
 

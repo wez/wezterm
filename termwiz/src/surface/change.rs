@@ -94,10 +94,7 @@ pub enum Change {
 
 impl Change {
     pub fn is_text(&self) -> bool {
-        match self {
-            Change::Text(_) => true,
-            _ => false,
-        }
+        matches!(self, Change::Text(_))
     }
 
     pub fn text(&self) -> &str {

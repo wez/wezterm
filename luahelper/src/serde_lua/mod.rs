@@ -236,7 +236,7 @@ where
                     // a future version of wezterm where the configuration may
                     // evolve over time.
                     if let Some(allowed_fields) = allowed_fields {
-                        if !allowed_fields.iter().any(|&name| name == &pair.0) {
+                        if !allowed_fields.iter().any(|&name| name == pair.0) {
                             // The field wasn't one of the allowed fields in this
                             // context.  Generate an error message that is hopefully
                             // helpful; we'll suggest the set of most similar field
@@ -262,9 +262,9 @@ where
                                 .filter(|&name| {
                                     !suggestions.iter().any(|candidate| candidate == name)
                                 })
-                                .map(|&name| name)
+                                .copied()
                                 .collect();
-                            fields.sort();
+                            fields.sort_unstable();
 
                             let mut message = String::new();
 
@@ -283,7 +283,7 @@ where
                                         message.push_str(candidate);
                                         message.push('`');
                                     }
-                                    message.push_str("?");
+                                    message.push('?');
                                 }
                             }
                             if !fields.is_empty() {
@@ -923,7 +923,7 @@ mod test {
         struct MyMap {
             hello: String,
             age: usize,
-        };
+        }
 
         let res: MyMap =
             from_lua_value(lua.load("{hello=\"hello\", age=42}").eval().unwrap()).unwrap();
@@ -952,7 +952,7 @@ mod test {
         enum MyEnum {
             Foo,
             Bar,
-        };
+        }
         let lua = Lua::new();
         let res: MyEnum = from_lua_value(lua.load("\"Foo\"").eval().unwrap()).unwrap();
         assert_eq!(res, MyEnum::Foo);
@@ -977,11 +977,11 @@ mod test {
         enum MyEnum {
             Foo,
             Bar,
-        };
+        }
         #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
         enum AnotherEnum {
             ThisOne(Option<MyEnum>),
-        };
+        }
 
         let lua = Lua::new();
         let res: AnotherEnum =

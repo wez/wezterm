@@ -4,7 +4,6 @@ pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std;
 use std::mem;
 use std::sync::Arc;
 use unicode_width::UnicodeWidthStr;

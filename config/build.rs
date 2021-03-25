@@ -70,7 +70,7 @@ fn main() {
         }
     }
 
-    let target = std::env::var("TARGET").unwrap_or("unknown".to_string());
+    let target = std::env::var("TARGET").unwrap_or_else(|_| "unknown".to_string());
 
     println!("cargo:rustc-env=WEZTERM_TARGET_TRIPLE={}", target);
     println!("cargo:rustc-env=WEZTERM_CI_TAG={}", ci_tag);

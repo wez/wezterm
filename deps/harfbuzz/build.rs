@@ -96,7 +96,7 @@ fn harfbuzz() {
     cfg.define("HAVE_FT_Done_MM_Var", Some("1"));
 
     // Import the include dirs exported from deps/freetype/build.rs
-    for inc in std::env::var("DEP_FREETYPE_INCLUDE").unwrap().split(";") {
+    for inc in std::env::var("DEP_FREETYPE_INCLUDE").unwrap().split(';') {
         cfg.include(inc);
     }
 
