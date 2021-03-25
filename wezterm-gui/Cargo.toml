@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
 build = "build.rs"
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -36,7 +37,6 @@ metrics = { version="0.14", features=["std"]}
 mlua = "0.5"
 mux = { path = "../mux" }
 open = "1.4"
-openssl = "0.10"
 ordered-float = "2.1"
 palette = "0.5"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
@@ -81,11 +81,6 @@ winapi = { version = "0.3", features = [
     "synchapi",
     "winsock2",
 ]}
-
-[features]
-default = ["vendor_openssl"]
-# FIXME: find a way to magically disable vendor_openssl only on linux!
-vendor_openssl = ["openssl/vendored"]
 
 [dev-dependencies]
 k9 = "0.10.0"

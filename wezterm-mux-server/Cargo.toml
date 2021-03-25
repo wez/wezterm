@@ -3,6 +3,7 @@ name = "wezterm-mux-server"
 version = "0.1.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -25,7 +26,3 @@ wezterm-gui-subcommands = { path = "../wezterm-gui-subcommands" }
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = [ "winuser" ]}
 
-[features]
-default = ["vendor_openssl"]
-# FIXME: find a way to magically disable vendor_openssl only on linux!
-vendor_openssl = ["openssl/vendored"]
