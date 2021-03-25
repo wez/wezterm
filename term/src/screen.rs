@@ -93,6 +93,7 @@ impl Screen {
 
         for (phys_idx, mut line) in self.lines.drain(..).enumerate() {
             line.invalidate_implicit_hyperlinks();
+            line.set_dirty();
             let was_wrapped = line.last_cell_was_wrapped();
 
             if was_wrapped {
