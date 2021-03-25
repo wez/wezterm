@@ -28,10 +28,12 @@ line_drawing = "0.8"
 log = "0.4"
 metrics = { version="0.14", features=["std"]}
 promise = { path = "../promise" }
+raw-window-handle = "0.3"
 resize = "0.5"
 serde = {version="1.0", features = ["rc", "derive"]}
 glium = { version = "0.28", default-features = false}
 wezterm-input-types = { path = "../wezterm-input-types" }
+wgpu = "0.7"
 
 [features]
 wayland = ["smithay-client-toolkit", "memmap", "wayland-client", "wayland-egl"]
@@ -71,4 +73,3 @@ objc = "0.2"
 clipboard = "0.5"
 core-foundation = "0.7"
 core-graphics = "0.19"
-cgl = "0.3"

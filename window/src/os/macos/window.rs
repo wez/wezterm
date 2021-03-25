@@ -4,36 +4,36 @@
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::{
-    Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
-    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size, WindowCallbacks,
-    WindowDecorations, WindowOps, WindowOpsMut,
+    Clipboard, Connection, Dimensions, GpuContext, KeyCode, KeyEvent, Modifiers, MouseButtons,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size,
+    WindowCallbacks, WindowDecorations, WindowOps, WindowOpsMut,
 };
-use anyhow::{anyhow, bail, ensure};
+use anyhow::Context;
+use anyhow::{anyhow, bail};
 use cocoa::appkit::{
     self, NSApplication, NSApplicationActivateIgnoringOtherApps, NSApplicationPresentationOptions,
-    NSBackingStoreBuffered, NSEvent, NSEventModifierFlags, NSOpenGLContext, NSOpenGLPixelFormat,
-    NSRunningApplication, NSScreen, NSView, NSViewHeightSizable, NSViewWidthSizable, NSWindow,
-    NSWindowStyleMask,
+    NSBackingStoreBuffered, NSEvent, NSEventModifierFlags, NSRunningApplication, NSScreen, NSView,
+    NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowStyleMask,
 };
 use cocoa::base::*;
-use cocoa::foundation::NSAutoreleasePool;
 use cocoa::foundation::{NSArray, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger};
 use config::ConfigHandle;
 use core_foundation::base::{CFTypeID, TCFType};
-use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
 use core_foundation::data::{CFData, CFDataGetBytePtr, CFDataRef};
-use core_foundation::string::{CFString, CFStringRef, UniChar};
+use core_foundation::string::{CFStringRef, UniChar};
 use core_foundation::{declare_TCFType, impl_TCFType};
+use core_graphics::base::CGFloat;
 use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
 use promise::Future;
+use raw_window_handle::macos::MacOSHandle;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
-use std::str::FromStr;
 use std::time::Instant;
 
 fn round_away_from_zerof(value: f64) -> f64 {
@@ -91,229 +91,6 @@ impl NSRange {
     }
 }
 
-#[derive(Clone)]
-pub enum BackendImpl {
-    Cgl(Rc<cglbits::GlState>),
-    Egl(Rc<crate::egl::GlState>),
-}
-
-impl BackendImpl {
-    pub fn update(&self) {
-        if let Self::Cgl(be) = self {
-            be.update();
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct GlContextPair {
-    pub context: Rc<glium::backend::Context>,
-    pub backend: BackendImpl,
-}
-
-impl GlContextPair {
-    /// on macOS we first try to initialize EGL by dynamically loading it.
-    /// The system doesn't provide an EGL implementation, but the ANGLE
-    /// project (and MetalANGLE) both provide implementations.
-    /// The ANGLE EGL implementation wants a CALayer descendant passed
-    /// as the EGLNativeWindowType.
-    pub fn create(view: id) -> anyhow::Result<Self> {
-        let behavior = if cfg!(debug_assertions) {
-            glium::debug::DebugCallbackBehavior::DebugMessageOnError
-        } else {
-            glium::debug::DebugCallbackBehavior::Ignore
-        };
-
-        // Let's first try to initialize EGL...
-        let (context, backend) = match if config::configuration().prefer_egl {
-            // ANGLE wants a layer, so tell the view to create one.
-            // Importantly, we must set its scale to 1.0 prior to initializing
-            // EGL to prevent undesirable scaling.
-            let layer: id;
-            unsafe {
-                let _: () = msg_send![view, setWantsLayer: YES];
-                layer = msg_send![view, layer];
-                let _: () = msg_send![layer, setContentsScale: 1.0f64];
-                let _: () = msg_send![layer, setOpaque: NO];
-            };
-
-            let conn = Connection::get().unwrap();
-
-            let state = match conn.gl_connection.borrow().as_ref() {
-                None => crate::egl::GlState::create(None, layer as *const c_void),
-                Some(glconn) => crate::egl::GlState::create_with_existing_connection(
-                    glconn,
-                    layer as *const c_void,
-                ),
-            };
-
-            if state.is_ok() {
-                conn.gl_connection
-                    .borrow_mut()
-                    .replace(Rc::clone(state.as_ref().unwrap().get_connection()));
-
-                // ANGLE will create a CAMetalLayer as a sublayer of our provided
-                // layer.  Even though CALayer defaults to !opaque, CAMetalLayer
-                // defaults to opaque, so we need to find that layer and fix
-                // the opacity so that our alpha values are respected.
-                unsafe {
-                    let sublayers: id = msg_send![layer, sublayers];
-                    let layer_count = sublayers.count();
-                    for i in 0..layer_count {
-                        let layer = sublayers.objectAtIndex(i);
-                        let _: () = msg_send![layer, setOpaque: NO];
-                    }
-                }
-            }
-
-            state
-        } else {
-            Err(anyhow!("prefers not to use EGL"))
-        } {
-            Ok(backend) => {
-                let backend = Rc::new(backend);
-                let context =
-                    unsafe { glium::backend::Context::new(Rc::clone(&backend), true, behavior) }?;
-                (context, BackendImpl::Egl(backend))
-            }
-            // ... and then fallback to the deprecated platform provided CGL
-            Err(err) => {
-                log::debug!("EGL init failed: {:#}, falling back to CGL", err);
-                let backend = Rc::new(cglbits::GlState::create(view)?);
-                let context =
-                    unsafe { glium::backend::Context::new(Rc::clone(&backend), true, behavior) }?;
-                (context, BackendImpl::Cgl(backend))
-            }
-        };
-
-        Ok(Self { context, backend })
-    }
-}
-
-mod cglbits {
-    use super::*;
-
-    pub struct GlState {
-        _pixel_format: StrongPtr,
-        gl_context: StrongPtr,
-    }
-
-    impl GlState {
-        pub fn create(view: id) -> anyhow::Result<Self> {
-            let pixel_format = unsafe {
-                StrongPtr::new(NSOpenGLPixelFormat::alloc(nil).initWithAttributes_(&[
-                    appkit::NSOpenGLPFAOpenGLProfile as u32,
-                    appkit::NSOpenGLProfileVersion3_2Core as u32,
-                    appkit::NSOpenGLPFAClosestPolicy as u32,
-                    appkit::NSOpenGLPFAColorSize as u32,
-                    32,
-                    appkit::NSOpenGLPFAAlphaSize as u32,
-                    8,
-                    appkit::NSOpenGLPFADepthSize as u32,
-                    24,
-                    appkit::NSOpenGLPFAStencilSize as u32,
-                    8,
-                    appkit::NSOpenGLPFAAllowOfflineRenderers as u32,
-                    appkit::NSOpenGLPFAAccelerated as u32,
-                    appkit::NSOpenGLPFADoubleBuffer as u32,
-                    0,
-                ]))
-            };
-            ensure!(
-                !pixel_format.is_null(),
-                "failed to create NSOpenGLPixelFormat"
-            );
-
-            // Allow using retina resolutions; without this we're forced into low res
-            // and the system will scale us up, resulting in blurry rendering
-            unsafe {
-                let _: () = msg_send![view, setWantsBestResolutionOpenGLSurface: YES];
-            }
-
-            let gl_context = unsafe {
-                StrongPtr::new(
-                    NSOpenGLContext::alloc(nil).initWithFormat_shareContext_(*pixel_format, nil),
-                )
-            };
-            ensure!(!gl_context.is_null(), "failed to create NSOpenGLContext");
-
-            unsafe {
-                let opaque: cgl::GLint = 0;
-                gl_context.setValues_forParameter_(
-                    &opaque,
-                    cocoa::appkit::NSOpenGLContextParameter::NSOpenGLCPSurfaceOpacity,
-                );
-
-                gl_context.setView_(view);
-            }
-
-            Ok(Self {
-                _pixel_format: pixel_format,
-                gl_context,
-            })
-        }
-
-        /// Calls NSOpenGLContext update; we need to do this on resize
-        pub fn update(&self) {
-            unsafe {
-                let _: () = msg_send![*self.gl_context, update];
-            }
-        }
-    }
-
-    unsafe impl glium::backend::Backend for GlState {
-        fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
-            unsafe {
-                let pool = NSAutoreleasePool::new(nil);
-                self.gl_context.flushBuffer();
-                let _: () = msg_send![pool, release];
-            }
-            Ok(())
-        }
-
-        unsafe fn get_proc_address(&self, symbol: &str) -> *const c_void {
-            let symbol_name: CFString = FromStr::from_str(symbol).unwrap();
-            let framework_name: CFString = FromStr::from_str("com.apple.opengl").unwrap();
-            let framework = CFBundleGetBundleWithIdentifier(framework_name.as_concrete_TypeRef());
-            let symbol =
-                CFBundleGetFunctionPointerForName(framework, symbol_name.as_concrete_TypeRef());
-            symbol as *const _
-        }
-
-        fn get_framebuffer_dimensions(&self) -> (u32, u32) {
-            unsafe {
-                let view = self.gl_context.view();
-                let frame = NSView::frame(view);
-                let backing_frame = NSView::convertRectToBacking(view, frame);
-                (
-                    backing_frame.size.width as u32,
-                    backing_frame.size.height as u32,
-                )
-            }
-        }
-
-        fn is_current(&self) -> bool {
-            unsafe {
-                let pool = NSAutoreleasePool::new(nil);
-                let current = NSOpenGLContext::currentContext(nil);
-                let res = if current != nil {
-                    let is_equal: BOOL = msg_send![current, isEqual: *self.gl_context];
-                    is_equal != NO
-                } else {
-                    false
-                };
-                let _: () = msg_send![pool, release];
-                res
-            }
-        }
-
-        unsafe fn make_current(&self) {
-            let _: () = msg_send![*self.gl_context, update];
-            self.gl_context.makeCurrentContext();
-        }
-    }
-}
-
 pub(crate) struct WindowInner {
     window_id: usize,
     view: StrongPtr,
@@ -352,7 +129,7 @@ fn function_key_to_keycode(function_key: char) -> KeyCode {
 pub struct Window(usize);
 
 impl Window {
-    pub fn new_window(
+    pub async fn new_window(
         _class_name: &str,
         name: &str,
         width: usize,
@@ -382,7 +159,7 @@ impl Window {
                 window: None,
                 window_id,
                 screen_changed: false,
-                gl_context_pair: None,
+                gpu_context: None,
                 text_cursor_position: Rect::new(Point::new(0, 0), Size::new(0, 0)),
                 hscroll_remainder: 0.,
                 vscroll_remainder: 0.,
@@ -440,8 +217,13 @@ impl Window {
             view.initWithFrame_(rect);
             view.setAutoresizingMask_(NSViewHeightSizable | NSViewWidthSizable);
 
+            view.setWantsBestResolutionOpenGLSurface_(YES);
+
             window.setContentView_(*view);
             window.setDelegate_(*view);
+
+            view.setWantsLayer(YES);
+            let () = msg_send![*view, setLayerContentsRedrawPolicy:2 /* NSViewLayerContentsRedrawDuringViewResize */];
 
             let frame = NSView::frame(*view);
             let backing_frame = NSView::convertRectToBacking(*view, frame);
@@ -463,7 +245,18 @@ impl Window {
             let window = Window(window_id);
             window.config_did_change(&config);
 
-            inner.borrow_mut().enable_opengl()?;
+            inner
+                .borrow_mut()
+                .enable_wgpu(width as u32, height as u32)
+                .await?;
+
+            let view = *inner.borrow().view_id.as_ref().unwrap().load();
+            // Force an initial paint
+            let () = msg_send![view, setNeedsDisplay: YES];
+            // Allow transparency, as the default for Metal is opaque
+            let layer: id = msg_send![view, layer];
+            let () = msg_send![layer, setOpaque: NO];
+
             // Synthesize a resize event immediately; this allows
             // the embedding application an opportunity to discover
             // the dpi and adjust for display scaling
@@ -908,7 +701,7 @@ struct Inner {
     window: Option<WeakPtr>,
     window_id: usize,
     screen_changed: bool,
-    gl_context_pair: Option<GlContextPair>,
+    gpu_context: Option<Rc<RefCell<GpuContext>>>,
     text_cursor_position: Rect,
     hscroll_remainder: f64,
     vscroll_remainder: f64,
@@ -979,16 +772,76 @@ extern "C" {
     fn LMGetKbdType() -> u8;
 }
 
+unsafe impl HasRawWindowHandle for Inner {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        let ns_window = self.window.as_ref().unwrap().load();
+        let ns_view = self.view_id.as_ref().unwrap().load();
+        RawWindowHandle::MacOS(MacOSHandle {
+            ns_window: *ns_window as *mut _,
+            ns_view: *ns_view as *mut _,
+            ..MacOSHandle::empty()
+        })
+    }
+}
+
 impl Inner {
-    fn enable_opengl(&mut self) -> anyhow::Result<()> {
+    async fn enable_wgpu(&mut self, width: u32, height: u32) -> anyhow::Result<()> {
         let window = Window(self.window_id);
 
-        let view = self.view_id.as_ref().unwrap().load();
-        let glium_context = GlContextPair::create(*view)?;
+        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
 
-        self.gl_context_pair.replace(glium_context.clone());
+        let surface = unsafe { instance.create_surface(self) };
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::LowPower,
+                compatible_surface: Some(&surface),
+            })
+            .await
+            .ok_or_else(|| anyhow::anyhow!("No suitable GPU adapters found on the system!"))?;
 
-        self.callbacks.created(&window, glium_context.context)
+        let adapter_info = adapter.get_info();
+        log::info!("wgpu adapter: {:?}", adapter_info);
+
+        let (device, queue) = adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    label: None,
+                    features: wgpu::Features::empty(),
+                    limits: wgpu::Limits::default(),
+                },
+                None,
+            )
+            .await
+            .context("Unable to find a suitable GPU adapter!")?;
+
+        log::info!("wgpu device features: {:?}", device.features());
+        log::info!("wgpu device limits: {:?}", device.limits());
+
+        let sc_desc = wgpu::SwapChainDescriptor {
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+            format: adapter.get_swap_chain_preferred_format(&surface),
+            width,
+            height,
+            present_mode: wgpu::PresentMode::Mailbox,
+        };
+        let swap_chain = device.create_swap_chain(&surface, &sc_desc);
+
+        let context = GpuContext {
+            swap_chain,
+            sc_desc,
+            adapter,
+            device,
+            queue,
+            surface,
+        };
+
+        self.gpu_context.replace(Rc::new(RefCell::new(context)));
+        self.callbacks.created(
+            &window,
+            &mut *self.gpu_context.as_ref().unwrap().borrow_mut(),
+        )?;
+
+        Ok(())
     }
 
     /// <https://stackoverflow.com/a/22677690>
@@ -1741,94 +1594,141 @@ impl WindowView {
         }
     }
 
-    extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
-        if let Some(this) = Self::get_this(this) {
-            let inner = this.inner.borrow_mut();
-
-            if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
-                gl_context_pair.backend.update();
-            }
-        }
-
-        let frame = unsafe { NSView::frame(this as *mut _) };
-        let backing_frame = unsafe { NSView::convertRectToBacking(this as *mut _, frame) };
+    fn size_changed(&mut self) {
+        let mut inner = self.inner.borrow_mut();
+        let view = inner.view_id.as_ref().unwrap().load();
+        let frame = unsafe { NSView::frame(*view) };
+        let backing_frame = unsafe { NSView::convertRectToBacking(*view, frame) };
         let width = backing_frame.size.width;
         let height = backing_frame.size.height;
-        if let Some(this) = Self::get_this(this) {
-            let mut inner = this.inner.borrow_mut();
 
-            // This is a little gross; ideally we'd call
-            // WindowInner:is_fullscreen to determine this, but
-            // we can't get a mutable reference to it from here
-            // as we can be called in a context where something
-            // higher up the callstack already has a mutable
-            // reference and we'd panic.
-            let is_fullscreen = inner.fullscreen.is_some()
-                || inner.window.as_ref().map_or(false, |window| {
-                    let window = window.load();
-                    let style_mask = unsafe { NSWindow::styleMask(*window) };
-                    style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
-                });
+        // This is a little gross; ideally we'd call
+        // WindowInner:is_fullscreen to determine this, but
+        // we can't get a mutable reference to it from here
+        // as we can be called in a context where something
+        // higher up the callstack already has a mutable
+        // reference and we'd panic.
+        let is_fullscreen = inner.fullscreen.is_some()
+            || inner.window.as_ref().map_or(false, |window| {
+                let window = window.load();
+                let style_mask = unsafe { NSWindow::styleMask(*window) };
+                style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
+            });
 
-            inner.callbacks.resize(
-                Dimensions {
-                    pixel_width: width as usize,
-                    pixel_height: height as usize,
-                    dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
-                        as usize,
-                },
-                is_fullscreen,
-            );
+        if let Some(gpu_context) = inner.gpu_context.as_ref() {
+            let mut gpu_context = gpu_context.borrow_mut();
+            gpu_context.sc_desc.width = width as u32;
+            gpu_context.sc_desc.height = height as u32;
+        }
+
+        inner.callbacks.resize(
+            Dimensions {
+                pixel_width: width as usize,
+                pixel_height: height as usize,
+                dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width)) as usize,
+            },
+            is_fullscreen,
+        );
+
+        if let Some(gpu_context) = inner.gpu_context.as_ref() {
+            let mut gpu_context = gpu_context.borrow_mut();
+            gpu_context.swap_chain = gpu_context
+                .device
+                .create_swap_chain(&gpu_context.surface, &gpu_context.sc_desc);
+
+            // We need to re-apply the setOpaque property, otherwise it
+            // reverts back to opaque.
+            unsafe {
+                let layer: id = msg_send![*view, layer];
+                let () = msg_send![layer, setOpaque: NO];
+            }
         }
     }
 
-    extern "C" fn draw_rect(view: &mut Object, sel: Sel, dirty_rect: NSRect) {
-        let frame = unsafe { NSView::frame(view as *mut _) };
-        let backing_frame = unsafe { NSView::convertRectToBacking(view as *mut _, frame) };
+    extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
+        if let Some(this) = Self::get_this(this) {
+            this.size_changed();
+        }
+    }
+    extern "C" fn wants_update_layer(_view: &mut Object, _sel: Sel) -> BOOL {
+        YES
+    }
 
-        let width = backing_frame.size.width;
-        let height = backing_frame.size.height;
+    extern "C" fn update_layer(_view: &mut Object, _sel: Sel) {
+        log::info!("update_layer called");
+    }
 
+    extern "C" fn display_layer(view: &mut Object, _sel: Sel, _layer: id) {
         if let Some(this) = Self::get_this(view) {
-            let mut inner = this.inner.borrow_mut();
+            this.call_out_to_render();
+        }
+    }
 
-            if inner.screen_changed {
-                // If the screen resolution changed (which can also
-                // happen if the window was dragged to another monitor
-                // with different dpi), then we treat this as a resize
-                // event that will in turn trigger an invalidation
-                // and a repaint.
-                inner.screen_changed = false;
-                drop(inner);
-                Self::did_resize(view, sel, nil);
-                return;
-            }
+    extern "C" fn draw_layer_in_context(_view: &mut Object, _sel: Sel, _layer: id, _context: id) {
+        log::info!("draw_layer_in_context called");
+    }
 
-            if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
-                if gl_context_pair.context.is_context_lost() {
-                    log::error!("opengl context was lost; should reinit");
-                    drop(inner.gl_context_pair.take());
-                    if let Err(e) = inner.enable_opengl() {
-                        log::error!("failed to reinit opengl: {}", e);
-                    }
-                    let view = inner.view_id.as_ref().unwrap().load();
-                    drop(inner);
-                    drop(this);
-                    unsafe {
-                        return Self::draw_rect(&mut **view, sel, dirty_rect);
-                    }
+    extern "C" fn layer_should_inherit_contents_scale_from_window(
+        _: &Object,
+        _: Sel,
+        _: *mut Object,
+        _: CGFloat,
+        _: *mut Object,
+    ) -> BOOL {
+        YES
+    }
+
+    extern "C" fn make_backing_layer(view: &mut Object, _: Sel) -> id {
+        let class = class!(CAMetalLayer);
+        unsafe {
+            let layer: id = msg_send![class, new];
+            let () = msg_send![layer, setOpaque: NO];
+            let () = msg_send![layer, setDelegate: view];
+            layer
+        }
+    }
+
+    extern "C" fn draw_rect(view: &mut Object, _sel: Sel, _dirty_rect: NSRect) {
+        if let Some(this) = Self::get_this(view) {
+            this.call_out_to_render();
+        }
+    }
+
+    fn call_out_to_render(&mut self) {
+        let mut inner = self.inner.borrow_mut();
+
+        if inner.screen_changed {
+            // If the screen resolution changed (which can also
+            // happen if the window was dragged to another monitor
+            // with different dpi), then we treat this as a resize
+            // event that will in turn trigger an invalidation
+            // and a repaint.
+            inner.screen_changed = false;
+            log::info!("screen changed, so trigger resize");
+            drop(inner);
+            self.size_changed();
+            return;
+        }
+
+        if let Some(gpu_context) = inner.gpu_context.as_ref().cloned() {
+            let mut gpu_context = gpu_context.borrow_mut();
+            let frame = match gpu_context.swap_chain.get_current_frame() {
+                Ok(frame) => frame,
+                Err(err) => {
+                    log::info!("get_current_frame: {:#}", err);
+                    gpu_context.swap_chain = gpu_context
+                        .device
+                        .create_swap_chain(&gpu_context.surface, &gpu_context.sc_desc);
+                    gpu_context
+                        .swap_chain
+                        .get_current_frame()
+                        .expect("Failed to acquire next swap chain texture!")
                 }
+            };
 
-                let mut frame = glium::Frame::new(
-                    Rc::clone(&gl_context_pair.context),
-                    (width as u32, height as u32),
-                );
-
-                inner.callbacks.paint(&mut frame);
-                frame
-                    .finish()
-                    .expect("frame.finish failed and we don't know how to recover");
-            }
+            inner.callbacks.render(&frame.output, &mut *gpu_context);
+        } else {
+            log::info!("there is no gpu context");
         }
     }
 
@@ -1873,6 +1773,11 @@ impl WindowView {
         cls.add_protocol(
             Protocol::get("NSTextInputClient").expect("failed to get NSTextInputClient protocol"),
         );
+        cls.add_protocol(
+            Protocol::get("NSViewLayerContentScaleDelegate")
+                .expect("NSViewLayerContentScaleDelegate not defined"),
+        );
+        cls.add_protocol(Protocol::get("CALayerDelegate").expect("CALayerDelegate not defined"));
 
         unsafe {
             cls.add_method(
@@ -1891,8 +1796,38 @@ impl WindowView {
             );
 
             cls.add_method(
+                sel!(makeBackingLayer),
+                Self::make_backing_layer as extern "C" fn(&mut Object, Sel) -> id,
+            );
+
+            cls.add_method(
                 sel!(drawRect:),
                 Self::draw_rect as extern "C" fn(&mut Object, Sel, NSRect),
+            );
+
+            cls.add_method(
+                sel!(layer:shouldInheritContentsScale:fromWindow:),
+                Self::layer_should_inherit_contents_scale_from_window
+                    as extern "C" fn(&Object, Sel, *mut Object, CGFloat, *mut Object) -> BOOL,
+            );
+
+            cls.add_method(
+                sel!(updateLayer),
+                Self::update_layer as extern "C" fn(&mut Object, Sel),
+            );
+
+            cls.add_method(
+                sel!(displayLayer:),
+                Self::display_layer as extern "C" fn(&mut Object, Sel, id),
+            );
+
+            cls.add_method(
+                sel!(drawLayer:inContext:),
+                Self::draw_layer_in_context as extern "C" fn(&mut Object, Sel, id, id),
+            );
+            cls.add_method(
+                sel!(wantsUpdateLayer),
+                Self::wants_update_layer as extern "C" fn(&mut Object, Sel) -> BOOL,
             );
 
             cls.add_method(

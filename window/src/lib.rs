@@ -20,8 +20,6 @@ pub fn default_dpi() -> f64 {
     }
 }
 
-mod egl;
-
 pub use bitmaps::{BitmapImage, Image};
 pub use connection::*;
 pub use glium;
@@ -59,6 +57,15 @@ pub enum MouseCursor {
     SizeLeftRight,
 }
 
+pub struct GpuContext {
+    pub swap_chain: wgpu::SwapChain,
+    pub sc_desc: wgpu::SwapChainDescriptor,
+    pub adapter: wgpu::Adapter,
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
+    pub surface: wgpu::Surface,
+}
+
 #[allow(unused_variables)]
 pub trait WindowCallbacks: Any {
     /// Called when the window close button is clicked.
@@ -84,10 +91,7 @@ pub trait WindowCallbacks: Any {
         frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
     }
 
-    /// Called if the opengl context is lost
-    fn opengl_context_lost(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
-        Ok(())
-    }
+    fn render(&mut self, frame: &wgpu::SwapChainTexture, gpu_context: &mut GpuContext) {}
 
     /// Called to handle a key event.
     /// If your window didn't handle the event, you must return false.
@@ -103,11 +107,7 @@ pub trait WindowCallbacks: Any {
 
     /// Called when the window is created and allows the embedding
     /// app to reference the window and operate upon it.
-    fn created(
-        &mut self,
-        _window: &Window,
-        _context: std::rc::Rc<glium::backend::Context>,
-    ) -> anyhow::Result<()> {
+    fn created(&mut self, _window: &Window, _context: &mut GpuContext) -> anyhow::Result<()> {
         Ok(())
     }
 
