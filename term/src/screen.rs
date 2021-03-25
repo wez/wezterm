@@ -175,7 +175,7 @@ impl Screen {
             }
         }
 
-        let (cursor_x, cursor_y) = if self.allow_scrollback && physical_cols != self.physical_cols {
+        let (cursor_x, cursor_y) = if physical_cols != self.physical_cols {
             // Check to see if we need to rewrap lines that were
             // wrapped due to reaching the right hand side of the terminal.
             // For each one that we find, we need to join it with its
@@ -183,7 +183,20 @@ impl Screen {
             // We only do this for the primary, and not for the alternate
             // screen (hence the check for allow_scrollback), to avoid
             // conflicting screen updates with full screen apps.
-            self.rewrap_lines(physical_cols, physical_rows, cursor.x, cursor_phys)
+            if self.allow_scrollback {
+                self.rewrap_lines(physical_cols, physical_rows, cursor.x, cursor_phys)
+            } else {
+                for line in &mut self.lines {
+                    if physical_cols < self.physical_cols {
+                        // Do a simple prune of the lines instead
+                        line.resize(physical_cols);
+                    } else {
+                        // otherwise: invalidate them
+                        line.set_dirty();
+                    }
+                }
+                (cursor.x, cursor_phys)
+            }
         } else {
             (cursor.x, cursor_phys)
         };

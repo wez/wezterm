@@ -28,8 +28,8 @@ bitflags! {
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Line {
-    bits: LineBits,
     cells: Vec<Cell>,
+    bits: LineBits,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -367,6 +367,7 @@ impl Line {
         }
 
         self.cells.insert(x, cell);
+        self.set_dirty();
     }
 
     pub fn erase_cell(&mut self, x: usize) {
@@ -374,6 +375,7 @@ impl Line {
         self.invalidate_grapheme_at_or_before(x);
         self.cells.remove(x);
         self.cells.push(Cell::default());
+        self.set_dirty();
     }
 
     pub fn erase_cell_with_margin(&mut self, x: usize, right_margin: usize) {
@@ -381,6 +383,7 @@ impl Line {
         self.invalidate_grapheme_at_or_before(x);
         self.cells.remove(x);
         self.cells.insert(right_margin - 1, Cell::default());
+        self.set_dirty();
     }
 
     pub fn fill_range(&mut self, cols: impl Iterator<Item = usize>, cell: &Cell) {
@@ -446,6 +449,7 @@ impl Line {
     pub fn set_last_cell_was_wrapped(&mut self, wrapped: bool) {
         if let Some(cell) = self.cells.last_mut() {
             cell.attrs_mut().set_wrapped(wrapped);
+            self.set_dirty();
         }
     }
 
