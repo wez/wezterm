@@ -83,5 +83,5 @@ winapi = { version = "0.3", features = [
 ]}
 
 [dev-dependencies]
-k9 = "0.10.0"
+k9 = "0.11.0"
 pretty_env_logger = "0.4"
