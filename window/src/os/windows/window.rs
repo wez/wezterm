@@ -1,14 +1,16 @@
 use super::*;
 use crate::connection::ConnectionOps;
 use crate::{
-    Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks, WindowDecorations,
-    WindowOps, WindowOpsMut,
+    Clipboard, Dimensions, GpuContext, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
+    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks,
+    WindowDecorations, WindowOps, WindowOpsMut,
 };
 use anyhow::{bail, Context};
 use config::ConfigHandle;
 use lazy_static::lazy_static;
 use promise::Future;
+use raw_window_handle::windows::WindowsHandle;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use shared_library::shared_library;
 use std::any::Any;
 use std::cell::RefCell;
@@ -41,7 +43,7 @@ pub(crate) struct WindowInner {
     /// Non-owning reference to the window handle
     hwnd: HWindow,
     callbacks: RefCell<Box<dyn WindowCallbacks>>,
-    gl_state: Option<Rc<glium::backend::Context>>,
+    gpu_context: Option<Rc<RefCell<GpuContext>>>,
     /// Fraction of mouse scroll
     hscroll_remainder: i16,
     vscroll_remainder: i16,
@@ -109,69 +111,79 @@ fn take_rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
     unsafe { Rc::from_raw(std::mem::transmute(lparam)) }
 }
 
-fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
-    if cfg!(debug_assertions) && false
-    /* https://github.com/glium/glium/issues/1885 */
-    {
-        glium::debug::DebugCallbackBehavior::DebugMessageOnError
-    } else {
-        glium::debug::DebugCallbackBehavior::Ignore
+unsafe impl HasRawWindowHandle for WindowInner {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        RawWindowHandle::Windows(WindowsHandle {
+            hwnd: self.hwnd.0 as *mut _,
+            ..WindowsHandle::empty()
+        })
     }
 }
 
 impl WindowInner {
-    fn enable_opengl(&mut self) -> anyhow::Result<()> {
-        let window = Window(self.hwnd);
-        let conn = Connection::get().unwrap();
+    async fn enable_wgpu(&mut self, width: u32, height: u32) -> anyhow::Result<()> {
+        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
 
-        let gl_state = if self.config.prefer_egl {
-            match conn.gl_connection.borrow().as_ref() {
-                None => crate::egl::GlState::create(None, self.hwnd.0),
-                Some(glconn) => {
-                    crate::egl::GlState::create_with_existing_connection(glconn, self.hwnd.0)
-                }
-            }
-        } else {
-            Err(anyhow::anyhow!("Config says to avoid EGL"))
-        }
-        .and_then(|egl| unsafe {
-            log::trace!("Initialized EGL!");
-            conn.gl_connection
-                .borrow_mut()
-                .replace(Rc::clone(egl.get_connection()));
-            let backend = Rc::new(egl);
-            Ok(glium::backend::Context::new(
-                backend,
-                true,
-                callback_behavior(),
-            )?)
-        })
-        .or_else(|err| {
-            log::warn!("EGL init failed {:?}, fall back to WGL", err);
-            super::wgl::GlState::create(self.hwnd.0).and_then(|state| unsafe {
-                Ok(glium::backend::Context::new(
-                    Rc::new(state),
-                    true,
-                    callback_behavior(),
-                )?)
+        let surface = unsafe { instance.create_surface(self) };
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::LowPower,
+                compatible_surface: Some(&surface),
             })
-        })?;
+            .await
+            .ok_or_else(|| anyhow::anyhow!("No suitable GPU adapters found on the system!"))?;
 
-        self.gl_state.replace(gl_state.clone());
+        let adapter_info = adapter.get_info();
+        log::info!("wgpu adapter: {:?}", adapter_info);
 
-        if let Err(err) = self.callbacks.borrow_mut().created(&window, gl_state) {
-            self.gl_state.take();
-            Err(err)
-        } else {
-            Ok(())
-        }
+        let (device, queue) = adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    label: None,
+                    features: wgpu::Features::empty(),
+                    limits: wgpu::Limits::default(),
+                },
+                None,
+            )
+            .await
+            .context("Unable to find a suitable GPU adapter!")?;
+
+        log::info!("wgpu device features: {:?}", device.features());
+        log::info!("wgpu device limits: {:?}", device.limits());
+
+        let sc_desc = wgpu::SwapChainDescriptor {
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
+            format: adapter.get_swap_chain_preferred_format(&surface),
+            width,
+            height,
+            present_mode: wgpu::PresentMode::Mailbox,
+        };
+        let swap_chain = device.create_swap_chain(&surface, &sc_desc);
+
+        let context = GpuContext {
+            swap_chain,
+            sc_desc,
+            adapter,
+            device,
+            queue,
+            surface,
+        };
+
+        self.gpu_context.replace(Rc::new(RefCell::new(context)));
+        let window = Window(self.hwnd);
+        self.callbacks.borrow_mut().created(
+            &window,
+            &mut *self.gpu_context.as_ref().unwrap().borrow_mut(),
+        )?;
+
+        Ok(())
     }
 
     /// Check if we need to generate a resize callback.
     /// Calls resize if needed.
     /// Returns true if we did.
     fn check_and_call_resize_if_needed(&mut self) -> bool {
-        if self.gl_state.is_none() {
+        if self.gpu_context.is_none() {
             // Don't cache state or generate resize callbacks until
             // we've set up opengl, otherwise we can miss propagating
             // some state during the initial window setup that results
@@ -210,9 +222,22 @@ impl WindowInner {
             let imc = ImmContext::get(self.hwnd.0);
             imc.set_position(0, 0);
 
+            if let Some(gpu_context) = self.gpu_context.as_ref() {
+                let mut gpu_context = gpu_context.borrow_mut();
+                gpu_context.sc_desc.width = current_dims.pixel_width as u32;
+                gpu_context.sc_desc.height = current_dims.pixel_height as u32;
+            }
+
             self.callbacks
                 .borrow_mut()
                 .resize(current_dims, self.saved_placement.is_some());
+
+            if let Some(gpu_context) = self.gpu_context.as_ref() {
+                let mut gpu_context = gpu_context.borrow_mut();
+                gpu_context.swap_chain = gpu_context
+                    .device
+                    .create_swap_chain(&gpu_context.surface, &gpu_context.sc_desc);
+            }
         }
 
         !same
@@ -367,7 +392,7 @@ impl Window {
         Ok(hwnd)
     }
 
-    pub fn new_window(
+    pub async fn new_window(
         class_name: &str,
         name: &str,
         width: usize,
@@ -382,7 +407,7 @@ impl Window {
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),
             callbacks: RefCell::new(callbacks),
-            gl_state: None,
+            gpu_context: None,
             vscroll_remainder: 0,
             hscroll_remainder: 0,
             keyboard_info: KeyboardLayoutInfo::new(),
@@ -415,7 +440,10 @@ impl Window {
             .insert(hwnd.clone(), Rc::clone(&inner));
 
         let window = Window(hwnd);
-        inner.borrow_mut().enable_opengl()?;
+        inner
+            .borrow_mut()
+            .enable_wgpu(width as u32, height as u32)
+            .await?;
 
         Ok(window)
     }
@@ -881,7 +909,7 @@ unsafe fn wm_kill_focus(
 
 unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow();
+        let inner = inner.borrow_mut();
 
         let mut ps = PAINTSTRUCT {
             fErase: 0,
@@ -905,24 +933,27 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
             top: 0,
         };
         GetClientRect(hwnd, &mut rect);
-        let width = rect_width(&rect) as usize;
-        let height = rect_height(&rect) as usize;
 
-        if let Some(gl_context) = inner.gl_state.as_ref() {
-            if gl_context.is_context_lost() {
-                log::error!("opengl context was lost; should reinit");
-                let _ = inner
-                    .callbacks
-                    .borrow_mut()
-                    .opengl_context_lost(&Window(inner.hwnd));
-                return None;
-            }
+        if let Some(gpu_context) = inner.gpu_context.as_ref() {
+            let mut gpu_context = gpu_context.borrow_mut();
+            let frame = match gpu_context.swap_chain.get_current_frame() {
+                Ok(frame) => frame,
+                Err(err) => {
+                    log::info!("get_current_frame: {:#}", err);
+                    gpu_context.swap_chain = gpu_context
+                        .device
+                        .create_swap_chain(&gpu_context.surface, &gpu_context.sc_desc);
+                    gpu_context
+                        .swap_chain
+                        .get_current_frame()
+                        .expect("Failed to acquire next swap chain texture!")
+                }
+            };
 
-            let mut frame =
-                glium::Frame::new(Rc::clone(&gl_context), (width as u32, height as u32));
-
-            inner.callbacks.borrow_mut().paint(&mut frame);
-            frame.finish().expect("frame.finish failed");
+            inner
+                .callbacks
+                .borrow_mut()
+                .render(&frame.output, &mut *gpu_context);
         }
 
         EndPaint(hwnd, &mut ps);

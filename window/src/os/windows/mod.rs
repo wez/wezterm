@@ -1,6 +1,5 @@
 pub mod connection;
 pub mod event;
-mod wgl;
 pub mod window;
 
 pub use self::window::*;
