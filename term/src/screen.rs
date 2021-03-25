@@ -27,6 +27,9 @@ pub struct Screen {
 
     /// config so we can access Maximum number of lines of scrollback
     config: Arc<dyn TerminalConfiguration>,
+
+    /// Whether scrollback is allowed; this is another way of saying
+    /// that we're the primary rather than the alternate screen.
     allow_scrollback: bool,
 
     /// Physical, visible height of the screen (not including scrollback)
@@ -172,11 +175,14 @@ impl Screen {
             }
         }
 
-        let (cursor_x, cursor_y) = if physical_cols != self.physical_cols {
+        let (cursor_x, cursor_y) = if self.allow_scrollback && physical_cols != self.physical_cols {
             // Check to see if we need to rewrap lines that were
             // wrapped due to reaching the right hand side of the terminal.
             // For each one that we find, we need to join it with its
-            // successor and then re-split it
+            // successor and then re-split it.
+            // We only do this for the primary, and not for the alternate
+            // screen (hence the check for allow_scrollback), to avoid
+            // conflicting screen updates with full screen apps.
             self.rewrap_lines(physical_cols, physical_rows, cursor.x, cursor_phys)
         } else {
             (cursor.x, cursor_phys)
