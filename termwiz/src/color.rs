@@ -117,7 +117,7 @@ impl RgbColor {
             } else {
                 ((v + 0.055) / 1.055).powf(2.4)
             }
-        };
+        }
         (
             to_linear(self.red),
             to_linear(self.green),

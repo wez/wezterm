@@ -34,7 +34,7 @@ use wezterm_term::{ClipboardSelection, StableRowIndex};
 
 /// Returns the encoded length of the leb128 representation of value
 fn encoded_length(value: u64) -> usize {
-    struct NullWrite {};
+    struct NullWrite {}
     impl std::io::Write for NullWrite {
         fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, std::io::Error> {
             Ok(buf.len())
@@ -42,7 +42,7 @@ fn encoded_length(value: u64) -> usize {
         fn flush(&mut self) -> std::result::Result<(), std::io::Error> {
             Ok(())
         }
-    };
+    }
 
     leb128::write::unsigned(&mut NullWrite {}, value).unwrap()
 }

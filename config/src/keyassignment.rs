@@ -224,14 +224,14 @@ impl InputMap {
                 keys.entry(($code, $mod)).or_insert($action);
                 )*
             };
-        };
+        }
         macro_rules! m {
             ($([$mod:expr, $code:expr, $action:expr]),* $(,)?) => {
                 $(
                 mouse.entry(($code, $mod)).or_insert($action);
                 )*
             };
-        };
+        }
 
         use KeyAssignment::*;
 

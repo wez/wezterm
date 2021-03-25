@@ -412,7 +412,7 @@ impl FontConfigInner {
                 }
                 // matches so far...
             };
-        };
+        }
 
         for rule in &config.font_rules {
             attr_match!(intensity, &rule);

@@ -126,7 +126,7 @@ impl Display for Selection {
                     write!(f, $s)?;
                 }
             };
-        };
+        }
 
         item!(CLIPBOARD, "c");
         item!(PRIMARY, "p");
@@ -280,7 +280,7 @@ impl OperatingSystemCommand {
 
                 Ok(OperatingSystemCommand::$variant(s))
             }};
-        };
+        }
 
         use self::OperatingSystemCommandCode::*;
         match osc_code {
@@ -470,7 +470,7 @@ impl Display for OperatingSystemCommand {
                     }
                 }
             }};
-        };
+        }
 
         use self::OperatingSystemCommand::*;
         match self {
@@ -663,7 +663,7 @@ impl FinalTermSemanticPrompt {
                     return Ok(FinalTermSemanticPrompt::$variant);
                 }
             };
-        };
+        }
 
         single!(FreshLine, "L");
         single!(MarkEndOfPromptAndStartOfInputUntilNextMarker, "B");
@@ -1057,7 +1057,7 @@ impl ITermProprietary {
                     return Ok(ITermProprietary::$variant);
                 }
             };
-        };
+        }
 
         macro_rules! one_str {
             ($variant:ident, $text:expr) => {
@@ -1067,7 +1067,7 @@ impl ITermProprietary {
                     }
                 }
             };
-        };
+        }
         macro_rules! const_arg {
             ($variant:ident, $text:expr, $value:expr, $res:expr) => {
                 if osc.len() == 2 && keyword == $text {
