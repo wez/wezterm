@@ -222,7 +222,7 @@ impl FontLocator for GdiFontLocator {
         struct Source {
             locale: String,
             len: u32,
-        };
+        }
         impl dwrote::TextAnalysisSourceMethods for Source {
             fn get_locale_name<'a>(&'a self, _: u32) -> (Cow<'a, str>, u32) {
                 (Cow::Borrowed(&self.locale), self.len)
