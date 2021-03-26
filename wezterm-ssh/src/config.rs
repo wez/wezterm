@@ -270,16 +270,11 @@ impl Config {
             "unknown-user".to_string()
         });
 
-        let dot_ssh = if cfg!(windows) { "ssh" } else { ".ssh" };
-
         if !result.contains_key("userknownhostsfile") {
             if let Some(home) = self.resolve_home() {
                 result.insert(
                     "userknownhostsfile".to_string(),
-                    format!(
-                        "{}/{}/known_hosts {}/{}/known_hosts2",
-                        home, dot_ssh, home, dot_ssh
-                    ),
+                    format!("{}/.ssh/known_hosts {}/.ssh/known_hosts2", home, home,),
                 );
             }
         }
