@@ -6,3 +6,5 @@ resolver = "2"
 opt-level = 3
 # debug = 1
 
+[patch.crates-io]
+ssh2 = { git = "https://github.com/wez/ssh2-rs.git", branch="win32ssl" }
