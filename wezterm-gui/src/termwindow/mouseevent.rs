@@ -358,7 +358,10 @@ impl super::TermWindow {
 
         self.last_mouse_terminal_coords = (x, stable_row); // FIXME: per-pane
 
-        let (top, mut lines) = pane.get_lines(stable_row..stable_row + 1);
+        let (top, mut lines) = pane.get_lines_with_hyperlinks_applied(
+            stable_row..stable_row + 1,
+            &self.config.hyperlink_rules,
+        );
         let new_highlight = if top == stable_row {
             if let Some(line) = lines.get_mut(0) {
                 if let Some(cell) = line.cells().get(x) {

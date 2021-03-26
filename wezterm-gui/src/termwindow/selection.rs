@@ -14,7 +14,8 @@ impl super::TermWindow {
             .map(|r| r.normalize())
         {
             let mut last_was_wrapped = false;
-            let (first_row, lines) = pane.get_lines(sel.rows());
+            let (first_row, lines) =
+                pane.get_lines_with_hyperlinks_applied(sel.rows(), &self.config.hyperlink_rules);
             for (idx, line) in lines.iter().enumerate() {
                 let cols = sel.cols_for_row(first_row + idx as StableRowIndex);
                 let last_col_idx = cols.end.min(line.cells().len()).saturating_sub(1);

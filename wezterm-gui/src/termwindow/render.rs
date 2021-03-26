@@ -18,7 +18,6 @@ use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use std::ops::Range;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::time::Instant;
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
@@ -172,12 +171,9 @@ impl super::TermWindow {
                 None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
             };
 
-            /*
             let (top, vp_lines) = pos
                 .pane
                 .get_lines_with_hyperlinks_applied(stable_range, &self.config.hyperlink_rules);
-            */
-            let (top, vp_lines) = pos.pane.get_lines(stable_range);
             stable_top = top;
             lines = vp_lines;
         }
@@ -695,7 +691,7 @@ impl super::TermWindow {
             let attrs = &cluster.attrs;
 
             let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
-                (Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
+                (Some(ref this), &Some(ref highlight)) => **this == *highlight,
                 _ => false,
             };
             let style = self.fonts.match_style(params.config, attrs);

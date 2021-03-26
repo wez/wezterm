@@ -78,6 +78,24 @@ pub struct LogicalLine {
 }
 
 impl LogicalLine {
+    pub fn xy_to_logical_x(&self, x: usize, y: StableRowIndex) -> usize {
+        let mut offset = 0;
+        for (idx, line) in self.physical_lines.iter().enumerate() {
+            let phys_y = self.first_row + idx as StableRowIndex;
+            if phys_y == y {
+                return offset + x;
+            }
+
+            offset += line.cells().len();
+        }
+        panic!(
+            "x={} y={} is outside of this logical line starting at {} comprised of {} physical lines",
+            x, y,
+            self.first_row,
+            self.physical_lines.len()
+        );
+    }
+
     pub fn logical_x_to_physical_coord(&self, x: usize) -> (StableRowIndex, usize) {
         let mut y = self.first_row;
         let mut idx = 0;
@@ -109,8 +127,11 @@ impl LogicalLine {
         let num_phys = self.physical_lines.len();
         for (idx, phys) in self.physical_lines.iter_mut().enumerate() {
             let len = phys.cells().len();
-            *phys = line.split_off(len);
-            phys.set_last_cell_was_wrapped(idx == num_phys - 1);
+            let remainder = line.split_off(len);
+            *phys = line;
+            line = remainder;
+            let wrapped = idx == num_phys - 1;
+            phys.set_last_cell_was_wrapped(wrapped);
         }
     }
 }
@@ -230,7 +251,11 @@ pub trait Pane: Downcast {
             }
         }
 
-        (first.unwrap(), phys_lines)
+        if first.is_none() {
+            assert_eq!(phys_lines.len(), 0);
+        }
+
+        (first.unwrap_or(0), phys_lines)
     }
 
     /// Returns render related dimensions

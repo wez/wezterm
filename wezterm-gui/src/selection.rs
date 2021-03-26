@@ -68,21 +68,17 @@ impl SelectionRange {
 
     /// Computes the selection range for the line around the specified coords
     pub fn line_around(start: SelectionCoordinate, pane: &dyn Pane) -> Self {
-        let mut end_y = start.y;
-        loop {
-            let next_y = end_y + 1;
-            let (_, lines) = pane.get_lines(end_y..next_y);
-            if !lines[0].last_cell_was_wrapped() {
-                break;
-            }
-            end_y = next_y;
-        }
+        let logical = pane.get_logical_lines(start.y..start.y + 1);
+        let logical = &logical[0];
 
         Self {
-            start: SelectionCoordinate { x: 0, y: start.y },
+            start: SelectionCoordinate {
+                x: 0,
+                y: logical.first_row,
+            },
             end: SelectionCoordinate {
                 x: usize::max_value(),
-                y: end_y,
+                y: logical.first_row + (logical.physical_lines.len() - 1) as StableRowIndex,
             },
         }
     }
@@ -135,61 +131,29 @@ impl SelectionRange {
 
     /// Computes the selection range for the word around the specified coords
     pub fn word_around(start: SelectionCoordinate, pane: &dyn Pane) -> Self {
-        let (first, lines) = pane.get_lines(start.y..start.y + 1);
+        let logical = pane.get_logical_lines(start.y..start.y + 1);
+        let logical = &logical[0];
 
-        // TODO: if selection_range.start.x == 0, search backwards for wrapping
-        // lines too.
-
-        match lines[0].compute_double_click_range(start.x, is_double_click_word) {
-            DoubleClickRange::Range(click_range) => Self {
-                start: SelectionCoordinate {
-                    x: click_range.start,
-                    y: first,
-                },
-                end: SelectionCoordinate {
-                    x: click_range.end - 1,
-                    y: first,
-                },
-            },
-            DoubleClickRange::RangeWithWrap(range_start) => {
-                let start_coord = SelectionCoordinate {
-                    x: range_start.start,
-                    y: first,
-                };
-
-                let mut end_coord = SelectionCoordinate {
-                    x: range_start.end - 1,
-                    y: first,
-                };
-
-                for y_cont in start.y + 1.. {
-                    let (first, lines) = pane.get_lines(y_cont..y_cont + 1);
-                    if first != y_cont {
-                        break;
-                    }
-                    match lines[0].compute_double_click_range(0, is_double_click_word) {
-                        DoubleClickRange::Range(range_end) => {
-                            if range_end.end > range_end.start {
-                                end_coord = SelectionCoordinate {
-                                    x: range_end.end - 1,
-                                    y: y_cont,
-                                };
-                            }
-                            break;
-                        }
-                        DoubleClickRange::RangeWithWrap(range_end) => {
-                            end_coord = SelectionCoordinate {
-                                x: range_end.end - 1,
-                                y: y_cont,
-                            };
-                        }
-                    }
-                }
-
+        let start_idx = logical.xy_to_logical_x(start.x, start.y);
+        match logical
+            .logical
+            .compute_double_click_range(start_idx, is_double_click_word)
+        {
+            DoubleClickRange::Range(click_range) => {
+                let (start_y, start_x) = logical.logical_x_to_physical_coord(click_range.start);
+                let (end_y, end_x) = logical.logical_x_to_physical_coord(click_range.end - 1);
                 Self {
-                    start: start_coord,
-                    end: end_coord,
+                    start: SelectionCoordinate {
+                        x: start_x,
+                        y: start_y,
+                    },
+                    end: SelectionCoordinate { x: end_x, y: end_y },
                 }
+            }
+            DoubleClickRange::RangeWithWrap(_) => {
+                // We're using logical lines to match against, so we should never get
+                // a RangeWithWrap result here
+                unreachable!()
             }
         }
     }
