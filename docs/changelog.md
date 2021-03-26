@@ -26,6 +26,7 @@ brief notes about them may accumulate here.
 * Fixed: triggering the search overlay again while the search overlay is active no longer closes the underlying pane [#572](https://github.com/wez/wezterm/issues/572)
 * Fixed: X10 mouse coordinate reporting encoding could produce invalid outputs for large windows. Capped coordinate values to the maximum value that is representable in UTF-8 encoding
 * Fixed: font fallback now happens asynchronously from painting [#508](https://github.com/wez/wezterm/issues/508)
+* New: added [window:get_selection_text_for_pane](config/lua/window/get_selection_text_for_pane.md) method [#575](https://github.com/wez/wezterm/issues/575)
 
 ### 20210314-114017-04b7cedd
 

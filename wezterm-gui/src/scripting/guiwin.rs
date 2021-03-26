@@ -80,6 +80,15 @@ impl UserData for GuiWin {
             .await
         });
         methods.add_async_method(
+            "get_selection_text_for_pane",
+            |_, this, pane: PaneObject| async move {
+                this.with_term_window(move |term_window, _ops| {
+                    Ok(term_window.selection_text(&pane.pane()?))
+                })
+                .await
+            },
+        );
+        methods.add_async_method(
             "perform_action",
             |_, this, (assignment, pane): (KeyAssignment, PaneObject)| async move {
                 this.with_term_window(move |term_window, _ops| {
