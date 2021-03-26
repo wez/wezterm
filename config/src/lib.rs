@@ -9,7 +9,6 @@ use portable_pty::{CommandBuilder, PtySize};
 use serde::{Deserialize, Deserializer, Serialize};
 use smol::channel::{Receiver, Sender};
 use smol::prelude::*;
-use std;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
