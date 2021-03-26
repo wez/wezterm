@@ -258,6 +258,39 @@ impl Config {
             .or_insert_with(|| host.to_string());
 
         result
+            .entry("port".to_string())
+            .or_insert_with(|| "22".to_string());
+
+        result.entry("user".to_string()).or_insert_with(|| {
+            for user in &["USER", "USERNAME"] {
+                if let Some(user) = self.resolve_env(user) {
+                    return user;
+                }
+            }
+            "unknown-user".to_string()
+        });
+
+        let dot_ssh = if cfg!(windows) { "ssh" } else { ".ssh" };
+
+        if !result.contains_key("userknownhostsfile") {
+            if let Some(home) = self.resolve_home() {
+                result.insert(
+                    "userknownhostsfile".to_string(),
+                    format!(
+                        "{}/{}/known_hosts {}/{}/known_hosts2",
+                        home, dot_ssh, home, dot_ssh
+                    ),
+                );
+            }
+        }
+
+        if !result.contains_key("identityagent") {
+            if let Some(sock_path) = self.resolve_env("SSH_AUTH_SOCK") {
+                result.insert("identityagent".to_string(), sock_path);
+            }
+        }
+
+        result
     }
 
     /// Return true if a given option name is subject to environment variable
@@ -355,6 +388,7 @@ mod test {
 
         let mut fake_env = ConfigMap::new();
         fake_env.insert("HOME".to_string(), "/home/me".to_string());
+        fake_env.insert("USER".to_string(), "me".to_string());
         config.assign_environment(fake_env);
 
         config.add_config_string(
@@ -437,6 +471,7 @@ Config {
     environment: Some(
         {
             "HOME": "/home/me",
+            "USER": "me",
         },
     ),
 }
@@ -449,7 +484,10 @@ Config {
             r#"
 {
     "hostname": "random",
+    "port": "22",
     "something": "first",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
 }
 "#
         );
@@ -462,7 +500,10 @@ Config {
     "fowardagent": "yes",
     "hostname": "192.168.1.8",
     "identityfile": "/home/me/.ssh/id_pub.dsa",
+    "port": "22",
     "something": "first",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
 }
 "#
         );
@@ -473,7 +514,10 @@ Config {
             r#"
 {
     "hostname": "a.b",
+    "port": "22",
     "something": "first",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
 }
 "#
         );
@@ -486,7 +530,10 @@ Config {
     "forwardagent": "no",
     "hostname": "b.b",
     "identityagent": "/home/me/.ssh/agent",
+    "port": "22",
     "something": "first",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
 }
 "#
         );
