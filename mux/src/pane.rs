@@ -69,6 +69,34 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
     .detach();
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct LogicalLine {
+    pub physical_lines: Vec<Line>,
+    pub logical: Line,
+    pub first_row: StableRowIndex,
+}
+
+impl LogicalLine {
+    pub fn logical_x_to_physical_coord(&self, x: usize) -> (StableRowIndex, usize) {
+        let mut y = self.first_row;
+        let mut idx = 0;
+        for line in &self.physical_lines {
+            let x_off = x - idx;
+            let line_len = line.cells().len();
+            if x_off < line_len {
+                return (y, x_off);
+            }
+            y += 1;
+            idx += line_len;
+        }
+        panic!(
+            "x={} is outside of this logical line of len {}",
+            x,
+            self.logical.cells().len()
+        );
+    }
+}
+
 /// A Pane represents a view on a terminal
 #[async_trait(?Send)]
 pub trait Pane: Downcast {
@@ -98,6 +126,69 @@ pub trait Pane: Downcast {
     /// flag will be cleared in the backing data.  The returned line will
     /// have its dirty bit set appropriately.
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>);
+
+    fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
+        let (mut first, mut phys) = self.get_lines(lines);
+
+        // Look backwards to find the start of the first logical line
+        while first > 0 {
+            let (prior, back) = self.get_lines(first - 1..first);
+            if prior == first {
+                break;
+            }
+            if !back[0].last_cell_was_wrapped() {
+                break;
+            }
+            first = prior;
+            for (idx, line) in back.into_iter().enumerate() {
+                phys.insert(idx, line);
+            }
+        }
+
+        // Look forwards to find the end of the last logical line
+        while let Some(last) = phys.last() {
+            if !last.last_cell_was_wrapped() {
+                break;
+            }
+
+            let next_row = first + phys.len() as StableRowIndex;
+            let (last_row, mut ahead) = self.get_lines(next_row..next_row + 1);
+            if last_row != next_row {
+                break;
+            }
+            phys.append(&mut ahead);
+        }
+
+        // Now process this stuff into logical lines
+        let mut lines = vec![];
+        for (idx, line) in phys.into_iter().enumerate() {
+            match lines.last_mut() {
+                None => {
+                    let logical = line.clone();
+                    lines.push(LogicalLine {
+                        physical_lines: vec![line],
+                        logical,
+                        first_row: first + idx as StableRowIndex,
+                    });
+                }
+                Some(prior) => {
+                    if prior.logical.last_cell_was_wrapped() {
+                        prior.logical.set_last_cell_was_wrapped(false);
+                        prior.logical.append_line(line.clone());
+                        prior.physical_lines.push(line);
+                    } else {
+                        let logical = line.clone();
+                        lines.push(LogicalLine {
+                            physical_lines: vec![line],
+                            logical,
+                            first_row: first + idx as StableRowIndex,
+                        });
+                    }
+                }
+            }
+        }
+        lines
+    }
 
     /// Returns render related dimensions
     fn get_dimensions(&self) -> RenderableDimensions;
@@ -170,3 +261,458 @@ pub trait Pane: Downcast {
     }
 }
 impl_downcast!(Pane);
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use k9::snapshot;
+
+    struct FakePane {
+        lines: Vec<Line>,
+    }
+
+    impl Pane for FakePane {
+        fn pane_id(&self) -> PaneId {
+            unimplemented!()
+        }
+        fn get_cursor_position(&self) -> StableCursorPosition {
+            unimplemented!()
+        }
+        fn get_dirty_lines(&self, _: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+            unimplemented!()
+        }
+        fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+            let first = lines.start;
+            (
+                first,
+                self.lines
+                    .iter()
+                    .skip(lines.start as usize)
+                    .take((lines.end - lines.start) as usize)
+                    .cloned()
+                    .collect(),
+            )
+        }
+        fn get_dimensions(&self) -> RenderableDimensions {
+            unimplemented!()
+        }
+
+        fn get_title(&self) -> String {
+            unimplemented!()
+        }
+        fn send_paste(&self, _: &str) -> anyhow::Result<()> {
+            unimplemented!()
+        }
+        fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
+            unimplemented!()
+        }
+        fn writer(&self) -> RefMut<dyn std::io::Write> {
+            unimplemented!()
+        }
+        fn resize(&self, _: PtySize) -> anyhow::Result<()> {
+            unimplemented!()
+        }
+
+        fn mouse_event(&self, _: MouseEvent) -> anyhow::Result<()> {
+            unimplemented!()
+        }
+        fn is_dead(&self) -> bool {
+            unimplemented!()
+        }
+        fn palette(&self) -> ColorPalette {
+            unimplemented!()
+        }
+        fn domain_id(&self) -> DomainId {
+            unimplemented!()
+        }
+
+        fn is_mouse_grabbed(&self) -> bool {
+            false
+        }
+        fn is_alt_screen_active(&self) -> bool {
+            false
+        }
+        fn get_current_working_dir(&self) -> Option<Url> {
+            None
+        }
+        fn key_down(&self, _: KeyCode, _: KeyModifiers) -> anyhow::Result<()> {
+            unimplemented!()
+        }
+    }
+
+    #[test]
+    fn logical_lines() {
+        let text = "Hello there this is a long line.\nlogical line two\nanother long line here\nlogical line four\nlogical line five\ncap it off with another long line";
+        let mut physical_lines = vec![];
+        let width = 20;
+        for logical in text.split('\n') {
+            let chunks = logical
+                .chars()
+                .collect::<Vec<char>>()
+                .chunks(width)
+                .map(|c| c.into_iter().collect::<String>())
+                .collect::<Vec<String>>();
+            let n_chunks = chunks.len();
+            for (idx, chunk) in chunks.into_iter().enumerate() {
+                let mut line = Line::from_text(&chunk, &Default::default());
+                if idx < n_chunks - 1 {
+                    line.set_last_cell_was_wrapped(true);
+                }
+                physical_lines.push(line);
+            }
+        }
+
+        fn text_from_lines(lines: &[Line]) -> Vec<String> {
+            lines.iter().map(|l| l.as_str()).collect::<Vec<_>>()
+        }
+
+        let line_text = text_from_lines(&physical_lines);
+        snapshot!(
+            line_text,
+            r#"
+[
+    "Hello there this is ",
+    "a long line.",
+    "logical line two",
+    "another long line he",
+    "re",
+    "logical line four",
+    "logical line five",
+    "cap it off with anot",
+    "her long line",
+]
+"#
+        );
+
+        let pane = FakePane {
+            lines: physical_lines,
+        };
+
+        fn summarize_logical_lines(lines: &[LogicalLine]) -> Vec<(StableRowIndex, String)> {
+            lines
+                .iter()
+                .map(|l| (l.first_row, l.logical.as_str()))
+                .collect::<Vec<_>>()
+        }
+
+        let logical = pane.get_logical_lines(0..30);
+        snapshot!(
+            summarize_logical_lines(&logical),
+            r#"
+[
+    (
+        0,
+        "Hello there this is a long line.",
+    ),
+    (
+        2,
+        "logical line two",
+    ),
+    (
+        3,
+        "another long line here",
+    ),
+    (
+        5,
+        "logical line four",
+    ),
+    (
+        6,
+        "logical line five",
+    ),
+    (
+        7,
+        "cap it off with another long line",
+    ),
+]
+"#
+        );
+
+        // Now try with offset bounds
+        let offset = pane.get_logical_lines(1..3);
+        snapshot!(
+            summarize_logical_lines(&offset),
+            r#"
+[
+    (
+        0,
+        "Hello there this is a long line.",
+    ),
+    (
+        2,
+        "logical line two",
+    ),
+]
+"#
+        );
+
+        let offset = pane.get_logical_lines(1..4);
+        snapshot!(
+            summarize_logical_lines(&offset),
+            r#"
+[
+    (
+        0,
+        "Hello there this is a long line.",
+    ),
+    (
+        2,
+        "logical line two",
+    ),
+    (
+        3,
+        "another long line here",
+    ),
+]
+"#
+        );
+
+        let offset = pane.get_logical_lines(1..5);
+        snapshot!(
+            summarize_logical_lines(&offset),
+            r#"
+[
+    (
+        0,
+        "Hello there this is a long line.",
+    ),
+    (
+        2,
+        "logical line two",
+    ),
+    (
+        3,
+        "another long line here",
+    ),
+]
+"#
+        );
+
+        let offset = pane.get_logical_lines(1..6);
+        snapshot!(
+            summarize_logical_lines(&offset),
+            r#"
+[
+    (
+        0,
+        "Hello there this is a long line.",
+    ),
+    (
+        2,
+        "logical line two",
+    ),
+    (
+        3,
+        "another long line here",
+    ),
+    (
+        5,
+        "logical line four",
+    ),
+]
+"#
+        );
+
+        let offset = pane.get_logical_lines(1..7);
+        snapshot!(
+            summarize_logical_lines(&offset),
+            r#"
+[
+    (
+        0,
+        "Hello there this is a long line.",
+    ),
+    (
+        2,
+        "logical line two",
+    ),
+    (
+        3,
+        "another long line here",
+    ),
+    (
+        5,
+        "logical line four",
+    ),
+    (
+        6,
+        "logical line five",
+    ),
+]
+"#
+        );
+
+        let offset = pane.get_logical_lines(1..8);
+        snapshot!(
+            summarize_logical_lines(&offset),
+            r#"
+[
+    (
+        0,
+        "Hello there this is a long line.",
+    ),
+    (
+        2,
+        "logical line two",
+    ),
+    (
+        3,
+        "another long line here",
+    ),
+    (
+        5,
+        "logical line four",
+    ),
+    (
+        6,
+        "logical line five",
+    ),
+    (
+        7,
+        "cap it off with another long line",
+    ),
+]
+"#
+        );
+
+        let line = &offset[0];
+        let coords = (0..line.logical.cells().len())
+            .map(|idx| line.logical_x_to_physical_coord(idx))
+            .collect::<Vec<_>>();
+        snapshot!(
+            coords,
+            "
+[
+    (
+        0,
+        0,
+    ),
+    (
+        0,
+        1,
+    ),
+    (
+        0,
+        2,
+    ),
+    (
+        0,
+        3,
+    ),
+    (
+        0,
+        4,
+    ),
+    (
+        0,
+        5,
+    ),
+    (
+        0,
+        6,
+    ),
+    (
+        0,
+        7,
+    ),
+    (
+        0,
+        8,
+    ),
+    (
+        0,
+        9,
+    ),
+    (
+        0,
+        10,
+    ),
+    (
+        0,
+        11,
+    ),
+    (
+        0,
+        12,
+    ),
+    (
+        0,
+        13,
+    ),
+    (
+        0,
+        14,
+    ),
+    (
+        0,
+        15,
+    ),
+    (
+        0,
+        16,
+    ),
+    (
+        0,
+        17,
+    ),
+    (
+        0,
+        18,
+    ),
+    (
+        0,
+        19,
+    ),
+    (
+        1,
+        0,
+    ),
+    (
+        1,
+        1,
+    ),
+    (
+        1,
+        2,
+    ),
+    (
+        1,
+        3,
+    ),
+    (
+        1,
+        4,
+    ),
+    (
+        1,
+        5,
+    ),
+    (
+        1,
+        6,
+    ),
+    (
+        1,
+        7,
+    ),
+    (
+        1,
+        8,
+    ),
+    (
+        1,
+        9,
+    ),
+    (
+        1,
+        10,
+    ),
+    (
+        1,
+        11,
+    ),
+]
+"
+        );
+    }
+}
