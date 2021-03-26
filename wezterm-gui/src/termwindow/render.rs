@@ -172,9 +172,12 @@ impl super::TermWindow {
                 None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
             };
 
+            /*
             let (top, vp_lines) = pos
                 .pane
                 .get_lines_with_hyperlinks_applied(stable_range, &self.config.hyperlink_rules);
+            */
+            let (top, vp_lines) = pos.pane.get_lines(stable_range);
             stable_top = top;
             lines = vp_lines;
         }
