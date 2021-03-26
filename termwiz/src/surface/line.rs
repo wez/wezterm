@@ -235,6 +235,14 @@ impl Line {
         s
     }
 
+    pub fn split_off(&mut self, idx: usize) -> Self {
+        let cells = self.cells.split_off(idx);
+        Self {
+            bits: self.bits,
+            cells,
+        }
+    }
+
     pub fn compute_double_click_range<F: Fn(&str) -> bool>(
         &self,
         click_col: usize,

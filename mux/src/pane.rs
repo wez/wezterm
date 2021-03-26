@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::cell::RefMut;
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
+use termwiz::hyperlink::Rule;
 use termwiz::surface::Line;
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -94,6 +95,23 @@ impl LogicalLine {
             x,
             self.logical.cells().len()
         );
+    }
+
+    pub fn apply_hyperlink_rules(&mut self, rules: &[Rule]) {
+        self.logical.invalidate_implicit_hyperlinks();
+        self.logical.scan_and_create_hyperlinks(rules);
+        if !self.logical.has_hyperlink() {
+            return;
+        }
+
+        // Re-compute the physical lines
+        let mut line = self.logical.clone();
+        let num_phys = self.physical_lines.len();
+        for (idx, phys) in self.physical_lines.iter_mut().enumerate() {
+            let len = phys.cells().len();
+            *phys = line.split_off(len);
+            phys.set_last_cell_was_wrapped(idx == num_phys - 1);
+        }
     }
 }
 
@@ -188,6 +206,31 @@ pub trait Pane: Downcast {
             }
         }
         lines
+    }
+
+    fn get_lines_with_hyperlinks_applied(
+        &self,
+        lines: Range<StableRowIndex>,
+        rules: &[Rule],
+    ) -> (StableRowIndex, Vec<Line>) {
+        let requested_first = lines.start;
+        let logical = self.get_logical_lines(lines);
+
+        let mut first = None;
+        let mut phys_lines = vec![];
+        for mut log_line in logical {
+            log_line.apply_hyperlink_rules(rules);
+            for (idx, phys) in log_line.physical_lines.into_iter().enumerate() {
+                if log_line.first_row + idx as StableRowIndex >= requested_first {
+                    if first.is_none() {
+                        first.replace(log_line.first_row + idx as StableRowIndex);
+                    }
+                    phys_lines.push(phys);
+                }
+            }
+        }
+
+        (first.unwrap(), phys_lines)
     }
 
     /// Returns render related dimensions

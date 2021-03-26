@@ -1,4 +1,3 @@
-use config::configuration;
 use luahelper::impl_lua_conversion;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
@@ -77,7 +76,6 @@ pub fn terminal_get_lines(
 ) -> (StableRowIndex, Vec<Line>) {
     let screen = term.screen_mut();
     let phys_range = screen.stable_range(&lines);
-    let config = configuration();
     (
         screen.phys_to_stable_row_index(phys_range.start),
         screen
@@ -86,7 +84,6 @@ pub fn terminal_get_lines(
             .skip(phys_range.start)
             .take(phys_range.end - phys_range.start)
             .map(|line| {
-                line.scan_and_create_hyperlinks(&config.hyperlink_rules);
                 let cloned = line.clone();
                 line.clear_dirty();
                 cloned
