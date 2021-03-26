@@ -30,7 +30,7 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
   exit $?
 fi
 
-if test `lsb_release -si` = "openSUSE"; then
+if test -x /usr/bin/lsb_release && test `lsb_release -si` = "openSUSE"; then
   zypper install -y perl-FindBin perl-File-Compare || true
   zypper install -y \
     make \
