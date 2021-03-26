@@ -172,16 +172,14 @@ impl<'a, L, N> std::iter::Iterator for ParentIterator<'a, L, N> {
 
 impl<L, N> Tree<L, N> {
     /// Construct a new empty tree
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self::Empty
     }
 
     /// Returns true if the tree is empty
     pub fn is_empty(&self) -> bool {
-        match self {
-            Self::Empty => true,
-            _ => false,
-        }
+        matches!(self, Self::Empty)
     }
 
     /// Transform the tree into its Zipper based Cursor representation
@@ -195,6 +193,7 @@ impl<L, N> Tree<L, N> {
 
 impl<L, N> Cursor<L, N> {
     /// Construct a cursor representing a new empty tree
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             it: Box::new(Tree::Empty),
@@ -209,33 +208,21 @@ impl<L, N> Cursor<L, N> {
 
     /// Returns true if the current position is a leaf node
     pub fn is_leaf(&self) -> bool {
-        match &*self.it {
-            Tree::Leaf(_) => true,
-            _ => false,
-        }
+        matches!(&*self.it, Tree::Leaf(_))
     }
 
     /// Returns true if the current position is the left child of its parent
     pub fn is_left(&self) -> bool {
-        match &*self.path {
-            Path::Left { .. } => true,
-            _ => false,
-        }
+        matches!(&*self.path, Path::Left { .. })
     }
 
     /// Returns true if the current position is the right child of its parent
     pub fn is_right(&self) -> bool {
-        match &*self.path {
-            Path::Right { .. } => true,
-            _ => false,
-        }
+        matches!(&*self.path, Path::Right { .. })
     }
 
     pub fn is_top(&self) -> bool {
-        match &*self.path {
-            Path::Top => true,
-            _ => false,
-        }
+        matches!(&*self.path, Path::Top)
     }
 
     /// If the current position is the root of the empty tree,
@@ -265,6 +252,7 @@ impl<L, N> Cursor<L, N> {
 
     /// If the current position is not a leaf node, return a mutable
     /// reference to the node data container, else yields `Err`.
+    #[allow(clippy::result_unit_err)]
     pub fn node_mut(&mut self) -> Result<&mut Option<N>, ()> {
         match &mut *self.it {
             Tree::Node { data, .. } => Ok(data),
@@ -381,7 +369,7 @@ impl<L, N> Cursor<L, N> {
                 it: left,
                 path: Box::new(Path::Left {
                     data,
-                    right: right,
+                    right,
                     up: self.path,
                 }),
             }),
@@ -401,7 +389,7 @@ impl<L, N> Cursor<L, N> {
                 it: right,
                 path: Box::new(Path::Right {
                     data,
-                    left: left,
+                    left,
                     up: self.path,
                 }),
             }),
