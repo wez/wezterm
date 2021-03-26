@@ -83,9 +83,9 @@ pub fn range_union<T: Integer>(r1: Range<T>, r2: Range<T>) -> Range<T> {
     }
 }
 
-impl<T: Integer + Copy + Debug> Into<Vec<Range<T>>> for RangeSet<T> {
-    fn into(self) -> Vec<Range<T>> {
-        self.ranges
+impl<T: Integer + Copy + Debug> From<RangeSet<T>> for Vec<Range<T>> {
+    fn from(r: RangeSet<T>) -> Vec<Range<T>> {
+        r.ranges
     }
 }
 
@@ -231,7 +231,7 @@ impl<T: Integer + Copy + Debug> RangeSet<T> {
         }
 
         if self.ranges.is_empty() {
-            self.ranges.push(range.clone());
+            self.ranges.push(range);
             return;
         }
 
@@ -244,7 +244,7 @@ impl<T: Integer + Copy + Debug> RangeSet<T> {
                 let merged = range_union(range, second);
 
                 self.ranges.remove(b);
-                return self.add_range(merged);
+                self.add_range(merged)
             }
             (Some(a), _) => self.merge_into_range(a, range),
             (None, Some(_)) => unreachable!(),
