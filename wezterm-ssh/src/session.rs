@@ -114,6 +114,7 @@ impl SessionInner {
             .context("setting TCP NODELAY on ssh connection")?;
 
         let mut sess = ssh2::Session::new()?;
+        // sess.trace(ssh2::TraceFlags::all());
         sess.set_tcp_stream(tcp);
         sess.handshake()
             .with_context(|| format!("ssh handshake with {}", remote_address))?;

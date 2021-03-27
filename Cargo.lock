@@ -4576,6 +4576,7 @@ dependencies = [
  "k9",
  "log",
  "portable-pty",
+ "pretty_env_logger",
  "regex",
  "shell-words",
  "smol",

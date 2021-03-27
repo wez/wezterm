@@ -2,6 +2,7 @@ use crate::session::SessionEvent;
 use anyhow::Context;
 use smol::channel::{bounded, Sender};
 use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub struct AuthenticationPrompt {
@@ -28,6 +29,97 @@ impl AuthenticationEvent {
 }
 
 impl crate::session::SessionInner {
+    fn agent_auth(&mut self, sess: &ssh2::Session, user: &str) -> anyhow::Result<bool> {
+        if let Some(only) = self.config.get("identitiesonly") {
+            if only == "yes" {
+                return Ok(false);
+            }
+        }
+
+        let mut agent = sess.agent()?;
+        agent.connect()?;
+        agent.list_identities()?;
+        let identities = agent.identities()?;
+        for identity in identities {
+            if agent.userauth(user, &identity).is_ok() {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    fn pubkey_auth(
+        &mut self,
+        sess: &ssh2::Session,
+        user: &str,
+        host: &str,
+    ) -> anyhow::Result<bool> {
+        if let Some(files) = self.config.get("identityfile") {
+            for file in files.split_whitespace() {
+                let pubkey: PathBuf = format!("{}.pub", file).into();
+                let file = Path::new(file);
+
+                if !file.exists() {
+                    continue;
+                }
+
+                let pubkey = if pubkey.exists() && false {
+                    Some(pubkey.as_ref())
+                } else {
+                    None
+                };
+
+                match sess.userauth_pubkey_file(user, pubkey, &file, None) {
+                    Ok(_) => return Ok(true),
+                    Err(err) => {
+                        if err.code() == ssh2::ErrorCode::Session(-16)
+                            || err.code() == ssh2::ErrorCode::Session(-18)
+                        {
+                            // Need a passphrase to decrypt the key
+
+                            let (reply, answers) = bounded(1);
+                            self.tx_event
+                                .try_send(SessionEvent::Authenticate(AuthenticationEvent {
+                                    username: "".to_string(),
+                                    instructions: "".to_string(),
+                                    prompts: vec![AuthenticationPrompt {
+                                        prompt: format!(
+                                            "Passphrase to decrypt {} for {}@{}: ",
+                                            file.display(),
+                                            user,
+                                            host
+                                        ),
+                                        echo: false,
+                                    }],
+                                    reply,
+                                }))
+                                .context("sending Authenticate request to user")?;
+
+                            let answers = smol::block_on(answers.recv())
+                                .context("waiting for authentication answers from user")?;
+
+                            if answers.is_empty() {
+                                anyhow::bail!("user cancelled authentication");
+                            }
+
+                            let passphrase = &answers[0];
+
+                            match sess.userauth_pubkey_file(user, pubkey, &file, Some(passphrase)) {
+                                Ok(_) => return Ok(true),
+                                Err(err) => {
+                                    log::warn!("pubkey auth: {:#}", err);
+                                }
+                            }
+                        } else {
+                            log::warn!("pubkey auth: {:#}", err);
+                        }
+                    }
+                }
+            }
+        }
+        Ok(false)
+    }
+
     pub fn authenticate(
         &mut self,
         sess: &ssh2::Session,
@@ -46,10 +138,20 @@ impl crate::session::SessionInner {
             log::trace!("ssh auth methods: {:?}", methods);
 
             if !sess.authenticated() && methods.contains("publickey") {
-                if let Err(err) = sess.userauth_agent(&user) {
-                    log::warn!("while attempting agent auth: {}", err);
-                } else {
-                    continue;
+                match self.agent_auth(sess, user) {
+                    Ok(true) => continue,
+                    Ok(false) => {}
+                    Err(err) => {
+                        log::warn!("while attempting agent auth: {}", err)
+                    }
+                }
+
+                match self.pubkey_auth(sess, user, host) {
+                    Ok(true) => continue,
+                    Ok(false) => {}
+                    Err(err) => {
+                        log::warn!("while attempting auth: {}", err)
+                    }
                 }
             }
 

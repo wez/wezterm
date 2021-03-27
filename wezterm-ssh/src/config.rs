@@ -279,6 +279,18 @@ impl Config {
             }
         }
 
+        if !result.contains_key("identityfile") {
+            if let Some(home) = self.resolve_home() {
+                result.insert(
+                    "identityfile".to_string(),
+                    format!(
+                        "{}/.ssh/id_dsa {}/.ssh/id_ecdsa {}/.ssh/id_ed25519 {}/.ssh/id_rsa",
+                        home, home, home, home
+                    ),
+                );
+            }
+        }
+
         if !result.contains_key("identityagent") {
             if let Some(sock_path) = self.resolve_env("SSH_AUTH_SOCK") {
                 result.insert("identityagent".to_string(), sock_path);
