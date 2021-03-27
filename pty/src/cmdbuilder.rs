@@ -100,13 +100,8 @@ impl CommandBuilder {
         self.cwd.as_ref()
     }
 
-    #[cfg(unix)]
-    pub fn umask(&mut self, mask: Option<libc::mode_t>) {
-        self.umask = mask;
-    }
-
-    #[cfg(feature = "ssh")]
-    pub(crate) fn iter_env_as_str(&self) -> impl Iterator<Item = (&str, &str)> {
+    /// Iterate over the configured environment
+    pub fn iter_env_as_str(&self) -> impl Iterator<Item = (&str, &str)> {
         self.envs.iter().filter_map(|(key, val)| {
             let key = key.to_str()?;
             let val = val.to_str()?;
@@ -114,8 +109,9 @@ impl CommandBuilder {
         })
     }
 
-    #[cfg(feature = "ssh")]
-    pub(crate) fn as_unix_command_line(&self) -> anyhow::Result<String> {
+    /// Return the configured command and arguments as a single string,
+    /// quoted per the unix shell conventions.
+    pub fn as_unix_command_line(&self) -> anyhow::Result<String> {
         let mut strs = vec![];
         for arg in &self.args {
             let s = arg
@@ -129,6 +125,10 @@ impl CommandBuilder {
 
 #[cfg(unix)]
 impl CommandBuilder {
+    pub fn umask(&mut self, mask: Option<libc::mode_t>) {
+        self.umask = mask;
+    }
+
     /// Convert the CommandBuilder to a `std::process::Command` instance.
     pub(crate) fn as_command(&self) -> anyhow::Result<std::process::Command> {
         let mut cmd = if self.is_default_prog() {
