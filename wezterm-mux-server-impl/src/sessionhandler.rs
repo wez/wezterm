@@ -426,6 +426,14 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::SpawnV2(spawn) => {
+                let sender = self.to_write_tx.clone();
+                spawn_into_main_thread(async move {
+                    schedule_domain_spawn_v2(spawn, sender, send_response);
+                })
+                .detach();
+            }
+
             Pdu::SplitPane(split) => {
                 let sender = self.to_write_tx.clone();
                 spawn_into_main_thread(async move {
@@ -541,6 +549,14 @@ where
     promise::spawn::spawn(async move { send_response(domain_spawn(spawn, sender).await) }).detach();
 }
 
+fn schedule_domain_spawn_v2<SND>(spawn: SpawnV2, sender: PduSender, send_response: SND)
+where
+    SND: Fn(anyhow::Result<Pdu>) + 'static,
+{
+    promise::spawn::spawn(async move { send_response(domain_spawn_v2(spawn, sender).await) })
+        .detach();
+}
+
 fn schedule_split_pane<SND>(split: SplitPane, sender: PduSender, send_response: SND)
 where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
@@ -627,6 +643,50 @@ async fn domain_spawn(spawn: Spawn, sender: PduSender) -> anyhow::Result<Pdu> {
     let domain = mux
         .get_domain(spawn.domain_id)
         .ok_or_else(|| anyhow!("domain {} not found on this server", spawn.domain_id))?;
+    let window_builder;
+
+    let window_id = if let Some(window_id) = spawn.window_id {
+        mux.get_window_mut(window_id)
+            .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
+        window_id
+    } else {
+        window_builder = mux.new_empty_window();
+        *window_builder
+    };
+
+    let tab = domain
+        .spawn(spawn.size, spawn.command, spawn.command_dir, window_id)
+        .await?;
+
+    let pane = tab
+        .get_active_pane()
+        .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
+
+    let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
+        pane_id: pane.pane_id(),
+        sender,
+    });
+    pane.set_clipboard(&clip);
+
+    Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
+        pane_id: pane.pane_id(),
+        tab_id: tab.tab_id(),
+        window_id,
+        size: tab.get_size(),
+    }))
+}
+
+async fn domain_spawn_v2(spawn: SpawnV2, sender: PduSender) -> anyhow::Result<Pdu> {
+    let mux = Mux::get().unwrap();
+
+    let domain = match spawn.domain {
+        SpawnTabDomain::DefaultDomain => mux.default_domain(),
+        SpawnTabDomain::CurrentPaneDomain => anyhow::bail!("must give a domain"),
+        SpawnTabDomain::DomainName(name) => mux
+            .get_domain_by_name(&name)
+            .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
+    };
+
     let window_builder;
 
     let window_id = if let Some(window_id) = spawn.window_id {

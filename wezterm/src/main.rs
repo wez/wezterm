@@ -1,8 +1,10 @@
 use anyhow::{anyhow, Context};
+use config::keyassignment::SpawnTabDomain;
 use config::wezterm_version;
 use mux::activity::Activity;
 use mux::pane::PaneId;
 use mux::tab::SplitDirection;
+use mux::window::WindowId;
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use std::ffi::OsString;
@@ -112,6 +114,41 @@ Outputs the pane-id for the newly created pane on success"
         /// Split horizontally rather than vertically
         #[structopt(long = "horizontal")]
         horizontal: bool,
+
+        /// Specify the current working directory for the initially
+        /// spawned program
+        #[structopt(long = "cwd", parse(from_os_str))]
+        cwd: Option<OsString>,
+
+        /// Instead of executing your shell, run PROG.
+        /// For example: `wezterm start -- bash -l` will spawn bash
+        /// as if it were a login shell.
+        #[structopt(parse(from_os_str))]
+        prog: Vec<OsString>,
+    },
+
+    #[structopt(
+        name = "spawn",
+        about = "Spawn a command into a new window or tab
+Outputs the pane-id for the newly created pane on success"
+    )]
+    SpawnCommand {
+        /// Specify the current pane.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        /// The pane is used to determine the current domain
+        /// and window.
+        #[structopt(long = "pane-id")]
+        pane_id: Option<PaneId>,
+
+        #[structopt(long = "domain-name")]
+        domain_name: Option<String>,
+
+        /// Specify the window into which to spawn a tab.
+        /// If omitted, the window associated with the current
+        /// pane is used.
+        #[structopt(long = "window-id")]
+        window_id: Option<WindowId>,
 
         /// Specify the current working directory for the initially
         /// spawned program
@@ -406,6 +443,70 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                         Some(builder)
                     },
                     command_dir: cwd.and_then(|c| c.to_str().map(|s| s.to_string())),
+                })
+                .await?;
+
+            log::debug!("{:?}", spawned);
+            println!("{}", spawned.pane_id);
+        }
+        CliSubCommand::SpawnCommand {
+            cwd,
+            prog,
+            pane_id,
+            domain_name,
+            window_id,
+        } => {
+            let window_id = match window_id {
+                Some(w) => Some(w),
+                None => {
+                    let pane_id: PaneId = match pane_id {
+                        Some(p) => p,
+                        None => std::env::var("WEZTERM_PANE")
+                            .map_err(|_| {
+                                anyhow!(
+                                    "--pane-id was not specified and $WEZTERM_PANE
+                                    is not set in the environment"
+                                )
+                            })?
+                            .parse()?,
+                    };
+
+                    let panes = client.list_panes().await?;
+                    let mut window_id = None;
+                    'outer: for tabroot in panes.tabs {
+                        let mut cursor = tabroot.into_tree().cursor();
+
+                        loop {
+                            if let Some(entry) = cursor.leaf_mut() {
+                                if entry.pane_id == pane_id {
+                                    window_id.replace(entry.window_id);
+                                    break 'outer;
+                                }
+                            }
+                            match cursor.preorder_next() {
+                                Ok(c) => cursor = c,
+                                Err(_) => break,
+                            }
+                        }
+                    }
+                    window_id
+                }
+            };
+
+            let spawned = client
+                .spawn_v2(codec::SpawnV2 {
+                    domain: domain_name.map_or(SpawnTabDomain::DefaultDomain, |name| {
+                        SpawnTabDomain::DomainName(name)
+                    }),
+                    window_id,
+                    command: if prog.is_empty() {
+                        None
+                    } else {
+                        let builder = CommandBuilder::from_argv(prog);
+                        Some(builder)
+                    },
+                    command_dir: cwd.and_then(|c| c.to_str().map(|s| s.to_string())),
+                    size: config::configuration().initial_size(),
                 })
                 .await?;
 

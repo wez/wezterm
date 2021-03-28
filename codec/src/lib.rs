@@ -435,6 +435,7 @@ pdu! {
     SetPaneZoomed: 33,
     SplitPane: 34,
     KillPane: 35,
+    SpawnV2: 36,
 }
 
 impl Pdu {
@@ -576,6 +577,16 @@ pub struct SplitPane {
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
     pub domain: config::keyassignment::SpawnTabDomain,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SpawnV2 {
+    pub domain: config::keyassignment::SpawnTabDomain,
+    /// If None, create a new window for this new tab
+    pub window_id: Option<WindowId>,
+    pub command: Option<CommandBuilder>,
+    pub command_dir: Option<String>,
+    pub size: PtySize,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
