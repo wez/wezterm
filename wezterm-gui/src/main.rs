@@ -115,6 +115,10 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     mux.set_default_domain(&domain);
     domain.attach().await?;
 
+    // Allow spawning local commands into new tabs/panes
+    let local_domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
+    mux.add_domain(&local_domain);
+
     let window_id = mux.new_empty_window();
     let _tab = domain
         .spawn(config.initial_size(), cmd, None, *window_id)
@@ -133,20 +137,12 @@ fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
 
     let gui = crate::frontend::try_new()?;
 
-    // Keep the frontend alive until we've run through the ssh authentication
-    // phase.  This is passed into the thread and dropped when it is done.
-    let activity = Activity::new();
-
     // Initiate an ssh connection; since that is a blocking process with
     // callbacks, we have to run it in another thread
     promise::spawn::spawn(async {
         if let Err(err) = async_run_ssh(opts).await {
             terminate_with_error(err);
         }
-        // This captures the activity ownership into this future, but also
-        // ensures that we drop it either when we error out, or if not,
-        // only once we reach this point in the processing flow.
-        drop(activity);
     })
     .detach();
 
