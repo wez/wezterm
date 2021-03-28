@@ -279,7 +279,13 @@ impl SessionInner {
                 }
             }
 
-            for out in chan.descriptors.get_mut(1..).unwrap() {
+            for (idx, out) in chan
+                .descriptors
+                .get_mut(1..)
+                .unwrap()
+                .iter_mut()
+                .enumerate()
+            {
                 if out.fd.is_none() {
                     continue;
                 }
@@ -288,7 +294,7 @@ impl SessionInner {
                 if room == 0 {
                     continue;
                 }
-                match read_into_buf(&mut chan.channel, &mut out.buf) {
+                match read_into_buf(&mut chan.channel.stream(idx as i32), &mut out.buf) {
                     Ok(_) => {}
                     Err(err) => {
                         if out.buf.is_empty() {
