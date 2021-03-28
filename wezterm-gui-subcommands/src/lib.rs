@@ -59,6 +59,23 @@ pub struct SshCommand {
     /// used instead.
     pub user_at_host_and_port: SshParameters,
 
+    /// Override specific SSH configuration options.
+    /// `wezterm ssh` is able to parse some (but not all!) options
+    /// from your `~/.ssh/config` and `/etc/ssh/ssh_config` files.
+    /// This command line switch allows you to override or otherwise
+    /// specify ssh_config style options.
+    ///
+    /// For example:
+    ///
+    /// `wezterm ssh -oIdentityFile=/secret/id_ed25519 some-host`
+    #[structopt(
+        long = "ssh-option",
+        short = "o",
+        name = "name=value",
+        parse(try_from_str = name_equals_value),
+        number_of_values = 1)]
+    pub config_override: Vec<(String, String)>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
     /// as if it were a login shell.

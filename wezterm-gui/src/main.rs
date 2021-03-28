@@ -94,6 +94,9 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         "user".to_string(),
         opts.user_at_host_and_port.username.to_string(),
     );
+    for (k, v) in opts.config_override {
+        ssh_config.insert(k.to_lowercase().to_string(), v);
+    }
 
     let _gui = front_end().unwrap();
 
