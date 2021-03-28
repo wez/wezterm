@@ -87,6 +87,7 @@ impl<T: FromRawSocket> FromRawSocketDescriptor for T {
 }
 
 unsafe impl Send for OwnedHandle {}
+unsafe impl Sync for OwnedHandle {}
 
 impl OwnedHandle {
     fn probe_handle_type_if_unknown(handle: RawHandle, handle_type: HandleType) -> HandleType {

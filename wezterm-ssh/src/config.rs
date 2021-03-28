@@ -491,6 +491,7 @@ Config {
             r#"
 {
     "hostname": "random",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
     "port": "22",
     "something": "first",
     "user": "me",
@@ -521,6 +522,7 @@ Config {
             r#"
 {
     "hostname": "a.b",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
     "port": "22",
     "something": "first",
     "user": "me",
@@ -537,6 +539,7 @@ Config {
     "forwardagent": "no",
     "hostname": "b.b",
     "identityagent": "/home/me/.ssh/agent",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
     "port": "22",
     "something": "first",
     "user": "me",

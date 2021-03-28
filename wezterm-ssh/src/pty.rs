@@ -75,6 +75,7 @@ impl portable_pty::MasterPty for SshPty {
             .map(|f| -> Box<(dyn Write + Send + 'static)> { Box::new(f) })
     }
 
+    #[cfg(unix)]
     fn process_group_leader(&self) -> Option<i32> {
         // It's not local, so there's no meaningful leader
         None
