@@ -113,13 +113,53 @@ impl SessionInner {
             .ok_or_else(|| anyhow!("username not present in config"))?
             .to_string();
         let port = self.config.get("port").unwrap().parse::<u16>()?;
-
         let remote_address = format!("{}:{}", hostname, port);
-        let tcp = TcpStream::connect((hostname.as_str(), port))
-            .with_context(|| format!("connecting to {}", remote_address))?;
 
-        tcp.set_nodelay(true)
-            .context("setting TCP NODELAY on ssh connection")?;
+        let tcp: TcpStream = if let Some(proxy_command) =
+            self.config.get("proxycommand").and_then(|c| {
+                if !c.is_empty() && c != "none" {
+                    Some(c)
+                } else {
+                    None
+                }
+            }) {
+            let mut cmd;
+            if cfg!(windows) {
+                let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd".to_string());
+                cmd = std::process::Command::new(comspec);
+                cmd.args(&["/c", proxy_command]);
+            } else {
+                cmd = std::process::Command::new("/bin/sh");
+                cmd.args(&["-c", &format!("exec {}", proxy_command)]);
+            }
+
+            let (a, b) = socketpair()?;
+
+            cmd.stdin(b.as_stdio()?);
+            cmd.stdout(b.as_stdio()?);
+            cmd.stderr(std::process::Stdio::inherit());
+            let _child = cmd
+                .spawn()
+                .with_context(|| format!("spawning ProxyCommand {}", proxy_command))?;
+
+            #[cfg(unix)]
+            unsafe {
+                use std::os::unix::io::{FromRawFd, IntoRawFd};
+                TcpStream::from_raw_fd(a.into_raw_fd())
+            }
+            #[cfg(windows)]
+            unsafe {
+                use std::os::windows::io::{FromRawSocket, IntoRawSocket};
+                TcpStream::from_raw_socket(a.into_raw_socket())
+            }
+        } else {
+            let socket = TcpStream::connect((hostname.as_str(), port))
+                .with_context(|| format!("connecting to {}", remote_address))?;
+            socket
+                .set_nodelay(true)
+                .context("setting TCP NODELAY on ssh connection")?;
+            socket
+        };
 
         let mut sess = ssh2::Session::new()?;
         // sess.trace(ssh2::TraceFlags::all());
