@@ -103,7 +103,7 @@ pub fn launcher(
     domain_id_of_current_tab: DomainId,
     mut term: TermWizTerminal,
     mux_window_id: WindowId,
-    domains: Vec<(DomainId, DomainState, String)>,
+    domains: Vec<(DomainId, String, DomainState, String)>,
     clipboard: ClipboardHelper,
     size: PtySize,
 ) -> anyhow::Result<()> {
@@ -137,10 +137,10 @@ pub fn launcher(
         }
     }
 
-    for (domain_id, domain_state, domain_name) in &domains {
+    for (domain_id, domain_name, domain_state, domain_label) in &domains {
         let entry = if *domain_state == DomainState::Attached {
             Entry::Spawn {
-                label: format!("New Tab ({})", domain_name),
+                label: format!("New Tab ({})", domain_label),
                 command: SpawnCommand {
                     domain: SpawnTabDomain::DomainName(domain_name.to_string()),
                     ..SpawnCommand::default()
@@ -149,7 +149,7 @@ pub fn launcher(
             }
         } else {
             Entry::Attach {
-                label: format!("Attach {}", domain_name),
+                label: format!("Attach {}", domain_label),
                 domain: *domain_id,
             }
         };

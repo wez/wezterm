@@ -1217,7 +1217,7 @@ impl TermWindow {
             a.domain_id().cmp(&b.domain_id())
         });
         domains.retain(|dom| dom.spawnable());
-        let domains: Vec<(DomainId, DomainState, String)> = domains
+        let domains: Vec<(DomainId, String, DomainState, String)> = domains
             .iter()
             .map(|dom| {
                 let name = dom.domain_name();
@@ -1227,7 +1227,7 @@ impl TermWindow {
                 } else {
                     format!("domain `{}` - {}", name, label)
                 };
-                (dom.domain_id(), dom.state(), label)
+                (dom.domain_id(), name.to_string(), dom.state(), label)
             })
             .collect();
 
