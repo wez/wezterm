@@ -966,6 +966,7 @@ impl portable_pty::MasterPty for WrappedSshPty {
         anyhow::bail!("writer must be created during bootstrap");
     }
 
+    #[cfg(unix)]
     fn process_group_leader(&self) -> Option<i32> {
         let mut inner = self.inner.borrow_mut();
         let _ = inner.check_connected();
