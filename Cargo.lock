@@ -2165,7 +2165,6 @@ dependencies = [
  "regex",
  "serde",
  "smol",
- "ssh2",
  "sysinfo",
  "terminfo",
  "termwiz",
@@ -4399,12 +4398,12 @@ dependencies = [
  "rangeset",
  "ratelim",
  "smol",
- "ssh2",
  "termwiz",
  "textwrap 0.13.4",
  "thiserror",
  "uds_windows",
  "url",
+ "wezterm-ssh",
  "wezterm-term",
 ]
 

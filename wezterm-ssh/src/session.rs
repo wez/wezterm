@@ -53,6 +53,14 @@ impl SessionSender {
 pub(crate) enum SessionRequest {
     NewPty(NewPty),
     ResizePty(ResizePty),
+    Exec(Exec),
+}
+
+#[derive(Debug)]
+pub(crate) struct Exec {
+    pub command_line: String,
+    pub env: Option<HashMap<String, String>>,
+    pub reply: Sender<ExecResult>,
 }
 
 pub(crate) struct DescriptorState {
@@ -328,11 +336,88 @@ impl SessionInner {
                         }
                         Ok(true)
                     }
+                    SessionRequest::Exec(exec) => {
+                        if let Err(err) = self.exec(&sess, &exec) {
+                            log::error!("{:?} -> error: {:#}", exec, err);
+                        }
+                        Ok(true)
+                    }
                 };
                 sess.set_blocking(false);
                 res
             }
         }
+    }
+
+    pub fn exec(&mut self, sess: &ssh2::Session, exec: &Exec) -> anyhow::Result<()> {
+        sess.set_blocking(true);
+
+        let mut channel = sess.channel_session()?;
+
+        if let Some(env) = &exec.env {
+            for (key, val) in env {
+                if let Err(err) = channel.setenv(key, val) {
+                    // Depending on the server configuration, a given
+                    // setenv request may not succeed, but that doesn't
+                    // prevent the connection from being set up.
+                    log::warn!("ssh: setenv {}={} failed: {}", key, val, err);
+                }
+            }
+        }
+
+        channel.exec(&exec.command_line)?;
+
+        let channel_id = self.next_channel_id;
+        self.next_channel_id += 1;
+
+        let (write_to_stdin, mut read_from_stdin) = socketpair()?;
+        let (mut write_to_stdout, read_from_stdout) = socketpair()?;
+        let (mut write_to_stderr, read_from_stderr) = socketpair()?;
+
+        read_from_stdin.set_non_blocking(true)?;
+        write_to_stdout.set_non_blocking(true)?;
+        write_to_stderr.set_non_blocking(true)?;
+
+        let (exit_tx, exit_rx) = bounded(1);
+
+        let child = SshChildProcess {
+            channel: channel_id,
+            tx: None,
+            exit: exit_rx,
+            exited: None,
+        };
+
+        let result = ExecResult {
+            stdin: write_to_stdin,
+            stdout: read_from_stdout,
+            stderr: read_from_stderr,
+            child,
+        };
+
+        let info = ChannelInfo {
+            channel_id,
+            channel,
+            exit: Some(exit_tx),
+            descriptors: [
+                DescriptorState {
+                    fd: Some(read_from_stdin),
+                    buf: VecDeque::with_capacity(8192),
+                },
+                DescriptorState {
+                    fd: Some(write_to_stdout),
+                    buf: VecDeque::with_capacity(8192),
+                },
+                DescriptorState {
+                    fd: Some(write_to_stderr),
+                    buf: VecDeque::with_capacity(8192),
+                },
+            ],
+        };
+
+        exec.reply.try_send(result)?;
+        self.channels.insert(channel_id, info);
+
+        Ok(())
     }
 }
 
@@ -394,6 +479,32 @@ impl Session {
         child.tx.replace(self.tx.clone());
         Ok((ssh_pty, child))
     }
+
+    pub async fn exec(
+        &self,
+        command_line: &str,
+        env: Option<HashMap<String, String>>,
+    ) -> anyhow::Result<ExecResult> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Exec(Exec {
+                command_line: command_line.to_string(),
+                env,
+                reply,
+            }))
+            .await?;
+        let mut exec = rx.recv().await?;
+        exec.child.tx.replace(self.tx.clone());
+        Ok(exec)
+    }
+}
+
+#[derive(Debug)]
+pub struct ExecResult {
+    pub stdin: FileDescriptor,
+    pub stdout: FileDescriptor,
+    pub stderr: FileDescriptor,
+    pub child: SshChildProcess,
 }
 
 fn write_from_buf<W: Write>(w: &mut W, buf: &mut VecDeque<u8>) -> std::io::Result<()> {

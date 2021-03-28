@@ -6,6 +6,7 @@ use async_ossl::AsyncSslStream;
 use async_trait::async_trait;
 use codec::*;
 use config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
+use filedescriptor::FileDescriptor;
 use futures::FutureExt;
 use mux::connui::ConnectionUI;
 use mux::domain::{alloc_domain_id, DomainId};
@@ -18,7 +19,6 @@ use smol::channel::{bounded, unbounded, Receiver, Sender};
 use smol::prelude::*;
 use smol::{block_on, Async};
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::io::{Read, Write};
 use std::marker::Unpin;
 use std::net::TcpStream;
@@ -312,8 +312,9 @@ struct Reconnectable {
 }
 
 struct SshStream {
-    chan: ssh2::Channel,
-    sess: ssh2::Session,
+    stdin: FileDescriptor,
+    stdout: FileDescriptor,
+    _child: wezterm_ssh::SshChildProcess,
 }
 
 impl std::fmt::Debug for SshStream {
@@ -325,60 +326,29 @@ impl std::fmt::Debug for SshStream {
 #[cfg(unix)]
 impl std::os::unix::io::AsRawFd for SshStream {
     fn as_raw_fd(&self) -> std::os::unix::io::RawFd {
-        self.sess.as_raw_fd()
+        self.stdout.as_raw_fd()
     }
 }
 
 #[cfg(windows)]
 impl std::os::windows::io::AsRawSocket for SshStream {
     fn as_raw_socket(&self) -> std::os::windows::io::RawSocket {
-        self.sess.as_raw_socket()
-    }
-}
-
-impl SshStream {
-    fn process_stderr(&mut self) {
-        let blocking = self.sess.is_blocking();
-        self.sess.set_blocking(false);
-
-        loop {
-            let mut buf = [0u8; 1024];
-            match self.chan.stderr().read(&mut buf) {
-                Ok(size) => {
-                    if size == 0 {
-                        break;
-                    } else {
-                        let stderr = &buf[0..size];
-                        log::error!("ssh stderr: {}", String::from_utf8_lossy(stderr));
-                    }
-                }
-                Err(e) => {
-                    if e.kind() != std::io::ErrorKind::WouldBlock {
-                        log::error!("ssh error reading stderr: {}", e);
-                    }
-                    break;
-                }
-            }
-        }
-
-        self.sess.set_blocking(blocking);
+        self.stdout.as_raw_socket()
     }
 }
 
 impl Read for SshStream {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-        // Take the opportunity to read and show data from stderr
-        self.process_stderr();
-        self.chan.read(buf)
+        self.stdout.read(buf)
     }
 }
 
 impl Write for SshStream {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-        self.chan.write(buf)
+        self.stdin.write(buf)
     }
     fn flush(&mut self) -> Result<(), std::io::Error> {
-        self.chan.flush()
+        self.stdin.flush()
     }
 }
 
@@ -456,10 +426,6 @@ impl Reconnectable {
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<()> {
         let sess = ssh_connect_with_ui(&ssh_dom.remote_address, &ssh_dom.username, ui)?;
-        sess.set_timeout(ssh_dom.timeout.as_secs().try_into()?);
-
-        let mut chan = sess.channel_session()?;
-
         let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wezterm_path);
 
         let cmd = if initial {
@@ -469,9 +435,27 @@ impl Reconnectable {
         };
         ui.output_str(&format!("Running: {}\n", cmd));
         log::error!("going to run {}", cmd);
-        chan.exec(&cmd)?;
 
-        let stream: Box<dyn AsyncReadAndWrite> = Box::new(Async::new(SshStream { sess, chan })?);
+        let exec = smol::block_on(sess.exec(&cmd, None))?;
+
+        let mut stderr = exec.stderr;
+        std::thread::spawn(move || {
+            let mut buf = [0u8; 1024];
+            while let Ok(len) = stderr.read(&mut buf) {
+                if len == 0 {
+                    break;
+                } else {
+                    let stderr = &buf[0..len];
+                    log::error!("ssh stderr: {}", String::from_utf8_lossy(stderr));
+                }
+            }
+        });
+
+        let stream: Box<dyn AsyncReadAndWrite> = Box::new(Async::new(SshStream {
+            stdin: exec.stdin,
+            stdout: exec.stdout,
+            _child: exec.child,
+        })?);
         self.stream.replace(stream);
         Ok(())
     }
@@ -593,8 +577,6 @@ impl Reconnectable {
                     ssh_connect_with_ui(&ssh_params.host_and_port, &ssh_params.username, ui)?;
 
                 let creds = ui.run_and_log_error(|| {
-                    let mut chan = sess.channel_session()?;
-
                     // The `tlscreds` command will start the server if needed and then
                     // obtain client credentials that we can use for tls.
                     let cmd = format!(
@@ -603,20 +585,20 @@ impl Reconnectable {
                     );
 
                     ui.output_str(&format!("Running: {}\n", cmd));
-                    chan.exec(&cmd)
+                    let mut exec = smol::block_on(sess.exec(&cmd, None))
                         .with_context(|| format!("executing `{}` on remote host", cmd))?;
 
                     // stdout holds an encoded pdu
                     let mut buf = Vec::new();
-                    chan.read_to_end(&mut buf)
+                    exec.stdout
+                        .read_to_end(&mut buf)
                         .context("reading tlscreds response to buffer")?;
 
-                    chan.send_eof()?;
-                    chan.wait_eof()?;
+                    drop(exec.stdin);
 
                     // stderr is ideally empty
                     let mut err = String::new();
-                    chan.stderr()
+                    exec.stderr
                         .read_to_string(&mut err)
                         .context("reading tlscreds stderr")?;
                     if !err.is_empty() {
@@ -624,11 +606,11 @@ impl Reconnectable {
                     }
 
                     let creds = match Pdu::decode(buf.as_slice())
-                        .with_context(|| format!("reading tlscreds response. stderr={}", err))?
+                        .context("reading tlscreds response")?
                         .pdu
                     {
                         Pdu::GetTlsCredsResponse(creds) => creds,
-                        _ => bail!("unexpected response to tlscreds, stderr={}", err),
+                        _ => bail!("unexpected response to tlscreds"),
                     };
 
                     // Save the credentials to disk, as that is currently the easiest
