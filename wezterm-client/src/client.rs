@@ -621,7 +621,7 @@ impl Reconnectable {
                         &self.tls_creds_cert_path()?,
                         creds.client_cert_pem.as_bytes(),
                     )?;
-                    log::error!("got TLS creds");
+                    log::info!("got TLS creds");
                     Ok(creds)
                 })?;
                 self.tls_creds.replace(creds);
