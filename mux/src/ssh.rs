@@ -676,13 +676,86 @@ impl Domain for RemoteSshDomain {
 
     async fn split_pane(
         &self,
-        _command: Option<CommandBuilder>,
+        command: Option<CommandBuilder>,
         _command_dir: Option<String>,
-        _tab: TabId,
-        _pane_id: PaneId,
-        _split_direction: SplitDirection,
+        tab: TabId,
+        pane_id: PaneId,
+        direction: SplitDirection,
     ) -> anyhow::Result<Rc<dyn Pane>> {
-        bail!("spawn_pane not implemented for RemoteSshDomain");
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_tab(tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let pane_index = match tab
+            .iter_panes()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
+        };
+
+        let split_size = match tab.compute_split_size(pane_index, direction) {
+            Some(s) => s,
+            None => anyhow::bail!("invalid pane index {}", pane_index),
+        };
+
+        let config = config::configuration();
+        let cmd = match command {
+            Some(mut cmd) => {
+                config.apply_cmd_defaults(&mut cmd);
+                cmd
+            }
+            None => config.build_prog(None)?,
+        };
+        let pane_id = alloc_pane_id();
+
+        let command_line = if cmd.is_default_prog() {
+            None
+        } else {
+            Some(cmd.as_unix_command_line()?)
+        };
+        let mut env: HashMap<String, String> = cmd
+            .iter_env_as_str()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
+
+        let (pty, child) = self
+            .session
+            .request_pty(
+                &config::configuration().term,
+                split_size.size(),
+                command_line.as_ref().map(|s| s.as_str()),
+                Some(env),
+            )
+            .await?;
+
+        let writer = pty.try_clone_writer()?;
+
+        let terminal = wezterm_term::Terminal::new(
+            crate::pty_size_to_terminal_size(split_size.second),
+            std::sync::Arc::new(config::TermConfig {}),
+            "WezTerm",
+            config::wezterm_version(),
+            Box::new(writer),
+        );
+
+        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
+            pane_id,
+            terminal,
+            Box::new(child),
+            Box::new(pty),
+            self.id,
+        ));
+
+        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
+
+        mux.add_pane(&pane)?;
+
+        Ok(pane)
     }
 
     fn domain_id(&self) -> DomainId {
