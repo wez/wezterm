@@ -10,7 +10,6 @@ use async_trait::async_trait;
 use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{ExitStatus, MasterPty, PtySize};
-use promise::{Future, Promise};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::io::{BufWriter, Read, Write};
@@ -74,15 +73,6 @@ impl ssh2::KeyboardInteractivePrompt for ConnectionUI {
             })
             .collect()
     }
-}
-
-pub fn async_ssh_connect(remote_address: &str, username: &str) -> Future<ssh2::Session> {
-    let mut promise = Promise::new();
-    let future = promise.get_future().unwrap();
-    let remote_address = remote_address.to_owned();
-    let username = username.to_owned();
-    std::thread::spawn(move || promise.result(ssh_connect(&remote_address, &username)));
-    future
 }
 
 pub fn ssh_connect_with_ui(
@@ -245,14 +235,6 @@ pub fn ssh_connect_with_ui(
 
         Ok(sess)
     })
-}
-
-pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2::Session> {
-    let mut ui = ConnectionUI::new();
-    ui.title("🔐 wezterm: SSH authentication");
-    let sess = ssh_connect_with_ui(remote_address, username, &mut ui)?;
-    ui.close();
-    Ok(sess)
 }
 
 /// Represents a connection to remote host via ssh.
