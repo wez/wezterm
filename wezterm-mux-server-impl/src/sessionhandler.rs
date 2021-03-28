@@ -250,6 +250,26 @@ impl SessionHandler {
                 })
                 .detach();
             }
+            Pdu::KillPane(KillPane { pane_id }) => {
+                let sender = self.to_write_tx.clone();
+                let per_pane = self.per_pane(pane_id);
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            pane.kill();
+                            mux.remove_pane(pane_id);
+                            maybe_push_pane_changes(&pane, sender, per_pane)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    );
+                })
+                .detach();
+            }
             Pdu::SendPaste(SendPaste { pane_id, data }) => {
                 let sender = self.to_write_tx.clone();
                 let per_pane = self.per_pane(pane_id);

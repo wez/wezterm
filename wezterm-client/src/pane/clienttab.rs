@@ -294,6 +294,20 @@ impl Pane for ClientPane {
         Ok(())
     }
 
+    fn kill(&self) {
+        let client = Arc::clone(&self.client);
+        let remote_pane_id = self.remote_pane_id;
+        promise::spawn::spawn(async move {
+            client
+                .client
+                .kill_pane(KillPane {
+                    pane_id: remote_pane_id,
+                })
+                .await
+        })
+        .detach();
+    }
+
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()> {
         self.mouse.borrow_mut().append(event);
         if MouseState::next(Rc::clone(&self.mouse)) {

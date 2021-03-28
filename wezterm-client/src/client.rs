@@ -952,4 +952,5 @@ impl Client {
         SearchScrollbackRequest,
         SearchScrollbackResponse
     );
+    rpc!(kill_pane, KillPane, UnitResponse);
 }

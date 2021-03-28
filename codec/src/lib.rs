@@ -434,6 +434,7 @@ pdu! {
     SearchScrollbackResponse: 32,
     SetPaneZoomed: 33,
     SplitPane: 34,
+    KillPane: 35,
 }
 
 impl Pdu {
@@ -575,6 +576,11 @@ pub struct SplitPane {
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
     pub domain: config::keyassignment::SpawnTabDomain,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct KillPane {
+    pub pane_id: PaneId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
