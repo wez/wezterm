@@ -160,7 +160,7 @@ impl crate::session::SessionInner {
                     // Depending on the server configuration, a given
                     // setenv request may not succeed, but that doesn't
                     // prevent the connection from being set up.
-                    log::error!("ssh: setenv {}={} failed: {}", key, val, err);
+                    log::warn!("ssh: setenv {}={} failed: {}", key, val, err);
                 }
             }
         }

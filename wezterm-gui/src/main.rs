@@ -15,6 +15,7 @@ use std::sync::Arc;
 use structopt::StructOpt;
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
 use wezterm_gui_subcommands::*;
+use wezterm_ssh::*;
 use wezterm_toast_notification::*;
 
 mod frontend;
@@ -86,11 +87,14 @@ enum SubCommand {
 }
 
 async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
-    // Establish the connection; it may show UI for authentication
-    let params = &opts.user_at_host_and_port;
-    let sess = mux::ssh::async_ssh_connect(&params.host_and_port, &params.username).await?;
-    // Now we have a connected session, set up the ssh domain and make it
-    // the default domain
+    let mut ssh_config = Config::new();
+    ssh_config.add_default_config_files();
+    let mut ssh_config = ssh_config.for_host(&opts.user_at_host_and_port.host_and_port);
+    ssh_config.insert(
+        "user".to_string(),
+        opts.user_at_host_and_port.username.to_string(),
+    );
+
     let _gui = front_end().unwrap();
 
     let cmd = if !opts.prog.is_empty() {
@@ -101,11 +105,10 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     };
 
     let config = config::configuration();
-    let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess, &config.term));
-    let domain: Arc<dyn Domain> = Arc::new(mux::ssh::RemoteSshDomain::with_pty_system(
+    let domain: Arc<dyn Domain> = Arc::new(mux::ssh::RemoteSshDomain::with_ssh_config(
         &opts.user_at_host_and_port.to_string(),
-        pty_system,
-    ));
+        ssh_config,
+    )?);
 
     let mux = Mux::get().unwrap();
     mux.add_domain(&domain);

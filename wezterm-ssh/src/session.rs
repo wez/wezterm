@@ -115,6 +115,7 @@ impl SessionInner {
 
         let mut sess = ssh2::Session::new()?;
         // sess.trace(ssh2::TraceFlags::all());
+        sess.set_blocking(true);
         sess.set_tcp_stream(tcp);
         sess.handshake()
             .with_context(|| format!("ssh handshake with {}", remote_address))?;
@@ -138,6 +139,8 @@ impl SessionInner {
     }
 
     fn request_loop(&mut self, sess: ssh2::Session) -> anyhow::Result<()> {
+        let mut sleep_delay = Duration::from_millis(100);
+
         loop {
             self.tick_io()?;
             self.drain_request_pipe();
@@ -181,9 +184,13 @@ impl SessionInner {
                 }
             }
 
-            poll(&mut poll_array, Some(Duration::from_secs(1))).context("poll")?;
+            poll(&mut poll_array, Some(sleep_delay)).context("poll")?;
+            sleep_delay += sleep_delay;
 
             for (idx, poll) in poll_array.iter().enumerate() {
+                if poll.revents != 0 {
+                    sleep_delay = Duration::from_millis(100);
+                }
                 if idx == 0 || idx == 1 {
                     // Dealt with at the top of the loop
                 } else if poll.revents != 0 {
@@ -229,7 +236,7 @@ impl SessionInner {
     fn tick_io(&mut self) -> anyhow::Result<()> {
         for chan in self.channels.values_mut() {
             if chan.exit.is_some() {
-                if chan.channel.wait_close().is_ok() {
+                if chan.channel.eof() && chan.channel.wait_close().is_ok() {
                     fn has_signal(chan: &ssh2::Channel) -> Option<ssh2::ExitSignal> {
                         if let Ok(sig) = chan.exit_signal() {
                             if sig.exit_signal.is_some() {
@@ -298,9 +305,7 @@ impl SessionInner {
     }
 
     fn dispatch_pending_requests(&mut self, sess: &ssh2::Session) -> anyhow::Result<()> {
-        sess.set_blocking(true);
         while self.dispatch_one_request(sess)? {}
-        sess.set_blocking(false);
         Ok(())
     }
 
@@ -308,22 +313,30 @@ impl SessionInner {
         match self.rx_req.try_recv() {
             Err(TryRecvError::Closed) => anyhow::bail!("all clients are closed"),
             Err(TryRecvError::Empty) => Ok(false),
-            Ok(SessionRequest::NewPty(newpty)) => {
-                if let Err(err) = self.new_pty(&sess, &newpty) {
-                    log::error!("{:?} -> error: {:#}", newpty, err);
-                }
-                Ok(true)
-            }
-            Ok(SessionRequest::ResizePty(resize)) => {
-                if let Err(err) = self.resize_pty(&sess, &resize) {
-                    log::error!("{:?} -> error: {:#}", resize, err);
-                }
-                Ok(true)
+            Ok(req) => {
+                sess.set_blocking(true);
+                let res = match req {
+                    SessionRequest::NewPty(newpty) => {
+                        if let Err(err) = self.new_pty(&sess, &newpty) {
+                            log::error!("{:?} -> error: {:#}", newpty, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::ResizePty(resize) => {
+                        if let Err(err) = self.resize_pty(&sess, &resize) {
+                            log::error!("{:?} -> error: {:#}", resize, err);
+                        }
+                        Ok(true)
+                    }
+                };
+                sess.set_blocking(false);
+                res
             }
         }
     }
 }
 
+#[derive(Clone)]
 pub struct Session {
     tx: SessionSender,
 }

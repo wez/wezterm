@@ -32,12 +32,17 @@ impl crate::session::SessionInner {
     fn agent_auth(&mut self, sess: &ssh2::Session, user: &str) -> anyhow::Result<bool> {
         if let Some(only) = self.config.get("identitiesonly") {
             if only == "yes" {
+                log::trace!("Skipping agent auth because identitiesonly=yes");
                 return Ok(false);
             }
         }
 
         let mut agent = sess.agent()?;
-        agent.connect()?;
+        if agent.connect().is_err() {
+            // If the agent is around, we can proceed with other methods
+            return Ok(false);
+        }
+
         agent.list_identities()?;
         let identities = agent.identities()?;
         for identity in identities {
@@ -45,6 +50,7 @@ impl crate::session::SessionInner {
                 return Ok(true);
             }
         }
+
         Ok(false)
     }
 
@@ -63,55 +69,55 @@ impl crate::session::SessionInner {
                     continue;
                 }
 
-                let pubkey = if pubkey.exists() && false {
+                let pubkey = if pubkey.exists() {
                     Some(pubkey.as_ref())
                 } else {
                     None
                 };
 
+                // We try with no passphrase first, in case the key is unencrypted
                 match sess.userauth_pubkey_file(user, pubkey, &file, None) {
-                    Ok(_) => return Ok(true),
-                    Err(err) => {
-                        if err.code() == ssh2::ErrorCode::Session(-16)
-                            || err.code() == ssh2::ErrorCode::Session(-18)
-                        {
-                            // Need a passphrase to decrypt the key
+                    Ok(_) => {
+                        log::info!("pubkey_file immediately ok for {}", file.display());
+                        return Ok(true);
+                    }
+                    Err(_) => {
+                        // Most likely cause of error is that we need a passphrase
+                        // to decrypt the key, so let's prompt the user for one.
+                        let (reply, answers) = bounded(1);
+                        self.tx_event
+                            .try_send(SessionEvent::Authenticate(AuthenticationEvent {
+                                username: "".to_string(),
+                                instructions: "".to_string(),
+                                prompts: vec![AuthenticationPrompt {
+                                    prompt: format!(
+                                        "Passphrase to decrypt {} for {}@{}:\n> ",
+                                        file.display(),
+                                        user,
+                                        host
+                                    ),
+                                    echo: false,
+                                }],
+                                reply,
+                            }))
+                            .context("sending Authenticate request to user")?;
 
-                            let (reply, answers) = bounded(1);
-                            self.tx_event
-                                .try_send(SessionEvent::Authenticate(AuthenticationEvent {
-                                    username: "".to_string(),
-                                    instructions: "".to_string(),
-                                    prompts: vec![AuthenticationPrompt {
-                                        prompt: format!(
-                                            "Passphrase to decrypt {} for {}@{}: ",
-                                            file.display(),
-                                            user,
-                                            host
-                                        ),
-                                        echo: false,
-                                    }],
-                                    reply,
-                                }))
-                                .context("sending Authenticate request to user")?;
+                        let answers = smol::block_on(answers.recv())
+                            .context("waiting for authentication answers from user")?;
 
-                            let answers = smol::block_on(answers.recv())
-                                .context("waiting for authentication answers from user")?;
+                        if answers.is_empty() {
+                            anyhow::bail!("user cancelled authentication");
+                        }
 
-                            if answers.is_empty() {
-                                anyhow::bail!("user cancelled authentication");
+                        let passphrase = &answers[0];
+
+                        match sess.userauth_pubkey_file(user, pubkey, &file, Some(passphrase)) {
+                            Ok(_) => {
+                                return Ok(true);
                             }
-
-                            let passphrase = &answers[0];
-
-                            match sess.userauth_pubkey_file(user, pubkey, &file, Some(passphrase)) {
-                                Ok(_) => return Ok(true),
-                                Err(err) => {
-                                    log::warn!("pubkey auth: {:#}", err);
-                                }
+                            Err(err) => {
+                                log::warn!("pubkey auth: {:#}", err);
                             }
-                        } else {
-                            log::warn!("pubkey auth: {:#}", err);
                         }
                     }
                 }
@@ -138,20 +144,12 @@ impl crate::session::SessionInner {
             log::trace!("ssh auth methods: {:?}", methods);
 
             if !sess.authenticated() && methods.contains("publickey") {
-                match self.agent_auth(sess, user) {
-                    Ok(true) => continue,
-                    Ok(false) => {}
-                    Err(err) => {
-                        log::warn!("while attempting agent auth: {}", err)
-                    }
+                if self.agent_auth(sess, user)? {
+                    continue;
                 }
 
-                match self.pubkey_auth(sess, user, host) {
-                    Ok(true) => continue,
-                    Ok(false) => {}
-                    Err(err) => {
-                        log::warn!("while attempting auth: {}", err)
-                    }
+                if self.pubkey_auth(sess, user, host)? {
+                    continue;
                 }
             }
 

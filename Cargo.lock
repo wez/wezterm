@@ -107,9 +107,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.39"
+version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81cddc5f91628367664cc7c69714ff08deee8a3efc54623011c772544d7b2767"
+checksum = "28b2cd92db5cbd74e8e5028f7e27dd7aa3090e89e4f2a197cc7c8dfb69c7063b"
 
 [[package]]
 name = "approx"
@@ -872,7 +872,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "crossbeam-utils",
  "lazy_static",
- "memoffset 0.6.1",
+ "memoffset 0.6.2",
  "scopeguard",
 ]
 
@@ -1847,7 +1847,7 @@ dependencies = [
 [[package]]
 name = "libssh2-sys"
 version = "0.2.21"
-source = "git+https://github.com/wez/ssh2-rs.git?branch=win32ssl#200d08770f11a438a0f24070db2ea6db2c37c847"
+source = "git+https://github.com/wez/ssh2-rs.git?branch=win32ssl#c65067040c97a0cf7f96c69d6fc87764a32c34ae"
 dependencies = [
  "cc",
  "libc",
@@ -2030,9 +2030,9 @@ dependencies = [
 
 [[package]]
 name = "memoffset"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "157b4208e3059a8f9e78d559edc658e13df41410cb3ae03979c83130067fdd87"
+checksum = "cc14fc54a812b4472b4113facc3e44d099fbc0ea2ce0551fa5c703f8edfbfd38"
 dependencies = [
  "autocfg",
 ]
@@ -2164,6 +2164,7 @@ dependencies = [
  "ratelim",
  "regex",
  "serde",
+ "smol",
  "ssh2",
  "sysinfo",
  "terminfo",
@@ -2173,6 +2174,7 @@ dependencies = [
  "tmux-cc",
  "unicode-segmentation",
  "url",
+ "wezterm-ssh",
  "wezterm-term",
 ]
 
@@ -3194,9 +3196,9 @@ dependencies = [
 
 [[package]]
 name = "rgb"
-version = "0.8.25"
+version = "0.8.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "287f3c3f8236abb92d8b7e36797f19159df4b58f0a658cc3fb6dd3004b1f3bd3"
+checksum = "8fddb3b23626145d1776addfc307e1a1851f60ef6ca64f376bcb889697144cf0"
 dependencies = [
  "bytemuck",
 ]
@@ -3606,7 +3608,7 @@ checksum = "1fccf17fd09e2455ea796d2ad267b64fa2c5cbd8701b2a93b555d2aa73449f7d"
 [[package]]
 name = "ssh2"
 version = "0.9.1"
-source = "git+https://github.com/wez/ssh2-rs.git?branch=win32ssl#200d08770f11a438a0f24070db2ea6db2c37c847"
+source = "git+https://github.com/wez/ssh2-rs.git?branch=win32ssl#c65067040c97a0cf7f96c69d6fc87764a32c34ae"
 dependencies = [
  "bitflags",
  "libc",
@@ -3678,9 +3680,9 @@ checksum = "8fb1df15f412ee2e9dfc1c504260fa695c1c3f10fe9f4a6ee2d2184d7d6450e2"
 
 [[package]]
 name = "syn"
-version = "1.0.64"
+version = "1.0.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fd9d1e9976102a03c542daa2eff1b43f9d72306342f3f8b3ed5fb8908195d6f"
+checksum = "f3a1d708c221c5a612956ef9f75b37e454e88d1f7b899fbd3a18d4252012d663"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4496,6 +4498,7 @@ dependencies = [
  "wezterm-font",
  "wezterm-gui-subcommands",
  "wezterm-mux-server-impl",
+ "wezterm-ssh",
  "wezterm-term",
  "wezterm-toast-notification",
  "winapi 0.3.9",
