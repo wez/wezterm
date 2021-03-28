@@ -12,7 +12,11 @@ async-trait = "0.1"
 async_ossl = { path = "../async_ossl" }
 codec = { path = "../codec" }
 config = { path = "../config" }
+filedescriptor = { version="0.7", path = "../filedescriptor" }
+futures = "0.3"
 log = "0.4"
+lru = "0.6"
+metrics = { version="0.14", features=["std"]}
 mux = { path = "../mux" }
 openssl = "0.10"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
@@ -21,15 +25,11 @@ rangeset = { path = "../rangeset" }
 ratelim= { path = "../ratelim" }
 smol = "1.2"
 ssh2 = "0.9"
+termwiz = { path = "../termwiz" }
+textwrap = "0.13"
 thiserror = "1.0"
 url = "2"
 wezterm-term = { path = "../term", features=["use_serde"] }
-lru = "0.6"
-termwiz = { path = "../termwiz" }
-filedescriptor = { version="0.7", path = "../filedescriptor" }
-futures = "0.3"
-metrics = { version="0.14", features=["std"]}
-textwrap = "0.13"
 
 [target."cfg(windows)".dependencies]
 uds_windows = "0.1"
