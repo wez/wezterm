@@ -20,6 +20,7 @@ log = "0.4"
 mux = { path = "../mux" }
 portable-pty = { path = "../pty" }
 promise = { path = "../promise" }
+smol = "1.2"
 structopt = "0.3"
 tabout = { path = "../tabout" }
 termwiz = { path = "../termwiz" }

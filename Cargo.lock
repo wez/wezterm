@@ -4366,6 +4366,7 @@ dependencies = [
  "mux",
  "portable-pty",
  "promise",
+ "smol",
  "structopt",
  "tabout",
  "termwiz",

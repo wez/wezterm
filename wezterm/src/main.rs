@@ -424,23 +424,24 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             let sock_path = unix_dom.socket_path();
             let stream = unix_connect_with_retry(&sock_path, false)?;
 
-            // Keep the threads below alive forever; they'll
-            // exit the process when they're done.
-            let _activity = Activity::new();
-
             // Spawn a thread to pull data from the socket and write
             // it to stdout
             let duped = stream.try_clone()?;
+            let activity = Activity::new();
             std::thread::spawn(move || {
                 let stdout = std::io::stdout();
-                consume_stream_then_exit_process(duped, stdout.lock());
+                consume_stream_then_exit_process(duped, stdout.lock(), activity);
             });
 
             // and pull data from stdin and write it to the socket
+            let activity = Activity::new();
             std::thread::spawn(move || {
                 let stdin = std::io::stdin();
-                consume_stream_then_exit_process(stdin.lock(), stream);
+                consume_stream_then_exit_process(stdin.lock(), stream, activity);
             });
+
+            // Wait forever; the stdio threads will terminate on EOF
+            smol::future::pending().await
         }
         CliSubCommand::TlsCreds => {
             let creds = client.get_tls_creds().await?;
@@ -480,8 +481,13 @@ fn consume_stream<F: Read, T: Write>(mut from_stream: F, mut to_stream: T) -> an
     Ok(())
 }
 
-fn consume_stream_then_exit_process<F: Read, T: Write>(from_stream: F, to_stream: T) -> ! {
+fn consume_stream_then_exit_process<F: Read, T: Write>(
+    from_stream: F,
+    to_stream: T,
+    activity: Activity,
+) -> ! {
     consume_stream(from_stream, to_stream).ok();
     std::thread::sleep(std::time::Duration::new(2, 0));
+    drop(activity);
     std::process::exit(0);
 }
