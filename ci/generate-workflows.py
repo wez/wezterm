@@ -594,7 +594,7 @@ on:
     branches:
     - main
     paths-ignore:
-    - .cirrus.yml'
+    - '.cirrus.yml'
     - 'docs/*'
     - 'ci/build-docs.sh'
     - 'ci/generate-docs.py'
@@ -618,6 +618,7 @@ on:
     branches:
     - main
     paths-ignore:
+    - '.cirrus.yml'
     - 'docs/**'
     - 'ci/build-docs.sh'
     - 'ci/generate-docs.py'
