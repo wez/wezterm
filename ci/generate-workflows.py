@@ -233,7 +233,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
         if "win" in self.name:
             return []
         sudo = "sudo -n " if self.needs_sudo() else ""
-        return [RunStep(name="Install System Deps", run=f"{sudo}./get-deps")]
+        return [RunStep(name="Install System Deps", run=f"{sudo} env PATH=$PATH ./get-deps")]
 
     def check_formatting(self):
         return [RunStep(name="Check formatting", run="cargo fmt --all -- --check")]

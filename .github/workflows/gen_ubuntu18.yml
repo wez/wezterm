@@ -58,7 +58,7 @@ jobs:
          key: "ubuntu18-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo -n ./get-deps"
+      run: "sudo -n  env PATH=$PATH ./get-deps"
     - name: "Check formatting"
       shell: bash
       run: "cargo fmt --all -- --check"

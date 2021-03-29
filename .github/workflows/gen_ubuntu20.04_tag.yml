@@ -56,7 +56,7 @@ jobs:
          key: "ubuntu20.04-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
     - name: "Install System Deps"
       shell: bash
-      run: "./get-deps"
+      run: " env PATH=$PATH ./get-deps"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"

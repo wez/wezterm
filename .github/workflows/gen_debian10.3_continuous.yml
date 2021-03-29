@@ -91,7 +91,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            ./get-deps
+             env PATH=$PATH ./get-deps
             
 
     - name: "Build (Release mode)"

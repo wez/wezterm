@@ -77,7 +77,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo -n ./get-deps
+            sudo -n  env PATH=$PATH ./get-deps
             
 
     - name: "Build (Release mode)"

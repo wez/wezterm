@@ -52,7 +52,7 @@ jobs:
       shell: bash
       run: |
             export MACOSX_DEPLOYMENT_TARGET=10.9
-            ./get-deps
+             env PATH=$PATH ./get-deps
             
 
     - name: "Build (Release mode Intel)"
