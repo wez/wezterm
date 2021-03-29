@@ -24,3 +24,25 @@ tabs will die if your network connection is interrupted.
 Take a look at [the multiplexing section](multiplexing.html) for an
 alternative configuration that connects to a remote wezterm instance
 and preserves your tabs.
+
+*Since: nightly builds only*
+
+wezterm is now able to parse `~/.ssh/config` and `/etc/ssh/ssh_config`
+and respects the following options:
+
+* `IdentityFile`
+* `Hostname`
+* `User`
+* `Port`
+* `ProxyCommand`
+* `Host` (including wildcard matching)
+* `UserKnownHostsFile`
+* `IdentitiesOnly`
+
+All other options are parsed but have effect.  Notably, neither `Match` or `Include` will do anything.
+
+`wezterm ssh` CLI allows overriding config settings via the command line.  This example shows how to specify the private key to use when connecting to `some-host`:
+
+```bash
+wezterm ssh -oIdentityFile=/secret/id_ed25519 some-host
+```

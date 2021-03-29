@@ -28,6 +28,12 @@ brief notes about them may accumulate here.
 * Fixed: font fallback now happens asynchronously from painting [#508](https://github.com/wez/wezterm/issues/508)
 * New: added [window:get_selection_text_for_pane](config/lua/window/get_selection_text_for_pane.md) method [#575](https://github.com/wez/wezterm/issues/575)
 * Fixed: implicit hyperlink rules, word and line selection now operate on logical lines which means that they deal with wrapped lines outside of the viewport. [#408](https://github.com/wez/wezterm/issues/408)
+* New: `wezterm ssh` now supports reading `~/.ssh/config` and overriding options via the command line.  `IdentityFile` and `ProxyCommand` are the two main new supported options.  Read more about it in [ssh](ssh.md).
+* Fixed: ssh support will now try all available identities from the SSH agent rather than just the first.
+* New: splitting panes in `wezterm ssh` now works like spawning new tabs: the new program is started on the remote host with no additional authentication required.
+* Fixed: Multiplexer sessions would fail to bootstrap via ssh because the bootstrap process exited too soon. [#507](https://github.com/wez/wezterm/issues/507)
+* Fixed: Windows: we now compile libssh2 against openssl on all platforms to improve overall key and crypto algorithm support
+* Fixed: spawning a new tab via the launcher menu failed because it used the pretty printed multiplexer domain label rather than the multiplexer domain name.
 
 ### 20210314-114017-04b7cedd
 
