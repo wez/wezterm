@@ -187,6 +187,23 @@ tabs will die if your network connection is interrupted.</p>
 <p>Take a look at <a href="multiplexing.html">the multiplexing section</a> for an
 alternative configuration that connects to a remote wezterm instance
 and preserves your tabs.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>wezterm is now able to parse <code>~/.ssh/config</code> and <code>/etc/ssh/ssh_config</code>
+and respects the following options:</p>
+<ul>
+<li><code>IdentityFile</code></li>
+<li><code>Hostname</code></li>
+<li><code>User</code></li>
+<li><code>Port</code></li>
+<li><code>ProxyCommand</code></li>
+<li><code>Host</code> (including wildcard matching)</li>
+<li><code>UserKnownHostsFile</code></li>
+<li><code>IdentitiesOnly</code></li>
+</ul>
+<p>All other options are parsed but have effect.  Notably, neither <code>Match</code> or <code>Include</code> will do anything.</p>
+<p><code>wezterm ssh</code> CLI allows overriding config settings via the command line.  This example shows how to specify the private key to use when connecting to <code>some-host</code>:</p>
+<pre><code class="language-bash">wezterm ssh -oIdentityFile=/secret/id_ed25519 some-host
+</code></pre>
 
                     </main>
 

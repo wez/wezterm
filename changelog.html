@@ -196,6 +196,12 @@ brief notes about them may accumulate here.</p>
 <li>Fixed: font fallback now happens asynchronously from painting <a href="https://github.com/wez/wezterm/issues/508">#508</a></li>
 <li>New: added <a href="config/lua/window/get_selection_text_for_pane.html">window:get_selection_text_for_pane</a> method <a href="https://github.com/wez/wezterm/issues/575">#575</a></li>
 <li>Fixed: implicit hyperlink rules, word and line selection now operate on logical lines which means that they deal with wrapped lines outside of the viewport. <a href="https://github.com/wez/wezterm/issues/408">#408</a></li>
+<li>New: <code>wezterm ssh</code> now supports reading <code>~/.ssh/config</code> and overriding options via the command line.  <code>IdentityFile</code> and <code>ProxyCommand</code> are the two main new supported options.  Read more about it in <a href="ssh.html">ssh</a>.</li>
+<li>Fixed: ssh support will now try all available identities from the SSH agent rather than just the first.</li>
+<li>New: splitting panes in <code>wezterm ssh</code> now works like spawning new tabs: the new program is started on the remote host with no additional authentication required.</li>
+<li>Fixed: Multiplexer sessions would fail to bootstrap via ssh because the bootstrap process exited too soon. <a href="https://github.com/wez/wezterm/issues/507">#507</a></li>
+<li>Fixed: Windows: we now compile libssh2 against openssl on all platforms to improve overall key and crypto algorithm support</li>
+<li>Fixed: spawning a new tab via the launcher menu failed because it used the pretty printed multiplexer domain label rather than the multiplexer domain name.</li>
 </ul>
 <h3 id="20210314-114017-04b7cedd"><a class="header" href="#20210314-114017-04b7cedd">20210314-114017-04b7cedd</a></h3>
 <ul>
