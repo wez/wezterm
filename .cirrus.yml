@@ -9,10 +9,10 @@ task:
   only_if: "changesInclude('**.toml', '**.rs', '.gitmodules', '.cirrus.yml', 'get-deps', 'Cargo.lock')"
   setup_script:
     - pkg install -y bash
-    - bash get-deps
     - curl https://sh.rustup.rs -sSf > /tmp/rustup.sh
     - chmod +x /tmp/rustup.sh
     - /tmp/rustup.sh -y -q
+    - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
   test_script:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --all --release
     - env PATH=$HOME/.cargo/bin:$PATH cargo test --all --release
