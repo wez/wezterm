@@ -11,7 +11,7 @@ use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{ExitStatus, MasterPty, PtySize};
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::io::{BufWriter, Read, Write};
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
@@ -22,7 +22,7 @@ use termwiz::lineedit::*;
 use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::surface::Change;
 use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
-use wezterm_ssh::{Session, SessionEvent, SshChildProcess, SshPty};
+use wezterm_ssh::{ConfigMap, Session, SessionEvent, SshChildProcess, SshPty};
 
 #[derive(Default)]
 struct PasswordPromptHost {
@@ -145,7 +145,6 @@ pub fn ssh_connect_with_ui(
 /// and the reader and writer instances so that we can inject the
 /// interactive setup.  The bulk of that is driven by `connect_ssh_session`.
 pub struct RemoteSshDomain {
-    ssh_config: BTreeMap<String, String>,
     session: Session,
     id: DomainId,
     name: String,
@@ -153,14 +152,10 @@ pub struct RemoteSshDomain {
 }
 
 impl RemoteSshDomain {
-    pub fn with_ssh_config(
-        name: &str,
-        ssh_config: BTreeMap<String, String>,
-    ) -> anyhow::Result<Self> {
+    pub fn with_ssh_config(name: &str, ssh_config: ConfigMap) -> anyhow::Result<Self> {
         let id = alloc_domain_id();
         let (session, events) = Session::connect(ssh_config.clone())?;
         Ok(Self {
-            ssh_config,
             id,
             name: format!("SSH to {}", name),
             session,
@@ -179,7 +174,6 @@ fn connect_ssh_session(
     stdout_tx: Sender<BoxedReader>,
     child_tx: Sender<SshChildProcess>,
     pty_tx: Sender<SshPty>,
-    ssh_config: BTreeMap<String, String>,
     size: PtySize,
     command_line: Option<String>,
     env: HashMap<String, String>,
@@ -492,7 +486,6 @@ impl Domain for RemoteSshDomain {
             // And with those created, we can now spawn a new thread
             // to perform the blocking (from its perspective) terminal
             // UI to carry out any authentication.
-            let ssh_config = self.ssh_config.clone();
             let session = self.session.clone();
             let stdin_read: BoxedReader = Box::new(stdin_read);
             let mut stdout_write = BufWriter::new(stdout_write);
@@ -506,7 +499,6 @@ impl Domain for RemoteSshDomain {
                     reader_tx,
                     child_tx,
                     pty_tx,
-                    ssh_config,
                     size,
                     command_line,
                     env,
