@@ -1,3 +1,5 @@
+cargo-features = ["resolver"]
+
 [package]
 name = "async_ossl"
 version = "0.1.0"

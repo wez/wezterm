@@ -1,3 +1,5 @@
+cargo-features = ["resolver"]
+
 [package]
 name = "wezterm-gui"
 version = "0.1.0"

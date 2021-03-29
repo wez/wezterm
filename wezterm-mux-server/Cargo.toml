@@ -1,3 +1,5 @@
+cargo-features = ["resolver"]
+
 [package]
 name = "wezterm-mux-server"
 version = "0.1.0"

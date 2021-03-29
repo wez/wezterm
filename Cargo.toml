@@ -1,3 +1,5 @@
+cargo-features = ["resolver"]
+
 [workspace]
 members = ["wezterm-mux-server", "wezterm", "wezterm-gui", "strip-ansi-escapes", "wezterm-ssh"]
 resolver = "2"
