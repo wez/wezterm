@@ -89,11 +89,21 @@ enum SubCommand {
 async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     let mut ssh_config = Config::new();
     ssh_config.add_default_config_files();
-    let mut ssh_config = ssh_config.for_host(&opts.user_at_host_and_port.host_and_port);
+
+    let mut fields = opts.user_at_host_and_port.host_and_port.split(':');
+    let host = fields
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("no host component somehow"))?;
+    let port = fields.next();
+
+    let mut ssh_config = ssh_config.for_host(host);
     ssh_config.insert(
         "user".to_string(),
         opts.user_at_host_and_port.username.to_string(),
     );
+    if let Some(port) = port {
+        ssh_config.insert("port".to_string(), port.to_string());
+    }
     for (k, v) in opts.config_override {
         ssh_config.insert(k.to_lowercase().to_string(), v);
     }
