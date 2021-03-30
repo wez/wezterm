@@ -1,5 +1,5 @@
 use crate::glium::texture::SrgbTexture2d;
-use crate::glyphcache::{BlockKey, BoxDrawingKey, CachedGlyph, GlyphCache};
+use crate::glyphcache::{CachedGlyph, CustomGlyphKey, GlyphCache};
 use crate::shapecache::*;
 use crate::termwindow::{BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
@@ -884,28 +884,11 @@ impl super::TermWindow {
                     }
 
                     if self.config.custom_block_glyphs && glyph_idx == 0 {
-                        if let Some(block) = BlockKey::from_cell(&params.line.cells()[cell_idx]) {
-                            self.populate_block_quad(
-                                block,
-                                gl_state,
-                                quads,
-                                cell_idx,
-                                &params,
-                                hsv,
-                                cursor_shape,
-                                glyph_color,
-                                underline_color,
-                                bg_color,
-                                white_space,
-                            )?;
-                            continue;
-                        }
-
-                        if let Some(box_drawing) =
-                            BoxDrawingKey::from_cell(&params.line.cells()[cell_idx])
+                        if let Some(custom_glyph) =
+                            CustomGlyphKey::from_cell(&params.line.cells()[cell_idx])
                         {
-                            self.populate_box_drawing_quad(
-                                box_drawing,
+                            self.populate_custom_glyph_quad(
+                                custom_glyph,
                                 gl_state,
                                 quads,
                                 cell_idx,
@@ -1037,9 +1020,9 @@ impl super::TermWindow {
         Ok(())
     }
 
-    pub fn populate_block_quad(
+    pub fn populate_custom_glyph_quad(
         &self,
-        block: BlockKey,
+        custom_glyph: CustomGlyphKey,
         gl_state: &RenderState,
         quads: &mut MappedQuads,
         cell_idx: usize,
@@ -1054,7 +1037,7 @@ impl super::TermWindow {
         let sprite = gl_state
             .glyph_cache
             .borrow_mut()
-            .cached_block(block)?
+            .cached_custom_glyph(custom_glyph)?
             .texture_coords();
 
         let mut quad =
@@ -1152,51 +1135,6 @@ impl super::TermWindow {
         quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_underline(white_space);
         quad.set_has_color(true);
-        quad.set_cursor(
-            gl_state
-                .util_sprites
-                .cursor_sprite(cursor_shape)
-                .texture_coords(),
-        );
-        quad.set_cursor_color(params.cursor_border_color);
-
-        Ok(())
-    }
-
-    pub fn populate_box_drawing_quad(
-        &self,
-        box_drawing: BoxDrawingKey,
-        gl_state: &RenderState,
-        quads: &mut MappedQuads,
-        cell_idx: usize,
-        params: &RenderScreenLineOpenGLParams,
-        hsv: Option<config::HsbTransform>,
-        cursor_shape: Option<CursorShape>,
-        glyph_color: LinearRgba,
-        underline_color: LinearRgba,
-        bg_color: LinearRgba,
-        white_space: TextureRect,
-    ) -> anyhow::Result<()> {
-        let sprite = gl_state
-            .glyph_cache
-            .borrow_mut()
-            .cached_box_drawing(box_drawing)?
-            .texture_coords();
-
-        let mut quad =
-            match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
-                Ok(quad) => quad,
-                Err(_) => return Ok(()),
-            };
-
-        quad.set_hsv(hsv);
-        quad.set_fg_color(glyph_color);
-        quad.set_underline_color(underline_color);
-        quad.set_bg_color(bg_color);
-        quad.set_texture(sprite);
-        quad.set_texture_adjust(0., 0., 0., 0.);
-        quad.set_underline(white_space);
-        quad.set_has_color(false);
         quad.set_cursor(
             gl_state
                 .util_sprites

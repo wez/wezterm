@@ -149,6 +149,41 @@ pub enum BlockAlpha {
     Light,
 }
 
+/// Represents glyphs that require custom drawing logic.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum CustomGlyphKey {
+    /// Represents a Box Drawing glyph, decoded from
+    /// <https://en.wikipedia.org/wiki/Box_Drawing_(Unicode_block)>
+    /// <https://www.unicode.org/charts/PDF/U2500.pdf>
+    BoxDrawing(BoxDrawingKey),
+
+    /// Represents a Block Element glyph, decoded from
+    /// <https://en.wikipedia.org/wiki/Block_Elements>
+    /// <https://www.unicode.org/charts/PDF/U2580.pdf>
+    Block(BlockKey),
+}
+
+impl CustomGlyphKey {
+    pub fn from_char(c: char) -> Option<Self> {
+        let n = c as u32;
+        match n {
+            0x2500..=0x257f => BoxDrawingKey::from_char(c).map(Self::BoxDrawing),
+            0x2580..=0x259f => BlockKey::from_char(c).map(Self::Block),
+            _ => None,
+        }
+    }
+
+    pub fn from_cell(cell: &termwiz::cell::Cell) -> Option<Self> {
+        let mut chars = cell.str().chars();
+        let first_char = chars.next()?;
+        if chars.next().is_some() {
+            None
+        } else {
+            Self::from_char(first_char)
+        }
+    }
+}
+
 /// Represents a Block Element glyph, decoded from
 /// <https://en.wikipedia.org/wiki/Block_Elements>
 /// <https://www.unicode.org/charts/PDF/U2580.pdf>
@@ -207,16 +242,6 @@ impl BlockKey {
             _ => return None,
         })
     }
-
-    pub fn from_cell(cell: &termwiz::cell::Cell) -> Option<Self> {
-        let mut chars = cell.str().chars();
-        let first_char = chars.next()?;
-        if chars.next().is_some() {
-            None
-        } else {
-            Self::from_char(first_char)
-        }
-    }
 }
 
 /// Represents a Box Drawing glyph, decoded from
@@ -236,16 +261,6 @@ impl BoxDrawingKey {
             0x2502 => LightVertical,
             _ => return None,
         })
-    }
-
-    pub fn from_cell(cell: &termwiz::cell::Cell) -> Option<Self> {
-        let mut chars = cell.str().chars();
-        let first_char = chars.next()?;
-        if chars.next().is_some() {
-            None
-        } else {
-            Self::from_char(first_char)
-        }
     }
 }
 
@@ -353,8 +368,7 @@ pub struct GlyphCache<T: Texture2d> {
     pub image_cache: LruCache<usize, CachedImage>,
     frame_cache: HashMap<(usize, usize), Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
-    block_glyphs: HashMap<BlockKey, Sprite<T>>,
-    box_drawing_glyphs: HashMap<BoxDrawingKey, Sprite<T>>,
+    custom_glyphs: HashMap<CustomGlyphKey, Sprite<T>>,
     metrics: RenderMetrics,
 }
 
@@ -376,8 +390,7 @@ impl GlyphCache<ImageTexture> {
             atlas,
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
-            block_glyphs: HashMap::new(),
-            box_drawing_glyphs: HashMap::new(),
+            custom_glyphs: HashMap::new(),
         })
     }
 }
@@ -406,8 +419,7 @@ impl GlyphCache<SrgbTexture2d> {
             atlas,
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
-            block_glyphs: HashMap::new(),
-            box_drawing_glyphs: HashMap::new(),
+            custom_glyphs: HashMap::new(),
         })
     }
 
@@ -417,8 +429,7 @@ impl GlyphCache<SrgbTexture2d> {
         self.frame_cache.clear();
         self.glyph_cache.clear();
         self.line_glyphs.clear();
-        self.block_glyphs.clear();
-        self.box_drawing_glyphs.clear();
+        self.custom_glyphs.clear();
     }
 }
 
@@ -767,16 +778,24 @@ impl<T: Texture2d> GlyphCache<T> {
         buffer.log_bits();
         */
 
-        let sprite = self.atlas.allocate(&buffer)?;
-        self.block_glyphs.insert(block, sprite.clone());
-        Ok(sprite)
+        self.atlas.allocate(&buffer).map_err(Into::into)
     }
 
-    pub fn cached_block(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {
-        if let Some(s) = self.block_glyphs.get(&block) {
+    pub fn cached_custom_glyph(
+        &mut self,
+        custom_glyph: CustomGlyphKey,
+    ) -> anyhow::Result<Sprite<T>> {
+        if let Some(s) = self.custom_glyphs.get(&custom_glyph) {
             return Ok(s.clone());
         }
-        self.block_sprite(block)
+
+        let sprite = match custom_glyph {
+            CustomGlyphKey::Block(block) => self.block_sprite(block)?,
+            CustomGlyphKey::BoxDrawing(box_drawing) => self.box_drawing_sprite(box_drawing)?,
+        };
+
+        self.custom_glyphs.insert(custom_glyph, sprite.clone());
+        Ok(sprite)
     }
 
     fn box_drawing_sprite(&mut self, box_drawing: BoxDrawingKey) -> anyhow::Result<Sprite<T>> {
@@ -807,16 +826,7 @@ impl<T: Texture2d> GlyphCache<T> {
             LightVertical => draw_vertical(&mut buffer, 10),
         }
 
-        let sprite = self.atlas.allocate(&buffer)?;
-        self.box_drawing_glyphs.insert(box_drawing, sprite.clone());
-        Ok(sprite)
-    }
-
-    pub fn cached_box_drawing(&mut self, box_drawing: BoxDrawingKey) -> anyhow::Result<Sprite<T>> {
-        if let Some(s) = self.box_drawing_glyphs.get(&box_drawing) {
-            return Ok(s.clone());
-        }
-        self.box_drawing_sprite(box_drawing)
+        self.atlas.allocate(&buffer).map_err(Into::into)
     }
 
     fn line_sprite(&mut self, key: LineKey) -> anyhow::Result<Sprite<T>> {
