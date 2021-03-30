@@ -129,7 +129,7 @@ impl SessionInner {
                 cmd = std::process::Command::new(comspec);
                 cmd.args(&["/c", proxy_command]);
             } else {
-                cmd = std::process::Command::new("/bin/sh");
+                cmd = std::process::Command::new("sh");
                 cmd.args(&["-c", &format!("exec {}", proxy_command)]);
             }
 
