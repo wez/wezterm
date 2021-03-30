@@ -219,6 +219,36 @@ impl BlockKey {
     }
 }
 
+/// Represents a Box Drawing glyph, decoded from
+/// <https://en.wikipedia.org/wiki/Box_Drawing_(Unicode_block)>
+/// <https://www.unicode.org/charts/PDF/U2500.pdf>
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum BoxDrawingKey {
+    LightVertical,
+}
+
+impl BoxDrawingKey {
+    pub fn from_char(c: char) -> Option<Self> {
+        use BoxDrawingKey::*;
+
+        let c = c as u32;
+        Some(match c {
+            0x2502 => LightVertical,
+            _ => return None,
+        })
+    }
+
+    pub fn from_cell(cell: &termwiz::cell::Cell) -> Option<Self> {
+        let mut chars = cell.str().chars();
+        let first_char = chars.next()?;
+        if chars.next().is_some() {
+            None
+        } else {
+            Self::from_char(first_char)
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ImageFrame {
     duration: Duration,
@@ -324,6 +354,7 @@ pub struct GlyphCache<T: Texture2d> {
     frame_cache: HashMap<(usize, usize), Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     block_glyphs: HashMap<BlockKey, Sprite<T>>,
+    box_drawing_glyphs: HashMap<BoxDrawingKey, Sprite<T>>,
     metrics: RenderMetrics,
 }
 
@@ -346,6 +377,7 @@ impl GlyphCache<ImageTexture> {
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
             block_glyphs: HashMap::new(),
+            box_drawing_glyphs: HashMap::new(),
         })
     }
 }
@@ -375,6 +407,7 @@ impl GlyphCache<SrgbTexture2d> {
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
             block_glyphs: HashMap::new(),
+            box_drawing_glyphs: HashMap::new(),
         })
     }
 
@@ -385,6 +418,7 @@ impl GlyphCache<SrgbTexture2d> {
         self.glyph_cache.clear();
         self.line_glyphs.clear();
         self.block_glyphs.clear();
+        self.box_drawing_glyphs.clear();
     }
 }
 
@@ -743,6 +777,46 @@ impl<T: Texture2d> GlyphCache<T> {
             return Ok(s.clone());
         }
         self.block_sprite(block)
+    }
+
+    fn box_drawing_sprite(&mut self, box_drawing: BoxDrawingKey) -> anyhow::Result<Sprite<T>> {
+        let mut buffer = Image::new(
+            self.metrics.cell_size.width as usize,
+            self.metrics.cell_size.height as usize,
+        );
+        let black = SrgbaPixel::rgba(0, 0, 0, 0);
+        let white = SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff);
+
+        let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
+
+        buffer.clear_rect(cell_rect, black);
+
+        let draw_vertical = |buffer: &mut Image, x: usize| {
+            buffer.draw_line(
+                Point::new(cell_rect.origin.x + x as isize, cell_rect.origin.y),
+                Point::new(
+                    cell_rect.origin.x + x as isize,
+                    cell_rect.origin.y + self.metrics.cell_size.height,
+                ),
+                white,
+            );
+        };
+
+        use BoxDrawingKey::*;
+        match box_drawing {
+            LightVertical => draw_vertical(&mut buffer, 10),
+        }
+
+        let sprite = self.atlas.allocate(&buffer)?;
+        self.box_drawing_glyphs.insert(box_drawing, sprite.clone());
+        Ok(sprite)
+    }
+
+    pub fn cached_box_drawing(&mut self, box_drawing: BoxDrawingKey) -> anyhow::Result<Sprite<T>> {
+        if let Some(s) = self.box_drawing_glyphs.get(&box_drawing) {
+            return Ok(s.clone());
+        }
+        self.box_drawing_sprite(box_drawing)
     }
 
     fn line_sprite(&mut self, key: LineKey) -> anyhow::Result<Sprite<T>> {
