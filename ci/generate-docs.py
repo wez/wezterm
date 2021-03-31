@@ -146,7 +146,7 @@ TOC = [
             Page("iTerm Image Protocol", "imgcat.md"),
             Page("SSH", "ssh.md"),
             Page("Serial Ports & Arduino", "serial.md"),
-            Page("Mulitplexing", "multiplexing.md"),
+            Page("Multiplexing", "multiplexing.md"),
             Page("Escape Sequences", "escape-sequences.md"),
             Page("F.A.Q.", "faq.md"),
             Page("Getting Help", "help.md"),
