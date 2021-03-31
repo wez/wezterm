@@ -10,7 +10,7 @@ use ::window::glium::texture::SrgbTexture2d;
 use ::window::{Point, Rect};
 use anyhow::{anyhow, Context};
 use config::{configuration, AllowSquareGlyphOverflow, TextStyle};
-use euclid::num::Zero;
+use euclid::{num::Zero, Box2D};
 use lru::LruCache;
 use std::collections::HashMap;
 use std::ops::Range;
@@ -249,7 +249,10 @@ impl BlockKey {
 /// <https://www.unicode.org/charts/PDF/U2500.pdf>
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BoxDrawingKey {
+    LightHorizontal,
+    HeavyHorizontal,
     LightVertical,
+    HeavyVertical,
 }
 
 impl BoxDrawingKey {
@@ -258,7 +261,10 @@ impl BoxDrawingKey {
 
         let c = c as u32;
         Some(match c {
+            0x2500 => LightHorizontal,
+            0x2501 => HeavyHorizontal,
             0x2502 => LightVertical,
+            0x2503 => HeavyVertical,
             _ => return None,
         })
     }
@@ -810,20 +816,53 @@ impl<T: Texture2d> GlyphCache<T> {
 
         buffer.clear_rect(cell_rect, black);
 
-        let draw_vertical = |buffer: &mut Image, x: usize| {
-            buffer.draw_line(
-                Point::new(cell_rect.origin.x + x as isize, cell_rect.origin.y),
-                Point::new(
-                    cell_rect.origin.x + x as isize,
-                    cell_rect.origin.y + self.metrics.cell_size.height,
-                ),
-                white,
-            );
+        let draw_rect = |buffer: &mut Image, rect: Box2D<usize, PixelUnit>| {
+            for x in rect.min.x..rect.max.x {
+                for y in rect.min.y..rect.max.y {
+                    let pixel = buffer.pixel_mut(x, y);
+                    *pixel = white.as_srgba32();
+                }
+            }
         };
+
+        let center = cell_rect.center();
+        let light_thickness = self.metrics.underline_height as usize;
+        let heavy_thickness = light_thickness * 2;
 
         use BoxDrawingKey::*;
         match box_drawing {
-            LightVertical => draw_vertical(&mut buffer, 10),
+            LightHorizontal => {
+                let half_thickness = (light_thickness / 2) as isize;
+
+                let min = Point::new(cell_rect.min_x(), center.y - half_thickness).to_usize();
+                let max = Point::new(cell_rect.max_x(), center.y + half_thickness).to_usize();
+
+                draw_rect(&mut buffer, Box2D::new(min, max))
+            }
+            HeavyHorizontal => {
+                let half_thickness = (heavy_thickness / 2) as isize;
+
+                let min = Point::new(cell_rect.min_x(), center.y - half_thickness).to_usize();
+                let max = Point::new(cell_rect.max_x(), center.y + half_thickness).to_usize();
+
+                draw_rect(&mut buffer, Box2D::new(min, max))
+            }
+            LightVertical => {
+                let half_thickness = (light_thickness / 2) as isize;
+
+                let min = Point::new(center.x - half_thickness, cell_rect.min_y()).to_usize();
+                let max = Point::new(center.x + half_thickness, cell_rect.max_y()).to_usize();
+
+                draw_rect(&mut buffer, Box2D::new(min, max))
+            }
+            HeavyVertical => {
+                let half_thickness = (heavy_thickness / 2) as isize;
+
+                let min = Point::new(center.x - half_thickness, cell_rect.min_y()).to_usize();
+                let max = Point::new(center.x + half_thickness, cell_rect.max_y()).to_usize();
+
+                draw_rect(&mut buffer, Box2D::new(min, max))
+            }
         }
 
         self.atlas.allocate(&buffer).map_err(Into::into)
