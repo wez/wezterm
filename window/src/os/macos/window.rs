@@ -1496,6 +1496,10 @@ impl WindowView {
         Self::mouse_common(this, nsevent, MouseEventKind::Release(MousePress::Right));
     }
 
+    extern "C" fn other_mouse_up(this: &mut Object, _sel: Sel, nsevent: id) {
+        Self::mouse_common(this, nsevent, MouseEventKind::Release(MousePress::Middle));
+    }
+
     extern "C" fn scroll_wheel(this: &mut Object, _sel: Sel, nsevent: id) {
         let precise = unsafe { nsevent.hasPreciseScrollingDeltas() } == YES;
         let scale = if precise {
@@ -1561,6 +1565,10 @@ impl WindowView {
 
     extern "C" fn right_mouse_down(this: &mut Object, _sel: Sel, nsevent: id) {
         Self::mouse_common(this, nsevent, MouseEventKind::Press(MousePress::Right));
+    }
+
+    extern "C" fn other_mouse_down(this: &mut Object, _sel: Sel, nsevent: id) {
+        Self::mouse_common(this, nsevent, MouseEventKind::Press(MousePress::Middle));
     }
 
     extern "C" fn mouse_moved_or_dragged(this: &mut Object, _sel: Sel, nsevent: id) {
@@ -1955,6 +1963,14 @@ impl WindowView {
             cls.add_method(
                 sel!(rightMouseUp:),
                 Self::right_mouse_up as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(otherMouseDown:),
+                Self::other_mouse_down as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(otherMouseUp:),
+                Self::other_mouse_up as extern "C" fn(&mut Object, Sel, id),
             );
             cls.add_method(
                 sel!(scrollWheel:),
