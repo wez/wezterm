@@ -1577,7 +1577,14 @@ impl WindowView {
     }
 
     extern "C" fn other_mouse_down(this: &mut Object, _sel: Sel, nsevent: id) {
-        Self::mouse_common(this, nsevent, MouseEventKind::Press(MousePress::Middle));
+        // Safety: See `other_mouse_up`
+        unsafe {
+            let button_number = NSEvent::buttonNumber(nsevent);
+            // See `other_mouse_up`
+            if [2, 4].contains(&button_number) {
+                Self::mouse_common(this, nsevent, MouseEventKind::Press(MousePress::Middle));
+            }
+        }
     }
 
     extern "C" fn mouse_moved_or_dragged(this: &mut Object, _sel: Sel, nsevent: id) {
