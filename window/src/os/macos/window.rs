@@ -1497,7 +1497,16 @@ impl WindowView {
     }
 
     extern "C" fn other_mouse_up(this: &mut Object, _sel: Sel, nsevent: id) {
-        Self::mouse_common(this, nsevent, MouseEventKind::Release(MousePress::Middle));
+        // Safety: We know this is an button event
+        unsafe {
+            let button_number = NSEvent::buttonNumber(nsevent);
+            // Button 2 is the middle mouse button (scroll wheel)
+            // At least on the tested mouse, the dedicated middle mouse button
+            // is button 4. This should probably be made configurable at some point
+            if [2, 4].contains(&button_number) {
+                Self::mouse_common(this, nsevent, MouseEventKind::Release(MousePress::Middle));
+            }
+        }
     }
 
     extern "C" fn scroll_wheel(this: &mut Object, _sel: Sel, nsevent: id) {
