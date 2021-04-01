@@ -164,6 +164,7 @@ pub enum KeyAssignment {
     ResetFontSize,
     ResetFontAndWindowSize,
     ActivateTab(isize),
+    ActivateLastTab,
     SendString(String),
     Nop,
     DisableDefaultAssignment,

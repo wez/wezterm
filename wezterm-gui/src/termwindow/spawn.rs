@@ -186,6 +186,7 @@ impl super::TermWindow {
                     let mut window = mux
                         .get_window_mut(target_window_id)
                         .ok_or_else(|| anyhow!("no such window!?"))?;
+                    window.save_last_active();
                     if let Some(idx) = window.idx_by_id(tab_id) {
                         window.set_active(idx);
                     }

@@ -10,6 +10,7 @@ pub struct Window {
     id: WindowId,
     tabs: Vec<Rc<Tab>>,
     active: usize,
+    last_active: Option<TabId>,
     clipboard: Option<Arc<dyn Clipboard>>,
     invalidated: bool,
 }
@@ -20,6 +21,7 @@ impl Window {
             id: WIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed),
             tabs: vec![],
             active: 0,
+            last_active: None,
             clipboard: None,
             invalidated: false,
         }
@@ -122,6 +124,19 @@ impl Window {
     #[inline]
     pub fn get_active_idx(&self) -> usize {
         self.active
+    }
+
+    pub fn save_last_active(&mut self) {
+        self.last_active = self.get_by_idx(self.active).map(|tab| tab.tab_id());
+    }
+
+    #[inline]
+    pub fn get_last_active_idx(&self) -> Option<usize> {
+        if let Some(tab_id) = self.last_active {
+            self.idx_by_id(tab_id)
+        } else {
+            None
+        }
     }
 
     pub fn set_active(&mut self, idx: usize) {
