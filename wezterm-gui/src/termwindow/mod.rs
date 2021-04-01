@@ -1098,6 +1098,9 @@ impl TermWindow {
         };
 
         if tab_idx < max {
+            if tab_idx != window.get_active_idx() {
+                window.save_last_active();
+            }
             window.set_active(tab_idx);
 
             drop(window);
@@ -1126,6 +1129,20 @@ impl TermWindow {
         let tab = if tab < 0 { max as isize + tab } else { tab };
         drop(window);
         self.activate_tab((tab as usize % max) as isize)
+    }
+
+    fn activate_last_tab(&mut self) -> anyhow::Result<()> {
+        let mux = Mux::get().unwrap();
+        let window = mux
+            .get_window(self.mux_window_id)
+            .ok_or_else(|| anyhow!("no such window"))?;
+
+        let last_idx = window.get_last_active_idx();
+        drop(window);
+        match last_idx {
+            Some(idx) => self.activate_tab(idx as isize),
+            None => Ok(()),
+        }
     }
 
     fn move_tab(&mut self, tab_idx: usize) -> anyhow::Result<()> {
@@ -1387,6 +1404,7 @@ impl TermWindow {
             ActivateTabRelative(n) => {
                 self.activate_tab_relative(*n)?;
             }
+            ActivateLastTab => self.activate_last_tab()?,
             DecreaseFontSize => self.decrease_font_size(),
             IncreaseFontSize => self.increase_font_size(),
             ResetFontSize => self.reset_font_size(),
