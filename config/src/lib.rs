@@ -879,6 +879,10 @@ pub struct Config {
     #[serde(default)]
     pub hide_tab_bar_if_only_one_tab: bool,
 
+    /// If true, hide all prefixes in the window title.
+    #[serde(default)]
+    pub hide_window_title_prefixes: bool,
+
     #[serde(default)]
     pub enable_scroll_bar: bool,
 

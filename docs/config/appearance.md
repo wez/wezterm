@@ -214,6 +214,17 @@ return {
 }
 ```
 
+### Window Titles
+
+By default, windows with multiple tabs will have their titles prefixed with the
+current tab and the total. This can be disabled:
+
+```lua
+return {
+  hide_window_title_prefixes = true,
+}
+```
+
 ## Styling Inactive Panes
 
 *since: 20201031-154415-9614e117*

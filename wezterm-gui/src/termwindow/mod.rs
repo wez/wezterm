@@ -1030,15 +1030,21 @@ impl TermWindow {
             let title = pos.pane.get_title();
 
             if let Some(window) = self.window.as_ref() {
-                let show_tab_bar;
-                if num_tabs == 1 {
+                let show_tab_bar = self.config.enable_tab_bar
+                    && if num_tabs == 1 {
+                        !self.config.hide_tab_bar_if_only_one_tab
+                    } else {
+                        true
+                    };
+
+                if self.config.hide_window_title_prefixes {
+                    window.set_title(&title);
+                } else if num_tabs == 1 {
                     window.set_title(&format!(
                         "{}{}",
                         if pos.is_zoomed { "[Z] " } else { "" },
                         title
                     ));
-                    show_tab_bar =
-                        self.config.enable_tab_bar && !self.config.hide_tab_bar_if_only_one_tab;
                 } else {
                     window.set_title(&format!(
                         "{}[{}/{}] {}",
@@ -1047,7 +1053,6 @@ impl TermWindow {
                         num_tabs,
                         title
                     ));
-                    show_tab_bar = self.config.enable_tab_bar;
                 }
 
                 // If the number of tabs changed and caused the tab bar to
