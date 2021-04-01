@@ -34,6 +34,7 @@ brief notes about them may accumulate here.
 * Fixed: Multiplexer sessions would fail to bootstrap via ssh because the bootstrap process exited too soon. [#507](https://github.com/wez/wezterm/issues/507)
 * Fixed: Windows: we now compile libssh2 against openssl on all platforms to improve overall key and crypto algorithm support
 * Fixed: spawning a new tab via the launcher menu failed because it used the pretty printed multiplexer domain label rather than the multiplexer domain name.
+* Fixed: macOS: middle mouse button wasn't recognized. Thanks to [@guswynn](https://github.com/guswynn)! [#599](https://github.com/wez/wezterm/pull/599)
 
 ### 20210314-114017-04b7cedd
 
