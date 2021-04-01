@@ -1501,9 +1501,8 @@ impl WindowView {
         unsafe {
             let button_number = NSEvent::buttonNumber(nsevent);
             // Button 2 is the middle mouse button (scroll wheel)
-            // At least on the tested mouse, the dedicated middle mouse button
-            // is button 4. This should probably be made configurable at some point
-            if [2, 4].contains(&button_number) {
+            // but is the dedicated middle mouse button on 4 button mouses
+            if button_number == 2 {
                 Self::mouse_common(this, nsevent, MouseEventKind::Release(MousePress::Middle));
             }
         }
@@ -1581,7 +1580,7 @@ impl WindowView {
         unsafe {
             let button_number = NSEvent::buttonNumber(nsevent);
             // See `other_mouse_up`
-            if [2, 4].contains(&button_number) {
+            if button_number == 2 {
                 Self::mouse_common(this, nsevent, MouseEventKind::Press(MousePress::Middle));
             }
         }
