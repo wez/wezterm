@@ -387,7 +387,13 @@ impl FontShaper for HarfbuzzShaper {
 
         self.metrics.borrow_mut().insert(key, metrics.clone());
 
-        log::trace!("metrics: {:?}", metrics);
+        log::trace!(
+            "metrics_for_idx={}, size={}, dpi={} -> {:?}",
+            font_idx,
+            size,
+            dpi,
+            metrics
+        );
 
         Ok(metrics)
     }
@@ -405,12 +411,27 @@ impl FontShaper for HarfbuzzShaper {
         // by too much we'll skip to the next slot.
         let theoretical_height = size * dpi as f64 / 72.0;
         let mut metrics_idx = 0;
-        log::trace!("{:?}", self.handles);
+        log::trace!(
+            "compute metrics across these handles for size={}, dpi={},
+             theoretical pixel height {}: {:?}",
+            size,
+            dpi,
+            theoretical_height,
+            self.handles
+        );
         while let Ok(Some(mut pair)) = self.load_fallback(metrics_idx) {
             let (_, cell_height) = pair.face.set_font_size(size, dpi)?;
             let diff = (theoretical_height - cell_height).abs();
             let factor = diff / theoretical_height;
             if factor < 2.0 {
+                log::trace!(
+                    "idx {} cell_height is {}, which is {} away from theoretical
+                     height (factor {}). Seems good enough",
+                    metrics_idx,
+                    cell_height,
+                    diff,
+                    factor
+                );
                 break;
             }
             log::trace!(
