@@ -15,7 +15,8 @@ use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 use termwiz::escape::csi::{
     Cursor, CursorStyle, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay,
-    EraseInLine, Mode, Sgr, TabulationClear, TerminalMode, TerminalModeCode, Window,
+    EraseInLine, Mode, Sgr, TabulationClear, TerminalMode, TerminalModeCode, Window, XtSmGraphics,
+    XtSmGraphicsAction, XtSmGraphicsItem, XtSmGraphicsStatus,
 };
 use termwiz::escape::osc::{
     ChangeColorPair, ColorOrQuery, FinalTermSemanticPrompt, ITermFileData, ITermProprietary,
@@ -1776,6 +1777,48 @@ impl TerminalState {
             }
             Device::StatusReport => {
                 self.writer.write(b"\x1b[0n").ok();
+                self.writer.flush().ok();
+            }
+            Device::XtSmGraphics(g) => {
+                let response = if matches!(g.item, XtSmGraphicsItem::Unspecified(_)) {
+                    XtSmGraphics {
+                        item: g.item,
+                        action_or_status: XtSmGraphicsStatus::InvalidItem.to_i64(),
+                        value: vec![],
+                    }
+                } else {
+                    match g.action() {
+                        None | Some(XtSmGraphicsAction::SetToValue) => XtSmGraphics {
+                            item: g.item,
+                            action_or_status: XtSmGraphicsStatus::InvalidAction.to_i64(),
+                            value: vec![],
+                        },
+                        Some(XtSmGraphicsAction::ResetToDefault) => XtSmGraphics {
+                            item: g.item,
+                            action_or_status: XtSmGraphicsStatus::Success.to_i64(),
+                            value: vec![],
+                        },
+                        Some(XtSmGraphicsAction::ReadMaximumAllowedValue)
+                        | Some(XtSmGraphicsAction::ReadAttribute) => match g.item {
+                            XtSmGraphicsItem::Unspecified(_) => unreachable!("checked above"),
+                            XtSmGraphicsItem::NumberOfColorRegisters => XtSmGraphics {
+                                item: g.item,
+                                action_or_status: XtSmGraphicsStatus::Success.to_i64(),
+                                value: vec![65536],
+                            },
+                            XtSmGraphicsItem::RegisGraphicsGeometry
+                            | XtSmGraphicsItem::SixelGraphicsGeometry => XtSmGraphics {
+                                item: g.item,
+                                action_or_status: XtSmGraphicsStatus::Success.to_i64(),
+                                value: vec![self.pixel_width as i64, self.pixel_height as i64],
+                            },
+                        },
+                    }
+                };
+
+                let dev = Device::XtSmGraphics(response);
+
+                write!(self.writer, "\x1b[{}", dev).ok();
                 self.writer.flush().ok();
             }
         }
