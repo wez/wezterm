@@ -39,7 +39,7 @@ and respects the following options:
 * `UserKnownHostsFile`
 * `IdentitiesOnly`
 
-All other options are parsed but have effect.  Notably, neither `Match` or `Include` will do anything.
+All other options are parsed but have no effect.  Notably, neither `Match` or `Include` will do anything.
 
 `wezterm ssh` CLI allows overriding config settings via the command line.  This example shows how to specify the private key to use when connecting to `some-host`:
 
