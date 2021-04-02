@@ -200,7 +200,7 @@ and respects the following options:</p>
 <li><code>UserKnownHostsFile</code></li>
 <li><code>IdentitiesOnly</code></li>
 </ul>
-<p>All other options are parsed but have effect.  Notably, neither <code>Match</code> or <code>Include</code> will do anything.</p>
+<p>All other options are parsed but have no effect.  Notably, neither <code>Match</code> or <code>Include</code> will do anything.</p>
 <p><code>wezterm ssh</code> CLI allows overriding config settings via the command line.  This example shows how to specify the private key to use when connecting to <code>some-host</code>:</p>
 <pre><code class="language-bash">wezterm ssh -oIdentityFile=/secret/id_ed25519 some-host
 </code></pre>
