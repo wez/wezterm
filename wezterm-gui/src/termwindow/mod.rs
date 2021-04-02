@@ -1098,10 +1098,7 @@ impl TermWindow {
         };
 
         if tab_idx < max {
-            if tab_idx != window.get_active_idx() {
-                window.save_last_active();
-            }
-            window.set_active(tab_idx);
+            window.save_and_then_set_active(tab_idx);
 
             drop(window);
 
@@ -1160,7 +1157,7 @@ impl TermWindow {
 
         let tab_inst = window.remove_by_idx(active);
         window.insert(tab_idx, &tab_inst);
-        window.set_active(tab_idx);
+        window.set_active_without_saving(tab_idx);
 
         drop(window);
         self.update_title();

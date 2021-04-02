@@ -80,7 +80,7 @@ pub fn tab_navigator(
                     .get_window_mut(mux_window_id)
                     .ok_or_else(|| anyhow!("no such window"))?;
 
-                window.set_active(idx);
+                window.save_and_then_set_active(idx);
                 anyhow::Result::<()>::Ok(())
             })
             .detach();

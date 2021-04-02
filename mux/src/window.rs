@@ -103,7 +103,7 @@ impl Window {
             self.tabs.remove(idx);
             let len = self.tabs.len();
             if len > 0 && self.active == idx && idx >= len {
-                self.set_active(len - 1);
+                self.set_active_without_saving(len - 1);
             }
             true
         } else {
@@ -139,7 +139,20 @@ impl Window {
         }
     }
 
-    pub fn set_active(&mut self, idx: usize) {
+    /// If `idx` is different from the current active tab,
+    /// save the current tabid and then make `idx` the active
+    /// tab position.
+    pub fn save_and_then_set_active(&mut self, idx: usize) {
+        if idx == self.get_active_idx() {
+            return;
+        }
+        self.save_last_active();
+        self.set_active_without_saving(idx);
+    }
+
+    /// Make `idx` the active tab position.
+    /// The saved tab id is not changed.
+    pub fn set_active_without_saving(&mut self, idx: usize) {
         assert!(idx < self.tabs.len());
         self.invalidated = true;
         self.active = idx;
