@@ -170,9 +170,12 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="activatelasttab"><a class="header" href="#activatelasttab">ActivateLastTab</a></h1>
+<p><em>Since: nightly builds only</em></p>
 <p>Activate the last active tab. If there is none, it will do nothing.</p>
 <pre><code class="language-lua">return {
+  leader = { key=&quot;a&quot;, mods=&quot;CTRL&quot; },
   keys = {
+    -- CTRL-a, followed by CTRL-o will switch back to the last active tab
     {key=&quot;o&quot;, mods=&quot;LEADER|CTRL&quot;, action=&quot;ActivateLastTab&quot;},
   }
 }
