@@ -30,7 +30,7 @@ return {
 
     -- file:// URI
     {
-      regex = "\\bfile://\\s*\\b",
+      regex = "\\bfile://\\S*\\b",
       format = "$0",
     },
 
@@ -61,4 +61,3 @@ printf '\e]8;;http://example.com\e\\This is a link\e]8;;\e\\\n'
 
 will output the text `This is a link` that when clicked will open
 `http://example.com` in your browser.
-
