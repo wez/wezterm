@@ -164,6 +164,7 @@ impl super::TermWindow {
                         if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
                             self.maybe_scroll_to_bottom_for_input(&pane);
                         }
+                        context.set_cursor(None);
                         context.invalidate();
                         return true;
                     }
@@ -212,6 +213,7 @@ impl super::TermWindow {
                         if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
                             self.maybe_scroll_to_bottom_for_input(&pane);
                         }
+                        context.set_cursor(None);
                         context.invalidate();
                         true
                     } else {

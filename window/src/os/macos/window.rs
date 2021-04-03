@@ -319,6 +319,7 @@ pub(crate) struct WindowInner {
     view: StrongPtr,
     window: StrongPtr,
     config: ConfigHandle,
+    cursor: Option<MouseCursor>,
 }
 
 fn function_key_to_keycode(function_key: char) -> KeyCode {
@@ -454,6 +455,7 @@ impl Window {
                 window,
                 view,
                 config: config.clone(),
+                cursor: Some(MouseCursor::Arrow),
             }));
             inner.borrow_mut().window.replace(weak_window);
             conn.windows
@@ -788,6 +790,9 @@ impl WindowOpsMut for WindowInner {
         unsafe {
             let ns_cursor_cls = class!(NSCursor);
             if let Some(cursor) = cursor {
+                // Unconditionally apply the requested cursor, as there are
+                // cases where macOS can decide to change the cursor to something
+                // that we don't know about.
                 let instance: id = match cursor {
                     MouseCursor::Arrow => msg_send![ns_cursor_cls, arrowCursor],
                     MouseCursor::Text => msg_send![ns_cursor_cls, IBeamCursor],
@@ -796,8 +801,17 @@ impl WindowOpsMut for WindowInner {
                     MouseCursor::SizeLeftRight => msg_send![ns_cursor_cls, resizeLeftRightCursor],
                 };
                 let () = msg_send![instance, set];
+                if self.cursor.is_none() {
+                    // If we believe that it was hidden previously, unhide it.
+                    let () = msg_send![ns_cursor_cls, unhide];
+                }
+            } else if self.cursor.is_some() {
+                // If we believe that it was shown previously, hide it.
+                let () = msg_send![ns_cursor_cls, hide];
             }
         }
+
+        self.cursor = cursor;
     }
 
     fn invalidate(&mut self) {
