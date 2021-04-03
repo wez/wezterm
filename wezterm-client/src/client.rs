@@ -476,7 +476,7 @@ impl Reconnectable {
                 if unix_dom.no_serve_automatically || !initial {
                     bail!("failed to connect to {}: {}", sock_path.display(), e);
                 }
-                log::error!(
+                log::warn!(
                     "While connecting to {}: {}.  Will try spawning the server.",
                     sock_path.display(),
                     e
@@ -493,10 +493,14 @@ impl Reconnectable {
                 std::thread::spawn(move || match child.wait_with_output() {
                     Ok(out) => {
                         if let Ok(stdout) = std::str::from_utf8(&out.stdout) {
-                            log::error!("stdout: {}", stdout);
+                            if !stdout.is_empty() {
+                                log::warn!("stdout: {}", stdout);
+                            }
                         }
                         if let Ok(stderr) = std::str::from_utf8(&out.stderr) {
-                            log::error!("stderr: {}", stderr);
+                            if !stderr.is_empty() {
+                                log::warn!("stderr: {}", stderr);
+                            }
                         }
                     }
                     Err(err) => {
