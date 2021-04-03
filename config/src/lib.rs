@@ -1380,9 +1380,24 @@ impl Config {
         if cfg.font_rules.is_empty() {
             // Expand out some reasonable default font rules
             let reduced = self.font.reduce_first_font_to_family();
-            let bold = reduced.make_bold();
-            let italic = reduced.make_italic();
-            let bold_italic = bold.make_italic();
+            let mut bold = reduced.make_bold();
+            let mut italic = reduced.make_italic();
+            let mut bold_italic = bold.make_italic();
+
+            // add the reduced version of the font as a fallback right after
+            // the bold/italic variants.  Some users have installed just the
+            // regular weight variant of a font and we'd like to fall back
+            // to that weight in that case, rather than show them an error
+            bold.font.insert(1, reduced.font[0].clone());
+            italic.font.insert(1, reduced.font[0].clone());
+            bold_italic.font.insert(1, reduced.font[0].clone());
+
+            // and with that in mind: make sure that we flag these synthesized
+            // variants of fonts as fallbacks so that failure to resolve them
+            // doesn't trigger the error window
+            bold.font[0].is_fallback = true;
+            italic.font[0].is_fallback = true;
+            bold_italic.font[0].is_fallback = true;
 
             cfg.font_rules.push(StyleRule {
                 italic: Some(true),
