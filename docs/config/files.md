@@ -2,7 +2,7 @@
 
 `wezterm` will look for a [lua](https://www.lua.org/manual/5.3/manual.html)
 configuration file in the following locations, stopping at the first file that
-it finds:
+it finds; these steps apply to all operating systems unless otherwise noted:
 
 * (since version 20210314-114017-04b7cedd) if the `--config-file` CLI argument was specified, then
   that path will be used.  If that path fails to load, then the defaults will be
@@ -11,10 +11,10 @@ it finds:
   path to a configuration file.  Since version 20210314-114017-04b7cedd: if that path fails to load
   then the defaults will be used instead.  In earlier releases, the following steps
   would be used as a fallback.
-* On Windows, `wezterm.lua` from the directory that contains `wezterm.exe`.
+* On Windows: `wezterm.lua` from the directory that contains `wezterm.exe`.
   This is handy for users that want to carry their wezterm install around on a thumb drive.
-* `$HOME/.config/wezterm/wezterm.lua`,
-* `$HOME/.wezterm.lua`
+* `$HOME/.config/wezterm/wezterm.lua` (where `$HOME` is the home directory of the user)
+* `$HOME/.wezterm.lua` (where `$HOME` is the home directory of the user).
 
 `wezterm` will watch the config file that it loads; if/when it changes, the
 configuration will be automatically reloaded and the majority of options will
