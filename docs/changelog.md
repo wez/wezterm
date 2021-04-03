@@ -36,6 +36,7 @@ brief notes about them may accumulate here.
 * Fixed: spawning a new tab via the launcher menu failed because it used the pretty printed multiplexer domain label rather than the multiplexer domain name.
 * Fixed: macOS: middle mouse button wasn't recognized. Thanks to [@guswynn](https://github.com/guswynn)! [#599](https://github.com/wez/wezterm/pull/599)
 * New: added [ActivateLastTab](config/lua/keyassignment/ActivateLastTab.md) key assignment for jumping back to a previously active tab. Thanks to [@alexgartrell](https://github.com/alexgartrell) [#610](https://github.com/wez/wezterm/pull/610)
+* Fixed: added missing XTSMGRAPHICS query/response for sixel support [#609](https://github.com/wez/wezterm/issues/609)
 
 ### 20210314-114017-04b7cedd
 
