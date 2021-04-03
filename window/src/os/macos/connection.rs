@@ -77,6 +77,9 @@ impl ConnectionOps for Connection {
     fn terminate_message_loop(&self) {
         unsafe {
             let () = msg_send![NSApp(), stop: nil];
+            // Generate a UI event so that the run loop breaks out
+            // after receiving the stop
+            let () = msg_send![NSApp(), abortModal];
         }
     }
 
