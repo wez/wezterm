@@ -39,7 +39,11 @@ brief notes about them may accumulate here.
 * Fixed: added missing XTSMGRAPHICS query/response for sixel support [#609](https://github.com/wez/wezterm/issues/609)
 * Fixed: avoid showing an error dialog for synthesized `font_rules` when the configuration specifies a font that doesn't have bold/italic variants. [#617](https://github.com/wez/wezterm/issues/617)
 * New: mouse cursor hides when keyboard input is sent to a pane, and shows again when the mouse is moved. [#618](https://github.com/wez/wezterm/issues/618)
-* Fxied: macOS: CTRL-Tab key combination was not recognized. [#630](https://github.com/wez/wezterm/issues/630)
+* Fixed: macOS: CTRL-Tab key combination was not recognized. [#630](https://github.com/wez/wezterm/issues/630)
+* Fixed: wezterm-mux-server will now continue running even after all tabs/panes have been closed. [#631](https://github.com/wez/wezterm/issues/631)
+* Fixed: macOS: wezterm-gui could linger in the background until the mouse moves after all tabs/panes have closed
+* Fixed: when using [line_height](config/lua/config/line_height.md), wezterm now vertically centers the cell rather than padding only the top [#582](https://github.com/wez/wezterm/issues/582)
+* Fixed: macOS: in US layouts, `SUPER+SHIFT+[` was incorrectly recognized as `SUPER+SHIFT+{` instead of `SUPER+{` [#601](https://github.com/wez/wezterm/issues/601)
 
 ### 20210314-114017-04b7cedd
 
