@@ -33,16 +33,21 @@ impl RenderMetrics {
             metrics.cell_width.get().ceil() as usize,
         );
 
+        // When line_height != 1.0, we want to adjust the baseline position
+        // such that we are horizontally centered.
+        let line_height_y_adjust = (cell_height as f64 - metrics.cell_height.get()) / 2.;
+
         let underline_height = metrics.underline_thickness.get().round().max(1.) as isize;
 
-        let descender_row =
-            (cell_height as f64 + (metrics.descender - metrics.underline_position).get()) as isize;
+        let descender_row = (cell_height as f64
+            + (metrics.descender - metrics.underline_position).get()
+            - line_height_y_adjust) as isize;
         let descender_plus_two =
             (2 * underline_height + descender_row).min(cell_height as isize - underline_height);
         let strike_row = descender_row / 2;
 
         Ok(Self {
-            descender: metrics.descender,
+            descender: metrics.descender - PixelLength::new(line_height_y_adjust),
             descender_row,
             descender_plus_two,
             strike_row,
