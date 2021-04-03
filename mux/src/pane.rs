@@ -235,11 +235,12 @@ pub trait Pane: Downcast {
         rules: &[Rule],
     ) -> (StableRowIndex, Vec<Line>) {
         let requested_first = lines.start;
+        let num_lines = (lines.end - lines.start) as usize;
         let logical = self.get_logical_lines(lines);
 
         let mut first = None;
         let mut phys_lines = vec![];
-        for mut log_line in logical {
+        'outer: for mut log_line in logical {
             log_line.apply_hyperlink_rules(rules);
             for (idx, phys) in log_line.physical_lines.into_iter().enumerate() {
                 if log_line.first_row + idx as StableRowIndex >= requested_first {
@@ -247,6 +248,9 @@ pub trait Pane: Downcast {
                         first.replace(log_line.first_row + idx as StableRowIndex);
                     }
                     phys_lines.push(phys);
+                    if phys_lines.len() == num_lines {
+                        break 'outer;
+                    }
                 }
             }
         }
