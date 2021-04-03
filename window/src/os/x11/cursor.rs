@@ -167,7 +167,91 @@ impl CursorInfo {
         Ok(())
     }
 
+    fn create_blank(&mut self, conn: &Rc<XConnection>) -> anyhow::Result<u32> {
+        let mut pixels = [0u8; 4];
+
+        let image = unsafe {
+            xcb_util::ffi::image::xcb_image_create_native(
+                conn.conn().get_raw_conn(),
+                1,
+                1,
+                xcb::xproto::IMAGE_FORMAT_Z_PIXMAP,
+                32,
+                std::ptr::null_mut(),
+                pixels.len() as u32,
+                pixels.as_mut_ptr(),
+            )
+        };
+        ensure!(!image.is_null(), "failed to create native image");
+
+        let pixmap = conn.generate_id();
+        xcb::xproto::create_pixmap_checked(conn, 32, pixmap, conn.root, 1, 1)
+            .request_check()
+            .context("create_pixmap")?;
+
+        let gc = conn.generate_id();
+        xcb::create_gc(conn.conn(), gc, pixmap, &[]);
+
+        unsafe {
+            xcb_util::ffi::image::xcb_image_put(
+                conn.conn().get_raw_conn(),
+                pixmap,
+                gc,
+                image,
+                0,
+                0,
+                0,
+            )
+        };
+
+        xcb::free_gc(conn.conn(), gc);
+
+        let pic = conn.generate_id();
+        xcb::render::create_picture_checked(
+            conn.conn(),
+            pic,
+            pixmap,
+            self.pict_format_id.unwrap(),
+            &[],
+        )
+        .request_check()
+        .context("create_picture")?;
+
+        xcb::xproto::free_pixmap(conn.conn(), pixmap);
+
+        let cursor_id: xcb::ffi::xcb_cursor_t = conn.generate_id();
+        xcb::render::create_cursor_checked(conn.conn(), cursor_id, pic, 0, 0)
+            .request_check()
+            .context("create_cursor")?;
+
+        xcb::render::free_picture(conn.conn(), pic);
+        unsafe {
+            xcb_util::ffi::image::xcb_image_destroy(image);
+        }
+
+        Ok(cursor_id)
+    }
+
     fn load_themed(&mut self, conn: &Rc<XConnection>, cursor: Option<MouseCursor>) -> Option<u32> {
+        if cursor.is_none() {
+            match self.create_blank(conn) {
+                Ok(cursor_id) => {
+                    self.cursors.insert(
+                        cursor,
+                        XcbCursor {
+                            id: cursor_id,
+                            conn: Rc::downgrade(&conn),
+                        },
+                    );
+                    return Some(cursor_id);
+                }
+                Err(err) => {
+                    log::error!("Failed to create blank cursor: {:#}", err);
+                    return self.load_themed(conn, Some(MouseCursor::Arrow));
+                }
+            }
+        }
+
         let theme = self.theme.as_ref()?;
         if self.pict_format_id.is_none() {
             return None;
