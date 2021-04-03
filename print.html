@@ -927,7 +927,7 @@ font_hinting = &quot;Full&quot; # None, Vertical, VerticalSubpixel, Full
 <h2 id="configuration-files"><a class="header" href="#configuration-files">Configuration Files</a></h2>
 <p><code>wezterm</code> will look for a <a href="https://www.lua.org/manual/5.3/manual.html">lua</a>
 configuration file in the following locations, stopping at the first file that
-it finds:</p>
+it finds; these steps apply to all operating systems unless otherwise noted:</p>
 <ul>
 <li>(since version 20210314-114017-04b7cedd) if the <code>--config-file</code> CLI argument was specified, then
 that path will be used.  If that path fails to load, then the defaults will be
@@ -936,10 +936,10 @@ used instead.</li>
 path to a configuration file.  Since version 20210314-114017-04b7cedd: if that path fails to load
 then the defaults will be used instead.  In earlier releases, the following steps
 would be used as a fallback.</li>
-<li>On Windows, <code>wezterm.lua</code> from the directory that contains <code>wezterm.exe</code>.
+<li>On Windows: <code>wezterm.lua</code> from the directory that contains <code>wezterm.exe</code>.
 This is handy for users that want to carry their wezterm install around on a thumb drive.</li>
-<li><code>$HOME/.config/wezterm/wezterm.lua</code>,</li>
-<li><code>$HOME/.wezterm.lua</code></li>
+<li><code>$HOME/.config/wezterm/wezterm.lua</code> (where <code>$HOME</code> is the home directory of the user)</li>
+<li><code>$HOME/.wezterm.lua</code> (where <code>$HOME</code> is the home directory of the user).</li>
 </ul>
 <p><code>wezterm</code> will watch the config file that it loads; if/when it changes, the
 configuration will be automatically reloaded and the majority of options will
