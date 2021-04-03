@@ -1715,6 +1715,9 @@ impl WindowView {
         }
 
         if let Some(key) = key_string_to_key_code(chars).or_else(|| key_string_to_key_code(unmod)) {
+            let raw_modifiers = modifiers;
+            let mut modifiers = modifiers;
+
             let (key, raw_key) = if chars.is_empty() || chars == unmod {
                 (key, None)
             } else {
@@ -1722,14 +1725,27 @@ impl WindowView {
                 match (&key, &raw) {
                     // Avoid eg: \x01 when we can use CTRL-A
                     (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw.clone(), None),
+                    (KeyCode::Char(k), Some(KeyCode::Char(r)))
+                        if k.is_ascii_punctuation() && r.is_ascii_punctuation() =>
+                    {
+                        // Well, `chars` is supposed to represent the processed and modified
+                        // interpretation of the keypress, and `unmod` the same, but ignoring
+                        // any modifier keys.  eg: `ALT-l` has unmod=`l` and chars=`¬`.
+                        // However, SUPER+SHIFT+[ yields chars=`[` and unmod=`{` which is
+                        // the opposite of what we want.
+                        // If both chars and unmod are punctuation then let's take unmod,
+                        // and filter out the SHIFT state if present.
+                        modifiers -= Modifiers::SHIFT;
+                        (KeyCode::Char(*r), None)
+                    }
                     _ => (key, raw),
                 }
             };
 
-            let (modifiers, raw_modifiers) = if raw_key.is_some() {
-                (Modifiers::NONE, modifiers)
+            let modifiers = if raw_key.is_some() {
+                Modifiers::NONE
             } else {
-                (modifiers, Modifiers::NONE)
+                modifiers
             };
 
             let event = KeyEvent {

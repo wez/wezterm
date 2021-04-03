@@ -357,7 +357,7 @@ impl InputMap {
                     ActivateTabRelative(-1)
                 ],
                 [
-                    Modifiers::SUPER | Modifiers::SHIFT,
+                    Modifiers::SUPER,
                     KeyCode::Char('{'),
                     ActivateTabRelative(-1)
                 ],
@@ -366,11 +366,7 @@ impl InputMap {
                     KeyCode::Char(']'),
                     ActivateTabRelative(1)
                 ],
-                [
-                    Modifiers::SUPER | Modifiers::SHIFT,
-                    KeyCode::Char('}'),
-                    ActivateTabRelative(1)
-                ],
+                [Modifiers::SUPER, KeyCode::Char('}'), ActivateTabRelative(1)],
                 [Modifiers::SUPER, KeyCode::Char('r'), ReloadConfiguration],
                 [Modifiers::CTRL, KeyCode::Char('R'), ReloadConfiguration],
                 [ctrl_shift, KeyCode::PageUp, MoveTabRelative(-1)],
