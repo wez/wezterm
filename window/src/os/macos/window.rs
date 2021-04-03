@@ -1748,7 +1748,7 @@ impl WindowView {
                 modifiers
             };
 
-            let event = KeyEvent {
+            let mut event = KeyEvent {
                 key,
                 raw_key,
                 modifiers,
@@ -1758,6 +1758,17 @@ impl WindowView {
                 key_is_down,
             }
             .normalize_shift();
+
+            // Ungh, this is a horrible special case.
+            // CTRL-Tab only delivers a key-up event, and never a
+            // key-down event.  So we just pretend that key-up is
+            // key-down.
+            if event.key == KeyCode::Char('\t')
+                && event.modifiers.contains(Modifiers::CTRL)
+                && !event.key_is_down
+            {
+                event.key_is_down = true;
+            }
 
             log::debug!(
                 "key_common {:?} (chars={:?} unmod={:?} modifiers={:?})",
