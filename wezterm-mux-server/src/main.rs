@@ -183,11 +183,6 @@ fn run() -> anyhow::Result<()> {
 
     loop {
         executor.tick()?;
-
-        if Mux::get().unwrap().is_empty() && mux::activity::Activity::count() == 0 {
-            log::error!("No more tabs; all done!");
-            return Ok(());
-        }
     }
 }
 

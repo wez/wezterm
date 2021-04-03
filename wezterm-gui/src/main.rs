@@ -256,7 +256,12 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
     let domain = mux.default_domain();
     domain.attach().await?;
 
-    if !mux.is_empty() {
+    let have_panes_in_domain = mux
+        .iter_panes()
+        .iter()
+        .any(|p| p.domain_id() == domain.domain_id());
+
+    if have_panes_in_domain {
         return Ok(());
     }
 
