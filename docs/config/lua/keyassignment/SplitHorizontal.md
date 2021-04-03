@@ -11,7 +11,7 @@ local wezterm = require 'wezterm';
 return {
   keys = {
     -- This will create a new split and run your default program inside it
-    {key="%", mods="CLTR|SHIFT|ALT",
+    {key="%", mods="CTRL|SHIFT|ALT",
       action=wezterm.action{SplitHorizontal={domain="CurrentPaneDomain"}}},
   }
 }
@@ -26,7 +26,7 @@ local wezterm = require 'wezterm';
 return {
   keys = {
     -- This will create a new split and run the `top` program inside it
-    {key="%", mods="CLTR|SHIFT|ALT", action=wezterm.action{SplitHorizontal={
+    {key="%", mods="CTRL|SHIFT|ALT", action=wezterm.action{SplitHorizontal={
       args={"top"}
     }}},
   }
