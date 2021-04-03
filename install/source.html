@@ -189,7 +189,7 @@ download a smaller source tarball using these steps:</p>
 curl -LO https://github.com/wez/wezterm/releases/download/20210314-114017-04b7cedd/wezterm-20210314-114017-04b7cedd-src.tar.gz
 tar -xzf wezterm-20210314-114017-04b7cedd-src.tar.gz
 cd wezterm-20210314-114017-04b7cedd
-sudo ./get-deps
+./get-deps
 cargo build --release
 cargo run --release --bin wezterm -- start
 </code></pre>
@@ -198,7 +198,7 @@ cargo run --release --bin wezterm -- start
 git clone --depth=1 --branch=main --recursive https://github.com/wez/wezterm.git
 cd wezterm
 git submodule update --init --recursive
-sudo ./get-deps
+./get-deps
 cargo build --release
 cargo run --release --bin wezterm -- start
 </code></pre>
