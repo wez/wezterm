@@ -308,8 +308,9 @@ on hue, saturation, brigthness transformations.
 
 If your Operating System provides Compositing support then WezTerm is able to
 specify the alpha channel value for the background content, rendering the
-window background translucent and causing the windows/desktop behind it to show
-through the window.
+window background translucent (some refer to this as transparent rather than
+translucent) and causing the windows/desktop behind it to show through the
+window.
 
 macOS, Windows and Wayland support compositing out of the box. X11 may require
 installing or configuring a compositing window manager. XWayland under
@@ -317,10 +318,10 @@ Mutter/Wayland also works without any additional configuration.
 
 `window_background_opacity` specifies the alpha channel value
 with floating point numbers in the range `0.0` (meaning completely
-translucent) through to `1.0` (meaning completely opaque).
+translucent/transparent) through to `1.0` (meaning completely opaque).
 
-Setting this to a value other than the default `1.0` may
-impact render performance.
+Setting this to a value other than the default `1.0` may impact render
+performance.
 
 ```lua
 return {
