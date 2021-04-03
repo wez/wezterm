@@ -219,6 +219,9 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
     crate::update::load_last_release_info_and_set_banner();
+    // Allow spawning local commands into new tabs/panes
+    let local_domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
+    mux.add_domain(&local_domain);
 
     let gui = crate::frontend::try_new()?;
     let opts = opts.clone();
