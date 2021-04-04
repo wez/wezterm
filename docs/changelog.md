@@ -44,6 +44,8 @@ brief notes about them may accumulate here.
 * Fixed: macOS: wezterm-gui could linger in the background until the mouse moves after all tabs/panes have closed
 * Fixed: when using [line_height](config/lua/config/line_height.md), wezterm now vertically centers the cell rather than padding only the top [#582](https://github.com/wez/wezterm/issues/582)
 * Fixed: macOS: in US layouts, `SUPER+SHIFT+[` was incorrectly recognized as `SUPER+SHIFT+{` instead of `SUPER+{` [#601](https://github.com/wez/wezterm/issues/601)
+* Fixed: [wezterm.config_dir](config/lua/wezterm/config_dir.md) was returning the config file path instead of the directory!
+* New: [wezterm.config_file](config/lua/wezterm/config_file.md) which returns the config file path
 
 ### 20210314-114017-04b7cedd
 

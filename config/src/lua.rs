@@ -37,8 +37,10 @@ use termwiz::surface::change::Change;
 ///
 /// In addition to this, the lua standard library, except for
 /// the `debug` module, is also available to the script.
-pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
+pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
     let lua = Lua::new();
+
+    let config_dir = config_file.parent().unwrap_or_else(|| Path::new("/"));
 
     {
         let globals = lua.globals();
@@ -70,6 +72,12 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
             }
         }
 
+        wezterm_mod.set(
+            "config_file",
+            config_file
+                .to_str()
+                .ok_or_else(|| anyhow!("config file path is not UTF-8"))?,
+        )?;
         wezterm_mod.set(
             "config_dir",
             config_dir
@@ -650,7 +658,7 @@ mod test {
             .filter_level(log::LevelFilter::Trace)
             .try_init();
 
-        let lua = make_lua_context(&std::env::current_dir()?)?;
+        let lua = make_lua_context(Path::new("testing"))?;
 
         let total = Arc::new(Mutex::new(0));
 
