@@ -200,6 +200,7 @@ mod cglbits {
 
     impl GlState {
         pub fn create(view: id) -> anyhow::Result<Self> {
+            log::trace!("Calling NSOpenGLPixelFormat::initWithAttributes");
             let pixel_format = unsafe {
                 StrongPtr::new(NSOpenGLPixelFormat::alloc(nil).initWithAttributes_(&[
                     appkit::NSOpenGLPFAOpenGLProfile as u32,
@@ -219,6 +220,7 @@ mod cglbits {
                     0,
                 ]))
             };
+            log::trace!("NSOpenGLPixelFormat::initWithAttributes returned");
             ensure!(
                 !pixel_format.is_null(),
                 "failed to create NSOpenGLPixelFormat"
