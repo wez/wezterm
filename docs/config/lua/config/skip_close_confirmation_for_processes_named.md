@@ -1,6 +1,6 @@
 # skip_close_confirmation_for_processes_named
 
-*Since: nightly*
+*Since: 20210404-112810-b63a949d*
 
 This only applies to linux and macOS systems.
 

@@ -25,7 +25,7 @@ Take a look at [the multiplexing section](multiplexing.html) for an
 alternative configuration that connects to a remote wezterm instance
 and preserves your tabs.
 
-*Since: nightly builds only*
+*Since: 20210404-112810-b63a949d*
 
 wezterm is now able to parse `~/.ssh/config` and `/etc/ssh/ssh_config`
 and respects the following options:
