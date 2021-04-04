@@ -184,23 +184,49 @@ impl FontLocator for GdiFontLocator {
         for font_attr in fonts_selection {
             let descriptor = attributes_to_descriptor(font_attr);
 
-            if let Some(handle) = handle_from_descriptor(&collection, &descriptor) {
-                if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
-                    if crate::parser::font_info_matches(font_attr, parsed.names()) {
-                        log::debug!("Got {:?} from dwrote", handle);
-                        fonts.push(handle);
-                        loaded.insert(font_attr.clone());
-                        continue;
+            fn try_handle(
+                font_attr: &FontAttributes,
+                handle: FontDataHandle,
+                fonts: &mut Vec<FontDataHandle>,
+                loaded: &mut HashSet<FontAttributes>,
+            ) -> bool {
+                match crate::parser::ParsedFont::from_locator(&handle) {
+                    Ok(parsed) => {
+                        if crate::parser::font_info_matches(font_attr, parsed.names()) {
+                            fonts.push(handle);
+                            loaded.insert(font_attr.clone());
+                            true
+                        } else {
+                            log::debug!("parsed {:?} doesn't match {:?}", parsed, font_attr);
+                            false
+                        }
+                    }
+                    Err(err) => {
+                        log::debug!("unable to resolve {:?} to a path: {:#}", handle, err);
+                        false
                     }
                 }
             }
 
-            if let Ok(handle) = load_font(font_attr) {
-                if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
-                    if crate::parser::font_info_matches(font_attr, parsed.names()) {
-                        fonts.push(handle);
-                        loaded.insert(font_attr.clone());
+            match handle_from_descriptor(&collection, &descriptor) {
+                Some(handle) => {
+                    log::debug!("Got {:?} from dwrote", handle);
+                    if try_handle(font_attr, handle, &mut fonts, loaded) {
+                        continue;
                     }
+                }
+                None => {
+                    log::debug!("dwrote couldn't resolve {:?}", font_attr);
+                }
+            }
+
+            match load_font(font_attr) {
+                Ok(handle) => {
+                    log::debug!("Got {:?} from gdi", handle);
+                    try_handle(font_attr, handle, &mut fonts, loaded);
+                }
+                Err(err) => {
+                    log::debug!("gdi couldn't resolve {:?} to a path: {:#}", font_attr, err);
                 }
             }
         }

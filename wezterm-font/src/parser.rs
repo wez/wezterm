@@ -13,6 +13,7 @@ pub enum MaybeShaped {
 }
 
 /// Represents a parsed font
+#[derive(Debug)]
 pub struct ParsedFont {
     names: Names,
 }
