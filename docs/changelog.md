@@ -1,14 +1,15 @@
 ## Changes
 
-Releases are named using the date, time and git commit
-hash.
+Releases are named using the date, time and git commit hash.
 
-### Nightly
+### Continuous/Nightly
 
-A bleeding edge build is produced continually (at least
-daily) from the master branch.  It may not be usable and
-the feature set may change.  As features stabilize some
-brief notes about them may accumulate here.
+A bleeding edge build is produced continually (as commits are made, and at
+least a daily scheduled build) from the `main` branch.  It *may* not be usable
+and the feature set may change, but since @wez uses this as a daily driver, its
+usually the best available version.
+
+As features stabilize some brief notes about them will accumulate here.
 
 * Not yet!
 
