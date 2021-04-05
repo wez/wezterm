@@ -65,12 +65,16 @@ def load_release_info():
     with open("/tmp/wezterm.releases.json") as f:
         release_info = json.load(f)
 
-    latest = release_info[0]
-    nightly = None
+    with open("/tmp/wezterm.nightly.json") as f:
+        nightly = json.load(f)
+
+
+    latest = None
     for rel in release_info:
-        if rel["tag_name"] == "nightly":
-            nightly = rel
-            break
+        if rel["prerelease"]:
+            continue
+        latest = rel
+        break
 
     latest = categorize(latest)
     nightly = categorize(nightly)
