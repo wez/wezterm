@@ -469,6 +469,7 @@ mod test {
                 family: "JetBrains Mono".into(),
                 bold: false,
                 is_fallback: false,
+                is_synthetic: false,
                 italic: false,
             })
             .unwrap()

@@ -280,7 +280,7 @@ impl FontConfigInner {
         }
 
         for attr in &attributes {
-            if !attr.is_fallback && !loaded.contains(attr) {
+            if !attr.is_synthetic && !attr.is_fallback && !loaded.contains(attr) {
                 let styled_extra = if attr.bold || attr.italic {
                     ". A bold or italic variant of the font was requested; \
                     TrueType and OpenType fonts don't have an automatic way to \

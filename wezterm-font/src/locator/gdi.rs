@@ -309,6 +309,7 @@ impl FontLocator for GdiFontLocator {
                         italic: false,
                         family: font.family_name(),
                         is_fallback: true,
+                        is_synthetic: true,
                     };
 
                     if !resolved.contains(&attr) {

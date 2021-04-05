@@ -151,6 +151,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<FontDataHandle>> {
         bold: false,
         italic: false,
         is_fallback: true,
+        is_synthetic: true,
     };
     if let Ok(descriptor) = descriptor_from_attr(&symbols) {
         if let Some(handle) = handle_from_descriptor(&descriptor) {
