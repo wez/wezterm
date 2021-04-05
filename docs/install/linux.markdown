@@ -86,11 +86,13 @@ sudo dnf install -y {{ fedora31_rpm_stable }}
 
 ## Arch Linux
 
-WezTerm is available for Arch users in the AUR; there are three options:
+WezTerm is available in the [Community repository](https://archlinux.org/packages/community/x86_64/wezterm/).
+
+The version available in the community repository may lag behind the latest wezterm release, so you may
+wish to use one of these AUR options:
 
 |What                 |Where|
 |---------------------|-|
-|Released Binaries    |<https://aur.archlinux.org/packages/wezterm-bin/>|
 |Nightly Binaries     |<https://aur.archlinux.org/packages/wezterm-nightly-bin/>|
 |Build from source    |<https://aur.archlinux.org/packages/wezterm-git/>|
 
