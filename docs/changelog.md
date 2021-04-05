@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+* Not yet!
+
+### 20210405-110924-a5bb5be8
+
 * Fixed: bold text got broken as part of fixing #617 :-( [#648](https://github.com/wez/wezterm/issues/648)
 
 ### 20210404-112810-b63a949d
