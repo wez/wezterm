@@ -1392,13 +1392,6 @@ impl Config {
             italic.font.insert(1, reduced.font[0].clone());
             bold_italic.font.insert(1, reduced.font[0].clone());
 
-            // and with that in mind: make sure that we flag these synthesized
-            // variants of fonts as fallbacks so that failure to resolve them
-            // doesn't trigger the error window
-            bold.font[0].is_fallback = true;
-            italic.font[0].is_fallback = true;
-            bold_italic.font[0].is_fallback = true;
-
             cfg.font_rules.push(StyleRule {
                 italic: Some(true),
                 font: italic,

@@ -368,6 +368,7 @@ fn font<'lua>(
         bold: attrs.bold,
         italic: attrs.italic,
         is_fallback: false,
+        is_synthetic: false,
     });
     text_style.foreground = attrs.foreground;
 
@@ -395,6 +396,7 @@ fn font_with_fallback<'lua>(
             bold: attrs.bold,
             italic: attrs.italic,
             is_fallback: idx != 0,
+            is_synthetic: false,
         });
     }
     text_style.foreground = attrs.foreground;

@@ -128,6 +128,7 @@ pub struct FontAttributes {
     #[serde(default)]
     pub italic: bool,
     pub is_fallback: bool,
+    pub is_synthetic: bool,
 }
 impl_lua_conversion!(FontAttributes);
 
@@ -148,6 +149,7 @@ impl FontAttributes {
             bold: false,
             italic: false,
             is_fallback: false,
+            is_synthetic: false,
         }
     }
 
@@ -157,6 +159,7 @@ impl FontAttributes {
             bold: false,
             italic: false,
             is_fallback: true,
+            is_synthetic: false,
         }
     }
 }
@@ -168,6 +171,7 @@ impl Default for FontAttributes {
             bold: false,
             italic: false,
             is_fallback: false,
+            is_synthetic: false,
         }
     }
 }
@@ -254,6 +258,7 @@ impl TextStyle {
                 .map(|attr| {
                     let mut attr = attr.clone();
                     attr.bold = true;
+                    attr.is_synthetic = true;
                     attr
                 })
                 .collect(),
@@ -270,6 +275,7 @@ impl TextStyle {
                 .map(|attr| {
                     let mut attr = attr.clone();
                     attr.italic = true;
+                    attr.is_synthetic = true;
                     attr
                 })
                 .collect(),
