@@ -152,12 +152,9 @@ impl FreeTypeRasterizer {
             let src_offset = y * pitch as usize;
             let dest_offset = y * width * 4;
             for x in 0..width {
-                // Note: it is unclear whether the LCD data format
-                // is BGR or RGB.  I'm using RGB here because the
-                // antialiasing in other apps seems to do this.
-                let blue = data[src_offset + (x * 3)];
+                let red = data[src_offset + (x * 3)];
                 let green = data[src_offset + (x * 3) + 1];
-                let red = data[src_offset + (x * 3) + 2];
+                let blue = data[src_offset + (x * 3) + 2];
                 let alpha = red.max(green).max(blue);
 
                 // Texture is SRGBA, which in OpenGL means
