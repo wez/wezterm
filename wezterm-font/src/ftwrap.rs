@@ -46,18 +46,25 @@ pub fn compute_load_flags_from_config() -> (i32, FT_Render_Mode) {
     let config = configuration();
 
     let load_flags = config.freetype_load_flags.bits() | FT_LOAD_COLOR;
-    let render = match config
-        .freetype_render_target
-        .unwrap_or(config.freetype_load_target)
-    {
-        FreeTypeLoadTarget::Mono => FT_Render_Mode::FT_RENDER_MODE_MONO,
-        FreeTypeLoadTarget::Normal => FT_Render_Mode::FT_RENDER_MODE_NORMAL,
-        FreeTypeLoadTarget::Light => FT_Render_Mode::FT_RENDER_MODE_LIGHT,
-        FreeTypeLoadTarget::HorizontalLcd => FT_Render_Mode::FT_RENDER_MODE_LCD,
-        FreeTypeLoadTarget::VerticalLcd => FT_Render_Mode::FT_RENDER_MODE_LCD_V,
-    };
 
-    let load_flags = load_flags | render_mode_to_load_target(render);
+    fn target_to_render(t: FreeTypeLoadTarget) -> FT_Render_Mode {
+        match t {
+            FreeTypeLoadTarget::Mono => FT_Render_Mode::FT_RENDER_MODE_MONO,
+            FreeTypeLoadTarget::Normal => FT_Render_Mode::FT_RENDER_MODE_NORMAL,
+            FreeTypeLoadTarget::Light => FT_Render_Mode::FT_RENDER_MODE_LIGHT,
+            FreeTypeLoadTarget::HorizontalLcd => FT_Render_Mode::FT_RENDER_MODE_LCD,
+            FreeTypeLoadTarget::VerticalLcd => FT_Render_Mode::FT_RENDER_MODE_LCD_V,
+        }
+    }
+
+    let load_target = target_to_render(config.freetype_load_target);
+    let render = target_to_render(
+        config
+            .freetype_render_target
+            .unwrap_or(config.freetype_load_target),
+    );
+
+    let load_flags = load_flags | render_mode_to_load_target(load_target);
 
     (load_flags as i32, render)
 }
