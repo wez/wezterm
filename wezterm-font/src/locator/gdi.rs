@@ -39,12 +39,14 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
             let mut data = vec![0u8; ttc_size as usize];
             GetFontData(hdc, ttc_table, 0, data.as_mut_ptr() as *mut _, ttc_size);
 
+            let data = Cow::Owned(data);
+
             // Determine which of the contained fonts is the one
             // that we asked for.
             let index =
                 crate::parser::resolve_font_from_ttc_data(&attr, &data)?.unwrap_or(0) as u32;
             Ok(FontDataHandle::Memory {
-                data: Cow::Owned(data),
+                data,
                 index,
                 name: attr.family.clone(),
             })

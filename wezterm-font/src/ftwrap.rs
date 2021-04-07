@@ -5,6 +5,7 @@ use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadTarget};
 pub use freetype::*;
 use std::borrow::Cow;
+use std::ffi::CStr;
 use std::ptr;
 
 #[inline]
@@ -93,6 +94,40 @@ struct FaceSize {
 }
 
 impl Face {
+    pub fn family_name(&self) -> String {
+        unsafe {
+            if (*self.face).family_name.is_null() {
+                "".to_string()
+            } else {
+                let c = CStr::from_ptr((*self.face).family_name);
+                c.to_string_lossy().to_string()
+            }
+        }
+    }
+
+    pub fn style_name(&self) -> String {
+        unsafe {
+            if (*self.face).style_name.is_null() {
+                "".to_string()
+            } else {
+                let c = CStr::from_ptr((*self.face).style_name);
+                c.to_string_lossy().to_string()
+            }
+        }
+    }
+
+    pub fn postscript_name(&self) -> String {
+        unsafe {
+            let c = FT_Get_Postscript_Name(self.face);
+            if c.is_null() {
+                "".to_string()
+            } else {
+                let c = CStr::from_ptr(c);
+                c.to_string_lossy().to_string()
+            }
+        }
+    }
+
     /// This is a wrapper around set_char_size and select_size
     /// that accounts for some weirdness with eg: color emoji
     pub fn set_font_size(&mut self, point_size: f64, dpi: u32) -> anyhow::Result<(f64, f64)> {
