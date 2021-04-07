@@ -38,3 +38,12 @@ install:
 $ brew rm wezterm
 $ brew install --HEAD wezterm
 ```
+
+## MacPorts
+
+WezTerm is also available via [MacPorts](https://www.macports.org):
+
+```bash
+$ sudo port selfupdate
+$ sudo port install wezterm
+```
