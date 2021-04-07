@@ -41,7 +41,7 @@ $ brew install --HEAD wezterm
 
 ## MacPorts
 
-WezTerm is also available via [MacPorts](https://www.macports.org):
+WezTerm is also available via [MacPorts](https://ports.macports.org/port/wezterm/summary):
 
 ```bash
 $ sudo port selfupdate
