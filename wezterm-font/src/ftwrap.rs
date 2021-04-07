@@ -46,7 +46,10 @@ pub fn compute_load_flags_from_config() -> (i32, FT_Render_Mode) {
     let config = configuration();
 
     let load_flags = config.freetype_load_flags.bits() | FT_LOAD_COLOR;
-    let render = match config.freetype_load_target {
+    let render = match config
+        .freetype_render_target
+        .unwrap_or(config.freetype_load_target)
+    {
         FreeTypeLoadTarget::Mono => FT_Render_Mode::FT_RENDER_MODE_MONO,
         FreeTypeLoadTarget::Normal => FT_Render_Mode::FT_RENDER_MODE_NORMAL,
         FreeTypeLoadTarget::Light => FT_Render_Mode::FT_RENDER_MODE_LIGHT,
