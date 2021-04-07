@@ -836,39 +836,7 @@ impl TermWindow {
             }
 
             // If the model is dirty, arrange to re-paint
-            let dims = pos.pane.get_dimensions();
-            let viewport = self
-                .get_viewport(pos.pane.pane_id())
-                .unwrap_or(dims.physical_top);
-            let visible_range = viewport..viewport + dims.viewport_rows as StableRowIndex;
-            let dirty = pos.pane.get_dirty_lines(visible_range);
-
-            if !dirty.is_empty() {
-                if pos.pane.downcast_ref::<SearchOverlay>().is_none()
-                    && pos.pane.downcast_ref::<CopyOverlay>().is_none()
-                {
-                    // If any of the changed lines intersect with the
-                    // selection, then we need to clear the selection, but not
-                    // when the search overlay is active; the search overlay
-                    // marks lines as dirty to force invalidate them for
-                    // highlighting purpose but also manipulates the selection
-                    // and we want to allow it to retain the selection it made!
-
-                    let clear_selection = if let Some(selection_range) =
-                        self.selection(pos.pane.pane_id()).range.as_ref()
-                    {
-                        let selection_rows = selection_range.rows();
-                        selection_rows.into_iter().any(|row| dirty.contains(row))
-                    } else {
-                        false
-                    };
-
-                    if clear_selection {
-                        self.selection(pos.pane.pane_id()).range.take();
-                        self.selection(pos.pane.pane_id()).start.take();
-                    }
-                }
-
+            if self.check_for_dirty_lines_and_invalidate_selection(&pos) {
                 needs_invalidate = true;
             }
         }
@@ -886,6 +854,46 @@ impl TermWindow {
         }
 
         Ok(())
+    }
+
+    fn check_for_dirty_lines_and_invalidate_selection(&mut self, pos: &PositionedPane) -> bool {
+        let dims = pos.pane.get_dimensions();
+        let viewport = self
+            .get_viewport(pos.pane.pane_id())
+            .unwrap_or(dims.physical_top);
+        let visible_range = viewport..viewport + dims.viewport_rows as StableRowIndex;
+        let dirty = pos.pane.get_dirty_lines(visible_range);
+
+        if !dirty.is_empty() {
+            if pos.pane.downcast_ref::<SearchOverlay>().is_none()
+                && pos.pane.downcast_ref::<CopyOverlay>().is_none()
+            {
+                // If any of the changed lines intersect with the
+                // selection, then we need to clear the selection, but not
+                // when the search overlay is active; the search overlay
+                // marks lines as dirty to force invalidate them for
+                // highlighting purpose but also manipulates the selection
+                // and we want to allow it to retain the selection it made!
+
+                let clear_selection = if let Some(selection_range) =
+                    self.selection(pos.pane.pane_id()).range.as_ref()
+                {
+                    let selection_rows = selection_range.rows();
+                    selection_rows.into_iter().any(|row| dirty.contains(row))
+                } else {
+                    false
+                };
+
+                if clear_selection {
+                    self.selection(pos.pane.pane_id()).range.take();
+                    self.selection(pos.pane.pane_id()).start.take();
+                }
+            }
+
+            true
+        } else {
+            false
+        }
     }
 }
 

@@ -150,6 +150,14 @@ impl super::TermWindow {
     }
 
     pub fn paint_pane_opengl(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {
+        // We typically check this periodically in the background as part
+        // of deciding whether to repaint, but there are some situations
+        // where the model may have been marked dirty and we re-render
+        // very quickly.  If we don't check for dirty lines here before
+        // we call get_lines_with_hyperlinks_applied below, then we'll
+        // not clear the selection when we should.
+        self.check_for_dirty_lines_and_invalidate_selection(pos);
+
         let config = &self.config;
         let palette = pos.pane.palette();
 
