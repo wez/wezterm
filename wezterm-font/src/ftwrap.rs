@@ -243,7 +243,7 @@ impl Face {
             let mut glyph = 0;
             let mut ucs4 = unsafe { FT_Get_First_Char(self.face, &mut glyph) };
             while glyph != 0 {
-                coverage.add(ucs4);
+                coverage.add(ucs4 as u32);
                 ucs4 = unsafe { FT_Get_Next_Char(self.face, ucs4, &mut glyph) };
             }
 
@@ -251,7 +251,7 @@ impl Face {
                 // Fontconfig duplicates F000..F0FF to 0000..00FF
                 for ucs4 in 0xf00..0xf100 {
                     if coverage.contains(ucs4) {
-                        coverage.add(ucs4 - 0xf000);
+                        coverage.add(ucs4 as u32 - 0xf000);
                     }
                 }
             }
