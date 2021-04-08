@@ -32,13 +32,17 @@ impl_lua_conversion!(SshDomain);
 
 #[derive(Clone, Debug)]
 pub struct SshParameters {
-    pub username: String,
+    pub username: Option<String>,
     pub host_and_port: String,
 }
 
 impl Display for SshParameters {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}@{}", self.username, self.host_and_port)
+        if let Some(user) = &self.username {
+            write!(f, "{}@{}", user, self.host_and_port)
+        } else {
+            write!(f, "{}", self.host_and_port)
+        }
     }
 }
 
@@ -59,12 +63,12 @@ impl FromStr for SshParameters {
 
         if parts.len() == 2 {
             Ok(Self {
-                username: parts[0].to_string(),
+                username: Some(parts[0].to_string()),
                 host_and_port: parts[1].to_string(),
             })
         } else if parts.len() == 1 {
             Ok(Self {
-                username: username_from_env()?,
+                username: None,
                 host_and_port: parts[0].to_string(),
             })
         } else {

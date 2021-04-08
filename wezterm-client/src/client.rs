@@ -425,7 +425,7 @@ impl Reconnectable {
         initial: bool,
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<()> {
-        let sess = ssh_connect_with_ui(&ssh_dom.remote_address, &ssh_dom.username, ui)?;
+        let sess = ssh_connect_with_ui(&ssh_dom.remote_address, Some(&ssh_dom.username), ui)?;
         let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wezterm_path);
 
         let cmd = if initial {
@@ -577,8 +577,11 @@ impl Reconnectable {
         if let Some(Ok(ssh_params)) = tls_client.ssh_parameters() {
             if self.tls_creds.is_none() {
                 // We need to bootstrap via an ssh session
-                let sess =
-                    ssh_connect_with_ui(&ssh_params.host_and_port, &ssh_params.username, ui)?;
+                let sess = ssh_connect_with_ui(
+                    &ssh_params.host_and_port,
+                    ssh_params.username.as_ref().map(|s| s.as_str()),
+                    ui,
+                )?;
 
                 let creds = ui.run_and_log_error(|| {
                     // The `tlscreds` command will start the server if needed and then

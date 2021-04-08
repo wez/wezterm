@@ -53,7 +53,7 @@ impl LineEditorHost for PasswordPromptHost {
 
 pub fn ssh_connect_with_ui(
     remote_address: &str,
-    username: &str,
+    username: Option<&str>,
     ui: &mut ConnectionUI,
 ) -> anyhow::Result<Session> {
     let cloned_ui = ui.clone();
@@ -72,7 +72,9 @@ pub fn ssh_connect_with_ui(
         };
 
         let mut ssh_config = ssh_config.for_host(&remote_host_name);
-        ssh_config.insert("user".to_string(), username.to_string());
+        if let Some(username) = username {
+            ssh_config.insert("user".to_string(), username.to_string());
+        }
         if let Some(port) = port {
             ssh_config.insert("port".to_string(), port.to_string());
         }

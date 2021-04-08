@@ -97,10 +97,9 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     let port = fields.next();
 
     let mut ssh_config = ssh_config.for_host(host);
-    ssh_config.insert(
-        "user".to_string(),
-        opts.user_at_host_and_port.username.to_string(),
-    );
+    if let Some(username) = &opts.user_at_host_and_port.username {
+        ssh_config.insert("user".to_string(), username.to_string());
+    }
     if let Some(port) = port {
         ssh_config.insert("port".to_string(), port.to_string());
     }

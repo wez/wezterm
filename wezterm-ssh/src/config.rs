@@ -390,6 +390,75 @@ mod test {
     use k9::snapshot;
 
     #[test]
+    fn parse_user() {
+        let mut config = Config::new();
+
+        let mut fake_env = ConfigMap::new();
+        fake_env.insert("HOME".to_string(), "/home/me".to_string());
+        fake_env.insert("USER".to_string(), "me".to_string());
+        config.assign_environment(fake_env);
+
+        config.add_config_string(
+            r#"
+        Host foo
+            HostName 10.0.0.1
+            User foo
+            IdentityFile "%d/.ssh/id_pub.dsa"
+            "#,
+        );
+
+        snapshot!(
+            &config,
+            r#"
+Config {
+    config_files: [
+        ParsedConfigFile {
+            options: {},
+            groups: [
+                HostGroup {
+                    patterns: [
+                        Pattern {
+                            negated: false,
+                            pattern: "^foo$",
+                        },
+                    ],
+                    options: {
+                        "hostname": "10.0.0.1",
+                        "identityfile": "%d/.ssh/id_pub.dsa",
+                        "user": "foo",
+                    },
+                },
+            ],
+        },
+    ],
+    options: {},
+    tokens: {},
+    environment: Some(
+        {
+            "HOME": "/home/me",
+            "USER": "me",
+        },
+    ),
+}
+"#
+        );
+
+        let opts = config.for_host("foo");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "10.0.0.1",
+    "identityfile": "/home/me/.ssh/id_pub.dsa",
+    "port": "22",
+    "user": "foo",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+    }
+
+    #[test]
     fn parse_simple() {
         let mut config = Config::new();
 
