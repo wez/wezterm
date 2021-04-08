@@ -61,7 +61,7 @@ impl ParsedFont {
     pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
         let (data, index) = match handle {
             FontDataHandle::Memory { data, index, .. } => (data.to_vec(), *index),
-            FontDataHandle::OnDisk { path, index } => {
+            FontDataHandle::OnDisk { path, index, .. } => {
                 let data = std::fs::read(path)?;
                 (data, *index)
             }

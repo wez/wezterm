@@ -21,11 +21,13 @@ pub enum FontDataHandle {
     OnDisk {
         path: PathBuf,
         index: u32,
+        variation: u32,
     },
     Memory {
         name: String,
         data: std::borrow::Cow<'static, [u8]>,
         index: u32,
+        variation: u32,
     },
 }
 
@@ -53,24 +55,28 @@ impl PartialEq for FontDataHandle {
                 Self::OnDisk {
                     path: path_a,
                     index: index_a,
+                    variation: variation_a,
                 },
                 Self::OnDisk {
                     path: path_b,
                     index: index_b,
+                    variation: variation_b,
                 },
-            ) => path_a == path_b && index_a == index_b,
+            ) => path_a == path_b && index_a == index_b && variation_a == variation_b,
             (
                 Self::Memory {
                     name: name_a,
                     index: index_a,
+                    variation: variation_a,
                     ..
                 },
                 Self::Memory {
                     name: name_b,
                     index: index_b,
+                    variation: variation_b,
                     ..
                 },
-            ) => name_a == name_b && index_a == index_b,
+            ) => name_a == name_b && index_a == index_b && variation_a == variation_b,
             _ => false,
         }
     }
@@ -93,16 +99,27 @@ impl PartialOrd for FontDataHandle {
 impl std::fmt::Debug for FontDataHandle {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
-            Self::OnDisk { path, index } => fmt
+            Self::OnDisk {
+                path,
+                index,
+                variation,
+            } => fmt
                 .debug_struct("OnDisk")
                 .field("path", &path)
                 .field("index", &index)
+                .field("variation", &variation)
                 .finish(),
-            Self::Memory { data, index, name } => fmt
+            Self::Memory {
+                data,
+                index,
+                name,
+                variation,
+            } => fmt
                 .debug_struct("Memory")
                 .field("name", &name)
                 .field("data_len", &data.len())
                 .field("index", &index)
+                .field("variation", &variation)
                 .finish(),
         }
     }

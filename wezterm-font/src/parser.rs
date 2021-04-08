@@ -26,7 +26,7 @@ pub struct Names {
 }
 
 impl Names {
-    fn from_ft_face(face: &crate::ftwrap::Face) -> Names {
+    pub fn from_ft_face(face: &crate::ftwrap::Face) -> Names {
         let postscript_name = face.postscript_name();
         let family = face.family_name();
         let sub_family = face.style_name();
@@ -154,6 +154,7 @@ pub(crate) fn load_built_in_fonts(
                 data: Cow::Borrowed(data),
                 index: 0,
                 name: name.to_string(),
+                variation: 0,
             },
         ));
     }
@@ -178,11 +179,26 @@ pub(crate) fn parse_and_collect_font_info(
         let locator = FontDataHandle::OnDisk {
             path: path.to_path_buf(),
             index,
+            variation: 0,
         };
 
         let face = lib.face_from_locator(&locator)?;
-        let names = Names::from_ft_face(&face);
-        font_info.push((names, path.to_path_buf(), locator));
+        if let Ok(variations) = face.variations() {
+            for (variation, names) in variations.into_iter().enumerate() {
+                font_info.push((
+                    names,
+                    path.to_path_buf(),
+                    FontDataHandle::OnDisk {
+                        path: path.to_path_buf(),
+                        index,
+                        variation: variation as u32 + 1,
+                    },
+                ));
+            }
+        } else {
+            let names = Names::from_ft_face(&face);
+            font_info.push((names, path.to_path_buf(), locator));
+        }
         Ok(())
     }
 

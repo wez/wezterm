@@ -1,6 +1,7 @@
 //! Higher level freetype bindings
 
 use crate::locator::FontDataHandle;
+use crate::parser::Names;
 use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadTarget};
 pub use freetype::*;
@@ -76,6 +77,7 @@ pub struct Face {
     pub face: FT_Face,
     _bytes: CowVecU8,
     size: Option<FaceSize>,
+    lib: FT_Library,
 }
 
 impl Drop for Face {
@@ -125,6 +127,28 @@ impl Face {
                 let c = CStr::from_ptr(c);
                 c.to_string_lossy().to_string()
             }
+        }
+    }
+
+    pub fn variations(&self) -> anyhow::Result<Vec<Names>> {
+        let mut mm = std::ptr::null_mut();
+
+        unsafe {
+            ft_result(FT_Get_MM_Var(self.face, &mut mm), ()).context("FT_Get_MM_Var")?;
+
+            let mut res = vec![];
+            let num_styles = (*mm).num_namedstyles;
+            for i in 1..=num_styles {
+                FT_Set_Named_Instance(self.face, i);
+                res.push(Names::from_ft_face(&self));
+            }
+
+            FT_Done_MM_Var(self.lib, mm);
+            FT_Set_Named_Instance(self.face, 0);
+
+            log::debug!("Variations: {:#?}", res);
+
+            Ok(res)
         }
     }
 
@@ -356,14 +380,34 @@ impl Library {
     }
 
     pub fn face_from_locator(&self, handle: &FontDataHandle) -> anyhow::Result<Face> {
-        match handle {
-            FontDataHandle::OnDisk { path, index } => {
-                self.new_face(path.to_str().unwrap(), *index as _)
-            }
-            FontDataHandle::Memory { data, index, .. } => {
-                self.new_face_from_slice(data.clone(), *index as _)
+        let (face, variation) = match handle {
+            FontDataHandle::OnDisk {
+                path,
+                index,
+                variation,
+            } => (
+                self.new_face(path.to_str().unwrap(), *index as _)?,
+                *variation,
+            ),
+            FontDataHandle::Memory {
+                data,
+                index,
+                variation,
+                ..
+            } => (
+                self.new_face_from_slice(data.clone(), *index as _)?,
+                *variation,
+            ),
+        };
+
+        if variation != 0 {
+            unsafe {
+                ft_result(FT_Set_Named_Instance(face.face, variation), ())
+                    .context("FT_Set_Named_Instance")?;
             }
         }
+
+        Ok(face)
     }
 
     pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> anyhow::Result<Face>
@@ -392,6 +436,7 @@ impl Library {
                     })?,
                     _bytes: CowVecU8::Borrowed(b""),
                     size: None,
+                    lib: self.lib,
                 });
             }
         }
@@ -425,6 +470,7 @@ impl Library {
             })?,
             _bytes: data,
             size: None,
+            lib: self.lib,
         })
     }
 
@@ -445,6 +491,7 @@ impl Library {
                 .with_context(|| format!("FT_New_Memory_Face for index {}", face_index))?,
             _bytes: data,
             size: None,
+            lib: self.lib,
         })
     }
 

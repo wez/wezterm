@@ -9,9 +9,7 @@ use core_foundation::number::CFNumber;
 use core_foundation::string::CFString;
 use core_text::font::*;
 use core_text::font_descriptor::*;
-use std::borrow::Cow;
 use std::collections::HashSet;
-use ttf_parser::fonts_in_collection;
 
 lazy_static::lazy_static! {
     static ref FALLBACK: Vec<FontDataHandle> = build_fallback_list();
@@ -56,28 +54,14 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescripto
 /// the descriptor is referencing.
 fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandle> {
     let path = descriptor.font_path()?;
-    let name = descriptor.display_name();
     let family_name = descriptor.family_name();
 
-    let data = std::fs::read(&path).ok()?;
-    let size = fonts_in_collection(&data).unwrap_or(1);
+    let mut font_info = vec![];
+    crate::parser::parse_and_collect_font_info(&path, &mut font_info).ok()?;
 
-    let mut handle = FontDataHandle::Memory {
-        data: Cow::Owned(data),
-        name,
-        index: 0,
-    };
-
-    for index in 0..size {
-        if let FontDataHandle::Memory { index: idx, .. } = &mut handle {
-            *idx = index;
-        }
-        let parsed = crate::parser::ParsedFont::from_locator(&handle).ok()?;
-        let names = parsed.names();
+    for (names, _, locator) in font_info {
         if names.full_name == family_name || names.family.as_ref() == Some(&family_name) {
-            // Switch to an OnDisk handle so that we don't hold
-            // all of the fallback fonts in memory
-            return Some(FontDataHandle::OnDisk { path, index });
+            return Some(locator);
         }
     }
 

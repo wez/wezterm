@@ -4,3 +4,4 @@
 #include <freetype/tttables.h>
 #include <freetype/ftmodapi.h>
 #include <freetype/ftoutln.h>
+#include <freetype/ftmm.h>

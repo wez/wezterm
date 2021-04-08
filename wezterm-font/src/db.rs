@@ -24,7 +24,7 @@ impl Entry {
         use ttf_parser::Face;
         let (data, index) = match &self.handle {
             FontDataHandle::Memory { data, index, .. } => (data.clone(), *index),
-            FontDataHandle::OnDisk { path, index } => {
+            FontDataHandle::OnDisk { path, index, .. } => {
                 let data = std::fs::read(path)
                     .with_context(|| anyhow!("reading font data from {}", path.display()))?;
                 (Cow::Owned(data), *index)
