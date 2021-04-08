@@ -14,6 +14,7 @@ return {
 }
 ```
 
-The second parameter behaves the same as that of `wezterm.font`.
-
+The *attributes* parameter behaves the same as that of [wezterm.font](font.md)
+in that it allows you to specify font weight and style attributes that you
+want to match.
 

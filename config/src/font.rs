@@ -1,8 +1,134 @@
 use crate::*;
 use bitflags::*;
+use enum_display_derive::Display;
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt::Display;
 use termwiz::color::RgbColor;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display)]
+pub enum FontWidth {
+    UltraCondensed,
+    ExtraCondensed,
+    Condensed,
+    SemiCondensed,
+    Normal,
+    SemiExpanded,
+    Expanded,
+    ExtraExpanded,
+    UltraExpanded,
+}
+
+impl FontWidth {
+    pub fn from_opentype_width(w: u16) -> Self {
+        match w {
+            1 => Self::UltraCondensed,
+            2 => Self::ExtraCondensed,
+            3 => Self::Condensed,
+            4 => Self::SemiCondensed,
+            5 => Self::Normal,
+            6 => Self::SemiExpanded,
+            7 => Self::Expanded,
+            8 => Self::ExtraExpanded,
+            9 => Self::UltraExpanded,
+            _ if w < 1 => Self::UltraCondensed,
+            _ => Self::UltraExpanded,
+        }
+    }
+
+    pub fn to_opentype_width(self) -> u16 {
+        match self {
+            Self::UltraCondensed => 1,
+            Self::ExtraCondensed => 2,
+            Self::Condensed => 3,
+            Self::SemiCondensed => 4,
+            Self::Normal => 5,
+            Self::SemiExpanded => 6,
+            Self::Expanded => 7,
+            Self::ExtraExpanded => 8,
+            Self::UltraExpanded => 9,
+        }
+    }
+}
+
+impl Default for FontWidth {
+    fn default() -> Self {
+        Self::Normal
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display)]
+pub enum FontWeight {
+    Thin,
+    ExtraLight,
+    Light,
+    DemiLight,
+    Book,
+    Regular,
+    Medium,
+    DemiBold,
+    Bold,
+    ExtraBold,
+    Black,
+    ExtraBlack,
+}
+
+impl Default for FontWeight {
+    fn default() -> Self {
+        Self::Regular
+    }
+}
+
+impl FontWeight {
+    pub fn from_opentype_weight(w: u16) -> Self {
+        if w >= 1000 {
+            Self::ExtraBlack
+        } else if w >= 900 {
+            Self::Black
+        } else if w >= 800 {
+            Self::ExtraBold
+        } else if w >= 700 {
+            Self::Bold
+        } else if w >= 600 {
+            Self::DemiBold
+        } else if w >= 500 {
+            Self::Medium
+        } else if w >= 400 {
+            Self::Regular
+        } else if w >= 380 {
+            Self::Book
+        } else if w >= 350 {
+            Self::DemiLight
+        } else if w >= 300 {
+            Self::Light
+        } else if w >= 200 {
+            Self::ExtraLight
+        } else {
+            Self::Thin
+        }
+    }
+
+    pub fn to_opentype_weight(self) -> u16 {
+        match self {
+            Self::Thin => 100,
+            Self::ExtraLight => 200,
+            Self::Light => 300,
+            Self::DemiLight => 350,
+            Self::Book => 380,
+            Self::Regular => 400,
+            Self::Medium => 500,
+            Self::DemiBold => 600,
+            Self::Bold => 700,
+            Self::ExtraBold => 800,
+            Self::Black => 900,
+            Self::ExtraBlack => 1000,
+        }
+    }
+
+    pub fn bolder(self) -> Self {
+        Self::from_opentype_weight(self.to_opentype_weight() + 200)
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FreeTypeLoadTarget {
@@ -123,7 +249,9 @@ pub struct FontAttributes {
     pub family: String,
     /// Whether the font should be a bold variant
     #[serde(default)]
-    pub bold: bool,
+    pub weight: FontWeight,
+    #[serde(default)]
+    pub width: FontWidth,
     /// Whether the font should be an italic variant
     #[serde(default)]
     pub italic: bool,
@@ -136,8 +264,8 @@ impl std::fmt::Display for FontAttributes {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         write!(
             fmt,
-            "wezterm.font('{}', {{bold={}, italic={}}})",
-            self.family, self.bold, self.italic
+            "wezterm.font('{}', {{weight='{}', width='{}', italic={}}})",
+            self.family, self.weight, self.width, self.italic
         )
     }
 }
@@ -146,7 +274,8 @@ impl FontAttributes {
     pub fn new(family: &str) -> Self {
         Self {
             family: family.into(),
-            bold: false,
+            weight: FontWeight::default(),
+            width: FontWidth::default(),
             italic: false,
             is_fallback: false,
             is_synthetic: false,
@@ -156,7 +285,8 @@ impl FontAttributes {
     pub fn new_fallback(family: &str) -> Self {
         Self {
             family: family.into(),
-            bold: false,
+            weight: FontWeight::default(),
+            width: FontWidth::default(),
             italic: false,
             is_fallback: true,
             is_synthetic: false,
@@ -168,7 +298,8 @@ impl Default for FontAttributes {
     fn default() -> Self {
         Self {
             family: "JetBrains Mono".into(),
-            bold: false,
+            weight: FontWeight::default(),
+            width: FontWidth::default(),
             italic: false,
             is_fallback: false,
             is_synthetic: false,
@@ -269,7 +400,7 @@ impl TextStyle {
                 .iter()
                 .map(|attr| {
                     let mut attr = attr.clone();
-                    attr.bold = true;
+                    attr.weight = attr.weight.bolder();
                     attr.is_synthetic = true;
                     attr
                 })

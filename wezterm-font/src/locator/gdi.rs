@@ -2,7 +2,7 @@
 
 use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
 use crate::parser::{parse_and_collect_font_info, rank_matching_fonts, FontMatch, ParsedFont};
-use config::FontAttributes;
+use config::{FontAttributes, FontWeight as WTFontWeight, FontWidth};
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -88,7 +88,7 @@ fn load_font(font_attr: &FontAttributes) -> anyhow::Result<FontDataHandle> {
         lfWidth: 0,
         lfEscapement: 0,
         lfOrientation: 0,
-        lfWeight: if font_attr.bold { 700 } else { 0 },
+        lfWeight: font_attr.weight.to_opentype_weight() as _,
         lfItalic: if font_attr.italic { 1 } else { 0 },
         lfUnderline: 0,
         lfStrikeOut: 0,
@@ -122,11 +122,7 @@ fn load_font(font_attr: &FontAttributes) -> anyhow::Result<FontDataHandle> {
 fn attributes_to_descriptor(font_attr: &FontAttributes) -> FontDescriptor {
     FontDescriptor {
         family_name: font_attr.family.to_string(),
-        weight: if font_attr.bold {
-            FontWeight::Bold
-        } else {
-            FontWeight::Regular
-        },
+        weight: FontWeight::from_u32(font_attr.weight.to_opentype_weight() as u32),
         stretch: FontStretch::Normal,
         style: if font_attr.italic {
             FontStyle::Italic
@@ -282,20 +278,8 @@ impl FontLocator for GdiFontLocator {
                     );
 
                     let attr = FontAttributes {
-                        bold: match font.weight() {
-                            FontWeight::Thin
-                            | FontWeight::ExtraLight
-                            | FontWeight::Light
-                            | FontWeight::SemiLight
-                            | FontWeight::Regular
-                            | FontWeight::Medium => false,
-                            FontWeight::SemiBold
-                            | FontWeight::Bold
-                            | FontWeight::ExtraBold
-                            | FontWeight::Black
-                            | FontWeight::ExtraBlack => true,
-                            FontWeight::Unknown(n) => n > 80,
-                        },
+                        weight: WTFontWeight::from_opentype_weight(font.weight().to_u32() as _),
+                        width: FontWidth::from_opentype_width(font.stretch().to_u32() as _),
                         italic: false,
                         family: font.family_name(),
                         is_fallback: true,

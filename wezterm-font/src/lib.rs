@@ -3,7 +3,9 @@ use crate::locator::{new_locator, FontDataHandle, FontLocator};
 use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper};
 use anyhow::{Context, Error};
-use config::{configuration, ConfigHandle, FontRasterizerSelection, TextStyle};
+use config::{
+    configuration, ConfigHandle, FontRasterizerSelection, FontWeight, FontWidth, TextStyle,
+};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::{Rc, Weak};
@@ -281,8 +283,11 @@ impl FontConfigInner {
 
         for attr in &attributes {
             if !attr.is_synthetic && !attr.is_fallback && !loaded.contains(attr) {
-                let styled_extra = if attr.bold || attr.italic {
-                    ". A bold or italic variant of the font was requested; \
+                let styled_extra = if attr.weight != FontWeight::default()
+                    || attr.italic
+                    || attr.width != FontWidth::default()
+                {
+                    ". An alternative variant of the font was requested; \
                     TrueType and OpenType fonts don't have an automatic way to \
                     produce these font variants, so a separate font file containing \
                     the bold or italic variant must be installed"

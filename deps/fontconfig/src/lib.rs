@@ -52,6 +52,16 @@ pub const FC_SLANT_ROMAN: c_int = 0;
 pub const FC_SLANT_ITALIC: c_int = 100;
 pub const FC_SLANT_OBLIQUE: c_int = 110;
 
+pub const FC_WIDTH_ULTRACONDENSED: c_int = 50;
+pub const FC_WIDTH_EXTRACONDENSED: c_int = 63;
+pub const FC_WIDTH_CONDENSED: c_int = 75;
+pub const FC_WIDTH_SEMICONDENSED: c_int = 87;
+pub const FC_WIDTH_NORMAL: c_int = 100;
+pub const FC_WIDTH_SEMIEXPANDED: c_int = 113;
+pub const FC_WIDTH_EXPANDED: c_int = 125;
+pub const FC_WIDTH_EXTRAEXPANDED: c_int = 150;
+pub const FC_WIDTH_ULTRAEXPANDED: c_int = 200;
+
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct struct__FcMatrix {

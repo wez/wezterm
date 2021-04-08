@@ -1,106 +1,13 @@
 use crate::locator::{FontDataHandle, FontDataSource};
 use crate::shaper::GlyphInfo;
 use config::FontAttributes;
+pub use config::{FontWeight, FontWidth};
 use std::borrow::Cow;
 
 #[derive(Debug)]
 pub enum MaybeShaped {
     Resolved(GlyphInfo),
     Unresolved { raw: String, slice_start: usize },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FontWidth {
-    UltraCondensed,
-    ExtraCondensed,
-    Condensed,
-    SemiCondensed,
-    Normal,
-    SemiExpanded,
-    Expanded,
-    ExtraExpanded,
-    UltraExpanded,
-}
-
-impl FontWidth {
-    pub fn from_opentype_width(w: u16) -> Self {
-        match w {
-            1 => Self::UltraCondensed,
-            2 => Self::ExtraCondensed,
-            3 => Self::Condensed,
-            4 => Self::SemiCondensed,
-            5 => Self::Normal,
-            6 => Self::SemiExpanded,
-            7 => Self::Expanded,
-            8 => Self::ExtraExpanded,
-            9 => Self::UltraExpanded,
-            _ if w < 1 => Self::UltraCondensed,
-            _ => Self::UltraExpanded,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FontWeight {
-    Thin,
-    ExtraLight,
-    Light,
-    DemiLight,
-    Book,
-    Regular,
-    Medium,
-    DemiBold,
-    Bold,
-    ExtraBold,
-    Black,
-    ExtraBlack,
-}
-
-impl FontWeight {
-    pub fn from_opentype_weight(w: u16) -> Self {
-        if w >= 1000 {
-            Self::ExtraBlack
-        } else if w >= 900 {
-            Self::Black
-        } else if w >= 800 {
-            Self::ExtraBold
-        } else if w >= 700 {
-            Self::Bold
-        } else if w >= 600 {
-            Self::DemiBold
-        } else if w >= 500 {
-            Self::Medium
-        } else if w >= 400 {
-            Self::Regular
-        } else if w >= 380 {
-            Self::Book
-        } else if w >= 350 {
-            Self::DemiLight
-        } else if w >= 300 {
-            Self::Light
-        } else if w >= 200 {
-            Self::ExtraLight
-        } else {
-            Self::Thin
-        }
-    }
-
-    pub fn to_opentype_weight(self) -> u16 {
-        match self {
-            Self::Thin => 100,
-            Self::ExtraLight => 200,
-            Self::Light => 300,
-            Self::DemiLight => 350,
-            Self::Book => 380,
-            Self::Regular => 400,
-            Self::Medium => 500,
-            Self::DemiBold => 600,
-            Self::Bold => 700,
-            Self::ExtraBold => 800,
-            Self::Black => 900,
-            Self::ExtraBlack => 1000,
-        }
-    }
 }
 
 /// Represents a parsed font
@@ -183,14 +90,8 @@ impl ParsedFont {
     pub fn matches_attributes(&self, attr: &FontAttributes) -> FontMatch {
         if let Some(fam) = self.names.family.as_ref() {
             if attr.family == *fam {
-                let wanted_width = FontWidth::Normal;
-                if wanted_width == self.width {
-                    let wanted_weight = if attr.bold {
-                        FontWeight::Bold
-                    } else {
-                        FontWeight::Regular
-                    }
-                    .to_opentype_weight();
+                if attr.width == self.width {
+                    let wanted_weight = attr.weight.to_opentype_weight();
                     let weight = self.weight.to_opentype_weight();
 
                     if weight >= wanted_weight {

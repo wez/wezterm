@@ -15,6 +15,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: the selection wouldn't always clear when the intersecting lines change [#644](https://github.com/wez/wezterm/issues/644)
 * Fixed: vertical alignment issue with Iosevka on Windows [#661](https://github.com/wez/wezterm/issues/661)
 * Fixed: support for "Variable" fonts such as Cascadia Code and Inconsolata on all platforms [#655](https://github.com/wez/wezterm/issues/655)
+* New: [wezterm.font](config/lua/wezterm/font.md) and [wezterm.font_with_fallback](config/lua/wezterm.font_with_fallback.md) *attributes* parameter now allows matching more granular font weights and font widths. e.g.: `wezterm.font('Iosevka Term', {width="Expanded", weight="Regular"})`
 
 ### 20210405-110924-a5bb5be8
 

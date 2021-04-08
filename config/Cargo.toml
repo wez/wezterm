@@ -17,6 +17,7 @@ bitflags = "1.0"
 bstr = "0.2"
 chrono = {version="0.4", features=["unstable-locales"]}
 dirs-next = "2.0"
+enum-display-derive = "0.1"
 filenamegen = "0.2"
 hostname = "0.3"
 lazy_static = "1.4"

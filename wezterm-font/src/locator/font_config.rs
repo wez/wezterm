@@ -3,7 +3,7 @@ use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
 use crate::parser::FontMatch;
 use anyhow::Context;
 use config::FontAttributes;
-use fcwrap::{CharSet, Pattern as FontPattern};
+use fcwrap::{to_fc_weight, to_fc_width, CharSet, Pattern as FontPattern};
 use std::collections::HashSet;
 use std::convert::TryInto;
 
@@ -28,8 +28,16 @@ impl FontLocator for FontConfigFontLocator {
                 let mut pattern = FontPattern::new()?;
                 let start = std::time::Instant::now();
                 pattern.family(&attr.family)?;
-                pattern.add_integer("weight", if attr.bold { 200 } else { 80 })?;
-                pattern.add_integer("slant", if attr.italic { 100 } else { 0 })?;
+                pattern.add_integer("weight", to_fc_weight(attr.weight))?;
+                pattern.add_integer("width", to_fc_width(attr.width))?;
+                pattern.add_integer(
+                    "slant",
+                    if attr.italic {
+                        fcwrap::FC_SLANT_ITALIC
+                    } else {
+                        fcwrap::FC_SLANT_ROMAN
+                    },
+                )?;
                 pattern.add_integer("spacing", spacing)?;
 
                 log::trace!("fc pattern before config subst: {:?}", pattern);
@@ -44,10 +52,13 @@ impl FontLocator for FontConfigFontLocator {
                 );
 
                 let file = best.get_file()?;
+                let index = best.get_integer("index")? as u32;
+                let variation = index >> 16;
+                let index = index & 0xffff;
                 let handle = FontDataHandle {
                     source: FontDataSource::OnDisk(file.into()),
-                    index: best.get_integer("index")?.try_into()?,
-                    variation: 0,
+                    index,
+                    variation,
                 };
 
                 // fontconfig will give us a boatload of random fallbacks.

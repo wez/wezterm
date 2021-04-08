@@ -1,4 +1,4 @@
-use crate::{FontAttributes, TextStyle};
+use crate::{FontAttributes, FontWeight, FontWidth, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;
@@ -334,7 +334,11 @@ fn hostname<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<String> {
 struct TextStyleAttributes {
     /// Whether the font should be a bold variant
     #[serde(default)]
-    pub bold: bool,
+    pub bold: Option<bool>,
+    #[serde(default)]
+    pub weight: Option<FontWeight>,
+    #[serde(default)]
+    pub width: FontWidth,
     /// Whether the font should be an italic variant
     #[serde(default)]
     pub italic: bool,
@@ -365,7 +369,12 @@ fn font<'lua>(
     text_style.font.clear();
     text_style.font.push(FontAttributes {
         family,
-        bold: attrs.bold,
+        width: attrs.width,
+        weight: match attrs.bold {
+            Some(true) => FontWeight::Bold,
+            Some(false) => FontWeight::Regular,
+            None => attrs.weight.unwrap_or(FontWeight::Regular),
+        },
         italic: attrs.italic,
         is_fallback: false,
         is_synthetic: false,
@@ -393,7 +402,12 @@ fn font_with_fallback<'lua>(
     for (idx, family) in fallback.into_iter().enumerate() {
         text_style.font.push(FontAttributes {
             family,
-            bold: attrs.bold,
+            width: attrs.width,
+            weight: match attrs.bold {
+                Some(true) => FontWeight::Bold,
+                Some(false) => FontWeight::Regular,
+                None => attrs.weight.unwrap_or(FontWeight::Regular),
+            },
             italic: attrs.italic,
             is_fallback: idx != 0,
             is_synthetic: false,

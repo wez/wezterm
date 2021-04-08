@@ -2,6 +2,7 @@
 #![allow(clippy::mutex_atomic)]
 
 use anyhow::{anyhow, ensure, Error};
+use config::{FontWeight, FontWidth};
 pub use fontconfig::*;
 use std::ffi::{CStr, CString};
 use std::fmt;
@@ -444,5 +445,35 @@ impl fmt::Debug for Pattern {
                 .format("Pattern(%{+family,style,weight,slant,spacing,file,index,charset,fontformat{%{=unparse}}})")
                 .unwrap(),
         )
+    }
+}
+
+pub fn to_fc_weight(weight: FontWeight) -> c_int {
+    match weight {
+        FontWeight::Thin => FC_WEIGHT_THIN,
+        FontWeight::ExtraLight => FC_WEIGHT_EXTRALIGHT,
+        FontWeight::Light => FC_WEIGHT_LIGHT,
+        FontWeight::DemiLight | FontWeight::Book => FC_WEIGHT_BOOK,
+        FontWeight::Regular => FC_WEIGHT_REGULAR,
+        FontWeight::Medium => FC_WEIGHT_MEDIUM,
+        FontWeight::DemiBold => FC_WEIGHT_DEMIBOLD,
+        FontWeight::Bold => FC_WEIGHT_BOLD,
+        FontWeight::ExtraBold => FC_WEIGHT_EXTRABOLD,
+        FontWeight::Black => FC_WEIGHT_BLACK,
+        FontWeight::ExtraBlack => FC_WEIGHT_EXTRABLACK,
+    }
+}
+
+pub fn to_fc_width(width: FontWidth) -> c_int {
+    match width {
+        FontWidth::UltraCondensed => FC_WIDTH_ULTRACONDENSED,
+        FontWidth::ExtraCondensed => FC_WIDTH_EXTRACONDENSED,
+        FontWidth::Condensed => FC_WIDTH_CONDENSED,
+        FontWidth::SemiCondensed => FC_WIDTH_SEMICONDENSED,
+        FontWidth::Normal => FC_WIDTH_NORMAL,
+        FontWidth::SemiExpanded => FC_WIDTH_SEMIEXPANDED,
+        FontWidth::Expanded => FC_WIDTH_EXPANDED,
+        FontWidth::ExtraExpanded => FC_WIDTH_EXTRAEXPANDED,
+        FontWidth::UltraExpanded => FC_WIDTH_ULTRAEXPANDED,
     }
 }
