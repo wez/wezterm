@@ -213,23 +213,35 @@ impl TextStyle {
     ///
     /// <https://github.com/wez/wezterm/issues/456>
     pub fn reduce_first_font_to_family(&self) -> Self {
-        fn reduce(family: &str) -> String {
-            family
-                // Italic tends to be last in the string,
-                // if present, so strip it first
-                .trim_end_matches(" Italic")
-                // Then the various weight names
-                .trim_end_matches(" Thin")
-                .trim_end_matches(" Extra Light")
-                .trim_end_matches(" Normal")
-                .trim_end_matches(" Regular")
-                .trim_end_matches(" Medium")
-                .trim_end_matches(" Semi Bold")
-                .trim_end_matches(" Bold")
-                .trim_end_matches(" Extra Bold")
-                .trim_end_matches(" Ultra Bold")
-                .trim_end_matches(" Book")
-                .to_string()
+        fn reduce(mut family: &str) -> String {
+            loop {
+                let start = family;
+
+                for s in &[
+                    "Black",
+                    "Bold",
+                    "Book",
+                    "Condensed",
+                    "Demi",
+                    "Expanded",
+                    "Extra",
+                    "Italic",
+                    "Light",
+                    "Medium",
+                    "Regular",
+                    "Semi",
+                    "Thin",
+                    "Ultra",
+                ] {
+                    family = family.trim().trim_end_matches(s);
+                }
+
+                if family == start {
+                    break;
+                }
+            }
+
+            family.trim().to_string()
         }
         Self {
             foreground: self.foreground,
@@ -471,6 +483,28 @@ impl std::str::FromStr for FontShaperSelection {
                 s,
                 Self::variants()
             )),
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_reduce() {
+        for family in &[
+            "Inconsolata SemiCondensed ExtraBold",
+            "Inconsolata SemiCondensed Regular",
+            "Inconsolata SemiCondensed Medium",
+            "Inconsolata SemiCondensed SemiBold",
+        ] {
+            let style = TextStyle {
+                font: vec![FontAttributes::new(family)],
+                foreground: None,
+            };
+            let style = style.reduce_first_font_to_family();
+            assert_eq!(style.font[0].family, "Inconsolata");
         }
     }
 }
