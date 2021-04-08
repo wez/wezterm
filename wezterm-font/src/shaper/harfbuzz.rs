@@ -467,7 +467,8 @@ mod test {
         let handle = db
             .resolve(&FontAttributes {
                 family: "JetBrains Mono".into(),
-                bold: false,
+                width: Default::default(),
+                weight: Default::default(),
                 is_fallback: false,
                 is_synthetic: false,
                 italic: false,
