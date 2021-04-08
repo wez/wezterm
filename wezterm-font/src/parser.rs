@@ -207,6 +207,12 @@ impl ParsedFont {
 
         if attr.family == self.names.full_name {
             FontMatch::FullName
+        } else if let Some(ps) = self.names.postscript_name.as_ref() {
+            if attr.family == *ps {
+                FontMatch::FullName
+            } else {
+                FontMatch::NoMatch
+            }
         } else {
             FontMatch::NoMatch
         }
