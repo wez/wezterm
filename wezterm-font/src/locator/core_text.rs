@@ -1,6 +1,7 @@
 #![cfg(target_os = "macos")]
 
 use crate::locator::{FontDataHandle, FontLocator};
+use crate::parser::FontMatch;
 use config::FontAttributes;
 use core_foundation::array::CFArray;
 use core_foundation::base::TCFType;
@@ -59,8 +60,10 @@ fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandl
     let mut font_info = vec![];
     crate::parser::parse_and_collect_font_info(&path, &mut font_info).ok()?;
 
-    for (names, _, locator) in font_info {
-        if names.full_name == family_name || names.family.as_ref() == Some(&family_name) {
+    for (parsed, locator) in font_info {
+        if parsed.names().full_name == family_name
+            || parsed.names().family.as_ref() == Some(&family_name)
+        {
             return Some(locator);
         }
     }
@@ -82,7 +85,7 @@ impl FontLocator for CoreTextFontLocator {
                     if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
                         // The system may have returned a fallback font rather than the
                         // font that we requested, so verify that the name matches.
-                        if crate::parser::font_info_matches(attr, parsed.names()) {
+                        if parsed.matches_attributes(attr) != FontMatch::NoMatch {
                             fonts.push(handle);
                             loaded.insert(attr.clone());
                         }

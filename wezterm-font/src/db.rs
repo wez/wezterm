@@ -1,6 +1,6 @@
 //! A font-database to keep track of fonts that we've located
 
-use crate::parser::{font_info_matches, load_built_in_fonts, parse_and_collect_font_info, Names};
+use crate::parser::{load_built_in_fonts, parse_and_collect_font_info, FontMatch, ParsedFont};
 use crate::FontDataHandle;
 use anyhow::{anyhow, Context};
 use config::{Config, FontAttributes};
@@ -8,11 +8,10 @@ use rangeset::RangeSet;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 struct Entry {
-    names: Names,
+    parsed: ParsedFont,
     handle: FontDataHandle,
     coverage: Mutex<Option<RangeSet<u32>>>,
 }
@@ -57,7 +56,7 @@ impl Entry {
             metrics::histogram!("font.compute.codepoint.coverage", elapsed);
             log::debug!(
                 "{} codepoint coverage computed in {:?}",
-                self.names.full_name,
+                self.parsed.names().full_name,
                 elapsed
             );
         }
@@ -79,15 +78,15 @@ impl FontDatabase {
         }
     }
 
-    fn load_font_info(&mut self, font_info: Vec<(Names, PathBuf, FontDataHandle)>) {
-        for (names, _path, handle) in font_info {
+    fn load_font_info(&mut self, font_info: Vec<(ParsedFont, FontDataHandle)>) {
+        for (parsed, handle) in font_info {
             let entry = Arc::new(Entry {
-                names,
+                parsed,
                 handle,
                 coverage: Mutex::new(None),
             });
 
-            if let Some(family) = entry.names.family.as_ref() {
+            if let Some(family) = entry.parsed.names().family.as_ref() {
                 self.by_family
                     .entry(family.to_string())
                     .or_insert_with(Vec::new)
@@ -95,7 +94,7 @@ impl FontDatabase {
             }
 
             self.by_full_name
-                .entry(entry.names.full_name.clone())
+                .entry(entry.parsed.names().full_name.clone())
                 .or_insert(entry);
         }
     }
@@ -197,17 +196,22 @@ impl FontDatabase {
 
     pub fn resolve(&self, font_attr: &FontAttributes) -> Option<&FontDataHandle> {
         if let Some(entry) = self.by_full_name.get(&font_attr.family) {
-            if font_info_matches(font_attr, &entry.names) {
+            if entry.parsed.matches_attributes(font_attr) == FontMatch::FullName {
                 return Some(&entry.handle);
             }
         }
 
         if let Some(family) = self.by_family.get(&font_attr.family) {
+            let mut candidates = vec![];
             for entry in family {
-                if font_info_matches(font_attr, &entry.names) {
-                    return Some(&entry.handle);
+                let res = entry.parsed.matches_attributes(font_attr);
+                if res != FontMatch::NoMatch {
+                    candidates.push((res, entry));
                 }
             }
+            candidates.sort_by(|a, b| a.0.cmp(&b.0));
+            let best = candidates.first()?;
+            return Some(&best.1.handle);
         }
 
         None

@@ -1,7 +1,7 @@
 //! Higher level freetype bindings
 
 use crate::locator::FontDataHandle;
-use crate::parser::Names;
+use crate::parser::ParsedFont;
 use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadTarget};
 pub use freetype::*;
@@ -130,7 +130,7 @@ impl Face {
         }
     }
 
-    pub fn variations(&self) -> anyhow::Result<Vec<Names>> {
+    pub fn variations(&self) -> anyhow::Result<Vec<ParsedFont>> {
         let mut mm = std::ptr::null_mut();
 
         unsafe {
@@ -140,7 +140,7 @@ impl Face {
             let num_styles = (*mm).num_namedstyles;
             for i in 1..=num_styles {
                 FT_Set_Named_Instance(self.face, i);
-                res.push(Names::from_ft_face(&self));
+                res.push(ParsedFont::from_face(&self)?);
             }
 
             FT_Done_MM_Var(self.lib, mm);
@@ -161,6 +161,66 @@ impl Face {
                 Some(&*os2)
             }
         }
+    }
+
+    pub fn weight_and_width(&self) -> (u16, u16) {
+        let (mut weight, mut width) = self
+            .get_os2_table()
+            .map(|os2| (os2.usWeightClass as f64, os2.usWidthClass as f64))
+            .unwrap_or((400., 5.));
+
+        unsafe {
+            let index = (*self.face).face_index;
+            let variation = index >> 16;
+            if variation > 0 {
+                let vidx = (variation - 1) as usize;
+
+                let mut mm = std::ptr::null_mut();
+
+                ft_result(FT_Get_MM_Var(self.face, &mut mm), ())
+                    .context("FT_Get_MM_Var")
+                    .unwrap();
+                {
+                    let mm = &*mm;
+
+                    let styles =
+                        std::slice::from_raw_parts(mm.namedstyle, mm.num_namedstyles as usize);
+                    let instance = &styles[vidx];
+                    let axes = std::slice::from_raw_parts(mm.axis, mm.num_axis as usize);
+
+                    fn ft_make_tag(a: u8, b: u8, c: u8, d: u8) -> FT_ULong {
+                        (a as FT_ULong) << 24
+                            | (b as FT_ULong) << 16
+                            | (c as FT_ULong) << 8
+                            | (d as FT_ULong)
+                    }
+
+                    for (i, axis) in axes.iter().enumerate() {
+                        let coords =
+                            std::slice::from_raw_parts(instance.coords, mm.num_axis as usize);
+                        let value = coords[i] as f64 / (1 << 16) as f64;
+                        let default_value = axis.def as f64 / (1 << 16) as f64;
+                        let scale = if default_value != 0. {
+                            value / default_value
+                        } else {
+                            1.
+                        };
+
+                        if axis.tag == ft_make_tag(b'w', b'g', b'h', b't') {
+                            weight = weight * scale;
+                        }
+
+                        if axis.tag == ft_make_tag(b'w', b'd', b't', b'h') {
+                            width = width * scale;
+                        }
+                    }
+                }
+
+                FT_Done_MM_Var(self.lib, mm);
+            }
+        }
+
+        (weight.round() as u16, width.round() as u16)
     }
 
     pub fn italic(&self) -> bool {

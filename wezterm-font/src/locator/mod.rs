@@ -32,16 +32,24 @@ pub enum FontDataHandle {
 }
 
 impl FontDataHandle {
-    fn name_or_path_str(&self) -> Cow<str> {
+    pub fn name_or_path_str(&self) -> Cow<str> {
         match self {
             Self::OnDisk { path, .. } => path.to_string_lossy(),
             Self::Memory { name, .. } => Cow::Borrowed(name),
         }
     }
-    fn index(&self) -> u32 {
+
+    pub fn index(&self) -> u32 {
         match self {
             Self::OnDisk { index, .. } => *index,
             Self::Memory { index, .. } => *index,
+        }
+    }
+
+    pub fn set_index(&mut self, idx: u32) {
+        match self {
+            Self::OnDisk { index, .. } => *index = idx,
+            Self::Memory { index, .. } => *index = idx,
         }
     }
 }

@@ -2,13 +2,44 @@ use crate::locator::FontDataHandle;
 use crate::shaper::GlyphInfo;
 use config::FontAttributes;
 use std::borrow::Cow;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use ttf_parser::fonts_in_collection;
 
 #[derive(Debug)]
 pub enum MaybeShaped {
     Resolved(GlyphInfo),
     Unresolved { raw: String, slice_start: usize },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FontWidth {
+    UltraCondensed,
+    ExtraCondensed,
+    Condensed,
+    SemiCondensed,
+    Normal,
+    SemiExpanded,
+    Expanded,
+    ExtraExpanded,
+    UltraExpanded,
+}
+
+impl FontWidth {
+    pub fn from_opentype_width(w: u16) -> Self {
+        match w {
+            1 => Self::UltraCondensed,
+            2 => Self::ExtraCondensed,
+            3 => Self::Condensed,
+            4 => Self::SemiCondensed,
+            5 => Self::Normal,
+            6 => Self::SemiExpanded,
+            7 => Self::Expanded,
+            8 => Self::ExtraExpanded,
+            9 => Self::UltraExpanded,
+            _ if w < 1 => Self::UltraCondensed,
+            _ => Self::UltraExpanded,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,6 +86,23 @@ impl FontWeight {
             Self::Thin
         }
     }
+
+    pub fn to_opentype_weight(self) -> u16 {
+        match self {
+            Self::Thin => 100,
+            Self::ExtraLight => 200,
+            Self::Light => 300,
+            Self::DemiLight => 350,
+            Self::Book => 380,
+            Self::Regular => 400,
+            Self::Medium => 500,
+            Self::DemiBold => 600,
+            Self::Bold => 700,
+            Self::ExtraBold => 800,
+            Self::Black => 900,
+            Self::ExtraBlack => 1000,
+        }
+    }
 }
 
 /// Represents a parsed font
@@ -62,6 +110,7 @@ impl FontWeight {
 pub struct ParsedFont {
     names: Names,
     weight: FontWeight,
+    width: FontWidth,
     italic: bool,
 }
 
@@ -98,18 +147,19 @@ impl ParsedFont {
     pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
         let lib = crate::ftwrap::Library::new()?;
         let face = lib.face_from_locator(handle)?;
+        Self::from_face(&face)
+    }
 
+    pub fn from_face(face: &crate::ftwrap::Face) -> anyhow::Result<Self> {
         let italic = face.italic();
-        let weight;
-        if let Some(os2) = face.get_os2_table() {
-            weight = FontWeight::from_opentype_weight(os2.usWeightClass);
-        } else {
-            weight = FontWeight::Regular;
-        }
+        let (weight, width) = face.weight_and_width();
+        let weight = FontWeight::from_opentype_weight(weight);
+        let width = FontWidth::from_opentype_width(width);
 
         Ok(Self {
             names: Names::from_ft_face(&face),
             weight,
+            width,
             italic,
         })
     }
@@ -122,9 +172,53 @@ impl ParsedFont {
         self.weight
     }
 
+    pub fn width(&self) -> FontWidth {
+        self.width
+    }
+
     pub fn italic(&self) -> bool {
         self.italic
     }
+
+    pub fn matches_attributes(&self, attr: &FontAttributes) -> FontMatch {
+        if let Some(fam) = self.names.family.as_ref() {
+            if attr.family == *fam {
+                let wanted_width = FontWidth::Normal;
+                if wanted_width == self.width {
+                    let wanted_weight = if attr.bold {
+                        FontWeight::Bold
+                    } else {
+                        FontWeight::Regular
+                    }
+                    .to_opentype_weight();
+                    let weight = self.weight.to_opentype_weight();
+
+                    if weight >= wanted_weight {
+                        if attr.italic == self.italic {
+                            return FontMatch::Weight(weight - wanted_weight);
+                        }
+                    }
+
+                    if attr.family == self.names.full_name {
+                        return FontMatch::FullName;
+                    }
+                }
+            }
+        }
+
+        if attr.family == self.names.full_name {
+            FontMatch::FullName
+        } else {
+            FontMatch::NoMatch
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
+pub enum FontMatch {
+    Weight(u16),
+    FullName,
+    NoMatch,
 }
 
 pub fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
@@ -159,25 +253,23 @@ pub fn resolve_font_from_ttc_data(
     attr: &FontAttributes,
     data: &Cow<'static, [u8]>,
 ) -> anyhow::Result<Option<usize>> {
-    let lib = crate::ftwrap::Library::new()?;
-    if let Some(size) = fonts_in_collection(data) {
-        for index in 0..size {
-            let face = lib.new_face_from_slice(data.clone(), index as _)?;
-            let names = Names::from_ft_face(&face);
-            if font_info_matches(attr, &names) {
-                return Ok(Some(index as usize));
-            }
-        }
-        Ok(None)
-    } else {
-        let face = lib.new_face_from_slice(data.clone(), 0)?;
-        let names = Names::from_ft_face(&face);
-        if font_info_matches(attr, &names) {
-            Ok(Some(0))
-        } else {
-            Ok(None)
+    let mut locator = FontDataHandle::Memory {
+        name: "".to_string(),
+        data: data.clone(),
+        index: 0,
+        variation: 0,
+    };
+
+    let size = fonts_in_collection(data).unwrap_or(0);
+
+    for index in 0..=size {
+        locator.set_index(index);
+        let parsed = ParsedFont::from_locator(&locator)?;
+        if parsed.matches_attributes(attr) != FontMatch::NoMatch {
+            return Ok(Some(index as usize));
         }
     }
+    Ok(None)
 }
 
 /// In case the user has a broken configuration, or no configuration,
@@ -185,7 +277,7 @@ pub fn resolve_font_from_ttc_data(
 /// sane fallback fonts.
 /// This function loads those.
 pub(crate) fn load_built_in_fonts(
-    font_info: &mut Vec<(Names, PathBuf, FontDataHandle)>,
+    font_info: &mut Vec<(ParsedFont, FontDataHandle)>,
 ) -> anyhow::Result<()> {
     macro_rules! font {
         ($font:literal) => {
@@ -213,10 +305,9 @@ pub(crate) fn load_built_in_fonts(
         font!("../../assets/fonts/LastResortHE-Regular.ttf"),
     ] {
         let face = lib.new_face_from_slice(Cow::Borrowed(data), 0)?;
-        let names = Names::from_ft_face(&face);
+        let parsed = ParsedFont::from_face(&face)?;
         font_info.push((
-            names,
-            PathBuf::from(name),
+            parsed,
             FontDataHandle::Memory {
                 data: Cow::Borrowed(data),
                 index: 0,
@@ -231,7 +322,7 @@ pub(crate) fn load_built_in_fonts(
 
 pub(crate) fn parse_and_collect_font_info(
     path: &Path,
-    font_info: &mut Vec<(Names, PathBuf, FontDataHandle)>,
+    font_info: &mut Vec<(ParsedFont, FontDataHandle)>,
 ) -> anyhow::Result<()> {
     let data = Cow::Owned(std::fs::read(path)?);
     let lib = crate::ftwrap::Library::new()?;
@@ -241,7 +332,7 @@ pub(crate) fn parse_and_collect_font_info(
         lib: &crate::ftwrap::Library,
         path: &Path,
         index: u32,
-        font_info: &mut Vec<(Names, PathBuf, FontDataHandle)>,
+        font_info: &mut Vec<(ParsedFont, FontDataHandle)>,
     ) -> anyhow::Result<()> {
         let locator = FontDataHandle::OnDisk {
             path: path.to_path_buf(),
@@ -251,10 +342,9 @@ pub(crate) fn parse_and_collect_font_info(
 
         let face = lib.face_from_locator(&locator)?;
         if let Ok(variations) = face.variations() {
-            for (variation, names) in variations.into_iter().enumerate() {
+            for (variation, parsed) in variations.into_iter().enumerate() {
                 font_info.push((
-                    names,
-                    path.to_path_buf(),
+                    parsed,
                     FontDataHandle::OnDisk {
                         path: path.to_path_buf(),
                         index,
@@ -263,8 +353,8 @@ pub(crate) fn parse_and_collect_font_info(
                 ));
             }
         } else {
-            let names = Names::from_ft_face(&face);
-            font_info.push((names, path.to_path_buf(), locator));
+            let parsed = ParsedFont::from_locator(&locator)?;
+            font_info.push((parsed, locator));
         }
         Ok(())
     }
