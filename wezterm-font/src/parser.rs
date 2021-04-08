@@ -11,10 +11,58 @@ pub enum MaybeShaped {
     Unresolved { raw: String, slice_start: usize },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FontWeight {
+    Thin,
+    ExtraLight,
+    Light,
+    DemiLight,
+    Book,
+    Regular,
+    Medium,
+    DemiBold,
+    Bold,
+    ExtraBold,
+    Black,
+    ExtraBlack,
+}
+
+impl FontWeight {
+    pub fn from_opentype_weight(w: u16) -> Self {
+        if w >= 1000 {
+            Self::ExtraBlack
+        } else if w >= 900 {
+            Self::Black
+        } else if w >= 800 {
+            Self::ExtraBold
+        } else if w >= 700 {
+            Self::Bold
+        } else if w >= 600 {
+            Self::DemiBold
+        } else if w >= 500 {
+            Self::Medium
+        } else if w >= 400 {
+            Self::Regular
+        } else if w >= 380 {
+            Self::Book
+        } else if w >= 350 {
+            Self::DemiLight
+        } else if w >= 300 {
+            Self::Light
+        } else if w >= 200 {
+            Self::ExtraLight
+        } else {
+            Self::Thin
+        }
+    }
+}
+
 /// Represents a parsed font
 #[derive(Debug)]
 pub struct ParsedFont {
     names: Names,
+    weight: FontWeight,
+    italic: bool,
 }
 
 #[derive(Debug)]
@@ -50,13 +98,32 @@ impl ParsedFont {
     pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
         let lib = crate::ftwrap::Library::new()?;
         let face = lib.face_from_locator(handle)?;
+
+        let italic = face.italic();
+        let weight;
+        if let Some(os2) = face.get_os2_table() {
+            weight = FontWeight::from_opentype_weight(os2.usWeightClass);
+        } else {
+            weight = FontWeight::Regular;
+        }
+
         Ok(Self {
             names: Names::from_ft_face(&face),
+            weight,
+            italic,
         })
     }
 
     pub fn names(&self) -> &Names {
         &self.names
+    }
+
+    pub fn weight(&self) -> FontWeight {
+        self.weight
+    }
+
+    pub fn italic(&self) -> bool {
+        self.italic
     }
 }
 

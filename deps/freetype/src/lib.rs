@@ -1195,6 +1195,168 @@ pub type FT_LcdFiveTapFilter = [FT_Byte; 5usize];
 extern "C" {
     pub fn FT_Library_SetLcdGeometry(library: FT_Library, sub: *mut FT_Vector) -> FT_Error;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct TT_Header_ {
+    pub Table_Version: FT_Fixed,
+    pub Font_Revision: FT_Fixed,
+    pub CheckSum_Adjust: FT_Long,
+    pub Magic_Number: FT_Long,
+    pub Flags: FT_UShort,
+    pub Units_Per_EM: FT_UShort,
+    pub Created: [FT_ULong; 2usize],
+    pub Modified: [FT_ULong; 2usize],
+    pub xMin: FT_Short,
+    pub yMin: FT_Short,
+    pub xMax: FT_Short,
+    pub yMax: FT_Short,
+    pub Mac_Style: FT_UShort,
+    pub Lowest_Rec_PPEM: FT_UShort,
+    pub Font_Direction: FT_Short,
+    pub Index_To_Loc_Format: FT_Short,
+    pub Glyph_Data_Format: FT_Short,
+}
+pub type TT_Header = TT_Header_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct TT_HoriHeader_ {
+    pub Version: FT_Fixed,
+    pub Ascender: FT_Short,
+    pub Descender: FT_Short,
+    pub Line_Gap: FT_Short,
+    pub advance_Width_Max: FT_UShort,
+    pub min_Left_Side_Bearing: FT_Short,
+    pub min_Right_Side_Bearing: FT_Short,
+    pub xMax_Extent: FT_Short,
+    pub caret_Slope_Rise: FT_Short,
+    pub caret_Slope_Run: FT_Short,
+    pub caret_Offset: FT_Short,
+    pub Reserved: [FT_Short; 4usize],
+    pub metric_Data_Format: FT_Short,
+    pub number_Of_HMetrics: FT_UShort,
+    pub long_metrics: *mut ::std::os::raw::c_void,
+    pub short_metrics: *mut ::std::os::raw::c_void,
+}
+pub type TT_HoriHeader = TT_HoriHeader_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct TT_VertHeader_ {
+    pub Version: FT_Fixed,
+    pub Ascender: FT_Short,
+    pub Descender: FT_Short,
+    pub Line_Gap: FT_Short,
+    pub advance_Height_Max: FT_UShort,
+    pub min_Top_Side_Bearing: FT_Short,
+    pub min_Bottom_Side_Bearing: FT_Short,
+    pub yMax_Extent: FT_Short,
+    pub caret_Slope_Rise: FT_Short,
+    pub caret_Slope_Run: FT_Short,
+    pub caret_Offset: FT_Short,
+    pub Reserved: [FT_Short; 4usize],
+    pub metric_Data_Format: FT_Short,
+    pub number_Of_VMetrics: FT_UShort,
+    pub long_metrics: *mut ::std::os::raw::c_void,
+    pub short_metrics: *mut ::std::os::raw::c_void,
+}
+pub type TT_VertHeader = TT_VertHeader_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct TT_OS2_ {
+    pub version: FT_UShort,
+    pub xAvgCharWidth: FT_Short,
+    pub usWeightClass: FT_UShort,
+    pub usWidthClass: FT_UShort,
+    pub fsType: FT_UShort,
+    pub ySubscriptXSize: FT_Short,
+    pub ySubscriptYSize: FT_Short,
+    pub ySubscriptXOffset: FT_Short,
+    pub ySubscriptYOffset: FT_Short,
+    pub ySuperscriptXSize: FT_Short,
+    pub ySuperscriptYSize: FT_Short,
+    pub ySuperscriptXOffset: FT_Short,
+    pub ySuperscriptYOffset: FT_Short,
+    pub yStrikeoutSize: FT_Short,
+    pub yStrikeoutPosition: FT_Short,
+    pub sFamilyClass: FT_Short,
+    pub panose: [FT_Byte; 10usize],
+    pub ulUnicodeRange1: FT_ULong,
+    pub ulUnicodeRange2: FT_ULong,
+    pub ulUnicodeRange3: FT_ULong,
+    pub ulUnicodeRange4: FT_ULong,
+    pub achVendID: [FT_Char; 4usize],
+    pub fsSelection: FT_UShort,
+    pub usFirstCharIndex: FT_UShort,
+    pub usLastCharIndex: FT_UShort,
+    pub sTypoAscender: FT_Short,
+    pub sTypoDescender: FT_Short,
+    pub sTypoLineGap: FT_Short,
+    pub usWinAscent: FT_UShort,
+    pub usWinDescent: FT_UShort,
+    pub ulCodePageRange1: FT_ULong,
+    pub ulCodePageRange2: FT_ULong,
+    pub sxHeight: FT_Short,
+    pub sCapHeight: FT_Short,
+    pub usDefaultChar: FT_UShort,
+    pub usBreakChar: FT_UShort,
+    pub usMaxContext: FT_UShort,
+    pub usLowerOpticalPointSize: FT_UShort,
+    pub usUpperOpticalPointSize: FT_UShort,
+}
+pub type TT_OS2 = TT_OS2_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct TT_Postscript_ {
+    pub FormatType: FT_Fixed,
+    pub italicAngle: FT_Fixed,
+    pub underlinePosition: FT_Short,
+    pub underlineThickness: FT_Short,
+    pub isFixedPitch: FT_ULong,
+    pub minMemType42: FT_ULong,
+    pub maxMemType42: FT_ULong,
+    pub minMemType1: FT_ULong,
+    pub maxMemType1: FT_ULong,
+}
+pub type TT_Postscript = TT_Postscript_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct TT_PCLT_ {
+    pub Version: FT_Fixed,
+    pub FontNumber: FT_ULong,
+    pub Pitch: FT_UShort,
+    pub xHeight: FT_UShort,
+    pub Style: FT_UShort,
+    pub TypeFamily: FT_UShort,
+    pub CapHeight: FT_UShort,
+    pub SymbolSet: FT_UShort,
+    pub TypeFace: [FT_Char; 16usize],
+    pub CharacterComplement: [FT_Char; 8usize],
+    pub FileName: [FT_Char; 6usize],
+    pub StrokeWeight: FT_Char,
+    pub WidthType: FT_Char,
+    pub SerifStyle: FT_Byte,
+    pub Reserved: FT_Byte,
+}
+pub type TT_PCLT = TT_PCLT_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct TT_MaxProfile_ {
+    pub version: FT_Fixed,
+    pub numGlyphs: FT_UShort,
+    pub maxPoints: FT_UShort,
+    pub maxContours: FT_UShort,
+    pub maxCompositePoints: FT_UShort,
+    pub maxCompositeContours: FT_UShort,
+    pub maxZones: FT_UShort,
+    pub maxTwilightPoints: FT_UShort,
+    pub maxStorage: FT_UShort,
+    pub maxFunctionDefs: FT_UShort,
+    pub maxInstructionDefs: FT_UShort,
+    pub maxStackElements: FT_UShort,
+    pub maxSizeOfInstructions: FT_UShort,
+    pub maxComponentElements: FT_UShort,
+    pub maxComponentDepth: FT_UShort,
+}
+pub type TT_MaxProfile = TT_MaxProfile_;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum FT_Sfnt_Tag_ {

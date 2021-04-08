@@ -152,6 +152,21 @@ impl Face {
         }
     }
 
+    pub fn get_os2_table(&self) -> Option<&TT_OS2> {
+        unsafe {
+            let os2: *const TT_OS2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as _;
+            if os2.is_null() {
+                None
+            } else {
+                Some(&*os2)
+            }
+        }
+    }
+
+    pub fn italic(&self) -> bool {
+        unsafe { ((*self.face).style_flags & FT_STYLE_FLAG_ITALIC as FT_Long) != 0 }
+    }
+
     /// This is a wrapper around set_char_size and select_size
     /// that accounts for some weirdness with eg: color emoji
     pub fn set_font_size(&mut self, point_size: f64, dpi: u32) -> anyhow::Result<(f64, f64)> {

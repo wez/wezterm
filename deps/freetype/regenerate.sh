@@ -18,6 +18,6 @@ bindgen bindings.h -o src/lib.rs \
   --default-enum-style rust \
   --generate=functions,types,vars \
   --whitelist-function="FT_.*" \
-  --whitelist-type="FT_.*" \
+  --whitelist-type="[FT]T_.*" \
   --whitelist-var="FT_.*" \
   -- -Ifreetype2/include
