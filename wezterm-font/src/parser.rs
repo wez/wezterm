@@ -110,6 +110,7 @@ pub struct ParsedFont {
     weight: FontWeight,
     width: FontWidth,
     italic: bool,
+    pub handle: FontDataHandle,
 }
 
 #[derive(Debug)]
@@ -145,10 +146,10 @@ impl ParsedFont {
     pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
         let lib = crate::ftwrap::Library::new()?;
         let face = lib.face_from_locator(handle)?;
-        Self::from_face(&face)
+        Self::from_face(&face, handle.clone())
     }
 
-    pub fn from_face(face: &crate::ftwrap::Face) -> anyhow::Result<Self> {
+    pub fn from_face(face: &crate::ftwrap::Face, handle: FontDataHandle) -> anyhow::Result<Self> {
         let italic = face.italic();
         let (weight, width) = face.weight_and_width();
         let weight = FontWeight::from_opentype_weight(weight);
@@ -159,6 +160,7 @@ impl ParsedFont {
             weight,
             width,
             italic,
+            handle,
         })
     }
 
@@ -249,7 +251,7 @@ pub fn resolve_font_from_ttc_data(
     for index in 0..num_faces {
         locator.set_index(index);
         let face = lib.face_from_locator(&locator)?;
-        let parsed = ParsedFont::from_face(&face)?;
+        let parsed = ParsedFont::from_face(&face, locator.clone())?;
 
         if parsed.matches_attributes(attr) != FontMatch::NoMatch {
             return Ok(Some(index as usize));
@@ -262,9 +264,7 @@ pub fn resolve_font_from_ttc_data(
 /// we bundle JetBrains Mono and Noto Color Emoji to act as reasonably
 /// sane fallback fonts.
 /// This function loads those.
-pub(crate) fn load_built_in_fonts(
-    font_info: &mut Vec<(ParsedFont, FontDataHandle)>,
-) -> anyhow::Result<()> {
+pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Result<()> {
     macro_rules! font {
         ($font:literal) => {
             (include_bytes!($font) as &'static [u8], $font)
@@ -290,19 +290,17 @@ pub(crate) fn load_built_in_fonts(
         font!("../../assets/fonts/PowerlineExtraSymbols.otf"),
         font!("../../assets/fonts/LastResortHE-Regular.ttf"),
     ] {
-        let face = lib.new_face_from_slice(Cow::Borrowed(data), 0)?;
-        let parsed = ParsedFont::from_face(&face)?;
-        font_info.push((
-            parsed,
-            FontDataHandle {
-                source: FontDataSource::Memory {
-                    data: Cow::Borrowed(data),
-                    name: name.to_string(),
-                },
-                index: 0,
-                variation: 0,
+        let locator = FontDataHandle {
+            source: FontDataSource::Memory {
+                data: Cow::Borrowed(data),
+                name: name.to_string(),
             },
-        ));
+            index: 0,
+            variation: 0,
+        };
+        let face = lib.face_from_locator(&locator)?;
+        let parsed = ParsedFont::from_face(&face, locator)?;
+        font_info.push(parsed);
     }
 
     Ok(())
@@ -310,7 +308,7 @@ pub(crate) fn load_built_in_fonts(
 
 pub(crate) fn parse_and_collect_font_info(
     source: &FontDataSource,
-    font_info: &mut Vec<(ParsedFont, FontDataHandle)>,
+    font_info: &mut Vec<ParsedFont>,
 ) -> anyhow::Result<()> {
     let lib = crate::ftwrap::Library::new()?;
     let num_faces = lib.query_num_faces(&source)?;
@@ -319,7 +317,7 @@ pub(crate) fn parse_and_collect_font_info(
         lib: &crate::ftwrap::Library,
         source: &FontDataSource,
         index: u32,
-        font_info: &mut Vec<(ParsedFont, FontDataHandle)>,
+        font_info: &mut Vec<ParsedFont>,
     ) -> anyhow::Result<()> {
         let locator = FontDataHandle {
             source: source.clone(),
@@ -329,19 +327,12 @@ pub(crate) fn parse_and_collect_font_info(
 
         let face = lib.face_from_locator(&locator)?;
         if let Ok(variations) = face.variations() {
-            for (variation, parsed) in variations.into_iter().enumerate() {
-                font_info.push((
-                    parsed,
-                    FontDataHandle {
-                        source: source.clone(),
-                        index,
-                        variation: variation as u32 + 1,
-                    },
-                ));
+            for parsed in variations {
+                font_info.push(parsed);
             }
         } else {
             let parsed = ParsedFont::from_locator(&locator)?;
-            font_info.push((parsed, locator));
+            font_info.push(parsed);
         }
         Ok(())
     }

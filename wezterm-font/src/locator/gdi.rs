@@ -157,9 +157,9 @@ fn handle_from_descriptor(
             log::debug!("{} -> {}", family_name, path.display());
             let source = FontDataSource::OnDisk(path);
             if parse_and_collect_font_info(&source, &mut font_info).is_ok() {
-                for (parsed, handle) in font_info {
+                for parsed in font_info {
                     if parsed.matches_attributes(attr) != FontMatch::NoMatch {
-                        return Some(handle);
+                        return Some(parsed.handle);
                     }
                 }
             }

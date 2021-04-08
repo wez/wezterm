@@ -73,11 +73,9 @@ pub fn compute_load_flags_from_config() -> (i32, FT_Render_Mode) {
     (load_flags as i32, render)
 }
 
-type CowVecU8 = Cow<'static, [u8]>;
-
 pub struct Face {
     pub face: FT_Face,
-    _bytes: CowVecU8,
+    source: FontDataHandle,
     size: Option<FaceSize>,
     lib: FT_Library,
 }
@@ -142,7 +140,12 @@ impl Face {
             let num_styles = (*mm).num_namedstyles;
             for i in 1..=num_styles {
                 FT_Set_Named_Instance(self.face, i);
-                res.push(ParsedFont::from_face(&self)?);
+                let source = FontDataHandle {
+                    source: self.source.source.clone(),
+                    index: self.source.index,
+                    variation: i,
+                };
+                res.push(ParsedFont::from_face(&self, source)?);
             }
 
             FT_Done_MM_Var(self.lib, mm);
@@ -492,37 +495,42 @@ impl Library {
     /// For a TTC, it will be the number of contained fonts
     pub fn query_num_faces(&self, source: &FontDataSource) -> anyhow::Result<u32> {
         let face = match source {
-            FontDataSource::OnDisk(path) => self
-                .new_face(path.to_str().unwrap(), -1)
-                .context("query_num_faces")?,
+            FontDataSource::OnDisk(path) => self.new_face(path, -1).context("query_num_faces")?,
             FontDataSource::Memory { data, .. } => self
-                .new_face_from_slice(data.clone(), -1)
+                .new_face_from_slice(&data, -1)
                 .context("query_num_faces")?,
         };
-        Ok(unsafe { (*face.face).num_faces }.try_into()?)
+        let num_faces = unsafe { (*face).num_faces }.try_into();
+
+        unsafe {
+            FT_Done_Face(face);
+        }
+
+        Ok(num_faces?)
     }
 
     pub fn face_from_locator(&self, handle: &FontDataHandle) -> anyhow::Result<Face> {
-        let face = match &handle.source {
-            FontDataSource::OnDisk(path) => {
-                self.new_face(path.to_str().unwrap(), handle.index as _)?
-            }
-            FontDataSource::Memory { data, .. } => {
-                self.new_face_from_slice(data.clone(), handle.index as _)?
-            }
-        };
+        let source = handle.clone();
 
+        let mut index = handle.index;
         if handle.variation != 0 {
-            unsafe {
-                ft_result(FT_Set_Named_Instance(face.face, handle.variation), ())
-                    .context("FT_Set_Named_Instance")?;
-            }
+            index |= handle.variation << 16;
         }
 
-        Ok(face)
+        let face = match &source.source {
+            FontDataSource::OnDisk(path) => self.new_face(path.to_str().unwrap(), index as _)?,
+            FontDataSource::Memory { data, .. } => self.new_face_from_slice(&data, index as _)?,
+        };
+
+        Ok(Face {
+            face,
+            lib: self.lib,
+            source,
+            size: None,
+        })
     }
 
-    pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> anyhow::Result<Face>
+    fn new_face<P>(&self, path: P, face_index: FT_Long) -> anyhow::Result<FT_Face>
     where
         P: AsRef<std::path::Path>,
     {
@@ -538,55 +546,27 @@ impl Library {
                         &mut face as *mut _,
                     )
                 };
-                return Ok(Face {
-                    face: ft_result(res, face).with_context(|| {
-                        format!(
-                            "FT_New_Face for {} index {}",
-                            path.as_ref().display(),
-                            face_index
-                        )
-                    })?,
-                    _bytes: CowVecU8::Borrowed(b""),
-                    size: None,
-                    lib: self.lib,
+                return ft_result(res, face).with_context(|| {
+                    format!(
+                        "FT_New_Face for {} index {}",
+                        path.as_ref().display(),
+                        face_index
+                    )
                 });
             }
         }
 
-        let path = path.as_ref();
-
-        let data = std::fs::read(path)?;
-        log::trace!(
-            "Loading {} ({} bytes) for freetype!",
-            path.display(),
-            data.len()
+        anyhow::bail!(
+            "path {} cannot be represented as a c-string for freetype",
+            path.as_ref().display()
         );
-        let data = CowVecU8::Owned(data);
-
-        let res = unsafe {
-            FT_New_Memory_Face(
-                self.lib,
-                data.as_ptr(),
-                data.len() as _,
-                face_index,
-                &mut face as *mut _,
-            )
-        };
-        Ok(Face {
-            face: ft_result(res, face).with_context(|| {
-                format!(
-                    "FT_New_Memory_Face for {} index {}",
-                    path.display(),
-                    face_index
-                )
-            })?,
-            _bytes: data,
-            size: None,
-            lib: self.lib,
-        })
     }
 
-    pub fn new_face_from_slice(&self, data: CowVecU8, face_index: FT_Long) -> anyhow::Result<Face> {
+    fn new_face_from_slice(
+        &self,
+        data: &Cow<'static, [u8]>,
+        face_index: FT_Long,
+    ) -> anyhow::Result<FT_Face> {
         let mut face = ptr::null_mut();
 
         let res = unsafe {
@@ -598,13 +578,7 @@ impl Library {
                 &mut face as *mut _,
             )
         };
-        Ok(Face {
-            face: ft_result(res, face)
-                .with_context(|| format!("FT_New_Memory_Face for index {}", face_index))?,
-            _bytes: data,
-            size: None,
-            lib: self.lib,
-        })
+        ft_result(res, face).with_context(|| format!("FT_New_Memory_Face for index {}", face_index))
     }
 
     pub fn set_lcd_filter(&mut self, filter: FT_LcdFilter) -> anyhow::Result<()> {

@@ -12,7 +12,6 @@ use std::sync::{Arc, Mutex};
 
 struct Entry {
     parsed: ParsedFont,
-    handle: FontDataHandle,
     coverage: Mutex<Option<RangeSet<u32>>>,
 }
 
@@ -22,8 +21,8 @@ impl Entry {
     fn compute_coverage(&self) -> anyhow::Result<RangeSet<u32>> {
         let lib = Library::new()?;
         let face = lib
-            .face_from_locator(&self.handle)
-            .with_context(|| format!("freetype parsing {:?}", self.handle))?;
+            .face_from_locator(&self.parsed.handle)
+            .with_context(|| format!("freetype parsing {:?}", self.parsed))?;
 
         Ok(face.compute_coverage())
     }
@@ -63,11 +62,10 @@ impl FontDatabase {
         }
     }
 
-    fn load_font_info(&mut self, font_info: Vec<(ParsedFont, FontDataHandle)>) {
-        for (parsed, handle) in font_info {
+    fn load_font_info(&mut self, font_info: Vec<ParsedFont>) {
+        for parsed in font_info {
             let entry = Arc::new(Entry {
                 parsed,
-                handle,
                 coverage: Mutex::new(None),
             });
 
@@ -163,7 +161,7 @@ impl FontDatabase {
                 .with_context(|| format!("coverage_interaction for {:?}", entry.parsed))?;
             let len = covered.len();
             if len > 0 {
-                matches.push((len, entry.handle.clone()));
+                matches.push((len, entry.parsed.handle.clone()));
             }
         }
 
@@ -186,7 +184,7 @@ impl FontDatabase {
     pub fn resolve(&self, font_attr: &FontAttributes) -> Option<&FontDataHandle> {
         if let Some(entry) = self.by_full_name.get(&font_attr.family) {
             if entry.parsed.matches_attributes(font_attr) == FontMatch::FullName {
-                return Some(&entry.handle);
+                return Some(&entry.parsed.handle);
             }
         }
 
@@ -200,7 +198,7 @@ impl FontDatabase {
             }
             candidates.sort_by(|a, b| a.0.cmp(&b.0));
             let best = candidates.first()?;
-            return Some(&best.1.handle);
+            return Some(&best.1.parsed.handle);
         }
 
         None

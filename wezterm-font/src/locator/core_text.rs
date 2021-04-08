@@ -61,11 +61,11 @@ fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandl
     let source = FontDataSource::OnDisk(path);
     crate::parser::parse_and_collect_font_info(&source, &mut font_info).ok()?;
 
-    for (parsed, locator) in font_info {
+    for parsed in font_info {
         if parsed.names().full_name == family_name
             || parsed.names().family.as_ref() == Some(&family_name)
         {
-            return Some(locator);
+            return Some(parsed.handle);
         }
     }
 
