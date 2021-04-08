@@ -113,7 +113,7 @@ impl FontDatabase {
                 let path = entry.path();
                 parse_and_collect_font_info(path, &mut font_info)
                     .map_err(|err| {
-                        log::trace!("failed to read {}: {}", path.display(), err);
+                        log::trace!("failed to read {}: {:#}", path.display(), err);
                         err
                     })
                     .ok();

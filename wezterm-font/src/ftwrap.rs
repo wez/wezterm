@@ -460,8 +460,12 @@ impl Library {
     /// For a TTC, it will be the number of contained fonts
     pub fn query_num_faces(&self, handle: &FontDataHandle) -> anyhow::Result<u32> {
         let face = match handle {
-            FontDataHandle::OnDisk { path, .. } => self.new_face(path.to_str().unwrap(), -1)?,
-            FontDataHandle::Memory { data, .. } => self.new_face_from_slice(data.clone(), -1)?,
+            FontDataHandle::OnDisk { path, .. } => self
+                .new_face(path.to_str().unwrap(), -1)
+                .context("query_num_faces")?,
+            FontDataHandle::Memory { data, .. } => self
+                .new_face_from_slice(data.clone(), -1)
+                .context("query_num_faces")?,
         };
         Ok(unsafe { (*face.face).num_faces }.try_into()?)
     }
