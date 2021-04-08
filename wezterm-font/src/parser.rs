@@ -218,6 +218,18 @@ impl ParsedFont {
             FontMatch::NoMatch
         }
     }
+
+    pub fn rank_matches(attr: &FontAttributes, fonts: Vec<Self>) -> Vec<Self> {
+        let mut candidates = vec![];
+        for p in fonts {
+            let res = p.matches_attributes(attr);
+            if res != FontMatch::NoMatch {
+                candidates.push((res, p));
+            }
+        }
+        candidates.sort_by(|a, b| a.0.cmp(&b.0));
+        candidates.into_iter().map(|(_, p)| p).collect()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
@@ -225,39 +237,6 @@ pub enum FontMatch {
     Weight(u16),
     FullName,
     NoMatch,
-}
-
-/// Given a blob representing a True Type Collection (.ttc) file,
-/// and a desired font, enumerate the collection to resolve the index of
-/// the font inside that collection that matches it.
-/// Even though this is intended to work with a TTC, this also returns
-/// the index of a singular TTF file, if it matches.
-pub fn resolve_font_from_ttc_data(
-    attr: &FontAttributes,
-    data: &Cow<'static, [u8]>,
-) -> anyhow::Result<Option<usize>> {
-    let lib = crate::ftwrap::Library::new()?;
-    let mut locator = FontDataHandle {
-        source: FontDataSource::Memory {
-            name: "".to_string(),
-            data: data.clone(),
-        },
-        index: 0,
-        variation: 0,
-    };
-
-    let num_faces = lib.query_num_faces(&locator.source)?;
-
-    for index in 0..num_faces {
-        locator.set_index(index);
-        let face = lib.face_from_locator(&locator)?;
-        let parsed = ParsedFont::from_face(&face, locator.clone())?;
-
-        if parsed.matches_attributes(attr) != FontMatch::NoMatch {
-            return Ok(Some(index as usize));
-        }
-    }
-    Ok(None)
 }
 
 /// In case the user has a broken configuration, or no configuration,
@@ -304,6 +283,15 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
     }
 
     Ok(())
+}
+
+pub fn rank_matching_fonts(
+    source: &FontDataSource,
+    font_attr: &FontAttributes,
+) -> anyhow::Result<Vec<ParsedFont>> {
+    let mut font_info = vec![];
+    parse_and_collect_font_info(source, &mut font_info)?;
+    Ok(ParsedFont::rank_matches(font_attr, font_info))
 }
 
 pub(crate) fn parse_and_collect_font_info(

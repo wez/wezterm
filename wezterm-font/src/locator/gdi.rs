@@ -1,7 +1,7 @@
 #![cfg(windows)]
 
 use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
-use crate::parser::{parse_and_collect_font_info, FontMatch};
+use crate::parser::{parse_and_collect_font_info, rank_matching_fonts, FontMatch, ParsedFont};
 use config::FontAttributes;
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
@@ -35,24 +35,11 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
 
         let ttc_size = GetFontData(hdc, ttc_table, 0, std::ptr::null_mut(), 0);
 
-        let result = if ttc_size > 0 && ttc_size != GDI_ERROR {
+        let data = if ttc_size > 0 && ttc_size != GDI_ERROR {
             let mut data = vec![0u8; ttc_size as usize];
             GetFontData(hdc, ttc_table, 0, data.as_mut_ptr() as *mut _, ttc_size);
 
-            let data = Cow::Owned(data);
-
-            // Determine which of the contained fonts is the one
-            // that we asked for.
-            let index =
-                crate::parser::resolve_font_from_ttc_data(&attr, &data)?.unwrap_or(0) as u32;
-            Ok(FontDataHandle {
-                source: FontDataSource::Memory {
-                    data,
-                    name: attr.family.clone(),
-                },
-                index,
-                variation: 0,
-            })
+            Ok(data)
         } else {
             // Otherwise: presumably a regular ttf
 
@@ -61,21 +48,28 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
                 _ if size > 0 && size != GDI_ERROR => {
                     let mut data = vec![0u8; size as usize];
                     GetFontData(hdc, 0, 0, data.as_mut_ptr() as *mut _, size);
-                    Ok(FontDataHandle {
-                        source: FontDataSource::Memory {
-                            data: Cow::Owned(data),
-                            name: attr.family.clone(),
-                        },
-                        index: 0,
-                        variation: 0,
-                    })
+                    Ok(data)
                 }
                 _ => Err(anyhow::anyhow!("Failed to get font data")),
             }
         };
-
         DeleteDC(hdc);
-        result
+        let data = data?;
+
+        let source = FontDataSource::Memory {
+            data: Cow::Owned(data),
+            name: attr.family.clone(),
+        };
+
+        let mut font_info = vec![];
+        parse_and_collect_font_info(&source, &mut font_info)?;
+        let matches = ParsedFont::rank_matches(attr, font_info);
+
+        for m in matches {
+            return Ok(m.handle);
+        }
+
+        anyhow::bail!("No font matching {:?} in {:?}", attr, source);
     }
 }
 
@@ -153,15 +147,15 @@ fn handle_from_descriptor(
         if let Some(path) = file.get_font_file_path() {
             let family_name = font.family_name();
 
-            let mut font_info = vec![];
             log::debug!("{} -> {}", family_name, path.display());
             let source = FontDataSource::OnDisk(path);
-            if parse_and_collect_font_info(&source, &mut font_info).is_ok() {
-                for parsed in font_info {
-                    if parsed.matches_attributes(attr) != FontMatch::NoMatch {
-                        return Some(parsed.handle);
+            match rank_matching_fonts(&source, attr) {
+                Ok(matches) => {
+                    for p in matches {
+                        return Some(p.handle);
                     }
                 }
+                Err(err) => log::warn!("While parsing: {:?}: {:#}", source, err),
             }
         }
     }
