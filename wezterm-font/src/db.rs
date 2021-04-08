@@ -30,7 +30,8 @@ impl Entry {
             }
         };
 
-        let face = Face::from_slice(&data, index)?;
+        let face = Face::from_slice(&data, index)
+            .with_context(|| format!("ttf_parser parsing {:?}", self.handle))?;
         let mut coverage = RangeSet::new();
 
         for table in face.character_mapping_subtables() {
@@ -51,7 +52,7 @@ impl Entry {
         let mut coverage = self.coverage.lock().unwrap();
         if coverage.is_none() {
             let t = std::time::Instant::now();
-            coverage.replace(self.compute_coverage()?);
+            coverage.replace(self.compute_coverage().context("compute_coverage")?);
             let elapsed = t.elapsed();
             metrics::histogram!("font.compute.codepoint.coverage", elapsed);
             log::debug!(
@@ -173,7 +174,9 @@ impl FontDatabase {
         let mut matches = vec![];
 
         for entry in self.by_full_name.values() {
-            let covered = entry.coverage_intersection(&wanted_range)?;
+            let covered = entry
+                .coverage_intersection(&wanted_range)
+                .with_context(|| format!("coverage_interaction for {:?}", entry.parsed))?;
             let len = covered.len();
             if len > 0 {
                 matches.push((len, entry.handle.clone()));

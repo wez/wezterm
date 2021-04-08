@@ -1,12 +1,11 @@
 #![cfg(windows)]
 
 use crate::locator::{FontDataHandle, FontLocator};
-use crate::parser::FontMatch;
+use crate::parser::{parse_and_collect_font_info, FontMatch};
 use config::FontAttributes;
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
 use std::collections::HashSet;
-use ttf_parser::fonts_in_collection;
 use winapi::shared::windef::HFONT;
 use winapi::um::dwrite::*;
 use winapi::um::wingdi::{
@@ -140,6 +139,7 @@ fn attributes_to_descriptor(font_attr: &FontAttributes) -> FontDescriptor {
 }
 
 fn handle_from_descriptor(
+    attr: &FontAttributes,
     collection: &dwrote::FontCollection,
     descriptor: &FontDescriptor,
 ) -> Option<FontDataHandle> {
@@ -148,32 +148,13 @@ fn handle_from_descriptor(
     for file in face.get_files() {
         if let Some(path) = file.get_font_file_path() {
             let family_name = font.family_name();
+
+            let mut font_info = vec![];
             log::debug!("{} -> {}", family_name, path.display());
-            if let Ok(data) = std::fs::read(&path) {
-                let size = fonts_in_collection(&data).unwrap_or(1);
-
-                let mut handle = FontDataHandle::Memory {
-                    data: Cow::Owned(data),
-                    name: family_name.clone(),
-                    index: 0,
-                    variation: 0,
-                };
-
-                for index in 0..size {
-                    if let FontDataHandle::Memory { index: idx, .. } = &mut handle {
-                        *idx = index;
-                    }
-                    let parsed = crate::parser::ParsedFont::from_locator(&handle).ok()?;
-                    let names = parsed.names();
-                    if names.full_name == family_name || names.family.as_ref() == Some(&family_name)
-                    {
-                        // Switch to an OnDisk handle so that we don't hold
-                        // all of the fallback fonts in memory
-                        return Some(FontDataHandle::OnDisk {
-                            path,
-                            index,
-                            variation: 0,
-                        });
+            if parse_and_collect_font_info(&path, &mut font_info).is_ok() {
+                for (parsed, handle) in font_info {
+                    if parsed.matches_attributes(attr) != FontMatch::NoMatch {
+                        return Some(handle);
                     }
                 }
             }
@@ -218,7 +199,7 @@ impl FontLocator for GdiFontLocator {
                 }
             }
 
-            match handle_from_descriptor(&collection, &descriptor) {
+            match handle_from_descriptor(font_attr, &collection, &descriptor) {
                 Some(handle) => {
                     log::debug!("Got {:?} from dwrote", handle);
                     if try_handle(font_attr, handle, &mut fonts, loaded) {
@@ -326,7 +307,9 @@ impl FontLocator for GdiFontLocator {
                         resolved.insert(attr.clone());
 
                         let descriptor = attributes_to_descriptor(&attr);
-                        if let Some(handle) = handle_from_descriptor(&collection, &descriptor) {
+                        if let Some(handle) =
+                            handle_from_descriptor(&attr, &collection, &descriptor)
+                        {
                             handles.push(handle);
                         }
                     }
