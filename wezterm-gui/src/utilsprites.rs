@@ -35,7 +35,7 @@ impl RenderMetrics {
 
         // When line_height != 1.0, we want to adjust the baseline position
         // such that we are horizontally centered.
-        let line_height_y_adjust = (cell_height as f64 - metrics.cell_height.get()) / 2.;
+        let line_height_y_adjust = (cell_height as f64 - metrics.cell_height.get().ceil()) / 2.;
 
         let underline_height = metrics.underline_thickness.get().round().max(1.) as isize;
 
