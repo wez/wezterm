@@ -1,6 +1,6 @@
 //! Higher level freetype bindings
 
-use crate::locator::FontDataHandle;
+use crate::locator::{FontDataHandle, FontDataSource};
 use crate::parser::ParsedFont;
 use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadTarget};
@@ -490,12 +490,12 @@ impl Library {
     /// Returns the number of faces in a given font.
     /// For a TTF this will be 1.
     /// For a TTC, it will be the number of contained fonts
-    pub fn query_num_faces(&self, handle: &FontDataHandle) -> anyhow::Result<u32> {
-        let face = match handle {
-            FontDataHandle::OnDisk { path, .. } => self
+    pub fn query_num_faces(&self, source: &FontDataSource) -> anyhow::Result<u32> {
+        let face = match source {
+            FontDataSource::OnDisk(path) => self
                 .new_face(path.to_str().unwrap(), -1)
                 .context("query_num_faces")?,
-            FontDataHandle::Memory { data, .. } => self
+            FontDataSource::Memory { data, .. } => self
                 .new_face_from_slice(data.clone(), -1)
                 .context("query_num_faces")?,
         };
@@ -503,29 +503,18 @@ impl Library {
     }
 
     pub fn face_from_locator(&self, handle: &FontDataHandle) -> anyhow::Result<Face> {
-        let (face, variation) = match handle {
-            FontDataHandle::OnDisk {
-                path,
-                index,
-                variation,
-            } => (
-                self.new_face(path.to_str().unwrap(), *index as _)?,
-                *variation,
-            ),
-            FontDataHandle::Memory {
-                data,
-                index,
-                variation,
-                ..
-            } => (
-                self.new_face_from_slice(data.clone(), *index as _)?,
-                *variation,
-            ),
+        let face = match &handle.source {
+            FontDataSource::OnDisk(path) => {
+                self.new_face(path.to_str().unwrap(), handle.index as _)?
+            }
+            FontDataSource::Memory { data, .. } => {
+                self.new_face_from_slice(data.clone(), handle.index as _)?
+            }
         };
 
-        if variation != 0 {
+        if handle.variation != 0 {
             unsafe {
-                ft_result(FT_Set_Named_Instance(face.face, variation), ())
+                ft_result(FT_Set_Named_Instance(face.face, handle.variation), ())
                     .context("FT_Set_Named_Instance")?;
             }
         }

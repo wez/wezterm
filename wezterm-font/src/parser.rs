@@ -1,8 +1,7 @@
-use crate::locator::FontDataHandle;
+use crate::locator::{FontDataHandle, FontDataSource};
 use crate::shaper::GlyphInfo;
 use config::FontAttributes;
 use std::borrow::Cow;
-use std::path::Path;
 
 #[derive(Debug)]
 pub enum MaybeShaped {
@@ -236,14 +235,16 @@ pub fn resolve_font_from_ttc_data(
     data: &Cow<'static, [u8]>,
 ) -> anyhow::Result<Option<usize>> {
     let lib = crate::ftwrap::Library::new()?;
-    let mut locator = FontDataHandle::Memory {
-        name: "".to_string(),
-        data: data.clone(),
+    let mut locator = FontDataHandle {
+        source: FontDataSource::Memory {
+            name: "".to_string(),
+            data: data.clone(),
+        },
         index: 0,
         variation: 0,
     };
 
-    let num_faces = lib.query_num_faces(&locator)?;
+    let num_faces = lib.query_num_faces(&locator.source)?;
 
     for index in 0..num_faces {
         locator.set_index(index);
@@ -293,10 +294,12 @@ pub(crate) fn load_built_in_fonts(
         let parsed = ParsedFont::from_face(&face)?;
         font_info.push((
             parsed,
-            FontDataHandle::Memory {
-                data: Cow::Borrowed(data),
+            FontDataHandle {
+                source: FontDataSource::Memory {
+                    data: Cow::Borrowed(data),
+                    name: name.to_string(),
+                },
                 index: 0,
-                name: name.to_string(),
                 variation: 0,
             },
         ));
@@ -306,27 +309,20 @@ pub(crate) fn load_built_in_fonts(
 }
 
 pub(crate) fn parse_and_collect_font_info(
-    path: &Path,
+    source: &FontDataSource,
     font_info: &mut Vec<(ParsedFont, FontDataHandle)>,
 ) -> anyhow::Result<()> {
     let lib = crate::ftwrap::Library::new()?;
-
-    let locator = FontDataHandle::OnDisk {
-        path: path.to_path_buf(),
-        index: 0,
-        variation: 0,
-    };
-
-    let num_faces = lib.query_num_faces(&locator)?;
+    let num_faces = lib.query_num_faces(&source)?;
 
     fn load_one(
         lib: &crate::ftwrap::Library,
-        path: &Path,
+        source: &FontDataSource,
         index: u32,
         font_info: &mut Vec<(ParsedFont, FontDataHandle)>,
     ) -> anyhow::Result<()> {
-        let locator = FontDataHandle::OnDisk {
-            path: path.to_path_buf(),
+        let locator = FontDataHandle {
+            source: source.clone(),
             index,
             variation: 0,
         };
@@ -336,8 +332,8 @@ pub(crate) fn parse_and_collect_font_info(
             for (variation, parsed) in variations.into_iter().enumerate() {
                 font_info.push((
                     parsed,
-                    FontDataHandle::OnDisk {
-                        path: path.to_path_buf(),
+                    FontDataHandle {
+                        source: source.clone(),
                         index,
                         variation: variation as u32 + 1,
                     },
@@ -351,13 +347,8 @@ pub(crate) fn parse_and_collect_font_info(
     }
 
     for index in 0..num_faces {
-        if let Err(err) = load_one(&lib, path, index, font_info) {
-            log::trace!(
-                "error while parsing {} index {}: {}",
-                path.display(),
-                index,
-                err
-            );
+        if let Err(err) = load_one(&lib, &source, index, font_info) {
+            log::trace!("error while parsing {:?} index {}: {}", source, index, err);
         }
     }
 

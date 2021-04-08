@@ -59,15 +59,8 @@ fn locate_offset_table<'a>(f: &OpenTypeFile<'a>, idx: usize) -> anyhow::Result<O
 
 impl ParsedFont {
     pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
-        let (data, index) = match handle {
-            FontDataHandle::Memory { data, index, .. } => (data.to_vec(), *index),
-            FontDataHandle::OnDisk { path, index, .. } => {
-                let data = std::fs::read(path)?;
-                (data, *index)
-            }
-        };
-
-        let index = index as usize;
+        let data = handle.source.load_data()?;
+        let index = handle.index as usize;
 
         let owned_scope = ReadScopeOwned::new(ReadScope::new(&data));
 

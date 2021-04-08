@@ -1,6 +1,6 @@
 #![cfg(windows)]
 
-use crate::locator::{FontDataHandle, FontLocator};
+use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
 use crate::parser::{parse_and_collect_font_info, FontMatch};
 use config::FontAttributes;
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
@@ -45,10 +45,12 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
             // that we asked for.
             let index =
                 crate::parser::resolve_font_from_ttc_data(&attr, &data)?.unwrap_or(0) as u32;
-            Ok(FontDataHandle::Memory {
-                data,
+            Ok(FontDataHandle {
+                source: FontDataSource::Memory {
+                    data,
+                    name: attr.family.clone(),
+                },
                 index,
-                name: attr.family.clone(),
                 variation: 0,
             })
         } else {
@@ -59,10 +61,12 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
                 _ if size > 0 && size != GDI_ERROR => {
                     let mut data = vec![0u8; size as usize];
                     GetFontData(hdc, 0, 0, data.as_mut_ptr() as *mut _, size);
-                    Ok(FontDataHandle::Memory {
-                        data: Cow::Owned(data),
+                    Ok(FontDataHandle {
+                        source: FontDataSource::Memory {
+                            data: Cow::Owned(data),
+                            name: attr.family.clone(),
+                        },
                         index: 0,
-                        name: attr.family.clone(),
                         variation: 0,
                     })
                 }
@@ -151,7 +155,8 @@ fn handle_from_descriptor(
 
             let mut font_info = vec![];
             log::debug!("{} -> {}", family_name, path.display());
-            if parse_and_collect_font_info(&path, &mut font_info).is_ok() {
+            let source = FontDataSource::OnDisk(path);
+            if parse_and_collect_font_info(&source, &mut font_info).is_ok() {
                 for (parsed, handle) in font_info {
                     if parsed.matches_attributes(attr) != FontMatch::NoMatch {
                         return Some(handle);

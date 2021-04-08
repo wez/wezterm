@@ -1,8 +1,8 @@
 //! A font-database to keep track of fonts that we've located
 
 use crate::ftwrap::Library;
+use crate::locator::{FontDataHandle, FontDataSource};
 use crate::parser::{load_built_in_fonts, parse_and_collect_font_info, FontMatch, ParsedFont};
-use crate::FontDataHandle;
 use anyhow::Context;
 use config::{Config, FontAttributes};
 use rangeset::RangeSet;
@@ -95,10 +95,10 @@ impl FontDatabase {
                     Err(_) => continue,
                 };
 
-                let path = entry.path();
-                parse_and_collect_font_info(path, &mut font_info)
+                let source = FontDataSource::OnDisk(entry.path().to_path_buf());
+                parse_and_collect_font_info(&source, &mut font_info)
                     .map_err(|err| {
-                        log::trace!("failed to read {}: {:#}", path.display(), err);
+                        log::trace!("failed to read {:?}: {:#}", source, err);
                         err
                     })
                     .ok();
