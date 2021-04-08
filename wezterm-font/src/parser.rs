@@ -221,29 +221,6 @@ pub enum FontMatch {
     NoMatch,
 }
 
-pub fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
-    if let Some(fam) = names.family.as_ref() {
-        // TODO: correctly match using family and sub-family;
-        // this is a pretty rough approximation
-        if attr.family == *fam {
-            match names.sub_family.as_ref().map(String::as_str) {
-                Some("Italic") if attr.italic && !attr.bold => return true,
-                Some("Bold") if attr.bold && !attr.italic => return true,
-                Some("Bold Italic") if attr.bold && attr.italic => return true,
-                Some("Medium") | Some("Regular") | None if !attr.italic && !attr.bold => {
-                    return true
-                }
-                _ => {}
-            }
-        }
-    }
-    if attr.family == names.full_name && !attr.bold && !attr.italic {
-        true
-    } else {
-        false
-    }
-}
-
 /// Given a blob representing a True Type Collection (.ttc) file,
 /// and a desired font, enumerate the collection to resolve the index of
 /// the font inside that collection that matches it.

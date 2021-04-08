@@ -1,6 +1,7 @@
 #![cfg(windows)]
 
 use crate::locator::{FontDataHandle, FontLocator};
+use crate::parser::FontMatch;
 use config::FontAttributes;
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
@@ -201,7 +202,7 @@ impl FontLocator for GdiFontLocator {
             ) -> bool {
                 match crate::parser::ParsedFont::from_locator(&handle) {
                     Ok(parsed) => {
-                        if crate::parser::font_info_matches(font_attr, parsed.names()) {
+                        if parsed.matches_attributes(font_attr) != FontMatch::NoMatch {
                             fonts.push(handle);
                             loaded.insert(font_attr.clone());
                             true
