@@ -27,7 +27,11 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescripto
         .map_err(|_| anyhow::anyhow!("failed to parse family name {} as CFString", attr.family))?;
 
     let symbolic_traits: CTFontSymbolicTraits = kCTFontMonoSpaceTrait
-        | if attr.bold { kCTFontBoldTrait } else { 0 }
+        | if attr.weight.to_opentype_weight() >= FontWeight::Bold.to_opentype_weight() {
+            kCTFontBoldTrait
+        } else {
+            0
+        }
         | if attr.italic { kCTFontItalicTrait } else { 0 };
 
     let family_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontFamilyNameAttribute) };
@@ -136,7 +140,8 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<FontDataHandle>> {
     // a nearby approximation.
     let symbols = FontAttributes {
         family: "Apple Symbols".to_string(),
-        bold: false,
+        weight: FontWeight::Regular,
+        width: FontWidth::Normal,
         italic: false,
         is_fallback: true,
         is_synthetic: true,
