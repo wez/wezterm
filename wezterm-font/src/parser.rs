@@ -95,7 +95,7 @@ pub fn resolve_font_from_ttc_data(
     let lib = crate::ftwrap::Library::new()?;
     if let Some(size) = fonts_in_collection(data) {
         for index in 0..size {
-            let face = lib.new_face_from_slice(data.clone(), index.into())?;
+            let face = lib.new_face_from_slice(data.clone(), index as _)?;
             let names = Names::from_ft_face(&face);
             if font_info_matches(attr, &names) {
                 return Ok(Some(index as usize));

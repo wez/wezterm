@@ -49,6 +49,7 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
                 data,
                 index,
                 name: attr.family.clone(),
+                variation: 0,
             })
         } else {
             // Otherwise: presumably a regular ttf
@@ -62,6 +63,7 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
                         data: Cow::Owned(data),
                         index: 0,
                         name: attr.family.clone(),
+                        variation: 0,
                     })
                 }
                 _ => Err(anyhow::anyhow!("Failed to get font data")),
@@ -153,6 +155,7 @@ fn handle_from_descriptor(
                     data: Cow::Owned(data),
                     name: family_name.clone(),
                     index: 0,
+                    variation: 0,
                 };
 
                 for index in 0..size {
@@ -165,7 +168,11 @@ fn handle_from_descriptor(
                     {
                         // Switch to an OnDisk handle so that we don't hold
                         // all of the fallback fonts in memory
-                        return Some(FontDataHandle::OnDisk { path, index });
+                        return Some(FontDataHandle::OnDisk {
+                            path,
+                            index,
+                            variation: 0,
+                        });
                     }
                 }
             }
