@@ -52,7 +52,7 @@ pub struct SelectionRange {
 }
 
 fn is_double_click_word(s: &str) -> bool {
-    match s.len() {
+    match s.chars().count() {
         1 => !config::configuration().selection_word_boundary.contains(s),
         0 => false,
         _ => true,
