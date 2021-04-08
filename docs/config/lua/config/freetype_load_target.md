@@ -2,8 +2,8 @@
 
 *Since: 20210314-114017-04b7cedd*
 
-Configures the rendering mode used with the freetype rasterizer.
-The following values are possible:
+Configures the hinting and (potentially) the rendering mode used with the
+freetype rasterizer.  The following values are possible:
 
 * `"Normal"` - This corresponds to the default hinting algorithm, optimized for standard gray-level rendering.  This is the default setting.
 * `"Light"` -  A lighter hinting algorithm for non-monochrome modes. Many
@@ -14,6 +14,8 @@ The following values are possible:
   glyph is rendered in non-monochrome modes.
 * `"HorizontalLcd"` - A subpixel-rendering variant of `Normal` optimized for horizontally decimated LCD displays.
 
-See also [freetype_load_flags](freetype_load_flags.md) for more advanced flags
-that can be primarily used to influence font hinting.
+See also [freetype_render_target](freetype_render_target.md) and
+[freetype_load_flags](freetype_load_flags.md) for more advanced flags that can
+be primarily used to influence font hinting.
+
 
