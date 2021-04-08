@@ -3,7 +3,6 @@ use crate::shaper::GlyphInfo;
 use config::FontAttributes;
 use std::borrow::Cow;
 use std::path::Path;
-use ttf_parser::fonts_in_collection;
 
 #[derive(Debug)]
 pub enum MaybeShaped {
@@ -230,6 +229,7 @@ pub fn resolve_font_from_ttc_data(
     attr: &FontAttributes,
     data: &Cow<'static, [u8]>,
 ) -> anyhow::Result<Option<usize>> {
+    let lib = crate::ftwrap::Library::new()?;
     let mut locator = FontDataHandle::Memory {
         name: "".to_string(),
         data: data.clone(),
@@ -237,11 +237,13 @@ pub fn resolve_font_from_ttc_data(
         variation: 0,
     };
 
-    let size = fonts_in_collection(data).unwrap_or(0);
+    let num_faces = lib.query_num_faces(&locator)?;
 
-    for index in 0..=size {
+    for index in 0..num_faces {
         locator.set_index(index);
-        let parsed = ParsedFont::from_locator(&locator)?;
+        let face = lib.face_from_locator(&locator)?;
+        let parsed = ParsedFont::from_face(&face)?;
+
         if parsed.matches_attributes(attr) != FontMatch::NoMatch {
             return Ok(Some(index as usize));
         }
@@ -301,9 +303,15 @@ pub(crate) fn parse_and_collect_font_info(
     path: &Path,
     font_info: &mut Vec<(ParsedFont, FontDataHandle)>,
 ) -> anyhow::Result<()> {
-    let data = Cow::Owned(std::fs::read(path)?);
     let lib = crate::ftwrap::Library::new()?;
-    let size = fonts_in_collection(&data).unwrap_or(0);
+
+    let locator = FontDataHandle::OnDisk {
+        path: path.to_path_buf(),
+        index: 0,
+        variation: 0,
+    };
+
+    let num_faces = lib.query_num_faces(&locator)?;
 
     fn load_one(
         lib: &crate::ftwrap::Library,
@@ -336,7 +344,7 @@ pub(crate) fn parse_and_collect_font_info(
         Ok(())
     }
 
-    for index in 0..=size {
+    for index in 0..num_faces {
         if let Err(err) = load_one(&lib, path, index, font_info) {
             log::trace!(
                 "error while parsing {} index {}: {}",

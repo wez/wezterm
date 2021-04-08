@@ -6,6 +6,7 @@ use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadTarget};
 pub use freetype::*;
 use std::borrow::Cow;
+use std::convert::TryInto;
 use std::ffi::CStr;
 use std::ptr;
 
@@ -452,6 +453,17 @@ impl Library {
         lib.set_lcd_filter(FT_LcdFilter::FT_LCD_FILTER_DEFAULT).ok();
 
         Ok(lib)
+    }
+
+    /// Returns the number of faces in a given font.
+    /// For a TTF this will be 1.
+    /// For a TTC, it will be the number of contained fonts
+    pub fn query_num_faces(&self, handle: &FontDataHandle) -> anyhow::Result<u32> {
+        let face = match handle {
+            FontDataHandle::OnDisk { path, .. } => self.new_face(path.to_str().unwrap(), -1)?,
+            FontDataHandle::Memory { data, .. } => self.new_face_from_slice(data.clone(), -1)?,
+        };
+        Ok(unsafe { (*face.face).num_faces }.try_into()?)
     }
 
     pub fn face_from_locator(&self, handle: &FontDataHandle) -> anyhow::Result<Face> {
