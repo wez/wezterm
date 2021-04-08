@@ -122,6 +122,7 @@ impl FontDatabase {
 
         let mut db = Self::new();
         db.load_font_info(font_info);
+        db.print_available();
         Ok(db)
     }
 
@@ -129,7 +130,7 @@ impl FontDatabase {
         let mut names = self.by_full_name.keys().collect::<Vec<_>>();
         names.sort();
         for name in names {
-            log::debug!("available font: {}", name);
+            log::debug!("available font: wezterm.font(\"{}\") ", name);
         }
     }
 
@@ -138,6 +139,7 @@ impl FontDatabase {
         load_built_in_fonts(&mut font_info)?;
         let mut db = Self::new();
         db.load_font_info(font_info);
+        db.print_available();
         Ok(db)
     }
 
