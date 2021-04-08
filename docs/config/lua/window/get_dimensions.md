@@ -1,6 +1,6 @@
 # `window:get_dimensions()`
 
-*Since: 20210307*
+*Since: 20210314-114017-04b7cedd*
 
 Returns a Lua table representing the dimensions for the Window.
 
