@@ -46,6 +46,7 @@ impl FontLocator for FontConfigFontLocator {
                 let handle = FontDataHandle::OnDisk {
                     path: file.into(),
                     index: best.get_integer("index")?.try_into()?,
+                    variation: 0,
                 };
 
                 // fontconfig will give us a boatload of random fallbacks.
@@ -110,6 +111,7 @@ impl FontLocator for FontConfigFontLocator {
                 let handle = FontDataHandle::OnDisk {
                     path: file.into(),
                     index: pat.get_integer("index")?.try_into()?,
+                    variation: 0,
                 };
 
                 fonts.push(handle);
