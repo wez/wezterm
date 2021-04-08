@@ -5,6 +5,7 @@ use crate::parser::ParsedFont;
 use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadTarget};
 pub use freetype::*;
+use rangeset::RangeSet;
 use std::borrow::Cow;
 use std::convert::TryInto;
 use std::ffi::CStr;
@@ -226,6 +227,37 @@ impl Face {
 
     pub fn italic(&self) -> bool {
         unsafe { ((*self.face).style_flags & FT_STYLE_FLAG_ITALIC as FT_Long) != 0 }
+    }
+
+    pub fn compute_coverage(&self) -> RangeSet<u32> {
+        let mut coverage = RangeSet::new();
+
+        for encoding in &[
+            FT_Encoding::FT_ENCODING_UNICODE,
+            FT_Encoding::FT_ENCODING_MS_SYMBOL,
+        ] {
+            if unsafe { FT_Select_Charmap(self.face, *encoding) } != 0 {
+                continue;
+            }
+
+            let mut glyph = 0;
+            let mut ucs4 = unsafe { FT_Get_First_Char(self.face, &mut glyph) };
+            while glyph != 0 {
+                coverage.add(ucs4);
+                ucs4 = unsafe { FT_Get_Next_Char(self.face, ucs4, &mut glyph) };
+            }
+
+            if *encoding == FT_Encoding::FT_ENCODING_MS_SYMBOL {
+                // Fontconfig duplicates F000..F0FF to 0000..00FF
+                for ucs4 in 0xf00..0xf100 {
+                    if coverage.contains(ucs4) {
+                        coverage.add(ucs4 - 0xf000);
+                    }
+                }
+            }
+        }
+
+        coverage
     }
 
     /// This is a wrapper around set_char_size and select_size

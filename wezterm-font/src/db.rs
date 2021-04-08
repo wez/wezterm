@@ -1,11 +1,11 @@
 //! A font-database to keep track of fonts that we've located
 
+use crate::ftwrap::Library;
 use crate::parser::{load_built_in_fonts, parse_and_collect_font_info, FontMatch, ParsedFont};
 use crate::FontDataHandle;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use config::{Config, FontAttributes};
 use rangeset::RangeSet;
-use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -20,28 +20,12 @@ impl Entry {
     /// Parses out the underlying TTF data and produces a RangeSet holding
     /// the set of codepoints for which the font has coverage.
     fn compute_coverage(&self) -> anyhow::Result<RangeSet<u32>> {
-        use ttf_parser::Face;
-        let (data, index) = match &self.handle {
-            FontDataHandle::Memory { data, index, .. } => (data.clone(), *index),
-            FontDataHandle::OnDisk { path, index, .. } => {
-                let data = std::fs::read(path)
-                    .with_context(|| anyhow!("reading font data from {}", path.display()))?;
-                (Cow::Owned(data), *index)
-            }
-        };
+        let lib = Library::new()?;
+        let face = lib
+            .face_from_locator(&self.handle)
+            .with_context(|| format!("freetype parsing {:?}", self.handle))?;
 
-        let face = Face::from_slice(&data, index)
-            .with_context(|| format!("ttf_parser parsing {:?}", self.handle))?;
-        let mut coverage = RangeSet::new();
-
-        for table in face.character_mapping_subtables() {
-            if table.is_unicode() {
-                table.codepoints(|cp| coverage.add(cp));
-                break;
-            }
-        }
-
-        Ok(coverage)
+        Ok(face.compute_coverage())
     }
 
     /// Computes the intersection of the wanted set of codepoints with
