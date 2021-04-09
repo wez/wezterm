@@ -326,3 +326,26 @@ pub(crate) static EXIT: [Action; 14] = [
     Action::OscEnd, // OscString
     Action::None,   // SosPmApcString
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_transitions() {
+        let v = format!("{:?}", TRANSITIONS).as_bytes().to_vec();
+        assert_eq!(
+            (
+                v.len(),
+                hash(&v, 0, 1),
+                hash(&v, 5381, 33), // djb2
+                hash(&v, 0, 65599), // sdbm
+            ),
+            (14021, 626090, 11884276359605205711, 6929800990073628062)
+        );
+    }
+
+    fn hash(v: &[u8], init: u64, mul: u64) -> u64 {
+        v.iter()
+            .fold(init, |a, &b| a.wrapping_mul(mul).wrapping_add(b as u64))
+    }
+}
