@@ -1,7 +1,7 @@
 #![cfg(target_os = "macos")]
 
-use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
-use crate::parser::{FontMatch, ParsedFont};
+use crate::locator::{FontDataSource, FontLocator};
+use crate::parser::ParsedFont;
 use config::{FontAttributes, FontWeight, FontWidth};
 use core_foundation::array::CFArray;
 use core_foundation::base::TCFType;
@@ -57,23 +57,25 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescripto
 /// In addition, it may point to a ttc; so we'll need to reference
 /// each contained font to figure out which one is the one that
 /// the descriptor is referencing.
-fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<ParsedFont> {
-    let path = descriptor.font_path()?;
-    let family_name = descriptor.family_name();
+fn handles_from_descriptor(descriptor: &CTFontDescriptor) -> Vec<ParsedFont> {
+    let mut result = vec![];
+    if let Some(path) = descriptor.font_path() {
+        let family_name = descriptor.family_name();
 
-    let mut font_info = vec![];
-    let source = FontDataSource::OnDisk(path);
-    crate::parser::parse_and_collect_font_info(&source, &mut font_info).ok()?;
+        let mut font_info = vec![];
+        let source = FontDataSource::OnDisk(path);
+        let _ = crate::parser::parse_and_collect_font_info(&source, &mut font_info);
 
-    for parsed in font_info {
-        if parsed.names().full_name == family_name
-            || parsed.names().family.as_ref() == Some(&family_name)
-        {
-            return Some(parsed);
+        for parsed in font_info {
+            if parsed.names().full_name == family_name
+                || parsed.names().family.as_ref() == Some(&family_name)
+            {
+                result.push(parsed);
+            }
         }
     }
 
-    None
+    result
 }
 
 impl FontLocator for CoreTextFontLocator {
@@ -86,11 +88,11 @@ impl FontLocator for CoreTextFontLocator {
 
         for attr in fonts_selection {
             if let Ok(descriptor) = descriptor_from_attr(attr) {
-                if let Some(parsed) = handle_from_descriptor(&descriptor) {
-                    if parsed.matches_attributes(attr) != FontMatch::NoMatch {
-                        fonts.push(parsed);
-                        loaded.insert(attr.clone());
-                    }
+                let handles = handles_from_descriptor(&descriptor);
+                let ranked = ParsedFont::rank_matches(attr, handles);
+                for parsed in ranked {
+                    fonts.push(parsed);
+                    loaded.insert(attr.clone());
                 }
             }
         }
@@ -125,9 +127,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
     let cascade = cascade_list_for_languages(&font, &langs);
     let mut fonts = vec![];
     for descriptor in &cascade {
-        if let Some(handle) = handle_from_descriptor(&descriptor) {
-            fonts.push(handle);
-        }
+        fonts.append(&mut handles_from_descriptor(&descriptor));
     }
 
     // Some of the fallback fonts are special fonts that don't exist on
@@ -143,9 +143,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
         is_synthetic: true,
     };
     if let Ok(descriptor) = descriptor_from_attr(&symbols) {
-        if let Some(handle) = handle_from_descriptor(&descriptor) {
-            fonts.push(handle);
-        }
+        fonts.append(&mut handles_from_descriptor(&descriptor));
     }
 
     Ok(fonts)
