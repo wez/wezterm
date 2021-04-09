@@ -310,7 +310,6 @@ impl Pattern {
     }
 
     pub fn list(&self) -> anyhow::Result<FontSet> {
-        log::trace!("listing: {:?}", self);
         unsafe {
             // This defines the fields that are retrieved
             let oset = FcObjectSetCreate();
