@@ -3,50 +3,6 @@
 
 use crate::enums::{Action, State};
 
-/// Returns 1 if a <= x and x <= b. Otherwise returns 0.
-const fn in_range(x: u8, a: u8, b: u8) -> u8 {
-    ((x <= b) as u8) & ((a <= x) as u8)
-}
-
-/// Returns `true_value` if `condition` is true. Otherwise returns `false_value`.
-const fn cond(condition: bool, true_value: u8, false_value: u8) -> u8 {
-    ((condition as u8) * true_value) | ((!condition as u8) * false_value)
-}
-
-/// Match `u8` using given patterns. Return `OptionPack`.
-/// The patterns should not overlap.
-///
-/// This should really be just a normal `match { .. }`
-/// statement. However `match` is not const_fn right now.
-/// See https://github.com/rust-lang/rust/issues/49146.
-macro_rules! match_action_state {
-    ( $name:ident => {
-        $( $a:tt $( ..= $b:tt )? => ($action:ident, $state:ident), )*
-    }) => {
-        OptionPack(
-            $(
-                ({
-                    // B: $b if $b exists, or $a if $b does not exist.
-                    const B: u8 = [$a $(,$b)?][[$a $(,$b)?].len() - 1];
-                    in_range($name, $a, B) as u16 * OptionPack::pack(Action::$action, State::$state).0
-                }) |
-            )* 0
-        )
-    }
-}
-
-/// Define `fn(u8) -> u8`.
-macro_rules! define_function {
-    ( $( $state:tt $func_name:ident { $($body:tt)* } )* ) => {
-        $(
-            const fn $func_name(i: u8) -> u8 {
-                let v = match_action_state! { i => { $($body)* } };
-                v.or(anywhere(i).or(pack(Action::None, State::$state)))
-            }
-        )*
-    };
-}
-
 /// Apply all u8 values to `fn(u8) -> u8`, return `[u8; 256]`.
 macro_rules! define_table {
     ( $func:tt ) => {{
@@ -64,215 +20,261 @@ macro_rules! define_table {
     }};
 }
 
-/// An alternative form of `Option<u8>` that works with const_fn.
-///
-/// This should really be just an `Option<u8>`. However that is
-/// hard to express in const_fn right now.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-struct OptionPack(u16);
-
-impl OptionPack {
-    const fn is_none(self) -> bool {
-        (self.0 & 1) == 0
-    }
-
-    const fn to_u8(self) -> u8 {
-        (self.0 >> 1) as u8
-    }
-
-    const fn pack(action: Action, state: State) -> Self {
-        Self(1 | ((((action as u16) << 4) | (state as u16)) << 1))
-    }
-
-    const fn or(self, default: u8) -> u8 {
-        cond(self.is_none(), default, self.to_u8())
-    }
-}
-
 const fn pack(action: Action, state: State) -> u8 {
     ((action as u8) << 4) | (state as u8)
 }
 
-const fn anywhere(i: u8) -> OptionPack {
-    match_action_state! { i => {
-        0x18        => (Execute, Ground),
-        0x1a        => (Execute, Ground),
-        0x80..=0x8f => (Execute, Ground),
-        0x91..=0x97 => (Execute, Ground),
-        0x99        => (Execute, Ground),
-        0x9a        => (Execute, Ground),
-        0x9c        => (None, Ground),
-        0x1b        => (None, Escape),
-        0x98        => (None, SosPmApcString),
-        0x9e        => (None, SosPmApcString),
-        0x9f        => (None, SosPmApcString),
-        0x90        => (None, DcsEntry),
-        0x9d        => (None, OscString),
-        0x9b        => (None, CsiEntry),
-    } }
+const fn anywhere_or(i: u8, state: State) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x18 => pack(Execute, Ground),
+        0x1a => pack(Execute, Ground),
+        0x80..=0x8f => pack(Execute, Ground),
+        0x91..=0x97 => pack(Execute, Ground),
+        0x99 => pack(Execute, Ground),
+        0x9a => pack(Execute, Ground),
+        0x9c => pack(None, Ground),
+        0x1b => pack(None, Escape),
+        0x98 => pack(None, SosPmApcString),
+        0x9e => pack(None, SosPmApcString),
+        0x9f => pack(None, SosPmApcString),
+        0x90 => pack(None, DcsEntry),
+        0x9d => pack(None, OscString),
+        0x9b => pack(None, CsiEntry),
+        _ => pack(None, state),
+    }
 }
 
-define_function! {
-    Ground ground {
-        0x00..=0x17 => (Execute, Ground),
-        0x19        => (Execute, Ground),
-        0x1c..=0x1f => (Execute, Ground),
-        0x20..=0x7f => (Print, Ground),
+const fn ground(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Execute, Ground),
+        0x19 => pack(Execute, Ground),
+        0x1c..=0x1f => pack(Execute, Ground),
+        0x20..=0x7f => pack(Print, Ground),
         // The following three ranges allow for
         // UTF-8 multibyte sequences to be recognized
         // and emitted as byte sequences in the ground
         // state.
-        0xc2..=0xdf => (Utf8, Utf8Sequence),
-        0xe0..=0xef => (Utf8, Utf8Sequence),
-        0xf0..=0xf4 => (Utf8, Utf8Sequence),
+        0xc2..=0xdf => pack(Utf8, Utf8Sequence),
+        0xe0..=0xef => pack(Utf8, Utf8Sequence),
+        0xf0..=0xf4 => pack(Utf8, Utf8Sequence),
+        _ => anywhere_or(i, Ground),
     }
+}
 
-    Escape escape {
-        0x00..=0x17 => (Execute, Escape),
-        0x19        => (Execute, Escape),
-        0x1c..=0x1f => (Execute, Escape),
-        0x7f        => (Ignore, Escape),
-        0x20..=0x2f => (Collect, EscapeIntermediate),
-        0x30..=0x4f => (EscDispatch, Ground),
-        0x51..=0x57 => (EscDispatch, Ground),
-        0x59        => (EscDispatch, Ground),
-        0x5a        => (EscDispatch, Ground),
-        0x5c        => (EscDispatch, Ground),
-        0x60..=0x7e => (EscDispatch, Ground),
-        0x5b        => (None, CsiEntry),
-        0x5d        => (None, OscString),
-        0x50        => (None, DcsEntry),
-        0x58        => (None, SosPmApcString),
-        0x5e        => (None, SosPmApcString),
-        0x5f        => (None, SosPmApcString),
+const fn escape(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Execute, Escape),
+        0x19 => pack(Execute, Escape),
+        0x1c..=0x1f => pack(Execute, Escape),
+        0x7f => pack(Ignore, Escape),
+        0x20..=0x2f => pack(Collect, EscapeIntermediate),
+        0x30..=0x4f => pack(EscDispatch, Ground),
+        0x51..=0x57 => pack(EscDispatch, Ground),
+        0x59 => pack(EscDispatch, Ground),
+        0x5a => pack(EscDispatch, Ground),
+        0x5c => pack(EscDispatch, Ground),
+        0x60..=0x7e => pack(EscDispatch, Ground),
+        0x5b => pack(None, CsiEntry),
+        0x5d => pack(None, OscString),
+        0x50 => pack(None, DcsEntry),
+        0x58 => pack(None, SosPmApcString),
+        0x5e => pack(None, SosPmApcString),
+        0x5f => pack(None, SosPmApcString),
+        _ => anywhere_or(i, Escape),
     }
+}
 
-    EscapeIntermediate escape_intermediate {
-        0x00..=0x17 => (Execute, EscapeIntermediate),
-        0x19        => (Execute, EscapeIntermediate),
-        0x1c..=0x1f => (Execute, EscapeIntermediate),
-        0x20..=0x2f => (Collect, EscapeIntermediate),
-        0x7f        => (Ignore, EscapeIntermediate),
-        0x30..=0x7e => (EscDispatch, Ground),
+const fn escape_intermediate(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Execute, EscapeIntermediate),
+        0x19 => pack(Execute, EscapeIntermediate),
+        0x1c..=0x1f => pack(Execute, EscapeIntermediate),
+        0x20..=0x2f => pack(Collect, EscapeIntermediate),
+        0x7f => pack(Ignore, EscapeIntermediate),
+        0x30..=0x7e => pack(EscDispatch, Ground),
+        _ => anywhere_or(i, EscapeIntermediate),
     }
+}
 
-    CsiEntry csi_entry {
-        0x00..=0x17 => (Execute, CsiEntry),
-        0x19        => (Execute, CsiEntry),
-        0x1c..=0x1f => (Execute, CsiEntry),
-        0x7f        => (Ignore, CsiEntry),
-        0x20..=0x2f => (Collect, CsiIntermediate),
-        0x3a        => (None, CsiIgnore),
-        0x30..=0x39 => (Param, CsiParam),
-        0x3b        => (Param, CsiParam),
-        0x3c..=0x3f => (Collect, CsiParam),
-        0x40..=0x7e => (CsiDispatch, Ground),
+const fn csi_entry(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Execute, CsiEntry),
+        0x19 => pack(Execute, CsiEntry),
+        0x1c..=0x1f => pack(Execute, CsiEntry),
+        0x7f => pack(Ignore, CsiEntry),
+        0x20..=0x2f => pack(Collect, CsiIntermediate),
+        0x3a => pack(None, CsiIgnore),
+        0x30..=0x39 => pack(Param, CsiParam),
+        0x3b => pack(Param, CsiParam),
+        0x3c..=0x3f => pack(Collect, CsiParam),
+        0x40..=0x7e => pack(CsiDispatch, Ground),
+        _ => anywhere_or(i, CsiEntry),
     }
+}
 
-    CsiParam csi_param {
-        0x00..=0x17 => (Execute, CsiParam),
-        0x19        => (Execute, CsiParam),
-        0x1c..=0x1f => (Execute, CsiParam),
-        0x30..=0x3b => (Param, CsiParam),
-        0x7f        => (Ignore, CsiParam),
-        0x3c..=0x3f => (None, CsiIgnore),
-        0x20..=0x2f => (Collect, CsiIntermediate),
-        0x40..=0x7e => (CsiDispatch, Ground),
+const fn csi_param(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Execute, CsiParam),
+        0x19 => pack(Execute, CsiParam),
+        0x1c..=0x1f => pack(Execute, CsiParam),
+        0x30..=0x3b => pack(Param, CsiParam),
+        0x7f => pack(Ignore, CsiParam),
+        0x3c..=0x3f => pack(None, CsiIgnore),
+        0x20..=0x2f => pack(Collect, CsiIntermediate),
+        0x40..=0x7e => pack(CsiDispatch, Ground),
+        _ => anywhere_or(i, CsiParam),
     }
+}
 
-    CsiIntermediate csi_intermediate {
-        0x00..=0x17 => (Execute, CsiIntermediate),
-        0x19        => (Execute, CsiIntermediate),
-        0x1c..=0x1f => (Execute, CsiIntermediate),
-        0x20..=0x2f => (Collect, CsiIntermediate),
-        0x7f        => (Ignore, CsiIntermediate),
-        0x30..=0x3f => (None, CsiIgnore),
-        0x40..=0x7e => (CsiDispatch, Ground),
+const fn csi_intermediate(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Execute, CsiIntermediate),
+        0x19 => pack(Execute, CsiIntermediate),
+        0x1c..=0x1f => pack(Execute, CsiIntermediate),
+        0x20..=0x2f => pack(Collect, CsiIntermediate),
+        0x7f => pack(Ignore, CsiIntermediate),
+        0x30..=0x3f => pack(None, CsiIgnore),
+        0x40..=0x7e => pack(CsiDispatch, Ground),
+        _ => anywhere_or(i, CsiIntermediate),
     }
+}
 
-    CsiIgnore csi_ignore {
-        0x00..=0x17 => (Execute, CsiIgnore),
-        0x19        => (Execute, CsiIgnore),
-        0x1c..=0x1f => (Execute, CsiIgnore),
-        0x20..=0x3f => (Ignore, CsiIgnore),
-        0x7f        => (Ignore, CsiIgnore),
-        0x40..=0x7e => (None, Ground),
+const fn csi_ignore(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Execute, CsiIgnore),
+        0x19 => pack(Execute, CsiIgnore),
+        0x1c..=0x1f => pack(Execute, CsiIgnore),
+        0x20..=0x3f => pack(Ignore, CsiIgnore),
+        0x7f => pack(Ignore, CsiIgnore),
+        0x40..=0x7e => pack(None, Ground),
+        _ => anywhere_or(i, CsiIgnore),
     }
+}
 
-    DcsEntry dcs_entry {
-        0x00..=0x17 => (Ignore, DcsEntry),
-        0x19        => (Ignore, DcsEntry),
-        0x1c..=0x1f => (Ignore, DcsEntry),
-        0x7f        => (Ignore, DcsEntry),
-        0x3a        => (None, DcsIgnore),
-        0x20..=0x2f => (Collect, DcsIntermediate),
-        0x30..=0x39 => (Param, DcsParam),
-        0x3b        => (Param, DcsParam),
-        0x3c..=0x3f => (Collect, DcsParam),
-        0x40..=0x7e => (None, DcsPassthrough),
+const fn dcs_entry(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Ignore, DcsEntry),
+        0x19 => pack(Ignore, DcsEntry),
+        0x1c..=0x1f => pack(Ignore, DcsEntry),
+        0x7f => pack(Ignore, DcsEntry),
+        0x3a => pack(None, DcsIgnore),
+        0x20..=0x2f => pack(Collect, DcsIntermediate),
+        0x30..=0x39 => pack(Param, DcsParam),
+        0x3b => pack(Param, DcsParam),
+        0x3c..=0x3f => pack(Collect, DcsParam),
+        0x40..=0x7e => pack(None, DcsPassthrough),
+        _ => anywhere_or(i, DcsEntry),
     }
+}
 
-    DcsParam dcs_param {
-        0x00..=0x17 => (Ignore, DcsParam),
-        0x19        => (Ignore, DcsParam),
-        0x1c..=0x1f => (Ignore, DcsParam),
-        0x30..=0x39 => (Param, DcsParam),
-        0x3b        => (Param, DcsParam),
-        0x7f        => (Ignore, DcsParam),
-        0x3a        => (None, DcsIgnore),
-        0x3c..=0x3f => (None, DcsIgnore),
-        0x20..=0x2f => (Collect, DcsIntermediate),
-        0x40..=0x7e => (None, DcsPassthrough),
+const fn dcs_param(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Ignore, DcsParam),
+        0x19 => pack(Ignore, DcsParam),
+        0x1c..=0x1f => pack(Ignore, DcsParam),
+        0x30..=0x39 => pack(Param, DcsParam),
+        0x3b => pack(Param, DcsParam),
+        0x7f => pack(Ignore, DcsParam),
+        0x3a => pack(None, DcsIgnore),
+        0x3c..=0x3f => pack(None, DcsIgnore),
+        0x20..=0x2f => pack(Collect, DcsIntermediate),
+        0x40..=0x7e => pack(None, DcsPassthrough),
+        _ => anywhere_or(i, DcsParam),
     }
+}
 
-    DcsIntermediate dcs_intermediate {
-        0x00..=0x17 => (Ignore, DcsIntermediate),
-        0x19        => (Ignore, DcsIntermediate),
-        0x1c..=0x1f => (Ignore, DcsIntermediate),
-        0x20..=0x2f => (Collect, DcsIntermediate),
-        0x7f        => (Ignore, DcsIntermediate),
-        0x30..=0x3f => (None, DcsIgnore),
-        0x40..=0x7e => (None, DcsPassthrough),
+const fn dcs_intermediate(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Ignore, DcsIntermediate),
+        0x19 => pack(Ignore, DcsIntermediate),
+        0x1c..=0x1f => pack(Ignore, DcsIntermediate),
+        0x20..=0x2f => pack(Collect, DcsIntermediate),
+        0x7f => pack(Ignore, DcsIntermediate),
+        0x30..=0x3f => pack(None, DcsIgnore),
+        0x40..=0x7e => pack(None, DcsPassthrough),
+        _ => anywhere_or(i, DcsIntermediate),
     }
+}
 
-    DcsPassthrough dcs_passthrough {
-        0x00..=0x17 => (Put, DcsPassthrough),
-        0x19        => (Put, DcsPassthrough),
-        0x1c..=0x1f => (Put, DcsPassthrough),
-        0x20..=0x7e => (Put, DcsPassthrough),
-        0x7f        => (Ignore, DcsPassthrough),
+const fn dcs_passthrough(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Put, DcsPassthrough),
+        0x19 => pack(Put, DcsPassthrough),
+        0x1c..=0x1f => pack(Put, DcsPassthrough),
+        0x20..=0x7e => pack(Put, DcsPassthrough),
+        0x7f => pack(Ignore, DcsPassthrough),
+        _ => anywhere_or(i, DcsPassthrough),
     }
+}
 
-    DcsIgnore dcs_ignore {
-        0x00..=0x17 => (Ignore, DcsIgnore),
-        0x19        => (Ignore, DcsIgnore),
-        0x1c..=0x1f => (Ignore, DcsIgnore),
-        0x20..=0x7f => (Ignore, DcsIgnore),
+const fn dcs_ignore(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Ignore, DcsIgnore),
+        0x19 => pack(Ignore, DcsIgnore),
+        0x1c..=0x1f => pack(Ignore, DcsIgnore),
+        0x20..=0x7f => pack(Ignore, DcsIgnore),
+        _ => anywhere_or(i, DcsIgnore),
     }
+}
 
-    OscString osc_string {
-        0x00..=0x06 => (Ignore, OscString),
+const fn osc_string(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x06 => pack(Ignore, OscString),
         // Using BEL in place of ST is a deviation from
         // https://vt100.net/emu/dec_ansi_parser and was
         // introduced AFAICT by xterm
-        0x07        => (Ignore, Ground),
-        0x08..=0x17 => (Ignore, OscString),
-        0x19        => (Ignore, OscString),
-        0x1c..=0x1f => (Ignore, OscString),
-        0x20..=0x7f => (OscPut, OscString),
+        0x07 => pack(Ignore, Ground),
+        0x08..=0x17 => pack(Ignore, OscString),
+        0x19 => pack(Ignore, OscString),
+        0x1c..=0x1f => pack(Ignore, OscString),
+        0x20..=0x7f => pack(OscPut, OscString),
         // This extended range allows for UTF-8 characters
         // to be embedded in OSC parameters.  It is not
         // part of the base state machine.
-        0xc2..=0xdf => (Utf8, Utf8Sequence),
-        0xe0..=0xef => (Utf8, Utf8Sequence),
-        0xf0..=0xf4 => (Utf8, Utf8Sequence),
+        0xc2..=0xdf => pack(Utf8, Utf8Sequence),
+        0xe0..=0xef => pack(Utf8, Utf8Sequence),
+        0xf0..=0xf4 => pack(Utf8, Utf8Sequence),
+        _ => anywhere_or(i, OscString),
     }
+}
 
-    SosPmApcString sos_pm_apc_string {
-        0x00..=0x17 => (Ignore, SosPmApcString),
-        0x19        => (Ignore, SosPmApcString),
-        0x1c..=0x1f => (Ignore, SosPmApcString),
-        0x20..=0x7f => (Ignore, SosPmApcString),
+const fn sos_pm_apc_string(i: u8) -> u8 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(Ignore, SosPmApcString),
+        0x19 => pack(Ignore, SosPmApcString),
+        0x1c..=0x1f => pack(Ignore, SosPmApcString),
+        0x20..=0x7f => pack(Ignore, SosPmApcString),
+        _ => anywhere_or(i, SosPmApcString),
     }
 }
 
