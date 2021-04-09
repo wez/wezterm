@@ -349,7 +349,7 @@ $ brew install --HEAD wezterm
 <p>Another option for linux is a raw binary archive.  These are the same binaries that
 are built for Ubuntu but provided in a tarball.</p>
 <p><a href="https://github.com/wez/wezterm/releases/download/20210405-110924-a5bb5be8/wezterm-20210405-110924-a5bb5be8.Ubuntu16.04.tar.xz" class="btn">Download raw Linux binaries</a>
-<a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu16.04.tar.xz" class="btn">Nightly raw Linux binaries</a></p>
+<a href="install/{{ linux_raw_bin_nightly }}" class="btn">Nightly raw Linux binaries</a></p>
 <h2 id="installing-on-freebsd"><a class="header" href="#installing-on-freebsd">Installing on FreeBSD</a></h2>
 <p>WezTerm is available <a href="https://www.freshports.org/x11/wezterm/">via the ports system</a>.</p>
 <p>The most common FreeBSD architectures have pre-built binaries which you can install via:</p>
@@ -429,7 +429,7 @@ usually the best available version.</p>
 <li>Fixed: the selection wouldn't always clear when the intersecting lines change <a href="https://github.com/wez/wezterm/issues/644">#644</a></li>
 <li>Fixed: vertical alignment issue with Iosevka on Windows <a href="https://github.com/wez/wezterm/issues/661">#661</a></li>
 <li>Fixed: support for &quot;Variable&quot; fonts such as Cascadia Code and Inconsolata on all platforms <a href="https://github.com/wez/wezterm/issues/655">#655</a></li>
-<li>New: <a href="config/lua/wezterm/font.html">wezterm.font</a> and <a href="config/lua/wezterm.font_with_fallback.html">wezterm.font_with_fallback</a> <em>attributes</em> parameter now allows matching more granular font weights and font widths. e.g.: <code>wezterm.font('Iosevka Term', {width=&quot;Expanded&quot;, weight=&quot;Regular&quot;})</code></li>
+<li>New: <a href="config/lua/wezterm/font.html">wezterm.font</a> and <a href="config/lua/wezterm.font_with_fallback.html">wezterm.font_with_fallback</a> <em>attributes</em> parameter now allows matching more granular font weights and font stretch. e.g.: <code>wezterm.font('Iosevka Term', {stretch=&quot;Expanded&quot;, weight=&quot;Regular&quot;})</code></li>
 <li>New: <a href="config/lua/config/freetype_render_target.html">freetype_render_target</a> option for additional control over glyph rasterization.</li>
 <li>Fixed: <code>wezterm ssh HOST</code> no longer overrides the <code>User</code> config specified by <code>~/.ssh/config</code></li>
 </ul>
@@ -4938,9 +4938,9 @@ return {
 }
 </code></pre>
 <p><em>Since: nightly builds only</em></p>
-<p>It is now possible to specify both font weight and font width:</p>
+<p>It is now possible to specify both font weight and font stretch:</p>
 <ul>
-<li><code>width</code> - specifies the font width to select.  The default value is <code>&quot;Normal&quot;</code>, and possible values are <code>&quot;UltraCondensed&quot;</code>, <code>&quot;ExtraCondensed&quot;</code>, <code>&quot;Condensed&quot;</code>, <code>&quot;SemiCondensed&quot;</code>, <code>&quot;Normal&quot;</code>, <code>&quot;SemiExpanded&quot;</code>, <code>&quot;Expanded&quot;</code>, <code>&quot;ExtraExpanded&quot;</code>, <code>&quot;UltraExpanded&quot;</code>.</li>
+<li><code>stretch</code> - specifies the font stretch to select.  The default value is <code>&quot;Normal&quot;</code>, and possible values are <code>&quot;UltraCondensed&quot;</code>, <code>&quot;ExtraCondensed&quot;</code>, <code>&quot;Condensed&quot;</code>, <code>&quot;SemiCondensed&quot;</code>, <code>&quot;Normal&quot;</code>, <code>&quot;SemiExpanded&quot;</code>, <code>&quot;Expanded&quot;</code>, <code>&quot;ExtraExpanded&quot;</code>, <code>&quot;UltraExpanded&quot;</code>.</li>
 <li><code>weight</code> - specifies the weight of the font with more precision than <code>bold</code>.  The default value is <code>&quot;Regular&quot;</code>, and possible values are <code>&quot;Thin&quot;</code>, <code>&quot;ExtraLight&quot;</code>, <code>&quot;Light&quot;</code>, <code>&quot;DemiLight&quot;</code>, <code>&quot;Book&quot;</code>, <code>&quot;Regular&quot;</code>, <code>&quot;Medium&quot;</code>, <code>&quot;DemiBold&quot;</code>, <code>&quot;Bold&quot;</code>, <code>&quot;ExtraBold&quot;</code>, <code>&quot;Black&quot;</code>, and <code>&quot;ExtraBlack&quot;</code>.</li>
 <li><code>bold</code> - has been superseded by the new <code>weight</code> parameter and will be eventually removed.  For compatibility purposes, specifying <code>bold=true</code> is equivalent to specifying <code>weight=&quot;Bold&quot;</code>.</li>
 </ul>
@@ -4949,7 +4949,7 @@ heavier to the specified weight.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 
 return {
-  font = wezterm.font('Iosevka Term', {width=&quot;Expanded&quot;, weight=&quot;Regular&quot;}),
+  font = wezterm.font('Iosevka Term', {stretch=&quot;Expanded&quot;, weight=&quot;Regular&quot;}),
 }
 </code></pre>
 <h1 id="weztermfont_with_fallbackfamilies--attributes"><a class="header" href="#weztermfont_with_fallbackfamilies--attributes"><code>wezterm.font_with_fallback(families [, attributes])</code></a></h1>
