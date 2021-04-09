@@ -1,7 +1,7 @@
 use crate::locator::{FontDataHandle, FontDataSource};
 use crate::shaper::GlyphInfo;
 use config::FontAttributes;
-pub use config::{FontWeight, FontWidth};
+pub use config::{FontStretch, FontWeight};
 use std::borrow::Cow;
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ pub enum MaybeShaped {
 pub struct ParsedFont {
     names: Names,
     weight: FontWeight,
-    width: FontWidth,
+    stretch: FontStretch,
     italic: bool,
     pub handle: FontDataHandle,
 }
@@ -60,12 +60,12 @@ impl ParsedFont {
         let italic = face.italic();
         let (weight, width) = face.weight_and_width();
         let weight = FontWeight::from_opentype_weight(weight);
-        let width = FontWidth::from_opentype_width(width);
+        let stretch = FontStretch::from_opentype_stretch(width);
 
         Ok(Self {
             names: Names::from_ft_face(&face),
             weight,
-            width,
+            stretch,
             italic,
             handle,
         })
@@ -79,8 +79,8 @@ impl ParsedFont {
         self.weight
     }
 
-    pub fn width(&self) -> FontWidth {
-        self.width
+    pub fn stretch(&self) -> FontStretch {
+        self.stretch
     }
 
     pub fn italic(&self) -> bool {
@@ -90,7 +90,7 @@ impl ParsedFont {
     pub fn matches_attributes(&self, attr: &FontAttributes) -> FontMatch {
         if let Some(fam) = self.names.family.as_ref() {
             if attr.family == *fam {
-                if attr.width == self.width {
+                if attr.stretch == self.stretch {
                     let wanted_weight = attr.weight.to_opentype_weight();
                     let weight = self.weight.to_opentype_weight();
 

@@ -27,9 +27,9 @@ return {
 
 *Since: nightly builds only*
 
-It is now possible to specify both font weight and font width:
+It is now possible to specify both font weight and font stretch:
 
-* `width` - specifies the font width to select.  The default value is `"Normal"`, and possible values are `"UltraCondensed"`, `"ExtraCondensed"`, `"Condensed"`, `"SemiCondensed"`, `"Normal"`, `"SemiExpanded"`, `"Expanded"`, `"ExtraExpanded"`, `"UltraExpanded"`.
+* `stretch` - specifies the font stretch to select.  The default value is `"Normal"`, and possible values are `"UltraCondensed"`, `"ExtraCondensed"`, `"Condensed"`, `"SemiCondensed"`, `"Normal"`, `"SemiExpanded"`, `"Expanded"`, `"ExtraExpanded"`, `"UltraExpanded"`.
 * `weight` - specifies the weight of the font with more precision than `bold`.  The default value is `"Regular"`, and possible values are `"Thin"`, `"ExtraLight"`, `"Light"`, `"DemiLight"`, `"Book"`, `"Regular"`, `"Medium"`, `"DemiBold"`, `"Bold"`, `"ExtraBold"`, `"Black"`, and `"ExtraBlack"`.
 * `bold` - has been superseded by the new `weight` parameter and will be eventually removed.  For compatibility purposes, specifying `bold=true` is equivalent to specifying `weight="Bold"`.
 
@@ -40,6 +40,6 @@ heavier to the specified weight.
 local wezterm = require 'wezterm';
 
 return {
-  font = wezterm.font('Iosevka Term', {width="Expanded", weight="Regular"}),
+  font = wezterm.font('Iosevka Term', {stretch="Expanded", weight="Regular"}),
 }
 ```

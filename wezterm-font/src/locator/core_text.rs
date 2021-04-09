@@ -2,7 +2,7 @@
 
 use crate::locator::{FontDataSource, FontLocator};
 use crate::parser::ParsedFont;
-use config::{FontAttributes, FontWeight, FontWidth};
+use config::{FontAttributes, FontStretch, FontWeight};
 use core_foundation::array::CFArray;
 use core_foundation::base::TCFType;
 use core_foundation::dictionary::CFDictionary;
@@ -137,7 +137,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
     let symbols = FontAttributes {
         family: "Apple Symbols".to_string(),
         weight: FontWeight::Regular,
-        width: FontWidth::Normal,
+        stretch: FontStretch::Normal,
         italic: false,
         is_fallback: true,
         is_synthetic: true,

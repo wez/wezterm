@@ -5,7 +5,7 @@ use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper};
 use anyhow::{Context, Error};
 use config::{
-    configuration, ConfigHandle, FontRasterizerSelection, FontWeight, FontWidth, TextStyle,
+    configuration, ConfigHandle, FontRasterizerSelection, FontStretch, FontWeight, TextStyle,
 };
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -287,7 +287,7 @@ impl FontConfigInner {
             if !attr.is_synthetic && !attr.is_fallback && !loaded.contains(attr) {
                 let styled_extra = if attr.weight != FontWeight::default()
                     || attr.italic
-                    || attr.width != FontWidth::default()
+                    || attr.stretch != FontStretch::default()
                 {
                     ". An alternative variant of the font was requested; \
                     TrueType and OpenType fonts don't have an automatic way to \

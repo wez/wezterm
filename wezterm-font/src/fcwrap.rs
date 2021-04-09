@@ -2,7 +2,7 @@
 #![allow(clippy::mutex_atomic)]
 
 use anyhow::{anyhow, ensure, Error};
-use config::{FontWeight, FontWidth};
+use config::{FontStretch, FontWeight};
 pub use fontconfig::*;
 use std::ffi::{CStr, CString};
 use std::fmt;
@@ -463,16 +463,16 @@ pub fn to_fc_weight(weight: FontWeight) -> c_int {
     }
 }
 
-pub fn to_fc_width(width: FontWidth) -> c_int {
-    match width {
-        FontWidth::UltraCondensed => FC_WIDTH_ULTRACONDENSED,
-        FontWidth::ExtraCondensed => FC_WIDTH_EXTRACONDENSED,
-        FontWidth::Condensed => FC_WIDTH_CONDENSED,
-        FontWidth::SemiCondensed => FC_WIDTH_SEMICONDENSED,
-        FontWidth::Normal => FC_WIDTH_NORMAL,
-        FontWidth::SemiExpanded => FC_WIDTH_SEMIEXPANDED,
-        FontWidth::Expanded => FC_WIDTH_EXPANDED,
-        FontWidth::ExtraExpanded => FC_WIDTH_EXTRAEXPANDED,
-        FontWidth::UltraExpanded => FC_WIDTH_ULTRAEXPANDED,
+pub fn to_fc_width(stretch: FontStretch) -> c_int {
+    match stretch {
+        FontStretch::UltraCondensed => FC_WIDTH_ULTRACONDENSED,
+        FontStretch::ExtraCondensed => FC_WIDTH_EXTRACONDENSED,
+        FontStretch::Condensed => FC_WIDTH_CONDENSED,
+        FontStretch::SemiCondensed => FC_WIDTH_SEMICONDENSED,
+        FontStretch::Normal => FC_WIDTH_NORMAL,
+        FontStretch::SemiExpanded => FC_WIDTH_SEMIEXPANDED,
+        FontStretch::Expanded => FC_WIDTH_EXPANDED,
+        FontStretch::ExtraExpanded => FC_WIDTH_EXTRAEXPANDED,
+        FontStretch::UltraExpanded => FC_WIDTH_ULTRAEXPANDED,
     }
 }

@@ -28,7 +28,7 @@ impl FontLocator for FontConfigFontLocator {
             let start = std::time::Instant::now();
             pattern.family(&attr.family)?;
             pattern.add_integer("weight", to_fc_weight(attr.weight))?;
-            pattern.add_integer("width", to_fc_width(attr.width))?;
+            pattern.add_integer("width", to_fc_width(attr.stretch))?;
             pattern.add_integer(
                 "slant",
                 if attr.italic {

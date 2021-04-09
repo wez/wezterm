@@ -1,4 +1,4 @@
-use crate::{FontAttributes, FontWeight, FontWidth, TextStyle};
+use crate::{FontAttributes, FontStretch, FontWeight, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;
@@ -338,7 +338,7 @@ struct TextStyleAttributes {
     #[serde(default)]
     pub weight: Option<FontWeight>,
     #[serde(default)]
-    pub width: FontWidth,
+    pub stretch: FontStretch,
     /// Whether the font should be an italic variant
     #[serde(default)]
     pub italic: bool,
@@ -369,7 +369,7 @@ fn font<'lua>(
     text_style.font.clear();
     text_style.font.push(FontAttributes {
         family,
-        width: attrs.width,
+        stretch: attrs.stretch,
         weight: match attrs.bold {
             Some(true) => FontWeight::Bold,
             Some(false) => FontWeight::Regular,
@@ -402,7 +402,7 @@ fn font_with_fallback<'lua>(
     for (idx, family) in fallback.into_iter().enumerate() {
         text_style.font.push(FontAttributes {
             family,
-            width: attrs.width,
+            stretch: attrs.stretch,
             weight: match attrs.bold {
                 Some(true) => FontWeight::Bold,
                 Some(false) => FontWeight::Regular,

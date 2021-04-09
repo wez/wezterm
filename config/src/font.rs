@@ -9,7 +9,7 @@ use termwiz::color::RgbColor;
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display, PartialOrd, Ord,
 )]
-pub enum FontWidth {
+pub enum FontStretch {
     UltraCondensed,
     ExtraCondensed,
     Condensed,
@@ -21,8 +21,8 @@ pub enum FontWidth {
     UltraExpanded,
 }
 
-impl FontWidth {
-    pub fn from_opentype_width(w: u16) -> Self {
+impl FontStretch {
+    pub fn from_opentype_stretch(w: u16) -> Self {
         match w {
             1 => Self::UltraCondensed,
             2 => Self::ExtraCondensed,
@@ -38,7 +38,7 @@ impl FontWidth {
         }
     }
 
-    pub fn to_opentype_width(self) -> u16 {
+    pub fn to_opentype_stretch(self) -> u16 {
         match self {
             Self::UltraCondensed => 1,
             Self::ExtraCondensed => 2,
@@ -53,7 +53,7 @@ impl FontWidth {
     }
 }
 
-impl Default for FontWidth {
+impl Default for FontStretch {
     fn default() -> Self {
         Self::Normal
     }
@@ -255,7 +255,7 @@ pub struct FontAttributes {
     #[serde(default)]
     pub weight: FontWeight,
     #[serde(default)]
-    pub width: FontWidth,
+    pub stretch: FontStretch,
     /// Whether the font should be an italic variant
     #[serde(default)]
     pub italic: bool,
@@ -268,8 +268,8 @@ impl std::fmt::Display for FontAttributes {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         write!(
             fmt,
-            "wezterm.font('{}', {{weight='{}', width='{}', italic={}}})",
-            self.family, self.weight, self.width, self.italic
+            "wezterm.font('{}', {{weight='{}', stretch='{}', italic={}}})",
+            self.family, self.weight, self.stretch, self.italic
         )
     }
 }
@@ -279,7 +279,7 @@ impl FontAttributes {
         Self {
             family: family.into(),
             weight: FontWeight::default(),
-            width: FontWidth::default(),
+            stretch: FontStretch::default(),
             italic: false,
             is_fallback: false,
             is_synthetic: false,
@@ -290,7 +290,7 @@ impl FontAttributes {
         Self {
             family: family.into(),
             weight: FontWeight::default(),
-            width: FontWidth::default(),
+            stretch: FontStretch::default(),
             italic: false,
             is_fallback: true,
             is_synthetic: false,
@@ -303,7 +303,7 @@ impl Default for FontAttributes {
         Self {
             family: "JetBrains Mono".into(),
             weight: FontWeight::default(),
-            width: FontWidth::default(),
+            stretch: FontStretch::default(),
             italic: false,
             is_fallback: false,
             is_synthetic: false,
