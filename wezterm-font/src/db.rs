@@ -2,7 +2,7 @@
 
 use crate::ftwrap::Library;
 use crate::locator::FontDataSource;
-use crate::parser::{load_built_in_fonts, parse_and_collect_font_info, FontMatch, ParsedFont};
+use crate::parser::{load_built_in_fonts, parse_and_collect_font_info, ParsedFont};
 use anyhow::Context;
 use config::{Config, FontAttributes};
 use rangeset::RangeSet;
@@ -50,14 +50,12 @@ impl Entry {
 }
 
 pub struct FontDatabase {
-    by_family: HashMap<String, Vec<Arc<Entry>>>,
     by_full_name: HashMap<String, Arc<Entry>>,
 }
 
 impl FontDatabase {
     pub fn new() -> Self {
         Self {
-            by_family: HashMap::new(),
             by_full_name: HashMap::new(),
         }
     }
@@ -68,13 +66,6 @@ impl FontDatabase {
                 parsed,
                 coverage: Mutex::new(None),
             });
-
-            if let Some(family) = entry.parsed.names().family.as_ref() {
-                self.by_family
-                    .entry(family.to_string())
-                    .or_insert_with(Vec::new)
-                    .push(Arc::clone(&entry));
-            }
 
             self.by_full_name
                 .entry(entry.parsed.names().full_name.clone())
@@ -182,23 +173,20 @@ impl FontDatabase {
     }
 
     pub fn resolve(&self, font_attr: &FontAttributes) -> Option<&ParsedFont> {
-        if let Some(entry) = self.by_full_name.get(&font_attr.family) {
-            if entry.parsed.matches_attributes(font_attr) == FontMatch::FullName {
-                return Some(&entry.parsed);
-            }
-        }
-
-        if let Some(family) = self.by_family.get(&font_attr.family) {
-            let mut candidates = vec![];
-            for entry in family {
-                let res = entry.parsed.matches_attributes(font_attr);
-                if res != FontMatch::NoMatch {
-                    candidates.push((res, entry));
+        let candidates: Vec<&ParsedFont> = self
+            .by_full_name
+            .values()
+            .filter_map(|entry| {
+                if entry.parsed.matches_name(font_attr) {
+                    Some(&entry.parsed)
+                } else {
+                    None
                 }
-            }
-            candidates.sort_by(|a, b| a.0.cmp(&b.0));
-            let best = candidates.first()?;
-            return Some(&best.1.parsed);
+            })
+            .collect();
+
+        if let Some(idx) = ParsedFont::best_matching_index(font_attr, &candidates) {
+            return candidates.get(idx).map(|&p| p);
         }
 
         None

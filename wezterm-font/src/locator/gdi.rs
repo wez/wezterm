@@ -1,7 +1,7 @@
 #![cfg(windows)]
 
 use crate::locator::{FontDataSource, FontLocator};
-use crate::parser::{parse_and_collect_font_info, rank_matching_fonts, FontMatch, ParsedFont};
+use crate::parser::{best_matching_font, parse_and_collect_font_info, ParsedFont};
 use config::{FontAttributes, FontStretch, FontWeight as WTFontWeight};
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
@@ -63,7 +63,7 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<Parse
 
         let mut font_info = vec![];
         parse_and_collect_font_info(&source, &mut font_info)?;
-        let matches = ParsedFont::rank_matches(attr, font_info);
+        let matches = ParsedFont::best_match(attr, font_info);
 
         for m in matches {
             return Ok(m);
@@ -145,11 +145,9 @@ fn handle_from_descriptor(
 
             log::debug!("{} -> {}", family_name, path.display());
             let source = FontDataSource::OnDisk(path);
-            match rank_matching_fonts(&source, attr) {
-                Ok(matches) => {
-                    for p in matches {
-                        return Some(p);
-                    }
+            match best_matching_font(&source, attr) {
+                Ok(parsed) => {
+                    return Some(parsed);
                 }
                 Err(err) => log::warn!("While parsing: {:?}: {:#}", source, err),
             }
@@ -176,7 +174,7 @@ impl FontLocator for GdiFontLocator {
                 fonts: &mut Vec<ParsedFont>,
                 loaded: &mut HashSet<FontAttributes>,
             ) -> bool {
-                if parsed.matches_attributes(font_attr) != FontMatch::NoMatch {
+                if parsed.matches_name(font_attr) {
                     fonts.push(parsed);
                     loaded.insert(font_attr.clone());
                     true

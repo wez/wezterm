@@ -89,8 +89,7 @@ impl FontLocator for CoreTextFontLocator {
         for attr in fonts_selection {
             if let Ok(descriptor) = descriptor_from_attr(attr) {
                 let handles = handles_from_descriptor(&descriptor);
-                let ranked = ParsedFont::rank_matches(attr, handles);
-                for parsed in ranked {
+                if let Some(parsed) = ParsedFont::best_match(attr, handles) {
                     fonts.push(parsed);
                     loaded.insert(attr.clone());
                 }

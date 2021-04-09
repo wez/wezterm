@@ -1,6 +1,6 @@
 use crate::fcwrap;
 use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
-use crate::parser::{FontMatch, ParsedFont};
+use crate::parser::ParsedFont;
 use anyhow::Context;
 use config::FontAttributes;
 use fcwrap::{to_fc_weight, to_fc_width, CharSet, Pattern as FontPattern};
@@ -98,7 +98,7 @@ impl FontLocator for FontConfigFontLocator {
                             // so we need to parse the returned font
                             // here to see if we got what we asked for.
                             if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
-                                if parsed.matches_attributes(attr) != FontMatch::NoMatch {
+                                if parsed.matches_name(attr) {
                                     log::trace!("found font-config match for {:?}", parsed.names());
                                     fonts.push(parsed);
                                     loaded.insert(attr.clone());

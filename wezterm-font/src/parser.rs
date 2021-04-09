@@ -87,57 +87,164 @@ impl ParsedFont {
         self.italic
     }
 
-    pub fn matches_attributes(&self, attr: &FontAttributes) -> FontMatch {
+    pub fn matches_name(&self, attr: &FontAttributes) -> bool {
         if let Some(fam) = self.names.family.as_ref() {
             if attr.family == *fam {
-                if attr.stretch == self.stretch {
-                    let wanted_weight = attr.weight.to_opentype_weight();
-                    let weight = self.weight.to_opentype_weight();
+                return true;
+            }
+        }
+        self.matches_full_or_ps_name(attr)
+    }
 
-                    if weight >= wanted_weight {
-                        if attr.italic == self.italic {
-                            return FontMatch::Weight(weight - wanted_weight);
-                        }
-                    }
+    pub fn matches_full_or_ps_name(&self, attr: &FontAttributes) -> bool {
+        if attr.family == self.names.full_name {
+            return true;
+        }
+        if let Some(ps) = self.names.postscript_name.as_ref() {
+            if attr.family == *ps {
+                return true;
+            }
+        }
+        false
+    }
 
-                    if attr.family == self.names.full_name {
-                        return FontMatch::FullName;
-                    }
+    /// Perform CSS Fonts Level 3 font matching.
+    /// This implementation is derived from the `find_best_match` function
+    /// in the font-kit crate which is
+    /// Copyright © 2018 The Pathfinder Project Developers.
+    /// https://drafts.csswg.org/css-fonts-3/#font-style-matching says
+    pub fn best_matching_index<P: std::ops::Deref<Target = Self> + std::fmt::Debug>(
+        attr: &FontAttributes,
+        fonts: &[P],
+    ) -> Option<usize> {
+        if fonts.is_empty() {
+            return None;
+        }
+
+        let mut candidates: Vec<usize> = (0..fonts.len()).collect();
+
+        // First, filter by stretch
+        let stretch_value = attr.stretch.to_opentype_stretch();
+        let stretch = if candidates
+            .iter()
+            .any(|&idx| fonts[idx].stretch == attr.stretch)
+        {
+            attr.stretch
+        } else if attr.stretch <= FontStretch::Normal {
+            // Find the closest stretch, looking at narrower first before
+            // looking at wider candidates
+            match candidates
+                .iter()
+                .filter(|&&idx| fonts[idx].stretch < attr.stretch)
+                .min_by_key(|&&idx| stretch_value - fonts[idx].stretch.to_opentype_stretch())
+            {
+                Some(&idx) => fonts[idx].stretch,
+                None => {
+                    let idx = *candidates.iter().min_by_key(|&&idx| {
+                        fonts[idx].stretch.to_opentype_stretch() - stretch_value
+                    })?;
+                    fonts[idx].stretch
                 }
             }
-        }
+        } else {
+            // Look at wider values, then narrower values
+            match candidates
+                .iter()
+                .filter(|&&idx| fonts[idx].stretch > attr.stretch)
+                .min_by_key(|&&idx| fonts[idx].stretch.to_opentype_stretch() - stretch_value)
+            {
+                Some(&idx) => fonts[idx].stretch,
+                None => {
+                    let idx = *candidates.iter().min_by_key(|&&idx| {
+                        stretch_value - fonts[idx].stretch.to_opentype_stretch()
+                    })?;
+                    fonts[idx].stretch
+                }
+            }
+        };
 
-        if attr.family == self.names.full_name {
-            FontMatch::FullName
-        } else if let Some(ps) = self.names.postscript_name.as_ref() {
-            if attr.family == *ps {
-                FontMatch::FullName
-            } else {
-                FontMatch::NoMatch
+        // Reduce to matching stretches
+        candidates.retain(|&idx| fonts[idx].stretch == stretch);
+
+        // Now match style: italics
+        let styles = [attr.italic, !attr.italic];
+        let italic = *styles
+            .iter()
+            .filter(|&&italic| candidates.iter().any(|&idx| fonts[idx].italic == italic))
+            .next()?;
+
+        // Reduce to matching italics
+        candidates.retain(|&idx| fonts[idx].italic == italic);
+
+        // And now match by font weight
+        let query_weight = attr.weight.to_opentype_weight();
+        let weight = if candidates
+            .iter()
+            .any(|&idx| fonts[idx].weight == attr.weight)
+        {
+            // Exact match for the requested weight
+            attr.weight
+        } else if attr.weight == FontWeight::Regular
+            && candidates
+                .iter()
+                .any(|&idx| fonts[idx].weight == FontWeight::Medium)
+        {
+            // https://drafts.csswg.org/css-fonts-3/#font-style-matching says
+            // that if they want weight=400 and we don't have 400,
+            // look at weight 500 first
+            FontWeight::Medium
+        } else if attr.weight == FontWeight::Medium
+            && candidates
+                .iter()
+                .any(|&idx| fonts[idx].weight == FontWeight::Regular)
+        {
+            // Similarly, look at regular before Medium if they wanted
+            // Medium and we didn't have it
+            FontWeight::Regular
+        } else if attr.weight <= FontWeight::Medium {
+            // Find best lighter weight, else best heavier weight
+            match candidates
+                .iter()
+                .filter(|&&idx| fonts[idx].weight <= attr.weight)
+                .min_by_key(|&&idx| query_weight - fonts[idx].weight.to_opentype_weight())
+            {
+                Some(&idx) => fonts[idx].weight,
+                None => {
+                    let idx = *candidates.iter().min_by_key(|&&idx| {
+                        fonts[idx].weight.to_opentype_weight() - query_weight
+                    })?;
+                    fonts[idx].weight
+                }
             }
         } else {
-            FontMatch::NoMatch
-        }
-    }
-
-    pub fn rank_matches(attr: &FontAttributes, fonts: Vec<Self>) -> Vec<Self> {
-        let mut candidates = vec![];
-        for p in fonts {
-            let res = p.matches_attributes(attr);
-            if res != FontMatch::NoMatch {
-                candidates.push((res, p));
+            // Find best heavier weight, else best lighter weight
+            match candidates
+                .iter()
+                .filter(|&&idx| fonts[idx].weight >= attr.weight)
+                .min_by_key(|&&idx| fonts[idx].weight.to_opentype_weight() - query_weight)
+            {
+                Some(&idx) => fonts[idx].weight,
+                None => {
+                    let idx = *candidates.iter().min_by_key(|&&idx| {
+                        query_weight - fonts[idx].weight.to_opentype_weight()
+                    })?;
+                    fonts[idx].weight
+                }
             }
-        }
-        candidates.sort_by(|a, b| a.0.cmp(&b.0));
-        candidates.into_iter().map(|(_, p)| p).collect()
-    }
-}
+        };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
-pub enum FontMatch {
-    Weight(u16),
-    FullName,
-    NoMatch,
+        // Reduce to matching weight
+        candidates.retain(|&idx| fonts[idx].weight == weight);
+
+        // The first one in this set is our best match
+        candidates.into_iter().next()
+    }
+
+    pub fn best_match(attr: &FontAttributes, mut fonts: Vec<Self>) -> Option<Self> {
+        let refs: Vec<&Self> = fonts.iter().collect();
+        let idx = Self::best_matching_index(attr, &refs)?;
+        fonts.drain(idx..=idx).next()
+    }
 }
 
 /// In case the user has a broken configuration, or no configuration,
@@ -186,13 +293,13 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
     Ok(())
 }
 
-pub fn rank_matching_fonts(
+pub fn best_matching_font(
     source: &FontDataSource,
     font_attr: &FontAttributes,
-) -> anyhow::Result<Vec<ParsedFont>> {
+) -> anyhow::Result<Option<ParsedFont>> {
     let mut font_info = vec![];
     parse_and_collect_font_info(source, &mut font_info)?;
-    Ok(ParsedFont::rank_matches(font_attr, font_info))
+    Ok(ParsedFont::best_match(font_attr, font_info))
 }
 
 pub(crate) fn parse_and_collect_font_info(
