@@ -125,6 +125,10 @@ impl TerminfoRenderer {
             }
 
             let has_true_color = self.caps.color_level() == ColorLevel::TrueColor;
+            let terminfo_color: i32 = match self.get_capability::<cap::MaxColors>() {
+                Some(cap::MaxColors(n)) => n,
+                None => 0,
+            };
 
             if attr.foreground != current_foreground {
                 match (has_true_color, attr.foreground) {
@@ -144,14 +148,17 @@ impl TerminfoRenderer {
                     }
                     (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
                     | (_, ColorAttribute::PaletteIndex(idx)) => {
-                        if let Some(set) = self.get_capability::<cap::SetAForeground>() {
-                            set.expand().color(idx).to(out.by_ref())?;
-                        } else {
-                            write!(
-                                out,
-                                "{}",
-                                CSI::Sgr(Sgr::Foreground(ColorSpec::PaletteIndex(idx)))
-                            )?;
+                        match self.get_capability::<cap::SetAForeground>() {
+                            Some(set) if (idx as i32) < terminfo_color => {
+                                set.expand().color(idx).to(out.by_ref())?;
+                            }
+                            _ => {
+                                write!(
+                                    out,
+                                    "{}",
+                                    CSI::Sgr(Sgr::Foreground(ColorSpec::PaletteIndex(idx)))
+                                )?;
+                            }
                         }
                     }
                 }
@@ -175,14 +182,17 @@ impl TerminfoRenderer {
                     }
                     (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
                     | (_, ColorAttribute::PaletteIndex(idx)) => {
-                        if let Some(set) = self.get_capability::<cap::SetABackground>() {
-                            set.expand().color(idx).to(out.by_ref())?;
-                        } else {
-                            write!(
-                                out,
-                                "{}",
-                                CSI::Sgr(Sgr::Background(ColorSpec::PaletteIndex(idx)))
-                            )?;
+                        match self.get_capability::<cap::SetABackground>() {
+                            Some(set) if (idx as i32) < terminfo_color => {
+                                set.expand().color(idx).to(out.by_ref())?;
+                            }
+                            _ => {
+                                write!(
+                                    out,
+                                    "{}",
+                                    CSI::Sgr(Sgr::Background(ColorSpec::PaletteIndex(idx)))
+                                )?;
+                            }
                         }
                     }
                 }
