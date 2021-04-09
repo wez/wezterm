@@ -54,6 +54,7 @@ pub(crate) struct XWindowInner {
     callbacks: Box<dyn WindowCallbacks>,
     width: u16,
     height: u16,
+    dpi: f64,
     expose: VecDeque<Rect>,
     paint_all: bool,
     cursors: CursorInfo,
@@ -172,6 +173,28 @@ impl XWindowInner {
         self.cursors.set_cursor(self.window_id, cursor)
     }
 
+    fn check_dpi_and_synthesize_resize(&mut self) {
+        let conn = self.conn();
+        let dpi = conn.default_dpi();
+
+        if dpi != self.dpi {
+            log::trace!(
+                "dpi changed from {} -> {}, so synthesize a resize",
+                dpi,
+                self.dpi
+            );
+            self.dpi = dpi;
+            self.callbacks.resize(
+                Dimensions {
+                    pixel_width: self.width as usize,
+                    pixel_height: self.height as usize,
+                    dpi: self.dpi as usize,
+                },
+                self.is_fullscreen().unwrap_or(false),
+            );
+        }
+    }
+
     pub fn dispatch_event(&mut self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
         let r = event.response_type() & 0x7f;
         let conn = self.conn();
@@ -184,11 +207,12 @@ impl XWindowInner {
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
                 self.width = cfg.width();
                 self.height = cfg.height();
+                self.dpi = conn.default_dpi();
                 self.callbacks.resize(
                     Dimensions {
                         pixel_width: self.width as usize,
                         pixel_height: self.height as usize,
-                        dpi: conn.default_dpi as usize,
+                        dpi: self.dpi as usize,
                     },
                     self.is_fullscreen().unwrap_or(false),
                 )
@@ -297,11 +321,32 @@ impl XWindowInner {
             }
             xcb::PROPERTY_NOTIFY => {
                 let msg: &xcb::PropertyNotifyEvent = unsafe { xcb::cast_event(event) };
+
+                /*
+                if let Ok(reply) = xcb::xproto::get_atom_name(&conn, msg.atom()).get_reply() {
+                    log::info!(
+                        "PropertyNotifyEvent atom={} {} xsel={}",
+                        msg.atom(),
+                        reply.name(),
+                        conn.atom_xsel_data
+                    );
+                }
+                */
+
                 log::trace!(
                     "PropertyNotifyEvent atom={} xsel={}",
                     msg.atom(),
                     conn.atom_xsel_data
                 );
+
+                if msg.atom() == conn.atom_gtk_edge_constraints {
+                    // "_GTK_EDGE_CONSTRAINTS" property is changed when the
+                    // accessibility settings change the text size and thus
+                    // the dpi.  We use this as a way to detect dpi changes
+                    // when running under gnome.
+                    conn.update_xrm();
+                    self.check_dpi_and_synthesize_resize();
+                }
             }
             xcb::FOCUS_IN => {
                 log::trace!("Calling focus_change(true)");
@@ -715,6 +760,7 @@ impl XWindow {
                 callbacks,
                 width: width.try_into()?,
                 height: height.try_into()?,
+                dpi: conn.default_dpi(),
                 expose: VecDeque::new(),
                 paint_all: true,
                 copy_and_paste: CopyAndPaste::default(),

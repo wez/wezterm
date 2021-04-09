@@ -102,8 +102,8 @@ impl CursorInfo {
             {
                 // 0.5 and later have the required support
                 if (vers.major_version(), vers.minor_version()) >= (0, 5) {
-                    size.replace(cursor_size(&conn.xrm));
-                    theme = conn.xrm.get("Xcursor.theme").cloned();
+                    size.replace(cursor_size(&*conn.xrm.borrow()));
+                    theme = conn.xrm.borrow().get("Xcursor.theme").cloned();
 
                     // Locate the Pictformat corresponding to ARGB32
                     if let Ok(formats) = xcb::render::query_pict_formats(conn.conn()).get_reply() {

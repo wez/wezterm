@@ -146,7 +146,7 @@ impl LoadedFont {
 struct FontConfigInner {
     fonts: RefCell<HashMap<TextStyle, Rc<LoadedFont>>>,
     metrics: RefCell<Option<FontMetrics>>,
-    dpi_scale: RefCell<f64>,
+    dpi: RefCell<usize>,
     font_scale: RefCell<f64>,
     config: RefCell<ConfigHandle>,
     locator: Arc<dyn FontLocator + Send + Sync>,
@@ -165,12 +165,13 @@ impl FontConfigInner {
     pub fn new(config: Option<ConfigHandle>) -> anyhow::Result<Self> {
         let config = config.unwrap_or_else(|| configuration());
         let locator = new_locator(config.font_locator);
+        let dpi = config.dpi.unwrap_or_else(|| default_dpi()) as usize;
         Ok(Self {
             fonts: RefCell::new(HashMap::new()),
             locator,
             metrics: RefCell::new(None),
             font_scale: RefCell::new(1.0),
-            dpi_scale: RefCell::new(1.0),
+            dpi: RefCell::new(dpi),
             config: RefCell::new(config.clone()),
             font_dirs: RefCell::new(Arc::new(FontDatabase::with_font_dirs(&config)?)),
             built_in: RefCell::new(Arc::new(FontDatabase::with_built_in()?)),
@@ -333,8 +334,7 @@ impl FontConfigInner {
         let shaper = new_shaper(&*config, &handles)?;
 
         let font_size = config.font_size * *self.font_scale.borrow();
-        let dpi =
-            *self.dpi_scale.borrow() as u32 * config.dpi.unwrap_or_else(|| default_dpi()) as u32;
+        let dpi = *self.dpi.borrow() as u32;
         let metrics = shaper.metrics(font_size, dpi).with_context(|| {
             format!(
                 "obtaining metrics for font_size={} @ dpi {}",
@@ -358,11 +358,11 @@ impl FontConfigInner {
         Ok(loaded)
     }
 
-    pub fn change_scaling(&self, font_scale: f64, dpi_scale: f64) -> (f64, f64) {
+    pub fn change_scaling(&self, font_scale: f64, dpi: usize) -> (f64, usize) {
         let prior_font = *self.font_scale.borrow();
-        let prior_dpi = *self.dpi_scale.borrow();
+        let prior_dpi = *self.dpi.borrow();
 
-        *self.dpi_scale.borrow_mut() = dpi_scale;
+        *self.dpi.borrow_mut() = dpi;
         *self.font_scale.borrow_mut() = font_scale;
         self.fonts.borrow_mut().clear();
         self.metrics.borrow_mut().take();
@@ -454,8 +454,8 @@ impl FontConfiguration {
         self.inner.resolve_font(&self.inner, style)
     }
 
-    pub fn change_scaling(&self, font_scale: f64, dpi_scale: f64) -> (f64, f64) {
-        self.inner.change_scaling(font_scale, dpi_scale)
+    pub fn change_scaling(&self, font_scale: f64, dpi: usize) -> (f64, usize) {
+        self.inner.change_scaling(font_scale, dpi)
     }
 
     /// Returns the baseline font specified in the configuration

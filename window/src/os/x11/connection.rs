@@ -17,7 +17,7 @@ use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_ke
 
 pub struct XConnection {
     pub conn: xcb_util::ewmh::Connection,
-    pub default_dpi: f64,
+    default_dpi: RefCell<f64>,
     pub screen_num: i32,
     pub root: xcb::xproto::Window,
     pub keyboard: Keyboard,
@@ -29,8 +29,9 @@ pub struct XConnection {
     pub atom_xsel_data: xcb::Atom,
     pub atom_targets: xcb::Atom,
     pub atom_clipboard: xcb::Atom,
+    pub atom_gtk_edge_constraints: xcb::Atom,
     keysyms: *mut xcb_key_symbols_t,
-    pub(crate) xrm: HashMap<String, String>,
+    pub(crate) xrm: RefCell<HashMap<String, String>>,
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<XWindowInner>>>>,
     should_terminate: RefCell<bool>,
     timers: RefCell<TimerList>,
@@ -149,7 +150,7 @@ impl ConnectionOps for XConnection {
     }
 
     fn default_dpi(&self) -> f64 {
-        self.default_dpi
+        *self.default_dpi.borrow()
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
@@ -235,6 +236,21 @@ impl ConnectionOps for XConnection {
 }
 
 impl XConnection {
+    pub(crate) fn update_xrm(&self) {
+        let xrm = crate::x11::xrm::parse_root_resource_manager(&self.conn, self.root)
+            .unwrap_or(HashMap::new());
+        let dpi = xrm
+            .get("Xft.dpi")
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("96")
+            .parse::<f64>()
+            .unwrap_or(crate::DEFAULT_DPI);
+
+        *self.xrm.borrow_mut() = xrm;
+        *self.default_dpi.borrow_mut() = dpi;
+    }
+
     fn process_queued_xcb(&self) -> anyhow::Result<()> {
         match self.conn.poll_for_event() {
             None => match self.conn.has_error() {
@@ -315,6 +331,9 @@ impl XConnection {
         let atom_clipboard = xcb::intern_atom(&conn, false, "CLIPBOARD")
             .get_reply()?
             .atom();
+        let atom_gtk_edge_constraints = xcb::intern_atom(&conn, false, "_GTK_EDGE_CONSTRAINTS")
+            .get_reply()?
+            .atom();
 
         let keysyms = unsafe { xcb_key_symbols_alloc((*conn).get_raw_conn()) };
 
@@ -367,13 +386,14 @@ impl XConnection {
 
         let xrm =
             crate::x11::xrm::parse_root_resource_manager(&conn, root).unwrap_or(HashMap::new());
-        let default_dpi = xrm
-            .get("Xft.dpi")
-            .as_ref()
-            .map(|s| s.as_str())
-            .unwrap_or("96")
-            .parse::<f64>()
-            .unwrap_or(crate::DEFAULT_DPI);
+        let default_dpi = RefCell::new(
+            xrm.get("Xft.dpi")
+                .as_ref()
+                .map(|s| s.as_str())
+                .unwrap_or("96")
+                .parse::<f64>()
+                .unwrap_or(crate::DEFAULT_DPI),
+        );
 
         let conn = XConnection {
             conn,
@@ -381,9 +401,10 @@ impl XConnection {
             cursor_font_id,
             screen_num,
             root,
-            xrm,
+            xrm: RefCell::new(xrm),
             atom_protocols,
             atom_clipboard,
+            atom_gtk_edge_constraints,
             atom_delete,
             keysyms,
             keyboard,

@@ -29,9 +29,7 @@ impl super::TermWindow {
             return;
         }
 
-        let (prior_font, prior_dpi) = self
-            .fonts
-            .change_scaling(font_scale, dimensions.dpi as f64 / ::window::default_dpi());
+        let (prior_font, prior_dpi) = self.fonts.change_scaling(font_scale, dimensions.dpi);
         match RenderMetrics::new(&self.fonts) {
             Ok(metrics) => {
                 self.render_metrics = metrics;
