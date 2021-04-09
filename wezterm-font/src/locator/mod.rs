@@ -1,3 +1,4 @@
+use crate::parser::ParsedFont;
 use config::FontAttributes;
 use std::borrow::Cow;
 use std::cmp::Ordering;
@@ -113,12 +114,12 @@ pub trait FontLocator {
         &self,
         fonts_selection: &[FontAttributes],
         loaded: &mut HashSet<FontAttributes>,
-    ) -> anyhow::Result<Vec<FontDataHandle>>;
+    ) -> anyhow::Result<Vec<ParsedFont>>;
 
     fn locate_fallback_for_codepoints(
         &self,
         codepoints: &[char],
-    ) -> anyhow::Result<Vec<FontDataHandle>>;
+    ) -> anyhow::Result<Vec<ParsedFont>>;
 }
 
 pub fn new_locator(locator: FontLocatorSelection) -> Arc<dyn FontLocator + Send + Sync> {
@@ -154,14 +155,14 @@ impl FontLocator for NopSystemSource {
         &self,
         _fonts_selection: &[FontAttributes],
         _loaded: &mut HashSet<FontAttributes>,
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<ParsedFont>> {
         Ok(vec![])
     }
 
     fn locate_fallback_for_codepoints(
         &self,
         _codepoints: &[char],
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<ParsedFont>> {
         Ok(vec![])
     }
 }

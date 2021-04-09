@@ -1,4 +1,3 @@
-use crate::locator::FontDataHandle;
 use crate::parser::*;
 use crate::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::units::*;
@@ -19,7 +18,7 @@ use tinyvec::*;
 use unicode_general_category::{get_general_category, GeneralCategory};
 
 /// Represents a parsed font
-struct ParsedFont {
+struct AllsortsParsedFont {
     cmap_subtable: CmapSubtable<'static>,
     gpos_cache: Option<LayoutCache<GPOS>>,
     gsub_cache: Option<LayoutCache<GSUB>>,
@@ -57,10 +56,10 @@ fn locate_offset_table<'a>(f: &OpenTypeFile<'a>, idx: usize) -> anyhow::Result<O
     }
 }
 
-impl ParsedFont {
-    pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
-        let data = handle.source.load_data()?;
-        let index = handle.index as usize;
+impl AllsortsParsedFont {
+    pub fn from_locator(parsed: &ParsedFont) -> anyhow::Result<Self> {
+        let data = parsed.handle.source.load_data()?;
+        let index = parsed.handle.index as usize;
 
         let owned_scope = ReadScopeOwned::new(ReadScope::new(&data));
 
@@ -441,15 +440,15 @@ impl ParsedFont {
 }
 
 pub struct AllsortsShaper {
-    fonts: Vec<Option<ParsedFont>>,
+    fonts: Vec<Option<AllsortsParsedFont>>,
 }
 
 impl AllsortsShaper {
-    pub fn new(_: &config::ConfigHandle, handles: &[FontDataHandle]) -> anyhow::Result<Self> {
+    pub fn new(_: &config::ConfigHandle, handles: &[ParsedFont]) -> anyhow::Result<Self> {
         let mut fonts = vec![];
         let mut success = false;
         for handle in handles {
-            match ParsedFont::from_locator(handle) {
+            match AllsortsParsedFont::from_locator(handle) {
                 Ok(font) => {
                     fonts.push(Some(font));
                     success = true;

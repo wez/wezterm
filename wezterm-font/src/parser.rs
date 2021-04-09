@@ -11,7 +11,7 @@ pub enum MaybeShaped {
 }
 
 /// Represents a parsed font
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub struct ParsedFont {
     names: Names,
     weight: FontWeight,
@@ -20,7 +20,7 @@ pub struct ParsedFont {
     pub handle: FontDataHandle,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub struct Names {
     pub full_name: String,
     pub family: Option<String>,

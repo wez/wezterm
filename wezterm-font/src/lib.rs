@@ -1,5 +1,6 @@
 use crate::db::FontDatabase;
-use crate::locator::{new_locator, FontDataHandle, FontLocator};
+use crate::locator::{new_locator, FontLocator};
+use crate::parser::ParsedFont;
 use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper};
 use anyhow::{Context, Error};
@@ -36,13 +37,13 @@ pub struct ClearShapeCache {}
 
 pub struct LoadedFont {
     rasterizers: RefCell<HashMap<FallbackIdx, Box<dyn FontRasterizer>>>,
-    handles: RefCell<Vec<FontDataHandle>>,
+    handles: RefCell<Vec<ParsedFont>>,
     shaper: RefCell<Box<dyn FontShaper>>,
     metrics: FontMetrics,
     font_size: f64,
     dpi: u32,
     font_config: Weak<FontConfigInner>,
-    pending_fallback: Arc<Mutex<Vec<FontDataHandle>>>,
+    pending_fallback: Arc<Mutex<Vec<ParsedFont>>>,
 }
 
 impl LoadedFont {
@@ -50,7 +51,7 @@ impl LoadedFont {
         self.metrics
     }
 
-    fn insert_fallback_handles(&self, extra_handles: Vec<FontDataHandle>) -> anyhow::Result<bool> {
+    fn insert_fallback_handles(&self, extra_handles: Vec<ParsedFont>) -> anyhow::Result<bool> {
         let mut loaded = false;
         {
             let mut handles = self.handles.borrow_mut();
@@ -191,7 +192,7 @@ impl FontConfigInner {
     fn schedule_fallback_resolve<F: FnOnce() + Send + Sync + 'static>(
         &self,
         mut no_glyphs: Vec<char>,
-        pending: &Arc<Mutex<Vec<FontDataHandle>>>,
+        pending: &Arc<Mutex<Vec<ParsedFont>>>,
         completion: F,
     ) {
         let mut ng = self.no_glyphs.borrow_mut();

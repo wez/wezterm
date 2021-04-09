@@ -1,8 +1,8 @@
 #![cfg(target_os = "macos")]
 
 use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
-use crate::parser::FontMatch;
-use config::FontAttributes;
+use crate::parser::{FontMatch, ParsedFont};
+use config::{FontAttributes, FontWeight, FontWidth};
 use core_foundation::array::CFArray;
 use core_foundation::base::TCFType;
 use core_foundation::dictionary::CFDictionary;
@@ -13,7 +13,7 @@ use core_text::font_descriptor::*;
 use std::collections::HashSet;
 
 lazy_static::lazy_static! {
-    static ref FALLBACK: Vec<FontDataHandle> = build_fallback_list();
+    static ref FALLBACK: Vec<ParsedFont> = build_fallback_list();
 }
 
 /// A FontLocator implemented using the system font loading
@@ -57,7 +57,7 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescripto
 /// In addition, it may point to a ttc; so we'll need to reference
 /// each contained font to figure out which one is the one that
 /// the descriptor is referencing.
-fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandle> {
+fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<ParsedFont> {
     let path = descriptor.font_path()?;
     let family_name = descriptor.family_name();
 
@@ -69,7 +69,7 @@ fn handle_from_descriptor(descriptor: &CTFontDescriptor) -> Option<FontDataHandl
         if parsed.names().full_name == family_name
             || parsed.names().family.as_ref() == Some(&family_name)
         {
-            return Some(parsed.handle);
+            return Some(parsed);
         }
     }
 
@@ -81,19 +81,15 @@ impl FontLocator for CoreTextFontLocator {
         &self,
         fonts_selection: &[FontAttributes],
         loaded: &mut HashSet<FontAttributes>,
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut fonts = vec![];
 
         for attr in fonts_selection {
             if let Ok(descriptor) = descriptor_from_attr(attr) {
-                if let Some(handle) = handle_from_descriptor(&descriptor) {
-                    if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
-                        // The system may have returned a fallback font rather than the
-                        // font that we requested, so verify that the name matches.
-                        if parsed.matches_attributes(attr) != FontMatch::NoMatch {
-                            fonts.push(handle);
-                            loaded.insert(attr.clone());
-                        }
+                if let Some(parsed) = handle_from_descriptor(&descriptor) {
+                    if parsed.matches_attributes(attr) != FontMatch::NoMatch {
+                        fonts.push(parsed);
+                        loaded.insert(attr.clone());
                     }
                 }
             }
@@ -105,21 +101,21 @@ impl FontLocator for CoreTextFontLocator {
     fn locate_fallback_for_codepoints(
         &self,
         _codepoints: &[char],
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<ParsedFont>> {
         // We don't have an API to resolve a font for the codepoints, so instead we
         // just get the system fallback list and add the whole thing to the fallback.
         Ok(FALLBACK.clone())
     }
 }
 
-fn build_fallback_list() -> Vec<FontDataHandle> {
+fn build_fallback_list() -> Vec<ParsedFont> {
     build_fallback_list_impl().unwrap_or_else(|err| {
         log::error!("Error getting system fallback fonts: {:#}", err);
         Vec::new()
     })
 }
 
-fn build_fallback_list_impl() -> anyhow::Result<Vec<FontDataHandle>> {
+fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
     let font =
         new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
     let lang = "en"

@@ -1,6 +1,6 @@
 use crate::fcwrap;
 use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
-use crate::parser::FontMatch;
+use crate::parser::{FontMatch, ParsedFont};
 use anyhow::Context;
 use config::FontAttributes;
 use fcwrap::{to_fc_weight, to_fc_width, CharSet, Pattern as FontPattern};
@@ -20,7 +20,7 @@ impl FontLocator for FontConfigFontLocator {
         &self,
         fonts_selection: &[FontAttributes],
         loaded: &mut HashSet<FontAttributes>,
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut fonts = vec![];
 
         for attr in fonts_selection {
@@ -66,9 +66,9 @@ impl FontLocator for FontConfigFontLocator {
                 // here to see if we got what we asked for.
                 if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
                     if parsed.matches_attributes(attr) != FontMatch::NoMatch {
-                        fonts.push(handle);
-                        loaded.insert(attr.clone());
                         log::trace!("found font-config match for {:?}", parsed.names());
+                        fonts.push(parsed);
+                        loaded.insert(attr.clone());
                     }
                 }
             }
@@ -80,7 +80,7 @@ impl FontLocator for FontConfigFontLocator {
     fn locate_fallback_for_codepoints(
         &self,
         codepoints: &[char],
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut charset = CharSet::new()?;
         for &c in codepoints {
             charset.add(c)?;
@@ -125,8 +125,9 @@ impl FontLocator for FontConfigFontLocator {
                     index: pat.get_integer("index")?.try_into()?,
                     variation: 0,
                 };
-
-                fonts.push(handle);
+                if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
+                    fonts.push(parsed);
+                }
             }
         }
 

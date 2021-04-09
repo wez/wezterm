@@ -1,6 +1,6 @@
 use crate::ftwrap;
 use crate::hbwrap as harfbuzz;
-use crate::locator::FontDataHandle;
+use crate::parser::ParsedFont;
 use crate::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::units::*;
 use anyhow::anyhow;
@@ -62,7 +62,7 @@ struct MetricsKey {
 }
 
 pub struct HarfbuzzShaper {
-    handles: Vec<FontDataHandle>,
+    handles: Vec<ParsedFont>,
     fonts: Vec<RefCell<Option<FontPair>>>,
     lib: ftwrap::Library,
     metrics: RefCell<HashMap<MetricsKey, FontMetrics>>,
@@ -103,7 +103,7 @@ fn is_question_string(s: &str) -> bool {
 }
 
 impl HarfbuzzShaper {
-    pub fn new(config: &ConfigHandle, handles: &[FontDataHandle]) -> anyhow::Result<Self> {
+    pub fn new(config: &ConfigHandle, handles: &[ParsedFont]) -> anyhow::Result<Self> {
         let lib = ftwrap::Library::new()?;
         let handles = handles.to_vec();
         let mut fonts = vec![];
@@ -129,7 +129,7 @@ impl HarfbuzzShaper {
                 let mut opt_pair = opt_pair.borrow_mut();
                 if opt_pair.is_none() {
                     log::trace!("shaper wants {} {:?}", font_idx, &self.handles[font_idx]);
-                    let face = self.lib.face_from_locator(&self.handles[font_idx])?;
+                    let face = self.lib.face_from_locator(&self.handles[font_idx].handle)?;
                     let mut font = harfbuzz::Font::new(face.face);
                     let (load_flags, _) = ftwrap::compute_load_flags_from_config();
                     font.set_load_flags(load_flags);

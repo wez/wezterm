@@ -1,7 +1,7 @@
 //! A font-database to keep track of fonts that we've located
 
 use crate::ftwrap::Library;
-use crate::locator::{FontDataHandle, FontDataSource};
+use crate::locator::FontDataSource;
 use crate::parser::{load_built_in_fonts, parse_and_collect_font_info, FontMatch, ParsedFont};
 use anyhow::Context;
 use config::{Config, FontAttributes};
@@ -129,7 +129,7 @@ impl FontDatabase {
     pub fn resolve_multiple(
         &self,
         fonts: &[FontAttributes],
-        handles: &mut Vec<FontDataHandle>,
+        handles: &mut Vec<ParsedFont>,
         loaded: &mut HashSet<FontAttributes>,
     ) {
         for attr in fonts {
@@ -147,7 +147,7 @@ impl FontDatabase {
     pub fn locate_fallback_for_codepoints(
         &self,
         codepoints: &[char],
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut wanted_range = RangeSet::new();
         for &c in codepoints {
             wanted_range.add(c as u32);
@@ -161,7 +161,7 @@ impl FontDatabase {
                 .with_context(|| format!("coverage_interaction for {:?}", entry.parsed))?;
             let len = covered.len();
             if len > 0 {
-                matches.push((len, entry.parsed.handle.clone()));
+                matches.push((len, entry.parsed.clone()));
             }
         }
 
@@ -181,10 +181,10 @@ impl FontDatabase {
         Ok(matches.into_iter().map(|(_len, handle)| handle).collect())
     }
 
-    pub fn resolve(&self, font_attr: &FontAttributes) -> Option<&FontDataHandle> {
+    pub fn resolve(&self, font_attr: &FontAttributes) -> Option<&ParsedFont> {
         if let Some(entry) = self.by_full_name.get(&font_attr.family) {
             if entry.parsed.matches_attributes(font_attr) == FontMatch::FullName {
-                return Some(&entry.parsed.handle);
+                return Some(&entry.parsed);
             }
         }
 
@@ -198,7 +198,7 @@ impl FontDatabase {
             }
             candidates.sort_by(|a, b| a.0.cmp(&b.0));
             let best = candidates.first()?;
-            return Some(&best.1.parsed.handle);
+            return Some(&best.1.parsed);
         }
 
         None

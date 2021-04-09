@@ -1,6 +1,6 @@
 #![cfg(windows)]
 
-use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
+use crate::locator::{FontDataSource, FontLocator};
 use crate::parser::{parse_and_collect_font_info, rank_matching_fonts, FontMatch, ParsedFont};
 use config::{FontAttributes, FontWeight as WTFontWeight, FontWidth};
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
@@ -17,7 +17,7 @@ use winapi::um::wingdi::{
 /// functions provided by the font-loader crate.
 pub struct GdiFontLocator {}
 
-fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontDataHandle> {
+fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<ParsedFont> {
     unsafe {
         let hdc = CreateCompatibleDC(std::ptr::null_mut());
         SelectObject(hdc, font as *mut _);
@@ -66,7 +66,7 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<FontD
         let matches = ParsedFont::rank_matches(attr, font_info);
 
         for m in matches {
-            return Ok(m.handle);
+            return Ok(m);
         }
 
         anyhow::bail!("No font matching {:?} in {:?}", attr, source);
@@ -82,7 +82,7 @@ fn wide_string(s: &str) -> Vec<u16> {
         .collect()
 }
 
-fn load_font(font_attr: &FontAttributes) -> anyhow::Result<FontDataHandle> {
+fn load_font(font_attr: &FontAttributes) -> anyhow::Result<ParsedFont> {
     let mut log_font = LOGFONTW {
         lfHeight: 0,
         lfWidth: 0,
@@ -136,7 +136,7 @@ fn handle_from_descriptor(
     attr: &FontAttributes,
     collection: &dwrote::FontCollection,
     descriptor: &FontDescriptor,
-) -> Option<FontDataHandle> {
+) -> Option<ParsedFont> {
     let font = collection.get_font_from_descriptor(&descriptor)?;
     let face = font.create_font_face();
     for file in face.get_files() {
@@ -148,7 +148,7 @@ fn handle_from_descriptor(
             match rank_matching_fonts(&source, attr) {
                 Ok(matches) => {
                     for p in matches {
-                        return Some(p.handle);
+                        return Some(p);
                     }
                 }
                 Err(err) => log::warn!("While parsing: {:?}: {:#}", source, err),
@@ -163,7 +163,7 @@ impl FontLocator for GdiFontLocator {
         &self,
         fonts_selection: &[FontAttributes],
         loaded: &mut HashSet<FontAttributes>,
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut fonts = Vec::new();
         let collection = dwrote::FontCollection::system();
 
@@ -172,25 +172,17 @@ impl FontLocator for GdiFontLocator {
 
             fn try_handle(
                 font_attr: &FontAttributes,
-                handle: FontDataHandle,
-                fonts: &mut Vec<FontDataHandle>,
+                parsed: ParsedFont,
+                fonts: &mut Vec<ParsedFont>,
                 loaded: &mut HashSet<FontAttributes>,
             ) -> bool {
-                match crate::parser::ParsedFont::from_locator(&handle) {
-                    Ok(parsed) => {
-                        if parsed.matches_attributes(font_attr) != FontMatch::NoMatch {
-                            fonts.push(handle);
-                            loaded.insert(font_attr.clone());
-                            true
-                        } else {
-                            log::debug!("parsed {:?} doesn't match {:?}", parsed, font_attr);
-                            false
-                        }
-                    }
-                    Err(err) => {
-                        log::debug!("unable to resolve {:?} to a path: {:#}", handle, err);
-                        false
-                    }
+                if parsed.matches_attributes(font_attr) != FontMatch::NoMatch {
+                    fonts.push(parsed);
+                    loaded.insert(font_attr.clone());
+                    true
+                } else {
+                    log::debug!("parsed {:?} doesn't match {:?}", parsed, font_attr);
+                    false
                 }
             }
 
@@ -223,7 +215,7 @@ impl FontLocator for GdiFontLocator {
     fn locate_fallback_for_codepoints(
         &self,
         codepoints: &[char],
-    ) -> anyhow::Result<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<ParsedFont>> {
         let text: Vec<u16> = codepoints
             .iter()
             .map(|&c| c as u16)

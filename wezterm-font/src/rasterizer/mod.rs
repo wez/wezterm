@@ -1,4 +1,4 @@
-use crate::locator::FontDataHandle;
+use crate::parser::ParsedFont;
 use crate::units::*;
 use config::FontRasterizerSelection;
 
@@ -29,7 +29,7 @@ pub trait FontRasterizer {
 
 pub fn new_rasterizer(
     rasterizer: FontRasterizerSelection,
-    handle: &FontDataHandle,
+    handle: &ParsedFont,
 ) -> anyhow::Result<Box<dyn FontRasterizer>> {
     match rasterizer {
         FontRasterizerSelection::FreeType => Ok(Box::new(

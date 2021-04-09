@@ -6,7 +6,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt::Display;
 use termwiz::color::RgbColor;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display, PartialOrd, Ord,
+)]
 pub enum FontWidth {
     UltraCondensed,
     ExtraCondensed,
@@ -57,7 +59,9 @@ impl Default for FontWidth {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display, PartialOrd, Ord,
+)]
 pub enum FontWeight {
     Thin,
     ExtraLight,

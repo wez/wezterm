@@ -1,4 +1,4 @@
-use crate::locator::FontDataHandle;
+use crate::parser::ParsedFont;
 use crate::rasterizer::FontRasterizer;
 use crate::units::*;
 use crate::{ftwrap, RasterizedGlyph};
@@ -289,10 +289,10 @@ impl FreeTypeRasterizer {
         }
     }
 
-    pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
-        log::trace!("Rasterizier wants {:?}", handle);
+    pub fn from_locator(parsed: &ParsedFont) -> anyhow::Result<Self> {
+        log::trace!("Rasterizier wants {:?}", parsed);
         let lib = ftwrap::Library::new()?;
-        let face = lib.face_from_locator(handle)?;
+        let face = lib.face_from_locator(&parsed.handle)?;
         let has_color = unsafe {
             (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
         };

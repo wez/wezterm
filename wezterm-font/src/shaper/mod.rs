@@ -1,4 +1,4 @@
-use crate::locator::FontDataHandle;
+use crate::parser::ParsedFont;
 use crate::units::PixelLength;
 
 pub mod allsorts;
@@ -75,7 +75,7 @@ pub use config::FontShaperSelection;
 
 pub fn new_shaper(
     config: &config::ConfigHandle,
-    handles: &[FontDataHandle],
+    handles: &[ParsedFont],
 ) -> anyhow::Result<Box<dyn FontShaper>> {
     match config.font_shaper {
         FontShaperSelection::Harfbuzz => {
