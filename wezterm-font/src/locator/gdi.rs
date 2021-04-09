@@ -146,9 +146,10 @@ fn handle_from_descriptor(
             log::debug!("{} -> {}", family_name, path.display());
             let source = FontDataSource::OnDisk(path);
             match best_matching_font(&source, attr) {
-                Ok(parsed) => {
+                Ok(Some(parsed)) => {
                     return Some(parsed);
                 }
+                Ok(None) => {}
                 Err(err) => log::warn!("While parsing: {:?}: {:#}", source, err),
             }
         }
