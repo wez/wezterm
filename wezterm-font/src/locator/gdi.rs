@@ -2,7 +2,7 @@
 
 use crate::locator::{FontDataSource, FontLocator};
 use crate::parser::{best_matching_font, parse_and_collect_font_info, ParsedFont};
-use config::{FontAttributes, FontStretch, FontWeight as WTFontWeight};
+use config::{FontAttributes, FontStretch as WTFontStretch, FontWeight as WTFontWeight};
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -269,7 +269,7 @@ impl FontLocator for GdiFontLocator {
 
                     let attr = FontAttributes {
                         weight: WTFontWeight::from_opentype_weight(font.weight().to_u32() as _),
-                        stretch: FontStretch::from_opentype_stretch(font.stretch().to_u32() as _),
+                        stretch: WTFontStretch::from_opentype_stretch(font.stretch().to_u32() as _),
                         italic: false,
                         family: font.family_name(),
                         is_fallback: true,
