@@ -14,7 +14,7 @@ return {
 The first parameter is the name of the font; the name can be one of the following types of names:
 
 * The font family name, eg: `"JetBrains Mono"`.  The family name doesn't include any style information (such as weight, stretch or italic), which can be specified via the *attributes* parameter.  This is the recommended name to use for the font, as it the most compatible way to resolve an installed font.
-* The computed *full name*, which is the family name with the sub-family (which incorporates style information) appended, eg: `"JetBrains Mono Regular".
+* The computed *full name*, which is the family name with the sub-family (which incorporates style information) appended, eg: `"JetBrains Mono Regular"`.
 * (Since nightly) The *postscript name*, which is an ostensibly unique name identifying a given font and style that is encoded into the font by the font designer.
 
 When specifying a font using its family name, the second *attributes* parameter
