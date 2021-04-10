@@ -5,10 +5,16 @@ use crate::parser::ParsedFont;
 use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadTarget};
 pub use freetype::*;
+use memmap2::{Mmap, MmapOptions};
 use rangeset::RangeSet;
 use std::convert::TryInto;
 use std::ffi::CStr;
+use std::fs::File;
+use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::os::raw::{c_uchar, c_ulong};
+use std::path::Path;
 use std::ptr;
+use std::sync::Arc;
 
 #[inline]
 pub fn succeeded(error: FT_Error) -> bool {
@@ -493,15 +499,7 @@ impl Library {
     /// For a TTF this will be 1.
     /// For a TTC, it will be the number of contained fonts
     pub fn query_num_faces(&self, source: &FontDataSource) -> anyhow::Result<u32> {
-        let face = match source {
-            FontDataSource::OnDisk(path) => self.new_face(path, -1).context("query_num_faces")?,
-            FontDataSource::BuiltIn { data, .. } => self
-                .new_face_from_slice(data, -1)
-                .context("query_num_faces")?,
-            FontDataSource::Memory { data, .. } => self
-                .new_face_from_slice(&*data, -1)
-                .context("query_num_faces")?,
-        };
+        let face = self.new_face(source, -1).context("query_num_faces")?;
         let num_faces = unsafe { (*face).num_faces }.try_into();
 
         unsafe {
@@ -519,12 +517,9 @@ impl Library {
             index |= handle.variation << 16;
         }
 
-        let face = match &source.source {
-            FontDataSource::OnDisk(path) => self.new_face(path.to_str().unwrap(), index as _),
-            FontDataSource::BuiltIn { data, .. } => self.new_face_from_slice(&data, index as _),
-            FontDataSource::Memory { data, .. } => self.new_face_from_slice(&data, index as _),
-        }
-        .with_context(|| format!("face_from_locator({:?})", handle))?;
+        let face = self
+            .new_face(&source.source, index as _)
+            .with_context(|| format!("face_from_locator({:?})", handle))?;
 
         Ok(Face {
             face,
@@ -534,52 +529,29 @@ impl Library {
         })
     }
 
-    fn new_face<P>(&self, path: P, face_index: FT_Long) -> anyhow::Result<FT_Face>
-    where
-        P: AsRef<std::path::Path>,
-    {
+    fn new_face(&self, source: &FontDataSource, face_index: FT_Long) -> anyhow::Result<FT_Face> {
         let mut face = ptr::null_mut();
 
-        if let Some(path_str) = path.as_ref().to_str() {
-            if let Ok(path_cstr) = std::ffi::CString::new(path_str) {
-                let res = unsafe {
-                    FT_New_Face(
-                        self.lib,
-                        path_cstr.as_ptr(),
-                        face_index,
-                        &mut face as *mut _,
-                    )
-                };
-                return ft_result(res, face).with_context(|| {
-                    format!(
-                        "FT_New_Face(\"{}\", face_index={})",
-                        path.as_ref().display(),
-                        face_index
-                    )
-                });
-            }
-        }
+        // FT_Open_Face will take ownership of this and closes it in both
+        // the error case and the success case (although the latter is when
+        // the face is dropped).
+        let stream = FreeTypeStream::from_source(source)?;
 
-        anyhow::bail!(
-            "path {} cannot be represented as a c-string for freetype",
-            path.as_ref().display()
-        );
-    }
-
-    fn new_face_from_slice(&self, data: &[u8], face_index: FT_Long) -> anyhow::Result<FT_Face> {
-        let mut face = ptr::null_mut();
-
-        let res = unsafe {
-            FT_New_Memory_Face(
-                self.lib,
-                data.as_ptr(),
-                data.len() as _,
-                face_index,
-                &mut face as *mut _,
-            )
+        let args = FT_Open_Args {
+            flags: FT_OPEN_STREAM,
+            memory_base: ptr::null(),
+            memory_size: 0,
+            pathname: ptr::null_mut(),
+            stream,
+            driver: ptr::null_mut(),
+            num_params: 0,
+            params: ptr::null_mut(),
         };
+
+        let res = unsafe { FT_Open_Face(self.lib, &args, face_index, &mut face as *mut _) };
+
         ft_result(res, face)
-            .with_context(|| format!("FT_New_Memory_Face(<data>, face_index={})", face_index))
+            .with_context(|| format!("FT_Open_Face(\"{:?}\", face_index={})", source, face_index))
     }
 
     pub fn set_lcd_filter(&mut self, filter: FT_LcdFilter) -> anyhow::Result<()> {
@@ -587,5 +559,184 @@ impl Library {
             ft_result(FT_Library_SetLcdFilter(self.lib, filter), ())
                 .context("FT_Library_SetLcdFilter")
         }
+    }
+}
+
+/// Our own stream implementation.
+/// This is present because we cannot guarantee to be able to convert
+/// Path -> c-string on Windows systems, but also because we've seen
+/// mysterious errors about not being able to open a resource.
+/// The intent is to avoid a potential problem and to help reveal
+/// more context on problems opening files as/when that happens.
+struct FreeTypeStream {
+    stream: FT_StreamRec_,
+    backing: StreamBacking,
+    name: String,
+}
+
+enum StreamBacking {
+    File(BufReader<File>),
+    Map(Mmap),
+    Static(&'static [u8]),
+    Memory(Arc<Box<[u8]>>),
+}
+
+impl FreeTypeStream {
+    pub fn from_source(source: &FontDataSource) -> anyhow::Result<FT_Stream> {
+        let (backing, base, len) = match source {
+            FontDataSource::OnDisk(path) => return Self::open_path(path),
+            FontDataSource::BuiltIn { data, .. } => {
+                let base = data.as_ptr();
+                let len = data.len();
+                (StreamBacking::Static(data), base, len)
+            }
+            FontDataSource::Memory { data, .. } => {
+                let base = data.as_ptr();
+                let len = data.len();
+                (StreamBacking::Memory(Arc::clone(data)), base, len)
+            }
+        };
+
+        let name = source.name_or_path_str().to_string();
+
+        let stream = Box::new(Self {
+            stream: FT_StreamRec_ {
+                base: base as *mut _,
+                size: len as u64,
+                pos: 0,
+                descriptor: FT_StreamDesc_ {
+                    pointer: ptr::null_mut(),
+                },
+                pathname: FT_StreamDesc_ {
+                    pointer: ptr::null_mut(),
+                },
+                read: None,
+                close: Some(Self::close),
+                memory: ptr::null_mut(),
+                cursor: ptr::null_mut(),
+                limit: ptr::null_mut(),
+            },
+            backing,
+            name,
+        });
+        let stream = Box::into_raw(stream);
+        unsafe {
+            (*stream).stream.descriptor.pointer = stream as *mut _;
+            Ok(&mut (*stream).stream)
+        }
+    }
+
+    fn open_path(p: &Path) -> anyhow::Result<FT_Stream> {
+        let file = File::open(p).with_context(|| format!("opening file {}", p.display()))?;
+
+        let meta = file
+            .metadata()
+            .with_context(|| format!("querying metadata for {}", p.display()))?;
+
+        if !meta.is_file() {
+            anyhow::bail!("{} is not a file", p.display());
+        }
+
+        let len = meta.len();
+
+        let (backing, base) = match unsafe { MmapOptions::new().map(&file) } {
+            Ok(map) => {
+                let base = map.as_ptr() as *mut _;
+                (StreamBacking::Map(map), base)
+            }
+            Err(err) => {
+                log::warn!(
+                    "Unable to memory map {}: {}, will use regular file IO instead",
+                    p.display(),
+                    err
+                );
+                (StreamBacking::File(BufReader::new(file)), ptr::null_mut())
+            }
+        };
+
+        let stream = Box::new(Self {
+            stream: FT_StreamRec_ {
+                base,
+                size: len,
+                pos: 0,
+                descriptor: FT_StreamDesc_ {
+                    pointer: ptr::null_mut(),
+                },
+                pathname: FT_StreamDesc_ {
+                    pointer: ptr::null_mut(),
+                },
+                read: if base.is_null() {
+                    Some(Self::read)
+                } else {
+                    // when backing is mmap, a null read routine causes
+                    // freetype to simply resolve data from `base`
+                    None
+                },
+                close: Some(Self::close),
+                memory: ptr::null_mut(),
+                cursor: ptr::null_mut(),
+                limit: ptr::null_mut(),
+            },
+            backing,
+            name: p.to_string_lossy().to_string(),
+        });
+        let stream = Box::into_raw(stream);
+        unsafe {
+            (*stream).stream.descriptor.pointer = stream as *mut _;
+            Ok(&mut (*stream).stream)
+        }
+    }
+
+    /// Called by freetype when it wants to read data from the file
+    unsafe extern "C" fn read(
+        stream: FT_Stream,
+        offset: c_ulong,
+        buffer: *mut c_uchar,
+        count: c_ulong,
+    ) -> c_ulong {
+        if count == 0 {
+            return 0;
+        }
+
+        let myself = &mut *((*stream).descriptor.pointer as *mut Self);
+        match &mut myself.backing {
+            StreamBacking::Map(_) | StreamBacking::Static(_) | StreamBacking::Memory(_) => {
+                log::error!("read called on memory data {} !?", myself.name);
+                0
+            }
+            StreamBacking::File(file) => {
+                if let Err(err) = file.seek(SeekFrom::Start(offset)) {
+                    log::error!(
+                        "failed to seek {} to offset {}: {:#}",
+                        myself.name,
+                        offset,
+                        err
+                    );
+                    return 0;
+                }
+
+                let buf = std::slice::from_raw_parts_mut(buffer, count as usize);
+                match file.read(buf) {
+                    Ok(len) => len as c_ulong,
+                    Err(err) => {
+                        log::error!(
+                            "failed to read {} bytes @ offset {} of {}: {:#}",
+                            count,
+                            offset,
+                            myself.name,
+                            err
+                        );
+                        0
+                    }
+                }
+            }
+        }
+    }
+
+    /// Called by freetype when the stream is closed
+    unsafe extern "C" fn close(stream: FT_Stream) {
+        let myself = Box::from_raw((*stream).descriptor.pointer as *mut Self);
+        log::trace!("FreeTypeStream::close {}", myself.name);
+        drop(myself);
     }
 }
