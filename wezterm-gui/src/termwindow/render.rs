@@ -839,6 +839,9 @@ impl super::TermWindow {
                     - (glyph.y_offset + glyph.bearing_y))
                     .get() as f32;
 
+                // We use this to remember the `left` offset value to use for glyph_idx > 0
+                let mut slice_left = 0.;
+
                 // Iterate each cell that comprises this glyph.  There is usually
                 // a single cell per glyph but combining characters, ligatures
                 // and emoji can be 2 or more cells wide.
@@ -927,11 +930,19 @@ impl super::TermWindow {
                     let pixel_rect = slice.pixel_rect(texture);
                     let texture_rect = texture.texture.to_texture_coords(pixel_rect);
 
-                    let left = if glyph_idx == 0 { left } else { 0.0 };
+                    let left = if glyph_idx == 0 { left } else { slice_left };
                     let bottom = (pixel_rect.size.height as f32 * glyph.scale as f32) + top
                         - self.render_metrics.cell_size.height as f32;
                     let right = pixel_rect.size.width as f32 + left
                         - self.render_metrics.cell_size.width as f32;
+
+                    // Save the `right` position; we'll use it for the `left` adjust for
+                    // the next slice that comprises this glyph.
+                    // This is important because some glyphs (eg: 현재 브랜치) can have
+                    // fractional advance/offset positions that leave one half slightly
+                    // out of alignment with the other if we were to simply force the
+                    // `left` value to be 0 when glyph_idx > 0.
+                    slice_left = right;
 
                     let mut quad = match quads
                         .cell(cell_idx + params.pos.left, params.line_idx + params.pos.top)
