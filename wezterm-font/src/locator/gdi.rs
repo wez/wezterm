@@ -6,6 +6,7 @@ use config::{FontAttributes, FontStretch as WTFontStretch, FontWeight as WTFontW
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
 use std::collections::HashSet;
+use std::sync::Arc;
 use winapi::shared::windef::HFONT;
 use winapi::um::dwrite::*;
 use winapi::um::wingdi::{
