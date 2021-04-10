@@ -18,6 +18,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [wezterm.font](config/lua/wezterm/font.md) and [wezterm.font_with_fallback](config/lua/wezterm.font_with_fallback.md) *attributes* parameter now allows matching more granular font weights and font stretch. e.g.: `wezterm.font('Iosevka Term', {stretch="Expanded", weight="Regular"})`
 * New: [freetype_render_target](config/lua/config/freetype_render_target.md) option for additional control over glyph rasterization.
 * Fixed: `wezterm ssh HOST` no longer overrides the `User` config specified by `~/.ssh/config`
+* Fixed: X11: detect when gnome DPI scaling changes [#667](https://github.com/wez/wezterm/issues/667)
 * Fixed: potential panic when pasting large amounts of multi-byte text [#668](https://github.com/wez/wezterm/issues/668)
 
 ### 20210405-110924-a5bb5be8
