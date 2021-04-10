@@ -57,7 +57,7 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<Parse
         let data = data?;
 
         let source = FontDataSource::Memory {
-            data: Cow::Owned(data),
+            data: Arc::new(data.into_boxed_slice()),
             name: attr.family.clone(),
         };
 

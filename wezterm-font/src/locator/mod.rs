@@ -20,7 +20,7 @@ pub enum FontDataSource {
     },
     Memory {
         name: String,
-        data: Arc<[u8]>,
+        data: Arc<Box<[u8]>>,
     },
 }
 
@@ -174,5 +174,23 @@ impl FontLocator for NopSystemSource {
         _codepoints: &[char],
     ) -> anyhow::Result<Vec<ParsedFont>> {
         Ok(vec![])
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_memory_datasource() {
+        // This is currently only used on Windows, so make sure
+        // that we have compiler coverage of constructing it on
+        // other systems
+        let data = b"hello".to_vec();
+        let source = FontDataSource::Memory {
+            data: Arc::new(data.into_boxed_slice()),
+            name: "hello!".to_string(),
+        };
+        eprintln!("{:?}", source);
     }
 }
