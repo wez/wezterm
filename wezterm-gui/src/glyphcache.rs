@@ -8,7 +8,6 @@ use ::window::glium;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::{Point, Rect};
-use anyhow::{anyhow, Context};
 use config::{configuration, AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use lru::LruCache;
@@ -410,7 +409,26 @@ impl<T: Texture2d> GlyphCache<T> {
 
         let glyph = self
             .load_glyph(info, style, followed_by_space)
-            .with_context(|| anyhow!("load_glyph {:?} {:?}", info, style))?;
+            .unwrap_or_else(|err| {
+                // Don't allow glyph loading errors to propagate, as
+                // that will result in incomplete window painting.
+                // Log the error and substitute instead.
+                log::error!(
+                    "load_glyph failed; using blank instead. Error: {:#}. {:?} {:?}",
+                    err,
+                    info,
+                    style
+                );
+                Rc::new(CachedGlyph {
+                    has_color: false,
+                    texture: None,
+                    x_offset: PixelLength::zero(),
+                    y_offset: PixelLength::zero(),
+                    bearing_x: PixelLength::zero(),
+                    bearing_y: PixelLength::zero(),
+                    scale: 1.0,
+                })
+            });
         self.glyph_cache.insert(key.to_owned(), Rc::clone(&glyph));
         Ok(glyph)
     }
