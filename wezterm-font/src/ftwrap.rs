@@ -6,7 +6,6 @@ use anyhow::{anyhow, Context};
 use config::{configuration, FreeTypeLoadTarget};
 pub use freetype::*;
 use rangeset::RangeSet;
-use std::borrow::Cow;
 use std::convert::TryInto;
 use std::ffi::CStr;
 use std::ptr;
@@ -496,8 +495,11 @@ impl Library {
     pub fn query_num_faces(&self, source: &FontDataSource) -> anyhow::Result<u32> {
         let face = match source {
             FontDataSource::OnDisk(path) => self.new_face(path, -1).context("query_num_faces")?,
+            FontDataSource::BuiltIn { data, .. } => self
+                .new_face_from_slice(data, -1)
+                .context("query_num_faces")?,
             FontDataSource::Memory { data, .. } => self
-                .new_face_from_slice(&data, -1)
+                .new_face_from_slice(&*data, -1)
                 .context("query_num_faces")?,
         };
         let num_faces = unsafe { (*face).num_faces }.try_into();
@@ -519,6 +521,7 @@ impl Library {
 
         let face = match &source.source {
             FontDataSource::OnDisk(path) => self.new_face(path.to_str().unwrap(), index as _),
+            FontDataSource::BuiltIn { data, .. } => self.new_face_from_slice(&data, index as _),
             FontDataSource::Memory { data, .. } => self.new_face_from_slice(&data, index as _),
         }
         .with_context(|| format!("face_from_locator({:?})", handle))?;
@@ -563,11 +566,7 @@ impl Library {
         );
     }
 
-    fn new_face_from_slice(
-        &self,
-        data: &Cow<'static, [u8]>,
-        face_index: FT_Long,
-    ) -> anyhow::Result<FT_Face> {
+    fn new_face_from_slice(&self, data: &[u8], face_index: FT_Long) -> anyhow::Result<FT_Face> {
         let mut face = ptr::null_mut();
 
         let res = unsafe {

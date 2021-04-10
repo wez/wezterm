@@ -14,9 +14,13 @@ pub mod gdi;
 #[derive(Clone)]
 pub enum FontDataSource {
     OnDisk(PathBuf),
+    BuiltIn {
+        name: &'static str,
+        data: &'static [u8],
+    },
     Memory {
         name: String,
-        data: Cow<'static, [u8]>,
+        data: Arc<[u8]>,
     },
 }
 
@@ -24,6 +28,7 @@ impl FontDataSource {
     pub fn name_or_path_str(&self) -> Cow<str> {
         match self {
             Self::OnDisk(path) => path.to_string_lossy(),
+            Self::BuiltIn { name, .. } => Cow::Borrowed(name),
             Self::Memory { name, .. } => Cow::Borrowed(name),
         }
     }
@@ -34,7 +39,8 @@ impl FontDataSource {
                 let data = std::fs::read(path)?;
                 Ok(Cow::Owned(data))
             }
-            Self::Memory { data, .. } => Ok(data.clone()),
+            Self::BuiltIn { data, .. } => Ok(Cow::Borrowed(data)),
+            Self::Memory { data, .. } => Ok(Cow::Borrowed(&*data)),
         }
     }
 }
@@ -46,6 +52,9 @@ impl PartialEq for FontDataSource {
         match (self, other) {
             (Self::OnDisk(path_a), Self::OnDisk(path_b)) => path_a == path_b,
             (Self::Memory { name: name_a, .. }, Self::Memory { name: name_b, .. }) => {
+                name_a == name_b
+            }
+            (Self::BuiltIn { name: name_a, .. }, Self::BuiltIn { name: name_b, .. }) => {
                 name_a == name_b
             }
             _ => false,
@@ -71,6 +80,7 @@ impl std::fmt::Debug for FontDataSource {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
             Self::OnDisk(path) => fmt.debug_struct("OnDisk").field("path", &path).finish(),
+            Self::BuiltIn { name, .. } => fmt.debug_struct("BuiltIn").field("name", &name).finish(),
             Self::Memory { data, name } => fmt
                 .debug_struct("Memory")
                 .field("name", &name)

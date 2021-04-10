@@ -2,7 +2,6 @@ use crate::locator::{FontDataHandle, FontDataSource};
 use crate::shaper::GlyphInfo;
 use config::FontAttributes;
 pub use config::{FontStretch, FontWeight};
-use std::borrow::Cow;
 
 #[derive(Debug)]
 pub enum MaybeShaped {
@@ -278,10 +277,7 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
         font!("../../assets/fonts/LastResortHE-Regular.ttf"),
     ] {
         let locator = FontDataHandle {
-            source: FontDataSource::Memory {
-                data: Cow::Borrowed(data),
-                name: name.to_string(),
-            },
+            source: FontDataSource::BuiltIn { data, name },
             index: 0,
             variation: 0,
         };
