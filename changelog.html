@@ -185,6 +185,8 @@ usually the best available version.</p>
 <li>New: <a href="config/lua/wezterm/font.html">wezterm.font</a> and <a href="config/lua/wezterm.font_with_fallback.html">wezterm.font_with_fallback</a> <em>attributes</em> parameter now allows matching more granular font weights and font stretch. e.g.: <code>wezterm.font('Iosevka Term', {stretch=&quot;Expanded&quot;, weight=&quot;Regular&quot;})</code></li>
 <li>New: <a href="config/lua/config/freetype_render_target.html">freetype_render_target</a> option for additional control over glyph rasterization.</li>
 <li>Fixed: <code>wezterm ssh HOST</code> no longer overrides the <code>User</code> config specified by <code>~/.ssh/config</code></li>
+<li>Fixed: X11: detect when gnome DPI scaling changes <a href="https://github.com/wez/wezterm/issues/667">#667</a></li>
+<li>Fixed: potential panic when pasting large amounts of multi-byte text <a href="https://github.com/wez/wezterm/issues/668">#668</a></li>
 </ul>
 <h3 id="20210405-110924-a5bb5be8"><a class="header" href="#20210405-110924-a5bb5be8">20210405-110924-a5bb5be8</a></h3>
 <ul>
