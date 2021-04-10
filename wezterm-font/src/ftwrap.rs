@@ -518,9 +518,10 @@ impl Library {
         }
 
         let face = match &source.source {
-            FontDataSource::OnDisk(path) => self.new_face(path.to_str().unwrap(), index as _)?,
-            FontDataSource::Memory { data, .. } => self.new_face_from_slice(&data, index as _)?,
-        };
+            FontDataSource::OnDisk(path) => self.new_face(path.to_str().unwrap(), index as _),
+            FontDataSource::Memory { data, .. } => self.new_face_from_slice(&data, index as _),
+        }
+        .with_context(|| format!("face_from_locator({:?})", handle))?;
 
         Ok(Face {
             face,
@@ -548,7 +549,7 @@ impl Library {
                 };
                 return ft_result(res, face).with_context(|| {
                     format!(
-                        "FT_New_Face for {} index {}",
+                        "FT_New_Face(\"{}\", face_index={})",
                         path.as_ref().display(),
                         face_index
                     )
@@ -578,7 +579,8 @@ impl Library {
                 &mut face as *mut _,
             )
         };
-        ft_result(res, face).with_context(|| format!("FT_New_Memory_Face for index {}", face_index))
+        ft_result(res, face)
+            .with_context(|| format!("FT_New_Memory_Face(<data>, face_index={})", face_index))
     }
 
     pub fn set_lcd_filter(&mut self, filter: FT_LcdFilter) -> anyhow::Result<()> {
