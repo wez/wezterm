@@ -599,10 +599,14 @@ impl FreeTypeStream {
 
         let name = source.name_or_path_str().to_string();
 
+        if len > c_ulong::MAX as usize {
+            anyhow::bail!("{} is too large to pass to freetype! (len={})", name, len);
+        }
+
         let stream = Box::new(Self {
             stream: FT_StreamRec_ {
                 base: base as *mut _,
-                size: len as u64,
+                size: len as c_ulong,
                 pos: 0,
                 descriptor: FT_StreamDesc_ {
                     pointer: ptr::null_mut(),
@@ -638,6 +642,13 @@ impl FreeTypeStream {
         }
 
         let len = meta.len();
+        if len as usize > c_ulong::MAX as usize {
+            anyhow::bail!(
+                "{} is too large to pass to freetype! (len={})",
+                p.display(),
+                len
+            );
+        }
 
         let (backing, base) = match unsafe { MmapOptions::new().map(&file) } {
             Ok(map) => {
@@ -657,7 +668,7 @@ impl FreeTypeStream {
         let stream = Box::new(Self {
             stream: FT_StreamRec_ {
                 base,
-                size: len,
+                size: len as c_ulong,
                 pos: 0,
                 descriptor: FT_StreamDesc_ {
                     pointer: ptr::null_mut(),
@@ -705,7 +716,7 @@ impl FreeTypeStream {
                 0
             }
             StreamBacking::File(file) => {
-                if let Err(err) = file.seek(SeekFrom::Start(offset)) {
+                if let Err(err) = file.seek(SeekFrom::Start(offset.into())) {
                     log::error!(
                         "failed to seek {} to offset {}: {:#}",
                         myself.name,
