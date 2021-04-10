@@ -20,6 +20,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: `wezterm ssh HOST` no longer overrides the `User` config specified by `~/.ssh/config`
 * Fixed: X11: detect when gnome DPI scaling changes [#667](https://github.com/wez/wezterm/issues/667)
 * Fixed: potential panic when pasting large amounts of multi-byte text [#668](https://github.com/wez/wezterm/issues/668)
+* Fixed: X11: non-ascii text could appear mangled in titlebars [#673](https://github.com/wez/wezterm/issues/673)
 
 ### 20210405-110924-a5bb5be8
 

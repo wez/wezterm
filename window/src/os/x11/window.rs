@@ -870,7 +870,22 @@ impl WindowOpsMut for XWindowInner {
 
     /// Change the title for the window manager
     fn set_title(&mut self, title: &str) {
-        xcb_util::icccm::set_wm_name(self.conn().conn(), self.window_id, title);
+        // Ideally, we'd simply call this:
+        // xcb_util::icccm::set_wm_name(self.conn().conn(), self.window_id, title);
+        // However, it uses ATOM_STRING internally, rather than UTF8_STRING
+        // and will mangle non-ascii characters in the title, so we call the
+        // underlying function for ourslves:
+
+        unsafe {
+            xcb_util::ffi::icccm::xcb_icccm_set_wm_name(
+                self.conn().conn().get_raw_conn(),
+                self.window_id,
+                self.conn().atom_utf8_string,
+                8,
+                title.len() as u32,
+                title.as_bytes().as_ptr() as *const _,
+            );
+        }
     }
 
     fn set_icon(&mut self, image: &dyn BitmapImage) {
