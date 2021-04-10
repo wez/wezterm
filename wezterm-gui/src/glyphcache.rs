@@ -1,4 +1,5 @@
 use super::utilsprites::RenderMetrics;
+use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::bitmaps::atlas::{Atlas, Sprite};
 #[cfg(test)]
 use ::window::bitmaps::ImageTexture;
@@ -407,11 +408,21 @@ impl<T: Texture2d> GlyphCache<T> {
             return Ok(Rc::clone(entry));
         }
 
-        let glyph = self
-            .load_glyph(info, style, followed_by_space)
-            .unwrap_or_else(|err| {
-                // Don't allow glyph loading errors to propagate, as
-                // that will result in incomplete window painting.
+        let glyph = match self.load_glyph(info, style, followed_by_space) {
+            Ok(g) => g,
+            Err(err) => {
+                if err
+                    .root_cause()
+                    .downcast_ref::<OutOfTextureSpace>()
+                    .is_some()
+                {
+                    // Ensure that we propagate this signal to expand
+                    // our available teexture space
+                    return Err(err);
+                }
+
+                // But otherwise: don't allow glyph loading errors to propagate,
+                // as that will result in incomplete window painting.
                 // Log the error and substitute instead.
                 log::error!(
                     "load_glyph failed; using blank instead. Error: {:#}. {:?} {:?}",
@@ -428,7 +439,8 @@ impl<T: Texture2d> GlyphCache<T> {
                     bearing_y: PixelLength::zero(),
                     scale: 1.0,
                 })
-            });
+            }
+        };
         self.glyph_cache.insert(key.to_owned(), Rc::clone(&glyph));
         Ok(glyph)
     }
