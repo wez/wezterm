@@ -14,6 +14,8 @@ return {
 }
 ```
 
+WezTerm implicitly adds its default fallback to the list that you specify.
+
 The *attributes* parameter behaves the same as that of [wezterm.font](font.md)
 in that it allows you to specify font weight and style attributes that you
 want to match.

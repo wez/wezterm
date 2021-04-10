@@ -11,11 +11,20 @@ return {
 }
 ```
 
-The second parameter is an optional table that can be used to specify some
-attributes; the following keys are allowed:
+The first parameter is the name of the font; the name can be one of the following types of names:
+
+* The font family name, eg: `"JetBrains Mono"`.  The family name doesn't include any style information (such as weight, stretch or italic), which can be specified via the *attributes* parameter.  This is the recommended name to use for the font, as it the most compatible way to resolve an installed font.
+* The computed *full name*, which is the family name with the sub-family (which incorporates style information) appended, eg: `"JetBrains Mono Regular".
+* (Since nightly) The *postscript name*, which is an ostensibly unique name identifying a given font and style that is encoded into the font by the font designer.
+
+When specifying a font using its family name, the second *attributes* parameter
+is an optional table that can be used to specify style attributes; the
+following keys are allowed:
 
 * `bold` - whether to select a bold variant of the font (default: `false`)
 * `italic` - whether to select an italic variant of the font (default: `false`)
+
+When attributes are specified, the font must match both the family name and attributes in order to be selected.
 
 ```lua
 local wezterm = require 'wezterm';
@@ -27,14 +36,19 @@ return {
 
 *Since: nightly builds only*
 
-It is now possible to specify both font weight and font stretch:
+It is now possible to specify both font weight and font stretch when matching fonts:
 
 * `stretch` - specifies the font stretch to select.  The default value is `"Normal"`, and possible values are `"UltraCondensed"`, `"ExtraCondensed"`, `"Condensed"`, `"SemiCondensed"`, `"Normal"`, `"SemiExpanded"`, `"Expanded"`, `"ExtraExpanded"`, `"UltraExpanded"`.
 * `weight` - specifies the weight of the font with more precision than `bold`.  The default value is `"Regular"`, and possible values are `"Thin"`, `"ExtraLight"`, `"Light"`, `"DemiLight"`, `"Book"`, `"Regular"`, `"Medium"`, `"DemiBold"`, `"Bold"`, `"ExtraBold"`, `"Black"`, and `"ExtraBlack"`.
 * `bold` - has been superseded by the new `weight` parameter and will be eventually removed.  For compatibility purposes, specifying `bold=true` is equivalent to specifying `weight="Bold"`.
 
-Font weight matching will find the closest matching weight that is equal of
-heavier to the specified weight.
+These parameters are passed to the system font locator when resolving
+the font, which will apply system-specific rules to resolve the font.
+
+When resolving fonts from [font_dirs](../config/font_dirs.md), wezterm follows CSS Fonts
+Level 3 compatible font matching, which tries to exactly match the specified
+attributes, but allows for locating a close match within the specified font
+family.
 
 ```lua
 local wezterm = require 'wezterm';

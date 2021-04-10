@@ -15,7 +15,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: the selection wouldn't always clear when the intersecting lines change [#644](https://github.com/wez/wezterm/issues/644)
 * Fixed: vertical alignment issue with Iosevka on Windows [#661](https://github.com/wez/wezterm/issues/661)
 * Fixed: support for "Variable" fonts such as Cascadia Code and Inconsolata on all platforms [#655](https://github.com/wez/wezterm/issues/655)
-* New: [wezterm.font](config/lua/wezterm/font.md) and [wezterm.font_with_fallback](config/lua/wezterm.font_with_fallback.md) *attributes* parameter now allows matching more granular font weights and font stretch. e.g.: `wezterm.font('Iosevka Term', {stretch="Expanded", weight="Regular"})`
+* New: [wezterm.font](config/lua/wezterm/font.md) and [wezterm.font_with_fallback](config/lua/wezterm/font_with_fallback.md) *attributes* parameter now allows matching more granular font weights and font stretch. e.g.: `wezterm.font('Iosevka Term', {stretch="Expanded", weight="Regular"})`
 * New: [freetype_render_target](config/lua/config/freetype_render_target.md) option for additional control over glyph rasterization.
 * Fixed: `wezterm ssh HOST` no longer overrides the `User` config specified by `~/.ssh/config`
 * Fixed: X11: detect when gnome DPI scaling changes [#667](https://github.com/wez/wezterm/issues/667)
