@@ -3,7 +3,7 @@ use crate::hbwrap as harfbuzz;
 use crate::parser::ParsedFont;
 use crate::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::units::*;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use config::ConfigHandle;
 use log::error;
 use ordered_float::NotNan;
@@ -52,6 +52,7 @@ fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
 struct FontPair {
     face: ftwrap::Face,
     font: harfbuzz::Font,
+    shaped_any: bool,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -133,7 +134,11 @@ impl HarfbuzzShaper {
                     let mut font = harfbuzz::Font::new(face.face);
                     let (load_flags, _) = ftwrap::compute_load_flags_from_config();
                     font.set_load_flags(load_flags);
-                    *opt_pair = Some(FontPair { face, font });
+                    *opt_pair = Some(FontPair {
+                        face,
+                        font,
+                        shaped_any: false,
+                    });
                 }
 
                 Ok(Some(RefMut::map(opt_pair, |opt_pair| {
@@ -168,13 +173,14 @@ impl HarfbuzzShaper {
         );
 
         let cell_width;
+        let shaped_any;
 
         {
-            match self.load_fallback(font_idx)? {
-                #[allow(clippy::float_cmp)]
+            match self.load_fallback(font_idx).context("load_fallback")? {
                 Some(mut pair) => {
                     let (width, _height) = pair.face.set_font_size(font_size, dpi)?;
                     cell_width = width;
+                    shaped_any = pair.shaped_any;
                     pair.font.shape(&mut buf, Some(features.as_slice()));
                 }
                 None => {
@@ -254,6 +260,8 @@ impl HarfbuzzShaper {
         }
         */
 
+        let mut direct_clusters = 0;
+
         for infos in &info_clusters {
             let cluster_len: usize = infos.iter().map(|info| info.len).sum();
             let cluster_start = infos.first().unwrap().cluster;
@@ -319,9 +327,29 @@ impl HarfbuzzShaper {
                 if glyph.x_advance != PixelLength::new(0.0) {
                     // log::error!("glyph: {:?}, nominal width: {:?}/{:?} = {:?}", glyph, glyph.x_advance, cell_width, nom_width);
                     cluster.push(glyph);
+                    direct_clusters += 1;
                 }
 
                 next_idx += len;
+            }
+        }
+
+        if !shaped_any {
+            if let Some(opt_pair) = self.fonts.get(font_idx) {
+                if direct_clusters == 0 {
+                    // If we've never shaped anything from this font, and we didn't
+                    // shape it just now, then we're probably a fallback font from
+                    // the system and unlikely to be useful to keep around, so we
+                    // unload it.
+                    log::trace!(
+                        "Shaper didn't resolve glyphs from {:?}, so unload it",
+                        self.handles[font_idx]
+                    );
+                    opt_pair.borrow_mut().take();
+                } else if let Some(pair) = &mut *opt_pair.borrow_mut() {
+                    // We shaped something: mark this pair up so that it sticks around
+                    pair.shaped_any = true;
+                }
             }
         }
 
