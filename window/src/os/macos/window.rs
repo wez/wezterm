@@ -321,7 +321,6 @@ pub(crate) struct WindowInner {
     view: StrongPtr,
     window: StrongPtr,
     config: ConfigHandle,
-    cursor: Option<MouseCursor>,
 }
 
 fn function_key_to_keycode(function_key: char) -> KeyCode {
@@ -457,7 +456,6 @@ impl Window {
                 window,
                 view,
                 config: config.clone(),
-                cursor: Some(MouseCursor::Arrow),
             }));
             inner.borrow_mut().window.replace(weak_window);
             conn.windows
@@ -802,18 +800,12 @@ impl WindowOpsMut for WindowInner {
                     MouseCursor::SizeUpDown => msg_send![ns_cursor_cls, resizeUpDownCursor],
                     MouseCursor::SizeLeftRight => msg_send![ns_cursor_cls, resizeLeftRightCursor],
                 };
+                let () = msg_send![ns_cursor_cls, setHiddenUntilMouseMoves: NO];
                 let () = msg_send![instance, set];
-                if self.cursor.is_none() {
-                    // If we believe that it was hidden previously, unhide it.
-                    let () = msg_send![ns_cursor_cls, unhide];
-                }
-            } else if self.cursor.is_some() {
-                // If we believe that it was shown previously, hide it.
-                let () = msg_send![ns_cursor_cls, hide];
+            } else {
+                let () = msg_send![ns_cursor_cls, setHiddenUntilMouseMoves: YES];
             }
         }
-
-        self.cursor = cursor;
     }
 
     fn invalidate(&mut self) {
