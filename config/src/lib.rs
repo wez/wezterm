@@ -1058,6 +1058,9 @@ pub struct Config {
 
     #[serde(default = "default_stateless_process_list")]
     pub skip_close_confirmation_for_processes_named: Vec<String>,
+
+    #[serde(default = "default_true")]
+    pub warn_about_missing_glyphs: bool,
 }
 impl_lua_conversion!(Config);
 

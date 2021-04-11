@@ -209,6 +209,7 @@ impl FontConfigInner {
         let built_in = Arc::clone(&*self.built_in.borrow());
         let locator = Arc::clone(&self.locator);
         let pending = Arc::clone(pending);
+        let config = self.config.borrow().clone();
         std::thread::spawn(move || {
             let fallback_str = no_glyphs.iter().collect::<String>();
             let mut extra_handles = vec![];
@@ -244,6 +245,24 @@ impl FontConfigInner {
                 let mut pending = pending.lock().unwrap();
                 pending.append(&mut extra_handles);
                 completion();
+            } else {
+                if config.warn_about_missing_glyphs {
+                    mux::connui::show_configuration_error_message(&format!(
+                        "No fonts contain glyphs for these codepoints: {}.\n\
+                    Placeholder 'Last Resort' glyphs are being displayed instead.\n\
+                    You may wish to install additional fonts, or adjust your\n\
+                    configuration so that it can find them.\n\
+                    https://wezfurlong.org/wezterm/config/fonts.html\n\
+                    has more information about configuring fonts.\n\
+                    Set warn_about_missing_glyphs=false to suppress this message.",
+                        fallback_str.escape_unicode()
+                    ));
+                } else {
+                    log::warn!(
+                        "No fonts contain glyphs for these codepoints: {}",
+                        fallback_str.escape_unicode()
+                    );
+                }
             }
         });
     }

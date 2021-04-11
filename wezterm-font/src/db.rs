@@ -101,6 +101,11 @@ impl FontDatabase {
         let mut matches = vec![];
 
         for parsed in self.by_full_name.values() {
+            if parsed.names().family.as_ref().map(|s| s.as_str())
+                == Some("Last Resort High-Efficiency")
+            {
+                continue;
+            }
             let covered = parsed
                 .coverage_intersection(&wanted_range)
                 .with_context(|| format!("coverage_interaction for {:?}", parsed))?;
