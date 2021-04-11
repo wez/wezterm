@@ -49,15 +49,16 @@ impl FontDatabase {
 
         let mut db = Self::new();
         db.load_font_info(font_info);
+        log::debug!("Available fonts from font_dirs:");
         db.print_available();
         Ok(db)
     }
 
     pub fn print_available(&self) {
-        let mut names = self.by_full_name.keys().collect::<Vec<_>>();
-        names.sort();
-        for name in names {
-            log::debug!("available font: wezterm.font(\"{}\") ", name);
+        let mut fonts = self.by_full_name.values().collect::<Vec<_>>();
+        fonts.sort();
+        for font in fonts {
+            log::debug!("available font: {}", font.lua_name());
         }
     }
 
@@ -66,6 +67,7 @@ impl FontDatabase {
         load_built_in_fonts(&mut font_info)?;
         let mut db = Self::new();
         db.load_font_info(font_info);
+        log::debug!("Available built-in fonts:");
         db.print_available();
         Ok(db)
     }
@@ -100,9 +102,7 @@ impl FontDatabase {
         let mut matches = vec![];
 
         for parsed in self.by_full_name.values() {
-            if parsed.names().family.as_ref().map(|s| s.as_str())
-                == Some("Last Resort High-Efficiency")
-            {
+            if parsed.names().family == "Last Resort High-Efficiency" {
                 continue;
             }
             let covered = parsed

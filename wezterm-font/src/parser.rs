@@ -60,13 +60,13 @@ impl PartialEq for ParsedFont {
 
 impl Ord for ParsedFont {
     fn cmp(&self, rhs: &Self) -> Ordering {
-        match self.stretch.cmp(&rhs.stretch) {
+        match self.names.family.cmp(&rhs.names.family) {
             o @ Ordering::Less | o @ Ordering::Greater => o,
-            Ordering::Equal => match self.weight.cmp(&rhs.weight) {
+            Ordering::Equal => match self.stretch.cmp(&rhs.stretch) {
                 o @ Ordering::Less | o @ Ordering::Greater => o,
-                Ordering::Equal => match self.italic.cmp(&rhs.italic) {
+                Ordering::Equal => match self.weight.cmp(&rhs.weight) {
                     o @ Ordering::Less | o @ Ordering::Greater => o,
-                    Ordering::Equal => self.names.cmp(&rhs.names),
+                    Ordering::Equal => self.italic.cmp(&rhs.italic),
                 },
             },
         }
@@ -82,7 +82,7 @@ impl PartialOrd for ParsedFont {
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub struct Names {
     pub full_name: String,
-    pub family: Option<String>,
+    pub family: String,
     pub sub_family: Option<String>,
     pub postscript_name: Option<String>,
 }
@@ -101,7 +101,7 @@ impl Names {
 
         Names {
             full_name,
-            family: Some(family),
+            family,
             sub_family: Some(sub_family),
             postscript_name: Some(postscript_name),
         }
@@ -113,6 +113,13 @@ impl ParsedFont {
         let lib = crate::ftwrap::Library::new()?;
         let face = lib.face_from_locator(handle)?;
         Self::from_face(&face, handle.clone())
+    }
+
+    pub fn lua_name(&self) -> String {
+        format!(
+            "wezterm.font(\"{}\", weight=\"{}\", stretch=\"{}\", italic={})",
+            self.names.family, self.weight, self.stretch, self.italic
+        )
     }
 
     pub fn from_face(face: &crate::ftwrap::Face, handle: FontDataHandle) -> anyhow::Result<Self> {
@@ -170,10 +177,8 @@ impl ParsedFont {
     }
 
     pub fn matches_name(&self, attr: &FontAttributes) -> bool {
-        if let Some(fam) = self.names.family.as_ref() {
-            if attr.family == *fam {
-                return true;
-            }
+        if attr.family == self.names.family {
+            return true;
         }
         self.matches_full_or_ps_name(attr)
     }

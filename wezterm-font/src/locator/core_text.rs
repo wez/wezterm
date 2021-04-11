@@ -69,9 +69,7 @@ fn handles_from_descriptor(descriptor: &CTFontDescriptor) -> Vec<ParsedFont> {
         let _ = crate::parser::parse_and_collect_font_info(&source, &mut font_info);
 
         for parsed in font_info {
-            if parsed.names().full_name == family_name
-                || parsed.names().family.as_ref() == Some(&family_name)
-            {
+            if parsed.names().full_name == family_name || parsed.names().family == family_name {
                 result.push(parsed);
             }
         }
