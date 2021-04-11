@@ -7,6 +7,7 @@ use anyhow::{Context, Error};
 use config::{
     configuration, ConfigHandle, FontRasterizerSelection, FontStretch, FontWeight, TextStyle,
 };
+use rangeset::RangeSet;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::{Rc, Weak};
@@ -214,6 +215,11 @@ impl FontConfigInner {
             let fallback_str = no_glyphs.iter().collect::<String>();
             let mut extra_handles = vec![];
 
+            log::trace!(
+                "Looking for {} in fallback fonts",
+                fallback_str.escape_unicode()
+            );
+
             match font_dirs.locate_fallback_for_codepoints(&no_glyphs) {
                 Ok(ref mut handles) => extra_handles.append(handles),
                 Err(err) => log::error!(
@@ -241,11 +247,44 @@ impl FontConfigInner {
                 ),
             }
 
+            let mut wanted = RangeSet::new();
+            for c in no_glyphs {
+                wanted.add(c as u32);
+            }
+
+            // Sort by ascending coverage
+            extra_handles.sort_by_cached_key(|p| {
+                p.coverage_intersection(&wanted)
+                    .map(|r| r.len())
+                    .unwrap_or(0)
+            });
+            // Re-arrange to descending coverage
+            extra_handles.reverse();
+            // iteratively reduce to just the fonts that we need
+            extra_handles.retain(|p| match p.coverage_intersection(&wanted) {
+                Ok(cov) if cov.is_empty() => false,
+                Ok(cov) => {
+                    // Remove the matches from the set, so that we avoid
+                    // picking up multiple fonts for the same glyphs
+                    wanted = wanted.difference(&cov);
+                    true
+                }
+                Err(_) => false,
+            });
+
             if !extra_handles.is_empty() {
                 let mut pending = pending.lock().unwrap();
                 pending.append(&mut extra_handles);
                 completion();
-            } else {
+            }
+
+            if !wanted.is_empty() {
+                // There were some glyphs we couldn't resolve!
+                let fallback_str = wanted
+                    .iter_values()
+                    .map(|c| std::char::from_u32(c).unwrap_or(' '))
+                    .collect::<String>();
+
                 if config.warn_about_missing_glyphs {
                     mux::connui::show_configuration_error_message(&format!(
                         "No fonts contain glyphs for these codepoints: {}.\n\

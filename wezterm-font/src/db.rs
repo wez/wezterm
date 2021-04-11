@@ -5,7 +5,6 @@ use crate::parser::{load_built_in_fonts, parse_and_collect_font_info, ParsedFont
 use anyhow::Context;
 use config::{Config, FontAttributes};
 use rangeset::RangeSet;
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
 pub struct FontDatabase {
@@ -109,26 +108,12 @@ impl FontDatabase {
             let covered = parsed
                 .coverage_intersection(&wanted_range)
                 .with_context(|| format!("coverage_interaction for {:?}", parsed))?;
-            let len = covered.len();
-            if len > 0 {
-                matches.push((len, parsed.clone()));
+            if !covered.is_empty() {
+                matches.push(parsed.clone());
             }
         }
 
-        // Add the handles in order of descending coverage; the idea being
-        // that if a font has a large coverage then it is probably a better
-        // candidate and more likely to result in other glyphs matching
-        // in future shaping calls.
-        matches.sort_by(|(a_len, a), (b_len, b)| {
-            let primary = a_len.cmp(&b_len).reverse();
-            if primary == Ordering::Equal {
-                a.cmp(b)
-            } else {
-                primary
-            }
-        });
-
-        Ok(matches.into_iter().map(|(_len, handle)| handle).collect())
+        Ok(matches)
     }
 
     pub fn resolve(&self, font_attr: &FontAttributes) -> Option<&ParsedFont> {
