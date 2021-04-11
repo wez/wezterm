@@ -13,7 +13,6 @@ pub enum MaybeShaped {
 }
 
 /// Represents a parsed font
-#[derive(Debug)]
 pub struct ParsedFont {
     names: Names,
     weight: FontWeight,
@@ -21,6 +20,18 @@ pub struct ParsedFont {
     italic: bool,
     pub handle: FontDataHandle,
     coverage: Mutex<RangeSet<u32>>,
+}
+
+impl std::fmt::Debug for ParsedFont {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fmt.debug_struct("ParsedFont")
+            .field("names", &self.names)
+            .field("weight", &self.weight)
+            .field("stretch", &self.stretch)
+            .field("italic", &self.italic)
+            .field("handle", &self.handle)
+            .finish()
+    }
 }
 
 impl Clone for ParsedFont {
