@@ -747,7 +747,6 @@ impl FreeTypeStream {
     /// Called by freetype when the stream is closed
     unsafe extern "C" fn close(stream: FT_Stream) {
         let myself = Box::from_raw((*stream).descriptor.pointer as *mut Self);
-        log::trace!("FreeTypeStream::close {}", myself.name);
         drop(myself);
     }
 }
