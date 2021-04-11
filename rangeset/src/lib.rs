@@ -1,4 +1,4 @@
-use num::Integer;
+use num::{Integer, ToPrimitive};
 use std::cmp::{max, min};
 use std::fmt::Debug;
 use std::ops::Range;
@@ -83,13 +83,13 @@ pub fn range_union<T: Integer>(r1: Range<T>, r2: Range<T>) -> Range<T> {
     }
 }
 
-impl<T: Integer + Copy + Debug> From<RangeSet<T>> for Vec<Range<T>> {
+impl<T: Integer + Copy + Debug + ToPrimitive> From<RangeSet<T>> for Vec<Range<T>> {
     fn from(r: RangeSet<T>) -> Vec<Range<T>> {
         r.ranges
     }
 }
 
-impl<T: Integer + Copy + Debug> RangeSet<T> {
+impl<T: Integer + Copy + Debug + ToPrimitive> RangeSet<T> {
     /// Create a new set
     pub fn new() -> Self {
         Self { ranges: vec![] }
@@ -128,25 +128,10 @@ impl<T: Integer + Copy + Debug> RangeSet<T> {
     /// in the viewport.
     /// If that doesn't hold up, we can improve this.
     pub fn difference(&self, other: &Self) -> Self {
-        let mut result = Self::new();
+        let mut result = self.clone();
 
-        if other.is_empty() {
-            return self.clone();
-        }
-
-        for my_range in &self.ranges {
-            for other_range in &other.ranges {
-                match range_subtract(my_range, other_range) {
-                    (Some(a), Some(b)) => {
-                        result.add_range(a);
-                        result.add_range(b);
-                    }
-                    (Some(a), None) | (None, Some(a)) if a != *other_range => {
-                        result.add_range(a);
-                    }
-                    _ => {}
-                }
-            }
+        for range in &other.ranges {
+            result.remove_range(range.clone());
         }
 
         result
@@ -297,13 +282,19 @@ impl<T: Integer + Copy + Debug> RangeSet<T> {
     pub fn iter(&self) -> impl Iterator<Item = &Range<T>> {
         self.ranges.iter()
     }
+
+    /// Returns an iterator over all of the contained values.
+    /// Take care when the range is very large!
+    pub fn iter_values<'a>(&'a self) -> impl Iterator<Item = T> + 'a {
+        self.ranges.iter().flat_map(|r| num::range(r.start, r.end))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn collect<T: Integer + Copy + Debug>(set: &RangeSet<T>) -> Vec<Range<T>> {
+    fn collect<T: Integer + Copy + Debug + ToPrimitive>(set: &RangeSet<T>) -> Vec<Range<T>> {
         set.iter().cloned().collect()
     }
 
@@ -371,5 +362,17 @@ mod tests {
 
         let diff = set.difference(&other);
         assert_eq!(collect(&diff), vec![1..2, 3..4, 5..6]);
+    }
+
+    #[test]
+    fn difference_moar() {
+        let data = [0xd604, 0xc7ac, 0xbe0c, 0xb79c, 0xce58];
+        let mut set = RangeSet::new();
+        for &c in &data {
+            set.add(c);
+        }
+
+        let diff = set.difference(&set);
+        assert_eq!(collect(&diff), vec![]);
     }
 }
