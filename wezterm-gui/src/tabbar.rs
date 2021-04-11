@@ -222,7 +222,10 @@ impl TabBarState {
         // New tab button
         {
             let hover = mouse_x
-                .map(|mouse_x| mouse_x >= x && mouse_x < x + 3)
+                .map(|mouse_x| {
+                    mouse_x >= x
+                        && mouse_x < x + new_tab_hover_left.len() + new_tab_hover_right.len() + 1
+                })
                 .unwrap_or(false);
 
             let (cell_attrs, left, right) = if hover {
