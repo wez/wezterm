@@ -1,6 +1,5 @@
 //! A font-database to keep track of fonts that we've located
 
-use crate::ftwrap::Library;
 use crate::locator::FontDataSource;
 use crate::parser::{load_built_in_fonts, parse_and_collect_font_info, ParsedFont};
 use anyhow::Context;
@@ -8,49 +7,9 @@ use config::{Config, FontAttributes};
 use rangeset::RangeSet;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
-
-struct Entry {
-    parsed: ParsedFont,
-    coverage: Mutex<Option<RangeSet<u32>>>,
-}
-
-impl Entry {
-    /// Parses out the underlying TTF data and produces a RangeSet holding
-    /// the set of codepoints for which the font has coverage.
-    fn compute_coverage(&self) -> anyhow::Result<RangeSet<u32>> {
-        let lib = Library::new()?;
-        let face = lib
-            .face_from_locator(&self.parsed.handle)
-            .with_context(|| format!("freetype parsing {:?}", self.parsed))?;
-
-        Ok(face.compute_coverage())
-    }
-
-    /// Computes the intersection of the wanted set of codepoints with
-    /// the set of codepoints covered by this font entry.
-    /// Computes the codepoint coverage for this font entry if we haven't
-    /// already done so.
-    fn coverage_intersection(&self, wanted: &RangeSet<u32>) -> anyhow::Result<RangeSet<u32>> {
-        let mut coverage = self.coverage.lock().unwrap();
-        if coverage.is_none() {
-            let t = std::time::Instant::now();
-            coverage.replace(self.compute_coverage().context("compute_coverage")?);
-            let elapsed = t.elapsed();
-            metrics::histogram!("font.compute.codepoint.coverage", elapsed);
-            log::debug!(
-                "{} codepoint coverage computed in {:?}",
-                self.parsed.names().full_name,
-                elapsed
-            );
-        }
-
-        Ok(wanted.intersection(coverage.as_ref().unwrap()))
-    }
-}
 
 pub struct FontDatabase {
-    by_full_name: HashMap<String, Arc<Entry>>,
+    by_full_name: HashMap<String, ParsedFont>,
 }
 
 impl FontDatabase {
@@ -62,14 +21,9 @@ impl FontDatabase {
 
     fn load_font_info(&mut self, font_info: Vec<ParsedFont>) {
         for parsed in font_info {
-            let entry = Arc::new(Entry {
-                parsed,
-                coverage: Mutex::new(None),
-            });
-
             self.by_full_name
-                .entry(entry.parsed.names().full_name.clone())
-                .or_insert(entry);
+                .entry(parsed.names().full_name.clone())
+                .or_insert(parsed);
         }
     }
 
@@ -146,13 +100,13 @@ impl FontDatabase {
 
         let mut matches = vec![];
 
-        for entry in self.by_full_name.values() {
-            let covered = entry
+        for parsed in self.by_full_name.values() {
+            let covered = parsed
                 .coverage_intersection(&wanted_range)
-                .with_context(|| format!("coverage_interaction for {:?}", entry.parsed))?;
+                .with_context(|| format!("coverage_interaction for {:?}", parsed))?;
             let len = covered.len();
             if len > 0 {
-                matches.push((len, entry.parsed.clone()));
+                matches.push((len, parsed.clone()));
             }
         }
 
@@ -176,9 +130,9 @@ impl FontDatabase {
         let candidates: Vec<&ParsedFont> = self
             .by_full_name
             .values()
-            .filter_map(|entry| {
-                if entry.parsed.matches_name(font_attr) {
-                    Some(&entry.parsed)
+            .filter_map(|parsed| {
+                if parsed.matches_name(font_attr) {
+                    Some(parsed)
                 } else {
                     None
                 }

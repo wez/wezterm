@@ -2,6 +2,9 @@ use crate::locator::{FontDataHandle, FontDataSource};
 use crate::shaper::GlyphInfo;
 use config::FontAttributes;
 pub use config::{FontStretch, FontWeight};
+use rangeset::RangeSet;
+use std::cmp::Ordering;
+use std::sync::Mutex;
 
 #[derive(Debug)]
 pub enum MaybeShaped {
@@ -10,13 +13,59 @@ pub enum MaybeShaped {
 }
 
 /// Represents a parsed font
-#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
+#[derive(Debug)]
 pub struct ParsedFont {
     names: Names,
     weight: FontWeight,
     stretch: FontStretch,
     italic: bool,
     pub handle: FontDataHandle,
+    coverage: Mutex<RangeSet<u32>>,
+}
+
+impl Clone for ParsedFont {
+    fn clone(&self) -> Self {
+        Self {
+            names: self.names.clone(),
+            weight: self.weight,
+            stretch: self.stretch,
+            italic: self.italic,
+            handle: self.handle.clone(),
+            coverage: Mutex::new(self.coverage.lock().unwrap().clone()),
+        }
+    }
+}
+
+impl Eq for ParsedFont {}
+
+impl PartialEq for ParsedFont {
+    fn eq(&self, rhs: &Self) -> bool {
+        self.stretch == rhs.stretch
+            && self.weight == rhs.weight
+            && self.italic == rhs.italic
+            && self.names == rhs.names
+    }
+}
+
+impl Ord for ParsedFont {
+    fn cmp(&self, rhs: &Self) -> Ordering {
+        match self.stretch.cmp(&rhs.stretch) {
+            o @ Ordering::Less | o @ Ordering::Greater => o,
+            Ordering::Equal => match self.weight.cmp(&rhs.weight) {
+                o @ Ordering::Less | o @ Ordering::Greater => o,
+                Ordering::Equal => match self.italic.cmp(&rhs.italic) {
+                    o @ Ordering::Less | o @ Ordering::Greater => o,
+                    Ordering::Equal => self.names.cmp(&rhs.names),
+                },
+            },
+        }
+    }
+}
+
+impl PartialOrd for ParsedFont {
+    fn partial_cmp(&self, rhs: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(rhs))
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
@@ -67,7 +116,30 @@ impl ParsedFont {
             stretch,
             italic,
             handle,
+            coverage: Mutex::new(RangeSet::new()),
         })
+    }
+
+    /// Computes the intersection of the wanted set of codepoints with
+    /// the set of codepoints covered by this font entry.
+    /// Computes the codepoint coverage for this font entry if we haven't
+    /// already done so.
+    pub fn coverage_intersection(&self, wanted: &RangeSet<u32>) -> anyhow::Result<RangeSet<u32>> {
+        let mut cov = self.coverage.lock().unwrap();
+        if cov.is_empty() {
+            let t = std::time::Instant::now();
+            let lib = crate::ftwrap::Library::new()?;
+            let face = lib.face_from_locator(&self.handle)?;
+            *cov = face.compute_coverage();
+            let elapsed = t.elapsed();
+            metrics::histogram!("font.compute.codepoint.coverage", elapsed);
+            log::debug!(
+                "{} codepoint coverage computed in {:?}",
+                self.names.full_name,
+                elapsed
+            );
+        }
+        Ok(wanted.intersection(&cov))
     }
 
     pub fn names(&self) -> &Names {
