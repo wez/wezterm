@@ -112,11 +112,10 @@ impl LogicalLine {
             y += 1;
             idx += line_len;
         }
-        panic!(
-            "x={} is outside of this logical line of len {}",
-            x,
-            self.logical.cells().len()
-        );
+        (
+            y - 1,
+            x - idx + self.physical_lines.last().unwrap().cells().len(),
+        )
     }
 
     pub fn apply_hyperlink_rules(&mut self, rules: &[Rule]) {
@@ -788,5 +787,40 @@ mod test {
 ]
 "
         );
+    }
+
+    #[test]
+    fn double_click() {
+        let attr = Default::default();
+        let logical = LogicalLine {
+            physical_lines: vec![
+                Line::from_text("hello", &attr),
+                Line::from_text("yo", &attr),
+            ],
+            logical: Line::from_text("helloyo", &attr),
+            first_row: 0,
+        };
+
+        let start_idx = logical.xy_to_logical_x(2, 1);
+
+        fn is_double_click_word(s: &str) -> bool {
+            match s.chars().count() {
+                1 => !" \t\n{[}]()\"'`".contains(s),
+                0 => false,
+                _ => true,
+            }
+        }
+        use termwiz::surface::line::DoubleClickRange;
+
+        assert_eq!(start_idx, 7);
+        match logical
+            .logical
+            .compute_double_click_range(start_idx, is_double_click_word)
+        {
+            DoubleClickRange::Range(click_range) => {
+                assert_eq!(click_range, 7..7);
+            }
+            _ => unreachable!(),
+        }
     }
 }

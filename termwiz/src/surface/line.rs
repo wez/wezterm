@@ -248,6 +248,12 @@ impl Line {
         click_col: usize,
         is_word: F,
     ) -> DoubleClickRange {
+        let len = self.cells.len();
+
+        if click_col >= len {
+            return DoubleClickRange::Range(click_col..click_col);
+        }
+
         let mut lower = click_col;
         let mut upper = click_col;
 
@@ -269,7 +275,6 @@ impl Line {
             lower = idx;
         }
 
-        let len = self.cells.len();
         if upper > lower && self.cells[upper.min(len) - 1].attrs().wrapped() {
             DoubleClickRange::RangeWithWrap(lower..upper)
         } else {
@@ -638,6 +643,6 @@ mod test {
     fn double_click_range_bounds() {
         let line: Line = "hello".into();
         let r = line.compute_double_click_range(200, |_| true);
-        assert_eq!(r, DoubleClickRange::Range(0..200));
+        assert_eq!(r, DoubleClickRange::Range(200..200));
     }
 }
