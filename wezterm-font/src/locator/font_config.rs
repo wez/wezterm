@@ -1,5 +1,5 @@
 use crate::fcwrap;
-use crate::locator::{FontDataHandle, FontDataSource, FontLocator};
+use crate::locator::{FontDataHandle, FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
 use anyhow::Context;
 use config::FontAttributes;
@@ -92,6 +92,7 @@ impl FontLocator for FontConfigFontLocator {
                                 source: FontDataSource::OnDisk(file.into()),
                                 index,
                                 variation,
+                                origin: FontOrigin::FontConfig,
                             };
 
                             // fontconfig will give us a boatload of random fallbacks.
@@ -161,6 +162,7 @@ impl FontLocator for FontConfigFontLocator {
                     source: FontDataSource::OnDisk(file.into()),
                     index: pat.get_integer("index")?.try_into()?,
                     variation: 0,
+                    origin: FontOrigin::FontConfig,
                 };
                 if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
                     fonts.push(parsed);

@@ -64,6 +64,9 @@ enum SubCommand {
     #[structopt(name = "connect", about = "Connect to wezterm multiplexer")]
     Connect(ConnectCommand),
 
+    #[structopt(name = "ls-fonts", about = "Display information about fonts")]
+    LsFonts(LsFontsCommand),
+
     #[structopt(name = "cli", about = "Interact with experimental mux server")]
     Cli(CliCommand),
 
@@ -295,6 +298,7 @@ fn run() -> anyhow::Result<()> {
         .unwrap_or_else(|| SubCommand::Start(StartCommand::default()))
     {
         SubCommand::Start(_)
+        | SubCommand::LsFonts(_)
         | SubCommand::Ssh(_)
         | SubCommand::Serial(_)
         | SubCommand::Connect(_) => delegate_to_gui(saver),

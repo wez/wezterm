@@ -142,6 +142,10 @@ impl LoadedFont {
             result
         }
     }
+
+    pub fn clone_handles(&self) -> Vec<ParsedFont> {
+        self.handles.borrow().clone()
+    }
 }
 
 struct FontConfigInner {

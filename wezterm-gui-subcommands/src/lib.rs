@@ -108,3 +108,6 @@ pub struct ConnectCommand {
     #[structopt(parse(from_os_str))]
     pub prog: Vec<OsString>,
 }
+
+#[derive(Debug, StructOpt, Clone)]
+pub struct LsFontsCommand {}

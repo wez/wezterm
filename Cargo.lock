@@ -4432,6 +4432,7 @@ dependencies = [
  "core-foundation 0.9.1",
  "core-text",
  "dwrote",
+ "enum-display-derive",
  "euclid",
  "fontconfig",
  "freetype",

@@ -1,6 +1,6 @@
 #![cfg(target_os = "macos")]
 
-use crate::locator::{FontDataSource, FontLocator};
+use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
 use config::{FontAttributes, FontStretch, FontWeight};
 use core_foundation::array::CFArray;
@@ -66,7 +66,11 @@ fn handles_from_descriptor(descriptor: &CTFontDescriptor) -> Vec<ParsedFont> {
 
         let mut font_info = vec![];
         let source = FontDataSource::OnDisk(path);
-        let _ = crate::parser::parse_and_collect_font_info(&source, &mut font_info);
+        let _ = crate::parser::parse_and_collect_font_info(
+            &source,
+            &mut font_info,
+            FontOrigin::CoreText,
+        );
 
         for parsed in font_info {
             if parsed.names().full_name == family_name || parsed.names().family == family_name {

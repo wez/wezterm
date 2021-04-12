@@ -84,6 +84,9 @@ enum SubCommand {
 
     #[structopt(name = "connect", about = "Connect to wezterm multiplexer")]
     Connect(ConnectCommand),
+
+    #[structopt(name = "ls-fonts", about = "Display information about fonts")]
+    LsFonts(LsFontsCommand),
 }
 
 async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
@@ -410,6 +413,55 @@ fn maybe_show_configuration_error_window() {
     }
 }
 
+pub fn run_ls_fonts(config: config::ConfigHandle, _cmd: &LsFontsCommand) -> anyhow::Result<()> {
+    let font_config = wezterm_font::FontConfiguration::new(Some(config.clone()))?;
+
+    println!("Primary font:");
+    let default_font = font_config.default_font()?;
+    for f in default_font.clone_handles() {
+        println!("  {}", f.lua_name());
+        println!("    ({})", f.handle.diagnostic_string());
+        println!();
+    }
+
+    for rule in &config.font_rules {
+        println!();
+
+        let mut condition = "When".to_string();
+        if let Some(intensity) = &rule.intensity {
+            condition.push_str(&format!(" Intensity={:?}", intensity));
+        }
+        if let Some(underline) = &rule.underline {
+            condition.push_str(&format!(" Underline={:?}", underline));
+        }
+        if let Some(italic) = &rule.italic {
+            condition.push_str(&format!(" Italic={:?}", italic));
+        }
+        if let Some(blink) = &rule.blink {
+            condition.push_str(&format!(" Blink={:?}", blink));
+        }
+        if let Some(rev) = &rule.reverse {
+            condition.push_str(&format!(" Reverse={:?}", rev));
+        }
+        if let Some(strikethrough) = &rule.strikethrough {
+            condition.push_str(&format!(" Strikethrough={:?}", strikethrough));
+        }
+        if let Some(invisible) = &rule.invisible {
+            condition.push_str(&format!(" Invisible={:?}", invisible));
+        }
+
+        println!("{}:", condition);
+        let font = font_config.resolve_font(&rule.font)?;
+        for f in font.clone_handles() {
+            println!("  {}", f.lua_name());
+            println!("    ({})", f.handle.diagnostic_string());
+            println!();
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(windows)]
 mod win_bindings {
     ::windows::include_bindings!();
@@ -484,5 +536,6 @@ fn run() -> anyhow::Result<()> {
         SubCommand::Ssh(ssh) => run_ssh(ssh),
         SubCommand::Serial(serial) => run_serial(config, &serial),
         SubCommand::Connect(connect) => run_mux_client(config, &connect),
+        SubCommand::LsFonts(cmd) => run_ls_fonts(config, &cmd),
     }
 }

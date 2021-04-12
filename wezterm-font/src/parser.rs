@@ -1,4 +1,4 @@
-use crate::locator::{FontDataHandle, FontDataSource};
+use crate::locator::{FontDataHandle, FontDataSource, FontOrigin};
 use crate::shaper::GlyphInfo;
 use config::FontAttributes;
 pub use config::{FontStretch, FontWeight};
@@ -368,6 +368,7 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
             source: FontDataSource::BuiltIn { data, name },
             index: 0,
             variation: 0,
+            origin: FontOrigin::BuiltIn,
         };
         let face = lib.face_from_locator(&locator)?;
         let parsed = ParsedFont::from_face(&face, locator)?;
@@ -380,15 +381,17 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
 pub fn best_matching_font(
     source: &FontDataSource,
     font_attr: &FontAttributes,
+    origin: FontOrigin,
 ) -> anyhow::Result<Option<ParsedFont>> {
     let mut font_info = vec![];
-    parse_and_collect_font_info(source, &mut font_info)?;
+    parse_and_collect_font_info(source, &mut font_info, origin)?;
     Ok(ParsedFont::best_match(font_attr, font_info))
 }
 
 pub(crate) fn parse_and_collect_font_info(
     source: &FontDataSource,
     font_info: &mut Vec<ParsedFont>,
+    origin: FontOrigin,
 ) -> anyhow::Result<()> {
     let lib = crate::ftwrap::Library::new()?;
     let num_faces = lib.query_num_faces(&source)?;
@@ -398,11 +401,13 @@ pub(crate) fn parse_and_collect_font_info(
         source: &FontDataSource,
         index: u32,
         font_info: &mut Vec<ParsedFont>,
+        origin: FontOrigin,
     ) -> anyhow::Result<()> {
         let locator = FontDataHandle {
             source: source.clone(),
             index,
             variation: 0,
+            origin,
         };
 
         let face = lib.face_from_locator(&locator)?;
@@ -418,7 +423,7 @@ pub(crate) fn parse_and_collect_font_info(
     }
 
     for index in 0..num_faces {
-        if let Err(err) = load_one(&lib, &source, index, font_info) {
+        if let Err(err) = load_one(&lib, &source, index, font_info, origin) {
             log::trace!("error while parsing {:?} index {}: {}", source, index, err);
         }
     }

@@ -1,8 +1,10 @@
 use crate::parser::ParsedFont;
 use config::FontAttributes;
+use enum_display_derive::Display;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::fmt::Display;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -10,6 +12,16 @@ pub mod core_text;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod font_config;
 pub mod gdi;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Display)]
+pub enum FontOrigin {
+    FontConfig,
+    CoreText,
+    DirectWrite,
+    Gdi,
+    FontDirs,
+    BuiltIn,
+}
 
 #[derive(Clone)]
 pub enum FontDataSource {
@@ -101,6 +113,7 @@ pub struct FontDataHandle {
     pub source: FontDataSource,
     pub index: u32,
     pub variation: u32,
+    pub origin: FontOrigin,
 }
 
 impl FontDataHandle {
@@ -114,6 +127,23 @@ impl FontDataHandle {
 
     pub fn set_index(&mut self, idx: u32) {
         self.index = idx;
+    }
+
+    pub fn diagnostic_string(&self) -> String {
+        let source = match &self.source {
+            FontDataSource::OnDisk(path) => format!("{}", path.display()),
+            FontDataSource::BuiltIn { .. } => "<built-in>".to_string(),
+            FontDataSource::Memory { .. } => "<imported to RAM>".to_string(),
+        };
+
+        if self.index == 0 && self.variation == 0 {
+            format!("{}, {}", source, self.origin)
+        } else {
+            format!(
+                "{} index={} variation={}, {}",
+                source, self.index, self.variation, self.origin
+            )
+        }
     }
 }
 

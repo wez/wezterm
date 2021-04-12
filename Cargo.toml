@@ -1,5 +1,11 @@
 [workspace]
-members = ["wezterm-mux-server", "wezterm", "wezterm-gui", "strip-ansi-escapes", "wezterm-ssh"]
+members = [
+  "strip-ansi-escapes",
+  "wezterm",
+  "wezterm-gui",
+  "wezterm-mux-server",
+  "wezterm-ssh"
+]
 resolver = "2"
 
 [profile.release]

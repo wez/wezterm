@@ -1,6 +1,6 @@
 #![cfg(windows)]
 
-use crate::locator::{FontDataSource, FontLocator};
+use crate::locator::{FontDataSource, FontLocator, FontOrigin};
 use crate::parser::{best_matching_font, parse_and_collect_font_info, ParsedFont};
 use config::{FontAttributes, FontStretch as WTFontStretch, FontWeight as WTFontWeight};
 use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
@@ -63,7 +63,7 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<Parse
         };
 
         let mut font_info = vec![];
-        parse_and_collect_font_info(&source, &mut font_info)?;
+        parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
         let matches = ParsedFont::best_match(attr, font_info);
 
         for m in matches {
@@ -146,7 +146,7 @@ fn handle_from_descriptor(
 
             log::debug!("{} -> {}", family_name, path.display());
             let source = FontDataSource::OnDisk(path);
-            match best_matching_font(&source, attr) {
+            match best_matching_font(&source, attr, FontOrigin::DirectWrite) {
                 Ok(Some(parsed)) => {
                     return Some(parsed);
                 }
