@@ -44,6 +44,11 @@ return {
       -- Bar or Underline.
       cursor_border = "#52ad70",
 
+      -- the foreground color of selected text
+      selection_fg = "black",
+      -- the background color of selected text
+      selection_bg = "#fffacd",
+
       -- The color of the scrollbar "thumb"; the portion that represents the current viewport
       scrollbar_thumb = "#222222",
 
