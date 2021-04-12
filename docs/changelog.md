@@ -23,6 +23,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: X11: non-ascii text could appear mangled in titlebars [#673](https://github.com/wez/wezterm/issues/673)
 * Improved font IO performance and memory usage on all platforms
 * New [window:toast_notification](config/lua/window/toast_notification.md) method for showing desktop notifications. [#619](https://github.com/wez/wezterm/issues/619)
+* Fixed: half-pixel gaps in ligatured/double-wide glyphs depending on the font size [#614](https://github.com/wez/wezterm/issues/614)
 
 ### 20210405-110924-a5bb5be8
 
