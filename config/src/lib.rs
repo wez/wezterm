@@ -1061,6 +1061,9 @@ pub struct Config {
 
     #[serde(default = "default_true")]
     pub warn_about_missing_glyphs: bool,
+
+    #[serde(default)]
+    pub sort_fallback_fonts_by_coverage: bool,
 }
 impl_lua_conversion!(Config);
 

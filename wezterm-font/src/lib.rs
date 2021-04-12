@@ -251,15 +251,28 @@ impl FontConfigInner {
             for c in no_glyphs {
                 wanted.add(c as u32);
             }
+            log::trace!(
+                "Fallback fonts that match {} before sorting are: {:#?}",
+                fallback_str.escape_unicode(),
+                extra_handles
+            );
 
-            // Sort by ascending coverage
-            extra_handles.sort_by_cached_key(|p| {
-                p.coverage_intersection(&wanted)
-                    .map(|r| r.len())
-                    .unwrap_or(0)
-            });
-            // Re-arrange to descending coverage
-            extra_handles.reverse();
+            if wanted.len() > 1 && config.sort_fallback_fonts_by_coverage {
+                // Sort by ascending coverage
+                extra_handles.sort_by_cached_key(|p| {
+                    p.coverage_intersection(&wanted)
+                        .map(|r| r.len())
+                        .unwrap_or(0)
+                });
+                // Re-arrange to descending coverage
+                extra_handles.reverse();
+                log::trace!(
+                    "Fallback fonts that match {} after sorting are: {:#?}",
+                    fallback_str.escape_unicode(),
+                    extra_handles
+                );
+            }
+
             // iteratively reduce to just the fonts that we need
             extra_handles.retain(|p| match p.coverage_intersection(&wanted) {
                 Ok(cov) if cov.is_empty() => false,
