@@ -93,18 +93,35 @@ impl Window {
         None
     }
 
+    fn fixup_active_tab_after_removal(&mut self, active: Option<Rc<Tab>>) {
+        let len = self.tabs.len();
+        if let Some(active) = active {
+            for (idx, tab) in self.tabs.iter().enumerate() {
+                if tab.tab_id() == active.tab_id() {
+                    self.set_active_without_saving(idx);
+                    return;
+                }
+            }
+        }
+
+        if len > 0 && self.active >= len {
+            self.set_active_without_saving(len - 1);
+        }
+    }
+
     pub fn remove_by_idx(&mut self, idx: usize) -> Rc<Tab> {
         self.invalidated = true;
-        self.tabs.remove(idx)
+        let active = self.get_active().map(Rc::clone);
+        let tab = self.tabs.remove(idx);
+        self.fixup_active_tab_after_removal(active);
+        tab
     }
 
     pub fn remove_by_id(&mut self, id: TabId) -> bool {
         if let Some(idx) = self.idx_by_id(id) {
+            let active = self.get_active().map(Rc::clone);
             self.tabs.remove(idx);
-            let len = self.tabs.len();
-            if len > 0 && self.active == idx && idx >= len {
-                self.set_active_without_saving(len - 1);
-            }
+            self.fixup_active_tab_after_removal(active);
             true
         } else {
             false
@@ -172,13 +189,15 @@ impl Window {
                     invalidated = true;
                 }
                 if tab.is_dead() {
-                    return Some(tab.tab_id());
+                    Some(tab.tab_id())
                 } else {
                     None
                 }
             })
             .collect();
+
         for tab_id in dead {
+            log::trace!("Window::prune_dead_tabs: tab_id {} is dead", tab_id);
             self.remove_by_id(tab_id);
             invalidated = true;
         }
@@ -199,6 +218,7 @@ impl Window {
             })
             .collect();
         for tab_id in dead {
+            log::trace!("Window::prune_dead_tabs: (live) tab_id {} is dead", tab_id);
             self.remove_by_id(tab_id);
         }
 

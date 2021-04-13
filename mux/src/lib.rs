@@ -451,6 +451,7 @@ impl Mux {
         }
 
         for window_id in dead_windows {
+            log::trace!("window {} is dead", window_id);
             self.remove_window_internal(window_id);
         }
     }
