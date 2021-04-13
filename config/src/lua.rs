@@ -2,7 +2,7 @@ use crate::{FontAttributes, FontStretch, FontWeight, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;
-use mlua::ToLua;
+use mlua::{FromLua, ToLua};
 use mlua::{Lua, Table, Value};
 use serde::*;
 use smol::prelude::*;
@@ -350,6 +350,32 @@ struct TextStyleAttributes {
 }
 impl_lua_conversion!(TextStyleAttributes);
 
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+struct LuaFontAttributes {
+    /// The font family name
+    pub family: String,
+    /// Whether the font should be a bold variant
+    #[serde(default)]
+    pub weight: FontWeight,
+    #[serde(default)]
+    pub stretch: FontStretch,
+    /// Whether the font should be an italic variant
+    #[serde(default)]
+    pub italic: bool,
+}
+impl<'lua> FromLua<'lua> for LuaFontAttributes {
+    fn from_lua(value: Value<'lua>, _lua: &'lua Lua) -> Result<Self, mlua::Error> {
+        match value {
+            Value::String(s) => {
+                let mut attr = LuaFontAttributes::default();
+                attr.family = s.to_str()?.to_string();
+                Ok(attr)
+            }
+            v => Ok(from_lua_value(v)?),
+        }
+    }
+}
+
 /// Given a simple font family name, returns a text style instance.
 /// The second optional argument is a list of the other TextStyle
 /// fields, which at the time of writing includes only the
@@ -361,25 +387,30 @@ impl_lua_conversion!(TextStyleAttributes);
 /// `{ font = {{ family = "foo" }}, foreground="tomato"}`
 fn font<'lua>(
     _lua: &'lua Lua,
-    (family, map_defaults): (String, Option<TextStyleAttributes>),
+    (mut attrs, map_defaults): (LuaFontAttributes, Option<TextStyleAttributes>),
 ) -> mlua::Result<TextStyle> {
-    let attrs = map_defaults.unwrap_or_else(TextStyleAttributes::default);
     let mut text_style = TextStyle::default();
-
     text_style.font.clear();
-    text_style.font.push(FontAttributes {
-        family,
-        stretch: attrs.stretch,
-        weight: match attrs.bold {
+
+    if let Some(map_defaults) = map_defaults {
+        attrs.weight = match map_defaults.bold {
             Some(true) => FontWeight::Bold,
             Some(false) => FontWeight::Regular,
-            None => attrs.weight.unwrap_or(FontWeight::Regular),
-        },
+            None => map_defaults.weight.unwrap_or(FontWeight::Regular),
+        };
+        attrs.stretch = map_defaults.stretch;
+        attrs.italic = map_defaults.italic;
+        text_style.foreground = map_defaults.foreground;
+    }
+
+    text_style.font.push(FontAttributes {
+        family: attrs.family,
+        stretch: attrs.stretch,
+        weight: attrs.weight,
         italic: attrs.italic,
         is_fallback: false,
         is_synthetic: false,
     });
-    text_style.foreground = attrs.foreground;
 
     Ok(text_style)
 }
@@ -393,27 +424,32 @@ fn font<'lua>(
 /// as described by the `wezterm.font` documentation.
 fn font_with_fallback<'lua>(
     _lua: &'lua Lua,
-    (fallback, map_defaults): (Vec<String>, Option<TextStyleAttributes>),
+    (fallback, map_defaults): (Vec<LuaFontAttributes>, Option<TextStyleAttributes>),
 ) -> mlua::Result<TextStyle> {
-    let attrs = map_defaults.unwrap_or_else(TextStyleAttributes::default);
     let mut text_style = TextStyle::default();
-
     text_style.font.clear();
-    for (idx, family) in fallback.into_iter().enumerate() {
-        text_style.font.push(FontAttributes {
-            family,
-            stretch: attrs.stretch,
-            weight: match attrs.bold {
+
+    for (idx, mut attrs) in fallback.into_iter().enumerate() {
+        if let Some(map_defaults) = &map_defaults {
+            attrs.weight = match map_defaults.bold {
                 Some(true) => FontWeight::Bold,
                 Some(false) => FontWeight::Regular,
-                None => attrs.weight.unwrap_or(FontWeight::Regular),
-            },
+                None => map_defaults.weight.unwrap_or(FontWeight::Regular),
+            };
+            attrs.stretch = map_defaults.stretch;
+            attrs.italic = map_defaults.italic;
+            text_style.foreground = map_defaults.foreground;
+        }
+
+        text_style.font.push(FontAttributes {
+            family: attrs.family,
+            stretch: attrs.stretch,
+            weight: attrs.weight,
             italic: attrs.italic,
             is_fallback: idx != 0,
             is_synthetic: false,
         });
     }
-    text_style.foreground = attrs.foreground;
 
     Ok(text_style)
 }

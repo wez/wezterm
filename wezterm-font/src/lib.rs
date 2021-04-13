@@ -303,7 +303,7 @@ impl FontConfigInner {
                     .collect::<String>();
 
                 if config.warn_about_missing_glyphs {
-                    mux::connui::show_configuration_error_message(&format!(
+                    config::show_error(&format!(
                         "No fonts contain glyphs for these codepoints: {}.\n\
                     Placeholder 'Last Resort' glyphs are being displayed instead.\n\
                     You may wish to install additional fonts, or adjust your\n\
@@ -397,7 +397,7 @@ impl FontConfigInner {
                     )
                 };
 
-                mux::connui::show_configuration_error_message(&format!(
+                config::show_error(&format!(
                     "{}. Fallback(s) are being used instead, and the terminal \
                     may not render as intended{}. See \
                     https://wezfurlong.org/wezterm/config/fonts.html for more information",

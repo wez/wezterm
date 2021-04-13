@@ -57,3 +57,17 @@ return {
   font = wezterm.font('Iosevka Term', {stretch="Expanded", weight="Regular"}),
 }
 ```
+
+An alternative form of specifying the font can be used, where the family and the attributes
+are combined in the same lua table.  This form is most useful when used together with
+[wezterm.font_with_fallback](font_with_fallback.md) when you want to specify precise
+weights for the different fallback fonts:
+
+```lua
+local wezterm = require 'wezterm';
+
+return {
+  font = wezterm.font({family='Iosevka Term', stretch="Expanded", weight="Regular"}),
+}
+```
+

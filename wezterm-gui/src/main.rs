@@ -414,6 +414,10 @@ fn maybe_show_configuration_error_window() {
 }
 
 pub fn run_ls_fonts(config: config::ConfigHandle, _cmd: &LsFontsCommand) -> anyhow::Result<()> {
+    // Disable the normal config error UI window, as we don't have
+    // a fully baked GUI environment running
+    config::assign_error_callback(|err| eprintln!("{}", err));
+
     let font_config = wezterm_font::FontConfiguration::new(Some(config.clone()))?;
 
     println!("Primary font:");

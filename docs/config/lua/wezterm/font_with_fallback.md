@@ -20,3 +20,19 @@ The *attributes* parameter behaves the same as that of [wezterm.font](font.md)
 in that it allows you to specify font weight and style attributes that you
 want to match.
 
+*Since: nightly builds only*
+
+The attributes can now be specified per fallback font using this alternative
+form where the family and attributes are specified as part of the same lua table:
+
+```lua
+local wezterm = require 'wezterm';
+
+return {
+  font = wezterm.font_with_fallback({
+    {family="JetBrains Mono", weight="Medium"},
+    {family="Terminus", weight="Bold"},
+    "Noto Color Emoji"),
+}
+```
+

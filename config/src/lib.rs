@@ -252,7 +252,7 @@ pub fn assign_error_callback(cb: ErrorCallback) {
     factory.replace(cb);
 }
 
-fn show_error(err: &str) {
+pub fn show_error(err: &str) {
     let factory = SHOW_ERROR.lock().unwrap();
     if let Some(cb) = factory.as_ref() {
         cb(err)
