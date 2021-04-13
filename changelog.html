@@ -182,7 +182,7 @@ usually the best available version.</p>
 <li>Fixed: the selection wouldn't always clear when the intersecting lines change <a href="https://github.com/wez/wezterm/issues/644">#644</a></li>
 <li>Fixed: vertical alignment issue with Iosevka on Windows <a href="https://github.com/wez/wezterm/issues/661">#661</a></li>
 <li>Fixed: support for &quot;Variable&quot; fonts such as Cascadia Code and Inconsolata on all platforms <a href="https://github.com/wez/wezterm/issues/655">#655</a></li>
-<li>New: <a href="config/lua/wezterm/font.html">wezterm.font</a> and <a href="config/lua/wezterm/font_with_fallback.html">wezterm.font_with_fallback</a> <em>attributes</em> parameter now allows matching more granular font weights and font stretch. e.g.: <code>wezterm.font('Iosevka Term', {stretch=&quot;Expanded&quot;, weight=&quot;Regular&quot;})</code></li>
+<li>New: <a href="config/lua/wezterm/font.html">wezterm.font</a> and <a href="config/lua/wezterm/font_with_fallback.html">wezterm.font_with_fallback</a> <em>attributes</em> parameter now allows matching more granular font weights and font stretch. e.g.: <code>wezterm.font('Iosevka Term', {stretch=&quot;Expanded&quot;, weight=&quot;Regular&quot;})</code>, as fallback can specify weight/stretch/style for each individual font in the fallback.</li>
 <li>New: <a href="config/lua/config/freetype_render_target.html">freetype_render_target</a> option for additional control over glyph rasterization.</li>
 <li>Fixed: <code>wezterm ssh HOST</code> no longer overrides the <code>User</code> config specified by <code>~/.ssh/config</code></li>
 <li>Fixed: X11: detect when gnome DPI scaling changes <a href="https://github.com/wez/wezterm/issues/667">#667</a></li>
