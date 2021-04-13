@@ -75,13 +75,13 @@ impl FontLocator for FontConfigFontLocator {
 
         for attr in fonts_selection {
             for &spacing in &SPACING {
-                if loaded.contains(&attr) {
-                    continue;
-                }
-
                 // First, we assume that attr.family is the family name.
                 // If that doesn't work, we try by postscript name.
                 for resolver in &[by_family, by_postscript] {
+                    if loaded.contains(&attr) {
+                        continue;
+                    }
+
                     match resolver(attr, spacing) {
                         Ok(best) => {
                             let file = best.get_file()?;
