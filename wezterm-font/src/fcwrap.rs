@@ -441,7 +441,7 @@ impl fmt::Debug for Pattern {
         // unsafe{FcPatternPrint(self.pat);}
         fmt.write_str(
             &self
-                .format("Pattern(%{+family,style,weight,slant,spacing,file,index,charset,fontformat{%{=unparse}}})")
+                .format("Pattern(%{+family,style,weight,width,slant,spacing,file,index,charset,fontformat{%{=unparse}}})")
                 .unwrap(),
         )
     }
