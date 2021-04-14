@@ -125,6 +125,33 @@ impl ParsedFont {
         )
     }
 
+    pub fn lua_fallback(handles: &[Self]) -> String {
+        let mut code = "wezterm.font_with_fallback({\n".to_string();
+
+        for p in handles {
+            code.push_str(&format!("  -- {}\n", p.handle.diagnostic_string()));
+
+            if p.weight == FontWeight::Regular && p.stretch == FontStretch::Normal && !p.italic {
+                code.push_str(&format!("  \"{}\",\n", p.names.family));
+            } else {
+                code.push_str(&format!("  {{family=\"{}\"", p.names.family));
+                if p.weight != FontWeight::Regular {
+                    code.push_str(&format!(", weight=\"{}\"", p.weight));
+                }
+                if p.stretch != FontStretch::Normal {
+                    code.push_str(&format!(", stretch=\"{}\"", p.stretch));
+                }
+                if p.italic {
+                    code.push_str(", italic=true");
+                }
+                code.push_str("},\n")
+            }
+            code.push_str("\n");
+        }
+        code.push_str("})");
+        code
+    }
+
     pub fn from_face(face: &crate::ftwrap::Face, handle: FontDataHandle) -> anyhow::Result<Self> {
         let italic = face.italic();
         let (weight, width) = face.weight_and_width();

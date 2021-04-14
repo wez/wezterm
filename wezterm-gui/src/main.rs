@@ -414,6 +414,8 @@ fn maybe_show_configuration_error_window() {
 }
 
 pub fn run_ls_fonts(config: config::ConfigHandle, _cmd: &LsFontsCommand) -> anyhow::Result<()> {
+    use wezterm_font::parser::ParsedFont;
+
     // Disable the normal config error UI window, as we don't have
     // a fully baked GUI environment running
     config::assign_error_callback(|err| eprintln!("{}", err));
@@ -422,11 +424,11 @@ pub fn run_ls_fonts(config: config::ConfigHandle, _cmd: &LsFontsCommand) -> anyh
 
     println!("Primary font:");
     let default_font = font_config.default_font()?;
-    for f in default_font.clone_handles() {
-        println!("  {}", f.lua_name());
-        println!("    ({})", f.handle.diagnostic_string());
-        println!();
-    }
+    println!(
+        "{}",
+        ParsedFont::lua_fallback(&default_font.clone_handles())
+    );
+    println!();
 
     for rule in &config.font_rules {
         println!();
@@ -456,11 +458,8 @@ pub fn run_ls_fonts(config: config::ConfigHandle, _cmd: &LsFontsCommand) -> anyh
 
         println!("{}:", condition);
         let font = font_config.resolve_font(&rule.font)?;
-        for f in font.clone_handles() {
-            println!("  {}", f.lua_name());
-            println!("    ({})", f.handle.diagnostic_string());
-            println!();
-        }
+        println!("{}", ParsedFont::lua_fallback(&font.clone_handles()));
+        println!();
     }
 
     Ok(())
