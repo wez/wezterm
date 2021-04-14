@@ -3806,7 +3806,7 @@ dependencies = [
 
 [[package]]
 name = "termwiz"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "base64",
@@ -4139,7 +4139,7 @@ dependencies = [
 
 [[package]]
 name = "vtparse"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "pretty_assertions",
  "utf8parse",
