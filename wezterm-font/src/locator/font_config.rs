@@ -3,13 +3,13 @@ use crate::locator::{FontDataHandle, FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
 use anyhow::Context;
 use config::FontAttributes;
-use fcwrap::{to_fc_weight, to_fc_width, CharSet, Pattern as FontPattern};
+use fcwrap::{CharSet, FontSet, Pattern as FontPattern, FC_DUAL, FC_MONO};
 use std::collections::HashSet;
 use std::convert::TryInto;
 
 /// Allow for both monospace and dual spacing; both of these are
 /// fixed width styles so are desirable for a terminal use case.
-const SPACING: [i32; 2] = [fcwrap::FC_MONO, fcwrap::FC_DUAL];
+const SPACING: [i32; 2] = [FC_MONO, FC_DUAL];
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by font-config
@@ -23,69 +23,55 @@ impl FontLocator for FontConfigFontLocator {
     ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut fonts = vec![];
 
-        fn by_family(attr: &FontAttributes, spacing: i32) -> anyhow::Result<FontPattern> {
+        /// Returns a FontSet list filtered to only mono/dual spaced fonts
+        fn monospaced(matches: FontSet) -> Vec<FontPattern> {
+            matches
+                .iter()
+                .filter_map(|p| match p.get_integer("spacing") {
+                    Ok(n) if n == FC_MONO || n == FC_DUAL => Some(p),
+                    _ => None,
+                })
+                .collect()
+        }
+
+        /// Search fontconfig using only the family name
+        fn by_family(attr: &FontAttributes) -> anyhow::Result<Vec<FontPattern>> {
             let mut pattern = FontPattern::new()?;
             let start = std::time::Instant::now();
             pattern.family(&attr.family)?;
-            pattern.add_integer("weight", to_fc_weight(attr.weight))?;
-            pattern.add_integer("width", to_fc_width(attr.stretch))?;
-            pattern.add_integer(
-                "slant",
-                if attr.italic {
-                    fcwrap::FC_SLANT_ITALIC
-                } else {
-                    fcwrap::FC_SLANT_ROMAN
-                },
-            )?;
-            pattern.add_integer("spacing", spacing)?;
-
-            log::trace!("fc pattern before config subst: {:?}", pattern);
-            pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
-            pattern.default_substitute();
-
-            let best = pattern.get_best_match()?;
+            let matches = monospaced(pattern.list()?);
             log::trace!(
-                "best match took {:?} to compute and is {:?}",
+                "listing by family took {:?} to compute and is {:?}",
                 start.elapsed(),
-                best
+                matches
             );
-            Ok(best)
+            Ok(matches)
         }
 
-        fn by_postscript(attr: &FontAttributes, _spacing: i32) -> anyhow::Result<FontPattern> {
+        /// Search fontconfig using on the postscript name
+        fn by_postscript(attr: &FontAttributes) -> anyhow::Result<Vec<FontPattern>> {
             let mut pattern = FontPattern::new()?;
             let start = std::time::Instant::now();
             pattern.add_string("postscriptname", &attr.family)?;
-            let matches = pattern.list()?;
-            for best in matches.iter() {
-                log::trace!(
-                    "listing by postscriptname took {:?} to compute and is {:?}",
-                    start.elapsed(),
-                    best
-                );
-                return Ok(best);
-            }
-
+            let matches = monospaced(pattern.list()?);
             log::trace!(
-                "listing by postscriptname took {:?} to compute and produced no results",
+                "listing by postscriptname took {:?} to compute and is {:?}",
                 start.elapsed(),
+                matches
             );
-            anyhow::bail!("no match for postscript name");
+            Ok(matches)
         }
 
         for attr in fonts_selection {
-            for &spacing in &SPACING {
-                // First, we assume that attr.family is the family name.
-                // If that doesn't work, we try by postscript name.
-                for resolver in &[by_family, by_postscript] {
-                    if loaded.contains(&attr) {
-                        continue;
-                    }
+            let mut candidates = vec![];
 
-                    match resolver(attr, spacing) {
-                        Ok(best) => {
-                            let file = best.get_file()?;
-                            let index = best.get_integer("index")? as u32;
+            // Aggregate results of both family and postscript name lookups
+            for resolver in &[by_family, by_postscript] {
+                match resolver(attr) {
+                    Ok(matches) => {
+                        for pat in matches {
+                            let file = pat.get_file()?;
+                            let index = pat.get_integer("index")? as u32;
                             let variation = index >> 16;
                             let index = index & 0xffff;
                             let handle = FontDataHandle {
@@ -101,14 +87,20 @@ impl FontLocator for FontConfigFontLocator {
                             if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
                                 if parsed.matches_name(attr) {
                                     log::trace!("found font-config match for {:?}", parsed.names());
-                                    fonts.push(parsed);
-                                    loaded.insert(attr.clone());
+                                    candidates.push(parsed);
                                 }
                             }
                         }
-                        Err(err) => log::trace!("while searching for {:?}: {:#}", attr, err),
                     }
+                    Err(err) => log::trace!("while searching for {:?}: {:#}", attr, err),
                 }
+            }
+
+            // and apply our CSS-style font matching criteria
+            if let Some(parsed) = ParsedFont::best_match(attr, candidates) {
+                log::trace!("selected best font-config match {:?}", parsed.names());
+                fonts.push(parsed);
+                loaded.insert(attr.clone());
             }
         }
 

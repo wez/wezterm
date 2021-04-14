@@ -317,6 +317,7 @@ impl Pattern {
             FcObjectSetAdd(oset, b"family\0".as_ptr() as *const c_char);
             FcObjectSetAdd(oset, b"file\0".as_ptr() as *const c_char);
             FcObjectSetAdd(oset, b"index\0".as_ptr() as *const c_char);
+            FcObjectSetAdd(oset, b"spacing\0".as_ptr() as *const c_char);
             FcObjectSetAdd(oset, b"charset\0".as_ptr() as *const c_char);
 
             let fonts = FcFontList(ptr::null_mut(), self.pat, oset);
