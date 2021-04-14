@@ -411,6 +411,7 @@ impl FontShaper for HarfbuzzShaper {
             underline_position: PixelLength::new(
                 unsafe { (*pair.face.face).underline_position as f64 } * y_scale / 64.,
             ),
+            cap_height_ratio: pair.face.cap_height(),
         };
 
         self.metrics.borrow_mut().insert(key, metrics.clone());

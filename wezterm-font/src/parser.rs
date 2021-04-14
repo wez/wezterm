@@ -18,6 +18,7 @@ pub struct ParsedFont {
     weight: FontWeight,
     stretch: FontStretch,
     italic: bool,
+    cap_height: Option<f64>,
     pub handle: FontDataHandle,
     coverage: Mutex<RangeSet<u32>>,
 }
@@ -30,6 +31,7 @@ impl std::fmt::Debug for ParsedFont {
             .field("stretch", &self.stretch)
             .field("italic", &self.italic)
             .field("handle", &self.handle)
+            .field("cap_height", &self.cap_height)
             .finish()
     }
 }
@@ -42,6 +44,7 @@ impl Clone for ParsedFont {
             stretch: self.stretch,
             italic: self.italic,
             handle: self.handle.clone(),
+            cap_height: self.cap_height.clone(),
             coverage: Mutex::new(self.coverage.lock().unwrap().clone()),
         }
     }
@@ -127,6 +130,7 @@ impl ParsedFont {
         let (weight, width) = face.weight_and_width();
         let weight = FontWeight::from_opentype_weight(weight);
         let stretch = FontStretch::from_opentype_stretch(width);
+        let cap_height = face.cap_height();
 
         Ok(Self {
             names: Names::from_ft_face(&face),
@@ -135,6 +139,7 @@ impl ParsedFont {
             italic,
             handle,
             coverage: Mutex::new(RangeSet::new()),
+            cap_height,
         })
     }
 

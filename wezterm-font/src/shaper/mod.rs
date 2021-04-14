@@ -51,6 +51,9 @@ pub struct FontMetrics {
     /// Position of underline relative to descender. Negative
     /// values are below the descender.
     pub underline_position: PixelLength,
+
+    /// Fraction of the EM square occupied by the cap height
+    pub cap_height_ratio: Option<f64>,
 }
 
 pub trait FontShaper {

@@ -174,6 +174,18 @@ impl Face {
         }
     }
 
+    /// Returns the cap_height/units_per_EM ratio if known
+    pub fn cap_height(&self) -> Option<f64> {
+        unsafe {
+            let os2 = self.get_os2_table()?;
+            let units_per_em = (*self.face).units_per_EM;
+            if units_per_em == 0 || os2.sCapHeight == 0 {
+                return None;
+            }
+            Some(os2.sCapHeight as f64 / units_per_em as f64)
+        }
+    }
+
     pub fn weight_and_width(&self) -> (u16, u16) {
         let (mut weight, mut width) = self
             .get_os2_table()

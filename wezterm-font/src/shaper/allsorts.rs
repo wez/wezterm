@@ -226,6 +226,7 @@ impl AllsortsParsedFont {
             descender,
             underline_thickness,
             underline_position,
+            cap_height_ratio: None,
         };
 
         log::trace!("metrics: {:?}", metrics);
