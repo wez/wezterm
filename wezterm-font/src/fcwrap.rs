@@ -9,48 +9,9 @@ use std::fmt;
 use std::mem;
 use std::os::raw::{c_char, c_int};
 use std::ptr;
-use std::sync::Mutex;
 
 pub const FC_MONO: i32 = 100;
 pub const FC_DUAL: i32 = 90;
-
-lazy_static::lazy_static! {
-    /// This is hideous and gross, but we don't have a lot of choice.
-    /// The issue here is that the fontconfig library maintains some
-    /// global state that is implicitly initialized by the various
-    /// library functions.  There isn't a way for a single code path
-    /// to maintain an isolated set of state.  In wezterm we only
-    /// use fontconfig to discover files and then we don't need to
-    /// talk to it again, so it is desirable to have it unload its
-    /// various caches and references to fonts when we're done with
-    /// it.  We use this counter to tell when we've released the
-    /// final reference to a fontconfig object so that we can tell
-    /// the library to shutdown.
-    static ref NUM_OBJECTS :Mutex<usize> = Mutex::new(0);
-}
-
-fn add_object() {
-    let mut num = NUM_OBJECTS.lock().unwrap();
-    *num += 1;
-    // log::trace!("fc object count + -> {}", *num);
-}
-
-fn release_object() {
-    let mut num = NUM_OBJECTS.lock().unwrap();
-    let count = *num - 1;
-    *num = count;
-
-    // log::trace!("fc object count - -> {}", *num);
-
-    if count == 0 {
-        // log::trace!("Finalize fontconfig!");
-        // There are no more objects referencing the fontconfig
-        // library, so we can release it now
-        unsafe {
-            FcFini();
-        }
-    }
-}
 
 pub struct FontSet {
     fonts: *mut FcFontSet,
@@ -61,7 +22,6 @@ impl Drop for FontSet {
         unsafe {
             FcFontSetDestroy(self.fonts);
         }
-        release_object();
     }
 }
 
@@ -90,7 +50,6 @@ impl<'a> Iterator for FontSetIter<'a> {
                     .as_mut()
                     .unwrap();
                 FcPatternReference(pat);
-                add_object();
                 self.position += 1;
                 Some(Pattern { pat })
             }
@@ -150,7 +109,6 @@ impl Drop for CharSet {
         unsafe {
             FcCharSetDestroy(self.cset);
         }
-        release_object();
     }
 }
 
@@ -159,7 +117,6 @@ impl CharSet {
         unsafe {
             let cset = FcCharSetCreate();
             ensure!(!cset.is_null(), "FcCharSetCreate failed");
-            add_object();
             Ok(Self { cset })
         }
     }
@@ -184,7 +141,6 @@ impl Pattern {
         unsafe {
             let p = FcPatternCreate();
             ensure!(!p.is_null(), "FcPatternCreate failed");
-            add_object();
             Ok(Pattern { pat: p })
         }
     }
@@ -288,7 +244,6 @@ impl Pattern {
         unsafe {
             let pat = FcFontRenderPrepare(ptr::null_mut(), self.pat, pat.pat);
             ensure!(!pat.is_null(), "failed to prepare pattern");
-            add_object();
             Ok(Pattern { pat })
         }
     }
@@ -322,7 +277,6 @@ impl Pattern {
 
             let fonts = FcFontList(ptr::null_mut(), self.pat, oset);
             let result = if !fonts.is_null() {
-                add_object();
                 Ok(FontSet { fonts })
             } else {
                 Err(anyhow!("FcFontList failed"))
@@ -337,9 +291,6 @@ impl Pattern {
             let mut res = FcResultWrap(0);
             let best = FcFontMatch(ptr::null_mut(), self.pat, &mut res.0 as *mut _);
 
-            if !best.is_null() {
-                add_object();
-            }
             if !res.succeeded() {
                 Err(res.as_err())
             } else {
@@ -359,9 +310,6 @@ impl Pattern {
                 &mut res.0 as *mut _,
             );
 
-            if !fonts.is_null() {
-                add_object();
-            }
             res.result(FontSet { fonts })
         }
     }
@@ -433,7 +381,6 @@ impl Drop for Pattern {
         unsafe {
             FcPatternDestroy(self.pat);
         }
-        release_object();
     }
 }
 
