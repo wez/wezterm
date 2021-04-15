@@ -1,0 +1,8 @@
+
+Regular
+[1mBold[0m
+[3mItalic[0m
+[1m[3mBold Italic[0m
+[2mHalf Bright[0m
+[2m[3mHalf Bright Italic[0m
+

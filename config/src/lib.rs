@@ -1385,40 +1385,51 @@ impl Config {
             }
         }
 
-        if cfg.font_rules.is_empty() {
-            // Expand out some reasonable default font rules
-            let reduced = self.font.reduce_first_font_to_family();
-            let mut bold = reduced.make_bold();
-            let mut italic = reduced.make_italic();
-            let mut bold_italic = bold.make_italic();
+        // Add some reasonable default font rules
+        let reduced = self.font.reduce_first_font_to_family();
 
-            // add the reduced version of the font as a fallback right after
-            // the bold/italic variants.  Some users have installed just the
-            // regular weight variant of a font and we'd like to fall back
-            // to that weight in that case, rather than show them an error
-            bold.font.insert(1, reduced.font[0].clone());
-            italic.font.insert(1, reduced.font[0].clone());
-            bold_italic.font.insert(1, reduced.font[0].clone());
+        let italic = reduced.make_italic();
 
-            cfg.font_rules.push(StyleRule {
-                italic: Some(true),
-                font: italic,
-                ..Default::default()
-            });
+        let bold = reduced.make_bold();
+        let bold_italic = bold.make_italic();
 
-            cfg.font_rules.push(StyleRule {
-                intensity: Some(wezterm_term::Intensity::Bold),
-                font: bold,
-                ..Default::default()
-            });
+        let half_bright = reduced.make_half_bright();
+        let half_bright_italic = half_bright.make_italic();
 
-            cfg.font_rules.push(StyleRule {
-                italic: Some(true),
-                intensity: Some(wezterm_term::Intensity::Bold),
-                font: bold_italic,
-                ..Default::default()
-            });
-        }
+        cfg.font_rules.push(StyleRule {
+            italic: Some(true),
+            intensity: Some(wezterm_term::Intensity::Half),
+            font: half_bright_italic,
+            ..Default::default()
+        });
+
+        cfg.font_rules.push(StyleRule {
+            italic: Some(false),
+            intensity: Some(wezterm_term::Intensity::Half),
+            font: half_bright,
+            ..Default::default()
+        });
+
+        cfg.font_rules.push(StyleRule {
+            italic: Some(false),
+            intensity: Some(wezterm_term::Intensity::Bold),
+            font: bold,
+            ..Default::default()
+        });
+
+        cfg.font_rules.push(StyleRule {
+            italic: Some(true),
+            intensity: Some(wezterm_term::Intensity::Bold),
+            font: bold_italic,
+            ..Default::default()
+        });
+
+        cfg.font_rules.push(StyleRule {
+            italic: Some(true),
+            intensity: Some(wezterm_term::Intensity::Normal),
+            font: italic,
+            ..Default::default()
+        });
 
         // Load any additional color schemes into the color_schemes map
         cfg.load_color_schemes(&cfg.compute_color_scheme_dirs())
