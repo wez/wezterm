@@ -280,7 +280,7 @@ impl WindowCallbacks for TermWindow {
             is_full_screen: self.is_full_screen,
             terminal_size: self.terminal_size.clone(),
             render_state,
-            input_map: InputMap::new(),
+            input_map: InputMap::new(&config),
             leader_is_down: None,
             show_tab_bar: self.show_tab_bar,
             show_scroll_bar: self.show_scroll_bar,
@@ -507,7 +507,7 @@ impl TermWindow {
                 is_full_screen: false,
                 terminal_size,
                 render_state,
-                input_map: InputMap::new(),
+                input_map: InputMap::new(&config),
                 leader_is_down: None,
                 show_tab_bar,
                 show_scroll_bar: config.enable_scroll_bar,
@@ -945,7 +945,7 @@ impl TermWindow {
 
         self.show_scroll_bar = config.enable_scroll_bar;
         self.shape_cache.borrow_mut().clear();
-        self.input_map = InputMap::new();
+        self.input_map = InputMap::new(&config);
         self.leader_is_down = None;
         let dimensions = self.dimensions;
 

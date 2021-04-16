@@ -1,4 +1,4 @@
-use crate::configuration;
+use crate::ConfigHandle;
 use crate::LeaderKey;
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Serialize};
@@ -211,8 +211,7 @@ pub struct InputMap {
 }
 
 impl InputMap {
-    pub fn new() -> Self {
-        let config = configuration();
+    pub fn new(config: &ConfigHandle) -> Self {
         let mut mouse = config.mouse_bindings();
 
         let mut keys = config.key_bindings();

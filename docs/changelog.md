@@ -30,6 +30,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved: fallback fonts are scaled according to relative their *cap-height* metric to improve size consistency.  This partially applies to some symbol/emoji fonts, but is dependent upon the font having reliable metrics.
 * Improved: font-config queries now run much faster, resulting in snappier startup on unix systems
 * Fixed: [Hide](config/lua/keyassignment/Hide.md) had no effect on macOS when the titlebar was disabled [#679](https://github.com/wez/wezterm/issues/679)
+* Fixed: key and mouse assignments set via [window:set_config_overrides](config/lua/window/set_config_overrides.md) were not respected. [#656](https://github.com/wez/wezterm/issues/656)
 
 ### 20210405-110924-a5bb5be8
 
