@@ -197,6 +197,7 @@ usually the best available version.</p>
 <li>Improved: fallback fonts are scaled according to relative their <em>cap-height</em> metric to improve size consistency.  This partially applies to some symbol/emoji fonts, but is dependent upon the font having reliable metrics.</li>
 <li>Improved: font-config queries now run much faster, resulting in snappier startup on unix systems</li>
 <li>Fixed: <a href="config/lua/keyassignment/Hide.html">Hide</a> had no effect on macOS when the titlebar was disabled <a href="https://github.com/wez/wezterm/issues/679">#679</a></li>
+<li>Fixed: key and mouse assignments set via <a href="config/lua/window/set_config_overrides.html">window:set_config_overrides</a> were not respected. <a href="https://github.com/wez/wezterm/issues/656">#656</a></li>
 </ul>
 <h3 id="20210405-110924-a5bb5be8"><a class="header" href="#20210405-110924-a5bb5be8">20210405-110924-a5bb5be8</a></h3>
 <ul>
