@@ -197,7 +197,7 @@ async fn client_thread_async(
         fn fail_all(&mut self, reason: &str) {
             log::trace!("failing all promises: {}", reason);
             for (_, promise) in self.map.drain() {
-                promise.try_send(Err(anyhow!("{}", reason))).unwrap();
+                let _ = promise.try_send(Err(anyhow!("{}", reason)));
             }
         }
     }
@@ -241,7 +241,9 @@ async fn client_thread_async(
                                 e
                             })?;
                     } else if let Some(promise) = promises.map.remove(&decoded.serial) {
-                        promise.try_send(Ok(decoded.pdu)).unwrap();
+                        if promise.try_send(Ok(decoded.pdu)).is_err() {
+                            return Err(NotReconnectableError::ClientWasDestroyed.into());
+                        }
                     } else {
                         log::error!(
                             "got serial {} without a corresponding promise",
