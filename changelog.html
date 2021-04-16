@@ -194,6 +194,9 @@ usually the best available version.</p>
 <li>Fixed: Window could vanish if a tab closed while the rightmost tab was active(!) <a href="https://github.com/wez/wezterm/issues/690">#690</a></li>
 <li>Fixed: macOS: mouse cursor could get stuck in the hidden state. <a href="https://github.com/wez/wezterm/issues/618">#618</a></li>
 <li>Improved: <a href="config/lua/config/font_rules.html">font_rules</a> behavior to always append reasonable default <code>font_rules</code> to those that you may have specified in your config.  <code>font_rules</code> now also include defaults for half-bright text styles.</li>
+<li>Improved: fallback fonts are scaled according to relative their <em>cap-height</em> metric to improve size consistency.  This partially applies to some symbol/emoji fonts, but is dependent upon the font having reliable metrics.</li>
+<li>Improved: font-config queries now run much faster, resulting in snappier startup on unix systems</li>
+<li>Fixed: <a href="config/lua/keyassignment/Hide.html">Hide</a> had no effect on macOS when the titlebar was disabled <a href="https://github.com/wez/wezterm/issues/679">#679</a></li>
 </ul>
 <h3 id="20210405-110924-a5bb5be8"><a class="header" href="#20210405-110924-a5bb5be8">20210405-110924-a5bb5be8</a></h3>
 <ul>
