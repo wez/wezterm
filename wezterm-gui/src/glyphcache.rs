@@ -9,7 +9,7 @@ use ::window::glium;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::{Point, Rect};
-use config::{configuration, AllowSquareGlyphOverflow, TextStyle};
+use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use lru::LruCache;
 use std::collections::HashMap;
@@ -495,7 +495,7 @@ impl<T: Texture2d> GlyphCache<T> {
         let is_square_or_wide = aspect >= 0.9;
 
         let allow_width_overflow = if is_square_or_wide {
-            match configuration().allow_square_glyphs_to_overflow_width {
+            match self.fonts.config().allow_square_glyphs_to_overflow_width {
                 AllowSquareGlyphOverflow::Never => false,
                 AllowSquareGlyphOverflow::Always => true,
                 AllowSquareGlyphOverflow::WhenFollowedBySpace => followed_by_space,

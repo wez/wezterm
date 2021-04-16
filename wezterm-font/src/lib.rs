@@ -523,6 +523,10 @@ impl FontConfiguration {
         self.inner.config_changed(config)
     }
 
+    pub fn config(&self) -> ConfigHandle {
+        self.inner.config.borrow().clone()
+    }
+
     /// Given a text style, load (with caching) the font that best
     /// matches according to the fontconfig pattern.
     pub fn resolve_font(&self, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {

@@ -4,7 +4,6 @@ use ::window::bitmaps::{BitmapImage, Image, Texture2d};
 use ::window::color::SrgbaPixel;
 use ::window::{Point, Rect, Size};
 use anyhow::Context;
-use config::configuration;
 use std::rc::Rc;
 use termwiz::surface::CursorShape;
 use wezterm_font::units::*;
@@ -26,7 +25,7 @@ impl RenderMetrics {
             .default_font_metrics()
             .context("failed to get font metrics!?")?;
 
-        let line_height = configuration().line_height;
+        let line_height = fonts.config().line_height;
 
         let (cell_height, cell_width) = (
             (metrics.cell_height.get() * line_height).ceil() as usize,
