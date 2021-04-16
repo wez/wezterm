@@ -29,6 +29,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved: [font_rules](config/lua/config/font_rules.md) behavior to always append reasonable default `font_rules` to those that you may have specified in your config.  `font_rules` now also include defaults for half-bright text styles.
 * Improved: fallback fonts are scaled according to relative their *cap-height* metric to improve size consistency.  This partially applies to some symbol/emoji fonts, but is dependent upon the font having reliable metrics.
 * Improved: font-config queries now run much faster, resulting in snappier startup on unix systems
+* Fixed: [Hide](config/lua/keyassignment/Hide.md) had no effect on macOS when the titlebar was disabled [#679](https://github.com/wez/wezterm/issues/679)
 
 ### 20210405-110924-a5bb5be8
 

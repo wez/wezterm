@@ -895,9 +895,9 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
             | NSWindowStyleMask::NSMiniaturizableWindowMask
             | NSWindowStyleMask::NSResizableWindowMask
     } else if decorations == WindowDecorations::RESIZE {
-        NSWindowStyleMask::NSResizableWindowMask
+        NSWindowStyleMask::NSResizableWindowMask | NSWindowStyleMask::NSMiniaturizableWindowMask
     } else if decorations == WindowDecorations::NONE {
-        NSWindowStyleMask::NSBorderlessWindowMask
+        NSWindowStyleMask::NSBorderlessWindowMask | NSWindowStyleMask::NSMiniaturizableWindowMask
     } else if decorations == WindowDecorations::TITLE {
         NSWindowStyleMask::NSTitledWindowMask
             | NSWindowStyleMask::NSClosableWindowMask
