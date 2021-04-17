@@ -10,7 +10,7 @@ local wezterm = require 'wezterm';
 return {
   keys = {
     -- CMD-y starts `top` in a new window
-    {key="y", mods="CMD", action=wezterm.action{SpawnCommandInNewWindow={
+    {key="y", mods="CMD", action=wezterm.action{SpawnCommandInNewTab={
       args={"top"}
     }}},
   }
