@@ -14,7 +14,7 @@ anyhow = "1.0"
 [target.'cfg(windows)'.build-dependencies]
 embed-resource = "1.3"
 cc = "1.0"
-windows = "0.5"
+windows = "0.8"
 
 [dependencies]
 anyhow = "1.0"
@@ -72,7 +72,7 @@ window = { path = "../window", features=["wayland"]}
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"
-windows = "0.5"
+windows = "0.8"
 winapi = { version = "0.3", features = [
     "winuser",
     "consoleapi",
