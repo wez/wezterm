@@ -21,7 +21,7 @@ jobs:
       shell: bash
       run: "apt update"
     - name: "Cache Git installation"
-      uses: actions/cache@v2.1.4
+      uses: actions/cache@v2.1.5
       with:
          path: "/usr/local/git"
          key: "debian9.12-git-2.26.2"
@@ -65,7 +65,7 @@ jobs:
       env:
          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
     - name: "Cache cargo"
-      uses: actions/cache@v2.1.4
+      uses: actions/cache@v2.1.5
       with:
          path: |
             ~/.cargo/registry
