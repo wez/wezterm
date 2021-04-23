@@ -36,7 +36,7 @@ url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
-[target.'cfg(all(windows, target_os="linux", target_os="macos"))'.dependencies]
+[target.'cfg(any(windows, target_os="linux", target_os="macos"))'.dependencies]
 sysinfo = "0.16"
 
 [dev-dependencies]
