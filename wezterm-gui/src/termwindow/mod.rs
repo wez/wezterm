@@ -21,6 +21,8 @@ use config::keyassignment::{
 };
 use config::{configuration, ConfigHandle, WindowCloseConfirmation};
 use lru::LruCache;
+use luahelper::impl_lua_conversion;
+use mlua::FromLua;
 use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
@@ -29,6 +31,7 @@ use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, TabId};
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::PtySize;
+use serde::*;
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -80,6 +83,33 @@ pub struct PaneState {
     /// tab.  We'll also route input to it.
     pub overlay: Option<Rc<dyn Pane>>,
 }
+
+/// Data used when synchronously formatting pane and window titles
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TabInformation {
+    pub tab_id: TabId,
+    pub tab_index: usize,
+    pub is_active: bool,
+}
+impl_lua_conversion!(TabInformation);
+
+/// Data used when synchronously formatting pane and window titles
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PaneInformation {
+    pub pane_id: PaneId,
+    pub pane_index: usize,
+    pub is_active: bool,
+    pub is_zoomed: bool,
+    pub is_hovered: bool,
+    pub left: usize,
+    pub top: usize,
+    pub width: usize,
+    pub height: usize,
+    pub pixel_width: usize,
+    pub pixel_height: usize,
+    pub title: String,
+}
+impl_lua_conversion!(PaneInformation);
 
 #[derive(Default, Clone)]
 pub struct TabState {
@@ -1025,46 +1055,81 @@ impl TermWindow {
         }
 
         let num_tabs = window.len();
-
         if num_tabs == 0 {
             return;
         }
-
-        let tab_no = window.get_active_idx();
         drop(window);
 
-        let panes = self.get_panes_to_render();
-        if let Some(pos) = panes.iter().find(|p| p.is_active) {
-            let title = pos.pane.get_title();
+        let tabs = self.get_tab_information();
+        let panes = self.get_pane_information();
 
-            if let Some(window) = self.window.as_ref() {
-                let show_tab_bar;
-                if num_tabs == 1 {
-                    window.set_title(&format!(
-                        "{}{}",
-                        if pos.is_zoomed { "[Z] " } else { "" },
-                        title
-                    ));
-                    show_tab_bar =
-                        self.config.enable_tab_bar && !self.config.hide_tab_bar_if_only_one_tab;
+        let title = match config::run_immediate_with_lua_config(|lua| {
+            if let Some(lua) = lua {
+                let active_tab = tabs.iter().find(|t| t.is_active).cloned();
+                let active_pane = panes.iter().find(|p| p.is_active).cloned();
+                let tabs = lua.create_sequence_from(tabs.clone().into_iter())?;
+                let panes = lua.create_sequence_from(panes.clone().into_iter())?;
+
+                let v = config::lua::emit_sync_callback(
+                    &*lua,
+                    (
+                        "format-window-title".to_string(),
+                        (active_tab, active_pane, tabs, panes, (*self.config).clone()),
+                    ),
+                )?;
+                match &v {
+                    mlua::Value::Nil => Ok(None),
+                    _ => Ok(Some(String::from_lua(v, &*lua)?)),
+                }
+            } else {
+                Ok(None)
+            }
+        }) {
+            Ok(s) => s,
+            Err(err) => {
+                log::warn!("format-window-title: {}", err);
+                None
+            }
+        };
+
+        let title = match title {
+            Some(title) => title,
+            None => {
+                let active_pane = panes.iter().find(|p| p.is_active);
+                let active_tab = tabs.iter().find(|t| t.is_active);
+                if let (Some(pos), Some(tab)) = (active_pane, active_tab) {
+                    if num_tabs == 1 {
+                        format!("{}{}", if pos.is_zoomed { "[Z] " } else { "" }, pos.title)
+                    } else {
+                        format!(
+                            "{}[{}/{}] {}",
+                            if pos.is_zoomed { "[Z] " } else { "" },
+                            tab.tab_index + 1,
+                            num_tabs,
+                            pos.title
+                        )
+                    }
                 } else {
-                    window.set_title(&format!(
-                        "{}[{}/{}] {}",
-                        if pos.is_zoomed { "[Z] " } else { "" },
-                        tab_no + 1,
-                        num_tabs,
-                        title
-                    ));
-                    show_tab_bar = self.config.enable_tab_bar;
+                    "".to_string()
                 }
+            }
+        };
 
-                // If the number of tabs changed and caused the tab bar to
-                // hide/show, then we'll need to resize things.  It is simplest
-                // to piggy back on the config reloading code for that, so that
-                // is what we're doing.
-                if show_tab_bar != self.show_tab_bar {
-                    self.config_was_reloaded();
-                }
+        if let Some(window) = self.window.as_ref() {
+            window.set_title(&title);
+
+            let show_tab_bar = if num_tabs == 1 {
+                self.config.enable_tab_bar && !self.config.hide_tab_bar_if_only_one_tab
+            } else {
+                self.config.enable_tab_bar
+            };
+
+            // If the number of tabs changed and caused the tab bar to
+            // hide/show, then we'll need to resize things.  It is simplest
+            // to piggy back on the config reloading code for that, so that
+            // is what we're doing.
+            if show_tab_bar != self.show_tab_bar {
+                self.config_was_reloaded();
             }
         }
     }
@@ -1763,6 +1828,47 @@ impl TermWindow {
         } else {
             tab.iter_splits()
         }
+    }
+
+    fn get_tab_information(&mut self) -> Vec<TabInformation> {
+        let mux = Mux::get().unwrap();
+        let window = match mux.get_window(self.mux_window_id) {
+            Some(window) => window,
+            _ => return vec![],
+        };
+        let tab_index = window.get_active_idx();
+
+        window
+            .iter()
+            .enumerate()
+            .map(|(idx, tab)| TabInformation {
+                tab_index: idx,
+                tab_id: tab.tab_id(),
+                is_active: tab_index == idx,
+            })
+            .collect()
+    }
+
+    fn get_pane_information(&mut self) -> Vec<PaneInformation> {
+        self.get_panes_to_render()
+            .into_iter()
+            .map(|pos| {
+                PaneInformation {
+                    pane_id: pos.pane.pane_id(),
+                    pane_index: pos.index,
+                    is_active: pos.is_active,
+                    is_zoomed: pos.is_zoomed,
+                    is_hovered: false, // FIXME
+                    left: pos.left,
+                    top: pos.top,
+                    width: pos.width,
+                    height: pos.height,
+                    pixel_width: pos.pixel_width,
+                    pixel_height: pos.pixel_height,
+                    title: pos.pane.get_title(),
+                }
+            })
+            .collect()
     }
 
     fn get_panes_to_render(&mut self) -> Vec<PositionedPane> {

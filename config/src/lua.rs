@@ -2,7 +2,7 @@ use crate::{FontAttributes, FontStretch, FontWeight, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;
-use mlua::{FromLua, ToLua};
+use mlua::{FromLua, ToLua, ToLuaMulti};
 use mlua::{Lua, Table, Value};
 use serde::*;
 use smol::prelude::*;
@@ -609,6 +609,27 @@ pub async fn emit_event<'lua>(
             Ok(true)
         }
         _ => Ok(true),
+    }
+}
+
+pub fn emit_sync_callback<'lua, A>(
+    lua: &'lua Lua,
+    (name, args): (String, A),
+) -> mlua::Result<mlua::Value<'lua>>
+where
+    A: ToLuaMulti<'lua>,
+{
+    let decorated_name = format!("wezterm-event-{}", name);
+    let tbl: mlua::Value = lua.named_registry_value(&decorated_name)?;
+    match tbl {
+        mlua::Value::Table(tbl) => {
+            for func in tbl.sequence_values::<mlua::Function>() {
+                let func = func?;
+                return func.call(args);
+            }
+            Ok(mlua::Value::Nil)
+        }
+        _ => Ok(mlua::Value::Nil),
     }
 }
 

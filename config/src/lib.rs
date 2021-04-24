@@ -170,6 +170,23 @@ where
     func(lua).await
 }
 
+pub fn run_immediate_with_lua_config<F, RET>(func: F) -> anyhow::Result<RET>
+where
+    F: FnOnce(Option<Rc<mlua::Lua>>) -> anyhow::Result<RET>,
+{
+    let lua = LUA_CONFIG.with(|lc| {
+        let mut lc = lc.borrow_mut();
+        let lc = lc.as_mut().expect(
+            "with_lua_config_on_main_thread not called
+             from main thread, use with_lua_config instead!",
+        );
+        lc.update_to_latest();
+        lc.get_lua()
+    });
+
+    func(lua)
+}
+
 fn schedule_with_lua<F, RETF, RET>(func: F) -> promise::spawn::Task<anyhow::Result<RET>>
 where
     F: 'static,
