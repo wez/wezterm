@@ -1291,6 +1291,10 @@ impl Tab {
     ) -> Option<SplitDirectionAndSize> {
         let cell_dims = self.cell_dimensions();
 
+        // Ensure that we're not zoomed, otherwise we'll end up in
+        // a bogus split state (https://github.com/wez/wezterm/issues/723)
+        self.set_zoomed(false);
+
         self.iter_panes().iter().nth(pane_index).map(|pos| {
             fn split_dimension(dim: usize) -> (usize, usize) {
                 let halved = dim / 2;

@@ -35,6 +35,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: really long busy wait when displaying single logical json line of 1.5MB in length [#714](https://github.com/wez/wezterm/issues/714)
 * New: [swallow_mouse_click_on_pane_focus](config/lua/config/swallow_mouse_click_on_pane_focus.md) option [#724](https://github.com/wez/wezterm/issues/724)
 * New: [pane_focus_follows_mouse](config/lua/config/pane_focus_follows_mouse.md) option [#600](https://github.com/wez/wezterm/issues/600)
+* Fixed: splitting a pane while a pane is in the zoomed state would swallow the new pane [#723](https://github.com/wez/wezterm/issues/723)
 
 ### 20210405-110924-a5bb5be8
 
