@@ -172,6 +172,12 @@ pub trait Pane: Downcast {
     fn get_logical_lines(&self, lines: Range<StableRowIndex>) -> Vec<LogicalLine> {
         let (mut first, mut phys) = self.get_lines(lines);
 
+        // Avoid pathological cases where we have eg: a really long logical line
+        // (such as 1.5MB of json) that we previously wrapped.  We don't want to
+        // un-wrap, scan, and re-wrap that thing.
+        // This is an imperfect length constraint to partially manage the cost.
+        const MAX_LOGICAL_LINE_LEN: usize = 1024;
+
         // Look backwards to find the start of the first logical line
         while first > 0 {
             let (prior, back) = self.get_lines(first - 1..first);
@@ -179,6 +185,9 @@ pub trait Pane: Downcast {
                 break;
             }
             if !back[0].last_cell_was_wrapped() {
+                break;
+            }
+            if back[0].cells().len() > MAX_LOGICAL_LINE_LEN {
                 break;
             }
             first = prior;
@@ -190,6 +199,9 @@ pub trait Pane: Downcast {
         // Look forwards to find the end of the last logical line
         while let Some(last) = phys.last() {
             if !last.last_cell_was_wrapped() {
+                break;
+            }
+            if last.cells().len() > MAX_LOGICAL_LINE_LEN {
                 break;
             }
 
@@ -214,7 +226,9 @@ pub trait Pane: Downcast {
                     });
                 }
                 Some(prior) => {
-                    if prior.logical.last_cell_was_wrapped() {
+                    if prior.logical.last_cell_was_wrapped()
+                        && prior.logical.cells().len() <= MAX_LOGICAL_LINE_LEN
+                    {
                         prior.logical.set_last_cell_was_wrapped(false);
                         prior.logical.append_line(line.clone());
                         prior.physical_lines.push(line);
