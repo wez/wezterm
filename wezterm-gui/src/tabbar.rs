@@ -204,7 +204,7 @@ impl TabBarState {
                 }
 
                 line.set_cell(x, Cell::new_grapheme(sub, cell_attrs.clone()));
-                x += 1;
+                x += unicode_column_width(sub);
             }
 
             for c in right {
