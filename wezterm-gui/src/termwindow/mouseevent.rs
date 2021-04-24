@@ -287,6 +287,7 @@ impl super::TermWindow {
         context: &dyn WindowOps,
     ) {
         let mut on_split = None;
+        let mut is_click_to_focus = false;
         if y >= 0 {
             let y = y as usize;
 
@@ -337,6 +338,7 @@ impl super::TermWindow {
                                 .map(|tab| tab.set_active_idx(pos.index));
 
                             pane = Rc::clone(&pos.pane);
+                            is_click_to_focus = true;
                         }
                         WMEK::Move => {}
                         WMEK::Release(_) => {}
@@ -503,7 +505,9 @@ impl super::TermWindow {
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
 
-        pane.mouse_event(mouse_event).ok();
+        if !(self.config.swallow_mouse_click_on_pane_focus && is_click_to_focus) {
+            pane.mouse_event(mouse_event).ok();
+        }
 
         match event.kind {
             WMEK::Move => {}

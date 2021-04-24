@@ -33,6 +33,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: key and mouse assignments set via [window:set_config_overrides](config/lua/window/set_config_overrides.md) were not respected. [#656](https://github.com/wez/wezterm/issues/656)
 * Fixed: potential panic when word selecting off top of viewport [#713](https://github.com/wez/wezterm/issues/713)
 * Fixed: really long busy wait when displaying single logical json line of 1.5MB in length [#714](https://github.com/wez/wezterm/issues/714)
+* New: [swallow_mouse_click_on_pane_focus](config/lua/config/swallow_mouse_click_on_pane_focus.md) option [#724](https://github.com/wez/wezterm/issues/724)
 
 ### 20210405-110924-a5bb5be8
 

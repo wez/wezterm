@@ -1064,6 +1064,9 @@ pub struct Config {
 
     #[serde(default)]
     pub sort_fallback_fonts_by_coverage: bool,
+
+    #[serde(default)]
+    pub swallow_mouse_click_on_pane_focus: bool,
 }
 impl_lua_conversion!(Config);
 
