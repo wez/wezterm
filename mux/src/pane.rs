@@ -86,18 +86,19 @@ impl LogicalLine {
         let mut offset = 0;
         for (idx, line) in self.physical_lines.iter().enumerate() {
             let phys_y = self.first_row + idx as StableRowIndex;
+            if y < phys_y {
+                // Eg: trying to drag off the top of the viewport.
+                // Their y coordinate precedes our first line, so
+                // the only logical x we can return is 0
+                return 0;
+            }
             if phys_y == y {
                 return offset + x;
             }
-
             offset += line.cells().len();
         }
-        panic!(
-            "x={} y={} is outside of this logical line starting at {} comprised of {} physical lines",
-            x, y,
-            self.first_row,
-            self.physical_lines.len()
-        );
+        // Allow selecting off the end of the line
+        offset + x
     }
 
     pub fn logical_x_to_physical_coord(&self, x: usize) -> (StableRowIndex, usize) {
@@ -814,6 +815,9 @@ mod test {
             logical: Line::from_text("helloyo", &attr),
             first_row: 0,
         };
+
+        assert_eq!(logical.xy_to_logical_x(2, -1), 0);
+        assert_eq!(logical.xy_to_logical_x(20, 1), 25);
 
         let start_idx = logical.xy_to_logical_x(2, 1);
 
