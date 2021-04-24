@@ -1473,7 +1473,12 @@ impl WindowView {
             let point = NSView::convertPoint_fromView_(view, nsevent.locationInWindow(), nil);
             let rect = NSRect::new(NSPoint::new(0., 0.), NSSize::new(point.x, point.y));
             let backing_rect = NSView::convertRectToBacking(view, rect);
-            coords = NSPoint::new(backing_rect.size.width, backing_rect.size.height);
+            // backing_rect computes abs() values, so we need to restore the sign
+            // from the original point
+            coords = NSPoint::new(
+                f64::copysign(backing_rect.size.width, point.x),
+                f64::copysign(backing_rect.size.height, point.y),
+            );
             mouse_buttons = decode_mouse_buttons(NSEvent::pressedMouseButtons(nsevent));
             modifiers = key_modifiers(nsevent.modifierFlags());
             screen_coords = NSEvent::mouseLocation(nsevent);
