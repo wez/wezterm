@@ -478,8 +478,8 @@ impl<T: Texture2d> GlyphCache<T> {
         {
             // If we know the cap height ratio for both fonts, we can scale
             // the second one to match the cap height of the first
-            x_scale = base_cap / cap;
-            y_scale = x_scale / info.num_cells as f64;
+            y_scale = base_cap / cap;
+            x_scale = y_scale / info.num_cells as f64;
         } else {
             // Otherwise, we scale based on the ratio of the metrics for
             // the two fonts.
