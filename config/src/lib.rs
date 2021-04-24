@@ -1067,6 +1067,9 @@ pub struct Config {
 
     #[serde(default)]
     pub swallow_mouse_click_on_pane_focus: bool,
+
+    #[serde(default)]
+    pub pane_focus_follows_mouse: bool,
 }
 impl_lua_conversion!(Config);
 

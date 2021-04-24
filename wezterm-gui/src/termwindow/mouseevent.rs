@@ -340,7 +340,16 @@ impl super::TermWindow {
                             pane = Rc::clone(&pos.pane);
                             is_click_to_focus = true;
                         }
-                        WMEK::Move => {}
+                        WMEK::Move => {
+                            if self.config.pane_focus_follows_mouse {
+                                let mux = Mux::get().unwrap();
+                                mux.get_active_tab_for_window(self.mux_window_id)
+                                    .map(|tab| tab.set_active_idx(pos.index));
+
+                                pane = Rc::clone(&pos.pane);
+                                context.invalidate();
+                            }
+                        }
                         WMEK::Release(_) => {}
                         WMEK::VertWheel(_) => {}
                         WMEK::HorzWheel(_) => {}
