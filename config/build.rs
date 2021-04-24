@@ -68,6 +68,12 @@ fn main() {
                 ci_tag = info.trim().to_string();
             }
         }
+
+        let index = Path::new("../.git/index");
+        if index.exists() {
+            let index = index.canonicalize().unwrap();
+            println!("cargo:rerun-if-changed={}", index.display());
+        }
     }
 
     let target = std::env::var("TARGET").unwrap_or_else(|_| "unknown".to_string());

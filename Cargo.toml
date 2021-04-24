@@ -12,5 +12,9 @@ resolver = "2"
 opt-level = 3
 # debug = 1
 
+[profile.dev]
+# https://jakedeichert.com/blog/reducing-rust-incremental-compilation-times-on-macos-by-70-percent/
+split-debuginfo = "unpacked"
+
 [patch.crates-io]
 ssh2 = { git = "https://github.com/wez/ssh2-rs.git", branch="win32ssl" }
