@@ -483,9 +483,13 @@ impl<T: Texture2d> GlyphCache<T> {
         } else {
             // Otherwise, we scale based on the ratio of the metrics for
             // the two fonts.
+
             // If we know the cap height ratio for the first, we can adjust
-            // the overall scale so that the second font isn't oversized
-            let base_cap = base_metrics.cap_height_ratio.unwrap_or(1.);
+            // the overall scale so that the second font isn't oversized.
+            // Disable for now because it leads to emoji and other symbols
+            // being under-sized :-/
+            // https://github.com/wez/wezterm/issues/727
+            let base_cap = 1.0; // base_metrics.cap_height_ratio.unwrap_or(1.);
             y_scale = base_cap * base_metrics.cell_height.get() / idx_metrics.cell_height.get();
             x_scale = base_cap * base_metrics.cell_width.get()
                 / (idx_metrics.cell_width.get() / info.num_cells as f64);
