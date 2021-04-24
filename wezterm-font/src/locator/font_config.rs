@@ -29,6 +29,8 @@ impl FontLocator for FontConfigFontLocator {
                 .iter()
                 .filter_map(|p| match p.get_integer("spacing") {
                     Ok(n) if n == FC_MONO || n == FC_DUAL => Some(p),
+                    // (probably!) no spacing defined. Assume monospace.
+                    Err(_) => Some(p),
                     _ => None,
                 })
                 .collect()
