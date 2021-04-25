@@ -38,6 +38,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: splitting a pane while a pane is in the zoomed state would swallow the new pane [#723](https://github.com/wez/wezterm/issues/723)
 * Fixed: multi-cell glyphs weren't displayed in tab titles [#711](https://github.com/wez/wezterm/issues/711)
 * New: [format-window-title](config/lua/window-events/format-window-title.md) hook for customizing the text in the window titlebar
+* New: [format-tab-title](config/lua/window-events/format-tab-title.md) hook for customizing the text in tab titles. [#647](https://github.com/wez/wezterm/issues/647)
 
 ### 20210405-110924-a5bb5be8
 

@@ -19,9 +19,9 @@ to the default processing--not very useful except as a starting point for
 making your own title text:
 
 ```lua
-wezterm.on("format-window-title", function(tab, pane, tabs, panes, config)
+wezterm.on("format-window-title", function(tab, tabs, panes, config)
   local zoomed = ""
-  if pane.is_zoomed then
+  if tab.active_pane.is_zoomed then
     zoomed = "[Z] "
   end
 
@@ -30,14 +30,13 @@ wezterm.on("format-window-title", function(tab, pane, tabs, panes, config)
     index = string.format("[%d/%d] ", tab.tab_index + 1, #tabs)
   end
 
-  return zoomed .. index .. pane.title
+  return zoomed .. index .. tab.active_pane.title
 end)
 ```
 
 The parameters to the event are:
 
 * `tab` - the [TabInformation](../TabInformation.md) for the active tab
-* `pane` - the [PaneInformation](../PaneInformation.md) for the active pane in the active tab
 * `tabs` - an array containing [TabInformation](../TabInformation.md) for each of the tabs in the window
 * `panes` - an array containing [PaneInformation](../PaneInformation.md) for each of the panes in the active tab
 * `config` - the effective configuration for the window

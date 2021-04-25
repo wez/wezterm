@@ -27,7 +27,7 @@ use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
 use mux::renderable::RenderableDimensions;
-use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, TabId};
+use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::PtySize;
@@ -90,6 +90,7 @@ pub struct TabInformation {
     pub tab_id: TabId,
     pub tab_index: usize,
     pub is_active: bool,
+    pub active_pane: Option<PaneInformation>,
 }
 impl_lua_conversion!(TabInformation);
 
@@ -100,7 +101,6 @@ pub struct PaneInformation {
     pub pane_index: usize,
     pub is_active: bool,
     pub is_zoomed: bool,
-    pub is_hovered: bool,
     pub left: usize,
     pub top: usize,
     pub width: usize,
@@ -1034,6 +1034,10 @@ impl TermWindow {
             Some(window) => window,
             _ => return,
         };
+        let tabs = self.get_tab_information();
+        let panes = self.get_pane_information();
+        let active_tab = tabs.iter().find(|t| t.is_active).cloned();
+        let active_pane = panes.iter().find(|p| p.is_active).cloned();
 
         let new_tab_bar = TabBarState::new(
             self.terminal_size.cols as usize,
@@ -1042,7 +1046,8 @@ impl TermWindow {
             } else {
                 None
             },
-            &window,
+            &tabs,
+            &panes,
             self.config.colors.as_ref().and_then(|c| c.tab_bar.as_ref()),
             &self.config,
             &self.right_status,
@@ -1060,13 +1065,8 @@ impl TermWindow {
         }
         drop(window);
 
-        let tabs = self.get_tab_information();
-        let panes = self.get_pane_information();
-
         let title = match config::run_immediate_with_lua_config(|lua| {
             if let Some(lua) = lua {
-                let active_tab = tabs.iter().find(|t| t.is_active).cloned();
-                let active_pane = panes.iter().find(|p| p.is_active).cloned();
                 let tabs = lua.create_sequence_from(tabs.clone().into_iter())?;
                 let panes = lua.create_sequence_from(panes.clone().into_iter())?;
 
@@ -1074,7 +1074,13 @@ impl TermWindow {
                     &*lua,
                     (
                         "format-window-title".to_string(),
-                        (active_tab, active_pane, tabs, panes, (*self.config).clone()),
+                        (
+                            active_tab.clone(),
+                            active_pane.clone(),
+                            tabs,
+                            panes,
+                            (*self.config).clone(),
+                        ),
                     ),
                 )?;
                 match &v {
@@ -1095,8 +1101,6 @@ impl TermWindow {
         let title = match title {
             Some(title) => title,
             None => {
-                let active_pane = panes.iter().find(|p| p.is_active);
-                let active_tab = tabs.iter().find(|t| t.is_active);
                 if let (Some(pos), Some(tab)) = (active_pane, active_tab) {
                     if num_tabs == 1 {
                         format!("{}{}", if pos.is_zoomed { "[Z] " } else { "" }, pos.title)
@@ -1830,6 +1834,22 @@ impl TermWindow {
         }
     }
 
+    fn pos_pane_to_pane_info(&mut self, pos: &PositionedPane) -> PaneInformation {
+        PaneInformation {
+            pane_id: pos.pane.pane_id(),
+            pane_index: pos.index,
+            is_active: pos.is_active,
+            is_zoomed: pos.is_zoomed,
+            left: pos.left,
+            top: pos.top,
+            width: pos.width,
+            height: pos.height,
+            pixel_width: pos.pixel_width,
+            pixel_height: pos.pixel_height,
+            title: pos.pane.get_title(),
+        }
+    }
+
     fn get_tab_information(&mut self) -> Vec<TabInformation> {
         let mux = Mux::get().unwrap();
         let window = match mux.get_window(self.mux_window_id) {
@@ -1841,10 +1861,18 @@ impl TermWindow {
         window
             .iter()
             .enumerate()
-            .map(|(idx, tab)| TabInformation {
-                tab_index: idx,
-                tab_id: tab.tab_id(),
-                is_active: tab_index == idx,
+            .map(|(idx, tab)| {
+                let panes = self.get_pos_panes_for_tab(tab);
+
+                TabInformation {
+                    tab_index: idx,
+                    tab_id: tab.tab_id(),
+                    is_active: tab_index == idx,
+                    active_pane: panes
+                        .iter()
+                        .find(|p| p.is_active)
+                        .map(|p| self.pos_pane_to_pane_info(p)),
+                }
             })
             .collect()
     }
@@ -1852,32 +1880,11 @@ impl TermWindow {
     fn get_pane_information(&mut self) -> Vec<PaneInformation> {
         self.get_panes_to_render()
             .into_iter()
-            .map(|pos| {
-                PaneInformation {
-                    pane_id: pos.pane.pane_id(),
-                    pane_index: pos.index,
-                    is_active: pos.is_active,
-                    is_zoomed: pos.is_zoomed,
-                    is_hovered: false, // FIXME
-                    left: pos.left,
-                    top: pos.top,
-                    width: pos.width,
-                    height: pos.height,
-                    pixel_width: pos.pixel_width,
-                    pixel_height: pos.pixel_height,
-                    title: pos.pane.get_title(),
-                }
-            })
+            .map(|pos| self.pos_pane_to_pane_info(&pos))
             .collect()
     }
 
-    fn get_panes_to_render(&mut self) -> Vec<PositionedPane> {
-        let mux = Mux::get().unwrap();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
-            Some(tab) => tab,
-            None => return vec![],
-        };
-
+    fn get_pos_panes_for_tab(&mut self, tab: &Rc<Tab>) -> Vec<PositionedPane> {
         let tab_id = tab.tab_id();
 
         if let Some(pane) = self.tab_state(tab_id).overlay.clone() {
@@ -1903,6 +1910,16 @@ impl TermWindow {
             }
             panes
         }
+    }
+
+    fn get_panes_to_render(&mut self) -> Vec<PositionedPane> {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return vec![],
+        };
+
+        self.get_pos_panes_for_tab(&tab)
     }
 
     /// if pane_id.is_none(), removes any overlay for the specified tab.

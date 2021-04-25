@@ -1,6 +1,7 @@
+use crate::termwindow::{PaneInformation, TabInformation};
+use config::lua::{format_as_escapes, FormatItem};
 use config::{ConfigHandle, TabBarColors};
-use mux::window::Window as MuxWindow;
-use std::cell::Ref;
+use mlua::FromLua;
 use termwiz::cell::unicode_column_width;
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::ColorSpec;
@@ -49,7 +50,8 @@ impl TabBarState {
     pub fn new(
         title_width: usize,
         mouse_x: Option<usize>,
-        window: &Ref<MuxWindow>,
+        tab_info: &[TabInformation],
+        pane_info: &[PaneInformation],
         colors: Option<&TabBarColors>,
         config: &ConfigHandle,
         right_status: &str,
@@ -108,37 +110,97 @@ impl TabBarState {
         // menu with tab creation options) and the other three chars
         // are symbols representing minimize, maximize and close.
 
-        let tab_titles: Vec<String> = window
+        let mut active_tab_no = 0;
+
+        enum TitleText {
+            String(String),
+            Formatted { items: Vec<FormatItem>, len: usize },
+        }
+
+        let tab_titles: Vec<TitleText> = tab_info
             .iter()
-            .enumerate()
-            .map(|(idx, tab)| {
-                if let Some(pane) = tab.get_active_pane() {
-                    let mut title = pane.get_title();
-                    if config.show_tab_index_in_tab_bar {
-                        title = format!(
-                            "{}: {}",
-                            idx + if config.tab_and_split_indices_are_zero_based {
-                                0
-                            } else {
-                                1
-                            },
-                            title
-                        );
+            .map(|tab| {
+                if tab.is_active {
+                    active_tab_no = tab.tab_index;
+                }
+
+                let title = match config::run_immediate_with_lua_config(|lua| {
+                    if let Some(lua) = lua {
+                        let tabs = lua.create_sequence_from(tab_info.iter().cloned())?;
+                        let panes = lua.create_sequence_from(pane_info.iter().cloned())?;
+
+                        let v = config::lua::emit_sync_callback(
+                            &*lua,
+                            (
+                                "format-tab-title".to_string(),
+                                (tab.clone(), tabs, panes, (**config).clone()),
+                            ),
+                        )?;
+                        match &v {
+                            mlua::Value::Nil => Ok(None),
+                            mlua::Value::Table(_) => {
+                                let items = <Vec<FormatItem>>::from_lua(v, &*lua)?;
+
+                                let esc = format_as_escapes(items.clone())?;
+                                let cells = parse_status_text(&esc, CellAttributes::default());
+
+                                Ok(Some(TitleText::Formatted {
+                                    items,
+                                    len: cells.len(),
+                                }))
+                            }
+                            _ => Ok(Some(TitleText::String(String::from_lua(v, &*lua)?))),
+                        }
+                    } else {
+                        Ok(None)
                     }
-                    // We have a preferred soft minimum on tab width to make it
-                    // easier to click on tab titles, but we'll still go below
-                    // this if there are too many tabs to fit the window at
-                    // this width.
-                    while title.len() < 5 {
-                        title.push(' ');
+                }) {
+                    Ok(s) => s,
+                    Err(err) => {
+                        log::warn!("format-tab-title: {}", err);
+                        None
                     }
-                    title
-                } else {
-                    "no pane".to_string()
+                };
+
+                match title {
+                    Some(title) => title,
+                    None => {
+                        if let Some(pane) = &tab.active_pane {
+                            let mut title = pane.title.clone();
+                            if config.show_tab_index_in_tab_bar {
+                                title = format!(
+                                    "{}: {}",
+                                    tab.tab_index
+                                        + if config.tab_and_split_indices_are_zero_based {
+                                            0
+                                        } else {
+                                            1
+                                        },
+                                    pane.title
+                                );
+                            }
+                            // We have a preferred soft minimum on tab width to make it
+                            // easier to click on tab titles, but we'll still go below
+                            // this if there are too many tabs to fit the window at
+                            // this width.
+                            while unicode_column_width(&title) < 5 {
+                                title.push(' ');
+                            }
+                            TitleText::String(title)
+                        } else {
+                            TitleText::String("no pane".to_string())
+                        }
+                    }
                 }
             })
             .collect();
-        let titles_len: usize = tab_titles.iter().map(|s| unicode_column_width(s)).sum();
+        let titles_len: usize = tab_titles
+            .iter()
+            .map(|s| match s {
+                TitleText::String(s) => unicode_column_width(s),
+                TitleText::Formatted { len, .. } => *len,
+            })
+            .sum();
         let number_of_tabs = tab_titles.len();
 
         let available_cells = title_width.saturating_sub(
@@ -157,12 +219,15 @@ impl TabBarState {
 
         let mut line = Line::with_width(title_width);
 
-        let active_tab_no = window.get_active_idx();
         let mut x = 0;
         let mut items = vec![];
 
         for (tab_idx, tab_title) in tab_titles.iter().enumerate() {
-            let tab_title_len = unicode_column_width(tab_title).min(tab_width_max);
+            let tab_title_len = match tab_title {
+                TitleText::String(s) => unicode_column_width(s),
+                TitleText::Formatted { len, .. } => *len,
+            }
+            .min(tab_width_max);
 
             let active = tab_idx == active_tab_no;
             let hover = !active
@@ -198,13 +263,38 @@ impl TabBarState {
                 x += 1;
             }
 
-            for (idx, sub) in tab_title.graphemes(true).enumerate() {
-                if idx >= tab_width_max {
-                    break;
-                }
+            match tab_title {
+                TitleText::String(tab_title) => {
+                    for (idx, sub) in tab_title.graphemes(true).enumerate() {
+                        if idx >= tab_width_max {
+                            break;
+                        }
 
-                line.set_cell(x, Cell::new_grapheme(sub, cell_attrs.clone()));
-                x += unicode_column_width(sub);
+                        line.set_cell(x, Cell::new_grapheme(sub, cell_attrs.clone()));
+                        x += unicode_column_width(sub);
+                    }
+                }
+                TitleText::Formatted { items, .. } => {
+                    let esc = format_as_escapes(items.clone()).expect("already parsed ok above");
+                    let cells = parse_status_text(&esc, cell_attrs.clone());
+                    let mut n = 0;
+                    for cell in cells {
+                        let len = cell.width();
+                        if n + len > tab_width_max {
+                            break;
+                        }
+                        line.set_cell(x, cell);
+                        x += len;
+                        n += len;
+                    }
+
+                    // Pad out to minimum acceptable width
+                    while n < 5 {
+                        line.set_cell(x, Cell::new_grapheme(" ", cell_attrs.clone()));
+                        n += 1;
+                        x += 1;
+                    }
+                }
             }
 
             for c in right {
