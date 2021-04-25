@@ -5,7 +5,8 @@ use super::utilsprites::RenderMetrics;
 use crate::glium::texture::SrgbTexture2d;
 use crate::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
-    start_overlay, start_overlay_pane, tab_navigator, CopyOverlay, SearchOverlay,
+    start_overlay, start_overlay_pane, tab_navigator, CopyOverlay, QuickSelectOverlay,
+    SearchOverlay,
 };
 use crate::scripting::guiwin::GuiWin;
 use crate::scripting::pane::PaneObject;
@@ -897,6 +898,7 @@ impl TermWindow {
         if !dirty.is_empty() {
             if pos.pane.downcast_ref::<SearchOverlay>().is_none()
                 && pos.pane.downcast_ref::<CopyOverlay>().is_none()
+                && pos.pane.downcast_ref::<QuickSelectOverlay>().is_none()
             {
                 // If any of the changed lines intersect with the
                 // selection, then we need to clear the selection, but not
@@ -1621,6 +1623,12 @@ impl TermWindow {
                     self.assign_overlay_for_pane(pane.pane_id(), search);
                 }
             }
+            QuickSelect => {
+                if let Some(pane) = self.get_active_pane_no_overlay() {
+                    let qa = QuickSelectOverlay::with_pane(self, &pane);
+                    self.assign_overlay_for_pane(pane.pane_id(), qa);
+                }
+            }
             ActivateCopyMode => {
                 if let Some(pane) = self.get_active_pane_no_overlay() {
                     let copy = CopyOverlay::with_pane(self, &pane);
@@ -1769,6 +1777,8 @@ impl TermWindow {
                     search_overlay.viewport_changed(pos);
                 } else if let Some(copy) = overlay.downcast_ref::<CopyOverlay>() {
                     copy.viewport_changed(pos);
+                } else if let Some(qs) = overlay.downcast_ref::<QuickSelectOverlay>() {
+                    qs.viewport_changed(pos);
                 }
             }
             self.window.as_ref().unwrap().invalidate();

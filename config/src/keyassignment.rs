@@ -201,6 +201,7 @@ pub enum KeyAssignment {
     TogglePaneZoomState,
     CloseCurrentPane { confirm: bool },
     EmitEvent(String),
+    QuickSelect,
 }
 impl_lua_conversion!(KeyAssignment);
 
@@ -299,6 +300,7 @@ impl InputMap {
                     KeyCode::Char('F'),
                     Search(Pattern::CaseSensitiveString("".into()))
                 ],
+                [ctrl_shift, KeyCode::Char(' '), QuickSelect],
                 // Font size manipulation
                 [Modifiers::CTRL, KeyCode::Char('-'), DecreaseFontSize],
                 [Modifiers::CTRL, KeyCode::Char('0'), ResetFontSize],
