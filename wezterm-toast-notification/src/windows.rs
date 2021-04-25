@@ -1,6 +1,6 @@
 #![cfg(windows)]
 
-use crate::ToastNotification;
+use crate::ToastNotification as TN;
 use xml::escape::escape_str_pcdata;
 
 #[allow(dead_code)]
@@ -23,7 +23,7 @@ fn unwrap_arg<T>(a: &Option<T>) -> Result<&T, WinError> {
     }
 }
 
-fn show_notif_impl(toast: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
+fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
     let xml = XmlDocument::new()?;
 
     let url_actions = if toast.url.is_some() {
@@ -90,7 +90,7 @@ fn show_notif_impl(toast: ToastNotification) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
-pub fn show_notif(notif: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
+pub fn show_notif(notif: TN) -> Result<(), Box<dyn std::error::Error>> {
     // We need to be in a different thread from the caller
     // in case we get called in the guts of a windows message
     // loop dispatch and are unable to pump messages

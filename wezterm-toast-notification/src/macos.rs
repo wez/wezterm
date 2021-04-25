@@ -92,12 +92,12 @@ pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Er
         let notif: id = msg_send![class!(NSUserNotification), alloc];
         let notif: id = msg_send![notif, init];
 
-        let () = msg_send![notif, setTitle: nsstring(toast.title)];
-        let () = msg_send![notif, setInformativeText: nsstring(toast.message)];
+        let () = msg_send![notif, setTitle: nsstring(&toast.title)];
+        let () = msg_send![notif, setInformativeText: nsstring(&toast.message)];
 
         let mut info = CFMutableDictionary::new();
         if let Some(url) = toast.url {
-            info.set(CFString::from_static_string("url"), CFString::new(url));
+            info.set(CFString::from_static_string("url"), CFString::new(&url));
             let () = msg_send![notif, setUserInfo: info];
         }
 
