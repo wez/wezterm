@@ -350,7 +350,11 @@ impl Config {
                 *value = value.replace(t, v);
             } else if t == "%d" {
                 if let Some(home) = self.resolve_home() {
-                    *value = value.replace(t, &home);
+                    if value.starts_with("~/") {
+                        value.replace_range(0..1, &home);
+                    } else {
+                        *value = value.replace(t, &home);
+                    }
                 }
             }
         }
@@ -441,6 +445,39 @@ Config {
     ),
 }
 "#
+        );
+
+        let opts = config.for_host("foo");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "10.0.0.1",
+    "identityfile": "/home/me/.ssh/id_pub.dsa",
+    "port": "22",
+    "user": "foo",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+    }
+
+    #[test]
+    fn sub_tilde() {
+        let mut config = Config::new();
+
+        let mut fake_env = ConfigMap::new();
+        fake_env.insert("HOME".to_string(), "/home/me".to_string());
+        fake_env.insert("USER".to_string(), "me".to_string());
+        config.assign_environment(fake_env);
+
+        config.add_config_string(
+            r#"
+        Host foo
+            HostName 10.0.0.1
+            User foo
+            IdentityFile "~/.ssh/id_pub.dsa"
+            "#,
         );
 
         let opts = config.for_host("foo");
