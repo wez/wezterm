@@ -1,5 +1,6 @@
 #![cfg(target_os = "macos")]
 
+use crate::ToastNotification;
 use cocoa::base::*;
 use cocoa::foundation::{NSDictionary, NSString};
 use core_foundation::dictionary::CFMutableDictionary;
@@ -82,11 +83,7 @@ fn nsstring(s: &str) -> StrongPtr {
     unsafe { StrongPtr::new(NSString::alloc(nil).init_str(s)) }
 }
 
-pub fn show_notif(
-    title: &str,
-    message: &str,
-    url: Option<&str>,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
     unsafe {
         let center: id = msg_send![
             class!(NSUserNotificationCenter),
@@ -95,11 +92,11 @@ pub fn show_notif(
         let notif: id = msg_send![class!(NSUserNotification), alloc];
         let notif: id = msg_send![notif, init];
 
-        let () = msg_send![notif, setTitle: nsstring(title)];
-        let () = msg_send![notif, setInformativeText: nsstring(message)];
+        let () = msg_send![notif, setTitle: nsstring(toast.title)];
+        let () = msg_send![notif, setInformativeText: nsstring(toast.message)];
 
         let mut info = CFMutableDictionary::new();
-        if let Some(url) = url {
+        if let Some(url) = toast.url {
             info.set(CFString::from_static_string("url"), CFString::new(url));
             let () = msg_send![notif, setUserInfo: info];
         }

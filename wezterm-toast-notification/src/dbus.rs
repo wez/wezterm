@@ -1,6 +1,7 @@
 #![cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]
 //! See <https://developer.gnome.org/notification-spec/>
 
+use crate::ToastNotification;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -85,17 +86,13 @@ impl Reason {
     }
 }
 
-fn show_notif_impl(
-    title: String,
-    message: String,
-    url: Option<String>,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn show_notif_impl(notif: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
     let connection = zbus::Connection::new_session()?;
 
     let proxy = NotificationsProxy::new(&connection)?;
     let caps = proxy.get_capabilities()?;
 
-    if url.is_some() && !caps.iter().any(|cap| cap == "actions") {
+    if notif.url.is_some() && !caps.iter().any(|cap| cap == "actions") {
         // Server doesn't support actions, so skip showing this notification
         // because it might have text that says "click to see more"
         // and that just wouldn't work.
@@ -108,18 +105,16 @@ fn show_notif_impl(
         "wezterm",
         0,
         "org.wezfurlong.wezterm",
-        &title,
-        &message,
-        if url.is_some() {
+        &notif.title,
+        &notif.message,
+        if notif.url.is_some() {
             &["show", "Show"]
         } else {
             &[]
         },
         hints,
-        0, // Never timeout
+        notif.timeout.map(|d| d.as_millis() as _).unwrap_or(0),
     )?;
-
-    let url = url.map(|s| s.to_string());
 
     struct State {
         notification: u32,
@@ -130,7 +125,7 @@ fn show_notif_impl(
     let state = Arc::new(Mutex::new(State {
         notification,
         done: false,
-        url,
+        url: notif.url,
     }));
 
     proxy.connect_action_invoked({
@@ -170,18 +165,11 @@ fn show_notif_impl(
     Ok(())
 }
 
-pub fn show_notif(
-    title: &str,
-    message: &str,
-    url: Option<&str>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let title = title.to_string();
-    let message = message.to_string();
-    let url = url.map(|s| s.to_string());
+pub fn show_notif(notif: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
     // Run this in a separate thread as we don't know if dbus or the notification
     // service on the other end are up, and we'd otherwise block for some time.
     std::thread::spawn(move || {
-        if let Err(err) = show_notif_impl(title, message, url) {
+        if let Err(err) = show_notif_impl(notif) {
             log::error!("while showing notification: {:#}", err);
         }
     });

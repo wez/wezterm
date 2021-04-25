@@ -1,5 +1,6 @@
 #![cfg(windows)]
 
+use crate::ToastNotification;
 use xml::escape::escape_str_pcdata;
 
 #[allow(dead_code)]
@@ -22,14 +23,10 @@ fn unwrap_arg<T>(a: &Option<T>) -> Result<&T, WinError> {
     }
 }
 
-fn show_notif_impl(
-    title: String,
-    message: String,
-    url: Option<String>,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn show_notif_impl(toast: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
     let xml = XmlDocument::new()?;
 
-    let url_actions = if url.is_some() {
+    let url_actions = if toast.url.is_some() {
         r#"
         <actions>
            <action content="Show" arguments="show" />
@@ -49,8 +46,8 @@ fn show_notif_impl(
         </visual>
         {}
     </toast>"#,
-        escape_str_pcdata(&title),
-        escape_str_pcdata(&message),
+        escape_str_pcdata(&toast.title),
+        escape_str_pcdata(&toast.message),
         url_actions
     ))?;
 
@@ -64,7 +61,7 @@ fn show_notif_impl(
             let args = result.arguments()?;
 
             if args == "show" {
-                if let Some(url) = url.as_ref() {
+                if let Some(url) = toast.url.as_ref() {
                     let _ = open::that(url);
                 }
             }
@@ -93,20 +90,12 @@ fn show_notif_impl(
     Ok(())
 }
 
-pub fn show_notif(
-    title: &str,
-    message: &str,
-    url: Option<&str>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let title = title.to_owned();
-    let message = message.to_owned();
-    let url = url.map(|s| s.to_string());
-
+pub fn show_notif(notif: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
     // We need to be in a different thread from the caller
     // in case we get called in the guts of a windows message
     // loop dispatch and are unable to pump messages
     std::thread::spawn(move || {
-        if let Err(err) = show_notif_impl(title, message, url) {
+        if let Err(err) = show_notif_impl(notif) {
             log::error!("Failed to show toast notification: {:#}", err);
         }
     });

@@ -8,9 +8,7 @@ use luahelper::*;
 use mlua::{UserData, UserDataMethods};
 use mux::window::WindowId as MuxWindowId;
 use serde::*;
-use wezterm_toast_notification::{
-    persistent_toast_notification, persistent_toast_notification_with_click_to_open_url,
-};
+use wezterm_toast_notification::ToastNotification;
 use window::WindowOps;
 
 #[derive(Clone)]
@@ -53,13 +51,13 @@ impl UserData for GuiWin {
         methods.add_method("window_id", |_, this, _: ()| Ok(this.mux_window_id));
         methods.add_method(
             "toast_notification",
-            |_, _, (title, message, url): (String, String, Option<String>)| {
-                match url {
-                    Some(url) => {
-                        persistent_toast_notification_with_click_to_open_url(&title, &message, &url)
-                    }
-                    None => persistent_toast_notification(&title, &message),
-                };
+            |_, _, (title, message, url, timeout): (String, String, Option<String>, Option<u64>)| {
+                wezterm_toast_notification::show(ToastNotification {
+                    title,
+                    message,
+                    url,
+                    timeout: timeout.map(std::time::Duration::from_millis)
+                });
                 Ok(())
             },
         );
