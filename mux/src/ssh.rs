@@ -52,33 +52,14 @@ impl LineEditorHost for PasswordPromptHost {
 }
 
 pub fn ssh_connect_with_ui(
-    remote_address: &str,
-    username: Option<&str>,
+    ssh_config: wezterm_ssh::ConfigMap,
     ui: &mut ConnectionUI,
 ) -> anyhow::Result<Session> {
     let cloned_ui = ui.clone();
     cloned_ui.run_and_log_error(move || {
-        let mut ssh_config = wezterm_ssh::Config::new();
-        ssh_config.add_default_config_files();
-
-        let (remote_host_name, port) = {
-            let parts: Vec<&str> = remote_address.split(':').collect();
-
-            if parts.len() == 2 {
-                (parts[0], Some(parts[1].parse::<u16>()?))
-            } else {
-                (remote_address, None)
-            }
-        };
-
-        let mut ssh_config = ssh_config.for_host(&remote_host_name);
-        if let Some(username) = username {
-            ssh_config.insert("user".to_string(), username.to_string());
-        }
-        if let Some(port) = port {
-            ssh_config.insert("port".to_string(), port.to_string());
-        }
-
+        let remote_address = ssh_config
+            .get("hostname")
+            .expect("ssh config to always set hostname");
         ui.output_str(&format!("Connecting to {} using SSH\n", remote_address));
         let (session, events) = Session::connect(ssh_config.clone())?;
 

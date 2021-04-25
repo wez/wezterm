@@ -129,7 +129,11 @@ impl ClientDomainConfig {
             ClientDomainConfig::Unix(unix) => format!("unix mux {}", unix.socket_path().display()),
             ClientDomainConfig::Tls(tls) => format!("TLS mux {}", tls.remote_address),
             ClientDomainConfig::Ssh(ssh) => {
-                format!("SSH mux {}@{}", ssh.username, ssh.remote_address)
+                if let Some(user) = &ssh.username {
+                    format!("SSH mux {}@{}", user, ssh.remote_address)
+                } else {
+                    format!("SSH mux {}", ssh.remote_address)
+                }
             }
         }
     }

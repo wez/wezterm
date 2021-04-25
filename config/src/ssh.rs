@@ -16,7 +16,7 @@ pub struct SshDomain {
     pub no_agent_auth: bool,
 
     /// The username to use for authenticating with the remote host
-    pub username: String,
+    pub username: Option<String>,
 
     /// If true, connect to this domain automatically at startup
     #[serde(default)]
