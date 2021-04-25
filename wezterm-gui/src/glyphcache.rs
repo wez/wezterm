@@ -893,14 +893,13 @@ impl<T: Texture2d> GlyphCache<T> {
             }
 
             for x in 0..self.metrics.cell_size.width as usize {
-                let vertical = wave_height as f32 * (x as f32 * x_factor).cos();
-                let v1 = vertical.floor();
-                let v2 = vertical.ceil();
+                let vertical = wave_height as f32 / -3. * (x as f32 * x_factor).sin()
+                    + wave_height as f32 / 2.;
+                let v = vertical.round();
 
                 for row in 0..self.metrics.underline_height as usize {
-                    let value = (255. * (vertical - v1).abs()) as u8;
-                    add(x, row + y + v1 as usize, 255 - value, max_y, buffer);
-                    add(x, row + y + v2 as usize, value, max_y, buffer);
+                    let value = (255. * (vertical - v).abs()) as u8;
+                    add(x, row + y + v as usize, 255 - value, max_y, buffer);
                 }
             }
         };
