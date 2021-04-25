@@ -3,7 +3,10 @@
 *since: 20200607-144723-74889cd4*
 
 Copy mode allows you to make selections using the keyboard; no need to reach
-for your mouse or trackpad.
+for your mouse or trackpad.  Copy mode is similar to [quick select
+  mode](quickselect.md) but is geared up for describing selections based on
+keyboard control, whereas quick select mode is used to quickly select and
+copy commonly used patterns.
 
 The `ActivateCopyMode` key assignment is used to enter copy mode; it is
 bound to `CTRL-SHIFT-X` by default.

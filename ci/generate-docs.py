@@ -140,6 +140,7 @@ TOC = [
                 ],
             ),
             Page("Scrollback", "scrollback.md"),
+            Page("Quick Select Mode", "quickselect.md"),
             Page("Copy Mode", "copymode.md"),
             Page("Hyperlinks", "hyperlinks.md"),
             Page("Shell Integration", "shell-integration.md"),

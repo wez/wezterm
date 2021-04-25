@@ -340,15 +340,25 @@ impl Pane for LocalPane {
                 }
                 Pattern::Regex(r) => {
                     if let Ok(re) = regex::Regex::new(r) {
-                        for m in re.find_iter(haystack) {
-                            let (start_x, start_y) = haystack_idx_to_coord(m.start(), coords);
-                            let (end_x, end_y) = haystack_idx_to_coord(m.end(), coords);
-                            results.push(SearchResult {
-                                start_x,
-                                start_y,
-                                end_x,
-                                end_y,
-                            });
+                        // Allow for the regex to contain captures
+                        for c in re.captures_iter(haystack) {
+                            // Look for the captures in reverse order, as index==0 is
+                            // the whole matched string.  We can't just call
+                            // `c.iter().rev()` as the capture iterator isn't double-ended.
+                            for idx in (0..c.len()).rev() {
+                                if let Some(m) = c.get(idx) {
+                                    let (start_x, start_y) =
+                                        haystack_idx_to_coord(m.start(), coords);
+                                    let (end_x, end_y) = haystack_idx_to_coord(m.end(), coords);
+                                    results.push(SearchResult {
+                                        start_x,
+                                        start_y,
+                                        end_x,
+                                        end_y,
+                                    });
+                                    break;
+                                }
+                            }
                         }
                     }
                 }

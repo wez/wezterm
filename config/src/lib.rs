@@ -844,6 +844,13 @@ pub struct Config {
     pub leader: Option<LeaderKey>,
 
     #[serde(default)]
+    pub disable_default_quick_select_patterns: bool,
+    #[serde(default)]
+    pub quick_select_patterns: Vec<String>,
+    #[serde(default = "default_alphabet")]
+    pub quick_select_alphabet: String,
+
+    #[serde(default)]
     pub mouse_bindings: Vec<Mouse>,
     #[serde(default)]
     pub disable_default_mouse_bindings: bool,
@@ -1106,6 +1113,10 @@ fn default_status_update_interval() -> u64 {
 
 fn default_alternate_buffer_wheel_scroll_speed() -> u8 {
     3
+}
+
+fn default_alphabet() -> String {
+    "asdfqwerzxcvjklmiuopghtybn".to_string()
 }
 
 fn default_word_boundary() -> String {

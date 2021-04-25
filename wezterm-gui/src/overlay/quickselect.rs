@@ -1,6 +1,7 @@
 use crate::selection::{SelectionCoordinate, SelectionRange};
 use crate::termwindow::TermWindow;
 use config::keyassignment::{ClipboardCopyDestination, ScrollbackEraseMode};
+use config::ConfigHandle;
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::*;
@@ -18,7 +19,6 @@ use wezterm_term::color::ColorPalette;
 use wezterm_term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
 use window::WindowOps;
 
-// TODO: make this configurable
 const PATTERNS: [&str; 14] = [
     // markdown_url
     r"\[[^]]*\]\(([^)]+)\)",
@@ -49,7 +49,6 @@ const PATTERNS: [&str; 14] = [
     // number
     r"[0-9]{4,}",
 ];
-const QWERTY_ALPHABET: &str = "asdfqwerzxcvjklmiuopghtybn";
 
 /// This function computes a set of labels for a given alphabet.
 /// It is derived from https://github.com/fcsonline/tmux-thumbs/blob/master/src/alphabets.rs
@@ -168,6 +167,8 @@ struct QuickSelectRenderable {
 
     /// We use this to cancel ourselves later
     window: ::window::Window,
+
+    config: ConfigHandle,
 }
 
 impl QuickSelectOverlay {
@@ -175,7 +176,25 @@ impl QuickSelectOverlay {
         let viewport = term_window.get_viewport(pane.pane_id());
         let dims = pane.get_dimensions();
 
-        let pattern = format!("({})", PATTERNS.join("|"));
+        let config = term_window.config.clone();
+
+        let mut pattern = "(".to_string();
+        if !config.disable_default_quick_select_patterns {
+            for p in &PATTERNS {
+                if pattern.len() > 1 {
+                    pattern.push('|');
+                }
+                pattern.push_str(p);
+            }
+        }
+        for p in &config.quick_select_patterns {
+            if pattern.len() > 1 {
+                pattern.push('|');
+            }
+            pattern.push_str(p);
+        }
+        pattern.push(')');
+
         let pattern = Pattern::Regex(pattern);
 
         let window = term_window.window.clone().unwrap();
@@ -193,6 +212,7 @@ impl QuickSelectOverlay {
             result_pos: None,
             width: dims.cols,
             height: dims.viewport_rows,
+            config,
         };
 
         let search_row = renderer.compute_search_row();
@@ -487,7 +507,7 @@ impl QuickSelectRenderable {
 
     fn recompute_results(&mut self) {
         let num_results = self.results.len();
-        let labels = compute_labels_for_alphabet(QWERTY_ALPHABET, num_results);
+        let labels = compute_labels_for_alphabet(&self.config.quick_select_alphabet, num_results);
         self.by_label.clear();
 
         for ((result_index, res), label) in self
