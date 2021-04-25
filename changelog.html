@@ -207,6 +207,7 @@ usually the best available version.</p>
 <li>New: <a href="config/lua/window-events/format-window-title.html">format-window-title</a> hook for customizing the text in the window titlebar</li>
 <li>New: <a href="config/lua/window-events/format-tab-title.html">format-tab-title</a> hook for customizing the text in tab titles. <a href="https://github.com/wez/wezterm/issues/647">#647</a></li>
 <li>New: <a href="config/lua/config/force_reverse_video_cursor.html">force_reverse_video_cursor</a> setting to override the cursor color scheme settings. <a href="https://github.com/wez/wezterm/issues/706">#706</a></li>
+<li>Fixed: ssh config parsing now expands <code>~</code> to your home directory for appropriate options; previously only <code>%d</code> and <code>${HOME}</code> were substituted. <a href="https://github.com/wez/wezterm/issues/729">#729</a></li>
 </ul>
 <h3 id="20210405-110924-a5bb5be8"><a class="header" href="#20210405-110924-a5bb5be8">20210405-110924-a5bb5be8</a></h3>
 <ul>
