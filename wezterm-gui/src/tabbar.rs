@@ -31,6 +31,57 @@ struct TabEntry {
     width: usize,
 }
 
+enum TitleText {
+    String(String),
+    Formatted { items: Vec<FormatItem>, len: usize },
+}
+
+fn call_format_tab_title(
+    tab: &TabInformation,
+    tab_info: &[TabInformation],
+    pane_info: &[PaneInformation],
+    config: &ConfigHandle,
+    hover: bool,
+) -> Option<TitleText> {
+    match config::run_immediate_with_lua_config(|lua| {
+        if let Some(lua) = lua {
+            let tabs = lua.create_sequence_from(tab_info.iter().cloned())?;
+            let panes = lua.create_sequence_from(pane_info.iter().cloned())?;
+
+            let v = config::lua::emit_sync_callback(
+                &*lua,
+                (
+                    "format-tab-title".to_string(),
+                    (tab.clone(), tabs, panes, (**config).clone(), hover),
+                ),
+            )?;
+            match &v {
+                mlua::Value::Nil => Ok(None),
+                mlua::Value::Table(_) => {
+                    let items = <Vec<FormatItem>>::from_lua(v, &*lua)?;
+
+                    let esc = format_as_escapes(items.clone())?;
+                    let cells = parse_status_text(&esc, CellAttributes::default());
+
+                    Ok(Some(TitleText::Formatted {
+                        items,
+                        len: cells.len(),
+                    }))
+                }
+                _ => Ok(Some(TitleText::String(String::from_lua(v, &*lua)?))),
+            }
+        } else {
+            Ok(None)
+        }
+    }) {
+        Ok(s) => s,
+        Err(err) => {
+            log::warn!("format-tab-title: {}", err);
+            None
+        }
+    }
+}
+
 impl TabBarState {
     pub fn default() -> Self {
         Self {
@@ -112,55 +163,13 @@ impl TabBarState {
 
         let mut active_tab_no = 0;
 
-        enum TitleText {
-            String(String),
-            Formatted { items: Vec<FormatItem>, len: usize },
-        }
-
         let tab_titles: Vec<TitleText> = tab_info
             .iter()
             .map(|tab| {
                 if tab.is_active {
                     active_tab_no = tab.tab_index;
                 }
-
-                let title = match config::run_immediate_with_lua_config(|lua| {
-                    if let Some(lua) = lua {
-                        let tabs = lua.create_sequence_from(tab_info.iter().cloned())?;
-                        let panes = lua.create_sequence_from(pane_info.iter().cloned())?;
-
-                        let v = config::lua::emit_sync_callback(
-                            &*lua,
-                            (
-                                "format-tab-title".to_string(),
-                                (tab.clone(), tabs, panes, (**config).clone()),
-                            ),
-                        )?;
-                        match &v {
-                            mlua::Value::Nil => Ok(None),
-                            mlua::Value::Table(_) => {
-                                let items = <Vec<FormatItem>>::from_lua(v, &*lua)?;
-
-                                let esc = format_as_escapes(items.clone())?;
-                                let cells = parse_status_text(&esc, CellAttributes::default());
-
-                                Ok(Some(TitleText::Formatted {
-                                    items,
-                                    len: cells.len(),
-                                }))
-                            }
-                            _ => Ok(Some(TitleText::String(String::from_lua(v, &*lua)?))),
-                        }
-                    } else {
-                        Ok(None)
-                    }
-                }) {
-                    Ok(s) => s,
-                    Err(err) => {
-                        log::warn!("format-tab-title: {}", err);
-                        None
-                    }
-                };
+                let title = call_format_tab_title(tab, tab_info, pane_info, config, false);
 
                 match title {
                     Some(title) => title,
@@ -262,6 +271,20 @@ impl TabBarState {
                 line.set_cell(x, c.clone());
                 x += 1;
             }
+
+            let hover_title;
+            let tab_title = if hover {
+                match call_format_tab_title(&tab_info[tab_idx], tab_info, pane_info, config, hover)
+                {
+                    Some(t) => {
+                        hover_title = t;
+                        &hover_title
+                    }
+                    None => tab_title,
+                }
+            } else {
+                tab_title
+            };
 
             match tab_title {
                 TitleText::String(tab_title) => {

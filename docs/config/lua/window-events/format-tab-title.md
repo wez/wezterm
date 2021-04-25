@@ -21,7 +21,7 @@ but it demonstrates that it is possible to format more than just the text
 shown in the tab.
 
 ```lua
-wezterm.on("format-tab-title", function(tab, tabs, panes, config)
+wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover)
   if tab.is_active then
     return {
       {Background={Color="blue"}},
@@ -38,6 +38,7 @@ The parameters to the event are:
 * `tabs` - an array containing [TabInformation](../TabInformation.md) for each of the tabs in the window
 * `panes` - an array containing [PaneInformation](../PaneInformation.md) for each of the panes in the active tab
 * `config` - the effective configuration for the window
+* `hover` - true if the current tab is in the hover state
 
 The return value of the event can be:
 
