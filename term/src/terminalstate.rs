@@ -301,6 +301,8 @@ pub struct TerminalState {
     writer: Box<dyn std::io::Write>,
 
     image_cache: lru::LruCache<[u8; 32], Arc<ImageData>>,
+
+    user_vars: HashMap<String, String>,
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -489,6 +491,7 @@ impl TerminalState {
             term_version: term_version.to_string(),
             writer: Box::new(std::io::BufWriter::new(writer)),
             image_cache: lru::LruCache::new(16),
+            user_vars: HashMap::new(),
         }
     }
 
@@ -1210,6 +1213,10 @@ impl TerminalState {
                 CursorVisibility::Hidden
             },
         }
+    }
+
+    pub fn user_vars(&self) -> &HashMap<String, String> {
+        &self.user_vars
     }
 
     /// Sets the cursor position to precisely the x and values provided
@@ -3300,6 +3307,9 @@ impl<'a> Performer<'a> {
             }
             OperatingSystemCommand::ITermProprietary(iterm) => match iterm {
                 ITermProprietary::File(image) => self.set_image(*image),
+                ITermProprietary::SetUserVar { name, value } => {
+                    self.user_vars.insert(name, value);
+                }
                 _ => log::warn!("unhandled iterm2: {:?}", iterm),
             },
 

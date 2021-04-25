@@ -48,6 +48,9 @@ impl UserData for PaneObject {
         methods.add_method("get_dimensions", |_, this, _: ()| {
             Ok(this.pane()?.get_dimensions())
         });
+        methods.add_method("get_user_vars", |_, this, _: ()| {
+            Ok(this.pane()?.copy_user_vars())
+        });
 
         // When called with no arguments, returns the lines from the
         // viewport as plain text (no escape sequences).

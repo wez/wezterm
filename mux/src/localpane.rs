@@ -10,7 +10,7 @@ use config::{configuration, ExitBehavior};
 use portable_pty::{Child, MasterPty, PtySize};
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
 use termwiz::escape::DeviceControlMode;
@@ -84,6 +84,10 @@ impl Pane for LocalPane {
 
     fn get_dimensions(&self) -> RenderableDimensions {
         terminal_get_dimensions(&mut self.terminal.borrow_mut())
+    }
+
+    fn copy_user_vars(&self) -> HashMap<String, String> {
+        self.terminal.borrow().user_vars().clone()
     }
 
     fn kill(&self) {

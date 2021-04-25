@@ -8,6 +8,7 @@ use portable_pty::PtySize;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::cell::RefMut;
+use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
 use termwiz::hyperlink::Rule;
@@ -298,6 +299,10 @@ pub trait Pane: Downcast {
     fn kill(&self) {}
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
+
+    fn copy_user_vars(&self) -> HashMap<String, String> {
+        HashMap::new()
+    }
 
     fn erase_scrollback(&self, _erase_mode: ScrollbackEraseMode) {}
 

@@ -109,6 +109,7 @@ pub struct PaneInformation {
     pub pixel_width: usize,
     pub pixel_height: usize,
     pub title: String,
+    pub user_vars: HashMap<String, String>,
 }
 impl_lua_conversion!(PaneInformation);
 
@@ -1857,6 +1858,7 @@ impl TermWindow {
             pixel_width: pos.pixel_width,
             pixel_height: pos.pixel_height,
             title: pos.pane.get_title(),
+            user_vars: pos.pane.copy_user_vars(),
         }
     }
 

@@ -18,3 +18,5 @@ The `PaneInformation` struct contains the following fields:
 * `pixel_width` - the width of the pane in pixels
 * `pixel_height` - the height of the pane in pixels
 * `title` - the title of the pane, per [pane:get_title()](pane/get_title.md) at the time the pane information was captured
+* `user_vars` - the user variables defined for the pane, per [pane:get_user_vars()](pane/get_user_vars.md) at the time the pane information was captured.
+
