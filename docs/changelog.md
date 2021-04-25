@@ -40,6 +40,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [format-window-title](config/lua/window-events/format-window-title.md) hook for customizing the text in the window titlebar
 * New: [format-tab-title](config/lua/window-events/format-tab-title.md) hook for customizing the text in tab titles. [#647](https://github.com/wez/wezterm/issues/647)
 * New: [force_reverse_video_cursor](config/lua/config/force_reverse_video_cursor.md) setting to override the cursor color scheme settings. [#706](https://github.com/wez/wezterm/issues/706)
+* Fixed: ssh config parsing now expands `~` to your home directory for appropriate options; previously only `%d` and `${HOME}` were substituted. [#729](https://github.com/wez/wezterm/issues/729)
 
 ### 20210405-110924-a5bb5be8
 
