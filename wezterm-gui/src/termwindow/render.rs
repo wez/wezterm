@@ -193,7 +193,12 @@ impl super::TermWindow {
         let mut quads = gl_state.quads.map(&mut vb);
         log::trace!("quad map elapsed {:?}", start.elapsed());
 
-        let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
+        let cursor_border_color =
+            rgbcolor_to_window_color(if self.config.force_reverse_video_cursor {
+                palette.foreground
+            } else {
+                palette.cursor_border
+            });
         let foreground = rgbcolor_to_window_color(palette.foreground);
 
         if self.show_tab_bar && pos.index == 0 {
@@ -305,8 +310,16 @@ impl super::TermWindow {
         let start = Instant::now();
         let selection_fg = rgbcolor_to_window_color(palette.selection_fg);
         let selection_bg = rgbcolor_to_window_color(palette.selection_bg);
-        let cursor_fg = rgbcolor_to_window_color(palette.cursor_fg);
-        let cursor_bg = rgbcolor_to_window_color(palette.cursor_bg);
+        let cursor_fg = rgbcolor_to_window_color(if self.config.force_reverse_video_cursor {
+            palette.background
+        } else {
+            palette.cursor_fg
+        });
+        let cursor_bg = rgbcolor_to_window_color(if self.config.force_reverse_video_cursor {
+            palette.foreground
+        } else {
+            palette.cursor_bg
+        });
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
 

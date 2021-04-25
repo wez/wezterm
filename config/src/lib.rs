@@ -994,6 +994,9 @@ pub struct Config {
     #[serde(default = "default_cursor_blink_rate")]
     pub cursor_blink_rate: u64,
 
+    #[serde(default)]
+    pub force_reverse_video_cursor: bool,
+
     /// Specifies the default cursor style.  various escape sequences
     /// can override the default style in different situations (eg:
     /// an editor can change it depending on the mode), but this value

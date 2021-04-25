@@ -39,6 +39,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: multi-cell glyphs weren't displayed in tab titles [#711](https://github.com/wez/wezterm/issues/711)
 * New: [format-window-title](config/lua/window-events/format-window-title.md) hook for customizing the text in the window titlebar
 * New: [format-tab-title](config/lua/window-events/format-tab-title.md) hook for customizing the text in tab titles. [#647](https://github.com/wez/wezterm/issues/647)
+* New: [force_reverse_video_cursor](config/lua/config/force_reverse_video_cursor.md) setting to override the cursor color scheme settings. [#706](https://github.com/wez/wezterm/issues/706)
 
 ### 20210405-110924-a5bb5be8
 
