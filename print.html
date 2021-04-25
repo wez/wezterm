@@ -7950,19 +7950,27 @@ it can potentially pick up the remote hostname if your remote shell session is u
   window:set_right_status(wezterm.format(elements));
 end);
 </code></pre>
-<h1 id="windowtoast_notificationtitle-message--url"><a class="header" href="#windowtoast_notificationtitle-message--url"><code>window:toast_notification(title, message,  [url])</code></a></h1>
+<h1 id="windowtoast_notificationtitle-message--url-timeout_milliseconds"><a class="header" href="#windowtoast_notificationtitle-message--url-timeout_milliseconds"><code>window:toast_notification(title, message,  [url, [timeout_milliseconds]])</code></a></h1>
 <p><em>Since: nightly builds only</em></p>
 <p>Generates a desktop &quot;toast notification&quot; with the specified <em>title</em> and <em>message</em>.</p>
 <p>An optional <em>url</em> parameter can be provided; clicking on the notification will
 open that URL.</p>
-<p>The notification will persist on screen until dismissed or clicked.</p>
+<p>An optional <em>timeout</em> parameter can be provided; if so, it specifies how long
+the notification will remain prominently displayed in milliseconds.  To specify
+a timeout without specifying a url, set the url parameter to <code>nil</code>.  The timeout
+you specify may not be respected by the system, particularly in X11/Wayland
+environments.</p>
+<p>The notification will persist on screen until dismissed or clicked, or until its
+timeout duration elapses.</p>
 <p>This example will display a notification whenever a window has its configuration
-reloaded.  It's not an ideal implementation because there may be multiple windows
-and thus multiple notifications:</p>
+reloaded.  The notification should remain on-screen for approximately 4 seconds
+(4000 milliseconds), but may remain longer depending on the system.</p>
+<p>It's not an ideal implementation because there may be multiple windows and thus
+multiple notifications:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
 
 wezterm.on(&quot;window-config-reloaded&quot;, function(window, pane)
-  window:toast_notification(&quot;wezterm&quot;, &quot;configuration reloaded!&quot;)
+  window:toast_notification(&quot;wezterm&quot;, &quot;configuration reloaded!&quot;, nil, 4000)
 end)
 
 return {}
