@@ -184,7 +184,7 @@ is blue for the active tab.  This is partially redundant because there is
 already configuration for this in <a href="../config/tab_bar_style.html">tab_bar_style</a>,
 but it demonstrates that it is possible to format more than just the text
 shown in the tab.</p>
-<pre><code class="language-lua">wezterm.on(&quot;format-tab-title&quot;, function(tab, tabs, panes, config, hover)
+<pre><code class="language-lua">wezterm.on(&quot;format-tab-title&quot;, function(tab, tabs, panes, config)
   if tab.is_active then
     return {
       {Background={Color=&quot;blue&quot;}},
@@ -200,7 +200,6 @@ end)
 <li><code>tabs</code> - an array containing <a href="../TabInformation.html">TabInformation</a> for each of the tabs in the window</li>
 <li><code>panes</code> - an array containing <a href="../PaneInformation.html">PaneInformation</a> for each of the panes in the active tab</li>
 <li><code>config</code> - the effective configuration for the window</li>
-<li><code>hover</code> - true if the current tab is in the hover state</li>
 </ul>
 <p>The return value of the event can be:</p>
 <ul>
