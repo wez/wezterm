@@ -889,7 +889,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 let pixel = buffer.pixel_mut(x, y);
                 let (current, _, _, _) = SrgbaPixel::with_srgba_u32(*pixel).as_rgba();
                 let value = current.saturating_add(val);
-                *pixel = SrgbaPixel::rgba(value, value, value, value).as_srgba32();
+                *pixel = SrgbaPixel::rgba(0xFF, 0xFF, 0xFF, val).as_srgba32();
             }
 
             for x in 0..self.metrics.cell_size.width as usize {
