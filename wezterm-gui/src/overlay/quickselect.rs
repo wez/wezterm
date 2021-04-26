@@ -450,7 +450,11 @@ impl Pane for QuickSelectOverlay {
                         }
                     }
                     for (idx, c) in m.label.chars().enumerate() {
-                        let mut attr = line.cells()[idx].attrs().clone();
+                        let mut attr = line
+                            .cells()
+                            .get(idx)
+                            .map(|cell| cell.attrs().clone())
+                            .unwrap_or_else(|| CellAttributes::default());
                         attr.set_background(AnsiColor::Fuschia)
                             .set_foreground(AnsiColor::Black)
                             .set_reverse(false);
