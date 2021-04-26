@@ -1042,9 +1042,21 @@ impl TermWindow {
         let active_tab = tabs.iter().find(|t| t.is_active).cloned();
         let active_pane = panes.iter().find(|p| p.is_active).cloned();
 
+        let tab_bar_y = if self.config.tab_bar_at_bottom {
+            let avail_height = self.dimensions.pixel_height.saturating_sub(
+                (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
+            );
+
+            let num_rows = avail_height as usize / self.render_metrics.cell_size.height as usize;
+
+            num_rows as i64 - 1
+        } else {
+            0
+        };
+
         let new_tab_bar = TabBarState::new(
             self.terminal_size.cols as usize,
-            if self.last_mouse_coords.1 == 0 {
+            if self.last_mouse_coords.1 == tab_bar_y {
                 Some(self.last_mouse_coords.0)
             } else {
                 None

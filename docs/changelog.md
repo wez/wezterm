@@ -43,6 +43,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: ssh config parsing now expands `~` to your home directory for appropriate options; previously only `%d` and `${HOME}` were substituted. [#729](https://github.com/wez/wezterm/issues/729)
 * New: [Quick Select Mode](quickselect.md) for a tmux-fingers/tmux-thumbs style mouse-less select and copy flow [#732](https://github.com/wez/wezterm/issues/732)
 * Fixed: tabs would remain hovered after moving the mouse down into the main terminal area [#591](https://github.com/wez/wezterm/issues/591)
+* New: [tab_bar_at_bottom](config/lua/config/tab_bar_at_bottom.md) setting to put the tab bar at the bottom of the window [#278](https://github.com/wez/wezterm/issues/278)
 
 ### 20210405-110924-a5bb5be8
 

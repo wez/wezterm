@@ -34,9 +34,23 @@ impl super::TermWindow {
             .max(0)
             / self.render_metrics.cell_size.height) as i64;
 
-        let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
+        let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+            1
+        } else {
+            0
+        };
+        let tab_bar_y = if self.config.tab_bar_at_bottom {
+            let num_rows = self
+                .dimensions
+                .pixel_height
+                .sub((config.window_padding.top + config.window_padding.bottom) as usize)
+                / self.render_metrics.cell_size.height as usize;
+            num_rows - 1
+        } else {
+            0
+        } as i64;
         let was_in_tab_bar = self.show_tab_bar && self.last_mouse_coords.1 == 0;
-        let in_tab_bar = self.show_tab_bar && y == 0 && event.coords.y >= 0;
+        let in_tab_bar = self.show_tab_bar && y == tab_bar_y && event.coords.y >= 0;
 
         let x = (event
             .coords

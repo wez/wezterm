@@ -887,6 +887,9 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
 
+    #[serde(default)]
+    pub tab_bar_at_bottom: bool,
+
     /// If true, tab bar titles are prefixed with the tab index
     #[serde(default = "default_true")]
     pub show_tab_index_in_tab_bar: bool,

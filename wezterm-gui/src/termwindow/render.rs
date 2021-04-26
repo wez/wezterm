@@ -162,7 +162,11 @@ impl super::TermWindow {
         let palette = pos.pane.palette();
 
         let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
-        let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
+        let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+            1
+        } else {
+            0
+        };
 
         let cursor = pos.pane.get_cursor_position();
         if pos.is_active {
@@ -206,9 +210,21 @@ impl super::TermWindow {
                 cols: self.terminal_size.cols as _,
                 ..dims
             };
+            let tab_bar_y = if self.config.tab_bar_at_bottom {
+                let avail_height = self.dimensions.pixel_height.saturating_sub(
+                    (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
+                );
+
+                let num_rows =
+                    avail_height as usize / self.render_metrics.cell_size.height as usize;
+
+                num_rows - 1
+            } else {
+                0
+            };
             self.render_screen_line_opengl(
                 RenderScreenLineOpenGLParams {
-                    line_idx: 0,
+                    line_idx: tab_bar_y,
                     stable_line_idx: None,
                     line: self.tab_bar.line(),
                     selection: 0..0,
