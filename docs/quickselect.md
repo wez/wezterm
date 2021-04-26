@@ -24,4 +24,4 @@ do next; typing in a highlighted prefix will cause that text to be selected and
 copied to the clipboard, and quick select mode will be cancelled.  Pressing
 `ESCAPE` will cancel quick select mode.
 
-<img width="100%" height="100%" src="screenshots/wezterm-quickselect.png" alt="Screenshot demonstrating the quickselect text highlights">
+<img width="100%" height="100%" src="screenshots/wezterm-quick-select.png" alt="Screenshot demonstrating the quickselect text highlights">
