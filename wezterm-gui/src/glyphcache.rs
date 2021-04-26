@@ -889,7 +889,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 let pixel = buffer.pixel_mut(x, y);
                 let (current, _, _, _) = SrgbaPixel::with_srgba_u32(*pixel).as_rgba();
                 let value = current.saturating_add(val);
-                *pixel = SrgbaPixel::rgba(value, value, value, 0xff).as_srgba32();
+                *pixel = SrgbaPixel::rgba(value, value, value, value).as_srgba32();
             }
 
             for x in 0..self.metrics.cell_size.width as usize {
@@ -899,9 +899,11 @@ impl<T: Texture2d> GlyphCache<T> {
 
                 for row in 0..self.metrics.underline_height as usize {
                     let value = (255. * (vertical - v).abs()) as u8;
-                    add(x, row + y + v as usize, 255 - value, max_y, buffer);
+                    add(x, row + y + v as usize, 0x10, max_y, buffer);
                 }
             }
+            println!("{:?}", *buffer);
+            buffer.log_bits();
         };
 
         let draw_double = |buffer: &mut Image| {
