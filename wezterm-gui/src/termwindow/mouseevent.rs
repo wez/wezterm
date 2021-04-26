@@ -27,17 +27,6 @@ impl super::TermWindow {
         self.current_mouse_event.replace(event.clone());
 
         let config = &self.config;
-        // Round the x coordinate so that we're a bit more forgiving of
-        // the horizontal position when selecting cells
-        let x = ((event
-            .coords
-            .x
-            .sub(config.window_padding.left as isize)
-            .max(0) as f32)
-            / self.render_metrics.cell_size.width as f32)
-            .round()
-            .trunc() as usize;
-        // But don't round the y coordinate as that is more annoying
         let y = (event
             .coords
             .y
@@ -47,10 +36,25 @@ impl super::TermWindow {
 
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
         let was_in_tab_bar = self.show_tab_bar && self.last_mouse_coords.1 == 0;
+        let in_tab_bar = self.show_tab_bar && y == 0 && event.coords.y >= 0;
+
+        let x = (event
+            .coords
+            .x
+            .sub(config.window_padding.left as isize)
+            .max(0) as f32)
+            / self.render_metrics.cell_size.width as f32;
+        let x = if !in_tab_bar {
+            // Round the x coordinate so that we're a bit more forgiving of
+            // the horizontal position when selecting cells
+            x.round()
+        } else {
+            x
+        }
+        .trunc() as usize;
 
         self.last_mouse_coords = (x, y);
 
-        let in_tab_bar = self.show_tab_bar && y == 0 && event.coords.y >= 0;
         let in_scroll_bar = self.show_scroll_bar && x >= self.terminal_size.cols as usize;
         // y position relative to top of viewport (not including tab bar)
         let term_y = y.saturating_sub(first_line_offset);
