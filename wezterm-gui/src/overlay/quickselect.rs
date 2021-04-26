@@ -23,7 +23,7 @@ const PATTERNS: [&str; 14] = [
     // markdown_url
     r"\[[^]]*\]\(([^)]+)\)",
     // url
-    r"((https?://|git@|git://|ssh://|ftp://|file:///)[^ ]+)",
+    r"(?:https?://|git@|git://|ssh://|ftp://|file:///)[^ ]+",
     // diff_a
     r"--- a/([^ ]+)",
     // diff_b
@@ -31,7 +31,7 @@ const PATTERNS: [&str; 14] = [
     // docker
     r"sha256:([0-9a-f]{64})",
     // path
-    r"(([.\w\-@~]+)?(/[.\w\-@]+)+)",
+    r"(?:[.\w\-@~]+)?(?:/[.\w\-@]+)+",
     // color
     r"#[0-9a-fA-F]{6}",
     // uid
