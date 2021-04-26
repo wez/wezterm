@@ -25,7 +25,7 @@ void main() {
     // if the underline glyph isn't transparent in this position then
     // we take the underline color, otherwise we'll leave the color
     // at the background color.
-    color = o_underline_color;
+    color = under_color * o_underline_color;
   }
 
   // Similar to the above: if the cursor texture isn't transparent

@@ -899,7 +899,7 @@ impl<T: Texture2d> GlyphCache<T> {
 
                 for row in 0..self.metrics.underline_height as usize {
                     let value = (255. * (vertical - v).abs()) as u8;
-                    add(x, row + y + v as usize, 0x10, max_y, buffer);
+                    add(x, row + y + v as usize, 0x88, max_y, buffer);
                 }
             }
             println!("{:?}", *buffer);
