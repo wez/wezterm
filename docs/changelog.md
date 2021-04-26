@@ -42,6 +42,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [force_reverse_video_cursor](config/lua/config/force_reverse_video_cursor.md) setting to override the cursor color scheme settings. [#706](https://github.com/wez/wezterm/issues/706)
 * Fixed: ssh config parsing now expands `~` to your home directory for appropriate options; previously only `%d` and `${HOME}` were substituted. [#729](https://github.com/wez/wezterm/issues/729)
 * New: [Quick Select Mode](quickselect.md) for a tmux-fingers/tmux-thumbs style mouse-less select and copy flow [#732](https://github.com/wez/wezterm/issues/732)
+* Fixed: tabs would remain hovered after moving the mouse down into the main terminal area [#591](https://github.com/wez/wezterm/issues/591)
 
 ### 20210405-110924-a5bb5be8
 

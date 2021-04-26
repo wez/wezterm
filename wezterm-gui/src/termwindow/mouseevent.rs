@@ -46,12 +46,18 @@ impl super::TermWindow {
             / self.render_metrics.cell_size.height) as i64;
 
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
+        let was_in_tab_bar = self.show_tab_bar && self.last_mouse_coords.1 == 0;
+
         self.last_mouse_coords = (x, y);
 
         let in_tab_bar = self.show_tab_bar && y == 0 && event.coords.y >= 0;
         let in_scroll_bar = self.show_scroll_bar && x >= self.terminal_size.cols as usize;
         // y position relative to top of viewport (not including tab bar)
         let term_y = y.saturating_sub(first_line_offset);
+
+        if was_in_tab_bar && !in_tab_bar {
+            self.update_title_post_status();
+        }
 
         match event.kind {
             WMEK::Release(ref press) => {
