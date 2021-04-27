@@ -48,6 +48,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [wezterm.column_width](config/lua/wezterm/column_width.md) function for measuring the displayed width of a string
 * New: [wezterm.truncate_to_width](config/lua/wezterm/truncate_to_width.md) and [wezterm.truncate_left_to_width](config/lua/wezterm/truncate_left_to_width.md) function for truncating/padding a string based on its displayed width
 * Updated bundled `Noto Color Emoji` font to version 2.020 with unicode 13.1 support. Thanks to [@4cm4k1](https://github.com/4cm4k1)! [#742](https://github.com/wez/wezterm/pull/742)
+* Fixed: Numpad Enter reported as CTRL-C on macOS [#739](https://github.com/wez/wezterm/issues/739)
 
 ### 20210405-110924-a5bb5be8
 

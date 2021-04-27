@@ -1664,6 +1664,11 @@ impl WindowView {
                 "\t"
             } else if !use_ime && virtual_key == super::keycodes::kVK_Delete {
                 "\x08"
+            } else if virtual_key == super::keycodes::kVK_ANSI_KeypadEnter {
+                // https://github.com/wez/wezterm/issues/739
+                // Keypad enter sends ctrl-c for some reason; explicitly
+                // treat that as enter here.
+                "\r"
             } else {
                 unmod
             };
