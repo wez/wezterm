@@ -56,7 +56,7 @@ const PATTERNS: [&str; 14] = [
 fn compute_labels_for_alphabet(alphabet: &str, num_matches: usize) -> Vec<String> {
     let alphabet = alphabet
         .chars()
-        .map(|c| c.to_string())
+        .map(|c| c.to_lowercase().to_string())
         .collect::<Vec<String>>();
     // Prefer to use single character matches to represent everything
     let mut primary = alphabet.clone();
@@ -333,8 +333,10 @@ impl Pane for QuickSelectOverlay {
                 // Type to add to the selection
                 let mut r = self.renderer.borrow_mut();
                 r.selection.push(c);
-                if let Some(result_index) = r.by_label.get(&r.selection).cloned() {
-                    r.select_and_copy_match_number(result_index);
+                let lowered = r.selection.to_lowercase();
+                let paste = lowered != r.selection;
+                if let Some(result_index) = r.by_label.get(&lowered).cloned() {
+                    r.select_and_copy_match_number(result_index, paste);
                     r.close();
                 }
             }
@@ -431,7 +433,7 @@ impl Pane for QuickSelectOverlay {
                 line.overlay_text_with_attribute(
                     0,
                     &format!(
-                        "Select: {}  (type highlighted prefix to copy, ESC to cancel)",
+                        "Select: {}  (type highlighted prefix to copy, uppercase pastes, ESC to cancel)",
                         renderer.selection,
                     ),
                     rev,
@@ -444,8 +446,8 @@ impl Pane for QuickSelectOverlay {
                         if let Some(cell) = line.cells_mut_for_attr_changes_only().get_mut(cell_idx)
                         {
                             cell.attrs_mut()
-                                .set_background(AnsiColor::Yellow)
-                                .set_foreground(AnsiColor::Black)
+                                .set_background(AnsiColor::Black)
+                                .set_foreground(AnsiColor::Green)
                                 .set_reverse(false);
                         }
                     }
@@ -455,8 +457,8 @@ impl Pane for QuickSelectOverlay {
                             .get(idx)
                             .map(|cell| cell.attrs().clone())
                             .unwrap_or_else(|| CellAttributes::default());
-                        attr.set_background(AnsiColor::Fuschia)
-                            .set_foreground(AnsiColor::Black)
+                        attr.set_background(AnsiColor::Black)
+                            .set_foreground(AnsiColor::Olive)
                             .set_reverse(false);
                         line.set_cell(m.range.start + idx, Cell::new(c, attr));
                     }
@@ -620,7 +622,7 @@ impl QuickSelectRenderable {
         });
     }
 
-    fn select_and_copy_match_number(&mut self, n: usize) {
+    fn select_and_copy_match_number(&mut self, n: usize, paste: bool) {
         let result = self.results[n].clone();
 
         let pane_id = self.delegate.pane_id();
@@ -648,6 +650,9 @@ impl QuickSelectRenderable {
                 if let Some(pane) = mux.get_pane(pane_id) {
                     let text = term_window.selection_text(&pane);
                     if !text.is_empty() {
+                        if paste {
+                            let _ = pane.send_paste(&text);
+                        }
                         term_window.copy_to_clipboard(
                             ClipboardCopyDestination::ClipboardAndPrimarySelection,
                             text,

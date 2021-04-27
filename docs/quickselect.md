@@ -21,7 +21,11 @@ configuration.
 
 The bottom of the screen shows your input text along with a hint as to what to
 do next; typing in a highlighted prefix will cause that text to be selected and
-copied to the clipboard, and quick select mode will be cancelled.  Pressing
-`ESCAPE` will cancel quick select mode.
+copied to the clipboard, and quick select mode will be cancelled.
+
+Typing in the uppercase form of the prefix will copy AND paste the highlighted
+text, and cancel quick select mod.
+
+Pressing `ESCAPE` will cancel quick select mode.
 
 <img width="100%" height="100%" src="screenshots/wezterm-quick-select.png" alt="Screenshot demonstrating the quickselect text highlights">
