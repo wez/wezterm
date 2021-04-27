@@ -151,6 +151,37 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             )?,
         )?;
 
+        wezterm_mod.set(
+            "truncate_left_to_width",
+            lua.create_function(
+                |_, (s, max_width, min_width): (String, usize, Option<usize>)| {
+                    let mut result = vec![];
+                    let mut len = 0;
+                    for g in s.graphemes(true).rev() {
+                        let g_len = grapheme_column_width(g);
+                        if g_len + len > max_width {
+                            break;
+                        }
+                        result.push(g);
+                        len += g_len;
+                    }
+
+                    if let Some(min_width) = min_width {
+                        while len < min_width {
+                            if len >= max_width {
+                                break;
+                            }
+                            result.push(" ");
+                            len += 1;
+                        }
+                    }
+
+                    result.reverse();
+                    Ok(result.join(""))
+                },
+            )?,
+        )?;
+
         wezterm_mod.set("font", lua.create_function(font)?)?;
         wezterm_mod.set(
             "font_with_fallback",
