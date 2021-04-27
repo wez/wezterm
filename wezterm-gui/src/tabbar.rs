@@ -113,31 +113,6 @@ impl TabBarState {
         let inactive_hover_attrs = colors.inactive_tab_hover.as_cell_attributes();
         let inactive_cell_attrs = colors.inactive_tab.as_cell_attributes();
 
-        let active_tab_left = parse_status_text(
-            &config.tab_bar_style.active_tab_left,
-            active_cell_attrs.clone(),
-        );
-        let active_tab_right = parse_status_text(
-            &config.tab_bar_style.active_tab_right,
-            active_cell_attrs.clone(),
-        );
-        let inactive_tab_left = parse_status_text(
-            &config.tab_bar_style.inactive_tab_left,
-            inactive_cell_attrs.clone(),
-        );
-        let inactive_tab_right = parse_status_text(
-            &config.tab_bar_style.inactive_tab_right,
-            inactive_cell_attrs.clone(),
-        );
-        let inactive_tab_hover_left = parse_status_text(
-            &config.tab_bar_style.inactive_tab_hover_left,
-            inactive_hover_attrs.clone(),
-        );
-        let inactive_tab_hover_right = parse_status_text(
-            &config.tab_bar_style.inactive_tab_hover_right,
-            inactive_hover_attrs.clone(),
-        );
-
         let new_tab_left = parse_status_text(
             &config.tab_bar_style.new_tab_left,
             inactive_cell_attrs.clone(),
@@ -178,7 +153,7 @@ impl TabBarState {
                             let mut title = pane.title.clone();
                             if config.show_tab_index_in_tab_bar {
                                 title = format!(
-                                    "{}: {}",
+                                    " {}: {} ",
                                     tab.tab_index
                                         + if config.tab_and_split_indices_are_zero_based {
                                             0
@@ -197,7 +172,7 @@ impl TabBarState {
                             }
                             TitleText::String(title)
                         } else {
-                            TitleText::String("no pane".to_string())
+                            TitleText::String(" no pane ".to_string())
                         }
                     }
                 }
@@ -213,9 +188,7 @@ impl TabBarState {
         let number_of_tabs = tab_titles.len();
 
         let available_cells = title_width.saturating_sub(
-            (number_of_tabs.saturating_sub(1)
-                * (inactive_tab_left.len() + inactive_tab_right.len()))
-                + (new_tab_left.len() + new_tab_right.len() + 1),
+            (number_of_tabs.saturating_sub(1)) + (new_tab_left.len() + new_tab_right.len() + 1),
         );
         let tab_width_max = if available_cells >= titles_len {
             // We can render each title with its full width
@@ -241,36 +214,18 @@ impl TabBarState {
             let active = tab_idx == active_tab_no;
             let hover = !active
                 && mouse_x
-                    .map(|mouse_x| {
-                        mouse_x >= x
-                            && mouse_x
-                                < x + tab_title_len
-                                    + (inactive_tab_left.len() + inactive_tab_right.len())
-                    })
+                    .map(|mouse_x| mouse_x >= x && mouse_x < x + tab_title_len)
                     .unwrap_or(false);
 
-            let (cell_attrs, left, right) = if active {
-                (&active_cell_attrs, &active_tab_left, &active_tab_right)
+            let cell_attrs = if active {
+                &active_cell_attrs
             } else if hover {
-                (
-                    &inactive_hover_attrs,
-                    &inactive_tab_hover_left,
-                    &inactive_tab_hover_right,
-                )
+                &inactive_hover_attrs
             } else {
-                (
-                    &inactive_cell_attrs,
-                    &inactive_tab_left,
-                    &inactive_tab_right,
-                )
+                &inactive_cell_attrs
             };
 
             let tab_start_idx = x;
-
-            for c in left {
-                line.set_cell(x, c.clone());
-                x += 1;
-            }
 
             let hover_title;
             let tab_title = if hover {
@@ -318,11 +273,6 @@ impl TabBarState {
                         x += 1;
                     }
                 }
-            }
-
-            for c in right {
-                line.set_cell(x, c.clone());
-                x += 1;
             }
 
             items.push(TabEntry {

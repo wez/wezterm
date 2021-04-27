@@ -1,9 +1,16 @@
 # `tab_bar_style`
 
+*Since: nightly builds*
+
+`active_tab_left`, `active_tab_right`, `inactive_tab_left`,
+`inactive_tab_right`, `inactive_tab_hover_left`, `inactive_tab_hover_right`
+have been removed and replaced by the more flexible
+[format-tab-title](../window-events/format-tab-title.md) event.
+
 *Since: 20210314-114017-04b7cedd*
 
 This config option allows styling the elements that appear in the tab bar.
-This configuration supplements the [tab bar color](../../../config/appearance.html#tab-bar-appearance--colors)
+This configuration supplements the [tab bar color](../../appearance.html#tab-bar-appearance--colors)
 options.
 
 Styling in this context refers to how the edges of the tabs and the new tab button are rendered.

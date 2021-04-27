@@ -39,6 +39,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: multi-cell glyphs weren't displayed in tab titles [#711](https://github.com/wez/wezterm/issues/711)
 * New: [format-window-title](config/lua/window-events/format-window-title.md) hook for customizing the text in the window titlebar
 * New: [format-tab-title](config/lua/window-events/format-tab-title.md) hook for customizing the text in tab titles. [#647](https://github.com/wez/wezterm/issues/647)
+* Removed: active and inactive [tab_bar_style](config/lua/config/tab_bar_style.md) config values; use the new [format-tab-title](config/lua/window-events/format-tab-title.md) event instead
 * New: [force_reverse_video_cursor](config/lua/config/force_reverse_video_cursor.md) setting to override the cursor color scheme settings. [#706](https://github.com/wez/wezterm/issues/706)
 * Fixed: ssh config parsing now expands `~` to your home directory for appropriate options; previously only `%d` and `${HOME}` were substituted. [#729](https://github.com/wez/wezterm/issues/729)
 * New: [Quick Select Mode](quickselect.md) for a tmux-fingers/tmux-thumbs style mouse-less select and copy flow [#732](https://github.com/wez/wezterm/issues/732)
