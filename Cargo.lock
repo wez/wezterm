@@ -700,6 +700,7 @@ dependencies = [
  "termwiz",
  "toml",
  "umask",
+ "unicode-segmentation",
  "wezterm-input-types",
  "wezterm-term",
  "winapi 0.3.9",

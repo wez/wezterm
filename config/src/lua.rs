@@ -7,10 +7,11 @@ use mlua::{Lua, Table, Value};
 use serde::*;
 use smol::prelude::*;
 use std::path::Path;
-use termwiz::cell::{unicode_column_width, AttributeChange, CellAttributes};
+use termwiz::cell::{grapheme_column_width, unicode_column_width, AttributeChange, CellAttributes};
 use termwiz::color::{AnsiColor, ColorAttribute, ColorSpec, RgbColor};
 use termwiz::input::Modifiers;
 use termwiz::surface::change::Change;
+use unicode_segmentation::UnicodeSegmentation;
 
 /// Set up a lua context for executing some code.
 /// The path to the directory containing the configuration is
@@ -118,6 +119,36 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set(
             "column_width",
             lua.create_function(|_, s: String| Ok(unicode_column_width(&s)))?,
+        )?;
+
+        wezterm_mod.set(
+            "truncate_to_width",
+            lua.create_function(
+                |_, (s, max_width, min_width): (String, usize, Option<usize>)| {
+                    let mut result = String::new();
+                    let mut len = 0;
+                    for g in s.graphemes(true) {
+                        let g_len = grapheme_column_width(g);
+                        if g_len + len > max_width {
+                            break;
+                        }
+                        result.push_str(g);
+                        len += g_len;
+                    }
+
+                    if let Some(min_width) = min_width {
+                        while len < min_width {
+                            if len >= max_width {
+                                break;
+                            }
+                            result.push(' ');
+                            len += 1;
+                        }
+                    }
+
+                    Ok(result)
+                },
+            )?,
         )?;
 
         wezterm_mod.set("font", lua.create_function(font)?)?;

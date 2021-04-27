@@ -36,6 +36,7 @@ terminfo = "0.7"
 termwiz = { path = "../termwiz" }
 toml = "0.5"
 umask = { path = "../umask" }
+unicode-segmentation = "1.7"
 wezterm-input-types = { path = "../wezterm-input-types" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
