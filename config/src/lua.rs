@@ -7,7 +7,7 @@ use mlua::{Lua, Table, Value};
 use serde::*;
 use smol::prelude::*;
 use std::path::Path;
-use termwiz::cell::{AttributeChange, CellAttributes};
+use termwiz::cell::{unicode_column_width, AttributeChange, CellAttributes};
 use termwiz::color::{AnsiColor, ColorAttribute, ColorSpec, RgbColor};
 use termwiz::input::Modifiers;
 use termwiz::surface::change::Change;
@@ -113,6 +113,11 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
                 log::warn!("lua: {}", msg);
                 Ok(())
             })?,
+        )?;
+
+        wezterm_mod.set(
+            "column_width",
+            lua.create_function(|_, s: String| Ok(unicode_column_width(&s)))?,
         )?;
 
         wezterm_mod.set("font", lua.create_function(font)?)?;
