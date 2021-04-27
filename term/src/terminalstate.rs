@@ -830,6 +830,9 @@ impl TerminalState {
 
     /// Advise the terminal about a change in its focus state
     pub fn focus_changed(&mut self, focused: bool) {
+        if !focused {
+            self.current_mouse_button = MouseButton::None;
+        }
         if self.focus_tracking {
             write!(self.writer, "{}{}", CSI, if focused { "I" } else { "O" }).ok();
             self.writer.flush().ok();
