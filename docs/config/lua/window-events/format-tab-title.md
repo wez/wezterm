@@ -21,11 +21,11 @@ but it demonstrates that it is possible to format more than just the text
 shown in the tab.
 
 ```lua
-wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover)
+wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
   if tab.is_active then
     return {
       {Background={Color="blue"}},
-      {Text=tab.active_pane.title},
+      {Text=" " .. tab.active_pane.title .. " "},
     }
   end
   return tab.active_pane.title
@@ -39,6 +39,7 @@ The parameters to the event are:
 * `panes` - an array containing [PaneInformation](../PaneInformation.md) for each of the panes in the active tab
 * `config` - the effective configuration for the window
 * `hover` - true if the current tab is in the hover state
+* `max_width` - the maximum number of cells available to draw this tab
 
 The return value of the event can be:
 
@@ -49,7 +50,55 @@ If the event encounters an error, or returns something that is not one of the
 types mentioned above, then the default tab title text will be computed and
 used instead.
 
+When the tab bar is computed, this event is called twice for each tab;
+on the first pass, `hover` will be `false` and `max_width` will be set
+to [tab_max_width](../config/tab_max_width.md).  WezTerm will then compute
+the tab widths that will fit in the tab bar, and then call the event again
+for the set of tabs, this time with appropriate `hover` and `max_width`
+values.
+
 Only the first `format-tab-title` event will be executed; it doesn't make
 sense to define multiple instances of the event with multiple
 `wezterm.on("format-tab-title", ...)` calls.
 
+A more elaborate example:
+
+```lua
+local wezterm = require 'wezterm';
+
+-- The filled in variant of the < symbol
+local SOLID_LEFT_ARROW = utf8.char(0xe0b2)
+
+-- The filled in variant of the > symbol
+local SOLID_RIGHT_ARROW = utf8.char(0xe0b0)
+
+wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
+  local edge_background = "#0b0022"
+  local background = "#1b1032"
+  local foreground = "#808080"
+
+  if tab.is_active then
+    background = "#2b2042"
+    foreground = "#c0c0c0"
+  elseif hover then
+    background = "#3b3052"
+    foreground = "#909090"
+  end
+
+  local edge_foreground = background
+
+  return {
+    {Background={Color=edge_background}},
+    {Foreground={Color=edge_foreground}},
+    {Text=SOLID_LEFT_ARROW},
+    {Background={Color=background}},
+    {Foreground={Color=foreground}},
+    {Text=tab.active_pane.title},
+    {Background={Color=edge_background}},
+    {Foreground={Color=edge_foreground}},
+    {Text=SOLID_RIGHT_ARROW},
+  }
+end)
+
+return {}
+```

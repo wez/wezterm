@@ -8,7 +8,6 @@ use termwiz::color::ColorSpec;
 use termwiz::escape::csi::Sgr;
 use termwiz::escape::parser::Parser;
 use termwiz::escape::{Action, ControlCode, CSI};
-use unicode_segmentation::UnicodeSegmentation;
 use wezterm_term::Line;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -31,9 +30,10 @@ struct TabEntry {
     width: usize,
 }
 
-enum TitleText {
-    String(String),
-    Formatted { items: Vec<FormatItem>, len: usize },
+#[derive(Clone, Debug)]
+struct TitleText {
+    items: Vec<FormatItem>,
+    len: usize,
 }
 
 fn call_format_tab_title(
@@ -42,6 +42,7 @@ fn call_format_tab_title(
     pane_info: &[PaneInformation],
     config: &ConfigHandle,
     hover: bool,
+    tab_max_width: usize,
 ) -> Option<TitleText> {
     match config::run_immediate_with_lua_config(|lua| {
         if let Some(lua) = lua {
@@ -52,7 +53,14 @@ fn call_format_tab_title(
                 &*lua,
                 (
                     "format-tab-title".to_string(),
-                    (tab.clone(), tabs, panes, (**config).clone(), hover),
+                    (
+                        tab.clone(),
+                        tabs,
+                        panes,
+                        (**config).clone(),
+                        hover,
+                        tab_max_width,
+                    ),
                 ),
             )?;
             match &v {
@@ -63,12 +71,18 @@ fn call_format_tab_title(
                     let esc = format_as_escapes(items.clone())?;
                     let cells = parse_status_text(&esc, CellAttributes::default());
 
-                    Ok(Some(TitleText::Formatted {
+                    Ok(Some(TitleText {
                         items,
                         len: cells.len(),
                     }))
                 }
-                _ => Ok(Some(TitleText::String(String::from_lua(v, &*lua)?))),
+                _ => {
+                    let s = String::from_lua(v, &*lua)?;
+                    Ok(Some(TitleText {
+                        len: unicode_column_width(&s),
+                        items: vec![FormatItem::Text(s)],
+                    }))
+                }
             }
         } else {
             Ok(None)
@@ -78,6 +92,53 @@ fn call_format_tab_title(
         Err(err) => {
             log::warn!("format-tab-title: {}", err);
             None
+        }
+    }
+}
+
+fn compute_tab_title(
+    tab: &TabInformation,
+    tab_info: &[TabInformation],
+    pane_info: &[PaneInformation],
+    config: &ConfigHandle,
+    hover: bool,
+    tab_max_width: usize,
+) -> TitleText {
+    let title = call_format_tab_title(tab, tab_info, pane_info, config, hover, tab_max_width);
+
+    match title {
+        Some(title) => title,
+        None => {
+            let title = if let Some(pane) = &tab.active_pane {
+                let mut title = pane.title.clone();
+                if config.show_tab_index_in_tab_bar {
+                    title = format!(
+                        " {}: {} ",
+                        tab.tab_index
+                            + if config.tab_and_split_indices_are_zero_based {
+                                0
+                            } else {
+                                1
+                            },
+                        pane.title
+                    );
+                }
+                // We have a preferred soft minimum on tab width to make it
+                // easier to click on tab titles, but we'll still go below
+                // this if there are too many tabs to fit the window at
+                // this width.
+                while unicode_column_width(&title) < 5 {
+                    title.push(' ');
+                }
+                title
+            } else {
+                " no pane ".to_string()
+            };
+
+            TitleText {
+                len: unicode_column_width(&title),
+                items: vec![FormatItem::Text(title)],
+            }
         }
     }
 }
@@ -144,47 +205,17 @@ impl TabBarState {
                 if tab.is_active {
                     active_tab_no = tab.tab_index;
                 }
-                let title = call_format_tab_title(tab, tab_info, pane_info, config, false);
-
-                match title {
-                    Some(title) => title,
-                    None => {
-                        if let Some(pane) = &tab.active_pane {
-                            let mut title = pane.title.clone();
-                            if config.show_tab_index_in_tab_bar {
-                                title = format!(
-                                    " {}: {} ",
-                                    tab.tab_index
-                                        + if config.tab_and_split_indices_are_zero_based {
-                                            0
-                                        } else {
-                                            1
-                                        },
-                                    pane.title
-                                );
-                            }
-                            // We have a preferred soft minimum on tab width to make it
-                            // easier to click on tab titles, but we'll still go below
-                            // this if there are too many tabs to fit the window at
-                            // this width.
-                            while unicode_column_width(&title) < 5 {
-                                title.push(' ');
-                            }
-                            TitleText::String(title)
-                        } else {
-                            TitleText::String(" no pane ".to_string())
-                        }
-                    }
-                }
+                compute_tab_title(
+                    tab,
+                    tab_info,
+                    pane_info,
+                    config,
+                    false,
+                    config.tab_max_width,
+                )
             })
             .collect();
-        let titles_len: usize = tab_titles
-            .iter()
-            .map(|s| match s {
-                TitleText::String(s) => unicode_column_width(s),
-                TitleText::Formatted { len, .. } => *len,
-            })
-            .sum();
+        let titles_len: usize = tab_titles.iter().map(|s| s.len).sum();
         let number_of_tabs = tab_titles.len();
 
         let available_cells = title_width.saturating_sub(
@@ -205,17 +236,23 @@ impl TabBarState {
         let mut items = vec![];
 
         for (tab_idx, tab_title) in tab_titles.iter().enumerate() {
-            let tab_title_len = match tab_title {
-                TitleText::String(s) => unicode_column_width(s),
-                TitleText::Formatted { len, .. } => *len,
-            }
-            .min(tab_width_max);
-
+            let tab_title_len = tab_title.len.min(tab_width_max);
             let active = tab_idx == active_tab_no;
             let hover = !active
                 && mouse_x
                     .map(|mouse_x| mouse_x >= x && mouse_x < x + tab_title_len)
                     .unwrap_or(false);
+
+            // Recompute the title so that it factors in both the hover state
+            // and the adjusted maximum tab width based on available space.
+            let tab_title = compute_tab_title(
+                &tab_info[tab_idx],
+                tab_info,
+                pane_info,
+                config,
+                hover,
+                tab_title_len,
+            );
 
             let cell_attrs = if active {
                 &active_cell_attrs
@@ -227,52 +264,17 @@ impl TabBarState {
 
             let tab_start_idx = x;
 
-            let hover_title;
-            let tab_title = if hover {
-                match call_format_tab_title(&tab_info[tab_idx], tab_info, pane_info, config, hover)
-                {
-                    Some(t) => {
-                        hover_title = t;
-                        &hover_title
-                    }
-                    None => tab_title,
+            let esc = format_as_escapes(tab_title.items.clone()).expect("already parsed ok above");
+            let cells = parse_status_text(&esc, cell_attrs.clone());
+            let mut n = 0;
+            for cell in cells {
+                let len = cell.width();
+                if n + len > tab_width_max {
+                    break;
                 }
-            } else {
-                tab_title
-            };
-
-            match tab_title {
-                TitleText::String(tab_title) => {
-                    for (idx, sub) in tab_title.graphemes(true).enumerate() {
-                        if idx >= tab_width_max {
-                            break;
-                        }
-
-                        line.set_cell(x, Cell::new_grapheme(sub, cell_attrs.clone()));
-                        x += unicode_column_width(sub);
-                    }
-                }
-                TitleText::Formatted { items, .. } => {
-                    let esc = format_as_escapes(items.clone()).expect("already parsed ok above");
-                    let cells = parse_status_text(&esc, cell_attrs.clone());
-                    let mut n = 0;
-                    for cell in cells {
-                        let len = cell.width();
-                        if n + len > tab_width_max {
-                            break;
-                        }
-                        line.set_cell(x, cell);
-                        x += len;
-                        n += len;
-                    }
-
-                    // Pad out to minimum acceptable width
-                    while n < 5 {
-                        line.set_cell(x, Cell::new_grapheme(" ", cell_attrs.clone()));
-                        n += 1;
-                        x += 1;
-                    }
-                }
+                line.set_cell(x, cell);
+                x += len;
+                n += len;
             }
 
             items.push(TabEntry {
