@@ -361,6 +361,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "benchmarking"
+version = "0.4.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea52a394d9a85bf9819ca50382187ece2497501dbd6397fd33388400e512a90e"
+
+[[package]]
 name = "bintree"
 version = "0.1.0"
 
@@ -4412,6 +4418,7 @@ name = "wezterm-gui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "benchmarking",
  "bitflags",
  "cc",
  "codec",

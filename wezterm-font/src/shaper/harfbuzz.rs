@@ -67,7 +67,7 @@ pub struct HarfbuzzShaper {
     fonts: Vec<RefCell<Option<FontPair>>>,
     lib: ftwrap::Library,
     metrics: RefCell<HashMap<MetricsKey, FontMetrics>>,
-    config: ConfigHandle,
+    features: Vec<harfbuzz::hb_feature_t>,
 }
 
 #[derive(Error, Debug)]
@@ -111,12 +111,19 @@ impl HarfbuzzShaper {
         for _ in 0..handles.len() {
             fonts.push(RefCell::new(None));
         }
+
+        let features: Vec<harfbuzz::hb_feature_t> = config
+            .harfbuzz_features
+            .iter()
+            .filter_map(|s| harfbuzz::feature_from_string(s).ok())
+            .collect();
+
         Ok(Self {
             fonts,
             handles,
             lib,
             metrics: RefCell::new(HashMap::new()),
-            config: config.clone(),
+            features,
         })
     }
 
@@ -156,13 +163,6 @@ impl HarfbuzzShaper {
         dpi: u32,
         no_glyphs: &mut Vec<char>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
-        let config = &self.config;
-        let features: Vec<harfbuzz::hb_feature_t> = config
-            .harfbuzz_features
-            .iter()
-            .filter_map(|s| harfbuzz::feature_from_string(s).ok())
-            .collect();
-
         let mut buf = harfbuzz::Buffer::new()?;
         buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);
         buf.set_direction(harfbuzz::hb_direction_t::HB_DIRECTION_LTR);
@@ -181,7 +181,7 @@ impl HarfbuzzShaper {
                     let (width, _height) = pair.face.set_font_size(font_size, dpi)?;
                     cell_width = width;
                     shaped_any = pair.shaped_any;
-                    pair.font.shape(&mut buf, Some(features.as_slice()));
+                    pair.font.shape(&mut buf, Some(self.features.as_slice()));
                 }
                 None => {
                     // Note: since we added a last resort font, this case
@@ -208,7 +208,7 @@ impl HarfbuzzShaper {
         let hb_infos = buf.glyph_infos();
         let positions = buf.glyph_positions();
 
-        let mut cluster = Vec::new();
+        let mut cluster = Vec::with_capacity(s.len());
 
         // Compute the lengths of the text clusters.
         // Ligatures and combining characters mean
@@ -222,7 +222,7 @@ impl HarfbuzzShaper {
         // the fragments to properly handle fallback,
         // and they're handy to have for debugging
         // purposes too.
-        let mut info_clusters: Vec<Vec<Info>> = vec![];
+        let mut info_clusters: Vec<Vec<Info>> = Vec::with_capacity(s.len());
         let mut info_iter = hb_infos.iter().enumerate().peekable();
         while let Some((i, info)) = info_iter.next() {
             let next_pos = info_iter

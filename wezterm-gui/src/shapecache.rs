@@ -364,6 +364,36 @@ mod test {
     }
 
     #[test]
+    fn bench_shaping() {
+        config::use_test_configuration();
+
+        // let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128, &render_metrics).unwrap();
+        // let render_metrics = RenderMetrics::new(&fonts).unwrap();
+
+        benchmarking::warm_up();
+
+        for &n in &[100, 1000, 10_000] {
+            let bench_result = benchmarking::measure_function(move |measurer| {
+                let text: String = (0..n).map(|_| ' ').collect();
+
+                let fonts = Rc::new(FontConfiguration::new(None).unwrap());
+                let style = TextStyle::default();
+                let font = fonts.resolve_font(&style).unwrap();
+                let line = Line::from_text(&text, &CellAttributes::default());
+                let cell_clusters = line.cluster();
+                let cluster = &cell_clusters[0];
+
+                measurer.measure(|| {
+                    let _x = font.shape(&cluster.text, || {}).unwrap();
+                    // println!("{:?}", &x[0..2]);
+                });
+            })
+            .unwrap();
+            println!("{}: {:?}", n, bench_result.elapsed());
+        }
+    }
+
+    #[test]
     fn ligatures_jetbrains() {
         config::use_test_configuration();
         let _ = pretty_env_logger::formatted_builder()
