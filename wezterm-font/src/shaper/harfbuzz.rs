@@ -365,6 +365,7 @@ impl FontShaper for HarfbuzzShaper {
         dpi: u32,
         no_glyphs: &mut Vec<char>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
+        log::trace!("shape {} `{}`", text.len(), text);
         let start = std::time::Instant::now();
         let result = self.do_shape(0, text, size, dpi, no_glyphs);
         metrics::histogram!("shape.harfbuzz", start.elapsed());

@@ -432,7 +432,7 @@ impl Line {
     }
 
     pub fn cluster(&self) -> Vec<CellCluster> {
-        CellCluster::make_cluster(self.visible_cells())
+        CellCluster::make_cluster(self.cells.len(), self.visible_cells())
     }
 
     pub fn cells(&self) -> &[Cell] {

@@ -539,7 +539,12 @@ impl Cell {
 
     /// Returns the number of cells visually occupied by this grapheme
     pub fn width(&self) -> usize {
-        grapheme_column_width(self.str())
+        let s = self.str();
+        if s.len() == 1 {
+            1
+        } else {
+            grapheme_column_width(s)
+        }
     }
 
     /// Returns the attributes of the cell

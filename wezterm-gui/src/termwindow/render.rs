@@ -720,7 +720,13 @@ impl super::TermWindow {
         }
 
         // Break the line into clusters of cells with the same attributes
+        let start = Instant::now();
         let cell_clusters = params.line.cluster();
+        log::trace!(
+            "cluster -> {} clusters, elapsed {:?}",
+            cell_clusters.len(),
+            start.elapsed()
+        );
 
         let mut last_cell_idx = 0;
 
@@ -811,6 +817,8 @@ impl super::TermWindow {
             );
 
             // Shape the printable text from this cluster
+
+            let shape_resolve_start = Instant::now();
             let glyph_info = {
                 let key = BorrowedShapeCacheKey {
                     style,
@@ -858,9 +866,14 @@ impl super::TermWindow {
                     }
                 }
             };
+            log::trace!(
+                "shape_resolve for cluster len {} -> elapsed {:?}",
+                cluster.text.len(),
+                shape_resolve_start.elapsed()
+            );
 
             for info in glyph_info.iter() {
-                let cell_idx = cluster.byte_to_cell_idx[info.pos.cluster as usize];
+                let cell_idx = cluster.byte_to_cell_idx(info.pos.cluster as usize);
                 let glyph = &info.glyph;
 
                 let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)
@@ -1015,6 +1028,7 @@ impl super::TermWindow {
             },
         );
 
+        let right_fill_start = Instant::now();
         for cell_idx in last_cell_idx + 1..num_cols {
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
@@ -1062,6 +1076,11 @@ impl super::TermWindow {
             );
             quad.set_cursor_color(params.cursor_border_color);
         }
+        log::trace!(
+            "right fill {} -> elapsed {:?}",
+            num_cols.saturating_sub(last_cell_idx),
+            right_fill_start.elapsed()
+        );
 
         Ok(())
     }
@@ -1277,7 +1296,7 @@ impl super::TermWindow {
     ) -> anyhow::Result<Vec<Rc<CachedGlyph<SrgbTexture2d>>>> {
         let mut glyphs = Vec::with_capacity(infos.len());
         for info in infos {
-            let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
+            let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
             let followed_by_space = match line.cells().get(cell_idx + 1) {
                 Some(cell) => cell.str() == " ",
                 None => false,
