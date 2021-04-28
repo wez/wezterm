@@ -181,7 +181,7 @@ impl HarfbuzzShaper {
                     let (width, _height) = pair.face.set_font_size(font_size, dpi)?;
                     cell_width = width;
                     shaped_any = pair.shaped_any;
-                    pair.font.shape(&mut buf, Some(self.features.as_slice()));
+                    pair.font.shape(&mut buf, self.features.as_slice());
                 }
                 None => {
                     // Note: since we added a last resort font, this case

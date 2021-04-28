@@ -1,5 +1,4 @@
 //! Higher level harfbuzz bindings
-#![allow(dead_code)]
 use freetype;
 
 pub use harfbuzz::*;
@@ -7,7 +6,6 @@ pub use harfbuzz::*;
 use anyhow::{ensure, Error};
 use std::mem;
 use std::os::raw::c_char;
-use std::ptr;
 use std::slice;
 
 extern "C" {
@@ -50,58 +48,6 @@ impl Drop for Font {
     }
 }
 
-struct Blob {
-    blob: *mut hb_blob_t,
-}
-
-impl Drop for Blob {
-    fn drop(&mut self) {
-        unsafe {
-            hb_blob_destroy(self.blob);
-        }
-    }
-}
-
-impl Blob {
-    fn from_slice(data: &[u8]) -> Result<Self, Error> {
-        let blob = unsafe {
-            hb_blob_create(
-                data.as_ptr() as *const c_char,
-                data.len() as u32,
-                hb_memory_mode_t::HB_MEMORY_MODE_READONLY,
-                ptr::null_mut(),
-                None,
-            )
-        };
-        ensure!(!blob.is_null(), "failed to create harfbuzz blob for slice");
-        Ok(Self { blob })
-    }
-}
-
-struct Face {
-    face: *mut hb_face_t,
-}
-
-impl Drop for Face {
-    fn drop(&mut self) {
-        unsafe {
-            hb_face_destroy(self.face);
-        }
-    }
-}
-
-impl Face {
-    fn from_blob(blob: &Blob, idx: u32) -> Result<Face, Error> {
-        let face = unsafe { hb_face_create(blob.blob, idx) };
-        ensure!(
-            !face.is_null(),
-            "failed to create face from blob data at idx {}",
-            idx
-        );
-        Ok(Self { face })
-    }
-}
-
 impl Font {
     /// Create a harfbuzz face from a freetype font
     pub fn new(face: freetype::FT_Face) -> Font {
@@ -114,18 +60,6 @@ impl Font {
         }
     }
 
-    /// Create a font from raw data
-    /// Harfbuzz doesn't know how to interpret this without registering
-    /// some callbacks
-    /// FIXME: need to specialize this for rusttype
-    pub fn new_from_slice(data: &[u8], idx: u32) -> Result<Font, Error> {
-        let blob = Blob::from_slice(data)?;
-        let face = Face::from_blob(&blob, idx)?;
-        let font = unsafe { hb_font_create(face.face) };
-        ensure!(!font.is_null(), "failed to convert face to font");
-        Ok(Self { font })
-    }
-
     pub fn set_load_flags(&mut self, load_flags: freetype::FT_Int32) {
         unsafe {
             hb_ft_font_set_load_flags(self.font, load_flags);
@@ -134,14 +68,8 @@ impl Font {
 
     /// Perform shaping.  On entry, Buffer holds the text to shape.
     /// Once done, Buffer holds the output glyph and position info
-    pub fn shape(&mut self, buf: &mut Buffer, features: Option<&[hb_feature_t]>) {
-        unsafe {
-            if let Some(features) = features {
-                hb_shape(self.font, buf.buf, features.as_ptr(), features.len() as u32)
-            } else {
-                hb_shape(self.font, buf.buf, ptr::null(), 0)
-            }
-        }
+    pub fn shape(&mut self, buf: &mut Buffer, features: &[hb_feature_t]) {
+        unsafe { hb_shape(self.font, buf.buf, features.as_ptr(), features.len() as u32) }
     }
 }
 
