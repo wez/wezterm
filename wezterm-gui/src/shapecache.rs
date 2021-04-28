@@ -50,7 +50,7 @@ where
         infos: &[GlyphInfo],
         glyphs: &[Rc<CachedGlyph<T>>],
     ) -> Vec<ShapedInfo<T>> {
-        let mut pos: Vec<Option<ShapedInfo<T>>> = vec![];
+        let mut pos: Vec<Option<ShapedInfo<T>>> = Vec::with_capacity(infos.len());
         let mut x = 0.;
         let mut prior_info: Option<&GlyphInfo> = None;
 

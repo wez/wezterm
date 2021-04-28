@@ -1275,7 +1275,7 @@ impl super::TermWindow {
         glyph_cache: &mut GlyphCache<SrgbTexture2d>,
         infos: &[GlyphInfo],
     ) -> anyhow::Result<Vec<Rc<CachedGlyph<SrgbTexture2d>>>> {
-        let mut glyphs = vec![];
+        let mut glyphs = Vec::with_capacity(infos.len());
         for info in infos {
             let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
             let followed_by_space = match line.cells().get(cell_idx + 1) {
