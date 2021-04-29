@@ -706,6 +706,20 @@ impl super::TermWindow {
         // If eg: scrolling the viewport causes the pair of quads to change from two
         // individual cells to a single double-wide cell then we might leave the second
         // one of the pair with the glyph from the prior viewport position.
+        let default_bg = rgbcolor_alpha_to_window_color(
+            params.palette.resolve_bg(ColorAttribute::Default),
+            if window_is_transparent {
+                0x00
+            } else {
+                (params.config.text_background_opacity * 255.0) as u8
+            },
+        );
+
+        // Clear the cells to basic blanks to avoid leaving artifacts behind.
+        // The easiest reproduction for the artifacts is to maximize the window and
+        // open a vim split horizontally.  Backgrounding vim would leave
+        // the right pane with its prior contents instead of showing the
+        // cleared lines from the shell in the main screen.
         for cell_idx in 0..num_cols {
             let mut quad =
                 match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
@@ -713,10 +727,13 @@ impl super::TermWindow {
                     Err(_) => break,
                 };
 
+            quad.set_bg_color(default_bg);
             quad.set_texture(white_space);
             quad.set_texture_adjust(0., 0., 0., 0.);
             quad.set_underline(white_space);
             quad.set_cursor(white_space);
+            quad.set_has_color(false);
+            quad.set_hsv(hsv);
         }
 
         // Break the line into clusters of cells with the same attributes
@@ -1012,69 +1029,70 @@ impl super::TermWindow {
             }
         }
 
-        // Clear any remaining cells to the right of the clusters we
-        // found above, otherwise we leave artifacts behind.  The easiest
-        // reproduction for the artifacts is to maximize the window and
-        // open a vim split horizontally.  Backgrounding vim would leave
-        // the right pane with its prior contents instead of showing the
-        // cleared lines from the shell in the main screen.
 
-        let bg_color = rgbcolor_alpha_to_window_color(
-            params.palette.resolve_bg(ColorAttribute::Default),
-            if window_is_transparent {
-                0x00
-            } else {
-                (params.config.text_background_opacity * 255.0) as u8
-            },
-        );
-
+        // If the clusters don't extend to the full physical width of the display,
+        // we have a little bit more work to do to ensure that we correctly paint:
+        // * Selection
+        // * Cursor (although it is really unlikely that the cursor is outside
+        //   of one of the clusters)
         let right_fill_start = Instant::now();
-        for cell_idx in last_cell_idx + 1..num_cols {
-            // Even though we don't have a cell for these, they still
-            // hold the cursor or the selection so we need to compute
-            // the colors in the usual way.
+        if last_cell_idx < num_cols {
+            // We only need to update the cells that have the cursor or the
+            // selection.
+            if let Some(sel_range) =
+                rangeset::range_intersection(&params.selection, &(last_cell_idx + 1..num_cols))
+            {
+                for cell_idx in sel_range {
+                    if let Ok(mut quad) =
+                        quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top)
+                    {
+                        quad.set_bg_color(params.selection_bg);
+                        quad.set_fg_color(params.selection_fg);
+                        quad.set_underline_color(params.selection_fg);
+                    }
+                }
+            }
 
-            let ComputeCellFgBgResult {
-                fg_color: glyph_color,
-                bg_color,
-                cursor_shape,
-            } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
-                stable_line_idx: params.stable_line_idx,
-                cell_idx,
-                cursor: params.cursor,
-                selection: &params.selection,
-                fg_color: params.foreground,
-                bg_color,
-                palette: params.palette,
-                is_active_pane: params.pos.is_active,
-                config: params.config,
-                selection_fg: params.selection_fg,
-                selection_bg: params.selection_bg,
-                cursor_fg: params.cursor_fg,
-                cursor_bg: params.cursor_bg,
-            });
+            if params.stable_line_idx == Some(params.cursor.y) && params.cursor.x > last_cell_idx {
+                // Even though we don't have a cell for these, they still
+                // hold the cursor or the selection so we need to compute
+                // the colors in the usual way.
 
-            let mut quad =
-                match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
-                    Ok(quad) => quad,
-                    Err(_) => break,
-                };
+                let ComputeCellFgBgResult {
+                    fg_color: glyph_color,
+                    bg_color,
+                    cursor_shape,
+                } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
+                    stable_line_idx: params.stable_line_idx,
+                    cell_idx: params.cursor.x,
+                    cursor: params.cursor,
+                    selection: &params.selection,
+                    fg_color: params.foreground,
+                    bg_color: default_bg,
+                    palette: params.palette,
+                    is_active_pane: params.pos.is_active,
+                    config: params.config,
+                    selection_fg: params.selection_fg,
+                    selection_bg: params.selection_bg,
+                    cursor_fg: params.cursor_fg,
+                    cursor_bg: params.cursor_bg,
+                });
 
-            quad.set_bg_color(bg_color);
-            quad.set_fg_color(glyph_color);
-            quad.set_underline_color(glyph_color);
-            quad.set_texture(white_space);
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_underline(white_space);
-            quad.set_has_color(false);
-            quad.set_hsv(hsv);
-            quad.set_cursor(
-                gl_state
-                    .util_sprites
-                    .cursor_sprite(cursor_shape)
-                    .texture_coords(),
-            );
-            quad.set_cursor_color(params.cursor_border_color);
+                if let Ok(mut quad) = quads.cell(
+                    params.cursor.x + params.pos.left,
+                    params.line_idx + params.pos.top,
+                ) {
+                    quad.set_bg_color(bg_color);
+                    quad.set_fg_color(glyph_color);
+                    quad.set_cursor(
+                        gl_state
+                            .util_sprites
+                            .cursor_sprite(cursor_shape)
+                            .texture_coords(),
+                    );
+                    quad.set_cursor_color(params.cursor_border_color);
+                }
+            }
         }
         log::trace!(
             "right fill {} -> elapsed {:?}",
