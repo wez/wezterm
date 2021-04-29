@@ -290,7 +290,7 @@ mod test {
         let glyphs = infos
             .iter()
             .map(|info| {
-                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
+                let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
 
                 let followed_by_space = match line.cells().get(cell_idx + 1) {
                     Some(cell) => cell.str() == " ",
