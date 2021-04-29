@@ -880,7 +880,7 @@ impl<T: Texture2d> GlyphCache<T> {
             let wave_height =
                 self.metrics.cell_size.height - (cell_rect.origin.y + self.metrics.descender_row);
 
-            let half_height = (wave_height as f32 / 2.).max(1.);
+            let half_height = (wave_height as f32 / 4.).max(1.);
             let y =
                 (cell_rect.origin.y + self.metrics.descender_row) as usize - half_height as usize;
 
@@ -889,21 +889,20 @@ impl<T: Texture2d> GlyphCache<T> {
                 let pixel = buffer.pixel_mut(x, y);
                 let (current, _, _, _) = SrgbaPixel::with_srgba_u32(*pixel).as_rgba();
                 let value = current.saturating_add(val);
-                *pixel = SrgbaPixel::rgba(0xFF, 0xFF, 0xFF, val).as_srgba32();
+                *pixel = SrgbaPixel::rgba(value, value, value, value).as_srgba32();
             }
 
             for x in 0..self.metrics.cell_size.width as usize {
-                let vertical = wave_height as f32 / -3. * (x as f32 * x_factor).sin()
-                    + wave_height as f32 / 2.;
-                let v = vertical.round();
+                let vertical = -half_height * (x as f32 * x_factor).sin() + half_height;
+                let v1 = vertical.floor();
+                let v2 = vertical.ceil();
 
                 for row in 0..self.metrics.underline_height as usize {
-                    let value = (255. * (vertical - v).abs()) as u8;
-                    add(x, row + y + v as usize, 0x88, max_y, buffer);
+                    let value = (255. * (vertical - v1).abs()) as u8;
+                    add(x, row + y + v1 as usize, 255 - value, max_y, buffer);
+                    add(x, row + y + v2 as usize, value, max_y, buffer);
                 }
             }
-            println!("{:?}", *buffer);
-            buffer.log_bits();
         };
 
         let draw_double = |buffer: &mut Image| {
