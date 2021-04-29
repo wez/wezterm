@@ -1029,7 +1029,6 @@ impl super::TermWindow {
             }
         }
 
-
         // If the clusters don't extend to the full physical width of the display,
         // we have a little bit more work to do to ensure that we correctly paint:
         // * Selection

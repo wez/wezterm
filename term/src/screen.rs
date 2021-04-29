@@ -4,22 +4,6 @@ use log::debug;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-/// Caps the number of blank columns that we allocate in an empty line.
-/// From a simplistic, idealistic perspective, we'd allocate the physical
-/// column width so that each line's length matches the screen dimensions.
-/// That's fine for a reasonably sized terminal (eg: 80x24), but when
-/// maximized on modern large monitors with ~500 columns, that represents
-/// a fairly large overhead for lines that contain mostly blank cells.
-/// When working with blank/cleared lines, we cap the length to this value
-/// to try to strike a balance between pre-allocating something useful
-/// and not allocating any cells at all.
-/// I did try settting this to 0 but it had the effective of changing
-/// how semantic zone line boundaries were computing (detected via
-/// our unit tests).
-/// If we want to be more aggressive at reducing this in the future,
-/// that is one place that would need to be adjusted accordingly.
-pub(crate) const TYPICAL_NUM_COLS: usize = 64;
-
 /// Holds the model of a screen.  This can either be the primary screen
 /// which includes lines of scrollback text, or the alternate screen
 /// which holds no scrollback.  The intent is to have one instance of
@@ -78,7 +62,7 @@ impl Screen {
         let mut lines =
             VecDeque::with_capacity(physical_rows + scrollback_size(config, allow_scrollback));
         for _ in 0..physical_rows {
-            lines.push_back(Line::with_width(physical_cols.min(TYPICAL_NUM_COLS)));
+            lines.push_back(Line::with_width(0));
         }
 
         Screen {
@@ -228,8 +212,7 @@ impl Screen {
         // lines than the viewport size, or we resized taller,
         // pad us back out to the viewport size
         while self.lines.len() < physical_rows {
-            self.lines
-                .push_back(Line::with_width(physical_cols.min(TYPICAL_NUM_COLS)));
+            self.lines.push_back(Line::with_width(0));
         }
 
         let new_cursor_y;
@@ -250,8 +233,7 @@ impl Screen {
                 physical_rows.saturating_sub(new_cursor_y as usize);
             let actual_num_rows_after_cursor = self.lines.len().saturating_sub(cursor_y);
             for _ in actual_num_rows_after_cursor..required_num_rows_after_cursor {
-                self.lines
-                    .push_back(Line::with_width(physical_cols.min(TYPICAL_NUM_COLS)));
+                self.lines.push_back(Line::with_width(0));
             }
         } else {
             // Compute the new cursor location; this is logically the inverse
@@ -336,17 +318,9 @@ impl Screen {
         line.set_cell(x, cell.clone())
     }
 
-    pub fn clear_line(
-        &mut self,
-        y: VisibleRowIndex,
-        cols: impl Iterator<Item = usize>,
-        attr: &CellAttributes,
-    ) {
-        let physical_cols = self.physical_cols;
+    pub fn clear_line(&mut self, y: VisibleRowIndex, cols: Range<usize>, attr: &CellAttributes) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-
-        line.resize(physical_cols.min(TYPICAL_NUM_COLS));
         line.fill_range(cols, &Cell::new(' ', attr.clone()));
     }
 
@@ -574,7 +548,7 @@ impl Screen {
             for _ in 0..to_move {
                 let mut line = self.lines.remove(remove_idx).unwrap();
                 // Make the line like a new one of the appropriate width
-                line.resize_and_clear(self.physical_cols.min(TYPICAL_NUM_COLS));
+                line.resize_and_clear(0);
                 line.set_dirty();
                 if scroll_region.end as usize == self.physical_rows {
                     self.lines.push_back(line);
@@ -599,15 +573,11 @@ impl Screen {
         if scroll_region.end as usize == self.physical_rows {
             // It's cheaper to push() than it is insert() at the end
             for _ in 0..to_add {
-                self.lines
-                    .push_back(Line::with_width(self.physical_cols.min(TYPICAL_NUM_COLS)));
+                self.lines.push_back(Line::with_width(0));
             }
         } else {
             for _ in 0..to_add {
-                self.lines.insert(
-                    phys_scroll.end,
-                    Line::with_width(self.physical_cols.min(TYPICAL_NUM_COLS)),
-                );
+                self.lines.insert(phys_scroll.end, Line::with_width(0));
             }
         }
     }
@@ -650,10 +620,7 @@ impl Screen {
         }
 
         for _ in 0..num_rows {
-            self.lines.insert(
-                phys_scroll.start,
-                Line::with_width(self.physical_cols.min(TYPICAL_NUM_COLS)),
-            );
+            self.lines.insert(phys_scroll.start, Line::with_width(0));
         }
     }
 

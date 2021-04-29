@@ -24,9 +24,15 @@ impl super::TermWindow {
                 }
                 s.push_str(line.columns_as_str(cols).trim_end());
 
-                let last_cell = &line.cells()[last_col_idx];
-                // TODO: should really test for any unicode whitespace
-                last_was_wrapped = last_cell.attrs().wrapped() && last_cell.str() != " ";
+                match line.cells().get(last_col_idx) {
+                    Some(last_cell) => {
+                        // TODO: should really test for any unicode whitespace
+                        last_was_wrapped = last_cell.attrs().wrapped() && last_cell.str() != " ";
+                    }
+                    None => {
+                        last_was_wrapped = false;
+                    }
+                }
             }
         }
 

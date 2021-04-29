@@ -395,19 +395,29 @@ impl Line {
         self.invalidate_implicit_hyperlinks();
         self.invalidate_grapheme_at_or_before(x);
         self.cells.remove(x);
-        self.cells.insert(right_margin - 1, Cell::default());
+        if right_margin <= self.cells.len() {
+            self.cells.insert(right_margin - 1, Cell::default());
+        }
         self.set_dirty();
     }
 
-    pub fn fill_range(&mut self, cols: impl Iterator<Item = usize>, cell: &Cell) {
-        let max_col = self.cells.len();
+    pub fn prune_trailing_blanks(&mut self) {
+        let def_attr = CellAttributes::default();
+        if let Some(end_idx) = self
+            .cells
+            .iter()
+            .rposition(|c| c.str() != " " || c.attrs() != &def_attr)
+        {
+            self.cells.resize(end_idx + 1, Cell::default());
+        }
+    }
+
+    pub fn fill_range(&mut self, cols: Range<usize>, cell: &Cell) {
         for x in cols {
-            if x >= max_col {
-                break;
-            }
             // FIXME: we can skip the look-back for second and subsequent iterations
             self.set_cell(x, cell.clone());
         }
+        self.prune_trailing_blanks();
     }
 
     /// Iterates the visible cells, respecting the width of the cell.

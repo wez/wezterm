@@ -353,7 +353,7 @@ impl Surface {
         self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
         for line in &mut self.lines {
-            line.fill_range(0.., &cleared);
+            line.fill_range(0..self.width, &cleared);
         }
         self.xpos = 0;
         self.ypos = 0;
@@ -362,16 +362,16 @@ impl Surface {
     fn clear_eos(&mut self, color: ColorAttribute) {
         self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
-        self.lines[self.ypos].fill_range(self.xpos.., &cleared);
+        self.lines[self.ypos].fill_range(self.xpos..self.width, &cleared);
         for line in &mut self.lines.iter_mut().skip(self.ypos + 1) {
-            line.fill_range(0.., &cleared);
+            line.fill_range(0..self.width, &cleared);
         }
     }
 
     fn clear_eol(&mut self, color: ColorAttribute) {
         self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
-        self.lines[self.ypos].fill_range(self.xpos.., &cleared);
+        self.lines[self.ypos].fill_range(self.xpos..self.width, &cleared);
     }
 
     fn scroll_screen_up(&mut self) {
@@ -683,7 +683,9 @@ impl Surface {
             }
 
             result.append(&mut changes);
-            attr = line.cells()[self.width - 1].attrs().clone();
+            if let Some(c) = line.cells().last() {
+                attr = c.attrs().clone();
+            }
         }
 
         // Remove any trailing sequence of cursor movements, as we're
@@ -968,7 +970,7 @@ mod test {
             y: Position::Absolute(1),
         });
         s.add_change(Change::ClearToEndOfLine(Default::default()));
-        assert_eq!(s.screen_chars_to_string(), "   \nw  \nfoo\n");
+        assert_eq!(s.screen_chars_to_string(), "   \nw\nfoo\n");
     }
 
     #[test]
@@ -982,7 +984,7 @@ mod test {
             y: Position::Absolute(1),
         });
         s.add_change(Change::ClearToEndOfScreen(Default::default()));
-        assert_eq!(s.screen_chars_to_string(), "hel\nw  \n   \n");
+        assert_eq!(s.screen_chars_to_string(), "hel\nw\n   \n");
 
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(

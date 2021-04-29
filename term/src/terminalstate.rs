@@ -2233,7 +2233,7 @@ impl TerminalState {
         let cy = self.cursor.y;
         let pen = self.pen.clone_sgr_only();
         let rows = self.screen().physical_rows as VisibleRowIndex;
-        let col_range = 0..usize::max_value();
+        let col_range = 0..self.screen().physical_cols;
         let row_range = match erase {
             EraseInDisplay::EraseToEndOfDisplay => {
                 self.perform_csi_edit(Edit::EraseInLine(EraseInLine::EraseToEndOfLine));

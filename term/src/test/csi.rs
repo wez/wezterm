@@ -25,7 +25,7 @@ fn test_rep() {
     term.print("h");
     term.cup(1, 0);
     term.print("\x1b[2ba");
-    assert_visible_contents(&term, file!(), line!(), &["hhha", "    ", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["hhha", "", ""]);
 }
 
 #[test]
@@ -34,12 +34,7 @@ fn test_irm() {
     term.print("foo");
     term.cup(0, 0);
     term.print("\x1b[4hBAR");
-    assert_visible_contents(
-        &term,
-        file!(),
-        line!(),
-        &["BARfoo  ", "        ", "        "],
-    );
+    assert_visible_contents(&term, file!(), line!(), &["BARfoo", "", ""]);
 }
 
 #[test]
@@ -48,12 +43,12 @@ fn test_ich() {
     term.print("hey!wat?");
     term.cup(1, 0);
     term.print("\x1b[2@");
-    assert_visible_contents(&term, file!(), line!(), &["h  e", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h  e", "wat?", ""]);
     // check how we handle overflowing the width
     term.print("\x1b[12@");
-    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", ""]);
     term.print("\x1b[-12@");
-    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", ""]);
 }
 
 #[test]
@@ -62,12 +57,12 @@ fn test_ech() {
     term.print("hey!wat?");
     term.cup(1, 0);
     term.print("\x1b[2X");
-    assert_visible_contents(&term, file!(), line!(), &["h  !", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h  !", "wat?", ""]);
     // check how we handle overflowing the width
     term.print("\x1b[12X");
-    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", ""]);
     term.print("\x1b[-12X");
-    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["h   ", "wat?", ""]);
 }
 
 #[test]
@@ -76,14 +71,14 @@ fn test_dch() {
     term.print("hello world");
     term.cup(1, 0);
     term.print("\x1b[P");
-    assert_visible_contents(&term, file!(), line!(), &["hllo world  "]);
+    assert_visible_contents(&term, file!(), line!(), &["hllo world"]);
 
     term.cup(4, 0);
     term.print("\x1b[2P");
-    assert_visible_contents(&term, file!(), line!(), &["hlloorld    "]);
+    assert_visible_contents(&term, file!(), line!(), &["hlloorld"]);
 
     term.print("\x1b[-2P");
-    assert_visible_contents(&term, file!(), line!(), &["hlloorld    "]);
+    assert_visible_contents(&term, file!(), line!(), &["hlloorld"]);
 }
 
 #[test]
@@ -122,11 +117,11 @@ fn test_dl() {
     term.print("a\r\nb\r\nc");
     term.cup(0, 1);
     term.delete_lines(1);
-    assert_visible_contents(&term, file!(), line!(), &["a", "c", " "]);
+    assert_visible_contents(&term, file!(), line!(), &["a", "c", ""]);
     term.assert_cursor_pos(0, 1, None);
     term.cup(0, 0);
     term.delete_lines(2);
-    assert_visible_contents(&term, file!(), line!(), &[" ", " ", " "]);
+    assert_visible_contents(&term, file!(), line!(), &["", "", ""]);
     term.print("1\r\n2\r\n3");
     term.cup(0, 1);
     term.delete_lines(-2);
@@ -161,7 +156,7 @@ fn test_ed() {
     term.print("abc\r\ndef\r\nghi");
     term.cup(1, 2);
     term.print("\x1b[J");
-    assert_visible_contents(&term, file!(), line!(), &["abc", "def", "g  "]);
+    assert_visible_contents(&term, file!(), line!(), &["abc", "def", "g"]);
 
     // Set background color to blue
     term.print("\x1b[44m");
@@ -174,7 +169,7 @@ fn test_ed() {
         .set_background(color::AnsiColor::Navy)
         .clone();
     let mut line: Line = "   ".into();
-    line.fill_range(0..=2, &Cell::new(' ', attr.clone()));
+    line.fill_range(0..3, &Cell::new(' ', attr.clone()));
     assert_lines_equal(
         file!(),
         line!(),
@@ -188,7 +183,7 @@ fn test_ed() {
 fn test_ed_erase_scrollback() {
     let mut term = TestTerm::new(3, 3, 3);
     term.print("abc\r\ndef\r\nghi\r\n111\r\n222\r\na\x1b[3J");
-    assert_all_contents(&term, file!(), line!(), &["111", "222", "a  "]);
+    assert_all_contents(&term, file!(), line!(), &["111", "222", "a"]);
     term.print("b");
-    assert_all_contents(&term, file!(), line!(), &["111", "222", "ab "]);
+    assert_all_contents(&term, file!(), line!(), &["111", "222", "ab"]);
 }
