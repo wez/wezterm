@@ -1052,11 +1052,10 @@ impl super::TermWindow {
                 }
             }
 
-            if params.stable_line_idx == Some(params.cursor.y) && params.cursor.x > last_cell_idx {
-                // Even though we don't have a cell for these, they still
-                // hold the cursor or the selection so we need to compute
-                // the colors in the usual way.
-
+            if params.stable_line_idx == Some(params.cursor.y)
+                && ((params.cursor.x > last_cell_idx) || cell_clusters.is_empty())
+            {
+                // Compute the cursor fg/bg
                 let ComputeCellFgBgResult {
                     fg_color: glyph_color,
                     bg_color,
