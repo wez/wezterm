@@ -4,6 +4,22 @@ use log::debug;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
+/// Caps the number of blank columns that we allocate in an empty line.
+/// From a simplistic, idealistic perspective, we'd allocate the physical
+/// column width so that each line's length matches the screen dimensions.
+/// That's fine for a reasonably sized terminal (eg: 80x24), but when
+/// maximized on modern large monitors with ~500 columns, that represents
+/// a fairly large overhead for lines that contain mostly blank cells.
+/// When working with blank/cleared lines, we cap the length to this value
+/// to try to strike a balance between pre-allocating something useful
+/// and not allocating any cells at all.
+/// I did try settting this to 0 but it had the effective of changing
+/// how semantic zone line boundaries were computing (detected via
+/// our unit tests).
+/// If we want to be more aggressive at reducing this in the future,
+/// that is one place that would need to be adjusted accordingly.
+pub(crate) const TYPICAL_NUM_COLS: usize = 64;
+
 /// Holds the model of a screen.  This can either be the primary screen
 /// which includes lines of scrollback text, or the alternate screen
 /// which holds no scrollback.  The intent is to have one instance of
@@ -62,7 +78,7 @@ impl Screen {
         let mut lines =
             VecDeque::with_capacity(physical_rows + scrollback_size(config, allow_scrollback));
         for _ in 0..physical_rows {
-            lines.push_back(Line::with_width(physical_cols));
+            lines.push_back(Line::with_width(physical_cols.min(TYPICAL_NUM_COLS)));
         }
 
         Screen {
@@ -212,7 +228,8 @@ impl Screen {
         // lines than the viewport size, or we resized taller,
         // pad us back out to the viewport size
         while self.lines.len() < physical_rows {
-            self.lines.push_back(Line::with_width(physical_cols));
+            self.lines
+                .push_back(Line::with_width(physical_cols.min(TYPICAL_NUM_COLS)));
         }
 
         let new_cursor_y;
@@ -233,7 +250,8 @@ impl Screen {
                 physical_rows.saturating_sub(new_cursor_y as usize);
             let actual_num_rows_after_cursor = self.lines.len().saturating_sub(cursor_y);
             for _ in actual_num_rows_after_cursor..required_num_rows_after_cursor {
-                self.lines.push_back(Line::with_width(physical_cols));
+                self.lines
+                    .push_back(Line::with_width(physical_cols.min(TYPICAL_NUM_COLS)));
             }
         } else {
             // Compute the new cursor location; this is logically the inverse
@@ -296,6 +314,8 @@ impl Screen {
         let line = self.line_mut(line_idx);
         line.insert_cell(x, Cell::default(), right_margin);
         if line.cells().len() > phys_cols {
+            // Don't allow the line width to grow beyond
+            // the physical width
             line.resize(phys_cols);
         }
     }
@@ -325,7 +345,8 @@ impl Screen {
         let physical_cols = self.physical_cols;
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.resize(physical_cols);
+
+        line.resize(physical_cols.min(TYPICAL_NUM_COLS));
         line.fill_range(cols, &Cell::new(' ', attr.clone()));
     }
 
@@ -419,6 +440,13 @@ impl Screen {
         left_and_right_margins: &Range<usize>,
         num_rows: usize,
     ) {
+        log::debug!(
+            "scroll_up_within_margins region:{:?} margins:{:?} rows={}",
+            scroll_region,
+            left_and_right_margins,
+            num_rows
+        );
+
         if left_and_right_margins.start == 0 && left_and_right_margins.end == self.physical_cols {
             return self.scroll_up(scroll_region, num_rows);
         }
@@ -437,13 +465,11 @@ impl Screen {
 
                 // Copy the source cells first
                 let cells = {
-                    let src_row = self.line_mut(src_row);
-                    if src_row.cells().len() < left_and_right_margins.end {
-                        src_row.resize(left_and_right_margins.end);
-                    }
-
-                    src_row.cells_mut()[left_and_right_margins.clone()]
+                    self.lines[src_row]
+                        .cells()
                         .iter()
+                        .skip(left_and_right_margins.start)
+                        .take(left_and_right_margins.end - left_and_right_margins.start)
                         .cloned()
                         .collect::<Vec<_>>()
                 };
@@ -452,16 +478,21 @@ impl Screen {
                 let dest_row = self.line_mut(dest_row);
                 dest_row.set_dirty();
                 dest_row.invalidate_implicit_hyperlinks();
-                if dest_row.cells().len() < left_and_right_margins.end {
-                    dest_row.resize(left_and_right_margins.end);
+                let dest_range =
+                    left_and_right_margins.start..left_and_right_margins.start + cells.len();
+                if dest_row.cells().len() < dest_range.end {
+                    dest_row.resize(dest_range.end);
                 }
 
-                for (src_cell, dest_cell) in cells
-                    .into_iter()
-                    .zip(&mut dest_row.cells_mut()[left_and_right_margins.clone()])
+                let tail_range = dest_range.end..left_and_right_margins.end;
+
+                for (src_cell, dest_cell) in
+                    cells.into_iter().zip(&mut dest_row.cells_mut()[dest_range])
                 {
                     *dest_cell = src_cell.clone();
                 }
+
+                dest_row.fill_range(tail_range, &Cell::default());
             }
         }
 
@@ -470,7 +501,12 @@ impl Screen {
             let dest_row = self.line_mut(n);
             dest_row.set_dirty();
             dest_row.invalidate_implicit_hyperlinks();
-            for cell in &mut dest_row.cells_mut()[left_and_right_margins.clone()] {
+            for cell in dest_row
+                .cells_mut()
+                .iter_mut()
+                .skip(left_and_right_margins.start)
+                .take(left_and_right_margins.end - left_and_right_margins.start)
+            {
                 *cell = Cell::default();
             }
         }
@@ -538,7 +574,7 @@ impl Screen {
             for _ in 0..to_move {
                 let mut line = self.lines.remove(remove_idx).unwrap();
                 // Make the line like a new one of the appropriate width
-                line.resize_and_clear(self.physical_cols);
+                line.resize_and_clear(self.physical_cols.min(TYPICAL_NUM_COLS));
                 line.set_dirty();
                 if scroll_region.end as usize == self.physical_rows {
                     self.lines.push_back(line);
@@ -563,12 +599,15 @@ impl Screen {
         if scroll_region.end as usize == self.physical_rows {
             // It's cheaper to push() than it is insert() at the end
             for _ in 0..to_add {
-                self.lines.push_back(Line::with_width(self.physical_cols));
+                self.lines
+                    .push_back(Line::with_width(self.physical_cols.min(TYPICAL_NUM_COLS)));
             }
         } else {
             for _ in 0..to_add {
-                self.lines
-                    .insert(phys_scroll.end, Line::with_width(self.physical_cols));
+                self.lines.insert(
+                    phys_scroll.end,
+                    Line::with_width(self.physical_cols.min(TYPICAL_NUM_COLS)),
+                );
             }
         }
     }
@@ -611,8 +650,10 @@ impl Screen {
         }
 
         for _ in 0..num_rows {
-            self.lines
-                .insert(phys_scroll.start, Line::with_width(self.physical_cols));
+            self.lines.insert(
+                phys_scroll.start,
+                Line::with_width(self.physical_cols.min(TYPICAL_NUM_COLS)),
+            );
         }
     }
 
@@ -640,13 +681,11 @@ impl Screen {
 
                 // Copy the source cells first
                 let cells = {
-                    let src_row = self.line_mut(src_row);
-                    if src_row.cells().len() < left_and_right_margins.end {
-                        src_row.resize(left_and_right_margins.end);
-                    }
-
-                    src_row.cells_mut()[left_and_right_margins.clone()]
+                    self.lines[src_row]
+                        .cells()
                         .iter()
+                        .skip(left_and_right_margins.start)
+                        .take(left_and_right_margins.end - left_and_right_margins.start)
                         .cloned()
                         .collect::<Vec<_>>()
                 };
@@ -655,16 +694,20 @@ impl Screen {
                 let dest_row = self.line_mut(dest_row);
                 dest_row.set_dirty();
                 dest_row.invalidate_implicit_hyperlinks();
-                if dest_row.cells().len() < left_and_right_margins.end {
-                    dest_row.resize(left_and_right_margins.end);
+                let dest_range =
+                    left_and_right_margins.start..left_and_right_margins.start + cells.len();
+                if dest_row.cells().len() < dest_range.end {
+                    dest_row.resize(dest_range.end);
                 }
+                let tail_range = dest_range.end..left_and_right_margins.end;
 
-                for (src_cell, dest_cell) in cells
-                    .into_iter()
-                    .zip(&mut dest_row.cells_mut()[left_and_right_margins.clone()])
+                for (src_cell, dest_cell) in
+                    cells.into_iter().zip(&mut dest_row.cells_mut()[dest_range])
                 {
                     *dest_cell = src_cell.clone();
                 }
+
+                dest_row.fill_range(tail_range, &Cell::default());
             }
         }
 
@@ -673,7 +716,12 @@ impl Screen {
             let dest_row = self.line_mut(n);
             dest_row.set_dirty();
             dest_row.invalidate_implicit_hyperlinks();
-            for cell in &mut dest_row.cells_mut()[left_and_right_margins.clone()] {
+            for cell in dest_row
+                .cells_mut()
+                .iter_mut()
+                .skip(left_and_right_margins.start)
+                .take(left_and_right_margins.end - left_and_right_margins.start)
+            {
                 *cell = Cell::default();
             }
         }

@@ -2,7 +2,8 @@ use super::*;
 use std::sync::Arc;
 use termwiz::escape::parser::Parser;
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub enum ClipboardSelection {
     Clipboard,
     PrimarySelection,

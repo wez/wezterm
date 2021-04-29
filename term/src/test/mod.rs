@@ -8,6 +8,7 @@ mod c1;
 mod csi;
 // mod selection; FIXME: port to render layer
 use crate::color::ColorPalette;
+use crate::screen::TYPICAL_NUM_COLS;
 use pretty_assertions::assert_eq;
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -98,7 +99,6 @@ impl TestTerm {
         self.term.advance_bytes(bytes);
     }
 
-    #[allow(dead_code)]
     fn set_mode(&mut self, mode: &str, enable: bool) {
         self.print(CSI);
         self.print(mode);
@@ -109,7 +109,11 @@ impl TestTerm {
         self.set_mode("?7", enable);
     }
 
-    #[allow(dead_code)]
+    fn set_left_and_right_margins(&mut self, left: usize, right: usize) {
+        self.print(CSI);
+        self.print(format!("{};{}s", left + 1, right + 1));
+    }
+
     fn set_scroll_region(&mut self, top: usize, bottom: usize) {
         self.print(CSI);
         self.print(format!("{};{}r", top + 1, bottom + 1));
@@ -577,6 +581,101 @@ fn cursor_movement_damage() {
     term.assert_dirty_lines(&[0, 1], Some("cursor movement dirties old and new lines"));
 }
 
+#[test]
+fn scroll_up_within_left_and_right_margins() {
+    let ones = "1".repeat(TYPICAL_NUM_COLS);
+    let twos = "2".repeat(TYPICAL_NUM_COLS);
+    let threes = "3".repeat(TYPICAL_NUM_COLS);
+    let fours = "4".repeat(TYPICAL_NUM_COLS + 2);
+    let fives = "5".repeat(TYPICAL_NUM_COLS);
+
+    let mut term = TestTerm::new(5, TYPICAL_NUM_COLS + 2, 0);
+
+    term.print(&ones);
+    term.print("\r\n");
+    term.print(&twos);
+    term.print("\r\n");
+    term.print(&threes);
+    term.print("\r\n");
+    term.print(&fours);
+    term.print("\r\n");
+    term.print(&fives);
+
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &[&ones, &twos, &threes, &fours, &fives],
+    );
+
+    term.set_mode("?69", true); // allow left/right margins to be set
+    term.set_left_and_right_margins(1, TYPICAL_NUM_COLS + 1);
+    term.set_scroll_region(2, 4);
+    term.cup(1, 4);
+    term.print("\n");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &[
+            &ones,
+            &twos,
+            &format!("3{}", "4".repeat(TYPICAL_NUM_COLS + 1)),
+            &format!("4{}  ", "5".repeat(TYPICAL_NUM_COLS - 1)),
+            &format!("5{}", " ".repeat(TYPICAL_NUM_COLS - 1)),
+        ],
+    );
+}
+
+#[test]
+fn scroll_down_within_left_and_right_margins() {
+    let ones = "1".repeat(TYPICAL_NUM_COLS);
+    let twos = "2".repeat(TYPICAL_NUM_COLS);
+    let threes = "3".repeat(TYPICAL_NUM_COLS);
+    let fours = "4".repeat(TYPICAL_NUM_COLS + 2);
+    let fives = "5".repeat(TYPICAL_NUM_COLS);
+
+    let mut term = TestTerm::new(5, TYPICAL_NUM_COLS + 2, 0);
+
+    term.print(&ones);
+    term.print("\r\n");
+    term.print(&twos);
+    term.print("\r\n");
+    term.print(&threes);
+    term.print("\r\n");
+    term.print(&fours);
+    term.print("\r\n");
+    term.print(&fives);
+
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &[&ones, &twos, &threes, &fours, &fives],
+    );
+
+    term.set_mode("?69", true); // allow left/right margins to be set
+    term.set_left_and_right_margins(1, TYPICAL_NUM_COLS + 1);
+    term.set_scroll_region(2, 5);
+    term.cup(1, 2);
+
+    // IL: Insert Line
+    term.print(CSI);
+    term.print("L");
+
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &[
+            &ones,
+            &twos,
+            &format!("3{}", " ".repeat(TYPICAL_NUM_COLS - 1)),
+            &format!("4{}  ", "3".repeat(TYPICAL_NUM_COLS - 1)),
+            &format!("5{}", "4".repeat(TYPICAL_NUM_COLS + 1)),
+        ],
+    );
+}
 /// Replicates a bug I initially found via:
 /// $ vim
 /// :help
