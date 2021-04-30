@@ -1,4 +1,4 @@
 #!/bin/bash
-TAGNAME=$(date +'%Y%m%d-%H%M%S')-$(git log --format=%h -1)
+TAGNAME=$(git show -s "--format=%cd-%h" "--date=format:%Y%m%d-%H%M%S")
 git tag $TAGNAME
 

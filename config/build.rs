@@ -61,7 +61,12 @@ fn main() {
             let head = head.canonicalize().unwrap();
             println!("cargo:rerun-if-changed={}", head.display());
             if let Ok(output) = std::process::Command::new("git")
-                .args(&["describe", "--tags", "--match", "20*"])
+                .args(&[
+                    "show",
+                    "-s",
+                    "--format=%cd-%h",
+                    "--date=format:%Y%m%d-%H%M%S",
+                ])
                 .output()
             {
                 let info = String::from_utf8_lossy(&output.stdout);

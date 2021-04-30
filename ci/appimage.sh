@@ -13,8 +13,7 @@ install -Dm644 assets/wezterm.appdata.xml AppDir/usr/share/metainfo/org.wezfurlo
 
 [ -x /tmp/linuxdeploy ] || ( curl -L 'https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage' -o /tmp/linuxdeploy && chmod +x /tmp/linuxdeploy )
 
-TAG_NAME=${TAG_NAME:-$(git describe --tags --match '20*')}
-TAG_NAME=${TAG_NAME:-$(date +'%Y%m%d-%H%M%S')-$(git log --format=%h -1)}
+TAG_NAME=${TAG_NAME:-$(git show -s "--format=%cd-%h" "--date=format:%Y%m%d-%H%M%S")}
 distro=$(lsb_release -is)
 distver=$(lsb_release -rs)
 

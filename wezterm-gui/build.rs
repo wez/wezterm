@@ -68,12 +68,17 @@ fn main() {
         if let Ok(tag) = std::fs::read("../.tag") {
             if let Ok(s) = String::from_utf8(tag) {
                 ci_tag = s.trim().to_string();
-                println!("cargo:rerun-if-changed=.tag");
+                println!("cargo:rerun-if-changed=../.tag");
             }
         }
         let version = if ci_tag.is_empty() {
             let mut cmd = std::process::Command::new("git");
-            cmd.args(&["describe", "--tags"]);
+            cmd.args(&[
+                "show",
+                "-s",
+                "--format=%cd-%h",
+                "--date=format:%Y%m%d-%H%M%S",
+            ]);
             if let Ok(output) = cmd.output() {
                 if output.status.success() {
                     String::from_utf8_lossy(&output.stdout).trim().to_owned()
