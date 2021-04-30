@@ -48,6 +48,9 @@ pub enum Alert {
         /// window/tab/pane that generated it
         focus: bool,
     },
+    /// When the title, or something that likely influences the title,
+    /// has been changed
+    TitleMaybeChanged,
 }
 
 pub trait AlertHandler {

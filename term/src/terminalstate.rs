@@ -3274,15 +3274,24 @@ impl<'a> Performer<'a> {
                 } else {
                     self.icon_title = Some(title.clone());
                 }
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::TitleMaybeChanged);
+                }
             }
             OperatingSystemCommand::SetIconNameAndWindowTitle(title) => {
                 self.icon_title.take();
                 self.title = title.clone();
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::TitleMaybeChanged);
+                }
             }
 
             OperatingSystemCommand::SetWindowTitleSun(title)
             | OperatingSystemCommand::SetWindowTitle(title) => {
                 self.title = title.clone();
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::TitleMaybeChanged);
+                }
             }
             OperatingSystemCommand::SetHyperlink(link) => {
                 self.set_hyperlink(link);
@@ -3312,6 +3321,9 @@ impl<'a> Performer<'a> {
                 ITermProprietary::File(image) => self.set_image(*image),
                 ITermProprietary::SetUserVar { name, value } => {
                     self.user_vars.insert(name, value);
+                    if let Some(handler) = self.alert_handler.as_mut() {
+                        handler.alert(Alert::TitleMaybeChanged);
+                    }
                 }
                 _ => log::warn!("unhandled iterm2: {:?}", iterm),
             },
@@ -3389,6 +3401,9 @@ impl<'a> Performer<'a> {
             }
             OperatingSystemCommand::CurrentWorkingDirectory(url) => {
                 self.current_dir = Url::parse(&url).ok();
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::TitleMaybeChanged);
+                }
             }
             OperatingSystemCommand::ChangeColorNumber(specs) => {
                 log::trace!("ChangeColorNumber: {:?}", specs);

@@ -46,7 +46,7 @@ use termwiz::image::ImageData;
 use wezterm_font::FontConfiguration;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{StableRowIndex, TerminalConfiguration};
+use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration};
 
 pub mod clipboard;
 mod keyevent;
@@ -663,35 +663,55 @@ impl TermWindow {
             return false;
         }
 
-        if let MuxNotification::PaneOutput(pane_id) = n {
-            let mut pane_in_window = false;
+        match n {
+            MuxNotification::Alert {
+                pane_id,
+                alert: Alert::TitleMaybeChanged,
+            }
+            | MuxNotification::PaneOutput(pane_id) => {
+                let mut pane_in_window = false;
 
-            let mux = Mux::get().expect("mux is calling us");
-            if let Some(mux_window) = mux.get_window(mux_window_id) {
-                for tab in mux_window.iter() {
-                    if tab.contains_pane(pane_id) {
-                        pane_in_window = true;
-                        break;
+                let mux = Mux::get().expect("mux is calling us");
+                if let Some(mux_window) = mux.get_window(mux_window_id) {
+                    for tab in mux_window.iter() {
+                        if tab.contains_pane(pane_id) {
+                            pane_in_window = true;
+                            break;
+                        }
                     }
+                } else {
+                    // Something inconsistent: cancel subscription
+                    return false;
+                }
+
+                if !pane_in_window {
+                    return true;
+                }
+            }
+            _ => return true,
+        }
+
+        let dead = Arc::clone(dead);
+        window.apply(move |myself, _window| {
+            if let Some(myself) = myself.downcast_mut::<Self>() {
+                match n {
+                    MuxNotification::Alert {
+                        alert: Alert::TitleMaybeChanged,
+                        ..
+                    } => {
+                        myself.update_title();
+                    }
+                    MuxNotification::PaneOutput(pane_id) => {
+                        myself.mux_pane_output_event(pane_id);
+                    }
+                    _ => {}
                 }
             } else {
                 // Something inconsistent: cancel subscription
-                return false;
+                dead.store(true, Ordering::Relaxed);
             }
-
-            if pane_in_window {
-                let dead = Arc::clone(dead);
-                window.apply(move |myself, _window| {
-                    if let Some(myself) = myself.downcast_mut::<Self>() {
-                        myself.mux_pane_output_event(pane_id);
-                    } else {
-                        // Something inconsistent: cancel subscription
-                        dead.store(true, Ordering::Relaxed);
-                    }
-                    Ok(())
-                });
-            }
-        }
+            Ok(())
+        });
 
         true
     }
