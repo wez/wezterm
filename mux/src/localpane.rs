@@ -298,6 +298,7 @@ impl Pane for LocalPane {
         let mut haystack = String::new();
         let mut coords = vec![];
 
+        #[derive(Copy, Clone)]
         struct Coord {
             byte_idx: usize,
             grapheme_idx: usize,
@@ -388,7 +389,14 @@ impl Pane for LocalPane {
 
             if !wrapped {
                 if let Pattern::Regex(_) = &pattern {
-                    haystack.push('\n');
+                    if let Some(coord) = coords.last().copied() {
+                        coords.push(Coord {
+                            byte_idx: haystack.len(),
+                            grapheme_idx: coord.grapheme_idx + 1,
+                            ..coord
+                        });
+                        haystack.push('\n');
+                    }
                 } else {
                     collect_matches(&mut results, &pattern, &haystack, &coords);
                     haystack.clear();

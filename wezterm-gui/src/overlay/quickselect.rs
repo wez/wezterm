@@ -23,18 +23,18 @@ const PATTERNS: [&str; 14] = [
     // markdown_url
     r"\[[^]]*\]\(([^)]+)\)",
     // url
-    r"(?:https?://|git@|git://|ssh://|ftp://|file:///)[^ ]+",
+    r"(?:https?://|git@|git://|ssh://|ftp://|file:///)\S+",
     // diff_a
-    r"--- a/([^ ]+)",
+    r"--- a/(\S+)",
     // diff_b
-    r"\+\+\+ b/([^ ]+)",
+    r"\+\+\+ b/(\S+)",
     // docker
     r"sha256:([0-9a-f]{64})",
     // path
     r"(?:[.\w\-@~]+)?(?:/[.\w\-@]+)+",
     // color
     r"#[0-9a-fA-F]{6}",
-    // uid
+    // uuid
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
     // ipfs
     r"Qm[0-9a-zA-Z]{44}",
