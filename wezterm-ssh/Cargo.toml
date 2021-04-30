@@ -12,7 +12,7 @@ base64 = "0.13"
 dirs-next = "2.0"
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 log = "0.4"
-portable-pty = { path = "../pty" }
+portable-pty = { version="0.4", path = "../pty" }
 regex = "1"
 smol = "1.2"
 ssh2 = {version="0.9", features=["openssl-on-win32"]}
