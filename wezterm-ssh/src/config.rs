@@ -46,20 +46,11 @@ impl Pattern {
             negated,
         }
     }
-}
 
-/// Represents `Host patter,list` stanza in the config,
-/// and the options that it logically contains
-#[derive(Debug, PartialEq, Eq, Clone)]
-struct HostGroup {
-    patterns: Vec<Pattern>,
-    options: ConfigMap,
-}
-
-impl HostGroup {
-    /// Returns true if hostname matches this stanza
-    fn is_match(&self, hostname: &str) -> bool {
-        for pat in &self.patterns {
+    /// Returns true if hostname matches the
+    /// condition specified by a list of patterns
+    fn match_group(hostname: &str, patterns: &[Self]) -> bool {
+        for pat in patterns {
             if pat.match_text(hostname) {
                 // We got a definitive name match.
                 // If it was an exlusion then we've been told
@@ -72,6 +63,71 @@ impl HostGroup {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Debug)]
+enum Criteria {
+    Host(Vec<Pattern>),
+    Exec(String),
+    OriginalHost(Vec<Pattern>),
+    User(Vec<Pattern>),
+    LocalUser(Vec<Pattern>),
+    All,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+enum Context {
+    FirstPass,
+    Canonical,
+    Final,
+}
+
+/// Represents `Host pattern,list` stanza in the config,
+/// and the options that it logically contains
+#[derive(Debug, PartialEq, Eq, Clone)]
+struct MatchGroup {
+    criteria: Vec<Criteria>,
+    context: Context,
+    options: ConfigMap,
+}
+
+impl MatchGroup {
+    fn is_match(&self, hostname: &str, user: &str, local_user: &str, context: Context) -> bool {
+        if self.context != context {
+            return false;
+        }
+        for c in &self.criteria {
+            match c {
+                Criteria::Host(patterns) => {
+                    if !Pattern::match_group(hostname, patterns) {
+                        return false;
+                    }
+                }
+                Criteria::Exec(_) => {
+                    log::warn!("Match Exec is not implemented");
+                }
+                Criteria::OriginalHost(patterns) => {
+                    if !Pattern::match_group(hostname, patterns) {
+                        return false;
+                    }
+                }
+                Criteria::User(patterns) => {
+                    if !Pattern::match_group(user, patterns) {
+                        return false;
+                    }
+                }
+                Criteria::LocalUser(patterns) => {
+                    if !Pattern::match_group(local_user, patterns) {
+                        return false;
+                    }
+                }
+                Criteria::All => {
+                    // Always matches
+                }
+            }
+        }
+        true
+    }
+}
+
 /// Holds the ordered set of parsed options.
 /// The config file semantics are that the first matching value
 /// for a given option takes precedence
@@ -80,7 +136,7 @@ struct ParsedConfigFile {
     /// options that appeared before any `Host` stanza
     options: ConfigMap,
     /// options inside a `Host` stanza
-    groups: Vec<HostGroup>,
+    groups: Vec<MatchGroup>,
 }
 
 impl ParsedConfigFile {
@@ -108,7 +164,7 @@ impl ParsedConfigFile {
                     v
                 };
 
-                if k == "host" {
+                fn parse_pattern_list(v: &str) -> Vec<Pattern> {
                     let mut patterns = vec![];
                     for p in v.split(',') {
                         let p = p.trim();
@@ -118,9 +174,69 @@ impl ParsedConfigFile {
                             patterns.push(Pattern::new(p, false));
                         }
                     }
-                    groups.push(HostGroup {
-                        patterns,
+                    patterns
+                }
+
+                if k == "host" {
+                    let patterns = parse_pattern_list(v);
+                    groups.push(MatchGroup {
+                        criteria: vec![Criteria::Host(patterns)],
                         options: ConfigMap::new(),
+                        context: Context::FirstPass,
+                    });
+                    continue;
+                }
+
+                if k == "match" {
+                    let mut criteria = vec![];
+                    let mut context = Context::FirstPass;
+
+                    let mut tokens = v.split_ascii_whitespace();
+
+                    while let Some(cname) = tokens.next() {
+                        match cname.to_lowercase().as_str() {
+                            "all" => {
+                                criteria.push(Criteria::All);
+                            }
+                            "canonical" => {
+                                context = Context::Canonical;
+                            }
+                            "final" => {
+                                context = Context::Final;
+                            }
+                            "exec" => {
+                                criteria.push(Criteria::Exec(
+                                    tokens.next().unwrap_or("false").to_string(),
+                                ));
+                            }
+                            "host" => {
+                                criteria.push(Criteria::Host(parse_pattern_list(
+                                    tokens.next().unwrap_or(""),
+                                )));
+                            }
+                            "originalhost" => {
+                                criteria.push(Criteria::OriginalHost(parse_pattern_list(
+                                    tokens.next().unwrap_or(""),
+                                )));
+                            }
+                            "user" => {
+                                criteria.push(Criteria::User(parse_pattern_list(
+                                    tokens.next().unwrap_or(""),
+                                )));
+                            }
+                            "localuser" => {
+                                criteria.push(Criteria::LocalUser(parse_pattern_list(
+                                    tokens.next().unwrap_or(""),
+                                )));
+                            }
+                            _ => break,
+                        }
+                    }
+
+                    groups.push(MatchGroup {
+                        criteria,
+                        options: ConfigMap::new(),
+                        context,
                     });
                     continue;
                 }
@@ -144,17 +260,31 @@ impl ParsedConfigFile {
     /// Apply configuration values that match the specified hostname to target,
     /// but only if a given key is not already present in target, because the
     /// semantics are that the first match wins
-    fn apply_matches(&self, hostname: &str, target: &mut ConfigMap) {
+    fn apply_matches(
+        &self,
+        hostname: &str,
+        user: &str,
+        local_user: &str,
+        context: Context,
+        target: &mut ConfigMap,
+    ) -> bool {
+        let mut needs_reparse = false;
+
         for (k, v) in &self.options {
             target.entry(k.to_string()).or_insert_with(|| v.to_string());
         }
         for group in &self.groups {
-            if group.is_match(hostname) {
+            if group.context != Context::FirstPass {
+                needs_reparse = true;
+            }
+            if group.is_match(hostname, user, local_user, context) {
                 for (k, v) in &group.options {
                     target.entry(k.to_string()).or_insert_with(|| v.to_string());
                 }
             }
         }
+
+        needs_reparse
     }
 }
 
@@ -227,6 +357,15 @@ impl Config {
         self.add_config_file("/etc/ssh/config");
     }
 
+    fn resolve_local_user(&self) -> String {
+        for user in &["USER", "USERNAME"] {
+            if let Some(user) = self.resolve_env(user) {
+                return user;
+            }
+        }
+        "unknown-user".to_string()
+    }
+
     /// Resolve the configuration for a given host.
     /// The returned map will expand environment and tokens for options
     /// where that is specified.
@@ -237,10 +376,29 @@ impl Config {
     /// to have the same results as `ssh`.
     pub fn for_host<H: AsRef<str>>(&self, host: H) -> ConfigMap {
         let host = host.as_ref();
+        let local_user = self.resolve_local_user();
+        let target_user = &local_user;
+
         let mut result = self.options.clone();
+        let mut needs_reparse = false;
 
         for config in &self.config_files {
-            config.apply_matches(host, &mut result);
+            if config.apply_matches(
+                host,
+                target_user,
+                &local_user,
+                Context::FirstPass,
+                &mut result,
+            ) {
+                needs_reparse = true;
+            }
+        }
+
+        if needs_reparse {
+            log::warn!(
+                "ssh configuration uses options that require two-phase \
+                parsing, which isn't supported"
+            );
         }
 
         for (k, v) in &mut result {
@@ -261,14 +419,9 @@ impl Config {
             .entry("port".to_string())
             .or_insert_with(|| "22".to_string());
 
-        result.entry("user".to_string()).or_insert_with(|| {
-            for user in &["USER", "USERNAME"] {
-                if let Some(user) = self.resolve_env(user) {
-                    return user;
-                }
-            }
-            "unknown-user".to_string()
-        });
+        result
+            .entry("user".to_string())
+            .or_insert_with(|| target_user.clone());
 
         if !result.contains_key("userknownhostsfile") {
             if let Some(home) = self.resolve_home() {
@@ -419,13 +572,18 @@ Config {
         ParsedConfigFile {
             options: {},
             groups: [
-                HostGroup {
-                    patterns: [
-                        Pattern {
-                            negated: false,
-                            pattern: "^foo$",
-                        },
+                MatchGroup {
+                    criteria: [
+                        Host(
+                            [
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^foo$",
+                                },
+                            ],
+                        ),
                     ],
+                    context: FirstPass,
                     options: {
                         "hostname": "10.0.0.1",
                         "identityfile": "%d/.ssh/id_pub.dsa",
@@ -496,6 +654,244 @@ Config {
     }
 
     #[test]
+    fn parse_match() {
+        let mut config = Config::new();
+
+        let mut fake_env = ConfigMap::new();
+        fake_env.insert("HOME".to_string(), "/home/me".to_string());
+        fake_env.insert("USER".to_string(), "me".to_string());
+        config.assign_environment(fake_env);
+
+        config.add_config_string(
+            r#"
+        # I am a comment
+        Something first
+        # the prior Something takes precedence
+        Something ignored
+        Match Host 192.168.1.8,wopr
+            FowardAgent yes
+            IdentityFile "%d/.ssh/id_pub.dsa"
+
+        Match Host !a.b,*.b User fred
+            ForwardAgent no
+            IdentityAgent "${HOME}/.ssh/agent"
+
+        Match Host !a.b,*.b User me
+            ForwardAgent no
+            IdentityAgent "${HOME}/.ssh/agent-me"
+
+        Host *
+            Something  else
+            "#,
+        );
+
+        snapshot!(
+            &config,
+            r#"
+Config {
+    config_files: [
+        ParsedConfigFile {
+            options: {
+                "something": "first",
+            },
+            groups: [
+                MatchGroup {
+                    criteria: [
+                        Host(
+                            [
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^192\\.168\\.1\\.8$",
+                                },
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^wopr$",
+                                },
+                            ],
+                        ),
+                    ],
+                    context: FirstPass,
+                    options: {
+                        "fowardagent": "yes",
+                        "identityfile": "%d/.ssh/id_pub.dsa",
+                    },
+                },
+                MatchGroup {
+                    criteria: [
+                        Host(
+                            [
+                                Pattern {
+                                    negated: true,
+                                    pattern: "^a\\.b$",
+                                },
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^.*\\.b$",
+                                },
+                            ],
+                        ),
+                        User(
+                            [
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^fred$",
+                                },
+                            ],
+                        ),
+                    ],
+                    context: FirstPass,
+                    options: {
+                        "forwardagent": "no",
+                        "identityagent": "${HOME}/.ssh/agent",
+                    },
+                },
+                MatchGroup {
+                    criteria: [
+                        Host(
+                            [
+                                Pattern {
+                                    negated: true,
+                                    pattern: "^a\\.b$",
+                                },
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^.*\\.b$",
+                                },
+                            ],
+                        ),
+                        User(
+                            [
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^me$",
+                                },
+                            ],
+                        ),
+                    ],
+                    context: FirstPass,
+                    options: {
+                        "forwardagent": "no",
+                        "identityagent": "${HOME}/.ssh/agent-me",
+                    },
+                },
+                MatchGroup {
+                    criteria: [
+                        Host(
+                            [
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^.*$",
+                                },
+                            ],
+                        ),
+                    ],
+                    context: FirstPass,
+                    options: {
+                        "something": "else",
+                    },
+                },
+            ],
+        },
+    ],
+    options: {},
+    tokens: {},
+    environment: Some(
+        {
+            "HOME": "/home/me",
+            "USER": "me",
+        },
+    ),
+}
+"#
+        );
+
+        let opts = config.for_host("random");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "random",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
+    "port": "22",
+    "something": "first",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+
+        let opts = config.for_host("192.168.1.8");
+        snapshot!(
+            opts,
+            r#"
+{
+    "fowardagent": "yes",
+    "hostname": "192.168.1.8",
+    "identityfile": "/home/me/.ssh/id_pub.dsa",
+    "port": "22",
+    "something": "first",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+
+        let opts = config.for_host("a.b");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "a.b",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
+    "port": "22",
+    "something": "first",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+
+        let opts = config.for_host("b.b");
+        snapshot!(
+            opts,
+            r#"
+{
+    "forwardagent": "no",
+    "hostname": "b.b",
+    "identityagent": "/home/me/.ssh/agent-me",
+    "identityfile": "/home/me/.ssh/id_dsa /home/me/.ssh/id_ecdsa /home/me/.ssh/id_ed25519 /home/me/.ssh/id_rsa",
+    "port": "22",
+    "something": "first",
+    "user": "me",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+
+        let mut fake_env = ConfigMap::new();
+        fake_env.insert("HOME".to_string(), "/home/fred".to_string());
+        fake_env.insert("USER".to_string(), "fred".to_string());
+        config.assign_environment(fake_env);
+
+        let opts = config.for_host("b.b");
+        snapshot!(
+            opts,
+            r#"
+{
+    "forwardagent": "no",
+    "hostname": "b.b",
+    "identityagent": "/home/fred/.ssh/agent",
+    "identityfile": "/home/fred/.ssh/id_dsa /home/fred/.ssh/id_ecdsa /home/fred/.ssh/id_ed25519 /home/fred/.ssh/id_rsa",
+    "port": "22",
+    "something": "first",
+    "user": "fred",
+    "userknownhostsfile": "/home/fred/.ssh/known_hosts /home/fred/.ssh/known_hosts2",
+}
+"#
+        );
+    }
+
+    #[test]
     fn parse_simple() {
         let mut config = Config::new();
 
@@ -533,45 +929,60 @@ Config {
                 "something": "first",
             },
             groups: [
-                HostGroup {
-                    patterns: [
-                        Pattern {
-                            negated: false,
-                            pattern: "^192\\.168\\.1\\.8$",
-                        },
-                        Pattern {
-                            negated: false,
-                            pattern: "^wopr$",
-                        },
+                MatchGroup {
+                    criteria: [
+                        Host(
+                            [
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^192\\.168\\.1\\.8$",
+                                },
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^wopr$",
+                                },
+                            ],
+                        ),
                     ],
+                    context: FirstPass,
                     options: {
                         "fowardagent": "yes",
                         "identityfile": "%d/.ssh/id_pub.dsa",
                     },
                 },
-                HostGroup {
-                    patterns: [
-                        Pattern {
-                            negated: true,
-                            pattern: "^a\\.b$",
-                        },
-                        Pattern {
-                            negated: false,
-                            pattern: "^.*\\.b$",
-                        },
+                MatchGroup {
+                    criteria: [
+                        Host(
+                            [
+                                Pattern {
+                                    negated: true,
+                                    pattern: "^a\\.b$",
+                                },
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^.*\\.b$",
+                                },
+                            ],
+                        ),
                     ],
+                    context: FirstPass,
                     options: {
                         "forwardagent": "no",
                         "identityagent": "${HOME}/.ssh/agent",
                     },
                 },
-                HostGroup {
-                    patterns: [
-                        Pattern {
-                            negated: false,
-                            pattern: "^.*$",
-                        },
+                MatchGroup {
+                    criteria: [
+                        Host(
+                            [
+                                Pattern {
+                                    negated: false,
+                                    pattern: "^.*$",
+                                },
+                            ],
+                        ),
                     ],
+                    context: FirstPass,
                     options: {
                         "something": "else",
                     },
