@@ -10,6 +10,12 @@ pub struct ToastNotification {
     pub timeout: Option<std::time::Duration>,
 }
 
+impl ToastNotification {
+    pub fn show(self) {
+        show(self)
+    }
+}
+
 #[cfg(windows)]
 use crate::windows as backend;
 #[cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]

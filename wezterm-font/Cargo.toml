@@ -28,6 +28,7 @@ unicode-segmentation = "1.7"
 unicode-general-category = "0.3"
 walkdir = "2"
 wezterm-term = { path = "../term", features=["use_serde"] }
+wezterm-toast-notification = { path = "../wezterm-toast-notification" }
 window = { path = "../window" }
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]

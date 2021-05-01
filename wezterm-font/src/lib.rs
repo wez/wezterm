@@ -12,8 +12,10 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use thiserror::Error;
 use wezterm_term::CellAttributes;
+use wezterm_toast_notification::ToastNotification;
 use window::default_dpi;
 
 mod hbwrap;
@@ -305,16 +307,33 @@ impl FontConfigInner {
                     .collect::<String>();
 
                 if config.warn_about_missing_glyphs {
-                    config::show_error(&format!(
+                    let url = "https://wezfurlong.org/wezterm/config/fonts.html";
+                    log::warn!(
                         "No fonts contain glyphs for these codepoints: {}.\n\
-                    Placeholder 'Last Resort' glyphs are being displayed instead.\n\
-                    You may wish to install additional fonts, or adjust your\n\
-                    configuration so that it can find them.\n\
-                    https://wezfurlong.org/wezterm/config/fonts.html\n\
-                    has more information about configuring fonts.\n\
-                    Set warn_about_missing_glyphs=false to suppress this message.",
-                        fallback_str.escape_unicode()
-                    ));
+                     Placeholder 'Last Resort' glyphs are being displayed instead.\n\
+                     You may wish to install additional fonts, or adjust your\n\
+                     configuration so that it can find them.\n\
+                     {} has more information about configuring fonts.\n\
+                     Set warn_about_missing_glyphs=false to suppress this message.",
+                        fallback_str.escape_unicode(),
+                        url,
+                    );
+
+                    ToastNotification {
+                        title: "Font problem".to_string(),
+                        message: format!(
+                            "No fonts contain glyphs for these codepoints: {}.\n\
+                            Placeholder glyphs are being displayed instead.\n\
+                            You may wish to install additional fonts, or adjust\n\
+                            your configuration so that it can find them.\n\
+                            Set warn_about_missing_glyphs=false to suppress this\n\
+                            message.",
+                            fallback_str.escape_unicode()
+                        ),
+                        url: Some(url.to_string()),
+                        timeout: Some(Duration::from_secs(15)),
+                    }
+                    .show();
                 } else {
                     log::warn!(
                         "No fonts contain glyphs for these codepoints: {}",

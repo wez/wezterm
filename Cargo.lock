@@ -4410,6 +4410,7 @@ dependencies = [
  "unicode-segmentation",
  "walkdir",
  "wezterm-term",
+ "wezterm-toast-notification",
  "winapi 0.3.9",
  "window",
 ]
