@@ -131,14 +131,18 @@ impl CommandBuilder {
 
     /// Convert the CommandBuilder to a `std::process::Command` instance.
     pub(crate) fn as_command(&self) -> anyhow::Result<std::process::Command> {
+        use std::os::unix::process::CommandExt;
+
         let mut cmd = if self.is_default_prog() {
-            let mut cmd = std::process::Command::new(&Self::get_shell()?);
-            // Run the shell as a login shell.  This is a little shaky; it just
-            // happens to be the case that bash, zsh, fish and tcsh use -l
-            // to indicate that they are login shells.  Ideally we'd just
-            // tell the command builder to prefix argv[0] with a `-`, but
-            // Rust doesn't support that.
-            cmd.arg("-l");
+            let shell = Self::get_shell()?;
+
+            let mut cmd = std::process::Command::new(&shell);
+
+            // Run the shell as a login shell by prefixing the shell's
+            // basename with `-` and setting that as argv0
+            let basename = shell.rsplit('/').next().unwrap_or(&shell);
+            cmd.arg0(&format!("-{}", basename));
+
             let home = Self::get_home_dir()?;
             let dir: &OsStr = self
                 .cwd

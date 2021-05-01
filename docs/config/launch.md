@@ -14,6 +14,9 @@ Your shell is determined by the following rules:
 a login shell.  A login shell generally loads additional startup files
 and sets up more environment than a non-login shell.
 
+*Since: nightly builds*: instead of passing `-l` to the shell, wezterm
+will spawn the shell as `-$SHELL` to invoke it as a login shell.
+
 Note: if you have recently changed your shell using `chsh` and you
 have `$SHELL` set in the environment, you will need to sign out and
 sign back in again for the environment to pick up your new `$SHELL`
