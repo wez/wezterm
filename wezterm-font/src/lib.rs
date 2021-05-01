@@ -224,28 +224,30 @@ impl FontConfigInner {
                 fallback_str.escape_unicode()
             );
 
-            match font_dirs.locate_fallback_for_codepoints(&no_glyphs) {
+            match locator.locate_fallback_for_codepoints(&no_glyphs) {
                 Ok(ref mut handles) => extra_handles.append(handles),
                 Err(err) => log::error!(
-                    "Error: {:#} while resolving fallback for {} from font_dirs",
+                    "Error: {:#} while resolving fallback for {} from font-locator",
                     err,
                     fallback_str.escape_unicode()
                 ),
+            }
+
+            if config.search_font_dirs_for_fallback {
+                match font_dirs.locate_fallback_for_codepoints(&no_glyphs) {
+                    Ok(ref mut handles) => extra_handles.append(handles),
+                    Err(err) => log::error!(
+                        "Error: {:#} while resolving fallback for {} from font_dirs",
+                        err,
+                        fallback_str.escape_unicode()
+                    ),
+                }
             }
 
             match built_in.locate_fallback_for_codepoints(&no_glyphs) {
                 Ok(ref mut handles) => extra_handles.append(handles),
                 Err(err) => log::error!(
                     "Error: {:#} while resolving fallback for {} for built-in fonts",
-                    err,
-                    fallback_str.escape_unicode()
-                ),
-            }
-
-            match locator.locate_fallback_for_codepoints(&no_glyphs) {
-                Ok(ref mut handles) => extra_handles.append(handles),
-                Err(err) => log::error!(
-                    "Error: {:#} while resolving fallback for {} from font-locator",
                     err,
                     fallback_str.escape_unicode()
                 ),

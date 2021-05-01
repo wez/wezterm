@@ -1096,6 +1096,9 @@ pub struct Config {
     pub sort_fallback_fonts_by_coverage: bool,
 
     #[serde(default)]
+    pub search_font_dirs_for_fallback: bool,
+
+    #[serde(default)]
     pub swallow_mouse_click_on_pane_focus: bool,
 
     #[serde(default)]
