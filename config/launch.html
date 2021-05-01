@@ -181,6 +181,8 @@ home directory from the password database.</li>
 <p><code>wezterm</code> will spawn the shell and pass <code>-l</code> as an argument to request
 a login shell.  A login shell generally loads additional startup files
 and sets up more environment than a non-login shell.</p>
+<p><em>Since: nightly builds</em>: instead of passing <code>-l</code> to the shell, wezterm
+will spawn the shell as <code>-$SHELL</code> to invoke it as a login shell.</p>
 <p>Note: if you have recently changed your shell using <code>chsh</code> and you
 have <code>$SHELL</code> set in the environment, you will need to sign out and
 sign back in again for the environment to pick up your new <code>$SHELL</code>
