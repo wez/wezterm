@@ -465,38 +465,12 @@ impl<T: Texture2d> GlyphCache<T> {
             idx_metrics = font.metrics_for_idx(info.font_idx)?;
         }
 
-        let x_scale;
-        let y_scale;
-
-        if info.font_idx == 0 {
-            // The base font is the current font, so there's no additional metrics
-            // based scaling, however, we may need to scale to accomodate num_cells
-            x_scale = 1.0 / info.num_cells as f64;
-            y_scale = 1.0;
-        } else if let (Some(base_cap), Some(cap)) =
-            (base_metrics.cap_height_ratio, idx_metrics.cap_height_ratio)
-        {
-            // If we know the cap height ratio for both fonts, we can scale
-            // the second one to match the cap height of the first
-            y_scale = base_cap / cap;
-            x_scale = y_scale / info.num_cells as f64;
-        } else {
-            // Otherwise, we scale based on the ratio of the metrics for
-            // the two fonts.
-
-            // If we know the cap height ratio for the first, we can adjust
-            // the overall scale so that the second font isn't oversized.
-            // Disable for now because it leads to emoji and other symbols
-            // being under-sized :-/
-            // https://github.com/wez/wezterm/issues/727
-            let base_cap = 1.0; // base_metrics.cap_height_ratio.unwrap_or(1.);
-            y_scale = base_cap * base_metrics.cell_height.get() / idx_metrics.cell_height.get();
-            x_scale = base_cap * base_metrics.cell_width.get()
-                / (idx_metrics.cell_width.get() / info.num_cells as f64);
-        }
-
         let aspect = (idx_metrics.cell_width / idx_metrics.cell_height).get();
-        let is_square_or_wide = aspect >= 0.9;
+
+        // 0.7 is used for this as that is ~ the threshold for \u24e9 on a mac,
+        // which is looks squareish and for which it is desirable to allow to
+        // overflow.  0.5 is the typical monospace font aspect ratio.
+        let is_square_or_wide = aspect >= 0.7;
 
         let allow_width_overflow = if is_square_or_wide {
             match self.fonts.config().allow_square_glyphs_to_overflow_width {
@@ -508,13 +482,75 @@ impl<T: Texture2d> GlyphCache<T> {
             false
         };
 
-        let scale = if !allow_width_overflow
-            && y_scale * glyph.width as f64 > base_metrics.cell_width.get() * info.num_cells as f64
-        {
-            // y-scaling would make us too wide, so use the x-scale
-            x_scale
+        // Maximum width allowed for this glyph based on its unicode width and
+        // the dimensions of a cell
+        let max_pixel_width = base_metrics.cell_width.get() * (info.num_cells as f64 + 0.25);
+
+        let scale;
+        if info.font_idx == 0 {
+            // We are the base font
+            scale = if allow_width_overflow {
+                1.0
+            } else {
+                // Scale the glyph to fit in its number of cells
+                1.0 / info.num_cells as f64
+            };
+        } else if !idx_metrics.is_scaled {
+            // A bitmap font that isn't scaled to the requested height.
+            let y_scale = base_metrics.cell_height.get() / idx_metrics.cell_height.get();
+            let y_scaled_width = y_scale * glyph.width as f64;
+
+            if allow_width_overflow || y_scaled_width <= max_pixel_width {
+                // prefer height-wise scaling
+                scale = y_scale;
+            } else {
+                // otherwise just make it fit the width
+                scale = max_pixel_width / glyph.width as f64;
+            }
         } else {
-            y_scale
+            // a scalable fallback font
+            let y_scale = match (
+                self.fonts.config().use_cap_height_to_scale_fallback_fonts,
+                base_metrics.cap_height_ratio,
+                idx_metrics.cap_height_ratio,
+            ) {
+                (true, Some(base_cap), Some(cap)) => {
+                    // both fonts have cap-height metrics and we're in
+                    // use_cap_height_to_scale_fallback_fonts mode, so
+                    // scale based on their respective cap heights
+                    base_cap / cap
+                }
+                _ => {
+                    // Assume that the size we requested doesn't need
+                    // any additional scaling
+                    1.0
+                }
+            };
+
+            // How wide the glyph would be using the y_scale we produced
+            let y_scaled_width = y_scale * glyph.width as f64;
+
+            if allow_width_overflow || y_scaled_width <= max_pixel_width {
+                scale = y_scale;
+            } else {
+                scale = max_pixel_width / glyph.width as f64;
+            }
+
+            #[cfg(debug_assertions)]
+            {
+                log::debug!(
+                    "{} allow_width_overflow={} is_square_or_wide={} aspect={} \
+                       y_scaled_width={} max_pixel_width={} glyph.width={} -> scale={}",
+                    info.text,
+                    allow_width_overflow,
+                    is_square_or_wide,
+                    aspect,
+                    y_scaled_width,
+                    max_pixel_width,
+                    glyph.width,
+                    scale
+                );
+            }
         };
 
         let (cell_width, cell_height) = (base_metrics.cell_width, base_metrics.cell_height);

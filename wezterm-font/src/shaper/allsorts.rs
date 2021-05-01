@@ -227,6 +227,7 @@ impl AllsortsParsedFont {
             underline_thickness,
             underline_position,
             cap_height_ratio: None,
+            is_scaled: true, // FIXME
         };
 
         log::trace!("metrics: {:?}", metrics);

@@ -98,6 +98,13 @@ struct FaceSize {
     dpi: u32,
     cell_width: f64,
     cell_height: f64,
+    is_scaled: bool,
+}
+
+pub struct SelectedFontSize {
+    pub width: f64,
+    pub height: f64,
+    pub is_scaled: bool,
 }
 
 impl Face {
@@ -283,10 +290,14 @@ impl Face {
 
     /// This is a wrapper around set_char_size and select_size
     /// that accounts for some weirdness with eg: color emoji
-    pub fn set_font_size(&mut self, point_size: f64, dpi: u32) -> anyhow::Result<(f64, f64)> {
+    pub fn set_font_size(&mut self, point_size: f64, dpi: u32) -> anyhow::Result<SelectedFontSize> {
         if let Some(face_size) = self.size.as_ref() {
             if face_size.size == point_size && face_size.dpi == dpi {
-                return Ok((face_size.cell_width, face_size.cell_height));
+                return Ok(SelectedFontSize {
+                    width: face_size.cell_width,
+                    height: face_size.cell_height,
+                    is_scaled: face_size.is_scaled,
+                });
             }
         }
 
@@ -302,10 +313,15 @@ impl Face {
         // the fallback code for set_pixel_sizes below.
         let size = (point_size * 64.0) as FT_F26Dot6;
 
-        let (cell_width, cell_height) = match self.set_char_size(size, size, dpi, dpi) {
+        let selected_size = match self.set_char_size(size, size, dpi, dpi) {
             Ok(_) => {
                 // Compute metrics for the nominal monospace cell
-                self.cell_metrics()
+                let (width, height) = self.cell_metrics();
+                SelectedFontSize {
+                    width,
+                    height,
+                    is_scaled: true,
+                }
             }
             Err(err) => {
                 log::debug!("set_char_size: {:?}, will inspect strikes", err);
@@ -352,18 +368,23 @@ impl Face {
                 }
                 let best = best.unwrap();
                 self.select_size(best.idx)?;
-                (f64::from(best.width), f64::from(best.height))
+                SelectedFontSize {
+                    width: f64::from(best.width),
+                    height: f64::from(best.height),
+                    is_scaled: false,
+                }
             }
         };
 
         self.size.replace(FaceSize {
             size: point_size,
             dpi,
-            cell_width,
-            cell_height,
+            cell_width: selected_size.width,
+            cell_height: selected_size.height,
+            is_scaled: selected_size.is_scaled,
         });
 
-        Ok((cell_width, cell_height))
+        Ok(selected_size)
     }
 
     fn set_char_size(

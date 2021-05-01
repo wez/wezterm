@@ -178,8 +178,8 @@ impl HarfbuzzShaper {
         {
             match self.load_fallback(font_idx).context("load_fallback")? {
                 Some(mut pair) => {
-                    let (width, _height) = pair.face.set_font_size(font_size, dpi)?;
-                    cell_width = width;
+                    let size = pair.face.set_font_size(font_size, dpi)?;
+                    cell_width = size.width;
                     shaped_any = pair.shaped_any;
                     pair.font.shape(&mut buf, self.features.as_slice());
                 }
@@ -396,11 +396,11 @@ impl FontShaper for HarfbuzzShaper {
             return Ok(metrics.clone());
         }
 
-        let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
+        let selected_size = pair.face.set_font_size(size, dpi)?;
         let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
         let metrics = FontMetrics {
-            cell_height: PixelLength::new(cell_height),
-            cell_width: PixelLength::new(cell_width),
+            cell_height: PixelLength::new(selected_size.height),
+            cell_width: PixelLength::new(selected_size.width),
             // Note: face.face.descender is useless, we have to go through
             // face.face.size.metrics to get to the real descender!
             descender: PixelLength::new(
@@ -413,6 +413,7 @@ impl FontShaper for HarfbuzzShaper {
                 unsafe { (*pair.face.face).underline_position as f64 } * y_scale / 64.,
             ),
             cap_height_ratio: pair.face.cap_height(),
+            is_scaled: selected_size.is_scaled,
         };
 
         self.metrics.borrow_mut().insert(key, metrics.clone());
@@ -450,15 +451,15 @@ impl FontShaper for HarfbuzzShaper {
             self.handles
         );
         while let Ok(Some(mut pair)) = self.load_fallback(metrics_idx) {
-            let (_, cell_height) = pair.face.set_font_size(size, dpi)?;
-            let diff = (theoretical_height - cell_height).abs();
+            let selected_size = pair.face.set_font_size(size, dpi)?;
+            let diff = (theoretical_height - selected_size.height).abs();
             let factor = diff / theoretical_height;
             if factor < 2.0 {
                 log::trace!(
                     "idx {} cell_height is {}, which is {} away from theoretical
                      height (factor {}). Seems good enough",
                     metrics_idx,
-                    cell_height,
+                    selected_size.height,
                     diff,
                     factor
                 );
@@ -470,7 +471,7 @@ impl FontShaper for HarfbuzzShaper {
                 diff,
                 factor,
                 theoretical_height,
-                cell_height
+                selected_size.height
             );
             metrics_idx += 1;
         }
