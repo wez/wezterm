@@ -83,27 +83,51 @@ fn nsstring(s: &str) -> StrongPtr {
     unsafe { StrongPtr::new(NSString::alloc(nil).init_str(s)) }
 }
 
+/// A little wrapper to make StrongPtr Send.
+/// it's actually fine but isn't implemented on the underlying
+/// type.
+/// https://github.com/SSheldon/rust-objc/issues/44
+struct SendStrongPtr(StrongPtr);
+unsafe impl Send for SendStrongPtr {}
+
 pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
     unsafe {
         let center: id = msg_send![
             class!(NSUserNotificationCenter),
             defaultUserNotificationCenter
         ];
+        let center = StrongPtr::new(center);
+
         let notif: id = msg_send![class!(NSUserNotification), alloc];
         let notif: id = msg_send![notif, init];
+        let notif = StrongPtr::new(notif);
 
-        let () = msg_send![notif, setTitle: nsstring(&toast.title)];
-        let () = msg_send![notif, setInformativeText: nsstring(&toast.message)];
+        let () = msg_send![*notif, setTitle: nsstring(&toast.title)];
+        let () = msg_send![*notif, setInformativeText: nsstring(&toast.message)];
 
         let mut info = CFMutableDictionary::new();
         if let Some(url) = toast.url {
             info.set(CFString::from_static_string("url"), CFString::new(&url));
-            let () = msg_send![notif, setUserInfo: info];
+            let () = msg_send![*notif, setUserInfo: info];
         }
 
         let delegate = NotifDelegate::alloc();
-        let () = msg_send![center, setDelegate: delegate];
-        let () = msg_send![center, deliverNotification: notif];
+        let () = msg_send![*center, setDelegate: delegate];
+        let () = msg_send![*center, deliverNotification: *notif];
+
+        if let Some(timeout) = toast.timeout {
+            let center = SendStrongPtr(center);
+            let notif = SendStrongPtr(notif);
+            // Spawn a thread to wait. This could be more efficient.
+            // We cannot simply use performSelector:withObject:afterDelay:
+            // because we're not guaranteed to be called from the main
+            // thread.  We also don't have access to the executor machinery
+            // from the window crate here, so we just do this basic take.
+            std::thread::spawn(move || {
+                std::thread::sleep(timeout);
+                let () = msg_send![*center.0, removeDeliveredNotification: *notif.0];
+            });
+        }
     }
 
     Ok(())
