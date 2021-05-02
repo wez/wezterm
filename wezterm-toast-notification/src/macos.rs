@@ -90,13 +90,15 @@ fn nsstring(s: &str) -> StrongPtr {
 struct SendStrongPtr(StrongPtr);
 unsafe impl Send for SendStrongPtr {}
 
+struct SendId(id);
+unsafe impl Send for SendId {}
+
 pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
     unsafe {
         let center: id = msg_send![
             class!(NSUserNotificationCenter),
             defaultUserNotificationCenter
         ];
-        let center = StrongPtr::new(center);
 
         let notif: id = msg_send![class!(NSUserNotification), alloc];
         let notif: id = msg_send![notif, init];
@@ -112,11 +114,11 @@ pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Er
         }
 
         let delegate = NotifDelegate::alloc();
-        let () = msg_send![*center, setDelegate: delegate];
-        let () = msg_send![*center, deliverNotification: *notif];
+        let () = msg_send![center, setDelegate: delegate];
+        let () = msg_send![center, deliverNotification: *notif];
 
         if let Some(timeout) = toast.timeout {
-            let center = SendStrongPtr(center);
+            let center = SendId(center);
             let notif = SendStrongPtr(notif);
             // Spawn a thread to wait. This could be more efficient.
             // We cannot simply use performSelector:withObject:afterDelay:
@@ -125,7 +127,7 @@ pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Er
             // from the window crate here, so we just do this basic take.
             std::thread::spawn(move || {
                 std::thread::sleep(timeout);
-                let () = msg_send![*center.0, removeDeliveredNotification: *notif.0];
+                let () = msg_send![center.0, removeDeliveredNotification: *notif.0];
             });
         }
     }
