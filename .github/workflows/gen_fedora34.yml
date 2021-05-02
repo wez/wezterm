@@ -1,0 +1,85 @@
+
+name: fedora34
+
+on:
+  pull_request:
+    branches:
+    - main
+    paths-ignore:
+    - '.cirrus.yml'
+    - 'docs/*'
+    - 'ci/build-docs.sh'
+    - 'ci/generate-docs.py'
+    - 'ci/subst-release-info.py'
+    - '.github/workflows/pages.yml'
+    - '**/*.md'
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: "ubuntu-latest"
+    container: "fedora:34"
+    steps:
+    - name: "Install git"
+      shell: bash
+      run: "yum install -y git"
+    - name: "Install curl"
+      shell: bash
+      run: "yum install -y curl"
+    - name: "checkout repo"
+      uses: actions/checkout@v2
+      with:
+         submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: "git fetch --prune --unshallow"
+    - name: "Install Rust"
+      uses: actions-rs/toolchain@v1
+      with:
+         profile: "minimal"
+         toolchain: "stable"
+         override: true
+         components: "rustfmt"
+      env:
+         ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+    - name: "Cache cargo"
+      uses: actions/cache@v2.1.5
+      with:
+         path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+
+         key: "fedora34-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+    - name: "Install System Deps"
+      shell: bash
+      run: " env PATH=$PATH ./get-deps"
+    - name: "Check formatting"
+      shell: bash
+      run: "cargo fmt --all -- --check"
+    - name: "Build (Release mode)"
+      shell: bash
+      run: "cargo build --all --release"
+    - name: "Test (Release mode)"
+      shell: bash
+      run: "cargo test --all --release"
+    - name: "Package"
+      shell: bash
+      run: "bash ci/deploy.sh"
+    - name: "Move Package for artifact upload"
+      shell: bash
+      run: |
+            mkdir pkg_
+            mv ~/rpmbuild/RPMS/*/*.rpm pkg_
+            
+
+    - name: "Upload artifact"
+      uses: actions/upload-artifact@master
+      with:
+         name: "fedora34"
+         path: "pkg_"
