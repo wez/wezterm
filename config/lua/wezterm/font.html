@@ -182,7 +182,7 @@ return {
 <ul>
 <li>The font family name, eg: <code>&quot;JetBrains Mono&quot;</code>.  The family name doesn't include any style information (such as weight, stretch or italic), which can be specified via the <em>attributes</em> parameter.  This is the recommended name to use for the font, as it the most compatible way to resolve an installed font.</li>
 <li>The computed <em>full name</em>, which is the family name with the sub-family (which incorporates style information) appended, eg: <code>&quot;JetBrains Mono Regular&quot;</code>.</li>
-<li>(Since nightly) The <em>postscript name</em>, which is an ostensibly unique name identifying a given font and style that is encoded into the font by the font designer.</li>
+<li>(Since 20210502-154244-3f7122cb) The <em>postscript name</em>, which is an ostensibly unique name identifying a given font and style that is encoded into the font by the font designer.</li>
 </ul>
 <p>When specifying a font using its family name, the second <em>attributes</em> parameter
 is an optional table that can be used to specify style attributes; the
@@ -198,7 +198,7 @@ return {
   font = wezterm.font(&quot;JetBrains Mono&quot;, {bold=true}),
 }
 </code></pre>
-<p><em>Since: nightly builds only</em></p>
+<p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>It is now possible to specify both font weight and font stretch when matching fonts:</p>
 <ul>
 <li><code>stretch</code> - specifies the font stretch to select.  The default value is <code>&quot;Normal&quot;</code>, and possible values are <code>&quot;UltraCondensed&quot;</code>, <code>&quot;ExtraCondensed&quot;</code>, <code>&quot;Condensed&quot;</code>, <code>&quot;SemiCondensed&quot;</code>, <code>&quot;Normal&quot;</code>, <code>&quot;SemiExpanded&quot;</code>, <code>&quot;Expanded&quot;</code>, <code>&quot;ExtraExpanded&quot;</code>, <code>&quot;UltraExpanded&quot;</code>.</li>
