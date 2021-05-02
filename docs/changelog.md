@@ -52,7 +52,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: mouse reporting button state not cleared when focus is lost, eg: from clicking a link [#744](https://github.com/wez/wezterm/issues/744)
 * Improved: better looking curly underline. Thanks to [@ModProg](https://github.com/ModProg)! [#733](https://github.com/wez/wezterm/pull/733)
 * Fixed: wezterm now sets argv0 to `-$SHELL` to invoke a login shell, rather than running `$SHELL -l`. [#753](https://github.com/wez/wezterm/issues/753)
-* Improved: ssh_config parsing now supports `Match` for `Host`, `LocalUser`.
+* Improved: `ssh_config` parsing now supports `Match` for `Host`, `LocalUser`.
 * Improved render performance for wide windows [#740](https://github.com/wez/wezterm/issues/740)
 * New color schemes: `Aurora`, `BlueDolphin`, `BlulocoDark`, `BlulocoLight`, `Doom Peacock`, `Galizur`, `Guezwhoz`, `PaleNightHC`, `Raycast_Dark`, `Raycast_Light`, `Sublette`, `iceberg-dark` and `iceberg-light`.
 
