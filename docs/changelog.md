@@ -27,7 +27,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: Window could vanish if a tab closed while the rightmost tab was active(!) [#690](https://github.com/wez/wezterm/issues/690)
 * Fixed: macOS: mouse cursor could get stuck in the hidden state. [#618](https://github.com/wez/wezterm/issues/618)
 * Improved: [font_rules](config/lua/config/font_rules.md) behavior to always append reasonable default `font_rules` to those that you may have specified in your config.  `font_rules` now also include defaults for half-bright text styles.
-* Improved: fallback fonts are scaled according to relative their *cap-height* metric to improve size consistency.  This partially applies to some symbol/emoji fonts, but is dependent upon the font having reliable metrics.
+* Improved: added [use_cap_height_to_scale_fallback_fonts](config/lua/config/use_cap_height_to_scale_fallback_fonts.md) option to scale secondary fonts according to relative their *cap-height* metric to improve size consistency.  This partially applies to some symbol/emoji fonts, but is dependent upon the font having reliable metrics.
 * Improved: font-config queries now run much faster, resulting in snappier startup on unix systems
 * Fixed: [Hide](config/lua/keyassignment/Hide.md) had no effect on macOS when the titlebar was disabled [#679](https://github.com/wez/wezterm/issues/679)
 * Fixed: key and mouse assignments set via [window:set_config_overrides](config/lua/window/set_config_overrides.md) were not respected. [#656](https://github.com/wez/wezterm/issues/656)
