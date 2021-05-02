@@ -1,6 +1,6 @@
 # `swallow_mouse_click_on_pane_focus = false`
 
-*Since: nightly builds only*
+*Since: 20210502-130208-bff6815d*
 
 When set to `true`, clicking on a pane will focus it.
 

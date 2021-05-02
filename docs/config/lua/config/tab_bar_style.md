@@ -1,6 +1,6 @@
 # `tab_bar_style`
 
-*Since: nightly builds*
+*Since: 20210502-154244-3f7122cb*
 
 `active_tab_left`, `active_tab_right`, `inactive_tab_left`,
 `inactive_tab_right`, `inactive_tab_hover_left`, `inactive_tab_hover_right`

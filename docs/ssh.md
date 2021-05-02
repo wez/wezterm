@@ -42,7 +42,7 @@ and respects the following options:
 All other options are parsed but have no effect.  Notably, neither `Match` or
 `Include` will do anything.
 
-*Since: nightly builds only:*
+*Since: 20210502-154244-3f7122cb:*
 
 `Match` is now recognized but currently supports only single-phase (`final`,
 `canonical` are not supported) configuration parsing for `Host` and

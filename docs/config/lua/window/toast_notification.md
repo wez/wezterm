@@ -1,6 +1,6 @@
 # `window:toast_notification(title, message,  [url, [timeout_milliseconds]])`
 
-*Since: nightly builds only*
+*Since: 20210502-154244-3f7122cb*
 
 Generates a desktop "toast notification" with the specified *title* and *message*.
 

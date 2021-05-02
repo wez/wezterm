@@ -1,6 +1,6 @@
 # wezterm.pad_left(string, min_width)
 
-*Since: nightly builds only*
+*Since: 20210502-130208-bff6815d*
 
 Returns a copy of `string` that is at least `min_width` columns
 (as measured by [wezterm.column_width](column_width.md)).

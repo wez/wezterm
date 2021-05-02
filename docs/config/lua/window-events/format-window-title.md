@@ -1,6 +1,6 @@
 # `format-window-title`
 
-*Since: nightly builds only*
+*Since: 20210502-154244-3f7122cb*
 
 The `format-window-title` event is emitted when the text for the window title
 needs to be recomputed.

@@ -1,6 +1,6 @@
 # wezterm.truncate_right(string, max_width)
 
-*Since: nightly builds only*
+*Since: 20210502-130208-bff6815d*
 
 Returns a copy of `string` that is no longer than `max_width` columns
 (as measured by [wezterm.column_width](column_width.md)).

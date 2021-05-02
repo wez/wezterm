@@ -1,6 +1,6 @@
 # force_reverse_video_cursor = false
 
-*Since: nightly builds only*
+*Since: 20210502-130208-bff6815d*
 
 When `force_reverse_video_cursor = true`, override the `cursor_fg`,
 `cursor_bg`, `cursor_border` settings from the color scheme and force the

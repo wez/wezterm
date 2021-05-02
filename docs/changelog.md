@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+* Not yet
+
+### 20210502-154244-3f7122cb
+
 * Fixed: red and blue subpixel channels were swapped, leading to excessively blurry text when using `freetype_load_flags="HorizontalLcd"`. [#639](https://github.com/wez/wezterm/issues/639)
 * Fixed: the selection wouldn't always clear when the intersecting lines change [#644](https://github.com/wez/wezterm/issues/644)
 * Fixed: vertical alignment issue with Iosevka on Windows [#661](https://github.com/wez/wezterm/issues/661)

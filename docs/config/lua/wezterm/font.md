@@ -15,7 +15,7 @@ The first parameter is the name of the font; the name can be one of the followin
 
 * The font family name, eg: `"JetBrains Mono"`.  The family name doesn't include any style information (such as weight, stretch or italic), which can be specified via the *attributes* parameter.  This is the recommended name to use for the font, as it the most compatible way to resolve an installed font.
 * The computed *full name*, which is the family name with the sub-family (which incorporates style information) appended, eg: `"JetBrains Mono Regular"`.
-* (Since nightly) The *postscript name*, which is an ostensibly unique name identifying a given font and style that is encoded into the font by the font designer.
+* (Since 20210502-154244-3f7122cb) The *postscript name*, which is an ostensibly unique name identifying a given font and style that is encoded into the font by the font designer.
 
 When specifying a font using its family name, the second *attributes* parameter
 is an optional table that can be used to specify style attributes; the
@@ -34,7 +34,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20210502-130208-bff6815d*
 
 It is now possible to specify both font weight and font stretch when matching fonts:
 

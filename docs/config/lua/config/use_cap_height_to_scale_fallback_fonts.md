@@ -1,6 +1,6 @@
 # `use_cap_height_to_scale_fallback_fonts = false`
 
-*Since: nightly builds only*
+*Since: 20210502-130208-bff6815d*
 
 When set to true, use the *cap-height* font metrics of the base and the current
 font to adjust the size of secondary fonts (such as bold or italic faces) to

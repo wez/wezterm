@@ -1,6 +1,6 @@
 # quick_select_patterns
 
-*Since: nightly builds only*
+*Since: 20210502-130208-bff6815d*
 
 Specify additional patterns to match when in [quick select mode](../../../quickselect.md).
 This setting is a table listing out a set of regular expressions.

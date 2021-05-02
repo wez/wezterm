@@ -1,6 +1,6 @@
 # `freetype_render_target = "Normal"`
 
-*Since: nightly builds only*
+*Since: 20210502-130208-bff6815d*
 
 Configures the *rendering* mode used with the freetype rasterizer.
 

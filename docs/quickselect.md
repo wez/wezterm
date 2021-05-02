@@ -1,6 +1,6 @@
 ## Quick Select Mode
 
-*Since: nightly builds only*
+*Since: 20210502-154244-3f7122cb*
 
 Quick Select mode allows you to quickly highlight text that matches
 commonly copied patterns, select a match by typing a one-or-two character

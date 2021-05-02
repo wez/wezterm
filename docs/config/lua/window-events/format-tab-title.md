@@ -1,6 +1,6 @@
 # `format-tab-title`
 
-*Since: nightly builds only*
+*Since: 20210502-130208-bff6815d*
 
 The `format-tab-title` event is emitted when the text for a tab title
 needs to be recomputed.
