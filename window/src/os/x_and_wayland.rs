@@ -45,7 +45,7 @@ impl Connection {
         Ok(Connection::X11(Rc::new(XConnection::create_new()?)))
     }
 
-    pub fn new_window(
+    pub async fn new_window(
         &self,
         class_name: &str,
         name: &str,
@@ -55,10 +55,12 @@ impl Connection {
         config: Option<&ConfigHandle>,
     ) -> anyhow::Result<Window> {
         match self {
-            Self::X11(_) => XWindow::new_window(class_name, name, width, height, callbacks, config),
+            Self::X11(_) => {
+                XWindow::new_window(class_name, name, width, height, callbacks, config).await
+            }
             #[cfg(feature = "wayland")]
             Self::Wayland(_) => {
-                WaylandWindow::new_window(class_name, name, width, height, callbacks, config)
+                WaylandWindow::new_window(class_name, name, width, height, callbacks, config).await
             }
         }
     }
@@ -106,7 +108,7 @@ impl ConnectionOps for Connection {
 }
 
 impl Window {
-    pub fn new_window(
+    pub async fn new_window(
         class_name: &str,
         name: &str,
         width: usize,
@@ -117,6 +119,7 @@ impl Window {
         Connection::get()
             .unwrap()
             .new_window(class_name, name, width, height, callbacks, config)
+            .await
     }
 }
 

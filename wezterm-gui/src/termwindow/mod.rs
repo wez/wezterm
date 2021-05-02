@@ -350,7 +350,8 @@ impl WindowCallbacks for TermWindow {
                 dimensions.pixel_height,
                 guts,
                 Some(&config),
-            )?;
+            )
+            .await?;
 
             Self::apply_icon(&window)?;
             Self::start_periodic_maintenance(window.clone());
@@ -465,7 +466,7 @@ fn reload_background_image(
 }
 
 impl TermWindow {
-    pub fn new_window(mux_window_id: MuxWindowId) -> anyhow::Result<()> {
+    pub async fn new_window(mux_window_id: MuxWindowId) -> anyhow::Result<()> {
         let config = configuration();
 
         let window_background = load_background_image(&config);
@@ -566,7 +567,8 @@ impl TermWindow {
                 has_animation: RefCell::new(None),
             }),
             Some(&config),
-        )?;
+        )
+        .await?;
 
         Self::apply_icon(&window)?;
         Self::setup_clipboard(&window, mux_window_id, clipboard_contents);

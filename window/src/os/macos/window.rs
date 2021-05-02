@@ -354,7 +354,7 @@ fn function_key_to_keycode(function_key: char) -> KeyCode {
 pub struct Window(usize);
 
 impl Window {
-    pub fn new_window(
+    pub async fn new_window(
         _class_name: &str,
         name: &str,
         width: usize,

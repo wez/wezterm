@@ -28,11 +28,15 @@ impl GuiFrontEnd {
             if let Some(_fe) = fe.upgrade() {
                 match n {
                     MuxNotification::WindowCreated(mux_window_id) => {
-                        if let Err(err) = TermWindow::new_window(mux_window_id) {
-                            log::error!("Failed to create window: {:#}", err);
-                            let mux = Mux::get().expect("subscribe to trigger on main thread");
-                            mux.kill_window(mux_window_id);
-                        }
+                        promise::spawn::spawn(async move {
+                            if let Err(err) = TermWindow::new_window(mux_window_id).await {
+                                log::error!("Failed to create window: {:#}", err);
+                                let mux = Mux::get().expect("subscribe to trigger on main thread");
+                                mux.kill_window(mux_window_id);
+                            }
+                            anyhow::Result::<()>::Ok(())
+                        })
+                        .detach();
                     }
                     MuxNotification::PaneOutput(_) => {}
                     MuxNotification::Alert {

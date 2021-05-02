@@ -161,7 +161,7 @@ impl PendingEvent {
 pub struct WaylandWindow(usize);
 
 impl WaylandWindow {
-    pub fn new_window(
+    pub async fn new_window(
         class_name: &str,
         name: &str,
         width: usize,
