@@ -73,12 +73,13 @@ on most Linux systems.
 |Fedora31    |[{{ fedora31_rpm_stable_asset }}]({{ fedora31_rpm_stable }}) |[{{ fedora31_rpm_nightly_asset }}]({{ fedora31_rpm_nightly }})|
 |Fedora32    |[{{ fedora32_rpm_stable_asset }}]({{ fedora32_rpm_stable }}) |[{{ fedora32_rpm_nightly_asset }}]({{ fedora32_rpm_nightly }})|
 |Fedora33    |[{{ fedora33_rpm_stable_asset }}]({{ fedora33_rpm_stable }}) |[{{ fedora33_rpm_nightly_asset }}]({{ fedora33_rpm_nightly }})|
+|Fedora34    | Use Fedora 33 or Nightly |[{{ fedora34_rpm_nightly_asset }}]({{ fedora34_rpm_nightly }})|
 
-To download and install form the CLI you can use something like this, which
-shows how to install the Fedora 31 package:
+To download and install from the CLI you can use something like this, which
+shows how to install the Fedora 33 package:
 
 ```bash
-sudo dnf install -y {{ fedora31_rpm_stable }}
+sudo dnf install -y {{ fedora33_rpm_stable }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
