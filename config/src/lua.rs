@@ -122,64 +122,66 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         )?;
 
         wezterm_mod.set(
-            "truncate_to_width",
-            lua.create_function(
-                |_, (s, max_width, min_width): (String, usize, Option<usize>)| {
-                    let mut result = String::new();
-                    let mut len = 0;
-                    for g in s.graphemes(true) {
-                        let g_len = grapheme_column_width(g);
-                        if g_len + len > max_width {
-                            break;
-                        }
-                        result.push_str(g);
-                        len += g_len;
-                    }
+            "pad_right",
+            lua.create_function(|_, (mut result, width): (String, usize)| {
+                let mut len = unicode_column_width(&result);
+                while len < width {
+                    result.push(' ');
+                    len += 1;
+                }
 
-                    if let Some(min_width) = min_width {
-                        while len < min_width {
-                            if len >= max_width {
-                                break;
-                            }
-                            result.push(' ');
-                            len += 1;
-                        }
-                    }
-
-                    Ok(result)
-                },
-            )?,
+                Ok(result)
+            })?,
         )?;
 
         wezterm_mod.set(
-            "truncate_left_to_width",
-            lua.create_function(
-                |_, (s, max_width, min_width): (String, usize, Option<usize>)| {
-                    let mut result = vec![];
-                    let mut len = 0;
-                    for g in s.graphemes(true).rev() {
-                        let g_len = grapheme_column_width(g);
-                        if g_len + len > max_width {
-                            break;
-                        }
-                        result.push(g);
-                        len += g_len;
-                    }
+            "pad_left",
+            lua.create_function(|_, (mut result, width): (String, usize)| {
+                let mut len = unicode_column_width(&result);
+                while len < width {
+                    result.insert(0, ' ');
+                    len += 1;
+                }
 
-                    if let Some(min_width) = min_width {
-                        while len < min_width {
-                            if len >= max_width {
-                                break;
-                            }
-                            result.push(" ");
-                            len += 1;
-                        }
-                    }
+                Ok(result)
+            })?,
+        )?;
 
-                    result.reverse();
-                    Ok(result.join(""))
-                },
-            )?,
+        wezterm_mod.set(
+            "truncate_right",
+            lua.create_function(|_, (s, max_width): (String, usize)| {
+                let mut result = String::new();
+                let mut len = 0;
+                for g in s.graphemes(true) {
+                    let g_len = grapheme_column_width(g);
+                    if g_len + len > max_width {
+                        break;
+                    }
+                    result.push_str(g);
+                    len += g_len;
+                }
+
+                Ok(result)
+            })?,
+        )?;
+
+        wezterm_mod.set(
+            "truncate_left",
+            lua.create_function(|_, (s, max_width): (String, usize)| {
+                let mut result = vec![];
+                let mut len = 0;
+                for g in s.graphemes(true).rev() {
+                    let g_len = grapheme_column_width(g);
+                    if g_len + len > max_width {
+                        break;
+                    }
+                    result.push(g);
+                    len += g_len;
+                }
+
+                result.reverse();
+                Ok(result.join(""))
+            })?,
         )?;
 
         wezterm_mod.set("font", lua.create_function(font)?)?;
