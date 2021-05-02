@@ -49,7 +49,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [wezterm.pad_left](config/lua/wezterm/pad_left.md), [wwezterm.pad_right](config/lua/wezterm/pad_right.md), [wezterm.truncate_left](config/lua/wezterm/truncate_left.md) and [wezterm.truncate_right](config/lua/wezterm/truncate_right.md) function for truncating/padding a string based on its displayed width
 * Updated bundled `Noto Color Emoji` font to version 2.020 with unicode 13.1 support. Thanks to [@4cm4k1](https://github.com/4cm4k1)! [#742](https://github.com/wez/wezterm/pull/742)
 * Fixed: Numpad Enter reported as CTRL-C on macOS [#739](https://github.com/wez/wezterm/issues/739)
-* Fixed: mouse reporting gbutton state not cleared when focus is lost, eg: from clicking a link [#744](https://github.com/wez/wezterm/issues/744)
+* Fixed: mouse reporting button state not cleared when focus is lost, eg: from clicking a link [#744](https://github.com/wez/wezterm/issues/744)
 * Improved: better looking curly underline. Thanks to [@ModProg](https://github.com/ModProg)! [#733](https://github.com/wez/wezterm/pull/733)
 * Fixed: wezterm now sets argv0 to `-$SHELL` to invoke a login shell, rather than running `$SHELL -l`. [#753](https://github.com/wez/wezterm/issues/753)
 * Improved: ssh_config parsing now supports `Match` for `Host`, `LocalUser`.
