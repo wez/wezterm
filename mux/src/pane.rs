@@ -83,6 +83,10 @@ pub struct LogicalLine {
 }
 
 impl LogicalLine {
+    pub fn contains_y(&self, y: StableRowIndex) -> bool {
+        y >= self.first_row && y < self.first_row + self.physical_lines.len() as StableRowIndex
+    }
+
     pub fn xy_to_logical_x(&self, x: usize, y: StableRowIndex) -> usize {
         let mut offset = 0;
         for (idx, line) in self.physical_lines.iter().enumerate() {
@@ -179,6 +183,7 @@ pub trait Pane: Downcast {
         // un-wrap, scan, and re-wrap that thing.
         // This is an imperfect length constraint to partially manage the cost.
         const MAX_LOGICAL_LINE_LEN: usize = 1024;
+        let mut back_len = 0;
 
         // Look backwards to find the start of the first logical line
         while first > 0 {
@@ -189,9 +194,10 @@ pub trait Pane: Downcast {
             if !back[0].last_cell_was_wrapped() {
                 break;
             }
-            if back[0].cells().len() > MAX_LOGICAL_LINE_LEN {
+            if back[0].cells().len() + back_len > MAX_LOGICAL_LINE_LEN {
                 break;
             }
+            back_len += back[0].cells().len();
             first = prior;
             for (idx, line) in back.into_iter().enumerate() {
                 phys.insert(idx, line);

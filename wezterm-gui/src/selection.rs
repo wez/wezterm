@@ -68,19 +68,22 @@ impl SelectionRange {
 
     /// Computes the selection range for the line around the specified coords
     pub fn line_around(start: SelectionCoordinate, pane: &dyn Pane) -> Self {
-        let logical = pane.get_logical_lines(start.y..start.y + 1);
-        let logical = &logical[0];
-
-        Self {
-            start: SelectionCoordinate {
-                x: 0,
-                y: logical.first_row,
-            },
-            end: SelectionCoordinate {
-                x: usize::max_value(),
-                y: logical.first_row + (logical.physical_lines.len() - 1) as StableRowIndex,
-            },
+        for logical in pane.get_logical_lines(start.y..start.y + 1) {
+            if logical.contains_y(start.y) {
+                return Self {
+                    start: SelectionCoordinate {
+                        x: 0,
+                        y: logical.first_row,
+                    },
+                    end: SelectionCoordinate {
+                        x: usize::max_value(),
+                        y: logical.first_row + (logical.physical_lines.len() - 1) as StableRowIndex,
+                    },
+                };
+            }
         }
+        // Shouldn't happen, but return a reasonable fallback
+        Self { start, end: start }
     }
 
     pub fn zone_around(start: SelectionCoordinate, pane: &dyn mux::pane::Pane) -> Self {
@@ -131,31 +134,37 @@ impl SelectionRange {
 
     /// Computes the selection range for the word around the specified coords
     pub fn word_around(start: SelectionCoordinate, pane: &dyn Pane) -> Self {
-        let logical = pane.get_logical_lines(start.y..start.y + 1);
-        let logical = &logical[0];
+        for logical in pane.get_logical_lines(start.y..start.y + 1) {
+            if !logical.contains_y(start.y) {
+                continue;
+            }
 
-        let start_idx = logical.xy_to_logical_x(start.x, start.y);
-        match logical
-            .logical
-            .compute_double_click_range(start_idx, is_double_click_word)
-        {
-            DoubleClickRange::Range(click_range) => {
-                let (start_y, start_x) = logical.logical_x_to_physical_coord(click_range.start);
-                let (end_y, end_x) = logical.logical_x_to_physical_coord(click_range.end - 1);
-                Self {
-                    start: SelectionCoordinate {
-                        x: start_x,
-                        y: start_y,
-                    },
-                    end: SelectionCoordinate { x: end_x, y: end_y },
+            let start_idx = logical.xy_to_logical_x(start.x, start.y);
+            return match logical
+                .logical
+                .compute_double_click_range(start_idx, is_double_click_word)
+            {
+                DoubleClickRange::Range(click_range) => {
+                    let (start_y, start_x) = logical.logical_x_to_physical_coord(click_range.start);
+                    let (end_y, end_x) = logical.logical_x_to_physical_coord(click_range.end - 1);
+                    Self {
+                        start: SelectionCoordinate {
+                            x: start_x,
+                            y: start_y,
+                        },
+                        end: SelectionCoordinate { x: end_x, y: end_y },
+                    }
                 }
-            }
-            DoubleClickRange::RangeWithWrap(_) => {
-                // We're using logical lines to match against, so we should never get
-                // a RangeWithWrap result here
-                unreachable!()
-            }
+                DoubleClickRange::RangeWithWrap(_) => {
+                    // We're using logical lines to match against, so we should never get
+                    // a RangeWithWrap result here
+                    unreachable!()
+                }
+            };
         }
+
+        // Shouldn't happen, but return a reasonable fallback
+        Self { start, end: start }
     }
 
     /// Extends the current selection by unioning it with another selection range
