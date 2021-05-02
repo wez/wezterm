@@ -1,0 +1,12 @@
+# Sublette
+[colors]
+foreground = "#ccced0"
+background = "#202535"
+cursor_bg = "#ccced0"
+cursor_border = "#ccced0"
+cursor_fg = "#202535"
+selection_bg = "#ccced0"
+selection_fg = "#202535"
+
+ansi = ["#253045","#ee5577","#55ee77","#ffdd88","#5588ff","#ff77cc","#44eeee","#f5f5da"]
+brights = ["#405570","#ee6655","#99ee77","#ffff77","#77bbff","#aa88ff","#55ffbb","#ffffee"]

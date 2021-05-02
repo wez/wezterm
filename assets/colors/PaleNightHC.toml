@@ -1,0 +1,12 @@
+# PaleNightHC
+[colors]
+foreground = "#cccccc"
+background = "#3e4251"
+cursor_bg = "#ffcb6b"
+cursor_border = "#ffcb6b"
+cursor_fg = "#323232"
+selection_bg = "#717cb4"
+selection_fg = "#80cbc4"
+
+ansi = ["#000000","#f07178","#c3e88d","#ffcb6b","#82aaff","#c792ea","#89ddff","#ffffff"]
+brights = ["#666666","#f6a9ae","#dbf1ba","#ffdfa6","#b4ccff","#ddbdf2","#b8eaff","#999999"]

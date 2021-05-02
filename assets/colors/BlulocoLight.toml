@@ -1,12 +1,12 @@
 # BlulocoLight
 [colors]
-foreground = "#2a2c33"
-background = "#f7f7f7"
-cursor_bg = "#ed0047"
-cursor_border = "#ed0047"
+foreground = "#373a41"
+background = "#f9f9f9"
+cursor_bg = "#f32759"
+cursor_border = "#f32759"
 cursor_fg = "#ffffff"
-selection_bg = "#d2ecff"
-selection_fg = "#2a2c33"
+selection_bg = "#daf0ff"
+selection_fg = "#373a41"
 
-ansi = ["#cbccd5","#c90e42","#21883a","#d54d17","#1e44dd","#6d1bed","#1f4d7a","#000000"]
-brights = ["#dedfe8","#fc4a6d","#34b354","#b89427","#1085d9","#c00db3","#5b80ad","#1d1d22"]
+ansi = ["#373a41","#d52753","#23974a","#df631c","#275fe4","#823ff1","#27618d","#babbc2"]
+brights = ["#676a77","#ff6480","#3cbc66","#c5a332","#0099e1","#ce33c0","#6d93bb","#d3d3d3"]

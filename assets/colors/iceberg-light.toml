@@ -1,0 +1,12 @@
+# iceberg-light
+[colors]
+foreground = "#33374c"
+background = "#e8e9ec"
+cursor_bg = "#33374c"
+cursor_border = "#33374c"
+cursor_fg = "#e8e9ec"
+selection_bg = "#33374c"
+selection_fg = "#e8e9ec"
+
+ansi = ["#dcdfe7","#cc517a","#668e3d","#c57339","#2d539e","#7759b4","#3f83a6","#33374c"]
+brights = ["#8389a3","#cc3768","#598030","#b6662d","#22478e","#6845ad","#327698","#262a3f"]

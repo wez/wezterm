@@ -1,0 +1,12 @@
+# Galizur
+[colors]
+foreground = "#ddeeff"
+background = "#071317"
+cursor_bg = "#ddeeff"
+cursor_border = "#ddeeff"
+cursor_fg = "#071317"
+selection_bg = "#071317"
+selection_fg = "#ddeeff"
+
+ansi = ["#223344","#aa1122","#33aa11","#ccaa22","#2255cc","#7755aa","#22bbdd","#8899aa"]
+brights = ["#556677","#ff1133","#33ff11","#ffdd33","#3377ff","#aa77ff","#33ddff","#bbccdd"]

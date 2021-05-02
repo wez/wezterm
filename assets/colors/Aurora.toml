@@ -1,0 +1,12 @@
+# Aurora
+[colors]
+foreground = "#ffca28"
+background = "#23262e"
+cursor_bg = "#ee5d43"
+cursor_border = "#ee5d43"
+cursor_fg = "#ffd29c"
+selection_bg = "#292e38"
+selection_fg = "#00e8c6"
+
+ansi = ["#23262e","#f0266f","#8fd46d","#ffe66d","#0321d7","#ee5d43","#03d6b8","#c74ded"]
+brights = ["#292e38","#f92672","#8fd46d","#ffe66d","#03d6b8","#ee5d43","#03d6b8","#c74ded"]

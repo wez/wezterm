@@ -1,0 +1,12 @@
+# Raycast_Light
+[colors]
+foreground = "#000000"
+background = "#ffffff"
+cursor_bg = "#000000"
+cursor_border = "#000000"
+cursor_fg = "#000000"
+selection_bg = "#e5e5e5"
+selection_fg = "#000000"
+
+ansi = ["#000000","#b12424","#006b4f","#f8a300","#138af2","#9a1b6e","#3eb8bf","#ffffff"]
+brights = ["#000000","#b12424","#006b4f","#f8a300","#138af2","#9a1b6e","#3eb8bf","#ffffff"]

@@ -54,6 +54,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: wezterm now sets argv0 to `-$SHELL` to invoke a login shell, rather than running `$SHELL -l`. [#753](https://github.com/wez/wezterm/issues/753)
 * Improved: ssh_config parsing now supports `Match` for `Host`, `LocalUser`.
 * Improved render performance for wide windows [#740](https://github.com/wez/wezterm/issues/740)
+* New color schemes: `Aurora`, `BlueDolphin`, `BlulocoDark`, `BlulocoLight`, `Doom Peacock`, `Galizur`, `Guezwhoz`, `PaleNightHC`, `Raycast_Dark`, `Raycast_Light`, `Sublette`, `iceberg-dark` and `iceberg-light`.
 
 ### 20210405-110924-a5bb5be8
 

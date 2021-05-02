@@ -1,0 +1,12 @@
+# BlueDolphin
+[colors]
+foreground = "#c5f2ff"
+background = "#006984"
+cursor_bg = "#ffcc00"
+cursor_border = "#ffcc00"
+cursor_fg = "#292d3e"
+selection_bg = "#2baeca"
+selection_fg = "#eceff1"
+
+ansi = ["#292d3e","#ff8288","#b4e88d","#f4d69f","#82aaff","#e9c1ff","#89ebff","#d0d0d0"]
+brights = ["#434758","#ff8b92","#ddffa7","#ffe585","#9cc4ff","#ddb0f6","#a3f7ff","#ffffff"]
