@@ -79,15 +79,6 @@ jobs:
          prerelease: true
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-    - name: "Update AUR"
-      uses: KSXGitHub/github-actions-deploy-aur@master
-      with:
-         pkgname: "wezterm-bin"
-         pkgbuild: "PKGBUILD"
-         commit_username: "wez"
-         commit_email: "wez@wezfurlong.org"
-         ssh_private_key: "${{ secrets.AUR_SSH_PRIVATE_KEY }}"
-         commit_message: "Automated update to match latest tag"
     - name: "Checkout linuxbrew tap"
       uses: actions/checkout@v2
       with:

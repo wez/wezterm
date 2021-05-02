@@ -407,28 +407,6 @@ cargo build --all --release""",
 
         return steps
 
-    def update_tagged_aur(self):
-        steps = []
-
-        if self.app_image:
-            # The AppImage build step also expands the PKGBUILD template
-            steps += [
-                ActionStep(
-                    "Update AUR",
-                    action="KSXGitHub/github-actions-deploy-aur@master",
-                    params={
-                        "pkgname": "wezterm-bin",
-                        "pkgbuild": "PKGBUILD",
-                        "commit_username": "wez",
-                        "commit_email": "wez@wezfurlong.org",
-                        "ssh_private_key": "${{ secrets.AUR_SSH_PRIVATE_KEY }}",
-                        "commit_message": "Automated update to match latest tag",
-                    },
-                )
-            ]
-
-        return steps
-
     def global_env(self):
         env = {}
         if "macos" in self.name:
@@ -512,7 +490,6 @@ cargo build --all --release""",
         steps += self.test_all_release()
         steps += self.package()
         steps += self.upload_asset_tag()
-        steps += self.update_tagged_aur()
         steps += self.update_homebrew_tap()
 
         env = self.global_env()
