@@ -2,7 +2,7 @@
 
 *Since: nightly builds only*
 
-Returns a copy of `string` that is at leasst `min_width` columns
+Returns a copy of `string` that is at least `min_width` columns
 (as measured by [wezterm.column_width](column_width.md)).
 
 If the string is shorter than `min_width`, spaces are added to
