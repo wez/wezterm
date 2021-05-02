@@ -53,6 +53,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved: better looking curly underline. Thanks to [@ModProg](https://github.com/ModProg)! [#733](https://github.com/wez/wezterm/pull/733)
 * Fixed: wezterm now sets argv0 to `-$SHELL` to invoke a login shell, rather than running `$SHELL -l`. [#753](https://github.com/wez/wezterm/issues/753)
 * Improved: ssh_config parsing now supports `Match` for `Host`, `LocalUser`.
+* Improved render performance for wide windows [#740](https://github.com/wez/wezterm/issues/740)
 
 ### 20210405-110924-a5bb5be8
 
