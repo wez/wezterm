@@ -1110,7 +1110,7 @@ pub struct Config {
 impl_lua_conversion!(Config);
 
 fn default_stateless_process_list() -> Vec<String> {
-    ["bash", "sh", "zsh", "fish", "tmux"]
+    ["bash", "sh", "zsh", "fish", "tmux", "nu"]
         .iter()
         .map(|s| s.to_string())
         .collect()
