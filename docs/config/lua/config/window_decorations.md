@@ -7,8 +7,8 @@ Configures whether the window has a title bar and/or resizable border.
 The value is a set of of flags:
 
 * `window_decorations = "NONE"` - disables titlebar and border
-* `window_decorations = "TITLE"` - disable the resizable border and enable on the title bar
-* `window_decorations = "RESIZE"` - disable the title bar but enable the resiable border
+* `window_decorations = "TITLE"` - disable the resizable border and enable only the title bar
+* `window_decorations = "RESIZE"` - disable the title bar but enable the resizable border
 * `window_decorations = "TITLE | RESIZE"` - Enable titlebar and border.  This is the default.
 
 This feature is not supported on Wayland; the titlebar and resizable border are
