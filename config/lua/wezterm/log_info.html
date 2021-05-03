@@ -169,7 +169,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="weztermlog_infomsg"><a class="header" href="#weztermlog_infomsg"><code>wezterm.log_info(msg)</code></a></h1>
+                        <h1 id="weztermlog_infoarg-"><a class="header" href="#weztermlog_infoarg-"><code>wezterm.log_info(arg, ..)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'INFO' level.  If you started wezterm from a terminal that text will print
@@ -178,6 +178,8 @@ server then it will be logged to the daemon output path.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_info(&quot;Hello!&quot;);
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>Now accepts multiple arguments, and those arguments can be of any type.</p>
 <p>See also <a href="log_error.html">log_error</a> and <a href="log_warn.html">log_warn</a>.</p>
 
                     </main>

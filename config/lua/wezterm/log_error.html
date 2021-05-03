@@ -169,7 +169,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="weztermlog_errormsg"><a class="header" href="#weztermlog_errormsg"><code>wezterm.log_error(msg)</code></a></h1>
+                        <h1 id="weztermlog_errorarg-"><a class="header" href="#weztermlog_errorarg-"><code>wezterm.log_error(arg, ..)</code></a></h1>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'ERROR' level.  If you started wezterm from a terminal that text will print
 to the stdout of that terminal.  If running as a daemon for the multiplexer
@@ -177,6 +177,8 @@ server then it will be logged to the daemon output path.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_error(&quot;Hello!&quot;);
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>Now accepts multiple arguments, and those arguments can be of any type.</p>
 <p>See also <a href="log_info.html">log_info</a> and <a href="log_warn.html">log_warn</a>.</p>
 
                     </main>

@@ -169,7 +169,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="weztermlog_warnmsg"><a class="header" href="#weztermlog_warnmsg"><code>wezterm.log_warn(msg)</code></a></h1>
+                        <h1 id="weztermlog_warnarg-"><a class="header" href="#weztermlog_warnarg-"><code>wezterm.log_warn(arg, ..)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'WARN' level.  If you started wezterm from a terminal that text will print
@@ -178,6 +178,8 @@ server then it will be logged to the daemon output path.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_warn(&quot;Hello!&quot;);
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>Now accepts multiple arguments, and those arguments can be of any type.</p>
 <p>See also <a href="log_info.html">log_info</a> and <a href="log_error.html">log_error</a>.</p>
 
                     </main>

@@ -5137,7 +5137,7 @@ return {
   font_size = font_size
 }
 </code></pre>
-<h1 id="weztermlog_errormsg"><a class="header" href="#weztermlog_errormsg"><code>wezterm.log_error(msg)</code></a></h1>
+<h1 id="weztermlog_errorarg-"><a class="header" href="#weztermlog_errorarg-"><code>wezterm.log_error(arg, ..)</code></a></h1>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'ERROR' level.  If you started wezterm from a terminal that text will print
 to the stdout of that terminal.  If running as a daemon for the multiplexer
@@ -5145,8 +5145,10 @@ server then it will be logged to the daemon output path.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_error(&quot;Hello!&quot;);
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>Now accepts multiple arguments, and those arguments can be of any type.</p>
 <p>See also <a href="config/lua/wezterm/log_info.html">log_info</a> and <a href="config/lua/wezterm/log_warn.html">log_warn</a>.</p>
-<h1 id="weztermlog_infomsg"><a class="header" href="#weztermlog_infomsg"><code>wezterm.log_info(msg)</code></a></h1>
+<h1 id="weztermlog_infoarg-"><a class="header" href="#weztermlog_infoarg-"><code>wezterm.log_info(arg, ..)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'INFO' level.  If you started wezterm from a terminal that text will print
@@ -5155,8 +5157,10 @@ server then it will be logged to the daemon output path.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_info(&quot;Hello!&quot;);
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>Now accepts multiple arguments, and those arguments can be of any type.</p>
 <p>See also <a href="config/lua/wezterm/log_error.html">log_error</a> and <a href="config/lua/wezterm/log_warn.html">log_warn</a>.</p>
-<h1 id="weztermlog_warnmsg"><a class="header" href="#weztermlog_warnmsg"><code>wezterm.log_warn(msg)</code></a></h1>
+<h1 id="weztermlog_warnarg-"><a class="header" href="#weztermlog_warnarg-"><code>wezterm.log_warn(arg, ..)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'WARN' level.  If you started wezterm from a terminal that text will print
@@ -5165,6 +5169,8 @@ server then it will be logged to the daemon output path.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_warn(&quot;Hello!&quot;);
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>Now accepts multiple arguments, and those arguments can be of any type.</p>
 <p>See also <a href="config/lua/wezterm/log_info.html">log_info</a> and <a href="config/lua/wezterm/log_error.html">log_error</a>.</p>
 <h1 id="weztermonevent_name-callback"><a class="header" href="#weztermonevent_name-callback"><code>wezterm.on(event_name, callback)</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
