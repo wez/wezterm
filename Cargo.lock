@@ -1093,9 +1093,11 @@ dependencies = [
 name = "env-bootstrap"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "cocoa",
  "config",
  "dirs-next",
+ "lazy_static",
  "libc",
  "log",
  "objc",
@@ -4423,6 +4425,7 @@ dependencies = [
  "benchmarking",
  "bitflags",
  "cc",
+ "chrono",
  "codec",
  "config",
  "downcast-rs",

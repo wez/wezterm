@@ -19,6 +19,7 @@ windows = "0.5"
 [dependencies]
 anyhow = "1.0"
 bitflags = "1.0"
+chrono = {version="0.4", features=["unstable-locales"]}
 codec = { path = "../codec" }
 config = { path = "../config" }
 downcast-rs = "1.0"

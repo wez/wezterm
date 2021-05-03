@@ -1280,6 +1280,20 @@ impl TermWindow {
         Ok(())
     }
 
+    fn show_debug_overlay(&mut self) {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+
+        let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
+            crate::overlay::show_debug_overlay(term)
+        });
+        self.assign_overlay(tab.tab_id(), overlay);
+        promise::spawn::spawn(future).detach();
+    }
+
     fn show_tab_navigator(&mut self) {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -1544,6 +1558,7 @@ impl TermWindow {
             ScrollByLine(n) => self.scroll_by_line(*n)?,
             ScrollToPrompt(n) => self.scroll_to_prompt(*n)?,
             ShowTabNavigator => self.show_tab_navigator(),
+            ShowDebugOverlay => self.show_debug_overlay(),
             ShowLauncher => self.show_launcher(),
             HideApplication => {
                 let con = Connection::get().expect("call on gui thread");

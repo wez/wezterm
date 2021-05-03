@@ -7,8 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono = {version="0.4", features=["unstable-locales"]}
 config = { path = "../config" }
 dirs-next = "2.0"
+lazy_static = "1.4"
 log = "0.4"
 pretty_env_logger = "0.4"
 

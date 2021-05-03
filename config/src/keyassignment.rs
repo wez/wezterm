@@ -178,6 +178,7 @@ pub enum KeyAssignment {
     ScrollByLine(isize),
     ScrollToPrompt(isize),
     ShowTabNavigator,
+    ShowDebugOverlay,
     HideApplication,
     QuitApplication,
     SpawnCommandInNewTab(SpawnCommand),

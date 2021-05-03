@@ -1,3 +1,5 @@
+pub mod ringlog;
+pub use ringlog::setup_logger;
 use std::path::{Path, PathBuf};
 
 pub fn set_wezterm_executable() {
@@ -7,16 +9,6 @@ pub fn set_wezterm_executable() {
         }
         std::env::set_var("WEZTERM_EXECUTABLE", exe);
     }
-}
-
-pub fn setup_logger() {
-    let mut builder = pretty_env_logger::formatted_timed_builder();
-    if let Ok(s) = std::env::var("WEZTERM_LOG") {
-        builder.parse_filters(&s);
-    } else {
-        builder.filter(None, log::LevelFilter::Info);
-    }
-    builder.init();
 }
 
 pub fn fixup_appimage() {

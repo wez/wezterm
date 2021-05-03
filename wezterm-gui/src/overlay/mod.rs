@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 mod confirm_close_pane;
 mod copy;
+mod debug;
 mod launcher;
 mod quickselect;
 mod search;
@@ -18,6 +19,7 @@ pub use confirm_close_pane::confirm_close_tab;
 pub use confirm_close_pane::confirm_close_window;
 pub use confirm_close_pane::confirm_quit_program;
 pub use copy::CopyOverlay;
+pub use debug::show_debug_overlay;
 pub use launcher::launcher;
 pub use quickselect::QuickSelectOverlay;
 pub use search::SearchOverlay;
