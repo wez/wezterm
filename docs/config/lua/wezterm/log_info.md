@@ -1,4 +1,4 @@
-# `wezterm.log_info(msg)`
+# `wezterm.log_info(arg, ..)`
 
 *Since: 20210314-114017-04b7cedd*
 
@@ -11,6 +11,11 @@ server then it will be logged to the daemon output path.
 local wezterm = require 'wezterm';
 wezterm.log_info("Hello!");
 ```
+
+*Since: nightly builds only*
+
+Now accepts multiple arguments, and those arguments can be of any type.
+
 
 See also [log_error](log_error.md) and [log_warn](log_warn.md).
 

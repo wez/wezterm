@@ -1,4 +1,4 @@
-# `wezterm.log_error(msg)`
+# `wezterm.log_error(arg, ..)`
 
 This function logs the provided message string through wezterm's logging layer
 at 'ERROR' level.  If you started wezterm from a terminal that text will print
@@ -9,5 +9,9 @@ server then it will be logged to the daemon output path.
 local wezterm = require 'wezterm';
 wezterm.log_error("Hello!");
 ```
+
+*Since: nightly builds only*
+
+Now accepts multiple arguments, and those arguments can be of any type.
 
 See also [log_info](log_info.md) and [log_warn](log_warn.md).

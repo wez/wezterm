@@ -2,8 +2,7 @@ use crate::{FontAttributes, FontStretch, FontWeight, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;
-use mlua::{FromLua, ToLua, ToLuaMulti};
-use mlua::{Lua, Table, Value};
+use mlua::{FromLua, Lua, Table, ToLua, ToLuaMulti, Value, Variadic};
 use serde::*;
 use smol::prelude::*;
 use std::path::Path;
@@ -94,24 +93,59 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             lua.create_function(|_, ()| Ok(crate::running_under_wsl()))?,
         )?;
 
+        fn print_helper(args: Variadic<Value>) -> String {
+            let mut output = String::new();
+            for (idx, item) in args.into_iter().enumerate() {
+                if idx > 0 {
+                    output.push(' ');
+                }
+
+                match item {
+                    Value::String(s) => match s.to_str() {
+                        Ok(s) => output.push_str(s),
+                        Err(_) => {
+                            let item = String::from_utf8_lossy(s.as_bytes());
+                            output.push_str(&item);
+                        }
+                    },
+                    item @ _ => {
+                        let item = format!("{:?}", ValueWrapper(item));
+                        output.push_str(&item);
+                    }
+                }
+            }
+            output
+        }
+
         wezterm_mod.set(
             "log_error",
-            lua.create_function(|_, msg: String| {
-                log::error!("lua: {}", msg);
+            lua.create_function(|_, args: Variadic<Value>| {
+                let output = print_helper(args);
+                log::error!("lua: {}", output);
                 Ok(())
             })?,
         )?;
         wezterm_mod.set(
             "log_info",
-            lua.create_function(|_, msg: String| {
-                log::info!("lua: {}", msg);
+            lua.create_function(|_, args: Variadic<Value>| {
+                let output = print_helper(args);
+                log::info!("lua: {}", output);
                 Ok(())
             })?,
         )?;
         wezterm_mod.set(
             "log_warn",
-            lua.create_function(|_, msg: String| {
-                log::warn!("lua: {}", msg);
+            lua.create_function(|_, args: Variadic<Value>| {
+                let output = print_helper(args);
+                log::warn!("lua: {}", output);
+                Ok(())
+            })?,
+        )?;
+        globals.set(
+            "print",
+            lua.create_function(|_, args: Variadic<Value>| {
+                let output = print_helper(args);
+                log::info!("lua: {}", output);
                 Ok(())
             })?,
         )?;
