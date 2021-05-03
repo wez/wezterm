@@ -1227,9 +1227,9 @@ impl Default for Config {
 }
 
 pub struct LoadedConfig {
-    config: Config,
-    file_name: Option<PathBuf>,
-    lua: Option<mlua::Lua>,
+    pub config: Config,
+    pub file_name: Option<PathBuf>,
+    pub lua: Option<mlua::Lua>,
 }
 
 struct PathPossibility {
@@ -1340,7 +1340,7 @@ impl Config {
         Ok(LoadedConfig {
             config: Self::default().compute_extra_defaults(None),
             file_name: None,
-            lua: None,
+            lua: Some(make_lua_context(Path::new(""))?),
         })
     }
 

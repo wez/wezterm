@@ -36,6 +36,8 @@ macro_rules! impl_lua_conversion {
     };
 }
 
+pub use serde_lua::ValueWrapper;
+
 #[derive(Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct JsonLua(pub serde_json::Value);

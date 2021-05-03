@@ -25,7 +25,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
-use termwiz::input::{InputEvent, KeyEvent, MouseEvent as TermWizMouseEvent};
+use termwiz::input::{InputEvent, KeyEvent, Modifiers, MouseEvent as TermWizMouseEvent};
 use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::surface::Change;
 use termwiz::surface::Line;
@@ -269,6 +269,13 @@ pub struct TermWizTerminal {
     render_tx: TermWizTerminalRenderTty,
     input_rx: Receiver<InputEvent>,
     renderer: TerminfoRenderer,
+    grab_mouse: bool,
+}
+
+impl TermWizTerminal {
+    pub fn no_grab_mouse_in_raw_mode(&mut self) {
+        self.grab_mouse = false;
+    }
 }
 
 struct TermWizTerminalRenderTty {
@@ -328,8 +335,10 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
         }
 
         decset!(BracketedPaste);
-        decset!(AnyEventMouse);
-        decset!(SGRMouse);
+        if self.grab_mouse {
+            decset!(AnyEventMouse);
+            decset!(SGRMouse);
+        }
         self.flush()?;
 
         Ok(())
@@ -371,7 +380,19 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
                 self.render_tx.screen_size.cols = *cols;
                 self.render_tx.screen_size.rows = *rows;
             }
-            i
+            match i {
+                // Urgh, we get normalized-to-lowercase CTRL-c,
+                // but eg: termwiz and other terminal input expect
+                // to get CTRL-C instead.  Adjust for that here.
+                Some(InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char(c),
+                    modifiers: Modifiers::CTRL,
+                })) if c.is_ascii_lowercase() => Some(InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char(c.to_ascii_uppercase()),
+                    modifiers: Modifiers::CTRL,
+                })),
+                i @ _ => i,
+            }
         })
     }
 
@@ -401,6 +422,7 @@ pub fn allocate(size: PtySize) -> (TermWizTerminal, Rc<dyn Pane>) {
         },
         input_rx,
         renderer,
+        grab_mouse: true,
     };
 
     let domain_id = 0;
@@ -465,6 +487,7 @@ pub async fn run<
         },
         input_rx,
         renderer,
+        grab_mouse: true,
     };
 
     async fn register_tab(

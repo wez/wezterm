@@ -66,7 +66,7 @@ impl From<Error> for mlua::Error {
     }
 }
 
-pub struct ValueWrapper<'lua>(Value<'lua>);
+pub struct ValueWrapper<'lua>(pub Value<'lua>);
 
 impl<'lua> PartialEq for ValueWrapper<'lua> {
     fn eq(&self, other: &Self) -> bool {

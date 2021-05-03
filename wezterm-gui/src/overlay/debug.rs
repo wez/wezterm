@@ -1,16 +1,82 @@
 use chrono::prelude::*;
 use log::Level;
+use luahelper::ValueWrapper;
+use mlua::Value;
 use mux::termwiztermtab::TermWizTerminal;
-use std::time::Duration;
 use termwiz::cell::{AttributeChange, CellAttributes, Intensity};
 use termwiz::color::AnsiColor;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent};
+use termwiz::lineedit::*;
 use termwiz::surface::Change;
 use termwiz::terminal::Terminal;
 
+struct LuaReplHost {
+    history: BasicHistory,
+    lua: mlua::Lua,
+}
+
+impl LineEditorHost for LuaReplHost {
+    fn history(&mut self) -> &mut dyn History {
+        &mut self.history
+    }
+
+    fn resolve_action(
+        &mut self,
+        event: &InputEvent,
+        editor: &mut LineEditor<'_>,
+    ) -> Option<Action> {
+        let (line, _cursor) = editor.get_line_and_cursor();
+        if line.is_empty()
+            && matches!(
+                event,
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Escape,
+                    ..
+                })
+            )
+        {
+            Some(Action::Cancel)
+        } else {
+            None
+        }
+    }
+
+    fn render_preview(&self, line: &str) -> Vec<OutputElement> {
+        let expr = format!("return {}", line);
+        let mut preview = vec![];
+
+        let chunk = self.lua.load(&expr);
+        match chunk.into_function() {
+            Ok(_) => {}
+            Err(err) => {
+                let text = match &err {
+                    mlua::Error::SyntaxError {
+                        incomplete_input: true,
+                        ..
+                    } => "...".to_string(),
+                    _ => format!("{:#}", err),
+                };
+                preview.push(OutputElement::Text(text));
+            }
+        }
+
+        preview
+    }
+}
+
 pub fn show_debug_overlay(mut term: TermWizTerminal) -> anyhow::Result<()> {
-    let log_interval = Duration::from_secs(1);
+    term.no_grab_mouse_in_raw_mode();
+
+    let lua = config::Config::load()?
+        .lua
+        .ok_or_else(|| anyhow::anyhow!("failed to setup lua context"))?;
+    lua.load("wezterm = require 'wezterm'").exec()?;
+
     let mut latest_log_entry = None;
+    let mut host = LuaReplHost {
+        history: BasicHistory::default(),
+        lua,
+    };
 
     term.render(&[Change::Title("Debug".to_string())])?;
 
@@ -61,24 +127,34 @@ pub fn show_debug_overlay(mut term: TermWizTerminal) -> anyhow::Result<()> {
         term.render(&changes)
     }
 
-    print_new_log_entries(&mut term, &mut latest_log_entry)?;
+    loop {
+        print_new_log_entries(&mut term, &mut latest_log_entry)?;
 
-    while let Ok(res) = term.poll_input(Some(log_interval)) {
-        match res {
-            Some(event) => match event {
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Escape,
-                    ..
-                }) => {
-                    break;
+        let mut editor = LineEditor::new(&mut term);
+        editor.set_prompt("> ");
+        if let Some(line) = editor.read_line(&mut host)? {
+            host.history().add(&line);
+
+            let expr = format!("return {}", line);
+            let chunk = host.lua.load(&expr);
+            match chunk.eval::<Value>() {
+                Ok(result) => {
+                    let text = format!("{:?}", ValueWrapper(result));
+                    term.render(&[Change::Text(format!("{}\r\n", text.replace("\n", "\r\n")))])?;
                 }
-                _ => {}
-            },
-            None => {
-                print_new_log_entries(&mut term, &mut latest_log_entry)?;
+                Err(err) => {
+                    let text = match &err {
+                        mlua::Error::SyntaxError {
+                            incomplete_input: true,
+                            ..
+                        } => "...".to_string(),
+                        _ => format!("{:#}", err),
+                    };
+                    term.render(&[Change::Text(format!("{}\r\n", text.replace("\n", "\r\n")))])?;
+                }
             }
+        } else {
+            return Ok(());
         }
     }
-
-    Ok(())
 }
