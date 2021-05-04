@@ -1287,8 +1287,10 @@ impl TermWindow {
             None => return,
         };
 
+        let gui_win = GuiWin::new(self);
+
         let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
-            crate::overlay::show_debug_overlay(term)
+            crate::overlay::show_debug_overlay(term, gui_win)
         });
         self.assign_overlay(tab.tab_id(), overlay);
         promise::spawn::spawn(future).detach();
