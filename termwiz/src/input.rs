@@ -283,9 +283,6 @@ mod windows {
                         .extend_with(unicode.encode_utf8(&mut buf).as_bytes());
                     self.process_bytes(callback, true);
                     return;
-                        .extend_with(unicode.encode_utf8(&mut buf).as_bytes());
-                    self.process_bytes(callback, true);
-                    return;
                 }
                 _ => match event.wVirtualKeyCode as i32 {
                     winuser::VK_CANCEL => KeyCode::Cancel,

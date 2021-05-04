@@ -219,7 +219,7 @@ all of these are meaningful on all platforms:
 `Hyper`, `Super`, `Meta`, `Cancel`, `Backspace`, `Tab`, `Clear`, `Enter`,
 `Shift`, `Escape`, `LeftShift`, `RightShift`, `Control`, `LeftControl`,
 `RightControl`, `Alt`, `LeftAlt`, `RightAlt`, `Menu`, `LeftMenu`, `RightMenu`,
-`Pause`, `CapsLock`, `PageUp`, `PageDown`, `End`, `Home`, `LeftArrow`,
+`Pause`, `CapsLock`, `VoidSymbol`, `PageUp`, `PageDown`, `End`, `Home`, `LeftArrow`,
 `RightArrow`, `UpArrow`, `DownArrow`, `Select`, `Print`, `Execute`,
 `PrintScreen`, `Insert`, `Delete`, `Help`, `LeftWindows`, `RightWindows`,
 `Applications`, `Sleep`, `Numpad0`, `Numpad1`, `Numpad2`, `Numpad3`,
@@ -244,6 +244,10 @@ Possible Modifier labels are:
  * `SHIFT` - The shift key.  Left and right are equivalent.
  * `ALT`, `OPT`, `META` - these are all equivalent: on macOS the `Option` key,
    on other systems the `Alt` or `Meta` key.  Left and right are equivalent.
+ * `VoidSymbol` - This keycode is emitted in special cases where the original
+   function of the key has been removed. Such as in Linux and using `setxkbmap`.
+   `setxkbmap -option caps:none`. The `CapsLock` will no longer function as
+   before in all applications, instead emitting `VoidSymbol`.
 
 You can combine modifiers using the `|` symbol (eg: `"CMD|CTRL"`).
 
@@ -279,6 +283,26 @@ return {
     {key="|", mods="LEADER", action=wezterm.action{SplitHorizontal={domain="CurrentPaneDomain"}}},
     -- Send "CTRL-A" to the terminal when pressing CTRL-A, CTRL-A
     {key="a", mods="LEADER|CTRL", action=wezterm.action{SendString="\x01"}},
+  }
+}
+```
+
+If you decide to change certain keys on the keyboard to `VoidSymbol` (like `CapsLock`), 
+then you can utilize it as a `LEADER` or any other part of key bindings. The
+following example now uses `VoidSymbol` and uses `CapsLock` as a `LEADER` 
+without it affecting the shift / capital state as long as you have 
+`setxkbmap -option caps:none` configured.
+
+```lua
+local wezterm = require 'wezterm';
+
+return {
+  -- timeout_milliseconds defaults to 1000 and can be omitted
+  -- for this example use `setxkbmap -option caps:none` in your terminal.
+  leader = { key="VoidSymbol", mods="", timeout_milliseconds=1000 },
+  keys = {
+    {key="|", mods="LEADER", action=wezterm.action{SplitHorizontal={domain="CurrentPaneDomain"}}},
+    {key="-", mods="LEADER", action=wezterm.action{SplitVertical={domain="CurrentPaneDomain"}}},
   }
 }
 ```
