@@ -354,7 +354,7 @@ impl Config {
         if let Some(home) = dirs_next::home_dir() {
             self.add_config_file(home.join(".ssh").join("config"));
         }
-        self.add_config_file("/etc/ssh/config");
+        self.add_config_file("/etc/ssh/ssh_config");
     }
 
     fn resolve_local_user(&self) -> String {

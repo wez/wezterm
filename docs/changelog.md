@@ -11,7 +11,7 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
-* Not yet
+* Fixed: ssh client would read `/etc/ssh/config` rather than the proper `/etc/ssh/ssh_config`
 
 ### 20210502-154244-3f7122cb
 
