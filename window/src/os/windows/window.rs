@@ -8,7 +8,7 @@ use crate::{
 use anyhow::{bail, Context};
 use config::ConfigHandle;
 use lazy_static::lazy_static;
-use promise::Future;
+use promise::{Future, Promise};
 use shared_library::shared_library;
 use std::any::Any;
 use std::cell::RefCell;
@@ -443,64 +443,8 @@ impl WindowInner {
         .detach();
     }
 
-    fn show(&mut self) {
-        schedule_show_window(self.hwnd, true);
-    }
-
-    fn hide(&mut self) {
-        schedule_show_window(self.hwnd, false);
-    }
-
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
         apply_mouse_cursor(cursor);
-    }
-
-    fn invalidate(&mut self) {
-        log::trace!("WindowInner::invalidate");
-        unsafe {
-            InvalidateRect(self.hwnd.0, null(), 0);
-        }
-    }
-
-    fn set_inner_size(&mut self, width: usize, height: usize) -> Future<Dimensions> {
-        let (width, height) = adjust_client_to_window_dimensions(
-            decorations_to_style(self.config.window_decorations),
-            width,
-            height,
-        );
-        let hwnd = self.hwnd;
-        promise::spawn::spawn(async move {
-            unsafe {
-                SetWindowPos(
-                    hwnd.0,
-                    hwnd.0,
-                    0,
-                    0,
-                    width,
-                    height,
-                    SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
-                );
-                wm_paint(hwnd.0, 0, 0, 0);
-            }
-
-            let mut rect = RECT {
-                left: 0,
-                bottom: 0,
-                right: 0,
-                top: 0,
-            };
-            unsafe {
-                GetClientRect(self.hwnd.0, &mut rect);
-            }
-            let pixel_width = rect_width(&rect) as usize;
-            let pixel_height = rect_height(&rect) as usize;
-
-            Ok(Dimensions {
-                pixel_width,
-                pixel_height,
-                dpi: unsafe { GetDpiForWindow(self.hwnd.0) as usize },
-            })
-        })
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {
@@ -665,7 +609,57 @@ impl WindowOps for Window {
     }
 
     fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
-        Connection::with_window_inner(self.0, move |inner| inner.set_inner_size(width, height))
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+        let mut promise = Some(promise);
+
+        Connection::with_window_inner(self.0, move |inner| {
+            let (width, height) = adjust_client_to_window_dimensions(
+                decorations_to_style(inner.config.window_decorations),
+                width,
+                height,
+            );
+            let hwnd = inner.hwnd;
+            let mut promise = promise.take();
+            promise::spawn::spawn(async move {
+                unsafe {
+                    SetWindowPos(
+                        hwnd.0,
+                        hwnd.0,
+                        0,
+                        0,
+                        width,
+                        height,
+                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
+                    );
+                    wm_paint(hwnd.0, 0, 0, 0);
+                }
+
+                let mut rect = RECT {
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                    top: 0,
+                };
+                unsafe {
+                    GetClientRect(hwnd.0, &mut rect);
+                }
+                let pixel_width = rect_width(&rect) as usize;
+                let pixel_height = rect_height(&rect) as usize;
+
+                if let Some(mut promise) = promise.take() {
+                    promise.ok(Dimensions {
+                        pixel_width,
+                        pixel_height,
+                        dpi: unsafe { GetDpiForWindow(hwnd.0) as usize },
+                    });
+                }
+            })
+            .detach();
+            Ok(())
+        });
+
+        future
     }
 
     fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
