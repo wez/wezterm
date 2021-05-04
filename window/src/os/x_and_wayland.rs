@@ -196,7 +196,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
+    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
         match self {
             Self::X11(x) => x.set_inner_size(width, height),
             #[cfg(feature = "wayland")]

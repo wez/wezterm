@@ -140,7 +140,7 @@ pub trait WindowOps {
     fn set_title(&self, title: &str) -> Future<()>;
 
     /// Resize the inner or client area of the window
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<()>;
+    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions>;
 
     /// Changes the location of the window on the screen.
     /// The coordinates are of the top left pixel of the

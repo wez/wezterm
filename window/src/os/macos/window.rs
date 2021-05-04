@@ -528,11 +528,8 @@ impl WindowOps for Window {
         })
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
-            inner.set_inner_size(width, height);
-            Ok(())
-        })
+    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
+        Connection::with_window_inner(self.0, move |inner| Ok(inner.set_inner_size(width, height)))
     }
 
     fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
@@ -820,7 +817,7 @@ impl WindowInner {
         }
     }
 
-    fn set_inner_size(&mut self, width: usize, height: usize) {
+    fn set_inner_size(&mut self, width: usize, height: usize) -> Dimensions {
         unsafe {
             let frame = NSView::frame(*self.view as *mut _);
             let backing_frame = NSView::convertRectToBacking(*self.view as *mut _, frame);
@@ -830,6 +827,16 @@ impl WindowInner {
                 *self.window,
                 NSSize::new(width as f64 / scale, height as f64 / scale),
             );
+
+            let frame = NSView::frame(*self.view as *mut _);
+            let backing_frame = NSView::convertRectToBacking(*self.view as *mut _, frame);
+            let width = backing_frame.size.width;
+            let height = backing_frame.size.height;
+            Dimensions {
+                pixel_width: width as usize,
+                pixel_height: height as usize,
+                dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width)) as usize,
+            }
         }
     }
 

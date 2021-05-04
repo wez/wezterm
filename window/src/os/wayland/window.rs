@@ -655,10 +655,9 @@ impl WindowOps for WaylandWindow {
         })
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
+    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
         WaylandConnection::with_window_inner(self.0, move |inner| {
-            inner.set_inner_size(width, height);
-            Ok(())
+            Ok(inner.set_inner_size(width, height))
         })
     }
 
@@ -853,7 +852,7 @@ impl WaylandWindowInner {
         self.do_paint().unwrap();
     }
 
-    fn set_inner_size(&mut self, width: usize, height: usize) {
+    fn set_inner_size(&mut self, width: usize, height: usize) -> Dimensions {
         let pixel_width = width as i32;
         let pixel_height = height as i32;
         let surface_width = self.pixels_to_surface(pixel_width) as u32;
@@ -878,6 +877,13 @@ impl WaylandWindowInner {
             // In addition, resize doesn't take effect until
             // the suface is commited
             window.surface().commit();
+        }
+
+        let factor = get_surface_scale_factor(&self.surface);
+        Dimensions {
+            pixel_width,
+            pixel_height,
+            dpi: factor as usize * crate::DEFAULT_DPI as usize,
         }
     }
 

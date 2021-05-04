@@ -462,7 +462,7 @@ impl WindowInner {
         }
     }
 
-    fn set_inner_size(&mut self, width: usize, height: usize) {
+    fn set_inner_size(&mut self, width: usize, height: usize) -> Future<Dimensions> {
         let (width, height) = adjust_client_to_window_dimensions(
             decorations_to_style(self.config.window_decorations),
             width,
@@ -482,8 +482,25 @@ impl WindowInner {
                 );
                 wm_paint(hwnd.0, 0, 0, 0);
             }
+
+            let mut rect = RECT {
+                left: 0,
+                bottom: 0,
+                right: 0,
+                top: 0,
+            };
+            unsafe {
+                GetClientRect(self.hwnd.0, &mut rect);
+            }
+            let pixel_width = rect_width(&rect) as usize;
+            let pixel_height = rect_height(&rect) as usize;
+
+            Ok(Dimensions {
+                pixel_width,
+                pixel_height,
+                dpi: unsafe { GetDpiForWindow(self.hwnd.0) as usize },
+            })
         })
-        .detach();
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {
@@ -647,11 +664,8 @@ impl WindowOps for Window {
         })
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
-            inner.set_inner_size(width, height);
-            Ok(())
-        })
+    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
+        Connection::with_window_inner(self.0, move |inner| inner.set_inner_size(width, height))
     }
 
     fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
