@@ -82,6 +82,8 @@ pub fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
         KEY_Menu => KeyCode::Applications,
         KEY_Help => KeyCode::Help,
 
+        KEY_VoidSymbol => KeyCode::VoidSymbol,
+
         i @ KEY_F1..=KEY_F12 => KeyCode::Function((1 + i - KEY_F1) as u8),
 
         // numeric and function keypad keys

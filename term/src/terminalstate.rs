@@ -1150,7 +1150,7 @@ impl TerminalState {
             | RightMenu | Super | Hyper | Shift | LeftShift | RightShift | Meta | LeftWindows
             | RightWindows | NumLock | ScrollLock => "",
 
-            Cancel | Clear | Pause | CapsLock | Select | Print | PrintScreen | Execute | Help
+            Cancel | Clear | Pause | CapsLock | VoidSymbol | Select | Print | PrintScreen | Execute | Help
             | Applications | Sleep | BrowserBack | BrowserForward | BrowserRefresh
             | BrowserStop | BrowserSearch | BrowserFavorites | BrowserHome | VolumeMute
             | VolumeDown | VolumeUp | MediaNextTrack | MediaPrevTrack | MediaStop

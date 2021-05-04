@@ -86,6 +86,12 @@ pub struct KeyEvent {
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum KeyCode {
+    // other keys when disabling its original use will show up as this keycode
+    // e.g. setxkbmap -option caps:none 
+    // prevents the key from operating as originally intended and
+    // makes it possible to utilize it as a leader/modifier with no oddities
+    VoidSymbol,
+
     /// The decoded unicode character
     Char(char),
 
@@ -274,6 +280,9 @@ mod windows {
                 Some(unicode) if unicode > '\x00' => {
                     let mut buf = [0u8; 4];
                     self.buf
+                        .extend_with(unicode.encode_utf8(&mut buf).as_bytes());
+                    self.process_bytes(callback, true);
+                    return;
                         .extend_with(unicode.encode_utf8(&mut buf).as_bytes());
                     self.process_bytes(callback, true);
                     return;
