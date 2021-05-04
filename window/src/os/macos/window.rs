@@ -5,10 +5,11 @@ use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::{
     Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
-    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size, WindowCallbacks,
-    WindowDecorations, WindowOps,
+    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size, WindowDecorations,
+    WindowEvent, WindowEventReceiver, WindowEventSender, WindowOps,
 };
 use anyhow::{anyhow, bail, ensure};
+use async_trait::async_trait;
 use cocoa::appkit::{
     self, NSApplication, NSApplicationActivateIgnoringOtherApps, NSApplicationPresentationOptions,
     NSBackingStoreBuffered, NSEvent, NSEventModifierFlags, NSOpenGLContext, NSOpenGLPixelFormat,
@@ -29,7 +30,6 @@ use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
 use promise::Future;
-use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -317,7 +317,6 @@ mod cglbits {
 }
 
 pub(crate) struct WindowInner {
-    window_id: usize,
     view: StrongPtr,
     window: StrongPtr,
     config: ConfigHandle,
@@ -359,13 +358,13 @@ impl Window {
         name: &str,
         width: usize,
         height: usize,
-        callbacks: Box<dyn WindowCallbacks>,
         config: Option<&ConfigHandle>,
-    ) -> anyhow::Result<Window> {
+    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         let config = match config {
             Some(c) => c.clone(),
             None => config::configuration(),
         };
+        let (events, receiver) = async_channel::unbounded();
 
         unsafe {
             let style_mask = decoration_to_mask(config.window_decorations);
@@ -379,10 +378,9 @@ impl Window {
             let window_id = conn.next_window_id();
 
             let inner = Rc::new(RefCell::new(Inner {
-                callbacks,
+                events,
                 view_id: None,
                 window: None,
-                window_id,
                 screen_changed: false,
                 gl_context_pair: None,
                 text_cursor_position: Rect::new(Point::new(0, 0), Size::new(0, 0)),
@@ -452,7 +450,6 @@ impl Window {
 
             let weak_window = window.weak();
             let window_inner = Rc::new(RefCell::new(WindowInner {
-                window_id,
                 window,
                 view,
                 config: config.clone(),
@@ -465,26 +462,39 @@ impl Window {
             let window = Window(window_id);
             window.config_did_change(&config);
 
-            inner.borrow_mut().enable_opengl()?;
             // Synthesize a resize event immediately; this allows
             // the embedding application an opportunity to discover
             // the dpi and adjust for display scaling
-            inner.borrow_mut().callbacks.resize(
-                Dimensions {
+            inner.borrow_mut().events.try_send(WindowEvent::Resized {
+                dimensions: Dimensions {
                     pixel_width: width as usize,
                     pixel_height: height as usize,
                     dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
                         as usize,
                 },
-                false,
-            );
+                is_full_screen: false,
+            })?;
 
-            Ok(window)
+            Ok((window, receiver))
         }
     }
 }
 
+#[async_trait(?Send)]
 impl WindowOps for Window {
+    async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
+        let window_id = self.0;
+        promise::spawn::spawn(async move {
+            if let Some(handle) = Connection::get().unwrap().window_by_id(window_id) {
+                let mut inner = handle.borrow_mut();
+                inner.enable_opengl()
+            } else {
+                bail!("invalid window");
+            }
+        })
+        .await
+    }
+
     fn close(&self) -> Future<()> {
         Connection::with_window_inner(self.0, |inner| {
             inner.close();
@@ -543,25 +553,6 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, move |inner| {
             inner.set_text_cursor_position(cursor);
             Ok(())
-        })
-    }
-
-    fn apply<R, F: Send + 'static + FnMut(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
-        &self,
-        mut func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static,
-    {
-        Connection::with_window_inner(self.0, move |inner| {
-            let window = Window(inner.window_id);
-
-            if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
-                func(window_view.inner.borrow_mut().callbacks.as_any(), &window)
-            } else {
-                bail!("apply: window is invalid");
-            }
         })
     }
 
@@ -632,6 +623,14 @@ fn screen_point_to_cartesian(point: ScreenPoint) -> NSPoint {
 }
 
 impl WindowInner {
+    fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
+        if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
+            window_view.inner.borrow_mut().enable_opengl()
+        } else {
+            anyhow::bail!("window invalid");
+        }
+    }
+
     fn is_fullscreen(&mut self) -> bool {
         if self.is_native_fullscreen() {
             true
@@ -918,10 +917,9 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
 }
 
 struct Inner {
-    callbacks: Box<dyn WindowCallbacks>,
+    events: WindowEventSender,
     view_id: Option<WeakPtr>,
     window: Option<WeakPtr>,
-    window_id: usize,
     screen_changed: bool,
     gl_context_pair: Option<GlContextPair>,
     text_cursor_position: Rect,
@@ -995,15 +993,13 @@ extern "C" {
 }
 
 impl Inner {
-    fn enable_opengl(&mut self) -> anyhow::Result<()> {
-        let window = Window(self.window_id);
-
+    fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
         let view = self.view_id.as_ref().unwrap().load();
         let glium_context = GlContextPair::create(*view)?;
 
         self.gl_context_pair.replace(glium_context.clone());
 
-        self.callbacks.created(&window, glium_context.context)
+        Ok(glium_context.context)
     }
 
     /// <https://stackoverflow.com/a/22677690>
@@ -1281,9 +1277,8 @@ impl WindowView {
         .normalize_shift();
 
         if let Some(myself) = Self::get_this(this) {
-            let mut inner = myself.inner.borrow_mut();
-            let window = Window(inner.window_id);
-            inner.callbacks.key_event(&event, &window);
+            let inner = myself.inner.borrow();
+            inner.events.try_send(WindowEvent::KeyEvent(event)).ok();
         }
     }
 
@@ -1322,8 +1317,7 @@ impl WindowView {
             }
             .normalize_shift();
 
-            let window = Window(inner.window_id);
-            inner.callbacks.key_event(&event, &window);
+            inner.events.try_send(WindowEvent::KeyEvent(event)).ok();
         }
     }
 
@@ -1422,7 +1416,13 @@ impl WindowView {
         }
 
         if let Some(this) = Self::get_this(this) {
-            if this.inner.borrow_mut().callbacks.can_close() {
+            if this
+                .inner
+                .borrow_mut()
+                .events
+                .try_send(WindowEvent::CloseRequested)
+                .is_err()
+            {
                 YES
             } else {
                 NO
@@ -1434,13 +1434,21 @@ impl WindowView {
 
     extern "C" fn did_become_key(this: &mut Object, _sel: Sel, _id: id) {
         if let Some(this) = Self::get_this(this) {
-            this.inner.borrow_mut().callbacks.focus_change(true);
+            this.inner
+                .borrow_mut()
+                .events
+                .try_send(WindowEvent::FocusChanged(true))
+                .ok();
         }
     }
 
     extern "C" fn did_resign_key(this: &mut Object, _sel: Sel, _id: id) {
         if let Some(this) = Self::get_this(this) {
-            this.inner.borrow_mut().callbacks.focus_change(false);
+            this.inner
+                .borrow_mut()
+                .events
+                .try_send(WindowEvent::FocusChanged(false))
+                .ok();
         }
     }
 
@@ -1463,7 +1471,11 @@ impl WindowView {
     extern "C" fn window_will_close(this: &mut Object, _sel: Sel, _id: id) {
         if let Some(this) = Self::get_this(this) {
             // Advise the window of its impending death
-            this.inner.borrow_mut().callbacks.destroy();
+            this.inner
+                .borrow_mut()
+                .events
+                .try_send(WindowEvent::Destroyed)
+                .ok();
         }
 
         // Release and zero out the inner member
@@ -1499,9 +1511,8 @@ impl WindowView {
         };
 
         if let Some(myself) = Self::get_this(this) {
-            let mut inner = myself.inner.borrow_mut();
-            let window = Window(inner.window_id);
-            inner.callbacks.mouse_event(&event, &window);
+            let inner = myself.inner.borrow();
+            inner.events.try_send(WindowEvent::MouseEvent(event)).ok();
         }
     }
 
@@ -1790,9 +1801,8 @@ impl WindowView {
             );
 
             if let Some(myself) = Self::get_this(this) {
-                let mut inner = myself.inner.borrow_mut();
-                let window = Window(inner.window_id);
-                inner.callbacks.key_event(&event, &window);
+                let inner = myself.inner.borrow();
+                inner.events.try_send(WindowEvent::KeyEvent(event)).ok();
             }
         }
     }
@@ -1830,7 +1840,7 @@ impl WindowView {
         let width = backing_frame.size.width;
         let height = backing_frame.size.height;
         if let Some(this) = Self::get_this(this) {
-            let mut inner = this.inner.borrow_mut();
+            let inner = this.inner.borrow();
 
             // This is a little gross; ideally we'd call
             // WindowInner:is_fullscreen to determine this, but
@@ -1838,32 +1848,29 @@ impl WindowView {
             // as we can be called in a context where something
             // higher up the callstack already has a mutable
             // reference and we'd panic.
-            let is_fullscreen = inner.fullscreen.is_some()
+            let is_full_screen = inner.fullscreen.is_some()
                 || inner.window.as_ref().map_or(false, |window| {
                     let window = window.load();
                     let style_mask = unsafe { NSWindow::styleMask(*window) };
                     style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
                 });
 
-            inner.callbacks.resize(
-                Dimensions {
-                    pixel_width: width as usize,
-                    pixel_height: height as usize,
-                    dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
-                        as usize,
-                },
-                is_fullscreen,
-            );
+            inner
+                .events
+                .try_send(WindowEvent::Resized {
+                    dimensions: Dimensions {
+                        pixel_width: width as usize,
+                        pixel_height: height as usize,
+                        dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
+                            as usize,
+                    },
+                    is_full_screen,
+                })
+                .ok();
         }
     }
 
-    extern "C" fn draw_rect(view: &mut Object, sel: Sel, dirty_rect: NSRect) {
-        let frame = unsafe { NSView::frame(view as *mut _) };
-        let backing_frame = unsafe { NSView::convertRectToBacking(view as *mut _, frame) };
-
-        let width = backing_frame.size.width;
-        let height = backing_frame.size.height;
-
+    extern "C" fn draw_rect(view: &mut Object, sel: Sel, _dirty_rect: NSRect) {
         if let Some(this) = Self::get_this(view) {
             let mut inner = this.inner.borrow_mut();
 
@@ -1879,31 +1886,7 @@ impl WindowView {
                 return;
             }
 
-            if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
-                if gl_context_pair.context.is_context_lost() {
-                    log::error!("opengl context was lost; should reinit");
-                    drop(inner.gl_context_pair.take());
-                    if let Err(e) = inner.enable_opengl() {
-                        log::error!("failed to reinit opengl: {}", e);
-                    }
-                    let view = inner.view_id.as_ref().unwrap().load();
-                    drop(inner);
-                    drop(this);
-                    unsafe {
-                        return Self::draw_rect(&mut **view, sel, dirty_rect);
-                    }
-                }
-
-                let mut frame = glium::Frame::new(
-                    Rc::clone(&gl_context_pair.context),
-                    (width as u32, height as u32),
-                );
-
-                inner.callbacks.paint(&mut frame);
-                frame
-                    .finish()
-                    .expect("frame.finish failed and we don't know how to recover");
-            }
+            inner.events.try_send(WindowEvent::NeedRepaint).ok();
         }
     }
 
