@@ -3,7 +3,7 @@ use crate::connection::ConnectionOps;
 use crate::{
     Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
     MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks, WindowDecorations,
-    WindowOps, WindowOpsMut,
+    WindowOps,
 };
 use anyhow::{bail, Context};
 use config::ConfigHandle;
@@ -432,7 +432,7 @@ fn schedule_show_window(hwnd: HWindow, show: bool) {
     .detach();
 }
 
-impl WindowOpsMut for WindowInner {
+impl WindowInner {
     fn close(&mut self) {
         let hwnd = self.hwnd;
         promise::spawn::spawn(async move {
@@ -456,7 +456,7 @@ impl WindowOpsMut for WindowInner {
     }
 
     fn invalidate(&mut self) {
-        log::trace!("WindowOpsMut::invalidate");
+        log::trace!("WindowInner::invalidate");
         unsafe {
             InvalidateRect(self.hwnd.0, null(), 0);
         }

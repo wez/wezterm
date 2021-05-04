@@ -6,7 +6,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
     Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowCallbacks,
-    WindowOps, WindowOpsMut,
+    WindowOps,
 };
 use anyhow::{anyhow, bail, Context};
 use config::ConfigHandle;
@@ -796,7 +796,7 @@ fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
     Ok(String::from_utf8(result)?)
 }
 
-impl WindowOpsMut for WaylandWindowInner {
+impl WaylandWindowInner {
     fn close(&mut self) {
         self.callbacks.destroy();
         self.window.take();

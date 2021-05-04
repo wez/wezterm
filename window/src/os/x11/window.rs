@@ -5,7 +5,7 @@ use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
     Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowDecorations, WindowOps, WindowOpsMut,
+    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowDecorations, WindowOps,
 };
 use anyhow::{anyhow, Context as _};
 use config::ConfigHandle;
@@ -803,7 +803,7 @@ impl XWindow {
     }
 }
 
-impl WindowOpsMut for XWindowInner {
+impl XWindowInner {
     fn close(&mut self) {
         xcb::destroy_window(self.conn().conn(), self.window_id);
     }

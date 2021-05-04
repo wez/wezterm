@@ -6,7 +6,7 @@ use crate::connection::ConnectionOps;
 use crate::{
     Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
     MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size, WindowCallbacks,
-    WindowDecorations, WindowOps, WindowOpsMut,
+    WindowDecorations, WindowOps,
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
@@ -762,7 +762,7 @@ impl WindowInner {
     }
 }
 
-impl WindowOpsMut for WindowInner {
+impl WindowInner {
     fn show(&mut self) {
         unsafe {
             let current_app = NSRunningApplication::currentApplication(nil);
