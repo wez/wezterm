@@ -468,7 +468,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, _cmd: &LsFontsCommand) -> anyh
 #[cfg(windows)]
 mod win_bindings {
     ::windows::include_bindings!();
-    pub use self::windows::win32::shell::SetCurrentProcessExplicitAppUserModelID;
+    pub use self::Windows::Win32::Shell::SetCurrentProcessExplicitAppUserModelID;
 }
 
 fn run() -> anyhow::Result<()> {

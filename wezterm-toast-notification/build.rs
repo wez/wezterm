@@ -5,9 +5,10 @@ fn main() {
     #[cfg(windows)]
     {
         windows::build!(
-            windows::data::xml::dom::XmlDocument,
-            windows::foundation::*,
-            windows::ui::notifications::*,
+            Windows::Data::Xml::Dom::XmlDocument,
+            Windows::Foundation::*,
+            Windows::UI::Notifications::*,
+            Windows::Win32::SystemServices::E_POINTER,
         );
     }
 }

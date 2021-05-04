@@ -9,7 +9,7 @@ mod bindings {
 }
 
 use bindings::{
-    windows::data::xml::dom::XmlDocument, windows::foundation::*, windows::ui::notifications::*,
+    Windows::Data::Xml::Dom::XmlDocument, Windows::Foundation::*, Windows::UI::Notifications::*,
 };
 use windows::{Error as WinError, Interface, Object};
 
@@ -17,7 +17,7 @@ fn unwrap_arg<T>(a: &Option<T>) -> Result<&T, WinError> {
     match a {
         Some(t) => Ok(t),
         None => Err(WinError::new(
-            ::windows::ErrorCode::E_POINTER,
+            crate::windows::bindings::Windows::Win32::SystemServices::E_POINTER,
             "option is none",
         )),
     }
@@ -36,7 +36,7 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
         ""
     };
 
-    xml.load_xml(format!(
+    xml.LoadXml(format!(
         r#"<toast duration="long">
         <visual>
             <binding template="ToastGeneric">
@@ -51,14 +51,14 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
         url_actions
     ))?;
 
-    let notif = ToastNotification::create_toast_notification(xml)?;
+    let notif = ToastNotification::CreateToastNotification(xml)?;
 
-    notif.activated(TypedEventHandler::new(
+    notif.Activated(TypedEventHandler::new(
         move |_: &Option<ToastNotification>, result: &Option<Object>| {
             // let myself = unwrap_arg(myself)?;
             let result = unwrap_arg(result)?.cast::<ToastActivatedEventArgs>()?;
 
-            let args = result.arguments()?;
+            let args = result.Arguments()?;
 
             if args == "show" {
                 if let Some(url) = toast.url.as_ref() {
@@ -82,10 +82,9 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
     }))?;
     */
 
-    let notifier =
-        ToastNotificationManager::create_toast_notifier_with_id("org.wezfurlong.wezterm")?;
+    let notifier = ToastNotificationManager::CreateToastNotifierWithId("org.wezfurlong.wezterm")?;
 
-    notifier.show(&notif)?;
+    notifier.Show(&notif)?;
 
     Ok(())
 }
