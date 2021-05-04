@@ -15,7 +15,9 @@ pretty_env_logger = "0.4"
 gl_generator = "0.14"
 
 [dependencies]
+async-channel = "1.6"
 async-task = "4.0"
+async-trait = "0.1"
 anyhow = "1.0"
 config = { path = "../config" }
 thiserror = "1.0"

@@ -5,15 +5,15 @@ use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
-    Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowCallbacks,
-    WindowOps,
+    Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowEvent,
+    WindowEventReceiver, WindowEventSender, WindowOps,
 };
 use anyhow::{anyhow, bail, Context};
+use async_trait::async_trait;
 use config::ConfigHandle;
 use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
 use smithay_client_toolkit as toolkit;
-use std::any::Any;
 use std::cell::RefCell;
 use std::convert::TryInto;
 use std::io::{Read, Write};
@@ -79,19 +79,18 @@ fn frame_config() -> ConceptConfig {
 }
 
 pub struct WaylandWindowInner {
-    window_id: usize,
-    callbacks: Box<dyn WindowCallbacks>,
+    events: WindowEventSender,
     surface: WlSurface,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<ConceptFrame>>,
     dimensions: Dimensions,
-    need_paint: bool,
     full_screen: bool,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
     modifiers: Modifiers,
     pending_event: Arc<Mutex<PendingEvent>>,
     pending_mouse: Arc<Mutex<PendingMouse>>,
+    pending_first_configure: Option<async_channel::Sender<()>>,
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
     // libraries will segfault on shutdown
@@ -166,9 +165,8 @@ impl WaylandWindow {
         name: &str,
         width: usize,
         height: usize,
-        callbacks: Box<dyn WindowCallbacks>,
         _config: Option<&ConfigHandle>,
-    ) -> anyhow::Result<Window> {
+    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         let conn = WaylandConnection::get()
             .ok_or_else(|| {
                 anyhow!(
@@ -179,6 +177,9 @@ impl WaylandWindow {
 
         let window_id = conn.next_window_id();
         let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
+        let (events, receiver) = async_channel::unbounded();
+
+        let (pending_first_configure, wait_configure) = async_channel::bounded(1);
 
         let surface = conn
             .environment
@@ -247,18 +248,17 @@ impl WaylandWindow {
 
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             copy_and_paste,
-            window_id,
-            callbacks,
+            events,
             surface: surface.detach(),
             window: Some(window),
             dimensions,
-            need_paint: true,
             full_screen: false,
             last_mouse_coords: Point::new(0, 0),
             mouse_buttons: MouseButtons::NONE,
             modifiers: Modifiers::NONE,
             pending_event,
             pending_mouse,
+            pending_first_configure: Some(pending_first_configure),
             gl_state: None,
             wegl_surface: None,
         }));
@@ -267,7 +267,9 @@ impl WaylandWindow {
 
         conn.windows.borrow_mut().insert(window_id, inner.clone());
 
-        Ok(window_handle)
+        wait_configure.recv().await?;
+
+        Ok((window_handle, receiver))
     }
 }
 
@@ -320,8 +322,7 @@ impl WaylandWindowInner {
                     repeat_count: 1,
                 }
                 .normalize_shift();
-                self.callbacks
-                    .key_event(&key_event, &Window::Wayland(WaylandWindow(self.window_id)));
+                self.events.try_send(WindowEvent::KeyEvent(key_event)).ok();
             }
             KeyboardEvent::Modifiers { modifiers } => self.modifiers = modifiers,
             // Clear the modifiers when we change focus, otherwise weird
@@ -331,11 +332,11 @@ impl WaylandWindowInner {
             // be left in a broken state.
             KeyboardEvent::Enter { .. } => {
                 self.modifiers = Modifiers::NONE;
-                self.callbacks.focus_change(true)
+                self.events.try_send(WindowEvent::FocusChanged(true)).ok();
             }
             KeyboardEvent::Leave { .. } => {
                 self.modifiers = Modifiers::NONE;
-                self.callbacks.focus_change(false)
+                self.events.try_send(WindowEvent::FocusChanged(false)).ok();
             }
         }
     }
@@ -360,8 +361,7 @@ impl WaylandWindowInner {
                 mouse_buttons: self.mouse_buttons,
                 modifiers: self.modifiers,
             };
-            self.callbacks
-                .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
+            self.events.try_send(WindowEvent::MouseEvent(event)).ok();
             self.refresh_frame();
         }
 
@@ -391,8 +391,7 @@ impl WaylandWindowInner {
                 mouse_buttons: self.mouse_buttons,
                 modifiers: self.modifiers,
             };
-            self.callbacks
-                .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
+            self.events.try_send(WindowEvent::MouseEvent(event)).ok();
         }
 
         if let Some((value_x, value_y)) = PendingMouse::scroll(&pending_mouse) {
@@ -409,8 +408,7 @@ impl WaylandWindowInner {
                     mouse_buttons: self.mouse_buttons,
                     modifiers: self.modifiers,
                 };
-                self.callbacks
-                    .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
+                self.events.try_send(WindowEvent::MouseEvent(event)).ok();
             }
 
             let discrete_y = value_y.trunc() * factor;
@@ -425,8 +423,7 @@ impl WaylandWindowInner {
                     mouse_buttons: self.mouse_buttons,
                     modifiers: self.modifiers,
                 };
-                self.callbacks
-                    .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
+                self.events.try_send(WindowEvent::MouseEvent(event)).ok();
             }
         }
     }
@@ -453,9 +450,10 @@ impl WaylandWindowInner {
             pending = pending_events.clone();
             *pending_events = PendingEvent::default();
         }
-        if pending.close && self.callbacks.can_close() {
-            self.callbacks.destroy();
-            self.window.take();
+        if pending.close {
+            if self.events.try_send(WindowEvent::CloseRequested).is_err() {
+                self.window.take();
+            }
         }
 
         if let Some(full_screen) = pending.full_screen.take() {
@@ -503,22 +501,29 @@ impl WaylandWindowInner {
                 if new_dimensions != self.dimensions {
                     self.dimensions = new_dimensions;
 
-                    self.callbacks.resize(self.dimensions, self.full_screen);
+                    self.events
+                        .try_send(WindowEvent::Resized {
+                            dimensions: self.dimensions,
+                            is_full_screen: self.full_screen,
+                        })
+                        .ok();
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
                         wegl_surface.resize(pixel_width, pixel_height, 0, 0);
                     }
                 }
 
                 self.refresh_frame();
-                self.need_paint = true;
                 self.do_paint().unwrap();
             }
         }
         if pending.refresh_decorations && self.window.is_some() {
             self.refresh_frame();
         }
-        if pending.had_configure_event && self.window.is_some() && self.wegl_surface.is_none() {
-            self.enable_opengl().unwrap();
+        if pending.had_configure_event && self.window.is_some() {
+            if let Some(notify) = self.pending_first_configure.take() {
+                // Allow window creation to complete
+                notify.try_send(()).ok();
+            }
         }
     }
 
@@ -529,8 +534,7 @@ impl WaylandWindowInner {
         }
     }
 
-    fn enable_opengl(&mut self) -> anyhow::Result<()> {
-        let window = Window::Wayland(WaylandWindow(self.window_id));
+    fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
         let wayland_conn = Connection::get().unwrap().wayland();
         let mut wegl_surface = None;
 
@@ -573,38 +577,39 @@ impl WaylandWindowInner {
         self.gl_state.replace(gl_state.clone());
         self.wegl_surface = wegl_surface;
 
-        self.callbacks.created(&window, gl_state)
+        Ok(gl_state)
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
-        if let Some(gl_context) = self.gl_state.as_ref() {
-            if gl_context.is_context_lost() {
-                log::error!("opengl context was lost; should reinit");
-                drop(self.gl_state.take());
-                self.enable_opengl()?;
-                return self.do_paint();
-            }
-
-            let mut frame = glium::Frame::new(
-                Rc::clone(&gl_context),
-                (
-                    self.dimensions.pixel_width as u32,
-                    self.dimensions.pixel_height as u32,
-                ),
-            );
-
-            self.callbacks.paint(&mut frame);
-            frame.finish()?;
-            // self.damage();
-            self.refresh_frame();
-            self.need_paint = false;
-        }
-
+        self.events.try_send(WindowEvent::NeedRepaint)?;
         Ok(())
     }
 }
 
+#[async_trait(?Send)]
 impl WindowOps for WaylandWindow {
+    async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
+        let window = self.0;
+        promise::spawn::spawn(async move {
+            if let Some(handle) = Connection::get().unwrap().wayland().window_by_id(window) {
+                let mut inner = handle.borrow_mut();
+                inner.enable_opengl()
+            } else {
+                anyhow::bail!("invalid window");
+            }
+        })
+        .await
+    }
+
+    fn finish_frame(&self, frame: glium::Frame) -> anyhow::Result<()> {
+        frame.finish()?;
+        WaylandConnection::with_window_inner(self.0, |inner| {
+            inner.refresh_frame();
+            Ok(())
+        });
+        Ok(())
+    }
+
     fn close(&self) -> Future<()> {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.close();
@@ -665,20 +670,6 @@ impl WindowOps for WaylandWindow {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
             Ok(())
-        })
-    }
-
-    fn apply<R, F: Send + 'static + FnMut(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
-        &self,
-        mut func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static,
-    {
-        WaylandConnection::with_window_inner(self.0, move |inner| {
-            let window = Window::Wayland(WaylandWindow(inner.window_id));
-            func(inner.callbacks.as_any(), &window)
         })
     }
 
@@ -797,7 +788,7 @@ fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
 
 impl WaylandWindowInner {
     fn close(&mut self) {
-        self.callbacks.destroy();
+        self.events.try_send(WindowEvent::Destroyed).ok();
         self.window.take();
     }
 
@@ -821,17 +812,9 @@ impl WaylandWindowInner {
         if self.window.is_none() {
             return;
         }
-        let conn = Connection::get().unwrap().wayland();
-
-        if !conn
-            .environment
-            .borrow()
-            .get_shell()
-            .unwrap()
-            .needs_configure()
-        {
-            self.do_paint().unwrap();
-        }
+        // The window won't be visible until we've done our first paint,
+        // so we unconditionally queue a NeedRepaint event
+        self.do_paint().unwrap();
     }
 
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
@@ -848,7 +831,6 @@ impl WaylandWindowInner {
     }
 
     fn invalidate(&mut self) {
-        self.need_paint = true;
         self.do_paint().unwrap();
     }
 

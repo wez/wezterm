@@ -7,10 +7,10 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{Clipboard, Dimensions, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
+use crate::{Clipboard, Dimensions, MouseCursor, ScreenPoint, WindowEventReceiver, WindowOps};
+use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
-use std::any::Any;
 use std::rc::Rc;
 
 pub enum Connection {
@@ -51,16 +51,13 @@ impl Connection {
         name: &str,
         width: usize,
         height: usize,
-        callbacks: Box<dyn WindowCallbacks>,
         config: Option<&ConfigHandle>,
-    ) -> anyhow::Result<Window> {
+    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         match self {
-            Self::X11(_) => {
-                XWindow::new_window(class_name, name, width, height, callbacks, config).await
-            }
+            Self::X11(_) => XWindow::new_window(class_name, name, width, height, config).await,
             #[cfg(feature = "wayland")]
             Self::Wayland(_) => {
-                WaylandWindow::new_window(class_name, name, width, height, callbacks, config).await
+                WaylandWindow::new_window(class_name, name, width, height, config).await
             }
         }
     }
@@ -113,17 +110,33 @@ impl Window {
         name: &str,
         width: usize,
         height: usize,
-        callbacks: Box<dyn WindowCallbacks>,
         config: Option<&ConfigHandle>,
-    ) -> anyhow::Result<Window> {
+    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         Connection::get()
             .unwrap()
-            .new_window(class_name, name, width, height, callbacks, config)
+            .new_window(class_name, name, width, height, config)
             .await
     }
 }
 
+#[async_trait(?Send)]
 impl WindowOps for Window {
+    async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
+        match self {
+            Self::X11(x) => x.enable_opengl().await,
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.enable_opengl().await,
+        }
+    }
+
+    fn finish_frame(&self, frame: glium::Frame) -> anyhow::Result<()> {
+        match self {
+            Self::X11(x) => x.finish_frame(frame),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.finish_frame(frame),
+        }
+    }
+
     fn close(&self) -> Future<()> {
         match self {
             Self::X11(x) => x.close(),
@@ -209,21 +222,6 @@ impl WindowOps for Window {
             Self::X11(x) => x.set_window_position(coords),
             #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.set_window_position(coords),
-        }
-    }
-
-    fn apply<R, F: Send + 'static + FnMut(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
-        &self,
-        func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static,
-    {
-        match self {
-            Self::X11(x) => x.apply(func),
-            #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.apply(func),
         }
     }
 

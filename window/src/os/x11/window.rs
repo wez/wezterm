@@ -5,12 +5,13 @@ use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
     Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowDecorations, WindowOps,
+    Point, Rect, ScreenPoint, Size, WindowDecorations, WindowEvent, WindowEventReceiver,
+    WindowEventSender, WindowOps,
 };
 use anyhow::{anyhow, Context as _};
+use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::{Future, Promise};
-use std::any::Any;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
@@ -51,7 +52,7 @@ impl CopyAndPaste {
 pub(crate) struct XWindowInner {
     window_id: xcb::xproto::Window,
     conn: Weak<XConnection>,
-    callbacks: Box<dyn WindowCallbacks>,
+    events: WindowEventSender,
     width: u16,
     height: u16,
     dpi: f64,
@@ -83,7 +84,7 @@ impl Drop for XWindowInner {
 }
 
 impl XWindowInner {
-    fn enable_opengl(&mut self) -> anyhow::Result<()> {
+    fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
         let conn = self.conn();
 
         let gl_state = match conn.gl_connection.borrow().as_ref() {
@@ -114,8 +115,7 @@ impl XWindowInner {
         })?;
 
         self.gl_state.replace(gl_state.clone());
-        let window_handle = Window::X11(XWindow::from_id(self.window_id));
-        self.callbacks.created(&window_handle, gl_state)
+        Ok(gl_state)
     }
 
     pub fn paint(&mut self) -> anyhow::Result<()> {
@@ -124,24 +124,7 @@ impl XWindowInner {
         }
         self.paint_all = false;
         self.expose.clear();
-
-        if let Some(gl_context) = self.gl_state.as_ref() {
-            if gl_context.is_context_lost() {
-                log::error!("opengl context was lost; should reinit");
-                drop(self.gl_state.take());
-                self.enable_opengl()?;
-                return self.paint();
-            }
-
-            let mut frame = glium::Frame::new(
-                Rc::clone(&gl_context),
-                (u32::from(self.width), u32::from(self.height)),
-            );
-
-            self.callbacks.paint(&mut frame);
-            frame.finish()?;
-        }
-
+        self.events.try_send(WindowEvent::NeedRepaint)?;
         Ok(())
     }
 
@@ -164,9 +147,8 @@ impl XWindowInner {
         self.expose.push_back(expose);
     }
 
-    fn do_mouse_event(&mut self, event: &MouseEvent) -> anyhow::Result<()> {
-        self.callbacks
-            .mouse_event(&event, &XWindow::from_id(self.window_id));
+    fn do_mouse_event(&mut self, event: MouseEvent) -> anyhow::Result<()> {
+        self.events.try_send(WindowEvent::MouseEvent(event))?;
         Ok(())
     }
 
@@ -185,14 +167,14 @@ impl XWindowInner {
                 self.dpi
             );
             self.dpi = dpi;
-            self.callbacks.resize(
-                Dimensions {
+            let _ = self.events.try_send(WindowEvent::Resized {
+                dimensions: Dimensions {
                     pixel_width: self.width as usize,
                     pixel_height: self.height as usize,
                     dpi: self.dpi as usize,
                 },
-                self.is_fullscreen().unwrap_or(false),
-            );
+                is_full_screen: self.is_fullscreen().unwrap_or(false),
+            });
         }
     }
 
@@ -218,16 +200,17 @@ impl XWindowInner {
                     self.resize_promises.remove(0).ok(dimensions);
                 }
 
-                self.callbacks
-                    .resize(dimensions, self.is_fullscreen().unwrap_or(false))
+                self.events.try_send(WindowEvent::Resized {
+                    dimensions,
+                    is_full_screen: self.is_fullscreen().unwrap_or(false),
+                })?;
             }
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 self.copy_and_paste.time = key_press.time();
                 if let Some(key) = conn.keyboard.process_key_event(key_press) {
                     let key = key.normalize_shift();
-                    self.callbacks
-                        .key_event(&key, &XWindow::from_id(self.window_id));
+                    self.events.try_send(WindowEvent::KeyEvent(key))?;
                 }
             }
 
@@ -247,7 +230,7 @@ impl XWindowInner {
                     modifiers: xkeysyms::modifiers_from_state(motion.state()),
                     mouse_buttons: MouseButtons::default(),
                 };
-                self.do_mouse_event(&event)?;
+                self.do_mouse_event(event)?;
             }
             xcb::BUTTON_PRESS | xcb::BUTTON_RELEASE => {
                 let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(event) };
@@ -302,16 +285,19 @@ impl XWindowInner {
                     modifiers: xkeysyms::modifiers_from_state(button_press.state()),
                     mouse_buttons: MouseButtons::default(),
                 };
-                self.do_mouse_event(&event)?;
+                self.do_mouse_event(event)?;
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(event) };
-                if msg.data().data32()[0] == conn.atom_delete() && self.callbacks.can_close() {
-                    xcb::destroy_window(conn.conn(), self.window_id);
+
+                if msg.data().data32()[0] == conn.atom_delete() {
+                    if self.events.try_send(WindowEvent::CloseRequested).is_err() {
+                        xcb::destroy_window(conn.conn(), self.window_id);
+                    }
                 }
             }
             xcb::DESTROY_NOTIFY => {
-                self.callbacks.destroy();
+                self.events.try_send(WindowEvent::Destroyed)?;
                 conn.windows.borrow_mut().remove(&self.window_id);
             }
             xcb::SELECTION_CLEAR => {
@@ -354,11 +340,11 @@ impl XWindowInner {
             }
             xcb::FOCUS_IN => {
                 log::trace!("Calling focus_change(true)");
-                self.callbacks.focus_change(true);
+                self.events.try_send(WindowEvent::FocusChanged(true))?;
             }
             xcb::FOCUS_OUT => {
                 log::trace!("Calling focus_change(false)");
-                self.callbacks.focus_change(false);
+                self.events.try_send(WindowEvent::FocusChanged(false))?;
             }
             _ => {
                 eprintln!("unhandled: {:x}", r);
@@ -683,9 +669,8 @@ impl XWindow {
         name: &str,
         width: usize,
         height: usize,
-        callbacks: Box<dyn WindowCallbacks>,
         config: Option<&ConfigHandle>,
-    ) -> anyhow::Result<Window> {
+    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         let config = match config {
             Some(c) => c.clone(),
             None => config::configuration(),
@@ -697,6 +682,8 @@ impl XWindow {
             )
             })?
             .x11();
+
+        let (events, receiver) = async_channel::unbounded();
 
         let window_id;
         let window = {
@@ -761,7 +748,7 @@ impl XWindow {
             Arc::new(Mutex::new(XWindowInner {
                 window_id,
                 conn: Rc::downgrade(&conn),
-                callbacks,
+                events,
                 width: width.try_into()?,
                 height: height.try_into()?,
                 dpi: conn.default_dpi(),
@@ -797,14 +784,12 @@ impl XWindow {
 
         let window_handle = Window::X11(XWindow::from_id(window_id));
 
-        window.lock().unwrap().enable_opengl()?;
-
         conn.windows.borrow_mut().insert(window_id, window);
 
         window_handle.set_title(name);
         window_handle.show();
 
-        Ok(window_handle)
+        Ok((window_handle, receiver))
     }
 }
 
@@ -900,7 +885,21 @@ impl XWindowInner {
     }
 }
 
+#[async_trait(?Send)]
 impl WindowOps for XWindow {
+    async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
+        let window = self.0;
+        promise::spawn::spawn(async move {
+            if let Some(handle) = Connection::get().unwrap().x11().window_by_id(window) {
+                let mut inner = handle.lock().unwrap();
+                inner.enable_opengl()
+            } else {
+                anyhow::bail!("invalid window");
+            }
+        })
+        .await
+    }
+
     fn close(&self) -> Future<()> {
         XConnection::with_window_inner(self.0, |inner| {
             inner.close();
@@ -994,20 +993,6 @@ impl WindowOps for XWindow {
         XConnection::with_window_inner(self.0, move |inner| {
             inner.set_icon(&image);
             Ok(())
-        })
-    }
-
-    fn apply<R, F: Send + 'static + FnMut(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
-        &self,
-        mut func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static,
-    {
-        XConnection::with_window_inner(self.0, move |inner| {
-            let window = XWindow(inner.window_id);
-            func(inner.callbacks.as_any(), &window)
         })
     }
 

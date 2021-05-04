@@ -1,5 +1,7 @@
+use async_trait::async_trait;
 use promise::Future;
-use std::any::Any;
+use std::rc::Rc;
+use thiserror::Error;
 pub mod bitmaps;
 pub mod color;
 mod configuration;
@@ -59,69 +61,60 @@ pub enum MouseCursor {
     SizeLeftRight,
 }
 
-#[allow(unused_variables)]
-pub trait WindowCallbacks: Any {
+#[derive(Debug, PartialEq, Eq)]
+pub enum WindowEvent {
     /// Called when the window close button is clicked.
-    /// Return true to allow the close to continue, false to
-    /// prevent it from closing.
-    fn can_close(&mut self) -> bool {
-        true
-    }
+    /// The window closure is deferred and this event is
+    /// sent to your application to decide whether it will
+    /// really close the window.
+    CloseRequested,
 
-    /// Called when the window is being destroyed by the gui system
-    fn destroy(&mut self) {}
+    /// Called when the window is being destroyed by the window system
+    Destroyed,
 
-    /// Called when the window is resized, or when the dpi has changed
-    fn resize(&mut self, dimensions: Dimensions, is_full_screen: bool) {}
+    /// Called when the window has been resized
+    Resized {
+        dimensions: Dimensions,
+        is_full_screen: bool,
+    },
 
-    /// Called when window gains/loses focus
-    fn focus_change(&mut self, focused: bool) {}
+    /// Called when the window has been invalidated and needs to
+    /// be repainted
+    NeedRepaint,
 
-    /// Called when the window has opengl mode enabled and the window
-    /// contents need painting.
-    fn paint(&mut self, frame: &mut glium::Frame) {
-        use glium::Surface;
-        frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
-    }
-
-    /// Called if the opengl context is lost
-    fn opengl_context_lost(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
-        Ok(())
-    }
+    /// Called when the window gains/loses focus
+    FocusChanged(bool),
 
     /// Called to handle a key event.
-    /// If your window didn't handle the event, you must return false.
-    /// This is particularly important for eg: ALT keys on windows,
-    /// otherwise standard key assignments may not function in your window.
-    fn key_event(&mut self, key: &KeyEvent, context: &dyn WindowOps) -> bool {
-        false
-    }
+    /// If you didn't handle this event, then you must call
+    /// window.default_key_processing(key) to allow the system to perform
+    /// the default key handling.
+    /// This is important on Windows for ALT keys to continue working
+    /// correctly.
+    KeyEvent(KeyEvent),
 
-    fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
-        context.set_cursor(Some(MouseCursor::Arrow));
-    }
-
-    /// Called when the window is created and allows the embedding
-    /// app to reference the window and operate upon it.
-    fn created(
-        &mut self,
-        _window: &Window,
-        _context: std::rc::Rc<glium::backend::Context>,
-    ) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    /// An unfortunate bit of boilerplate; you need to provie an impl
-    /// of this method that returns `self` in order for the downcast_ref
-    /// method of the Any trait to be usable on WindowCallbacks.
-    /// https://stackoverflow.com/q/46045298/149111 and others have
-    /// some rationale on why Rust works this way.
-    fn as_any(&mut self) -> &mut dyn Any;
+    MouseEvent(MouseEvent),
 }
 
+pub type WindowEventSender = async_channel::Sender<WindowEvent>;
+pub type WindowEventReceiver = async_channel::Receiver<WindowEvent>;
+
+#[derive(Debug, Error)]
+#[error("Graphics drivers lost context")]
+pub struct GraphicsDriversLostContext {}
+
+#[async_trait(?Send)]
 pub trait WindowOps {
     /// Show a hidden window
     fn show(&self) -> Future<()>;
+
+    /// Setup opengl for rendering
+    async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>>;
+    /// Advise the window that a frame is finished
+    fn finish_frame(&self, frame: glium::Frame) -> anyhow::Result<()> {
+        frame.finish()?;
+        Ok(())
+    }
 
     /// Hide a visible window
     fn hide(&self) -> Future<()>;
@@ -139,6 +132,8 @@ pub trait WindowOps {
     /// Change the titlebar text for the window
     fn set_title(&self, title: &str) -> Future<()>;
 
+    fn default_key_processing(&self, _key: KeyEvent) {}
+
     /// Resize the inner or client area of the window
     fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions>;
 
@@ -155,18 +150,6 @@ pub trait WindowOps {
     fn set_text_cursor_position(&self, _cursor: Rect) -> Future<()> {
         Future::ok(())
     }
-
-    /// Schedule a callback on the data associated with the window.
-    /// The `Any` that is passed in corresponds to the WindowCallbacks
-    /// impl you passed to `new_window`, pre-converted to Any so that
-    /// you can `downcast_ref` or `downcast_mut` it and operate on it.
-    fn apply<R, F: Send + 'static + FnMut(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
-        &self,
-        func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static;
 
     /// Initiate textual transfer from the clipboard
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String>;

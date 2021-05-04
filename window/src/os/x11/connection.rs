@@ -292,7 +292,10 @@ impl XConnection {
         Ok(())
     }
 
-    fn window_by_id(&self, window_id: xcb::xproto::Window) -> Option<Arc<Mutex<XWindowInner>>> {
+    pub(crate) fn window_by_id(
+        &self,
+        window_id: xcb::xproto::Window,
+    ) -> Option<Arc<Mutex<XWindowInner>>> {
         self.windows.borrow().get(&window_id).map(Arc::clone)
     }
 
