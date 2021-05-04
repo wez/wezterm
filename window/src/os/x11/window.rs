@@ -61,7 +61,7 @@ pub(crate) struct XWindowInner {
     copy_and_paste: CopyAndPaste,
     config: ConfigHandle,
     gl_state: Option<Rc<glium::backend::Context>>,
-    resize_promises: Vec<Promise<Dimension>>,
+    resize_promises: Vec<Promise<Dimensions>>,
 }
 
 fn enclosing_boundary_with(a: &Rect, b: &Rect) -> Rect {
@@ -816,9 +816,6 @@ impl XWindowInner {
     fn show(&mut self) {
         xcb::map_window(self.conn().conn(), self.window_id);
     }
-    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
-        XWindowInner::set_cursor(self, cursor).unwrap();
-    }
     fn invalidate(&mut self) {
         self.paint_all = true;
     }
@@ -837,23 +834,6 @@ impl XWindowInner {
     fn config_did_change(&mut self, config: &ConfigHandle) {
         self.config = config.clone();
         let _ = self.adjust_decorations(config.window_decorations);
-    }
-
-    fn set_inner_size(&mut self, width: usize, height: usize) -> Future<Dimensions> {
-        let _ = xcb::configure_window_checked(
-            self.conn().conn(),
-            self.window_id,
-            &[
-                (xcb::CONFIG_WINDOW_WIDTH as u16, width as u32),
-                (xcb::CONFIG_WINDOW_HEIGHT as u16, height as u32),
-            ],
-        )
-        .request_check();
-
-        let promise = Promise::new();
-        let future = promise.get_future();
-        self.resize_promises.push(promise);
-        promise
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {
@@ -980,7 +960,27 @@ impl WindowOps for XWindow {
     }
 
     fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
-        XConnection::with_window_inner(self.0, move |inner| Ok(inner.set_inner_size(width, height)))
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+
+        let mut promise = Some(promise);
+
+        XConnection::with_window_inner(self.0, move |inner| {
+            if let Some(promise) = promise.take() {
+                inner.resize_promises.push(promise);
+            }
+            xcb::configure_window(
+                inner.conn().conn(),
+                inner.window_id,
+                &[
+                    (xcb::CONFIG_WINDOW_WIDTH as u16, width as u32),
+                    (xcb::CONFIG_WINDOW_HEIGHT as u16, height as u32),
+                ],
+            );
+            Ok(())
+        });
+
+        future
     }
 
     fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {

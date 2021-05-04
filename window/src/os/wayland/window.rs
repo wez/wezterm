@@ -881,8 +881,8 @@ impl WaylandWindowInner {
 
         let factor = get_surface_scale_factor(&self.surface);
         Dimensions {
-            pixel_width,
-            pixel_height,
+            pixel_width: pixel_width as _,
+            pixel_height: pixel_height as _,
             dpi: factor as usize * crate::DEFAULT_DPI as usize,
         }
     }

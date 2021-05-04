@@ -7,7 +7,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{Clipboard, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
+use crate::{Clipboard, Dimensions, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
 use config::ConfigHandle;
 use promise::*;
 use std::any::Any;
