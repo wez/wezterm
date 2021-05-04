@@ -33,7 +33,7 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("window is visible, do loop");
 
     while let Ok(event) = events.recv().await {
-        match event {
+        match dbg!(event) {
             WindowEvent::CloseRequested => {
                 eprintln!("can I close?");
                 if state.allow_close {

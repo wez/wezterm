@@ -108,7 +108,7 @@ impl Connection {
         }
     }
 
-    fn get_window(&self, handle: HWindow) -> Option<Rc<RefCell<WindowInner>>> {
+    pub(crate) fn get_window(&self, handle: HWindow) -> Option<Rc<RefCell<WindowInner>>> {
         self.windows.borrow().get(&handle).map(Rc::clone)
     }
 

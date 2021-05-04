@@ -2,15 +2,15 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::{
     Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks, WindowDecorations,
-    WindowOps,
+    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
+    WindowEventReceiver, WindowEventSender, WindowOps,
 };
 use anyhow::{bail, Context};
+use async_trait::async_trait;
 use config::ConfigHandle;
 use lazy_static::lazy_static;
 use promise::{Future, Promise};
 use shared_library::shared_library;
-use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -40,7 +40,7 @@ unsafe impl Sync for HWindow {}
 pub(crate) struct WindowInner {
     /// Non-owning reference to the window handle
     hwnd: HWindow,
-    callbacks: RefCell<Box<dyn WindowCallbacks>>,
+    events: WindowEventSender,
     gl_state: Option<Rc<glium::backend::Context>>,
     /// Fraction of mouse scroll
     hscroll_remainder: i16,
@@ -120,8 +120,7 @@ fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
 }
 
 impl WindowInner {
-    fn enable_opengl(&mut self) -> anyhow::Result<()> {
-        let window = Window(self.hwnd);
+    fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
         let conn = Connection::get().unwrap();
 
         let gl_state = if self.config.prefer_egl {
@@ -159,12 +158,7 @@ impl WindowInner {
 
         self.gl_state.replace(gl_state.clone());
 
-        if let Err(err) = self.callbacks.borrow_mut().created(&window, gl_state) {
-            self.gl_state.take();
-            Err(err)
-        } else {
-            Ok(())
-        }
+        Ok(gl_state)
     }
 
     /// Check if we need to generate a resize callback.
@@ -210,9 +204,12 @@ impl WindowInner {
             let imc = ImmContext::get(self.hwnd.0);
             imc.set_position(0, 0);
 
-            self.callbacks
-                .borrow_mut()
-                .resize(current_dims, self.saved_placement.is_some());
+            self.events
+                .try_send(WindowEvent::Resized {
+                    dimensions: current_dims,
+                    is_full_screen: self.saved_placement.is_some(),
+                })
+                .ok();
         }
 
         !same
@@ -264,10 +261,6 @@ fn decorations_to_style(decorations: WindowDecorations) -> u32 {
 }
 
 impl Window {
-    fn from_hwnd(hwnd: HWND) -> Self {
-        Self(HWindow(hwnd))
-    }
-
     fn create_window(
         config: ConfigHandle,
         class_name: &str,
@@ -372,16 +365,16 @@ impl Window {
         name: &str,
         width: usize,
         height: usize,
-        callbacks: Box<dyn WindowCallbacks>,
         config: Option<&ConfigHandle>,
-    ) -> anyhow::Result<Window> {
+    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
+        let (events, receiver) = async_channel::unbounded();
         let config = match config {
             Some(c) => c.clone(),
             None => config::configuration(),
         };
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),
-            callbacks: RefCell::new(callbacks),
+            events,
             gl_state: None,
             vscroll_remainder: 0,
             hscroll_remainder: 0,
@@ -415,9 +408,9 @@ impl Window {
             .insert(hwnd.clone(), Rc::clone(&inner));
 
         let window = Window(hwnd);
-        inner.borrow_mut().enable_opengl()?;
+        // inner.borrow_mut().enable_opengl()?;
 
-        Ok(window)
+        Ok((window, receiver))
     }
 }
 
@@ -544,7 +537,21 @@ impl WindowInner {
     }
 }
 
+#[async_trait(?Send)]
 impl WindowOps for Window {
+    async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
+        let window = self.0;
+        promise::spawn::spawn(async move {
+            if let Some(handle) = Connection::get().unwrap().get_window(window) {
+                let mut inner = handle.borrow_mut();
+                inner.enable_opengl()
+            } else {
+                anyhow::bail!("invalid window");
+            }
+        })
+        .await
+    }
+
     fn close(&self) -> Future<()> {
         Connection::with_window_inner(self.0, |inner| {
             inner.close();
@@ -669,20 +676,6 @@ impl WindowOps for Window {
         })
     }
 
-    fn apply<R, F: Send + 'static + FnMut(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
-        &self,
-        mut func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static,
-    {
-        Connection::with_window_inner(self.0, move |inner| {
-            let window = Window(inner.hwnd);
-            func(inner.callbacks.borrow_mut().as_any(), &window)
-        })
-    }
-
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
         Future::result(
             clipboard_win::get_clipboard_string()
@@ -723,7 +716,7 @@ unsafe fn wm_ncdestroy(
     if !raw.is_null() {
         let inner = take_rc_from_pointer(raw);
         let mut inner = inner.borrow_mut();
-        inner.callbacks.borrow_mut().destroy();
+        inner.events.try_send(WindowEvent::Destroyed).ok();
         inner.hwnd = HWindow(null_mut());
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
     }
@@ -869,7 +862,7 @@ unsafe fn wm_set_focus(
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let inner = inner.borrow();
-        inner.callbacks.borrow_mut().focus_change(true);
+        inner.events.try_send(WindowEvent::FocusChanged(true)).ok();
     }
     None
 }
@@ -882,7 +875,7 @@ unsafe fn wm_kill_focus(
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let inner = inner.borrow();
-        inner.callbacks.borrow_mut().focus_change(false);
+        inner.events.try_send(WindowEvent::FocusChanged(false)).ok();
     }
     None
 }
@@ -891,6 +884,7 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let inner = inner.borrow();
 
+        /*
         let mut ps = PAINTSTRUCT {
             fErase: 0,
             fIncUpdate: 0,
@@ -906,6 +900,7 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
         };
         let _ = BeginPaint(hwnd, &mut ps);
 
+        /*
         let mut rect = RECT {
             left: 0,
             bottom: 0,
@@ -929,13 +924,15 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
             let mut frame =
                 glium::Frame::new(Rc::clone(&gl_context), (width as u32, height as u32));
 
-            inner.callbacks.borrow_mut().paint(&mut frame);
-            frame.finish().expect("frame.finish failed");
         }
+        */
 
         EndPaint(hwnd, &mut ps);
+        */
+        inner.events.try_send(WindowEvent::NeedRepaint).ok();
 
-        Some(0)
+        None
+        // Some(0)
     } else {
         None
     }
@@ -1038,10 +1035,7 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
             modifiers,
         };
         let inner = inner.borrow();
-        inner
-            .callbacks
-            .borrow_mut()
-            .mouse_event(&event, &Window::from_hwnd(hwnd));
+        inner.events.try_send(WindowEvent::MouseEvent(event)).ok();
         Some(0)
     } else {
         None
@@ -1061,10 +1055,7 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         };
 
         let inner = inner.borrow();
-        inner
-            .callbacks
-            .borrow_mut()
-            .mouse_event(&event, &Window::from_hwnd(hwnd));
+        inner.events.try_send(WindowEvent::MouseEvent(event)).ok();
         Some(0)
     } else {
         None
@@ -1119,10 +1110,7 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             modifiers,
         };
         let inner = inner.borrow();
-        inner
-            .callbacks
-            .borrow_mut()
-            .mouse_event(&event, &Window::from_hwnd(hwnd));
+        inner.events.try_send(WindowEvent::MouseEvent(event)).ok();
         Some(0)
     } else {
         None
@@ -1212,10 +1200,7 @@ unsafe fn ime_composition(
                         key_is_down: true,
                     }
                     .normalize_shift();
-                    inner
-                        .callbacks
-                        .borrow_mut()
-                        .key_event(&key, &Window::from_hwnd(hwnd));
+                    inner.events.try_send(WindowEvent::KeyEvent(key)).ok();
 
                     return Some(1);
                 }
@@ -1774,10 +1759,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             .normalize_shift()
                             .normalize_ctrl();
 
-                            inner
-                                .callbacks
-                                .borrow_mut()
-                                .key_event(&key, &Window::from_hwnd(hwnd));
+                            inner.events.try_send(WindowEvent::KeyEvent(key)).ok();
 
                             // And then we'll perform normal processing on the
                             // current key press
@@ -1888,14 +1870,8 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 return None;
             }
 
-            let handled = inner
-                .callbacks
-                .borrow_mut()
-                .key_event(&key, &Window::from_hwnd(hwnd));
-
-            if handled {
-                return Some(0);
-            }
+            inner.events.try_send(WindowEvent::KeyEvent(key)).ok();
+            return Some(0);
         }
     }
     None
@@ -1912,6 +1888,11 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_KILLFOCUS => wm_kill_focus(hwnd, msg, wparam, lparam),
         WM_DEADCHAR | WM_KEYDOWN | WM_KEYUP | WM_SYSCHAR | WM_CHAR | WM_IME_CHAR | WM_SYSKEYUP
         | WM_SYSKEYDOWN => key(hwnd, msg, wparam, lparam),
+        WM_SIZING => {
+            // Allow events to be processed during live resize
+            crate::spawn::SPAWN_QUEUE.run();
+            None
+        }
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
         WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),
@@ -1923,7 +1904,10 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_CLOSE => {
             if let Some(inner) = rc_from_hwnd(hwnd) {
                 let inner = inner.borrow();
-                if !inner.callbacks.borrow_mut().can_close() {
+                if inner.events.try_send(WindowEvent::CloseRequested).is_err() {
+                    // Close it!
+                    return None;
+                } else {
                     // Don't let it close
                     return Some(0);
                 }
