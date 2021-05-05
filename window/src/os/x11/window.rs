@@ -905,14 +905,24 @@ impl WindowOps for XWindow {
     where
         Self: Sized,
     {
-        let mut t = Some(t);
-        XConnection::with_window_inner(self.0, move |inner| {
+        // If we're already on the correct thread, just queue it up
+        if let Some(handle) = Connection::get().unwrap().x11().window_by_id(self.0) {
+            let inner = handle.lock().unwrap();
             inner
                 .events
-                .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                .try_send(WindowEvent::Notification(Box::new(t)))
                 .ok();
-            Ok(())
-        });
+        } else {
+            // Otherwise, get into that thread and write to the queue
+            let mut t = Some(t);
+            XConnection::with_window_inner(self.0, move |inner| {
+                inner
+                    .events
+                    .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                    .ok();
+                Ok(())
+            });
+        }
     }
 
     fn close(&self) -> Future<()> {

@@ -615,14 +615,24 @@ impl WindowOps for WaylandWindow {
     where
         Self: Sized,
     {
-        let mut t = Some(t);
-        WaylandConnection::with_window_inner(self.0, move |inner| {
+        // If we're already on the correct thread, just queue it up
+        if let Some(handle) = Connection::get().unwrap().wayland().window_by_id(self.0) {
+            let inner = handle.borrow();
             inner
                 .events
-                .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                .try_send(WindowEvent::Notification(Box::new(t)))
                 .ok();
-            Ok(())
-        });
+        } else {
+            // Otherwise, get into that thread and write to the queue
+            let mut t = Some(t);
+            WaylandConnection::with_window_inner(self.0, move |inner| {
+                inner
+                    .events
+                    .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                    .ok();
+                Ok(())
+            });
+        }
     }
 
     fn close(&self) -> Future<()> {
