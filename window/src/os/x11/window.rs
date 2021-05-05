@@ -906,7 +906,8 @@ impl WindowOps for XWindow {
         Self: Sized,
     {
         // If we're already on the correct thread, just queue it up
-        if let Some(handle) = Connection::get().unwrap().x11().window_by_id(self.0) {
+        if let Some(conn) = Connection::get() {
+            let handle = conn.x11().window_by_id(self.0).unwrap();
             let inner = handle.lock().unwrap();
             inner
                 .events

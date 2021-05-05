@@ -11,6 +11,7 @@ use config::ConfigHandle;
 use lazy_static::lazy_static;
 use promise::{Future, Promise};
 use shared_library::shared_library;
+use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -550,6 +551,31 @@ impl WindowOps for Window {
             }
         })
         .await
+    }
+
+    fn notify<T: Any + Send + Sync>(&self, t: T)
+    where
+        Self: Sized,
+    {
+        // If we're already on the correct thread, just queue it up
+        if let Some(conn) = Connection::get() {
+            let handle = conn.get_window(self.0).unwrap();
+            let inner = handle.borrow_mut();
+            inner
+                .events
+                .try_send(WindowEvent::Notification(Box::new(t)))
+                .ok();
+        } else {
+            // Otherwise, get into that thread and write to the queue
+            let mut t = Some(t);
+            Connection::with_window_inner(self.0, move |inner| {
+                inner
+                    .events
+                    .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                    .ok();
+                Ok(())
+            });
+        }
     }
 
     fn close(&self) -> Future<()> {
