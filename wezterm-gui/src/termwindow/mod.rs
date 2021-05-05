@@ -546,7 +546,8 @@ impl TermWindow {
                     }
                     WindowEvent::NeedRepaint => {
                         if gl.is_context_lost() {
-                            eprintln!("opengl context was lost; should reinit");
+                            log::error!("opengl context was lost; should reinit");
+                            window.close();
                             break;
                         }
 
