@@ -14,6 +14,7 @@ use config::ConfigHandle;
 use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
 use smithay_client_toolkit as toolkit;
+use std::any::Any;
 use std::cell::RefCell;
 use std::convert::TryInto;
 use std::io::{Read, Write};
@@ -608,6 +609,20 @@ impl WindowOps for WaylandWindow {
             Ok(())
         });
         Ok(())
+    }
+
+    fn notify<T: Any + Send + Sync>(&self, t: T)
+    where
+        Self: Sized,
+    {
+        let mut t = Some(t);
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner
+                .events
+                .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                .ok();
+            Ok(())
+        });
     }
 
     fn close(&self) -> Future<()> {

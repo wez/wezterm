@@ -12,6 +12,7 @@ use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::{Future, Promise};
+use std::any::Any;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
@@ -898,6 +899,20 @@ impl WindowOps for XWindow {
             }
         })
         .await
+    }
+
+    fn notify<T: Any + Send + Sync>(&self, t: T)
+    where
+        Self: Sized,
+    {
+        let mut t = Some(t);
+        XConnection::with_window_inner(self.0, move |inner| {
+            inner
+                .events
+                .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                .ok();
+            Ok(())
+        });
     }
 
     fn close(&self) -> Future<()> {

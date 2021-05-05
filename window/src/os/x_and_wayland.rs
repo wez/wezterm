@@ -11,6 +11,7 @@ use crate::{Clipboard, Dimensions, MouseCursor, ScreenPoint, WindowEventReceiver
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
+use std::any::Any;
 use std::rc::Rc;
 
 pub enum Connection {
@@ -142,6 +143,16 @@ impl WindowOps for Window {
             Self::X11(x) => x.close(),
             #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.close(),
+        }
+    }
+    fn notify<T: Any + Send + Sync>(&self, t: T)
+    where
+        Self: Sized,
+    {
+        match self {
+            Self::X11(x) => x.notify(t),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.notify(t),
         }
     }
 
