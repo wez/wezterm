@@ -88,7 +88,11 @@ impl TermWindow {
         }
     }
 
-    pub fn paste_from_clipboard(&mut self, pane: &Rc<dyn Pane>, clipboard: ClipboardPasteSource) {
+    pub async fn paste_from_clipboard(
+        &mut self,
+        pane: &Rc<dyn Pane>,
+        clipboard: ClipboardPasteSource,
+    ) {
         let pane_id = pane.pane_id();
         let window = self.window.as_ref().unwrap().clone();
         let clipboard = match clipboard {
@@ -97,27 +101,13 @@ impl TermWindow {
         };
         let future = window.get_clipboard(clipboard);
 
-        promise::spawn::spawn(async move {
-            if let Ok(clip) = future.await {
-                window
-                    .apply(move |term_window, _window| {
-                        let clip = clip.clone();
-                        if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
-                            if let Some(pane) =
-                                term_window.pane_state(pane_id).overlay.clone().or_else(|| {
-                                    let mux = Mux::get().unwrap();
-                                    mux.get_pane(pane_id)
-                                })
-                            {
-                                pane.trickle_paste(clip).ok();
-                            }
-                        }
-                        Ok(())
-                    })
-                    .await?;
-            };
-            Ok::<(), anyhow::Error>(())
-        })
-        .detach();
+        if let Ok(clip) = future.await {
+            if let Some(pane) = self.pane_state(pane_id).overlay.clone().or_else(|| {
+                let mux = Mux::get().unwrap();
+                mux.get_pane(pane_id)
+            }) {
+                pane.trickle_paste(clip).ok();
+            }
+        }
     }
 }

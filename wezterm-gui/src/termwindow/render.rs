@@ -1,7 +1,9 @@
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{BlockKey, CachedGlyph, GlyphCache};
 use crate::shapecache::*;
-use crate::termwindow::{BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo};
+use crate::termwindow::{
+    BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
+};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
 use ::window::glium;
@@ -546,7 +548,9 @@ impl super::TermWindow {
                 None => {
                     let font = self.fonts.resolve_font(style)?;
                     let window = self.window.as_ref().unwrap().clone();
-                    match font.shape(text, || Self::invalidate_post_font_resolve(window)) {
+                    match font.shape(text, move || {
+                        window.notify(TermWindowNotif::InvalidateShapeCache)
+                    }) {
                         Ok(info) => {
                             let line = Line::from_text(&text, &CellAttributes::default());
                             let clusters = line.cluster();
@@ -659,21 +663,6 @@ impl super::TermWindow {
         }
 
         Ok(())
-    }
-
-    fn invalidate_post_font_resolve(window: ::window::Window) {
-        promise::spawn::spawn_into_main_thread(async move {
-            window
-                .apply(move |tw, _| {
-                    if let Some(tw) = tw.downcast_mut::<Self>() {
-                        tw.shape_cache.borrow_mut().clear();
-                        tw.window.as_ref().unwrap().invalidate();
-                    }
-                    Ok(())
-                })
-                .await
-        })
-        .detach();
     }
 
     /// "Render" a line of the terminal screen into the vertex buffer.
@@ -847,9 +836,9 @@ impl super::TermWindow {
                     None => {
                         let font = self.fonts.resolve_font(style)?;
                         let window = self.window.as_ref().unwrap().clone();
-                        match font
-                            .shape(&cluster.text, || Self::invalidate_post_font_resolve(window))
-                        {
+                        match font.shape(&cluster.text, move || {
+                            window.notify(TermWindowNotif::InvalidateShapeCache)
+                        }) {
                             Ok(info) => {
                                 let glyphs = self.glyph_infos_to_glyphs(
                                     cluster,

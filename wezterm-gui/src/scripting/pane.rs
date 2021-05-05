@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct PaneObject {
-    pane: PaneId,
+    pub pane: PaneId,
 }
 
 impl PaneObject {

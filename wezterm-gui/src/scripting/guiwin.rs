@@ -1,8 +1,8 @@
 //! GuiWin represents a Gui TermWindow (as opposed to a Mux window) in lua code
 use super::luaerr;
 use super::pane::PaneObject;
+use crate::termwindow::TermWindowNotif;
 use crate::TermWindow;
-use anyhow::anyhow;
 use config::keyassignment::KeyAssignment;
 use luahelper::*;
 use mlua::{UserData, UserDataMethods};
@@ -14,7 +14,7 @@ use window::WindowOps;
 #[derive(Clone)]
 pub struct GuiWin {
     mux_window_id: MuxWindowId,
-    window: ::window::Window,
+    pub window: ::window::Window,
 }
 
 impl GuiWin {
@@ -25,24 +25,6 @@ impl GuiWin {
             window,
             mux_window_id,
         }
-    }
-
-    pub async fn with_term_window<F, T>(&self, mut f: F) -> mlua::Result<T>
-    where
-        F: FnMut(&mut TermWindow, &dyn WindowOps) -> anyhow::Result<T>,
-        F: Send + 'static,
-        T: Send + 'static,
-    {
-        self.window
-            .apply(move |tw, ops| {
-                if let Some(term_window) = tw.downcast_mut::<TermWindow>() {
-                    f(term_window, ops)
-                } else {
-                    Err(anyhow!("Window is not TermWindow!?"))
-                }
-            })
-            .await
-            .map_err(luaerr)
     }
 }
 
@@ -61,76 +43,90 @@ impl UserData for GuiWin {
                 Ok(())
             },
         );
-        methods.add_async_method("set_right_status", |_, this, status: String| async move {
-            this.with_term_window(move |term_window, _ops| {
-                if status != term_window.right_status {
-                    term_window.right_status = status.clone();
-                    term_window.update_title_post_status();
-                }
-                Ok(())
-            })
-            .await
+        methods.add_method("set_right_status", |_, this, status: String| {
+            this.window.notify(TermWindowNotif::SetRightStatus(status));
+            Ok(())
         });
         methods.add_async_method("get_dimensions", |_, this, _: ()| async move {
-            this.with_term_window(move |term_window, _ops| {
-                #[derive(Serialize, Deserialize)]
-                struct Dims {
-                    pixel_width: usize,
-                    pixel_height: usize,
-                    dpi: usize,
-                    is_full_screen: bool,
-                }
-                impl_lua_conversion!(Dims);
+            let (tx, rx) = smol::channel::bounded(1);
+            this.window.notify(TermWindowNotif::GetDimensions(tx));
+            let (dims, is_full_screen) = rx
+                .recv()
+                .await
+                .map_err(|e| anyhow::anyhow!("{:#}", e))
+                .map_err(luaerr)?;
 
-                let dims = Dims {
-                    pixel_width: term_window.dimensions.pixel_width,
-                    pixel_height: term_window.dimensions.pixel_height,
-                    dpi: term_window.dimensions.dpi,
-                    is_full_screen: term_window.is_full_screen,
-                };
-                Ok(dims)
-            })
-            .await
+            #[derive(Serialize, Deserialize)]
+            struct Dims {
+                pixel_width: usize,
+                pixel_height: usize,
+                dpi: usize,
+                is_full_screen: bool,
+            }
+            impl_lua_conversion!(Dims);
+
+            let dims = Dims {
+                pixel_width: dims.pixel_width,
+                pixel_height: dims.pixel_height,
+                dpi: dims.dpi,
+                is_full_screen,
+            };
+            Ok(dims)
         });
         methods.add_async_method(
             "get_selection_text_for_pane",
             |_, this, pane: PaneObject| async move {
-                this.with_term_window(move |term_window, _ops| {
-                    Ok(term_window.selection_text(&pane.pane()?))
-                })
-                .await
+                let (tx, rx) = smol::channel::bounded(1);
+                this.window.notify(TermWindowNotif::GetSelectionForPane {
+                    pane_id: pane.pane,
+                    tx,
+                });
+                let text = rx
+                    .recv()
+                    .await
+                    .map_err(|e| anyhow::anyhow!("{:#}", e))
+                    .map_err(luaerr)?;
+
+                Ok(text)
             },
         );
-        methods.add_async_method(
+        methods.add_method(
             "perform_action",
-            |_, this, (assignment, pane): (KeyAssignment, PaneObject)| async move {
-                this.with_term_window(move |term_window, _ops| {
-                    term_window.perform_key_assignment(&pane.pane()?, &assignment)
-                })
-                .await
+            |_, this, (assignment, pane): (KeyAssignment, PaneObject)| {
+                this.window.notify(TermWindowNotif::PerformAssignment {
+                    pane_id: pane.pane,
+                    assignment,
+                });
+                Ok(())
             },
         );
         methods.add_async_method("effective_config", |_, this, _: ()| async move {
-            this.with_term_window(move |term_window, _ops| Ok((*term_window.config).clone()))
+            let (tx, rx) = smol::channel::bounded(1);
+            this.window.notify(TermWindowNotif::GetEffectiveConfig(tx));
+            let config = rx
+                .recv()
                 .await
+                .map_err(|e| anyhow::anyhow!("{:#}", e))
+                .map_err(luaerr)?;
+
+            Ok((*config).clone())
         });
         methods.add_async_method("get_config_overrides", |_, this, _: ()| async move {
-            this.with_term_window(move |term_window, _ops| {
-                let wrap = JsonLua(term_window.config_overrides.clone());
-                Ok(wrap)
-            })
-            .await
-        });
-        methods.add_async_method(
-            "set_config_overrides",
-            |_, this, value: JsonLua| async move {
-                this.with_term_window(move |term_window, _ops| {
-                    term_window.config_overrides = value.0.clone();
-                    term_window.config_was_reloaded();
-                    Ok(())
-                })
+            let (tx, rx) = smol::channel::bounded(1);
+            this.window.notify(TermWindowNotif::GetConfigOverrides(tx));
+            let overrides = rx
+                .recv()
                 .await
-            },
-        );
+                .map_err(|e| anyhow::anyhow!("{:#}", e))
+                .map_err(luaerr)?;
+
+            let wrap = JsonLua(overrides);
+            Ok(wrap)
+        });
+        methods.add_method("set_config_overrides", |_, this, value: JsonLua| {
+            this.window
+                .notify(TermWindowNotif::SetConfigOverrides(value.0));
+            Ok(())
+        });
     }
 }

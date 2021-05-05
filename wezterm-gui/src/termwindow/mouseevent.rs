@@ -18,7 +18,7 @@ use wezterm_term::input::MouseEventKind as TMEK;
 use wezterm_term::{LastMouseClick, StableRowIndex};
 
 impl super::TermWindow {
-    pub fn mouse_event_impl(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
+    pub async fn mouse_event_impl(&mut self, event: MouseEvent, context: &dyn WindowOps) {
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
             None => return,
@@ -209,11 +209,12 @@ impl super::TermWindow {
         } else if in_scroll_bar {
             self.mouse_event_scroll_bar(pane, event, context);
         } else {
-            self.mouse_event_terminal(pane, x, term_y, event, context);
+            self.mouse_event_terminal(pane, x, term_y, event, context)
+                .await;
         }
     }
 
-    pub fn mouse_event_tab_bar(&mut self, x: usize, event: &MouseEvent, context: &dyn WindowOps) {
+    pub fn mouse_event_tab_bar(&mut self, x: usize, event: MouseEvent, context: &dyn WindowOps) {
         match event.kind {
             WMEK::Press(MousePress::Left) => match self.tab_bar.hit_test(x) {
                 TabBarItem::Tab(tab_idx) => {
@@ -251,7 +252,7 @@ impl super::TermWindow {
     pub fn mouse_event_scroll_bar(
         &mut self,
         pane: Rc<dyn Pane>,
-        event: &MouseEvent,
+        event: MouseEvent,
         context: &dyn WindowOps,
     ) {
         if let WMEK::Press(MousePress::Left) = event.kind {
@@ -302,12 +303,12 @@ impl super::TermWindow {
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
-    pub fn mouse_event_terminal(
+    pub async fn mouse_event_terminal(
         &mut self,
         mut pane: Rc<dyn Pane>,
         mut x: usize,
         mut y: i64,
-        event: &MouseEvent,
+        event: MouseEvent,
         context: &dyn WindowOps,
     ) {
         let mut on_split = None;
@@ -499,7 +500,7 @@ impl super::TermWindow {
                     .input_map
                     .lookup_mouse(event_trigger_type.clone(), modifiers)
                 {
-                    self.perform_key_assignment(&pane, &action).ok();
+                    self.perform_key_assignment(&pane, &action).await.ok();
                     return;
                 }
             }

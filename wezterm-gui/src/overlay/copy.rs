@@ -1,5 +1,5 @@
 use crate::selection::{SelectionCoordinate, SelectionRange};
-use crate::termwindow::TermWindow;
+use crate::termwindow::{TermWindow, TermWindowNotif};
 use config::keyassignment::ScrollbackEraseMode;
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId};
@@ -101,15 +101,14 @@ impl CopyRenderable {
 
     fn adjust_selection(&self, start: SelectionCoordinate, range: SelectionRange) {
         let pane_id = self.delegate.pane_id();
-        self.window.apply(move |term_window, window| {
-            if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
+        let window = self.window.clone();
+        self.window
+            .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                 let mut selection = term_window.selection(pane_id);
                 selection.start = Some(start);
                 selection.range = Some(range);
                 window.invalidate();
-            }
-            Ok(())
-        });
+            })));
         self.adjust_viewport_for_cursor_position();
     }
 
@@ -154,12 +153,10 @@ impl CopyRenderable {
     fn set_viewport(&self, row: Option<StableRowIndex>) {
         let dims = self.delegate.get_dimensions();
         let pane_id = self.delegate.pane_id();
-        self.window.apply(move |term_window, _window| {
-            if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
+        self.window
+            .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                 term_window.set_viewport(pane_id, row, dims);
-            }
-            Ok(())
-        });
+            })));
     }
 
     fn close(&self) {

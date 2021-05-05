@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use promise::Future;
+use std::any::Any;
 use std::rc::Rc;
 use thiserror::Error;
 pub mod bitmaps;
@@ -61,7 +62,7 @@ pub enum MouseCursor {
     SizeLeftRight,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum WindowEvent {
     /// Called when the window close button is clicked.
     /// The window closure is deferred and this event is
@@ -94,6 +95,8 @@ pub enum WindowEvent {
     KeyEvent(KeyEvent),
 
     MouseEvent(MouseEvent),
+
+    Notification(Box<dyn Any + Send + Sync>),
 }
 
 pub type WindowEventSender = async_channel::Sender<WindowEvent>;
@@ -107,6 +110,10 @@ pub struct GraphicsDriversLostContext {}
 pub trait WindowOps {
     /// Show a hidden window
     fn show(&self) -> Future<()>;
+
+    fn notify<T: Any + Send + Sync>(&self, t: T)
+    where
+        Self: Sized;
 
     /// Setup opengl for rendering
     async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>>;

@@ -1,5 +1,5 @@
 use crate::selection::{SelectionCoordinate, SelectionRange};
-use crate::termwindow::TermWindow;
+use crate::termwindow::{TermWindow, TermWindowNotif};
 use config::keyassignment::{ClipboardCopyDestination, ScrollbackEraseMode};
 use config::ConfigHandle;
 use mux::domain::DomainId;
@@ -489,12 +489,10 @@ impl QuickSelectRenderable {
     fn set_viewport(&self, row: Option<StableRowIndex>) {
         let dims = self.delegate.get_dimensions();
         let pane_id = self.delegate.pane_id();
-        self.window.apply(move |term_window, _window| {
-            if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
+        self.window
+            .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                 term_window.set_viewport(pane_id, row, dims);
-            }
-            Ok(())
-        });
+            })));
     }
 
     fn check_for_resize(&mut self) {
@@ -579,10 +577,7 @@ impl QuickSelectRenderable {
 
                 let pane_id = pane.pane_id();
                 let mut results = Some(results);
-                window.apply(move |term_window, _window| {
-                    let term_window = term_window
-                        .downcast_mut::<TermWindow>()
-                        .expect("to be TermWindow");
+                window.notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                     let state = term_window.pane_state(pane_id);
                     if let Some(overlay) = state.overlay.as_ref() {
                         if let Some(search_overlay) = overlay.downcast_ref::<QuickSelectOverlay>() {
@@ -599,8 +594,7 @@ impl QuickSelectRenderable {
                             }
                         }
                     }
-                    Ok(())
-                });
+                })));
                 anyhow::Result::<()>::Ok(())
             })
             .detach();
@@ -612,22 +606,20 @@ impl QuickSelectRenderable {
 
     fn clear_selection(&mut self) {
         let pane_id = self.delegate.pane_id();
-        self.window.apply(move |term_window, _window| {
-            if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
+        self.window
+            .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                 let mut selection = term_window.selection(pane_id);
                 selection.start.take();
                 selection.range.take();
-            }
-            Ok(())
-        });
+            })));
     }
 
     fn select_and_copy_match_number(&mut self, n: usize, paste: bool) {
         let result = self.results[n].clone();
 
         let pane_id = self.delegate.pane_id();
-        self.window.apply(move |term_window, _window| {
-            if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
+        self.window
+            .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
                 {
                     let mut selection = term_window.selection(pane_id);
                     let start = SelectionCoordinate {
@@ -659,9 +651,7 @@ impl QuickSelectRenderable {
                         );
                     }
                 }
-            }
-            Ok(())
-        });
+            })));
     }
 
     fn activate_match_number(&mut self, n: usize) {

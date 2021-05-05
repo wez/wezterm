@@ -30,6 +30,7 @@ use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
 use promise::Future;
+use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -493,6 +494,24 @@ impl WindowOps for Window {
             }
         })
         .await
+    }
+
+    fn notify<T: Any + Send + Sync>(&self, t: T)
+    where
+        Self: Sized,
+    {
+        let mut t = Some(t);
+        Connection::with_window_inner(self.0, move |inner| {
+            if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
+                window_view
+                    .inner
+                    .borrow()
+                    .events
+                    .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                    .ok();
+            }
+            Ok(())
+        });
     }
 
     fn close(&self) -> Future<()> {

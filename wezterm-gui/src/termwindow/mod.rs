@@ -24,7 +24,6 @@ use config::{configuration, ConfigHandle, WindowCloseConfirmation};
 use lru::LruCache;
 use luahelper::impl_lua_conversion;
 use mlua::FromLua;
-use mux::activity::Activity;
 use mux::domain::{DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
 use mux::renderable::RenderableDimensions;
@@ -33,7 +32,7 @@ use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::PtySize;
 use serde::*;
-use std::any::Any;
+use smol::channel::Sender;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::Add;
@@ -70,6 +69,38 @@ pub const ICON_DATA: &'static [u8] = include_bytes!("../../../assets/icon/termin
 
 pub fn set_window_class(cls: &str) {
     *WINDOW_CLASS.lock().unwrap() = cls.to_owned();
+}
+
+/// Type used together with Window::notify to do something in the
+/// context of the window-specific event loop
+pub enum TermWindowNotif {
+    InvalidateShapeCache,
+    PerformAssignment {
+        pane_id: PaneId,
+        assignment: KeyAssignment,
+    },
+    SetRightStatus(String),
+    GetDimensions(Sender<(Dimensions, bool)>),
+    GetSelectionForPane {
+        pane_id: PaneId,
+        tx: Sender<String>,
+    },
+    GetEffectiveConfig(Sender<ConfigHandle>),
+    FinishWindowEvent {
+        name: String,
+        again: bool,
+    },
+    GetConfigOverrides(Sender<serde_json::Value>),
+    SetConfigOverrides(serde_json::Value),
+    CancelOverlayForPane(PaneId),
+    CancelOverlayForTab {
+        tab_id: TabId,
+        pane_id: Option<PaneId>,
+    },
+    MuxNotification(MuxNotification),
+    Periodic,
+    EmitStatusUpdate,
+    Apply(Box<dyn FnOnce(&mut TermWindow) + Send + Sync>),
 }
 
 #[derive(Default, Clone)]
@@ -196,19 +227,23 @@ pub struct TermWindow {
     has_animation: RefCell<Option<Instant>>,
 }
 
-impl WindowCallbacks for TermWindow {
-    fn can_close(&mut self) -> bool {
+impl TermWindow {
+    fn close_requested(&mut self, window: &Window) {
         let mux = Mux::get().unwrap();
         match self.config.window_close_confirmation {
             WindowCloseConfirmation::NeverPrompt => {
                 // Immediately kill the tabs and allow the window to close
                 mux.kill_window(self.mux_window_id);
-                true
+                window.close();
             }
             WindowCloseConfirmation::AlwaysPrompt => {
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
                     Some(tab) => tab,
-                    None => return true,
+                    None => {
+                        mux.kill_window(self.mux_window_id);
+                        window.close();
+                        return;
+                    }
                 };
 
                 let mux_window_id = self.mux_window_id;
@@ -218,7 +253,8 @@ impl WindowCallbacks for TermWindow {
                     .map_or(false, |w| w.can_close_without_prompting());
                 if can_close {
                     mux.kill_window(self.mux_window_id);
-                    return true;
+                    window.close();
+                    return;
                 }
                 let window = self.window.clone().unwrap();
                 let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
@@ -229,16 +265,11 @@ impl WindowCallbacks for TermWindow {
 
                 // Don't close right now; let the close happen from
                 // the confirmation overlay
-                false
             }
         }
     }
 
-    fn as_any(&mut self) -> &mut dyn Any {
-        self
-    }
-
-    fn focus_change(&mut self, focused: bool) {
+    fn focus_changed(&mut self, focused: bool) {
         log::trace!("Setting focus to {:?}", focused);
         self.focused = if focused { Some(Instant::now()) } else { None };
 
@@ -256,10 +287,6 @@ impl WindowCallbacks for TermWindow {
         if let Some(pane) = self.get_active_pane_or_overlay() {
             pane.focus_changed(focused);
         }
-    }
-
-    fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
-        self.mouse_event_impl(event, context)
     }
 
     fn resize(&mut self, dimensions: Dimensions, is_full_screen: bool) {
@@ -281,88 +308,6 @@ impl WindowCallbacks for TermWindow {
         self.is_full_screen = is_full_screen;
         self.scaling_changed(dimensions, self.fonts.get_font_scale());
         self.emit_window_event("window-resized");
-    }
-
-    fn key_event(&mut self, window_key: &KeyEvent, context: &dyn WindowOps) -> bool {
-        self.key_event_impl(window_key, context)
-    }
-
-    fn opengl_context_lost(&mut self, prior_window: &dyn WindowOps) -> anyhow::Result<()> {
-        log::error!("context was lost, set up a new window");
-        let activity = Activity::new();
-
-        let render_state = None;
-
-        let clipboard_contents = Arc::clone(&self.clipboard_contents);
-        let dimensions = self.dimensions.clone();
-        let mux_window_id = self.mux_window_id;
-        let config = self.config.clone();
-
-        let guts = Box::new(Self {
-            window: None,
-            config: self.config.clone(),
-            config_overrides: self.config_overrides.clone(),
-            window_background: self.window_background.clone(),
-            palette: None,
-            focused: None,
-            mux_window_id,
-            fonts: Rc::clone(&self.fonts),
-            render_metrics: self.render_metrics.clone(),
-            dimensions,
-            is_full_screen: self.is_full_screen,
-            terminal_size: self.terminal_size.clone(),
-            render_state,
-            input_map: InputMap::new(&config),
-            leader_is_down: None,
-            show_tab_bar: self.show_tab_bar,
-            show_scroll_bar: self.show_scroll_bar,
-            tab_bar: self.tab_bar.clone(),
-            right_status: self.right_status.clone(),
-            last_mouse_coords: self.last_mouse_coords.clone(),
-            last_mouse_terminal_coords: self.last_mouse_terminal_coords.clone(),
-            scroll_drag_start: self.scroll_drag_start.clone(),
-            split_drag_start: self.split_drag_start.clone(),
-            window_drag_position: None,
-            current_mouse_event: None,
-            prev_cursor: self.prev_cursor.clone(),
-            last_scroll_info: self.last_scroll_info.clone(),
-            clipboard_contents: Arc::clone(&clipboard_contents),
-            tab_state: RefCell::new(self.tab_state.borrow().clone()),
-            pane_state: RefCell::new(self.pane_state.borrow().clone()),
-            current_mouse_button: self.current_mouse_button.clone(),
-            last_mouse_click: self.last_mouse_click.clone(),
-            current_highlight: self.current_highlight.clone(),
-            shape_cache: RefCell::new(LruCache::new(65536)),
-            last_blink_paint: Instant::now(),
-            last_status_call: Instant::now(),
-            event_states: HashMap::new(),
-            has_animation: RefCell::new(None),
-        });
-        prior_window.close();
-
-        promise::spawn::spawn(async move {
-            smol::Timer::after(Duration::from_millis(300)).await;
-            log::error!("now try making that new window");
-            let window = Window::new_window(
-                &*WINDOW_CLASS.lock().unwrap(),
-                "wezterm",
-                dimensions.pixel_width,
-                dimensions.pixel_height,
-                guts,
-                Some(&config),
-            )
-            .await?;
-
-            Self::apply_icon(&window)?;
-            Self::start_periodic_maintenance(window.clone());
-            Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
-
-            drop(activity); // Keep the activity outstanding until we get here
-            Ok::<(), anyhow::Error>(())
-        })
-        .detach();
-
-        Ok(())
     }
 
     fn created(
@@ -411,10 +356,6 @@ impl WindowCallbacks for TermWindow {
         }
 
         Ok(())
-    }
-
-    fn paint(&mut self, frame: &mut glium::Frame) {
-        self.paint_impl(frame)
     }
 }
 
@@ -521,51 +462,52 @@ impl TermWindow {
 
         let clipboard_contents = Arc::new(Mutex::new(None));
 
-        let window = Window::new_window(
+        let mut myself = Self {
+            window: None,
+            window_background,
+            config: config.clone(),
+            config_overrides: serde_json::Value::default(),
+            palette: None,
+            focused: None,
+            mux_window_id,
+            fonts: fontconfig,
+            render_metrics,
+            dimensions,
+            is_full_screen: false,
+            terminal_size,
+            render_state,
+            input_map: InputMap::new(&config),
+            leader_is_down: None,
+            show_tab_bar,
+            show_scroll_bar: config.enable_scroll_bar,
+            tab_bar: TabBarState::default(),
+            right_status: String::new(),
+            last_mouse_coords: (0, -1),
+            last_mouse_terminal_coords: (0, 0),
+            scroll_drag_start: None,
+            split_drag_start: None,
+            window_drag_position: None,
+            current_mouse_event: None,
+            prev_cursor: PrevCursorPos::new(),
+            last_scroll_info: RenderableDimensions::default(),
+            clipboard_contents: Arc::clone(&clipboard_contents),
+            tab_state: RefCell::new(HashMap::new()),
+            pane_state: RefCell::new(HashMap::new()),
+            current_mouse_button: None,
+            last_mouse_click: None,
+            current_highlight: None,
+            shape_cache: RefCell::new(LruCache::new(65536)),
+            last_blink_paint: Instant::now(),
+            last_status_call: Instant::now(),
+            event_states: HashMap::new(),
+            has_animation: RefCell::new(None),
+        };
+
+        let (window, events) = Window::new_window(
             &*WINDOW_CLASS.lock().unwrap(),
             "wezterm",
             dimensions.pixel_width,
             dimensions.pixel_height,
-            Box::new(Self {
-                window: None,
-                window_background,
-                config: config.clone(),
-                config_overrides: serde_json::Value::default(),
-                palette: None,
-                focused: None,
-                mux_window_id,
-                fonts: fontconfig,
-                render_metrics,
-                dimensions,
-                is_full_screen: false,
-                terminal_size,
-                render_state,
-                input_map: InputMap::new(&config),
-                leader_is_down: None,
-                show_tab_bar,
-                show_scroll_bar: config.enable_scroll_bar,
-                tab_bar: TabBarState::default(),
-                right_status: String::new(),
-                last_mouse_coords: (0, -1),
-                last_mouse_terminal_coords: (0, 0),
-                scroll_drag_start: None,
-                split_drag_start: None,
-                window_drag_position: None,
-                current_mouse_event: None,
-                prev_cursor: PrevCursorPos::new(),
-                last_scroll_info: RenderableDimensions::default(),
-                clipboard_contents: Arc::clone(&clipboard_contents),
-                tab_state: RefCell::new(HashMap::new()),
-                pane_state: RefCell::new(HashMap::new()),
-                current_mouse_button: None,
-                last_mouse_click: None,
-                current_highlight: None,
-                shape_cache: RefCell::new(LruCache::new(65536)),
-                last_blink_paint: Instant::now(),
-                last_status_call: Instant::now(),
-                event_states: HashMap::new(),
-                has_animation: RefCell::new(None),
-            }),
             Some(&config),
         )
         .await?;
@@ -573,7 +515,146 @@ impl TermWindow {
         Self::apply_icon(&window)?;
         Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
 
+        promise::spawn::spawn(async move {
+            let gl = window.enable_opengl().await?;
+            myself.created(&window, Rc::clone(&gl))?;
+            myself.subscribe_to_pane_updates();
+            myself.emit_status_event();
+
+            while let Ok(event) = events.recv().await {
+                match event {
+                    WindowEvent::Destroyed => {
+                        break;
+                    }
+                    WindowEvent::CloseRequested => {
+                        myself.close_requested(&window);
+                    }
+                    WindowEvent::FocusChanged(focused) => {
+                        myself.focus_changed(focused);
+                    }
+                    WindowEvent::MouseEvent(event) => {
+                        myself.mouse_event_impl(event, &window).await;
+                    }
+                    WindowEvent::Resized {
+                        dimensions,
+                        is_full_screen,
+                    } => {
+                        myself.resize(dimensions, is_full_screen);
+                    }
+                    WindowEvent::KeyEvent(event) => {
+                        myself.key_event_impl(event, &window).await;
+                    }
+                    WindowEvent::NeedRepaint => {
+                        if gl.is_context_lost() {
+                            eprintln!("opengl context was lost; should reinit");
+                            break;
+                        }
+
+                        let mut frame = glium::Frame::new(
+                            Rc::clone(&gl),
+                            (
+                                myself.dimensions.pixel_width as u32,
+                                myself.dimensions.pixel_height as u32,
+                            ),
+                        );
+
+                        myself.paint_impl(&mut frame);
+                        window.finish_frame(frame)?;
+                    }
+                    WindowEvent::Notification(item) => {
+                        if let Ok(notif) = item.downcast::<TermWindowNotif>() {
+                            myself.dispatch_notif(*notif, &window).await?;
+                        }
+                    }
+                }
+            }
+            anyhow::Result::<()>::Ok(())
+        })
+        .detach();
+
         crate::update::start_update_checker();
+        Ok(())
+    }
+
+    async fn dispatch_notif(
+        &mut self,
+        notif: TermWindowNotif,
+        window: &Window,
+    ) -> anyhow::Result<()> {
+        match notif {
+            TermWindowNotif::InvalidateShapeCache => {
+                self.shape_cache.borrow_mut().clear();
+                window.invalidate();
+            }
+            TermWindowNotif::PerformAssignment {
+                pane_id,
+                assignment,
+            } => {
+                let mux = Mux::get().unwrap();
+                let pane = mux
+                    .get_pane(pane_id)
+                    .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
+                self.perform_key_assignment(&pane, &assignment).await?;
+            }
+            TermWindowNotif::SetRightStatus(status) => {
+                if status != self.right_status {
+                    self.right_status = status;
+                    self.update_title_post_status();
+                }
+            }
+            TermWindowNotif::GetDimensions(tx) => {
+                tx.send((self.dimensions, self.is_full_screen)).await?;
+            }
+            TermWindowNotif::GetEffectiveConfig(tx) => {
+                tx.send(self.config.clone()).await?;
+            }
+            TermWindowNotif::FinishWindowEvent { name, again } => {
+                self.finish_window_event(&name, again);
+            }
+            TermWindowNotif::GetConfigOverrides(tx) => {
+                tx.send(self.config_overrides.clone()).await?;
+            }
+            TermWindowNotif::SetConfigOverrides(value) => {
+                self.config_overrides = value;
+                self.config_was_reloaded();
+            }
+            TermWindowNotif::CancelOverlayForPane(pane_id) => {
+                self.cancel_overlay_for_pane(pane_id);
+            }
+            TermWindowNotif::CancelOverlayForTab { tab_id, pane_id } => {
+                self.cancel_overlay_for_tab(tab_id, pane_id);
+            }
+            TermWindowNotif::MuxNotification(n) => match n {
+                MuxNotification::Alert {
+                    alert: Alert::TitleMaybeChanged,
+                    ..
+                } => {
+                    self.update_title();
+                }
+                MuxNotification::PaneOutput(pane_id) => {
+                    self.mux_pane_output_event(pane_id);
+                }
+                _ => {}
+            },
+            TermWindowNotif::Periodic => {
+                self.periodic_window_maintenance(window)?;
+            }
+            TermWindowNotif::EmitStatusUpdate => {
+                self.emit_status_event();
+            }
+            TermWindowNotif::GetSelectionForPane { pane_id, tx } => {
+                let mux = Mux::get().unwrap();
+                let pane = mux
+                    .get_pane(pane_id)
+                    .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
+
+                tx.send(self.selection_text(&pane)).await?;
+            }
+            TermWindowNotif::Apply(func) => {
+                func(self);
+            }
+        }
+
         Ok(())
     }
 
@@ -591,52 +672,17 @@ impl TermWindow {
 
     fn schedule_status_update(&self) {
         if let Some(window) = self.window.as_ref() {
-            let window = window.clone();
-            promise::spawn::spawn(async move {
-                window
-                    .apply(move |tw, _ops| {
-                        if let Some(term_window) = tw.downcast_mut::<TermWindow>() {
-                            term_window.emit_status_event();
-                        }
-                        Ok(())
-                    })
-                    .await
-            })
-            .detach();
+            window.notify(TermWindowNotif::EmitStatusUpdate);
         }
     }
 
     fn start_periodic_maintenance(window: Window) {
-        Connection::get()
-            .unwrap()
-            .schedule_timer(std::time::Duration::from_millis(35), {
-                let window = window.clone();
-                move || {
-                    window.apply(move |myself, window| {
-                        if let Some(myself) = myself.downcast_mut::<Self>() {
-                            myself.periodic_window_maintenance(window)?;
-                        }
-                        Ok(())
-                    });
-                }
-            });
-
-        // Trigger an initial status update
-        {
-            let window = window.clone();
-            promise::spawn::spawn(async move {
-                window
-                    .apply(move |tw, _ops| {
-                        if let Some(term_window) = tw.downcast_mut::<TermWindow>() {
-                            term_window.subscribe_to_pane_updates();
-                            term_window.emit_status_event();
-                        }
-                        Ok(())
-                    })
-                    .await
-            })
-            .detach();
-        }
+        Connection::get().unwrap().schedule_timer(
+            std::time::Duration::from_millis(35),
+            move || {
+                window.notify(TermWindowNotif::Periodic);
+            },
+        );
     }
 
     fn mux_pane_output_event(&mut self, pane_id: PaneId) {
@@ -693,27 +739,7 @@ impl TermWindow {
             _ => return true,
         }
 
-        let dead = Arc::clone(dead);
-        window.apply(move |myself, _window| {
-            if let Some(myself) = myself.downcast_mut::<Self>() {
-                match n {
-                    MuxNotification::Alert {
-                        alert: Alert::TitleMaybeChanged,
-                        ..
-                    } => {
-                        myself.update_title();
-                    }
-                    MuxNotification::PaneOutput(pane_id) => {
-                        myself.mux_pane_output_event(pane_id);
-                    }
-                    _ => {}
-                }
-            } else {
-                // Something inconsistent: cancel subscription
-                dead.store(true, Ordering::Relaxed);
-            }
-            Ok(())
-        });
+        window.notify(TermWindowNotif::MuxNotification(n));
 
         true
     }
@@ -758,17 +784,9 @@ impl TermWindow {
                 false
             };
 
-            let name_copy = name.clone();
-
-            if let Err(err) = window
-                .with_term_window(move |myself, _| {
-                    myself.finish_window_event(&name, again);
-                    Ok(())
-                })
-                .await
-            {
-                log::error!("while finishing {} event: {:#}", name_copy, err);
-            }
+            window
+                .window
+                .notify(TermWindowNotif::FinishWindowEvent { name, again });
 
             Ok(())
         }
@@ -1478,7 +1496,7 @@ impl TermWindow {
         self.move_tab(tab)
     }
 
-    pub fn perform_key_assignment(
+    pub async fn perform_key_assignment(
         &mut self,
         pane: &Rc<dyn Pane>,
         assignment: &KeyAssignment,
@@ -1520,13 +1538,15 @@ impl TermWindow {
                 self.copy_to_clipboard(*dest, text);
             }
             Paste => {
-                self.paste_from_clipboard(pane, ClipboardPasteSource::Clipboard);
+                self.paste_from_clipboard(pane, ClipboardPasteSource::Clipboard)
+                    .await;
             }
             PastePrimarySelection => {
-                self.paste_from_clipboard(pane, ClipboardPasteSource::PrimarySelection);
+                self.paste_from_clipboard(pane, ClipboardPasteSource::PrimarySelection)
+                    .await;
             }
             PasteFrom(source) => {
-                self.paste_from_clipboard(pane, *source);
+                self.paste_from_clipboard(pane, *source).await;
             }
             ActivateTabRelative(n) => {
                 self.activate_tab_relative(*n)?;
@@ -1598,49 +1618,7 @@ impl TermWindow {
                 self.window_drag_position = self.current_mouse_event.clone();
             }
             OpenLinkAtMouseCursor => {
-                // They clicked on a link, so let's open it!
-                // We need to ensure that we spawn the `open` call outside of the context
-                // of our window loop; on Windows it can cause a panic due to
-                // triggering our WndProc recursively.
-                // We get that assurance for free as part of the async dispatch that we
-                // perform below; here we allow the user to define an `open-uri` event
-                // handler that can bypass the normal `open::that` functionality.
-                if let Some(link) = self.current_highlight.as_ref().cloned() {
-                    let window = GuiWin::new(self);
-                    let pane = PaneObject::new(pane);
-
-                    async fn open_uri(
-                        lua: Option<Rc<mlua::Lua>>,
-                        window: GuiWin,
-                        pane: PaneObject,
-                        link: String,
-                    ) -> anyhow::Result<()> {
-                        let default_click = match lua {
-                            Some(lua) => {
-                                let args = lua.pack_multi((window, pane, link.clone()))?;
-                                config::lua::emit_event(&lua, ("open-uri".to_string(), args))
-                                    .await
-                                    .map_err(|e| {
-                                        log::error!("while processing open-uri event: {:#}", e);
-                                        e
-                                    })?
-                            }
-                            None => true,
-                        };
-                        if default_click {
-                            log::info!("clicking {}", link);
-                            if let Err(err) = open::that(&link) {
-                                log::error!("failed to open {}: {:?}", link, err);
-                            }
-                        }
-                        Ok(())
-                    }
-
-                    promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
-                        open_uri(lua, window, pane, link.uri().to_string())
-                    }))
-                    .detach();
-                }
+                self.do_open_link_at_mouse_cursor(pane);
             }
             EmitEvent(name) => {
                 self.emit_window_event(name);
@@ -1652,8 +1630,7 @@ impl TermWindow {
                     let window = self.window.as_ref().unwrap();
                     window.invalidate();
                 } else {
-                    return self
-                        .perform_key_assignment(pane, &KeyAssignment::OpenLinkAtMouseCursor);
+                    self.do_open_link_at_mouse_cursor(pane);
                 }
             }
             CompleteSelection(dest) => {
@@ -1725,6 +1702,51 @@ impl TermWindow {
         Ok(())
     }
 
+    fn do_open_link_at_mouse_cursor(&self, pane: &Rc<dyn Pane>) {
+        // They clicked on a link, so let's open it!
+        // We need to ensure that we spawn the `open` call outside of the context
+        // of our window loop; on Windows it can cause a panic due to
+        // triggering our WndProc recursively.
+        // We get that assurance for free as part of the async dispatch that we
+        // perform below; here we allow the user to define an `open-uri` event
+        // handler that can bypass the normal `open::that` functionality.
+        if let Some(link) = self.current_highlight.as_ref().cloned() {
+            let window = GuiWin::new(self);
+            let pane = PaneObject::new(pane);
+
+            async fn open_uri(
+                lua: Option<Rc<mlua::Lua>>,
+                window: GuiWin,
+                pane: PaneObject,
+                link: String,
+            ) -> anyhow::Result<()> {
+                let default_click = match lua {
+                    Some(lua) => {
+                        let args = lua.pack_multi((window, pane, link.clone()))?;
+                        config::lua::emit_event(&lua, ("open-uri".to_string(), args))
+                            .await
+                            .map_err(|e| {
+                                log::error!("while processing open-uri event: {:#}", e);
+                                e
+                            })?
+                    }
+                    None => true,
+                };
+                if default_click {
+                    log::info!("clicking {}", link);
+                    if let Err(err) = open::that(&link) {
+                        log::error!("failed to open {}: {:?}", link, err);
+                    }
+                }
+                Ok(())
+            }
+
+            promise::spawn::spawn(config::with_lua_config_on_main_thread(move |lua| {
+                open_uri(lua, window, pane, link.uri().to_string())
+            }))
+            .detach();
+        }
+    }
     fn close_current_pane(&mut self, confirm: bool) {
         let mux_window_id = self.mux_window_id;
         let mux = Mux::get().unwrap();
@@ -2003,12 +2025,7 @@ impl TermWindow {
     }
 
     pub fn schedule_cancel_overlay(window: Window, tab_id: TabId, pane_id: Option<PaneId>) {
-        window.apply(move |myself, _| {
-            if let Some(myself) = myself.downcast_mut::<Self>() {
-                myself.cancel_overlay_for_tab(tab_id, pane_id);
-            }
-            Ok(())
-        });
+        window.notify(TermWindowNotif::CancelOverlayForTab { tab_id, pane_id });
     }
 
     fn cancel_overlay_for_pane(&self, pane_id: PaneId) {
@@ -2027,12 +2044,7 @@ impl TermWindow {
     }
 
     pub fn schedule_cancel_overlay_for_pane(window: Window, pane_id: PaneId) {
-        window.apply(move |myself, _| {
-            if let Some(myself) = myself.downcast_mut::<Self>() {
-                myself.cancel_overlay_for_pane(pane_id);
-            }
-            Ok(())
-        });
+        window.notify(TermWindowNotif::CancelOverlayForPane(pane_id));
     }
 
     pub fn assign_overlay_for_pane(&mut self, pane_id: PaneId, overlay: Rc<dyn Pane>) {
