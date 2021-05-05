@@ -867,14 +867,19 @@ unsafe fn wm_windowposchanged(
 
 unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     let mut should_paint = false;
+    let mut should_pump = false;
 
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let mut inner = inner.borrow_mut();
         should_paint = inner.check_and_call_resize_if_needed();
+        should_pump = inner.in_size_move;
     }
 
     if should_paint {
         wm_paint(hwnd, 0, 0, 0)?;
+        if should_pump {
+            crate::spawn::SPAWN_QUEUE.run();
+        }
     }
 
     None
@@ -910,7 +915,6 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let inner = inner.borrow();
 
-        /*
         let mut ps = PAINTSTRUCT {
             fErase: 0,
             fIncUpdate: 0,
@@ -925,40 +929,13 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
             rgbReserved: [0; 32],
         };
         let _ = BeginPaint(hwnd, &mut ps);
-
-        /*
-        let mut rect = RECT {
-            left: 0,
-            bottom: 0,
-            right: 0,
-            top: 0,
-        };
-        GetClientRect(hwnd, &mut rect);
-        let width = rect_width(&rect) as usize;
-        let height = rect_height(&rect) as usize;
-
-        if let Some(gl_context) = inner.gl_state.as_ref() {
-            if gl_context.is_context_lost() {
-                log::error!("opengl context was lost; should reinit");
-                let _ = inner
-                    .callbacks
-                    .borrow_mut()
-                    .opengl_context_lost(&Window(inner.hwnd));
-                return None;
-            }
-
-            let mut frame =
-                glium::Frame::new(Rc::clone(&gl_context), (width as u32, height as u32));
-
-        }
-        */
-
+        // Do nothing right now
         EndPaint(hwnd, &mut ps);
-        */
+
+        // Ask the app to repaint in a bit
         inner.events.try_send(WindowEvent::NeedRepaint).ok();
 
-        None
-        // Some(0)
+        Some(0)
     } else {
         None
     }
