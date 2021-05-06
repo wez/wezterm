@@ -187,6 +187,17 @@ impl GlContextPair {
             }
         };
 
+        #[allow(non_upper_case_globals)]
+        unsafe {
+            use cocoa::foundation::NSInteger;
+            const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
+
+            let () = msg_send![
+                view,
+                setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft
+            ];
+        }
+
         Ok(Self { context, backend })
     }
 }
