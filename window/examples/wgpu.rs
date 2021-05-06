@@ -222,7 +222,7 @@ async fn spawn_window() -> anyhow::Result<()> {
             }
             WindowEvent::Resized {
                 dimensions,
-                is_full_screen:_,
+                is_full_screen: _,
             } => {
                 state.resize(dimensions);
             }
