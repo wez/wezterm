@@ -30,7 +30,9 @@ impl MyWindow {
         let instance = wgpu::Instance::new(if cfg!(target_os = "macos") {
             wgpu::BackendBit::METAL
         } else if cfg!(windows) {
-            wgpu::BackendBit::DX12
+            // Vulkan supports window opacity, but DX12 doesn't
+            wgpu::BackendBit::PRIMARY
+            // wgpu::BackendBit::DX12
         } else {
             wgpu::BackendBit::PRIMARY
         });
@@ -153,8 +155,8 @@ impl MyWindow {
                         ops: wgpu::Operations {
                             load: wgpu::LoadOp::Clear(wgpu::Color {
                                 r: 0.,
-                                g: 1.,
-                                b: 0.,
+                                g: 0.,
+                                b: 0.5,
                                 a: 0.5,
                             }),
                             store: true,

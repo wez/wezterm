@@ -549,7 +549,7 @@ impl WindowInner {
     }
 }
 
-unsafe impl HasRawWindowHandle for WindowInner {
+unsafe impl HasRawWindowHandle for Window {
     fn raw_window_handle(&self) -> RawWindowHandle {
         let conn = Connection::get().expect("raw_window_handle only callable on main thread");
         let handle = conn.get_window(self.0).expect("window handle invalid!?");
