@@ -625,11 +625,10 @@ impl WindowOps for WaylandWindow {
                 .ok();
         } else {
             // Otherwise, get into that thread and write to the queue
-            let mut t = Some(t);
             WaylandConnection::with_window_inner(self.0, move |inner| {
                 inner
                     .events
-                    .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                    .try_send(WindowEvent::Notification(Box::new(t)))
                     .ok();
                 Ok(())
             });

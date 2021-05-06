@@ -452,10 +452,10 @@ impl XConnection {
 
     pub(crate) fn with_window_inner<
         R,
-        F: FnMut(&mut XWindowInner) -> anyhow::Result<R> + Send + 'static,
+        F: FnOnce(&mut XWindowInner) -> anyhow::Result<R> + Send + 'static,
     >(
         window: xcb::xproto::Window,
-        mut f: F,
+        f: F,
     ) -> promise::Future<R>
     where
         R: Send + 'static,

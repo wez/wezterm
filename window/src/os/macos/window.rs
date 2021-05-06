@@ -511,14 +511,13 @@ impl WindowOps for Window {
     where
         Self: Sized,
     {
-        let mut t = Some(t);
         Connection::with_window_inner(self.0, move |inner| {
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
                 window_view
                     .inner
                     .borrow()
                     .events
-                    .try_send(WindowEvent::Notification(Box::new(t.take().unwrap())))
+                    .try_send(WindowEvent::Notification(Box::new(t)))
                     .ok();
             }
             Ok(())

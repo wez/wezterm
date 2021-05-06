@@ -114,10 +114,10 @@ impl Connection {
 
     pub(crate) fn with_window_inner<
         R,
-        F: FnMut(&mut WindowInner) -> anyhow::Result<R> + Send + 'static,
+        F: FnOnce(&mut WindowInner) -> anyhow::Result<R> + Send + 'static,
     >(
         window: HWindow,
-        mut f: F,
+        f: F,
     ) -> promise::Future<R>
     where
         R: Send + 'static,
