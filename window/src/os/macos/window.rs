@@ -416,6 +416,7 @@ impl Window {
 
             // Prevent Cocoa native tabs from being used
             let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
+            let _: () = msg_send![*window, setRestorable:NO];
 
             window.setReleasedWhenClosed_(NO);
             let ns_color: id = msg_send![Class::get("NSColor").unwrap(), alloc];
