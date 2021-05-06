@@ -30,6 +30,8 @@ use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
 use promise::Future;
+use raw_window_handle::macos::MacOSHandle;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -416,7 +418,7 @@ impl Window {
 
             // Prevent Cocoa native tabs from being used
             let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
-            let _: () = msg_send![*window, setRestorable:NO];
+            let _: () = msg_send![*window, setRestorable: NO];
 
             window.setReleasedWhenClosed_(NO);
             let ns_color: id = msg_send![Class::get("NSColor").unwrap(), alloc];
@@ -968,6 +970,18 @@ struct Inner {
     fullscreen: Option<NSRect>,
 
     config: ConfigHandle,
+}
+
+unsafe impl HasRawWindowHandle for Inner {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        let ns_window = self.window.as_ref().unwrap().load();
+        let ns_view = self.view_id.as_ref().unwrap().load();
+        RawWindowHandle::MacOS(MacOSHandle {
+            ns_window: *ns_window as *mut _,
+            ns_view: *ns_view as *mut _,
+            ..MacOSHandle::empty()
+        })
+    }
 }
 
 #[repr(C)]

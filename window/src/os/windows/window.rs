@@ -10,6 +10,8 @@ use async_trait::async_trait;
 use config::ConfigHandle;
 use lazy_static::lazy_static;
 use promise::{Future, Promise};
+use raw_window_handle::windows::WindowsHandle;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use shared_library::shared_library;
 use std::any::Any;
 use std::cell::RefCell;
@@ -117,6 +119,15 @@ fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
         glium::debug::DebugCallbackBehavior::DebugMessageOnError
     } else {
         glium::debug::DebugCallbackBehavior::Ignore
+    }
+}
+
+unsafe impl HasRawWindowHandle for WindowInner {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        RawWindowHandle::Windows(WindowsHandle {
+            hwnd: self.hwnd.0 as *mut _,
+            ..WindowsHandle::empty()
+        })
     }
 }
 

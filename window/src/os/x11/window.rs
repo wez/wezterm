@@ -12,6 +12,8 @@ use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::{Future, Promise};
+use raw_window_handle::unix::XcbHandle;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
 use std::collections::VecDeque;
 use std::convert::TryInto;
@@ -81,6 +83,16 @@ impl Drop for XWindowInner {
         if let Some(conn) = self.conn.upgrade() {
             xcb::destroy_window(conn.conn(), self.window_id);
         }
+    }
+}
+
+unsafe impl HasRawWindowHandle for XWindowInner {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        RawWindowHandle::Xcb(XcbHandle {
+            window: self.window_id,
+            connection: self.conn.upgrade().unwrap().get_raw_conn() as *mut _,
+            ..XcbHandle::empty()
+        })
     }
 }
 
