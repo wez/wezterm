@@ -601,6 +601,19 @@ impl WaylandWindowInner {
     }
 }
 
+unsafe impl HasRawWindowHandle for WaylandWindow {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        let conn = Connection::get().expect("raw_window_handle only callable on main thread");
+        let handle = conn
+            .wayland()
+            .window_by_id(self.0)
+            .expect("window handle invalid!?");
+
+        let inner = handle.borrow();
+        inner.raw_window_handle()
+    }
+}
+
 #[async_trait(?Send)]
 impl WindowOps for WaylandWindow {
     async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {

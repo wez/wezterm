@@ -11,6 +11,7 @@ use crate::{Clipboard, Dimensions, MouseCursor, ScreenPoint, WindowEventReceiver
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
 use std::rc::Rc;
 
@@ -117,6 +118,16 @@ impl Window {
             .unwrap()
             .new_window(class_name, name, width, height, config)
             .await
+    }
+}
+
+unsafe impl HasRawWindowHandle for Window {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        match self {
+            Self::X11(x) => x.raw_window_handle(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.raw_window_handle(),
+        }
     }
 }
 
