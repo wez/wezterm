@@ -10,6 +10,7 @@ build = "build.rs"
 
 [dev-dependencies]
 pretty_env_logger = "0.4"
+wgpu = "0.8"
 
 [build-dependencies]
 gl_generator = "0.14"

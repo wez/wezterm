@@ -85,7 +85,7 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
                 frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
                 win.finish_frame(frame)?;
             }
-            WindowEvent::FocusChanged(_) => {}
+            WindowEvent::Notification(_) | WindowEvent::FocusChanged(_) => {}
         }
     }
 
