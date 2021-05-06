@@ -300,7 +300,7 @@ impl super::TermWindow {
             WK::RightAlt => KC::RightAlt,
             WK::Pause => KC::Pause,
             WK::CapsLock => KC::CapsLock,
-            WK::VoidSymbol => KC::VoidSymbol,
+            WK::VoidSymbol => return Key::None,
             WK::Select => KC::Select,
             WK::Print => KC::Print,
             WK::Execute => KC::Execute,

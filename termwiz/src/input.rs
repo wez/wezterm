@@ -87,7 +87,7 @@ pub struct KeyEvent {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum KeyCode {
     // other keys when disabling its original use will show up as this keycode
-    // e.g. setxkbmap -option caps:none 
+    // e.g. setxkbmap -option caps:none
     // prevents the key from operating as originally intended and
     // makes it possible to utilize it as a leader/modifier with no oddities
     VoidSymbol,
