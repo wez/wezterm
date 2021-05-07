@@ -396,11 +396,13 @@ return {
   }
 }
 </code></pre>
-<p>If you decide to change certain keys on the keyboard to <code>VoidSymbol</code> (like <code>CapsLock</code>), 
-then you can utilize it as a <code>LEADER</code> or any other part of key bindings. The
-following example now uses <code>VoidSymbol</code> and uses <code>CapsLock</code> as a <code>LEADER</code> 
-without it affecting the shift / capital state as long as you have 
-<code>setxkbmap -option caps:none</code> configured.</p>
+<h3 id="voidsymbol"><a class="header" href="#voidsymbol">VoidSymbol</a></h3>
+<p><em>Since: nightly builds only</em></p>
+<p>On X11 systems, If you decide to change certain keys on the keyboard to
+<code>VoidSymbol</code> (like <code>CapsLock</code>), then you can utilize it as a <code>LEADER</code> or any
+other part of key bindings. The following example now uses <code>VoidSymbol</code> and
+uses <code>CapsLock</code> as a <code>LEADER</code> without it affecting the shift / capital state as
+long as you have <code>setxkbmap -option caps:none</code> configured.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 
 return {
