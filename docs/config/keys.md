@@ -287,11 +287,15 @@ return {
 }
 ```
 
-If you decide to change certain keys on the keyboard to `VoidSymbol` (like `CapsLock`), 
-then you can utilize it as a `LEADER` or any other part of key bindings. The
-following example now uses `VoidSymbol` and uses `CapsLock` as a `LEADER` 
-without it affecting the shift / capital state as long as you have 
-`setxkbmap -option caps:none` configured.
+### VoidSymbol
+
+*Since: nightly builds only*
+
+On X11 systems, If you decide to change certain keys on the keyboard to
+`VoidSymbol` (like `CapsLock`), then you can utilize it as a `LEADER` or any
+other part of key bindings. The following example now uses `VoidSymbol` and
+uses `CapsLock` as a `LEADER` without it affecting the shift / capital state as
+long as you have `setxkbmap -option caps:none` configured.
 
 ```lua
 local wezterm = require 'wezterm';
