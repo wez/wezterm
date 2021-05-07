@@ -1518,7 +1518,7 @@ all of these are meaningful on all platforms:</p>
 <p><code>Hyper</code>, <code>Super</code>, <code>Meta</code>, <code>Cancel</code>, <code>Backspace</code>, <code>Tab</code>, <code>Clear</code>, <code>Enter</code>,
 <code>Shift</code>, <code>Escape</code>, <code>LeftShift</code>, <code>RightShift</code>, <code>Control</code>, <code>LeftControl</code>,
 <code>RightControl</code>, <code>Alt</code>, <code>LeftAlt</code>, <code>RightAlt</code>, <code>Menu</code>, <code>LeftMenu</code>, <code>RightMenu</code>,
-<code>Pause</code>, <code>CapsLock</code>, <code>PageUp</code>, <code>PageDown</code>, <code>End</code>, <code>Home</code>, <code>LeftArrow</code>,
+<code>Pause</code>, <code>CapsLock</code>, <code>VoidSymbol</code>, <code>PageUp</code>, <code>PageDown</code>, <code>End</code>, <code>Home</code>, <code>LeftArrow</code>,
 <code>RightArrow</code>, <code>UpArrow</code>, <code>DownArrow</code>, <code>Select</code>, <code>Print</code>, <code>Execute</code>,
 <code>PrintScreen</code>, <code>Insert</code>, <code>Delete</code>, <code>Help</code>, <code>LeftWindows</code>, <code>RightWindows</code>,
 <code>Applications</code>, <code>Sleep</code>, <code>Numpad0</code>, <code>Numpad1</code>, <code>Numpad2</code>, <code>Numpad3</code>,
@@ -1541,6 +1541,10 @@ key.  Left and right are equivalent.</li>
 <li><code>SHIFT</code> - The shift key.  Left and right are equivalent.</li>
 <li><code>ALT</code>, <code>OPT</code>, <code>META</code> - these are all equivalent: on macOS the <code>Option</code> key,
 on other systems the <code>Alt</code> or <code>Meta</code> key.  Left and right are equivalent.</li>
+<li><code>VoidSymbol</code> - This keycode is emitted in special cases where the original
+function of the key has been removed. Such as in Linux and using <code>setxkbmap</code>.
+<code>setxkbmap -option caps:none</code>. The <code>CapsLock</code> will no longer function as
+before in all applications, instead emitting <code>VoidSymbol</code>.</li>
 </ul>
 <p>You can combine modifiers using the <code>|</code> symbol (eg: <code>&quot;CMD|CTRL&quot;</code>).</p>
 <h3 id="leader-key"><a class="header" href="#leader-key">Leader Key</a></h3>
@@ -1568,6 +1572,23 @@ return {
     {key=&quot;|&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}}},
     -- Send &quot;CTRL-A&quot; to the terminal when pressing CTRL-A, CTRL-A
     {key=&quot;a&quot;, mods=&quot;LEADER|CTRL&quot;, action=wezterm.action{SendString=&quot;\x01&quot;}},
+  }
+}
+</code></pre>
+<p>If you decide to change certain keys on the keyboard to <code>VoidSymbol</code> (like <code>CapsLock</code>), 
+then you can utilize it as a <code>LEADER</code> or any other part of key bindings. The
+following example now uses <code>VoidSymbol</code> and uses <code>CapsLock</code> as a <code>LEADER</code> 
+without it affecting the shift / capital state as long as you have 
+<code>setxkbmap -option caps:none</code> configured.</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm';
+
+return {
+  -- timeout_milliseconds defaults to 1000 and can be omitted
+  -- for this example use `setxkbmap -option caps:none` in your terminal.
+  leader = { key=&quot;VoidSymbol&quot;, mods=&quot;&quot;, timeout_milliseconds=1000 },
+  keys = {
+    {key=&quot;|&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{SplitHorizontal={domain=&quot;CurrentPaneDomain&quot;}}},
+    {key=&quot;-&quot;, mods=&quot;LEADER&quot;, action=wezterm.action{SplitVertical={domain=&quot;CurrentPaneDomain&quot;}}},
   }
 }
 </code></pre>
