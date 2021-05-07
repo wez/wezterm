@@ -40,6 +40,7 @@ pub enum KeyCode {
     RightAlt,
     Pause,
     CapsLock,
+    VoidSymbol,
     PageUp,
     PageDown,
     End,

@@ -66,6 +66,7 @@ fn make_map() -> HashMap<String, KeyCode> {
         RightAlt,
         Pause,
         CapsLock,
+        VoidSymbol,
         PageUp,
         PageDown,
         End,
