@@ -17,8 +17,9 @@ use cocoa::appkit::{
     NSWindowStyleMask,
 };
 use cocoa::base::*;
-use cocoa::foundation::NSAutoreleasePool;
-use cocoa::foundation::{NSArray, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger};
+use cocoa::foundation::{
+    NSArray, NSAutoreleasePool, NSInteger, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger,
+};
 use config::ConfigHandle;
 use core_foundation::base::{CFTypeID, TCFType};
 use core_foundation::bundle::{CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName};
@@ -38,6 +39,9 @@ use std::ffi::c_void;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
+
+#[allow(non_upper_case_globals)]
+const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
 
 fn round_away_from_zerof(value: f64) -> f64 {
     if value > 0. {
@@ -188,17 +192,6 @@ impl GlContextPair {
                 (context, BackendImpl::Cgl(backend))
             }
         };
-
-        #[allow(non_upper_case_globals)]
-        unsafe {
-            use cocoa::foundation::NSInteger;
-            const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
-
-            let () = msg_send![
-                view,
-                setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft
-            ];
-        }
 
         Ok(Self { context, backend })
     }
@@ -454,6 +447,11 @@ impl Window {
             let view = WindowView::alloc(&inner)?;
             view.initWithFrame_(rect);
             view.setAutoresizingMask_(NSViewHeightSizable | NSViewWidthSizable);
+
+            let () = msg_send![
+                *view,
+                setLayerContentsPlacement: NSViewLayerContentsPlacementTopLeft
+            ];
 
             window.setContentView_(*view);
             window.setDelegate_(*view);

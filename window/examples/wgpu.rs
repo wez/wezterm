@@ -1,6 +1,7 @@
 use ::window::*;
 use anyhow::Context;
 use promise::spawn::spawn;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
 pub struct GpuContext {
     pub swap_chain: wgpu::SwapChain,
@@ -227,6 +228,18 @@ async fn spawn_window() -> anyhow::Result<()> {
                 is_full_screen: _,
             } => {
                 state.resize(dimensions);
+                #[cfg(target_os = "macos")]
+                if let RawWindowHandle::MacOS(h) = win.raw_window_handle() {
+                    use cocoa::base::{id, NO};
+                    use objc::*;
+                    unsafe {
+                        // Allow transparency, as the default for Metal is opaque
+                        let layer: id = msg_send![h.ns_view as id, layer];
+                        let () = msg_send![layer, setOpaque: NO];
+                    }
+
+                    state.paint()?;
+                }
             }
             WindowEvent::MouseEvent(event) => {
                 state.cursor_pos = event.coords;
