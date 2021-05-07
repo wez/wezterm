@@ -40,7 +40,6 @@ pub enum KeyCode {
     RightAlt,
     Pause,
     CapsLock,
-    // If setxkbmap -option caps:none is set then capslock produces a VoidSymbol
     VoidSymbol,
     PageUp,
     PageDown,
