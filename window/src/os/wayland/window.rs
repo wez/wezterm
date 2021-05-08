@@ -644,7 +644,10 @@ impl WindowOps for WaylandWindow {
     {
         // If we're already on the correct thread, just queue it up
         if let Some(conn) = Connection::get() {
-            let handle = conn.wayland().window_by_id(self.0).unwrap();
+            let handle = match conn.wayland().window_by_id(self.0) {
+                Some(h) => h,
+                None => return,
+            };
             let inner = handle.borrow();
             inner
                 .events

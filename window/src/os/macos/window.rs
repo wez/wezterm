@@ -525,7 +525,13 @@ impl WindowOps for Window {
     where
         Self: Sized,
     {
-        Connection::with_window_inner(self.0, move |inner| {
+        // If we're already on the correct thread, just queue it up
+        if let Some(conn) = Connection::get() {
+            let handle = match conn.window_by_id(self.0) {
+                Some(h) => h,
+                None => return,
+            };
+            let mut inner = handle.borrow_mut();
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
                 window_view
                     .inner
@@ -534,8 +540,20 @@ impl WindowOps for Window {
                     .try_send(WindowEvent::Notification(Box::new(t)))
                     .ok();
             }
-            Ok(())
-        });
+        } else {
+            // Otherwise, get into that thread and write to the queue
+            Connection::with_window_inner(self.0, move |inner| {
+                if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
+                    window_view
+                        .inner
+                        .borrow()
+                        .events
+                        .try_send(WindowEvent::Notification(Box::new(t)))
+                        .ok();
+                }
+                Ok(())
+            });
+        }
     }
 
     fn close(&self) -> Future<()> {

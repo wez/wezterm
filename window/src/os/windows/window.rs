@@ -580,7 +580,10 @@ impl WindowOps for Window {
     {
         // If we're already on the correct thread, just queue it up
         if let Some(conn) = Connection::get() {
-            let handle = conn.get_window(self.0).unwrap();
+            let handle = match conn.get_window(self.0) {
+                Some(h) => h,
+                None => return,
+            };
             let inner = handle.borrow_mut();
             inner
                 .events
