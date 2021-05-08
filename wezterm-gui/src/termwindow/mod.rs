@@ -516,6 +516,16 @@ impl TermWindow {
         Self::apply_icon(&window)?;
         Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
 
+        let config_subscription = config::subscribe_to_config_reload({
+            let window = window.clone();
+            move || {
+                window.notify(TermWindowNotif::Apply(Box::new(|tw| {
+                    tw.config_was_reloaded()
+                })));
+                true
+            }
+        });
+
         promise::spawn::spawn(async move {
             let gl = window.enable_opengl().await?;
             myself.created(&window, Rc::clone(&gl))?;
@@ -573,6 +583,8 @@ impl TermWindow {
                     }
                 }
             }
+
+            drop(config_subscription);
             anyhow::Result::<()>::Ok(())
         })
         .detach();
@@ -878,9 +890,6 @@ impl TermWindow {
         let mux = Mux::get().unwrap();
 
         let mut needs_invalidate = false;
-        // If the config was reloaded, ask the window to apply
-        // and render any changes
-        self.check_for_config_reload();
 
         let panes = self.get_panes_to_render();
         if panes.is_empty() {
@@ -994,12 +1003,6 @@ impl TermWindow {
 }
 
 impl TermWindow {
-    fn check_for_config_reload(&mut self) {
-        if self.config.generation() != configuration().generation() {
-            self.config_was_reloaded();
-        }
-    }
-
     fn palette(&mut self) -> &ColorPalette {
         if self.palette.is_none() {
             self.palette.replace(config::TermConfig.color_palette());

@@ -80,7 +80,6 @@ impl super::TermWindow {
         // invalidating as frequently
         *self.has_animation.borrow_mut() = None;
 
-        self.check_for_config_reload();
         let start = Instant::now();
 
         {

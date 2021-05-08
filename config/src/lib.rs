@@ -19,6 +19,7 @@ use std::io::prelude::*;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use termwiz::hyperlink;
@@ -139,6 +140,21 @@ pub fn designate_this_as_the_main_thread() {
             lc.replace(LuaConfigState { lua: None });
         }
     });
+}
+
+pub struct ConfigSubscription(usize);
+
+impl Drop for ConfigSubscription {
+    fn drop(&mut self) {
+        CONFIG.unsub(self.0);
+    }
+}
+
+pub fn subscribe_to_config_reload<F>(subscriber: F)
+where
+    F: Fn() -> bool + 'static + Send,
+{
+    CONFIG.subscribe(subscriber);
 }
 
 /// Spawn a future that will run with an optional Lua state from the most
@@ -354,6 +370,7 @@ struct ConfigInner {
     error: Option<String>,
     generation: usize,
     watcher: Option<notify::RecommendedWatcher>,
+    subscribers: HashMap<usize, Box<dyn Fn() -> bool + Send>>,
 }
 
 impl ConfigInner {
@@ -363,7 +380,26 @@ impl ConfigInner {
             error: None,
             generation: 0,
             watcher: None,
+            subscribers: HashMap::new(),
         }
+    }
+
+    fn subscribe<F>(&mut self, subscriber: F) -> usize
+    where
+        F: Fn() -> bool + 'static + Send,
+    {
+        static SUB_ID: AtomicUsize = AtomicUsize::new(0);
+        let sub_id = SUB_ID.fetch_add(1, Ordering::Relaxed);
+        self.subscribers.insert(sub_id, Box::new(subscriber));
+        sub_id
+    }
+
+    fn unsub(&mut self, sub_id: usize) {
+        self.subscribers.remove(&sub_id);
+    }
+
+    fn notify(&mut self) {
+        self.subscribers.retain(|_, notify| notify());
     }
 
     fn watch_path(&mut self, path: PathBuf) {
@@ -441,6 +477,7 @@ impl ConfigInner {
                     LUA_PIPE.sender.try_send(lua).ok();
                 }
                 log::debug!("Reloaded configuration! generation={}", self.generation);
+                self.notify();
                 if self.config.automatically_reload_config {
                     if let Some(path) = file_name {
                         self.watch_path(path);
@@ -521,6 +558,20 @@ impl Configuration {
             config: Arc::clone(&inner.config),
             generation: inner.generation,
         }
+    }
+
+    /// Subscribe to config reload events
+    fn subscribe<F>(&self, subscriber: F)
+    where
+        F: Fn() -> bool + 'static + Send,
+    {
+        let mut inner = self.inner.lock().unwrap();
+        inner.subscribe(subscriber);
+    }
+
+    fn unsub(&self, sub_id: usize) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.unsub(sub_id);
     }
 
     /// Reset the configuration to defaults
