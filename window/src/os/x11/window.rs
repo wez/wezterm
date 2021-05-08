@@ -61,7 +61,6 @@ pub(crate) struct XWindowInner {
     cursors: CursorInfo,
     copy_and_paste: CopyAndPaste,
     config: ConfigHandle,
-    gl_state: Option<Rc<glium::backend::Context>>,
     resize_promises: Vec<Promise<Dimensions>>,
 }
 
@@ -114,7 +113,6 @@ impl XWindowInner {
             )?)
         })?;
 
-        self.gl_state.replace(gl_state.clone());
         Ok(gl_state)
     }
 
@@ -736,7 +734,6 @@ impl XWindow {
                 dpi: conn.default_dpi(),
                 copy_and_paste: CopyAndPaste::default(),
                 cursors: CursorInfo::new(&conn),
-                gl_state: None,
                 config: config.clone(),
                 resize_promises: vec![],
             }))
