@@ -5,7 +5,7 @@ use crate::{
     MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowCallbacks, WindowDecorations,
     WindowOps,
 };
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use config::ConfigHandle;
 use lazy_static::lazy_static;
 use promise::{Future, Promise};
@@ -691,10 +691,15 @@ impl WindowOps for Window {
         )
     }
 
-    fn set_clipboard(&self, _clipboard: Clipboard, text: String) -> Future<()> {
-        Future::result(
-            clipboard_win::set_clipboard_string(&text).context("Error setting clipboard"),
-        )
+    fn set_clipboard(&self, clipboard: Clipboard, text: String) -> Future<()> {
+        match clipboard {
+            Clipboard::Clipboard => Future::result(
+                clipboard_win::set_clipboard_string(&text).context("Error setting clipboard"),
+            ),
+            Clipboard::PrimarySelection => {
+                Future::result(Err(anyhow!("Error unsupported platform")))
+            }
+        }
     }
 }
 
