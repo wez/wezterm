@@ -11,7 +11,6 @@ use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
 
 pub struct XConnection {
@@ -181,24 +180,14 @@ impl ConnectionOps for XConnection {
             // be work pending and we don't guarantee that there is a
             // 1:1 wakeup to queued function, so we need to be assertive
             // in order to avoid missing wakeups
-            let period = if SPAWN_QUEUE.run() {
+            if SPAWN_QUEUE.run() {
                 // if we processed one, we don't want to sleep because
                 // there may be others to deal with
-                Duration::new(0, 0)
-            } else {
-                Duration::from_secs(86400)
-            };
+                continue;
+            }
 
-            match poll.poll(&mut events, Some(period)) {
-                Ok(_) => {
-                    // We process both event sources unconditionally
-                    // in the loop above anyway; we're just using
-                    // this to get woken up.
-                }
-
-                Err(err) => {
-                    bail!("polling for events: {:?}", err);
-                }
+            if let Err(err) = poll.poll(&mut events, None) {
+                bail!("polling for events: {:?}", err);
             }
         }
 

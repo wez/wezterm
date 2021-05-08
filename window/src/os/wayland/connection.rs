@@ -225,14 +225,14 @@ impl ConnectionOps for WaylandConnection {
             let period = if SPAWN_QUEUE.run() {
                 // if we processed one, we don't want to sleep because
                 // there may be others to deal with
-                Duration::new(0, 0)
+                Some(Duration::new(0, 0))
             } else {
-                Duration::from_secs(86400)
+                None
             };
             self.flush()?;
             {
                 let mut event_q = self.event_q.borrow_mut();
-                if let Err(err) = event_q.dispatch(Some(period), &mut ()) {
+                if let Err(err) = event_q.dispatch(period, &mut ()) {
                     if err.kind() != std::io::ErrorKind::WouldBlock
                         && err.kind() != std::io::ErrorKind::Interrupted
                     {
