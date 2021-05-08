@@ -622,7 +622,9 @@ impl VTParser {
                 let byte = ((c as u32) & 0xff) as u8;
 
                 let (action, state) = lookup(self.utf8_return_state, byte);
-                if state != self.utf8_return_state && state != State::Utf8Sequence {
+                if action == Action::Execute
+                    || (state != self.utf8_return_state && state != State::Utf8Sequence)
+                {
                     self.action(lookup_exit(self.utf8_return_state), 0, actor);
                     self.action(action, byte, actor);
                     self.action(lookup_entry(state), 0, actor);
@@ -938,6 +940,14 @@ mod test {
         assert_eq!(
             parse_as_vec("\u{af}".as_bytes()),
             vec![VTAction::Print('\u{af}')]
+        );
+    }
+
+    #[test]
+    fn utf8_control() {
+        assert_eq!(
+            parse_as_vec("\u{8d}".as_bytes()),
+            vec![VTAction::ExecuteC0orC1(0x8d)]
         );
     }
 

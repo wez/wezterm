@@ -790,6 +790,13 @@ fn test_scrollup() {
 }
 
 #[test]
+fn test_ri() {
+    let mut term = TestTerm::new(3, 1, 10);
+    term.print("1\n\u{8d}\n");
+    assert_all_contents(&term, file!(), line!(), &["1", "", ""]);
+}
+
+#[test]
 fn test_scroll_margins() {
     let mut term = TestTerm::new(3, 1, 10);
     term.print("1\n2\n3\n4\n");

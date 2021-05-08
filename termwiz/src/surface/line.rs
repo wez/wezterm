@@ -305,9 +305,15 @@ impl Line {
     pub fn set_cell(&mut self, idx: usize, cell: Cell) -> &Cell {
         let width = cell.width();
 
-        // if the line isn't wide enough, pad it out with the default attributes
-        if idx + width >= self.cells.len() {
-            self.cells.resize(idx + width, Cell::default());
+        // if the line isn't wide enough, pad it out with the default attributes.
+        // The .max(1) stuff is here in case we get called with a
+        // zero-width cell.  That shouldn't happen: those sequences
+        // should get filtered out in the terminal parsing layer,
+        // but in case one does sneak through, we need to ensure that
+        // we grow the cells array to hold this bogus entry.
+        // https://github.com/wez/wezterm/issues/768
+        if idx + width.max(1) >= self.cells.len() {
+            self.cells.resize(idx + width.max(1), Cell::default());
         }
 
         self.invalidate_implicit_hyperlinks();
