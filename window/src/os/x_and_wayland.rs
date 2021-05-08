@@ -97,13 +97,6 @@ impl ConnectionOps for Connection {
             Self::Wayland(w) => w.run_message_loop(),
         }
     }
-    fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
-        match self {
-            Self::X11(x) => x.schedule_timer(interval, callback),
-            #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.schedule_timer(interval, callback),
-        }
-    }
 }
 
 impl Window {

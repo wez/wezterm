@@ -3,7 +3,6 @@ use crate::connection::ConnectionOps;
 use crate::os::x11::window::XWindowInner;
 use crate::os::Connection;
 use crate::spawn::*;
-use crate::timerlist::{TimerEntry, TimerList};
 use anyhow::{anyhow, bail, Context as _};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
@@ -34,7 +33,6 @@ pub struct XConnection {
     pub(crate) xrm: RefCell<HashMap<String, String>>,
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<XWindowInner>>>>,
     should_terminate: RefCell<bool>,
-    timers: RefCell<TimerList>,
     pub(crate) visual: xcb::xproto::Visualtype,
     pub(crate) depth: u8,
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
@@ -175,8 +173,6 @@ impl ConnectionOps for XConnection {
         let mut last_interval = Instant::now();
 
         while !*self.should_terminate.borrow() {
-            self.timers.borrow_mut().run_ready();
-
             let now = Instant::now();
             let diff = now - last_interval;
             let period = if diff >= paint_interval {
@@ -203,11 +199,7 @@ impl ConnectionOps for XConnection {
                 // there may be others to deal with
                 Duration::new(0, 0)
             } else {
-                self.timers
-                    .borrow()
-                    .time_until_due(Instant::now())
-                    .map(|duration| duration.min(period))
-                    .unwrap_or(period)
+                period
             };
 
             match poll.poll(&mut events, Some(period)) {
@@ -224,14 +216,6 @@ impl ConnectionOps for XConnection {
         }
 
         Ok(())
-    }
-
-    fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
-        self.timers.borrow_mut().insert(TimerEntry {
-            callback: Box::new(callback),
-            due: Instant::now(),
-            interval,
-        });
     }
 }
 
@@ -417,7 +401,6 @@ impl XConnection {
             atom_targets,
             windows: RefCell::new(HashMap::new()),
             should_terminate: RefCell::new(false),
-            timers: RefCell::new(TimerList::new()),
             depth,
             visual,
             gl_connection: RefCell::new(None),

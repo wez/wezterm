@@ -4,7 +4,6 @@ use super::pointer::*;
 use super::window::*;
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
-use crate::timerlist::{TimerEntry, TimerList};
 use crate::Connection;
 use anyhow::{anyhow, bail, Context};
 use smithay_client_toolkit as toolkit;
@@ -12,7 +11,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use toolkit::environment::Environment;
 use toolkit::reexports::calloop::{EventLoop, EventSource, Interest, Mode, Poll, Readiness, Token};
 use toolkit::reexports::client::Display;
@@ -23,7 +22,6 @@ toolkit::default_environment!(MyEnvironment, desktop);
 
 pub struct WaylandConnection {
     should_terminate: RefCell<bool>,
-    timers: RefCell<TimerList>,
     pub(crate) next_window_id: AtomicUsize,
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
 
@@ -116,7 +114,6 @@ impl WaylandConnection {
             event_q: RefCell::new(event_loop),
             environment: RefCell::new(environment),
             should_terminate: RefCell::new(false),
-            timers: RefCell::new(TimerList::new()),
             next_window_id: AtomicUsize::new(1),
             windows: RefCell::new(HashMap::new()),
             keyboard,
@@ -221,8 +218,6 @@ impl ConnectionOps for WaylandConnection {
             .map_err(|e| anyhow!("failed to insert SpawnQueueSource: {:?}", e))?;
 
         while !*self.should_terminate.borrow() {
-            self.timers.borrow_mut().run_ready();
-
             // Check the spawn queue before we try to sleep; there may
             // be work pending and we don't guarantee that there is a
             // 1:1 wakeup to queued function, so we need to be assertive
@@ -232,10 +227,7 @@ impl ConnectionOps for WaylandConnection {
                 // there may be others to deal with
                 Duration::new(0, 0)
             } else {
-                self.timers
-                    .borrow()
-                    .time_until_due(Instant::now())
-                    .unwrap_or(Duration::from_millis(2500))
+                Duration::from_millis(2500)
             };
             self.flush()?;
             {
@@ -252,13 +244,5 @@ impl ConnectionOps for WaylandConnection {
         self.windows.borrow_mut().clear();
 
         Ok(())
-    }
-
-    fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
-        self.timers.borrow_mut().insert(TimerEntry {
-            callback: Box::new(callback),
-            due: Instant::now(),
-            interval,
-        });
     }
 }

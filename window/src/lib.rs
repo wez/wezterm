@@ -9,7 +9,6 @@ mod configuration;
 pub mod connection;
 pub mod os;
 mod spawn;
-mod timerlist;
 
 #[cfg(target_os = "macos")]
 pub(crate) const DEFAULT_DPI: f64 = 72.0;

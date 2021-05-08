@@ -96,48 +96,4 @@ impl ConnectionOps for Connection {
             let () = msg_send![self.ns_app, hide: self.ns_app];
         }
     }
-
-    fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
-        let secs_f64 =
-            (interval.as_secs() as f64) + (f64::from(interval.subsec_nanos()) / 1_000_000_000_f64);
-
-        let callback = Box::into_raw(Box::new(callback));
-
-        extern "C" fn timer_callback<F: FnMut()>(
-            _timer_ref: *mut __CFRunLoopTimer,
-            callback_ptr: *mut std::ffi::c_void,
-        ) {
-            unsafe {
-                let callback: *mut F = callback_ptr as _;
-                (*callback)();
-            }
-        }
-
-        extern "C" fn release_callback<F: FnMut()>(info: *const std::ffi::c_void) {
-            let callback: Box<F> = unsafe { Box::from_raw(info as *mut F) };
-            drop(callback);
-        }
-
-        let timer_ref = unsafe {
-            CFRunLoopTimerCreate(
-                std::ptr::null(),
-                CFAbsoluteTimeGetCurrent() + secs_f64,
-                secs_f64,
-                0,
-                0,
-                timer_callback::<F>,
-                &mut CFRunLoopTimerContext {
-                    copyDescription: None,
-                    info: callback as _,
-                    release: Some(release_callback::<F>),
-                    retain: None,
-                    version: 0,
-                },
-            )
-        };
-
-        unsafe {
-            CFRunLoopAddTimer(CFRunLoopGetCurrent(), timer_ref, kCFRunLoopCommonModes);
-        }
-    }
 }
