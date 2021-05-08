@@ -596,7 +596,7 @@ impl WaylandWindowInner {
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
-        self.events.try_send(WindowEvent::NeedRepaint)?;
+        self.events.try_send(WindowEvent::NeedRepaint).ok();
         Ok(())
     }
 }

@@ -137,7 +137,7 @@ impl XWindowInner {
         }
         self.paint_all = false;
         self.expose.clear();
-        self.events.try_send(WindowEvent::NeedRepaint)?;
+        self.events.try_send(WindowEvent::NeedRepaint).ok();
         Ok(())
     }
 
@@ -161,7 +161,7 @@ impl XWindowInner {
     }
 
     fn do_mouse_event(&mut self, event: MouseEvent) -> anyhow::Result<()> {
-        self.events.try_send(WindowEvent::MouseEvent(event))?;
+        self.events.try_send(WindowEvent::MouseEvent(event)).ok();
         Ok(())
     }
 
@@ -213,17 +213,19 @@ impl XWindowInner {
                     self.resize_promises.remove(0).ok(dimensions);
                 }
 
-                self.events.try_send(WindowEvent::Resized {
-                    dimensions,
-                    is_full_screen: self.is_fullscreen().unwrap_or(false),
-                })?;
+                self.events
+                    .try_send(WindowEvent::Resized {
+                        dimensions,
+                        is_full_screen: self.is_fullscreen().unwrap_or(false),
+                    })
+                    .ok();
             }
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 self.copy_and_paste.time = key_press.time();
                 if let Some(key) = conn.keyboard.process_key_event(key_press) {
                     let key = key.normalize_shift();
-                    self.events.try_send(WindowEvent::KeyEvent(key))?;
+                    self.events.try_send(WindowEvent::KeyEvent(key)).ok();
                 }
             }
 
@@ -310,7 +312,7 @@ impl XWindowInner {
                 }
             }
             xcb::DESTROY_NOTIFY => {
-                self.events.try_send(WindowEvent::Destroyed)?;
+                self.events.try_send(WindowEvent::Destroyed).ok();
                 conn.windows.borrow_mut().remove(&self.window_id);
             }
             xcb::SELECTION_CLEAR => {
@@ -353,11 +355,11 @@ impl XWindowInner {
             }
             xcb::FOCUS_IN => {
                 log::trace!("Calling focus_change(true)");
-                self.events.try_send(WindowEvent::FocusChanged(true))?;
+                self.events.try_send(WindowEvent::FocusChanged(true)).ok();
             }
             xcb::FOCUS_OUT => {
                 log::trace!("Calling focus_change(false)");
-                self.events.try_send(WindowEvent::FocusChanged(false))?;
+                self.events.try_send(WindowEvent::FocusChanged(false)).ok();
             }
             _ => {
                 eprintln!("unhandled: {:x}", r);

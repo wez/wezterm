@@ -478,15 +478,19 @@ impl Window {
             // Synthesize a resize event immediately; this allows
             // the embedding application an opportunity to discover
             // the dpi and adjust for display scaling
-            inner.borrow_mut().events.try_send(WindowEvent::Resized {
-                dimensions: Dimensions {
-                    pixel_width: width as usize,
-                    pixel_height: height as usize,
-                    dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
-                        as usize,
-                },
-                is_full_screen: false,
-            })?;
+            inner
+                .borrow_mut()
+                .events
+                .try_send(WindowEvent::Resized {
+                    dimensions: Dimensions {
+                        pixel_width: width as usize,
+                        pixel_height: height as usize,
+                        dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
+                            as usize,
+                    },
+                    is_full_screen: false,
+                })
+                .ok();
 
             Ok((window, receiver))
         }
