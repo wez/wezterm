@@ -4,12 +4,8 @@ use crate::connection::ConnectionOps;
 use crate::spawn::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::ptr::null_mut;
 use std::rc::Rc;
-use winapi::shared::basetsd::UINT_PTR;
-use winapi::shared::minwindef::*;
-use winapi::shared::windef::*;
 use winapi::um::winbase::INFINITE;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::*;
@@ -17,7 +13,6 @@ use winapi::um::winuser::*;
 pub struct Connection {
     event_handle: HANDLE,
     pub(crate) windows: RefCell<HashMap<HWindow, Rc<RefCell<WindowInner>>>>,
-    timers: RefCell<HashMap<UINT_PTR, UINT_PTR>>,
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 }
 
@@ -62,7 +57,6 @@ impl Connection {
         Ok(Self {
             event_handle,
             windows: RefCell::new(HashMap::new()),
-            timers: RefCell::new(HashMap::new()),
             gl_connection: RefCell::new(None),
         })
     }
