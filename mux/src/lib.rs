@@ -41,6 +41,7 @@ pub enum MuxNotification {
         pane_id: PaneId,
         alert: wezterm_term::Alert,
     },
+    Empty,
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -184,6 +185,11 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
             // We don't know if we can unilaterally close
             // this pane right now, so don't!
             state.write(b"\n[Process completed]");
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get().unwrap();
+                mux.prune_dead_windows();
+            })
+            .detach();
         }
         ExitBehavior::Close => {
             promise::spawn::spawn_into_main_thread(async move {
@@ -453,6 +459,10 @@ impl Mux {
         for window_id in dead_windows {
             log::trace!("window {} is dead", window_id);
             self.remove_window_internal(window_id);
+        }
+
+        if self.is_empty() {
+            self.notify(MuxNotification::Empty);
         }
     }
 

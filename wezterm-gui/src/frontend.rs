@@ -66,6 +66,12 @@ impl GuiFrontEnd {
                         pane_id: _,
                         alert: Alert::TitleMaybeChanged,
                     } => {}
+                    MuxNotification::Empty => {
+                        if mux::activity::Activity::count() == 0 {
+                            log::trace!("Mux is now empty, terminate gui");
+                            Connection::get().unwrap().terminate_message_loop();
+                        }
+                    }
                 }
                 true
             } else {
@@ -76,17 +82,6 @@ impl GuiFrontEnd {
     }
 
     pub fn run_forever(&self) -> anyhow::Result<()> {
-        self.connection
-            .schedule_timer(std::time::Duration::from_millis(200), move || {
-                if mux::activity::Activity::count() == 0 {
-                    let mux = Mux::get().unwrap();
-                    mux.prune_dead_windows();
-                    if mux.is_empty() {
-                        Connection::get().unwrap().terminate_message_loop();
-                    }
-                }
-            });
-
         self.connection.run_message_loop()
     }
 }

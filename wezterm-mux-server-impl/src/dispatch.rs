@@ -86,6 +86,7 @@ where
                 handler.schedule_pane_push(pane_id);
             }
             Ok(Item::Notif(MuxNotification::WindowCreated(_window_id))) => {}
+            Ok(Item::Notif(MuxNotification::Empty)) => {}
             Err(err) => {
                 log::error!("process_async Err {}", err);
                 return Ok(());

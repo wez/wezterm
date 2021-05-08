@@ -1,4 +1,5 @@
 //! Keeps track of the number of user-initiated activities
+use crate::Mux;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 static COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -25,5 +26,11 @@ impl Activity {
 impl Drop for Activity {
     fn drop(&mut self) {
         COUNT.fetch_sub(1, Ordering::SeqCst);
+
+        promise::spawn::spawn_into_main_thread(async move {
+            let mux = Mux::get().unwrap();
+            mux.prune_dead_windows();
+        })
+        .detach();
     }
 }
