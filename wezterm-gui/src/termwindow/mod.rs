@@ -16,6 +16,7 @@ use crate::shapecache::*;
 use crate::tabbar::TabBarState;
 use ::wezterm_term::input::MouseButton as TMB;
 use ::window::*;
+use anyhow::Context;
 use anyhow::{anyhow, ensure};
 use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, SpawnCommand,
@@ -564,7 +565,10 @@ impl TermWindow {
                     }
                     WindowEvent::Notification(item) => {
                         if let Ok(notif) = item.downcast::<TermWindowNotif>() {
-                            myself.dispatch_notif(*notif, &window).await?;
+                            myself
+                                .dispatch_notif(*notif, &window)
+                                .await
+                                .context("dispatch_notif")?;
                         }
                     }
                 }
@@ -582,6 +586,10 @@ impl TermWindow {
         notif: TermWindowNotif,
         window: &Window,
     ) -> anyhow::Result<()> {
+        fn chan_err<T>(e: smol::channel::SendError<T>) -> anyhow::Error {
+            anyhow::anyhow!("{}", e)
+        }
+
         match notif {
             TermWindowNotif::InvalidateShapeCache => {
                 self.shape_cache.borrow_mut().clear();
@@ -595,7 +603,9 @@ impl TermWindow {
                 let pane = mux
                     .get_pane(pane_id)
                     .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
-                self.perform_key_assignment(&pane, &assignment).await?;
+                self.perform_key_assignment(&pane, &assignment)
+                    .await
+                    .context("perform_key_assignment")?;
             }
             TermWindowNotif::SetRightStatus(status) => {
                 if status != self.right_status {
@@ -604,16 +614,25 @@ impl TermWindow {
                 }
             }
             TermWindowNotif::GetDimensions(tx) => {
-                tx.send((self.dimensions, self.is_full_screen)).await?;
+                tx.send((self.dimensions, self.is_full_screen))
+                    .await
+                    .map_err(chan_err)
+                    .context("send GetDimensions response")?;
             }
             TermWindowNotif::GetEffectiveConfig(tx) => {
-                tx.send(self.config.clone()).await?;
+                tx.send(self.config.clone())
+                    .await
+                    .map_err(chan_err)
+                    .context("send GetEffectiveConfig response")?;
             }
             TermWindowNotif::FinishWindowEvent { name, again } => {
                 self.finish_window_event(&name, again);
             }
             TermWindowNotif::GetConfigOverrides(tx) => {
-                tx.send(self.config_overrides.clone()).await?;
+                tx.send(self.config_overrides.clone())
+                    .await
+                    .map_err(chan_err)
+                    .context("send GetConfigOverrides response")?;
             }
             TermWindowNotif::SetConfigOverrides(value) => {
                 self.config_overrides = value;
@@ -649,7 +668,10 @@ impl TermWindow {
                     .get_pane(pane_id)
                     .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
 
-                tx.send(self.selection_text(&pane)).await?;
+                tx.send(self.selection_text(&pane))
+                    .await
+                    .map_err(chan_err)
+                    .context("send GetSelectionForPane response")?;
             }
             TermWindowNotif::Apply(func) => {
                 func(self);
