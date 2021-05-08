@@ -399,8 +399,10 @@ impl Line {
 
     pub fn erase_cell_with_margin(&mut self, x: usize, right_margin: usize) {
         self.invalidate_implicit_hyperlinks();
-        self.invalidate_grapheme_at_or_before(x);
-        self.cells.remove(x);
+        if x < self.cells.len() {
+            self.invalidate_grapheme_at_or_before(x);
+            self.cells.remove(x);
+        }
         if right_margin <= self.cells.len() {
             self.cells.insert(right_margin - 1, Cell::default());
         }

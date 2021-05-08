@@ -2361,18 +2361,22 @@ impl TerminalState {
                     let line_idx = screen.phys_row(y);
                     let line = screen.line_mut(line_idx);
 
-                    let candidate = &line.cells()[to_copy];
-                    if candidate.str() == " " && to_copy > 0 {
-                        // It's a blank.  It may be the second part of
-                        // a double-wide pair; look ahead of it.
-                        let prior = &line.cells()[to_copy - 1];
-                        if prior.width() > 1 {
-                            prior.clone()
-                        } else {
-                            candidate.clone()
+                    match line.cells().get(to_copy).cloned() {
+                        None => Cell::new(' ', CellAttributes::default()),
+                        Some(candidate) => {
+                            if candidate.str() == " " && to_copy > 0 {
+                                // It's a blank.  It may be the second part of
+                                // a double-wide pair; look ahead of it.
+                                let prior = &line.cells()[to_copy - 1];
+                                if prior.width() > 1 {
+                                    prior.clone()
+                                } else {
+                                    candidate
+                                }
+                            } else {
+                                candidate
+                            }
                         }
-                    } else {
-                        candidate.clone()
                     }
                 };
 
