@@ -535,7 +535,7 @@ impl WindowOps for Window {
                 Some(h) => h,
                 None => return,
             };
-            let mut inner = handle.borrow_mut();
+            let inner = handle.borrow();
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
                 window_view
                     .inner

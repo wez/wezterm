@@ -6,8 +6,6 @@ use crate::connection::ConnectionOps;
 use crate::spawn::*;
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
 use cocoa::base::{id, nil};
-use core_foundation::date::CFAbsoluteTimeGetCurrent;
-use core_foundation::runloop::*;
 use objc::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
