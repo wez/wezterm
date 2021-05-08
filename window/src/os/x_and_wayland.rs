@@ -1,9 +1,7 @@
 #![cfg(all(unix, not(target_os = "macos")))]
 
 use crate::connection::ConnectionOps;
-#[cfg(feature = "wayland")]
 use crate::os::wayland::connection::WaylandConnection;
-#[cfg(feature = "wayland")]
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
@@ -17,30 +15,25 @@ use std::rc::Rc;
 
 pub enum Connection {
     X11(Rc<XConnection>),
-    #[cfg(feature = "wayland")]
     Wayland(Rc<WaylandConnection>),
 }
 
 #[derive(Clone)]
 pub enum Window {
     X11(XWindow),
-    #[cfg(feature = "wayland")]
     Wayland(WaylandWindow),
 }
 
 impl Connection {
     pub(crate) fn create_new() -> anyhow::Result<Connection> {
-        #[cfg(feature = "wayland")]
-        {
-            if config::configuration().enable_wayland {
-                match WaylandConnection::create_new() {
-                    Ok(w) => {
-                        log::debug!("Using wayland connection!");
-                        return Ok(Connection::Wayland(Rc::new(w)));
-                    }
-                    Err(e) => {
-                        log::debug!("Failed to init wayland: {}", e);
-                    }
+        if config::configuration().enable_wayland {
+            match WaylandConnection::create_new() {
+                Ok(w) => {
+                    log::debug!("Using wayland connection!");
+                    return Ok(Connection::Wayland(Rc::new(w)));
+                }
+                Err(e) => {
+                    log::debug!("Failed to init wayland: {}", e);
                 }
             }
         }
@@ -57,7 +50,6 @@ impl Connection {
     ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         match self {
             Self::X11(_) => XWindow::new_window(class_name, name, width, height, config).await,
-            #[cfg(feature = "wayland")]
             Self::Wayland(_) => {
                 WaylandWindow::new_window(class_name, name, width, height, config).await
             }
@@ -67,12 +59,10 @@ impl Connection {
     pub(crate) fn x11(&self) -> Rc<XConnection> {
         match self {
             Self::X11(x) => Rc::clone(x),
-            #[cfg(feature = "wayland")]
             _ => panic!("attempted to get x11 reference on non-x11 connection"),
         }
     }
 
-    #[cfg(feature = "wayland")]
     pub(crate) fn wayland(&self) -> Rc<WaylandConnection> {
         match self {
             Self::Wayland(w) => Rc::clone(w),
@@ -85,7 +75,6 @@ impl ConnectionOps for Connection {
     fn terminate_message_loop(&self) {
         match self {
             Self::X11(x) => x.terminate_message_loop(),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.terminate_message_loop(),
         }
     }
@@ -93,7 +82,6 @@ impl ConnectionOps for Connection {
     fn run_message_loop(&self) -> anyhow::Result<()> {
         match self {
             Self::X11(x) => x.run_message_loop(),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.run_message_loop(),
         }
     }
@@ -118,7 +106,6 @@ unsafe impl HasRawWindowHandle for Window {
     fn raw_window_handle(&self) -> RawWindowHandle {
         match self {
             Self::X11(x) => x.raw_window_handle(),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.raw_window_handle(),
         }
     }
@@ -129,7 +116,6 @@ impl WindowOps for Window {
     async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
         match self {
             Self::X11(x) => x.enable_opengl().await,
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.enable_opengl().await,
         }
     }
@@ -137,7 +123,6 @@ impl WindowOps for Window {
     fn finish_frame(&self, frame: glium::Frame) -> anyhow::Result<()> {
         match self {
             Self::X11(x) => x.finish_frame(frame),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.finish_frame(frame),
         }
     }
@@ -145,7 +130,6 @@ impl WindowOps for Window {
     fn close(&self) -> Future<()> {
         match self {
             Self::X11(x) => x.close(),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.close(),
         }
     }
@@ -155,7 +139,6 @@ impl WindowOps for Window {
     {
         match self {
             Self::X11(x) => x.notify(t),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.notify(t),
         }
     }
@@ -163,7 +146,6 @@ impl WindowOps for Window {
     fn hide(&self) -> Future<()> {
         match self {
             Self::X11(x) => x.hide(),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.hide(),
         }
     }
@@ -171,7 +153,6 @@ impl WindowOps for Window {
     fn toggle_fullscreen(&self) -> Future<()> {
         match self {
             Self::X11(x) => x.toggle_fullscreen(),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.toggle_fullscreen(),
         }
     }
@@ -179,7 +160,6 @@ impl WindowOps for Window {
     fn config_did_change(&self, config: &ConfigHandle) -> Future<()> {
         match self {
             Self::X11(x) => x.config_did_change(config),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.config_did_change(config),
         }
     }
@@ -187,7 +167,6 @@ impl WindowOps for Window {
     fn show(&self) -> Future<()> {
         match self {
             Self::X11(x) => x.show(),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.show(),
         }
     }
@@ -195,7 +174,6 @@ impl WindowOps for Window {
     fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
         match self {
             Self::X11(x) => x.set_cursor(cursor),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.set_cursor(cursor),
         }
     }
@@ -203,7 +181,6 @@ impl WindowOps for Window {
     fn invalidate(&self) -> Future<()> {
         match self {
             Self::X11(x) => x.invalidate(),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.invalidate(),
         }
     }
@@ -211,7 +188,6 @@ impl WindowOps for Window {
     fn set_title(&self, title: &str) -> Future<()> {
         match self {
             Self::X11(x) => x.set_title(title),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.set_title(title),
         }
     }
@@ -219,7 +195,6 @@ impl WindowOps for Window {
     fn set_icon(&self, image: crate::bitmaps::Image) -> Future<()> {
         match self {
             Self::X11(x) => x.set_icon(image),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.set_icon(image),
         }
     }
@@ -227,7 +202,6 @@ impl WindowOps for Window {
     fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
         match self {
             Self::X11(x) => x.set_inner_size(width, height),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.set_inner_size(width, height),
         }
     }
@@ -235,7 +209,6 @@ impl WindowOps for Window {
     fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
         match self {
             Self::X11(x) => x.set_window_position(coords),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.set_window_position(coords),
         }
     }
@@ -243,14 +216,12 @@ impl WindowOps for Window {
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
         match self {
             Self::X11(x) => x.get_clipboard(clipboard),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.get_clipboard(clipboard),
         }
     }
     fn set_clipboard(&self, clipboard: Clipboard, text: String) -> Future<()> {
         match self {
             Self::X11(x) => x.set_clipboard(clipboard, text),
-            #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.set_clipboard(clipboard, text),
         }
     }

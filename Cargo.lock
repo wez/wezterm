@@ -5163,7 +5163,6 @@ dependencies = [
  "libloading 0.6.7",
  "line_drawing",
  "log",
- "memmap",
  "metrics",
  "mio",
  "objc",

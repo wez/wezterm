@@ -37,9 +37,6 @@ serde = {version="1.0", features = ["rc", "derive"]}
 glium = { version = "0.28", default-features = false}
 wezterm-input-types = { path = "../wezterm-input-types" }
 
-[features]
-wayland = ["smithay-client-toolkit", "memmap", "wayland-client", "wayland-egl"]
-
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = [
     "dwmapi",
@@ -64,10 +61,9 @@ xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://githu
 mio = "0.6"
 libc = "0.2"
 #smithay-client-toolkit = {version = "0.9", optional = true, features=["calloop"], git="https://github.com/wez/client-toolkit.git", branch="title_trunc"}
-smithay-client-toolkit = {version = "0.12", optional = true, features=["calloop"]}
-memmap = {version="0.7", optional=true}
-wayland-client = {version="0.28", optional=true}
-wayland-egl = {version="0.28", optional=true}
+smithay-client-toolkit = {version = "0.12", features=["calloop"]}
+wayland-client = "0.28"
+wayland-egl = "0.28"
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"
