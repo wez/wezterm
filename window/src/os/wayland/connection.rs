@@ -227,7 +227,7 @@ impl ConnectionOps for WaylandConnection {
                 // there may be others to deal with
                 Duration::new(0, 0)
             } else {
-                Duration::from_millis(2500)
+                Duration::from_secs(86400)
             };
             self.flush()?;
             {

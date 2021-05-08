@@ -5,8 +5,8 @@ use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
     Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Point, Rect, ScreenPoint, Size, WindowDecorations, WindowEvent, WindowEventReceiver,
-    WindowEventSender, WindowOps,
+    Point, ScreenPoint, WindowDecorations, WindowEvent, WindowEventReceiver, WindowEventSender,
+    WindowOps,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -15,7 +15,6 @@ use promise::{Future, Promise};
 use raw_window_handle::unix::XcbHandle;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
-use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
@@ -59,23 +58,11 @@ pub(crate) struct XWindowInner {
     width: u16,
     height: u16,
     dpi: f64,
-    expose: VecDeque<Rect>,
-    paint_all: bool,
     cursors: CursorInfo,
     copy_and_paste: CopyAndPaste,
     config: ConfigHandle,
     gl_state: Option<Rc<glium::backend::Context>>,
     resize_promises: Vec<Promise<Dimensions>>,
-}
-
-fn enclosing_boundary_with(a: &Rect, b: &Rect) -> Rect {
-    let left = a.min_x().min(b.min_x());
-    let right = a.max_x().max(b.max_x());
-
-    let top = a.min_y().min(b.min_y());
-    let bottom = a.max_y().max(b.max_y());
-
-    Rect::new(Point::new(left, top), Size::new(right - left, bottom - top))
 }
 
 impl Drop for XWindowInner {
@@ -131,33 +118,13 @@ impl XWindowInner {
         Ok(gl_state)
     }
 
-    pub fn paint(&mut self) -> anyhow::Result<()> {
-        if !self.paint_all && self.expose.is_empty() {
-            return Ok(());
-        }
-        self.paint_all = false;
-        self.expose.clear();
-        self.events.try_send(WindowEvent::NeedRepaint).ok();
-        Ok(())
-    }
-
     /// Add a region to the list of exposed/damaged/dirty regions.
     /// Note that a window resize will likely invalidate the entire window.
     /// If the new region intersects with the prior region, then we expand
     /// it to encompass both.  This avoids bloating the list with a series
     /// of increasing rectangles when resizing larger or smaller.
-    fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) {
-        let expose = Rect::new(
-            Point::new(x as isize, y as isize),
-            Size::new(width as isize, height as isize),
-        );
-        if let Some(prior) = self.expose.back_mut() {
-            if prior.intersects(&expose) {
-                *prior = enclosing_boundary_with(&prior, &expose);
-                return;
-            }
-        }
-        self.expose.push_back(expose);
+    fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) {
+        self.events.try_send(WindowEvent::NeedRepaint).ok();
     }
 
     fn do_mouse_event(&mut self, event: MouseEvent) -> anyhow::Result<()> {
@@ -767,8 +734,6 @@ impl XWindow {
                 width: width.try_into()?,
                 height: height.try_into()?,
                 dpi: conn.default_dpi(),
-                expose: VecDeque::new(),
-                paint_all: true,
                 copy_and_paste: CopyAndPaste::default(),
                 cursors: CursorInfo::new(&conn),
                 gl_state: None,
@@ -817,7 +782,7 @@ impl XWindowInner {
         xcb::map_window(self.conn().conn(), self.window_id);
     }
     fn invalidate(&mut self) {
-        self.paint_all = true;
+        self.events.try_send(WindowEvent::NeedRepaint).ok();
     }
 
     fn toggle_fullscreen(&mut self) {

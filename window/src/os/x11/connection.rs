@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
 
 pub struct XConnection {
@@ -169,20 +169,7 @@ impl ConnectionOps for XConnection {
             PollOpt::level(),
         )?;
 
-        let paint_interval = Duration::from_millis(25);
-        let mut last_interval = Instant::now();
-
         while !*self.should_terminate.borrow() {
-            let now = Instant::now();
-            let diff = now - last_interval;
-            let period = if diff >= paint_interval {
-                self.do_paint();
-                last_interval = now;
-                paint_interval
-            } else {
-                paint_interval - diff
-            };
-
             // Process any events that might have accumulated in the local
             // buffer (eg: due to a flush) before we potentially go to sleep.
             // The locally queued events won't mark the fd as ready, so we
@@ -199,7 +186,7 @@ impl ConnectionOps for XConnection {
                 // there may be others to deal with
                 Duration::new(0, 0)
             } else {
-                period
+                Duration::from_secs(86400)
             };
 
             match poll.poll(&mut events, Some(period)) {
@@ -423,14 +410,6 @@ impl XConnection {
 
     pub fn atom_delete(&self) -> xcb::Atom {
         self.atom_delete
-    }
-
-    /// Run through all of the windows and cause them to paint if they need it.
-    fn do_paint(&self) {
-        for window in self.windows.borrow().values() {
-            window.lock().unwrap().paint().unwrap();
-        }
-        self.conn.flush();
     }
 
     pub(crate) fn with_window_inner<
