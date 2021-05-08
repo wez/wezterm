@@ -34,6 +34,8 @@ use mux::{Mux, MuxNotification};
 use portable_pty::PtySize;
 use serde::*;
 use smol::channel::Sender;
+use smol::future::FutureExt;
+use smol::Timer;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::ops::Add;
@@ -99,7 +101,6 @@ pub enum TermWindowNotif {
         pane_id: Option<PaneId>,
     },
     MuxNotification(MuxNotification),
-    Periodic,
     EmitStatusUpdate,
     Apply(Box<dyn FnOnce(&mut TermWindow) + Send + Sync>),
 }
@@ -338,7 +339,6 @@ impl TermWindow {
                     config::wezterm_version(),
                 );
                 self.render_state.replace(gl);
-                Self::start_periodic_maintenance(window.clone());
                 // Update dimensions: the goal here is to factor in the dpi and font
                 // size adjusted GUI window dimensions and apply those to the dimensions
                 // of the pty in the Mux layer.
@@ -532,55 +532,82 @@ impl TermWindow {
             myself.subscribe_to_pane_updates();
             myself.emit_status_event();
 
-            while let Ok(event) = events.recv().await {
-                match event {
-                    WindowEvent::Destroyed => {
+            loop {
+                let mut need_invalidate = false;
+                let mut sleep_interval = None;
+
+                let now = Instant::now();
+
+                for f in &[
+                    Self::maintain_status,
+                    Self::maintain_animation,
+                    Self::maintain_blink,
+                ] {
+                    let (invalidate, next) = f(&mut myself, now);
+                    if invalidate {
+                        need_invalidate = true;
+                    }
+                    if let Some(next) = next {
+                        let next = sleep_interval.unwrap_or(next).min(next);
+                        sleep_interval.replace(next);
+                    }
+                }
+
+                if need_invalidate {
+                    if !myself.do_paint(&gl, &window) {
                         break;
                     }
-                    WindowEvent::CloseRequested => {
-                        myself.close_requested(&window);
-                    }
-                    WindowEvent::FocusChanged(focused) => {
-                        myself.focus_changed(focused);
-                    }
-                    WindowEvent::MouseEvent(event) => {
-                        myself.mouse_event_impl(event, &window).await;
-                    }
-                    WindowEvent::Resized {
-                        dimensions,
-                        is_full_screen,
-                    } => {
-                        myself.resize(dimensions, is_full_screen);
-                    }
-                    WindowEvent::KeyEvent(event) => {
-                        myself.key_event_impl(event, &window).await;
-                    }
-                    WindowEvent::NeedRepaint => {
-                        if gl.is_context_lost() {
-                            log::error!("opengl context was lost; should reinit");
-                            window.close();
+                }
+
+                let recv = async {
+                    let event = events.recv().await?;
+                    anyhow::Result::<Option<WindowEvent>>::Ok(Some(event))
+                };
+
+                let wakeup = async {
+                    Timer::at(sleep_interval.unwrap_or(now + Duration::from_secs(86400))).await;
+                    anyhow::Result::<Option<WindowEvent>>::Ok(None)
+                };
+
+                match recv.or(wakeup).await {
+                    Err(_) => break,
+                    Ok(None) => {}
+                    Ok(Some(event)) => match event {
+                        WindowEvent::Destroyed => {
                             break;
                         }
-
-                        let mut frame = glium::Frame::new(
-                            Rc::clone(&gl),
-                            (
-                                myself.dimensions.pixel_width as u32,
-                                myself.dimensions.pixel_height as u32,
-                            ),
-                        );
-
-                        myself.paint_impl(&mut frame);
-                        window.finish_frame(frame)?;
-                    }
-                    WindowEvent::Notification(item) => {
-                        if let Ok(notif) = item.downcast::<TermWindowNotif>() {
-                            myself
-                                .dispatch_notif(*notif, &window)
-                                .await
-                                .context("dispatch_notif")?;
+                        WindowEvent::CloseRequested => {
+                            myself.close_requested(&window);
                         }
-                    }
+                        WindowEvent::FocusChanged(focused) => {
+                            myself.focus_changed(focused);
+                        }
+                        WindowEvent::MouseEvent(event) => {
+                            myself.mouse_event_impl(event, &window).await;
+                        }
+                        WindowEvent::Resized {
+                            dimensions,
+                            is_full_screen,
+                        } => {
+                            myself.resize(dimensions, is_full_screen);
+                        }
+                        WindowEvent::KeyEvent(event) => {
+                            myself.key_event_impl(event, &window).await;
+                        }
+                        WindowEvent::NeedRepaint => {
+                            if !myself.do_paint(&gl, &window) {
+                                break;
+                            }
+                        }
+                        WindowEvent::Notification(item) => {
+                            if let Ok(notif) = item.downcast::<TermWindowNotif>() {
+                                myself
+                                    .dispatch_notif(*notif, &window)
+                                    .await
+                                    .context("dispatch_notif")?;
+                            }
+                        }
+                    },
                 }
             }
 
@@ -591,6 +618,25 @@ impl TermWindow {
 
         crate::update::start_update_checker();
         Ok(())
+    }
+
+    fn do_paint(&mut self, gl: &Rc<glium::backend::Context>, window: &Window) -> bool {
+        if gl.is_context_lost() {
+            log::error!("opengl context was lost; should reinit");
+            window.close();
+            return false;
+        }
+
+        let mut frame = glium::Frame::new(
+            Rc::clone(&gl),
+            (
+                self.dimensions.pixel_width as u32,
+                self.dimensions.pixel_height as u32,
+            ),
+        );
+
+        self.paint_impl(&mut frame);
+        window.finish_frame(frame).is_ok()
     }
 
     async fn dispatch_notif(
@@ -671,9 +717,6 @@ impl TermWindow {
                 }
                 _ => {}
             },
-            TermWindowNotif::Periodic => {
-                self.periodic_window_maintenance(window)?;
-            }
             TermWindowNotif::EmitStatusUpdate => {
                 self.emit_status_event();
             }
@@ -712,15 +755,6 @@ impl TermWindow {
         if let Some(window) = self.window.as_ref() {
             window.notify(TermWindowNotif::EmitStatusUpdate);
         }
-    }
-
-    fn start_periodic_maintenance(window: Window) {
-        Connection::get().unwrap().schedule_timer(
-            std::time::Duration::from_millis(35),
-            move || {
-                window.notify(TermWindowNotif::Periodic);
-            },
-        );
     }
 
     fn mux_pane_output_event(&mut self, pane_id: PaneId) {
@@ -889,65 +923,64 @@ impl TermWindow {
         }
     }
 
-    fn periodic_window_maintenance(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
-        let mut needs_invalidate = false;
-
-        let panes = self.get_panes_to_render();
-        if panes.is_empty() {
-            self.window.as_ref().unwrap().close();
-            return Ok(());
-        }
-
-        let now = Instant::now();
-        if now.duration_since(self.last_status_call)
-            > Duration::from_millis(self.config.status_update_interval)
-        {
+    fn maintain_status(&mut self, now: Instant) -> (bool, Option<Instant>) {
+        let interval = Duration::from_millis(self.config.status_update_interval);
+        if now.duration_since(self.last_status_call) > interval {
             self.last_status_call = now;
             self.schedule_status_update();
         }
 
-        // If self.has_animation is some, then the last render detected
-        // image attachments with multiple frames, so we also need to
-        // invalidate the viewport when the next frame is due
+        (false, Some(self.last_status_call + interval))
+    }
+
+    /// If self.has_animation is some, then the last render detected
+    /// image attachments with multiple frames, so we also need to
+    /// invalidate the viewport when the next frame is due
+    fn maintain_animation(&mut self, now: Instant) -> (bool, Option<Instant>) {
         if self.focused.is_some() {
             if let Some(next_due) = *self.has_animation.borrow() {
-                if now >= next_due {
-                    needs_invalidate = true;
-                }
+                return (now >= next_due, Some(next_due));
             }
+        }
+        (false, None)
+    }
+
+    /// If blinking is permitted, and the cursor shape is set
+    /// to a blinking variant, and it's been longer than the
+    /// blink rate interval, then invalidate and redraw
+    /// so that we will re-evaluate the cursor visibility.
+    /// This is pretty heavyweight: it would be nice to only invalidate
+    /// the line on which the cursor resides, and then only if the cursor
+    /// is within the viewport.
+    fn maintain_blink(&mut self, now: Instant) -> (bool, Option<Instant>) {
+        if self.focused.is_none() || self.config.cursor_blink_rate == 0 {
+            return (false, None);
+        }
+
+        let panes = self.get_panes_to_render();
+        if panes.is_empty() {
+            self.window.as_ref().unwrap().close();
+            return (false, None);
         }
 
         for pos in panes {
-            // If blinking is permitted, and the cursor shape is set
-            // to a blinking variant, and it's been longer than the
-            // blink rate interval, then invalidate and redraw
-            // so that we will re-evaluate the cursor visibility.
-            // This is pretty heavyweight: it would be nice to only invalidate
-            // the line on which the cursor resides, and then only if the cursor
-            // is within the viewport.
-            if self.config.cursor_blink_rate != 0 && pos.is_active && self.focused.is_some() {
+            if pos.is_active {
                 let shape = self
                     .config
                     .default_cursor_style
                     .effective_shape(pos.pane.get_cursor_position().shape);
                 if shape.is_blinking() {
-                    if now.duration_since(self.last_blink_paint)
-                        > Duration::from_millis(self.config.cursor_blink_rate)
-                    {
-                        needs_invalidate = true;
+                    let interval = Duration::from_millis(self.config.cursor_blink_rate);
+                    if now.duration_since(self.last_blink_paint) > interval {
                         self.last_blink_paint = now;
+                        return (true, Some(self.last_blink_paint + interval));
                     }
+                    return (false, Some(self.last_blink_paint + interval));
                 }
             }
         }
 
-        if needs_invalidate {
-            if let Some(ref win) = self.window {
-                win.invalidate();
-            }
-        }
-
-        Ok(())
+        (false, None)
     }
 
     fn check_for_dirty_lines_and_invalidate_selection(&mut self, pane: &Rc<dyn Pane>) -> bool {
