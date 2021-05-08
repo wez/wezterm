@@ -666,6 +666,9 @@ impl TermWindow {
                 MuxNotification::PaneOutput(pane_id) => {
                     self.mux_pane_output_event(pane_id);
                 }
+                MuxNotification::WindowInvalidated(_) => {
+                    window.invalidate();
+                }
                 _ => {}
             },
             TermWindowNotif::Periodic => {
@@ -723,11 +726,6 @@ impl TermWindow {
     fn mux_pane_output_event(&mut self, pane_id: PaneId) {
         if let Some(pane) = self.get_active_pane_or_overlay() {
             if pane.pane_id() == pane_id {
-                let mux = Mux::get().expect("mux started and running on main thread");
-
-                if let Some(mut mux_window) = mux.get_window_mut(self.mux_window_id) {
-                    mux_window.check_and_reset_invalidated();
-                }
                 if let Some(ref win) = self.window {
                     win.invalidate();
                 }
@@ -768,6 +766,11 @@ impl TermWindow {
                 }
 
                 if !pane_in_window {
+                    return true;
+                }
+            }
+            MuxNotification::WindowInvalidated(window_id) => {
+                if window_id != mux_window_id {
                     return true;
                 }
             }
@@ -887,8 +890,6 @@ impl TermWindow {
     }
 
     fn periodic_window_maintenance(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
-        let mux = Mux::get().unwrap();
-
         let mut needs_invalidate = false;
 
         let panes = self.get_panes_to_render();
@@ -941,12 +942,6 @@ impl TermWindow {
 
             // If the model is dirty, arrange to re-paint
             if self.check_for_dirty_lines_and_invalidate_selection(&pos) {
-                needs_invalidate = true;
-            }
-        }
-
-        if let Some(mut mux_window) = mux.get_window_mut(self.mux_window_id) {
-            if mux_window.check_and_reset_invalidated() {
                 needs_invalidate = true;
             }
         }

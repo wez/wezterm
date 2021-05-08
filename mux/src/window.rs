@@ -1,4 +1,4 @@
-use crate::{Tab, TabId};
+use crate::{Mux, MuxNotification, Tab, TabId};
 use std::rc::Rc;
 use std::sync::Arc;
 use wezterm_term::Clipboard;
@@ -12,7 +12,6 @@ pub struct Window {
     active: usize,
     last_active: Option<TabId>,
     clipboard: Option<Arc<dyn Clipboard>>,
-    invalidated: bool,
 }
 
 impl Window {
@@ -23,7 +22,6 @@ impl Window {
             active: 0,
             last_active: None,
             clipboard: None,
-            invalidated: false,
         }
     }
 
@@ -49,18 +47,23 @@ impl Window {
         }
     }
 
+    fn invalidate(&self) {
+        let mux = Mux::get().unwrap();
+        mux.notify(MuxNotification::WindowInvalidated(self.id));
+    }
+
     pub fn insert(&mut self, index: usize, tab: &Rc<Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
         self.assign_clipboard_to_tab(tab);
         self.tabs.insert(index, Rc::clone(tab));
-        self.invalidated = true;
+        self.invalidate();
     }
 
     pub fn push(&mut self, tab: &Rc<Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
         self.assign_clipboard_to_tab(tab);
         self.tabs.push(Rc::clone(tab));
-        self.invalidated = true;
+        self.invalidate();
     }
 
     pub fn is_empty(&self) -> bool {
@@ -110,7 +113,7 @@ impl Window {
     }
 
     pub fn remove_by_idx(&mut self, idx: usize) -> Rc<Tab> {
-        self.invalidated = true;
+        self.invalidate();
         let active = self.get_active().map(Rc::clone);
         let tab = self.tabs.remove(idx);
         self.fixup_active_tab_after_removal(active);
@@ -126,12 +129,6 @@ impl Window {
         } else {
             false
         }
-    }
-
-    pub fn check_and_reset_invalidated(&mut self) -> bool {
-        let res = self.invalidated;
-        self.invalidated = false;
-        res
     }
 
     pub fn get_active(&self) -> Option<&Rc<Tab>> {
@@ -171,8 +168,8 @@ impl Window {
     /// The saved tab id is not changed.
     pub fn set_active_without_saving(&mut self, idx: usize) {
         assert!(idx < self.tabs.len());
-        self.invalidated = true;
         self.active = idx;
+        self.invalidate();
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Rc<Tab>> {
@@ -223,7 +220,7 @@ impl Window {
         }
 
         if invalidated {
-            self.invalidated = true;
+            self.invalidate();
         }
     }
 }

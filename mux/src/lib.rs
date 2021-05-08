@@ -37,6 +37,7 @@ use crate::activity::Activity;
 pub enum MuxNotification {
     PaneOutput(PaneId),
     WindowCreated(WindowId),
+    WindowInvalidated(WindowId),
     Alert {
         pane_id: PaneId,
         alert: wezterm_term::Alert,
