@@ -268,6 +268,8 @@ async fn spawn_window() -> anyhow::Result<()> {
 
 fn main() -> anyhow::Result<()> {
     let _ = pretty_env_logger::formatted_builder()
+        .filter(Some("wgpu_core"), log::LevelFilter::Error)
+        .filter(Some("gfx_backend_metal"), log::LevelFilter::Error)
         .filter_level(log::LevelFilter::Info)
         .try_init();
     let conn = Connection::init()?;

@@ -159,6 +159,8 @@ pub fn get_entries() -> Vec<Entry> {
 
 pub fn setup_logger() {
     let mut builder = pretty_env_logger::formatted_timed_builder();
+    builder.filter(Some("wgpu_core"), log::LevelFilter::Error);
+    builder.filter(Some("gfx_backend_metal"), log::LevelFilter::Error);
     if let Ok(s) = std::env::var("WEZTERM_LOG") {
         builder.parse_filters(&s);
     } else {
