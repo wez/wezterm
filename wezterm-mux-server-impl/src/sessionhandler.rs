@@ -607,14 +607,26 @@ async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> 
             .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
     };
 
+    let pane_id = split.pane_id;
+    let cwd = split.command_dir.or_else(|| {
+        mux.get_pane(pane_id)
+            .and_then(|pane| pane.get_current_working_dir())
+            .map(|url| {
+                let path = url.path().to_string();
+                // On Windows the file URI can produce a path like:
+                // `/C:\Users` which is valid in a file URI, but the leading slash
+                // is not liked by the windows file APIs, so we strip it off here.
+                let bytes = path.as_bytes();
+                if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
+                    path[1..].to_owned()
+                } else {
+                    path
+                }
+            })
+    });
+
     let pane = domain
-        .split_pane(
-            split.command,
-            split.command_dir,
-            tab_id,
-            split.pane_id,
-            split.direction,
-        )
+        .split_pane(split.command, cwd, tab_id, split.pane_id, split.direction)
         .await?;
     let dims = pane.get_dimensions();
     let size = PtySize {
