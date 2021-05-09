@@ -182,10 +182,10 @@
 return {
   keys = {
     -- paste from the clipboard
-    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=PasteFrom=&quot;Clipboard&quot;},
+    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PasteFrom=&quot;Clipboard&quot;}},
 
     -- paste from the primary selection
-    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=PasteFrom=&quot;PrimarySelection&quot;},
+    {key=&quot;V&quot;, mods=&quot;CTRL&quot;, action=wezterm.action{PasteFrom=&quot;PrimarySelection&quot;}},
   },
 }
 </code></pre>
