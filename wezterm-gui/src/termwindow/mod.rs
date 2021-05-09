@@ -573,12 +573,25 @@ impl TermWindow {
                     Err(_) => break,
                     Ok(None) => {}
                     Ok(Some(event)) => {
+                        let (event, peeked) = Self::coalesce_window_events(event, &events);
+
                         match myself.dispatch_window_event(event, &window, &gl).await {
                             Ok(true) => {}
                             Ok(false) => break,
                             Err(err) => {
                                 log::error!("{:#}", err);
                                 break;
+                            }
+                        }
+
+                        if let Some(event) = peeked {
+                            match myself.dispatch_window_event(event, &window, &gl).await {
+                                Ok(true) => {}
+                                Ok(false) => break,
+                                Err(err) => {
+                                    log::error!("{:#}", err);
+                                    break;
+                                }
                             }
                         }
                     }
@@ -592,6 +605,45 @@ impl TermWindow {
 
         crate::update::start_update_checker();
         Ok(())
+    }
+
+    /// Collapse a series of Resized and NeedRepaint events into a single
+    /// Resized event, or a series of NeedRepaint into a single NeedRepaint
+    /// event.
+    /// Returns the coalesced event, and possibly a subsequent event of
+    /// some other type.
+    fn coalesce_window_events(
+        event: WindowEvent,
+        events: &WindowEventReceiver,
+    ) -> (WindowEvent, Option<WindowEvent>) {
+        if matches!(
+            &event,
+            WindowEvent::Resized { .. } | WindowEvent::NeedRepaint
+        ) {
+            let mut resize = if matches!(&event, WindowEvent::Resized { .. }) {
+                Some(event)
+            } else {
+                None
+            };
+            let mut peek = None;
+
+            while let Ok(next) = events.try_recv() {
+                match next {
+                    WindowEvent::NeedRepaint => {}
+                    e @ WindowEvent::Resized { .. } => {
+                        resize.replace(e);
+                    }
+                    other => {
+                        peek.replace(other);
+                        break;
+                    }
+                }
+            }
+
+            (resize.unwrap_or(WindowEvent::NeedRepaint), peek)
+        } else {
+            (event, None)
+        }
     }
 
     async fn dispatch_window_event(
