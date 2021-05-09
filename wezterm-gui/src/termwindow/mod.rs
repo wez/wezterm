@@ -572,42 +572,16 @@ impl TermWindow {
                 match recv.or(wakeup).await {
                     Err(_) => break,
                     Ok(None) => {}
-                    Ok(Some(event)) => match event {
-                        WindowEvent::Destroyed => {
-                            break;
-                        }
-                        WindowEvent::CloseRequested => {
-                            myself.close_requested(&window);
-                        }
-                        WindowEvent::FocusChanged(focused) => {
-                            myself.focus_changed(focused);
-                        }
-                        WindowEvent::MouseEvent(event) => {
-                            myself.mouse_event_impl(event, &window).await;
-                        }
-                        WindowEvent::Resized {
-                            dimensions,
-                            is_full_screen,
-                        } => {
-                            myself.resize(dimensions, is_full_screen);
-                        }
-                        WindowEvent::KeyEvent(event) => {
-                            myself.key_event_impl(event, &window).await;
-                        }
-                        WindowEvent::NeedRepaint => {
-                            if !myself.do_paint(&gl, &window) {
+                    Ok(Some(event)) => {
+                        match myself.dispatch_window_event(event, &window, &gl).await {
+                            Ok(true) => {}
+                            Ok(false) => break,
+                            Err(err) => {
+                                log::error!("{:#}", err);
                                 break;
                             }
                         }
-                        WindowEvent::Notification(item) => {
-                            if let Ok(notif) = item.downcast::<TermWindowNotif>() {
-                                myself
-                                    .dispatch_notif(*notif, &window)
-                                    .await
-                                    .context("dispatch_notif")?;
-                            }
-                        }
-                    },
+                    }
                 }
             }
 
@@ -618,6 +592,49 @@ impl TermWindow {
 
         crate::update::start_update_checker();
         Ok(())
+    }
+
+    async fn dispatch_window_event(
+        &mut self,
+        event: WindowEvent,
+        window: &Window,
+        gl: &Rc<glium::backend::Context>,
+    ) -> anyhow::Result<bool> {
+        match event {
+            WindowEvent::Destroyed => Ok(false),
+            WindowEvent::CloseRequested => {
+                self.close_requested(&window);
+                Ok(true)
+            }
+            WindowEvent::FocusChanged(focused) => {
+                self.focus_changed(focused);
+                Ok(true)
+            }
+            WindowEvent::MouseEvent(event) => {
+                self.mouse_event_impl(event, window).await;
+                Ok(true)
+            }
+            WindowEvent::Resized {
+                dimensions,
+                is_full_screen,
+            } => {
+                self.resize(dimensions, is_full_screen);
+                Ok(true)
+            }
+            WindowEvent::KeyEvent(event) => {
+                self.key_event_impl(event, window).await;
+                Ok(true)
+            }
+            WindowEvent::NeedRepaint => Ok(self.do_paint(&gl, window)),
+            WindowEvent::Notification(item) => {
+                if let Ok(notif) = item.downcast::<TermWindowNotif>() {
+                    self.dispatch_notif(*notif, window)
+                        .await
+                        .context("dispatch_notif")?;
+                }
+                Ok(true)
+            }
+        }
     }
 
     fn do_paint(&mut self, gl: &Rc<glium::backend::Context>, window: &Window) -> bool {
