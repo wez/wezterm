@@ -1,6 +1,7 @@
 use ::window::*;
 use anyhow::Context;
 use promise::spawn::spawn;
+#[cfg(target_os = "macos")]
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
 pub struct GpuContext {
