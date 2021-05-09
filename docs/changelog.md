@@ -17,6 +17,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: `wezterm cli split-pane` didn't use the current working dir of the source pane. [#766](https://github.com/wez/wezterm/issues/766)
 * Fixed: double-click-drag selection could panic when crossing line boundaries [#762](https://github.com/wez/wezterm/issues/762)
 * Fixed: wrong scaling for ligatures in Recursive Mono font [#699](https://github.com/wez/wezterm/issues/699)
+* Fixed: incorrect Sixel HLS hue handling [#775](https://github.com/wez/wezterm/issues/775)
 
 ### 20210502-154244-3f7122cb
 

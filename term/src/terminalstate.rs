@@ -1500,13 +1500,19 @@ impl TerminalState {
                     lightness,
                 } => {
                     use palette::encoding::pixel::Pixel;
-                    let hue = palette::RgbHue::from_degrees(*hue_angle as f32);
+                    // Sixel's hue angles are: blue=0, red=120, green=240,
+                    // whereas Hsl has red=0, green=120, blue=240.
+                    // Looking at red, we need to rotate left by 120 to
+                    // go from sixel red to palette::RgbHue red.
+                    // Negative values wrap around the circle.
+                    // https://github.com/wez/wezterm/issues/775
+                    let angle = (*hue_angle as f32) - 120.0;
+                    let angle = if angle < 0. { 360.0 + angle } else { angle };
+                    let hue = palette::RgbHue::from_degrees(angle);
                     let hsl =
                         palette::Hsl::new(hue, *saturation as f32 / 100., *lightness as f32 / 100.);
                     let rgb: palette::Srgb = hsl.into();
-                    let rgb: [u8; 3] = palette::Srgb::from_linear(rgb.into_linear())
-                        .into_format()
-                        .into_raw();
+                    let rgb: [u8; 3] = rgb.into_linear().into_format().into_raw();
 
                     color_map.insert(*color_number, RgbColor::new(rgb[0], rgb[1], rgb[2]));
                 }
