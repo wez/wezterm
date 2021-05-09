@@ -15,6 +15,7 @@ As features stabilize some brief notes about them will accumulate here.
 * x11: support for [VoidSymbol](config/keys.md#voidsymbol) in key assignments. Thanks to [@digitallyserviced](https://github.com/digitallyserviced)! [#759](https://github.com/wez/wezterm/pull/759)
 * Fixed: UTF8-encoded-C1 control codes were not always recognized as control codes, and could result in a panic when later attempting to update the line. [#768](https://github.com/wez/wezterm/issues/768)
 * Fixed: `wezterm cli split-pane` didn't use the current working dir of the source pane. [#766](https://github.com/wez/wezterm/issues/766)
+* Fixed: double-click-drag selection could panic when crossing line boundaries [#762](https://github.com/wez/wezterm/issues/762)
 
 ### 20210502-154244-3f7122cb
 

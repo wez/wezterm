@@ -144,7 +144,8 @@ impl SelectionRange {
                 .logical
                 .compute_double_click_range(start_idx, is_double_click_word)
             {
-                DoubleClickRange::Range(click_range) => {
+                DoubleClickRange::RangeWithWrap(click_range)
+                | DoubleClickRange::Range(click_range) => {
                     let (start_y, start_x) = logical.logical_x_to_physical_coord(click_range.start);
                     let (end_y, end_x) = logical.logical_x_to_physical_coord(click_range.end - 1);
                     Self {
@@ -154,11 +155,6 @@ impl SelectionRange {
                         },
                         end: SelectionCoordinate { x: end_x, y: end_y },
                     }
-                }
-                DoubleClickRange::RangeWithWrap(_) => {
-                    // We're using logical lines to match against, so we should never get
-                    // a RangeWithWrap result here
-                    unreachable!()
                 }
             };
         }
