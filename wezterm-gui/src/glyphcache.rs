@@ -489,7 +489,7 @@ impl<T: Texture2d> GlyphCache<T> {
         let scale;
         if info.font_idx == 0 {
             // We are the base font
-            scale = if allow_width_overflow {
+            scale = if allow_width_overflow || glyph.width as f64 <= max_pixel_width {
                 1.0
             } else {
                 // Scale the glyph to fit in its number of cells
