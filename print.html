@@ -144,13 +144,15 @@
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
                         
+                        
+
                     </div>
                 </div>
 
                 
                 <div id="search-wrapper" class="hidden">
                     <form id="searchbar-outer" class="searchbar-outer">
-                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                     </form>
                     <div id="searchresults-outer" class="searchresults-outer hidden">
                         <div id="searchresults-header" class="searchresults-header"></div>
@@ -184,7 +186,7 @@
 <p>Looking for a <a href="config/files.html">configuration reference?</a></p>
 <img width="100%" height="100%" src="screenshots/two.png" alt="Screenshot">
 <p><em>Screenshot of wezterm on macOS, running vim</em></p>
-<p>WezTerm is available pre-built for the major platforms and, because it is open
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><p>WezTerm is available pre-built for the major platforms and, because it is open
 source, you may also build it for yourself.</p>
 <ul>
 <li><a href="install/windows.html">Windows</a></li>
@@ -193,7 +195,7 @@ source, you may also build it for yourself.</p>
 <li><a href="install/freebsd.html">FreeBSD</a></li>
 <li><a href="install/source.html">Build from source</a></li>
 </ul>
-<h2 id="installing-on-windows"><a class="header" href="#installing-on-windows">Installing on Windows</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="installing-on-windows"><a class="header" href="#installing-on-windows">Installing on Windows</a></h2>
 <p>64-bit Windows 10.0.17763 or later is required to run WezTerm.  You can download
 a setup.exe style installer to guide the installation (requires admin privileges)
 or a simple zip file and manage the files for yourself (no special privileges
@@ -224,7 +226,7 @@ scoop itself can be installed like so:</p>
 <pre><code class="language-bash">scoop bucket add extras
 scoop install wezterm
 </code></pre>
-<h2 id="installing-on-macos"><a class="header" href="#installing-on-macos">Installing on macOS</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="installing-on-macos"><a class="header" href="#installing-on-macos">Installing on macOS</a></h2>
 <p>The CI system builds the package on macOS Big Sur and should run on systems as
 &quot;old&quot; as Mojave.  It may run on earlier versions of macOS, but that has not
 been tested.</p>
@@ -258,7 +260,7 @@ $ brew install --HEAD wezterm
 <pre><code class="language-bash">$ sudo port selfupdate
 $ sudo port install wezterm
 </code></pre>
-<h2 id="installing-on-linux-using-appimage"><a class="header" href="#installing-on-linux-using-appimage">Installing on Linux using AppImage</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="installing-on-linux-using-appimage"><a class="header" href="#installing-on-linux-using-appimage">Installing on Linux using AppImage</a></h2>
 <p>WezTerm is available in <a href="https://appimage.org/">AppImage</a> format; a
 self-contained single file that doesn't require installation or
 any special privileges to run, and that is compatible with a wide
@@ -351,7 +353,7 @@ $ brew install --HEAD wezterm
 are built for Ubuntu but provided in a tarball.</p>
 <p><a href="https://github.com/wez/wezterm/releases/download/20210502-154244-3f7122cb/wezterm-20210502-154244-3f7122cb.Ubuntu16.04.tar.xz" class="btn">Download raw Linux binaries</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu16.04.tar.xz" class="btn">Nightly raw Linux binaries</a></p>
-<h2 id="installing-on-freebsd"><a class="header" href="#installing-on-freebsd">Installing on FreeBSD</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="installing-on-freebsd"><a class="header" href="#installing-on-freebsd">Installing on FreeBSD</a></h2>
 <p>WezTerm is available <a href="https://www.freshports.org/x11/wezterm/">via the ports system</a>.</p>
 <p>The most common FreeBSD architectures have pre-built binaries which you can install via:</p>
 <pre><code class="language-bash">$ pkg install wezterm
@@ -360,7 +362,7 @@ are built for Ubuntu but provided in a tarball.</p>
 automation of the WezTerm project and may lag behind the latest release.  If
 you need to run a newer version, then the <a href="install/source.html">build from source</a>
 instructions also apply to FreeBSD.</p>
-<h2 id="installing-from-source"><a class="header" href="#installing-from-source">Installing from source</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="installing-from-source"><a class="header" href="#installing-from-source">Installing from source</a></h2>
 <p>If your system isn't covered by the pre-built packages then you can build it
 for yourself.  WezTerm should run on any modern unix as well as Windows 10 and
 macOS.</p>
@@ -395,7 +397,7 @@ cargo run --release --bin wezterm -- start
 </code></pre>
 <p><strong>If you get an error about zlib then you most likely didn't initialize the submodules;
 take a closer look at the instructions!</strong></p>
-<h2 id="available-features"><a class="header" href="#available-features">Available Features</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="available-features"><a class="header" href="#available-features">Available Features</a></h2>
 <ul>
 <li>Runs on Linux, macOS, Windows 10 and FreeBSD</li>
 <li><a href="multiplexing.html">Multiplex terminal panes, tabs and windows on local and remote hosts, with native mouse and scrollback</a></li>
@@ -417,7 +419,7 @@ take a closer look at the instructions!</strong></p>
 <li>iTerm2 compatible image protocol support, and built-in <a href="imgcat.html">imgcat command</a></li>
 <li>Sixel graphics support (experimental: starting in <code>20200620-160318-e00b076c</code>)</li>
 </ul>
-<h2 id="changes"><a class="header" href="#changes">Changes</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="changes"><a class="header" href="#changes">Changes</a></h2>
 <p>Releases are named using the date, time and git commit hash.</p>
 <h3 id="continuousnightly"><a class="header" href="#continuousnightly">Continuous/Nightly</a></h3>
 <p>A bleeding edge build is produced continually (as commits are made, and at
@@ -1000,7 +1002,7 @@ font_hinting = &quot;Full&quot; # None, Vertical, VerticalSubpixel, Full
 <li>IME support on macOS and Windows systems</li>
 <li>Automatic fallback to software rendering if no GPU is available (eg: certain types of remote desktop sessions)</li>
 </ul>
-<h2 id="configuration-files"><a class="header" href="#configuration-files">Configuration Files</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="configuration-files"><a class="header" href="#configuration-files">Configuration Files</a></h2>
 <p><code>wezterm</code> will look for a <a href="https://www.lua.org/manual/5.3/manual.html">lua</a>
 configuration file in the following locations, stopping at the first file that
 it finds; these steps apply to all operating systems unless otherwise noted:</p>
@@ -1068,7 +1070,7 @@ return {
   color_scheme = &quot;Batman&quot;,
 }
 </code></pre>
-<h2 id="launching-programs"><a class="header" href="#launching-programs">Launching Programs</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="launching-programs"><a class="header" href="#launching-programs">Launching Programs</a></h2>
 <p>By default, when opening new tabs or windows, your shell will be spawned.</p>
 <p>Your shell is determined by the following rules:</p>
 <h3 id="on-posix-systems"><a class="header" href="#on-posix-systems">On Posix Systems</a></h3>
@@ -1261,7 +1263,7 @@ return {
   launch_menu = launch_menu,
 }
 </code></pre>
-<h3 id="font-related-configuration"><a class="header" href="#font-related-configuration">Font Related Configuration</a></h3>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h3 id="font-related-configuration"><a class="header" href="#font-related-configuration">Font Related Configuration</a></h3>
 <p>WezTerm bundles <a href="https://www.jetbrains.com/lp/mono/">JetBrains Mono</a>,
 <a href="https://github.com/ryanoasis/powerline-extra-symbols">PowerlineExtraSymbols</a> and
 <a href="https://www.google.com/get/noto/help/emoji/">Noto Color Emoji</a> fonts
@@ -1322,7 +1324,7 @@ systems.</p>
 <li><a href="config/lua/wezterm/font.html">wezterm.font</a> - select a font based on family and style attributes</li>
 <li><a href="config/lua/wezterm/font_with_fallback.html">wezterm.font_with_fallback</a> - select a font from a list of candidates</li>
 </ul>
-<h3 id="advanced-font-shaping-options"><a class="header" href="#advanced-font-shaping-options">Advanced Font Shaping Options</a></h3>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h3 id="advanced-font-shaping-options"><a class="header" href="#advanced-font-shaping-options">Advanced Font Shaping Options</a></h3>
 <p>The <code>harfbuzz_features</code> option allows specifying the features to enable when
 using harfbuzz for font shaping.</p>
 <p>There is some light documentation here:
@@ -1354,7 +1356,7 @@ it lists available stylistic sets here:
   harfbuzz_features = {&quot;zero&quot;}
 }
 </code></pre>
-<p>Keyboard bindings are configurable.</p>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><p>Keyboard bindings are configurable.</p>
 <p>The assignments are based around a triggering keypress which may be combined
 with a set of modifier keys to produce an action.</p>
 <h2 id="alt--option-key-behavior--composed-keys"><a class="header" href="#alt--option-key-behavior--composed-keys">Alt / Option Key Behavior &amp; Composed Keys</a></h2>
@@ -1656,7 +1658,7 @@ return {
 <h1 id="available-actions"><a class="header" href="#available-actions">Available Actions</a></h1>
 <p>See the <a href="config/lua/keyassignment/index.html"><code>KeyAssignment</code> reference</a> for information
 on available actions.</p>
-<p>Mouse bindings are configurable.</p>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><p>Mouse bindings are configurable.</p>
 <p>The assignments are based around a triggering mouse event which may be combined
 with a set of modifier keys to produce an action.</p>
 <h2 id="default-mouse-assignments"><a class="header" href="#default-mouse-assignments">Default Mouse Assignments</a></h2>
@@ -1743,7 +1745,7 @@ you wanted quadruple-click bindings you can specify <code>streak=4</code>.</p>
 <h1 id="available-actions-1"><a class="header" href="#available-actions-1">Available Actions</a></h1>
 <p>See the <a href="config/lua/keyassignment/index.html"><code>KeyAssignment</code> reference</a> for information
 on available actions.</p>
-<h3 id="color-scheme"><a class="header" href="#color-scheme">Color Scheme</a></h3>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h3 id="color-scheme"><a class="header" href="#color-scheme">Color Scheme</a></h3>
 <p>WezTerm ships with the full set of over 200 color schemes available from
 <a href="https://github.com/mbadolato/iTerm2-Color-Schemes#screenshots">iTerm2-Color-Schemes</a>.
 You can select a color scheme with a line like this:</p>
@@ -2021,7 +2023,7 @@ through to <code>1.0</code> (completely opaque).</p>
   text_background_opacity = 0.3,
 }
 </code></pre>
-<h2 id="scrollback"><a class="header" href="#scrollback">Scrollback</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="scrollback"><a class="header" href="#scrollback">Scrollback</a></h2>
 <p>WezTerm provides a searchable scrollback buffer with a configurable maximum
 size limit that allows you to review information that doesn't fit in the
 physical window size.  As content is printed to the display the display may be
@@ -2115,7 +2117,7 @@ of the screen.</li>
 <p>without needing to reach for your mouse.</p>
 <p>See <a href="config/lua/keyassignment/Search.html">the Search action docs</a> for more information on
 using the <code>Search</code> action.</p>
-<h2 id="quick-select-mode"><a class="header" href="#quick-select-mode">Quick Select Mode</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="quick-select-mode"><a class="header" href="#quick-select-mode">Quick Select Mode</a></h2>
 <p><em>Since: 20210502-154244-3f7122cb</em></p>
 <p>Quick Select mode allows you to quickly highlight text that matches
 commonly copied patterns, select a match by typing a one-or-two character
@@ -2137,7 +2139,7 @@ copied to the clipboard, and quick select mode will be cancelled.</p>
 text, and cancel quick select mod.</p>
 <p>Pressing <code>ESCAPE</code> will cancel quick select mode.</p>
 <img width="100%" height="100%" src="screenshots/wezterm-quick-select.png" alt="Screenshot demonstrating the quickselect text highlights">
-<h2 id="copy-mode"><a class="header" href="#copy-mode">Copy Mode</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="copy-mode"><a class="header" href="#copy-mode">Copy Mode</a></h2>
 <p><em>since: 20200607-144723-74889cd4</em></p>
 <p>Copy mode allows you to make selections using the keyboard; no need to reach
 for your mouse or trackpad.  Copy mode is similar to <a href="quickselect.html">quick select
@@ -2194,7 +2196,7 @@ reassignable.</p>
 <tr><td>Move down one screen</td><td><code>PageDown</code></td></tr>
 <tr><td></td><td><code>CTRL-f</code></td></tr>
 </tbody></table>
-<h2 id="hyperlinks"><a class="header" href="#hyperlinks">Hyperlinks</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="hyperlinks"><a class="header" href="#hyperlinks">Hyperlinks</a></h2>
 <p>wezterm has support for both implicit and explicit hyperlinks.</p>
 <h3 id="implicit-hyperlinks"><a class="header" href="#implicit-hyperlinks">Implicit Hyperlinks</a></h3>
 <p>Implicit hyperlinks are produced by running a series of rules over the output
@@ -2246,7 +2248,7 @@ for a cleaner presentation.</p>
 </code></pre>
 <p>will output the text <code>This is a link</code> that when clicked will open
 <code>http://example.com</code> in your browser.</p>
-<h2 id="shell-integration"><a class="header" href="#shell-integration">Shell Integration</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="shell-integration"><a class="header" href="#shell-integration">Shell Integration</a></h2>
 <p>wezterm supports integrating with the shell through the following means:</p>
 <ul>
 <li>OSC 7 Escape sequences to advise the terminal of the working directory</li>
@@ -2324,7 +2326,7 @@ return {
 </code></pre>
 <p>Now, rather than just running <code>cmd.exe</code> on its own, this will cause <code>cmd.exe</code>
 to self-inject the clink line editor.</p>
-<h2 id="iterm-image-protocol-support"><a class="header" href="#iterm-image-protocol-support">iTerm Image Protocol Support</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="iterm-image-protocol-support"><a class="header" href="#iterm-image-protocol-support">iTerm Image Protocol Support</a></h2>
 <p>wezterm implements support for the <a href="https://iterm2.com/documentation-images.html">iTerm2 inline images
 protocol</a> and provides a handy
 <code>imgcat</code> subcommand to make it easy to try out.  Because the protocol is
@@ -2335,7 +2337,7 @@ just a protocol, wezterm's <code>imgcat</code> also renders images in iTerm2.</p
 <img width="100%" height="100%" src="screenshots/wezterm-imgcat.png" alt="inline image display">
 <p><strong>Note that the image protocol isn't fully handled by multiplexer sessions
 at this time</strong>.</p>
-<h2 id="ssh-connections"><a class="header" href="#ssh-connections">SSH Connections</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="ssh-connections"><a class="header" href="#ssh-connections">SSH Connections</a></h2>
 <p>wezterm uses libssh2 to provide an integrated SSH client.  The
 client can be used to make ad-hoc SSH connections to remote hosts
 by invoking the client:</p>
@@ -2378,7 +2380,7 @@ example shows how to specify the private key to use when connecting to
 <code>some-host</code>:</p>
 <pre><code class="language-bash">wezterm ssh -oIdentityFile=/secret/id_ed25519 some-host
 </code></pre>
-<h2 id="serial-ports"><a class="header" href="#serial-ports">Serial Ports</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="serial-ports"><a class="header" href="#serial-ports">Serial Ports</a></h2>
 <p>wezterm can also connect to serial ports as a client.  This is useful
 for example when working with embedded devices such as Arduino, or
 when connecting to a serial console on a headless server.</p>
@@ -2393,7 +2395,7 @@ when connecting to a serial console on a headless server.</p>
 </code></pre>
 <p>When a wezterm window is operating in serial mode it is not possible to create
 new tabs.</p>
-<p><strong>Notice:</strong> <em>multiplexing is still a young feature and is evolving rapidly.
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><p><strong>Notice:</strong> <em>multiplexing is still a young feature and is evolving rapidly.
 Your feedback is welcomed!</em></p>
 <h2 id="multiplexing"><a class="header" href="#multiplexing">Multiplexing</a></h2>
 <p>The out-of-the-box experience with <code>wezterm</code> allows you to multiplex local tabs
@@ -2576,7 +2578,7 @@ bootstrapping if your connection was interrupted and resume your
 remote terminal session</p>
 <pre><code class="language-bash">$ wezterm connect server.name
 </code></pre>
-<blockquote>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><blockquote>
 <p>Please note that this is a &quot;living document&quot; and may lag or lead the state
 of the current stable release in a number of areas--as you might imagine,
 precisely documenting escape codes and their behaviors and cross-checking
@@ -2854,7 +2856,7 @@ also accepts delimiting them with the <code>BEL</code> control.</p>
 aims to document all the known escape sequences.</li>
 <li><a href="https://en.wikipedia.org/wiki/ANSI_escape_code">Wikipedia's ANSI escape code page</a></li>
 </ul>
-<h1 id="frequently-asked-questions"><a class="header" href="#frequently-asked-questions">Frequently Asked Questions</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="frequently-asked-questions"><a class="header" href="#frequently-asked-questions">Frequently Asked Questions</a></h1>
 <h2 id="unicode-glyphs-render-as-underscores-in-my-tmux"><a class="header" href="#unicode-glyphs-render-as-underscores-in-my-tmux">Unicode glyphs render as underscores in my tmux!</a></h2>
 <p>This is likely an issue with LANG and locale.  <code>tmux</code> will substitute unicode
 glyphs with underscores if it believes that your environment doesn't support
@@ -3023,7 +3025,7 @@ reported as eg: <code>ESC [ A</code> (for UpArrow) to <code>ESC O A</code>.</p>
 see the cursor keys.</p>
 <p>This is not an issue in WezTerm; the same issue manifests in any terminal
 emulator that runs powershell.</p>
-<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
 <p>This is a spare time project, so please bear with me.  There are a couple of channels for support:</p>
 <ul>
 <li>You can use the GitHub issue tracker to see if someone else has a similar issue, or to file a new one: <a href="https://github.com/wez/wezterm/issues">https://github.com/wez/wezterm/issues</a></li>
@@ -3035,7 +3037,7 @@ for (potentially!) real time discussions.</li>
 <p>The GitHub Discussions and Element/Gitter rooms are better suited to questions
 than it is to bug reports, but don't be afraid to use whichever you are most
 comfortable using and we'll work it out.</p>
-<h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
 <p>Thanks for considering donating your time and energy!  I value any contribution,
 even if it is just to highlight a typo.</p>
 <p>If you're thinking of helping out, then the following resources may be helpful:</p>
@@ -3052,7 +3054,7 @@ room or we can do it asynchronously via the issue tracker on GitHub.</p>
 <p>You needn't be a crack Rust coder; if you spot a typo or feel like you can see
 a way to improve these docs or have a talent for design and would like to help
 make WezTerm look cooler, I'd also welcome your contribution!</p>
-<p>Color schemes listed by first letter</p>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><p>Color schemes listed by first letter</p>
 <ul>
 <li><a href="colorschemes/3/index.html">3</a></li>
 <li><a href="colorschemes/a/index.html">A</a></li>
@@ -3079,7 +3081,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
 <li><a href="colorschemes/w/index.html">W</a></li>
 <li><a href="colorschemes/z/index.html">Z</a></li>
 </ul>
-<h1 id="3024-day"><a class="header" href="#3024-day">3024 Day</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="3024-day"><a class="header" href="#3024-day">3024 Day</a></h1>
 <img width="800" height="550" src="colorschemes/3/3024 Day.png" alt="3024 Day">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3093,7 +3095,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;3024 Night&quot;,
 }
 </code></pre>
-<h1 id="adventure"><a class="header" href="#adventure">Adventure</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="adventure"><a class="header" href="#adventure">Adventure</a></h1>
 <img width="800" height="550" src="colorschemes/a/Adventure.png" alt="Adventure">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3184,7 +3186,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;ayu_light&quot;,
 }
 </code></pre>
-<h1 id="banana-blueberry"><a class="header" href="#banana-blueberry">Banana Blueberry</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="banana-blueberry"><a class="header" href="#banana-blueberry">Banana Blueberry</a></h1>
 <img width="800" height="550" src="colorschemes/b/Banana Blueberry.png" alt="Banana Blueberry">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3345,7 +3347,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Builtin Tango Light&quot;,
 }
 </code></pre>
-<h1 id="c64"><a class="header" href="#c64">C64</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="c64"><a class="header" href="#c64">C64</a></h1>
 <img width="800" height="550" src="colorschemes/c/C64.png" alt="C64">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3443,7 +3445,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;cyberpunk&quot;,
 }
 </code></pre>
-<h1 id="dark-pastel"><a class="header" href="#dark-pastel">Dark Pastel</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="dark-pastel"><a class="header" href="#dark-pastel">Dark Pastel</a></h1>
 <img width="800" height="550" src="colorschemes/d/Dark Pastel.png" alt="Dark Pastel">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3548,7 +3550,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;deep&quot;,
 }
 </code></pre>
-<h1 id="encom"><a class="header" href="#encom">ENCOM</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="encom"><a class="header" href="#encom">ENCOM</a></h1>
 <img width="800" height="550" src="colorschemes/e/ENCOM.png" alt="ENCOM">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3590,7 +3592,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Espresso&quot;,
 }
 </code></pre>
-<h1 id="fahrenheit"><a class="header" href="#fahrenheit">Fahrenheit</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="fahrenheit"><a class="header" href="#fahrenheit">Fahrenheit</a></h1>
 <img width="800" height="550" src="colorschemes/f/Fahrenheit.png" alt="Fahrenheit">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3674,7 +3676,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;FunForrest&quot;,
 }
 </code></pre>
-<h1 id="galaxy"><a class="header" href="#galaxy">Galaxy</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="galaxy"><a class="header" href="#galaxy">Galaxy</a></h1>
 <img width="800" height="550" src="colorschemes/g/Galaxy.png" alt="Galaxy">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3737,7 +3739,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Guezwhoz&quot;,
 }
 </code></pre>
-<h1 id="hacktober"><a class="header" href="#hacktober">Hacktober</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="hacktober"><a class="header" href="#hacktober">Hacktober</a></h1>
 <img width="800" height="550" src="colorschemes/h/Hacktober.png" alt="Hacktober">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3814,7 +3816,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Hybrid&quot;,
 }
 </code></pre>
-<h1 id="ic_green_ppl"><a class="header" href="#ic_green_ppl">IC_Green_PPL</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="ic_green_ppl"><a class="header" href="#ic_green_ppl">IC_Green_PPL</a></h1>
 <img width="800" height="550" src="colorschemes/i/IC_Green_PPL.png" alt="IC_Green_PPL">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3863,7 +3865,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;idleToes&quot;,
 }
 </code></pre>
-<h1 id="jackie-brown"><a class="header" href="#jackie-brown">Jackie Brown</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="jackie-brown"><a class="header" href="#jackie-brown">Jackie Brown</a></h1>
 <img width="800" height="550" src="colorschemes/j/Jackie Brown.png" alt="Jackie Brown">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3898,7 +3900,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;jubi&quot;,
 }
 </code></pre>
-<h1 id="kibble"><a class="header" href="#kibble">Kibble</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="kibble"><a class="header" href="#kibble">Kibble</a></h1>
 <img width="800" height="550" src="colorschemes/k/Kibble.png" alt="Kibble">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3919,7 +3921,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Konsolas&quot;,
 }
 </code></pre>
-<h1 id="lab-fox"><a class="header" href="#lab-fox">Lab Fox</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="lab-fox"><a class="header" href="#lab-fox">Lab Fox</a></h1>
 <img width="800" height="550" src="colorschemes/l/Lab Fox.png" alt="Lab Fox">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3975,7 +3977,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;lovelace&quot;,
 }
 </code></pre>
-<h1 id="man-page"><a class="header" href="#man-page">Man Page</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="man-page"><a class="header" href="#man-page">Man Page</a></h1>
 <img width="800" height="550" src="colorschemes/m/Man Page.png" alt="Man Page">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4080,7 +4082,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;midnight-in-mojave&quot;,
 }
 </code></pre>
-<h1 id="n0tch2k"><a class="header" href="#n0tch2k">N0tch2k</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="n0tch2k"><a class="header" href="#n0tch2k">N0tch2k</a></h1>
 <img width="800" height="550" src="colorschemes/n/N0tch2k.png" alt="N0tch2k">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4143,7 +4145,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;nord&quot;,
 }
 </code></pre>
-<h1 id="obsidian"><a class="header" href="#obsidian">Obsidian</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="obsidian"><a class="header" href="#obsidian">Obsidian</a></h1>
 <img width="800" height="550" src="colorschemes/o/Obsidian.png" alt="Obsidian">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4199,7 +4201,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Overnight Slumber&quot;,
 }
 </code></pre>
-<h1 id="palenighthc"><a class="header" href="#palenighthc">PaleNightHC</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="palenighthc"><a class="header" href="#palenighthc">PaleNightHC</a></h1>
 <img width="800" height="550" src="colorschemes/p/PaleNightHC.png" alt="PaleNightHC">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4304,7 +4306,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;purplepeter&quot;,
 }
 </code></pre>
-<h1 id="rapture"><a class="header" href="#rapture">Rapture</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="rapture"><a class="header" href="#rapture">Rapture</a></h1>
 <img width="800" height="550" src="colorschemes/r/Rapture.png" alt="Rapture">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4388,7 +4390,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;rebecca&quot;,
 }
 </code></pre>
-<h1 id="sakura"><a class="header" href="#sakura">Sakura</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="sakura"><a class="header" href="#sakura">Sakura</a></h1>
 <img width="800" height="550" src="colorschemes/s/Sakura.png" alt="Sakura">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4584,7 +4586,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;synthwave&quot;,
 }
 </code></pre>
-<h1 id="tango-adapted"><a class="header" href="#tango-adapted">Tango Adapted</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tango-adapted"><a class="header" href="#tango-adapted">Tango Adapted</a></h1>
 <img width="800" height="550" src="colorschemes/t/Tango Adapted.png" alt="Tango Adapted">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4703,7 +4705,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Twilight&quot;,
 }
 </code></pre>
-<h1 id="ubuntu"><a class="header" href="#ubuntu">Ubuntu</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="ubuntu"><a class="header" href="#ubuntu">Ubuntu</a></h1>
 <img width="800" height="550" src="colorschemes/u/Ubuntu.png" alt="Ubuntu">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4738,7 +4740,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Urple&quot;,
 }
 </code></pre>
-<h1 id="vaughn"><a class="header" href="#vaughn">Vaughn</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="vaughn"><a class="header" href="#vaughn">Vaughn</a></h1>
 <img width="800" height="550" src="colorschemes/v/Vaughn.png" alt="Vaughn">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4766,7 +4768,7 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Violet Light&quot;,
 }
 </code></pre>
-<h1 id="warmneon"><a class="header" href="#warmneon">WarmNeon</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="warmneon"><a class="header" href="#warmneon">WarmNeon</a></h1>
 <img width="800" height="550" src="colorschemes/w/WarmNeon.png" alt="WarmNeon">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4808,14 +4810,14 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Wryan&quot;,
 }
 </code></pre>
-<h1 id="zenburn"><a class="header" href="#zenburn">Zenburn</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="zenburn"><a class="header" href="#zenburn">Zenburn</a></h1>
 <img width="800" height="550" src="colorschemes/z/Zenburn.png" alt="Zenburn">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
   color_scheme = &quot;Zenburn&quot;,
 }
 </code></pre>
-<h2 id="lua-reference"><a class="header" href="#lua-reference">Lua Reference</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="lua-reference"><a class="header" href="#lua-reference">Lua Reference</a></h2>
 <p>This section documents the various lua functions and types that are provided to
 the configuration file.  These are provided by the <code>wezterm</code> module that must
 be imported into your configuration file:</p>
@@ -4864,7 +4866,7 @@ you would use it like this:</p>
 <pre><code class="language-lua">local helpers = require 'helpers';
 helpers.my_function()
 </code></pre>
-<h1 id="require-wezterm"><a class="header" href="#require-wezterm"><code>require wezterm</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="require-wezterm"><a class="header" href="#require-wezterm"><code>require wezterm</code></a></h1>
 <p>The wezterm module is the primary module that exposes wezterm configuration
 and control to your config file.</p>
 <p>You will typically place:</p>
@@ -4906,7 +4908,7 @@ and control to your config file.</p>
 <li><a href="config/lua/wezterm/utf16_to_utf8.html">utf16_to_utf8</a></li>
 <li><a href="config/lua/wezterm/version.html">version</a></li>
 </ul>
-<h1 id="weztermaction"><a class="header" href="#weztermaction"><code>wezterm.action</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermaction"><a class="header" href="#weztermaction"><code>wezterm.action</code></a></h1>
 <p>Helper for defining key assignment actions in your configuration file.
 This is really just sugar for the underlying Lua -&gt; Rust deserialation
 mapping that makes it a bit easier to identify where syntax errors may
@@ -4926,7 +4928,7 @@ you shouldn't need to learn to read Rust code, but there are occasions where
 newly developed features are not yet documented and an enterprising user may
 wish to go spelunking to figure them out!</p>
 <p><a href="config/lua/wezterm/../keyassignment/index.html">You can find the reference for available KeyAssignment values here</a>.</p>
-<h1 id="weztermbattery_info"><a class="header" href="#weztermbattery_info"><code>wezterm.battery_info()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermbattery_info"><a class="header" href="#weztermbattery_info"><code>wezterm.battery_info()</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function returns battery information for each of the installed
 batteries on the system.  This is useful for example to assemble
@@ -4958,7 +4960,7 @@ wezterm.on(&quot;update-right-status&quot;, function(window, pane)
   }));
 end)
 </code></pre>
-<h1 id="weztermcolumn_widthstring"><a class="header" href="#weztermcolumn_widthstring">wezterm.column_width(string)</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermcolumn_widthstring"><a class="header" href="#weztermcolumn_widthstring">wezterm.column_width(string)</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Given a string parameter, returns the number of columns that that text occupies
 in the terminal, which is useful together with
@@ -4967,19 +4969,19 @@ in the terminal, which is useful together with
 compute/layout tabs and status information.</p>
 <p>This is different from <a href="https://www.lua.org/manual/5.3/manual.html#pdf-string.len">string.len</a>
 which returns the number of bytes that comprise the string.</p>
-<h1 id="weztermconfig_dir"><a class="header" href="#weztermconfig_dir"><code>wezterm.config_dir</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermconfig_dir"><a class="header" href="#weztermconfig_dir"><code>wezterm.config_dir</code></a></h1>
 <p>This constant is set to the path to the directory in which your <code>wezterm.lua</code>
 configuration file was found.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_error(&quot;Config Dir &quot; .. wezterm.config_dir)
 </code></pre>
-<h1 id="weztermconfig_file"><a class="header" href="#weztermconfig_file"><code>wezterm.config_file</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermconfig_file"><a class="header" href="#weztermconfig_file"><code>wezterm.config_file</code></a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>This constant is set to the path to the <code>wezterm.lua</code> that is in use.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_info(&quot;Config file &quot; .. wezterm.config_file)
 </code></pre>
-<h1 id="weztermemitevent_name-args"><a class="header" href="#weztermemitevent_name-args"><code>wezterm.emit(event_name, args...)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermemitevent_name-args"><a class="header" href="#weztermemitevent_name-args"><code>wezterm.emit(event_name, args...)</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p><code>wezterm.emit</code> resolves the registered callback(s) for the specified
 event name and calls each of them in turn, passing the additional
@@ -4994,13 +4996,13 @@ place.</p>
 <p>This function has no special knowledge of which events are defined by
 wezterm, or what their required arguments might be.</p>
 <p>See <a href="config/lua/wezterm/on.html">wezterm.on</a> for more information about event handling.</p>
-<h1 id="weztermexecutable_dir"><a class="header" href="#weztermexecutable_dir"><code>wezterm.executable_dir</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermexecutable_dir"><a class="header" href="#weztermexecutable_dir"><code>wezterm.executable_dir</code></a></h1>
 <p>This constant is set to the directory containing the <code>wezterm</code>
 executable file.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_error(&quot;Exe dir &quot; .. wezterm.executable_dir)
 </code></pre>
-<h1 id="weztermfontfamily--attributes"><a class="header" href="#weztermfontfamily--attributes"><code>wezterm.font(family [, attributes])</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermfontfamily--attributes"><a class="header" href="#weztermfontfamily--attributes"><code>wezterm.font(family [, attributes])</code></a></h1>
 <p>This function constructs a lua table that corresponds to the internal <code>FontAttributes</code>
 struct that is used to select a single named font:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -5058,7 +5060,7 @@ return {
   font = wezterm.font({family='Iosevka Term', stretch=&quot;Expanded&quot;, weight=&quot;Regular&quot;}),
 }
 </code></pre>
-<h1 id="weztermfont_with_fallbackfamilies--attributes"><a class="header" href="#weztermfont_with_fallbackfamilies--attributes"><code>wezterm.font_with_fallback(families [, attributes])</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermfont_with_fallbackfamilies--attributes"><a class="header" href="#weztermfont_with_fallbackfamilies--attributes"><code>wezterm.font_with_fallback(families [, attributes])</code></a></h1>
 <p>This function constructs a lua table that configures a font with fallback processing.
 Glyphs are looked up in the first font in the list but if missing the next font is
 checked and so on.</p>
@@ -5085,7 +5087,7 @@ return {
     &quot;Noto Color Emoji&quot;),
 }
 </code></pre>
-<h1 id="weztermformat"><a class="header" href="#weztermformat"><code>wezterm.format({})</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermformat"><a class="header" href="#weztermformat"><code>wezterm.format({})</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p><code>wezterm.format</code> can be used to produce a formatted string
 with terminal graphic attributes such as bold, italic and colors.
@@ -5125,7 +5127,7 @@ wezterm.log_info(wezterm.format({
 <li><code>{Background={AnsiColor=&quot;Black&quot;}}</code> - set the background color to an ansi color as per <code>Foreground</code> above.</li>
 <li><code>{Background={Color=&quot;blue&quot;}}</code> - set the background color to a named color or rgb value as per <code>Foreground</code> above.</li>
 </ul>
-<h1 id="weztermglobpattern--relative_to"><a class="header" href="#weztermglobpattern--relative_to"><code>wezterm.glob(pattern [, relative_to])</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermglobpattern--relative_to"><a class="header" href="#weztermglobpattern--relative_to"><code>wezterm.glob(pattern [, relative_to])</code></a></h1>
 <p><em>Since: 20200503-171512-b13ef15f</em></p>
 <p>This function evalutes the glob <code>pattern</code> and returns an array containing the
 absolute file names of the matching results.  Due to limitations in the lua
@@ -5141,12 +5143,12 @@ for _, v in ipairs(wezterm.glob(&quot;/etc/*.conf&quot;)) do
   wezterm.log_error(&quot;entry: &quot; .. v)
 end
 </code></pre>
-<h1 id="weztermhome_dir"><a class="header" href="#weztermhome_dir"><code>wezterm.home_dir</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermhome_dir"><a class="header" href="#weztermhome_dir"><code>wezterm.home_dir</code></a></h1>
 <p>This constant is set to the home directory of the user running <code>wezterm</code>.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_error(&quot;Home &quot; .. wezterm.home_dir)
 </code></pre>
-<h1 id="weztermhostname"><a class="header" href="#weztermhostname"><code>wezterm.hostname()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermhostname"><a class="header" href="#weztermhostname"><code>wezterm.hostname()</code></a></h1>
 <p>This function returns the current hostname of the system that is running wezterm.
 This can be useful to adjust configuration based on the host.</p>
 <p>Note that environments that use DHCP and have many clients and short leases may
@@ -5166,7 +5168,7 @@ return {
   font_size = font_size
 }
 </code></pre>
-<h1 id="weztermlog_errorarg-"><a class="header" href="#weztermlog_errorarg-"><code>wezterm.log_error(arg, ..)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermlog_errorarg-"><a class="header" href="#weztermlog_errorarg-"><code>wezterm.log_error(arg, ..)</code></a></h1>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'ERROR' level.  If you started wezterm from a terminal that text will print
 to the stdout of that terminal.  If running as a daemon for the multiplexer
@@ -5177,7 +5179,7 @@ wezterm.log_error(&quot;Hello!&quot;);
 <p><em>Since: nightly builds only</em></p>
 <p>Now accepts multiple arguments, and those arguments can be of any type.</p>
 <p>See also <a href="config/lua/wezterm/log_info.html">log_info</a> and <a href="config/lua/wezterm/log_warn.html">log_warn</a>.</p>
-<h1 id="weztermlog_infoarg-"><a class="header" href="#weztermlog_infoarg-"><code>wezterm.log_info(arg, ..)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermlog_infoarg-"><a class="header" href="#weztermlog_infoarg-"><code>wezterm.log_info(arg, ..)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'INFO' level.  If you started wezterm from a terminal that text will print
@@ -5189,7 +5191,7 @@ wezterm.log_info(&quot;Hello!&quot;);
 <p><em>Since: nightly builds only</em></p>
 <p>Now accepts multiple arguments, and those arguments can be of any type.</p>
 <p>See also <a href="config/lua/wezterm/log_error.html">log_error</a> and <a href="config/lua/wezterm/log_warn.html">log_warn</a>.</p>
-<h1 id="weztermlog_warnarg-"><a class="header" href="#weztermlog_warnarg-"><code>wezterm.log_warn(arg, ..)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermlog_warnarg-"><a class="header" href="#weztermlog_warnarg-"><code>wezterm.log_warn(arg, ..)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This function logs the provided message string through wezterm's logging layer
 at 'WARN' level.  If you started wezterm from a terminal that text will print
@@ -5201,7 +5203,7 @@ wezterm.log_warn(&quot;Hello!&quot;);
 <p><em>Since: nightly builds only</em></p>
 <p>Now accepts multiple arguments, and those arguments can be of any type.</p>
 <p>See also <a href="config/lua/wezterm/log_info.html">log_info</a> and <a href="config/lua/wezterm/log_error.html">log_error</a>.</p>
-<h1 id="weztermonevent_name-callback"><a class="header" href="#weztermonevent_name-callback"><code>wezterm.on(event_name, callback)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermonevent_name-callback"><a class="header" href="#weztermonevent_name-callback"><code>wezterm.on(event_name, callback)</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>This function follows the html/javascript naming for defining event handlers.</p>
 <p><code>wezterm.on</code> causes your specified <code>callback</code> to be called when <code>event_name</code>
@@ -5273,7 +5275,7 @@ return {
 represents the gui window.</p>
 <p>The second event parameter is a <a href="config/lua/wezterm/../pane/index.html"><code>pane</code> object</a> that
 represents the pane.</p>
-<h1 id="weztermpad_leftstring-min_width"><a class="header" href="#weztermpad_leftstring-min_width">wezterm.pad_left(string, min_width)</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermpad_leftstring-min_width"><a class="header" href="#weztermpad_leftstring-min_width">wezterm.pad_left(string, min_width)</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Returns a copy of <code>string</code> that is at least <code>min_width</code> columns
 (as measured by <a href="config/lua/wezterm/column_width.html">wezterm.column_width</a>).</p>
@@ -5281,7 +5283,7 @@ represents the pane.</p>
 the left end of the string.</p>
 <p>For example, <code>wezterm.pad_left(&quot;o&quot;, 3)</code> returns <code>&quot;  o&quot;</code>.</p>
 <p>See also: <a href="config/lua/wezterm/truncate_left.html">wezterm.truncate_left</a>, <a href="config/lua/wezterm/pad_right.html">wezterm.pad_right</a>.</p>
-<h1 id="weztermpad_rightstring-min_width"><a class="header" href="#weztermpad_rightstring-min_width">wezterm.pad_right(string, min_width)</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermpad_rightstring-min_width"><a class="header" href="#weztermpad_rightstring-min_width">wezterm.pad_right(string, min_width)</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Returns a copy of <code>string</code> that is at least <code>min_width</code> columns
 (as measured by <a href="config/lua/wezterm/column_width.html">wezterm.column_width</a>).</p>
@@ -5289,7 +5291,7 @@ the left end of the string.</p>
 the right end of the string.</p>
 <p>For example, <code>wezterm.pad_righ(&quot;o&quot;, 3)</code> returns <code>&quot;o  &quot;</code>.</p>
 <p>See also: <a href="config/lua/wezterm/truncate_left.html">wezterm.truncate_left</a>, <a href="config/lua/wezterm/pad_left.html">wezterm.pad_left</a>.</p>
-<h1 id="weztermpermute_any_modstable"><a class="header" href="#weztermpermute_any_modstable"><code>wezterm.permute_any_mods(table)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermpermute_any_modstable"><a class="header" href="#weztermpermute_any_modstable"><code>wezterm.permute_any_mods(table)</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>This function is intended to help with generating key or mouse binding
 entries that should apply regardless of the combination of modifier keys
@@ -5469,7 +5471,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="weztermpermute_any_or_no_modstable"><a class="header" href="#weztermpermute_any_or_no_modstable"><code>wezterm.permute_any_or_no_mods(table)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermpermute_any_or_no_modstable"><a class="header" href="#weztermpermute_any_or_no_modstable"><code>wezterm.permute_any_or_no_mods(table)</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>This function is intended to help with generating key or mouse binding
 entries that should apply regardless of the combination of modifier keys
@@ -5659,7 +5661,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="weztermread_dirpath"><a class="header" href="#weztermread_dirpath"><code>wezterm.read_dir(path)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermread_dirpath"><a class="header" href="#weztermread_dirpath"><code>wezterm.read_dir(path)</code></a></h1>
 <p><em>Since: 20200503-171512-b13ef15f</em></p>
 <p>This function returns an array containing the absolute file names of the
 directory specified.  Due to limitations in the lua bindings, all of the paths
@@ -5672,7 +5674,7 @@ for _, v in ipairs(wezterm.read_dir(&quot;/etc&quot;)) do
   wezterm.log_error(&quot;entry: &quot; .. v)
 end
 </code></pre>
-<h1 id="weztermrun_child_processargs"><a class="header" href="#weztermrun_child_processargs"><code>wezterm.run_child_process(args)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermrun_child_processargs"><a class="header" href="#weztermrun_child_processargs"><code>wezterm.run_child_process(args)</code></a></h1>
 <p><em>Since: 20200503-171512-b13ef15f</em></p>
 <p>This function accepts an argument list; it will attempt to spawn that command
 and will return a tuple consisting of the boolean success of the invocation,
@@ -5681,7 +5683,7 @@ the stdout data and the stderr data.</p>
 
 local success, stdout, stderr = wezterm.run_child_process({&quot;ls&quot;, &quot;-l&quot;})
 </code></pre>
-<h1 id="weztermrunning_under_wsl"><a class="header" href="#weztermrunning_under_wsl"><code>wezterm.running_under_wsl()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermrunning_under_wsl"><a class="header" href="#weztermrunning_under_wsl"><code>wezterm.running_under_wsl()</code></a></h1>
 <p>This function returns a boolean indicating whether we believe that we are
 running in a Windows Services for Linux (WSL) container.  In such an
 environment the <code>wezterm.target_triple</code> will indicate that we are running in
@@ -5691,12 +5693,12 @@ filesystem capabilities) that you may wish to probe for in the configuration.</p
 wezterm.log_error(&quot;System &quot; .. wezterm.target_triple .. &quot; &quot; ..
   tostring(wezterm.running_under_wsl()))
 </code></pre>
-<h1 id="weztermsleep_msmilliseconds"><a class="header" href="#weztermsleep_msmilliseconds"><code>wezterm.sleep_ms(milliseconds)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermsleep_msmilliseconds"><a class="header" href="#weztermsleep_msmilliseconds"><code>wezterm.sleep_ms(milliseconds)</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p><code>wezterm.sleep_ms</code> suspends execution of the script for the specified
 number of milliseconds.  After that time period has elapsed, the script
 continues running at the next statement.</p>
-<h1 id="weztermsplit_by_newlinesstr"><a class="header" href="#weztermsplit_by_newlinesstr"><code>wezterm.split_by_newlines(str)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermsplit_by_newlinesstr"><a class="header" href="#weztermsplit_by_newlinesstr"><code>wezterm.split_by_newlines(str)</code></a></h1>
 <p><em>Since: 20200503-171512-b13ef15f</em></p>
 <p>This function takes the input string and splits it by newlines (both <code>\n</code> and <code>\r\n</code>
 are recognized as newlines) and returns the result as an array of strings that
@@ -5709,7 +5711,7 @@ for _, line in ipairs(wezterm.split_by_newlines(example)) do
   wezterm.log_error(line)
 end
 </code></pre>
-<h1 id="weztermstrftimeformat"><a class="header" href="#weztermstrftimeformat"><code>wezterm.strftime(format)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermstrftimeformat"><a class="header" href="#weztermstrftimeformat"><code>wezterm.strftime(format)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Formats the current local date/time into a string using <a href="https://docs.rs/chrono/0.4.19/chrono/format/strftime/index.html">the Rust chrono
 strftime syntax</a>.</p>
@@ -5718,7 +5720,7 @@ strftime syntax</a>.</p>
 local date_and_time = wezterm.strftime(&quot;%Y-%m-%d %H:%M:%S&quot;);
 wezterm.log_info(date_and_time);
 </code></pre>
-<h1 id="weztermtarget_triple"><a class="header" href="#weztermtarget_triple"><code>wezterm.target_triple</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermtarget_triple"><a class="header" href="#weztermtarget_triple"><code>wezterm.target_triple</code></a></h1>
 <p>This constant is set to the <a href="https://forge.rust-lang.org/release/platform-support.html">Rust target
 triple</a> for the
 platform on which <code>wezterm</code> was built.  This can be useful when you wish to
@@ -5736,7 +5738,7 @@ end
 <li><code>x86_64-apple-darwin</code> - macOS</li>
 <li><code>x86_64-unknown-linux-gnu</code> - Linux</li>
 </ul>
-<h1 id="weztermtruncate_leftstring-max_width"><a class="header" href="#weztermtruncate_leftstring-max_width">wezterm.truncate_left(string, max_width)</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermtruncate_leftstring-max_width"><a class="header" href="#weztermtruncate_leftstring-max_width">wezterm.truncate_left(string, max_width)</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Returns a copy of <code>string</code> that is no longer than <code>max_width</code> columns
 (as measured by <a href="config/lua/wezterm/column_width.html">wezterm.column_width</a>).</p>
@@ -5744,7 +5746,7 @@ end
 end of the string.</p>
 <p>For example, <code>wezterm.truncate_left(&quot;hello&quot;, 3)</code> returns <code>&quot;llo&quot;</code>.</p>
 <p>See also: <a href="config/lua/wezterm/truncate_right.html">wezterm.truncate_right</a>, <a href="config/lua/wezterm/pad_right.html">wezterm.pad_right</a>.</p>
-<h1 id="weztermtruncate_rightstring-max_width"><a class="header" href="#weztermtruncate_rightstring-max_width">wezterm.truncate_right(string, max_width)</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermtruncate_rightstring-max_width"><a class="header" href="#weztermtruncate_rightstring-max_width">wezterm.truncate_right(string, max_width)</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Returns a copy of <code>string</code> that is no longer than <code>max_width</code> columns
 (as measured by <a href="config/lua/wezterm/column_width.html">wezterm.column_width</a>).</p>
@@ -5752,7 +5754,7 @@ end of the string.</p>
 of the string.</p>
 <p>For example, <code>wezterm.truncate_right(&quot;hello&quot;, 3)</code> returns <code>&quot;hel&quot;</code>,</p>
 <p>See also: <a href="config/lua/wezterm/truncate_left.html">wezterm.truncate_left</a>, <a href="config/lua/wezterm/pad_left.html">wezterm.pad_left</a>.</p>
-<h1 id="weztermutf16_to_utf8str"><a class="header" href="#weztermutf16_to_utf8str"><code>wezterm.utf16_to_utf8(str)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermutf16_to_utf8str"><a class="header" href="#weztermutf16_to_utf8str"><code>wezterm.utf16_to_utf8(str)</code></a></h1>
 <p><em>Since: 20200503-171512-b13ef15f</em></p>
 <p>This function is overly specific and exists primarily to workaround
 <a href="https://github.com/microsoft/WSL/issues/4456">this wsl.exe issue</a>.</p>
@@ -5762,7 +5764,7 @@ of the string.</p>
 local success, wsl_list, wsl_err = wezterm.run_child_process({&quot;wsl.exe&quot;, &quot;-l&quot;})
 wsl_list = wezterm.utf16_to_utf8(wsl_list)
 </code></pre>
-<h1 id="weztermversion"><a class="header" href="#weztermversion"><code>wezterm.version</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="weztermversion"><a class="header" href="#weztermversion"><code>wezterm.version</code></a></h1>
 <p>This constant is set to the <code>wezterm</code> version string that is also reported
 by running <code>wezterm -V</code>.  This can potentially be used to adjust configuration
 according to the installed version.</p>
@@ -5773,7 +5775,7 @@ the second component is the time and the final component is a git hash.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 wezterm.log_error(&quot;Version &quot; .. wezterm.version)
 </code></pre>
-<h1 id="config-struct"><a class="header" href="#config-struct"><code>Config</code> struct</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="config-struct"><a class="header" href="#config-struct"><code>Config</code> struct</a></h1>
 <p>The <code>return</code> statement at the end of your <code>wezterm.lua</code> file returns
 a table that is interpreted as the internal <code>Config</code> struct type.</p>
 <p>This section documents the various available fields in the config
@@ -5852,13 +5854,13 @@ struct.</p>
 <li><a href="config/lua/config/window_close_confirmation.html">window_close_confirmation</a></li>
 <li><a href="config/lua/config/window_decorations.html">window_decorations</a></li>
 </ul>
-<h1 id="adjust_window_size_when_changing_font_size--true"><a class="header" href="#adjust_window_size_when_changing_font_size--true"><code>adjust_window_size_when_changing_font_size = true</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="adjust_window_size_when_changing_font_size--true"><a class="header" href="#adjust_window_size_when_changing_font_size--true"><code>adjust_window_size_when_changing_font_size = true</code></a></h1>
 <p><em>Since 20210203-095643-70a364eb</em></p>
 <p>Control whether changing the font size adjusts the dimensions of the window
 (true) or adjusts the number of terminal rows/columns (false). The default is
 true.</p>
 <p>If you use a tiling window manager then you may wish to set this to <code>false</code>.</p>
-<h1 id="allow_square_glyphs_to_overflow_width--never"><a class="header" href="#allow_square_glyphs_to_overflow_width--never"><code>allow_square_glyphs_to_overflow_width = &quot;Never&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="allow_square_glyphs_to_overflow_width--never"><a class="header" href="#allow_square_glyphs_to_overflow_width--never"><code>allow_square_glyphs_to_overflow_width = &quot;Never&quot;</code></a></h1>
 <p><em>Since: 20210203-095643-70a364eb</em></p>
 <p>Configures how square symbol glyph's cell is rendered:</p>
 <ul>
@@ -5873,7 +5875,7 @@ being a space.</li>
 larger than 0.9, which covers more symbol glyphs than in
 earlier releases.</p>
 <p>The default value for this setting has changed to <code>WhenFollowedBySpace</code>.</p>
-<h1 id="alternate_buffer_wheel_scroll_speed--3"><a class="header" href="#alternate_buffer_wheel_scroll_speed--3"><code>alternate_buffer_wheel_scroll_speed = 3</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="alternate_buffer_wheel_scroll_speed--3"><a class="header" href="#alternate_buffer_wheel_scroll_speed--3"><code>alternate_buffer_wheel_scroll_speed = 3</code></a></h1>
 <p><em>Since: 20210203-095643-70a364eb</em></p>
 <p>Normally the vertical mouse wheel will scroll the terminal viewport
 so that different sections of the scrollback are visible.</p>
@@ -5890,7 +5892,7 @@ quick succession.</p>
 <p>In versions of wezterm prior to this configuration option being available, the
 behavior was the same except that the effective value of this option was always
 <code>1</code>.</p>
-<h1 id="automatically_reload_config"><a class="header" href="#automatically_reload_config"><code>automatically_reload_config</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="automatically_reload_config"><a class="header" href="#automatically_reload_config"><code>automatically_reload_config</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>When true (the default), watch the config file and reload it
 automatically when it is detected as changing.
@@ -5901,7 +5903,7 @@ with a key bound to the action <a href="config/lua/config/../keyassignment/Reloa
   automatically_reload_config = false
 }
 </code></pre>
-<h1 id="bold_brightens_ansi_colors--true"><a class="header" href="#bold_brightens_ansi_colors--true"><code>bold_brightens_ansi_colors = true</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="bold_brightens_ansi_colors--true"><a class="header" href="#bold_brightens_ansi_colors--true"><code>bold_brightens_ansi_colors = true</code></a></h1>
 <p>When true (the default), PaletteIndex 0-7 are shifted to bright when the font
 intensity is bold.</p>
 <p>This brightening effect doesn't occur when the text is set
@@ -5911,7 +5913,7 @@ range of mature software; for instance, a lot of software
 assumes that Black+Bold renders as a Dark Grey which is
 legible on a Black background, but if this option is set to
 false, it would render as Black on Black.</p>
-<h1 id="check_for_updates--check_for_updates_interval_seconds"><a class="header" href="#check_for_updates--check_for_updates_interval_seconds"><code>check_for_updates</code> &amp; <code>check_for_updates_interval_seconds</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="check_for_updates--check_for_updates_interval_seconds"><a class="header" href="#check_for_updates--check_for_updates_interval_seconds"><code>check_for_updates</code> &amp; <code>check_for_updates_interval_seconds</code></a></h1>
 <p>Wezterm checks regularly if there is a new stable version available
 on github, and shows a simple UI to let you know about the update
 (See <a href="config/lua/config/show_update_window.html">show_update_window</a> to control this UI).</p>
@@ -5925,13 +5927,13 @@ No data are collected for the wezterm project as part of this.</p>
   check_for_updates_interval_seconds = 86400,
 }
 </code></pre>
-<h1 id="color_schemes"><a class="header" href="#color_schemes"><code>color_schemes</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="color_schemes"><a class="header" href="#color_schemes"><code>color_schemes</code></a></h1>
 <p>Specifies various named color schemes in your configuration file.</p>
 <p>Described in more detail in <a href="config/lua/config/../../appearance.html#defining-a-color-scheme-in-your-weztermlua">Colors &amp; Appearance</a></p>
-<h1 id="colors"><a class="header" href="#colors"><code>colors</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="colors"><a class="header" href="#colors"><code>colors</code></a></h1>
 <p>Specifies the color palette.</p>
 <p>Described in more detail in <a href="config/lua/config/../../appearance.html#defining-your-own-colors">Colors &amp; Appearance</a></p>
-<h1 id="cursor_blink_rate"><a class="header" href="#cursor_blink_rate"><code>cursor_blink_rate</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="cursor_blink_rate"><a class="header" href="#cursor_blink_rate"><code>cursor_blink_rate</code></a></h1>
 <p>Specifies how often a blinking cursor transitions between visible and
 invisible, expressed in milliseconds.  Setting this to 0 disables blinking.</p>
 <p>Note that this value is approximate due to the way that the system event loop
@@ -5943,14 +5945,14 @@ relatively costly to keep re-rendering for the blink!</p>
   cursor_blink_rate = 800,
 }
 </code></pre>
-<h2 id="custom_block_glyphs--true"><a class="header" href="#custom_block_glyphs--true"><code>custom_block_glyphs = true</code></a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="custom_block_glyphs--true"><a class="header" href="#custom_block_glyphs--true"><code>custom_block_glyphs = true</code></a></h2>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>When set to <code>true</code> (the default), WezTerm will compute its own idea of what the
 <a href="https://www.unicode.org/charts/PDF/U2580.pdf">U2580</a> unicode block elements
 range, instead of using glyphs resolved from a font.</p>
 <p>Ideally this option wouldn't exist, but it is present to work around a <a href="https://gitlab.freedesktop.org/freetype/freetype/-/issues/761">hinting issue in freetype</a>.</p>
 <p>You can set this to <code>false</code> to use the block characters provided by your font selection.</p>
-<h1 id="daemon_options"><a class="header" href="#daemon_options"><code>daemon_options</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="daemon_options"><a class="header" href="#daemon_options"><code>daemon_options</code></a></h1>
 <p>Allows configuring the multiplexer (mux) server and how it places itself into
 the background to run as a daemon process.</p>
 <p>You should not normally need to configure this setting; the defaults should
@@ -5969,7 +5971,7 @@ be sufficient in most cases.</p>
   }
 }
 </code></pre>
-<h1 id="debug_key_events--false"><a class="header" href="#debug_key_events--false"><code>debug_key_events = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="debug_key_events--false"><a class="header" href="#debug_key_events--false"><code>debug_key_events = false</code></a></h1>
 <p>When set to true, each key event will be logged by the GUI layer as an INFO
 level log message on the stderr stream from wezterm.  <strong>You will typically need
 to launch <code>wezterm</code> directly from another terminal to see this logging</strong>.</p>
@@ -6015,7 +6017,7 @@ multiple key-presses based on the system key repeat settings.</li>
 will always be true when debug logging, as logging and key press handling is
 only triggered on key press events in wezterm.</li>
 </ul>
-<h1 id="default_cursor_style--steadyblock"><a class="header" href="#default_cursor_style--steadyblock"><code>default_cursor_style = &quot;SteadyBlock&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="default_cursor_style--steadyblock"><a class="header" href="#default_cursor_style--steadyblock"><code>default_cursor_style = &quot;SteadyBlock&quot;</code></a></h1>
 <p>Specifies the default cursor style.  Various escape sequences
 can override the default style in different situations (eg:
 an editor can change it depending on the mode), but this value
@@ -6028,7 +6030,7 @@ and <code>BlinkingBar</code>.</p>
   default_cursor_style = &quot;SteadyBlock&quot;,
 }
 </code></pre>
-<h1 id="default_cwd"><a class="header" href="#default_cwd"><code>default_cwd</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="default_cwd"><a class="header" href="#default_cwd"><code>default_cwd</code></a></h1>
 <p><em>Since: 20210203-095643-70a364eb</em></p>
 <p>Sets the default current working directory used by the initial window. If
 <code>wezterm start --cwd /some/path</code> is used to specify the current working
@@ -6079,7 +6081,7 @@ used.</p>
 and then attempt to resolve its current working directory. This is not
 guaranteed to succeed, and there are a number of potential edge cases (which is
 another reason for configuring your shell to use OSC 7 sequences).</p>
-<h1 id="default_prog"><a class="header" href="#default_prog"><code>default_prog</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="default_prog"><a class="header" href="#default_prog"><code>default_prog</code></a></h1>
 <p>If no <code>prog</code> is specified on the command line, use this
 instead of running the user's shell.</p>
 <p>For example, to have <code>wezterm</code> always run <code>top</code> by default,
@@ -6092,12 +6094,12 @@ you'd use this:</p>
 is the command to run and the rest of the elements are passed
 as the positional arguments to that command.</p>
 <p>See also: <a href="config/lua/config/../../launch.html">Launching Programs</a></p>
-<h1 id="disable_default_quick_select_patterns"><a class="header" href="#disable_default_quick_select_patterns">disable_default_quick_select_patterns</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="disable_default_quick_select_patterns"><a class="header" href="#disable_default_quick_select_patterns">disable_default_quick_select_patterns</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>When set to <code>true</code>, the default set of quick select patterns
 are omitted, and your <a href="config/lua/config/quick_select_patterns.html">quick_select_patterns</a>
 config specifies the total set of patterns used for <a href="config/lua/config/../../../quickselect.html">quick select mode</a>.</p>
-<h1 id="dpi"><a class="header" href="#dpi"><code>dpi</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="dpi"><a class="header" href="#dpi"><code>dpi</code></a></h1>
 <p>Override the detected DPI (dots per inch) for the display.</p>
 <p>This can be useful if the detected DPI is inaccurate and the text appears
 either blurry or too small (especially if you are using a 4K display on X11 or
@@ -6129,7 +6131,7 @@ It is common for X11 environments to publish an <code>Xft.dpi</code> value as a 
 of the root window as a hint for the DPI of the display.  While that is a
 reasonable workaround for a single-monitor system, it isn't ideal for a
 multi-monitor setup where the monitors have varying DPIs.</p>
-<h1 id="enable_csi_u_key_encoding--false"><a class="header" href="#enable_csi_u_key_encoding--false"><code>enable_csi_u_key_encoding = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="enable_csi_u_key_encoding--false"><a class="header" href="#enable_csi_u_key_encoding--false"><code>enable_csi_u_key_encoding = false</code></a></h1>
 <p>This option affects how key presses are fed to the terminal; after processing
 any key binding assignments, if the key didn't match an assignment it is passed
 down to the terminal which then encodes the key press as a byte sequence to
@@ -6143,7 +6145,7 @@ that removes the ambiguity in a mostly-backwards-compatible way, but that
 requires that applications also know about this encoding scheme to have
 the best results.</p>
 <p>The default for this option is <code>false</code>.</p>
-<h1 id="enable_scroll_bar"><a class="header" href="#enable_scroll_bar"><code>enable_scroll_bar</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="enable_scroll_bar"><a class="header" href="#enable_scroll_bar"><code>enable_scroll_bar</code></a></h1>
 <p>Enable the scrollbar.  This is currently disabled by default.
 It will occupy the right window padding space.</p>
 <p>If right padding is set to 0 then it will be increased to a single cell width.</p>
@@ -6151,7 +6153,7 @@ It will occupy the right window padding space.</p>
   enable_scroll_bar = true,
 }
 </code></pre>
-<h1 id="enable_wayland"><a class="header" href="#enable_wayland"><code>enable_wayland</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="enable_wayland"><a class="header" href="#enable_wayland"><code>enable_wayland</code></a></h1>
 <p>If <code>false</code>, do not try to use a Wayland protocol connection
 when starting the gui frontend, and instead use X11.</p>
 <p>This option is only considered on X11/Wayland systems and
@@ -6161,7 +6163,7 @@ has no effect on macOS or Windows.</p>
   enable_wayland = true,
 }
 </code></pre>
-<h2 id="exit_behavior--closeoncleanexit"><a class="header" href="#exit_behavior--closeoncleanexit"><code>exit_behavior = &quot;CloseOnCleanExit&quot;</code></a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="exit_behavior--closeoncleanexit"><a class="header" href="#exit_behavior--closeoncleanexit"><code>exit_behavior = &quot;CloseOnCleanExit&quot;</code></a></h2>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Controls the behavior when the shell program spawned by the terminal exits.
 There are three possible values:</p>
@@ -6174,19 +6176,19 @@ There are three possible values:</p>
   exit_behavior = &quot;Hold&quot;,
 }
 </code></pre>
-<h1 id="font"><a class="header" href="#font"><code>font</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font"><a class="header" href="#font"><code>font</code></a></h1>
 <p>Configures the font to use by default.  The <code>font</code> setting can specify
 a set of fallbacks and other options, and is described in more detail
 in the <a href="config/lua/config/../../fonts.html">Fonts</a> section.</p>
 <p>You will typically use <a href="config/lua/config/../wezterm/font.html">wezterm.font</a> or
 <a href="config/lua/config/../wezterm/font_with_fallback.html">wezterm.font_with_fallback</a> to specify the
 font.</p>
-<h1 id="font_antialias--greyscale"><a class="header" href="#font_antialias--greyscale"><code>font_antialias = &quot;Greyscale&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font_antialias--greyscale"><a class="header" href="#font_antialias--greyscale"><code>font_antialias = &quot;Greyscale&quot;</code></a></h1>
 <p><em>Deprecated starting in version 20210314-114017-04b7cedd; this option no longer does anything and will be removed in a future release. Use <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a> instead</em></p>
 <p>Adjusts the anti-aliasing portion of the font rasterizer.</p>
 <p>Possible values are <code>None</code>, <code>Greyscale</code>, <code>Subpixel</code>.</p>
 <p>The default value is <code>Greyscale</code>.</p>
-<h1 id="font_dirs"><a class="header" href="#font_dirs">font_dirs</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font_dirs"><a class="header" href="#font_dirs">font_dirs</a></h1>
 <p>By default, wezterm will use an appropriate system-specific method for
 locating the fonts that you specify using the options below.  In addition,
 if you configure the <code>font_dirs</code> option, wezterm will load fonts from that
@@ -6212,20 +6214,20 @@ then you can set:</p>
   font_locator = &quot;ConfigDirsOnly&quot;`
 }
 </code></pre>
-<h1 id="font_hinting--full"><a class="header" href="#font_hinting--full"><code>font_hinting = &quot;Full&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font_hinting--full"><a class="header" href="#font_hinting--full"><code>font_hinting = &quot;Full&quot;</code></a></h1>
 <p><em>Deprecated starting in version 20210314-114017-04b7cedd; this option no longer does anything and will be removed in a future release. Use <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a> instead</em></p>
 <p>Adjust the hinting portion of the font rasterizer.</p>
 <p>Possible values are <code>None</code>, <code>Vertical</code>, <code>VerticalSubpixel</code>, <code>Full</code>.</p>
-<h1 id="font_locator"><a class="header" href="#font_locator"><code>font_locator</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font_locator"><a class="header" href="#font_locator"><code>font_locator</code></a></h1>
 <p>specifies the method by which system fonts are located and loaded.  You may
 specify <code>ConfigDirsOnly</code> to disable loading system fonts and use only the fonts
 found in the directories that you specify in your <a href="config/lua/config/font_dirs.html">font_dirs</a>
 configuration option.</p>
 <p>Otherwise, it is recommended to omit this setting.</p>
-<h1 id="font_rasterizer"><a class="header" href="#font_rasterizer"><code>font_rasterizer</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font_rasterizer"><a class="header" href="#font_rasterizer"><code>font_rasterizer</code></a></h1>
 <p>Specifies the method by which fonts are rendered on screen.  The only available
 implementation is <code>FreeType</code>.</p>
-<h1 id="font_rules"><a class="header" href="#font_rules"><code>font_rules</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font_rules"><a class="header" href="#font_rules"><code>font_rules</code></a></h1>
 <p>You may optionally specify rules that apply different font styling based on the
 attributes of the text rendered in the terminal.  Most users won't need to do
 this; these rules are useful when you have some unusual fonts or mixtures of
@@ -6414,19 +6416,19 @@ wezterm.font_with_fallback({
 
 })
 </code></pre>
-<h1 id="font_shaper"><a class="header" href="#font_shaper"><code>font_shaper</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font_shaper"><a class="header" href="#font_shaper"><code>font_shaper</code></a></h1>
 <p>specifies the method by which text is mapped to glyphs in the available fonts.
 The shaper is responsible for handling kerning, ligatures and emoji
 composition.  The default is <code>Harfbuzz</code> and we have very preliminary support
 for <code>Allsorts</code>.</p>
 <p>It is strongly recommended that you use the default <code>Harfbuzz</code> shaper.</p>
-<h1 id="font_size--100"><a class="header" href="#font_size--100"><code>font_size = 10.0</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font_size--100"><a class="header" href="#font_size--100"><code>font_size = 10.0</code></a></h1>
 <p>Specifies the size of the font, measured in points.</p>
 <p>You may use fractional point sizes, such as <code>13.3</code>, to fine tune the size.</p>
 <p>The default font size is <code>10.0</code> points.</p>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>The default font size is now <code>12.0</code> points.</p>
-<h1 id="force_reverse_video_cursor--false"><a class="header" href="#force_reverse_video_cursor--false">force_reverse_video_cursor = false</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="force_reverse_video_cursor--false"><a class="header" href="#force_reverse_video_cursor--false">force_reverse_video_cursor = false</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>When <code>force_reverse_video_cursor = true</code>, override the <code>cursor_fg</code>,
 <code>cursor_bg</code>, <code>cursor_border</code> settings from the color scheme and force the
@@ -6434,7 +6436,7 @@ cursor to use reverse video colors based on the <code>foreground</code> and <cod
 colors.</p>
 <p>When <code>force_reverse_video_cursor = false</code> (the default), <code>cursor_fg</code>,
 <code>cursor_bg</code> and <code>cursor_border</code> color scheme settings are applied as normal.</p>
-<h1 id="foreground_text_hsb"><a class="header" href="#foreground_text_hsb">foreground_text_hsb</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="foreground_text_hsb"><a class="header" href="#foreground_text_hsb">foreground_text_hsb</a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Configures a Hue, Saturation, Brightness transformation that is applied to
 monochrome glyphs.</p>
@@ -6467,11 +6469,11 @@ reduce it by half, and 2.0 will double the value.</p>
      alt="demonstrating setting brightness to 1.5">
 <img src="config/lua/config/../../../screenshots/foreground-text-hsb-1.5-1-1.png"
      alt="demonstrating setting hue to 1.5"></p>
-<h1 id="freetype_interpreter_version"><a class="header" href="#freetype_interpreter_version"><code>freetype_interpreter_version</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="freetype_interpreter_version"><a class="header" href="#freetype_interpreter_version"><code>freetype_interpreter_version</code></a></h1>
 <p>Selects the freetype interpret version to use.  Possible values are <code>35</code>, <code>38</code>
 and <code>40</code> which have different characteristics with respective to subpixel
 hinting.  See <a href="https://freetype.org/freetype2/docs/subpixel-hinting.html">https://freetype.org/freetype2/docs/subpixel-hinting.html</a></p>
-<h1 id="freetype_load_flags--default"><a class="header" href="#freetype_load_flags--default"><code>freetype_load_flags = &quot;DEFAULT&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="freetype_load_flags--default"><a class="header" href="#freetype_load_flags--default"><code>freetype_load_flags = &quot;DEFAULT&quot;</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>An advanced option to fine tune the freetype rasterizer.  This is a bitfield,
 so you can combine one or more of these options together, separated by the <code>|</code>
@@ -6496,7 +6498,7 @@ This option doesn't impact the hinter.</li>
   freetype_load_flags = &quot;NO_HINTING|MONOCHROME&quot;
 }
 </code></pre>
-<h1 id="freetype_load_target--normal"><a class="header" href="#freetype_load_target--normal"><code>freetype_load_target = &quot;Normal&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="freetype_load_target--normal"><a class="header" href="#freetype_load_target--normal"><code>freetype_load_target = &quot;Normal&quot;</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Configures the hinting and (potentially) the rendering mode used with the
 freetype rasterizer.  The following values are possible:</p>
@@ -6513,7 +6515,7 @@ glyph is rendered in non-monochrome modes.</li>
 <p>See also <a href="config/lua/config/freetype_render_target.html">freetype_render_target</a> and
 <a href="config/lua/config/freetype_load_flags.html">freetype_load_flags</a> for more advanced flags that can
 be primarily used to influence font hinting.</p>
-<h1 id="freetype_render_target--normal"><a class="header" href="#freetype_render_target--normal"><code>freetype_render_target = &quot;Normal&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="freetype_render_target--normal"><a class="header" href="#freetype_render_target--normal"><code>freetype_render_target = &quot;Normal&quot;</code></a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Configures the <em>rendering</em> mode used with the freetype rasterizer.</p>
 <p>The default is to use the value of <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a>.</p>
@@ -6526,7 +6528,7 @@ subpixel-antialiased glyph bitmaps:</p>
   freetype_render_target = &quot;HorizontalLcd&quot;,
 }
 </code></pre>
-<h1 id="front_end--opengl"><a class="header" href="#front_end--opengl"><code>front_end = &quot;OpenGL&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="front_end--opengl"><a class="header" href="#front_end--opengl"><code>front_end = &quot;OpenGL&quot;</code></a></h1>
 <p>Specifies which render front-end to use.  This option used to have
 more scope in earlier versions of wezterm, but today it allows two
 possible values:</p>
@@ -6538,32 +6540,32 @@ possible values:</p>
 GPU/OpenGL drivers.</p>
 <p>WezTerm will automatically select <code>Software</code> if it detects that it is
 being started in a Remote Desktop environment on Windows.</p>
-<h1 id="harfbuzz_features"><a class="header" href="#harfbuzz_features"><code>harfbuzz_features</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="harfbuzz_features"><a class="header" href="#harfbuzz_features"><code>harfbuzz_features</code></a></h1>
 <p>When <code>font_shaper = &quot;Harfbuzz&quot;</code>, this setting affects how font shaping
 takes place.</p>
 <p>See <a href="config/lua/config/../../font-shaping.html">Font Shaping</a> for more information
 and examples.</p>
-<h1 id="hyperlink_rules"><a class="header" href="#hyperlink_rules"><code>hyperlink_rules</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="hyperlink_rules"><a class="header" href="#hyperlink_rules"><code>hyperlink_rules</code></a></h1>
 <p>Defines rules to match text from the terminal output and generate
 clickable links.</p>
 <p>See <a href="config/lua/config/../../../hyperlinks.html">Hyperlinks</a> for more information and
 examples.</p>
-<h1 id="initial_cols--80"><a class="header" href="#initial_cols--80"><code>initial_cols = 80</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="initial_cols--80"><a class="header" href="#initial_cols--80"><code>initial_cols = 80</code></a></h1>
 <p>Together with <a href="config/lua/config/initial_rows.html">initial_rows</a>, configures the window size
 (window width) for newly created windows.</p>
 <p>Specifies the width of a new window, expressed in character cells.</p>
-<h1 id="initial_rows--24"><a class="header" href="#initial_rows--24"><code>initial_rows = 24</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="initial_rows--24"><a class="header" href="#initial_rows--24"><code>initial_rows = 24</code></a></h1>
 <p>Together with <a href="config/lua/config/initial_cols.html">initial_cols</a>, configures the window size
 (window height) for newly created windows.</p>
 <p>Specifies the height of a new window, expressed in character cells.</p>
-<h1 id="line_height--10"><a class="header" href="#line_height--10"><code>line_height = 1.0</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="line_height--10"><a class="header" href="#line_height--10"><code>line_height = 1.0</code></a></h1>
 <p>Scales the computed line height to adjust the spacing between successive rows
 of text.  The default line height is controlled by the
 <a href="config/lua/config/font_size.html">font_size</a> configuration option.  If you feel that your chosen
 font feels too vertically cramped then you can set <code>line_height = 1.2</code> to
 increase the vertical spacing by 20%.  Conversely, setting <code>line_height = 0.9</code>
 will decrease the vertical spacing by 10%.</p>
-<h1 id="native_macos_fullscreen_mode--false"><a class="header" href="#native_macos_fullscreen_mode--false"><code>native_macos_fullscreen_mode = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="native_macos_fullscreen_mode--false"><a class="header" href="#native_macos_fullscreen_mode--false"><code>native_macos_fullscreen_mode = false</code></a></h1>
 <p>Specifies whether the <a href="config/lua/config/../../lua/keyassignment/ToggleFullScreen.html">ToggleFullScreen</a>
 key assignment uses the native macOS full-screen application support or not.</p>
 <p>The default is <code>false</code> which will simply (and very quickly!) toggle between a
@@ -6571,14 +6573,14 @@ full screen window with no decorations and a regularly size window.</p>
 <p>When <code>true</code>, transitioning to full screen will slowly animate the window moving
 to a full screen space on the monitor.</p>
 <p>This option only has an effect when running on macOS.</p>
-<h1 id="pane_focus_follows_mouse--false"><a class="header" href="#pane_focus_follows_mouse--false"><code>pane_focus_follows_mouse = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="pane_focus_follows_mouse--false"><a class="header" href="#pane_focus_follows_mouse--false"><code>pane_focus_follows_mouse = false</code></a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>When <code>pane_focus_follows_mouse = true</code>, moving the mouse pointer over an
 inactive pane will cause that pane to activate; this behavior is known
 as &quot;focus follows mouse&quot;.</p>
 <p>When <code>pane_focus_follows_mouse = false</code> (the default), you need to click
 on an inactive pane to activate it.</p>
-<h1 id="prefer_egl--true"><a class="header" href="#prefer_egl--true"><code>prefer_egl = true</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="prefer_egl--true"><a class="header" href="#prefer_egl--true"><code>prefer_egl = true</code></a></h1>
 <p>Depending on the OS and windowing environment, there are a number of different
 ways to access the GPU.</p>
 <p>This option controls whether wezterm should attempt to use
@@ -6590,7 +6592,7 @@ ways to access the GPU.</p>
 <tr><td>Windows</td><td>Use <a href="https://chromium.googlesource.com/angle/angle">ANGLE</a> to translate OpenGL calls to Direct3D, which makes wezterm more robust if you upgrade your graphics card drivers.</td><td>Use the OpenGL implementation provided by your graphics card vendor</td></tr>
 </tbody></table>
 <p>The default is <code>true</code>.</p>
-<h1 id="quick_select_alphabet"><a class="header" href="#quick_select_alphabet">quick_select_alphabet</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="quick_select_alphabet"><a class="header" href="#quick_select_alphabet">quick_select_alphabet</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Specify the alphabet used to produce labels for the items
 matched in <a href="config/lua/config/../../../quickselect.html">quick select mode</a>.</p>
@@ -6605,7 +6607,7 @@ accessible characters in a <code>qwerty</code> keyboard layout.</p>
 <tr><td><code>dvorak</code></td><td><code>&quot;aoeuqjkxpyhtnsgcrlmwvzfidb&quot;</code></td></tr>
 <tr><td><code>colemak</code></td><td><code>&quot;arstqwfpzxcvneioluymdhgjbk&quot;</code></td></tr>
 </tbody></table>
-<h1 id="quick_select_patterns"><a class="header" href="#quick_select_patterns">quick_select_patterns</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="quick_select_patterns"><a class="header" href="#quick_select_patterns">quick_select_patterns</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Specify additional patterns to match when in <a href="config/lua/config/../../../quickselect.html">quick select mode</a>.
 This setting is a table listing out a set of regular expressions.</p>
@@ -6617,14 +6619,14 @@ This setting is a table listing out a set of regular expressions.</p>
   }
 }
 </code></pre>
-<h1 id="scroll_to_bottom_on_input"><a class="header" href="#scroll_to_bottom_on_input"><code>scroll_to_bottom_on_input</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="scroll_to_bottom_on_input"><a class="header" href="#scroll_to_bottom_on_input"><code>scroll_to_bottom_on_input</code></a></h1>
 <p>When <code>true</code> (the default), the viewport will automatically scroll to the
 bottom of the scrollback when there is input to the terminal so that you
 can see what you are typing.</p>
-<h1 id="scrollback_lines--3500"><a class="header" href="#scrollback_lines--3500"><code>scrollback_lines = 3500</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="scrollback_lines--3500"><a class="header" href="#scrollback_lines--3500"><code>scrollback_lines = 3500</code></a></h1>
 <p>How many lines of scrollback you want to retain.</p>
 <p><a href="config/lua/config/../../../scrollback.html">Learn more about scrollback</a></p>
-<h1 id="selection_word_boundary"><a class="header" href="#selection_word_boundary"><code>selection_word_boundary</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="selection_word_boundary"><a class="header" href="#selection_word_boundary"><code>selection_word_boundary</code></a></h1>
 <p><em>Since: 20210203-095643-70a364eb</em></p>
 <p>Configures the boudaries of a word, thus what is selected when doing
 a word selection with the mouse.
@@ -6635,16 +6637,16 @@ a word selection with the mouse.
   selection_word_boundary = &quot;{}[]()\&quot;'`.,;:&quot;
 }
 </code></pre>
-<h1 id="set_environment_variables"><a class="header" href="#set_environment_variables"><code>set_environment_variables</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="set_environment_variables"><a class="header" href="#set_environment_variables"><code>set_environment_variables</code></a></h1>
 <p>Specifies a map of environment variables that should be set when spawning
 commands in the local domain.  This is not used when working with remote
 domains.</p>
 <p>See also: <a href="config/lua/config/../../launch.html#passing-environment-variables-to-the-spawned-program">Launching Programs</a></p>
-<h1 id="show_tab_index_in_tab_bar--true"><a class="header" href="#show_tab_index_in_tab_bar--true"><code>show_tab_index_in_tab_bar = true</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="show_tab_index_in_tab_bar--true"><a class="header" href="#show_tab_index_in_tab_bar--true"><code>show_tab_index_in_tab_bar = true</code></a></h1>
 <p>When set to <code>true</code> (the default), tab titles show their tab number with a
 prefix such as <code>1:</code>.  When false, no numeric prefix is shown.</p>
 <p>The <a href="config/lua/config/tab_and_split_indices_are_zero_based.html">tab_and_split_indices_are_zero_based</a> setting controls whether numbering starts with <code>0</code> or <code>1</code>.</p>
-<h1 id="show_update_window"><a class="header" href="#show_update_window"><code>show_update_window</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="show_update_window"><a class="header" href="#show_update_window"><code>show_update_window</code></a></h1>
 <p>When Wezterm checks for an update and detects a new version, this
 option controls whether a window is shown with information about the new
 available version and links to download/install it.</p>
@@ -6654,7 +6656,7 @@ the automatic update checks.</p>
   show_update_window = false,
 }
 </code></pre>
-<h1 id="skip_close_confirmation_for_processes_named"><a class="header" href="#skip_close_confirmation_for_processes_named">skip_close_confirmation_for_processes_named</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="skip_close_confirmation_for_processes_named"><a class="header" href="#skip_close_confirmation_for_processes_named">skip_close_confirmation_for_processes_named</a></h1>
 <p><em>Since: 20210404-112810-b63a949d</em></p>
 <p>This only applies to linux and macOS systems.</p>
 <p>This configuration specifies a list of process names that are
@@ -6672,30 +6674,30 @@ not prompt for closing that particular pane.</p>
   }
 }
 </code></pre>
-<h1 id="ssh_domains"><a class="header" href="#ssh_domains"><code>ssh_domains</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="ssh_domains"><a class="header" href="#ssh_domains"><code>ssh_domains</code></a></h1>
 <p>Configures SSH multiplexing domains.  <a href="config/lua/config/../../../multiplexing.html#ssh-domains">Read more about SSH Domains</a>.</p>
 <p>This option accepts a list of <a href="config/lua/config/../SshDomain.html">SshDomain</a> objects.</p>
-<h1 id="status_update_interval--1000"><a class="header" href="#status_update_interval--1000"><code>status_update_interval = 1000</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="status_update_interval--1000"><a class="header" href="#status_update_interval--1000"><code>status_update_interval = 1000</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Specifies the number of milliseconds that need to elapse between triggering the
 <a href="config/lua/config/../window-events/update-right-status.html">update-right-status</a> hook.</p>
-<h1 id="swallow_mouse_click_on_pane_focus--false"><a class="header" href="#swallow_mouse_click_on_pane_focus--false"><code>swallow_mouse_click_on_pane_focus = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="swallow_mouse_click_on_pane_focus--false"><a class="header" href="#swallow_mouse_click_on_pane_focus--false"><code>swallow_mouse_click_on_pane_focus = false</code></a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>When set to <code>true</code>, clicking on a pane will focus it.</p>
 <p>When set to <code>false</code> (the default), clicking on a pane will focus it and then
 pass the click through to the application in the terminal.</p>
-<h1 id="swap_backspace_and_delete--false"><a class="header" href="#swap_backspace_and_delete--false"><code>swap_backspace_and_delete = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="swap_backspace_and_delete--false"><a class="header" href="#swap_backspace_and_delete--false"><code>swap_backspace_and_delete = false</code></a></h1>
 <p>When set to <code>true</code>, switch the interpretation of the <code>Backspace</code> and
 <code>Delete</code> keys such that <code>Backspace</code> generates <code>Delete</code> and vice versa.</p>
-<h1 id="tab_and_split_indices_are_zero_based--false"><a class="header" href="#tab_and_split_indices_are_zero_based--false"><code>tab_and_split_indices_are_zero_based = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tab_and_split_indices_are_zero_based--false"><a class="header" href="#tab_and_split_indices_are_zero_based--false"><code>tab_and_split_indices_are_zero_based = false</code></a></h1>
 <p>If <code>true</code>, <a href="config/lua/config/show_tab_index_in_tab_bar.html">show_tab_index_in_tab_bar</a> uses a
 zero-based index.  The default is <code>false</code> and the tab shows a one-based index.</p>
-<h1 id="tab_bar_at_bottom--false"><a class="header" href="#tab_bar_at_bottom--false"><code>tab_bar_at_bottom = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tab_bar_at_bottom--false"><a class="header" href="#tab_bar_at_bottom--false"><code>tab_bar_at_bottom = false</code></a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>When <code>tab_bar_at_bottom = true</code>, the tab bar will be rendered at the bottom of
 the window rather than the top of the window.</p>
 <p>The default is <code>false</code>.</p>
-<h1 id="tab_bar_style"><a class="header" href="#tab_bar_style"><code>tab_bar_style</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tab_bar_style"><a class="header" href="#tab_bar_style"><code>tab_bar_style</code></a></h1>
 <p><em>Since: 20210502-154244-3f7122cb</em></p>
 <p><code>active_tab_left</code>, <code>active_tab_right</code>, <code>inactive_tab_left</code>,
 <code>inactive_tab_right</code>, <code>inactive_tab_hover_left</code>, <code>inactive_tab_hover_right</code>
@@ -6754,14 +6756,14 @@ return {
   }
 }
 </code></pre>
-<h1 id="tab_max_width"><a class="header" href="#tab_max_width"><code>tab_max_width</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tab_max_width"><a class="header" href="#tab_max_width"><code>tab_max_width</code></a></h1>
 <p>Specifies the maximum width that a tab can have in the
 tab bar.  Defaults to 16 glyphs in width.</p>
 <pre><code class="language-lua">return {
   tab_max_width = 16,
 }
 </code></pre>
-<h1 id="term--xterm-256color"><a class="header" href="#term--xterm-256color"><code>term = &quot;xterm-256color&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="term--xterm-256color"><a class="header" href="#term--xterm-256color"><code>term = &quot;xterm-256color&quot;</code></a></h1>
 <p>What to set the <code>TERM</code> environment variable to.  The default is
 <code>xterm-256color</code>, which should provide a good level of feature
 support without requiring the installation of additional terminfo
@@ -6778,13 +6780,13 @@ wish to install a copy of the <code>wezterm</code> TERM definition:</p>
 as colored underlines, styled underlines (eg: undercurl).  If the system
 you are using has a relatively outdated ncurses installation, the <code>wezterm</code>
 terminfo will also enable italics and true color support.</p>
-<h1 id="tls_clients"><a class="header" href="#tls_clients"><code>tls_clients</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tls_clients"><a class="header" href="#tls_clients"><code>tls_clients</code></a></h1>
 <p>Configures TLS multiplexing domains.  <a href="config/lua/config/../../../multiplexing.html#tls-domains">Read more about TLS Domains</a>.</p>
 <p>This option accepts a list of <a href="config/lua/config/../TlsDomainClient.html">TlsDomainClient</a> objects.</p>
-<h1 id="tls_servers"><a class="header" href="#tls_servers"><code>tls_servers</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tls_servers"><a class="header" href="#tls_servers"><code>tls_servers</code></a></h1>
 <p>Configures TLS multiplexing domains.  <a href="config/lua/config/../../../multiplexing.html#tls-domains">Read more about TLS Domains</a>.</p>
 <p>This option accepts a list of <a href="config/lua/config/../TlsDomainServer.html">TlsDomainServer</a> objects.</p>
-<h1 id="treat_left_ctrlalt_as_altgr--false"><a class="header" href="#treat_left_ctrlalt_as_altgr--false"><code>treat_left_ctrlalt_as_altgr = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="treat_left_ctrlalt_as_altgr--false"><a class="header" href="#treat_left_ctrlalt_as_altgr--false"><code>treat_left_ctrlalt_as_altgr = false</code></a></h1>
 <p><em>since: 20210314-114017-04b7cedd</em></p>
 <p>If you are using a layout with an <em>AltGr</em> key, you may experience issues
 when running inside a VNC session, because VNC emulates the AltGr keypresses
@@ -6796,17 +6798,17 @@ bindings using separate Ctrl and Alt won't be triggered anymore.</p>
   treat_left_ctrlalt_as_altgr = true
 }
 </code></pre>
-<h1 id="unix_domains"><a class="header" href="#unix_domains"><code>unix_domains</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="unix_domains"><a class="header" href="#unix_domains"><code>unix_domains</code></a></h1>
 <p>Defines a list of multiplexer domains for both the multiplexer
 server and multiplexer client.</p>
 <p><a href="config/lua/config/../../../multiplexing.html#unix-domains">Read more about multiplexing</a></p>
-<h1 id="use_cap_height_to_scale_fallback_fonts--false"><a class="header" href="#use_cap_height_to_scale_fallback_fonts--false"><code>use_cap_height_to_scale_fallback_fonts = false</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="use_cap_height_to_scale_fallback_fonts--false"><a class="header" href="#use_cap_height_to_scale_fallback_fonts--false"><code>use_cap_height_to_scale_fallback_fonts = false</code></a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>When set to true, use the <em>cap-height</em> font metrics of the base and the current
 font to adjust the size of secondary fonts (such as bold or italic faces) to
 visually match the size of the base font.</p>
 <p>The default is <code>false</code>.</p>
-<h3 id="warn_about_missing_glyphs--true"><a class="header" href="#warn_about_missing_glyphs--true">warn_about_missing_glyphs = true</a></h3>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h3 id="warn_about_missing_glyphs--true"><a class="header" href="#warn_about_missing_glyphs--true">warn_about_missing_glyphs = true</a></h3>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>When set to true, if a glyph cannot be found for a given codepoint, then
 the configuration error window will be shown with a pointer to the font
@@ -6814,7 +6816,7 @@ configuration docs.</p>
 <p>You can set <code>warn_about_missing_glyphs = false</code> to prevent the configuration
 error window from being displayed.</p>
 <p>The default is <code>warn_about_missing_glyphs = true</code>.</p>
-<h1 id="window_close_confirmation"><a class="header" href="#window_close_confirmation"><code>window_close_confirmation</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="window_close_confirmation"><a class="header" href="#window_close_confirmation"><code>window_close_confirmation</code></a></h1>
 <p>Whether to display a confirmation prompt when the window is closed by the
 windowing environment, either because the user closed it with the window
 decorations, or instructed their window managed to close it.</p>
@@ -6830,7 +6832,7 @@ windows every time.</p>
 <code>CTRL-SHIFT-W</code> or <code>CMD-w</code> key assignments; if you want to change prompts for
 those, you will need to override the key shortcut as shown in the
 <a href="config/lua/config/../keyassignment/CloseCurrentTab.html">CloseCurrentTab</a> documentation.</p>
-<h1 id="window_decorations--title--resize"><a class="header" href="#window_decorations--title--resize"><code>window_decorations = &quot;TITLE | RESIZE&quot;</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="window_decorations--title--resize"><a class="header" href="#window_decorations--title--resize"><code>window_decorations = &quot;TITLE | RESIZE&quot;</code></a></h1>
 <p><em>Since 20210314-114017-04b7cedd</em></p>
 <p>Configures whether the window has a title bar and/or resizable border.</p>
 <p>The value is a set of of flags:</p>
@@ -6853,7 +6855,7 @@ mouse reporting you will need to hold down the <code>SHIFT</code> modifier in or
 <p>When the resizable border is disabled you will need to use features of your
 desktop environment to resize the window.  Windows users may wish to consider
 <a href="https://stefansundin.github.io/altdrag/">AltDrag</a>.</p>
-<h1 id="keyassignment-enumeration"><a class="header" href="#keyassignment-enumeration"><code>KeyAssignment</code> enumeration</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="keyassignment-enumeration"><a class="header" href="#keyassignment-enumeration"><code>KeyAssignment</code> enumeration</a></h1>
 <p>A <code>KeyAssignment</code> represents a pre-defined function that can be applied
 to control the Window, Tab, Pane state typically when a key or mouse event
 is triggered.</p>
@@ -6917,11 +6919,11 @@ clear and convenient.</p>
 <li><a href="config/lua/keyassignment/ToggleFullScreen.html">ToggleFullScreen</a></li>
 <li><a href="config/lua/keyassignment/TogglePaneZoomState.html">TogglePaneZoomState</a></li>
 </ul>
-<h1 id="activatecopymode"><a class="header" href="#activatecopymode">ActivateCopyMode</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="activatecopymode"><a class="header" href="#activatecopymode">ActivateCopyMode</a></h1>
 <p><em>since: 20200607-144723-74889cd4</em></p>
 <p>Activates copy mode!</p>
 <p><a href="config/lua/keyassignment/../../../copymode.html">Learn more about copy mode</a></p>
-<h1 id="activatelasttab"><a class="header" href="#activatelasttab">ActivateLastTab</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="activatelasttab"><a class="header" href="#activatelasttab">ActivateLastTab</a></h1>
 <p><em>Since: 20210404-112810-b63a949d</em></p>
 <p>Activate the last active tab. If there is none, it will do nothing.</p>
 <pre><code class="language-lua">return {
@@ -6932,7 +6934,7 @@ clear and convenient.</p>
   }
 }
 </code></pre>
-<h1 id="activatepanedirection"><a class="header" href="#activatepanedirection">ActivatePaneDirection</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="activatepanedirection"><a class="header" href="#activatepanedirection">ActivatePaneDirection</a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p><code>ActivatePaneDirection</code> activate an adjacent pane in the specified direction.
 In cases where there are multiple adjacent panes in the intended direction,
@@ -6952,7 +6954,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="activatetab"><a class="header" href="#activatetab">ActivateTab</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="activatetab"><a class="header" href="#activatetab">ActivateTab</a></h1>
 <p>Activate the tab specified by the argument value. eg: <code>0</code> activates the
 leftmost tab, while <code>1</code> activates the second tab from the left, and so on.</p>
 <p><em>since: 20200620-160318-e00b076c</em></p>
@@ -6980,7 +6982,7 @@ return {
   keys = mykeys,
 }
 </code></pre>
-<h1 id="activatetabrelative"><a class="header" href="#activatetabrelative">ActivateTabRelative</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="activatetabrelative"><a class="header" href="#activatetabrelative">ActivateTabRelative</a></h1>
 <p>Activate a tab relative to the current tab.  The argument value specifies an
 offset. eg: <code>-1</code> activates the tab to the left of the current tab, while <code>1</code>
 activates the tab to the right.</p>
@@ -6992,7 +6994,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="adjustpanesize"><a class="header" href="#adjustpanesize">AdjustPaneSize</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="adjustpanesize"><a class="header" href="#adjustpanesize">AdjustPaneSize</a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p><code>AdjustPaneSize</code> manipulates the size of the active pane, allowing the
 size to be adjusted by an integer amount in a specific direction.</p>
@@ -7017,7 +7019,7 @@ return {
  }
 }
 </code></pre>
-<h1 id="clearscrollback"><a class="header" href="#clearscrollback">ClearScrollback</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="clearscrollback"><a class="header" href="#clearscrollback">ClearScrollback</a></h1>
 <p>Clears the lines that have scrolled off the top of the viewport, resetting
 the scrollbar thumb to the full height of the window.</p>
 <p><em>since: 20210203-095643-70a364eb</em></p>
@@ -7032,7 +7034,7 @@ the scrollbar thumb to the full height of the window.</p>
   }
 }
 </code></pre>
-<h1 id="closecurrentpane"><a class="header" href="#closecurrentpane">CloseCurrentPane</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="closecurrentpane"><a class="header" href="#closecurrentpane">CloseCurrentPane</a></h1>
 <p>Closes the current pane.  If that was the last pane in the tab, closes the tab.
 If that was the last tab, closes that window.  If that was the last window,
 wezterm terminates.</p>
@@ -7050,7 +7052,7 @@ confirm whether you want to close it.  See also
 <a href="config/lua/keyassignment/../config/skip_close_confirmation_for_processes_named.html">skip_close_confirmation_for_processes_named</a>.</p>
 <p>If <code>confirm</code> is false then this action will immediately close
 the pane without prompting.</p>
-<h1 id="closecurrenttab"><a class="header" href="#closecurrenttab">CloseCurrentTab</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="closecurrenttab"><a class="header" href="#closecurrenttab">CloseCurrentTab</a></h1>
 <p>Closes the current tab, terminating all contained panes.  If that was the last
 tab, closes that window.  If that was the last window, wezterm terminates.</p>
 <pre><code class="language-lua">return {
@@ -7074,7 +7076,7 @@ confirm whether you want to close it.  See also
 <a href="config/lua/keyassignment/../config/skip_close_confirmation_for_processes_named.html">skip_close_confirmation_for_processes_named</a>.</p>
 <p>If <code>confirm</code> is false then this action will immediately close
 the tab and terminates its panes without prompting.</p>
-<h1 id="completeselection"><a class="header" href="#completeselection">CompleteSelection</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="completeselection"><a class="header" href="#completeselection">CompleteSelection</a></h1>
 <p>Completes an active text selection process; the selection range is
 marked closed and then the selected text is copied as though the
 <code>Copy</code> action was executed.</p>
@@ -7099,7 +7101,7 @@ return {
 }
 
 </code></pre>
-<h1 id="completeselectionoropenlinkatmousecursor"><a class="header" href="#completeselectionoropenlinkatmousecursor">CompleteSelectionOrOpenLinkAtMouseCursor</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="completeselectionoropenlinkatmousecursor"><a class="header" href="#completeselectionoropenlinkatmousecursor">CompleteSelectionOrOpenLinkAtMouseCursor</a></h1>
 <p>If a selection is in progress, acts as though <code>CompleteSelection</code> was
 triggered.  Otherwise acts as though <code>OpenLinkAtMouseCursor</code> was
 triggered.</p>
@@ -7122,7 +7124,7 @@ return {
 }
 
 </code></pre>
-<h1 id="copy"><a class="header" href="#copy">Copy</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="copy"><a class="header" href="#copy">Copy</a></h1>
 <p>Copy the selection to the clipboard.</p>
 <p><em>since: 20210203-095643-70a364eb</em></p>
 <p>This action is considered to be deprecated and will be removed in
@@ -7135,7 +7137,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="copytodestination"><a class="header" href="#copytodestination">CopyTo(destination)</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="copytodestination"><a class="header" href="#copytodestination">CopyTo(destination)</a></h1>
 <p>Copy the selection to the specified clipboard buffer.</p>
 <p>Possible values for destination are:</p>
 <ul>
@@ -7150,7 +7152,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="decreasefontsize"><a class="header" href="#decreasefontsize">DecreaseFontSize</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="decreasefontsize"><a class="header" href="#decreasefontsize">DecreaseFontSize</a></h1>
 <p>Decreases the font size of the current window by 10%</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 return {
@@ -7159,7 +7161,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="disabledefaultassignment"><a class="header" href="#disabledefaultassignment">DisableDefaultAssignment</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="disabledefaultassignment"><a class="header" href="#disabledefaultassignment">DisableDefaultAssignment</a></h1>
 <p>Has no special meaning of its own; this action will undo the registration
 of a default assignment if that key/mouse/modifier combination is one of the
 default assignments and cause the key press to be propagated through
@@ -7172,13 +7174,13 @@ to the tab for processing.</p>
   }
 }
 </code></pre>
-<h1 id="emitevent"><a class="header" href="#emitevent">EmitEvent</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="emitevent"><a class="header" href="#emitevent">EmitEvent</a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>This action causes the equivalent of <code>wezterm.emit(name, window, pane)</code> to be
 called in the context of the current pane.</p>
 <p>See <a href="config/lua/keyassignment/../wezterm/on.html#custom-events">the Custom Events example</a> for a detailed
 example of using this action.</p>
-<h1 id="extendselectiontomousecursor"><a class="header" href="#extendselectiontomousecursor">ExtendSelectionToMouseCursor</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="extendselectiontomousecursor"><a class="header" href="#extendselectiontomousecursor">ExtendSelectionToMouseCursor</a></h1>
 <p>Extends the current text selection to the current mouse cursor position.
 The mode argument can be one of <code>Cell</code>, <code>Word</code> or <code>Line</code> to control
 the scope of the selection.</p>
@@ -7197,7 +7199,7 @@ the scope of the selection.</p>
 <p>when unspecified, wezterm will use a default mode which at the time
 of writing is <code>Cell</code>, but in a future release may be context sensitive
 based on recent actions.</p>
-<h1 id="hide"><a class="header" href="#hide">Hide</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="hide"><a class="header" href="#hide">Hide</a></h1>
 <p>Hides (or minimizes, depending on the platform) the current window.</p>
 <pre><code class="language-lua">return {
   keys = {
@@ -7205,7 +7207,7 @@ based on recent actions.</p>
   }
 }
 </code></pre>
-<h1 id="hideapplication"><a class="header" href="#hideapplication">HideApplication</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="hideapplication"><a class="header" href="#hideapplication">HideApplication</a></h1>
 <p>On macOS, hide the WezTerm application.</p>
 <pre><code class="language-lua">return {
   keys = {
@@ -7213,7 +7215,7 @@ based on recent actions.</p>
   }
 }
 </code></pre>
-<h1 id="increasefontsize"><a class="header" href="#increasefontsize">IncreaseFontSize</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="increasefontsize"><a class="header" href="#increasefontsize">IncreaseFontSize</a></h1>
 <p>Increases the font size of the current window by 10%</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 return {
@@ -7222,7 +7224,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="movetab"><a class="header" href="#movetab">MoveTab</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="movetab"><a class="header" href="#movetab">MoveTab</a></h1>
 <p>Move the tab so that it has the index specified by the argument. eg: <code>0</code>
 moves the tab to be  leftmost, while <code>1</code> moves the tab so that it is second tab
 from the left, and so on.</p>
@@ -7242,7 +7244,7 @@ return {
   keys = mykeys,
 }
 </code></pre>
-<h1 id="movetabrelative"><a class="header" href="#movetabrelative">MoveTabRelative</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="movetabrelative"><a class="header" href="#movetabrelative">MoveTabRelative</a></h1>
 <p>Move the current tab relative to its peers.  The argument specifies an
 offset. eg: <code>-1</code> moves the tab to the left of the current tab, while <code>1</code> moves
 the tab to the right.</p>
@@ -7254,7 +7256,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="nop"><a class="header" href="#nop">Nop</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="nop"><a class="header" href="#nop">Nop</a></h1>
 <p>Causes the key press to have no effect; it behaves as though those
 keys were not pressed.</p>
 <p>If instead of this you want the key presses to pass through to
@@ -7266,10 +7268,10 @@ the terminal, look at <a href="config/lua/keyassignment/DisableDefaultAssignment
   }
 }
 </code></pre>
-<h1 id="openlinkatmousecursor"><a class="header" href="#openlinkatmousecursor">OpenLinkAtMouseCursor</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="openlinkatmousecursor"><a class="header" href="#openlinkatmousecursor">OpenLinkAtMouseCursor</a></h1>
 <p>If the current mouse cursor position is over a cell that contains
 a hyperlink, this action causes that link to be opened.</p>
-<h1 id="paste"><a class="header" href="#paste">Paste</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="paste"><a class="header" href="#paste">Paste</a></h1>
 <p>Paste the clipboard to the current pane.</p>
 <p><em>since: 20210203-095643-70a364eb</em></p>
 <p>This action is considered to be deprecated and will be removed in
@@ -7292,7 +7294,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="pastefromsource"><a class="header" href="#pastefromsource">PasteFrom(source)</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="pastefromsource"><a class="header" href="#pastefromsource">PasteFrom(source)</a></h1>
 <p>Paste the specified clipboard to the current pane.</p>
 <p>This is only really meaningful on X11 systems that have multiple clipboards.</p>
 <p>Possible values for source are:</p>
@@ -7312,7 +7314,7 @@ return {
   },
 }
 </code></pre>
-<h1 id="pasteprimaryselection"><a class="header" href="#pasteprimaryselection">PastePrimarySelection</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="pasteprimaryselection"><a class="header" href="#pasteprimaryselection">PastePrimarySelection</a></h1>
 <p>X11: Paste the Primary Selection to the current tab.
 On other systems, this behaves identically to <a href="config/lua/keyassignment/Paste.html">Paste</a>.</p>
 <p><em>since: 20210203-095643-70a364eb</em></p>
@@ -7335,7 +7337,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="quickselect"><a class="header" href="#quickselect">QuickSelect</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="quickselect"><a class="header" href="#quickselect">QuickSelect</a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Activates <a href="config/lua/keyassignment/../../../quickselect.html">Quick Select Mode</a>.</p>
 <pre><code class="language-lua">```lua
@@ -7346,7 +7348,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="quitapplication"><a class="header" href="#quitapplication">QuitApplication</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="quitapplication"><a class="header" href="#quitapplication">QuitApplication</a></h1>
 <p>Terminate the WezTerm application, killing all tabs.</p>
 <pre><code class="language-lua">return {
   keys = {
@@ -7354,7 +7356,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="reloadconfiguration"><a class="header" href="#reloadconfiguration">ReloadConfiguration</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="reloadconfiguration"><a class="header" href="#reloadconfiguration">ReloadConfiguration</a></h1>
 <p>Explicitly reload the configuration.</p>
 <pre><code class="language-lua">return {
   keys = {
@@ -7362,7 +7364,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="resetfontandwindowsize"><a class="header" href="#resetfontandwindowsize">ResetFontAndWindowSize</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="resetfontandwindowsize"><a class="header" href="#resetfontandwindowsize">ResetFontAndWindowSize</a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Reset both the font size and the terminal dimensions for the current window to
 the values specified by your <code>font</code>, <code>initial_rows</code>, and <code>initial_cols</code> configuration.</p>
@@ -7373,7 +7375,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="resetfontsize"><a class="header" href="#resetfontsize">ResetFontSize</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="resetfontsize"><a class="header" href="#resetfontsize">ResetFontSize</a></h1>
 <p>Reset the font size for the current window to the value in your configuration</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 return {
@@ -7382,7 +7384,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="scrollbyline"><a class="header" href="#scrollbyline">ScrollByLine</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="scrollbyline"><a class="header" href="#scrollbyline">ScrollByLine</a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Adjusts the scroll position by the number of lines specified by the argument.
 Negative values scroll upwards, while positive values scroll downwards.</p>
@@ -7395,7 +7397,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="scrollbypage"><a class="header" href="#scrollbypage">ScrollByPage</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="scrollbypage"><a class="header" href="#scrollbypage">ScrollByPage</a></h1>
 <p>Adjusts the scroll position by the number of pages specified by the argument.
 Negative values scroll upwards, while positive values scroll downwards.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -7407,7 +7409,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="scrolltoprompt"><a class="header" href="#scrolltoprompt">ScrollToPrompt</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="scrolltoprompt"><a class="header" href="#scrolltoprompt">ScrollToPrompt</a></h1>
 <p><em>Since: 20210203-095643-70a364eb</em></p>
 <p>This action operates on Semantic Zones defined by applications that use <a href="https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md">OSC
 133 Semantic Prompt Escapes</a> and requires configuring your shell to emit those sequences.</p>
@@ -7430,7 +7432,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="search"><a class="header" href="#search">Search</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="search"><a class="header" href="#search">Search</a></h1>
 <p><em>since: 20200607-144723-74889cd4</em></p>
 <p>This action will trigger the search overlay for the current tab.
 It accepts a typed pattern string as its parameter, allowing for
@@ -7451,7 +7453,7 @@ return {
 }
 </code></pre>
 <p><a href="config/lua/keyassignment/../../../scrollback.html#searching-the-scrollback">Learn more about the search overlay</a></p>
-<h1 id="selecttextatmousecursor"><a class="header" href="#selecttextatmousecursor">SelectTextAtMouseCursor</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="selecttextatmousecursor"><a class="header" href="#selecttextatmousecursor">SelectTextAtMouseCursor</a></h1>
 <p>Initiates selection of text at the current mouse cursor position.
 The mode argument can be one of <code>Cell</code>, <code>Word</code> or <code>Line</code> to control
 the scope of the selection.</p>
@@ -7472,7 +7474,7 @@ on any character withing that region:</p>
 </code></pre>
 <p><a href="config/lua/keyassignment/../../../shell-integration.html">See Shell Integration docs</a> for more details on
 how to set up your shell to define semantic zones.</p>
-<h1 id="sendstring"><a class="header" href="#sendstring">SendString</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="sendstring"><a class="header" href="#sendstring">SendString</a></h1>
 <p>Sends the string specified argument to the terminal in the current tab, as
 though that text were literally typed into the terminal.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
@@ -7498,9 +7500,9 @@ return {
   }
 }
 </code></pre>
-<h1 id="show"><a class="header" href="#show">Show</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="show"><a class="header" href="#show">Show</a></h1>
 <p>Shows the current window.</p>
-<h1 id="showlauncher"><a class="header" href="#showlauncher">ShowLauncher</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="showlauncher"><a class="header" href="#showlauncher">ShowLauncher</a></h1>
 <p>Activate the <a href="config/lua/keyassignment/../../launch.html#the-launcher-menu">Launcher Menu</a>
 in the current tab.</p>
 <pre><code class="language-lua">return {
@@ -7509,7 +7511,7 @@ in the current tab.</p>
   }
 }
 </code></pre>
-<h1 id="showtabnavigator"><a class="header" href="#showtabnavigator">ShowTabNavigator</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="showtabnavigator"><a class="header" href="#showtabnavigator">ShowTabNavigator</a></h1>
 <p>Activate the tab navigator UI in the current tab.  The tab
 navigator displays a list of tabs and allows you to select
 and activate a tab from that list.</p>
@@ -7519,7 +7521,7 @@ and activate a tab from that list.</p>
   }
 }
 </code></pre>
-<h2 id="spawncommandinnewtab"><a class="header" href="#spawncommandinnewtab">SpawnCommandInNewTab</a></h2>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h2 id="spawncommandinnewtab"><a class="header" href="#spawncommandinnewtab">SpawnCommandInNewTab</a></h2>
 <p>Spawn a new tab into the current window.
 The argument is a <code>SpawnCommand</code> struct that is discussed in more
 detail in the <a href="config/lua/keyassignment/../SpawnCommand.html">SpawnCommand</a> docs.</p>
@@ -7534,7 +7536,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="spawncommandinnewwindow"><a class="header" href="#spawncommandinnewwindow">SpawnCommandInNewWindow</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="spawncommandinnewwindow"><a class="header" href="#spawncommandinnewwindow">SpawnCommandInNewWindow</a></h1>
 <p>Spawn a new tab into a brand new window.
 The argument is a <code>SpawnCommand</code> struct that is discussed in more
 detail in the <a href="config/lua/keyassignment/../SpawnCommand.html">SpawnCommand</a> docs.</p>
@@ -7549,7 +7551,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="spawntab"><a class="header" href="#spawntab">SpawnTab</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="spawntab"><a class="header" href="#spawntab">SpawnTab</a></h1>
 <p>Create a new tab in the current window.  The argument defines to which <em>domain</em> the tab belongs:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 return {
@@ -7564,7 +7566,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="spawnwindow"><a class="header" href="#spawnwindow">SpawnWindow</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="spawnwindow"><a class="header" href="#spawnwindow">SpawnWindow</a></h1>
 <p>Create a new window containing a tab from the default tab domain.</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 return {
@@ -7573,7 +7575,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="splithorizontal"><a class="header" href="#splithorizontal">SplitHorizontal</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="splithorizontal"><a class="header" href="#splithorizontal">SplitHorizontal</a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Splits the current pane in half horizontally such that the current pane becomes
 the left half and the new right half spawns a new command.</p>
@@ -7600,7 +7602,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="splitvertical"><a class="header" href="#splitvertical">SplitVertical</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="splitvertical"><a class="header" href="#splitvertical">SplitVertical</a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Splits the current pane in half vertically such that the current pane becomes
 the top half and the new bottom half spawns a new command.</p>
@@ -7627,7 +7629,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="startwindowdrag"><a class="header" href="#startwindowdrag">StartWindowDrag</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="startwindowdrag"><a class="header" href="#startwindowdrag">StartWindowDrag</a></h1>
 <p><em>since: 20210314-114017-04b7cedd</em></p>
 <p>Places the window in the drag-to-move state, which means that the window will
 move to follow your mouse pointer until the mouse button is released.</p>
@@ -7647,7 +7649,7 @@ move to follow your mouse pointer until the mouse button is released.</p>
   }
 }
 </code></pre>
-<h1 id="togglefullscreen"><a class="header" href="#togglefullscreen">ToggleFullScreen</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="togglefullscreen"><a class="header" href="#togglefullscreen">ToggleFullScreen</a></h1>
 <p>Toggles full screen mode for the current window.  (But see:
 <a href="https://github.com/wez/wezterm/issues/177">https://github.com/wez/wezterm/issues/177</a>)</p>
 <pre><code class="language-lua">return {
@@ -7656,7 +7658,7 @@ move to follow your mouse pointer until the mouse button is released.</p>
   }
 }
 </code></pre>
-<h1 id="togglepanezoomstate"><a class="header" href="#togglepanezoomstate">TogglePaneZoomState</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="togglepanezoomstate"><a class="header" href="#togglepanezoomstate">TogglePaneZoomState</a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Toggles the zoom state of the current pane.  A Zoomed pane takes up
 all available space in the tab, hiding all other panes while it is zoomed.
@@ -7667,7 +7669,7 @@ Switching its zoom state off will restore the prior split arrangement.</p>
   }
 }
 </code></pre>
-<h1 id="paneinformation"><a class="header" href="#paneinformation">PaneInformation</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="paneinformation"><a class="header" href="#paneinformation">PaneInformation</a></h1>
 <p>The <code>PaneInformation</code> struct describes a pane.  Unlike <a href="config/lua/pane/index.html">the Pane
 object</a>, <code>PaneInformation</code> is purely a snapshot of some of
 the key characteristics of the pane, intended for use in synchronous, fast,
@@ -7687,7 +7689,7 @@ event callbacks that format GUI elements such as the window and tab title bars.<
 <li><code>title</code> - the title of the pane, per <a href="config/lua/pane/get_title.html">pane:get_title()</a> at the time the pane information was captured</li>
 <li><code>user_vars</code> - the user variables defined for the pane, per <a href="config/lua/pane/get_user_vars.html">pane:get_user_vars()</a> at the time the pane information was captured.</li>
 </ul>
-<h1 id="tabinformation"><a class="header" href="#tabinformation">TabInformation</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tabinformation"><a class="header" href="#tabinformation">TabInformation</a></h1>
 <p>The <code>TabInformation</code> struct describes a tab.  <code>TabInformation</code> is purely a
 snapshot of some of the key characteristics of the tab, intended for use in
 synchronous, fast, event callbacks that format GUI elements such as the window
@@ -7699,7 +7701,7 @@ and tab title bars.</p>
 <li><code>is_active</code> - is true if this tab is the active tab</li>
 <li><code>active_pane</code> - the <a href="config/lua/PaneInformation.html">PaneInformation</a> for the active pane in this tab</li>
 </ul>
-<h1 id="sshdomain"><a class="header" href="#sshdomain">SshDomain</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="sshdomain"><a class="header" href="#sshdomain">SshDomain</a></h1>
 <p>The <code>SshDomain</code> struct specifies information about an individual
 <a href="config/lua/../../multiplexing.html#ssh-domains">SSH Domain</a>.</p>
 <p>It is a lua object with the following fields:</p>
@@ -7732,7 +7734,7 @@ and tab title bars.</p>
     -- remote_wezterm_path = &quot;/home/yourusername/bin/wezterm&quot;
 }
 </code></pre>
-<h1 id="spawncommand"><a class="header" href="#spawncommand">SpawnCommand</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="spawncommand"><a class="header" href="#spawncommand">SpawnCommand</a></h1>
 <p>The <code>SpawnCommand</code> struct specifies information about a new command
 to be spawned.</p>
 <p>It is a lua object with the following fields; all of the fields
@@ -7789,7 +7791,7 @@ have reasonable defaults and can be omitted.</p>
   domain = {DomainName=&quot;my.server&quot;},
 }
 </code></pre>
-<h1 id="tlsdomainclient"><a class="header" href="#tlsdomainclient">TlsDomainClient</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tlsdomainclient"><a class="header" href="#tlsdomainclient">TlsDomainClient</a></h1>
 <p>The <code>TlsDomainClient</code> struct specifies information about how to connect
 to a <a href="config/lua/../../multiplexing.html#tls-domains">TLS Domain</a>.</p>
 <p>It is a lua object with the following fields:</p>
@@ -7852,7 +7854,7 @@ to a <a href="config/lua/../../multiplexing.html#tls-domains">TLS Domain</a>.</p
     -- remote_wezterm_path = &quot;/home/myname/bin/wezterm&quot;
 }
 </code></pre>
-<h1 id="tlsdomainserver"><a class="header" href="#tlsdomainserver">TlsDomainServer</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="tlsdomainserver"><a class="header" href="#tlsdomainserver">TlsDomainServer</a></h1>
 <p>The <code>TlsDomainServer</code> struct specifies information about how to define
 the server side of a <a href="config/lua/../../multiplexing.html#tls-domains">TLS Domain</a>.</p>
 <p>It is a lua object with the following fields:</p>
@@ -7882,7 +7884,7 @@ the server side of a <a href="config/lua/../../multiplexing.html#tls-domains">TL
     -- pem_root_certs = { &quot;/some/path/ca1.pem&quot;, &quot;/some/path/ca2.pem&quot; },
 }
 </code></pre>
-<h1 id="pane-object"><a class="header" href="#pane-object"><code>Pane</code> object</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="pane-object"><a class="header" href="#pane-object"><code>Pane</code> object</a></h1>
 <p>A Pane object cannot be created in lua code; it is typically passed to your
 code via an event callback.  A Pane object is a handle to a live instance of a
 Pane that is known to the wezterm process.  A Pane object tracks the psuedo
@@ -7901,7 +7903,7 @@ introspect the state of the terminal emulation for that pane.</p>
 <li><a href="config/lua/pane/pane_id.html">pane_id</a></li>
 <li><a href="config/lua/pane/paste.html">paste</a></li>
 </ul>
-<h1 id="paneget_current_working_dir"><a class="header" href="#paneget_current_working_dir"><code>pane:get_current_working_dir()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="paneget_current_working_dir"><a class="header" href="#paneget_current_working_dir"><code>pane:get_current_working_dir()</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Returns the current working directory of the pane, if known.
 The current directory can be specified by an application sending
@@ -7911,7 +7913,7 @@ to inspect the cwd of the process group leader attached to the pty and use
 that.</p>
 <p>If the current working directory is not known then this method returns <code>nil</code>.
 Otherwise, it returns the current working directory as a URI string.</p>
-<h1 id="paneget_cursor_position"><a class="header" href="#paneget_cursor_position"><code>pane:get_cursor_position()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="paneget_cursor_position"><a class="header" href="#paneget_cursor_position"><code>pane:get_cursor_position()</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Returns a lua representation of the <code>StableCursorPosition</code> struct
 that identifies the cursor position, visibility and shape.</p>
@@ -7922,7 +7924,7 @@ that identifies the cursor position, visibility and shape.</p>
 <li><code>shape</code> the <code>CursorShape</code> enum value</li>
 <li><code>visibility</code> the <code>CursorVisibility</code> enum value</li>
 </ul>
-<h1 id="paneget_dimensions"><a class="header" href="#paneget_dimensions"><code>pane:get_dimensions()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="paneget_dimensions"><a class="header" href="#paneget_dimensions"><code>pane:get_dimensions()</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Returns a lua representation of the <code>RenderableDimensions</code> struct
 that identifies the dimensions and position of the viewport as
@@ -7938,7 +7940,7 @@ a stable index.</li>
 <li><code>scrollback_top</code> the top of the scrollback; the earliest row remembered
 by wezterm.</li>
 </ul>
-<h1 id="paneget_lines_as_textnlines"><a class="header" href="#paneget_lines_as_textnlines"><code>pane:get_lines_as_text([nlines])</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="paneget_lines_as_textnlines"><a class="header" href="#paneget_lines_as_textnlines"><code>pane:get_lines_as_text([nlines])</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Returns the textual representation (not including color or other attributes) of
 the lines of text in the viewport as a string.</p>
@@ -7950,7 +7952,7 @@ joined together in the returned string separated by a <code>\n</code> character.
 Trailing blank lines are stripped, which may result in fewer lines being
 returned than you might expect if the pane only had a couple of lines
 of output.</p>
-<h1 id="paneget_title"><a class="header" href="#paneget_title"><code>pane:get_title()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="paneget_title"><a class="header" href="#paneget_title"><code>pane:get_title()</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Returns the title of the pane.  This will typically be <code>wezterm</code> by default but
 can be modified by applications that send <code>OSC 1</code> (Icon/Tab title changing)
@@ -7962,7 +7964,7 @@ value for <code>OSC 2</code> will be returned.</p>
 <p>Note that on Microsoft Windows the default behavior of the OS level PTY is to
 implicitly send <code>OSC 2</code> sequences to the terminal as new programs attach to the
 console.</p>
-<h1 id="paneget_user_vars"><a class="header" href="#paneget_user_vars"><code>pane:get_user_vars()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="paneget_user_vars"><a class="header" href="#paneget_user_vars"><code>pane:get_user_vars()</code></a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>Returns a table holding the user variables that have been assigned
 to this pane.</p>
@@ -7974,12 +7976,12 @@ to the value <code>bar</code>:</p>
 <p>you're then able to access this in your wezterm config:</p>
 <pre><code class="language-lua">wezterm.log_info(&quot;foo var is &quot; .. pane:get_user_vars().foo)
 </code></pre>
-<h1 id="panepane_id"><a class="header" href="#panepane_id"><code>pane:pane_id()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="panepane_id"><a class="header" href="#panepane_id"><code>pane:pane_id()</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Returns the id number for the pane.  The Id is used to identify the pane
 within the internal multiplexer and can be used when making API calls
 via <code>wezterm cli</code> to indicate the subject of manipulation.</p>
-<h1 id="panepastetext"><a class="header" href="#panepastetext"><code>pane:paste(text)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="panepastetext"><a class="header" href="#panepastetext"><code>pane:paste(text)</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Sends the supplied <code>text</code> string to the input of the pane as if it
 were pasted from the clipboard, except that the clipboard is not involved.</p>
@@ -7987,7 +7989,7 @@ were pasted from the clipboard, except that the clipboard is not involved.</p>
 the text will be sent as a bracketed paste.</p>
 <p>Otherwise the string will be streamed into the input in chunks of
 approximately 1KB each.</p>
-<h1 id="window-object"><a class="header" href="#window-object"><code>Window</code> object</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="window-object"><a class="header" href="#window-object"><code>Window</code> object</a></h1>
 <p>A Window object cannot be created in lua code; it is typically passed to
 your code via an event callback.  A Window object is a handle to a GUI
 TermWindow running in the wezterm process.</p>
@@ -8003,7 +8005,7 @@ TermWindow running in the wezterm process.</p>
 <li><a href="config/lua/window/toast_notification.html">toast_notification</a></li>
 <li><a href="config/lua/window/window_id.html">window_id</a></li>
 </ul>
-<h1 id="windoweffective_config"><a class="header" href="#windoweffective_config"><code>window:effective_config()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="windoweffective_config"><a class="header" href="#windoweffective_config"><code>window:effective_config()</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Returns a lua table representing the effective configuration for the Window.
 The table is in the same format as that used to specify the config in
@@ -8025,12 +8027,12 @@ return {
   },
 }
 </code></pre>
-<h1 id="windowget_config_overrides"><a class="header" href="#windowget_config_overrides"><code>window:get_config_overrides()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="windowget_config_overrides"><a class="header" href="#windowget_config_overrides"><code>window:get_config_overrides()</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Returns a copy of the current set of configuration overrides that is in effect
 for the window.</p>
 <p>See <a href="config/lua/window/set_config_overrides.html">set_config_overrides</a> for examples!</p>
-<h1 id="windowget_dimensions"><a class="header" href="#windowget_dimensions"><code>window:get_dimensions()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="windowget_dimensions"><a class="header" href="#windowget_dimensions"><code>window:get_dimensions()</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Returns a Lua table representing the dimensions for the Window.</p>
 <p>The table has the following fields:</p>
@@ -8040,7 +8042,7 @@ for the window.</p>
 <li><code>dpi</code>: The DPI of the screen the window in on</li>
 <li><code>is_full_screen</code>: whether the window is in full screen mode</li>
 </ul>
-<h1 id="windowget_selection_text_for_panepane"><a class="header" href="#windowget_selection_text_for_panepane"><code>window:get_selection_text_for_pane(pane)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="windowget_selection_text_for_panepane"><a class="header" href="#windowget_selection_text_for_panepane"><code>window:get_selection_text_for_pane(pane)</code></a></h1>
 <p><em>Since: 20210404-112810-b63a949d</em></p>
 <p>Returns the text that is currently selected within the specified pane within
 the specified window.  This is the same text that would be copied to the
@@ -8063,7 +8065,7 @@ return {
   }
 }
 </code></pre>
-<h1 id="windowperform_actionkey_assignment-pane"><a class="header" href="#windowperform_actionkey_assignment-pane"><code>window:perform_action(key_assignment, pane)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="windowperform_actionkey_assignment-pane"><a class="header" href="#windowperform_actionkey_assignment-pane"><code>window:perform_action(key_assignment, pane)</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Performs a key assignment against the <code>window</code> and <code>pane</code>.
 There are a number of actions that can be performed against a <code>pane</code> in
@@ -8072,7 +8074,7 @@ a <code>window</code> when configured via the <code>keys</code> and <code>mouse<
 <p>The first parameter is a key assignment such as that returned by <a href="config/lua/window/../wezterm/action.html"><code>wezterm.action</code></a>.</p>
 <p>The second parameter is a <code>pane</code> object passed to your event callback.</p>
 <p>For an example of this method in action, see <a href="config/lua/window/../wezterm/on.html#custom-events"><code>wezterm.on Custom Events</code></a>.</p>
-<h1 id="windowset_config_overridesoverrides"><a class="header" href="#windowset_config_overridesoverrides"><code>window:set_config_overrides(overrides)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="windowset_config_overridesoverrides"><a class="header" href="#windowset_config_overridesoverrides"><code>window:set_config_overrides(overrides)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>Changes the set of configuration overrides for the window.
 The config file is re-evaluated and any CLI overrides are
@@ -8128,7 +8130,7 @@ return {
   },
 }
 </code></pre>
-<h1 id="windowset_right_statusstring"><a class="header" href="#windowset_right_statusstring"><code>window:set_right_status(string)</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="windowset_right_statusstring"><a class="header" href="#windowset_right_statusstring"><code>window:set_right_status(string)</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>This method can be used to change the content that is displayed in the tab bar,
 to the right of the tabs and new tab button.  The content is displayed
@@ -8242,7 +8244,7 @@ it can potentially pick up the remote hostname if your remote shell session is u
   window:set_right_status(wezterm.format(elements));
 end);
 </code></pre>
-<h1 id="windowtoast_notificationtitle-message--url-timeout_milliseconds"><a class="header" href="#windowtoast_notificationtitle-message--url-timeout_milliseconds"><code>window:toast_notification(title, message,  [url, [timeout_milliseconds]])</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="windowtoast_notificationtitle-message--url-timeout_milliseconds"><a class="header" href="#windowtoast_notificationtitle-message--url-timeout_milliseconds"><code>window:toast_notification(title, message,  [url, [timeout_milliseconds]])</code></a></h1>
 <p><em>Since: 20210502-154244-3f7122cb</em></p>
 <p>Generates a desktop &quot;toast notification&quot; with the specified <em>title</em> and <em>message</em>.</p>
 <p>An optional <em>url</em> parameter can be provided; clicking on the notification will
@@ -8267,12 +8269,12 @@ end)
 
 return {}
 </code></pre>
-<h1 id="windowwindow_id"><a class="header" href="#windowwindow_id"><code>window:window_id()</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="windowwindow_id"><a class="header" href="#windowwindow_id"><code>window:window_id()</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>Returns the id number for the window.  The Id is used to identify the window
 within the internal multiplexer and can be used when making API calls
 via <code>wezterm cli</code> to indicate the subject of manipulation.</p>
-<h1 id="events-emitted-by-the-window-object"><a class="header" href="#events-emitted-by-the-window-object">Events emitted by the <code>Window</code> object</a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="events-emitted-by-the-window-object"><a class="header" href="#events-emitted-by-the-window-object">Events emitted by the <code>Window</code> object</a></h1>
 <p>The following events can be handled using <a href="config/lua/window-events/../wezterm/on.html">wezterm.on</a>:</p>
 <ul>
 <li><a href="config/lua/window-events/format-tab-title.html">format-tab-title</a></li>
@@ -8282,7 +8284,7 @@ via <code>wezterm cli</code> to indicate the subject of manipulation.</p>
 <li><a href="config/lua/window-events/window-config-reloaded.html">window-config-reloaded</a></li>
 <li><a href="config/lua/window-events/window-resized.html">window-resized</a></li>
 </ul>
-<h1 id="format-tab-title"><a class="header" href="#format-tab-title"><code>format-tab-title</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="format-tab-title"><a class="header" href="#format-tab-title"><code>format-tab-title</code></a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>The <code>format-tab-title</code> event is emitted when the text for a tab title
 needs to be recomputed.</p>
@@ -8376,7 +8378,7 @@ end)
 
 return {}
 </code></pre>
-<h1 id="format-window-title"><a class="header" href="#format-window-title"><code>format-window-title</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="format-window-title"><a class="header" href="#format-window-title"><code>format-window-title</code></a></h1>
 <p><em>Since: 20210502-154244-3f7122cb</em></p>
 <p>The <code>format-window-title</code> event is emitted when the text for the window title
 needs to be recomputed.</p>
@@ -8417,7 +8419,7 @@ then the default window title text will be computed and used instead.</p>
 <p>Only the first <code>format-window-title</code> event will be executed; it doesn't make
 sense to define multiple instances of the event with multiple
 <code>wezterm.on(&quot;format-window-title&quot;, ...)</code> calls.</p>
-<h1 id="open-uri"><a class="header" href="#open-uri"><code>open-uri</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="open-uri"><a class="header" href="#open-uri"><code>open-uri</code></a></h1>
 <p>The <code>open-uri</code> event is emitted when the <code>CompleteSelectionOrOpenLinkAtMouseCursor</code>
 key/mouse assignment is triggered.</p>
 <p>The default action is to open the active URI in your browser, but if you
@@ -8446,7 +8448,7 @@ represents the gui window.</p>
 <p>The second event parameter is a <a href="config/lua/window-events/../pane/index.html"><code>pane</code> object</a> that
 represents the pane.</p>
 <p>The third event parameter is the URI string.</p>
-<h1 id="update-right-status"><a class="header" href="#update-right-status"><code>update-right-status</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="update-right-status"><a class="header" href="#update-right-status"><code>update-right-status</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>The <code>update-right-status</code> event is emitted periodically (based on the
 interval specified by the <a href="config/lua/window-events/../config/status_update_interval.html">status_update_interval</a>
@@ -8463,7 +8465,7 @@ if the hook takes longer than the
 <a href="config/lua/window-events/../config/status_update_interval.html">status_update_interval</a> to complete,
 <code>wezterm</code> won't schedule another call until <code>status_update_interval</code>
 milliseconds have elapsed since the last call completed.</p>
-<h1 id="window-config-reloaded"><a class="header" href="#window-config-reloaded"><code>window-config-reloaded</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="window-config-reloaded"><a class="header" href="#window-config-reloaded"><code>window-config-reloaded</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>The <code>window-config-reloaded</code> event is emitted when the configuration for a
 window has been reloaded.  This can occur when the configuration file is
@@ -8489,7 +8491,7 @@ wezterm.on(&quot;window-config-reloaded&quot;, function(window, pane)
   wezterm.log_info(&quot;the config was reloaded for this window!&quot;);
 end)
 </code></pre>
-<h1 id="window-resized"><a class="header" href="#window-resized"><code>window-resized</code></a></h1>
+<div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="window-resized"><a class="header" href="#window-resized"><code>window-resized</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p>The <code>window-resized</code> event is emitted when the window is resized and when
 transitioning between full-screen and regular windowed mode.</p>
