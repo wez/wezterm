@@ -34,7 +34,7 @@ libc = "0.2"
 log = "0.4"
 lru = "0.6"
 luahelper = { path = "../luahelper" }
-metrics = { version="0.14", features=["std"]}
+metrics = { version="0.15", features=["std"]}
 mlua = "0.5"
 mux = { path = "../mux" }
 open = "1.4"
