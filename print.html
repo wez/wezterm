@@ -435,6 +435,7 @@ usually the best available version.</p>
 <li>Fixed: double-click-drag selection could panic when crossing line boundaries <a href="https://github.com/wez/wezterm/issues/762">#762</a></li>
 <li>Fixed: wrong scaling for ligatures in Recursive Mono font <a href="https://github.com/wez/wezterm/issues/699">#699</a></li>
 <li>Fixed: incorrect Sixel HLS hue handling <a href="https://github.com/wez/wezterm/issues/775">#775</a></li>
+<li>Fixed: we now recognize the <code>CSI 48:2:0:214:255m</code> form of specifying true color text attributes <a href="https://github.com/wez/wezterm/issues/785">#785</a></li>
 </ul>
 <h3 id="20210502-154244-3f7122cb"><a class="header" href="#20210502-154244-3f7122cb">20210502-154244-3f7122cb</a></h3>
 <ul>
@@ -2798,13 +2799,28 @@ is not specified in the accompanying ITU T.416 specification and is ignored by
 <code>WezTerm</code> and most (all?) other terminal emulators:</p>
 <pre><code>CSI 38 : 2 : : R : G : B m
 </code></pre>
+<p>(*Since nightly builds only) For the sake of compatibility with some other
+terminal emulators this additional form is also supported where the colorspace
+ID argument is not specified:</p>
+<pre><code>CSI 38 : 2 : R : G : B m
+</code></pre>
 <p>This sequence will set the <em>background color</em> to an arbitrary color in RGB colorspace.
 The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal numbers in the range <code>0-255</code>:</p>
 <pre><code>CSI 48 : 2 : : R : G : B m
 </code></pre>
+<p>(*Since nightly builds only) For the sake of compatibility with some other
+terminal emulators this additional form is also supported where the colorspace
+ID argument is not specified:</p>
+<pre><code>CSI 48 : 2 : R : G : B m
+</code></pre>
 <p>This sequence will set the <em>underline color</em> to an arbitrary color in RGB colorspace.
 The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal numbers in the range <code>0-255</code>:</p>
 <pre><code>CSI 58 : 2 : : R : G : B m
+</code></pre>
+<p>(*Since nightly builds only) For the sake of compatibility with some other
+terminal emulators this additional form is also supported where the colorspace
+ID argument is not specified:</p>
+<pre><code>CSI 58 : 2 : R : G : B m
 </code></pre>
 <h4 id="cursor-movement"><a class="header" href="#cursor-movement">Cursor Movement</a></h4>
 <h4 id="editing-functions"><a class="header" href="#editing-functions">Editing Functions</a></h4>

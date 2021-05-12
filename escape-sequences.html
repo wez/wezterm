@@ -391,13 +391,28 @@ is not specified in the accompanying ITU T.416 specification and is ignored by
 <code>WezTerm</code> and most (all?) other terminal emulators:</p>
 <pre><code>CSI 38 : 2 : : R : G : B m
 </code></pre>
+<p>(*Since nightly builds only) For the sake of compatibility with some other
+terminal emulators this additional form is also supported where the colorspace
+ID argument is not specified:</p>
+<pre><code>CSI 38 : 2 : R : G : B m
+</code></pre>
 <p>This sequence will set the <em>background color</em> to an arbitrary color in RGB colorspace.
 The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal numbers in the range <code>0-255</code>:</p>
 <pre><code>CSI 48 : 2 : : R : G : B m
 </code></pre>
+<p>(*Since nightly builds only) For the sake of compatibility with some other
+terminal emulators this additional form is also supported where the colorspace
+ID argument is not specified:</p>
+<pre><code>CSI 48 : 2 : R : G : B m
+</code></pre>
 <p>This sequence will set the <em>underline color</em> to an arbitrary color in RGB colorspace.
 The <code>R</code>, <code>G</code> and <code>B</code> symbols below are decimal numbers in the range <code>0-255</code>:</p>
 <pre><code>CSI 58 : 2 : : R : G : B m
+</code></pre>
+<p>(*Since nightly builds only) For the sake of compatibility with some other
+terminal emulators this additional form is also supported where the colorspace
+ID argument is not specified:</p>
+<pre><code>CSI 58 : 2 : R : G : B m
 </code></pre>
 <h4 id="cursor-movement"><a class="header" href="#cursor-movement">Cursor Movement</a></h4>
 <h4 id="editing-functions"><a class="header" href="#editing-functions">Editing Functions</a></h4>
