@@ -24,6 +24,8 @@ use winapi::um::winsock2::{
     SOL_SOCKET, SO_ERROR, WSADATA, WSAENOTSOCK, WSA_FLAG_NO_HANDLE_INHERIT,
 };
 pub use winapi::um::winsock2::{POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as pollfd};
+use winapi::um::processenv::{GetStdHandle, SetStdHandle};
+use std::ffi::c_void;
 
 /// `RawFileDescriptor` is a platform independent type alias for the
 /// underlying platform file descriptor type.  It is primarily useful
@@ -34,6 +36,9 @@ pub type RawFileDescriptor = RawHandle;
 /// underlying platform socket descriptor type.  It is primarily useful
 /// for avoiding using `cfg` blocks in platform independent code.
 pub type SocketDescriptor = SOCKET;
+
+const STD_OUTPUT_HANDLE: u32 = 4294967285;
+const STD_ERROR_HANDLE: u32 = 4294967284;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum HandleType {
@@ -208,6 +213,43 @@ impl OwnedHandle {
             })
         }
     }
+
+    pub(crate) fn redirect_stdout_to_file(&self) -> anyhow::Result<Redirection> {
+        let std_original = unsafe{ GetStdHandle(STD_OUTPUT_HANDLE) } ;
+        if unsafe {SetStdHandle(STD_OUTPUT_HANDLE, self.handle)} == 0 {
+            // Case where StdOut could not be redirected to file handle
+            return Err(std::io::Error::last_os_error().into());
+        }
+
+        return Ok(Redirection{
+            file_descriptor: std_original,
+            std_output_type: STD_OUTPUT_HANDLE
+        })
+    }
+
+    pub(crate) fn redirect_stderr_to_file(&self) -> anyhow::Result<Redirection> {
+        let std_original = unsafe{ GetStdHandle(STD_ERROR_HANDLE) } ;
+        if unsafe {SetStdHandle(STD_ERROR_HANDLE, self.handle)} == 0 {
+            // Case where StdErr could not be redirected to file handle
+            return Err(std::io::Error::last_os_error().into());
+        }
+
+        return Ok(Redirection{
+            file_descriptor: std_original,
+            std_output_type: STD_ERROR_HANDLE
+        })
+    }
+}
+
+pub struct Redirection {
+    file_descriptor: *mut c_void,
+    std_output_type: u32
+}
+
+impl Drop for Redirection {
+    fn drop(&mut self) {
+        unsafe {SetStdHandle(self.std_output_type, self.file_descriptor)};
+    }
 }
 
 impl AsRawHandle for OwnedHandle {
@@ -254,6 +296,14 @@ impl FileDescriptor {
             );
         }
         Ok(())
+    }
+
+    pub fn redirect_stdout_to_file(&self) -> anyhow::Result<Redirection> {
+        self.handle.redirect_stdout_to_file()
+    }
+
+    pub fn redirect_stderr_to_file(&self) -> anyhow::Result<Redirection> {
+        self.handle.redirect_stderr_to_file()
     }
 }
 
