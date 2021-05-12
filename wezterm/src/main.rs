@@ -254,7 +254,7 @@ impl SetCwdCommand {
         let host = host.to_str().unwrap_or("localhost");
         url.set_host(Some(host))?;
 
-        let osc = OperatingSystemCommand::CurrentWorkingDirectory(url.into_string());
+        let osc = OperatingSystemCommand::CurrentWorkingDirectory(url.into());
         print!("{}", osc);
         Ok(())
     }
