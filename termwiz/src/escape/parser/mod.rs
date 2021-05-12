@@ -520,6 +520,18 @@ mod test {
         );
 
         assert_eq!(encode(&actions), "\u{1b}[38:2::128:64:192mw");
+
+        let actions = p.parse_as_vec(b"\x1b[38:2:0:255:0mw");
+        assert_eq!(
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
+                    RgbColor::new(0, 255, 0)
+                )))),
+                Action::Print('w'),
+            ],
+            actions
+        );
+
     }
 
     #[test]

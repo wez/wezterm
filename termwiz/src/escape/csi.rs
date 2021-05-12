@@ -2099,6 +2099,9 @@ impl<'a> CSIParser<'a> {
                         &[Some(38), Some(2), _colorspace, Some(r), Some(g), Some(b)] => one!(
                             Sgr::Foreground(RgbColor::new(r as u8, g as u8, b as u8).into())
                         ),
+                        &[Some(38), Some(2), Some(r), Some(g), Some(b)] => one!(
+                            Sgr::Foreground(RgbColor::new(r as u8, g as u8, b as u8).into())
+                        ),
                         &[Some(38), Some(5), Some(idx)] => {
                             one!(Sgr::Foreground(ColorSpec::PaletteIndex(idx as u8)))
                         }
@@ -2106,11 +2109,17 @@ impl<'a> CSIParser<'a> {
                         &[Some(48), Some(2), _colorspace, Some(r), Some(g), Some(b)] => one!(
                             Sgr::Background(RgbColor::new(r as u8, g as u8, b as u8).into())
                         ),
+                        &[Some(48), Some(2), Some(r), Some(g), Some(b)] => one!(
+                            Sgr::Background(RgbColor::new(r as u8, g as u8, b as u8).into())
+                        ),
                         &[Some(48), Some(5), Some(idx)] => {
                             one!(Sgr::Background(ColorSpec::PaletteIndex(idx as u8)))
                         }
 
                         &[Some(58), Some(2), _colorspace, Some(r), Some(g), Some(b)] => one!(
+                            Sgr::UnderlineColor(RgbColor::new(r as u8, g as u8, b as u8).into())
+                        ),
+                        &[Some(58), Some(2), Some(r), Some(g), Some(b)] => one!(
                             Sgr::UnderlineColor(RgbColor::new(r as u8, g as u8, b as u8).into())
                         ),
                         &[Some(58), Some(5), Some(idx)] => {
