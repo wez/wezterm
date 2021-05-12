@@ -21,5 +21,6 @@ winapi = { version = "0.3", features = [
     "fileapi",
     "namedpipeapi",
     "processthreadsapi",
-    "winsock2"
+    "winsock2",
+    "processenv"
 ]}

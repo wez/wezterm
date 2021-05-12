@@ -1,6 +1,7 @@
 use crate::{
     AsRawFileDescriptor, AsRawSocketDescriptor, FileDescriptor, FromRawFileDescriptor,
     FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
+    StdioDescriptor,
 };
 use anyhow::bail;
 use std::io::{self, Error as IoError};
@@ -15,6 +16,7 @@ use winapi::um::fileapi::*;
 use winapi::um::handleapi::*;
 use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
 use winapi::um::namedpipeapi::{CreatePipe, GetNamedPipeInfo};
+use winapi::um::processenv::{GetStdHandle, SetStdHandle};
 use winapi::um::processthreadsapi::*;
 use winapi::um::winbase::{FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE};
 use winapi::um::winnt::HANDLE;
@@ -34,6 +36,10 @@ pub type RawFileDescriptor = RawHandle;
 /// underlying platform socket descriptor type.  It is primarily useful
 /// for avoiding using `cfg` blocks in platform independent code.
 pub type SocketDescriptor = SOCKET;
+
+const STD_INPUT_HANDLE: u32 = 4294967286; // -10
+const STD_OUTPUT_HANDLE: u32 = 4294967285; // -11
+const STD_ERROR_HANDLE: u32 = 4294967284; // -12
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum HandleType {
@@ -254,6 +260,30 @@ impl FileDescriptor {
             );
         }
         Ok(())
+    }
+
+    pub(crate) fn redirect_stdio_impl<F: AsRawFileDescriptor>(
+        f: &F,
+        stdio: StdioDescriptor,
+    ) -> anyhow::Result<Self> {
+        let std_handle = match stdio {
+            StdioDescriptor::Stdin => STD_INPUT_HANDLE,
+            StdioDescriptor::Stdout => STD_OUTPUT_HANDLE,
+            StdioDescriptor::Stderr => STD_ERROR_HANDLE,
+        };
+
+        let raw_std_handle = unsafe { GetStdHandle(std_handle) } as *mut _;
+        let std_original = unsafe { FileDescriptor::from_raw_handle(raw_std_handle) };
+
+        let cloned_handle = OwnedHandle::dup(f)?;
+        if unsafe { SetStdHandle(std_handle, cloned_handle.into_raw_handle() as *mut _) } == 0 {
+            bail!(
+                "failed to redirect stdio to file handle: {:?}",
+                std::io::Error::last_os_error()
+            );
+        }
+
+        Ok(std_original)
     }
 }
 
