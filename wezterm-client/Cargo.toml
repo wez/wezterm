@@ -16,7 +16,7 @@ filedescriptor = { version="0.7", path = "../filedescriptor" }
 futures = "0.3"
 log = "0.4"
 lru = "0.6"
-metrics = { version="0.14", features=["std"]}
+metrics = { version="0.15", features=["std"]}
 mux = { path = "../mux" }
 openssl = "0.10"
 portable-pty = { path = "../pty", features = ["serde_support"]}

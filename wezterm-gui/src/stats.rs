@@ -109,32 +109,37 @@ impl Stats {
 }
 
 impl Recorder for Stats {
-    fn register_counter(&self, _key: Key, _unit: Option<Unit>, _description: Option<&'static str>) {
-    }
-
-    fn register_gauge(&self, _key: Key, _unit: Option<Unit>, _description: Option<&'static str>) {}
-
-    fn register_histogram(
+    fn register_counter(
         &self,
-        _key: Key,
+        _key: &Key,
         _unit: Option<Unit>,
         _description: Option<&'static str>,
     ) {
     }
 
-    fn increment_counter(&self, key: Key, value: u64) {
+    fn register_gauge(&self, _key: &Key, _unit: Option<Unit>, _description: Option<&'static str>) {}
+
+    fn register_histogram(
+        &self,
+        _key: &Key,
+        _unit: Option<Unit>,
+        _description: Option<&'static str>,
+    ) {
+    }
+
+    fn increment_counter(&self, key: &Key, value: u64) {
         log::trace!("counter '{}' -> {}", key, value);
     }
 
-    fn update_gauge(&self, key: Key, value: GaugeValue) {
+    fn update_gauge(&self, key: &Key, value: GaugeValue) {
         log::trace!("gauge '{}' -> {:?}", key, value);
     }
 
-    fn record_histogram(&self, key: Key, value: f64) {
+    fn record_histogram(&self, key: &Key, value: f64) {
         let mut inner = self.inner.lock().unwrap();
         let histogram = inner
             .histograms
-            .entry(key)
+            .entry(key.clone())
             .or_insert_with(|| Histogram::new(2).expect("failed to crate new Histogram"));
         histogram.record(value as u64).ok();
     }

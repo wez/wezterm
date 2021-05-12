@@ -17,7 +17,7 @@ harfbuzz = { path = "../deps/harfbuzz" }
 lazy_static = "1.4"
 log = "0.4"
 memmap2 = "0.2"
-metrics = { version="0.14", features=["std"]}
+metrics = { version="0.15", features=["std"]}
 mux = { path = "../mux" }
 ordered-float = "2.1"
 rangeset = { path = "../rangeset" }

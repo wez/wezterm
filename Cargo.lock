@@ -2377,19 +2377,20 @@ dependencies = [
 
 [[package]]
 name = "metrics"
-version = "0.14.2"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58e285601dcfb9f3a8f37a7093b9956a0df730b50848c8ac0117406aff06c851"
+checksum = "c53c23fff9a59f261498953cf41dc9ffc2522fd79723bdf283c1e88dc1633624"
 dependencies = [
  "metrics-macros",
  "proc-macro-hack",
+ "t1ha",
 ]
 
 [[package]]
 name = "metrics-macros"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11ac60cd4d3a869fd39d57baf0ed7f79fb677580d8d6655c4330d4f1126bc27b"
+checksum = "b22572ba9964744e261d34553568683b76db277bcd309ebf7215e28e0982505d"
 dependencies = [
  "lazy_static",
  "proc-macro-hack",
@@ -4105,6 +4106,18 @@ dependencies = [
  "once_cell",
  "rayon",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "t1ha"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa44aa51ae1a544e2c35a38831ba54ae40591f21384816f531b84f3e984b9ccc"
+dependencies = [
+ "cfg-if 0.1.10",
+ "lazy_static",
+ "num-traits 0.2.14",
+ "rustc_version",
 ]
 
 [[package]]
