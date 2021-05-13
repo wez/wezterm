@@ -293,7 +293,7 @@ impl FileDescriptor {
         };
 
         let std_original = FileDescriptor::dup(std_descriptor)?;
-        unsafe { FileDescriptor::dup2(f, std_descriptor) }?;
+        unsafe { FileDescriptor::dup2(f.into_raw_fd(), std_descriptor) }?;
 
         Ok(std_original)
     }
