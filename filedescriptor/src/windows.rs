@@ -1,6 +1,7 @@
 use crate::{
     AsRawFileDescriptor, AsRawSocketDescriptor, FileDescriptor, FromRawFileDescriptor,
     FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
+    StdioDescriptor,
 };
 use anyhow::bail;
 use std::io::{self, Error as IoError};
@@ -261,8 +262,17 @@ impl FileDescriptor {
         Ok(())
     }
 
-    pub(crate) fn redirect_stdin<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<FileDescriptor> {
-        let raw_std_handle = unsafe { GetStdHandle(STD_INPUT_HANDLE) } as *mut _;
+    pub(crate) fn redirect_stdio_impl<F: AsRawFileDescriptor>(
+        f: &F,
+        stdio: StdioDescriptor,
+    ) -> anyhow::Result<Self> {
+        let std_handle = match stdio {
+            StdioDescriptor::Stdin => STD_INPUT_HANDLE,
+            StdioDescriptor::Stdout => STD_OUTPUT_HANDLE,
+            StdioDescriptor::Stderr => STD_ERROR_HANDLE,
+        };
+
+        let raw_std_handle = unsafe { GetStdHandle(std_handle) } as *mut _;
         let std_original = FileDescriptor {
             handle: OwnedHandle {
                 handle: raw_std_handle,
@@ -273,60 +283,12 @@ impl FileDescriptor {
         let cloned_handle = OwnedHandle::dup(f)?;
         if unsafe {
             SetStdHandle(
-                STD_INPUT_HANDLE,
-                cloned_handle.handle as *mut winapi::ctypes::c_void,
+                std_handle,
+                cloned_handle.into_raw_handle() as *mut winapi::ctypes::c_void,
             )
         } == 0
         {
-            // Case where StdIn could not be redirected to file handle
-            return Err(std::io::Error::last_os_error().into());
-        }
-
-        Ok(std_original)
-    }
-
-    pub(crate) fn redirect_stdout<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<FileDescriptor> {
-        let raw_std_handle = unsafe { GetStdHandle(STD_OUTPUT_HANDLE) } as *mut _;
-        let std_original = FileDescriptor {
-            handle: OwnedHandle {
-                handle: raw_std_handle,
-                handle_type: OwnedHandle::probe_handle_type(raw_std_handle),
-            },
-        };
-
-        let cloned_handle = OwnedHandle::dup(f)?;
-        if unsafe {
-            SetStdHandle(
-                STD_OUTPUT_HANDLE,
-                cloned_handle.handle as *mut winapi::ctypes::c_void,
-            )
-        } == 0
-        {
-            // Case where StdOut could not be redirected to file handle
-            return Err(std::io::Error::last_os_error().into());
-        }
-
-        Ok(std_original)
-    }
-
-    pub(crate) fn redirect_stderr<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<FileDescriptor> {
-        let raw_std_handle = unsafe { GetStdHandle(STD_ERROR_HANDLE) } as *mut _;
-        let std_original = FileDescriptor {
-            handle: OwnedHandle {
-                handle: raw_std_handle,
-                handle_type: OwnedHandle::probe_handle_type(raw_std_handle),
-            },
-        };
-
-        let cloned_handle = OwnedHandle::dup(f)?;
-        if unsafe {
-            SetStdHandle(
-                STD_ERROR_HANDLE,
-                cloned_handle.handle as *mut winapi::ctypes::c_void,
-            )
-        } == 0
-        {
-            // Case where StdErr could not be redirected to file handle
+            // Case where stdio could not be redirected to file handle
             return Err(std::io::Error::last_os_error().into());
         }
 

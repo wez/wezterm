@@ -269,16 +269,12 @@ impl FileDescriptor {
     /// a `FileDescriptor` wrapped around the original stdio source.
     /// Since the redirection requires kernel resources that may not be
     /// available, this is a potentially fallible operation.
-    /// Supports StdIn, StdOut, and StdErr redirections.
+    /// Supports stdin, stdout, and stderr redirections.
     pub fn redirect_stdio<F: AsRawFileDescriptor>(
         f: &F,
         stdio: StdioDescriptor,
     ) -> anyhow::Result<Self> {
-        match stdio {
-            StdioDescriptor::Stdin => Self::redirect_stdin(f),
-            StdioDescriptor::Stdout => Self::redirect_stdout(f),
-            StdioDescriptor::Stderr => Self::redirect_stderr(f),
-        }
+        Self::redirect_stdio_impl(f, stdio)
     }
 }
 
