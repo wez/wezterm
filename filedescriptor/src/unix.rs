@@ -1,6 +1,7 @@
 use crate::{
     AsRawFileDescriptor, AsRawSocketDescriptor, FileDescriptor, FromRawFileDescriptor,
     FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
+    StdioDescriptor,
 };
 use anyhow::bail;
 use std::os::unix::prelude::*;
@@ -277,26 +278,18 @@ impl FileDescriptor {
         OwnedHandle::dup2_impl(f, dest_fd).map(|handle| Self { handle })
     }
 
-    pub(crate) fn redirect_stdin<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<FileDescriptor> {
-        let std_original = FileDescriptor::dup(libc::STDIN_FILENO)?;
-        let cloned_handle = OwnedHandle::dup(f)?;
-        unsafe { FileDescriptor::dup2(cloned_handle.handle, libc::STDIN_FILENO) }?;
+    pub(crate) fn redirect_stdio_impl<F: AsRawFileDescriptor>(
+        f: &F,
+        stdio: StdioDescriptor,
+    ) -> anyhow::Result<Self> {
+        let std_descriptor = match stdio {
+            StdioDescriptor::Stdin => libc::STDIN_FILENO,
+            StdioDescriptor::Stdout => libc::STDOUT_FILENO,
+            StdioDescriptor::Stderr => libc::STDERR_FILENO,
+        };
 
-        Ok(std_original)
-    }
-
-    pub(crate) fn redirect_stdout<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<FileDescriptor> {
-        let std_original = FileDescriptor::dup(libc::STDOUT_FILENO)?;
-        let cloned_handle = OwnedHandle::dup(f)?;
-        unsafe { FileDescriptor::dup2(cloned_handle.handle, libc::STDOUT_FILENO) }?;
-
-        Ok(std_original)
-    }
-
-    pub(crate) fn redirect_stderr<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<FileDescriptor> {
-        let std_original = FileDescriptor::dup(libc::STDERR_FILENO)?;
-        let cloned_handle = OwnedHandle::dup(f)?;
-        unsafe { FileDescriptor::dup2(cloned_handle.handle, libc::STDERR_FILENO) }?;
+        let std_original = FileDescriptor::dup(std_descriptor)?;
+        unsafe { FileDescriptor::dup2(f, std_descriptor) }?;
 
         Ok(std_original)
     }
