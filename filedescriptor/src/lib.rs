@@ -210,6 +210,13 @@ pub struct FileDescriptor {
     handle: OwnedHandle,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum StdioDescriptor {
+    Stdin,
+    Stdout,
+    Stderr,
+}
+
 impl FileDescriptor {
     /// Create a new descriptor from some object that is convertible into
     /// the system `RawFileDescriptor` type.  This consumes the parameter
@@ -256,6 +263,22 @@ impl FileDescriptor {
     /// that can be successfully made non-blocking.
     pub fn set_non_blocking(&mut self, non_blocking: bool) -> anyhow::Result<()> {
         self.set_non_blocking_impl(non_blocking)
+    }
+
+    /// Attempt to redirect stdio to the underlying handle and return
+    /// a `FileDescriptor` wrapped around the original stdio source.
+    /// Since the redirection requires kernel resources that may not be
+    /// available, this is a potentially fallible operation.
+    /// Supports StdIn, StdOut, and StdErr redirections.
+    pub fn redirect_stdio<F: AsRawFileDescriptor>(
+        f: &F,
+        stdio: StdioDescriptor,
+    ) -> anyhow::Result<Self> {
+        match stdio {
+            StdioDescriptor::Stdin => Self::redirect_stdin(f),
+            StdioDescriptor::Stdout => Self::redirect_stdout(f),
+            StdioDescriptor::Stderr => Self::redirect_stderr(f),
+        }
     }
 }
 

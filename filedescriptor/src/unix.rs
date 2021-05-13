@@ -122,6 +122,25 @@ impl OwnedHandle {
         }
     }
 
+    fn non_atomic_dup2(fd: RawFd, dest_fd: RawFd) -> anyhow::Result<Self> {
+        let duped = unsafe { libc::dup2(fd, dest_fd) };
+        if duped == -1 {
+            bail!(
+                "dup2 of fd {} and dest_fd {} failed: {:?}",
+                fd,
+                dest_fd,
+                std::io::Error::last_os_error()
+            )
+        } else {
+            let mut owned = OwnedHandle {
+                handle: duped,
+                handle_type: (),
+            };
+            owned.cloexec()?;
+            Ok(owned)
+        }
+    }
+
     #[inline]
     pub(crate) fn dup_impl<F: AsRawFileDescriptor>(
         fd: &F,
@@ -137,6 +156,35 @@ impl OwnedHandle {
                 return Self::non_atomic_dup(fd);
             } else {
                 bail!("dup of fd {} failed: {:?}", fd, err)
+            }
+        } else {
+            Ok(OwnedHandle {
+                handle: duped,
+                handle_type,
+            })
+        }
+    }
+
+    #[inline]
+    pub(crate) unsafe fn dup2_impl<F: AsRawFileDescriptor>(
+        fd: &F,
+        dest_fd: RawFd,
+    ) -> anyhow::Result<Self> {
+        let fd = fd.as_raw_file_descriptor();
+        let duped = unsafe { libc::dup3(fd, dest_fd, libc::O_CLOEXEC) };
+        if duped == -1 {
+            let err = std::io::Error::last_os_error();
+            if let Some(libc::EINVAL) = err.raw_os_error() {
+                // We may be running on eg: WSL or an old kernel that
+                // doesn't support O_CLOEXEC; fall back.
+                return Self::non_atomic_dup2(fd, dest_fd);
+            } else {
+                bail!(
+                    "dup2 of fd {} and dest_fd {} failed: {:?}",
+                    fd,
+                    dest_fd,
+                    err
+                )
             }
         } else {
             Ok(OwnedHandle {
@@ -216,6 +264,41 @@ impl FileDescriptor {
             );
         }
         Ok(())
+    }
+
+    /// Attempt to duplicate the underlying handle from an object that is
+    /// representable as the system `RawFileDescriptor` type and assign it to
+    /// a destination file descriptor. It then returns a `FileDescriptor`
+    /// wrapped around the duplicate.  Since the duplication requires kernel
+    /// resources that may not be available, this is a potentially fallible operation.
+    /// The returned handle has a separate lifetime from the source, but
+    /// references the same object at the kernel level.
+    pub unsafe fn dup2<F: AsRawFileDescriptor>(f: &F, dest_fd: RawFd) -> anyhow::Result<Self> {
+        OwnedHandle::dup2_impl(f, dest_fd).map(|handle| Self { handle })
+    }
+
+    pub(crate) fn redirect_stdin<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<FileDescriptor> {
+        let std_original = FileDescriptor::dup(libc::STDIN_FILENO)?;
+        let cloned_handle = OwnedHandle::dup(f)?;
+        unsafe { FileDescriptor::dup2(cloned_handle.handle, libc::STDIN_FILENO) }?;
+
+        Ok(std_original)
+    }
+
+    pub(crate) fn redirect_stdout<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<FileDescriptor> {
+        let std_original = FileDescriptor::dup(libc::STDOUT_FILENO)?;
+        let cloned_handle = OwnedHandle::dup(f)?;
+        unsafe { FileDescriptor::dup2(cloned_handle.handle, libc::STDOUT_FILENO) }?;
+
+        Ok(std_original)
+    }
+
+    pub(crate) fn redirect_stderr<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<FileDescriptor> {
+        let std_original = FileDescriptor::dup(libc::STDERR_FILENO)?;
+        let cloned_handle = OwnedHandle::dup(f)?;
+        unsafe { FileDescriptor::dup2(cloned_handle.handle, libc::STDERR_FILENO) }?;
+
+        Ok(std_original)
     }
 }
 
