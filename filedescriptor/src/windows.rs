@@ -273,12 +273,7 @@ impl FileDescriptor {
         };
 
         let raw_std_handle = unsafe { GetStdHandle(std_handle) } as *mut _;
-        let std_original = FileDescriptor {
-            handle: OwnedHandle {
-                handle: raw_std_handle,
-                handle_type: OwnedHandle::probe_handle_type(raw_std_handle),
-            },
-        };
+        let std_original = unsafe { FileDescriptor::from_raw_handle(raw_std_handle) };
 
         let cloned_handle = OwnedHandle::dup(f)?;
         if unsafe {
@@ -288,8 +283,10 @@ impl FileDescriptor {
             )
         } == 0
         {
-            // Case where stdio could not be redirected to file handle
-            return Err(std::io::Error::last_os_error().into());
+            bail!(
+                "failed to redirect stdio to file handle: {:?}",
+                std::io::Error::last_os_error()
+            );
         }
 
         Ok(std_original)
