@@ -176,7 +176,9 @@ impl OwnedHandle {
         #[cfg(not(target_os = "linux"))]
         return Self::non_atomic_dup2(fd, dest_fd);
 
+        #[cfg(target_os = "linux")]
         let duped = unsafe { libc::dup3(fd, dest_fd, libc::O_CLOEXEC) };
+
         if duped == -1 {
             let err = std::io::Error::last_os_error();
             if let Some(libc::EINVAL) = err.raw_os_error() {
@@ -293,7 +295,7 @@ impl FileDescriptor {
         };
 
         let std_original = FileDescriptor::dup(std_descriptor)?;
-        unsafe { FileDescriptor::dup2(f.into_raw_fd(), std_descriptor) }?;
+        unsafe { FileDescriptor::dup2(f.as_raw_file_descriptor(), std_descriptor) }?;
 
         Ok(std_original)
     }
