@@ -437,6 +437,7 @@ usually the best available version.</p>
 <li>Fixed: incorrect Sixel HLS hue handling <a href="https://github.com/wez/wezterm/issues/775">#775</a></li>
 <li>Fixed: we now recognize the <code>CSI 48:2:0:214:255m</code> form of specifying true color text attributes <a href="https://github.com/wez/wezterm/issues/785">#785</a></li>
 <li>Fixed: split separators didn't respect <code>tab_bar_at_bottom=true</code> and were rendered in the wrong place <a href="https://github.com/wez/wezterm/issues/797">#797</a></li>
+<li>Improved: messaging around <a href="https://wezfurlong.org/wezterm/config/lua/config/exit_behavior.html">exit_behavior</a></li>
 </ul>
 <h3 id="20210502-154244-3f7122cb"><a class="header" href="#20210502-154244-3f7122cb">20210502-154244-3f7122cb</a></h3>
 <ul>
@@ -6193,6 +6194,10 @@ There are three possible values:</p>
   exit_behavior = &quot;Hold&quot;,
 }
 </code></pre>
+<p>Note that most unix shells will exit with the status of the last command that
+it ran.  If you interrupt a command and then use CTRL-D to send EOF to the
+shell, the shell will return an unsuccessful exit status.  With the default
+<code>exit_behavior=&quot;CloseOnCleanExit&quot;</code>, that will cause the pane to remain open.</p>
 <div id="chapter_begin" style="break-before: page; page-break-before: always;"></div><h1 id="font"><a class="header" href="#font"><code>font</code></a></h1>
 <p>Configures the font to use by default.  The <code>font</code> setting can specify
 a set of fallbacks and other options, and is described in more detail
