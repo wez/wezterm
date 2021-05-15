@@ -19,6 +19,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: wrong scaling for ligatures in Recursive Mono font [#699](https://github.com/wez/wezterm/issues/699)
 * Fixed: incorrect Sixel HLS hue handling [#775](https://github.com/wez/wezterm/issues/775)
 * Fixed: we now recognize the `CSI 48:2:0:214:255m` form of specifying true color text attributes [#785](https://github.com/wez/wezterm/issues/785)
+* Fixed: split separators didn't respect `tab_bar_at_bottom=true` and were rendered in the wrong place [#797](https://github.com/wez/wezterm/issues/797)
 
 ### 20210502-154244-3f7122cb
 

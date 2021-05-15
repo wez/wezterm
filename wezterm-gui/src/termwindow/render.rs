@@ -578,7 +578,11 @@ impl super::TermWindow {
                 }
             }
         };
-        let first_row_offset = if self.show_tab_bar { 1 } else { 0 };
+        let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+            1
+        } else {
+            0
+        };
 
         for info in glyph_info.iter() {
             let glyph = &info.glyph;
