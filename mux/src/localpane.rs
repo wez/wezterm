@@ -111,6 +111,11 @@ impl Pane for LocalPane {
 
     fn is_dead(&self) -> bool {
         let mut proc = self.process.borrow_mut();
+        let mut notify = None;
+
+        const EXIT_BEHAVIOR: &str = "\x1b]8;;https://wezfurlong.org/wezterm/\
+                                     config/lua/config/exit_behavior.html\
+                                     \x1b\\exit_behavior\x1b]8;;\x1b\\";
 
         match &mut *proc {
             ProcessState::Running { child, killed } => {
@@ -118,10 +123,25 @@ impl Pane for LocalPane {
                     match (configuration().exit_behavior, status.success(), killed) {
                         (ExitBehavior::Close, _, _) => *proc = ProcessState::Dead,
                         (ExitBehavior::CloseOnCleanExit, false, false) => {
+                            notify = Some(format!(
+                                "\r\n[Process didn't exit cleanly. ({}=\"CloseOnCleanExit\")]",
+                                EXIT_BEHAVIOR
+                            ));
                             *proc = ProcessState::DeadPendingClose { killed: false }
                         }
                         (ExitBehavior::CloseOnCleanExit, ..) => *proc = ProcessState::Dead,
-                        (ExitBehavior::Hold, _, false) => {
+                        (ExitBehavior::Hold, success, false) => {
+                            if success {
+                                notify = Some(format!(
+                                    "\r\n[Process completed. ({}=\"Hold\")]",
+                                    EXIT_BEHAVIOR
+                                ));
+                            } else {
+                                notify = Some(format!(
+                                    "\r\n[Process didn't exit cleanly. ({}=\"Hold\")]",
+                                    EXIT_BEHAVIOR
+                                ));
+                            }
                             *proc = ProcessState::DeadPendingClose { killed: false }
                         }
                         (ExitBehavior::Hold, _, true) => *proc = ProcessState::Dead,
@@ -136,6 +156,21 @@ impl Pane for LocalPane {
                 }
             }
             ProcessState::Dead => {}
+        }
+
+        if let Some(notify) = notify {
+            let pane_id = self.pane_id;
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get().unwrap();
+                if let Some(pane) = mux.get_pane(pane_id) {
+                    let mut parser = termwiz::escape::parser::Parser::new();
+                    let mut actions = vec![];
+                    parser.parse(notify.as_bytes(), |action| actions.push(action));
+                    pane.perform_actions(actions);
+                    mux.notify(MuxNotification::PaneOutput(pane_id));
+                }
+            })
+            .detach();
         }
 
         match &*proc {

@@ -185,7 +185,6 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
         ExitBehavior::Hold | ExitBehavior::CloseOnCleanExit => {
             // We don't know if we can unilaterally close
             // this pane right now, so don't!
-            state.write(b"\n[Process completed]");
             promise::spawn::spawn_into_main_thread(async move {
                 let mux = Mux::get().unwrap();
                 mux.prune_dead_windows();

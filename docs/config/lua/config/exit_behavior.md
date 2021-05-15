@@ -14,3 +14,9 @@ return {
   exit_behavior = "Hold",
 }
 ```
+
+Note that most unix shells will exit with the status of the last command that
+it ran.  If you interrupt a command and then use CTRL-D to send EOF to the
+shell, the shell will return an unsuccessful exit status.  With the default
+`exit_behavior="CloseOnCleanExit"`, that will cause the pane to remain open.
+
