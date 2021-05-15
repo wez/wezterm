@@ -6,6 +6,7 @@ use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
 use mux::Mux;
+use percent_encoding::percent_decode_str;
 use portable_pty::PtySize;
 use promise::spawn::spawn_into_main_thread;
 use rangeset::RangeSet;
@@ -611,8 +612,13 @@ async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> 
     let cwd = split.command_dir.or_else(|| {
         mux.get_pane(pane_id)
             .and_then(|pane| pane.get_current_working_dir())
-            .map(|url| {
-                let path = url.path().to_string();
+            .and_then(|url| {
+                percent_decode_str(url.path())
+                    .decode_utf8()
+                    .ok()
+                    .map(|path| path.into_owned())
+            })
+            .map(|path| {
                 // On Windows the file URI can produce a path like:
                 // `/C:\Users` which is valid in a file URI, but the leading slash
                 // is not liked by the windows file APIs, so we strip it off here.

@@ -16,6 +16,7 @@ hostname = "0.3"
 lazy_static = "1.4"
 log = "0.4"
 mux = { path = "../mux" }
+percent-encoding = "2"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }
