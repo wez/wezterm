@@ -5,6 +5,7 @@ use mux::activity::Activity;
 use mux::domain::DomainState;
 use mux::tab::SplitDirection;
 use mux::Mux;
+use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, PtySize};
 use std::sync::Arc;
 
@@ -127,15 +128,19 @@ impl super::TermWindow {
         } else {
             match cwd {
                 Some(url) if url.scheme() == "file" => {
-                    let path = url.path().to_string();
-                    // On Windows the file URI can produce a path like:
-                    // `/C:\Users` which is valid in a file URI, but the leading slash
-                    // is not liked by the windows file APIs, so we strip it off here.
-                    let bytes = path.as_bytes();
-                    if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
-                        Some(path[1..].to_owned())
+                    if let Ok(path) = percent_decode_str(url.path()).decode_utf8() {
+                        let path = path.into_owned();
+                        // On Windows the file URI can produce a path like:
+                        // `/C:\Users` which is valid in a file URI, but the leading slash
+                        // is not liked by the windows file APIs, so we strip it off here.
+                        let bytes = path.as_bytes();
+                        if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
+                            Some(path[1..].to_owned())
+                        } else {
+                            Some(path)
+                        }
                     } else {
-                        Some(path)
+                        None
                     }
                 }
                 Some(_) | None => None,
