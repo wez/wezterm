@@ -1578,9 +1578,7 @@ impl Config {
 
         fn load_scheme(path: &Path) -> Result<ColorSchemeFile, Error> {
             let s = std::fs::read_to_string(path)?;
-            let scheme: ColorSchemeFile = toml::from_str(&s).with_context(|| {
-                format!("Error parsing color scheme TOML from {}", path.display())
-            })?;
+            let scheme: ColorSchemeFile = toml::from_str(&s).context("parsing TOML")?;
             Ok(scheme)
         }
 
@@ -1596,14 +1594,23 @@ impl Config {
                                 }
 
                                 let path = entry.path();
-                                if let Ok(scheme) = load_scheme(&path) {
-                                    log::trace!(
-                                        "Loaded color scheme `{}` from {}",
-                                        scheme_name,
-                                        path.display()
-                                    );
-                                    self.color_schemes
-                                        .insert(scheme_name.to_string(), scheme.colors);
+                                match load_scheme(&path) {
+                                    Ok(scheme) => {
+                                        log::trace!(
+                                            "Loaded color scheme `{}` from {}",
+                                            scheme_name,
+                                            path.display()
+                                        );
+                                        self.color_schemes
+                                            .insert(scheme_name.to_string(), scheme.colors);
+                                    }
+                                    Err(err) => {
+                                        log::error!(
+                                            "Color scheme in `{}` failed to load: {:#}",
+                                            path.display(),
+                                            err
+                                        );
+                                    }
                                 }
                             }
                         }
