@@ -195,10 +195,10 @@ impl OwnedHandle {
                     )
                 }
             } else {
-                Ok(OwnedHandle {
+                return Ok(OwnedHandle {
                     handle: duped,
                     handle_type,
-                })
+                });
             }
         }
     }
