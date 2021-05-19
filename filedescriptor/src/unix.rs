@@ -296,7 +296,7 @@ impl FileDescriptor {
             StdioDescriptor::Stderr => libc::STDERR_FILENO,
         };
 
-        let std_original = FileDescriptor::dup(std_descriptor)?;
+        let std_original = FileDescriptor::dup(&std_descriptor)?;
         unsafe { FileDescriptor::dup2(f, std_descriptor) }?;
 
         Ok(std_original)
