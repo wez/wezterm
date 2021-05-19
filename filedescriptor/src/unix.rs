@@ -197,7 +197,7 @@ impl OwnedHandle {
             } else {
                 return Ok(OwnedHandle {
                     handle: duped,
-                    handle_type,
+                    handle_type: Self::probe_handle_type(duped),
                 });
             }
         }
