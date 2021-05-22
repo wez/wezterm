@@ -804,10 +804,6 @@ pub struct Config {
     pub font_rasterizer: FontRasterizerSelection,
     #[serde(default)]
     pub font_shaper: FontShaperSelection,
-    #[serde(default)]
-    pub font_hinting: FontHinting,
-    #[serde(default)]
-    pub font_antialias: FontAntiAliasing,
 
     #[serde(default)]
     pub freetype_load_target: FreeTypeLoadTarget,

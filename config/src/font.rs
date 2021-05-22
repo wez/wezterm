@@ -216,41 +216,6 @@ impl FreeTypeLoadFlags {
     }
 }
 
-#[derive(Debug, Copy, Deserialize, Serialize, Clone, PartialEq, Eq, Hash)]
-pub enum FontHinting {
-    /// No hinting is performed
-    None,
-    /// Light vertical hinting is performed to fit the terminal grid
-    Vertical,
-    /// Vertical hinting is performed, with additional processing
-    /// for subpixel anti-aliasing.
-    /// This level is equivalent to Microsoft ClearType.
-    VerticalSubpixel,
-    /// Vertical and horizontal hinting is performed.
-    Full,
-}
-impl_lua_conversion!(FontHinting);
-
-impl Default for FontHinting {
-    fn default() -> Self {
-        Self::Full
-    }
-}
-
-#[derive(Debug, Copy, Deserialize, Serialize, Clone, PartialEq, Eq, Hash)]
-pub enum FontAntiAliasing {
-    None,
-    Greyscale,
-    Subpixel,
-}
-impl_lua_conversion!(FontAntiAliasing);
-
-impl Default for FontAntiAliasing {
-    fn default() -> Self {
-        Self::Greyscale
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct FontAttributes {
     /// The font family name
