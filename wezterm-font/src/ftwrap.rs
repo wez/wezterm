@@ -421,6 +421,20 @@ impl Face {
         ft_result(unsafe { FT_Select_Size(self.face, idx as i32) }, ()).context("FT_Select_Size")
     }
 
+    pub fn set_transform(&mut self, matrix: Option<FT_Matrix>) {
+        let mut matrix = matrix.clone();
+        unsafe {
+            FT_Set_Transform(
+                self.face,
+                match &mut matrix {
+                    Some(m) => m as *mut _,
+                    None => std::ptr::null_mut(),
+                },
+                std::ptr::null_mut(),
+            )
+        }
+    }
+
     pub fn load_and_render_glyph(
         &mut self,
         glyph_index: FT_UInt,

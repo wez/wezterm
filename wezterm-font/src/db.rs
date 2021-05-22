@@ -83,7 +83,7 @@ impl FontDatabase {
                 continue;
             }
             if let Some(handle) = self.resolve(attr) {
-                handles.push(handle.clone());
+                handles.push(handle.clone().synthesize(attr));
                 loaded.insert(attr.clone());
             }
         }

@@ -2,7 +2,7 @@ use crate::parser::ParsedFont;
 use crate::rasterizer::FontRasterizer;
 use crate::units::*;
 use crate::{ftwrap, RasterizedGlyph};
-use ::freetype::FT_GlyphSlotRec_;
+use ::freetype::{FT_GlyphSlotRec_, FT_Matrix};
 use anyhow::bail;
 use std::cell::RefCell;
 use std::mem;
@@ -292,10 +292,20 @@ impl FreeTypeRasterizer {
     pub fn from_locator(parsed: &ParsedFont) -> anyhow::Result<Self> {
         log::trace!("Rasterizier wants {:?}", parsed);
         let lib = ftwrap::Library::new()?;
-        let face = lib.face_from_locator(&parsed.handle)?;
+        let mut face = lib.face_from_locator(&parsed.handle)?;
         let has_color = unsafe {
             (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
         };
+
+        if parsed.synthesize_italic {
+            face.set_transform(Some(FT_Matrix {
+                xx: 1 * 65536,            // scale x
+                yy: 1 * 65536,            // scale y
+                xy: (0.2 * 65536.0) as _, // skew x
+                yx: 0 * 65536,            // skey y
+            }));
+        }
+
         Ok(Self {
             _lib: lib,
             face: RefCell::new(face),

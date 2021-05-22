@@ -21,6 +21,7 @@ pub struct ParsedFont {
     cap_height: Option<f64>,
     pub handle: FontDataHandle,
     coverage: Mutex<RangeSet<u32>>,
+    pub synthesize_italic: bool,
 }
 
 impl std::fmt::Debug for ParsedFont {
@@ -43,6 +44,7 @@ impl Clone for ParsedFont {
             weight: self.weight,
             stretch: self.stretch,
             italic: self.italic,
+            synthesize_italic: self.synthesize_italic,
             handle: self.handle.clone(),
             cap_height: self.cap_height.clone(),
             coverage: Mutex::new(self.coverage.lock().unwrap().clone()),
@@ -130,6 +132,9 @@ impl ParsedFont {
 
         for p in handles {
             code.push_str(&format!("  -- {}\n", p.handle.diagnostic_string()));
+            if p.synthesize_italic {
+                code.push_str("  -- Will synthesize italics\n");
+            }
 
             if p.weight == FontWeight::Regular && p.stretch == FontStretch::Normal && !p.italic {
                 code.push_str(&format!("  \"{}\",\n", p.names.family));
@@ -164,6 +169,7 @@ impl ParsedFont {
             weight,
             stretch,
             italic,
+            synthesize_italic: false,
             handle,
             coverage: Mutex::new(RangeSet::new()),
             cap_height,
@@ -362,7 +368,14 @@ impl ParsedFont {
     pub fn best_match(attr: &FontAttributes, mut fonts: Vec<Self>) -> Option<Self> {
         let refs: Vec<&Self> = fonts.iter().collect();
         let idx = Self::best_matching_index(attr, &refs)?;
-        fonts.drain(idx..=idx).next()
+        fonts.drain(idx..=idx).next().map(|p| p.synthesize(attr))
+    }
+
+    /// Update self to reflect whether the rasterizer might need to synthesize
+    /// italic for this font.
+    pub fn synthesize(mut self, attr: &FontAttributes) -> Self {
+        self.synthesize_italic = !self.italic && attr.italic;
+        self
     }
 }
 
