@@ -190,15 +190,15 @@ the application that your just downloaded from the internet.</li>
 <h2 id="homebrew"><a class="header" href="#homebrew">Homebrew</a></h2>
 <p>WezTerm is available for <a href="https://brew.sh/">brew</a> users in a tap:</p>
 <pre><code class="language-bash">$ brew tap wez/wezterm
-$ brew install wezterm
+$ brew install --cask wezterm --no-quarantine
 </code></pre>
-<p>If you'd like to use a nightly build you can perform a head install:</p>
-<pre><code class="language-bash">$ brew install --HEAD wezterm
+<p>If you'd like to use a nightly build:</p>
+<pre><code class="language-bash">$ brew install --cask wezterm-nightly --no-quarantine
 </code></pre>
 <p>to upgrade to a newer nightly, it is simplest to remove then
 install:</p>
-<pre><code class="language-bash">$ brew rm wezterm
-$ brew install --HEAD wezterm
+<pre><code class="language-bash">$ brew rm --cask wezterm-nightly
+$ brew upgrade --cask wezterm-nightly
 </code></pre>
 <h2 id="macports"><a class="header" href="#macports">MacPorts</a></h2>
 <p>WezTerm is also available via <a href="https://ports.macports.org/port/wezterm/summary">MacPorts</a>:</p>
