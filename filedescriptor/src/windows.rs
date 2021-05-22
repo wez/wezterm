@@ -276,13 +276,7 @@ impl FileDescriptor {
         let std_original = unsafe { FileDescriptor::from_raw_handle(raw_std_handle) };
 
         let cloned_handle = OwnedHandle::dup(f)?;
-        if unsafe {
-            SetStdHandle(
-                std_handle,
-                cloned_handle.into_raw_handle() as *mut _,
-            )
-        } == 0
-        {
+        if unsafe { SetStdHandle(std_handle, cloned_handle.into_raw_handle() as *mut _) } == 0 {
             bail!(
                 "failed to redirect stdio to file handle: {:?}",
                 std::io::Error::last_os_error()
