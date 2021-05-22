@@ -24,7 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: errors loading custom color schemes are now logged to the error log [#794](https://github.com/wez/wezterm/issues/794)
 * Fixed: OSC 7 (current working directory) now works with paths that contain spaces and other special characters. Thanks to [@Arvedui](https://github.com/Arvedui)! [#799](https://github.com/wez/wezterm/pull/799)
 * Changed: the homebrew tap is now a Cask that installs to the /Applications directory on macOS. Thanks to [@laggardkernel](https://github.com/laggardkernel)!
-* New: italics are now synthesized for scalable fonts when the matching font is not actually italic [#815](https://github.com/wez/wezterm/issues/815)
+* New: bold and/or italics are now synthesized for fonts when the matching font is not actually italic or doesn't match the requested weight. Synthesized italics only apply to scalable fonts. [#815](https://github.com/wez/wezterm/issues/815)
 
 ### 20210502-154244-3f7122cb
 

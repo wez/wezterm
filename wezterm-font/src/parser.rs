@@ -22,6 +22,7 @@ pub struct ParsedFont {
     pub handle: FontDataHandle,
     coverage: Mutex<RangeSet<u32>>,
     pub synthesize_italic: bool,
+    pub synthesize_bold: bool,
 }
 
 impl std::fmt::Debug for ParsedFont {
@@ -45,6 +46,7 @@ impl Clone for ParsedFont {
             stretch: self.stretch,
             italic: self.italic,
             synthesize_italic: self.synthesize_italic,
+            synthesize_bold: self.synthesize_bold,
             handle: self.handle.clone(),
             cap_height: self.cap_height.clone(),
             coverage: Mutex::new(self.coverage.lock().unwrap().clone()),
@@ -135,6 +137,9 @@ impl ParsedFont {
             if p.synthesize_italic {
                 code.push_str("  -- Will synthesize italics\n");
             }
+            if p.synthesize_bold {
+                code.push_str("  -- Will synthesize bold\n");
+            }
 
             if p.weight == FontWeight::Regular && p.stretch == FontStretch::Normal && !p.italic {
                 code.push_str(&format!("  \"{}\",\n", p.names.family));
@@ -170,6 +175,7 @@ impl ParsedFont {
             stretch,
             italic,
             synthesize_italic: false,
+            synthesize_bold: false,
             handle,
             coverage: Mutex::new(RangeSet::new()),
             cap_height,
@@ -375,6 +381,7 @@ impl ParsedFont {
     /// italic for this font.
     pub fn synthesize(mut self, attr: &FontAttributes) -> Self {
         self.synthesize_italic = !self.italic && attr.italic;
+        self.synthesize_bold = attr.weight > self.weight;
         self
     }
 }

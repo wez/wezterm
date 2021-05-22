@@ -440,6 +440,7 @@ impl Face {
         glyph_index: FT_UInt,
         load_flags: FT_Int32,
         render_mode: FT_Render_Mode,
+        synthesize_bold: bool,
     ) -> anyhow::Result<&FT_GlyphSlotRec_> {
         unsafe {
             ft_result(FT_Load_Glyph(self.face, glyph_index, load_flags), ()).with_context(
@@ -451,6 +452,11 @@ impl Face {
                 },
             )?;
             let slot = &mut *(*self.face).glyph;
+
+            if synthesize_bold {
+                FT_GlyphSlot_Embolden(slot as *mut _);
+            }
+
             ft_result(FT_Render_Glyph(slot, render_mode), ())
                 .context("load_and_render_glyph: FT_Render_Glyph")?;
             Ok(slot)

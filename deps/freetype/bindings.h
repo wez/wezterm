@@ -5,3 +5,4 @@
 #include <freetype/ftmodapi.h>
 #include <freetype/ftoutln.h>
 #include <freetype/ftmm.h>
+#include <freetype/ftsynth.h>

@@ -13,6 +13,7 @@ pub struct FreeTypeRasterizer {
     has_color: bool,
     face: RefCell<ftwrap::Face>,
     _lib: ftwrap::Library,
+    synthesize_bold: bool,
 }
 
 impl FontRasterizer for FreeTypeRasterizer {
@@ -28,7 +29,8 @@ impl FontRasterizer for FreeTypeRasterizer {
 
         let mut face = self.face.borrow_mut();
         let descender = unsafe { (*(*face.face).size).metrics.descender as f64 / 64.0 };
-        let ft_glyph = face.load_and_render_glyph(glyph_pos, load_flags, render_mode)?;
+        let ft_glyph =
+            face.load_and_render_glyph(glyph_pos, load_flags, render_mode, self.synthesize_bold)?;
 
         let mode: ftwrap::FT_Pixel_Mode =
             unsafe { mem::transmute(u32::from(ft_glyph.bitmap.pixel_mode)) };
@@ -310,6 +312,7 @@ impl FreeTypeRasterizer {
             _lib: lib,
             face: RefCell::new(face),
             has_color,
+            synthesize_bold: parsed.synthesize_bold,
         })
     }
 }
