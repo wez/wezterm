@@ -100,7 +100,7 @@ jobs:
       shell: bash
       run: |
             export MACOSX_DEPLOYMENT_TARGET=10.9
-            cp wezterm.rb homebrew-wezterm/Formula/wezterm.rb
+            cp wezterm.rb homebrew-wezterm/Casks/wezterm.rb
             
 
     - name: "Commit homebrew tap changes"

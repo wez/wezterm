@@ -369,7 +369,7 @@ cargo build --all --release""",
                 ),
                 RunStep(
                     "Update homebrew tap formula",
-                    "cp wezterm.rb homebrew-wezterm/Formula/wezterm.rb",
+                    "cp wezterm.rb homebrew-wezterm/Casks/wezterm.rb",
                 ),
                 ActionStep(
                     "Commit homebrew tap changes",

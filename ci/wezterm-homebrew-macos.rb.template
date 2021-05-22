@@ -2,24 +2,51 @@
 # updated from:
 # https://github.com/wez/wezterm/blob/main/ci/wezterm-homebrew-macos.rb.template
 # by automation in the wezterm repo.
+# vim:ft=ruby:
+cask "wezterm" do
+  version "@TAG@"
+  sha256 "@SHA256@"
 
-class Wezterm < Formula
+  url "https://github.com/wez/wezterm/releases/download/#{version}/WezTerm-macos-#{version}.zip"
+  name "WezTerm"
   desc "A GPU-accelerated cross-platform terminal emulator and multiplexer written by @wez and implemented in Rust"
   homepage "https://wezfurlong.org/wezterm/"
-  url "https://github.com/wez/wezterm/releases/download/@TAG@/WezTerm-macos-@TAG@.zip"
-  sha256 "@SHA256@"
-  head "https://github.com/wez/wezterm/releases/download/nightly/WezTerm-macos-nightly.zip"
 
-  def install
-    prefix.install "WezTerm.app"
-    bindir = "#{prefix}/WezTerm.app"
-    macosdir = "#{bindir}/Contents/MacOS"
-    if File.directory?(macosdir) then
-      bindir = macosdir
+  conflicts_with cask: "wez/wezterm/wezterm-nightly"
+
+  # Unclear what the minimal OS version is
+  # depends_on macos: ">= :sierra"
+
+  app "WezTerm.app"
+  [
+    "wezterm",
+    "wezterm-gui",
+    "wezterm-mux-server",
+    "strip-ansi-escapes"
+  ].each do |tool|
+    binary "#{appdir}/WezTerm.app/Contents/MacOS/#{tool}"
+  end
+
+  preflight do
+    # Move "WezTerm-macos-#{version}/WezTerm.app" out of the subfolder
+    staged_subfolder = staged_path.glob(["WezTerm-*", "wezterm-*"]).first
+    if staged_subfolder
+      FileUtils.mv(staged_subfolder/"WezTerm.app", staged_path)
+      FileUtils.rm_rf(staged_subfolder)
     end
-    ["wezterm", "wezterm-gui", "wezterm-mux-server", "strip-ansi-escapes"].each { |tool|
-      bin.write_exec_script "#{bindir}/#{tool}"
-    }
+  end
+
+  zap trash: [
+    "~/Library/Saved Application State/com.github.wez.wezterm.savedState",
+  ]
+
+  def caveats; <<~EOS
+    Cask #{token} related executables like 'wezterm', 'wezterm-gui',
+    'wezterm-mux-server', are linked into
+      /usr/local/bin/    for x86 Mac,
+      /opt/homebrew/bin/ for M1 Mac.
+
+    Removal of them is ensured by 'brew uninstall --cask #{token}'.
+  EOS
   end
 end
-
