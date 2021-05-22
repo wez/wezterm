@@ -279,7 +279,7 @@ impl FileDescriptor {
         if unsafe {
             SetStdHandle(
                 std_handle,
-                cloned_handle.into_raw_handle() as *mut winapi::ctypes::c_void,
+                cloned_handle.into_raw_handle() as *mut _,
             )
         } == 0
         {

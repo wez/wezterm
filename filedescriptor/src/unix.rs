@@ -197,7 +197,7 @@ impl OwnedHandle {
             } else {
                 return Ok(OwnedHandle {
                     handle: duped,
-                    handle_type: Self::probe_handle_type(duped),
+                    handle_type: (),
                 });
             }
         }
@@ -297,7 +297,7 @@ impl FileDescriptor {
         };
 
         let std_original = FileDescriptor::dup(&std_descriptor)?;
-        unsafe { FileDescriptor::dup2(f, std_descriptor) }?;
+        unsafe { FileDescriptor::dup2(f, std_descriptor) }?.into_raw_fd();
 
         Ok(std_original)
     }
