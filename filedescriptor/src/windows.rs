@@ -3,7 +3,6 @@ use crate::{
     FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
     StdioDescriptor,
 };
-use anyhow::bail;
 use std::io::{self, Error as IoError};
 use std::os::windows::prelude::*;
 use std::ptr;
@@ -178,10 +177,7 @@ impl FromRawHandle for OwnedHandle {
 
 impl OwnedHandle {
     #[inline]
-    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(
-        f: &F,
-        handle_type: HandleType,
-    ) -> anyhow::Result<Self> {
+    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(f: &F, handle_type: HandleType) -> Result<Self> {
         let handle = f.as_raw_file_descriptor();
         if handle == INVALID_HANDLE_VALUE as _ || handle.is_null() {
             return Ok(OwnedHandle {
@@ -232,7 +228,7 @@ impl IntoRawHandle for OwnedHandle {
 
 impl FileDescriptor {
     #[inline]
-    pub(crate) fn as_stdio_impl(&self) -> anyhow::Result<std::process::Stdio> {
+    pub(crate) fn as_stdio_impl(&self) -> Result<std::process::Stdio> {
         let duped = self.handle.try_clone()?;
         let handle = duped.into_raw_handle();
         let stdio = unsafe { std::process::Stdio::from_raw_handle(handle) };
@@ -240,9 +236,9 @@ impl FileDescriptor {
     }
 
     #[inline]
-    pub(crate) fn set_non_blocking_impl(&mut self, non_blocking: bool) -> anyhow::Result<()> {
+    pub(crate) fn set_non_blocking_impl(&mut self, non_blocking: bool) -> Result<()> {
         if !self.handle.is_socket_handle() {
-            bail!("only socket descriptors can change their non-blocking mode on windows");
+            return Err(Error::OnlySocketsNonBlocking);
         }
 
         let mut on = if non_blocking { 1 } else { 0 };
@@ -254,18 +250,16 @@ impl FileDescriptor {
             )
         };
         if res != 0 {
-            bail!(
-                "failed to change non-blocking mode: {:?}",
-                std::io::Error::last_os_error()
-            );
+            Err(Error::FionBio(std::io::Error::last_os_error()))
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
     pub(crate) fn redirect_stdio_impl<F: AsRawFileDescriptor>(
         f: &F,
         stdio: StdioDescriptor,
-    ) -> anyhow::Result<Self> {
+    ) -> Result<Self> {
         let std_handle = match stdio {
             StdioDescriptor::Stdin => STD_INPUT_HANDLE,
             StdioDescriptor::Stdout => STD_OUTPUT_HANDLE,
@@ -277,13 +271,10 @@ impl FileDescriptor {
 
         let cloned_handle = OwnedHandle::dup(f)?;
         if unsafe { SetStdHandle(std_handle, cloned_handle.into_raw_handle() as *mut _) } == 0 {
-            bail!(
-                "failed to redirect stdio to file handle: {:?}",
-                std::io::Error::last_os_error()
-            );
+            Err(Error::SetStdHandle(std::io::Error::last_os_error()))
+        } else {
+            Ok(std_original)
         }
-
-        Ok(std_original)
     }
 }
 
@@ -415,7 +406,7 @@ impl io::Write for FileDescriptor {
 }
 
 impl Pipe {
-    pub fn new() -> anyhow::Result<Pipe> {
+    pub fn new() -> Result<Pipe> {
         let mut sa = SECURITY_ATTRIBUTES {
             nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
             lpSecurityDescriptor: ptr::null_mut(),
@@ -424,22 +415,23 @@ impl Pipe {
         let mut read: HANDLE = INVALID_HANDLE_VALUE as _;
         let mut write: HANDLE = INVALID_HANDLE_VALUE as _;
         if unsafe { CreatePipe(&mut read, &mut write, &mut sa, 0) } == 0 {
-            bail!("CreatePipe failed: {}", IoError::last_os_error());
+            Err(Error::Pipe(IoError::last_os_error()))
+        } else {
+            Ok(Pipe {
+                read: FileDescriptor {
+                    handle: OwnedHandle {
+                        handle: read as _,
+                        handle_type: HandleType::Pipe,
+                    },
+                },
+                write: FileDescriptor {
+                    handle: OwnedHandle {
+                        handle: write as _,
+                        handle_type: HandleType::Pipe,
+                    },
+                },
+            })
         }
-        Ok(Pipe {
-            read: FileDescriptor {
-                handle: OwnedHandle {
-                    handle: read as _,
-                    handle_type: HandleType::Pipe,
-                },
-            },
-            write: FileDescriptor {
-                handle: OwnedHandle {
-                    handle: write as _,
-                    handle_type: HandleType::Pipe,
-                },
-            },
-        })
     }
 }
 
@@ -455,7 +447,7 @@ fn init_winsock() {
     });
 }
 
-fn socket(af: i32, sock_type: i32, proto: i32) -> anyhow::Result<FileDescriptor> {
+fn socket(af: i32, sock_type: i32, proto: i32) -> Result<FileDescriptor> {
     let s = unsafe {
         WSASocketW(
             af,
@@ -467,18 +459,19 @@ fn socket(af: i32, sock_type: i32, proto: i32) -> anyhow::Result<FileDescriptor>
         )
     };
     if s == INVALID_SOCKET {
-        bail!("socket failed: {}", IoError::last_os_error());
+        Err(Error::Socket(IoError::last_os_error()))
+    } else {
+        Ok(FileDescriptor {
+            handle: OwnedHandle {
+                handle: s as _,
+                handle_type: HandleType::Socket,
+            },
+        })
     }
-    Ok(FileDescriptor {
-        handle: OwnedHandle {
-            handle: s as _,
-            handle_type: HandleType::Socket,
-        },
-    })
 }
 
 #[doc(hidden)]
-pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
+pub fn socketpair_impl() -> Result<(FileDescriptor, FileDescriptor)> {
     init_winsock();
 
     let s = socket(AF_INET, SOCK_STREAM, 0)?;
@@ -496,7 +489,7 @@ pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
             std::mem::size_of_val(&in_addr) as _,
         ) != 0
         {
-            bail!("bind failed: {}", IoError::last_os_error());
+            return Err(Error::Bind(IoError::last_os_error()));
         }
     }
 
@@ -509,13 +502,13 @@ pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
             &mut addr_len,
         ) != 0
         {
-            bail!("getsockname failed: {}", IoError::last_os_error());
+            return Err(Error::Getsockname(IoError::last_os_error()));
         }
     }
 
     unsafe {
         if listen(s.as_raw_handle() as _, 1) != 0 {
-            bail!("listen failed: {}", IoError::last_os_error());
+            return Err(Error::Listen(IoError::last_os_error()));
         }
     }
 
@@ -528,13 +521,13 @@ pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
             addr_len,
         ) != 0
         {
-            bail!("connect failed: {}", IoError::last_os_error());
+            return Err(Error::Connect(IoError::last_os_error()));
         }
     }
 
     let server = unsafe { accept(s.as_raw_handle() as _, ptr::null_mut(), ptr::null_mut()) };
     if server == INVALID_SOCKET {
-        bail!("socket failed: {}", IoError::last_os_error());
+        return Err(Error::Accept(IoError::last_os_error()));
     }
     let server = FileDescriptor {
         handle: OwnedHandle {
@@ -547,7 +540,7 @@ pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
 }
 
 #[doc(hidden)]
-pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> anyhow::Result<usize> {
+pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Result<usize> {
     let poll_result = unsafe {
         WSAPoll(
             pfd.as_mut_ptr(),

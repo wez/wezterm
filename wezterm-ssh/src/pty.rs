@@ -64,15 +64,13 @@ impl portable_pty::MasterPty for SshPty {
     }
 
     fn try_clone_reader(&self) -> anyhow::Result<Box<(dyn Read + Send + 'static)>> {
-        self.reader
-            .try_clone()
-            .map(|f| -> Box<(dyn Read + Send + 'static)> { Box::new(f) })
+        let reader = self.reader.try_clone()?;
+        Ok(Box::new(reader))
     }
 
     fn try_clone_writer(&self) -> anyhow::Result<Box<(dyn Write + Send + 'static)>> {
-        self.writer
-            .try_clone()
-            .map(|f| -> Box<(dyn Write + Send + 'static)> { Box::new(f) })
+        let writer = self.writer.try_clone()?;
+        Ok(Box::new(writer))
     }
 
     #[cfg(unix)]

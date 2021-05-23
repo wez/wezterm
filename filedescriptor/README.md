@@ -14,16 +14,16 @@ the conditional code that would otherwise be required to deal with
 calling `as_raw_fd` and `as_raw_handle`:
 
 ```
-use filedescriptor::{FileDescriptor, FromRawFileDescriptor};
+use filedescriptor::{FileDescriptor, FromRawFileDescriptor, Result};
 use std::io::Write;
 
-fn get_stdout() -> anyhow::Result<FileDescriptor> {
+fn get_stdout() -> Result<FileDescriptor> {
   let stdout = std::io::stdout();
   let handle = stdout.lock();
   FileDescriptor::dup(&handle)
 }
 
-fn print_something() -> anyhow::Result<()> {
+fn print_something() -> Result<()> {
    get_stdout()?.write(b"hello")?;
    Ok(())
 }
@@ -36,7 +36,6 @@ the lifetime of both the read and write ends of that pipe.
 ```
 use filedescriptor::Pipe;
 use std::io::{Read, Write};
-use anyhow::Error;
 
 let mut pipe = Pipe::new()?;
 pipe.write.write(b"hello")?;
@@ -53,7 +52,6 @@ sockets and functions both on posix and windows systems.
 
 ```
 use std::io::{Read, Write};
-use anyhow::Error;
 
 let (mut a, mut b) = filedescriptor::socketpair()?;
 a.write(b"hello")?;
@@ -75,7 +73,6 @@ function is used instead.
 
 ```
 use filedescriptor::*;
-use anyhow::Error;
 use std::time::Duration;
 use std::io::{Read, Write};
 

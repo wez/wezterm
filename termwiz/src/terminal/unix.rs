@@ -4,6 +4,7 @@ use filedescriptor::{poll, pollfd, FileDescriptor, POLLIN};
 use libc::{self, winsize};
 use signal_hook::{self, SigId};
 use std::collections::VecDeque;
+use std::error::Error as _;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, ErrorKind, Read, Write};
 use std::mem;
@@ -422,8 +423,12 @@ impl Terminal for UnixTerminal {
         ];
 
         if let Err(err) = poll(&mut pfd, wait) {
-            return match err.downcast::<std::io::Error>() {
-                Ok(err) => {
+            return match err
+                .source()
+                .ok_or_else(|| anyhow::anyhow!("error has no source! {:#}", err))?
+                .downcast_ref::<std::io::Error>()
+            {
+                Some(err) => {
                     if err.kind() == ErrorKind::Interrupted {
                         // SIGWINCH may have been the source of the interrupt.
                         // Check for that now so that we reduce the latency of
@@ -437,7 +442,7 @@ impl Terminal for UnixTerminal {
                         bail!("poll(2) error: {}", err)
                     }
                 }
-                Err(err) => bail!("poll(2) error: {}", err),
+                None => bail!("poll(2) error: {}", err),
             };
         };
 

@@ -1,9 +1,8 @@
 use crate::{
-    AsRawFileDescriptor, AsRawSocketDescriptor, FileDescriptor, FromRawFileDescriptor,
+    AsRawFileDescriptor, AsRawSocketDescriptor, Error, FileDescriptor, FromRawFileDescriptor,
     FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
-    StdioDescriptor,
+    Result, StdioDescriptor,
 };
-use anyhow::bail;
 use std::os::unix::prelude::*;
 
 pub(crate) type HandleType = ();
@@ -87,32 +86,26 @@ impl FromRawFd for OwnedHandle {
 
 impl OwnedHandle {
     /// Helper function to set the close-on-exec flag for a raw descriptor
-    fn cloexec(&mut self) -> anyhow::Result<()> {
+    fn cloexec(&mut self) -> Result<()> {
         let flags = unsafe { libc::fcntl(self.handle, libc::F_GETFD) };
         if flags == -1 {
-            bail!(
-                "fcntl to read flags failed: {:?}",
-                std::io::Error::last_os_error()
-            );
+            return Err(Error::Fcntl(std::io::Error::last_os_error()));
         }
         let result = unsafe { libc::fcntl(self.handle, libc::F_SETFD, flags | libc::FD_CLOEXEC) };
         if result == -1 {
-            bail!(
-                "fcntl to set CLOEXEC failed: {:?}",
-                std::io::Error::last_os_error()
-            );
+            Err(Error::Cloexec(std::io::Error::last_os_error()))
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
-    fn non_atomic_dup(fd: RawFd) -> anyhow::Result<Self> {
+    fn non_atomic_dup(fd: RawFd) -> Result<Self> {
         let duped = unsafe { libc::dup(fd) };
         if duped == -1 {
-            bail!(
-                "dup of fd {} failed: {:?}",
-                fd,
-                std::io::Error::last_os_error()
-            )
+            Err(Error::Dup {
+                fd: fd.into(),
+                source: std::io::Error::last_os_error(),
+            })
         } else {
             let mut owned = OwnedHandle {
                 handle: duped,
@@ -123,15 +116,14 @@ impl OwnedHandle {
         }
     }
 
-    fn non_atomic_dup2(fd: RawFd, dest_fd: RawFd) -> anyhow::Result<Self> {
+    fn non_atomic_dup2(fd: RawFd, dest_fd: RawFd) -> Result<Self> {
         let duped = unsafe { libc::dup2(fd, dest_fd) };
         if duped == -1 {
-            bail!(
-                "dup2 of fd {} and dest_fd {} failed: {:?}",
-                fd,
-                dest_fd,
-                std::io::Error::last_os_error()
-            )
+            Err(Error::Dup2 {
+                src_fd: fd.into(),
+                dest_fd: dest_fd.into(),
+                source: std::io::Error::last_os_error(),
+            })
         } else {
             let mut owned = OwnedHandle {
                 handle: duped,
@@ -146,7 +138,7 @@ impl OwnedHandle {
     pub(crate) fn dup_impl<F: AsRawFileDescriptor>(
         fd: &F,
         handle_type: HandleType,
-    ) -> anyhow::Result<Self> {
+    ) -> Result<Self> {
         let fd = fd.as_raw_file_descriptor();
         let duped = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
         if duped == -1 {
@@ -154,9 +146,12 @@ impl OwnedHandle {
             if let Some(libc::EINVAL) = err.raw_os_error() {
                 // We may be running on eg: WSL or an old kernel that
                 // doesn't support F_DUPFD_CLOEXEC; fall back.
-                return Self::non_atomic_dup(fd);
+                Self::non_atomic_dup(fd)
             } else {
-                bail!("dup of fd {} failed: {:?}", fd, err)
+                Err(Error::Dup {
+                    fd: fd.into(),
+                    source: err,
+                })
             }
         } else {
             Ok(OwnedHandle {
@@ -167,10 +162,7 @@ impl OwnedHandle {
     }
 
     #[inline]
-    pub(crate) unsafe fn dup2_impl<F: AsRawFileDescriptor>(
-        fd: &F,
-        dest_fd: RawFd,
-    ) -> anyhow::Result<Self> {
+    pub(crate) unsafe fn dup2_impl<F: AsRawFileDescriptor>(fd: &F, dest_fd: RawFd) -> Result<Self> {
         let fd = fd.as_raw_file_descriptor();
 
         #[cfg(not(target_os = "linux"))]
@@ -185,20 +177,19 @@ impl OwnedHandle {
                 if let Some(libc::EINVAL) = err.raw_os_error() {
                     // We may be running on eg: WSL or an old kernel that
                     // doesn't support O_CLOEXEC; fall back.
-                    return Self::non_atomic_dup2(fd, dest_fd);
+                    Self::non_atomic_dup2(fd, dest_fd)
                 } else {
-                    bail!(
-                        "dup2 of fd {} and dest_fd {} failed: {:?}",
-                        fd,
-                        dest_fd,
-                        err
-                    )
+                    Err(Error::Dup2 {
+                        src_fd: fd.into(),
+                        dest_fd: dest_fd.into(),
+                        source: err,
+                    })
                 }
             } else {
-                return Ok(OwnedHandle {
+                Ok(OwnedHandle {
                     handle: duped,
                     handle_type: (),
-                });
+                })
             }
         }
     }
@@ -209,7 +200,7 @@ impl OwnedHandle {
 }
 
 impl std::io::Read for FileDescriptor {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let size = unsafe { libc::read(self.handle.handle, buf.as_mut_ptr() as *mut _, buf.len()) };
         if size == -1 {
             Err(std::io::Error::last_os_error())
@@ -220,7 +211,7 @@ impl std::io::Read for FileDescriptor {
 }
 
 impl std::io::Write for FileDescriptor {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let size = unsafe { libc::write(self.handle.handle, buf.as_ptr() as *const _, buf.len()) };
         if size == -1 {
             Err(std::io::Error::last_os_error())
@@ -228,7 +219,7 @@ impl std::io::Write for FileDescriptor {
             Ok(size as usize)
         }
     }
-    fn flush(&mut self) -> Result<(), std::io::Error> {
+    fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
 }
@@ -255,7 +246,7 @@ impl FromRawFd for FileDescriptor {
 
 impl FileDescriptor {
     #[inline]
-    pub(crate) fn as_stdio_impl(&self) -> anyhow::Result<std::process::Stdio> {
+    pub(crate) fn as_stdio_impl(&self) -> Result<std::process::Stdio> {
         let duped = OwnedHandle::dup(self)?;
         let fd = duped.into_raw_fd();
         let stdio = unsafe { std::process::Stdio::from_raw_fd(fd) };
@@ -263,16 +254,14 @@ impl FileDescriptor {
     }
 
     #[inline]
-    pub(crate) fn set_non_blocking_impl(&mut self, non_blocking: bool) -> anyhow::Result<()> {
+    pub(crate) fn set_non_blocking_impl(&mut self, non_blocking: bool) -> Result<()> {
         let on = if non_blocking { 1 } else { 0 };
         let res = unsafe { libc::ioctl(self.handle.as_raw_file_descriptor(), libc::FIONBIO, &on) };
         if res != 0 {
-            bail!(
-                "failed to change non-blocking mode: {:?}",
-                std::io::Error::last_os_error()
-            );
+            Err(Error::FionBio(std::io::Error::last_os_error()))
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
     /// Attempt to duplicate the underlying handle from an object that is
@@ -282,14 +271,14 @@ impl FileDescriptor {
     /// resources that may not be available, this is a potentially fallible operation.
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
-    pub unsafe fn dup2<F: AsRawFileDescriptor>(f: &F, dest_fd: RawFd) -> anyhow::Result<Self> {
+    pub unsafe fn dup2<F: AsRawFileDescriptor>(f: &F, dest_fd: RawFd) -> Result<Self> {
         OwnedHandle::dup2_impl(f, dest_fd).map(|handle| Self { handle })
     }
 
     pub(crate) fn redirect_stdio_impl<F: AsRawFileDescriptor>(
         f: &F,
         stdio: StdioDescriptor,
-    ) -> anyhow::Result<Self> {
+    ) -> Result<Self> {
         let std_descriptor = match stdio {
             StdioDescriptor::Stdin => libc::STDIN_FILENO,
             StdioDescriptor::Stdout => libc::STDOUT_FILENO,
@@ -305,14 +294,11 @@ impl FileDescriptor {
 
 impl Pipe {
     #[cfg(target_os = "linux")]
-    pub fn new() -> anyhow::Result<Pipe> {
+    pub fn new() -> Result<Pipe> {
         let mut fds = [-1i32; 2];
         let res = unsafe { libc::pipe2(fds.as_mut_ptr(), libc::O_CLOEXEC) };
         if res == -1 {
-            bail!(
-                "failed to create a pipe: {:?}",
-                std::io::Error::last_os_error()
-            )
+            Err(Error::Pipe(std::io::Error::last_os_error()))
         } else {
             let read = FileDescriptor {
                 handle: OwnedHandle {
@@ -331,7 +317,7 @@ impl Pipe {
     }
 
     #[cfg(not(target_os = "linux"))]
-    pub fn new() -> anyhow::Result<Pipe> {
+    pub fn new() -> Result<Pipe> {
         let mut fds = [-1i32; 2];
         let res = unsafe { libc::pipe(fds.as_mut_ptr()) };
         if res == -1 {
@@ -361,7 +347,7 @@ impl Pipe {
 
 #[cfg(target_os = "linux")]
 #[doc(hidden)]
-pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
+pub fn socketpair_impl() -> Result<(FileDescriptor, FileDescriptor)> {
     let mut fds = [-1i32; 2];
     let res = unsafe {
         libc::socketpair(
@@ -372,10 +358,7 @@ pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
         )
     };
     if res == -1 {
-        bail!(
-            "failed to create a socketpair: {:?}",
-            std::io::Error::last_os_error()
-        )
+        Err(Error::Socketpair(std::io::Error::last_os_error()))
     } else {
         let read = FileDescriptor {
             handle: OwnedHandle {
@@ -395,7 +378,7 @@ pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
 
 #[cfg(not(target_os = "linux"))]
 #[doc(hidden)]
-pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
+pub fn socketpair_impl() -> Result<(FileDescriptor, FileDescriptor)> {
     let mut fds = [-1i32; 2];
     let res = unsafe { libc::socketpair(libc::PF_LOCAL, libc::SOCK_STREAM, 0, fds.as_mut_ptr()) };
     if res == -1 {
@@ -427,7 +410,7 @@ use std::time::Duration;
 
 #[cfg(not(target_os = "macos"))]
 #[doc(hidden)]
-pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> anyhow::Result<usize> {
+pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Result<usize> {
     let poll_result = unsafe {
         libc::poll(
             pfd.as_mut_ptr(),
@@ -438,7 +421,7 @@ pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> anyhow::Resu
         )
     };
     if poll_result < 0 {
-        Err(std::io::Error::last_os_error().into())
+        Err(Error::Poll(std::io::Error::last_os_error()))
     } else {
         Ok(poll_result as usize)
     }
@@ -456,12 +439,13 @@ mod macos {
     }
 
     #[inline]
-    fn check_fd(fd: RawFd) -> anyhow::Result<()> {
-        anyhow::ensure!(fd >= 0, "illegal fd value");
-        anyhow::ensure!(
-            (fd as usize) < FD_SETSIZE,
-            "fd value is too large to use with select(2) on macos"
-        );
+    fn check_fd(fd: RawFd) -> Result<()> {
+        if fd < 0 {
+            return Err(Error::IllegalFdValue(fd.into()));
+        }
+        if fd >= FD_SETSIZE {
+            return Err(Error::FdValueOutsideFdSetSize(fd.into()));
+        }
         Ok(())
     }
 
@@ -474,7 +458,7 @@ mod macos {
             }
         }
 
-        pub fn add(&mut self, fd: RawFd) -> anyhow::Result<()> {
+        pub fn add(&mut self, fd: RawFd) -> Result<()> {
             check_fd(fd)?;
             unsafe {
                 FD_SET(fd, &mut self.set);
@@ -502,7 +486,7 @@ mod macos {
         set.as_mut().map(|s| s.contains(fd)).unwrap_or(false)
     }
 
-    pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> anyhow::Result<usize> {
+    pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Result<usize> {
         let mut read_set = None;
         let mut write_set = None;
         let mut exception_set = None;

@@ -69,6 +69,9 @@ pub enum InternalError {
     #[error(transparent)]
     Terminfo(#[from] terminfo::Error),
 
+    #[error(transparent)]
+    FileDescriptor(#[from] filedescriptor::Error),
+
     #[error("{}", .context)]
     Context {
         context: String,

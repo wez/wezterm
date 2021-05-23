@@ -12,16 +12,16 @@
 //! calling `as_raw_fd` and `as_raw_handle`:
 //!
 //! ```
-//! use filedescriptor::{FileDescriptor, FromRawFileDescriptor};
+//! use filedescriptor::{FileDescriptor, FromRawFileDescriptor, Result};
 //! use std::io::Write;
 //!
-//! fn get_stdout() -> anyhow::Result<FileDescriptor> {
+//! fn get_stdout() -> Result<FileDescriptor> {
 //!   let stdout = std::io::stdout();
 //!   let handle = stdout.lock();
 //!   FileDescriptor::dup(&handle)
 //! }
 //!
-//! fn print_something() -> anyhow::Result<()> {
+//! fn print_something() -> Result<()> {
 //!    get_stdout()?.write(b"hello")?;
 //!    Ok(())
 //! }
@@ -32,9 +32,8 @@
 //! the lifetime of both the read and write ends of that pipe.
 //!
 //! ```
-//! use filedescriptor::Pipe;
+//! use filedescriptor::{Pipe, Error};
 //! use std::io::{Read, Write};
-//! use anyhow::Error;
 //!
 //! let mut pipe = Pipe::new()?;
 //! pipe.write.write(b"hello")?;
@@ -52,7 +51,7 @@
 //!
 //! ```
 //! use std::io::{Read, Write};
-//! use anyhow::Error;
+//! use filedescriptor::Error;
 //!
 //! let (mut a, mut b) = filedescriptor::socketpair()?;
 //! a.write(b"hello")?;
@@ -75,7 +74,6 @@
 //!
 //! ```
 //! use filedescriptor::*;
-//! use anyhow::Error;
 //! use std::time::Duration;
 //! use std::io::{Read, Write};
 //!
@@ -105,6 +103,57 @@ pub use crate::unix::*;
 mod windows;
 #[cfg(windows)]
 pub use crate::windows::*;
+
+use thiserror::Error;
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum Error {
+    #[error("failed to create a pipe")]
+    Pipe(#[source] std::io::Error),
+    #[error("failed to create a socketpair")]
+    Socketpair(#[source] std::io::Error),
+    #[error("failed to create a socket")]
+    Socket(#[source] std::io::Error),
+    #[error("failed to bind a socket")]
+    Bind(#[source] std::io::Error),
+    #[error("failed to fetch socket name")]
+    Getsockname(#[source] std::io::Error),
+    #[error("failed to set socket to listen mode")]
+    Listen(#[source] std::io::Error),
+    #[error("failed to connect socket")]
+    Connect(#[source] std::io::Error),
+    #[error("failed to accept socket")]
+    Accept(#[source] std::io::Error),
+    #[error("fcntl read failed")]
+    Fcntl(#[source] std::io::Error),
+    #[error("failed to set cloexec")]
+    Cloexec(#[source] std::io::Error),
+    #[error("failed to change non-blocking mode")]
+    FionBio(#[source] std::io::Error),
+    #[error("poll failed")]
+    Poll(#[source] std::io::Error),
+    #[error("dup of fd {fd} failed")]
+    Dup { fd: i64, source: std::io::Error },
+    #[error("dup of fd {src_fd} to fd {dest_fd} failed")]
+    Dup2 {
+        src_fd: i64,
+        dest_fd: i64,
+        source: std::io::Error,
+    },
+    #[error("Illegal fd value {0}")]
+    IllegalFdValue(i64),
+    #[error("fd value {0} too large to use with select(2)")]
+    FdValueOutsideFdSetSize(i64),
+    #[error("Only socket descriptors can change their non-blocking mode on Windows")]
+    OnlySocketsNonBlocking,
+    #[error("SetStdHandle failed")]
+    SetStdHandle(#[source] std::io::Error),
+
+    #[error("IoError")]
+    Io(#[from] std::io::Error),
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// `AsRawFileDescriptor` is a platform independent trait for returning
 /// a non-owning reference to the underlying platform file descriptor
@@ -167,7 +216,7 @@ impl OwnedHandle {
     /// potentially fallible operation.
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
-    pub fn try_clone(&self) -> anyhow::Result<Self> {
+    pub fn try_clone(&self) -> Result<Self> {
         Self::dup_impl(self, self.handle_type)
     }
 
@@ -178,7 +227,7 @@ impl OwnedHandle {
     /// potentially fallible operation.
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
-    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<Self> {
+    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Result<Self> {
         Self::dup_impl(f, Default::default())
     }
 }
@@ -191,16 +240,16 @@ impl OwnedHandle {
 /// calling `as_raw_fd` and `as_raw_handle`:
 ///
 /// ```
-/// use filedescriptor::{FileDescriptor, FromRawFileDescriptor};
+/// use filedescriptor::{FileDescriptor, FromRawFileDescriptor, Result};
 /// use std::io::Write;
 ///
-/// fn get_stdout() -> anyhow::Result<FileDescriptor> {
+/// fn get_stdout() -> Result<FileDescriptor> {
 ///   let stdout = std::io::stdout();
 ///   let handle = stdout.lock();
 ///   FileDescriptor::dup(&handle)
 /// }
 ///
-/// fn print_something() -> anyhow::Result<()> {
+/// fn print_something() -> Result<()> {
 ///    get_stdout()?.write(b"hello")?;
 ///    Ok(())
 /// }
@@ -233,7 +282,7 @@ impl FileDescriptor {
     /// potentially fallible operation.
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
-    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<Self> {
+    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Result<Self> {
         OwnedHandle::dup(f).map(|handle| Self { handle })
     }
 
@@ -243,7 +292,7 @@ impl FileDescriptor {
     /// potentially fallible operation.
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
-    pub fn try_clone(&self) -> anyhow::Result<Self> {
+    pub fn try_clone(&self) -> Result<Self> {
         self.handle.try_clone().map(|handle| Self { handle })
     }
 
@@ -251,7 +300,7 @@ impl FileDescriptor {
     /// to be used for eg: redirecting the stdio streams of a child
     /// process.  The `Stdio` is created using a duplicated handle so
     /// that the source handle remains alive.
-    pub fn as_stdio(&self) -> anyhow::Result<std::process::Stdio> {
+    pub fn as_stdio(&self) -> Result<std::process::Stdio> {
         self.as_stdio_impl()
     }
 
@@ -261,7 +310,7 @@ impl FileDescriptor {
     /// non-blocking mode but it will have no effect.
     /// File descriptors based on sockets are the most portable type
     /// that can be successfully made non-blocking.
-    pub fn set_non_blocking(&mut self, non_blocking: bool) -> anyhow::Result<()> {
+    pub fn set_non_blocking(&mut self, non_blocking: bool) -> Result<()> {
         self.set_non_blocking_impl(non_blocking)
     }
 
@@ -270,10 +319,7 @@ impl FileDescriptor {
     /// Since the redirection requires kernel resources that may not be
     /// available, this is a potentially fallible operation.
     /// Supports stdin, stdout, and stderr redirections.
-    pub fn redirect_stdio<F: AsRawFileDescriptor>(
-        f: &F,
-        stdio: StdioDescriptor,
-    ) -> anyhow::Result<Self> {
+    pub fn redirect_stdio<F: AsRawFileDescriptor>(f: &F, stdio: StdioDescriptor) -> Result<Self> {
         Self::redirect_stdio_impl(f, stdio)
     }
 }
@@ -282,9 +328,8 @@ impl FileDescriptor {
 /// connected via a kernel pipe.
 ///
 /// ```
-/// use filedescriptor::Pipe;
+/// use filedescriptor::{Pipe, Error};
 /// use std::io::{Read,Write};
-/// use anyhow::Error;
 ///
 /// let mut pipe = Pipe::new()?;
 /// pipe.write.write(b"hello")?;
@@ -331,13 +376,13 @@ use std::time::Duration;
 ///
 /// The `pfd` array is mutated and the `revents` field is updated to indicate
 /// which of the events were received.
-pub fn poll(pfd: &mut [pollfd], duration: Option<Duration>) -> anyhow::Result<usize> {
+pub fn poll(pfd: &mut [pollfd], duration: Option<Duration>) -> Result<usize> {
     poll_impl(pfd, duration)
 }
 
 /// Create a pair of connected sockets
 ///
 /// This implementation creates a pair of SOCK_STREAM sockets.
-pub fn socketpair() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
+pub fn socketpair() -> Result<(FileDescriptor, FileDescriptor)> {
     socketpair_impl()
 }

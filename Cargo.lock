@@ -1234,10 +1234,10 @@ dependencies = [
 
 [[package]]
 name = "filedescriptor"
-version = "0.7.3"
+version = "0.8.0"
 dependencies = [
- "anyhow",
  "libc",
+ "thiserror",
  "winapi 0.3.9",
 ]
 

@@ -53,7 +53,7 @@ shared_library = "0.1"
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 dirs-next = "2.0"
-filedescriptor = { version="0.7", path = "../filedescriptor" }
+filedescriptor = { version="0.8", path = "../filedescriptor" }
 x11 = {version ="2.18", features = ["xlib_xcb"]}
 xcb = {version="0.9", features=["render", "xkb", "xlib_xcb"]}
 xcb-util = { features = [ "cursor", "image", "icccm", "ewmh", "keysyms"], version = "0.3" }

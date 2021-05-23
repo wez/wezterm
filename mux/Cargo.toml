@@ -14,7 +14,7 @@ bintree = { path = "../bintree" }
 config = { path = "../config" }
 crossbeam = "0.8"
 downcast-rs = "1.0"
-filedescriptor = { version="0.7", path = "../filedescriptor" }
+filedescriptor = { version="0.8", path = "../filedescriptor" }
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"

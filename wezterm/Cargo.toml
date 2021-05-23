@@ -14,7 +14,7 @@ anyhow = "1.0"
 codec = { path = "../codec" }
 config = { path = "../config" }
 env-bootstrap = { path = "../env-bootstrap" }
-filedescriptor = { version="0.7", path = "../filedescriptor" }
+filedescriptor = { version="0.8", path = "../filedescriptor" }
 hostname = "0.3"
 log = "0.4"
 mux = { path = "../mux" }
