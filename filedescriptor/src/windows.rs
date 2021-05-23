@@ -1,7 +1,7 @@
 use crate::{
-    AsRawFileDescriptor, AsRawSocketDescriptor, FileDescriptor, FromRawFileDescriptor,
+    AsRawFileDescriptor, AsRawSocketDescriptor, Error, FileDescriptor, FromRawFileDescriptor,
     FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
-    StdioDescriptor,
+    Result, StdioDescriptor,
 };
 use std::io::{self, Error as IoError};
 use std::os::windows::prelude::*;
@@ -323,7 +323,7 @@ impl FromRawSocket for FileDescriptor {
 }
 
 impl io::Read for FileDescriptor {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         if self.handle.is_socket_handle() {
             // It's important to use the winsock functions to read/write
             // even though ReadFile and WriteFile technically work; only
@@ -367,7 +367,7 @@ impl io::Read for FileDescriptor {
 }
 
 impl io::Write for FileDescriptor {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         if self.handle.is_socket_handle() {
             let num_wrote = unsafe {
                 send(
@@ -400,7 +400,7 @@ impl io::Write for FileDescriptor {
             }
         }
     }
-    fn flush(&mut self) -> Result<(), io::Error> {
+    fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
     }
 }
