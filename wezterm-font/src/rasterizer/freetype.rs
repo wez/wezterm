@@ -2,7 +2,7 @@ use crate::parser::ParsedFont;
 use crate::rasterizer::FontRasterizer;
 use crate::units::*;
 use crate::{ftwrap, RasterizedGlyph};
-use ::freetype::{FT_GlyphSlotRec_, FT_Matrix};
+use ::freetype::{FT_GlyphSlotRec_, FT_Glyph_Format, FT_Matrix};
 use anyhow::bail;
 use std::cell::RefCell;
 use std::mem;
@@ -14,6 +14,7 @@ pub struct FreeTypeRasterizer {
     face: RefCell<ftwrap::Face>,
     _lib: ftwrap::Library,
     synthesize_bold: bool,
+    synthesize_italic: bool,
 }
 
 impl FontRasterizer for FreeTypeRasterizer {
@@ -53,7 +54,14 @@ impl FontRasterizer for FreeTypeRasterizer {
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_MONO => self.rasterize_mono(pitch, ft_glyph, data),
             mode => bail!("unhandled pixel mode: {:?}", mode),
         };
-        Ok(glyph)
+
+        let slot = unsafe { &mut *(*face.face).glyph };
+        if self.synthesize_italic && slot.format == FT_Glyph_Format::FT_GLYPH_FORMAT_BITMAP {
+            // The source was and thus the italic transform did nothing
+            Ok(glyph.skew())
+        } else {
+            Ok(glyph)
+        }
     }
 }
 
@@ -313,6 +321,7 @@ impl FreeTypeRasterizer {
             face: RefCell::new(face),
             has_color,
             synthesize_bold: parsed.synthesize_bold,
+            synthesize_italic: parsed.synthesize_italic,
         })
     }
 }
