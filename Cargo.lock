@@ -685,7 +685,7 @@ dependencies = [
  "config",
  "leb128",
  "log",
- "metrics",
+ "metrics 0.15.1",
  "mux",
  "portable-pty",
  "rangeset",
@@ -2381,7 +2381,18 @@ version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c53c23fff9a59f261498953cf41dc9ffc2522fd79723bdf283c1e88dc1633624"
 dependencies = [
- "metrics-macros",
+ "metrics-macros 0.3.0",
+ "proc-macro-hack",
+ "t1ha",
+]
+
+[[package]]
+name = "metrics"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c0a7fa53d812d26e59d2baf7a6f77442041454ab32908eb304447f00f0dd4de"
+dependencies = [
+ "metrics-macros 0.4.0",
  "proc-macro-hack",
  "t1ha",
 ]
@@ -2391,6 +2402,20 @@ name = "metrics-macros"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b22572ba9964744e261d34553568683b76db277bcd309ebf7215e28e0982505d"
+dependencies = [
+ "lazy_static",
+ "proc-macro-hack",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn",
+]
+
+[[package]]
+name = "metrics-macros"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "caa72e4a3d157986dd2565c82ecbddcc23941513669a3766b938f6b72eb87f3f"
 dependencies = [
  "lazy_static",
  "proc-macro-hack",
@@ -4801,7 +4826,7 @@ dependencies = [
  "futures",
  "log",
  "lru",
- "metrics",
+ "metrics 0.15.1",
  "mux",
  "openssl",
  "portable-pty",
@@ -4837,7 +4862,7 @@ dependencies = [
  "lazy_static",
  "log",
  "memmap2 0.2.2",
- "metrics",
+ "metrics 0.15.1",
  "mux",
  "ordered-float",
  "pretty_env_logger",
@@ -4879,7 +4904,7 @@ dependencies = [
  "log",
  "lru",
  "luahelper",
- "metrics",
+ "metrics 0.16.0",
  "mlua",
  "mux",
  "open",
@@ -5184,7 +5209,7 @@ dependencies = [
  "libloading 0.6.7",
  "line_drawing",
  "log",
- "metrics",
+ "metrics 0.15.1",
  "mio",
  "objc",
  "pretty_env_logger",
