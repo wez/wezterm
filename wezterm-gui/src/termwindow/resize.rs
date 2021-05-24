@@ -13,6 +13,27 @@ pub struct RowsAndCols {
 }
 
 impl super::TermWindow {
+    pub fn resize(&mut self, dimensions: Dimensions, is_full_screen: bool) {
+        log::trace!(
+            "resize event, current cells: {:?}, new dims: {:?} is_full_screen:{}",
+            self.current_cell_dimensions(),
+            dimensions,
+            is_full_screen,
+        );
+        if dimensions.pixel_width == 0 || dimensions.pixel_height == 0 {
+            // on windows, this can happen when minimizing the window.
+            // NOP!
+            return;
+        }
+        if self.dimensions == dimensions && self.is_full_screen == is_full_screen {
+            // It didn't really change
+            return;
+        }
+        self.is_full_screen = is_full_screen;
+        self.scaling_changed(dimensions, self.fonts.get_font_scale());
+        self.emit_window_event("window-resized");
+    }
+
     pub fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
         let config = &self.config;
         let font_size = config.font_size * font_scale;
