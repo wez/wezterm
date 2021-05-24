@@ -38,7 +38,7 @@ metrics = { version="0.15", features=["std"]}
 mlua = "0.5"
 mux = { path = "../mux" }
 open = "1.4"
-ordered-float = "2.1"
+ordered-float = "2.4"
 palette = "0.5"
 percent-encoding = "2"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
