@@ -154,7 +154,13 @@ impl SpawnQueue {
         use std::io::Write;
 
         self.queue_func(f, high_pri);
-        self.write.lock().unwrap().write(b"x").ok();
+        while let Err(err) = self.write.lock().unwrap().write(b"x") {
+            if err.kind() == std::io::ErrorKind::Interrupted {
+                continue;
+            }
+            log::warn!("Failed to signal spawn queue pipe: {:#}", err);
+            break;
+        }
     }
 
     fn run_impl(&self) -> bool {
