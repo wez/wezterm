@@ -129,6 +129,8 @@ return {
 
 ### Connecting into Windows Subsystem for Linux
 
+*Note: this only works with WSL 1. [WSL 2 doesn't support AF_UNIX interop](https://github.com/microsoft/WSL/issues/5961)*
+
 Inside your WSL instance, configure `.wezterm.lua` with this snippet:
 
 ```lua
