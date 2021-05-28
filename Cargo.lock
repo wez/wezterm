@@ -2514,6 +2514,7 @@ dependencies = [
  "url",
  "wezterm-ssh",
  "wezterm-term",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -3165,7 +3166,7 @@ dependencies = [
 
 [[package]]
 name = "portable-pty"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "bitflags",

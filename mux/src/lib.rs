@@ -187,6 +187,7 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
             // this pane right now, so don't!
             promise::spawn::spawn_into_main_thread(async move {
                 let mux = Mux::get().unwrap();
+                log::trace!("checking for dead windows after EOF on pane {}", pane_id);
                 mux.prune_dead_windows();
             })
             .detach();

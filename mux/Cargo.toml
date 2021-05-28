@@ -39,5 +39,10 @@ wezterm-term = { path = "../term", features=["use_serde"] }
 [target.'cfg(any(windows, target_os="linux", target_os="macos"))'.dependencies]
 sysinfo = "0.16"
 
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3", features = [
+    "handleapi",
+]}
+
 [dev-dependencies]
 k9 = "0.11"

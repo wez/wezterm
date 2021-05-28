@@ -128,6 +128,10 @@ pub trait Child: std::fmt::Debug {
     /// Returns the process identifier of the child process,
     /// if applicable
     fn process_id(&self) -> Option<u32>;
+    /// Returns the process handle of the child process, if applicable.
+    /// Only available on Windows.
+    #[cfg(windows)]
+    fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle>;
 }
 
 /// Represents the slave side of a pty.
@@ -231,6 +235,11 @@ impl Child for std::process::Child {
 
     fn process_id(&self) -> Option<u32> {
         Some(self.id())
+    }
+
+    #[cfg(windows)]
+    fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
+        Some(std::os::windows::io::AsRawHandle::as_raw_handle(self))
     }
 }
 

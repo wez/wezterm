@@ -86,6 +86,11 @@ impl Child for WinChild {
             Some(res)
         }
     }
+
+    fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
+        let proc = self.proc.lock().unwrap();
+        Some(proc.as_raw_handle())
+    }
 }
 
 impl std::future::Future for WinChild {

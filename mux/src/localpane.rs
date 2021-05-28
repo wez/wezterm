@@ -7,6 +7,7 @@ use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
+use filedescriptor::OwnedHandle;
 use portable_pty::{Child, MasterPty, PtySize};
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
@@ -536,6 +537,49 @@ impl LocalPane {
         pty: Box<dyn MasterPty>,
         domain_id: DomainId,
     ) -> Self {
+        // This is a little gross; on Windows, our pipe reader will continue
+        // to be blocked in read even after the child process has died.
+        // We need to wake up and notice that the child terminated in order
+        // for our state to wind down.
+        // This block schedules a background thread to wait for the child
+        // to terminate, and then nudge the muxer to check for dead processes.
+        // Without this, typing `exit` in `cmd.exe` would keep the pane around
+        // until something else triggered the mux to prune dead processes.
+        #[cfg(windows)]
+        {
+            use std::os::windows::io::{AsRawHandle, RawHandle};
+            use winapi::um::synchapi::WaitForSingleObject;
+            use winapi::um::winbase::INFINITE;
+
+            struct RawDup(RawHandle);
+            impl AsRawHandle for RawDup {
+                fn as_raw_handle(&self) -> RawHandle {
+                    self.0
+                }
+            }
+
+            if let Some(Ok(handle)) = process
+                .as_raw_handle()
+                .as_ref()
+                .map(|h| OwnedHandle::dup(&RawDup(*h)))
+            {
+                std::thread::spawn(move || {
+                    unsafe {
+                        WaitForSingleObject(handle.as_raw_handle(), INFINITE);
+                    };
+                    promise::spawn::spawn_into_main_thread(async move {
+                        let mux = Mux::get().unwrap();
+                        log::trace!(
+                            "checking for dead windows after child died in pane {}",
+                            pane_id
+                        );
+                        mux.prune_dead_windows();
+                    })
+                    .detach();
+                });
+            }
+        }
+
         terminal.set_device_control_handler(Box::new(LocalPaneDCSHandler {
             pane_id,
             tmux_domain: None,
