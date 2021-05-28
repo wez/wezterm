@@ -25,6 +25,9 @@ use winapi::um::wincon::COORD;
 
 pub type HPCON = HANDLE;
 
+pub const PSEUDOCONSOLE_RESIZE_QUIRK: DWORD = 0x2;
+pub const PSEUDOCONSOLE_WIN32_INPUT_MODE: DWORD = 0x4;
+
 shared_library!(ConPtyFuncs,
     pub fn CreatePseudoConsole(
         size: COORD,
@@ -79,7 +82,7 @@ impl PsuedoCon {
                 size,
                 input.as_raw_handle(),
                 output.as_raw_handle(),
-                0,
+                PSEUDOCONSOLE_RESIZE_QUIRK | PSEUDOCONSOLE_WIN32_INPUT_MODE,
                 &mut con,
             )
         };
