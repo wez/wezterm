@@ -381,7 +381,9 @@ impl ParsedFont {
     /// italic for this font.
     pub fn synthesize(mut self, attr: &FontAttributes) -> Self {
         self.synthesize_italic = !self.italic && attr.italic;
-        self.synthesize_bold = attr.weight > self.weight;
+        self.synthesize_bold = attr.weight > FontWeight::Regular
+            && attr.weight > self.weight
+            && self.weight <= FontWeight::Regular;
         self
     }
 }
