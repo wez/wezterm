@@ -2506,6 +2506,7 @@ when wezterm is launched:</p>
 }
 </code></pre>
 <h3 id="connecting-into-windows-subsystem-for-linux"><a class="header" href="#connecting-into-windows-subsystem-for-linux">Connecting into Windows Subsystem for Linux</a></h3>
+<p><em>Note: this only works with WSL 1. <a href="https://github.com/microsoft/WSL/issues/5961">WSL 2 doesn't support AF_UNIX interop</a></em></p>
 <p>Inside your WSL instance, configure <code>.wezterm.lua</code> with this snippet:</p>
 <pre><code class="language-lua">return {
   unix_domains = {
