@@ -805,12 +805,25 @@ impl TermWindow {
         }
     }
 
+    fn is_pane_visible(&mut self, pane_id: PaneId) -> bool {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return false,
+        };
+
+        let tab_id = tab.tab_id();
+        if let Some(tab_overlay) = self.tab_state(tab_id).overlay.clone() {
+            return tab_overlay.pane_id() == pane_id;
+        }
+
+        tab.contains_pane(pane_id)
+    }
+
     fn mux_pane_output_event(&mut self, pane_id: PaneId) {
-        if let Some(pane) = self.get_active_pane_or_overlay() {
-            if pane.pane_id() == pane_id {
-                if let Some(ref win) = self.window {
-                    win.invalidate();
-                }
+        if self.is_pane_visible(pane_id) {
+            if let Some(ref win) = self.window {
+                win.invalidate();
             }
         }
     }
@@ -832,24 +845,18 @@ impl TermWindow {
                 alert: Alert::TitleMaybeChanged,
             }
             | MuxNotification::PaneOutput(pane_id) => {
-                let mut pane_in_window = false;
-
+                // Ideally we'd check to see if pane_id is part of this window,
+                // but overlays may not be 100% associated with the window
+                // in the mux and we don't want to lose the invalidation
+                // signal for that case, so we just check window validity
+                // here and propagate to the window event handler that
+                // will then do the check with full context.
                 let mux = Mux::get().expect("mux is calling us");
-                if let Some(mux_window) = mux.get_window(mux_window_id) {
-                    for tab in mux_window.iter() {
-                        if tab.contains_pane(pane_id) {
-                            pane_in_window = true;
-                            break;
-                        }
-                    }
-                } else {
+                if mux.get_window(mux_window_id).is_none() {
                     // Something inconsistent: cancel subscription
                     return false;
                 }
-
-                if !pane_in_window {
-                    return true;
-                }
+                let _ = pane_id;
             }
             MuxNotification::WindowInvalidated(window_id) => {
                 if window_id != mux_window_id {
