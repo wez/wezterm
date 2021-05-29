@@ -1543,7 +1543,6 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let releasing = (lparam & (1 << 31)) != 0;
         let ime_active = wparam == VK_PROCESSKEY as WPARAM;
 
-        /*
         let alt_pressed = (lparam & (1 << 29)) != 0;
         let is_extended = (lparam & (1 << 24)) != 0;
         let was_down = (lparam & (1 << 30)) != 0;
@@ -1558,7 +1557,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             WM_DEADCHAR => "WM_DEADCHAR",
             _ => "WAT",
         };
-        log::error!(
+        log::trace!(
             "{} c=`{}` repeat={} scan={} is_extended={} alt_pressed={} was_down={} \
              releasing={} IME={} dead_pending={:?}",
             label,
@@ -1572,7 +1571,6 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             ime_active,
             inner.dead_pending,
         );
-        */
 
         if ime_active {
             // If the IME is active, allow Windows to perform default processing
@@ -1884,8 +1882,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 repeat_count: repeat,
                 key_is_down: !releasing,
             }
-            .normalize_shift()
-            .normalize_ctrl();
+            .normalize_shift();
 
             // Special case for ALT-space to show the system menu, and
             // ALT-F4 to close the window.
