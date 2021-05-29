@@ -48,6 +48,10 @@ All other options are parsed but have no effect.  Notably, neither `Match` or
 `canonical` are not supported) configuration parsing for `Host` and
 `LocalUser`.  `Exec` based matches are recognized but not supported.
 
+*Since: nightly builds only:*
+
+`Include` is now supported.
+
 ### CLI Overrides
 
 `wezterm ssh` CLI allows overriding config settings via the command line.  This
