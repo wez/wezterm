@@ -15,6 +15,7 @@ anyhow = "1.0"
 base64 = "0.13"
 dirs-next = "2.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
+filenamegen = "0.2"
 log = "0.4"
 portable-pty = { version="0.5", path = "../pty" }
 regex = "1"

@@ -4994,6 +4994,7 @@ dependencies = [
  "base64",
  "dirs-next",
  "filedescriptor",
+ "filenamegen",
  "k9",
  "log",
  "portable-pty",

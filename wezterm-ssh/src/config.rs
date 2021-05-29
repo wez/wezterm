@@ -140,10 +140,70 @@ struct ParsedConfigFile {
 }
 
 impl ParsedConfigFile {
-    fn parse(s: &str) -> Self {
+    fn parse(s: &str, cwd: Option<&Path>) -> Self {
         let mut options = ConfigMap::new();
         let mut groups = vec![];
 
+        Self::parse_impl(s, cwd, &mut options, &mut groups);
+
+        Self { options, groups }
+    }
+
+    fn do_include(
+        pattern: &str,
+        cwd: Option<&Path>,
+        options: &mut ConfigMap,
+        groups: &mut Vec<MatchGroup>,
+    ) {
+        match filenamegen::Glob::new(&pattern) {
+            Ok(g) => {
+                match cwd
+                    .as_ref()
+                    .map(|p| p.to_path_buf())
+                    .or_else(|| std::env::current_dir().ok())
+                {
+                    Some(cwd) => {
+                        for path in g.walk(&cwd) {
+                            let path = if path.is_absolute() {
+                                path
+                            } else {
+                                cwd.join(path)
+                            };
+                            match std::fs::read_to_string(&path) {
+                                Ok(data) => {
+                                    Self::parse_impl(&data, Some(&cwd), options, groups);
+                                }
+                                Err(err) => {
+                                    log::error!(
+                                        "error expanding `Include {}`: unable to open {}: {:#}",
+                                        pattern,
+                                        path.display(),
+                                        err
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    None => {
+                        log::error!(
+                            "error expanding `Include {}`: unable to determine cwd",
+                            pattern
+                        );
+                    }
+                }
+            }
+            Err(err) => {
+                log::error!("error expanding `Include {}`: {:#}", pattern, err);
+            }
+        }
+    }
+
+    fn parse_impl(
+        s: &str,
+        cwd: Option<&Path>,
+        options: &mut ConfigMap,
+        groups: &mut Vec<MatchGroup>,
+    ) {
         for line in s.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
@@ -175,6 +235,11 @@ impl ParsedConfigFile {
                         }
                     }
                     patterns
+                }
+
+                if k == "include" {
+                    Self::do_include(v, cwd, options, groups);
+                    continue;
                 }
 
                 if k == "host" {
@@ -253,8 +318,6 @@ impl ParsedConfigFile {
                 }
             }
         }
-
-        Self { options, groups }
     }
 
     /// Apply configuration values that match the specified hostname to target,
@@ -337,14 +400,15 @@ impl Config {
     /// and add that to the list of configs.
     pub fn add_config_string(&mut self, config_string: &str) {
         self.config_files
-            .push(ParsedConfigFile::parse(config_string));
+            .push(ParsedConfigFile::parse(config_string, None));
     }
 
     /// Open `path`, read its contents and parse it as an `ssh_config` file,
     /// adding that to the list of configs
     pub fn add_config_file<P: AsRef<Path>>(&mut self, path: P) {
-        if let Ok(data) = std::fs::read_to_string(path) {
-            self.config_files.push(ParsedConfigFile::parse(&data));
+        if let Ok(data) = std::fs::read_to_string(path.as_ref()) {
+            self.config_files
+                .push(ParsedConfigFile::parse(&data, path.as_ref().parent()));
         }
     }
 
