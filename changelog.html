@@ -181,6 +181,7 @@ usually the best available version.</p>
 <p>As features stabilize some brief notes about them will accumulate here.</p>
 <ul>
 <li>Fixed: ssh client would read <code>/etc/ssh/config</code> rather than the proper <code>/etc/ssh/ssh_config</code></li>
+<li>Updated: ssh client now processes <code>Include</code> statements in ssh config</li>
 <li>x11: support for <a href="config/keys.html#voidsymbol">VoidSymbol</a> in key assignments. Thanks to <a href="https://github.com/digitallyserviced">@digitallyserviced</a>! <a href="https://github.com/wez/wezterm/pull/759">#759</a></li>
 <li>Fixed: UTF8-encoded-C1 control codes were not always recognized as control codes, and could result in a panic when later attempting to update the line. <a href="https://github.com/wez/wezterm/issues/768">#768</a></li>
 <li>Fixed: <code>wezterm cli split-pane</code> didn't use the current working dir of the source pane. <a href="https://github.com/wez/wezterm/issues/766">#766</a></li>
