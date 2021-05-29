@@ -7,7 +7,6 @@ use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
-use filedescriptor::OwnedHandle;
 use portable_pty::{Child, MasterPty, PtySize};
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
@@ -547,6 +546,7 @@ impl LocalPane {
         // until something else triggered the mux to prune dead processes.
         #[cfg(windows)]
         {
+            use filedescriptor::OwnedHandle;
             use std::os::windows::io::{AsRawHandle, RawHandle};
             use winapi::um::synchapi::WaitForSingleObject;
             use winapi::um::winbase::INFINITE;
