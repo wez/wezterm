@@ -81,6 +81,12 @@ where
             Ok(Item::Notif(MuxNotification::PaneOutput(pane_id))) => {
                 handler.schedule_pane_push(pane_id);
             }
+            Ok(Item::Notif(MuxNotification::PaneRemoved(pane_id))) => {
+                Pdu::PaneRemoved(codec::PaneRemoved { pane_id })
+                    .encode_async(&mut stream, 0)
+                    .await?;
+                stream.flush().await.context("flushing PDU to client")?;
+            }
             Ok(Item::Notif(MuxNotification::Alert { pane_id, alert: _ })) => {
                 // FIXME: queue notification to send to client!
                 handler.schedule_pane_push(pane_id);

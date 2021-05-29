@@ -36,6 +36,7 @@ use crate::activity::Activity;
 #[derive(Clone, Debug)]
 pub enum MuxNotification {
     PaneOutput(PaneId),
+    PaneRemoved(PaneId),
     WindowCreated(WindowId),
     WindowInvalidated(WindowId),
     Alert {
@@ -383,6 +384,7 @@ impl Mux {
         if let Some(pane) = self.panes.borrow_mut().remove(&pane_id) {
             log::debug!("killing pane {}", pane_id);
             pane.kill();
+            self.notify(MuxNotification::PaneRemoved(pane_id));
         }
     }
 

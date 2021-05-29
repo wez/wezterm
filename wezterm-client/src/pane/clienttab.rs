@@ -113,6 +113,12 @@ impl ClientPane {
                     log::error!("ClientPane: Ignoring SetClipboard request {:?}", clipboard);
                 }
             },
+            Pdu::PaneRemoved(PaneRemoved { pane_id }) => {
+                log::trace!("remote pane {} has been removed", pane_id);
+                self.renderable.borrow().inner.borrow_mut().dead = true;
+                let mux = mux::Mux::get().unwrap();
+                mux.prune_dead_windows();
+            }
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
         };
         Ok(())

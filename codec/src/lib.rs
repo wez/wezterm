@@ -436,6 +436,7 @@ pdu! {
     SplitPane: 34,
     KillPane: 35,
     SpawnV2: 36,
+    PaneRemoved: 37,
 }
 
 impl Pdu {
@@ -511,6 +512,7 @@ impl Pdu {
                 Some(*pane_id)
             }
             Pdu::SetClipboard(SetClipboard { pane_id, .. }) => Some(*pane_id),
+            Pdu::PaneRemoved(PaneRemoved { pane_id }) => Some(*pane_id),
             _ => None,
         }
     }
@@ -587,6 +589,11 @@ pub struct SpawnV2 {
     pub command: Option<CommandBuilder>,
     pub command_dir: Option<String>,
     pub size: PtySize,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct PaneRemoved {
+    pub pane_id: PaneId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

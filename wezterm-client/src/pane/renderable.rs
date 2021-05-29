@@ -347,11 +347,9 @@ impl RenderableInner {
             dirty.remove(stable_row);
         }
 
-        if !dirty.is_empty() {
-            Mux::get()
-                .unwrap()
-                .notify(mux::MuxNotification::PaneOutput(self.local_pane_id));
-        }
+        Mux::get()
+            .unwrap()
+            .notify(mux::MuxNotification::PaneOutput(self.local_pane_id));
 
         let mut to_fetch = RangeSet::new();
         for r in dirty.iter() {

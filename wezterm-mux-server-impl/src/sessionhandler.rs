@@ -532,6 +532,7 @@ impl SessionHandler {
             | Pdu::GetLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }
             | Pdu::GetTlsCredsResponse { .. }
+            | Pdu::PaneRemoved { .. }
             | Pdu::ErrorResponse { .. } => {
                 send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))
             }
