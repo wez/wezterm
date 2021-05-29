@@ -169,6 +169,7 @@ The default key bindings are:
 | `SUPER`          | `h`    | `HideApplication` (macOS only) |
 | `SUPER`          | `k`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `K`    | `ClearScrollback="ScrollbackOnly"` |
+| `CTRL+SHIFT`     | `L`    | `ShowDebugOverlay` (*since: nightly builds only*)|
 | `SUPER`          | `f`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `X`    | `ActivateCopyMode` |

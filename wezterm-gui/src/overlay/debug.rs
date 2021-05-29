@@ -131,10 +131,12 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
 
     loop {
         print_new_log_entries(&mut term, &mut latest_log_entry)?;
-
         let mut editor = LineEditor::new(&mut term);
         editor.set_prompt("> ");
         if let Some(line) = editor.read_line(&mut host)? {
+            if line.is_empty() {
+                continue;
+            }
             host.history().add(&line);
 
             let expr = format!("return {}", line);

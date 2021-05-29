@@ -34,6 +34,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: splitting panes in multiplexer could fail after a network reconnect [#781](https://github.com/wez/wezterm/issues/781)
 * Fixed: multiplexer now propagates toast notifications and color palette to client [#489](https://github.com/wez/wezterm/issues/489) [#748](https://github.com/wez/wezterm/issues/748)
 * Fixed: neovim interprets drags as double clicks [#823](https://github.com/wez/wezterm/discussions/823)
+* New: `CTRL+SHIFT+L` is assigned to [ShowDebugOverlay](config/lua/keyassignment/ShowDebugOverlay.md) [#641](https://github.com/wez/wezterm/issues/641)
 
 ### 20210502-154244-3f7122cb
 

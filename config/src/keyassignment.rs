@@ -301,6 +301,7 @@ impl InputMap {
                     KeyCode::Char('F'),
                     Search(Pattern::CaseSensitiveString("".into()))
                 ],
+                [Modifiers::CTRL, KeyCode::Char('L'), ShowDebugOverlay],
                 [ctrl_shift, KeyCode::Char(' '), QuickSelect],
                 // Font size manipulation
                 [Modifiers::CTRL, KeyCode::Char('-'), DecreaseFontSize],
