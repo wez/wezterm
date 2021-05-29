@@ -877,16 +877,15 @@ impl portable_pty::MasterPty for WrappedSshPty {
 
 impl std::io::Write for PtyWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        match self.writer.write(buf) {
-            Ok(len) if len > 0 => Ok(len),
-            res => match self.rx.recv() {
-                Ok(writer) => {
-                    self.writer = writer;
-                    self.writer.write(buf)
-                }
-                _ => res,
-            },
+        // Check for a new writer first: on Windows, the socket
+        // will let us successfully write a byte to a disconnected
+        // socket and we won't discover the issue until we write
+        // the next byte.
+        // <https://github.com/wez/wezterm/issues/771>
+        if let Ok(writer) = self.rx.try_recv() {
+            self.writer = writer;
         }
+        self.writer.write(buf)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
