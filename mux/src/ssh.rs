@@ -7,7 +7,7 @@ use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{anyhow, bail, Context, Error};
 use async_trait::async_trait;
-use filedescriptor::{socketpair, FileDescriptor};
+use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{ExitStatus, MasterPty, PtySize};
 use smol::channel::{bounded, Receiver as AsyncReceiver};
@@ -16,7 +16,8 @@ use std::collections::{HashMap, VecDeque};
 use std::io::{BufWriter, Read, Write};
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use termwiz::cell::unicode_column_width;
 use termwiz::input::{InputEvent, InputParser};
 use termwiz::lineedit::*;
@@ -152,18 +153,18 @@ impl RemoteSshDomain {
 fn connect_ssh_session(
     session: Session,
     events: smol::channel::Receiver<SessionEvent>,
-    mut stdin_read: BoxedReader,
+    mut stdin_read: FileDescriptor,
     stdin_tx: Sender<BoxedWriter>,
     stdout_write: &mut BufWriter<FileDescriptor>,
     stdout_tx: Sender<BoxedReader>,
     child_tx: Sender<SshChildProcess>,
     pty_tx: Sender<SshPty>,
-    size: PtySize,
+    size: Arc<Mutex<PtySize>>,
     command_line: Option<String>,
     env: HashMap<String, String>,
 ) -> anyhow::Result<()> {
     struct StdoutShim<'a> {
-        size: PtySize,
+        size: Arc<Mutex<PtySize>>,
         stdout: &'a mut BufWriter<FileDescriptor>,
     }
 
@@ -178,15 +179,16 @@ fn connect_ssh_session(
 
     impl<'a> termwiz::render::RenderTty for StdoutShim<'a> {
         fn get_size_in_cells(&mut self) -> termwiz::Result<(usize, usize)> {
-            Ok((self.size.cols as _, self.size.rows as _))
+            let size = *self.size.lock().unwrap();
+            Ok((size.cols as _, size.rows as _))
         }
     }
 
     /// a termwiz Terminal for use with the line editor
     struct TerminalShim<'a> {
         stdout: &'a mut StdoutShim<'a>,
-        stdin: &'a mut BoxedReader,
-        size: PtySize,
+        stdin: &'a mut FileDescriptor,
+        size: Arc<Mutex<PtySize>>,
         renderer: TerminfoRenderer,
         parser: InputParser,
         input_queue: VecDeque<InputEvent>,
@@ -232,11 +234,12 @@ fn connect_ssh_session(
         }
 
         fn get_screen_size(&mut self) -> termwiz::Result<ScreenSize> {
+            let size = *self.size.lock().unwrap();
             Ok(ScreenSize {
-                cols: self.size.cols as _,
-                rows: self.size.rows as _,
-                xpixel: self.size.pixel_width as _,
-                ypixel: self.size.pixel_height as _,
+                cols: size.cols as _,
+                rows: size.rows as _,
+                xpixel: size.pixel_width as _,
+                ypixel: size.pixel_height as _,
             })
         }
 
@@ -249,17 +252,45 @@ fn connect_ssh_session(
             Ok(())
         }
 
-        fn poll_input(&mut self, _wait: Option<Duration>) -> termwiz::Result<Option<InputEvent>> {
+        fn poll_input(&mut self, wait: Option<Duration>) -> termwiz::Result<Option<InputEvent>> {
             if let Some(event) = self.input_queue.pop_front() {
                 return Ok(Some(event));
             }
 
-            let mut buf = [0u8; 64];
-            let n = self.stdin.read(&mut buf)?;
-            let input_queue = &mut self.input_queue;
-            self.parser
-                .parse(&buf[0..n], |evt| input_queue.push_back(evt), n == buf.len());
-            Ok(self.input_queue.pop_front())
+            let deadline = wait.map(|d| Instant::now() + d);
+            let starting_size = *self.size.lock().unwrap();
+
+            self.stdin.set_non_blocking(true)?;
+
+            loop {
+                if let Some(deadline) = deadline.as_ref() {
+                    if Instant::now() >= *deadline {
+                        return Ok(None);
+                    }
+                }
+                let mut pfd = [pollfd {
+                    fd: self.stdin.as_socket_descriptor(),
+                    events: POLLIN,
+                    revents: 0,
+                }];
+
+                if let Ok(1) = poll(&mut pfd, Some(Duration::from_millis(200))) {
+                    let mut buf = [0u8; 64];
+                    let n = self.stdin.read(&mut buf)?;
+                    let input_queue = &mut self.input_queue;
+                    self.parser
+                        .parse(&buf[0..n], |evt| input_queue.push_back(evt), n == buf.len());
+                    return Ok(self.input_queue.pop_front());
+                } else {
+                    let size = *self.size.lock().unwrap();
+                    if starting_size != size {
+                        return Ok(Some(InputEvent::Resized {
+                            cols: size.cols as usize,
+                            rows: size.rows as usize,
+                        }));
+                    }
+                }
+            }
         }
 
         fn waker(&self) -> TerminalWaker {
@@ -273,9 +304,9 @@ fn connect_ssh_session(
     let mut shim = TerminalShim {
         stdout: &mut StdoutShim {
             stdout: stdout_write,
-            size,
+            size: Arc::clone(&size),
         },
-        size,
+        size: Arc::clone(&size),
         renderer,
         stdin: &mut stdin_read,
         parser: InputParser::new(),
@@ -348,7 +379,7 @@ fn connect_ssh_session(
                 // set up the real pty for the pane
                 match smol::block_on(session.request_pty(
                     &config::configuration().term,
-                    size,
+                    *size.lock().unwrap(),
                     command_line.as_ref().map(|s| s.as_str()),
                     Some(env),
                 )) {
@@ -459,9 +490,11 @@ impl Domain for RemoteSshDomain {
 
             let (pty_tx, pty_rx) = channel();
 
+            let size = Arc::new(Mutex::new(size));
+
             pty = Box::new(WrappedSshPty {
                 inner: RefCell::new(WrappedSshPtyInner::Connecting {
-                    size,
+                    size: Arc::clone(&size),
                     reader: Some(pty_reader),
                     connected: pty_rx,
                 }),
@@ -471,7 +504,6 @@ impl Domain for RemoteSshDomain {
             // to perform the blocking (from its perspective) terminal
             // UI to carry out any authentication.
             let session = self.session.clone();
-            let stdin_read: BoxedReader = Box::new(stdin_read);
             let mut stdout_write = BufWriter::new(stdout_write);
             std::thread::spawn(move || {
                 if let Err(err) = connect_ssh_session(
@@ -766,7 +798,7 @@ enum WrappedSshPtyInner {
     Connecting {
         reader: Option<PtyReader>,
         connected: Receiver<SshPty>,
-        size: PtySize,
+        size: Arc<Mutex<PtySize>>,
     },
     Connected {
         reader: Option<PtyReader>,
@@ -812,7 +844,7 @@ impl WrappedSshPtyInner {
                 ..
             } => {
                 if let Ok(pty) = connected.try_recv() {
-                    let res = pty.resize(*size);
+                    let res = pty.resize(*size.lock().unwrap());
                     *self = Self::Connected {
                         pty,
                         reader: reader.take(),
@@ -832,7 +864,7 @@ impl portable_pty::MasterPty for WrappedSshPty {
         let mut inner = self.inner.borrow_mut();
         match &mut *inner {
             WrappedSshPtyInner::Connecting { ref mut size, .. } => {
-                *size = new_size;
+                *size.lock().unwrap() = new_size;
                 inner.check_connected()
             }
             WrappedSshPtyInner::Connected { pty, .. } => pty.resize(new_size),
@@ -843,7 +875,7 @@ impl portable_pty::MasterPty for WrappedSshPty {
         let mut inner = self.inner.borrow_mut();
         match &*inner {
             WrappedSshPtyInner::Connecting { size, .. } => {
-                let size = *size;
+                let size = *size.lock().unwrap();
                 inner.check_connected()?;
                 Ok(size)
             }

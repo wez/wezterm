@@ -29,6 +29,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Updated: conpty.dll to v1.9.1445.0; fixes color bar artifacts when resizing window and allows win32 console applications to use mouse events
 * Fixed: Windows: pane could linger after the process has died, closing only when a new pane/tab event occurs
 * Fixed: Windows: first character after `wezterm ssh` keyboard authention was swallowed [#771](https://github.com/wez/wezterm/issues/771)
+* Fixed: Windows: detect window resizes while authenticating for `wezterm ssh` [#696](https://github.com/wez/wezterm/issues/696)
 
 ### 20210502-154244-3f7122cb
 
