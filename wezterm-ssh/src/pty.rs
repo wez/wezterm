@@ -88,6 +88,25 @@ pub struct SshChildProcess {
     pub(crate) exited: Option<ExitStatus>,
 }
 
+impl SshChildProcess {
+    pub async fn async_wait(&mut self) -> std::io::Result<ExitStatus> {
+        if let Some(status) = self.exited.as_ref() {
+            return Ok(status.clone());
+        }
+        match self.exit.recv().await {
+            Ok(status) => {
+                self.exited.replace(status.clone());
+                Ok(status)
+            }
+            Err(_) => {
+                let status = ExitStatus::with_exit_code(1);
+                self.exited.replace(status.clone());
+                Ok(status)
+            }
+        }
+    }
+}
+
 impl portable_pty::Child for SshChildProcess {
     fn try_wait(&mut self) -> std::io::Result<Option<ExitStatus>> {
         if let Some(status) = self.exited.as_ref() {

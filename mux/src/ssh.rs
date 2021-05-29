@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{ExitStatus, MasterPty, PtySize};
+use smol::channel::{bounded, Receiver as AsyncReceiver};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::io::{BufWriter, Read, Write};
@@ -451,7 +452,7 @@ impl Domain for RemoteSshDomain {
             let (child_tx, child_rx) = channel();
 
             child = Box::new(WrappedSshChild {
-                child: None,
+                status: None,
                 rx: child_rx,
                 exited: None,
             });
@@ -637,17 +638,26 @@ impl Domain for RemoteSshDomain {
 
 #[derive(Debug)]
 struct WrappedSshChild {
-    child: Option<SshChildProcess>,
+    status: Option<AsyncReceiver<ExitStatus>>,
     rx: Receiver<SshChildProcess>,
     exited: Option<ExitStatus>,
 }
 
 impl WrappedSshChild {
     fn check_connected(&mut self) {
-        if self.child.is_none() {
+        if self.status.is_none() {
             match self.rx.try_recv() {
-                Ok(c) => {
-                    self.child.replace(c);
+                Ok(mut c) => {
+                    let (tx, rx) = bounded(1);
+                    promise::spawn::spawn_into_main_thread(async move {
+                        if let Ok(status) = c.async_wait().await {
+                            tx.send(status).await.ok();
+                            let mux = Mux::get().unwrap();
+                            mux.prune_dead_windows();
+                        }
+                    })
+                    .detach();
+                    self.status.replace(rx);
                 }
                 Err(TryRecvError::Empty) => {}
                 Err(err) => {
@@ -667,10 +677,20 @@ impl portable_pty::Child for WrappedSshChild {
 
         self.check_connected();
 
-        if let Some(child) = self.child.as_mut() {
-            child.try_wait()
-        } else if let Some(status) = self.exited.as_ref() {
-            Ok(Some(status.clone()))
+        if let Some(rx) = self.status.as_mut() {
+            match rx.try_recv() {
+                Ok(status) => {
+                    self.exited.replace(status.clone());
+                    Ok(Some(status))
+                }
+                Err(smol::channel::TryRecvError::Empty) => Ok(None),
+                Err(err) => {
+                    log::error!("WrappedSshChild err: {:#?}", err);
+                    let status = ExitStatus::with_exit_code(1);
+                    self.exited.replace(status.clone());
+                    Ok(Some(status))
+                }
+            }
         } else {
             Ok(None)
         }
@@ -687,20 +707,40 @@ impl portable_pty::Child for WrappedSshChild {
             return Ok(status.clone());
         }
 
-        self.check_connected();
+        if self.status.is_none() {
+            match smol::block_on(async { self.rx.recv() }) {
+                Ok(mut c) => {
+                    let (tx, rx) = bounded(1);
+                    promise::spawn::spawn_into_main_thread(async move {
+                        if let Ok(status) = c.async_wait().await {
+                            tx.send(status).await.ok();
+                            let mux = Mux::get().unwrap();
+                            mux.prune_dead_windows();
+                        }
+                    })
+                    .detach();
+                    self.status.replace(rx);
+                }
+                Err(err) => {
+                    log::error!("WrappedSshChild err: {:#?}", err);
+                    let status = ExitStatus::with_exit_code(1);
+                    self.exited.replace(status.clone());
+                    return Ok(status);
+                }
+            }
+        }
 
-        if let Some(child) = self.child.as_mut() {
-            child.wait()
-        } else {
-            match self.rx.recv() {
-                Ok(c) => {
-                    self.child.replace(c);
-                    self.child.as_mut().unwrap().wait()
-                }
-                Err(_) => {
-                    self.exited.replace(ExitStatus::with_exit_code(1));
-                    return Ok(self.exited.as_ref().cloned().unwrap());
-                }
+        let rx = self.status.as_mut().unwrap();
+        match smol::block_on(rx.recv()) {
+            Ok(status) => {
+                self.exited.replace(status.clone());
+                Ok(status)
+            }
+            Err(err) => {
+                log::error!("WrappedSshChild err: {:#?}", err);
+                let status = ExitStatus::with_exit_code(1);
+                self.exited.replace(status.clone());
+                Ok(status)
             }
         }
     }
