@@ -1,5 +1,5 @@
-pub use clienttab::ClientPane;
+pub use clientpane::ClientPane;
 
-mod clienttab;
+mod clientpane;
 mod mousestate;
 mod renderable;

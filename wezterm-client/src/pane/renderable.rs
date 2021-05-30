@@ -1,5 +1,5 @@
 use crate::domain::ClientInner;
-use crate::pane::clienttab::ClientPane;
+use crate::pane::clientpane::ClientPane;
 use anyhow::anyhow;
 use codec::*;
 use config::{configuration, ConfigHandle};
