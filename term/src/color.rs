@@ -35,15 +35,15 @@ pub struct ColorPalette {
 /// This is not defined on RgbColor itself in order
 /// to avoid termwiz requiring a dep on the palette crate.
 fn grey_out(color: RgbColor) -> RgbColor {
-    use palette::{Blend, Lch, Saturate, Srgba};
+    use palette::{Lch, Saturate, Srgba};
     let color = Srgba::new(color.red, color.green, color.blue, 0xff);
     let color: Srgba = color.into_format();
     let color = color.into_linear();
 
-    let desaturated = Lch::from(color).desaturate(0.2);
+    let mut desaturated = Lch::from(color).desaturate(0.2);
+    desaturated.l *= 0.8;
 
-    let tint = Srgba::new(0.2, 0.2, 0.2, 0.6).into_linear();
-    let result = Srgba::from_linear(tint.over(desaturated.into()));
+    let result = Srgba::from_linear(desaturated.into());
     let result = Srgba::<u8>::from_format(result);
 
     RgbColor::new(result.red, result.green, result.blue)
