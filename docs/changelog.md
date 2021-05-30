@@ -33,6 +33,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: OSC 52 clipboard escape didn't work in the initial pane spawned in the multiplexer server [#764](https://github.com/wez/wezterm/issues/764)
 * Fixed: splitting panes in multiplexer could fail after a network reconnect [#781](https://github.com/wez/wezterm/issues/781)
 * Fixed: multiplexer now propagates toast notifications and color palette to client [#489](https://github.com/wez/wezterm/issues/489) [#748](https://github.com/wez/wezterm/issues/748)
+* Fixed: neovim interprets drags as double clicks [#823](https://github.com/wez/wezterm/discussions/823)
 
 ### 20210502-154244-3f7122cb
 

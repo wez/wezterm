@@ -274,6 +274,7 @@ pub struct TerminalState {
     /// Button events enabled
     button_event_mouse: bool,
     current_mouse_button: MouseButton,
+    last_mouse_move: Option<MouseEvent>,
     cursor_visible: bool,
     dec_line_drawing_mode: bool,
 
@@ -474,6 +475,7 @@ impl TerminalState {
             any_event_mouse: false,
             button_event_mouse: false,
             mouse_tracking: false,
+            last_mouse_move: None,
             cursor_visible: true,
             dec_line_drawing_mode: false,
             current_mouse_button: MouseButton::None,
@@ -726,6 +728,14 @@ impl TerminalState {
         let reportable = self.any_event_mouse || self.current_mouse_button != MouseButton::None;
         // Note: self.mouse_tracking on its own is for clicks, not drags!
         if reportable && (self.button_event_mouse || self.any_event_mouse) {
+            match self.last_mouse_move.as_ref() {
+                Some(last) if *last == event => {
+                    return Ok(());
+                }
+                _ => {}
+            }
+            self.last_mouse_move.replace(event.clone());
+
             let button = 32 + self.mouse_report_button_number(&event);
 
             if self.sgr_mouse {
@@ -2026,9 +2036,11 @@ impl TerminalState {
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking)) => {
                 self.mouse_tracking = true;
+                self.last_mouse_move.take();
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking)) => {
                 self.mouse_tracking = false;
+                self.last_mouse_move.take();
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -2040,32 +2052,40 @@ impl TerminalState {
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ButtonEventMouse)) => {
                 self.button_event_mouse = true;
+                self.last_mouse_move.take();
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::ButtonEventMouse,
             )) => {
                 self.button_event_mouse = false;
+                self.last_mouse_move.take();
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse)) => {
                 self.any_event_mouse = true;
+                self.last_mouse_move.take();
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse)) => {
                 self.any_event_mouse = false;
+                self.last_mouse_move.take();
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking)) => {
                 self.focus_tracking = true;
+                self.last_mouse_move.take();
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking)) => {
                 self.focus_tracking = false;
+                self.last_mouse_move.take();
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
                 self.sgr_mouse = true;
+                self.last_mouse_move.take();
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
                 self.sgr_mouse = false;
+                self.last_mouse_move.take();
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
