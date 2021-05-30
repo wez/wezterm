@@ -158,6 +158,17 @@ pub struct SessionHandler {
 
 impl SessionHandler {
     pub fn new(to_write_tx: PduSender) -> Self {
+        // Fixup the clipboard on the empty initial pane that is
+        // spawned into the mux
+        let mux = Mux::get().unwrap();
+        for pane in mux.iter_panes() {
+            let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
+                pane_id: pane.pane_id(),
+                sender: to_write_tx.clone(),
+            });
+            pane.set_clipboard(&clip);
+        }
+
         Self {
             to_write_tx,
             per_pane: HashMap::new(),
