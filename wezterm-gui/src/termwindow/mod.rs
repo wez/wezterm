@@ -757,6 +757,12 @@ impl TermWindow {
                 } => {
                     self.update_title();
                 }
+                MuxNotification::Alert {
+                    alert: Alert::PaletteChanged,
+                    pane_id,
+                } => {
+                    self.mux_pane_output_event(pane_id);
+                }
                 MuxNotification::PaneOutput(pane_id) => {
                     self.mux_pane_output_event(pane_id);
                 }

@@ -51,6 +51,8 @@ pub enum Alert {
     /// When the title, or something that likely influences the title,
     /// has been changed
     TitleMaybeChanged,
+    /// When the color palette has been updated
+    PaletteChanged,
 }
 
 pub trait AlertHandler {

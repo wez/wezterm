@@ -3268,6 +3268,9 @@ impl<'a> Performer<'a> {
                 self.screen.activate_primary_screen();
                 self.erase_in_display(EraseInDisplay::EraseScrollback);
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::PaletteChanged);
+                }
             }
 
             _ => log::warn!("ESC: unhandled {:?}", esc),
@@ -3435,6 +3438,9 @@ impl<'a> Performer<'a> {
                         }
                     }
                 }
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::PaletteChanged);
+                }
                 self.make_all_lines_dirty();
             }
 
@@ -3454,6 +3460,9 @@ impl<'a> Performer<'a> {
                             self.palette_mut().colors.0[c] = base.colors.0[c];
                         }
                     }
+                }
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::PaletteChanged);
                 }
             }
 
@@ -3508,6 +3517,9 @@ impl<'a> Performer<'a> {
                     }
                     idx += 1;
                 }
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::PaletteChanged);
+                }
                 self.make_all_lines_dirty();
             }
 
@@ -3543,6 +3555,9 @@ impl<'a> Performer<'a> {
                         | DynamicColorNumber::TektronixBackgroundColor
                         | DynamicColorNumber::TektronixCursorColor => {}
                     }
+                }
+                if let Some(handler) = self.alert_handler.as_mut() {
+                    handler.alert(Alert::PaletteChanged);
                 }
                 self.make_all_lines_dirty();
             }

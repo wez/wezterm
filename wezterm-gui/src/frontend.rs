@@ -66,6 +66,10 @@ impl GuiFrontEnd {
                     }
                     MuxNotification::Alert {
                         pane_id: _,
+                        alert: Alert::PaletteChanged,
+                    }
+                    | MuxNotification::Alert {
+                        pane_id: _,
                         alert: Alert::TitleMaybeChanged,
                     } => {}
                     MuxNotification::Empty => {
