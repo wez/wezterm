@@ -11,10 +11,12 @@ build = "build.rs"
 open = "2.0"
 log = "0.4"
 
-[target.'cfg(all(not(windows), not(target_os="macos"), not(target_os="freebsd")))'.dependencies]
+[target.'cfg(all(not(windows), not(target_os="macos")))'.dependencies]
 serde = {version="1.0", features = ["derive"]}
-zbus = "1.8"
+zbus = "2.0.0-beta.7"
 zvariant = "2.0"
+async-std = "1.4"
+futures-util = "0.3"
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"

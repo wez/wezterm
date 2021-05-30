@@ -1,10 +1,10 @@
-#![cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]
+#![cfg(all(not(target_os = "macos"), not(windows)))]
 //! See <https://developer.gnome.org/notification-spec/>
 
 use crate::ToastNotification;
+use futures_util::stream::{abortable, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use zbus::dbus_proxy;
 use zvariant::derive::Type;
 use zvariant::Value;
@@ -49,7 +49,7 @@ trait Notifications {
         summary: &str,
         body: &str,
         actions: &[&str],
-        hints: HashMap<&str, Value>,
+        hints: &HashMap<&str, Value<'_>>,
         expire_timeout: i32,
     ) -> zbus::Result<u32>;
 
@@ -86,11 +86,11 @@ impl Reason {
     }
 }
 
-fn show_notif_impl(notif: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
-    let connection = zbus::Connection::new_session()?;
+async fn show_notif_impl(notif: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
+    let connection = zbus::ConnectionBuilder::session()?.build().await?;
 
-    let proxy = NotificationsProxy::new(&connection)?;
-    let caps = proxy.get_capabilities()?;
+    let proxy = NotificationsProxy::new(&connection).await?;
+    let caps = proxy.get_capabilities().await?;
 
     if notif.url.is_some() && !caps.iter().any(|cap| cap == "actions") {
         // Server doesn't support actions, so skip showing this notification
@@ -101,67 +101,53 @@ fn show_notif_impl(notif: ToastNotification) -> Result<(), Box<dyn std::error::E
 
     let mut hints = HashMap::new();
     hints.insert("urgency", Value::U8(2 /* Critical */));
-    let notification = proxy.notify(
-        "wezterm",
-        0,
-        "org.wezfurlong.wezterm",
-        &notif.title,
-        &notif.message,
-        if notif.url.is_some() {
-            &["show", "Show"]
-        } else {
-            &[]
+    let notification = proxy
+        .notify(
+            "wezterm",
+            0,
+            "org.wezfurlong.wezterm",
+            &notif.title,
+            &notif.message,
+            if notif.url.is_some() {
+                &["show", "Show"]
+            } else {
+                &[]
+            },
+            &hints,
+            notif.timeout.map(|d| d.as_millis() as _).unwrap_or(0),
+        )
+        .await?;
+
+    let (mut invoked_stream, abort_invoked) = abortable(proxy.receive_action_invoked().await?);
+    let (mut closed_stream, abort_closed) = abortable(proxy.receive_notification_closed().await?);
+
+    futures_util::try_join!(
+        async {
+            while let Some(signal) = invoked_stream.next().await {
+                let args = signal.args()?;
+                if args.nid == notification {
+                    if let Some(url) = notif.url.as_ref() {
+                        let _ = open::that(url);
+                        abort_closed.abort();
+                        break;
+                    }
+                }
+            }
+            Ok::<(), zbus::Error>(())
         },
-        hints,
-        notif.timeout.map(|d| d.as_millis() as _).unwrap_or(0),
-    )?;
-
-    struct State {
-        notification: u32,
-        done: bool,
-        url: Option<String>,
-    }
-
-    let state = Arc::new(Mutex::new(State {
-        notification,
-        done: false,
-        url: notif.url,
-    }));
-
-    proxy.connect_action_invoked({
-        let state = Arc::clone(&state);
-        move |nid, _action_name| {
-            let state = state.lock().unwrap();
-            if nid == state.notification {
-                if let Some(url) = state.url.as_ref() {
-                    let _ = open::that(url);
+        async {
+            while let Some(signal) = closed_stream.next().await {
+                let args = signal.args()?;
+                let _reason = Reason::new(args.reason);
+                if args.nid == notification {
+                    abort_invoked.abort();
+                    break;
                 }
             }
             Ok(())
         }
-    })?;
+    )?;
 
-    proxy.connect_notification_closed({
-        let state = Arc::clone(&state);
-        move |nid, reason| {
-            let _reason = Reason::new(reason);
-            let mut state = state.lock().unwrap();
-            if nid == state.notification {
-                state.done = true;
-            }
-            Ok(())
-        }
-    })?;
-
-    while !state.lock().unwrap().done {
-        match proxy.next_signal() {
-            Err(err) => {
-                log::error!("next_signal: {:#}", err);
-                break;
-            }
-            Ok(_) => {}
-        }
-    }
     Ok(())
 }
 
@@ -169,7 +155,8 @@ pub fn show_notif(notif: ToastNotification) -> Result<(), Box<dyn std::error::Er
     // Run this in a separate thread as we don't know if dbus or the notification
     // service on the other end are up, and we'd otherwise block for some time.
     std::thread::spawn(move || {
-        if let Err(err) = show_notif_impl(notif) {
+        let res = async_std::task::block_on(async move { show_notif_impl(notif).await });
+        if let Err(err) = res {
             log::error!("while showing notification: {:#}", err);
         }
     });
