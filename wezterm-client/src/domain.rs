@@ -431,7 +431,7 @@ impl Domain for ClientDomain {
             .client
             .split_pane(SplitPane {
                 domain: SpawnTabDomain::CurrentPaneDomain,
-                pane_id: pane.remote_tab_id,
+                pane_id: pane.remote_pane_id,
                 direction,
                 command,
                 command_dir,

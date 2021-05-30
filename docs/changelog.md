@@ -31,6 +31,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: Windows: first character after `wezterm ssh` keyboard authention was swallowed [#771](https://github.com/wez/wezterm/issues/771)
 * Fixed: Windows: detect window resizes while authenticating for `wezterm ssh` [#696](https://github.com/wez/wezterm/issues/696)
 * Fixed: OSC 52 clipboard escape didn't work in the initial pane spawned in the multiplexer server [#764](https://github.com/wez/wezterm/issues/764)
+* Fixed: splitting panes in multiplexer could fail after a network reconnect [#781](https://github.com/wez/wezterm/issues/781)
 
 ### 20210502-154244-3f7122cb
 
