@@ -650,7 +650,7 @@ impl TermWindow {
                 is_full_screen,
             } => {
                 self.resize(dimensions, is_full_screen);
-                Ok(true)
+                Ok(self.do_paint(&gl, window))
             }
             WindowEvent::KeyEvent(event) => {
                 self.key_event_impl(event, window).await;
@@ -1958,8 +1958,8 @@ impl TermWindow {
                     qs.viewport_changed(pos);
                 }
             }
-            self.window.as_ref().unwrap().invalidate();
         }
+        self.window.as_ref().unwrap().invalidate();
     }
 
     fn maybe_scroll_to_bottom_for_input(&mut self, pane: &Rc<dyn Pane>) {
