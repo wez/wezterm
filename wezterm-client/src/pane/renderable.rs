@@ -546,6 +546,7 @@ impl RenderableInner {
                 }
             }
         }
+        mux.notify(mux::MuxNotification::PaneOutput(local_pane_id));
         Ok(())
     }
 
