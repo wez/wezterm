@@ -1,11 +1,37 @@
 //! Colors for attributes
 
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::result::Result;
 pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor, RgbaTuple};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Palette256(pub [RgbColor; 256]);
+
+#[cfg(feature = "use_serde")]
+impl Serialize for Palette256 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.to_vec().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "use_serde")]
+impl<'de> Deserialize<'de> for Palette256 {
+    fn deserialize<D>(deserializer: D) -> Result<Palette256, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = Vec::<RgbColor>::deserialize(deserializer)?;
+        use std::convert::TryInto;
+        Ok(Self(s.try_into().map_err(|_| {
+            serde::de::Error::custom("Palette256 size mismatch")
+        })?))
+    }
+}
 
 impl std::iter::FromIterator<RgbColor> for Palette256 {
     fn from_iter<I: IntoIterator<Item = RgbColor>>(iter: I) -> Self {
@@ -17,7 +43,8 @@ impl std::iter::FromIterator<RgbColor> for Palette256 {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub struct ColorPalette {
     pub colors: Palette256,
     pub foreground: RgbColor,

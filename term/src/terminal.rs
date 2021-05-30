@@ -37,6 +37,7 @@ pub trait DeviceControlHandler {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 pub enum Alert {
     Bell,
     ToastNotification {

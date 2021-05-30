@@ -10,6 +10,7 @@ use mux::domain::DomainId;
 use mux::pane::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
+use mux::{Mux, MuxNotification};
 use portable_pty::PtySize;
 use rangeset::RangeSet;
 use ratelim::RateLimiter;
@@ -21,7 +22,7 @@ use std::sync::Arc;
 use termwiz::input::KeyEvent;
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
+use wezterm_term::{Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
 
 pub struct ClientPane {
     client: Arc<ClientInner>,
@@ -29,6 +30,7 @@ pub struct ClientPane {
     pub remote_pane_id: PaneId,
     pub remote_tab_id: TabId,
     pub renderable: RefCell<RenderableState>,
+    palette: RefCell<ColorPalette>,
     writer: RefCell<PaneWriter>,
     reader: Pipe,
     mouse: Rc<RefCell<MouseState>>,
@@ -76,6 +78,8 @@ impl ClientPane {
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
+        let config = configuration();
+        let palette: ColorPalette = config.resolved_palette.clone().into();
 
         Self {
             client: Arc::clone(client),
@@ -85,6 +89,7 @@ impl ClientPane {
             remote_tab_id,
             renderable: RefCell::new(render),
             writer: RefCell::new(writer),
+            palette: RefCell::new(palette),
             reader,
             clipboard: RefCell::new(None),
             mouse_grabbed: RefCell::new(false),
@@ -113,10 +118,25 @@ impl ClientPane {
                     log::error!("ClientPane: Ignoring SetClipboard request {:?}", clipboard);
                 }
             },
+            Pdu::SetPalette(SetPalette { palette, .. }) => {
+                *self.palette.borrow_mut() = palette;
+                let mux = Mux::get().unwrap();
+                mux.notify(MuxNotification::Alert {
+                    pane_id: self.local_pane_id,
+                    alert: Alert::PaletteChanged,
+                });
+            }
+            Pdu::NotifyAlert(NotifyAlert { alert, .. }) => {
+                let mux = Mux::get().unwrap();
+                mux.notify(MuxNotification::Alert {
+                    pane_id: self.local_pane_id,
+                    alert,
+                });
+            }
             Pdu::PaneRemoved(PaneRemoved { pane_id }) => {
                 log::trace!("remote pane {} has been removed", pane_id);
                 self.renderable.borrow().inner.borrow_mut().dead = true;
-                let mux = mux::Mux::get().unwrap();
+                let mux = Mux::get().unwrap();
                 mux.prune_dead_windows();
             }
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
@@ -333,13 +353,10 @@ impl Pane for ClientPane {
     fn palette(&self) -> ColorPalette {
         let tardy = self.renderable.borrow().inner.borrow().is_tardy();
 
-        let config = configuration();
-        let palette: ColorPalette = config.resolved_palette.clone().into();
-
         if tardy {
-            palette.grey_out()
+            self.palette.borrow().grey_out()
         } else {
-            palette
+            self.palette.borrow().clone()
         }
     }
 

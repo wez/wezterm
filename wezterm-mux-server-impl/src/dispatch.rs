@@ -87,8 +87,12 @@ where
                     .await?;
                 stream.flush().await.context("flushing PDU to client")?;
             }
-            Ok(Item::Notif(MuxNotification::Alert { pane_id, alert: _ })) => {
-                // FIXME: queue notification to send to client!
+            Ok(Item::Notif(MuxNotification::Alert { pane_id, alert })) => {
+                {
+                    let per_pane = handler.per_pane(pane_id);
+                    let mut per_pane = per_pane.lock().unwrap();
+                    per_pane.notifications.push(alert);
+                }
                 handler.schedule_pane_push(pane_id);
             }
             Ok(Item::Notif(MuxNotification::WindowCreated(_window_id))) => {}

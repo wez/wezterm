@@ -15,7 +15,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use url::Url;
-use wezterm_term::terminal::{Clipboard, ClipboardSelection};
+use wezterm_term::terminal::{Alert, Clipboard, ClipboardSelection};
 use wezterm_term::StableRowIndex;
 
 #[derive(Clone)]
@@ -37,13 +37,15 @@ impl PduSender {
 }
 
 #[derive(Default, Debug)]
-struct PerPane {
+pub(crate) struct PerPane {
     cursor_position: StableCursorPosition,
     title: String,
     working_dir: Option<Url>,
     dimensions: RenderableDimensions,
     dirty_lines: RangeSet<StableRowIndex>,
     mouse_grabbed: bool,
+    sent_initial_palette: bool,
+    pub(crate) notifications: Vec<Alert>,
 }
 
 impl PerPane {
@@ -148,6 +150,32 @@ fn maybe_push_pane_changes(
             serial: 0,
         })?;
     }
+    if !per_pane.sent_initial_palette {
+        per_pane.notifications.push(Alert::PaletteChanged);
+        per_pane.sent_initial_palette = true;
+    }
+    for alert in per_pane.notifications.drain(..) {
+        match alert {
+            Alert::PaletteChanged => {
+                sender.send(DecodedPdu {
+                    pdu: Pdu::SetPalette(SetPalette {
+                        pane_id: pane.pane_id(),
+                        palette: pane.palette(),
+                    }),
+                    serial: 0,
+                })?;
+            }
+            alert => {
+                sender.send(DecodedPdu {
+                    pdu: Pdu::NotifyAlert(NotifyAlert {
+                        pane_id: pane.pane_id(),
+                        alert,
+                    }),
+                    serial: 0,
+                })?;
+            }
+        }
+    }
     Ok(())
 }
 
@@ -174,7 +202,8 @@ impl SessionHandler {
             per_pane: HashMap::new(),
         }
     }
-    fn per_pane(&mut self, pane_id: PaneId) -> Arc<Mutex<PerPane>> {
+
+    pub(crate) fn per_pane(&mut self, pane_id: PaneId) -> Arc<Mutex<PerPane>> {
         Arc::clone(
             self.per_pane
                 .entry(pane_id)
@@ -535,6 +564,8 @@ impl SessionHandler {
             Pdu::Pong { .. }
             | Pdu::ListPanesResponse { .. }
             | Pdu::SetClipboard { .. }
+            | Pdu::NotifyAlert { .. }
+            | Pdu::SetPalette { .. }
             | Pdu::SpawnResponse { .. }
             | Pdu::GetPaneRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }

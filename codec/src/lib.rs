@@ -30,7 +30,8 @@ use std::sync::Arc;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::Line;
 use varbincode;
-use wezterm_term::{ClipboardSelection, StableRowIndex};
+use wezterm_term::color::ColorPalette;
+use wezterm_term::{Alert, ClipboardSelection, StableRowIndex};
 
 /// Returns the encoded length of the leb128 representation of value
 fn encoded_length(value: u64) -> usize {
@@ -400,7 +401,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 7;
+pub const CODEC_VERSION: usize = 8;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -437,6 +438,8 @@ pdu! {
     KillPane: 35,
     SpawnV2: 36,
     PaneRemoved: 37,
+    SetPalette: 38,
+    NotifyAlert: 39,
 }
 
 impl Pdu {
@@ -508,11 +511,11 @@ impl Pdu {
 
     pub fn pane_id(&self) -> Option<PaneId> {
         match self {
-            Pdu::GetPaneRenderChangesResponse(GetPaneRenderChangesResponse { pane_id, .. }) => {
-                Some(*pane_id)
-            }
-            Pdu::SetClipboard(SetClipboard { pane_id, .. }) => Some(*pane_id),
-            Pdu::PaneRemoved(PaneRemoved { pane_id }) => Some(*pane_id),
+            Pdu::GetPaneRenderChangesResponse(GetPaneRenderChangesResponse { pane_id, .. })
+            | Pdu::SetPalette(SetPalette { pane_id, .. })
+            | Pdu::NotifyAlert(NotifyAlert { pane_id, .. })
+            | Pdu::SetClipboard(SetClipboard { pane_id, .. })
+            | Pdu::PaneRemoved(PaneRemoved { pane_id }) => Some(*pane_id),
             _ => None,
         }
     }
@@ -673,6 +676,18 @@ pub struct SetClipboard {
     pub pane_id: PaneId,
     pub clipboard: Option<String>,
     pub selection: ClipboardSelection,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetPalette {
+    pub pane_id: PaneId,
+    pub palette: ColorPalette,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct NotifyAlert {
+    pub pane_id: PaneId,
+    pub alert: Alert,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
