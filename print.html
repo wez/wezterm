@@ -2315,6 +2315,21 @@ span multiple lines:</p>
   }
 }
 </code></pre>
+<h3 id="osc-7-on-windowws-with-powershell"><a class="header" href="#osc-7-on-windowws-with-powershell">OSC 7 on Windowws with powershell</a></h3>
+<p>You can configure a custom prompt in powershell by creating/editing your
+<a href="https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.1">powershell profile</a>
+and defining a function like this:</p>
+<pre><code class="language-powershell">function prompt {
+    $p = $executionContext.SessionState.Path.CurrentLocation
+    $osc7 = &quot;&quot;
+    if ($p.Provider.Name -eq &quot;FileSystem&quot;) {
+        $ansi_escape = [char]27
+        $provider_path = $p.ProviderPath -Replace &quot;\\&quot;, &quot;/&quot;
+        $osc7 = &quot;$ansi_escape]7;file://${env:COMPUTERNAME}/${provider_path}${ansi_escape}\&quot;
+    }
+    &quot;${osc7}PS $p$('&gt;' * ($nestedPromptLevel + 1)) &quot;;
+}
+</code></pre>
 <h2 id="using-clink-on-windows-systems"><a class="header" href="#using-clink-on-windows-systems">Using clink on Windows Systems</a></h2>
 <p><a href="https://github.com/mridgers/clink">Clink</a> brings bash style line editing to
 your Windows cmd.exe experience.  If you haven't installed clink to be the
