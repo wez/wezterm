@@ -123,6 +123,20 @@ impl LoadedFont {
             .metrics_for_idx(font_idx, self.font_size, self.dpi)
     }
 
+    pub fn brightness_adjust(&self, font_idx: usize) -> f32 {
+        let synthesize_dim = self
+            .handles
+            .borrow()
+            .get(font_idx)
+            .map(|p| p.synthesize_dim)
+            .unwrap_or(false);
+        if synthesize_dim {
+            0.5
+        } else {
+            1.0
+        }
+    }
+
     pub fn rasterize_glyph(
         &self,
         glyph_pos: u32,

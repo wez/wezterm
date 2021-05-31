@@ -13,8 +13,7 @@ use ::window::glium::uniforms::{
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::WindowOps;
 use anyhow::anyhow;
-use config::ConfigHandle;
-use config::TextStyle;
+use config::{ConfigHandle, HsbTransform, TextStyle};
 use mux::pane::Pane;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
@@ -1002,7 +1001,15 @@ impl super::TermWindow {
                     quad.set_texture_adjust(left, top, right, bottom);
                     quad.set_underline(underline_tex_rect);
                     quad.set_underline_color(underline_color);
-                    quad.set_hsv(hsv);
+                    quad.set_hsv(if glyph.brightness_adjust != 1.0 {
+                        let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
+                        Some(HsbTransform {
+                            brightness: hsv.brightness * glyph.brightness_adjust,
+                            ..hsv
+                        })
+                    } else {
+                        hsv
+                    });
                     quad.set_has_color(glyph.has_color);
                     quad.set_cursor(
                         gl_state

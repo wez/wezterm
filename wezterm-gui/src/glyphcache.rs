@@ -99,6 +99,7 @@ impl<'a> std::hash::Hash for (dyn GlyphKeyTrait + 'a) {
 /// The image data may be None for whitespace glyphs.
 pub struct CachedGlyph<T: Texture2d> {
     pub has_color: bool,
+    pub brightness_adjust: f32,
     pub x_offset: PixelLength,
     pub y_offset: PixelLength,
     pub bearing_x: PixelLength,
@@ -431,6 +432,7 @@ impl<T: Texture2d> GlyphCache<T> {
                     style
                 );
                 Rc::new(CachedGlyph {
+                    brightness_adjust: 1.0,
                     has_color: false,
                     texture: None,
                     x_offset: PixelLength::zero(),
@@ -455,6 +457,7 @@ impl<T: Texture2d> GlyphCache<T> {
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let base_metrics;
         let idx_metrics;
+        let brightness_adjust;
         let glyph;
 
         {
@@ -463,6 +466,7 @@ impl<T: Texture2d> GlyphCache<T> {
             glyph = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
 
             idx_metrics = font.metrics_for_idx(info.font_idx)?;
+            brightness_adjust = font.brightness_adjust(info.font_idx);
         }
 
         let aspect = (idx_metrics.cell_width / idx_metrics.cell_height).get();
@@ -558,6 +562,7 @@ impl<T: Texture2d> GlyphCache<T> {
         let glyph = if glyph.width == 0 || glyph.height == 0 {
             // a whitespace glyph
             CachedGlyph {
+                brightness_adjust: 1.0,
                 has_color: glyph.has_color,
                 texture: None,
                 x_offset: info.x_offset * scale,
@@ -598,6 +603,7 @@ impl<T: Texture2d> GlyphCache<T> {
             let tex = self.atlas.allocate(&raw_im)?;
 
             let g = CachedGlyph {
+                brightness_adjust,
                 has_color: glyph.has_color,
                 texture: Some(tex),
                 x_offset,
