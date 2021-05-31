@@ -68,7 +68,7 @@ return {
 }
 ```
 
-### OSC 7 on Windowws with powershell
+### OSC 7 on Windows with powershell
 
 You can configure a custom prompt in powershell by creating/editing your
 [powershell profile](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.1)
