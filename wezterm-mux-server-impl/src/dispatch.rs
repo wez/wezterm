@@ -81,6 +81,7 @@ where
             Ok(Item::Notif(MuxNotification::PaneOutput(pane_id))) => {
                 handler.schedule_pane_push(pane_id);
             }
+            Ok(Item::Notif(MuxNotification::PaneAdded(_pane_id))) => {}
             Ok(Item::Notif(MuxNotification::PaneRemoved(pane_id))) => {
                 Pdu::PaneRemoved(codec::PaneRemoved { pane_id })
                     .encode_async(&mut stream, 0)

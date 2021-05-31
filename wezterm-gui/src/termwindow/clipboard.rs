@@ -66,8 +66,8 @@ impl TermWindow {
 
         mux_window.set_clipboard(&clipboard);
         for tab in mux_window.iter() {
-            for pane in tab.get_active_pane() {
-                pane.set_clipboard(&clipboard);
+            for pos in tab.iter_panes() {
+                pos.pane.set_clipboard(&clipboard);
             }
         }
     }

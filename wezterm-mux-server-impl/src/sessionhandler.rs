@@ -610,7 +610,7 @@ where
 
 struct RemoteClipboard {
     sender: PduSender,
-    pane_id: TabId,
+    pane_id: PaneId,
 }
 
 impl Clipboard for RemoteClipboard {

@@ -160,6 +160,8 @@ impl super::TermWindow {
             None
         };
 
+        let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
+
         match spawn_where {
             SpawnWhere::SplitPane(direction) => {
                 let mux = Mux::get().unwrap();
@@ -169,9 +171,10 @@ impl super::TermWindow {
                         .ok_or_else(|| anyhow!("tab to have a pane"))?;
 
                     log::trace!("doing split_pane");
-                    domain
+                    let pane = domain
                         .split_pane(cmd_builder, cwd, tab.tab_id(), pane.pane_id(), direction)
                         .await?;
+                    pane.set_clipboard(&clipboard);
                 } else {
                     log::error!("there is no active tab while splitting pane!?");
                 }
@@ -186,7 +189,6 @@ impl super::TermWindow {
                     .ok_or_else(|| anyhow!("newly spawned tab to have a pane"))?;
 
                 if spawn_where != SpawnWhere::NewWindow {
-                    let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
                     pane.set_clipboard(&clipboard);
                     let mut window = mux
                         .get_window_mut(target_window_id)

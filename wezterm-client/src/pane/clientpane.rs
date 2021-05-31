@@ -112,6 +112,13 @@ impl ClientPane {
                 ..
             }) => match self.clipboard.borrow().as_ref() {
                 Some(clip) => {
+                    log::debug!(
+                        "Pdu::SetClipboard pane={} remote={} {:?} {:?}",
+                        self.local_pane_id,
+                        self.remote_pane_id,
+                        selection,
+                        clipboard
+                    );
                     clip.set_contents(selection, clipboard)?;
                 }
                 None => {

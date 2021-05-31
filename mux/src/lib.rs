@@ -36,6 +36,7 @@ use crate::activity::Activity;
 #[derive(Clone, Debug)]
 pub enum MuxNotification {
     PaneOutput(PaneId),
+    PaneAdded(PaneId),
     PaneRemoved(PaneId),
     WindowCreated(WindowId),
     WindowRemoved(WindowId),
@@ -365,6 +366,7 @@ impl Mux {
         let pane_id = pane.pane_id();
         let banner = self.banner.borrow().clone();
         thread::spawn(move || read_from_pane_pty(pane_id, banner, reader));
+        self.notify(MuxNotification::PaneAdded(pane_id));
         Ok(())
     }
 

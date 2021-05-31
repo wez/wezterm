@@ -844,6 +844,7 @@ impl TermWindow {
         window: &Window,
         mux_window_id: MuxWindowId,
         dead: &Arc<AtomicBool>,
+        clipboard_contents: &Arc<Mutex<Option<String>>>,
     ) -> bool {
         if dead.load(Ordering::Relaxed) {
             // Subscription cancelled asynchronously
@@ -869,6 +870,30 @@ impl TermWindow {
                 }
                 let _ = pane_id;
             }
+            MuxNotification::PaneAdded(pane_id) => {
+                // If some other client spawns a pane inside this window, this
+                // gives us an opportunity to attach it to the clipboard.
+                let mux = Mux::get().expect("mux is calling us");
+                if let Some(mux_window) = mux.get_window(mux_window_id) {
+                    for tab in mux_window.iter() {
+                        for pos in tab.iter_panes() {
+                            if pos.pane.pane_id() == pane_id {
+                                let clipboard: Arc<dyn wezterm_term::Clipboard> =
+                                    Arc::new(ClipboardHelper {
+                                        window: window.clone(),
+                                        clipboard_contents: Arc::clone(clipboard_contents),
+                                    });
+                                pos.pane.set_clipboard(&clipboard);
+                                break;
+                            }
+                        }
+                    }
+                    return true;
+                } else {
+                    // Something inconsistent: cancel subscription
+                    return false;
+                };
+            }
             MuxNotification::WindowRemoved(window_id)
             | MuxNotification::WindowInvalidated(window_id) => {
                 if window_id != mux_window_id {
@@ -888,8 +913,15 @@ impl TermWindow {
         let mux_window_id = self.mux_window_id;
         let mux = Mux::get().expect("mux started and running on main thread");
         let dead = Arc::new(AtomicBool::new(false));
+        let clipboard_contents = Arc::clone(&self.clipboard_contents);
         mux.subscribe(move |n| {
-            Self::mux_pane_output_event_callback(n, &window, mux_window_id, &dead)
+            Self::mux_pane_output_event_callback(
+                n,
+                &window,
+                mux_window_id,
+                &dead,
+                &clipboard_contents,
+            )
         });
     }
 
