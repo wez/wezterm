@@ -68,6 +68,25 @@ return {
 }
 ```
 
+### OSC 7 on Windowws with powershell
+
+You can configure a custom prompt in powershell by creating/editing your
+[powershell profile](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles?view=powershell-7.1)
+and defining a function like this:
+
+```powershell
+function prompt {
+    $p = $executionContext.SessionState.Path.CurrentLocation
+    $osc7 = ""
+    if ($p.Provider.Name -eq "FileSystem") {
+        $ansi_escape = [char]27
+        $provider_path = $p.ProviderPath -Replace "\\", "/"
+        $osc7 = "$ansi_escape]7;file://${env:COMPUTERNAME}/${provider_path}${ansi_escape}\"
+    }
+    "${osc7}PS $p$('>' * ($nestedPromptLevel + 1)) ";
+}
+```
+
 ## Using clink on Windows Systems
 
 [Clink](https://github.com/mridgers/clink) brings bash style line editing to
