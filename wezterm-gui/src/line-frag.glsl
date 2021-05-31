@@ -23,9 +23,9 @@ void main() {
   vec4 under_color = sample_texture(atlas_nearest_sampler, o_underline);
   if (under_color.a != 0.0) {
     // if the underline glyph isn't transparent in this position then
-    // we take the underline color, otherwise we'll leave the color
+    // we overlay the underline color, otherwise we'll leave the color
     // at the background color.
-    color = under_color * o_underline_color;
+    color = color * (1.0 - under_color) + under_color * o_underline_color;
   }
 
   // Similar to the above: if the cursor texture isn't transparent
