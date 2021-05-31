@@ -38,6 +38,7 @@ impl GuiFrontEnd {
                         })
                         .detach();
                     }
+                    MuxNotification::WindowRemoved(_) => {}
                     MuxNotification::PaneRemoved(_) => {}
                     MuxNotification::WindowInvalidated(_) => {}
                     MuxNotification::PaneOutput(_) => {}

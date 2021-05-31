@@ -95,6 +95,7 @@ where
                 }
                 handler.schedule_pane_push(pane_id);
             }
+            Ok(Item::Notif(MuxNotification::WindowRemoved(_window_id))) => {}
             Ok(Item::Notif(MuxNotification::WindowCreated(_window_id))) => {}
             Ok(Item::Notif(MuxNotification::WindowInvalidated(_window_id))) => {}
             Ok(Item::Notif(MuxNotification::Empty)) => {}

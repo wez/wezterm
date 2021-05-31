@@ -769,6 +769,11 @@ impl TermWindow {
                 MuxNotification::WindowInvalidated(_) => {
                     window.invalidate();
                 }
+                MuxNotification::WindowRemoved(window_id) => {
+                    if window_id == self.mux_window_id {
+                        window.close();
+                    }
+                }
                 _ => {}
             },
             TermWindowNotif::EmitStatusUpdate => {
@@ -864,7 +869,8 @@ impl TermWindow {
                 }
                 let _ = pane_id;
             }
-            MuxNotification::WindowInvalidated(window_id) => {
+            MuxNotification::WindowRemoved(window_id)
+            | MuxNotification::WindowInvalidated(window_id) => {
                 if window_id != mux_window_id {
                     return true;
                 }

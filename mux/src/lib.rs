@@ -38,6 +38,7 @@ pub enum MuxNotification {
     PaneOutput(PaneId),
     PaneRemoved(PaneId),
     WindowCreated(WindowId),
+    WindowRemoved(WindowId),
     WindowInvalidated(WindowId),
     Alert {
         pane_id: PaneId,
@@ -411,6 +412,7 @@ impl Mux {
             for tab in window.iter() {
                 self.remove_tab_internal(tab.tab_id());
             }
+            self.notify(MuxNotification::WindowRemoved(window_id));
         }
     }
 
