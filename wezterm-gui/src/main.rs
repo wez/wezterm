@@ -269,8 +269,7 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
 
     let config = config::configuration();
     let window_id = mux.new_empty_window();
-    let _tab = mux
-        .default_domain()
+    let _tab = domain
         .spawn(config.initial_size(), cmd, None, *window_id)
         .await?;
     Ok(())

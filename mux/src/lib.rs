@@ -426,6 +426,9 @@ impl Mux {
     }
 
     pub fn prune_dead_windows(&self) {
+        if Activity::count() > 0 {
+            return;
+        }
         let live_tab_ids: Vec<TabId> = self.tabs.borrow().keys().cloned().collect();
         let mut dead_windows = vec![];
         let dead_tab_ids: Vec<TabId>;
