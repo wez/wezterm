@@ -7,11 +7,17 @@ use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
-use portable_pty::{Child, MasterPty, PtySize};
+#[cfg(windows)]
+use filedescriptor::OwnedHandle;
+use portable_pty::{Child, ExitStatus, MasterPty, PtySize};
 use rangeset::RangeSet;
+use smol::channel::{bounded, Receiver, TryRecvError};
 use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
+use std::io::Result as IoResult;
 use std::ops::Range;
+#[cfg(windows)]
+use std::os::windows::io::{AsRawHandle, RawHandle};
 use std::sync::Arc;
 use termwiz::escape::DeviceControlMode;
 use termwiz::surface::Line;
@@ -21,11 +27,16 @@ use wezterm_term::{
     Alert, AlertHandler, CellAttributes, Clipboard, KeyCode, KeyModifiers, MouseEvent,
     SemanticZone, StableRowIndex, Terminal,
 };
+#[cfg(windows)]
+use winapi::um::synchapi::WaitForSingleObject;
+#[cfg(windows)]
+use winapi::um::winbase::INFINITE;
 
 #[derive(Debug)]
 enum ProcessState {
     Running {
-        child: Box<dyn Child>,
+        child_waiter: Receiver<IoResult<ExitStatus>>,
+        signaller: ProcessSignaller,
         // Whether we've explicitly killed the child
         killed: bool,
     },
@@ -98,8 +109,10 @@ impl Pane for LocalPane {
             proc
         );
         match &mut *proc {
-            ProcessState::Running { child, killed } => {
-                let _ = child.kill();
+            ProcessState::Running {
+                signaller, killed, ..
+            } => {
+                let _ = signaller.kill();
                 *killed = true;
             }
             ProcessState::DeadPendingClose { killed } => {
@@ -118,8 +131,17 @@ impl Pane for LocalPane {
                                      \x1b\\exit_behavior\x1b]8;;\x1b\\";
 
         match &mut *proc {
-            ProcessState::Running { child, killed } => {
-                if let Ok(Some(status)) = child.try_wait() {
+            ProcessState::Running {
+                child_waiter,
+                killed,
+                ..
+            } => {
+                let status = match child_waiter.try_recv() {
+                    Ok(Ok(s)) => Some(s),
+                    Err(TryRecvError::Empty) => None,
+                    _ => Some(ExitStatus::with_exit_code(1)),
+                };
+                if let Some(status) = status {
                     match (configuration().exit_behavior, status.success(), killed) {
                         (ExitBehavior::Close, _, _) => *proc = ProcessState::Dead,
                         (ExitBehavior::CloseOnCleanExit, false, false) => {
@@ -528,57 +550,101 @@ impl AlertHandler for LocalPaneNotifHandler {
     }
 }
 
+#[derive(Debug)]
+struct ProcessSignaller {
+    #[cfg(unix)]
+    pid: Option<u32>,
+
+    #[cfg(windows)]
+    handle: Option<OwnedHandle>,
+}
+
+impl ProcessSignaller {
+    #[cfg(windows)]
+    fn kill(&self) -> IoResult<()> {
+        if let Some(handle) = self.handle {
+            unsafe {
+                if !winapi::um::processthreadsapi::TerminateProcess(self.handle, 127) {
+                    return Err(std::io::Error::last_os_error());
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    fn kill(&self) -> IoResult<()> {
+        if let Some(pid) = self.pid {
+            let result = unsafe { libc::kill(pid as i32, libc::SIGHUP) };
+            if result != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+        }
+        Ok(())
+    }
+}
+
+/// This is a little gross; on some systems, our pipe reader will continue
+/// to be blocked in read even after the child process has died.
+/// We need to wake up and notice that the child terminated in order
+/// for our state to wind down.
+/// This block schedules a background thread to wait for the child
+/// to terminate, and then nudge the muxer to check for dead processes.
+/// Without this, typing `exit` in `cmd.exe` would keep the pane around
+/// until something else triggered the mux to prune dead processes.
+fn split_child(
+    mut process: Box<dyn Child + Send>,
+) -> (Receiver<IoResult<ExitStatus>>, ProcessSignaller) {
+    let signaller;
+
+    #[cfg(windows)]
+    {
+        struct RawDup(RawHandle);
+        impl AsRawHandle for RawDup {
+            fn as_raw_handle(&self) -> RawHandle {
+                self.0
+            }
+        }
+
+        signaller = ProcessSignaller {
+            handle: process
+                .as_raw_handle()
+                .as_ref()
+                .map(|h| OwnedHandle::dup(&RawDup(*h))),
+        };
+    }
+
+    #[cfg(unix)]
+    {
+        signaller = ProcessSignaller {
+            pid: process.process_id(),
+        };
+    }
+
+    let (tx, rx) = bounded(1);
+
+    std::thread::spawn(move || {
+        let status = process.wait();
+        tx.try_send(status).ok();
+        promise::spawn::spawn_into_main_thread(async move {
+            let mux = Mux::get().unwrap();
+            mux.prune_dead_windows();
+        })
+        .detach();
+    });
+
+    (rx, signaller)
+}
+
 impl LocalPane {
     pub fn new(
         pane_id: PaneId,
         mut terminal: Terminal,
-        process: Box<dyn Child>,
+        process: Box<dyn Child + Send>,
         pty: Box<dyn MasterPty>,
         domain_id: DomainId,
     ) -> Self {
-        // This is a little gross; on Windows, our pipe reader will continue
-        // to be blocked in read even after the child process has died.
-        // We need to wake up and notice that the child terminated in order
-        // for our state to wind down.
-        // This block schedules a background thread to wait for the child
-        // to terminate, and then nudge the muxer to check for dead processes.
-        // Without this, typing `exit` in `cmd.exe` would keep the pane around
-        // until something else triggered the mux to prune dead processes.
-        #[cfg(windows)]
-        {
-            use filedescriptor::OwnedHandle;
-            use std::os::windows::io::{AsRawHandle, RawHandle};
-            use winapi::um::synchapi::WaitForSingleObject;
-            use winapi::um::winbase::INFINITE;
-
-            struct RawDup(RawHandle);
-            impl AsRawHandle for RawDup {
-                fn as_raw_handle(&self) -> RawHandle {
-                    self.0
-                }
-            }
-
-            if let Some(Ok(handle)) = process
-                .as_raw_handle()
-                .as_ref()
-                .map(|h| OwnedHandle::dup(&RawDup(*h)))
-            {
-                std::thread::spawn(move || {
-                    unsafe {
-                        WaitForSingleObject(handle.as_raw_handle(), INFINITE);
-                    };
-                    promise::spawn::spawn_into_main_thread(async move {
-                        let mux = Mux::get().unwrap();
-                        log::trace!(
-                            "checking for dead windows after child died in pane {}",
-                            pane_id
-                        );
-                        mux.prune_dead_windows();
-                    })
-                    .detach();
-                });
-            }
-        }
+        let (process, signaller) = split_child(process);
 
         terminal.set_device_control_handler(Box::new(LocalPaneDCSHandler {
             pane_id,
@@ -589,7 +655,8 @@ impl LocalPane {
             pane_id,
             terminal: RefCell::new(terminal),
             process: RefCell::new(ProcessState::Running {
-                child: process,
+                child_waiter: process,
+                signaller,
                 killed: false,
             }),
             pty: RefCell::new(pty),
@@ -700,8 +767,8 @@ impl LocalPane {
         let mut proc_names = vec![];
 
         #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
-        if let ProcessState::Running { child, .. } = &*self.process.borrow() {
-            if let Some(pid) = child.process_id() {
+        if let ProcessState::Running { signaller, .. } = &*self.process.borrow() {
+            if let Some(pid) = signaller.pid {
                 use sysinfo::{Pid, ProcessExt, RefreshKind, System, SystemExt};
                 let system = System::new_with_specifics(RefreshKind::new().with_processes());
                 let procs = system.get_processes();
@@ -733,9 +800,8 @@ impl Drop for LocalPane {
     fn drop(&mut self) {
         // Avoid lingering zombies if we can, but don't block forever.
         // <https://github.com/wez/wezterm/issues/558>
-        if let ProcessState::Running { child, .. } = &mut *self.process.borrow_mut() {
-            let _ = child.kill();
-            let _ = child.try_wait();
+        if let ProcessState::Running { signaller, .. } = &mut *self.process.borrow_mut() {
+            let _ = signaller.kill();
         }
     }
 }

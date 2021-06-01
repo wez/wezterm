@@ -453,7 +453,7 @@ impl Domain for RemoteSshDomain {
         env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
 
         let pty: Box<dyn portable_pty::MasterPty>;
-        let child: Box<dyn portable_pty::Child>;
+        let child: Box<dyn portable_pty::Child + Send>;
         let writer: BoxedWriter;
 
         if let Some(events) = self.events.borrow_mut().take() {
