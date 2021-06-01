@@ -27,10 +27,6 @@ use wezterm_term::{
     Alert, AlertHandler, CellAttributes, Clipboard, KeyCode, KeyModifiers, MouseEvent,
     SemanticZone, StableRowIndex, Terminal,
 };
-#[cfg(windows)]
-use winapi::um::synchapi::WaitForSingleObject;
-#[cfg(windows)]
-use winapi::um::winbase::INFINITE;
 
 #[derive(Debug)]
 enum ProcessState {
@@ -552,7 +548,6 @@ impl AlertHandler for LocalPaneNotifHandler {
 
 #[derive(Debug)]
 struct ProcessSignaller {
-    #[cfg(unix)]
     pid: Option<u32>,
 
     #[cfg(windows)]
@@ -562,9 +557,10 @@ struct ProcessSignaller {
 impl ProcessSignaller {
     #[cfg(windows)]
     fn kill(&self) -> IoResult<()> {
-        if let Some(handle) = self.handle {
+        if let Some(handle) = &self.handle {
             unsafe {
-                if !winapi::um::processthreadsapi::TerminateProcess(self.handle, 127) {
+                if winapi::um::processthreadsapi::TerminateProcess(handle.as_raw_handle(), 127) == 0
+                {
                     return Err(std::io::Error::last_os_error());
                 }
             }
@@ -607,10 +603,11 @@ fn split_child(
         }
 
         signaller = ProcessSignaller {
+            pid: process.process_id(),
             handle: process
                 .as_raw_handle()
                 .as_ref()
-                .map(|h| OwnedHandle::dup(&RawDup(*h))),
+                .and_then(|h| OwnedHandle::dup(&RawDup(*h)).ok()),
         };
     }
 
