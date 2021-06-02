@@ -1,4 +1,4 @@
-#![cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]
+#![cfg(all(not(target_os = "macos"), not(windows)))]
 //! See <https://developer.gnome.org/notification-spec/>
 
 use crate::ToastNotification;

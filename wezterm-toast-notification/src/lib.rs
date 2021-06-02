@@ -18,7 +18,7 @@ impl ToastNotification {
 
 #[cfg(windows)]
 use crate::windows as backend;
-#[cfg(all(not(target_os = "macos"), not(windows), not(target_os = "freebsd")))]
+#[cfg(all(not(target_os = "macos"), not(windows)))]
 use dbus as backend;
 #[cfg(target_os = "macos")]
 use macos as backend;
@@ -31,9 +31,6 @@ mod nop {
         Ok(())
     }
 }
-
-#[cfg(target_os = "freebsd")]
-use nop as backend;
 
 pub fn show(notif: ToastNotification) {
     if let Err(err) = backend::show_notif(notif) {
