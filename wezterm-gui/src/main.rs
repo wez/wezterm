@@ -325,11 +325,9 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
         let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();
 
         let cmd = if need_builder {
-            let mut builder = if opts.prog.is_empty() {
-                CommandBuilder::new_default_prog()
-            } else {
-                CommandBuilder::from_argv(opts.prog)
-            };
+            let config = config::configuration();
+            let prog = opts.prog.iter().map(|s| s.as_os_str()).collect::<Vec<_>>();
+            let mut builder = config.build_prog(if prog.is_empty() { None } else { Some(prog) })?;
             if let Some(cwd) = opts.cwd {
                 builder.cwd(cwd);
             }
