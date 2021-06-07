@@ -25,7 +25,7 @@ rangeset = { path = "../rangeset" }
 ratelim= { path = "../ratelim" }
 smol = "1.2"
 termwiz = { path = "../termwiz" }
-textwrap = "0.13"
+textwrap = "0.14"
 thiserror = "1.0"
 url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
