@@ -24,7 +24,7 @@ smol = "1.2"
 structopt = "0.3"
 tabout = { path = "../tabout" }
 termwiz = { path = "../termwiz" }
-textwrap = "0.13"
+textwrap = "0.14"
 umask = { path = "../umask" }
 url = "2"
 wezterm-client = { path = "../wezterm-client" }

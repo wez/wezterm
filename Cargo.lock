@@ -4294,6 +4294,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "textwrap"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f59f5365546b8424b0cc48868ae4fbbbc29a538dcc496b53543525201034f0c2"
+dependencies = [
+ "smawk",
+ "unicode-linebreak",
+ "unicode-width",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4447,6 +4458,15 @@ name = "unicode-joining-type"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa33c011d7f075f1e724a8401666be7c7aaa922af7c3b0151e5618c9ed5b599e"
+
+[[package]]
+name = "unicode-linebreak"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05a31f45d18a3213b918019f78fe6a73a14ab896807f0aaf5622aa0684749455"
+dependencies = [
+ "regex",
+]
 
 [[package]]
 name = "unicode-normalization"
@@ -4821,7 +4841,7 @@ dependencies = [
  "structopt",
  "tabout",
  "termwiz",
- "textwrap 0.13.4",
+ "textwrap 0.14.0",
  "umask",
  "url",
  "wezterm-client",
@@ -4943,7 +4963,7 @@ dependencies = [
  "tabout",
  "terminfo",
  "termwiz",
- "textwrap 0.13.4",
+ "textwrap 0.14.0",
  "thiserror",
  "umask",
  "unicode-normalization",
