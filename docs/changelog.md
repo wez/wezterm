@@ -37,6 +37,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: `CTRL+SHIFT+L` is assigned to [ShowDebugOverlay](config/lua/keyassignment/ShowDebugOverlay.md) [#641](https://github.com/wez/wezterm/issues/641)
 * Improved: antialiasing for undercurl. Thanks to [@ModProg](https://github.com/ModProg)! [#838](https://github.com/wez/wezterm/pull/838)
 * Fixed: `wezterm start --cwd c:/` didn't run `default_prog`. Thanks to [@exactly-one-kas](https://github.com/exactly-one-kas)! [#851](https://github.com/wez/wezterm/pull/851)
+* Improved: [skip_close_confirmation_for_processes_named](config/lua/config/skip_close_confirmation_for_processes_named.md) now includes common windows shell processes `cmd.exe`, `pwsh.exe` and `powershell.exe`. [#843](https://github.com/wez/wezterm/issues/843)
 
 ### 20210502-154244-3f7122cb
 

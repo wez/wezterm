@@ -1157,10 +1157,20 @@ pub struct Config {
 impl_lua_conversion!(Config);
 
 fn default_stateless_process_list() -> Vec<String> {
-    ["bash", "sh", "zsh", "fish", "tmux", "nu"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
+    [
+        "bash",
+        "sh",
+        "zsh",
+        "fish",
+        "tmux",
+        "nu",
+        "cmd.exe",
+        "pwsh.exe",
+        "powershell.exe",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
 }
 
 fn default_status_update_interval() -> u64 {
