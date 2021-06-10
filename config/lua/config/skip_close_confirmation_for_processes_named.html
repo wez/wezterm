@@ -165,6 +165,23 @@ not prompt for closing that particular pane.</p>
   }
 }
 </code></pre>
+<p><em>Since: nightly builds only</em>:</p>
+<p>The default value for this setting now includes some
+windows shell processes:</p>
+<pre><code>return {
+  skip_close_confirmation_for_processes_named = {
+        &quot;bash&quot;,
+        &quot;sh&quot;,
+        &quot;zsh&quot;,
+        &quot;fish&quot;,
+        &quot;tmux&quot;,
+        &quot;nu&quot;,
+        &quot;cmd.exe&quot;,
+        &quot;pwsh.exe&quot;,
+        &quot;powershell.exe&quot;
+  }
+}
+</code></pre>
 
                     </main>
 

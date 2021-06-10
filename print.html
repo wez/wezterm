@@ -429,6 +429,7 @@ usually the best available version.</p>
 <li>New: <code>CTRL+SHIFT+L</code> is assigned to <a href="config/lua/keyassignment/ShowDebugOverlay.html">ShowDebugOverlay</a> <a href="https://github.com/wez/wezterm/issues/641">#641</a></li>
 <li>Improved: antialiasing for undercurl. Thanks to <a href="https://github.com/ModProg">@ModProg</a>! <a href="https://github.com/wez/wezterm/pull/838">#838</a></li>
 <li>Fixed: <code>wezterm start --cwd c:/</code> didn't run <code>default_prog</code>. Thanks to <a href="https://github.com/exactly-one-kas">@exactly-one-kas</a>! <a href="https://github.com/wez/wezterm/pull/851">#851</a></li>
+<li>Improved: <a href="config/lua/config/skip_close_confirmation_for_processes_named.html">skip_close_confirmation_for_processes_named</a> now includes common windows shell processes <code>cmd.exe</code>, <code>pwsh.exe</code> and <code>powershell.exe</code>. <a href="https://github.com/wez/wezterm/issues/843">#843</a></li>
 </ul>
 <h3 id="20210502-154244-3f7122cb"><a class="header" href="#20210502-154244-3f7122cb">20210502-154244-3f7122cb</a></h3>
 <ul>
@@ -6703,6 +6704,23 @@ not prompt for closing that particular pane.</p>
 <pre><code>return {
   skip_close_confirmation_for_processes_named = {
     &quot;bash&quot;, &quot;sh&quot;, &quot;zsh&quot;, &quot;fish&quot;, &quot;tmux&quot;
+  }
+}
+</code></pre>
+<p><em>Since: nightly builds only</em>:</p>
+<p>The default value for this setting now includes some
+windows shell processes:</p>
+<pre><code>return {
+  skip_close_confirmation_for_processes_named = {
+        &quot;bash&quot;,
+        &quot;sh&quot;,
+        &quot;zsh&quot;,
+        &quot;fish&quot;,
+        &quot;tmux&quot;,
+        &quot;nu&quot;,
+        &quot;cmd.exe&quot;,
+        &quot;pwsh.exe&quot;,
+        &quot;powershell.exe&quot;
   }
 }
 </code></pre>
