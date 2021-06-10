@@ -430,6 +430,7 @@ usually the best available version.</p>
 <li>Improved: antialiasing for undercurl. Thanks to <a href="https://github.com/ModProg">@ModProg</a>! <a href="https://github.com/wez/wezterm/pull/838">#838</a></li>
 <li>Fixed: <code>wezterm start --cwd c:/</code> didn't run <code>default_prog</code>. Thanks to <a href="https://github.com/exactly-one-kas">@exactly-one-kas</a>! <a href="https://github.com/wez/wezterm/pull/851">#851</a></li>
 <li>Improved: <a href="config/lua/config/skip_close_confirmation_for_processes_named.html">skip_close_confirmation_for_processes_named</a> now includes common windows shell processes <code>cmd.exe</code>, <code>pwsh.exe</code> and <code>powershell.exe</code>. <a href="https://github.com/wez/wezterm/issues/843">#843</a></li>
+<li>Fixed: don't keep the window alive after running <code>something &amp; disown ; exit</code> <a href="https://github.com/wez/wezterm/issues/839">#839</a></li>
 </ul>
 <h3 id="20210502-154244-3f7122cb"><a class="header" href="#20210502-154244-3f7122cb">20210502-154244-3f7122cb</a></h3>
 <ul>
