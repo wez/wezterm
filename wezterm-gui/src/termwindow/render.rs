@@ -540,9 +540,11 @@ impl super::TermWindow {
                 None => {
                     let font = self.fonts.resolve_font(style)?;
                     let window = self.window.as_ref().unwrap().clone();
-                    match font.shape(text, move || {
-                        window.notify(TermWindowNotif::InvalidateShapeCache)
-                    }) {
+                    match font.shape(
+                        text,
+                        move || window.notify(TermWindowNotif::InvalidateShapeCache),
+                        BlockKey::filter_out_synthetic,
+                    ) {
                         Ok(info) => {
                             let line = Line::from_text(&text, &CellAttributes::default());
                             let clusters = line.cluster();
@@ -832,9 +834,11 @@ impl super::TermWindow {
                     None => {
                         let font = self.fonts.resolve_font(style)?;
                         let window = self.window.as_ref().unwrap().clone();
-                        match font.shape(&cluster.text, move || {
-                            window.notify(TermWindowNotif::InvalidateShapeCache)
-                        }) {
+                        match font.shape(
+                            &cluster.text,
+                            move || window.notify(TermWindowNotif::InvalidateShapeCache),
+                            BlockKey::filter_out_synthetic,
+                        ) {
                             Ok(info) => {
                                 let glyphs = self.glyph_infos_to_glyphs(
                                     cluster,

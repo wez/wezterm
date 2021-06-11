@@ -79,10 +79,11 @@ impl LoadedFont {
         Ok(loaded)
     }
 
-    pub fn shape<F: FnOnce() + Send + Sync + 'static>(
+    pub fn shape<F: FnOnce() + Send + Sync + 'static, FS: FnOnce(&mut Vec<char>)>(
         &self,
         text: &str,
         completion: F,
+        filter_out_synthetic: FS,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut no_glyphs = vec![];
 
@@ -103,6 +104,8 @@ impl LoadedFont {
             .shaper
             .borrow()
             .shape(text, self.font_size, self.dpi, &mut no_glyphs);
+
+        filter_out_synthetic(&mut no_glyphs);
 
         if !no_glyphs.is_empty() {
             if let Some(font_config) = self.font_config.upgrade() {

@@ -9,4 +9,13 @@ for b in range(0x2580, 0x25A0):
 print(s)
 print(s)
 print(s)
+print()
 
+s = ""
+for b in range(0x1fb00, 0x1fb3c):
+    s += chr(b) + " "
+
+print(s)
+print(s)
+print(s)
+print()

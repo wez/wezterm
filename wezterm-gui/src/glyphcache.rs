@@ -138,6 +138,23 @@ bitflags::bitflags! {
     }
 }
 
+bitflags::bitflags! {
+    pub struct Sextant: u8{
+        /// Upper-left
+        const ONE = 1<<1;
+        /// Upper-right
+        const TWO = 1<<2;
+        /// Middle left
+        const THREE = 1<<3;
+        /// Middle Right
+        const FOUR = 1<<4;
+        /// Lower left
+        const FIVE = 1<<5;
+        /// Lower right
+        const SIX = 1<<6;
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BlockAlpha {
     /// 100%
@@ -167,9 +184,18 @@ pub enum BlockKey {
     Full(BlockAlpha),
     /// A combination of quadrants
     Quadrants(Quadrant),
+    /// A combination of sextants
+    Sextants(Sextant),
 }
 
 impl BlockKey {
+    pub fn filter_out_synthetic(glyphs: &mut Vec<char>) {
+        let config = config::configuration();
+        if config.custom_block_glyphs {
+            glyphs.retain(|&c| Self::from_char(c).is_none());
+        }
+    }
+
     pub fn from_char(c: char) -> Option<Self> {
         let c = c as u32;
         Some(match c {
@@ -204,6 +230,84 @@ impl BlockKey {
             0x259e => Self::Quadrants(Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT),
             0x259f => Self::Quadrants(
                 Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT | Quadrant::LOWER_RIGHT,
+            ),
+            0x1fb00 => Self::Sextants(Sextant::ONE),
+            0x1fb01 => Self::Sextants(Sextant::TWO),
+            0x1fb02 => Self::Sextants(Sextant::ONE | Sextant::TWO),
+            0x1fb03 => Self::Sextants(Sextant::THREE),
+            0x1fb04 => Self::Sextants(Sextant::ONE | Sextant::THREE),
+            0x1fb05 => Self::Sextants(Sextant::TWO | Sextant::THREE),
+            0x1fb06 => Self::Sextants(Sextant::TWO | Sextant::TWO | Sextant::THREE),
+            0x1fb07 => Self::Sextants(Sextant::FOUR),
+            0x1fb08 => Self::Sextants(Sextant::ONE | Sextant::FOUR),
+            0x1fb09 => Self::Sextants(Sextant::TWO | Sextant::FOUR),
+            0x1fb0a => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR),
+            0x1fb0b => Self::Sextants(Sextant::THREE | Sextant::FOUR),
+            0x1fb0c => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR),
+            0x1fb0d => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR),
+            0x1fb0e => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR),
+            0x1fb0f => Self::Sextants(Sextant::FIVE),
+            0x1fb10 => Self::Sextants(Sextant::ONE | Sextant::FIVE),
+            0x1fb11 => Self::Sextants(Sextant::TWO | Sextant::FIVE),
+            0x1fb12 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FIVE),
+            0x1fb13 => Self::Sextants(Sextant::THREE | Sextant::FIVE),
+            0x1fb14 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FIVE),
+            0x1fb15 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FIVE),
+            0x1fb16 => Self::Sextants(Sextant::FOUR | Sextant::FIVE),
+            0x1fb17 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::FIVE),
+            0x1fb18 => Self::Sextants(Sextant::TWO | Sextant::FOUR | Sextant::FIVE),
+            0x1fb19 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::FIVE),
+            0x1fb1a => Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::FIVE),
+            0x1fb1b => {
+                Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
+            }
+            0x1fb1c => {
+                Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
+            }
+            0x1fb1d => Self::Sextants(
+                Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE,
+            ),
+            0x1fb1e => Self::Sextants(Sextant::SIX),
+            0x1fb1f => Self::Sextants(Sextant::ONE | Sextant::SIX),
+            0x1fb20 => Self::Sextants(Sextant::TWO | Sextant::SIX),
+            0x1fb21 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::SIX),
+            0x1fb22 => Self::Sextants(Sextant::THREE | Sextant::SIX),
+            0x1fb23 => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::SIX),
+            0x1fb24 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::SIX),
+            0x1fb25 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::SIX),
+            0x1fb26 => Self::Sextants(Sextant::FOUR | Sextant::SIX),
+            0x1fb27 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::SIX),
+            0x1fb28 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::SIX),
+            0x1fb29 => Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::SIX),
+            0x1fb2a => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::SIX),
+            0x1fb2b => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::SIX),
+            0x1fb2c => Self::Sextants(
+                Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::SIX,
+            ),
+            0x1fb2d => Self::Sextants(Sextant::FIVE | Sextant::SIX),
+            0x1fb2e => Self::Sextants(Sextant::ONE | Sextant::FIVE | Sextant::SIX),
+            0x1fb2f => Self::Sextants(Sextant::TWO | Sextant::FIVE | Sextant::SIX),
+            0x1fb30 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FIVE | Sextant::SIX),
+            0x1fb31 => Self::Sextants(Sextant::THREE | Sextant::FIVE | Sextant::SIX),
+            0x1fb32 => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FIVE | Sextant::SIX),
+            0x1fb33 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FIVE | Sextant::SIX),
+            0x1fb34 => Self::Sextants(
+                Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FIVE | Sextant::SIX,
+            ),
+            0x1fb35 => Self::Sextants(Sextant::FOUR | Sextant::FIVE | Sextant::SIX),
+            0x1fb36 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX),
+            0x1fb37 => Self::Sextants(Sextant::TWO | Sextant::FOUR | Sextant::FIVE | Sextant::SIX),
+            0x1fb38 => Self::Sextants(
+                Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
+            ),
+            0x1fb39 => {
+                Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX)
+            }
+            0x1fb3a => Self::Sextants(
+                Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
+            ),
+            0x1fb3b => Self::Sextants(
+                Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
             ),
             _ => return None,
         })
@@ -822,6 +926,43 @@ impl<T: Texture2d> GlyphCache<T> {
                 }
                 if quads.contains(Quadrant::LOWER_RIGHT) {
                     draw_quad(&mut buffer, scale(x_half)..width, scale(y_half)..height);
+                }
+            }
+            BlockKey::Sextants(s) => {
+                let y_third = self.metrics.cell_size.height as f32 / 3.;
+                let x_half = self.metrics.cell_size.width as f32 / 2.;
+                let width = self.metrics.cell_size.width as usize;
+                let height = self.metrics.cell_size.height as usize;
+
+                if s.contains(Sextant::ONE) {
+                    draw_quad(&mut buffer, 0..scale(x_half), 0..scale(y_third));
+                }
+                if s.contains(Sextant::TWO) {
+                    draw_quad(&mut buffer, scale(x_half)..width, 0..scale(y_third));
+                }
+                if s.contains(Sextant::THREE) {
+                    draw_quad(
+                        &mut buffer,
+                        0..scale(x_half),
+                        scale(y_third)..scale(y_third * 2.),
+                    );
+                }
+                if s.contains(Sextant::FOUR) {
+                    draw_quad(
+                        &mut buffer,
+                        scale(x_half)..width,
+                        scale(y_third)..scale(y_third * 2.),
+                    );
+                }
+                if s.contains(Sextant::FIVE) {
+                    draw_quad(&mut buffer, 0..scale(x_half), scale(y_third * 2.)..height);
+                }
+                if s.contains(Sextant::SIX) {
+                    draw_quad(
+                        &mut buffer,
+                        scale(x_half)..width,
+                        scale(y_third * 2.)..height,
+                    );
                 }
             }
         }
