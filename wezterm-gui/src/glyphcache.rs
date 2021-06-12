@@ -815,38 +815,15 @@ impl<T: Texture2d> GlyphCache<T> {
 
         let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
 
-        let y_eighth = self.metrics.cell_size.height as f32 / 8.;
-        let x_eighth = self.metrics.cell_size.width as f32 / 8.;
-
         fn scale(f: f32) -> usize {
             f.ceil().max(1.) as usize
         }
 
         buffer.clear_rect(cell_rect, black);
 
-        let draw_horizontal = |buffer: &mut Image, y: usize| {
-            buffer.draw_line(
-                Point::new(cell_rect.origin.x, cell_rect.origin.y + y as isize),
-                Point::new(
-                    cell_rect.origin.x + self.metrics.cell_size.width,
-                    cell_rect.origin.y + y as isize,
-                ),
-                white,
-            );
-        };
-
-        let draw_vertical = |buffer: &mut Image, x: usize| {
-            buffer.draw_line(
-                Point::new(cell_rect.origin.x + x as isize, cell_rect.origin.y),
-                Point::new(
-                    cell_rect.origin.x + x as isize,
-                    cell_rect.origin.y + self.metrics.cell_size.height,
-                ),
-                white,
-            );
-        };
-
-        let draw_quad = |buffer: &mut Image, x: Range<usize>, y: Range<usize>| {
+        /// Fill a rectangular region described by the x and y ranges
+        /// TODO: this could probably be a call to buffer.clear_rect?
+        let fill_rect = |buffer: &mut Image, x: Range<usize>, y: Range<usize>| {
             for y in y {
                 buffer.draw_line(
                     Point::new(
@@ -868,36 +845,26 @@ impl<T: Texture2d> GlyphCache<T> {
 
         match block {
             BlockKey::Upper(num) => {
-                for n in 0..usize::from(num) {
-                    for a in 0..scale(y_eighth) {
-                        draw_horizontal(&mut buffer, (n as f32 * y_eighth).floor() as usize + a);
-                    }
-                }
+                let lower = self.metrics.cell_size.height as f32 * (num as f32) / 8.;
+                let width = self.metrics.cell_size.width as usize;
+                fill_rect(&mut buffer, 0..width, 0..scale(lower));
             }
             BlockKey::Lower(num) => {
-                for n in 0..usize::from(num) {
-                    let y =
-                        (self.metrics.cell_size.height - 1) as usize - scale(n as f32 * y_eighth);
-                    for a in 0..scale(y_eighth) {
-                        draw_horizontal(&mut buffer, y + a);
-                    }
-                }
+                let upper = self.metrics.cell_size.height as f32 * ((8 - num) as f32) / 8.;
+                let width = self.metrics.cell_size.width as usize;
+                let height = self.metrics.cell_size.height as usize;
+                fill_rect(&mut buffer, 0..width, scale(upper)..height);
             }
             BlockKey::Left(num) => {
-                for n in 0..usize::from(num) {
-                    for a in 0..scale(x_eighth) {
-                        draw_vertical(&mut buffer, (n as f32 * x_eighth).floor() as usize + a);
-                    }
-                }
+                let width = self.metrics.cell_size.width as f32 * (num as f32) / 8.;
+                let height = self.metrics.cell_size.height as usize;
+                fill_rect(&mut buffer, 0..scale(width), 0..height);
             }
             BlockKey::Right(num) => {
-                for n in 0..usize::from(num) {
-                    let x =
-                        (self.metrics.cell_size.width - 1) as usize - scale(n as f32 * x_eighth);
-                    for a in 0..scale(x_eighth) {
-                        draw_vertical(&mut buffer, x + a);
-                    }
-                }
+                let left = self.metrics.cell_size.width as f32 * ((8 - num) as f32) / 8.;
+                let width = self.metrics.cell_size.width as usize;
+                let height = self.metrics.cell_size.height as usize;
+                fill_rect(&mut buffer, scale(left)..width, 0..height);
             }
             BlockKey::Full(alpha) => {
                 let alpha = match alpha {
@@ -916,16 +883,16 @@ impl<T: Texture2d> GlyphCache<T> {
                 let width = self.metrics.cell_size.width as usize;
                 let height = self.metrics.cell_size.height as usize;
                 if quads.contains(Quadrant::UPPER_LEFT) {
-                    draw_quad(&mut buffer, 0..scale(x_half), 0..scale(y_half));
+                    fill_rect(&mut buffer, 0..scale(x_half), 0..scale(y_half));
                 }
                 if quads.contains(Quadrant::UPPER_RIGHT) {
-                    draw_quad(&mut buffer, scale(x_half)..width, 0..scale(y_half));
+                    fill_rect(&mut buffer, scale(x_half)..width, 0..scale(y_half));
                 }
                 if quads.contains(Quadrant::LOWER_LEFT) {
-                    draw_quad(&mut buffer, 0..scale(x_half), scale(y_half)..height);
+                    fill_rect(&mut buffer, 0..scale(x_half), scale(y_half)..height);
                 }
                 if quads.contains(Quadrant::LOWER_RIGHT) {
-                    draw_quad(&mut buffer, scale(x_half)..width, scale(y_half)..height);
+                    fill_rect(&mut buffer, scale(x_half)..width, scale(y_half)..height);
                 }
             }
             BlockKey::Sextants(s) => {
@@ -935,30 +902,30 @@ impl<T: Texture2d> GlyphCache<T> {
                 let height = self.metrics.cell_size.height as usize;
 
                 if s.contains(Sextant::ONE) {
-                    draw_quad(&mut buffer, 0..scale(x_half), 0..scale(y_third));
+                    fill_rect(&mut buffer, 0..scale(x_half), 0..scale(y_third));
                 }
                 if s.contains(Sextant::TWO) {
-                    draw_quad(&mut buffer, scale(x_half)..width, 0..scale(y_third));
+                    fill_rect(&mut buffer, scale(x_half)..width, 0..scale(y_third));
                 }
                 if s.contains(Sextant::THREE) {
-                    draw_quad(
+                    fill_rect(
                         &mut buffer,
                         0..scale(x_half),
                         scale(y_third)..scale(y_third * 2.),
                     );
                 }
                 if s.contains(Sextant::FOUR) {
-                    draw_quad(
+                    fill_rect(
                         &mut buffer,
                         scale(x_half)..width,
                         scale(y_third)..scale(y_third * 2.),
                     );
                 }
                 if s.contains(Sextant::FIVE) {
-                    draw_quad(&mut buffer, 0..scale(x_half), scale(y_third * 2.)..height);
+                    fill_rect(&mut buffer, 0..scale(x_half), scale(y_third * 2.)..height);
                 }
                 if s.contains(Sextant::SIX) {
-                    draw_quad(
+                    fill_rect(
                         &mut buffer,
                         scale(x_half)..width,
                         scale(y_third * 2.)..height,
