@@ -237,7 +237,7 @@ impl BlockKey {
             0x1fb03 => Self::Sextants(Sextant::THREE),
             0x1fb04 => Self::Sextants(Sextant::ONE | Sextant::THREE),
             0x1fb05 => Self::Sextants(Sextant::TWO | Sextant::THREE),
-            0x1fb06 => Self::Sextants(Sextant::TWO | Sextant::TWO | Sextant::THREE),
+            0x1fb06 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE),
             0x1fb07 => Self::Sextants(Sextant::FOUR),
             0x1fb08 => Self::Sextants(Sextant::ONE | Sextant::FOUR),
             0x1fb09 => Self::Sextants(Sextant::TWO | Sextant::FOUR),
