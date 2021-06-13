@@ -21,6 +21,7 @@ use termwiz::image::ImageData;
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo};
 use wezterm_term::Underline;
+use zeno::{Command, Fill, Format, Mask, PathBuilder};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GlyphKey {
@@ -167,6 +168,48 @@ pub enum BlockAlpha {
     Light,
 }
 
+impl BlockAlpha {
+    pub fn to_scale(self) -> f32 {
+        match self {
+            BlockAlpha::Full => 1.0,
+            BlockAlpha::Dark => 0.75,
+            BlockAlpha::Medium => 0.5,
+            BlockAlpha::Light => 0.25,
+        }
+    }
+}
+
+/// Represents a coordinate in a glyph expressed in relation
+/// to the dimension of the glyph.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum BlockCoord {
+    /// 0 pixels in; either the leftmost or topmost pixel position
+    Zero,
+    /// 100% of the dimension; either the rightmost or bottom pixel
+    /// position
+    One,
+    /// n number of halves of the dimension; Halves(1) is in the center
+    /// of the width or height
+    Halves(u8),
+    /// n number of thirds
+    Thirds(u8),
+    /// n number of quarters
+    Quarters(u8),
+}
+
+impl BlockCoord {
+    /// Compute the actual pixel value given the max dimension
+    pub fn to_pixel(self, max: usize) -> f32 {
+        match self {
+            Self::Zero => 0.,
+            Self::One => max as f32,
+            Self::Halves(n) => max as f32 * n as f32 / 2.,
+            Self::Thirds(n) => max as f32 * n as f32 / 3.,
+            Self::Quarters(n) => max as f32 * n as f32 / 4.,
+        }
+    }
+}
+
 /// Represents a Block Element glyph, decoded from
 /// <https://en.wikipedia.org/wiki/Block_Elements>
 /// <https://www.unicode.org/charts/PDF/U2580.pdf>
@@ -184,8 +227,15 @@ pub enum BlockKey {
     Full(BlockAlpha),
     /// A combination of quadrants
     Quadrants(Quadrant),
-    /// A combination of sextants
+    /// A combination of sextants <https://unicode.org/charts/PDF/U1FB00.pdf>
     Sextants(Sextant),
+
+    /// Filled polygon used to describe the more complex shapes in
+    /// <https://unicode.org/charts/PDF/U1FB00.pdf>
+    Poly {
+        path: &'static [(BlockCoord, BlockCoord)],
+        intensity: BlockAlpha,
+    },
 }
 
 impl BlockKey {
@@ -309,6 +359,51 @@ impl BlockKey {
             0x1fb3b => Self::Sextants(
                 Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
             ),
+            // LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
+            0x1fb3c => Self::Poly {
+                path: &[
+                    (BlockCoord::Zero, BlockCoord::Thirds(2)),
+                    (BlockCoord::Zero, BlockCoord::One),
+                    (BlockCoord::Halves(1), BlockCoord::One),
+                ],
+                intensity: BlockAlpha::Full,
+            },
+            // LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER RIGHT
+            0x1fb3d => Self::Poly {
+                path: &[
+                    (BlockCoord::Zero, BlockCoord::Thirds(2)),
+                    (BlockCoord::Zero, BlockCoord::One),
+                    (BlockCoord::One, BlockCoord::One),
+                ],
+                intensity: BlockAlpha::Full,
+            },
+            // LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER CENTRE
+            0x1fb3e => Self::Poly {
+                path: &[
+                    (BlockCoord::Zero, BlockCoord::Thirds(1)),
+                    (BlockCoord::Zero, BlockCoord::One),
+                    (BlockCoord::Halves(1), BlockCoord::One),
+                ],
+                intensity: BlockAlpha::Full,
+            },
+            // LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER RIGHT
+            0x1fb3f => Self::Poly {
+                path: &[
+                    (BlockCoord::Zero, BlockCoord::Thirds(1)),
+                    (BlockCoord::Zero, BlockCoord::One),
+                    (BlockCoord::One, BlockCoord::One),
+                ],
+                intensity: BlockAlpha::Full,
+            },
+            // LOWER LEFT BLOCK DIAGONAL UPPER LEFT TO LOWER CENTRE
+            0x1fb40 => Self::Poly {
+                path: &[
+                    (BlockCoord::Zero, BlockCoord::Zero),
+                    (BlockCoord::Zero, BlockCoord::One),
+                    (BlockCoord::Halves(1), BlockCoord::One),
+                ],
+                intensity: BlockAlpha::Full,
+            },
             _ => return None,
         })
     }
@@ -822,7 +917,6 @@ impl<T: Texture2d> GlyphCache<T> {
 
         // Fill a rectangular region described by the x and y ranges
         let fill_rect = |buffer: &mut Image, x: Range<usize>, y: Range<usize>| {
-            use zeno::{Command, Fill, Format, Mask, PathBuilder};
             let (width, height) = buffer.image_dimensions();
             let x = x.start as f32..x.end as f32;
             let y = y.start as f32..y.end as f32;
@@ -867,12 +961,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 fill_rect(&mut buffer, scale(left)..width, 0..height);
             }
             BlockKey::Full(alpha) => {
-                let alpha = match alpha {
-                    BlockAlpha::Full => 1.0,
-                    BlockAlpha::Dark => 0.75,
-                    BlockAlpha::Medium => 0.5,
-                    BlockAlpha::Light => 0.25,
-                };
+                let alpha = alpha.to_scale();
                 let fill = LinearRgba::with_components(alpha, alpha, alpha, alpha);
 
                 buffer.clear_rect(cell_rect, fill.srgba_pixel());
@@ -930,6 +1019,37 @@ impl<T: Texture2d> GlyphCache<T> {
                         scale(x_half)..width,
                         scale(y_third * 2.)..height,
                     );
+                }
+            }
+            BlockKey::Poly { path, intensity } => {
+                let (width, height) = buffer.image_dimensions();
+                let path = path
+                    .iter()
+                    .map(|(x, y)| (x.to_pixel(width), y.to_pixel(height)))
+                    .collect::<Vec<_>>();
+                log::info!("path: {:?}", path);
+
+                let mut cmd: Vec<Command> = vec![];
+                cmd.move_to(path[0]);
+                for pt in path.iter().skip(1) {
+                    cmd.line_to(*pt);
+                }
+                cmd.close();
+                log::info!("command: {:?}", cmd);
+
+                let (alpha, _placement) = Mask::new(&cmd)
+                    .format(Format::Alpha)
+                    .size(width as u32, height as u32)
+                    .style(Fill::NonZero)
+                    .render();
+
+                let intensity = intensity.to_scale();
+
+                for (alpha, dest) in alpha.into_iter().zip(buffer.pixels_mut()) {
+                    let alpha = (intensity * (alpha as f32)) as u32;
+                    // If existing pixel was blank, we want to replace it.
+                    // If alpha is blank then we don't want to replace existing non-blank.
+                    *dest |= alpha << 24 | alpha << 16 | alpha << 8 | alpha;
                 }
             }
         }
