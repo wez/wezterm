@@ -71,6 +71,7 @@ wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }
 window = { path = "../window" }
+zeno = "0.2"
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"

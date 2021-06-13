@@ -4921,6 +4921,7 @@ dependencies = [
  "winapi 0.3.9",
  "window",
  "windows",
+ "zeno",
 ]
 
 [[package]]
@@ -5412,6 +5413,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "zeno"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea708573d4a67f939793b0d3f923d105bfdf06bbd6acb3f9cd02ce1bd905f6c8"
 
 [[package]]
 name = "zstd"

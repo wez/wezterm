@@ -811,7 +811,6 @@ impl<T: Texture2d> GlyphCache<T> {
             self.metrics.cell_size.height as usize,
         );
         let black = SrgbaPixel::rgba(0, 0, 0, 0);
-        let white = SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff);
 
         let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
 
@@ -822,24 +821,25 @@ impl<T: Texture2d> GlyphCache<T> {
         buffer.clear_rect(cell_rect, black);
 
         // Fill a rectangular region described by the x and y ranges
-        // TODO: this could probably be a call to buffer.clear_rect?
         let fill_rect = |buffer: &mut Image, x: Range<usize>, y: Range<usize>| {
-            for y in y {
-                buffer.draw_line(
-                    Point::new(
-                        cell_rect.origin.x + x.start as isize,
-                        cell_rect.origin.y + y as isize,
-                    ),
-                    Point::new(
-                        // Note: draw_line uses inclusive coordinates, but our
-                        // range is exclusive coordinates, so compensate here!
-                        // We don't need to do this for `y` since we are already
-                        // iterating over the correct set of `y` values in our loop.
-                        cell_rect.origin.x + x.end.saturating_sub(1) as isize,
-                        cell_rect.origin.y + y as isize,
-                    ),
-                    white,
-                );
+            use zeno::{Command, Fill, Format, Mask, PathBuilder};
+            let (width, height) = buffer.image_dimensions();
+            let x = x.start as f32..x.end as f32;
+            let y = y.start as f32..y.end as f32;
+            let mut path: Vec<Command> = vec![];
+
+            path.add_rect([x.start, y.start], x.end - x.start, y.end - y.start);
+            let (alpha, _placement) = Mask::new(&path)
+                .format(Format::Alpha)
+                .size(width as u32, height as u32)
+                .style(Fill::NonZero)
+                .render();
+
+            for (alpha, dest) in alpha.into_iter().zip(buffer.pixels_mut()) {
+                let alpha = alpha as u32;
+                // If existing pixel was blank, we want to replace it.
+                // If alpha is blank then we don't want to replace existing non-blank.
+                *dest |= alpha << 24 | alpha << 16 | alpha << 8 | alpha;
             }
         };
 
