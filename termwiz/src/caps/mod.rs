@@ -118,7 +118,6 @@ impl ProbeHints {
             .colorterm_bce(var("COLORTERM_BCE").ok())
             .term_program(var("TERM_PROGRAM").ok())
             .term_program_version(var("TERM_PROGRAM_VERSION").ok())
-            .terminfo_db(terminfo::Database::from_env().ok())
     }
 }
 
@@ -184,6 +183,17 @@ impl Capabilities {
 
     /// Build a `Capabilities` object based on the provided `ProbeHints` object.
     pub fn new_with_hints(hints: ProbeHints) -> Result<Self> {
+        let terminfo_db = hints.terminfo_db.as_ref().cloned();
+        let terminfo_db = if cfg!(test) {
+            // Don't load from the system terminfo in tests, as it is unpredictable
+            terminfo_db
+        } else {
+            terminfo_db.or_else(|| match hints.term.as_ref() {
+                Some(t) => terminfo::Database::from_name(t).ok(),
+                None => terminfo::Database::from_env().ok(),
+            })
+        };
+
         let color_level = hints.color_level.unwrap_or_else(|| {
             // If set, COLORTERM overrides any other source of information
             match hints.colorterm.as_ref().map(String::as_ref) {
@@ -191,7 +201,7 @@ impl Capabilities {
                 Some(_) => ColorLevel::TwoFiftySix,
                 _ => {
                     // COLORTERM isn't set, so look at the terminfo.
-                    if let Some(ref db) = hints.terminfo_db.as_ref() {
+                    if let Some(ref db) = terminfo_db.as_ref() {
                         let has_true_color = db
                             .get::<cap::TrueColor>()
                             .unwrap_or(cap::TrueColor(false))
@@ -238,8 +248,7 @@ impl Capabilities {
                 Some("1") => true,
                 _ => {
                     // Look it up from terminfo
-                    hints
-                        .terminfo_db
+                    terminfo_db
                         .as_ref()
                         .map(|db| {
                             db.get::<cap::BackColorErase>()
@@ -279,7 +288,7 @@ impl Capabilities {
             hyperlinks,
             iterm2_image,
             bce,
-            terminfo_db: hints.terminfo_db,
+            terminfo_db,
             bracketed_paste,
             mouse_reporting,
         })
