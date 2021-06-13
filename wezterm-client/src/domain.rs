@@ -106,6 +106,10 @@ impl ClientInner {
         }
         None
     }
+
+    pub fn is_local(&self) -> bool {
+        self.client.is_local
+    }
 }
 
 #[derive(Clone, Debug)]

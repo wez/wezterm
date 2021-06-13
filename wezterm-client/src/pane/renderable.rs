@@ -133,7 +133,7 @@ impl RenderableInner {
     /// so we only employ it when it looks like the latency is high.
     /// We pick 100ms as the threshold for this.
     fn should_predict(&self) -> bool {
-        self.last_input_rtt >= 100
+        !self.client.is_local() && self.last_input_rtt >= 100
     }
 
     /// Compute a "prediction" and apply it to the line data that we

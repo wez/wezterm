@@ -41,6 +41,7 @@ pub struct Client {
     sender: Sender<ReaderMessage>,
     local_domain_id: DomainId,
     pub is_reconnectable: bool,
+    pub is_local: bool,
 }
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
@@ -379,6 +380,10 @@ impl Reconnectable {
 
     fn take_stream(&mut self) -> Option<Box<dyn AsyncReadAndWrite>> {
         self.stream.take()
+    }
+
+    fn is_local(&mut self) -> bool {
+        matches!(&self.config, ClientDomainConfig::Unix(_))
     }
 
     fn reconnectable(&mut self) -> bool {
@@ -784,6 +789,7 @@ impl Reconnectable {
 impl Client {
     fn new(local_domain_id: DomainId, mut reconnectable: Reconnectable) -> Self {
         let is_reconnectable = reconnectable.reconnectable();
+        let is_local = reconnectable.is_local();
         let (sender, mut receiver) = unbounded();
 
         thread::spawn(move || {
@@ -870,6 +876,7 @@ impl Client {
             sender,
             local_domain_id,
             is_reconnectable,
+            is_local,
         }
     }
 
