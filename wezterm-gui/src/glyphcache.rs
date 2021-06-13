@@ -821,8 +821,8 @@ impl<T: Texture2d> GlyphCache<T> {
 
         buffer.clear_rect(cell_rect, black);
 
-        /// Fill a rectangular region described by the x and y ranges
-        /// TODO: this could probably be a call to buffer.clear_rect?
+        // Fill a rectangular region described by the x and y ranges
+        // TODO: this could probably be a call to buffer.clear_rect?
         let fill_rect = |buffer: &mut Image, x: Range<usize>, y: Range<usize>| {
             for y in y {
                 buffer.draw_line(
