@@ -259,11 +259,10 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
 use termwiz::render::terminfo::TerminfoRenderer;
 
-fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
-    let data = include_bytes!("../../termwiz/data/xterm-256color");
-    let db = terminfo::Database::from_buffer(&data[..]).unwrap();
-
-    TerminfoRenderer::new(
+lazy_static::lazy_static! {
+    static ref CAPS: Capabilities = {
+        let data = include_bytes!("../../termwiz/data/xterm-256color");
+        let db = terminfo::Database::from_buffer(&data[..]).unwrap();
         Capabilities::new_with_hints(
             ProbeHints::new_from_env()
                 .term(Some("xterm-256color".into()))
@@ -274,8 +273,12 @@ fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
                 .term_program(Some("WezTerm".into()))
                 .term_program_version(Some(crate::wezterm_version().into())),
         )
-        .expect("cannot fail to make internal Capabilities"),
-    )
+        .expect("cannot fail to make internal Capabilities")
+    };
+}
+
+pub fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
+    TerminfoRenderer::new(CAPS.clone())
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]

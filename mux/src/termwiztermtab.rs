@@ -24,7 +24,6 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
-use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
 use termwiz::input::{InputEvent, KeyEvent, Modifiers, MouseEvent as TermWizMouseEvent};
 use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::surface::Change;
@@ -408,7 +407,7 @@ pub fn allocate(size: PtySize) -> (TermWizTerminal, Rc<dyn Pane>) {
 
     let (input_tx, input_rx) = channel();
 
-    let renderer = new_wezterm_terminfo_renderer();
+    let renderer = config::lua::new_wezterm_terminfo_renderer();
 
     let tw_term = TermWizTerminal {
         render_tx: TermWizTerminalRenderTty {
@@ -437,25 +436,6 @@ pub fn allocate(size: PtySize) -> (TermWizTerminal, Rc<dyn Pane>) {
     (tw_term, pane)
 }
 
-pub(crate) fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
-    let data = include_bytes!("../../termwiz/data/xterm-256color");
-    let db = terminfo::Database::from_buffer(&data[..]).unwrap();
-
-    TerminfoRenderer::new(
-        Capabilities::new_with_hints(
-            ProbeHints::new_from_env()
-                .term(Some("xterm-256color".into()))
-                .terminfo_db(Some(db))
-                .color_level(Some(ColorLevel::TrueColor))
-                .colorterm(None)
-                .colorterm_bce(None)
-                .term_program(Some("WezTerm".into()))
-                .term_program_version(Some(config::wezterm_version().into())),
-        )
-        .expect("cannot fail to make internal Capabilities"),
-    )
-}
-
 /// This function spawns a thread and constructs a GUI window with an
 /// associated termwiz Terminal object to execute the provided function.
 /// The function is expected to run in a loop to manage input and output
@@ -473,7 +453,7 @@ pub async fn run<
     let render_rx = render_pipe.read;
     let (input_tx, input_rx) = channel();
 
-    let renderer = new_wezterm_terminfo_renderer();
+    let renderer = config::lua::new_wezterm_terminfo_renderer();
 
     let tw_term = TermWizTerminal {
         render_tx: TermWizTerminalRenderTty {
