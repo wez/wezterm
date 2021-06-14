@@ -21,7 +21,7 @@ use termwiz::image::ImageData;
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo};
 use wezterm_term::Underline;
-use zeno::{Command, Fill, Format, Join, Mask, PathBuilder, Stroke, Style};
+use zeno::{Command, Fill, Format, Join, Mask, PathBuilder, Stroke, Style, Vector};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GlyphKey {
@@ -190,11 +190,11 @@ pub enum BlockCoord {
     One,
     /// n number of halves of the dimension; Halves(1) is in the center
     /// of the width or height
-    Halves(u8),
+    Halves(i8),
     /// n number of thirds
-    Thirds(u8),
+    Thirds(i8),
     /// n number of quarters
-    Quarters(u8),
+    Quarters(i8),
 }
 
 impl BlockCoord {
@@ -233,10 +233,36 @@ pub enum BlockKey {
     /// Filled polygon used to describe the more complex shapes in
     /// <https://unicode.org/charts/PDF/U1FB00.pdf>
     Poly {
-        paths: &'static [&'static [(BlockCoord, BlockCoord)]],
+        paths: &'static [&'static [PolyCommand]],
         intensity: BlockAlpha,
         style: PolyStyle,
     },
+}
+
+pub type BlockPoint = (BlockCoord, BlockCoord);
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum PolyCommand {
+    MoveTo(BlockCoord, BlockCoord),
+    LineTo(BlockCoord, BlockCoord),
+    QuadTo { control: BlockPoint, to: BlockPoint },
+    Close,
+}
+
+impl PolyCommand {
+    fn to_zeno(&self, width: usize, height: usize, sink: &mut impl PathBuilder) {
+        let coord =
+            |x: &BlockCoord, y: &BlockCoord| Vector::new(x.to_pixel(width), y.to_pixel(height));
+
+        let point = |(x, y): &BlockPoint| coord(x, y);
+
+        match self {
+            Self::MoveTo(x, y) => sink.move_to(coord(x, y)),
+            Self::LineTo(x, y) => sink.line_to(coord(x, y)),
+            Self::QuadTo { control, to } => sink.quad_to(point(control), point(to)),
+            Self::Close => sink.close(),
+        };
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -378,10 +404,10 @@ impl BlockKey {
             // LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
             0x1fb3c => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Thirds(2)),
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::Halves(1), BlockCoord::One),
-                    (BlockCoord::Zero, BlockCoord::Thirds(2)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Thirds(2)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -389,10 +415,10 @@ impl BlockKey {
             // LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER RIGHT
             0x1fb3d => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Thirds(2)),
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::One, BlockCoord::One),
-                    (BlockCoord::Zero, BlockCoord::Thirds(2)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Thirds(2)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -400,10 +426,10 @@ impl BlockKey {
             // LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER CENTRE
             0x1fb3e => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Thirds(1)),
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::Halves(1), BlockCoord::One),
-                    (BlockCoord::Zero, BlockCoord::Thirds(1)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Thirds(1)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -411,10 +437,10 @@ impl BlockKey {
             // LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER RIGHT
             0x1fb3f => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Thirds(1)),
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::One, BlockCoord::One),
-                    (BlockCoord::Zero, BlockCoord::Thirds(1)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Thirds(1)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -422,10 +448,10 @@ impl BlockKey {
             // LOWER LEFT BLOCK DIAGONAL UPPER LEFT TO LOWER CENTRE
             0x1fb40 => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Zero),
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::Halves(1), BlockCoord::One),
-                    (BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -434,10 +460,10 @@ impl BlockKey {
             // Powerline filled right arrow
             0xe0b0 => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Zero),
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::One, BlockCoord::Halves(1)),
-                    (BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Halves(1)),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -445,9 +471,9 @@ impl BlockKey {
             // Powerline outline right arrow
             0xe0b1 => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Zero),
-                    (BlockCoord::One, BlockCoord::Halves(1)),
-                    (BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Halves(1)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
@@ -455,10 +481,10 @@ impl BlockKey {
             // Powerline filled left arrow
             0xe0b2 => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::One, BlockCoord::Zero),
-                    (BlockCoord::One, BlockCoord::One),
-                    (BlockCoord::Zero, BlockCoord::Halves(1)),
-                    (BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -466,20 +492,74 @@ impl BlockKey {
             // Powerline outline left arrow
             0xe0b3 => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::One, BlockCoord::Zero),
-                    (BlockCoord::Zero, BlockCoord::Halves(1)),
-                    (BlockCoord::One, BlockCoord::One),
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             },
+
+            // Powerline filled left semicircle
+            0xe0b4 => Self::Poly {
+                paths: &[&[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Thirds(6), BlockCoord::Halves(1)),
+                        to: (BlockCoord::Zero, BlockCoord::One),
+                    },
+                    PolyCommand::Close,
+                ]],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            },
+            // Powerline outline left semicircle
+            0xe0b5 => Self::Poly {
+                paths: &[&[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Thirds(6), BlockCoord::Halves(1)),
+                        to: (BlockCoord::Zero, BlockCoord::One),
+                    },
+                    // PolyCommand::Close,
+                ]],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Outline,
+            },
+            // Powerline filled right semicircle
+            0xe0b6 => Self::Poly {
+                paths: &[&[
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Thirds(-3), BlockCoord::Halves(1)),
+                        to: (BlockCoord::One, BlockCoord::One),
+                    },
+                    PolyCommand::Close,
+                ]],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            },
+            // Powerline outline right semicircle
+            0xe0b7 => Self::Poly {
+                paths: &[&[
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Thirds(-3), BlockCoord::Halves(1)),
+                        to: (BlockCoord::One, BlockCoord::One),
+                    },
+                    // PolyCommand::Close,
+                ]],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Outline,
+            },
+
             // Powerline filled bottom left half triangle
             0xe0b8 => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Zero),
-                    (BlockCoord::One, BlockCoord::One),
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -487,8 +567,8 @@ impl BlockKey {
             // Powerline outline bottom left half triangle
             0xe0b9 => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Zero),
-                    (BlockCoord::One, BlockCoord::One),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
@@ -496,10 +576,10 @@ impl BlockKey {
             // Powerline filled bottom right half triangle
             0xe0ba => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::One, BlockCoord::One),
-                    (BlockCoord::One, BlockCoord::Zero),
-                    (BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -507,8 +587,8 @@ impl BlockKey {
             // Powerline outline bottom right half triangle
             0xe0bb => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
@@ -516,10 +596,10 @@ impl BlockKey {
             // Powerline filled top left half triangle
             0xe0bc => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Zero),
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::One, BlockCoord::Zero),
-                    (BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -527,8 +607,8 @@ impl BlockKey {
             // Powerline outline top left half triangle
             0xe0bd => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::One),
-                    (BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
@@ -536,10 +616,10 @@ impl BlockKey {
             // Powerline filled top right half triangle
             0xe0be => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Zero),
-                    (BlockCoord::One, BlockCoord::Zero),
-                    (BlockCoord::One, BlockCoord::One),
-                    (BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::Close,
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
@@ -547,8 +627,8 @@ impl BlockKey {
             // Powerline outline top right half triangle
             0xe0bf => Self::Poly {
                 paths: &[&[
-                    (BlockCoord::Zero, BlockCoord::Zero),
-                    (BlockCoord::One, BlockCoord::One),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
                 ]],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
@@ -1176,17 +1256,11 @@ impl<T: Texture2d> GlyphCache<T> {
                 style,
             } => {
                 let (width, height) = buffer.image_dimensions();
-                let mut cmd: Vec<Command> = vec![];
                 let intensity = intensity.to_scale();
                 for path in paths {
-                    let path = path
-                        .iter()
-                        .map(|(x, y)| (x.to_pixel(width), y.to_pixel(height)))
-                        .collect::<Vec<_>>();
-
-                    cmd.move_to(path[0]);
-                    for pt in path.iter().skip(1) {
-                        cmd.line_to(*pt);
+                    let mut cmd = vec![];
+                    for item in path.iter() {
+                        item.to_zeno(width, height, &mut cmd);
                     }
 
                     let (alpha, _placement) = Mask::new(&cmd)
