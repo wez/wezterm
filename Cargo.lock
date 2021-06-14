@@ -4920,7 +4920,7 @@ dependencies = [
  "wezterm-toast-notification",
  "winapi 0.3.9",
  "window",
- "windows",
+ "windows 0.11.0",
  "zeno",
 ]
 
@@ -5042,7 +5042,7 @@ dependencies = [
  "objc",
  "open",
  "serde",
- "windows",
+ "windows 0.9.1",
  "xml-rs",
  "zbus",
  "zvariant",
@@ -5217,8 +5217,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "361f3533a83ee1a28c9be59683f40043db02dbedf6479ce8795657386195c97f"
 dependencies = [
  "const-sha1",
- "windows_gen",
- "windows_macros",
+ "windows_gen 0.9.1",
+ "windows_macros 0.9.1",
+]
+
+[[package]]
+name = "windows"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25b270ca3fa1282aa091f122551348f8186f07888dffdfe64df17206ad3b56d0"
+dependencies = [
+ "const-sha1",
+ "windows_gen 0.11.0",
+ "windows_macros 0.11.0",
 ]
 
 [[package]]
@@ -5231,13 +5242,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "windows_gen"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44bd40154eb69ba3c80f11752494a2a34d1b448b06b80449238edfbd00ec7eef"
+
+[[package]]
 name = "windows_macros"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f7794c652845dc466cb8dc1b86c08345707c8144bc53e9086430047c7d33b76"
 dependencies = [
  "syn",
- "windows_gen",
+ "windows_gen 0.9.1",
+]
+
+[[package]]
+name = "windows_macros"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bae6942e04aa5792bbf3b3cf5ded1b7590a7ffd76d53ea179210b87911b6587f"
+dependencies = [
+ "syn",
+ "windows_gen 0.11.0",
 ]
 
 [[package]]
