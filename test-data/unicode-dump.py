@@ -5,6 +5,7 @@
 import argparse
 
 UNICODE_BLOCKS = {
+    "Powerline": (0xe0b0, 0xe0d4),
     "Basic Latin": (0x0000, 0x007F),
     "Latin-1 Supplement": (0x0080, 0x00FF),
     "Latin Extended-A": (0x0100, 0x017F),
