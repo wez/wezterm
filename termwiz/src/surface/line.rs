@@ -390,6 +390,10 @@ impl Line {
     }
 
     pub fn erase_cell(&mut self, x: usize) {
+        if x >= self.cells.len() {
+            // Already implicitly erased
+            return;
+        }
         self.invalidate_implicit_hyperlinks();
         self.invalidate_grapheme_at_or_before(x);
         self.cells.remove(x);
