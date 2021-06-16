@@ -8,7 +8,7 @@ fn main() {
             Windows::Data::Xml::Dom::XmlDocument,
             Windows::Foundation::*,
             Windows::UI::Notifications::*,
-            Windows::Win32::SystemServices::E_POINTER,
+            Windows::Win32::Foundation::E_POINTER,
         );
     }
 }

@@ -11,13 +11,13 @@ mod bindings {
 use bindings::{
     Windows::Data::Xml::Dom::XmlDocument, Windows::Foundation::*, Windows::UI::Notifications::*,
 };
-use windows::{Error as WinError, Interface, Object};
+use windows::{Error as WinError, IInspectable, Interface};
 
 fn unwrap_arg<T>(a: &Option<T>) -> Result<&T, WinError> {
     match a {
         Some(t) => Ok(t),
         None => Err(WinError::new(
-            crate::windows::bindings::Windows::Win32::SystemServices::E_POINTER,
+            crate::windows::bindings::Windows::Win32::Foundation::E_POINTER,
             "option is none",
         )),
     }
@@ -54,7 +54,7 @@ fn show_notif_impl(toast: TN) -> Result<(), Box<dyn std::error::Error>> {
     let notif = ToastNotification::CreateToastNotification(xml)?;
 
     notif.Activated(TypedEventHandler::new(
-        move |_: &Option<ToastNotification>, result: &Option<Object>| {
+        move |_: &Option<ToastNotification>, result: &Option<IInspectable>| {
             // let myself = unwrap_arg(myself)?;
             let result = unwrap_arg(result)?.cast::<ToastActivatedEventArgs>()?;
 

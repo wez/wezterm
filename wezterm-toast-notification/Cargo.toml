@@ -22,8 +22,8 @@ core-foundation = "0.7"
 objc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-windows = "0.9"
+windows = "0.11"
 xml-rs = "0.8"
 
 [target.'cfg(windows)'.build-dependencies]
-windows = "0.9"
+windows = "0.11"

@@ -147,7 +147,7 @@ END
         }
         embed_resource::compile(rcfile_name);
 
-        windows::build!(Windows::Win32::Shell::SetCurrentProcessExplicitAppUserModelID);
+        windows::build!(Windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID);
     }
 
     #[cfg(target_os = "macos")]
