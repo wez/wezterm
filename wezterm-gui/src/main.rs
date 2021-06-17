@@ -410,7 +410,7 @@ fn maybe_show_configuration_error_window() {
     }
 }
 
-pub fn run_ls_fonts(config: config::ConfigHandle, _cmd: &LsFontsCommand) -> anyhow::Result<()> {
+pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyhow::Result<()> {
     use wezterm_font::parser::ParsedFont;
 
     // Disable the normal config error UI window, as we don't have
@@ -457,6 +457,31 @@ pub fn run_ls_fonts(config: config::ConfigHandle, _cmd: &LsFontsCommand) -> anyh
         let font = font_config.resolve_font(&rule.font)?;
         println!("{}", ParsedFont::lua_fallback(&font.clone_handles()));
         println!();
+    }
+
+    if cmd.list_system {
+        let font_dirs = font_config.list_fonts_in_font_dirs();
+        println!(
+            "{} fonts found in your font_dirs + built-in fonts:",
+            font_dirs.len()
+        );
+        for font in font_dirs {
+            println!("{} -- {}", font.lua_name(), font.handle.diagnostic_string());
+        }
+
+        match font_config.list_system_fonts() {
+            Ok(sys_fonts) => {
+                println!(
+                    "{} system fonts found using {:?}:",
+                    sys_fonts.len(),
+                    config.font_locator
+                );
+                for font in sys_fonts {
+                    println!("{} -- {}", font.lua_name(), font.handle.diagnostic_string());
+                }
+            }
+            Err(err) => log::error!("Unable to list system fonts: {}", err),
+        }
     }
 
     Ok(())

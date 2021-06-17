@@ -588,6 +588,19 @@ impl FontConfiguration {
         self.inner.default_font_metrics(&self.inner)
     }
 
+    pub fn list_fonts_in_font_dirs(&self) -> Vec<ParsedFont> {
+        let mut font_dirs = self.inner.font_dirs.borrow().list_available();
+        let mut built_in = self.inner.built_in.borrow().list_available();
+
+        font_dirs.append(&mut built_in);
+        font_dirs.sort();
+        font_dirs
+    }
+
+    pub fn list_system_fonts(&self) -> anyhow::Result<Vec<ParsedFont>> {
+        self.inner.locator.enumerate_all_fonts()
+    }
+
     /// Apply the defined font_rules from the user configuration to
     /// produce the text style that best matches the supplied input
     /// cell attributes.

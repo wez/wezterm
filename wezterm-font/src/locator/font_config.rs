@@ -166,4 +166,33 @@ impl FontLocator for FontConfigFontLocator {
 
         Ok(fonts)
     }
+
+    fn enumerate_all_fonts(&self) -> anyhow::Result<Vec<ParsedFont>> {
+        let mut fonts = vec![];
+        let pattern = FontPattern::new()?;
+        let mut files = HashSet::new();
+        for pat in pattern
+            .list()
+            .context("listing fonts from font-config")?
+            .iter()
+        {
+            let file = pat.get_file().context("pat.get_file")?;
+            if files.contains(&file) {
+                continue;
+            }
+            files.insert(file.clone());
+
+            let source = FontDataSource::OnDisk(file.into());
+            if let Err(err) = crate::parser::parse_and_collect_font_info(
+                &source,
+                &mut fonts,
+                FontOrigin::FontConfig,
+            ) {
+                log::warn!("While parsing: {:?}: {:#}", source, err);
+            }
+        }
+        fonts.sort();
+
+        Ok(fonts)
+    }
 }

@@ -49,17 +49,14 @@ impl FontDatabase {
 
         let mut db = Self::new();
         db.load_font_info(font_info);
-        log::debug!("Available fonts from font_dirs:");
-        db.print_available();
         Ok(db)
     }
 
-    pub fn print_available(&self) {
-        let mut fonts = self.by_full_name.values().collect::<Vec<_>>();
-        fonts.sort();
-        for font in fonts {
-            log::debug!("available font: {}", font.lua_name());
-        }
+    pub fn list_available(&self) -> Vec<ParsedFont> {
+        self.by_full_name
+            .values()
+            .map(|p| p.clone())
+            .collect::<Vec<_>>()
     }
 
     pub fn with_built_in() -> anyhow::Result<Self> {
@@ -67,8 +64,6 @@ impl FontDatabase {
         load_built_in_fonts(&mut font_info)?;
         let mut db = Self::new();
         db.load_font_info(font_info);
-        log::debug!("Available built-in fonts:");
-        db.print_available();
         Ok(db)
     }
 

@@ -305,4 +305,37 @@ impl FontLocator for GdiFontLocator {
 
         Ok(handles)
     }
+
+    fn enumerate_all_fonts(&self) -> anyhow::Result<Vec<ParsedFont>> {
+        let collection = dwrote::FontCollection::system();
+        let mut fonts = vec![];
+        let mut files = HashSet::new();
+        for family in collection.families_iter() {
+            let count = family.get_font_count();
+            for idx in 0..count {
+                let font = family.get_font(idx);
+                let face = font.create_font_face();
+                for file in face.get_files() {
+                    if let Some(path) = file.get_font_file_path() {
+                        if files.contains(&path) {
+                            continue;
+                        }
+                        files.insert(path.clone());
+
+                        let source = FontDataSource::OnDisk(path);
+                        if let Err(err) = parse_and_collect_font_info(
+                            &source,
+                            &mut fonts,
+                            FontOrigin::DirectWrite,
+                        ) {
+                            log::warn!("While parsing: {:?}: {:#}", source, err);
+                        }
+                    }
+                }
+            }
+        }
+        fonts.sort();
+
+        Ok(fonts)
+    }
 }

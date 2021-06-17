@@ -110,4 +110,8 @@ pub struct ConnectCommand {
 }
 
 #[derive(Debug, StructOpt, Clone)]
-pub struct LsFontsCommand {}
+pub struct LsFontsCommand {
+    /// Whether to list all fonts available to the system
+    #[structopt(long = "list-system")]
+    pub list_system: bool,
+}
