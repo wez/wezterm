@@ -75,7 +75,10 @@ impl Ord for ParsedFont {
                 o @ Ordering::Less | o @ Ordering::Greater => o,
                 Ordering::Equal => match self.weight.cmp(&rhs.weight) {
                     o @ Ordering::Less | o @ Ordering::Greater => o,
-                    Ordering::Equal => self.italic.cmp(&rhs.italic),
+                    Ordering::Equal => match self.italic.cmp(&rhs.italic) {
+                        o @ Ordering::Less | o @ Ordering::Greater => o,
+                        Ordering::Equal => self.handle.cmp(&rhs.handle),
+                    },
                 },
             },
         }
