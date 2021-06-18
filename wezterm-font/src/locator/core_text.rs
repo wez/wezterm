@@ -18,11 +18,23 @@ lazy_static::lazy_static! {
     static ref FALLBACK: Vec<ParsedFont> = build_fallback_list();
 }
 
+extern "C" {
+    static NSFontWeightUltraLight: f64;
+    static NSFontWeightThin: f64;
+    static NSFontWeightLight: f64;
+    static NSFontWeightRegular: f64;
+    static NSFontWeightMedium: f64;
+    static NSFontWeightSemibold: f64;
+    static NSFontWeightBold: f64;
+    static NSFontWeightHeavy: f64;
+    static NSFontWeightBlack: f64;
+}
+
 /// A FontLocator implemented using the system font loading
 /// functions provided by core text.
 pub struct CoreTextFontLocator {}
 
-fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescriptor> {
+fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CFArray<CTFontDescriptor>> {
     let family_name = attr
         .family
         .parse::<CFString>()
@@ -34,8 +46,16 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescripto
         } else {
             0
         }
+        | if attr.stretch < FontStretch::Normal {
+            kCTFontCondensedTrait
+        } else if attr.stretch > FontStretch::Normal {
+            kCTFontExpandedTrait
+        } else {
+            0
+        }
         | if attr.italic { kCTFontItalicTrait } else { 0 };
 
+    let weight_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontWeightTrait) };
     let family_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontFamilyNameAttribute) };
     let traits_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontTraitsAttribute) };
     let symbolic_traits_attr: CFString =
@@ -46,11 +66,41 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescripto
         CFNumber::from(symbolic_traits as i32).as_CFType(),
     )]);
 
+    let weight = unsafe {
+        match attr.weight {
+            FontWeight::Thin => NSFontWeightUltraLight,
+            FontWeight::ExtraLight => NSFontWeightThin,
+            FontWeight::Light => NSFontWeightLight,
+            FontWeight::DemiLight => NSFontWeightLight,
+            FontWeight::Book => NSFontWeightLight,
+            FontWeight::Regular => NSFontWeightRegular,
+            FontWeight::Medium => NSFontWeightMedium,
+            FontWeight::DemiBold => NSFontWeightSemibold,
+            FontWeight::Bold => NSFontWeightBold,
+            FontWeight::ExtraBold => NSFontWeightHeavy,
+            FontWeight::Black => NSFontWeightBlack,
+            FontWeight::ExtraBlack => NSFontWeightBlack,
+        }
+    };
+
     let attributes = CFDictionary::from_CFType_pairs(&[
         (traits_attr, traits.as_CFType()),
         (family_attr, family_name.as_CFType()),
+        (weight_attr, CFNumber::from(weight).as_CFType()),
     ]);
-    Ok(core_text::font_descriptor::new_from_attributes(&attributes))
+    let desc = core_text::font_descriptor::new_from_attributes(&attributes);
+
+    let array = unsafe {
+        core_text::font_descriptor::CTFontDescriptorCreateMatchingFontDescriptors(
+            desc.as_concrete_TypeRef(),
+            std::ptr::null(),
+        )
+    };
+    if array.is_null() {
+        anyhow::bail!("no font matches {:?}", attr);
+    } else {
+        Ok(unsafe { CFArray::wrap_under_get_rule(array) })
+    }
 }
 
 /// Given a descriptor, return a handle that can be used to open it.
@@ -62,21 +112,9 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CTFontDescripto
 fn handles_from_descriptor(descriptor: &CTFontDescriptor) -> Vec<ParsedFont> {
     let mut result = vec![];
     if let Some(path) = descriptor.font_path() {
-        let family_name = descriptor.family_name();
-
-        let mut font_info = vec![];
         let source = FontDataSource::OnDisk(path);
-        let _ = crate::parser::parse_and_collect_font_info(
-            &source,
-            &mut font_info,
-            FontOrigin::CoreText,
-        );
-
-        for parsed in font_info {
-            if parsed.names().full_name == family_name || parsed.names().family == family_name {
-                result.push(parsed);
-            }
-        }
+        let _ =
+            crate::parser::parse_and_collect_font_info(&source, &mut result, FontOrigin::CoreText);
     }
 
     result
@@ -91,8 +129,11 @@ impl FontLocator for CoreTextFontLocator {
         let mut fonts = vec![];
 
         for attr in fonts_selection {
-            if let Ok(descriptor) = descriptor_from_attr(attr) {
-                let handles = handles_from_descriptor(&descriptor);
+            if let Ok(descriptors) = descriptor_from_attr(attr) {
+                let mut handles = vec![];
+                for descriptor in descriptors.iter() {
+                    handles.append(&mut handles_from_descriptor(&descriptor));
+                }
                 log::trace!("core text matched {:?} to {:#?}", attr, handles);
                 if let Some(parsed) = ParsedFont::best_match(attr, handles) {
                     log::trace!("best match from core text is {:?}", parsed);
@@ -185,8 +226,10 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
         is_fallback: true,
         is_synthetic: true,
     };
-    if let Ok(descriptor) = descriptor_from_attr(&symbols) {
-        fonts.append(&mut handles_from_descriptor(&descriptor));
+    if let Ok(descriptors) = descriptor_from_attr(&symbols) {
+        for descriptor in descriptors.iter() {
+            fonts.append(&mut handles_from_descriptor(&descriptor));
+        }
     }
 
     // Constrain to default weight/stretch/style
