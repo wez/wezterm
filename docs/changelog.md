@@ -43,6 +43,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Changed: `COLORTERM=truecolor` is now set in the environment. [#875](https://github.com/wez/wezterm/issues/875)
 * New: `wezterm cli spawn --new-window` flag for creating a new window via the CLI [#887](https://github.com/wez/wezterm/issues/887)
 * Fixed: closing last pane in a tab via `CloseCurrentPane` could cause the window to close [#890](https://github.com/wez/wezterm/issues/890)
+* Improved: `wezterm ls-fonts --list-system` shows all available fonts, `wezterm ls-fonts --text "hello"` explains which fonts are used for each glyph in the supplied text
 
 ### 20210502-154244-3f7122cb
 

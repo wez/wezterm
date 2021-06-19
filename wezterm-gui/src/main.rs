@@ -13,6 +13,8 @@ use std::ffi::OsString;
 use std::rc::Rc;
 use std::sync::Arc;
 use structopt::StructOpt;
+use termwiz::cell::CellAttributes;
+use termwiz::surface::Line;
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
 use wezterm_gui_subcommands::*;
 use wezterm_ssh::*;
@@ -418,6 +420,35 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     config::assign_error_callback(|err| eprintln!("{}", err));
 
     let font_config = wezterm_font::FontConfiguration::new(Some(config.clone()))?;
+
+    if let Some(text) = &cmd.text {
+        let line = Line::from_text(text, &CellAttributes::default());
+        let cell_clusters = line.cluster();
+        for cluster in cell_clusters {
+            let style = font_config.match_style(&config, &cluster.attrs);
+            let font = font_config.resolve_font(style)?;
+            let handles = font.clone_handles();
+            let infos = font.shape(&cluster.text, || {}, |_| {}).unwrap();
+
+            for info in infos {
+                let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
+                let cells = &line.cells()[cell_idx..][..info.num_cells as usize];
+                let text = cells.iter().map(|c| c.str()).collect::<String>();
+                let parsed = &handles[info.font_idx];
+                let escaped = format!("{}", text.escape_unicode());
+                println!(
+                    "{:4} {:12} glyph={:<4} {}\n{:29}{}",
+                    text,
+                    escaped,
+                    info.glyph_pos,
+                    parsed.lua_name(),
+                    "",
+                    parsed.handle.diagnostic_string()
+                );
+            }
+        }
+        return Ok(());
+    }
 
     println!("Primary font:");
     let default_font = font_config.default_font()?;
