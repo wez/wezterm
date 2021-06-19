@@ -2965,9 +2965,7 @@ impl<'a> Performer<'a> {
         for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
             let g = if self.dec_line_drawing_mode {
                 match g {
-                    // AZL: I do not know why the diamond is red in vttest.
-                    "`" => "♦",
-
+                    "`" => "◆",
                     "a" => "▒",
 
                     // AZL: I do not know why the next four Unicode glyphs are
