@@ -103,6 +103,7 @@ struct SavedCursor {
     wrap_next: bool,
     pen: CellAttributes,
     dec_origin_mode: bool,
+    dec_line_drawing_mode : bool,
     // TODO: selective_erase when supported
 }
 
@@ -2767,6 +2768,7 @@ impl TerminalState {
             wrap_next: self.wrap_next,
             pen: self.pen.clone(),
             dec_origin_mode: self.dec_origin_mode,
+            dec_line_drawing_mode: self.dec_line_drawing_mode,
         };
         debug!(
             "saving cursor {:?} is_alt={}",
@@ -2787,6 +2789,7 @@ impl TerminalState {
                 wrap_next: false,
                 pen: Default::default(),
                 dec_origin_mode: false,
+                dec_line_drawing_mode: false,
             });
         debug!(
             "restore cursor {:?} is_alt={}",
@@ -2802,6 +2805,7 @@ impl TerminalState {
         self.wrap_next = saved.wrap_next;
         self.pen = saved.pen;
         self.dec_origin_mode = saved.dec_origin_mode;
+        self.dec_line_drawing_mode = saved.dec_line_drawing_mode;
     }
 
     fn perform_csi_sgr(&mut self, sgr: Sgr) {
@@ -2975,17 +2979,47 @@ impl<'a> Performer<'a> {
         for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
             let g = if self.dec_line_drawing_mode {
                 match g {
+                    // AZL: I do not know why the diamond is red in vttest.
+                    "`" => "♦",
+
+                    "a" => "▒",
+
+                    // AZL: I do not know why the next four Unicode glyphs are
+                    //      incorrect on the screen.
+                    "b" => "␉",
+                    "c" => "␌",
+                    "d" => "␍",
+                    "e" => "␊",
+
+                    "f" => "°",
+                    "g" => "±",
+                    "h" => "␤",
+
+                    // AZL: I do not know with the next glyph is incorrect on
+                    //      the screen.
+                    "i" => "␋",
+
                     "j" => "┘",
                     "k" => "┐",
                     "l" => "┌",
                     "m" => "└",
                     "n" => "┼",
+                    "o" => "⎺",
+                    "p" => "⎻",
                     "q" => "─",
+                    "r" => "⎼",
+                    "s" => "⎽",
                     "t" => "├",
                     "u" => "┤",
                     "v" => "┴",
                     "w" => "┬",
                     "x" => "│",
+                    "y" => "≤",
+                    "z" => "≥",
+                    "{" => "π",
+                    "|" => "≠",
+                    "}" => "£",
+                    "~" => "·",
                     _ => g,
                 }
             } else {
