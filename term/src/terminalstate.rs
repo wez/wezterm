@@ -103,7 +103,7 @@ struct SavedCursor {
     wrap_next: bool,
     pen: CellAttributes,
     dec_origin_mode: bool,
-    dec_line_drawing_mode : bool,
+    dec_line_drawing_mode: bool,
     // TODO: selective_erase when supported
 }
 
