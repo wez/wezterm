@@ -153,6 +153,10 @@ Outputs the pane-id for the newly created pane on success"
         #[structopt(long = "window-id")]
         window_id: Option<WindowId>,
 
+        /// Spawn into a new window, rather than a new tab
+        #[structopt(long = "new-window", conflicts_with = "window_id")]
+        new_window: bool,
+
         /// Specify the current working directory for the initially
         /// spawned program
         #[structopt(long = "cwd", parse(from_os_str))]
@@ -459,41 +463,46 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             pane_id,
             domain_name,
             window_id,
+            new_window,
         } => {
-            let window_id = match window_id {
-                Some(w) => Some(w),
-                None => {
-                    let pane_id: PaneId = match pane_id {
-                        Some(p) => p,
-                        None => std::env::var("WEZTERM_PANE")
-                            .map_err(|_| {
-                                anyhow!(
-                                    "--pane-id was not specified and $WEZTERM_PANE
+            let window_id = if new_window {
+                None
+            } else {
+                match window_id {
+                    Some(w) => Some(w),
+                    None => {
+                        let pane_id: PaneId = match pane_id {
+                            Some(p) => p,
+                            None => std::env::var("WEZTERM_PANE")
+                                .map_err(|_| {
+                                    anyhow!(
+                                        "--pane-id was not specified and $WEZTERM_PANE
                                     is not set in the environment"
-                                )
-                            })?
-                            .parse()?,
-                    };
+                                    )
+                                })?
+                                .parse()?,
+                        };
 
-                    let panes = client.list_panes().await?;
-                    let mut window_id = None;
-                    'outer: for tabroot in panes.tabs {
-                        let mut cursor = tabroot.into_tree().cursor();
+                        let panes = client.list_panes().await?;
+                        let mut window_id = None;
+                        'outer: for tabroot in panes.tabs {
+                            let mut cursor = tabroot.into_tree().cursor();
 
-                        loop {
-                            if let Some(entry) = cursor.leaf_mut() {
-                                if entry.pane_id == pane_id {
-                                    window_id.replace(entry.window_id);
-                                    break 'outer;
+                            loop {
+                                if let Some(entry) = cursor.leaf_mut() {
+                                    if entry.pane_id == pane_id {
+                                        window_id.replace(entry.window_id);
+                                        break 'outer;
+                                    }
+                                }
+                                match cursor.preorder_next() {
+                                    Ok(c) => cursor = c,
+                                    Err(_) => break,
                                 }
                             }
-                            match cursor.preorder_next() {
-                                Ok(c) => cursor = c,
-                                Err(_) => break,
-                            }
                         }
+                        window_id
                     }
-                    window_id
                 }
             };
 

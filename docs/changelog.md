@@ -41,6 +41,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: don't keep the window alive after running `something & disown ; exit` [#839](https://github.com/wez/wezterm/issues/839)
 * Improved: we now draw sextant glyphs from the Unicode Symbols for Legacy Computing block (1FB00) when `custom_block_glyphs` is enabled.
 * Changed: `COLORTERM=truecolor` is now set in the environment. [#875](https://github.com/wez/wezterm/issues/875)
+* New: `wezterm cli spawn --new-window` flag for creating a new window via the CLI [#887](https://github.com/wez/wezterm/issues/887)
 
 ### 20210502-154244-3f7122cb
 
