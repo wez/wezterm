@@ -338,7 +338,25 @@ impl SixelBuilder {
                 self.sixel.pixel_height = pixel_height;
 
                 if let (Some(w), Some(h)) = (pixel_width, pixel_height) {
-                    self.sixel.data.reserve(w as usize * h as usize);
+                    let size = w as usize * h as usize;
+                    // Ideally we'd just use `try_reserve` here, but that is
+                    // nightly Rust only at the time of writing this comment:
+                    // <https://github.com/rust-lang/rust/issues/48043>
+                    const MAX_SIXEL_SIZE: usize = 100_000_000;
+                    if size > MAX_SIXEL_SIZE {
+                        log::error!(
+                            "Ignoring sixel data {}x{} because {} bytes > max allowed {}",
+                            w,
+                            h,
+                            size,
+                            MAX_SIXEL_SIZE
+                        );
+                        self.sixel.pixel_width = None;
+                        self.sixel.pixel_height = None;
+                        self.sixel.data.clear();
+                        return;
+                    }
+                    self.sixel.data.reserve(size);
                 }
 
                 remainder = &remainder[matched_len..];
