@@ -396,6 +396,12 @@ impl Mux {
 
         let tab = self.tabs.borrow_mut().remove(&tab_id)?;
 
+        if let Ok(mut windows) = self.windows.try_borrow_mut() {
+            for w in windows.values_mut() {
+                w.remove_by_id(tab_id);
+            }
+        }
+
         let mut pane_ids = vec![];
         for pos in tab.iter_panes() {
             pane_ids.push(pos.pane.pane_id());

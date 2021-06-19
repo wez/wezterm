@@ -120,15 +120,12 @@ impl Window {
         tab
     }
 
-    pub fn remove_by_id(&mut self, id: TabId) -> bool {
+    pub fn remove_by_id(&mut self, id: TabId) {
+        let active = self.get_active().map(Rc::clone);
         if let Some(idx) = self.idx_by_id(id) {
-            let active = self.get_active().map(Rc::clone);
             self.tabs.remove(idx);
-            self.fixup_active_tab_after_removal(active);
-            true
-        } else {
-            false
         }
+        self.fixup_active_tab_after_removal(active);
     }
 
     pub fn get_active(&self) -> Option<&Rc<Tab>> {
