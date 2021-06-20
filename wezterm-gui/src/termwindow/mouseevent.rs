@@ -435,6 +435,8 @@ impl super::TermWindow {
                     // When hovering over a hyperlink, show an appropriate
                     // mouse cursor to give the cue that it is clickable
                     MouseCursor::Hand
+                } else if pane.is_mouse_grabbed() {
+                    MouseCursor::Arrow
                 } else {
                     MouseCursor::Text
                 }
