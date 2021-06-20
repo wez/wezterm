@@ -302,6 +302,7 @@ pub struct TerminalState {
     writer: Box<dyn std::io::Write>,
 
     image_cache: lru::LruCache<[u8; 32], Arc<ImageData>>,
+    sixel_scrolls_right: bool,
 
     user_vars: HashMap<String, String>,
 }
@@ -472,6 +473,7 @@ impl TerminalState {
             bracketed_paste: false,
             focus_tracking: false,
             sgr_mouse: false,
+            sixel_scrolls_right: false,
             any_event_mouse: false,
             button_event_mouse: false,
             mouse_tracking: false,
@@ -1626,8 +1628,9 @@ impl TerminalState {
         }
 
         // Sixel places the cursor under the left corner of the image,
-        // but iTerm places it after the bottom right corner.
-        if iterm_cursor_position {
+        // unless sixel_scrolls_right is enabled.
+        // iTerm places it after the bottom right corner.
+        if iterm_cursor_position || self.sixel_scrolls_right {
             self.set_cursor_pos(
                 &Position::Relative(width_in_cells as i64),
                 &Position::Relative(-1),
@@ -2086,6 +2089,17 @@ impl TerminalState {
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
                 self.sgr_mouse = false;
                 self.last_mouse_move.take();
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::SixelScrollsRight,
+            )) => {
+                self.sixel_scrolls_right = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::SixelScrollsRight,
+            )) => {
+                self.sixel_scrolls_right = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -3275,6 +3289,7 @@ impl<'a> Performer<'a> {
                 self.bracketed_paste = false;
                 self.focus_tracking = false;
                 self.sgr_mouse = false;
+                self.sixel_scrolls_right = false;
                 self.any_event_mouse = false;
                 self.button_event_mouse = false;
                 self.current_mouse_button = MouseButton::None;
