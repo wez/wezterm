@@ -22,6 +22,10 @@ bitflags! {
         const SCANNED_IMPLICIT_HYPERLINKS = 1<<2;
         /// true if we found implicit hyperlinks in the last scan
         const HAS_IMPLICIT_HYPERLINKS = 1<<3;
+
+        /// true if this line should be displayed with
+        /// foreground/background colors reversed
+        const REVERSE = 1<<4;
     }
 }
 
@@ -97,6 +101,13 @@ impl Line {
                 .map(|chunk| {
                     let mut line = Line {
                         cells: chunk.to_vec(),
+                        // AZL TODO:
+                        //
+                        // How to "| self.bits.LineBits::REVERSE"
+                        // here?
+                        //
+                        // The wrapped line pieces should also be
+                        // reversed.
                         bits: LineBits::DIRTY,
                     };
                     if line.cells.len() == width {
@@ -135,6 +146,25 @@ impl Line {
     #[inline]
     pub fn clear_dirty(&mut self) {
         self.bits &= !LineBits::DIRTY;
+    }
+
+    /// Check whether the reverse video bit is set.  If it is set,
+    /// then the line should be displayed with foreground/background
+    /// colors reversed.
+    #[inline]
+    pub fn is_reverse(&self) -> bool {
+        (self.bits & LineBits::REVERSE) == LineBits::REVERSE
+    }
+
+    /// Force the reverse bit set.  This also implicitly sets dirty.
+    #[inline]
+    pub fn set_reverse(&mut self, reverse: bool) {
+        if reverse {
+            self.bits |= LineBits::REVERSE;
+        } else {
+            self.bits &= !LineBits::REVERSE;
+        }
+        self.bits |= LineBits::DIRTY;
     }
 
     /// If we have any cells with an implicit hyperlink, remove the hyperlink

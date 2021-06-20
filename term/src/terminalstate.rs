@@ -101,8 +101,10 @@ impl TabStop {
                     *t = false;
                 }
             }
-            TabulationClear::ClearAllCharacterTabStops
-            | TabulationClear::ClearCharacterTabStopsAtActiveLine => {
+            // If we want to exactly match VT100/xterm behavior, then
+            // we cannot honor ClearCharacterTabStopsAtActiveLine.
+            TabulationClear::ClearAllCharacterTabStops => {
+                // | TabulationClear::ClearCharacterTabStopsAtActiveLine => {
                 for t in &mut self.tabs {
                     *t = false;
                 }
@@ -2103,10 +2105,24 @@ impl TerminalState {
                 // We always output at our "best" rate
             }
 
-            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo))
-            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
-                // I'm mostly intentionally ignoring this in favor
-                // of respecting the configured colors
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
+                // Turn on reverse video for all of the lines on the
+                // display.
+                for y in 0..self.screen.physical_rows as i64 {
+                    let line_idx = self.screen.phys_row(VisibleRowIndex::from(y));
+                    let line = self.screen.line_mut(line_idx);
+                    line.set_reverse(true);
+                }
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
+                // Turn off reverse video for all of the lines on the
+                // display.
+                for y in 0..self.screen.physical_rows as i64 {
+                    let line_idx = self.screen.phys_row(VisibleRowIndex::from(y));
+                    let line = self.screen.line_mut(line_idx);
+                    line.set_reverse(false);
+                }
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Select132Columns))
