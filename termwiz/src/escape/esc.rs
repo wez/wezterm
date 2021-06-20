@@ -68,10 +68,19 @@ pub enum EscCode {
     /// DECPNM - Normal Keypad
     DecNormalKeyPad = esc!('>'),
 
-    /// Designate Character Set – DEC Line Drawing
-    DecLineDrawing = esc!('(', '0'),
-    /// Designate Character Set – US ASCII
-    AsciiCharacterSet = esc!('(', 'B'),
+    /// Designate G0 Character Set – DEC Line Drawing
+    DecLineDrawingG0 = esc!('(', '0'),
+    /// Designate G0 Character Set - UK
+    UkCharacterSetG0 = esc!('(', 'A'),
+    /// Designate G0 Character Set – US ASCII
+    AsciiCharacterSetG0 = esc!('(', 'B'),
+
+    /// Designate G1 Character Set – DEC Line Drawing
+    DecLineDrawingG1 = esc!(')', '0'),
+    /// Designate G1 Character Set - UK
+    UkCharacterSetG1 = esc!(')', 'A'),
+    /// Designate G1 Character Set – US ASCII
+    AsciiCharacterSetG1 = esc!(')', 'B'),
 
     /// https://vt100.net/docs/vt510-rm/DECALN.html
     DecScreenAlignmentDisplay = esc!('#', '8'),

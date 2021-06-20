@@ -680,6 +680,29 @@ fn test_delete_lines() {
     term.assert_dirty_lines(&[4], None);
 }
 
+/// Test DEC Special Graphics character set.
+#[test]
+fn test_dec_special_graphics() {
+    let mut term = TestTerm::new(2, 50, 0);
+
+    term.print("\u{1b}(0ABCabcdefghijklmnopqrstuvwxyzDEF\r\n\u{1b}(Bhello");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["ABC▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥DEF", "hello"],
+    );
+
+    term = TestTerm::new(2, 50, 0);
+    term.print("\u{0e}SO-ABCabcdefghijklmnopqrstuvwxyzDEF\r\n\u{0f}SI-hello");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["SO-ABC▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥DEF", "SI-hello"],
+    );
+}
+
 /// Test the behavior of wrapped lines when we resize the terminal
 /// wider and then narrower.
 #[test]

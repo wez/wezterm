@@ -35,6 +35,13 @@ struct TabStop {
     tab_width: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CharSet {
+    Ascii,
+    Uk,
+    DecLineDrawing,
+}
+
 impl TabStop {
     fn new(screen_width: usize, tab_width: usize) -> Self {
         let mut tabs = Vec::with_capacity(screen_width);
@@ -103,7 +110,8 @@ struct SavedCursor {
     wrap_next: bool,
     pen: CellAttributes,
     dec_origin_mode: bool,
-    dec_line_drawing_mode: bool,
+    g0_charset: CharSet,
+    g1_charset: CharSet,
     // TODO: selective_erase when supported
 }
 
@@ -277,7 +285,11 @@ pub struct TerminalState {
     current_mouse_button: MouseButton,
     last_mouse_move: Option<MouseEvent>,
     cursor_visible: bool,
-    dec_line_drawing_mode: bool,
+
+    /// Support for US, UK, and DEC Special Graphics
+    g0_charset: CharSet,
+    g1_charset: CharSet,
+    shift_out: bool,
 
     tabs: TabStop,
 
@@ -480,7 +492,9 @@ impl TerminalState {
             mouse_tracking: false,
             last_mouse_move: None,
             cursor_visible: true,
-            dec_line_drawing_mode: false,
+            g0_charset: CharSet::Ascii,
+            g1_charset: CharSet::DecLineDrawing,
+            shift_out: false,
             current_mouse_button: MouseButton::None,
             tabs: TabStop::new(size.physical_cols, 8),
             title: "wezterm".to_string(),
@@ -2768,7 +2782,8 @@ impl TerminalState {
             wrap_next: self.wrap_next,
             pen: self.pen.clone(),
             dec_origin_mode: self.dec_origin_mode,
-            dec_line_drawing_mode: self.dec_line_drawing_mode,
+            g0_charset: self.g0_charset,
+            g1_charset: self.g1_charset,
         };
         debug!(
             "saving cursor {:?} is_alt={}",
@@ -2789,7 +2804,8 @@ impl TerminalState {
                 wrap_next: false,
                 pen: Default::default(),
                 dec_origin_mode: false,
-                dec_line_drawing_mode: false,
+                g0_charset: CharSet::Ascii,
+                g1_charset: CharSet::DecLineDrawing,
             });
         debug!(
             "restore cursor {:?} is_alt={}",
@@ -2805,7 +2821,9 @@ impl TerminalState {
         self.wrap_next = saved.wrap_next;
         self.pen = saved.pen;
         self.dec_origin_mode = saved.dec_origin_mode;
-        self.dec_line_drawing_mode = saved.dec_line_drawing_mode;
+        self.g0_charset = saved.g0_charset;
+        self.g1_charset = saved.g1_charset;
+        self.shift_out = false;
     }
 
     fn perform_csi_sgr(&mut self, sgr: Sgr) {
@@ -2977,26 +2995,20 @@ impl<'a> Performer<'a> {
         };
 
         for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
-            let g = if self.dec_line_drawing_mode {
+            let g = if (self.shift_out && self.g1_charset == CharSet::DecLineDrawing)
+                || (!self.shift_out && self.g0_charset == CharSet::DecLineDrawing)
+            {
                 match g {
                     "`" => "◆",
                     "a" => "▒",
-
-                    // AZL: I do not know why the next four Unicode glyphs are
-                    //      incorrect on the screen.
                     "b" => "␉",
                     "c" => "␌",
                     "d" => "␍",
                     "e" => "␊",
-
                     "f" => "°",
                     "g" => "±",
                     "h" => "␤",
-
-                    // AZL: I do not know with the next glyph is incorrect on
-                    //      the screen.
                     "i" => "␋",
-
                     "j" => "┘",
                     "k" => "┐",
                     "l" => "┌",
@@ -3018,6 +3030,13 @@ impl<'a> Performer<'a> {
                     "|" => "≠",
                     "}" => "£",
                     "~" => "·",
+                    _ => g,
+                }
+            } else if (self.shift_out && self.g1_charset == CharSet::Uk)
+                || (!self.shift_out && self.g0_charset == CharSet::Uk)
+            {
+                match g {
+                    "#" => "£",
                     _ => g,
                 }
             } else {
@@ -3226,9 +3245,18 @@ impl<'a> Performer<'a> {
                 }
             }
             ControlCode::RI => self.c1_reverse_index(),
-            ControlCode::ShiftIn | ControlCode::ShiftOut => {
-                // These sequences are used to switch between character sets.
-                // wezterm only supports UTF-8, so these do nothing.
+
+            // wezterm only supports UTF-8, so does not support the
+            // DEC National Replacement Character Sets.  However, it does
+            // support the DEC Special Graphics character set used by
+            // numerous ncurses applications.  DEC Special Graphics can be
+            // selected by ASCII Shift Out (0x0E, ^N) or by setting G0
+            // via ESC ( 0 .
+            ControlCode::ShiftIn => {
+                self.shift_out = false;
+            }
+            ControlCode::ShiftOut => {
+                self.shift_out = true;
             }
             _ => log::warn!("unhandled ControlCode {:?}", control),
         }
@@ -3269,11 +3297,23 @@ impl<'a> Performer<'a> {
             Esc::Code(EscCode::Index) => self.c1_index(),
             Esc::Code(EscCode::NextLine) => self.c1_nel(),
             Esc::Code(EscCode::HorizontalTabSet) => self.c1_hts(),
-            Esc::Code(EscCode::DecLineDrawing) => {
-                self.dec_line_drawing_mode = true;
+            Esc::Code(EscCode::DecLineDrawingG0) => {
+                self.g0_charset = CharSet::DecLineDrawing;
             }
-            Esc::Code(EscCode::AsciiCharacterSet) => {
-                self.dec_line_drawing_mode = false;
+            Esc::Code(EscCode::AsciiCharacterSetG0) => {
+                self.g0_charset = CharSet::Ascii;
+            }
+            Esc::Code(EscCode::UkCharacterSetG0) => {
+                self.g0_charset = CharSet::Uk;
+            }
+            Esc::Code(EscCode::DecLineDrawingG1) => {
+                self.g1_charset = CharSet::DecLineDrawing;
+            }
+            Esc::Code(EscCode::AsciiCharacterSetG1) => {
+                self.g1_charset = CharSet::Ascii;
+            }
+            Esc::Code(EscCode::UkCharacterSetG1) => {
+                self.g1_charset = CharSet::Uk;
             }
             Esc::Code(EscCode::DecSaveCursorPosition) => self.dec_save_cursor(),
             Esc::Code(EscCode::DecRestoreCursorPosition) => self.dec_restore_cursor(),
@@ -3326,7 +3366,9 @@ impl<'a> Performer<'a> {
                 self.button_event_mouse = false;
                 self.current_mouse_button = MouseButton::None;
                 self.cursor_visible = true;
-                self.dec_line_drawing_mode = false;
+                self.g0_charset = CharSet::Ascii;
+                self.g1_charset = CharSet::DecLineDrawing;
+                self.shift_out = false;
                 self.tabs = TabStop::new(self.screen().physical_cols, 8);
                 self.palette.take();
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as VisibleRowIndex;
