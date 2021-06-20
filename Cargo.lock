@@ -5135,6 +5135,7 @@ dependencies = [
  "unicode-segmentation",
  "unicode-width",
  "url",
+ "vtparse",
 ]
 
 [[package]]

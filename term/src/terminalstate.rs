@@ -30,6 +30,8 @@ use termwiz::escape::{
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::{CursorShape, CursorVisibility};
 use url::Url;
+// AZL - this is wrong
+use vtparse::CsiParam;
 
 lazy_static::lazy_static! {
     static ref DB: Database = {
@@ -1890,6 +1892,21 @@ impl TerminalState {
                     .write(format!(">|{} {}", self.term_program, self.term_version).as_bytes())
                     .ok();
                 self.writer.write(ST.as_bytes()).ok();
+                self.writer.flush().ok();
+            }
+            Device::RequestTerminalParameters(a) => {
+                self.writer
+                    .write(
+                        format!(
+                            "\x1b[{};1;1;128;128;1;0x",
+                            match a {
+                                CsiParam::Integer(0) => 2,
+                                _ => 3,
+                            }
+                        )
+                        .as_bytes(),
+                    )
+                    .ok();
                 self.writer.flush().ok();
             }
             Device::StatusReport => {
