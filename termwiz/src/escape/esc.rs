@@ -179,7 +179,9 @@ mod test {
 
     #[test]
     fn test() {
-        assert_eq!(parse("(0"), Esc::Code(EscCode::DecLineDrawing));
-        assert_eq!(parse("(B"), Esc::Code(EscCode::AsciiCharacterSet));
+        assert_eq!(parse("(0"), Esc::Code(EscCode::DecLineDrawingG0));
+        assert_eq!(parse("(B"), Esc::Code(EscCode::AsciiCharacterSetG0));
+        assert_eq!(parse(")0"), Esc::Code(EscCode::DecLineDrawingG1));
+        assert_eq!(parse(")B"), Esc::Code(EscCode::AsciiCharacterSetG1));
     }
 }

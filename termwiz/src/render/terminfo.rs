@@ -888,7 +888,7 @@ mod test {
                 Action::Print('o'),
                 Action::Print('t'),
                 Action::Print(' '),
-                Action::Esc(Esc::Code(EscCode::AsciiCharacterSet)),
+                Action::Esc(Esc::Code(EscCode::AsciiCharacterSetG0)),
                 Action::CSI(CSI::Sgr(Sgr::Reset)),
                 Action::CSI(CSI::Sgr(Sgr::Intensity(Intensity::Bold))),
                 Action::Print('f'),
@@ -1069,7 +1069,7 @@ mod test {
         assert_eq!(
             result,
             vec![
-                Action::Esc(Esc::Code(EscCode::AsciiCharacterSet)),
+                Action::Esc(Esc::Code(EscCode::AsciiCharacterSetG0)),
                 Action::CSI(CSI::Sgr(Sgr::Reset)),
                 // Note that the render code rearranges (red,bold) to (bold,red)
                 Action::CSI(CSI::Sgr(Sgr::Intensity(Intensity::Bold))),
@@ -1141,7 +1141,7 @@ mod test {
         assert_eq!(
             result,
             vec![
-                Action::Esc(Esc::Code(EscCode::AsciiCharacterSet)),
+                Action::Esc(Esc::Code(EscCode::AsciiCharacterSetG0)),
                 Action::CSI(CSI::Sgr(Sgr::Reset)),
                 // Note that the render code rearranges (red,bold) to (bold,red)
                 Action::CSI(CSI::Sgr(Sgr::Intensity(Intensity::Bold))),
@@ -1150,7 +1150,7 @@ mod test {
                 Action::Print('e'),
                 Action::Print('d'),
                 // Turning off bold is translated into reset and set red again
-                Action::Esc(Esc::Code(EscCode::AsciiCharacterSet)),
+                Action::Esc(Esc::Code(EscCode::AsciiCharacterSetG0)),
                 Action::CSI(CSI::Sgr(Sgr::Reset)),
                 Action::CSI(CSI::Sgr(Sgr::Foreground(AnsiColor::Maroon.into()))),
                 Action::Print('2'),
