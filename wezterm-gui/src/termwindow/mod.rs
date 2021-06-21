@@ -1058,7 +1058,6 @@ impl TermWindow {
 
         let panes = self.get_panes_to_render();
         if panes.is_empty() {
-            log::warn!("maintain_blink: get_panes_to_render.is_empty() -> close window");
             self.window.as_ref().unwrap().close();
             return (false, None);
         }
