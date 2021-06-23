@@ -296,6 +296,8 @@ pub struct TerminalState {
     g1_charset: CharSet,
     shift_out: bool,
 
+    newline_mode: bool,
+
     tabs: TabStop,
 
     /// The terminal title string (OSC 2)
@@ -498,6 +500,7 @@ impl TerminalState {
             g0_charset: CharSet::Ascii,
             g1_charset: CharSet::DecLineDrawing,
             shift_out: false,
+            newline_mode: false,
             current_mouse_button: MouseButton::None,
             tabs: TabStop::new(size.physical_cols, 8),
             title: "wezterm".to_string(),
@@ -1031,6 +1034,9 @@ impl TerminalState {
                         buf.push(0x1b as char);
                     }
                     buf.push(c);
+                    if self.newline_mode && key == Enter {
+                        buf.push(0x0a as char);
+                    }
                 }
                 buf.as_str()
             }
@@ -2011,6 +2017,13 @@ impl TerminalState {
                 self.insert = false;
             }
 
+            Mode::SetMode(TerminalMode::Code(TerminalModeCode::AutomaticNewline)) => {
+                self.newline_mode = true;
+            }
+            Mode::ResetMode(TerminalMode::Code(TerminalModeCode::AutomaticNewline)) => {
+                self.newline_mode = false;
+            }
+
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste)) => {
                 self.bracketed_paste = true;
             }
@@ -2847,6 +2860,7 @@ impl TerminalState {
         self.g0_charset = saved.g0_charset;
         self.g1_charset = saved.g1_charset;
         self.shift_out = false;
+        self.newline_mode = false;
     }
 
     fn perform_csi_sgr(&mut self, sgr: Sgr) {
@@ -3212,6 +3226,9 @@ impl<'a> Performer<'a> {
                     self.cursor.y = y;
                     self.wrap_next = false;
                 }
+                if self.newline_mode {
+                    self.cursor.x = 0;
+                }
             }
             ControlCode::CarriageReturn => {
                 if self.cursor.x >= self.left_and_right_margins.start {
@@ -3392,6 +3409,7 @@ impl<'a> Performer<'a> {
                 self.g0_charset = CharSet::Ascii;
                 self.g1_charset = CharSet::DecLineDrawing;
                 self.shift_out = false;
+                self.newline_mode = false;
                 self.tabs = TabStop::new(self.screen().physical_cols, 8);
                 self.palette.take();
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as VisibleRowIndex;
