@@ -58,7 +58,7 @@ impl super::TermWindow {
             .sub(config.window_padding.left as isize)
             .max(0) as f32)
             / self.render_metrics.cell_size.width as f32;
-        let x = if !in_tab_bar {
+        let x = if !in_tab_bar && !pane.is_mouse_grabbed() {
             // Round the x coordinate so that we're a bit more forgiving of
             // the horizontal position when selecting cells
             x.round()
