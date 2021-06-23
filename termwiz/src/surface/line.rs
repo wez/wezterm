@@ -50,6 +50,16 @@ impl Line {
         Self { bits, cells }
     }
 
+    pub fn with_width_reverse(width: usize, reverse: bool) -> Self {
+        let mut cells = Vec::with_capacity(width);
+        cells.resize(width, Cell::default());
+        let mut bits = LineBits::DIRTY;
+        if reverse {
+            bits |= LineBits::REVERSE;
+        }
+        Self { bits, cells }
+    }
+
     pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
         let mut cells = Vec::new();
 

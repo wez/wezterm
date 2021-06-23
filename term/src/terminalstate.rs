@@ -1859,6 +1859,7 @@ impl TerminalState {
                 self.application_keypad = false;
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
                 self.left_and_right_margins = 0..self.screen().physical_cols;
+                self.screen.reverse_video_mode = false;
                 self.screen.activate_alt_screen();
                 self.screen.saved_cursor().take();
                 self.screen.activate_primary_screen();
@@ -2125,6 +2126,7 @@ impl TerminalState {
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
                 // Turn on reverse video for all of the lines on the
                 // display.
+                self.screen.reverse_video_mode = true;
                 for y in 0..self.screen.physical_rows as i64 {
                     let line_idx = self.screen.phys_row(VisibleRowIndex::from(y));
                     let line = self.screen.line_mut(line_idx);
@@ -2135,6 +2137,7 @@ impl TerminalState {
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
                 // Turn off reverse video for all of the lines on the
                 // display.
+                self.screen.reverse_video_mode = false;
                 for y in 0..self.screen.physical_rows as i64 {
                     let line_idx = self.screen.phys_row(VisibleRowIndex::from(y));
                     let line = self.screen.line_mut(line_idx);
@@ -3600,6 +3603,7 @@ impl<'a> Performer<'a> {
                 self.insert = false;
                 self.dec_auto_wrap = true;
                 self.reverse_wraparound_mode = false;
+                self.screen.reverse_video_mode = false;
                 self.dec_origin_mode = false;
                 self.use_private_color_registers_for_each_graphic = false;
                 self.color_map = default_color_map();
