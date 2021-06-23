@@ -10,6 +10,7 @@ use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use promise::spawn::block_on;
 use std::ffi::OsString;
+use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 use structopt::StructOpt;
@@ -535,6 +536,8 @@ fn run() -> anyhow::Result<()> {
         }
     }
 
+    let opts = Opt::from_args();
+
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this
@@ -562,7 +565,22 @@ fn run() -> anyhow::Result<()> {
             SetStdHandle(STD_ERROR_HANDLE, stderr.into_raw_file_descriptor());
             */
 
-            std::env::set_current_dir(config::HOME_DIR.as_path())?;
+            // Only change the current directory to the user's home path if
+            // there's no explicit relative working directory specified on the
+            // command line
+            let switch_cwd = if let Some(SubCommand::Start(StartCommand {
+                cwd: Some(ref path),
+                ..
+            })) = opts.cmd
+            {
+                AsRef::<Path>::as_ref(path).is_absolute()
+            } else {
+                true
+            };
+
+            if switch_cwd {
+                std::env::set_current_dir(config::HOME_DIR.as_path())?;
+            }
         }
     };
 
@@ -571,7 +589,6 @@ fn run() -> anyhow::Result<()> {
     stats::Stats::init()?;
     let _saver = umask::UmaskSaver::new();
 
-    let opts = Opt::from_args();
     config::common_init(
         opts.config_file.as_ref(),
         &opts.config_override,
