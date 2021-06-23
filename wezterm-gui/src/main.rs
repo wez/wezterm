@@ -436,6 +436,13 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                 let text = cells.iter().map(|c| c.str()).collect::<String>();
                 let parsed = &handles[info.font_idx];
                 let escaped = format!("{}", text.escape_unicode());
+                if config.custom_block_glyphs {
+                    if let Some(block) = glyphcache::BlockKey::from_str(&text) {
+                        println!("{:4} {:12} drawn by wezterm: {:?}", text, escaped, block);
+                        continue;
+                    }
+                }
+
                 println!(
                     "{:4} {:12} glyph={:<4} {}\n{:29}{}",
                     text,

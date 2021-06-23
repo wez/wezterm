@@ -288,6 +288,15 @@ impl BlockKey {
         }
     }
 
+    pub fn from_str(s: &str) -> Option<Self> {
+        let chars = s.chars().collect::<Vec<char>>();
+        if chars.len() == 1 {
+            Self::from_char(chars[0])
+        } else {
+            None
+        }
+    }
+
     pub fn from_char(c: char) -> Option<Self> {
         let c = c as u32;
         Some(match c {
