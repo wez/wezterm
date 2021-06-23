@@ -308,10 +308,13 @@ impl Display for Device {
             Device::RequestPrimaryDeviceAttributes => write!(f, "c")?,
             Device::RequestSecondaryDeviceAttributes => write!(f, ">c")?,
             Device::RequestTerminalNameAndVersion => write!(f, ">q")?,
-            Device::RequestTerminalParameters(attr) => write!(f, "{};1;1;128;128;1;0x", match attr {
-                CsiParam::Integer(0) => 2,
-                _ => 3,
-            }
+            Device::RequestTerminalParameters(attr) => write!(
+                f,
+                "{};1;1;128;128;1;0x",
+                match attr {
+                    CsiParam::Integer(0) => 2,
+                    _ => 3,
+                }
             )?,
             Device::StatusReport => write!(f, "5n")?,
             Device::XtSmGraphics(g) => {
@@ -1521,7 +1524,8 @@ impl<'a> CSIParser<'a> {
             ('s', &[]) => self.decslrm(params),
             ('t', &[]) => self.window(params).map(CSI::Window),
             ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
-            ('x', &[]) => self.req_terminal_parameters(params)
+            ('x', &[]) => self
+                .req_terminal_parameters(params)
                 .map(|dev| CSI::Device(Box::new(dev))),
             ('y', &[b'*']) => {
                 fn p(params: &[CsiParam], idx: usize) -> Result<i64, ()> {
@@ -1777,7 +1781,6 @@ impl<'a> CSIParser<'a> {
 
     fn req_terminal_parameters(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
         if params == [CsiParam::Integer(0)] || params == [CsiParam::Integer(1)] {
-
             Ok(Device::RequestTerminalParameters(params[0].clone()))
         } else {
             Err(())

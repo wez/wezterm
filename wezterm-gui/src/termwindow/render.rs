@@ -798,8 +798,8 @@ impl super::TermWindow {
 
                 // Check the line reverse_video flag and flip.
                 if (attrs.reverse() && !params.line.is_reverse())
-                    || (!attrs.reverse() && params.line.is_reverse()) {
-
+                    || (!attrs.reverse() && params.line.is_reverse())
+                {
                     std::mem::swap(&mut fg, &mut bg);
                     bg_default = false;
                 }
