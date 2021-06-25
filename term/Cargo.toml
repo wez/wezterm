@@ -30,7 +30,6 @@ terminfo = "0.7"
 unicode-segmentation = "1.7"
 unicode-width = "0.1"
 url = "2"
-vtparse = { version="0.5", path="../vtparse" }
 
 [dev-dependencies]
 pretty_assertions = "0.6"
