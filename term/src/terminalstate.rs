@@ -30,9 +30,6 @@ use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::{CursorShape, CursorVisibility};
 use url::Url;
 
-// AZL - this is wrong
-use vtparse::CsiParam;
-
 struct TabStop {
     tabs: Vec<bool>,
     tab_width: usize,
@@ -1830,16 +1827,7 @@ impl TerminalState {
             }
             Device::RequestTerminalParameters(a) => {
                 self.writer
-                    .write(
-                        format!(
-                            "\x1b[{};1;1;128;128;1;0x",
-                            match a {
-                                CsiParam::Integer(0) => 2,
-                                _ => 3,
-                            }
-                        )
-                        .as_bytes(),
-                    )
+                    .write(format!("\x1b[{};1;1;128;128;1;0x", a + 2).as_bytes())
                     .ok();
                 self.writer.flush().ok();
             }
