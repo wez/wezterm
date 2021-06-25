@@ -26,6 +26,19 @@ bitflags! {
         /// true if this line should be displayed with
         /// foreground/background colors reversed
         const REVERSE = 1<<4;
+
+        /// true if this line should be displayed with
+        /// in double-width
+        const DOUBLE_WIDTH = 1<<5;
+
+        /// true if this line should be displayed
+        /// as double-height top-half
+        const DOUBLE_HEIGHT_TOP = 1<<6;
+
+        /// true if this line should be displayed
+        /// as double-height bottom-half
+        const DOUBLE_HEIGHT_BOTTOM = 1<<7;
+
     }
 }
 
@@ -174,6 +187,78 @@ impl Line {
         } else {
             self.bits &= !LineBits::REVERSE;
         }
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Check whether the line is single-width.
+    #[inline]
+    pub fn is_single_width(&self) -> bool {
+        ((self.bits & LineBits::DOUBLE_WIDTH) != LineBits::DOUBLE_WIDTH)
+            && ((self.bits & LineBits::DOUBLE_HEIGHT_TOP) != LineBits::DOUBLE_HEIGHT_TOP)
+            && ((self.bits & LineBits::DOUBLE_HEIGHT_BOTTOM) != LineBits::DOUBLE_HEIGHT_BOTTOM)
+    }
+
+    /// Force single-width.  This also implicitly sets
+    /// double-height-(top/bottom) and dirty.
+    #[inline]
+    pub fn set_single_width(&mut self) {
+        self.bits &= !LineBits::DOUBLE_WIDTH;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_TOP;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_BOTTOM;
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Check whether the line is double-width and not double-height.
+    #[inline]
+    pub fn is_double_width(&self) -> bool {
+        ((self.bits & LineBits::DOUBLE_WIDTH) == LineBits::DOUBLE_WIDTH)
+            && ((self.bits & LineBits::DOUBLE_HEIGHT_TOP) != LineBits::DOUBLE_HEIGHT_TOP)
+            && ((self.bits & LineBits::DOUBLE_HEIGHT_BOTTOM) != LineBits::DOUBLE_HEIGHT_BOTTOM)
+    }
+
+    /// Force double-width.  This also implicitly sets
+    /// double-height-(top/bottom) and dirty.
+    #[inline]
+    pub fn set_double_width(&mut self) {
+        self.bits |= LineBits::DOUBLE_WIDTH;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_TOP;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_BOTTOM;
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Check whether the line is double-height-top.
+    #[inline]
+    pub fn is_double_height_top(&self) -> bool {
+        ((self.bits & LineBits::DOUBLE_WIDTH) == LineBits::DOUBLE_WIDTH)
+            && ((self.bits & LineBits::DOUBLE_HEIGHT_TOP) == LineBits::DOUBLE_HEIGHT_TOP)
+            && ((self.bits & LineBits::DOUBLE_HEIGHT_BOTTOM) != LineBits::DOUBLE_HEIGHT_BOTTOM)
+    }
+
+    /// Force double-height top-half.  This also implicitly sets
+    /// double-width and dirty.
+    #[inline]
+    pub fn set_double_height_top(&mut self) {
+        self.bits |= LineBits::DOUBLE_WIDTH;
+        self.bits |= LineBits::DOUBLE_HEIGHT_TOP;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_BOTTOM;
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Check whether the line is double-height-bottom.
+    #[inline]
+    pub fn is_double_height_bottom(&self) -> bool {
+        ((self.bits & LineBits::DOUBLE_WIDTH) == LineBits::DOUBLE_WIDTH)
+            && ((self.bits & LineBits::DOUBLE_HEIGHT_TOP) != LineBits::DOUBLE_HEIGHT_TOP)
+            && ((self.bits & LineBits::DOUBLE_HEIGHT_BOTTOM) == LineBits::DOUBLE_HEIGHT_BOTTOM)
+    }
+
+    /// Force double-height bottom-half.  This also implicitly sets
+    /// double-width and dirty.
+    #[inline]
+    pub fn set_double_height_bottom(&mut self) {
+        self.bits |= LineBits::DOUBLE_WIDTH;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_TOP;
+        self.bits |= LineBits::DOUBLE_HEIGHT_BOTTOM;
         self.bits |= LineBits::DIRTY;
     }
 

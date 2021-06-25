@@ -85,6 +85,15 @@ pub enum EscCode {
     /// https://vt100.net/docs/vt510-rm/DECALN.html
     DecScreenAlignmentDisplay = esc!('#', '8'),
 
+    /// DECDHL - DEC double-height line, top half
+    DecDoubleHeightTopHalfLine = esc!('#', '3'),
+    /// DECDHL - DEC double-height line, bottom half
+    DecDoubleHeightBottomHalfLine = esc!('#', '4'),
+    /// DECSWL - DEC single-width line
+    DecSingleWidthLine = esc!('#', '5'),
+    /// DECDWL - DEC double-width line
+    DecDoubleWidthLine = esc!('#', '6'),
+
     /// These are typically sent by the terminal when keys are pressed
     ApplicationModeArrowUpPress = esc!('O', 'A'),
     ApplicationModeArrowDownPress = esc!('O', 'B'),
