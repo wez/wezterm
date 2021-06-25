@@ -3346,6 +3346,23 @@ impl<'a> Performer<'a> {
             Esc::Code(EscCode::DecSaveCursorPosition) => self.dec_save_cursor(),
             Esc::Code(EscCode::DecRestoreCursorPosition) => self.dec_restore_cursor(),
 
+            Esc::Code(EscCode::DecDoubleHeightTopHalfLine) => {
+                let idx = self.screen.phys_row(self.cursor.y);
+                self.screen.line_mut(idx).set_double_height_top();
+            }
+            Esc::Code(EscCode::DecDoubleHeightBottomHalfLine) => {
+                let idx = self.screen.phys_row(self.cursor.y);
+                self.screen.line_mut(idx).set_double_height_bottom();
+            }
+            Esc::Code(EscCode::DecDoubleWidthLine) => {
+                let idx = self.screen.phys_row(self.cursor.y);
+                self.screen.line_mut(idx).set_double_width();
+            }
+            Esc::Code(EscCode::DecSingleWidthLine) => {
+                let idx = self.screen.phys_row(self.cursor.y);
+                self.screen.line_mut(idx).set_single_width();
+            }
+
             Esc::Code(EscCode::DecScreenAlignmentDisplay) => {
                 // This one is just to make vttest happy;
                 // its original purpose was for aligning the CRT.
