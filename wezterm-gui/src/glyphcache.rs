@@ -188,25 +188,33 @@ pub enum BlockCoord {
     /// 100% of the dimension; either the rightmost or bottom pixel
     /// position
     One,
-    /// n number of halves of the dimension; Halves(1) is in the center
-    /// of the width or height
-    Halves(i8),
-    /// n number of thirds
-    Thirds(i8),
     /// A fraction of the width/height.  The first value is the
     /// numerator, the second is the denominator.
     Frac(i8, i8),
+
+    /// Like Frac() above, but also specifies a divisor to use
+    /// together with the underline height to adjust the position.
+    /// This is helpful because the line drawing routines stroke
+    /// along the center of the line in the direction of the line,
+    /// but don't pad the end of the line out by the width automatically.
+    /// zeno has Cap::Square to specify that, but we can't use it
+    /// directly and it isn't necessarily the adjustment that we want.
+    /// This is most useful when joining lines that have different
+    /// stroke widths; if the widths were all the same then you'd
+    /// just specify the points in the path and not worry about it.
+    FracWithOffset(i8, i8, i8),
 }
 
 impl BlockCoord {
     /// Compute the actual pixel value given the max dimension
-    pub fn to_pixel(self, max: usize) -> f32 {
+    pub fn to_pixel(self, max: usize, underline_height: f32) -> f32 {
         match self {
             Self::Zero => 0.,
             Self::One => max as f32,
-            Self::Halves(n) => max as f32 * n as f32 / 2.,
-            Self::Thirds(n) => max as f32 * n as f32 / 3.,
             Self::Frac(num, den) => max as f32 * num as f32 / den as f32,
+            Self::FracWithOffset(num, den, under) => {
+                (max as f32 * num as f32 / den as f32) + (underline_height / under as f32)
+            }
         }
     }
 }
@@ -254,9 +262,19 @@ pub enum PolyCommand {
 }
 
 impl PolyCommand {
-    fn to_zeno(&self, width: usize, height: usize, sink: &mut impl PathBuilder) {
-        let coord =
-            |x: &BlockCoord, y: &BlockCoord| Vector::new(x.to_pixel(width), y.to_pixel(height));
+    fn to_zeno(
+        &self,
+        width: usize,
+        height: usize,
+        underline_height: f32,
+        sink: &mut impl PathBuilder,
+    ) {
+        let coord = |x: &BlockCoord, y: &BlockCoord| {
+            Vector::new(
+                x.to_pixel(width, underline_height),
+                y.to_pixel(height, underline_height),
+            )
+        };
 
         let point = |(x, y): &BlockPoint| coord(x, y);
 
@@ -311,8 +329,8 @@ impl BlockKey {
             // BOX DRAWINGS LIGHT HORIZONTAL
             0x2500 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Halves(1)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
                 ],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
@@ -320,8 +338,8 @@ impl BlockKey {
             // BOX DRAWINGS HEAVY HORIZONTAL
             0x2501 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Halves(1)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
                 ],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
@@ -329,8 +347,8 @@ impl BlockKey {
             // BOX DRAWINGS LIGHT VERTICAL
             0x2502 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Halves(1), BlockCoord::Zero),
-                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
                 ],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
@@ -338,8 +356,8 @@ impl BlockKey {
             // BOX DRAWINGS HEAVY VERTICAL
             0x2503 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Halves(1), BlockCoord::Zero),
-                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
                 ],
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
@@ -351,24 +369,24 @@ impl BlockKey {
             0x2504 => Self::Poly(&[
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(2, 9), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(2, 9), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::Outline,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(3, 9), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(5, 9), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 9), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 9), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::Outline,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(6, 9), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(8, 9), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(6, 9), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(8, 9), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::Outline,
@@ -378,24 +396,24 @@ impl BlockKey {
             0x2505 => Self::Poly(&[
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(2, 9), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(2, 9), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::OutlineHeavy,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(3, 9), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(5, 9), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 9), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 9), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::OutlineHeavy,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(6, 9), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(8, 9), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(6, 9), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(8, 9), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::OutlineHeavy,
@@ -462,32 +480,32 @@ impl BlockKey {
             0x2508 => Self::Poly(&[
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(2, 12), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(2, 12), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::Outline,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(3, 12), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(5, 12), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 12), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 12), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::Outline,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(6, 12), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(8, 12), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(6, 12), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(8, 12), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::Outline,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(9, 12), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(11, 12), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(9, 12), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(11, 12), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::Outline,
@@ -497,32 +515,32 @@ impl BlockKey {
             0x2509 => Self::Poly(&[
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(2, 12), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(2, 12), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::OutlineHeavy,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(3, 12), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(5, 12), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 12), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 12), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::OutlineHeavy,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(6, 12), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(8, 12), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(6, 12), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(8, 12), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::OutlineHeavy,
                 },
                 Poly {
                     path: &[
-                        PolyCommand::MoveTo(BlockCoord::Frac(9, 12), BlockCoord::Halves(1)),
-                        PolyCommand::LineTo(BlockCoord::Frac(11, 12), BlockCoord::Halves(1)),
+                        PolyCommand::MoveTo(BlockCoord::Frac(9, 12), BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(BlockCoord::Frac(11, 12), BlockCoord::Frac(1, 2)),
                     ],
                     intensity: BlockAlpha::Full,
                     style: PolyStyle::OutlineHeavy,
@@ -563,6 +581,70 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
+            // BOX DRAWINGS LIGHT DOWN AND RIGHT
+            0x250c => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Outline,
+            }]),
+            // BOX DRAWINGS DOWN LIGHT AND RIGHT HEAVY
+            0x250d => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, -2),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+            ]),
+            // BOX DRAWINGS DOWN HEAVY AND RIGHT LIGHT
+            0x250e => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, -1),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS HEAVY DOWN AND RIGHT
+            0x250f => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::OutlineHeavy,
+            }]),
 
             // Upper half block
             0x2580 => Self::Upper(4),
@@ -677,9 +759,9 @@ impl BlockKey {
             // LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
             0x1fb3c => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Thirds(2)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
                     PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
                     PolyCommand::Close,
                 ],
                 intensity: BlockAlpha::Full,
@@ -688,7 +770,7 @@ impl BlockKey {
             // LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER RIGHT
             0x1fb3d => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Thirds(2)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
                     PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
                     PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
                     PolyCommand::Close,
@@ -699,9 +781,9 @@ impl BlockKey {
             // LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER CENTRE
             0x1fb3e => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Thirds(1)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
                     PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
                     PolyCommand::Close,
                 ],
                 intensity: BlockAlpha::Full,
@@ -710,7 +792,7 @@ impl BlockKey {
             // LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER RIGHT
             0x1fb3f => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Thirds(1)),
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
                     PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
                     PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
                     PolyCommand::Close,
@@ -723,7 +805,7 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
                     PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
                     PolyCommand::Close,
                 ],
                 intensity: BlockAlpha::Full,
@@ -735,7 +817,7 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
                     PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Halves(1)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
                     PolyCommand::Close,
                 ],
                 intensity: BlockAlpha::Full,
@@ -745,7 +827,7 @@ impl BlockKey {
             0xe0b1 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Halves(1)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
                     PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
                 ],
                 intensity: BlockAlpha::Full,
@@ -756,7 +838,7 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
                     PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
                     PolyCommand::Close,
                 ],
                 intensity: BlockAlpha::Full,
@@ -766,7 +848,7 @@ impl BlockKey {
             0xe0b3 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
-                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
                     PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
                 ],
                 intensity: BlockAlpha::Full,
@@ -778,7 +860,7 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Thirds(6), BlockCoord::Halves(1)),
+                        control: (BlockCoord::Frac(6, 3), BlockCoord::Frac(1, 2)),
                         to: (BlockCoord::Zero, BlockCoord::One),
                     },
                     PolyCommand::Close,
@@ -791,7 +873,7 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Thirds(6), BlockCoord::Halves(1)),
+                        control: (BlockCoord::Frac(6, 3), BlockCoord::Frac(1, 2)),
                         to: (BlockCoord::Zero, BlockCoord::One),
                     },
                 ],
@@ -803,7 +885,7 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Thirds(-3), BlockCoord::Halves(1)),
+                        control: (BlockCoord::Frac(-3, 3), BlockCoord::Frac(1, 2)),
                         to: (BlockCoord::One, BlockCoord::One),
                     },
                     PolyCommand::Close,
@@ -816,7 +898,7 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Thirds(-3), BlockCoord::Halves(1)),
+                        control: (BlockCoord::Frac(-3, 3), BlockCoord::Frac(1, 2)),
                         to: (BlockCoord::One, BlockCoord::One),
                     },
                 ],
@@ -1532,7 +1614,12 @@ impl<T: Texture2d> GlyphCache<T> {
                     let intensity = intensity.to_scale();
                     let mut cmd = vec![];
                     for item in path.iter() {
-                        item.to_zeno(width, height, &mut cmd);
+                        item.to_zeno(
+                            width,
+                            height,
+                            self.metrics.underline_height as f32,
+                            &mut cmd,
+                        );
                     }
 
                     let (alpha, _placement) = Mask::new(&cmd)
