@@ -581,6 +581,41 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
+            // BOX DRAWINGS HEAVY QUADRUPLE DASH VERTICAL
+            0x250b => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(2, 12)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(3, 12)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(5, 12)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(6, 12)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(8, 12)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(9, 12)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(11, 12)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+            ]),
             // BOX DRAWINGS LIGHT DOWN AND RIGHT
             0x250c => Self::Poly(&[Poly {
                 path: &[
