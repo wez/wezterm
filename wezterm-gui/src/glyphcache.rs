@@ -193,8 +193,9 @@ pub enum BlockCoord {
     Halves(i8),
     /// n number of thirds
     Thirds(i8),
-    /// n number of quarters
-    Quarters(i8),
+    /// A fraction of the width/height.  The first value is the
+    /// numerator, the second is the denominator.
+    Frac(i8, i8),
 }
 
 impl BlockCoord {
@@ -205,7 +206,7 @@ impl BlockCoord {
             Self::One => max as f32,
             Self::Halves(n) => max as f32 * n as f32 / 2.,
             Self::Thirds(n) => max as f32 * n as f32 / 3.,
-            Self::Quarters(n) => max as f32 * n as f32 / 4.,
+            Self::Frac(num, den) => max as f32 * num as f32 / den as f32,
         }
     }
 }
@@ -271,8 +272,10 @@ impl PolyCommand {
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum PolyStyle {
     Fill,
+    // A line with the thickness as underlines
     Outline,
-    // TODO: OutlineHeavy for thick lines
+    // A line with twice the thickness of underlines
+    OutlineHeavy,
 }
 
 impl PolyStyle {
@@ -280,6 +283,7 @@ impl PolyStyle {
         match self {
             Self::Fill => Style::default(),
             Self::Outline => Style::Stroke(*Stroke::new(width).join(Join::Miter)),
+            Self::OutlineHeavy => Style::Stroke(*Stroke::new(2. * width).join(Join::Miter)),
         }
     }
 }
@@ -304,6 +308,262 @@ impl BlockKey {
     pub fn from_char(c: char) -> Option<Self> {
         let c = c as u32;
         Some(match c {
+            // BOX DRAWINGS LIGHT HORIZONTAL
+            0x2500 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Halves(1)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Outline,
+            }]),
+            // BOX DRAWINGS HEAVY HORIZONTAL
+            0x2501 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Halves(1)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::OutlineHeavy,
+            }]),
+            // BOX DRAWINGS LIGHT VERTICAL
+            0x2502 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Halves(1), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Outline,
+            }]),
+            // BOX DRAWINGS HEAVY VERTICAL
+            0x2503 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Halves(1), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Halves(1), BlockCoord::One),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::OutlineHeavy,
+            }]),
+            // BOX DRAWINGS LIGHT TRIPLE DASH HORIZONTAL
+            // A dash segment is wider than the gap segment.
+            // We use a 2:1 ratio, which gives 9 total segments
+            // with a pattern of `-- -- -- `
+            0x2504 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(2, 9), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 9), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 9), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(6, 9), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(8, 9), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS HEAVY TRIPLE DASH HORIZONTAL
+            0x2505 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(2, 9), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 9), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 9), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(6, 9), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(8, 9), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+            ]),
+            // BOX DRAWINGS LIGHT TRIPLE DASH VERTICAL
+            0x2506 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(2, 9)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(3, 9)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(5, 9)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(6, 9)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(8, 9)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS HEAVY TRIPLE DASH VERTICAL
+            0x2507 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(2, 9)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(3, 9)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(5, 9)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(6, 9)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(8, 9)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+            ]),
+            // BOX DRAWINGS LIGHT QUADRUPLE DASH HORIZONTAL
+            // A dash segment is wider than the gap segment.
+            // We use a 2:1 ratio, which gives 12 total segments
+            // with a pattern of `-- -- -- -- `
+            0x2508 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(2, 12), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 12), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 12), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(6, 12), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(8, 12), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(9, 12), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(11, 12), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS HEAVY QUADRUPLE DASH HORIZONTAL
+            0x2509 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(2, 12), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(3, 12), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(5, 12), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(6, 12), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(8, 12), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(9, 12), BlockCoord::Halves(1)),
+                        PolyCommand::LineTo(BlockCoord::Frac(11, 12), BlockCoord::Halves(1)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::OutlineHeavy,
+                },
+            ]),
+            // BOX DRAWINGS LIGHT QUADRUPLE DASH VERTICAL
+            0x250a => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(2, 12)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(3, 12)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(5, 12)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(6, 12)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(8, 12)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(9, 12)),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(11, 12)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+
             // Upper half block
             0x2580 => Self::Upper(4),
             // Lower 1..7 eighths
