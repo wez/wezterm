@@ -46,6 +46,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved: `wezterm ls-fonts --list-system` shows all available fonts, `wezterm ls-fonts --text "hello"` explains which fonts are used for each glyph in the supplied text
 * Fixed: mouse cursor is now Arrow rather than I-beam when the application in the terminal has enabled mouse reporting [#859](https://github.com/wez/wezterm/issues/859)
 * Improved: DEC Special Graphics mode conformance and complete coverage of the graphics character set. Thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#891](https://github.com/wez/wezterm/pull/891)
+* Fixed: click to focus now focuses the pane under the mouse cursor [#881](https://github.com/wez/wezterm/issues/881)
 
 ### 20210502-154244-3f7122cb
 

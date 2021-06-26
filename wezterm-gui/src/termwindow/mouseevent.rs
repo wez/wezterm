@@ -95,13 +95,6 @@ impl super::TermWindow {
             }
 
             WMEK::Press(ref press) => {
-                if let Some(focused) = self.focused.as_ref() {
-                    if focused.elapsed() <= Duration::from_millis(200) {
-                        log::trace!("discard mouse click because it focused the window");
-                        return;
-                    }
-                }
-
                 // Perform click counting
                 let button = mouse_press_to_tmb(press);
 
@@ -383,6 +376,14 @@ impl super::TermWindow {
                 x = x.saturating_sub(pos.left);
                 y = y.saturating_sub(pos.top as i64);
                 break;
+            }
+        }
+        if let Some(focused) = self.focused.as_ref() {
+            if focused.elapsed() <= Duration::from_millis(200) {
+                if is_click_to_focus {
+                    context.invalidate();
+                }
+                return;
             }
         }
 

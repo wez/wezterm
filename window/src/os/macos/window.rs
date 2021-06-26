@@ -1483,6 +1483,10 @@ impl WindowView {
         }
     }
 
+    extern "C" fn accepts_first_mouse(_this: &mut Object, _sel: Sel, _nsevent: id) -> BOOL {
+        YES
+    }
+
     extern "C" fn accepts_first_responder(_this: &mut Object, _sel: Sel) -> BOOL {
         YES
     }
@@ -2116,6 +2120,11 @@ impl WindowView {
             cls.add_method(
                 sel!(acceptsFirstResponder),
                 Self::accepts_first_responder as extern "C" fn(&mut Object, Sel) -> BOOL,
+            );
+
+            cls.add_method(
+                sel!(acceptsFirstMouse:),
+                Self::accepts_first_mouse as extern "C" fn(&mut Object, Sel, id) -> BOOL,
             );
 
             // NSTextInputClient
