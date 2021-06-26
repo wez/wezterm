@@ -206,14 +206,16 @@ pub enum BlockCoord {
 }
 
 impl BlockCoord {
-    /// Compute the actual pixel value given the max dimension
+    /// Compute the actual pixel value given the max dimension.
+    /// For interior points, add 0.5 so that we get the middle of the row;
+    /// in AA modes with 1px wide strokes this gives better results.
     pub fn to_pixel(self, max: usize, underline_height: f32) -> f32 {
         match self {
             Self::Zero => 0.,
             Self::One => max as f32,
-            Self::Frac(num, den) => max as f32 * num as f32 / den as f32,
+            Self::Frac(num, den) => (max as f32 * num as f32 / den as f32) + 0.5,
             Self::FracWithOffset(num, den, under) => {
-                (max as f32 * num as f32 / den as f32) + (underline_height / under as f32)
+                ((max as f32 * num as f32 / den as f32) + (underline_height / under as f32)) + 0.5
             }
         }
     }
@@ -2633,6 +2635,7 @@ impl<T: Texture2d> GlyphCache<T> {
 
             let mut paint = Paint::default();
             paint.set_color(tiny_skia::Color::WHITE);
+            paint.force_hq_pipeline = true;
 
             pixmap.fill_path(
                 &path,
@@ -2745,7 +2748,8 @@ impl<T: Texture2d> GlyphCache<T> {
                     let intensity = (intensity.to_scale() * 255.) as u8;
                     let mut paint = Paint::default();
                     paint.set_color_rgba8(intensity, intensity, intensity, intensity);
-                    paint.anti_alias = false; // explicitly do not want AA for small sizes
+                    paint.anti_alias = true;
+                    paint.force_hq_pipeline = true;
                     let mut pb = PathBuilder::new();
                     for item in path.iter() {
                         item.to_skia(width, height, self.metrics.underline_height as f32, &mut pb);
