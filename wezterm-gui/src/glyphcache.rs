@@ -179,6 +179,23 @@ impl BlockAlpha {
     }
 }
 
+/// Represents a scaled width of the underline thickness.
+/// Can either multiple or divide by the specified amount
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum LineScale {
+    Mul(i8),
+    Div(i8),
+}
+
+impl LineScale {
+    fn to_scale(self) -> f32 {
+        match self {
+            Self::Mul(n) => n as f32,
+            Self::Div(n) => 1. / n as f32,
+        }
+    }
+}
+
 /// Represents a coordinate in a glyph expressed in relation
 /// to the dimension of the glyph.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -192,7 +209,7 @@ pub enum BlockCoord {
     /// numerator, the second is the denominator.
     Frac(i8, i8),
 
-    /// Like Frac() above, but also specifies a divisor to use
+    /// Like Frac() above, but also specifies a scale to use
     /// together with the underline height to adjust the position.
     /// This is helpful because the line drawing routines stroke
     /// along the center of the line in the direction of the line,
@@ -202,7 +219,7 @@ pub enum BlockCoord {
     /// This is most useful when joining lines that have different
     /// stroke widths; if the widths were all the same then you'd
     /// just specify the points in the path and not worry about it.
-    FracWithOffset(i8, i8, i8),
+    FracWithOffset(i8, i8, LineScale),
 }
 
 impl BlockCoord {
@@ -215,7 +232,8 @@ impl BlockCoord {
             Self::One => max as f32,
             Self::Frac(num, den) => (max as f32 * num as f32 / den as f32) + 0.5,
             Self::FracWithOffset(num, den, under) => {
-                ((max as f32 * num as f32 / den as f32) + (underline_height / under as f32)) + 0.5
+                ((max as f32 * num as f32 / den as f32) + (underline_height * under.to_scale()))
+                    + 0.5
             }
         }
     }
@@ -650,7 +668,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(
-                            BlockCoord::FracWithOffset(1, 2, -2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(-2)),
                             BlockCoord::Frac(1, 2),
                         ),
                     ],
@@ -672,7 +690,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(
-                            BlockCoord::FracWithOffset(1, 2, -1),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(-1)),
                             BlockCoord::Frac(1, 2),
                         ),
                     ],
@@ -715,7 +733,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(
-                            BlockCoord::FracWithOffset(1, 2, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(2)),
                             BlockCoord::Frac(1, 2),
                         ),
                     ],
@@ -737,7 +755,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(
-                            BlockCoord::FracWithOffset(1, 2, 1),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(1)),
                             BlockCoord::Frac(1, 2),
                         ),
                     ],
@@ -780,7 +798,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(
-                            BlockCoord::FracWithOffset(1, 2, -2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(-2)),
                             BlockCoord::Frac(1, 2),
                         ),
                     ],
@@ -802,7 +820,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(
-                            BlockCoord::FracWithOffset(1, 2, -1),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(-1)),
                             BlockCoord::Frac(1, 2),
                         ),
                     ],
@@ -845,7 +863,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(
-                            BlockCoord::FracWithOffset(1, 2, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(2)),
                             BlockCoord::Frac(1, 2),
                         ),
                     ],
@@ -867,7 +885,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
                         PolyCommand::LineTo(
-                            BlockCoord::FracWithOffset(1, 2, 1),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(1)),
                             BlockCoord::Frac(1, 2),
                         ),
                     ],
@@ -1847,7 +1865,745 @@ impl BlockKey {
                 },
             ]),
 
-            // TODO: double lines 0x2550-0x256c
+            // BOX DRAWINGS DOUBLE HORIZONTAL
+            0x2550 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS DOUBLE VERTICAL
+            0x2551 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS DOWN SINGLE AND RIGHT DOUBLE
+            0x2552 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::LineTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS DOWN DOUBLE AND RIGHT SINGLE
+            0x2553 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::One,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+
+            // BOX DRAWINGS DOUBLE DOWN AND RIGHT
+            0x2554 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::One,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::One,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS DOWN SINGLE AND LEFT DOUBLE
+            0x2555 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                        PolyCommand::LineTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS DOWN DOUBLE AND LEFT SINGLE
+            0x2556 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::One,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS DOUBLE DOWN AND LEFT
+            0x2557 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::One,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::One,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS UP SINGLE AND RIGHT DOUBLE
+            0x2558 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS UP DOUBLE AND RIGHT SINGLE
+            0x2559 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Zero,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS DOUBLE UP AND RIGHT
+            0x255a => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS UP SINGLE AND LEFT DOUBLE
+            0x255b => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS UP DOUBLE AND LEFT SINGLE
+            0x255c => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Zero,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS DOUBLE UP AND LEFT
+            0x255d => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+
+            // BOX DRAWINGS VERTICAL SINGLE AND RIGHT DOUBLE
+            0x255e => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS VERTICAL DOUBLE AND RIGHT SINGLE
+            0x255f => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+
+            // BOX DRAWINGS DOUBLE VERTICAL AND RIGHT
+            0x2560 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::One,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::One,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS VERTICAL SINGLE AND LEFT DOUBLE
+            0x2561 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                        PolyCommand::LineTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::Frac(1, 2),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS VERTICAL DOUBLE AND LEFT SINGLE
+            0x2562 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+            // BOX DRAWINGS DOUBLE VERTICAL AND LEFT
+            0x2563 => Self::Poly(&[
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                            BlockCoord::One,
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::Zero,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+                Poly {
+                    path: &[
+                        PolyCommand::MoveTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::One,
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(-1)),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                        PolyCommand::LineTo(
+                            BlockCoord::Zero,
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Mul(1)),
+                        ),
+                    ],
+                    intensity: BlockAlpha::Full,
+                    style: PolyStyle::Outline,
+                },
+            ]),
+
+            // TODO: double lines 0x2564-0x256c
 
             // BOX DRAWINGS LIGHT ARC DOWN AND RIGHT
             0x256d => Self::Poly(&[Poly {
@@ -2048,7 +2804,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(
                             BlockCoord::Frac(1, 2),
-                            BlockCoord::FracWithOffset(1, 2, -1),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(-1)),
                         ),
                         PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
                     ],
@@ -2089,7 +2845,7 @@ impl BlockKey {
                     path: &[
                         PolyCommand::MoveTo(
                             BlockCoord::Frac(1, 2),
-                            BlockCoord::FracWithOffset(1, 2, -1),
+                            BlockCoord::FracWithOffset(1, 2, LineScale::Div(-1)),
                         ),
                         PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
                     ],
