@@ -18,10 +18,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::image::ImageData;
+use tiny_skia::{FillRule, Paint, Path, PathBuilder, PixmapMut, Stroke, Transform};
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo};
 use wezterm_term::Underline;
-use zeno::{Command, Fill, Format, Join, Mask, PathBuilder, Stroke, Style, Vector};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GlyphKey {
@@ -262,27 +262,26 @@ pub enum PolyCommand {
 }
 
 impl PolyCommand {
-    fn to_zeno(
-        &self,
-        width: usize,
-        height: usize,
-        underline_height: f32,
-        sink: &mut impl PathBuilder,
-    ) {
-        let coord = |x: &BlockCoord, y: &BlockCoord| {
-            Vector::new(
+    fn to_skia(&self, width: usize, height: usize, underline_height: f32, pb: &mut PathBuilder) {
+        match self {
+            Self::MoveTo(x, y) => pb.move_to(
                 x.to_pixel(width, underline_height),
                 y.to_pixel(height, underline_height),
-            )
-        };
-
-        let point = |(x, y): &BlockPoint| coord(x, y);
-
-        match self {
-            Self::MoveTo(x, y) => sink.move_to(coord(x, y)),
-            Self::LineTo(x, y) => sink.line_to(coord(x, y)),
-            Self::QuadTo { control, to } => sink.quad_to(point(control), point(to)),
-            Self::Close => sink.close(),
+            ),
+            Self::LineTo(x, y) => pb.line_to(
+                x.to_pixel(width, underline_height),
+                y.to_pixel(height, underline_height),
+            ),
+            Self::QuadTo {
+                control: (x1, y1),
+                to: (x, y),
+            } => pb.quad_to(
+                x1.to_pixel(width, underline_height),
+                y1.to_pixel(height, underline_height),
+                x.to_pixel(width, underline_height),
+                y.to_pixel(height, underline_height),
+            ),
+            Self::Close => pb.close(),
         };
     }
 }
@@ -297,11 +296,20 @@ pub enum PolyStyle {
 }
 
 impl PolyStyle {
-    fn to_zeno(self, width: f32) -> Style<'static> {
+    fn apply(self, width: f32, paint: &Paint, path: &Path, pixmap: &mut PixmapMut) {
         match self {
-            Self::Fill => Style::default(),
-            Self::Outline => Style::Stroke(*Stroke::new(width).join(Join::Miter)),
-            Self::OutlineHeavy => Style::Stroke(*Stroke::new(2. * width).join(Join::Miter)),
+            PolyStyle::Fill => {
+                pixmap.fill_path(path, paint, FillRule::Winding, Transform::identity(), None);
+            }
+
+            PolyStyle::Outline | PolyStyle::OutlineHeavy => {
+                let mut stroke = Stroke::default();
+                stroke.width = width;
+                if self == PolyStyle::OutlineHeavy {
+                    stroke.width *= 2.0;
+                }
+                pixmap.stroke_path(path, paint, &stroke, Transform::identity(), None);
+            }
         }
     }
 }
@@ -2611,23 +2619,28 @@ impl<T: Texture2d> GlyphCache<T> {
         // Fill a rectangular region described by the x and y ranges
         let fill_rect = |buffer: &mut Image, x: Range<usize>, y: Range<usize>| {
             let (width, height) = buffer.image_dimensions();
+            let mut pixmap =
+                PixmapMut::from_bytes(buffer.pixel_data_slice_mut(), width as u32, height as u32)
+                    .expect("make pixmap from existing bitmap");
+
             let x = x.start as f32..x.end as f32;
             let y = y.start as f32..y.end as f32;
-            let mut path: Vec<Command> = vec![];
 
-            path.add_rect([x.start, y.start], x.end - x.start, y.end - y.start);
-            let (alpha, _placement) = Mask::new(&path)
-                .format(Format::Alpha)
-                .size(width as u32, height as u32)
-                .style(Fill::NonZero)
-                .render();
+            let path = PathBuilder::from_rect(
+                tiny_skia::Rect::from_xywh(x.start, y.start, x.end - x.start, y.end - y.start)
+                    .expect("valid rect"),
+            );
 
-            for (alpha, dest) in alpha.into_iter().zip(buffer.pixels_mut()) {
-                let alpha = alpha as u32;
-                // If existing pixel was blank, we want to replace it.
-                // If alpha is blank then we don't want to replace existing non-blank.
-                *dest |= alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-            }
+            let mut paint = Paint::default();
+            paint.set_color(tiny_skia::Color::WHITE);
+
+            pixmap.fill_path(
+                &path,
+                &paint,
+                FillRule::Winding,
+                Transform::identity(),
+                None,
+            );
         };
 
         match block {
@@ -2716,35 +2729,34 @@ impl<T: Texture2d> GlyphCache<T> {
             }
             BlockKey::Poly(polys) => {
                 let (width, height) = buffer.image_dimensions();
+                let mut pixmap = PixmapMut::from_bytes(
+                    buffer.pixel_data_slice_mut(),
+                    width as u32,
+                    height as u32,
+                )
+                .expect("make pixmap from existing bitmap");
+
                 for Poly {
                     path,
                     intensity,
                     style,
                 } in polys
                 {
-                    let intensity = intensity.to_scale();
-                    let mut cmd = vec![];
+                    let intensity = (intensity.to_scale() * 255.) as u8;
+                    let mut paint = Paint::default();
+                    paint.set_color_rgba8(intensity, intensity, intensity, intensity);
+                    paint.anti_alias = false; // explicitly do not want AA for small sizes
+                    let mut pb = PathBuilder::new();
                     for item in path.iter() {
-                        item.to_zeno(
-                            width,
-                            height,
-                            self.metrics.underline_height as f32,
-                            &mut cmd,
-                        );
+                        item.to_skia(width, height, self.metrics.underline_height as f32, &mut pb);
                     }
-
-                    let (alpha, _placement) = Mask::new(&cmd)
-                        .format(Format::Alpha)
-                        .style(style.to_zeno(self.metrics.underline_height as f32))
-                        .size(width as u32, height as u32)
-                        .render();
-
-                    for (alpha, dest) in alpha.into_iter().zip(buffer.pixels_mut()) {
-                        let alpha = (intensity * (alpha as f32)) as u32;
-                        // If existing pixel was blank, we want to replace it.
-                        // If alpha is blank then we don't want to replace existing non-blank.
-                        *dest |= alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-                    }
+                    let path = pb.finish().expect("poly path to be valid");
+                    style.apply(
+                        self.metrics.underline_height as f32,
+                        &paint,
+                        &path,
+                        &mut pixmap,
+                    );
                 }
             }
         }
