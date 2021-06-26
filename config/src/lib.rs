@@ -1075,6 +1075,24 @@ pub struct Config {
     #[serde(default)]
     pub default_cursor_style: DefaultCursorStyle,
 
+    /// Specifies how often blinking text (normal speed) transitions
+    /// between visible and invisible, expressed in milliseconds.
+    /// Setting this to 0 disables slow text blinking.  Note that this
+    /// value is approximate due to the way that the system event loop
+    /// schedulers manage timers; non-zero values will be at least the
+    /// interval specified with some degree of slop.
+    #[serde(default = "default_text_blink_rate")]
+    pub text_blink_rate: u64,
+
+    /// Specifies how often blinking text (rapid speed) transitions
+    /// between visible and invisible, expressed in milliseconds.
+    /// Setting this to 0 disables rapid text blinking.  Note that this
+    /// value is approximate due to the way that the system event loop
+    /// schedulers manage timers; non-zero values will be at least the
+    /// interval specified with some degree of slop.
+    #[serde(default = "default_text_blink_rate_rapid")]
+    pub text_blink_rate_rapid: u64,
+
     /// If non-zero, specifies the period (in seconds) at which various
     /// statistics are logged.  Note that there is a minimum period of
     /// 10 seconds.
@@ -1740,6 +1758,14 @@ fn default_true() -> bool {
 
 fn default_cursor_blink_rate() -> u64 {
     800
+}
+
+fn default_text_blink_rate() -> u64 {
+    500
+}
+
+fn default_text_blink_rate_rapid() -> u64 {
+    250
 }
 
 fn default_swap_backspace_and_delete() -> bool {

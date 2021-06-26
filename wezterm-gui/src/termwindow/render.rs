@@ -20,8 +20,8 @@ use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use smol::Timer;
 use std::ops::Range;
 use std::rc::Rc;
-use std::time::Duration;
-use std::time::Instant;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use termwiz::cell::Blink;
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::PixelLength;
@@ -744,6 +744,28 @@ impl super::TermWindow {
                     {
                         std::mem::swap(&mut fg, &mut bg);
                         bg_default = false;
+                    }
+                    // Check for blink, and if this is the "not-blink"
+                    // part of blinking then set fg = bg.  This is a cheap
+                    // means of getting it done without impacting other
+                    // features.
+                    if attrs.blink() != Blink::None
+                        && (self.config.text_blink_rate != 0
+                            || self.config.text_blink_rate_rapid != 0)
+                    {
+                        let blink_rate = match attrs.blink() {
+                            Blink::Rapid => params.config.text_blink_rate_rapid,
+                            _ => params.config.text_blink_rate,
+                        };
+                        let uptime = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+                        let milli_uptime =
+                            uptime.as_secs() as u128 * 1000 + uptime.subsec_millis() as u128;
+                        let ticks = milli_uptime / blink_rate as u128;
+                        if (ticks & 1) == 0 {
+                            fg = bg;
+                        }
+
+                        // TODO: maintain/update last_text_blink_paint here
                     }
 
                     (fg, bg, bg_default)
