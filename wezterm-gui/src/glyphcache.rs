@@ -224,16 +224,22 @@ pub enum BlockCoord {
 
 impl BlockCoord {
     /// Compute the actual pixel value given the max dimension.
-    /// For interior points, add 0.5 so that we get the middle of the row;
-    /// in AA modes with 1px wide strokes this gives better results.
     pub fn to_pixel(self, max: usize, underline_height: f32) -> f32 {
+        /// For interior points, adjust so that we get the middle of the row;
+        /// in AA modes with 1px wide strokes this gives better results.
+        fn hint(v: f32) -> f32 {
+            if v.fract() == 0. {
+                v - 0.5
+            } else {
+                v
+            }
+        }
         match self {
             Self::Zero => 0.,
             Self::One => max as f32,
-            Self::Frac(num, den) => (max as f32 * num as f32 / den as f32) + 0.5,
+            Self::Frac(num, den) => hint(max as f32 * num as f32 / den as f32),
             Self::FracWithOffset(num, den, under) => {
-                ((max as f32 * num as f32 / den as f32) + (underline_height * under.to_scale()))
-                    + 0.5
+                hint((max as f32 * num as f32 / den as f32) + (underline_height * under.to_scale()))
             }
         }
     }
