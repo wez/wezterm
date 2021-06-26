@@ -1849,7 +1849,62 @@ impl BlockKey {
 
             // TODO: double lines 0x2550-0x256c
 
-            // TODO: cell args 0x256d-0x2570
+            // BOX DRAWINGS LIGHT ARC DOWN AND RIGHT
+            0x256d => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(3, 4)),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2)),
+                        to: (BlockCoord::Frac(3, 4), BlockCoord::Frac(1, 2)),
+                    },
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Outline,
+            }]),
+            // BOX DRAWINGS LIGHT ARC DOWN AND LEFT
+            0x256e => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(3, 4)),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2)),
+                        to: (BlockCoord::Frac(1, 4), BlockCoord::Frac(1, 2)),
+                    },
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Outline,
+            }]),
+            // BOX DRAWINGS LIGHT ARC UP AND LEFT
+            0x256f => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 4)),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2)),
+                        to: (BlockCoord::Frac(1, 4), BlockCoord::Frac(1, 2)),
+                    },
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Outline,
+            }]),
+            // BOX DRAWINGS LIGHT ARC UP AND RIGHT
+            0x2570 => Self::Poly(&[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+                    PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 4)),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Frac(1, 2), BlockCoord::Frac(1, 2)),
+                        to: (BlockCoord::Frac(3, 4), BlockCoord::Frac(1, 2)),
+                    },
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Outline,
+            }]),
 
             // BOX DRAWINGS LIGHT DIAGONAL UPPER RIGHT TO LOWER LEFT
             0x2571 => Self::Poly(&[Poly {
