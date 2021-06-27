@@ -1,4 +1,5 @@
 use super::copy_and_paste::*;
+use super::frame::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame};
 use super::keyboard::KeyboardEvent;
 use super::pointer::*;
 use crate::connection::ConnectionOps;
@@ -26,9 +27,10 @@ use std::sync::{Arc, Mutex};
 use toolkit::get_surface_scale_factor;
 use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
-use toolkit::window::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame, Event, State};
+use toolkit::window::{Event, State};
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
+use wezterm_font::FontConfiguration;
 use wezterm_input_types::*;
 
 const DARK_GRAY: [u8; 4] = [0xff, 0x35, 0x35, 0x35];
@@ -37,7 +39,7 @@ const PURPLE: [u8; 4] = [0xff, 0x3b, 0x30, 0x52];
 const WHITE: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
 const SILVER: [u8; 4] = [0xcc, 0xcc, 0xcc, 0xcc];
 
-fn frame_config() -> ConceptConfig {
+fn frame_config(font_config: Rc<FontConfiguration>) -> ConceptConfig {
     let icon = ButtonColorSpec {
         hovered: ColorSpec::identical(WHITE.into()),
         idle: ColorSpec {
@@ -78,6 +80,7 @@ fn frame_config() -> ConceptConfig {
             active: WHITE.into(),
             inactive: SILVER.into(),
         },
+        font_config: Some(font_config),
     }
 }
 
@@ -169,6 +172,7 @@ impl WaylandWindow {
         width: usize,
         height: usize,
         _config: Option<&ConfigHandle>,
+        font_config: Rc<FontConfiguration>,
     ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         let conn = WaylandConnection::get()
             .ok_or_else(|| {
@@ -238,7 +242,7 @@ impl WaylandWindow {
         window.set_app_id(class_name.to_string());
         window.set_resizable(true);
         window.set_title(name.to_string());
-        window.set_frame_config(frame_config());
+        window.set_frame_config(frame_config(font_config));
         window.set_min_size(Some((32, 32)));
 
         // window.new_seat(&conn.seat);

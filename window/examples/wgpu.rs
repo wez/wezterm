@@ -3,6 +3,8 @@ use anyhow::Context;
 use promise::spawn::spawn;
 #[cfg(target_os = "macos")]
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+use std::rc::Rc;
+use wezterm_font::FontConfiguration;
 
 pub struct GpuContext {
     pub swap_chain: wgpu::SwapChain,
@@ -191,7 +193,12 @@ impl MyWindow {
 }
 
 async fn spawn_window() -> anyhow::Result<()> {
-    let (win, events) = Window::new_window("myclass", "the title", 800, 600, None).await?;
+    let fontconfig = Rc::new(FontConfiguration::new(
+        None,
+        ::window::default_dpi() as usize,
+    )?);
+    let (win, events) =
+        Window::new_window("myclass", "the title", 800, 600, None, fontconfig).await?;
 
     let mut state = MyWindow {
         allow_close: false,

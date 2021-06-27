@@ -3,9 +3,9 @@ use anyhow::anyhow;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use toolkit::reexports::calloop::{LoopHandle, Source};
+use toolkit::reexports::calloop::{LoopHandle, RegistrationToken};
 use toolkit::seat::keyboard::{
-    map_keyboard_repeat, Event as KbEvent, KeyState, ModifiersState, RepeatKind, RepeatSource,
+    map_keyboard_repeat, Event as KbEvent, KeyState, ModifiersState, RepeatKind,
 };
 use wayland_client::protocol::wl_keyboard::WlKeyboard;
 use wayland_client::protocol::wl_seat::WlSeat;
@@ -17,7 +17,7 @@ use wezterm_input_types::*;
 struct Inner {
     active_surface_id: u32,
     surface_to_window_id: HashMap<u32, usize>,
-    by_name: HashMap<String, (WlKeyboard, Source<RepeatSource>)>,
+    by_name: HashMap<String, (WlKeyboard, RegistrationToken)>,
 }
 
 impl Inner {

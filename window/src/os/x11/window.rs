@@ -18,6 +18,7 @@ use std::any::Any;
 use std::convert::TryInto;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
+use wezterm_font::FontConfiguration;
 
 #[derive(Default)]
 struct CopyAndPaste {
@@ -650,6 +651,7 @@ impl XWindow {
         width: usize,
         height: usize,
         config: Option<&ConfigHandle>,
+        _font_config: Rc<FontConfiguration>,
     ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         let config = match config {
             Some(c) => c.clone(),

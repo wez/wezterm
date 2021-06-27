@@ -95,6 +95,14 @@ pub trait BitmapImage {
     /// Return the pair (width, height) of the image, measured in pixels
     fn image_dimensions(&self) -> (usize, usize);
 
+    fn pixel_data_slice_mut(&mut self) -> &mut [u8] {
+        let (width, height) = self.image_dimensions();
+        unsafe {
+            let first = self.pixel_data_mut();
+            std::slice::from_raw_parts_mut(first, width * height * 4)
+        }
+    }
+
     #[inline]
     fn pixels(&self) -> &[u32] {
         let (width, height) = self.image_dimensions();

@@ -114,4 +114,8 @@ pub struct LsFontsCommand {
     /// Whether to list all fonts available to the system
     #[structopt(long = "list-system")]
     pub list_system: bool,
+
+    /// Explain which fonts are used to render the supplied text string
+    #[structopt(long = "text", conflicts_with = "list-system")]
+    pub text: Option<String>,
 }

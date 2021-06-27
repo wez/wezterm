@@ -16,7 +16,6 @@ use std::time::Duration;
 use thiserror::Error;
 use wezterm_term::CellAttributes;
 use wezterm_toast_notification::ToastNotification;
-use window::default_dpi;
 
 mod hbwrap;
 
@@ -186,10 +185,9 @@ pub struct FontConfiguration {
 
 impl FontConfigInner {
     /// Create a new empty configuration
-    pub fn new(config: Option<ConfigHandle>) -> anyhow::Result<Self> {
+    pub fn new(config: Option<ConfigHandle>, dpi: usize) -> anyhow::Result<Self> {
         let config = config.unwrap_or_else(|| configuration());
         let locator = new_locator(config.font_locator);
-        let dpi = config.dpi.unwrap_or_else(|| default_dpi()) as usize;
         Ok(Self {
             fonts: RefCell::new(HashMap::new()),
             locator,
@@ -552,8 +550,8 @@ impl FontConfigInner {
 
 impl FontConfiguration {
     /// Create a new empty configuration
-    pub fn new(config: Option<ConfigHandle>) -> anyhow::Result<Self> {
-        let inner = Rc::new(FontConfigInner::new(config)?);
+    pub fn new(config: Option<ConfigHandle>, dpi: usize) -> anyhow::Result<Self> {
+        let inner = Rc::new(FontConfigInner::new(config, dpi)?);
         Ok(Self { inner })
     }
 

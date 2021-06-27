@@ -235,7 +235,10 @@ impl super::TermWindow {
     pub fn reset_font_and_window_size(&mut self) -> anyhow::Result<()> {
         let config = &self.config;
         let size = config.initial_size();
-        let fontconfig = Rc::new(FontConfiguration::new(Some(config.clone()))?);
+        let fontconfig = Rc::new(FontConfiguration::new(
+            Some(config.clone()),
+            config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+        )?);
         let render_metrics = RenderMetrics::new(&fontconfig)?;
 
         let terminal_size = PtySize {
