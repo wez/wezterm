@@ -444,7 +444,7 @@ impl ConceptFrame {
             }
         }
 
-        let font = font_config.default_font().ok()?;
+        let font = font_config.title_font().ok()?;
         let metrics = font.metrics();
         let infos = font
             .shape(
@@ -795,7 +795,7 @@ impl Frame for ConceptFrame {
             pool.resize(4 * pxcount as usize)
                 .expect("I/O Error while redrawing the borders");
 
-            // draw the white header bar
+            // draw the header bar
             {
                 let mmap = pool.mmap();
                 {
@@ -831,6 +831,7 @@ impl Frame for ConceptFrame {
 
                     if let Some(shaped) = self.shaped_title.as_ref() {
                         let mut x = 8.;
+                        let limit = (scaled_header_width - 4 * HEADER_SIZE) as f64;
                         let identity = Transform::identity();
                         let paint = PixmapPaint::default();
                         for item in &shaped.glyphs {
@@ -856,6 +857,10 @@ impl Frame for ConceptFrame {
                             }
 
                             x += item.info.x_advance.get();
+                            if x >= limit {
+                                // Don't overflow the buttons
+                                break;
+                            }
                         }
                     }
 

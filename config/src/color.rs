@@ -235,6 +235,22 @@ pub struct WindowFrameConfig {
     pub button_hover_fg: RgbColor,
     #[serde(default = "default_button_hover_bg")]
     pub button_hover_bg: RgbColor,
+
+    #[serde(default = "default_title_font")]
+    pub font: TextStyle,
+    #[serde(default = "default_title_font_size", deserialize_with = "de_number")]
+    pub font_size: f64,
+}
+
+fn default_title_font_size() -> f64 {
+    10.
+}
+
+fn default_title_font() -> TextStyle {
+    TextStyle {
+        foreground: None,
+        font: vec![FontAttributes::new("DejaVu Sans")],
+    }
 }
 
 impl Default for WindowFrameConfig {
@@ -250,6 +266,8 @@ impl Default for WindowFrameConfig {
             button_bg: default_button_bg(),
             button_hover_fg: default_button_hover_fg(),
             button_hover_bg: default_button_hover_bg(),
+            font: default_title_font(),
+            font_size: default_font_size(),
         }
     }
 }
