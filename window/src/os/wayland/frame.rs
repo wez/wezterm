@@ -2,6 +2,7 @@
 //! in smithay_client_toolkit 0.11 which is Copyright (c) 2018 Victor Berger
 //! and provided under the terms of the MIT license.
 
+use config::{ConfigHandle, RgbColor, WindowFrameConfig};
 use smithay_client_toolkit::output::{add_output_listener, with_output_info, OutputListener};
 use smithay_client_toolkit::seat::pointer::{ThemeManager, ThemeSpec, ThemedPointer};
 use smithay_client_toolkit::shm::DoubleMemPool;
@@ -21,116 +22,11 @@ use wayland_client::protocol::{
 use wayland_client::{Attached, DispatchData, Main};
 use wezterm_font::{FontConfiguration, FontMetrics, GlyphInfo, RasterizedGlyph};
 
-/// Unambiguous representation of an ARGB color
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub struct ARGBColor {
-    /// Alpha channel
-    pub a: u8,
-    /// Red channel
-    pub r: u8,
-    /// Green channel
-    pub g: u8,
-    /// Blue channel
-    pub b: u8,
-}
-
-impl ARGBColor {
-    /// The invisible `#00000000` color
-    pub const fn zero() -> ARGBColor {
-        ARGBColor {
-            a: 0,
-            r: 0,
-            g: 0,
-            b: 0,
-        }
-    }
-
-    pub fn paint(&self) -> Paint {
-        let mut paint = Paint::default();
-        paint.set_color_rgba8(self.b, self.g, self.r, self.a);
-        paint.anti_alias = true;
-        paint
-    }
-}
-
-impl From<ARGBColor> for [u8; 4] {
-    fn from(color: ARGBColor) -> [u8; 4] {
-        [color.a, color.r, color.g, color.b]
-    }
-}
-
-impl From<[u8; 4]> for ARGBColor {
-    fn from(array: [u8; 4]) -> ARGBColor {
-        ARGBColor {
-            a: array[0],
-            r: array[1],
-            g: array[2],
-            b: array[3],
-        }
-    }
-}
-
-/// Color specification to be used in Frame configuration
-///
-/// It regroups two colors, one for when the window is active and
-/// one for when it is not.
-#[derive(Copy, Clone, Debug)]
-pub struct ColorSpec {
-    /// The active color
-    pub active: ARGBColor,
-    /// The inactive color
-    pub inactive: ARGBColor,
-}
-
-impl ColorSpec {
-    /// Access the color associated with a certain window state
-    #[inline]
-    pub fn get_for(self, state: WindowState) -> ARGBColor {
-        match state {
-            WindowState::Active => self.active,
-            WindowState::Inactive => self.inactive,
-        }
-    }
-
-    /// Create a ColorSpec that is always the same color
-    #[inline]
-    pub const fn identical(color: ARGBColor) -> ColorSpec {
-        ColorSpec {
-            active: color,
-            inactive: color,
-        }
-    }
-
-    /// Create a ColorSpec corresponding to an always invisible color
-    #[inline]
-    pub const fn invisible() -> ColorSpec {
-        ColorSpec::identical(ARGBColor::zero())
-    }
-}
-
-/// A color specification associated with a button
-///
-/// It regroups 3 color specifications depending on the state of the
-/// button: idle, hovered, or disabled.
-#[derive(Copy, Clone, Debug)]
-pub struct ButtonColorSpec {
-    /// ColorSpec for an idle button
-    pub idle: ColorSpec,
-    /// ColorSpec for an hovered button
-    pub hovered: ColorSpec,
-    /// ColorSpec for a disabled button
-    pub disabled: ColorSpec,
-}
-
-impl ButtonColorSpec {
-    /// Get the ColorSpec associated with a given button state
-    pub fn get_for(&self, state: ButtonState) -> ColorSpec {
-        match state {
-            ButtonState::Idle => self.idle,
-            ButtonState::Hovered => self.hovered,
-            ButtonState::Disabled => self.disabled,
-        }
-    }
+fn color_to_paint(c: RgbColor) -> Paint<'static> {
+    let mut paint = Paint::default();
+    paint.set_color_rgba8(c.blue, c.green, c.red, 0xff);
+    paint.anti_alias = true;
+    paint
 }
 
 /*
@@ -143,90 +39,26 @@ const HEADER_SIZE: u32 = 30;
 /// Configuration for ConceptFrame
 #[derive(Clone)]
 pub struct ConceptConfig {
-    /// The primary color of the titlebar
-    pub primary_color: ColorSpec,
-    /// Secondary color of the theme
-    ///
-    /// Used for the division line between the titlebar and the content
-    pub secondary_color: ColorSpec,
-    /// Parameters of the "Close" (or "x") button
-    ///
-    /// (icon color, button color)
-    ///
-    /// if `None` the button will not be drawn
-    pub close_button: Option<(ButtonColorSpec, ButtonColorSpec)>,
-    /// Parameters of the "Maximize" (or "^") button
-    ///
-    /// (icon color, button color)
-    ///
-    /// if `None` the button will not be drawn
-    pub maximize_button: Option<(ButtonColorSpec, ButtonColorSpec)>,
-    /// Parameters of the "Minimize" (or "v") button
-    ///
-    /// (icon color, button color)
-    ///
-    /// if `None` the button will not be drawn
-    pub minimize_button: Option<(ButtonColorSpec, ButtonColorSpec)>,
-    /// Font configuration for the titlebar
-    ///
-    /// Font name and size. If set to `None`, the title is not drawn.
-    pub title_font: Option<(String, f32)>,
-    /// Color for drawing the title text
-    pub title_color: ColorSpec,
-
     pub font_config: Option<Rc<FontConfiguration>>,
+    pub config: Option<ConfigHandle>,
+    pub default_frame: WindowFrameConfig,
+}
+
+impl ConceptConfig {
+    pub fn colors(&self) -> &WindowFrameConfig {
+        self.config
+            .as_ref()
+            .map(|c| &c.window_frame)
+            .unwrap_or(&self.default_frame)
+    }
 }
 
 impl Default for ConceptConfig {
     fn default() -> ConceptConfig {
-        let icon_spec = ButtonColorSpec {
-            idle: ColorSpec::identical([0xFF, 0x1E, 0x1E, 0x1E].into()),
-            hovered: ColorSpec::identical([0xFF, 0x1E, 0x1E, 0x1E].into()),
-            disabled: ColorSpec::invisible(),
-        };
-
         ConceptConfig {
             font_config: None,
-            primary_color: ColorSpec {
-                active: [0xFF, 0xE6, 0xE6, 0xE6].into(),
-                inactive: [0xFF, 0xDC, 0xDC, 0xDC].into(),
-            },
-            secondary_color: ColorSpec {
-                active: [0xFF, 0x1E, 0x1E, 0x1E].into(),
-                inactive: [0xFF, 0x78, 0x78, 0x78].into(),
-            },
-            close_button: Some((
-                // icon
-                icon_spec,
-                // button background
-                ButtonColorSpec {
-                    idle: ColorSpec::invisible(),
-                    hovered: ColorSpec::identical([0xFF, 0xD9, 0x43, 0x52].into()),
-                    disabled: ColorSpec::invisible(),
-                },
-            )),
-            maximize_button: Some((
-                // icon
-                icon_spec,
-                // button background
-                ButtonColorSpec {
-                    idle: ColorSpec::invisible(),
-                    hovered: ColorSpec::identical([0xFF, 0x2D, 0xCB, 0x70].into()),
-                    disabled: ColorSpec::invisible(),
-                },
-            )),
-            minimize_button: Some((
-                // icon
-                icon_spec,
-                // button background
-                ButtonColorSpec {
-                    idle: ColorSpec::invisible(),
-                    hovered: ColorSpec::identical([0xFF, 0x3C, 0xAD, 0xE8].into()),
-                    disabled: ColorSpec::invisible(),
-                },
-            )),
-            title_font: Some(("sans".into(), 17.0)),
-            title_color: ColorSpec::identical([0xFF, 0x00, 0x00, 0x00].into()),
+            default_frame: WindowFrameConfig::default(),
+            config: None,
         }
     }
 }
@@ -477,7 +309,6 @@ struct Inner {
     implem: Box<dyn FnMut(FrameRequest, u32, DispatchData)>,
     maximized: bool,
     fullscreened: bool,
-    buttons: (bool, bool, bool),
 }
 
 impl Inner {
@@ -502,15 +333,9 @@ impl Inner {
     }
 }
 
-fn precise_location(
-    old: Location,
-    width: u32,
-    x: f64,
-    y: f64,
-    buttons: (bool, bool, bool),
-) -> Location {
+fn precise_location(old: Location, width: u32, x: f64, y: f64) -> Location {
     match old {
-        Location::Head | Location::Button(_) => find_button(x, y, width, buttons),
+        Location::Head | Location::Button(_) => find_button(x, y, width),
 
         Location::Top | Location::TopLeft | Location::TopRight => {
             if x <= f64::from(BORDER_SIZE) {
@@ -536,7 +361,7 @@ fn precise_location(
     }
 }
 
-fn find_button(x: f64, y: f64, w: u32, buttons: (bool, bool, bool)) -> Location {
+fn find_button(x: f64, y: f64, w: u32) -> Location {
     if (w >= HEADER_SIZE)
         && (x >= f64::from(w - HEADER_SIZE))
         && (x <= f64::from(w))
@@ -544,12 +369,7 @@ fn find_button(x: f64, y: f64, w: u32, buttons: (bool, bool, bool)) -> Location 
         && (y >= f64::from(0))
     {
         // first button
-        match buttons {
-            (true, _, _) => Location::Button(UIButton::Close),
-            (false, true, _) => Location::Button(UIButton::Maximize),
-            (false, false, true) => Location::Button(UIButton::Minimize),
-            _ => Location::Head,
-        }
+        Location::Button(UIButton::Close)
     } else if (w >= 2 * HEADER_SIZE)
         && (x >= f64::from(w - 2 * HEADER_SIZE))
         && (x <= f64::from(w - HEADER_SIZE))
@@ -557,11 +377,7 @@ fn find_button(x: f64, y: f64, w: u32, buttons: (bool, bool, bool)) -> Location 
         && (y >= f64::from(0))
     {
         // second button
-        match buttons {
-            (true, true, _) => Location::Button(UIButton::Maximize),
-            (false, true, true) => Location::Button(UIButton::Minimize),
-            _ => Location::Head,
-        }
+        Location::Button(UIButton::Maximize)
     } else if (w >= 3 * HEADER_SIZE)
         && (x >= f64::from(w - 3 * HEADER_SIZE))
         && (x <= f64::from(w - 2 * HEADER_SIZE))
@@ -569,10 +385,7 @@ fn find_button(x: f64, y: f64, w: u32, buttons: (bool, bool, bool)) -> Location 
         && (y >= f64::from(0))
     {
         // third button
-        match buttons {
-            (true, true, true) => Location::Button(UIButton::Minimize),
-            _ => Location::Head,
-        }
+        Location::Button(UIButton::Minimize)
     } else {
         Location::Head
     }
@@ -646,7 +459,11 @@ impl ConceptFrame {
             .ok()?;
 
         let mut glyphs = vec![];
-        let title_color = self.config.title_color.get_for(self.active);
+        let colors = self.config.colors();
+        let title_color = match self.active {
+            WindowState::Active => colors.active_titlebar_fg,
+            WindowState::Inactive => colors.inactive_titlebar_fg,
+        };
 
         for info in infos {
             if let Ok(mut glyph) = font.rasterize_glyph(info.glyph_pos, info.font_idx) {
@@ -664,10 +481,11 @@ impl ConceptFrame {
                         } else {
                             // Apply the preferred title color
                             *p = ColorU8::from_rgba(
-                                ((b as f32 / 255.) * (title_color.r as f32 / 255.) * 255.) as u8,
-                                ((g as f32 / 255.) * (title_color.g as f32 / 255.) * 255.) as u8,
-                                ((r as f32 / 255.) * (title_color.b as f32 / 255.) * 255.) as u8,
-                                ((a as f32 / 255.) * (title_color.a as f32 / 255.) * 255.) as u8,
+                                ((b as f32 / 255.) * (title_color.red as f32 / 255.) * 255.) as u8,
+                                ((g as f32 / 255.) * (title_color.green as f32 / 255.) * 255.)
+                                    as u8,
+                                ((r as f32 / 255.) * (title_color.blue as f32 / 255.) * 255.) as u8,
+                                a,
                             )
                             .premultiply();
                         }
@@ -717,7 +535,6 @@ impl Frame for ConceptFrame {
             theme_over_surface,
             maximized: false,
             fullscreened: false,
-            buttons: (true, true, true),
         }));
 
         let my_inner = inner.clone();
@@ -765,7 +582,6 @@ impl Frame for ConceptFrame {
                             inner.size.0,
                             surface_x,
                             surface_y,
-                            inner.buttons,
                         );
                         data.position = (surface_x, surface_y);
                         change_pointer(&pointer, &inner, data.location, Some(serial))
@@ -781,13 +597,8 @@ impl Frame for ConceptFrame {
                         ..
                     } => {
                         data.position = (surface_x, surface_y);
-                        let newpos = precise_location(
-                            data.location,
-                            inner.size.0,
-                            surface_x,
-                            surface_y,
-                            inner.buttons,
-                        );
+                        let newpos =
+                            precise_location(data.location, inner.size.0, surface_x, surface_y);
                         if newpos != data.location {
                             match (newpos, data.location) {
                                 (Location::Button(_), _) | (_, Location::Button(_)) => {
@@ -988,7 +799,11 @@ impl Frame for ConceptFrame {
             {
                 let mmap = pool.mmap();
                 {
-                    let color = self.config.primary_color.get_for(self.active);
+                    let colors = self.config.colors();
+                    let color = match self.active {
+                        WindowState::Active => colors.active_titlebar_bg,
+                        WindowState::Inactive => colors.inactive_titlebar_bg,
+                    };
 
                     let mut pixmap = PixmapMut::from_bytes(
                         &mut mmap
@@ -1008,7 +823,7 @@ impl Frame for ConceptFrame {
                             )
                             .unwrap(),
                         ),
-                        &color.paint(),
+                        &color_to_paint(color),
                         FillRule::Winding,
                         Transform::identity(),
                         None,
@@ -1259,12 +1074,6 @@ impl Frame for ConceptFrame {
 
     fn set_config(&mut self, config: ConceptConfig) {
         self.config = config;
-        let mut inner = self.inner.borrow_mut();
-        inner.buttons = (
-            self.config.close_button.is_some(),
-            self.config.maximize_button.is_some(),
-            self.config.minimize_button.is_some(),
-        );
     }
 
     fn set_title(&mut self, title: String) {
@@ -1374,7 +1183,7 @@ fn request_for_location_on_rmb(pointer_data: &PointerUserData) -> Option<FrameRe
 
 // average of the two colors, approximately taking into account gamma correction
 // result is as transparent as the most transparent color
-fn mix_colors(x: ARGBColor, y: ARGBColor) -> ARGBColor {
+fn mix_colors(x: RgbColor, y: RgbColor) -> RgbColor {
     #[inline]
     fn gamma_mix(x: u8, y: u8) -> u8 {
         let x = x as f32 / 255.0;
@@ -1383,12 +1192,11 @@ fn mix_colors(x: ARGBColor, y: ARGBColor) -> ARGBColor {
         (z * 255.0) as u8
     }
 
-    ARGBColor {
-        a: x.a.min(y.a),
-        r: gamma_mix(x.r, y.r),
-        g: gamma_mix(x.g, y.g),
-        b: gamma_mix(x.b, y.b),
-    }
+    RgbColor::new(
+        gamma_mix(x.red, y.red),
+        gamma_mix(x.green, y.green),
+        gamma_mix(x.blue, y.blue),
+    )
 }
 
 fn draw_buttons(
@@ -1402,8 +1210,13 @@ fn draw_buttons(
 ) {
     let scale = scale as f32;
 
+    let colors = config.colors();
+
     // Draw seperator between header and window contents
-    let line_color = config.secondary_color.get_for(state);
+    let line_color = match state {
+        WindowState::Active => colors.active_titlebar_border_bottom,
+        WindowState::Inactive => colors.inactive_titlebar_border_bottom,
+    };
 
     let mut sep_stroke = Stroke::default();
     sep_stroke.width = scale;
@@ -1416,104 +1229,108 @@ fn draw_buttons(
 
     pixmap.stroke_path(
         &path,
-        &line_color.paint(),
+        &color_to_paint(line_color),
         &Stroke::default(),
         Transform::identity(),
         None,
     );
 
-    let mut drawn_buttons = 0usize;
+    let mut drawn_buttons = 0;
+
+    fn btn_colors(
+        colors: &WindowFrameConfig,
+        btn_state: ButtonState,
+        state: WindowState,
+    ) -> (RgbColor, RgbColor) {
+        match (btn_state, state) {
+            (ButtonState::Hovered, _) => (colors.button_hover_bg, colors.button_hover_fg),
+            (_, WindowState::Inactive) => {
+                (colors.inactive_titlebar_bg, colors.inactive_titlebar_fg)
+            }
+            _ => (colors.button_bg, colors.button_fg),
+        }
+    }
 
     if width >= HEADER_SIZE {
-        if let Some((ref icon_config, ref btn_config)) = config.close_button {
-            // Draw the close button
-            let btn_state = if mouses
-                .iter()
-                .any(|&l| l == Location::Button(UIButton::Close))
-            {
-                ButtonState::Hovered
-            } else {
-                ButtonState::Idle
-            };
+        // Draw the close button
+        let btn_state = if mouses
+            .iter()
+            .any(|&l| l == Location::Button(UIButton::Close))
+        {
+            ButtonState::Hovered
+        } else {
+            ButtonState::Idle
+        };
 
-            let icon_color = icon_config.get_for(btn_state).get_for(state);
-            let button_color = btn_config.get_for(btn_state).get_for(state);
+        let (button_color, icon_color) = btn_colors(colors, btn_state, state);
 
-            draw_button(
-                pixmap,
-                0,
-                scale,
-                button_color.paint(),
-                mix_colors(button_color, line_color).paint(),
-            );
-            draw_icon(pixmap, 0, scale, icon_color.paint(), Icon::Close);
-            drawn_buttons += 1;
-        }
+        draw_button(
+            pixmap,
+            0,
+            scale,
+            color_to_paint(button_color),
+            color_to_paint(mix_colors(button_color, line_color)),
+        );
+        draw_icon(pixmap, 0, scale, color_to_paint(icon_color), Icon::Close);
+        drawn_buttons += 1;
     }
 
     if width as usize >= (drawn_buttons + 1) * HEADER_SIZE as usize {
-        if let Some((ref icon_config, ref btn_config)) = config.maximize_button {
-            let btn_state = if !maximizable {
-                ButtonState::Disabled
-            } else if mouses
-                .iter()
-                .any(|&l| l == Location::Button(UIButton::Maximize))
-            {
-                ButtonState::Hovered
-            } else {
-                ButtonState::Idle
-            };
+        let btn_state = if !maximizable {
+            ButtonState::Disabled
+        } else if mouses
+            .iter()
+            .any(|&l| l == Location::Button(UIButton::Maximize))
+        {
+            ButtonState::Hovered
+        } else {
+            ButtonState::Idle
+        };
 
-            let icon_color = icon_config.get_for(btn_state).get_for(state);
-            let button_color = btn_config.get_for(btn_state).get_for(state);
-
-            draw_button(
-                pixmap,
-                drawn_buttons * HEADER_SIZE as usize,
-                scale,
-                button_color.paint(),
-                mix_colors(button_color, line_color).paint(),
-            );
-            draw_icon(
-                pixmap,
-                drawn_buttons * HEADER_SIZE as usize,
-                scale,
-                icon_color.paint(),
-                Icon::Maximize,
-            );
-            drawn_buttons += 1;
-        }
+        let (button_color, icon_color) = btn_colors(colors, btn_state, state);
+        draw_button(
+            pixmap,
+            drawn_buttons * HEADER_SIZE as usize,
+            scale,
+            color_to_paint(button_color),
+            color_to_paint(mix_colors(button_color, line_color)),
+        );
+        draw_icon(
+            pixmap,
+            drawn_buttons * HEADER_SIZE as usize,
+            scale,
+            color_to_paint(icon_color),
+            Icon::Maximize,
+        );
+        drawn_buttons += 1;
     }
 
     if width as usize >= (drawn_buttons + 1) * HEADER_SIZE as usize {
-        if let Some((ref icon_config, ref btn_config)) = config.minimize_button {
-            let btn_state = if mouses
-                .iter()
-                .any(|&l| l == Location::Button(UIButton::Minimize))
-            {
-                ButtonState::Hovered
-            } else {
-                ButtonState::Idle
-            };
+        let btn_state = if mouses
+            .iter()
+            .any(|&l| l == Location::Button(UIButton::Minimize))
+        {
+            ButtonState::Hovered
+        } else {
+            ButtonState::Idle
+        };
 
-            let icon_color = icon_config.get_for(btn_state).get_for(state);
-            let button_color = btn_config.get_for(btn_state).get_for(state);
+        let (button_color, icon_color) = btn_colors(colors, btn_state, state);
 
-            draw_button(
-                pixmap,
-                drawn_buttons * HEADER_SIZE as usize,
-                scale,
-                button_color.paint(),
-                mix_colors(button_color, line_color).paint(),
-            );
-            draw_icon(
-                pixmap,
-                drawn_buttons * HEADER_SIZE as usize,
-                scale,
-                icon_color.paint(),
-                Icon::Minimize,
-            );
-        }
+        draw_button(
+            pixmap,
+            drawn_buttons * HEADER_SIZE as usize,
+            scale,
+            color_to_paint(button_color),
+            color_to_paint(mix_colors(button_color, line_color)),
+        );
+        draw_icon(
+            pixmap,
+            drawn_buttons * HEADER_SIZE as usize,
+            scale,
+            color_to_paint(icon_color),
+            Icon::Minimize,
+        );
     }
 }
 
