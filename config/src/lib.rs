@@ -1139,6 +1139,9 @@ pub struct Config {
     #[serde(default = "default_word_boundary")]
     pub selection_word_boundary: String,
 
+    #[serde(default = "default_enq_answerback")]
+    pub enq_answerback: String,
+
     #[serde(default = "default_true")]
     pub adjust_window_size_when_changing_font_size: bool,
 
@@ -1205,6 +1208,10 @@ fn default_alphabet() -> String {
 
 fn default_word_boundary() -> String {
     " \t\n{[}]()\"'`".to_string()
+}
+
+fn default_enq_answerback() -> String {
+    "".to_string()
 }
 
 fn default_one_point_oh_f64() -> f64 {
