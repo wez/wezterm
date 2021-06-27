@@ -16,7 +16,7 @@ wgpu = "0.8"
 gl_generator = "0.14"
 
 [features]
-wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl"]
+wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "andrew", "wayland-protocols"]
 
 [dependencies]
 async-channel = "1.6"
@@ -63,10 +63,11 @@ xcb-util = { features = [ "cursor", "image", "icccm", "ewmh", "keysyms"], versio
 xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://github.com/wez/xkbcommon-rs.git", rev="01a0a0cd5663405e6e4abb1ad3add9add1496f58"}
 mio = "0.6"
 libc = "0.2"
-#smithay-client-toolkit = {version = "0.9", optional = true, features=["calloop"], git="https://github.com/wez/client-toolkit.git", branch="title_trunc"}
 smithay-client-toolkit = {version = "0.12", features=["calloop"], optional=true}
+wayland-protocols = {version="0.28", optional=true}
 wayland-client = {version="0.28", optional=true}
 wayland-egl = {version="0.28", optional=true}
+andrew = {version="0.3", optional=true}
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"

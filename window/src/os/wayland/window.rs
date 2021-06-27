@@ -1,4 +1,5 @@
 use super::copy_and_paste::*;
+use super::frame::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame};
 use super::keyboard::KeyboardEvent;
 use super::pointer::*;
 use crate::connection::ConnectionOps;
@@ -26,7 +27,7 @@ use std::sync::{Arc, Mutex};
 use toolkit::get_surface_scale_factor;
 use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
-use toolkit::window::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame, Event, State};
+use toolkit::window::{Event, State};
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_input_types::*;
