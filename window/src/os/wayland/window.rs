@@ -29,7 +29,7 @@ use toolkit::get_surface_scale_factor;
 use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_pointer::ButtonState;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
-use toolkit::window::{Event, State};
+use toolkit::window::{Event as SCTKWindowEvent, State};
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
@@ -138,9 +138,9 @@ struct PendingEvent {
 }
 
 impl PendingEvent {
-    fn queue(&mut self, evt: Event) -> bool {
+    fn queue(&mut self, evt: SCTKWindowEvent) -> bool {
         match evt {
-            Event::Close => {
+            SCTKWindowEvent::Close => {
                 if !self.close {
                     self.close = true;
                     true
@@ -148,7 +148,7 @@ impl PendingEvent {
                     false
                 }
             }
-            Event::Refresh => {
+            SCTKWindowEvent::Refresh => {
                 if !self.refresh_decorations {
                     self.refresh_decorations = true;
                     true
@@ -156,7 +156,7 @@ impl PendingEvent {
                     false
                 }
             }
-            Event::Configure { new_size, states } => {
+            SCTKWindowEvent::Configure { new_size, states } => {
                 let mut changed;
                 self.had_configure_event = true;
                 if let Some(new_size) = new_size {
