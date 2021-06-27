@@ -63,7 +63,7 @@ xcb-util = { features = [ "cursor", "image", "icccm", "ewmh", "keysyms"], versio
 xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://github.com/wez/xkbcommon-rs.git", rev="01a0a0cd5663405e6e4abb1ad3add9add1496f58"}
 mio = "0.6"
 libc = "0.2"
-smithay-client-toolkit = {version = "0.12", features=["calloop"], optional=true}
+smithay-client-toolkit = {version = "0.14", features=["calloop"], optional=true}
 wayland-protocols = {version="0.28", optional=true}
 wayland-client = {version="0.28", optional=true}
 wayland-egl = {version="0.28", optional=true}
