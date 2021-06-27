@@ -370,3 +370,5 @@ show_range.set_defaults(func=do_show_range)
 
 args = parser.parse_args()
 args.func(args)
+
+print("", flush=True)

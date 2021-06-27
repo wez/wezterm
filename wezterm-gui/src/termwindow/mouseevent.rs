@@ -58,7 +58,7 @@ impl super::TermWindow {
             .sub(config.window_padding.left as isize)
             .max(0) as f32)
             / self.render_metrics.cell_size.width as f32;
-        let x = if !in_tab_bar {
+        let x = if !in_tab_bar && !pane.is_mouse_grabbed() {
             // Round the x coordinate so that we're a bit more forgiving of
             // the horizontal position when selecting cells
             x.round()
@@ -95,13 +95,6 @@ impl super::TermWindow {
             }
 
             WMEK::Press(ref press) => {
-                if let Some(focused) = self.focused.as_ref() {
-                    if focused.elapsed() <= Duration::from_millis(200) {
-                        log::trace!("discard mouse click because it focused the window");
-                        return;
-                    }
-                }
-
                 // Perform click counting
                 let button = mouse_press_to_tmb(press);
 
@@ -385,6 +378,14 @@ impl super::TermWindow {
                 break;
             }
         }
+        if let Some(focused) = self.focused.as_ref() {
+            if focused.elapsed() <= Duration::from_millis(200) {
+                if is_click_to_focus {
+                    context.invalidate();
+                }
+                return;
+            }
+        }
 
         let dims = pane.get_dimensions();
         let stable_row = self
@@ -435,6 +436,8 @@ impl super::TermWindow {
                     // When hovering over a hyperlink, show an appropriate
                     // mouse cursor to give the cue that it is clickable
                     MouseCursor::Hand
+                } else if pane.is_mouse_grabbed() {
+                    MouseCursor::Arrow
                 } else {
                     MouseCursor::Text
                 }

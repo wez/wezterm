@@ -693,6 +693,9 @@ pub enum DecPrivateModeCode {
     BracketedPaste = 2004,
     /// Applies to sixel and regis modes
     UsePrivateColorRegistersForEachGraphic = 1070,
+
+    /// xterm: adjust cursor positioning after emitting sixel
+    SixelScrollsRight = 8452,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

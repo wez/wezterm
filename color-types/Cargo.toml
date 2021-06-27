@@ -1,0 +1,11 @@
+[package]
+name = "color-types"
+version = "0.1.0"
+authors = ["Wez Furlong"]
+edition = "2018"
+repository = "https://github.com/wez/wezterm"
+description = "Types for working with colors"
+license = "MIT"
+
+[dependencies]
+lazy_static = "1.4"

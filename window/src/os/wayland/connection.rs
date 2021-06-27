@@ -38,7 +38,7 @@ pub struct WaylandConnection {
     pub(crate) keyboard: KeyboardDispatcher,
     seat_listener: SeatListener,
     pub(crate) environment: RefCell<Environment<MyEnvironment>>,
-    event_q: RefCell<EventLoop<()>>,
+    event_q: RefCell<EventLoop<'static, ()>>,
     pub(crate) display: RefCell<Display>,
 }
 
@@ -46,7 +46,7 @@ impl WaylandConnection {
     pub fn create_new() -> anyhow::Result<Self> {
         let (environment, display, event_q) =
             toolkit::new_default_environment!(MyEnvironment, desktop)?;
-        let event_loop = toolkit::reexports::calloop::EventLoop::<()>::new()?;
+        let event_loop = toolkit::reexports::calloop::EventLoop::<()>::try_new()?;
 
         let keyboard = KeyboardDispatcher::new();
         let mut pointer = None;
@@ -186,11 +186,11 @@ impl EventSource for SpawnQueueSource {
     }
 
     fn register(&mut self, poll: &mut Poll, token: Token) -> std::io::Result<()> {
-        poll.register(SPAWN_QUEUE.raw_fd(), Interest::Readable, Mode::Level, token)
+        poll.register(SPAWN_QUEUE.raw_fd(), Interest::READ, Mode::Level, token)
     }
 
     fn reregister(&mut self, poll: &mut Poll, token: Token) -> std::io::Result<()> {
-        poll.register(SPAWN_QUEUE.raw_fd(), Interest::Readable, Mode::Level, token)
+        poll.register(SPAWN_QUEUE.raw_fd(), Interest::READ, Mode::Level, token)
     }
 
     fn unregister(&mut self, poll: &mut Poll) -> std::io::Result<()> {

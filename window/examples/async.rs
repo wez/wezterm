@@ -1,6 +1,7 @@
 use ::window::*;
 use promise::spawn::spawn;
 use std::rc::Rc;
+use wezterm_font::FontConfiguration;
 
 struct MyWindow {
     allow_close: bool,
@@ -15,7 +16,12 @@ impl Drop for MyWindow {
 }
 
 async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
-    let (win, events) = Window::new_window("myclass", "the title", 800, 600, None).await?;
+    let fontconfig = Rc::new(FontConfiguration::new(
+        None,
+        ::window::default_dpi() as usize,
+    )?);
+    let (win, events) =
+        Window::new_window("myclass", "the title", 800, 600, None, fontconfig).await?;
 
     let mut state = MyWindow {
         allow_close: false,

@@ -3,6 +3,7 @@ pub mod windows;
 #[cfg(windows)]
 pub use windows::*;
 
+#[cfg(feature = "wayland")]
 pub mod wayland;
 pub mod x11;
 pub mod x_and_wayland;
