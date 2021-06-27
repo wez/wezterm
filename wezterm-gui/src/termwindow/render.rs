@@ -683,6 +683,10 @@ impl super::TermWindow {
             Some(params.config.inactive_pane_hsb)
         };
 
+        // Hang onto time to see if blinking text should not be seen.
+        let uptime = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        let milli_uptime = uptime.as_secs() as u128 * 1000 + uptime.subsec_millis() as u128;
+
         let window_is_transparent =
             self.window_background.is_some() || params.config.window_background_opacity != 1.0;
 
@@ -805,20 +809,18 @@ impl super::TermWindow {
                     bg_default = false;
                 }
 
-                // Check for blink, and if this is the "not-blink"
+                // Check for blink, and if this is the "not-visible"
                 // part of blinking then set fg = bg.  This is a cheap
                 // means of getting it done without impacting other
                 // features.
-                if attrs.blink() != Blink::None
+                let blink_rate = match attrs.blink() {
+                    Blink::None => 0,
+                    Blink::Slow => params.config.text_blink_rate,
+                    Blink::Rapid => params.config.text_blink_rate_rapid,
+                };
+                if blink_rate != 0
                     && (self.config.text_blink_rate != 0 || self.config.text_blink_rate_rapid != 0)
                 {
-                    let blink_rate = match attrs.blink() {
-                        Blink::Rapid => params.config.text_blink_rate_rapid,
-                        _ => params.config.text_blink_rate,
-                    };
-                    let uptime = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-                    let milli_uptime =
-                        uptime.as_secs() as u128 * 1000 + uptime.subsec_millis() as u128;
                     let ticks = milli_uptime / blink_rate as u128;
                     if (ticks & 1) == 0 {
                         fg = bg;

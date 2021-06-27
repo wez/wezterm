@@ -39,6 +39,11 @@ bitflags! {
         /// as double-height bottom-half
         const DOUBLE_HEIGHT_BOTTOM = 1<<7;
 
+        const DOUBLE_WIDTH_HEIGHT_MASK =
+            Self::DOUBLE_WIDTH.bits |
+            Self::DOUBLE_HEIGHT_TOP.bits |
+            Self::DOUBLE_HEIGHT_BOTTOM.bits;
+
     }
 }
 
@@ -193,27 +198,25 @@ impl Line {
     /// Check whether the line is single-width.
     #[inline]
     pub fn is_single_width(&self) -> bool {
-        ((self.bits & LineBits::DOUBLE_WIDTH) != LineBits::DOUBLE_WIDTH)
-            && ((self.bits & LineBits::DOUBLE_HEIGHT_TOP) != LineBits::DOUBLE_HEIGHT_TOP)
-            && ((self.bits & LineBits::DOUBLE_HEIGHT_BOTTOM) != LineBits::DOUBLE_HEIGHT_BOTTOM)
+        (self.bits
+            & (LineBits::DOUBLE_WIDTH
+                | LineBits::DOUBLE_HEIGHT_TOP
+                | LineBits::DOUBLE_HEIGHT_BOTTOM))
+            == LineBits::NONE
     }
 
     /// Force single-width.  This also implicitly sets
     /// double-height-(top/bottom) and dirty.
     #[inline]
     pub fn set_single_width(&mut self) {
-        self.bits &= !LineBits::DOUBLE_WIDTH;
-        self.bits &= !LineBits::DOUBLE_HEIGHT_TOP;
-        self.bits &= !LineBits::DOUBLE_HEIGHT_BOTTOM;
+        self.bits &= !LineBits::DOUBLE_WIDTH_HEIGHT_MASK;
         self.bits |= LineBits::DIRTY;
     }
 
     /// Check whether the line is double-width and not double-height.
     #[inline]
     pub fn is_double_width(&self) -> bool {
-        ((self.bits & LineBits::DOUBLE_WIDTH) == LineBits::DOUBLE_WIDTH)
-            && ((self.bits & LineBits::DOUBLE_HEIGHT_TOP) != LineBits::DOUBLE_HEIGHT_TOP)
-            && ((self.bits & LineBits::DOUBLE_HEIGHT_BOTTOM) != LineBits::DOUBLE_HEIGHT_BOTTOM)
+        (self.bits & LineBits::DOUBLE_WIDTH_HEIGHT_MASK) == LineBits::DOUBLE_WIDTH
     }
 
     /// Force double-width.  This also implicitly sets
@@ -229,9 +232,8 @@ impl Line {
     /// Check whether the line is double-height-top.
     #[inline]
     pub fn is_double_height_top(&self) -> bool {
-        ((self.bits & LineBits::DOUBLE_WIDTH) == LineBits::DOUBLE_WIDTH)
-            && ((self.bits & LineBits::DOUBLE_HEIGHT_TOP) == LineBits::DOUBLE_HEIGHT_TOP)
-            && ((self.bits & LineBits::DOUBLE_HEIGHT_BOTTOM) != LineBits::DOUBLE_HEIGHT_BOTTOM)
+        (self.bits & LineBits::DOUBLE_WIDTH_HEIGHT_MASK)
+            == LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_TOP
     }
 
     /// Force double-height top-half.  This also implicitly sets
@@ -247,9 +249,8 @@ impl Line {
     /// Check whether the line is double-height-bottom.
     #[inline]
     pub fn is_double_height_bottom(&self) -> bool {
-        ((self.bits & LineBits::DOUBLE_WIDTH) == LineBits::DOUBLE_WIDTH)
-            && ((self.bits & LineBits::DOUBLE_HEIGHT_TOP) != LineBits::DOUBLE_HEIGHT_TOP)
-            && ((self.bits & LineBits::DOUBLE_HEIGHT_BOTTOM) == LineBits::DOUBLE_HEIGHT_BOTTOM)
+        (self.bits & LineBits::DOUBLE_WIDTH_HEIGHT_MASK)
+            == LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_BOTTOM
     }
 
     /// Force double-height bottom-half.  This also implicitly sets

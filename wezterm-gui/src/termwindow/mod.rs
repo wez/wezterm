@@ -526,6 +526,7 @@ impl TermWindow {
                     Self::maintain_animation,
                     Self::maintain_blink,
                     Self::maintain_text_blink,
+                    Self::maintain_text_blink_rapid,
                 ] {
                     let (invalidate, next) = f(&mut myself, now);
                     if invalidate {
@@ -1089,11 +1090,11 @@ impl TermWindow {
     }
 
     /// If text blinking is permitted, and it's been longer than the
-    /// (normal or rapid) blink rate interval, then invalidate and
-    /// redraw so that we will re-evaluate the text visibility.  This
-    /// is pretty heavyweight: it would be nice to only invalidate the
-    /// lines on which blinking text is present, and then only if some
-    /// text is within the viewport.
+    /// normal blink rate interval, then invalidate and redraw so that
+    /// we will re-evaluate the text visibility.  This is pretty
+    /// heavyweight: it would be nice to only invalidate the lines on
+    /// which blinking text is present, and then only if some text is
+    /// within the viewport.
     fn maintain_text_blink(&mut self, now: Instant) -> (bool, Option<Instant>) {
         if self.focused.is_none()
             || (self.config.text_blink_rate == 0 && self.config.text_blink_rate_rapid == 0)
@@ -1110,15 +1111,66 @@ impl TermWindow {
 
         for pos in panes {
             if pos.is_active {
-                // AZL TODO: scan for blinking text, and check against
-                // both normal and rapid text.  For now, assume always
-                // update, and only check against slow blink rate.
-                let interval = Duration::from_millis(self.config.text_blink_rate);
-                if now.duration_since(self.last_text_blink_paint) > interval {
-                    self.last_text_blink_paint = now;
-                    return (true, Some(self.last_text_blink_paint + interval));
+                let dims = pos.pane.get_dimensions();
+                let viewport = self
+                    .get_viewport(pos.pane.pane_id())
+                    .unwrap_or(dims.physical_top);
+                let visible_range = viewport..viewport + dims.viewport_rows as StableRowIndex;
+                let (_first, lines) = pos.pane.get_lines(visible_range);
+                for line in lines {
+                    for cell in line.cells() {
+                        if cell.attrs().blink() == termwiz::cell::Blink::Slow {
+                            // A slow blinking cell is visible.
+                            let interval = Duration::from_millis(self.config.text_blink_rate);
+                            if now.duration_since(self.last_text_blink_paint) > interval {
+                                self.last_text_blink_paint = now;
+                                return (true, Some(self.last_text_blink_paint + interval));
+                            }
+                            return (false, Some(self.last_text_blink_paint + interval));
+                        }
+                    }
                 }
-                return (false, Some(self.last_text_blink_paint + interval));
+            }
+        }
+
+        (false, None)
+    }
+
+    fn maintain_text_blink_rapid(&mut self, now: Instant) -> (bool, Option<Instant>) {
+        if self.focused.is_none()
+            || (self.config.text_blink_rate == 0 && self.config.text_blink_rate_rapid == 0)
+        {
+            return (false, None);
+        }
+
+        let panes = self.get_panes_to_render();
+        if panes.is_empty() {
+            log::warn!("maintain_text_blink_rapid: get_panes_to_render.is_empty() -> close window");
+            self.window.as_ref().unwrap().close();
+            return (false, None);
+        }
+
+        for pos in panes {
+            if pos.is_active {
+                let dims = pos.pane.get_dimensions();
+                let viewport = self
+                    .get_viewport(pos.pane.pane_id())
+                    .unwrap_or(dims.physical_top);
+                let visible_range = viewport..viewport + dims.viewport_rows as StableRowIndex;
+                let (_first, lines) = pos.pane.get_lines(visible_range);
+                for line in lines {
+                    for cell in line.cells() {
+                        if cell.attrs().blink() == termwiz::cell::Blink::Rapid {
+                            // A slow blinking cell is visible.
+                            let interval = Duration::from_millis(self.config.text_blink_rate_rapid);
+                            if now.duration_since(self.last_text_blink_paint_rapid) > interval {
+                                self.last_text_blink_paint_rapid = now;
+                                return (true, Some(self.last_text_blink_paint_rapid + interval));
+                            }
+                            return (false, Some(self.last_text_blink_paint_rapid + interval));
+                        }
+                    }
+                }
             }
         }
 

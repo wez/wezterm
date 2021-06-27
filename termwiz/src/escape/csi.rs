@@ -1518,7 +1518,7 @@ impl<'a> CSIParser<'a> {
             ('t', &[]) => self.window(params).map(CSI::Window),
             ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
             ('x', &[]) => self
-                .req_terminal_parameters(params.get(0).and_then(CsiParam::as_integer).unwrap())
+                .req_terminal_parameters(params.get(0).and_then(CsiParam::as_integer).ok_or(())?)
                 .map(|dev| CSI::Device(Box::new(dev))),
             ('y', &[b'*']) => {
                 fn p(params: &[CsiParam], idx: usize) -> Result<i64, ()> {
