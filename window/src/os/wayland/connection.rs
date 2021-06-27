@@ -274,8 +274,6 @@ impl ConnectionOps for WaylandConnection {
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
-        self.flush()?;
-
         const TOK_WL: usize = 0xffff_fffc;
         const TOK_SPAWN: usize = 0xffff_fffd;
         let tok_wl = Token(TOK_WL);
@@ -292,50 +290,50 @@ impl ConnectionOps for WaylandConnection {
         )?;
 
         while !*self.should_terminate.borrow() {
-            {
-                let mut event_q = self.event_q.borrow_mut();
-                if let Err(err) = event_q.dispatch_pending(&mut (), |_, _, _| {}) {
-                    if err.kind() != std::io::ErrorKind::WouldBlock
-                        && err.kind() != std::io::ErrorKind::Interrupted
-                    {
-                        return Err(err).with_context(|| {
-                            format!(
-                                "error during event_q.dispatch protocol_error={:?}",
-                                self.display.borrow().protocol_error()
-                            )
-                        });
-                    }
-                }
-            }
-
             // Check the spawn queue before we try to sleep; there may
             // be work pending and we don't guarantee that there is a
             // 1:1 wakeup to queued function, so we need to be assertive
             // in order to avoid missing wakeups
-            if SPAWN_QUEUE.run() {
+            let timeout = if SPAWN_QUEUE.run() {
                 // if we processed one, we don't want to sleep because
                 // there may be others to deal with
-                continue;
-            }
+                Some(std::time::Duration::from_secs(0))
+            } else {
+                None
+            };
 
-            if let Err(err) = poll.poll(&mut events, None) {
-                bail!("polling for events: {:?}", err);
+            {
+                let mut event_q = self.event_q.borrow_mut();
+                if let Err(err) = event_q.dispatch_pending(&mut (), |_, _, _| {}) {
+                    return Err(err).with_context(|| {
+                        format!(
+                            "error during event_q.dispatch protocol_error={:?}",
+                            self.display.borrow().protocol_error()
+                        )
+                    });
+                }
             }
 
             self.flush()?;
-            {
-                let event_q = self.event_q.borrow();
-                if let Some(guard) = event_q.prepare_read() {
-                    if let Err(err) = guard.read_events() {
-                        if err.kind() != std::io::ErrorKind::WouldBlock
-                            && err.kind() != std::io::ErrorKind::Interrupted
-                        {
-                            return Err(err).with_context(|| {
-                                format!(
-                                    "error during event_q.read_events protocol_error={:?}",
-                                    self.display.borrow().protocol_error()
-                                )
-                            });
+            if let Err(err) = poll.poll(&mut events, timeout) {
+                bail!("polling for events: {:?}", err);
+            }
+
+            for event in &events {
+                if event.token() == tok_wl {
+                    let event_q = self.event_q.borrow();
+                    if let Some(guard) = event_q.prepare_read() {
+                        if let Err(err) = guard.read_events() {
+                            if err.kind() != std::io::ErrorKind::WouldBlock
+                                && err.kind() != std::io::ErrorKind::Interrupted
+                            {
+                                return Err(err).with_context(|| {
+                                    format!(
+                                        "error during event_q.read_events protocol_error={:?}",
+                                        self.display.borrow().protocol_error()
+                                    )
+                                });
+                            }
                         }
                     }
                 }
