@@ -8,6 +8,10 @@ resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["wayland"]
+wayland = ["window/wayland"]
+
 [build-dependencies]
 anyhow = "1.0"
 

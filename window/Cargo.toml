@@ -15,6 +15,9 @@ wgpu = "0.8"
 [build-dependencies]
 gl_generator = "0.14"
 
+[features]
+wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl"]
+
 [dependencies]
 async-channel = "1.6"
 async-task = "4.0"
@@ -61,9 +64,9 @@ xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://githu
 mio = "0.6"
 libc = "0.2"
 #smithay-client-toolkit = {version = "0.9", optional = true, features=["calloop"], git="https://github.com/wez/client-toolkit.git", branch="title_trunc"}
-smithay-client-toolkit = {version = "0.12", features=["calloop"]}
-wayland-client = "0.28"
-wayland-egl = "0.28"
+smithay-client-toolkit = {version = "0.12", features=["calloop"], optional=true}
+wayland-client = {version="0.28", optional=true}
+wayland-egl = {version="0.28", optional=true}
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"
