@@ -1096,9 +1096,7 @@ impl TermWindow {
     /// which blinking text is present, and then only if some text is
     /// within the viewport.
     fn maintain_text_blink(&mut self, now: Instant) -> (bool, Option<Instant>) {
-        if self.focused.is_none()
-            || (self.config.text_blink_rate == 0 && self.config.text_blink_rate_rapid == 0)
-        {
+        if self.focused.is_none() || self.config.text_blink_rate == 0 {
             return (false, None);
         }
 
@@ -1137,9 +1135,7 @@ impl TermWindow {
     }
 
     fn maintain_text_blink_rapid(&mut self, now: Instant) -> (bool, Option<Instant>) {
-        if self.focused.is_none()
-            || (self.config.text_blink_rate == 0 && self.config.text_blink_rate_rapid == 0)
-        {
+        if self.focused.is_none() || self.config.text_blink_rate_rapid == 0 {
             return (false, None);
         }
 
@@ -1161,7 +1157,7 @@ impl TermWindow {
                 for line in lines {
                     for cell in line.cells() {
                         if cell.attrs().blink() == termwiz::cell::Blink::Rapid {
-                            // A slow blinking cell is visible.
+                            // A rapid blinking cell is visible.
                             let interval = Duration::from_millis(self.config.text_blink_rate_rapid);
                             if now.duration_since(self.last_text_blink_paint_rapid) > interval {
                                 self.last_text_blink_paint_rapid = now;
