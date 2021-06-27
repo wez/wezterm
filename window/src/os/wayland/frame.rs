@@ -2,20 +2,15 @@
 //! in smithay_client_toolkit 0.11 which is Copyright (c) 2018 Victor Berger
 //! and provided under the terms of the MIT license.
 
-use andrew::line;
-use andrew::shapes::rectangle;
-use andrew::text;
-use andrew::text::fontconfig;
-use andrew::{Canvas, Endian};
 use smithay_client_toolkit::output::{add_output_listener, with_output_info, OutputListener};
 use smithay_client_toolkit::seat::pointer::{ThemeManager, ThemeSpec, ThemedPointer};
 use smithay_client_toolkit::shm::DoubleMemPool;
 use smithay_client_toolkit::window::{ButtonState, Frame, FrameRequest, State, WindowState};
 use std::cell::RefCell;
 use std::cmp::max;
-use std::io::Read;
 use std::rc::Rc;
 use std::sync::Mutex;
+use tiny_skia::{FillRule, Paint, PathBuilder, PixmapMut, Rect, Stroke, Transform};
 use wayland_client::protocol::{
     wl_compositor, wl_output, wl_pointer, wl_seat, wl_shm, wl_subcompositor, wl_subsurface,
     wl_surface,
@@ -44,6 +39,13 @@ impl ARGBColor {
             g: 0,
             b: 0,
         }
+    }
+
+    pub fn paint(&self) -> Paint {
+        let mut paint = Paint::default();
+        paint.set_color_rgba8(self.b, self.g, self.r, self.a);
+        paint.anti_alias = true;
+        paint
     }
 }
 
@@ -591,7 +593,6 @@ pub struct ConceptFrame {
     surface_version: u32,
     config: ConceptConfig,
     title: Option<String>,
-    font_data: Option<Vec<u8>>,
 }
 
 impl Frame for ConceptFrame {
@@ -645,7 +646,6 @@ impl Frame for ConceptFrame {
             surface_version: compositor.as_ref().version(),
             config: ConceptConfig::default(),
             title: None,
-            font_data: None,
         })
     }
 
@@ -892,28 +892,34 @@ impl Frame for ConceptFrame {
             {
                 let mmap = pool.mmap();
                 {
-                    let color = self.config.primary_color.get_for(self.active).into();
+                    let color = self.config.primary_color.get_for(self.active);
 
-                    let mut header_canvas = Canvas::new(
+                    let mut pixmap = PixmapMut::from_bytes(
                         &mut mmap
                             [0..scaled_header_height as usize * scaled_header_width as usize * 4],
-                        scaled_header_width as usize,
-                        scaled_header_height as usize,
-                        scaled_header_width as usize * 4,
-                        Endian::native(),
-                    );
-                    header_canvas.clear();
+                        scaled_header_width,
+                        scaled_header_height,
+                    )
+                    .expect("make pixmap from existing bitmap");
 
-                    let header_bar = rectangle::Rectangle::new(
-                        (0, 0),
-                        (scaled_header_width as usize, scaled_header_height as usize),
+                    pixmap.fill_path(
+                        &PathBuilder::from_rect(
+                            Rect::from_xywh(
+                                0.,
+                                0.,
+                                scaled_header_width as f32,
+                                scaled_header_height as f32,
+                            )
+                            .unwrap(),
+                        ),
+                        &color.paint(),
+                        FillRule::Winding,
+                        Transform::identity(),
                         None,
-                        Some(color),
                     );
-                    header_canvas.draw(&header_bar);
 
                     draw_buttons(
-                        &mut header_canvas,
+                        &mut pixmap,
                         width,
                         header_scale,
                         inner.resizable,
@@ -933,6 +939,7 @@ impl Frame for ConceptFrame {
                             .collect::<Vec<Location>>(),
                         &self.config,
                     );
+                    /*
                     if let Some((ref font_face, font_size)) = self.config.title_font {
                         if let Some(title) = self.title.clone() {
                             // If theres no stored font data, find the first ttf regular sans font and
@@ -1002,6 +1009,7 @@ impl Frame for ConceptFrame {
                             }
                         }
                     }
+                    */
                 }
 
                 // For each pixel in borders
@@ -1329,7 +1337,7 @@ fn mix_colors(x: ARGBColor, y: ARGBColor) -> ARGBColor {
 }
 
 fn draw_buttons(
-    canvas: &mut Canvas,
+    pixmap: &mut PixmapMut,
     width: u32,
     scale: u32,
     maximizable: bool,
@@ -1337,20 +1345,27 @@ fn draw_buttons(
     mouses: &[Location],
     config: &ConceptConfig,
 ) {
-    let scale = scale as usize;
+    let scale = scale as f32;
 
     // Draw seperator between header and window contents
     let line_color = config.secondary_color.get_for(state);
-    for i in 1..=scale {
-        let y = HEADER_SIZE as usize * scale - i;
-        let division_line = line::Line::new(
-            (0, y),
-            (width as usize * scale, y),
-            line_color.into(),
-            false,
-        );
-        canvas.draw(&division_line);
-    }
+
+    let mut sep_stroke = Stroke::default();
+    sep_stroke.width = scale;
+
+    let mut path = PathBuilder::new();
+    let y = HEADER_SIZE as f32 * scale - sep_stroke.width;
+    path.move_to(0., y as f32);
+    path.line_to(width as f32 * scale as f32, y);
+    let path = path.finish().unwrap();
+
+    pixmap.stroke_path(
+        &path,
+        &line_color.paint(),
+        &Stroke::default(),
+        Transform::identity(),
+        None,
+    );
 
     let mut drawn_buttons = 0usize;
 
@@ -1370,13 +1385,13 @@ fn draw_buttons(
             let button_color = btn_config.get_for(btn_state).get_for(state);
 
             draw_button(
-                canvas,
+                pixmap,
                 0,
                 scale,
-                button_color,
-                mix_colors(button_color, line_color),
+                button_color.paint(),
+                mix_colors(button_color, line_color).paint(),
             );
-            draw_icon(canvas, 0, scale, icon_color, Icon::Close);
+            draw_icon(pixmap, 0, scale, icon_color.paint(), Icon::Close);
             drawn_buttons += 1;
         }
     }
@@ -1398,17 +1413,17 @@ fn draw_buttons(
             let button_color = btn_config.get_for(btn_state).get_for(state);
 
             draw_button(
-                canvas,
+                pixmap,
                 drawn_buttons * HEADER_SIZE as usize,
                 scale,
-                button_color,
-                mix_colors(button_color, line_color),
+                button_color.paint(),
+                mix_colors(button_color, line_color).paint(),
             );
             draw_icon(
-                canvas,
+                pixmap,
                 drawn_buttons * HEADER_SIZE as usize,
                 scale,
-                icon_color,
+                icon_color.paint(),
                 Icon::Maximize,
             );
             drawn_buttons += 1;
@@ -1430,17 +1445,17 @@ fn draw_buttons(
             let button_color = btn_config.get_for(btn_state).get_for(state);
 
             draw_button(
-                canvas,
+                pixmap,
                 drawn_buttons * HEADER_SIZE as usize,
                 scale,
-                button_color,
-                mix_colors(button_color, line_color),
+                button_color.paint(),
+                mix_colors(button_color, line_color).paint(),
             );
             draw_icon(
-                canvas,
+                pixmap,
                 drawn_buttons * HEADER_SIZE as usize,
                 scale,
-                icon_color,
+                icon_color.paint(),
                 Icon::Minimize,
             );
         }
@@ -1454,103 +1469,77 @@ enum Icon {
 }
 
 fn draw_button(
-    canvas: &mut Canvas,
+    pixmap: &mut PixmapMut,
     x_offset: usize,
-    scale: usize,
-    btn_color: ARGBColor,
-    line_color: ARGBColor,
+    scale: f32,
+    btn_color: Paint,
+    line_color: Paint,
 ) {
-    let h = HEADER_SIZE as usize;
-    let x_start = canvas.width / scale - h - x_offset;
+    let h = HEADER_SIZE as f32;
+    let x_start = pixmap.width() as f32 / scale - h - x_offset as f32;
     // main square
-    canvas.draw(&rectangle::Rectangle::new(
-        (x_start * scale, 0),
-        (h * scale, (h - 1) * scale),
+
+    pixmap.fill_path(
+        &PathBuilder::from_rect(
+            Rect::from_xywh(x_start * scale, 0., h * scale, (h - 1.) * scale).unwrap(),
+        ),
+        &btn_color,
+        FillRule::Winding,
+        Transform::identity(),
         None,
-        Some(btn_color.into()),
-    ));
+    );
+
     // separation line
-    canvas.draw(&rectangle::Rectangle::new(
-        (x_start * scale, (h - 1) * scale),
-        (h * scale, scale),
+
+    let mut path = PathBuilder::new();
+    path.move_to(x_start * scale, (h - 1.) * scale);
+    path.line_to(x_start * scale, h * scale);
+    let path = path.finish().unwrap();
+
+    pixmap.stroke_path(
+        &path,
+        &line_color,
+        &Stroke::default(),
+        Transform::identity(),
         None,
-        Some(line_color.into()),
-    ));
+    );
 }
 
-fn draw_icon(
-    canvas: &mut Canvas,
-    x_offset: usize,
-    scale: usize,
-    icon_color: ARGBColor,
-    icon: Icon,
-) {
-    let h = HEADER_SIZE as usize;
-    let cx = canvas.width / scale - h / 2 - x_offset;
-    let cy = h / 2;
+fn draw_icon(pixmap: &mut PixmapMut, x_offset: usize, scale: f32, icon_color: Paint, icon: Icon) {
+    let h = HEADER_SIZE as f32;
+    let cx = pixmap.width() as f32 / scale as f32 - h / 2. - x_offset as f32;
+    let cy = h / 2.;
     let s = scale;
+
+    let mut path = PathBuilder::new();
+    let mut stroke = Stroke::default();
+    stroke.width = 3.0;
 
     match icon {
         Icon::Close => {
             // Draw cross to represent the close button
-            for i in 0..2 * scale {
-                canvas.draw(&line::Line::new(
-                    ((cx - 4) * s + i, (cy - 4) * s),
-                    ((cx + 4) * s, (cy + 4) * s - i),
-                    icon_color.into(),
-                    true,
-                ));
-                canvas.draw(&line::Line::new(
-                    ((cx - 4) * s, (cy - 4) * s + i),
-                    ((cx + 4) * s - i, (cy + 4) * s),
-                    icon_color.into(),
-                    true,
-                ));
-                canvas.draw(&line::Line::new(
-                    ((cx + 4) * s - i, (cy - 4) * s),
-                    ((cx - 4) * s, (cy + 4) * s - i),
-                    icon_color.into(),
-                    true,
-                ));
-                canvas.draw(&line::Line::new(
-                    ((cx + 4) * s, (cy - 4) * s + i),
-                    ((cx - 4) * s + i, (cy + 4) * s),
-                    icon_color.into(),
-                    true,
-                ));
-            }
+            path.move_to((cx - 4.) * s, (cy - 4.) * s);
+            path.line_to((cx + 4.) * s, (cy + 4.) * s);
+
+            path.move_to((cx + 4.) * s, (cy - 4.) * s);
+            path.line_to((cx - 4.) * s, (cy + 4.) * s);
         }
         Icon::Maximize => {
-            for i in 0..3 * scale {
-                canvas.draw(&line::Line::new(
-                    ((cx - 4) * s - i, (cy + 2) * s),
-                    (cx * s, (cy - 2) * s - i),
-                    icon_color.into(),
-                    true,
-                ));
-                canvas.draw(&line::Line::new(
-                    ((cx + 4) * s + i, (cy + 2) * s),
-                    (cx * s, (cy - 2) * s - i),
-                    icon_color.into(),
-                    true,
-                ));
-            }
+            path.move_to((cx - 4.) * s, (cy + 2.) * s);
+            path.line_to(cx * s, (cy - 2.) * s);
+            path.line_to((cx + 4.) * s, (cy + 2.) * s);
         }
         Icon::Minimize => {
-            for i in 0..3 * scale {
-                canvas.draw(&line::Line::new(
-                    ((cx - 4) * s - i, (cy - 3) * s),
-                    (cx * s, (cy + 1) * s + i),
-                    icon_color.into(),
-                    true,
-                ));
-                canvas.draw(&line::Line::new(
-                    ((cx + 4) * s + i, (cy - 3) * s),
-                    (cx * s, (cy + 1) * s + i),
-                    icon_color.into(),
-                    true,
-                ));
-            }
+            path.move_to((cx - 4.) * s, (cy - 3.) * s);
+            path.line_to(cx * s, (cy + 1.) * s);
+            path.line_to((cx + 4.) * s, (cy - 3.) * s);
         }
     }
+    pixmap.stroke_path(
+        &path.finish().unwrap(),
+        &icon_color,
+        &stroke,
+        Transform::identity(),
+        None,
+    );
 }

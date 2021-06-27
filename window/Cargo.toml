@@ -16,7 +16,7 @@ wgpu = "0.8"
 gl_generator = "0.14"
 
 [features]
-wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "andrew", "wayland-protocols"]
+wayland = ["wayland-client", "smithay-client-toolkit", "wayland-egl", "wayland-protocols"]
 
 [dependencies]
 async-channel = "1.6"
@@ -37,6 +37,7 @@ promise = { path = "../promise" }
 raw-window-handle = "0.3"
 resize = "0.5"
 serde = {version="1.0", features = ["rc", "derive"]}
+tiny-skia = "0.5"
 glium = { version = "0.28", default-features = false}
 wezterm-input-types = { path = "../wezterm-input-types" }
 
@@ -67,7 +68,6 @@ smithay-client-toolkit = {version = "0.14", features=["calloop"], optional=true}
 wayland-protocols = {version="0.28", optional=true}
 wayland-client = {version="0.28", optional=true}
 wayland-egl = {version="0.28", optional=true}
-andrew = {version="0.3", optional=true}
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"
