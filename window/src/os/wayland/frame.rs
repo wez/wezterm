@@ -10,13 +10,16 @@ use std::cell::RefCell;
 use std::cmp::max;
 use std::rc::Rc;
 use std::sync::Mutex;
-use tiny_skia::{FillRule, Paint, PathBuilder, PixmapMut, Rect, Stroke, Transform};
+use tiny_skia::{
+    ColorU8, FillRule, Paint, PathBuilder, PixmapMut, PixmapPaint, PixmapRef, Rect, Stroke,
+    Transform,
+};
 use wayland_client::protocol::{
     wl_compositor, wl_output, wl_pointer, wl_seat, wl_shm, wl_subcompositor, wl_subsurface,
     wl_surface,
 };
 use wayland_client::{Attached, DispatchData, Main};
-use wezterm_font::FontConfiguration;
+use wezterm_font::{FontConfiguration, FontMetrics, GlyphInfo, RasterizedGlyph};
 
 /// Unambiguous representation of an ARGB color
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -597,6 +600,93 @@ pub struct ConceptFrame {
     surface_version: u32,
     config: ConceptConfig,
     title: Option<String>,
+    shaped_title: Option<ShapedTitle>,
+}
+
+struct ShapedTitle {
+    title: String,
+    glyphs: Vec<ShapedGlyph>,
+    metrics: FontMetrics,
+    state: WindowState,
+}
+
+struct ShapedGlyph {
+    info: GlyphInfo,
+    glyph: RasterizedGlyph,
+}
+
+impl ConceptFrame {
+    fn reshape_title(&mut self) -> Option<()> {
+        let font_config = self.config.font_config.as_ref()?;
+        let title = self.title.as_ref().map(|s| s.as_str()).unwrap_or("");
+        if title.is_empty() {
+            self.title.take();
+            self.shaped_title.take();
+            return Some(());
+        }
+
+        if let Some(existing) = self.shaped_title.as_ref() {
+            if existing.title == title && existing.state == self.active {
+                return Some(());
+            }
+        }
+
+        let font = font_config.default_font().ok()?;
+        let metrics = font.metrics();
+        let infos = font
+            .shape(
+                title,
+                || {
+                    // TODO: font fallback completed, trigger title repaint!
+                },
+                |_| {
+                    // We don't do synthesis here, so no need to filter
+                },
+            )
+            .ok()?;
+
+        let mut glyphs = vec![];
+        let title_color = self.config.title_color.get_for(self.active);
+
+        for info in infos {
+            if let Ok(mut glyph) = font.rasterize_glyph(info.glyph_pos, info.font_idx) {
+                // fixup colors: they need to be switched to the appropriate
+                // pixel format, and for monochrome font data we need to tint
+                // it with their preferred title color
+                if let Some(mut data) =
+                    PixmapMut::from_bytes(&mut glyph.data, glyph.width as u32, glyph.height as u32)
+                {
+                    for p in data.pixels_mut() {
+                        let c = p.demultiply();
+                        let (r, g, b, a) = (c.red(), c.green(), c.blue(), c.alpha());
+                        if glyph.has_color {
+                            *p = ColorU8::from_rgba(b, g, r, a).premultiply();
+                        } else {
+                            // Apply the preferred title color
+                            *p = ColorU8::from_rgba(
+                                ((b as f32 / 255.) * (title_color.r as f32 / 255.) * 255.) as u8,
+                                ((g as f32 / 255.) * (title_color.g as f32 / 255.) * 255.) as u8,
+                                ((r as f32 / 255.) * (title_color.b as f32 / 255.) * 255.) as u8,
+                                ((a as f32 / 255.) * (title_color.a as f32 / 255.) * 255.) as u8,
+                            )
+                            .premultiply();
+                        }
+                    }
+                }
+
+                glyphs.push(ShapedGlyph { info, glyph });
+            }
+        }
+
+        self.shaped_title.replace(ShapedTitle {
+            title: title.to_string(),
+            glyphs,
+            metrics,
+            state: self.active,
+        });
+
+        Some(())
+    }
 }
 
 impl Frame for ConceptFrame {
@@ -650,6 +740,7 @@ impl Frame for ConceptFrame {
             surface_version: compositor.as_ref().version(),
             config: ConceptConfig::default(),
             title: None,
+            shaped_title: None,
         })
     }
 
@@ -844,6 +935,7 @@ impl Frame for ConceptFrame {
     }
 
     fn redraw(&mut self) {
+        self.reshape_title();
         let inner = self.inner.borrow_mut();
 
         // Don't draw borders if the frame explicitly hidden or fullscreened.
@@ -922,6 +1014,36 @@ impl Frame for ConceptFrame {
                         None,
                     );
 
+                    if let Some(shaped) = self.shaped_title.as_ref() {
+                        let mut x = 8.;
+                        let identity = Transform::identity();
+                        let paint = PixmapPaint::default();
+                        for item in &shaped.glyphs {
+                            if let Some(data) = PixmapRef::from_bytes(
+                                &item.glyph.data,
+                                item.glyph.width as u32,
+                                item.glyph.height as u32,
+                            ) {
+                                // FIXME: scale emoji
+
+                                pixmap.draw_pixmap(
+                                    (x + item.info.x_offset.get() + item.glyph.bearing_x.get())
+                                        as i32,
+                                    (HEADER_SIZE * 3 / 4) as i32
+                                        + (shaped.metrics.descender
+                                            - (item.info.y_offset + item.glyph.bearing_y))
+                                            .get() as i32,
+                                    data,
+                                    &paint,
+                                    identity,
+                                    None,
+                                );
+                            }
+
+                            x += item.info.x_advance.get();
+                        }
+                    }
+
                     draw_buttons(
                         &mut pixmap,
                         width,
@@ -943,77 +1065,6 @@ impl Frame for ConceptFrame {
                             .collect::<Vec<Location>>(),
                         &self.config,
                     );
-                    /*
-                    if let Some((ref font_face, font_size)) = self.config.title_font {
-                        if let Some(title) = self.title.clone() {
-                            // If theres no stored font data, find the first ttf regular sans font and
-                            // store it
-                            if self.font_data.is_none() {
-                                if let Some(font) = fontconfig::FontConfig::new()
-                                    .unwrap()
-                                    .get_regular_family_fonts(&font_face)
-                                    .unwrap()
-                                    .iter()
-                                    .find(|p| p.extension().map(|e| e == "ttf").unwrap_or(false))
-                                {
-                                    let mut font_data = Vec::new();
-                                    if let Ok(mut file) = ::std::fs::File::open(font) {
-                                        match file.read_to_end(&mut font_data) {
-                                            Ok(_) => self.font_data = Some(font_data),
-                                            Err(err) => {
-                                                log::error!("Could not read font file: {}", err)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Create text from stored title and font data
-                            if let Some(ref font_data) = self.font_data {
-                                let title_color = self.config.title_color.get_for(self.active);
-                                let mut title_text = text::Text::new(
-                                    (
-                                        0,
-                                        (HEADER_SIZE as usize / 2)
-                                            .saturating_sub((font_size / 2.0).ceil() as usize)
-                                            * header_scale as usize,
-                                    ),
-                                    title_color.into(),
-                                    font_data,
-                                    font_size * header_scale as f32,
-                                    1.0,
-                                    title,
-                                );
-
-                                let mut button_count = 0isize;
-                                if self.config.close_button.is_some() {
-                                    button_count += 1;
-                                }
-                                if self.config.maximize_button.is_some() {
-                                    button_count += 1;
-                                }
-                                if self.config.minimize_button.is_some() {
-                                    button_count += 1;
-                                }
-
-                                let scaled_button_size =
-                                    HEADER_SIZE as isize * header_scale as isize;
-                                let button_space = button_count * scaled_button_size;
-                                let scaled_header_width = width as isize * header_scale as isize;
-
-                                // Check if text is bigger then the available width
-                                if (scaled_header_width - button_space)
-                                    > (title_text.get_width() as isize + scaled_button_size)
-                                {
-                                    title_text.pos.0 =
-                                        (scaled_header_width - button_space) as usize / 2
-                                            - (title_text.get_width() / 2);
-                                    header_canvas.draw(&title_text);
-                                }
-                            }
-                        }
-                    }
-                    */
                 }
 
                 // For each pixel in borders
