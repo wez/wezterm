@@ -392,7 +392,10 @@ impl TermWindow {
 
         let window_background = load_background_image(&config);
 
-        let fontconfig = Rc::new(FontConfiguration::new(Some(config.clone()))?);
+        let fontconfig = Rc::new(FontConfiguration::new(
+            Some(config.clone()),
+            config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+        )?);
         let mux = Mux::get().expect("to be main thread with mux running");
         let size = match mux.get_active_tab_for_window(mux_window_id) {
             Some(tab) => tab.get_size(),

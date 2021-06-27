@@ -24,6 +24,7 @@ async-task = "4.0"
 async-trait = "0.1"
 anyhow = "1.0"
 config = { path = "../config" }
+color-types = { path = "../color-types" }
 thiserror = "1.0"
 bitflags = "1.0"
 euclid = "0.22"
@@ -39,6 +40,7 @@ resize = "0.5"
 serde = {version="1.0", features = ["rc", "derive"]}
 tiny-skia = "0.5"
 glium = { version = "0.28", default-features = false}
+wezterm-font = { path = "../wezterm-font" }
 wezterm-input-types = { path = "../wezterm-input-types" }
 
 [target."cfg(windows)".dependencies]

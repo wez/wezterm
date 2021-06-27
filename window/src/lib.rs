@@ -4,7 +4,7 @@ use std::any::Any;
 use std::rc::Rc;
 use thiserror::Error;
 pub mod bitmaps;
-pub mod color;
+pub use color_types as color;
 mod configuration;
 pub mod connection;
 pub mod os;

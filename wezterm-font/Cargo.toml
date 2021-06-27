@@ -10,6 +10,7 @@ edition = "2018"
 allsorts = { git = "https://github.com/yeslogic/allsorts.git", rev="3947164a201ab5e15d5f23204faaaaaad52531aa" }
 anyhow = "1.0"
 config = { path = "../config" }
+color-types = { path = "../color-types" }
 enum-display-derive = "0.1"
 euclid = "0.22"
 freetype = { path = "../deps/freetype" }
@@ -27,9 +28,9 @@ tinyvec = "1.1" # Note: constrained by the allsorts crate
 unicode-segmentation = "1.7"
 unicode-general-category = "0.3"
 walkdir = "2"
+wezterm-input-types = { path = "../wezterm-input-types" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }
-window = { path = "../window" }
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 fontconfig = { path = "../deps/fontconfig" }

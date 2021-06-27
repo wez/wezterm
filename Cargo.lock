@@ -695,6 +695,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "color-types"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4790,6 +4797,7 @@ version = "0.1.0"
 dependencies = [
  "allsorts",
  "anyhow",
+ "color-types",
  "config",
  "core-foundation 0.9.1",
  "core-text",
@@ -4814,10 +4822,10 @@ dependencies = [
  "unicode-general-category 0.3.0",
  "unicode-segmentation",
  "walkdir",
+ "wezterm-input-types",
  "wezterm-term",
  "wezterm-toast-notification",
  "winapi 0.3.9",
- "window",
 ]
 
 [[package]]
@@ -5138,6 +5146,7 @@ dependencies = [
  "clipboard",
  "clipboard-win",
  "cocoa",
+ "color-types",
  "config",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
@@ -5167,6 +5176,7 @@ dependencies = [
  "wayland-client",
  "wayland-egl",
  "wayland-protocols",
+ "wezterm-font",
  "wezterm-input-types",
  "wgpu",
  "winapi 0.3.9",

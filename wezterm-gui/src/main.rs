@@ -419,7 +419,10 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     // a fully baked GUI environment running
     config::assign_error_callback(|err| eprintln!("{}", err));
 
-    let font_config = wezterm_font::FontConfiguration::new(Some(config.clone()))?;
+    let font_config = wezterm_font::FontConfiguration::new(
+        Some(config.clone()),
+        config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+    )?;
 
     if let Some(text) = &cmd.text {
         let line = Line::from_text(text, &CellAttributes::default());
