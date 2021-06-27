@@ -16,6 +16,7 @@ use wayland_client::protocol::{
     wl_surface,
 };
 use wayland_client::{Attached, DispatchData, Main};
+use wezterm_font::FontConfiguration;
 
 /// Unambiguous representation of an ARGB color
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -137,7 +138,7 @@ const BORDER_SIZE: u32 = 12;
 const HEADER_SIZE: u32 = 30;
 
 /// Configuration for ConceptFrame
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ConceptConfig {
     /// The primary color of the titlebar
     pub primary_color: ColorSpec,
@@ -169,6 +170,8 @@ pub struct ConceptConfig {
     pub title_font: Option<(String, f32)>,
     /// Color for drawing the title text
     pub title_color: ColorSpec,
+
+    pub font_config: Option<Rc<FontConfiguration>>,
 }
 
 impl Default for ConceptConfig {
@@ -180,6 +183,7 @@ impl Default for ConceptConfig {
         };
 
         ConceptConfig {
+            font_config: None,
             primary_color: ColorSpec {
                 active: [0xFF, 0xE6, 0xE6, 0xE6].into(),
                 inactive: [0xFF, 0xDC, 0xDC, 0xDC].into(),

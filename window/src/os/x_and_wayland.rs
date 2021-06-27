@@ -14,6 +14,7 @@ use promise::*;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use std::any::Any;
 use std::rc::Rc;
+use wezterm_font::FontConfiguration;
 
 pub enum Connection {
     X11(Rc<XConnection>),
@@ -52,12 +53,16 @@ impl Connection {
         width: usize,
         height: usize,
         config: Option<&ConfigHandle>,
+        font_config: Rc<FontConfiguration>,
     ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         match self {
-            Self::X11(_) => XWindow::new_window(class_name, name, width, height, config).await,
+            Self::X11(_) => {
+                XWindow::new_window(class_name, name, width, height, config, font_config).await
+            }
             #[cfg(feature = "wayland")]
             Self::Wayland(_) => {
-                WaylandWindow::new_window(class_name, name, width, height, config).await
+                WaylandWindow::new_window(class_name, name, width, height, config, font_config)
+                    .await
             }
         }
     }
@@ -104,10 +109,11 @@ impl Window {
         width: usize,
         height: usize,
         config: Option<&ConfigHandle>,
+        font_config: Rc<FontConfiguration>,
     ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         Connection::get()
             .unwrap()
-            .new_window(class_name, name, width, height, config)
+            .new_window(class_name, name, width, height, config, font_config)
             .await
     }
 }

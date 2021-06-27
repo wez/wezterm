@@ -39,6 +39,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
+use wezterm_font::FontConfiguration;
 
 #[allow(non_upper_case_globals)]
 const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
@@ -366,6 +367,7 @@ impl Window {
         width: usize,
         height: usize,
         config: Option<&ConfigHandle>,
+        _font_config: Rc<FontConfiguration>,
     ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         let config = match config {
             Some(c) => c.clone(),

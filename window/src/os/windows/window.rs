@@ -22,6 +22,7 @@ use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
+use wezterm_font::FontConfiguration;
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
@@ -378,6 +379,7 @@ impl Window {
         width: usize,
         height: usize,
         config: Option<&ConfigHandle>,
+        _font_config: Rc<FontConfiguration>,
     ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         let (events, receiver) = async_channel::unbounded();
         let config = match config {

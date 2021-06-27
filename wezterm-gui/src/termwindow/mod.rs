@@ -453,7 +453,7 @@ impl TermWindow {
             palette: None,
             focused: None,
             mux_window_id,
-            fonts: fontconfig,
+            fonts: Rc::clone(&fontconfig),
             render_metrics,
             dimensions,
             is_full_screen: false,
@@ -492,6 +492,7 @@ impl TermWindow {
             dimensions.pixel_width,
             dimensions.pixel_height,
             Some(&config),
+            Rc::clone(&fontconfig),
         )
         .await?;
 
