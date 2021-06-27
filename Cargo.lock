@@ -857,9 +857,9 @@ dependencies = [
 
 [[package]]
 name = "cpufeatures"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed00c67cb5d0a7d64a44f6ad2668db7e7530311dd53ea79bcd4fb022c64911c8"
+checksum = "66c99696f6c9dd7f35d486b9d04d7e6e202aa3e8c40d553f2fdf5e7e0c6a71ef"
 dependencies = [
  "libc",
 ]
@@ -1860,9 +1860,9 @@ dependencies = [
 
 [[package]]
 name = "hermit-abi"
-version = "0.1.18"
+version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "322f4de77956e22ed0e5032c359a0f1273f1f7f0d79bfa3b8ffbc730d7fbcc5c"
+checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
 dependencies = [
  "libc",
 ]
@@ -2238,9 +2238,9 @@ dependencies = [
 
 [[package]]
 name = "luajit-src"
-version = "210.1.3+restyfe08842"
+version = "210.1.4+resty8404d7f"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36d3de8377d8e0492b646527befb7eb826a9ecd2dc8c1f81ab0e654bc03a029b"
+checksum = "cd98051767391af4fa24b5d3a9b6dace632bf2d92c6a6e0abf566109649aa75b"
 dependencies = [
  "cc",
 ]
@@ -2482,7 +2482,7 @@ dependencies = [
  "sysinfo",
  "terminfo",
  "termwiz",
- "textwrap 0.14.0",
+ "textwrap 0.14.1",
  "thiserror",
  "tmux-cc",
  "unicode-segmentation",
@@ -2830,9 +2830,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.64"
+version = "0.9.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "209efc2fe0e980c8849efacdb567f975a1c80245c4f6980d6f012733bfa851af"
+checksum = "7a7907e3bfa08bb85105209cdfcb6c63d109f8f6c1ed6ca318fff5c1853fbc1d"
 dependencies = [
  "autocfg",
  "cc",
@@ -3071,9 +3071,9 @@ dependencies = [
 
 [[package]]
 name = "pin-project-lite"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc0e1f259c92177c30a4c9d177246edd0a3568b25756a977d0632cf8fa37e905"
+checksum = "8d31d11c69a6b52a174b42bdc0c30e5e11670f90788b2c471c31c1d17d449443"
 
 [[package]]
 name = "pin-utils"
@@ -3227,9 +3227,9 @@ dependencies = [
 
 [[package]]
 name = "profiling"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a7c000c0ce9d9bb94c0fbacdf20e5087fbe652c556ffb2c9387d980e17d51fb"
+checksum = "87dfd5592a8eed7e74f56ad7b125f8234763b805c30f0c7c95c486920026a6ec"
 
 [[package]]
 name = "promise"
@@ -4198,9 +4198,9 @@ dependencies = [
 
 [[package]]
 name = "textwrap"
-version = "0.14.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f59f5365546b8424b0cc48868ae4fbbbc29a538dcc496b53543525201034f0c2"
+checksum = "528dff83d264f065e76540b783118a1a0e52fd6d63ba056daa2c5edc69c63b1a"
 dependencies = [
  "smawk",
  "unicode-linebreak",
@@ -4753,7 +4753,7 @@ dependencies = [
  "structopt",
  "tabout",
  "termwiz",
- "textwrap 0.14.0",
+ "textwrap 0.14.1",
  "umask",
  "url",
  "wezterm-client",
@@ -4783,7 +4783,7 @@ dependencies = [
  "ratelim",
  "smol",
  "termwiz",
- "textwrap 0.14.0",
+ "textwrap 0.14.1",
  "thiserror",
  "uds_windows",
  "url",
@@ -4876,7 +4876,7 @@ dependencies = [
  "tabout",
  "terminfo",
  "termwiz",
- "textwrap 0.14.0",
+ "textwrap 0.14.1",
  "thiserror",
  "tiny-skia",
  "umask",
