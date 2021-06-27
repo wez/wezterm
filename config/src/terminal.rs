@@ -62,4 +62,8 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
     fn alternate_buffer_wheel_scroll_speed(&self) -> u8 {
         self.configuration().alternate_buffer_wheel_scroll_speed
     }
+
+    fn enq_answerback(&self) -> String {
+        configuration().enq_answerback.clone()
+    }
 }

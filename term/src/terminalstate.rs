@@ -3519,6 +3519,15 @@ impl<'a> Performer<'a> {
             ControlCode::ShiftOut => {
                 self.shift_out = true;
             }
+
+            ControlCode::Enquiry => {
+                let response = self.config.enq_answerback();
+                if response.len() > 0 {
+                    write!(self.writer, "{}", response).ok();
+                    self.writer.flush().ok();
+                }
+            }
+
             _ => log::warn!("unhandled ControlCode {:?}", control),
         }
     }
