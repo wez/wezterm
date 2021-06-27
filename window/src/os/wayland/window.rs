@@ -27,6 +27,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use toolkit::get_surface_scale_factor;
 use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
+use toolkit::reexports::client::protocol::wl_pointer::ButtonState;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::window::{Event, State};
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
@@ -275,7 +276,6 @@ impl WaylandWindow {
 
         window.set_min_size(Some((32, 32)));
 
-        // window.new_seat(&conn.seat);
         let copy_and_paste = CopyAndPaste::create();
         let pending_mouse = PendingMouse::create(window_id, &copy_and_paste);
 
@@ -419,7 +419,7 @@ impl WaylandWindowInner {
                 MousePress::Middle => MouseButtons::MIDDLE,
             };
 
-            if state == DebuggableButtonState::Pressed {
+            if state == ButtonState::Pressed {
                 self.mouse_buttons |= button_mask;
             } else {
                 self.mouse_buttons -= button_mask;
@@ -427,8 +427,9 @@ impl WaylandWindowInner {
 
             let event = MouseEvent {
                 kind: match state {
-                    DebuggableButtonState::Pressed => MouseEventKind::Press(button),
-                    DebuggableButtonState::Released => MouseEventKind::Release(button),
+                    ButtonState::Pressed => MouseEventKind::Press(button),
+                    ButtonState::Released => MouseEventKind::Release(button),
+                    _ => continue,
                 },
                 coords: self.last_mouse_coords,
                 screen_coords: ScreenPoint::new(
