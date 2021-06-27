@@ -522,16 +522,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "631ae5198c9be5e753e5cc215e1bd73c2b466a3565173db433f52bb9d3e66dba"
 
 [[package]]
-name = "calloop"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d0a1340115d6bd81e1066469091596a339f68878a2ce3c2f39e546607d22131"
-dependencies = [
- "log",
- "nix 0.19.1",
-]
-
-[[package]]
 name = "cassowary"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3878,7 +3868,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec783683499a2cfc85b6df3d04f83b1907b5cbd98a1aed44667dbdf1eac4e64c"
 dependencies = [
  "bitflags",
- "calloop",
  "dlib",
  "lazy_static",
  "log",
@@ -4687,7 +4676,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2907bd297eef464a95ba9349ea771611771aa285b932526c633dc94d5400a8e2"
 dependencies = [
  "dlib",
- "lazy_static",
  "pkg-config",
 ]
 
@@ -5139,6 +5127,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-channel",
+ "async-io",
  "async-task",
  "async-trait",
  "bitflags",

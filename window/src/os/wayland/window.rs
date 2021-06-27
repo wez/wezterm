@@ -1,15 +1,15 @@
 use super::copy_and_paste::*;
 use super::frame::{ConceptConfig, ConceptFrame};
-use super::keyboard::KeyboardEvent;
 use super::pointer::*;
 use crate::connection::ConnectionOps;
 use crate::os::wayland::connection::WaylandConnection;
-use crate::os::xkeysyms::keysym_to_keycode;
+use crate::os::x11::keyboard::Keyboard;
 use crate::{
     Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowEvent,
     WindowEventReceiver, WindowEventSender, WindowOps,
 };
 use anyhow::{anyhow, bail, Context};
+use async_io::Timer;
 use async_trait::async_trait;
 use config::ConfigHandle;
 use filedescriptor::FileDescriptor;
@@ -24,16 +24,88 @@ use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use toolkit::get_surface_scale_factor;
 use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::window::{Event, State};
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
+use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::*;
 
+#[derive(Debug)]
+struct KeyRepeatState {
+    when: Instant,
+    key: KeyEvent,
+}
+
+impl KeyRepeatState {
+    fn schedule(state: Arc<Mutex<Self>>, window_id: usize) {
+        promise::spawn::spawn_into_main_thread(async move {
+            let delay;
+            let gap;
+            {
+                let conn = WaylandConnection::get().unwrap().wayland();
+                delay = Duration::from_millis(*conn.key_repeat_delay.borrow() as u64);
+                gap = Duration::from_millis(1000 / *conn.key_repeat_rate.borrow() as u64);
+            }
+
+            let mut initial = true;
+            Timer::after(delay).await;
+            loop {
+                {
+                    let handle = {
+                        let conn = WaylandConnection::get().unwrap().wayland();
+                        match conn.window_by_id(window_id) {
+                            Some(handle) => handle,
+                            None => return,
+                        }
+                    };
+
+                    let inner = handle.borrow();
+
+                    if inner.key_repeat.as_ref().map(|k| Arc::as_ptr(k))
+                        != Some(Arc::as_ptr(&state))
+                    {
+                        // Key was released and/or some other key is doing
+                        // its own repetition now
+                        return;
+                    }
+
+                    let mut st = state.lock().unwrap();
+                    let mut event = st.key.clone();
+
+                    event.repeat_count = 1;
+
+                    let mut elapsed = st.when.elapsed();
+                    if initial {
+                        elapsed -= delay;
+                        initial = false;
+                    }
+
+                    // If our scheduling interval is longer than the repeat
+                    // gap, we need to inflate the repeat count to match
+                    // the intended rate
+                    while elapsed >= gap {
+                        event.repeat_count += 1;
+                        elapsed -= gap;
+                    }
+                    inner.events.try_send(WindowEvent::KeyEvent(event)).ok();
+
+                    st.when = Instant::now();
+                }
+
+                Timer::after(gap).await;
+            }
+        })
+        .detach();
+    }
+}
+
 pub struct WaylandWindowInner {
+    window_id: usize,
     events: WindowEventSender,
     surface: WlSurface,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
@@ -43,6 +115,7 @@ pub struct WaylandWindowInner {
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
     modifiers: Modifiers,
+    key_repeat: Option<Arc<Mutex<KeyRepeatState>>>,
     pending_event: Arc<Mutex<PendingEvent>>,
     pending_mouse: Arc<Mutex<PendingMouse>>,
     pending_first_configure: Option<async_channel::Sender<()>>,
@@ -155,6 +228,9 @@ impl WaylandWindow {
                     });
                 }
             });
+        conn.surface_to_window_id
+            .borrow_mut()
+            .insert(surface.as_ref().id(), window_id);
 
         let dimensions = Dimensions {
             pixel_width: width,
@@ -200,14 +276,14 @@ impl WaylandWindow {
         window.set_min_size(Some((32, 32)));
 
         // window.new_seat(&conn.seat);
-        conn.keyboard.add_window(window_id, &surface);
-
         let copy_and_paste = CopyAndPaste::create();
         let pending_mouse = PendingMouse::create(window_id, &copy_and_paste);
 
         conn.pointer.add_window(&surface, &pending_mouse);
 
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
+            window_id,
+            key_repeat: None,
             copy_and_paste,
             events,
             surface: surface.detach(),
@@ -247,71 +323,69 @@ unsafe impl HasRawWindowHandle for WaylandWindowInner {
 }
 
 impl WaylandWindowInner {
-    pub(crate) fn handle_keyboard_event(&mut self, evt: KeyboardEvent) {
-        match evt {
-            KeyboardEvent::Key {
-                keysym,
-                is_down,
-                utf8,
-                serial,
-                rawkey: raw_code,
-            } => {
-                self.copy_and_paste
-                    .lock()
-                    .unwrap()
-                    .update_last_serial(serial);
-                let raw_key = keysym_to_keycode(keysym);
-                let (key, raw_key) = match utf8 {
-                    Some(text) if text.chars().count() == 1 => {
-                        (KeyCode::Char(text.chars().nth(0).unwrap()), raw_key)
+    pub(crate) fn keyboard_event(&mut self, event: WlKeyboardEvent) {
+        let conn = WaylandConnection::get().unwrap().wayland();
+        let mut mapper = conn.keyboard_mapper.borrow_mut();
+        let mapper = mapper.as_mut().expect("no keymap");
+
+        match event {
+            WlKeyboardEvent::Enter { keys, .. } => {
+                // Keys is bytes, but is really u32 keysyms
+                let key_codes = keys
+                    .chunks_exact(4)
+                    .map(|c| u32::from_ne_bytes(c.try_into().unwrap()))
+                    .collect::<Vec<_>>();
+
+                log::trace!("keyboard event: Enter with keys: {:?}", key_codes);
+
+                self.emit_focus(mapper, true);
+            }
+            WlKeyboardEvent::Leave { .. } => {
+                self.emit_focus(mapper, false);
+            }
+            WlKeyboardEvent::Key { key, state, .. } => {
+                if let Some(event) = mapper.process_wayland_key(key, state == KeyState::Pressed) {
+                    if event.key_is_down && mapper.wayland_key_repeats(key) {
+                        let rep = Arc::new(Mutex::new(KeyRepeatState {
+                            when: Instant::now(),
+                            key: event.clone(),
+                        }));
+                        self.key_repeat.replace(Arc::clone(&rep));
+                        KeyRepeatState::schedule(rep, self.window_id);
+                    } else {
+                        self.key_repeat.take();
                     }
-                    Some(text) => (KeyCode::Composed(text), raw_key),
-                    None => match raw_key {
-                        Some(key) => (key, None),
-                        None => return,
-                    },
-                };
-                let (key, raw_key) = match (key, raw_key) {
-                    // Avoid eg: \x01 when we can use CTRL-A
-                    (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw, None),
-                    // Avoid redundant key == raw_key
-                    (key, Some(raw)) if key == raw => (key, None),
-                    pair => pair,
-                };
-
-                let modifiers = if raw_key.is_some() {
-                    Modifiers::NONE
+                    self.events.try_send(WindowEvent::KeyEvent(event)).ok();
                 } else {
-                    self.modifiers
-                };
-
-                let key_event = KeyEvent {
-                    key_is_down: is_down,
-                    key,
-                    raw_key,
-                    modifiers,
-                    raw_modifiers: self.modifiers,
-                    raw_code: Some(raw_code),
-                    repeat_count: 1,
+                    self.key_repeat.take();
                 }
-                .normalize_shift();
-                self.events.try_send(WindowEvent::KeyEvent(key_event)).ok();
             }
-            KeyboardEvent::Modifiers { modifiers } => self.modifiers = modifiers,
-            // Clear the modifiers when we change focus, otherwise weird
-            // things can happen.  For instance, if we lost focus because
-            // CTRL+SHIFT+N was pressed to spawn a new window, we'd be
-            // left stuck with CTRL+SHIFT held down and the window would
-            // be left in a broken state.
-            KeyboardEvent::Enter { .. } => {
-                self.modifiers = Modifiers::NONE;
-                self.events.try_send(WindowEvent::FocusChanged(true)).ok();
+            WlKeyboardEvent::Modifiers {
+                mods_depressed,
+                mods_latched,
+                mods_locked,
+                group,
+                ..
+            } => {
+                mapper.update_modifier_state(mods_depressed, mods_latched, mods_locked, group);
             }
-            KeyboardEvent::Leave { .. } => {
-                self.modifiers = Modifiers::NONE;
-                self.events.try_send(WindowEvent::FocusChanged(false)).ok();
-            }
+            _ => {}
         }
+    }
+
+    fn emit_focus(&mut self, mapper: &mut Keyboard, focused: bool) {
+        // Clear the modifiers when we change focus, otherwise weird
+        // things can happen.  For instance, if we lost focus because
+        // CTRL+SHIFT+N was pressed to spawn a new window, we'd be
+        // left stuck with CTRL+SHIFT held down and the window would
+        // be left in a broken state.
+
+        self.modifiers = Modifiers::NONE;
+        mapper.update_modifier_state(0, 0, 0, 0);
+        self.key_repeat.take();
+        self.events
+            .try_send(WindowEvent::FocusChanged(focused))
+            .ok();
     }
 
     pub(crate) fn dispatch_pending_mouse(&mut self) {
