@@ -191,12 +191,7 @@ impl super::TermWindow {
         let mut quads = gl_state.quads.map(&mut vb);
         log::trace!("quad map elapsed {:?}", start.elapsed());
 
-        let cursor_border_color =
-            rgbcolor_to_window_color(if self.config.force_reverse_video_cursor {
-                palette.foreground
-            } else {
-                palette.cursor_border
-            });
+        let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
         let foreground = rgbcolor_to_window_color(palette.foreground);
 
         if self.show_tab_bar && pos.index == 0 {
@@ -320,16 +315,8 @@ impl super::TermWindow {
         let start = Instant::now();
         let selection_fg = rgbcolor_to_window_color(palette.selection_fg);
         let selection_bg = rgbcolor_to_window_color(palette.selection_bg);
-        let cursor_fg = rgbcolor_to_window_color(if self.config.force_reverse_video_cursor {
-            palette.background
-        } else {
-            palette.cursor_fg
-        });
-        let cursor_bg = rgbcolor_to_window_color(if self.config.force_reverse_video_cursor {
-            palette.foreground
-        } else {
-            palette.cursor_bg
-        });
+        let cursor_fg = rgbcolor_to_window_color(palette.cursor_fg);
+        let cursor_bg = rgbcolor_to_window_color(palette.cursor_bg);
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
 
@@ -949,7 +936,11 @@ impl super::TermWindow {
                             .cursor_sprite(cursor_shape)
                             .texture_coords(),
                     );
-                    quad.set_cursor_color(params.cursor_border_color);
+                    quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+                        bg_color
+                    } else {
+                        params.cursor_border_color
+                    });
                 }
             }
         }
@@ -1013,7 +1004,11 @@ impl super::TermWindow {
                             .cursor_sprite(cursor_shape)
                             .texture_coords(),
                     );
-                    quad.set_cursor_color(params.cursor_border_color);
+                    quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+                        bg_color
+                    } else {
+                        params.cursor_border_color
+                    });
                 }
             }
         }
@@ -1066,7 +1061,11 @@ impl super::TermWindow {
                 .cursor_sprite(cursor_shape)
                 .texture_coords(),
         );
-        quad.set_cursor_color(params.cursor_border_color);
+        quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+            bg_color
+        } else {
+            params.cursor_border_color
+        });
 
         Ok(())
     }
@@ -1147,7 +1146,11 @@ impl super::TermWindow {
                 .cursor_sprite(cursor_shape)
                 .texture_coords(),
         );
-        quad.set_cursor_color(params.cursor_border_color);
+        quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+            bg_color
+        } else {
+            params.cursor_border_color
+        });
 
         Ok(())
     }
@@ -1210,7 +1213,11 @@ impl super::TermWindow {
             // Cursor cell overrides colors
             (_, true, CursorShape::BlinkingBlock, CursorVisibility::Visible)
             | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => {
-                (params.cursor_fg, params.cursor_bg)
+                if self.config.force_reverse_video_cursor {
+                    (params.bg_color, params.fg_color)
+                } else {
+                    (params.cursor_fg, params.cursor_bg)
+                }
             }
             // Normally, render the cell as configured (or if the window is unfocused)
             _ => (params.fg_color, params.bg_color),
