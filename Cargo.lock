@@ -2472,7 +2472,7 @@ dependencies = [
  "sysinfo",
  "terminfo",
  "termwiz",
- "textwrap 0.14.1",
+ "textwrap 0.14.2",
  "thiserror",
  "tmux-cc",
  "unicode-segmentation",
@@ -4187,9 +4187,9 @@ dependencies = [
 
 [[package]]
 name = "textwrap"
-version = "0.14.1"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "528dff83d264f065e76540b783118a1a0e52fd6d63ba056daa2c5edc69c63b1a"
+checksum = "0066c8d12af8b5acd21e00547c3797fde4e8677254a7ee429176ccebbe93dd80"
 dependencies = [
  "smawk",
  "unicode-linebreak",
@@ -4741,7 +4741,7 @@ dependencies = [
  "structopt",
  "tabout",
  "termwiz",
- "textwrap 0.14.1",
+ "textwrap 0.14.2",
  "umask",
  "url",
  "wezterm-client",
@@ -4771,7 +4771,7 @@ dependencies = [
  "ratelim",
  "smol",
  "termwiz",
- "textwrap 0.14.1",
+ "textwrap 0.14.2",
  "thiserror",
  "uds_windows",
  "url",
@@ -4864,7 +4864,7 @@ dependencies = [
  "tabout",
  "terminfo",
  "termwiz",
- "textwrap 0.14.1",
+ "textwrap 0.14.2",
  "thiserror",
  "tiny-skia",
  "umask",
