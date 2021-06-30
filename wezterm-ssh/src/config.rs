@@ -578,6 +578,8 @@ impl Config {
         for &t in tokens {
             if let Some(v) = self.tokens.get(t) {
                 *value = value.replace(t, v);
+            } else if t == "%u" {
+                *value = value.replace(t, &self.resolve_local_user());
             } else if t == "%d" {
                 if let Some(home) = self.resolve_home() {
                     let mut items = value
