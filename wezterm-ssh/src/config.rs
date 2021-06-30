@@ -429,6 +429,9 @@ impl Config {
             self.add_config_file(home.join(".ssh").join("config"));
         }
         self.add_config_file("/etc/ssh/ssh_config");
+        if let Ok(sysdrive) = std::env::var("SystemDrive") {
+            self.add_config_file(format!("{}/ProgramData/ssh/ssh_config", sysdrive));
+        }
     }
 
     fn resolve_local_user(&self) -> String {
