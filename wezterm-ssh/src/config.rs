@@ -306,15 +306,25 @@ impl ParsedConfigFile {
                     continue;
                 }
 
-                if let Some(group) = groups.last_mut() {
-                    group
-                        .options
-                        .entry(k.to_string())
-                        .or_insert_with(|| v.to_string());
-                } else {
+                fn add_option(options: &mut ConfigMap, k: String, v: &str) {
+                    // first option wins in ssh_config, except for identityfile
+                    // which explicitly allows multiple entries to combine together
+                    let is_identity_file = k == "identityfile";
                     options
-                        .entry(k.to_string())
+                        .entry(k)
+                        .and_modify(|e| {
+                            if is_identity_file {
+                                e.push(' ');
+                                e.push_str(v);
+                            }
+                        })
                         .or_insert_with(|| v.to_string());
+                }
+
+                if let Some(group) = groups.last_mut() {
+                    add_option(&mut group.options, k, v);
+                } else {
+                    add_option(options, k, v);
                 }
             }
         }
@@ -567,11 +577,18 @@ impl Config {
                 *value = value.replace(t, v);
             } else if t == "%d" {
                 if let Some(home) = self.resolve_home() {
-                    if value.starts_with("~/") {
-                        value.replace_range(0..1, &home);
-                    } else {
-                        *value = value.replace(t, &home);
+                    let mut items = value
+                        .split_whitespace()
+                        .map(|s| s.to_string())
+                        .collect::<Vec<String>>();
+                    for item in &mut items {
+                        if item.starts_with("~/") {
+                            item.replace_range(0..1, &home);
+                        } else {
+                            *item = item.replace(t, &home);
+                        }
                     }
+                    *value = items.join(" ");
                 }
             }
         }
@@ -676,6 +693,40 @@ Config {
 {
     "hostname": "10.0.0.1",
     "identityfile": "/home/me/.ssh/id_pub.dsa",
+    "port": "22",
+    "user": "foo",
+    "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",
+}
+"#
+        );
+    }
+
+    #[test]
+    fn multiple_identityfile() {
+        let mut config = Config::new();
+
+        let mut fake_env = ConfigMap::new();
+        fake_env.insert("HOME".to_string(), "/home/me".to_string());
+        fake_env.insert("USER".to_string(), "me".to_string());
+        config.assign_environment(fake_env);
+
+        config.add_config_string(
+            r#"
+        Host foo
+            HostName 10.0.0.1
+            User foo
+            IdentityFile "~/.ssh/id_pub.dsa"
+            IdentityFile "~/.ssh/id_pub.rsa"
+            "#,
+        );
+
+        let opts = config.for_host("foo");
+        snapshot!(
+            opts,
+            r#"
+{
+    "hostname": "10.0.0.1",
+    "identityfile": "/home/me/.ssh/id_pub.dsa /home/me/.ssh/id_pub.rsa",
     "port": "22",
     "user": "foo",
     "userknownhostsfile": "/home/me/.ssh/known_hosts /home/me/.ssh/known_hosts2",

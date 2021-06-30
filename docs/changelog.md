@@ -50,6 +50,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Removed: `Parasio Dark` color scheme; it was a duplicate of the correctly named `Paraiso Dark` scheme. Thanks to [@adrian5](https://github.com/adrian5)! [#906](https://github.com/wez/wezterm/pull/906)
 * Fixed: key repeat on Wayland now respects the system specified key repeat rate, and doesn't "stick". [#669](https://github.com/wez/wezterm/issues/669)
 * Fixed: `force_reverse_video_cursor` wasn't correctly swapping the cursor colors in all cases. [#706](https://github.com/wez/wezterm/issues/706)
+* Fixed: allow multuple `IdentityFile` lines in an ssh_config block to be considered
 
 ### 20210502-154244-3f7122cb
 
