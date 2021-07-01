@@ -70,6 +70,8 @@ return {
       mods="CTRL",
       action="OpenLinkAtMouseCursor",
     },
+    -- NOTE that binding only the 'Up' event can give unexpected behaviors.
+    -- Read more below on the gotcha of binding an 'Up' event only.
   },
 }
 ```
@@ -77,7 +79,7 @@ return {
 The `action` and `mods` portions are described in more detail in the key assignment
 information below.
 
-The `event` portion has three components;
+The `event` portion has three components:
 
 * Whether it is a `Down`, `Up` or `Drag` event
 * The number of consecutive clicks within the click threshold (the *click streak*)
@@ -99,6 +101,35 @@ you wanted quadruple-click bindings you can specify `streak=4`.
 | Double Left Up  | `event={Up={streak=2, button="Left"}}` |
 | Single Left Drag  | `event={Drag={streak=1, button="Left"}}` |
 
+
+# Gotcha on binding an 'Up' event only
+
+If you only have a mouse bind on the 'Up' event and not on the 'Down' event,
+the 'Down' event will still be sent to the running program.
+If that program is tracking mouse inputs (like tmux or vim with mouse support),
+you may experience _unintuitive behavior_ as the program receives the 'Down'
+event, but not the 'Up' event (which is bound to something in your config).
+
+To avoid this, it is recommended to disable the 'Down' event (to ensure it won't
+be sent to the running program), for example:
+```lua
+return {
+  mouse_bindings = {
+    -- Bind 'Up' event of CTRL-Click to open hyperlinks
+    {
+      event={Up={streak=1, button="Left"}},
+      mods="CTRL",
+      action="OpenLinkAtMouseCursor",
+    },
+    -- Disable the 'Down' event of CTRL-Click to avoid weird program behaviors
+    {
+      event={Down={streak=1, button="Left"}},
+      mods="CTRL",
+      action="Nop",
+    },
+  },
+}
+```
 
 
 # Available Actions
