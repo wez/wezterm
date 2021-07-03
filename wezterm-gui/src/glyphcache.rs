@@ -264,6 +264,8 @@ pub enum BlockKey {
     Quadrants(Quadrant),
     /// A combination of sextants <https://unicode.org/charts/PDF/U1FB00.pdf>
     Sextants(Sextant),
+    /// A braille dot pattern
+    Braille(u8),
 
     Poly(&'static [Poly]),
 }
@@ -3384,6 +3386,24 @@ impl BlockKey {
             0x1fb1b => {
                 Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
             }
+            // Braille dot patterns
+            // ⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏
+            // ⠐ ⠑ ⠒ ⠓ ⠔ ⠕ ⠖ ⠗ ⠘ ⠙ ⠚ ⠛ ⠜ ⠝ ⠞ ⠟
+            // ⠠ ⠡ ⠢ ⠣ ⠤ ⠥ ⠦ ⠧ ⠨ ⠩ ⠪ ⠫ ⠬ ⠭ ⠮ ⠯
+            // ⠰ ⠱ ⠲ ⠳ ⠴ ⠵ ⠶ ⠷ ⠸ ⠹ ⠺ ⠻ ⠼ ⠽ ⠾ ⠿
+            // ⡀ ⡁ ⡂ ⡃ ⡄ ⡅ ⡆ ⡇ ⡈ ⡉ ⡊ ⡋ ⡌ ⡍ ⡎ ⡏
+            // ⡐ ⡑ ⡒ ⡓ ⡔ ⡕ ⡖ ⡗ ⡘ ⡙ ⡚ ⡛ ⡜ ⡝ ⡞ ⡟
+            // ⡠ ⡡ ⡢ ⡣ ⡤ ⡥ ⡦ ⡧ ⡨ ⡩ ⡪ ⡫ ⡬ ⡭ ⡮ ⡯
+            // ⡰ ⡱ ⡲ ⡳ ⡴ ⡵ ⡶ ⡷ ⡸ ⡹ ⡺ ⡻ ⡼ ⡽ ⡾ ⡿
+            // ⢀ ⢁ ⢂ ⢃ ⢄ ⢅ ⢆ ⢇ ⢈ ⢉ ⢊ ⢋ ⢌ ⢍ ⢎ ⢏
+            // ⢐ ⢑ ⢒ ⢓ ⢔ ⢕ ⢖ ⢗ ⢘ ⢙ ⢚ ⢛ ⢜ ⢝ ⢞ ⢟
+            // ⢠ ⢡ ⢢ ⢣ ⢤ ⢥ ⢦ ⢧ ⢨ ⢩ ⢪ ⢫ ⢬ ⢭ ⢮ ⢯
+            // ⢰ ⢱ ⢲ ⢳ ⢴ ⢵ ⢶ ⢷ ⢸ ⢹ ⢺ ⢻ ⢼ ⢽ ⢾ ⢿
+            // ⣀ ⣁ ⣂ ⣃ ⣄ ⣅ ⣆ ⣇ ⣈ ⣉ ⣊ ⣋ ⣌ ⣍ ⣎ ⣏
+            // ⣐ ⣑ ⣒ ⣓ ⣔ ⣕ ⣖ ⣗ ⣘ ⣙ ⣚ ⣛ ⣜ ⣝ ⣞ ⣟
+            // ⣠ ⣡ ⣢ ⣣ ⣤ ⣥ ⣦ ⣧ ⣨ ⣩ ⣪ ⣫ ⣬ ⣭ ⣮ ⣯
+            // ⣰ ⣱ ⣲ ⣳ ⣴ ⣵ ⣶ ⣷ ⣸ ⣹ ⣺ ⣻ ⣼ ⣽ ⣾ ⣿
+            n @ 0x2800..=0x28ff => Self::Braille((n & 0xff) as u8),
             // [🬜] BLOCK SEXTANT-2345
             0x1fb1c => {
                 Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
@@ -4324,6 +4344,62 @@ impl<T: Texture2d> GlyphCache<T> {
                         &mut buffer,
                         scale(x_half)..width,
                         scale(y_third * 2.)..height,
+                    );
+                }
+            }
+            BlockKey::Braille(dots_pattern) => {
+                // `dots_pattern` is a byte whose bits corresponds to dots
+                // on a 2 by 4 dots-grid.
+                // The position of a dot for a bit position (1-indexed) is as follow:
+                // 1 4  |
+                // 2 5  |<- These 3 lines are filled first (for the first 64 symbols)
+                // 3 6  |
+                // 7 8  <- This last line is filled last (for the remaining 192 symbols)
+
+                let cell_width = self.metrics.cell_size.width as f32 / 2.;
+                let cell_height = self.metrics.cell_size.height as f32 / 4.;
+                let center_offset_x = cell_width / 2.;
+                let center_offset_y = cell_height / 2.;
+                let radius = center_offset_x - (center_offset_x / 10.);
+
+                let (width, height) = buffer.image_dimensions();
+                let mut pixmap = PixmapMut::from_bytes(
+                    buffer.pixel_data_slice_mut(),
+                    width as u32,
+                    height as u32,
+                )
+                .expect("make pixmap from existing bitmap");
+                let mut paint = Paint::default();
+                paint.set_color(tiny_skia::Color::WHITE);
+                paint.force_hq_pipeline = true;
+
+                let bit_index_and_dot_position = [
+                    (0, (0, 0)),
+                    (1, (0, 1)),
+                    (2, (0, 2)),
+                    (3, (1, 0)),
+                    (4, (1, 1)),
+                    (5, (1, 2)),
+                    (6, (0, 3)),
+                    (7, (1, 3)),
+                ];
+                for (bit_index, (dot_pos_x, dot_pos_y)) in &bit_index_and_dot_position {
+                    if dots_pattern & (1 << bit_index) == 0 {
+                        // Bit for this dot position is not set
+                        continue;
+                    }
+                    let center_x = (*dot_pos_x as f32) * cell_width + center_offset_x;
+                    let center_y = (*dot_pos_y as f32) * cell_height + center_offset_y;
+
+                    let path = PathBuilder::from_circle(center_x, center_y, radius)
+                        .expect("failed to create path from circle");
+
+                    pixmap.fill_path(
+                        &path,
+                        &paint,
+                        FillRule::Winding,
+                        Transform::identity(),
+                        None,
                     );
                 }
             }
