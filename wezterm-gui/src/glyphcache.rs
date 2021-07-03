@@ -332,7 +332,7 @@ impl PolyStyle {
                 let mut stroke = Stroke::default();
                 stroke.width = width;
                 if self == PolyStyle::OutlineHeavy {
-                    stroke.width *= 2.0;
+                    stroke.width *= 3.0; // NOTE: Using 2.0, the difference is almost invisible
                 }
                 pixmap.stroke_path(path, paint, &stroke, Transform::identity(), None);
             }
