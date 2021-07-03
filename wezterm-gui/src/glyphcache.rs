@@ -4360,7 +4360,8 @@ impl<T: Texture2d> GlyphCache<T> {
                 let cell_height = self.metrics.cell_size.height as f32 / 4.;
                 let center_offset_x = cell_width / 2.;
                 let center_offset_y = cell_height / 2.;
-                let radius = center_offset_x - (center_offset_x / 10.);
+                let diameter = cell_width / 2.;
+                let radius = diameter / 2.;
 
                 let (width, height) = buffer.image_dimensions();
                 let mut pixmap = PixmapMut::from_bytes(
