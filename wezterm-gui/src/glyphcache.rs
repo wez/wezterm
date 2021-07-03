@@ -4373,24 +4373,26 @@ impl<T: Texture2d> GlyphCache<T> {
                 let mut paint = Paint::default();
                 paint.set_color(tiny_skia::Color::WHITE);
                 paint.force_hq_pipeline = true;
+                paint.anti_alias = true;
+                let identity = Transform::identity();
 
-                let bit_index_and_dot_position = [
-                    (0, (0, 0)),
-                    (1, (0, 1)),
-                    (2, (0, 2)),
-                    (3, (1, 0)),
-                    (4, (1, 1)),
-                    (5, (1, 2)),
-                    (6, (0, 3)),
-                    (7, (1, 3)),
+                const BIT_INDEX_AND_DOT_POSITION: [(u8, f32, f32); 8] = [
+                    (0, 0., 0.),
+                    (1, 0., 1.),
+                    (2, 0., 2.),
+                    (3, 1., 0.),
+                    (4, 1., 1.),
+                    (5, 1., 2.),
+                    (6, 0., 3.),
+                    (7, 1., 3.),
                 ];
-                for (bit_index, (dot_pos_x, dot_pos_y)) in &bit_index_and_dot_position {
+                for (bit_index, dot_pos_x, dot_pos_y) in &BIT_INDEX_AND_DOT_POSITION {
                     if dots_pattern & (1 << bit_index) == 0 {
                         // Bit for this dot position is not set
                         continue;
                     }
-                    let center_x = (*dot_pos_x as f32) * cell_width + center_offset_x;
-                    let center_y = (*dot_pos_y as f32) * cell_height + center_offset_y;
+                    let center_x = (*dot_pos_x) * cell_width + center_offset_x;
+                    let center_y = (*dot_pos_y) * cell_height + center_offset_y;
 
                     let path = PathBuilder::from_circle(center_x, center_y, radius)
                         .expect("failed to create path from circle");
@@ -4399,7 +4401,7 @@ impl<T: Texture2d> GlyphCache<T> {
                         &path,
                         &paint,
                         FillRule::Winding,
-                        Transform::identity(),
+                        identity,
                         None,
                     );
                 }
