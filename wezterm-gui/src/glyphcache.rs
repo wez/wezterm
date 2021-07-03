@@ -4267,13 +4267,14 @@ impl<T: Texture2d> GlyphCache<T> {
                 // 2 5  |<- These 3 lines are filled first (for the first 64 symbols)
                 // 3 6  |
                 // 7 8  <- This last line is filled last (for the remaining 192 symbols)
+                //
+                // NOTE: for simplicity & performance reasons, a dot is a square not a circle.
 
                 let cell_width = self.metrics.cell_size.width as f32 / 2.;
                 let cell_height = self.metrics.cell_size.height as f32 / 4.;
-                let center_offset_x = cell_width / 2.;
-                let center_offset_y = cell_height / 2.;
-                let diameter = cell_width / 2.;
-                let radius = diameter / 2.;
+                let square_length = cell_width / 2.;
+                let topleft_offset_x = cell_width / 2. - square_length / 2.;
+                let topleft_offset_y = cell_height / 2. - square_length / 2.;
 
                 let (width, height) = buffer.image_dimensions();
                 let mut pixmap = PixmapMut::from_bytes(
@@ -4303,19 +4304,19 @@ impl<T: Texture2d> GlyphCache<T> {
                         // Bit for this dot position is not set
                         continue;
                     }
-                    let center_x = (*dot_pos_x) * cell_width + center_offset_x;
-                    let center_y = (*dot_pos_y) * cell_height + center_offset_y;
+                    let topleft_x = (*dot_pos_x) * cell_width + topleft_offset_x;
+                    let topleft_y = (*dot_pos_y) * cell_height + topleft_offset_y;
 
-                    let path = PathBuilder::from_circle(center_x, center_y, radius)
-                        .expect("failed to create path from circle");
-
-                    pixmap.fill_path(
-                        &path,
-                        &paint,
-                        FillRule::Winding,
-                        identity,
-                        None,
+                    let path = PathBuilder::from_rect(
+                        tiny_skia::Rect::from_xywh(
+                            topleft_x,
+                            topleft_y,
+                            square_length,
+                            square_length,
+                        )
+                        .expect("valid rect"),
                     );
+                    pixmap.fill_path(&path, &paint, FillRule::Winding, identity, None);
                 }
             }
             BlockKey::Poly(polys) => {
