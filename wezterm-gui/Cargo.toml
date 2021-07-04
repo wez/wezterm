@@ -8,6 +8,10 @@ resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["wayland"]
+wayland = ["window/wayland"]
+
 [build-dependencies]
 anyhow = "1.0"
 
@@ -57,6 +61,7 @@ terminfo = "0.7"
 termwiz = { path = "../termwiz" }
 textwrap = "0.14"
 thiserror = "1.0"
+tiny-skia = "0.5"
 umask = { path = "../umask" }
 unicode-normalization = "0.1"
 unicode-segmentation = "1.7"
@@ -71,7 +76,6 @@ wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 wezterm-toast-notification = { path = "../wezterm-toast-notification" }
 window = { path = "../window" }
-zeno = "0.2"
 
 [target."cfg(windows)".dependencies]
 shared_library = "0.1"

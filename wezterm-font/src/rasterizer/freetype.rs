@@ -4,10 +4,10 @@ use crate::units::*;
 use crate::{ftwrap, RasterizedGlyph};
 use ::freetype::{FT_GlyphSlotRec_, FT_Glyph_Format, FT_Matrix};
 use anyhow::bail;
+use color_types::linear_u8_to_srgb8;
 use std::cell::RefCell;
 use std::mem;
 use std::slice;
-use window::color::linear_u8_to_srgb8;
 
 pub struct FreeTypeRasterizer {
     has_color: bool,

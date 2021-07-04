@@ -2,7 +2,7 @@ use crate::lua::{format_as_escapes, FormatItem};
 use crate::*;
 use luahelper::impl_lua_conversion;
 use termwiz::cell::CellAttributes;
-use termwiz::color::{ColorSpec, RgbColor};
+pub use termwiz::color::{ColorSpec, RgbColor};
 
 #[derive(Debug, Copy, Deserialize, Serialize, Clone)]
 pub struct HsbTransform {
@@ -211,6 +211,105 @@ fn default_tab_left() -> String {
 
 fn default_tab_right() -> String {
     format_as_escapes(vec![FormatItem::Text(" ".to_string())]).unwrap()
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct WindowFrameConfig {
+    #[serde(default = "default_inactive_titlebar_bg")]
+    pub inactive_titlebar_bg: RgbColor,
+    #[serde(default = "default_active_titlebar_bg")]
+    pub active_titlebar_bg: RgbColor,
+    #[serde(default = "default_inactive_titlebar_fg")]
+    pub inactive_titlebar_fg: RgbColor,
+    #[serde(default = "default_active_titlebar_fg")]
+    pub active_titlebar_fg: RgbColor,
+    #[serde(default = "default_inactive_titlebar_border_bottom")]
+    pub inactive_titlebar_border_bottom: RgbColor,
+    #[serde(default = "default_active_titlebar_border_bottom")]
+    pub active_titlebar_border_bottom: RgbColor,
+    #[serde(default = "default_button_fg")]
+    pub button_fg: RgbColor,
+    #[serde(default = "default_button_bg")]
+    pub button_bg: RgbColor,
+    #[serde(default = "default_button_hover_fg")]
+    pub button_hover_fg: RgbColor,
+    #[serde(default = "default_button_hover_bg")]
+    pub button_hover_bg: RgbColor,
+
+    #[serde(default = "default_title_font")]
+    pub font: TextStyle,
+    #[serde(default = "default_title_font_size", deserialize_with = "de_number")]
+    pub font_size: f64,
+}
+
+fn default_title_font_size() -> f64 {
+    10.
+}
+
+fn default_title_font() -> TextStyle {
+    TextStyle {
+        foreground: None,
+        font: vec![FontAttributes::new("DejaVu Sans")],
+    }
+}
+
+impl Default for WindowFrameConfig {
+    fn default() -> Self {
+        Self {
+            inactive_titlebar_bg: default_inactive_titlebar_bg(),
+            active_titlebar_bg: default_active_titlebar_bg(),
+            inactive_titlebar_fg: default_inactive_titlebar_fg(),
+            active_titlebar_fg: default_active_titlebar_fg(),
+            inactive_titlebar_border_bottom: default_inactive_titlebar_border_bottom(),
+            active_titlebar_border_bottom: default_active_titlebar_border_bottom(),
+            button_fg: default_button_fg(),
+            button_bg: default_button_bg(),
+            button_hover_fg: default_button_hover_fg(),
+            button_hover_bg: default_button_hover_bg(),
+            font: default_title_font(),
+            font_size: default_font_size(),
+        }
+    }
+}
+
+fn default_inactive_titlebar_bg() -> RgbColor {
+    RgbColor::new(0x35, 0x35, 0x35)
+}
+
+fn default_active_titlebar_bg() -> RgbColor {
+    RgbColor::new(0x2b, 0x20, 0x42)
+}
+
+fn default_inactive_titlebar_fg() -> RgbColor {
+    RgbColor::new(0xcc, 0xcc, 0xcc)
+}
+
+fn default_active_titlebar_fg() -> RgbColor {
+    RgbColor::new(0xff, 0xff, 0xff)
+}
+
+fn default_inactive_titlebar_border_bottom() -> RgbColor {
+    RgbColor::new(0x2b, 0x20, 0x42)
+}
+
+fn default_active_titlebar_border_bottom() -> RgbColor {
+    RgbColor::new(0x2b, 0x20, 0x42)
+}
+
+fn default_button_hover_fg() -> RgbColor {
+    RgbColor::new(0xff, 0xff, 0xff)
+}
+
+fn default_button_fg() -> RgbColor {
+    RgbColor::new(0xcc, 0xcc, 0xcc)
+}
+
+fn default_button_hover_bg() -> RgbColor {
+    RgbColor::new(0x3b, 0x30, 0x52)
+}
+
+fn default_button_bg() -> RgbColor {
+    RgbColor::new(0x2b, 0x20, 0x42)
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

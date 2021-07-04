@@ -191,12 +191,7 @@ impl super::TermWindow {
         let mut quads = gl_state.quads.map(&mut vb);
         log::trace!("quad map elapsed {:?}", start.elapsed());
 
-        let cursor_border_color =
-            rgbcolor_to_window_color(if self.config.force_reverse_video_cursor {
-                palette.foreground
-            } else {
-                palette.cursor_border
-            });
+        let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
         let foreground = rgbcolor_to_window_color(palette.foreground);
 
         if self.show_tab_bar && pos.index == 0 {
@@ -320,16 +315,8 @@ impl super::TermWindow {
         let start = Instant::now();
         let selection_fg = rgbcolor_to_window_color(palette.selection_fg);
         let selection_bg = rgbcolor_to_window_color(palette.selection_bg);
-        let cursor_fg = rgbcolor_to_window_color(if self.config.force_reverse_video_cursor {
-            palette.background
-        } else {
-            palette.cursor_fg
-        });
-        let cursor_bg = rgbcolor_to_window_color(if self.config.force_reverse_video_cursor {
-            palette.foreground
-        } else {
-            palette.cursor_bg
-        });
+        let cursor_fg = rgbcolor_to_window_color(palette.cursor_fg);
+        let cursor_bg = rgbcolor_to_window_color(palette.cursor_bg);
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
 
@@ -515,11 +502,12 @@ impl super::TermWindow {
         let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
         let mut quads = gl_state.quads.map(&mut vb);
         let config = &self.config;
-        let text = if split.direction == SplitDirection::Horizontal {
-            "│"
+        let block = BlockKey::from_char(if split.direction == SplitDirection::Horizontal {
+            '\u{2502}'
         } else {
-            "─"
-        };
+            '\u{2500}'
+        })
+        .expect("to have box drawing glyph");
         let palette = pane.palette();
         let foreground = rgbcolor_to_window_color(palette.split);
         let background = rgbcolor_alpha_to_window_color(
@@ -531,114 +519,41 @@ impl super::TermWindow {
             },
         );
 
-        let style = self.fonts.match_style(&config, &CellAttributes::default());
-        let glyph_info = {
-            let key = BorrowedShapeCacheKey { style, text };
-            match self.lookup_cached_shape(&key) {
-                Some(Ok(info)) => info,
-                Some(Err(err)) => return Err(err),
-                None => {
-                    let font = self.fonts.resolve_font(style)?;
-                    let window = self.window.as_ref().unwrap().clone();
-                    match font.shape(
-                        text,
-                        move || window.notify(TermWindowNotif::InvalidateShapeCache),
-                        BlockKey::filter_out_synthetic,
-                    ) {
-                        Ok(info) => {
-                            let line = Line::from_text(&text, &CellAttributes::default());
-                            let clusters = line.cluster();
-                            let glyphs = self.glyph_infos_to_glyphs(
-                                &clusters[0],
-                                &line,
-                                &style,
-                                &mut gl_state.glyph_cache.borrow_mut(),
-                                &info,
-                            )?;
-                            let shaped = ShapedInfo::process(
-                                &self.render_metrics,
-                                &clusters[0],
-                                &info,
-                                &glyphs,
-                            );
-                            self.shape_cache
-                                .borrow_mut()
-                                .put(key.to_owned(), Ok(Rc::new(shaped)));
-                            self.lookup_cached_shape(&key).unwrap().unwrap()
-                        }
-                        Err(err) => {
-                            if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
-                                return Err(err);
-                            }
-
-                            let res = anyhow!("shaper error: {}", err);
-                            self.shape_cache.borrow_mut().put(key.to_owned(), Err(err));
-                            return Err(res);
-                        }
-                    }
-                }
-            }
-        };
         let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             1
         } else {
             0
         };
+        let white_space = gl_state.util_sprites.white_space.texture_coords();
 
-        for info in glyph_info.iter() {
-            let glyph = &info.glyph;
-            let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
-            let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)
-                + self.render_metrics.descender)
-                - (glyph.y_offset + glyph.bearing_y))
-                .get() as f32;
-
-            let texture = glyph
-                .texture
-                .as_ref()
-                .unwrap_or(&gl_state.util_sprites.white_space);
-            let underline_tex_rect = gl_state.util_sprites.white_space.texture_coords();
-
-            let x_y_iter: Box<dyn Iterator<Item = (usize, usize)>> = if split.direction
-                == SplitDirection::Horizontal
-            {
+        let x_y_iter: Box<dyn Iterator<Item = (usize, usize)>> =
+            if split.direction == SplitDirection::Horizontal {
                 Box::new(std::iter::repeat(split.left).zip(split.top..split.top + split.size))
             } else {
                 Box::new((split.left..split.left + split.size).zip(std::iter::repeat(split.top)))
             };
-            for (x, y) in x_y_iter {
-                let slice = SpriteSlice {
-                    cell_idx: 0,
-                    num_cells: info.pos.num_cells as usize,
-                    cell_width: self.render_metrics.cell_size.width as usize,
-                    scale: glyph.scale as f32,
-                    left_offset: left,
-                };
+        for (x, y) in x_y_iter {
+            let sprite = gl_state
+                .glyph_cache
+                .borrow_mut()
+                .cached_block(block)?
+                .texture_coords();
 
-                let pixel_rect = slice.pixel_rect(texture);
-                let texture_rect = texture.texture.to_texture_coords(pixel_rect);
+            let mut quad = match quads.cell(x, y + first_row_offset) {
+                Ok(quad) => quad,
+                Err(_) => break,
+            };
 
-                let bottom = (pixel_rect.size.height as f32 * glyph.scale as f32) + top
-                    - self.render_metrics.cell_size.height as f32;
-                let right = pixel_rect.size.width as f32 + left
-                    - self.render_metrics.cell_size.width as f32;
-
-                let mut quad = match quads.cell(x, y + first_row_offset) {
-                    Ok(quad) => quad,
-                    Err(_) => break,
-                };
-
-                quad.set_fg_color(foreground);
-                quad.set_underline_color(foreground);
-                quad.set_bg_color(background);
-                quad.set_hsv(None);
-                quad.set_texture(texture_rect);
-                quad.set_texture_adjust(left, top, right, bottom);
-                quad.set_underline(underline_tex_rect);
-                quad.set_has_color(glyph.has_color);
-                quad.set_cursor(underline_tex_rect);
-                quad.set_cursor_color(background);
-            }
+            quad.set_fg_color(foreground);
+            quad.set_underline_color(foreground);
+            quad.set_bg_color(background);
+            quad.set_hsv(None);
+            quad.set_texture(sprite);
+            quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_underline(white_space);
+            quad.set_has_color(false);
+            quad.set_cursor(white_space);
+            quad.set_cursor_color(background);
         }
         Ok(())
     }
@@ -1021,7 +936,11 @@ impl super::TermWindow {
                             .cursor_sprite(cursor_shape)
                             .texture_coords(),
                     );
-                    quad.set_cursor_color(params.cursor_border_color);
+                    quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+                        bg_color
+                    } else {
+                        params.cursor_border_color
+                    });
                 }
             }
         }
@@ -1085,7 +1004,11 @@ impl super::TermWindow {
                             .cursor_sprite(cursor_shape)
                             .texture_coords(),
                     );
-                    quad.set_cursor_color(params.cursor_border_color);
+                    quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+                        bg_color
+                    } else {
+                        params.cursor_border_color
+                    });
                 }
             }
         }
@@ -1138,7 +1061,11 @@ impl super::TermWindow {
                 .cursor_sprite(cursor_shape)
                 .texture_coords(),
         );
-        quad.set_cursor_color(params.cursor_border_color);
+        quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+            bg_color
+        } else {
+            params.cursor_border_color
+        });
 
         Ok(())
     }
@@ -1219,7 +1146,11 @@ impl super::TermWindow {
                 .cursor_sprite(cursor_shape)
                 .texture_coords(),
         );
-        quad.set_cursor_color(params.cursor_border_color);
+        quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+            bg_color
+        } else {
+            params.cursor_border_color
+        });
 
         Ok(())
     }
@@ -1282,7 +1213,11 @@ impl super::TermWindow {
             // Cursor cell overrides colors
             (_, true, CursorShape::BlinkingBlock, CursorVisibility::Visible)
             | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => {
-                (params.cursor_fg, params.cursor_bg)
+                if self.config.force_reverse_video_cursor {
+                    (params.bg_color, params.fg_color)
+                } else {
+                    (params.cursor_fg, params.cursor_bg)
+                }
             }
             // Normally, render the cell as configured (or if the window is unfocused)
             _ => (params.fg_color, params.bg_color),

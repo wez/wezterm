@@ -331,9 +331,15 @@ mod test {
         };
         config.font_rules.clear();
         config.compute_extra_defaults(None);
-        config::use_this_configuration(config);
+        config::use_this_configuration(config.clone());
 
-        let fonts = Rc::new(FontConfiguration::new(None).unwrap());
+        let fonts = Rc::new(
+            FontConfiguration::new(
+                None,
+                config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+            )
+            .unwrap(),
+        );
         let render_metrics = RenderMetrics::new(&fonts).unwrap();
         let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128, &render_metrics).unwrap();
 
@@ -376,7 +382,16 @@ mod test {
             let bench_result = benchmarking::measure_function(move |measurer| {
                 let text: String = (0..n).map(|_| ' ').collect();
 
-                let fonts = Rc::new(FontConfiguration::new(None).unwrap());
+                let fonts = Rc::new(
+                    FontConfiguration::new(
+                        None,
+                        config::configuration()
+                            .dpi
+                            .unwrap_or_else(|| ::window::default_dpi())
+                            as usize,
+                    )
+                    .unwrap(),
+                );
                 let style = TextStyle::default();
                 let font = fonts.resolve_font(&style).unwrap();
                 let line = Line::from_text(&text, &CellAttributes::default());
@@ -400,11 +415,18 @@ mod test {
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
             .try_init();
-        if !config::configuration().experimental_shape_post_processing {
+        let config = config::configuration();
+        if !config.experimental_shape_post_processing {
             return;
         }
 
-        let fonts = Rc::new(FontConfiguration::new(None).unwrap());
+        let fonts = Rc::new(
+            FontConfiguration::new(
+                None,
+                config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+            )
+            .unwrap(),
+        );
         let render_metrics = RenderMetrics::new(&fonts).unwrap();
         let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128, &render_metrics).unwrap();
 

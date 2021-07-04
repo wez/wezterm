@@ -16,7 +16,6 @@ use std::time::Duration;
 use thiserror::Error;
 use wezterm_term::CellAttributes;
 use wezterm_toast_notification::ToastNotification;
-use window::default_dpi;
 
 mod hbwrap;
 
@@ -177,6 +176,7 @@ struct FontConfigInner {
     font_dirs: RefCell<Arc<FontDatabase>>,
     built_in: RefCell<Arc<FontDatabase>>,
     no_glyphs: RefCell<HashSet<char>>,
+    title_font: RefCell<Option<Rc<LoadedFont>>>,
 }
 
 /// Matches and loads fonts for a given input style
@@ -186,14 +186,14 @@ pub struct FontConfiguration {
 
 impl FontConfigInner {
     /// Create a new empty configuration
-    pub fn new(config: Option<ConfigHandle>) -> anyhow::Result<Self> {
+    pub fn new(config: Option<ConfigHandle>, dpi: usize) -> anyhow::Result<Self> {
         let config = config.unwrap_or_else(|| configuration());
         let locator = new_locator(config.font_locator);
-        let dpi = config.dpi.unwrap_or_else(|| default_dpi()) as usize;
         Ok(Self {
             fonts: RefCell::new(HashMap::new()),
             locator,
             metrics: RefCell::new(None),
+            title_font: RefCell::new(None),
             font_scale: RefCell::new(1.0),
             dpi: RefCell::new(dpi),
             config: RefCell::new(config.clone()),
@@ -208,6 +208,7 @@ impl FontConfigInner {
         *self.config.borrow_mut() = config.clone();
         // Config was reloaded, invalidate our caches
         fonts.clear();
+        self.title_font.borrow_mut().take();
         self.metrics.borrow_mut().take();
         self.no_glyphs.borrow_mut().clear();
         *self.font_dirs.borrow_mut() = Arc::new(FontDatabase::with_font_dirs(config)?);
@@ -359,6 +360,66 @@ impl FontConfigInner {
                 }
             }
         });
+    }
+
+    fn title_font(&self, myself: &Rc<Self>) -> anyhow::Result<Rc<LoadedFont>> {
+        let config = self.config.borrow();
+
+        let mut title_font = self.title_font.borrow_mut();
+
+        if let Some(entry) = title_font.as_ref() {
+            return Ok(Rc::clone(entry));
+        }
+
+        let attributes = config.window_frame.font.font_with_fallback();
+        let preferred_attributes = attributes
+            .iter()
+            .filter(|a| !a.is_fallback)
+            .map(|a| a.clone())
+            .collect::<Vec<_>>();
+        let fallback_attributes = attributes
+            .iter()
+            .filter(|a| a.is_fallback)
+            .map(|a| a.clone())
+            .collect::<Vec<_>>();
+        let mut loaded = HashSet::new();
+
+        let mut handles = vec![];
+        for attrs in &[&preferred_attributes, &fallback_attributes] {
+            self.font_dirs
+                .borrow()
+                .resolve_multiple(attrs, &mut handles, &mut loaded);
+            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded)?);
+            self.built_in
+                .borrow()
+                .resolve_multiple(attrs, &mut handles, &mut loaded);
+        }
+
+        let shaper = new_shaper(&*config, &handles)?;
+
+        let font_size = config.window_frame.font_size;
+        let dpi = *self.dpi.borrow() as u32;
+        let metrics = shaper.metrics(font_size, dpi).with_context(|| {
+            format!(
+                "obtaining metrics for font_size={} @ dpi {}",
+                font_size, dpi
+            )
+        })?;
+
+        let loaded = Rc::new(LoadedFont {
+            rasterizers: RefCell::new(HashMap::new()),
+            handles: RefCell::new(handles),
+            shaper: RefCell::new(shaper),
+            metrics,
+            font_size,
+            dpi,
+            font_config: Rc::downgrade(myself),
+            pending_fallback: Arc::new(Mutex::new(vec![])),
+        });
+
+        title_font.replace(Rc::clone(&loaded));
+
+        Ok(loaded)
     }
 
     /// Given a text style, load (with caching) the font that best
@@ -552,8 +613,8 @@ impl FontConfigInner {
 
 impl FontConfiguration {
     /// Create a new empty configuration
-    pub fn new(config: Option<ConfigHandle>) -> anyhow::Result<Self> {
-        let inner = Rc::new(FontConfigInner::new(config)?);
+    pub fn new(config: Option<ConfigHandle>, dpi: usize) -> anyhow::Result<Self> {
+        let inner = Rc::new(FontConfigInner::new(config, dpi)?);
         Ok(Self { inner })
     }
 
@@ -563,6 +624,10 @@ impl FontConfiguration {
 
     pub fn config(&self) -> ConfigHandle {
         self.inner.config.borrow().clone()
+    }
+
+    pub fn title_font(&self) -> anyhow::Result<Rc<LoadedFont>> {
+        self.inner.title_font(&self.inner)
     }
 
     /// Given a text style, load (with caching) the font that best

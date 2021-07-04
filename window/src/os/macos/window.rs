@@ -39,6 +39,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::time::Instant;
+use wezterm_font::FontConfiguration;
 
 #[allow(non_upper_case_globals)]
 const NSViewLayerContentsPlacementTopLeft: NSInteger = 11;
@@ -366,6 +367,7 @@ impl Window {
         width: usize,
         height: usize,
         config: Option<&ConfigHandle>,
+        _font_config: Rc<FontConfiguration>,
     ) -> anyhow::Result<(Window, WindowEventReceiver)> {
         let config = match config {
             Some(c) => c.clone(),
@@ -1483,6 +1485,10 @@ impl WindowView {
         }
     }
 
+    extern "C" fn accepts_first_mouse(_this: &mut Object, _sel: Sel, _nsevent: id) -> BOOL {
+        YES
+    }
+
     extern "C" fn accepts_first_responder(_this: &mut Object, _sel: Sel) -> BOOL {
         YES
     }
@@ -2116,6 +2122,11 @@ impl WindowView {
             cls.add_method(
                 sel!(acceptsFirstResponder),
                 Self::accepts_first_responder as extern "C" fn(&mut Object, Sel) -> BOOL,
+            );
+
+            cls.add_method(
+                sel!(acceptsFirstMouse:),
+                Self::accepts_first_mouse as extern "C" fn(&mut Object, Sel, id) -> BOOL,
             );
 
             // NSTextInputClient

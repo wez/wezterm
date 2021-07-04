@@ -738,6 +738,9 @@ pub struct Config {
     pub colors: Option<Palette>,
 
     #[serde(default)]
+    pub window_frame: WindowFrameConfig,
+
+    #[serde(default)]
     pub tab_bar_style: TabBarStyle,
 
     #[serde(skip)]

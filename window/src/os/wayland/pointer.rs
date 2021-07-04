@@ -7,9 +7,7 @@ use toolkit::reexports::client::protocol::wl_data_device::{
     Event as DataDeviceEvent, WlDataDevice,
 };
 use toolkit::reexports::client::protocol::wl_data_offer::{Event as DataOfferEvent, WlDataOffer};
-use toolkit::reexports::client::protocol::wl_pointer::{
-    self, Axis, AxisSource, Event as PointerEvent,
-};
+use toolkit::reexports::client::protocol::wl_pointer::{Axis, ButtonState, Event as PointerEvent};
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::seat::pointer::{ThemeManager, ThemeSpec, ThemedPointer};
 use wayland_client::protocol::wl_compositor::WlCompositor;
@@ -31,8 +29,7 @@ impl Inner {
         if let PointerEvent::Enter { surface, .. } = &evt {
             self.active_surface_id = surface.as_ref().id();
         }
-        let evt: SendablePointerEvent = evt.into();
-        if let Some(serial) = evt.serial() {
+        if let Some(serial) = event_serial(&evt) {
             self.serial = serial;
         }
         if let Some(pending) = self.surface_to_pending.get(&self.active_surface_id) {
@@ -104,7 +101,7 @@ pub struct PendingMouse {
     window_id: usize,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     surface_coords: Option<(f64, f64)>,
-    button: Vec<(MousePress, DebuggableButtonState)>,
+    button: Vec<(MousePress, ButtonState)>,
     scroll: Option<(f64, f64)>,
 }
 
@@ -121,16 +118,16 @@ impl PendingMouse {
 
     // Return true if we need to queue up a call to act on the event,
     // false if we think there is already a pending event
-    pub fn queue(&mut self, evt: SendablePointerEvent) -> bool {
+    pub fn queue(&mut self, evt: PointerEvent) -> bool {
         match evt {
-            SendablePointerEvent::Enter { serial, .. } => {
+            PointerEvent::Enter { serial, .. } => {
                 self.copy_and_paste
                     .lock()
                     .unwrap()
                     .update_last_serial(serial);
                 false
             }
-            SendablePointerEvent::Motion {
+            PointerEvent::Motion {
                 surface_x,
                 surface_y,
                 ..
@@ -139,7 +136,7 @@ impl PendingMouse {
                 self.surface_coords.replace((surface_x, surface_y));
                 changed
             }
-            SendablePointerEvent::Button {
+            PointerEvent::Button {
                 button,
                 state,
                 serial,
@@ -166,7 +163,7 @@ impl PendingMouse {
                 self.button.push((button, state));
                 changed
             }
-            SendablePointerEvent::Axis {
+            PointerEvent::Axis {
                 axis: Axis::VerticalScroll,
                 value,
                 ..
@@ -176,7 +173,7 @@ impl PendingMouse {
                 self.scroll.replace((x, y + value));
                 changed
             }
-            SendablePointerEvent::Axis {
+            PointerEvent::Axis {
                 axis: Axis::HorizontalScroll,
                 value,
                 ..
@@ -190,7 +187,7 @@ impl PendingMouse {
         }
     }
 
-    pub fn next_button(pending: &Arc<Mutex<Self>>) -> Option<(MousePress, DebuggableButtonState)> {
+    pub fn next_button(pending: &Arc<Mutex<Self>>) -> Option<(MousePress, ButtonState)> {
         let mut pending = pending.lock().unwrap();
         if pending.button.is_empty() {
             None
@@ -257,120 +254,11 @@ impl PointerDispatcher {
     }
 }
 
-#[derive(Clone, Debug, Copy, PartialEq, Eq)]
-pub enum DebuggableButtonState {
-    Released,
-    Pressed,
-}
-
-impl From<wl_pointer::ButtonState> for DebuggableButtonState {
-    fn from(state: wl_pointer::ButtonState) -> DebuggableButtonState {
-        match state {
-            wl_pointer::ButtonState::Released => Self::Released,
-            wl_pointer::ButtonState::Pressed => Self::Pressed,
-            _ => unreachable!(),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum SendablePointerEvent {
-    Enter {
-        serial: u32,
-        surface_x: f64,
-        surface_y: f64,
-    },
-    Leave {
-        serial: u32,
-    },
-    Motion {
-        time: u32,
-        surface_x: f64,
-        surface_y: f64,
-    },
-    Button {
-        serial: u32,
-        time: u32,
-        button: u32,
-        state: DebuggableButtonState,
-    },
-    Axis {
-        time: u32,
-        axis: Axis,
-        value: f64,
-    },
-    Frame,
-    AxisSource {
-        axis_source: AxisSource,
-    },
-    AxisStop {
-        time: u32,
-        axis: Axis,
-    },
-    AxisDiscrete {
-        axis: Axis,
-        discrete: i32,
-    },
-}
-
-impl SendablePointerEvent {
-    fn serial(&self) -> Option<u32> {
-        Some(*match self {
-            Self::Enter { serial, .. } => serial,
-            Self::Leave { serial } => serial,
-            Self::Button { serial, .. } => serial,
-            _ => return None,
-        })
-    }
-}
-
-impl From<PointerEvent> for SendablePointerEvent {
-    fn from(event: PointerEvent) -> Self {
-        match event {
-            PointerEvent::Enter {
-                serial,
-                surface_x,
-                surface_y,
-                ..
-            } => SendablePointerEvent::Enter {
-                serial,
-                surface_x,
-                surface_y,
-            },
-            PointerEvent::Leave { serial, .. } => SendablePointerEvent::Leave { serial },
-            PointerEvent::Motion {
-                time,
-                surface_x,
-                surface_y,
-            } => SendablePointerEvent::Motion {
-                time,
-                surface_x,
-                surface_y,
-            },
-            PointerEvent::Button {
-                serial,
-                time,
-                button,
-                state,
-                ..
-            } => SendablePointerEvent::Button {
-                serial,
-                time,
-                button,
-                state: state.into(),
-            },
-            PointerEvent::Axis { time, axis, value } => {
-                SendablePointerEvent::Axis { time, axis, value }
-            }
-            PointerEvent::Frame => SendablePointerEvent::Frame,
-            PointerEvent::AxisSource { axis_source, .. } => {
-                SendablePointerEvent::AxisSource { axis_source }
-            }
-            PointerEvent::AxisStop { axis, time } => SendablePointerEvent::AxisStop { axis, time },
-            PointerEvent::AxisDiscrete { axis, discrete } => {
-                SendablePointerEvent::AxisDiscrete { axis, discrete }
-            }
-            _ => unreachable!(),
-        }
-    }
+fn event_serial(event: &PointerEvent) -> Option<u32> {
+    Some(*match event {
+        PointerEvent::Enter { serial, .. } => serial,
+        PointerEvent::Leave { serial, .. } => serial,
+        PointerEvent::Button { serial, .. } => serial,
+        _ => return None,
+    })
 }

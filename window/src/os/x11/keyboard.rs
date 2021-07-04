@@ -17,6 +17,36 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
+    pub fn new_from_string(s: String) -> anyhow::Result<Self> {
+        let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
+        let keymap = xkb::Keymap::new_from_string(
+            &context,
+            s,
+            xkbcommon::xkb::KEYMAP_FORMAT_TEXT_V1,
+            xkb::KEYMAP_COMPILE_NO_FLAGS,
+        )
+        .ok_or_else(|| anyhow!("Failed to parse keymap state from file"))?;
+
+        let state = xkb::State::new(&keymap);
+        let locale = query_lc_ctype()?;
+
+        let table = xkb::compose::Table::new_from_locale(
+            &context,
+            locale.to_str()?,
+            xkb::compose::COMPILE_NO_FLAGS,
+        )
+        .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
+        let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
+
+        Ok(Self {
+            context,
+            device_id: -1,
+            keymap: RefCell::new(keymap),
+            state: RefCell::new(state),
+            compose_state: RefCell::new(compose_state),
+        })
+    }
+
     pub fn new(connection: &xcb::Connection) -> anyhow::Result<(Keyboard, u8)> {
         connection.prefetch_extension_data(xcb::xkb::id());
 
@@ -102,10 +132,22 @@ impl Keyboard {
         Ok((kbd, first_ev))
     }
 
+    pub fn wayland_key_repeats(&self, code: u32) -> bool {
+        self.keymap.borrow().key_repeats(code + 8)
+    }
+
+    pub fn process_wayland_key(&self, code: u32, pressed: bool) -> Option<KeyEvent> {
+        self.process_key_event_impl(code + 8, pressed)
+    }
+
     pub fn process_key_event(&self, xcb_ev: &xcb::KeyPressEvent) -> Option<KeyEvent> {
         let pressed = (xcb_ev.response_type() & !0x80) == xcb::KEY_PRESS;
 
         let xcode = xkb::Keycode::from(xcb_ev.detail());
+        self.process_key_event_impl(xcode, pressed)
+    }
+
+    fn process_key_event_impl(&self, xcode: xkb::Keycode, pressed: bool) -> Option<KeyEvent> {
         let xsym = self.state.borrow().key_get_one_sym(xcode);
 
         let ksym = if pressed {
@@ -210,6 +252,23 @@ impl Keyboard {
             }
         }
         Ok(())
+    }
+
+    pub fn update_modifier_state(
+        &self,
+        mods_depressed: u32,
+        mods_latched: u32,
+        mods_locked: u32,
+        group: u32,
+    ) {
+        self.state.borrow_mut().update_mask(
+            xkb::ModMask::from(mods_depressed),
+            xkb::ModMask::from(mods_latched),
+            xkb::ModMask::from(mods_locked),
+            0,
+            0,
+            xkb::LayoutIndex::from(group),
+        );
     }
 
     pub fn update_state(&self, ev: &xcb::xkb::StateNotifyEvent) {

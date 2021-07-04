@@ -5,5 +5,5 @@ pub mod window;
 pub use self::window::*;
 pub use connection::*;
 mod copy_and_paste;
-mod keyboard;
+mod frame;
 mod pointer;
