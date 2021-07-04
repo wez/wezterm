@@ -4289,18 +4289,18 @@ impl<T: Texture2d> GlyphCache<T> {
                 paint.anti_alias = true;
                 let identity = Transform::identity();
 
-                const BIT_INDEX_AND_DOT_POSITION: [(u8, f32, f32); 8] = [
-                    (0, 0., 0.),
-                    (1, 0., 1.),
-                    (2, 0., 2.),
-                    (3, 1., 0.),
-                    (4, 1., 1.),
-                    (5, 1., 2.),
-                    (6, 0., 3.),
-                    (7, 1., 3.),
+                const BIT_MASK_AND_DOT_POSITION: [(u8, f32, f32); 8] = [
+                    (1 << 0, 0., 0.),
+                    (1 << 1, 0., 1.),
+                    (1 << 2, 0., 2.),
+                    (1 << 3, 1., 0.),
+                    (1 << 4, 1., 1.),
+                    (1 << 5, 1., 2.),
+                    (1 << 6, 0., 3.),
+                    (1 << 7, 1., 3.),
                 ];
-                for (bit_index, dot_pos_x, dot_pos_y) in &BIT_INDEX_AND_DOT_POSITION {
-                    if dots_pattern & (1 << bit_index) == 0 {
+                for (bit_mask, dot_pos_x, dot_pos_y) in &BIT_MASK_AND_DOT_POSITION {
+                    if dots_pattern & bit_mask == 0 {
                         // Bit for this dot position is not set
                         continue;
                     }
