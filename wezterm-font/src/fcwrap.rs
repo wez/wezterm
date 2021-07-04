@@ -410,7 +410,7 @@ pub fn to_fc_weight(weight: FontWeight) -> c_int {
         FC_WEIGHT_MEDIUM
     } else if weight >= FontWeight::REGULAR {
         FC_WEIGHT_REGULAR
-    } else if weight >= FontWeight::BOOL {
+    } else if weight >= FontWeight::BOOK {
         FC_WEIGHT_BOOK
     } else if weight >= FontWeight::LIGHT {
         FC_WEIGHT_LIGHT
