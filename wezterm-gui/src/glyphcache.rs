@@ -362,7 +362,7 @@ impl BlockKey {
     pub fn from_char(c: char) -> Option<Self> {
         let c = c as u32;
         Some(match c {
-            // BOX DRAWINGS LIGHT HORIZONTAL
+            // [─] BOX DRAWINGS LIGHT HORIZONTAL
             0x2500 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -371,7 +371,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS HEAVY HORIZONTAL
+            // [━] BOX DRAWINGS HEAVY HORIZONTAL
             0x2501 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -380,7 +380,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS LIGHT VERTICAL
+            // [│] BOX DRAWINGS LIGHT VERTICAL
             0x2502 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -389,7 +389,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS HEAVY VERTICAL
+            // [┃] BOX DRAWINGS HEAVY VERTICAL
             0x2503 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -398,7 +398,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS LIGHT TRIPLE DASH HORIZONTAL
+            // [┄] BOX DRAWINGS LIGHT TRIPLE DASH HORIZONTAL
             // A dash segment is wider than the gap segment.
             // We use a 2:1 ratio, which gives 9 total segments
             // with a pattern of `-- -- -- `
@@ -428,7 +428,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY TRIPLE DASH HORIZONTAL
+            // [┅] BOX DRAWINGS HEAVY TRIPLE DASH HORIZONTAL
             0x2505 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -455,7 +455,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS LIGHT TRIPLE DASH VERTICAL
+            // [┆] BOX DRAWINGS LIGHT TRIPLE DASH VERTICAL
             0x2506 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -482,7 +482,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY TRIPLE DASH VERTICAL
+            // [┇] BOX DRAWINGS HEAVY TRIPLE DASH VERTICAL
             0x2507 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -509,7 +509,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS LIGHT QUADRUPLE DASH HORIZONTAL
+            // [┈] BOX DRAWINGS LIGHT QUADRUPLE DASH HORIZONTAL
             // A dash segment is wider than the gap segment.
             // We use a 2:1 ratio, which gives 12 total segments
             // with a pattern of `-- -- -- -- `
@@ -547,7 +547,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY QUADRUPLE DASH HORIZONTAL
+            // [┉] BOX DRAWINGS HEAVY QUADRUPLE DASH HORIZONTAL
             0x2509 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -582,7 +582,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS LIGHT QUADRUPLE DASH VERTICAL
+            // [┊] BOX DRAWINGS LIGHT QUADRUPLE DASH VERTICAL
             0x250a => Self::Poly(&[
                 Poly {
                     path: &[
@@ -617,7 +617,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY QUADRUPLE DASH VERTICAL
+            // [┋] BOX DRAWINGS HEAVY QUADRUPLE DASH VERTICAL
             0x250b => Self::Poly(&[
                 Poly {
                     path: &[
@@ -652,7 +652,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS LIGHT DOWN AND RIGHT
+            // [┌] BOX DRAWINGS LIGHT DOWN AND RIGHT
             0x250c => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
@@ -662,7 +662,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS DOWN LIGHT AND RIGHT HEAVY
+            // [┍] BOX DRAWINGS DOWN LIGHT AND RIGHT HEAVY
             0x250d => Self::Poly(&[
                 Poly {
                     path: &[
@@ -684,7 +684,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS DOWN HEAVY AND RIGHT LIGHT
+            // [┎] BOX DRAWINGS DOWN HEAVY AND RIGHT LIGHT
             0x250e => Self::Poly(&[
                 Poly {
                     path: &[
@@ -706,7 +706,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY DOWN AND RIGHT
+            // [┏] BOX DRAWINGS HEAVY DOWN AND RIGHT
             0x250f => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
@@ -717,7 +717,7 @@ impl BlockKey {
                 style: PolyStyle::OutlineHeavy,
             }]),
 
-            // BOX DRAWINGS LIGHT DOWN AND LEFT
+            // [┐] BOX DRAWINGS LIGHT DOWN AND LEFT
             0x2510 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
@@ -727,7 +727,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS DOWN LIGHT AND LEFT HEAVY
+            // [┑] BOX DRAWINGS DOWN LIGHT AND LEFT HEAVY
             0x2511 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -749,7 +749,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS DOWN HEAVY AND LEFT LIGHT
+            // [┒] BOX DRAWINGS DOWN HEAVY AND LEFT LIGHT
             0x2512 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -771,7 +771,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY DOWN AND LEFT
+            // [┓] BOX DRAWINGS HEAVY DOWN AND LEFT
             0x2513 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
@@ -782,7 +782,7 @@ impl BlockKey {
                 style: PolyStyle::OutlineHeavy,
             }]),
 
-            // BOX DRAWINGS LIGHT UP AND RIGHT
+            // [└] BOX DRAWINGS LIGHT UP AND RIGHT
             0x2514 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -792,7 +792,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS UP LIGHT AND RIGHT HEAVY
+            // [┕] BOX DRAWINGS UP LIGHT AND RIGHT HEAVY
             0x2515 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -814,7 +814,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS UP HEAVY AND RIGHT LIGHT
+            // [┖] BOX DRAWINGS UP HEAVY AND RIGHT LIGHT
             0x2516 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -836,7 +836,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY UP AND RIGHT
+            // [┗] BOX DRAWINGS HEAVY UP AND RIGHT
             0x2517 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -847,7 +847,7 @@ impl BlockKey {
                 style: PolyStyle::OutlineHeavy,
             }]),
 
-            // BOX DRAWINGS LIGHT UP AND LEFT
+            // [┘] BOX DRAWINGS LIGHT UP AND LEFT
             0x2518 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -857,7 +857,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS UP LIGHT AND LEFT HEAVY
+            // [┙] BOX DRAWINGS UP LIGHT AND LEFT HEAVY
             0x2519 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -879,7 +879,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS UP HEAVY AND LEFT LIGHT
+            // [┚] BOX DRAWINGS UP HEAVY AND LEFT LIGHT
             0x251a => Self::Poly(&[
                 Poly {
                     path: &[
@@ -901,7 +901,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY UP AND LEFT
+            // [┛] BOX DRAWINGS HEAVY UP AND LEFT
             0x251b => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -912,7 +912,7 @@ impl BlockKey {
                 style: PolyStyle::OutlineHeavy,
             }]),
 
-            // BOX DRAWINGS LIGHT VERTICAL AND RIGHT
+            // [├] BOX DRAWINGS LIGHT VERTICAL AND RIGHT
             0x251c => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
@@ -923,7 +923,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LIGHT VERTICAL LIGHT AND RIGHT HEAVY
+            // [┝] BOX DRAWINGS LIGHT VERTICAL LIGHT AND RIGHT HEAVY
             0x251d => Self::Poly(&[
                 Poly {
                     path: &[
@@ -942,7 +942,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS UP HEAVY and RIGHT DOWN LIGHT
+            // [┞] BOX DRAWINGS UP HEAVY and RIGHT DOWN LIGHT
             0x251e => Self::Poly(&[
                 Poly {
                     path: &[
@@ -962,7 +962,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN HEAVY and RIGHT UP LIGHT
+            // [┟] BOX DRAWINGS DOWN HEAVY and RIGHT UP LIGHT
             0x251f => Self::Poly(&[
                 Poly {
                     path: &[
@@ -983,7 +983,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS HEAVY VERTICAL and RIGHT LIGHT
+            // [┠] BOX DRAWINGS HEAVY VERTICAL and RIGHT LIGHT
             0x2520 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1002,7 +1002,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN LIGHT AND RIGHT UP HEAVY
+            // [┡] BOX DRAWINGS DOWN LIGHT AND RIGHT UP HEAVY
             0x2521 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1022,7 +1022,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS UP LIGHT AND RIGHT DOWN HEAVY
+            // [┢] BOX DRAWINGS UP LIGHT AND RIGHT DOWN HEAVY
             0x2522 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1042,7 +1042,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS HEAVY VERTICAL and RIGHT
+            // [┣] BOX DRAWINGS HEAVY VERTICAL and RIGHT
             0x2523 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -1054,7 +1054,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS LIGHT VERTICAL and LEFT
+            // [┤] BOX DRAWINGS LIGHT VERTICAL and LEFT
             0x2524 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -1066,7 +1066,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS VERTICAL LIGHT and LEFT HEAVY
+            // [┥] BOX DRAWINGS VERTICAL LIGHT and LEFT HEAVY
             0x2525 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1085,7 +1085,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS UP HEAVY and LEFT DOWN LIGHT
+            // [┦] BOX DRAWINGS UP HEAVY and LEFT DOWN LIGHT
             0x2526 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1105,7 +1105,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN HEAVY and LEFT UP LIGHT
+            // [┧] BOX DRAWINGS DOWN HEAVY and LEFT UP LIGHT
             0x2527 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1125,7 +1125,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS VERTICAL HEAVY and LEFT LIGHT
+            // [┨] BOX DRAWINGS VERTICAL HEAVY and LEFT LIGHT
             0x2528 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1144,7 +1144,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN LIGHT and LEFT UP HEAVY
+            // [┩] BOX DRAWINGS DOWN LIGHT and LEFT UP HEAVY
             0x2529 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1164,7 +1164,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS UP LIGHT and LEFT DOWN HEAVY
+            // [┪] BOX DRAWINGS UP LIGHT and LEFT DOWN HEAVY
             0x252a => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1184,7 +1184,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS HEAVY VERTICAL and LEFT
+            // [┫] BOX DRAWINGS HEAVY VERTICAL and LEFT
             0x252b => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -1196,7 +1196,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS LIGHT DOWN AND HORIZONTAL
+            // [┬] BOX DRAWINGS LIGHT DOWN AND HORIZONTAL
             0x252c => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -1207,7 +1207,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LEFT HEAVY AND RIGHT DOWN LIGHT
+            // [┭] BOX DRAWINGS LEFT HEAVY AND RIGHT DOWN LIGHT
             0x252d => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1227,7 +1227,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS RIGHT HEAVY AND LEFT DOWN LIGHT
+            // [┮] BOX DRAWINGS RIGHT HEAVY AND LEFT DOWN LIGHT
             0x252e => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1247,7 +1247,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN LIGHT AND HORIZONTAL HEAVY
+            // [┯] BOX DRAWINGS DOWN LIGHT AND HORIZONTAL HEAVY
             0x252f => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1267,7 +1267,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS DOWN HEAVY AND HORIZONTAL LIGHT
+            // [┰] BOX DRAWINGS DOWN HEAVY AND HORIZONTAL LIGHT
             0x2530 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1287,7 +1287,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS RIGHT LIGHT AND LEFT DOWN HEAVY
+            // [┱] BOX DRAWINGS RIGHT LIGHT AND LEFT DOWN HEAVY
             0x2531 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1307,7 +1307,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS LEFT LIGHT AND RIGHT DOWN HEAVY
+            // [┲] BOX DRAWINGS LEFT LIGHT AND RIGHT DOWN HEAVY
             0x2532 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1327,7 +1327,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS HEAVY DOWN AND HORIZONTAL
+            // [┳] BOX DRAWINGS HEAVY DOWN AND HORIZONTAL
             0x2533 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -1338,7 +1338,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS LIGHT UP AND HORIZONTAL
+            // [┴] BOX DRAWINGS LIGHT UP AND HORIZONTAL
             0x2534 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -1349,7 +1349,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LEFT HEAVY AND RIGHT UP LIGHT
+            // [┵] BOX DRAWINGS LEFT HEAVY AND RIGHT UP LIGHT
             0x2535 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1369,7 +1369,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS RIGHT HEAVY AND LEFT UP LIGHT
+            // [┶] BOX DRAWINGS RIGHT HEAVY AND LEFT UP LIGHT
             0x2536 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1389,7 +1389,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS UP LIGHT AND HORIZONTAL HEAVY
+            // [┷] BOX DRAWINGS UP LIGHT AND HORIZONTAL HEAVY
             0x2537 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1409,7 +1409,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS UP HEAVY AND HORIZONTAL LIGHT
+            // [┸] BOX DRAWINGS UP HEAVY AND HORIZONTAL LIGHT
             0x2538 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1429,7 +1429,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS RIGHT LIGHT AND LEFT UP HEAVY
+            // [┹] BOX DRAWINGS RIGHT LIGHT AND LEFT UP HEAVY
             0x2539 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1449,7 +1449,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS LEFT LIGHT AND RIGHT UP HEAVY
+            // [┺] BOX DRAWINGS LEFT LIGHT AND RIGHT UP HEAVY
             0x253a => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1469,7 +1469,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS HEAVY UP AND HORIZONTAL
+            // [┻] BOX DRAWINGS HEAVY UP AND HORIZONTAL
             0x253b => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -1480,7 +1480,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS LIGHT VERTICAL AND HORIZONTAL
+            // [┼] BOX DRAWINGS LIGHT VERTICAL AND HORIZONTAL
             0x253c => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -1491,7 +1491,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LEFT HEAVY AND RIGHT VERTICAL LIGHT
+            // [┽] BOX DRAWINGS LEFT HEAVY AND RIGHT VERTICAL LIGHT
             0x253d => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1512,7 +1512,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS RIGHT HEAVY AND LEFT VERTICAL LIGHT
+            // [┾] BOX DRAWINGS RIGHT HEAVY AND LEFT VERTICAL LIGHT
             0x253e => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1533,7 +1533,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS VERTICAL LIGHT AND HORIZONTAL HEAVY
+            // [┿] BOX DRAWINGS VERTICAL LIGHT AND HORIZONTAL HEAVY
             0x253f => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1552,7 +1552,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS UP HEAVY AND DOWN HORIZONTAL LIGHT
+            // [╀] BOX DRAWINGS UP HEAVY AND DOWN HORIZONTAL LIGHT
             0x2540 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1573,7 +1573,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN HEAVY AND UP HORIZONTAL LIGHT
+            // [╁] BOX DRAWINGS DOWN HEAVY AND UP HORIZONTAL LIGHT
             0x2541 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1594,7 +1594,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS VERTICAL HEAVY AND HORIZONTAL LIGHT
+            // [╂] BOX DRAWINGS VERTICAL HEAVY AND HORIZONTAL LIGHT
             0x2542 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1613,7 +1613,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS LEFT UP HEAVY and RIGHT DOWN LIGHT
+            // [╃] BOX DRAWINGS LEFT UP HEAVY and RIGHT DOWN LIGHT
             0x2543 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1634,7 +1634,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS RIGHT UP HEAVY and LEFT DOWN LIGHT
+            // [╄] BOX DRAWINGS RIGHT UP HEAVY and LEFT DOWN LIGHT
             0x2544 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1655,7 +1655,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS LEFT DOWN HEAVY and RIGHT UP LIGHT
+            // [╅] BOX DRAWINGS LEFT DOWN HEAVY and RIGHT UP LIGHT
             0x2545 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1676,7 +1676,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS RIGHT DOWN HEAVY and LEFT UP LIGHT
+            // [╆] BOX DRAWINGS RIGHT DOWN HEAVY and LEFT UP LIGHT
             0x2546 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1697,7 +1697,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN LIGHT AND UP HORIZONTAL HEAVY
+            // [╇] BOX DRAWINGS DOWN LIGHT AND UP HORIZONTAL HEAVY
             0x2547 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1718,7 +1718,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS UP LIGHT AND DOWN HORIZONTAL HEAVY
+            // [╈] BOX DRAWINGS UP LIGHT AND DOWN HORIZONTAL HEAVY
             0x2548 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1739,7 +1739,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS RIGHT LIGHT AND LEFT VERTICAL HEAVY
+            // [╉] BOX DRAWINGS RIGHT LIGHT AND LEFT VERTICAL HEAVY
             0x2549 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1760,7 +1760,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS LEFT LIGHT AND RIGHT VERTICAL HEAVY
+            // [╊] BOX DRAWINGS LEFT LIGHT AND RIGHT VERTICAL HEAVY
             0x254a => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1781,7 +1781,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS HEAVY VERTICAL AND HORIZONTAL
+            // [╋] BOX DRAWINGS HEAVY VERTICAL AND HORIZONTAL
             0x254b => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -1793,7 +1793,7 @@ impl BlockKey {
                 style: PolyStyle::OutlineHeavy,
             }]),
 
-            // BOX DRAWINGS LIGHT DOUBLE DASH HORIZONTAL
+            // [╌] BOX DRAWINGS LIGHT DOUBLE DASH HORIZONTAL
             // A dash segment is wider than the gap segment.
             // We use a 2:1 ratio, which gives 6 total segments
             // with a pattern of `-- -- `
@@ -1815,7 +1815,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY DOUBLE DASH HORIZONTAL
+            // [╍] BOX DRAWINGS HEAVY DOUBLE DASH HORIZONTAL
             0x254d => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1834,7 +1834,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS LIGHT DOUBLE DASH VERTICAL
+            // [╎] BOX DRAWINGS LIGHT DOUBLE DASH VERTICAL
             0x254e => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1853,7 +1853,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY DOUBLE DASH VERTICAL
+            // [╏] BOX DRAWINGS HEAVY DOUBLE DASH VERTICAL
             0x254f => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1873,7 +1873,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS DOUBLE HORIZONTAL
+            // [═] BOX DRAWINGS DOUBLE HORIZONTAL
             0x2550 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1904,7 +1904,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOUBLE VERTICAL
+            // [║] BOX DRAWINGS DOUBLE VERTICAL
             0x2551 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1935,7 +1935,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN SINGLE AND RIGHT DOUBLE
+            // [╒] BOX DRAWINGS DOWN SINGLE AND RIGHT DOUBLE
             0x2552 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -1967,7 +1967,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN DOUBLE AND RIGHT SINGLE
+            // [╓] BOX DRAWINGS DOWN DOUBLE AND RIGHT SINGLE
             0x2553 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2000,7 +2000,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS DOUBLE DOWN AND RIGHT
+            // [╔] BOX DRAWINGS DOUBLE DOWN AND RIGHT
             0x2554 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2039,7 +2039,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN SINGLE AND LEFT DOUBLE
+            // [╕] BOX DRAWINGS DOWN SINGLE AND LEFT DOUBLE
             0x2555 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2071,7 +2071,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN DOUBLE AND LEFT SINGLE
+            // [╖] BOX DRAWINGS DOWN DOUBLE AND LEFT SINGLE
             0x2556 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2103,7 +2103,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOUBLE DOWN AND LEFT
+            // [╗] BOX DRAWINGS DOUBLE DOWN AND LEFT
             0x2557 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2142,7 +2142,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS UP SINGLE AND RIGHT DOUBLE
+            // [╘] BOX DRAWINGS UP SINGLE AND RIGHT DOUBLE
             0x2558 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2174,7 +2174,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS UP DOUBLE AND RIGHT SINGLE
+            // [╙] BOX DRAWINGS UP DOUBLE AND RIGHT SINGLE
             0x2559 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2206,7 +2206,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOUBLE UP AND RIGHT
+            // [╚] BOX DRAWINGS DOUBLE UP AND RIGHT
             0x255a => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2245,7 +2245,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS UP SINGLE AND LEFT DOUBLE
+            // [╛] BOX DRAWINGS UP SINGLE AND LEFT DOUBLE
             0x255b => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2277,7 +2277,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS UP DOUBLE AND LEFT SINGLE
+            // [╜] BOX DRAWINGS UP DOUBLE AND LEFT SINGLE
             0x255c => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2309,7 +2309,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOUBLE UP AND LEFT
+            // [╝] BOX DRAWINGS DOUBLE UP AND LEFT
             0x255d => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2349,7 +2349,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS VERTICAL SINGLE AND RIGHT DOUBLE
+            // [╞] BOX DRAWINGS VERTICAL SINGLE AND RIGHT DOUBLE
             0x255e => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2386,7 +2386,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS VERTICAL DOUBLE AND RIGHT SINGLE
+            // [╟] BOX DRAWINGS VERTICAL DOUBLE AND RIGHT SINGLE
             0x255f => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2427,7 +2427,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS DOUBLE VERTICAL AND RIGHT
+            // [╠] BOX DRAWINGS DOUBLE VERTICAL AND RIGHT
             0x2560 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2480,7 +2480,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS VERTICAL SINGLE AND LEFT DOUBLE
+            // [╡] BOX DRAWINGS VERTICAL SINGLE AND LEFT DOUBLE
             0x2561 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2517,7 +2517,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS VERTICAL DOUBLE AND LEFT SINGLE
+            // [╢] BOX DRAWINGS VERTICAL DOUBLE AND LEFT SINGLE
             0x2562 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2557,7 +2557,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOUBLE VERTICAL AND LEFT
+            // [╣] BOX DRAWINGS DOUBLE VERTICAL AND LEFT
             0x2563 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2610,7 +2610,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN SINGLE AND HORIZONTAL DOUBLE
+            // [╤] BOX DRAWINGS DOWN SINGLE AND HORIZONTAL DOUBLE
             0x2564 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2650,7 +2650,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOWN DOUBLE AND HORIZONTAL SINGLE
+            // [╥] BOX DRAWINGS DOWN DOUBLE AND HORIZONTAL SINGLE
             0x2565 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2689,7 +2689,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOUBLE DOWN AND HORIZONTAL
+            // [╦] BOX DRAWINGS DOUBLE DOWN AND HORIZONTAL
             0x2566 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2742,7 +2742,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS UP SINGLE AND HORIZONTAL DOUBLE
+            // [╧] BOX DRAWINGS UP SINGLE AND HORIZONTAL DOUBLE
             0x2567 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2782,7 +2782,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS UP DOUBLE AND HORIZONTAL SINGLE
+            // [╨] BOX DRAWINGS UP DOUBLE AND HORIZONTAL SINGLE
             0x2568 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2821,7 +2821,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS DOUBLE UP AND HORIZONTAL
+            // [╩] BOX DRAWINGS DOUBLE UP AND HORIZONTAL
             0x2569 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2874,7 +2874,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS VERTICAL SINGLE AND HORIZONTAL DOUBLE
+            // [╪] BOX DRAWINGS VERTICAL SINGLE AND HORIZONTAL DOUBLE
             0x256a => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2913,7 +2913,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS VERTICAL DOUBLE AND HORIZONTAL SINGLE
+            // [╫] BOX DRAWINGS VERTICAL DOUBLE AND HORIZONTAL SINGLE
             0x256b => Self::Poly(&[
                 Poly {
                     path: &[
@@ -2953,7 +2953,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS DOUBLE VERTICAL AND HORIZONTAL
+            // [╬] BOX DRAWINGS DOUBLE VERTICAL AND HORIZONTAL
             0x256c => Self::Poly(&[
                 Poly {
                     path: &[
@@ -3029,7 +3029,7 @@ impl BlockKey {
                 },
             ]),
 
-            // BOX DRAWINGS LIGHT ARC DOWN AND RIGHT
+            // [╭] BOX DRAWINGS LIGHT ARC DOWN AND RIGHT
             0x256d => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
@@ -3043,7 +3043,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LIGHT ARC DOWN AND LEFT
+            // [╮] BOX DRAWINGS LIGHT ARC DOWN AND LEFT
             0x256e => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
@@ -3057,7 +3057,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LIGHT ARC UP AND LEFT
+            // [╯] BOX DRAWINGS LIGHT ARC UP AND LEFT
             0x256f => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -3071,7 +3071,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LIGHT ARC UP AND RIGHT
+            // [╰] BOX DRAWINGS LIGHT ARC UP AND RIGHT
             0x2570 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -3086,7 +3086,7 @@ impl BlockKey {
                 style: PolyStyle::Outline,
             }]),
 
-            // BOX DRAWINGS LIGHT DIAGONAL UPPER RIGHT TO LOWER LEFT
+            // [╱] BOX DRAWINGS LIGHT DIAGONAL UPPER RIGHT TO LOWER LEFT
             0x2571 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
@@ -3095,7 +3095,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO LOWER RIGHT
+            // [╲] BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO LOWER RIGHT
             0x2572 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3104,7 +3104,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LIGHT DIAGONAL CROSS
+            // [╳] BOX DRAWINGS LIGHT DIAGONAL CROSS
             0x2573 => Self::Poly(&[
                 Poly {
                     path: &[
@@ -3123,7 +3123,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS LIGHT LEFT
+            // [╴] BOX DRAWINGS LIGHT LEFT
             0x2574 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -3132,7 +3132,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LIGHT UP
+            // [╵] BOX DRAWINGS LIGHT UP
             0x2575 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -3141,7 +3141,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LIGHT RIGHT
+            // [╶] BOX DRAWINGS LIGHT RIGHT
             0x2576 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
@@ -3150,7 +3150,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS LIGHT DOWN
+            // [╷] BOX DRAWINGS LIGHT DOWN
             0x2577 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
@@ -3159,7 +3159,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // BOX DRAWINGS HEAVY LEFT
+            // [╸] BOX DRAWINGS HEAVY LEFT
             0x2578 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
@@ -3168,7 +3168,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS HEAVY UP
+            // [╹] BOX DRAWINGS HEAVY UP
             0x2579 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
@@ -3177,7 +3177,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS HEAVY RIGHT
+            // [╺] BOX DRAWINGS HEAVY RIGHT
             0x257a => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
@@ -3186,7 +3186,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS HEAVY DOWN
+            // [╻] BOX DRAWINGS HEAVY DOWN
             0x257b => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::One),
@@ -3195,7 +3195,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::OutlineHeavy,
             }]),
-            // BOX DRAWINGS LIGHT LEFT AND HEAVY RIGHT
+            // [╼] BOX DRAWINGS LIGHT LEFT AND HEAVY RIGHT
             0x257c => Self::Poly(&[
                 Poly {
                     path: &[
@@ -3214,7 +3214,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS LIGHT UP AND HEAVY DOWN
+            // [╽] BOX DRAWINGS LIGHT UP AND HEAVY DOWN
             0x257d => Self::Poly(&[
                 Poly {
                     path: &[
@@ -3236,7 +3236,7 @@ impl BlockKey {
                     style: PolyStyle::OutlineHeavy,
                 },
             ]),
-            // BOX DRAWINGS HEAVY LEFT AND LIGHT RIGHT
+            // [╾] BOX DRAWINGS HEAVY LEFT AND LIGHT RIGHT
             0x257e => Self::Poly(&[
                 Poly {
                     path: &[
@@ -3255,7 +3255,7 @@ impl BlockKey {
                     style: PolyStyle::Outline,
                 },
             ]),
-            // BOX DRAWINGS HEAVY UP AND LIGHT DOWN
+            // [╿] BOX DRAWINGS HEAVY UP AND LIGHT DOWN
             0x257f => Self::Poly(&[
                 Poly {
                     path: &[
@@ -3278,68 +3278,56 @@ impl BlockKey {
                 },
             ]),
 
-            // Upper half block
+            // [▀] UPPER HALF BLOCK
             0x2580 => Self::Upper(4),
-            // Lower 1..7 eighths
+            // LOWER 1..7 EIGHTH BLOCK
+            // [▁] [▂] [▃] [▄] [▅] [▆] [▇]
             0x2581..=0x2587 => Self::Lower((c - 0x2580) as u8),
+            // [█] FULL BLOCK
             0x2588 => Self::Full(BlockAlpha::Full),
-            // Left 7..1 eighths
+            // LEFT 7..1 EIGHTHS BLOCK
+            // [▉] [▊] [▋] [▌] [▍] [▎] [▏]
             0x2589..=0x258f => Self::Left((0x2590 - c) as u8),
-            // Right half
+            // [▐] RIGHT HALF BLOCK
             0x2590 => Self::Right(4),
+            // [░] LIGHT SHADE
             0x2591 => Self::Full(BlockAlpha::Light),
+            // [▒] MEDIUM SHADE
             0x2592 => Self::Full(BlockAlpha::Medium),
+            // [▓] DARK SHADE
             0x2593 => Self::Full(BlockAlpha::Dark),
+            // [▔] UPPER ONE EIGHTH BLOCK
             0x2594 => Self::Upper(1),
+            // [▕] RIGHT ONE EIGHTH BLOCK
             0x2595 => Self::Right(1),
+            // [▖] QUADRANT LOWER LEFT
             0x2596 => Self::Quadrants(Quadrant::LOWER_LEFT),
+            // [▗] QUADRANT LOWER RIGHT
             0x2597 => Self::Quadrants(Quadrant::LOWER_RIGHT),
+            // [▘] QUADRANT UPPER LEFT
             0x2598 => Self::Quadrants(Quadrant::UPPER_LEFT),
+            // [▙] QUADRANT UPPER LEFT AND LOWER LEFT AND LOWER RIGHT
             0x2599 => {
                 Self::Quadrants(Quadrant::UPPER_LEFT | Quadrant::LOWER_LEFT | Quadrant::LOWER_RIGHT)
             }
+            // [▚] QUADRANT UPPER LEFT AND LOWER RIGHT
             0x259a => Self::Quadrants(Quadrant::UPPER_LEFT | Quadrant::LOWER_RIGHT),
+            // [▛] QUADRANT UPPER LEFT AND UPPER RIGHT AND LOWER LEFT
             0x259b => {
                 Self::Quadrants(Quadrant::UPPER_LEFT | Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT)
             }
+            // [▜] QUADRANT UPPER LEFT AND UPPER RIGHT AND LOWER RIGHT
             0x259c => Self::Quadrants(
                 Quadrant::UPPER_LEFT | Quadrant::UPPER_RIGHT | Quadrant::LOWER_RIGHT,
             ),
+            // [▝] QUADRANT UPPER RIGHT
             0x259d => Self::Quadrants(Quadrant::UPPER_RIGHT),
+            // [▞] QUADRANT UPPER RIGHT AND LOWER LEFT
             0x259e => Self::Quadrants(Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT),
+            // [▟] QUADRANT UPPER RIGHT AND LOWER LEFT AND LOWER RIGHT
             0x259f => Self::Quadrants(
                 Quadrant::UPPER_RIGHT | Quadrant::LOWER_LEFT | Quadrant::LOWER_RIGHT,
             ),
-            0x1fb00 => Self::Sextants(Sextant::ONE),
-            0x1fb01 => Self::Sextants(Sextant::TWO),
-            0x1fb02 => Self::Sextants(Sextant::ONE | Sextant::TWO),
-            0x1fb03 => Self::Sextants(Sextant::THREE),
-            0x1fb04 => Self::Sextants(Sextant::ONE | Sextant::THREE),
-            0x1fb05 => Self::Sextants(Sextant::TWO | Sextant::THREE),
-            0x1fb06 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE),
-            0x1fb07 => Self::Sextants(Sextant::FOUR),
-            0x1fb08 => Self::Sextants(Sextant::ONE | Sextant::FOUR),
-            0x1fb09 => Self::Sextants(Sextant::TWO | Sextant::FOUR),
-            0x1fb0a => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR),
-            0x1fb0b => Self::Sextants(Sextant::THREE | Sextant::FOUR),
-            0x1fb0c => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR),
-            0x1fb0d => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR),
-            0x1fb0e => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR),
-            0x1fb0f => Self::Sextants(Sextant::FIVE),
-            0x1fb10 => Self::Sextants(Sextant::ONE | Sextant::FIVE),
-            0x1fb11 => Self::Sextants(Sextant::TWO | Sextant::FIVE),
-            0x1fb12 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FIVE),
-            0x1fb13 => Self::Sextants(Sextant::THREE | Sextant::FIVE),
-            0x1fb14 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FIVE),
-            0x1fb15 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FIVE),
-            0x1fb16 => Self::Sextants(Sextant::FOUR | Sextant::FIVE),
-            0x1fb17 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::FIVE),
-            0x1fb18 => Self::Sextants(Sextant::TWO | Sextant::FOUR | Sextant::FIVE),
-            0x1fb19 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::FIVE),
-            0x1fb1a => Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::FIVE),
-            0x1fb1b => {
-                Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
-            }
             // Braille dot patterns
             // ⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏
             // ⠐ ⠑ ⠒ ⠓ ⠔ ⠕ ⠖ ⠗ ⠘ ⠙ ⠚ ⠛ ⠜ ⠝ ⠞ ⠟
@@ -3358,55 +3346,145 @@ impl BlockKey {
             // ⣠ ⣡ ⣢ ⣣ ⣤ ⣥ ⣦ ⣧ ⣨ ⣩ ⣪ ⣫ ⣬ ⣭ ⣮ ⣯
             // ⣰ ⣱ ⣲ ⣳ ⣴ ⣵ ⣶ ⣷ ⣸ ⣹ ⣺ ⣻ ⣼ ⣽ ⣾ ⣿
             n @ 0x2800..=0x28ff => Self::Braille((n & 0xff) as u8),
+            // [🬀] BLOCK SEXTANT-1
+            0x1fb00 => Self::Sextants(Sextant::ONE),
+            // [🬁] BLOCK SEXTANT-2
+            0x1fb01 => Self::Sextants(Sextant::TWO),
+            // [🬂] BLOCK SEXTANT-12
+            0x1fb02 => Self::Sextants(Sextant::ONE | Sextant::TWO),
+            // [🬃] BLOCK SEXTANT-3
+            0x1fb03 => Self::Sextants(Sextant::THREE),
+            // [🬄] BLOCK SEXTANT-13
+            0x1fb04 => Self::Sextants(Sextant::ONE | Sextant::THREE),
+            // [🬅] BLOCK SEXTANT-23
+            0x1fb05 => Self::Sextants(Sextant::TWO | Sextant::THREE),
+            // [🬆] BLOCK SEXTANT-123
+            0x1fb06 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE),
+            // [🬇] BLOCK SEXTANT-4
+            0x1fb07 => Self::Sextants(Sextant::FOUR),
+            // [🬈] BLOCK SEXTANT-14
+            0x1fb08 => Self::Sextants(Sextant::ONE | Sextant::FOUR),
+            // [🬉] BLOCK SEXTANT-24
+            0x1fb09 => Self::Sextants(Sextant::TWO | Sextant::FOUR),
+            // [🬊] BLOCK SEXTANT-124
+            0x1fb0a => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR),
+            // [🬋] BLOCK SEXTANT-34
+            0x1fb0b => Self::Sextants(Sextant::THREE | Sextant::FOUR),
+            // [🬌] BLOCK SEXTANT-134
+            0x1fb0c => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR),
+            // [🬍] BLOCK SEXTANT-234
+            0x1fb0d => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR),
+            // [🬎] BLOCK SEXTANT-1234
+            0x1fb0e => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR),
+            // [🬏] BLOCK SEXTANT-5
+            0x1fb0f => Self::Sextants(Sextant::FIVE),
+            // [🬐] BLOCK SEXTANT-15
+            0x1fb10 => Self::Sextants(Sextant::ONE | Sextant::FIVE),
+            // [🬑] BLOCK SEXTANT-25
+            0x1fb11 => Self::Sextants(Sextant::TWO | Sextant::FIVE),
+            // [🬒] BLOCK SEXTANT-125
+            0x1fb12 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FIVE),
+            // [🬓] BLOCK SEXTANT-35
+            0x1fb13 => Self::Sextants(Sextant::THREE | Sextant::FIVE),
+            // [🬔] BLOCK SEXTANT-235
+            0x1fb14 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FIVE),
+            // [🬕] BLOCK SEXTANT-1235
+            0x1fb15 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FIVE),
+            // [🬖] BLOCK SEXTANT-45
+            0x1fb16 => Self::Sextants(Sextant::FOUR | Sextant::FIVE),
+            // [🬗] BLOCK SEXTANT-145
+            0x1fb17 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::FIVE),
+            // [🬘] BLOCK SEXTANT-245
+            0x1fb18 => Self::Sextants(Sextant::TWO | Sextant::FOUR | Sextant::FIVE),
+            // [🬙] BLOCK SEXTANT-1245
+            0x1fb19 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::FIVE),
+            // [🬚] BLOCK SEXTANT-345
+            0x1fb1a => Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::FIVE),
+            // [🬛] BLOCK SEXTANT-1345
+            0x1fb1b => {
+                Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
+            }
+            // [🬜] BLOCK SEXTANT-2345
             0x1fb1c => {
                 Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE)
             }
+            // [🬝] BLOCK SEXTANT-12345
             0x1fb1d => Self::Sextants(
                 Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE,
             ),
+            // [🬞] BLOCK SEXTANT-6
             0x1fb1e => Self::Sextants(Sextant::SIX),
+            // [🬟] BLOCK SEXTANT-16
             0x1fb1f => Self::Sextants(Sextant::ONE | Sextant::SIX),
+            // [🬠] BLOCK SEXTANT-26
             0x1fb20 => Self::Sextants(Sextant::TWO | Sextant::SIX),
+            // [🬡] BLOCK SEXTANT-126
             0x1fb21 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::SIX),
+            // [🬢] BLOCK SEXTANT-36
             0x1fb22 => Self::Sextants(Sextant::THREE | Sextant::SIX),
+            // [🬣] BLOCK SEXTANT-136
             0x1fb23 => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::SIX),
+            // [🬤] BLOCK SEXTANT-236
             0x1fb24 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::SIX),
+            // [🬥] BLOCK SEXTANT-1236
             0x1fb25 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::SIX),
+            // [🬦] BLOCK SEXTANT-46
             0x1fb26 => Self::Sextants(Sextant::FOUR | Sextant::SIX),
+            // [🬧] BLOCK SEXTANT-146
             0x1fb27 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::SIX),
+            // [🬨] BLOCK SEXTANT-1246
             0x1fb28 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::SIX),
+            // [🬩] BLOCK SEXTANT-346
             0x1fb29 => Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::SIX),
+            // [🬪] BLOCK SEXTANT-1346
             0x1fb2a => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::SIX),
+            // [🬫] BLOCK SEXTANT-2346
             0x1fb2b => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::SIX),
+            // [🬬] BLOCK SEXTANT-12346
             0x1fb2c => Self::Sextants(
                 Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::SIX,
             ),
+            // [🬭] BLOCK SEXTANT-56
             0x1fb2d => Self::Sextants(Sextant::FIVE | Sextant::SIX),
+            // [🬮] BLOCK SEXTANT-156
             0x1fb2e => Self::Sextants(Sextant::ONE | Sextant::FIVE | Sextant::SIX),
+            // [🬯] BLOCK SEXTANT-256
             0x1fb2f => Self::Sextants(Sextant::TWO | Sextant::FIVE | Sextant::SIX),
+            // [🬰] BLOCK SEXTANT-1256
             0x1fb30 => Self::Sextants(Sextant::ONE | Sextant::TWO | Sextant::FIVE | Sextant::SIX),
+            // [🬱] BLOCK SEXTANT-356
             0x1fb31 => Self::Sextants(Sextant::THREE | Sextant::FIVE | Sextant::SIX),
+            // [🬲] BLOCK SEXTANT-1356
             0x1fb32 => Self::Sextants(Sextant::ONE | Sextant::THREE | Sextant::FIVE | Sextant::SIX),
+            // [🬳] BLOCK SEXTANT-2356
             0x1fb33 => Self::Sextants(Sextant::TWO | Sextant::THREE | Sextant::FIVE | Sextant::SIX),
+            // [🬴] BLOCK SEXTANT-12356
             0x1fb34 => Self::Sextants(
                 Sextant::ONE | Sextant::TWO | Sextant::THREE | Sextant::FIVE | Sextant::SIX,
             ),
+            // [🬵] BLOCK SEXTANT-456
             0x1fb35 => Self::Sextants(Sextant::FOUR | Sextant::FIVE | Sextant::SIX),
+            // [🬶] BLOCK SEXTANT-1456
             0x1fb36 => Self::Sextants(Sextant::ONE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX),
+            // [🬷] BLOCK SEXTANT-2456
             0x1fb37 => Self::Sextants(Sextant::TWO | Sextant::FOUR | Sextant::FIVE | Sextant::SIX),
+            // [🬸] BLOCK SEXTANT-12456
             0x1fb38 => Self::Sextants(
                 Sextant::ONE | Sextant::TWO | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
             ),
+            // [🬹] BLOCK SEXTANT-3456
             0x1fb39 => {
                 Self::Sextants(Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX)
             }
+            // [🬺] BLOCK SEXTANT-13456
             0x1fb3a => Self::Sextants(
                 Sextant::ONE | Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
             ),
+            // [🬻] BLOCK SEXTANT-23456
             0x1fb3b => Self::Sextants(
                 Sextant::TWO | Sextant::THREE | Sextant::FOUR | Sextant::FIVE | Sextant::SIX,
             ),
-            // LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
+            // [🬼] LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER CENTRE
             0x1fb3c => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
@@ -3417,7 +3495,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER RIGHT
+            // [🬽] LOWER LEFT BLOCK DIAGONAL LOWER MIDDLE LEFT TO LOWER RIGHT
             0x1fb3d => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(2, 3)),
@@ -3428,7 +3506,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER CENTRE
+            // [🬾] LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER CENTRE
             0x1fb3e => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
@@ -3439,7 +3517,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER RIGHT
+            // [🬿] LOWER LEFT BLOCK DIAGONAL UPPER MIDDLE LEFT TO LOWER RIGHT
             0x1fb3f => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 3)),
@@ -3450,7 +3528,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // LOWER LEFT BLOCK DIAGONAL UPPER LEFT TO LOWER CENTRE
+            // [🭀] LOWER LEFT BLOCK DIAGONAL UPPER LEFT TO LOWER CENTRE
             0x1fb40 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3462,7 +3540,7 @@ impl BlockKey {
                 style: PolyStyle::Fill,
             }]),
 
-            // Powerline filled right arrow
+            // [] Powerline filled right arrow
             0xe0b0 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3473,7 +3551,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // Powerline outline right arrow
+            // [] Powerline outline right arrow
             0xe0b1 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3483,7 +3561,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // Powerline filled left arrow
+            // [] Powerline filled left arrow
             0xe0b2 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
@@ -3494,7 +3572,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // Powerline outline left arrow
+            // [] Powerline outline left arrow
             0xe0b3 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
@@ -3505,7 +3583,7 @@ impl BlockKey {
                 style: PolyStyle::Outline,
             }]),
 
-            // Powerline filled left semicircle
+            // [] Powerline filled left semicircle
             0xe0b4 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3518,7 +3596,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // Powerline outline left semicircle
+            // [] Powerline outline left semicircle
             0xe0b5 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3530,7 +3608,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // Powerline filled right semicircle
+            // [] Powerline filled right semicircle
             0xe0b6 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
@@ -3543,7 +3621,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // Powerline outline right semicircle
+            // [] Powerline outline right semicircle
             0xe0b7 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
@@ -3556,7 +3634,7 @@ impl BlockKey {
                 style: PolyStyle::Outline,
             }]),
 
-            // Powerline filled bottom left half triangle
+            // [] Powerline filled bottom left half triangle
             0xe0b8 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3567,7 +3645,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // Powerline outline bottom left half triangle
+            // [] Powerline outline bottom left half triangle
             0xe0b9 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3576,7 +3654,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // Powerline filled bottom right half triangle
+            // [] Powerline filled bottom right half triangle
             0xe0ba => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
@@ -3587,7 +3665,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // Powerline outline bottom right half triangle
+            // [] Powerline outline bottom right half triangle
             0xe0bb => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
@@ -3596,7 +3674,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // Powerline filled top left half triangle
+            // [] Powerline filled top left half triangle
             0xe0bc => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3607,7 +3685,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // Powerline outline top left half triangle
+            // [] Powerline outline top left half triangle
             0xe0bd => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
@@ -3616,7 +3694,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Outline,
             }]),
-            // Powerline filled top right half triangle
+            // [] Powerline filled top right half triangle
             0xe0be => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3627,7 +3705,7 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
-            // Powerline outline top right half triangle
+            // [] Powerline outline top right half triangle
             0xe0bf => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
