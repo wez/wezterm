@@ -18,18 +18,6 @@ lazy_static::lazy_static! {
     static ref FALLBACK: Vec<ParsedFont> = build_fallback_list();
 }
 
-extern "C" {
-    static NSFontWeightUltraLight: f64;
-    static NSFontWeightThin: f64;
-    static NSFontWeightLight: f64;
-    static NSFontWeightRegular: f64;
-    static NSFontWeightMedium: f64;
-    static NSFontWeightSemibold: f64;
-    static NSFontWeightBold: f64;
-    static NSFontWeightHeavy: f64;
-    static NSFontWeightBlack: f64;
-}
-
 /// A FontLocator implemented using the system font loading
 /// functions provided by core text.
 pub struct CoreTextFontLocator {}
@@ -41,7 +29,7 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CFArray<CTFontD
         .map_err(|_| anyhow::anyhow!("failed to parse family name {} as CFString", attr.family))?;
 
     let symbolic_traits: CTFontSymbolicTraits = kCTFontMonoSpaceTrait
-        | if attr.weight.to_opentype_weight() >= FontWeight::Bold.to_opentype_weight() {
+        | if attr.weight >= FontWeight::BOLD {
             kCTFontBoldTrait
         } else {
             0
@@ -55,7 +43,6 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CFArray<CTFontD
         }
         | if attr.italic { kCTFontItalicTrait } else { 0 };
 
-    let weight_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontWeightTrait) };
     let family_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontFamilyNameAttribute) };
     let traits_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontTraitsAttribute) };
     let symbolic_traits_attr: CFString =
@@ -66,27 +53,9 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CFArray<CTFontD
         CFNumber::from(symbolic_traits as i32).as_CFType(),
     )]);
 
-    let weight = unsafe {
-        match attr.weight {
-            FontWeight::Thin => NSFontWeightUltraLight,
-            FontWeight::ExtraLight => NSFontWeightThin,
-            FontWeight::Light => NSFontWeightLight,
-            FontWeight::DemiLight => NSFontWeightLight,
-            FontWeight::Book => NSFontWeightLight,
-            FontWeight::Regular => NSFontWeightRegular,
-            FontWeight::Medium => NSFontWeightMedium,
-            FontWeight::DemiBold => NSFontWeightSemibold,
-            FontWeight::Bold => NSFontWeightBold,
-            FontWeight::ExtraBold => NSFontWeightHeavy,
-            FontWeight::Black => NSFontWeightBlack,
-            FontWeight::ExtraBlack => NSFontWeightBlack,
-        }
-    };
-
     let attributes = CFDictionary::from_CFType_pairs(&[
         (traits_attr, traits.as_CFType()),
         (family_attr, family_name.as_CFType()),
-        (weight_attr, CFNumber::from(weight).as_CFType()),
     ]);
     let desc = core_text::font_descriptor::new_from_attributes(&attributes);
 
@@ -220,7 +189,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
     // a nearby approximation.
     let symbols = FontAttributes {
         family: "Apple Symbols".to_string(),
-        weight: FontWeight::Regular,
+        weight: FontWeight::REGULAR,
         stretch: FontStretch::Normal,
         italic: false,
         is_fallback: true,
@@ -234,7 +203,7 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
 
     // Constrain to default weight/stretch/style
     fonts.retain(|f| {
-        f.weight() == FontWeight::Regular && f.stretch() == FontStretch::Normal && !f.italic()
+        f.weight() == FontWeight::REGULAR && f.stretch() == FontStretch::Normal && !f.italic()
     });
 
     // Pre-compute coverage

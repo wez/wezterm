@@ -2,7 +2,7 @@ use crate::*;
 use bitflags::*;
 use enum_display_derive::Display;
 use luahelper::impl_lua_conversion;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::Display;
 use termwiz::color::RgbColor;
 
@@ -59,74 +59,155 @@ impl Default for FontStretch {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display, PartialOrd, Ord,
-)]
-pub enum FontWeight {
-    Thin,
-    ExtraLight,
-    Light,
-    DemiLight,
-    Book,
-    Regular,
-    Medium,
-    DemiBold,
-    Bold,
-    ExtraBold,
-    Black,
-    ExtraBlack,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct FontWeight(u16);
+
+enum FontWeightOrLabel {
+    Weight(u16),
+    Label(&'static str),
 }
 
-impl Default for FontWeight {
-    fn default() -> Self {
-        Self::Regular
+impl FontWeight {
+    fn categorize_weight(&self) -> FontWeightOrLabel {
+        let label = if *self == Self::EXTRABLACK {
+            "ExtraBlack"
+        } else if *self == Self::BLACK {
+            "Black"
+        } else if *self == Self::EXTRABOLD {
+            "ExtraBold"
+        } else if *self == Self::BOLD {
+            "Bold"
+        } else if *self == Self::DEMIBOLD {
+            "DemiBold"
+        } else if *self == Self::MEDIUM {
+            "Medium"
+        } else if *self == Self::REGULAR {
+            "Regular"
+        } else if *self == Self::BOOK {
+            "Book"
+        } else if *self == Self::DEMILIGHT {
+            "DemiLight"
+        } else if *self == Self::LIGHT {
+            "Light"
+        } else if *self == Self::EXTRALIGHT {
+            "ExtraLight"
+        } else if *self == Self::THIN {
+            "Thin"
+        } else {
+            return FontWeightOrLabel::Weight(self.0);
+        };
+        FontWeightOrLabel::Label(label)
+    }
+
+    fn from_str(s: &str) -> Option<FontWeight> {
+        Some(match s {
+            "ExtraBlack" => Self::EXTRABLACK,
+            "Black" => Self::BLACK,
+            "ExtraBold" => Self::EXTRABOLD,
+            "Bold" => Self::BOLD,
+            "DemiBold" => Self::DEMIBOLD,
+            "Medium" => Self::MEDIUM,
+            "Regular" => Self::REGULAR,
+            "Book" => Self::BOOK,
+            "DemiLight" => Self::DEMILIGHT,
+            "Light" => Self::LIGHT,
+            "ExtraLight" => Self::EXTRALIGHT,
+            "Thin" => Self::THIN,
+            _ => return None,
+        })
+    }
+}
+
+impl Serialize for FontWeight {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self.categorize_weight() {
+            FontWeightOrLabel::Weight(n) => serializer.serialize_u16(n),
+            FontWeightOrLabel::Label(l) => serializer.serialize_str(l),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for FontWeight {
+    fn deserialize<D>(deserializer: D) -> Result<FontWeight, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct V {}
+
+        impl<'de> serde::de::Visitor<'de> for V {
+            type Value = FontWeight;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("string or font weight value")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<FontWeight, E>
+            where
+                E: serde::de::Error,
+            {
+                match FontWeight::from_str(value) {
+                    Some(w) => Ok(w),
+                    None => Err(E::custom(format!("invalid font weight {}", value))),
+                }
+            }
+
+            // Lua gives us an integer in this format
+            fn visit_i64<E>(self, value: i64) -> Result<FontWeight, E>
+            where
+                E: serde::de::Error,
+            {
+                if value > 0 && value <= u16::MAX as i64 {
+                    Ok(FontWeight(value as u16))
+                } else {
+                    Err(E::custom(format!("invalid font weight {}", value)))
+                }
+            }
+        }
+
+        deserializer.deserialize_any(V {})
+    }
+}
+
+impl Display for FontWeight {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self.categorize_weight() {
+            FontWeightOrLabel::Weight(n) => write!(fmt, "{}", n),
+            FontWeightOrLabel::Label(l) => write!(fmt, "\"{}\"", l),
+        }
     }
 }
 
 impl FontWeight {
-    pub fn from_opentype_weight(w: u16) -> Self {
-        if w >= 1000 {
-            Self::ExtraBlack
-        } else if w >= 900 {
-            Self::Black
-        } else if w >= 800 {
-            Self::ExtraBold
-        } else if w >= 700 {
-            Self::Bold
-        } else if w >= 600 {
-            Self::DemiBold
-        } else if w >= 500 {
-            Self::Medium
-        } else if w >= 400 {
-            Self::Regular
-        } else if w >= 380 {
-            Self::Book
-        } else if w >= 350 {
-            Self::DemiLight
-        } else if w >= 300 {
-            Self::Light
-        } else if w >= 200 {
-            Self::ExtraLight
-        } else {
-            Self::Thin
-        }
+    pub const THIN: FontWeight = FontWeight(100);
+    pub const EXTRALIGHT: FontWeight = FontWeight(200);
+    pub const LIGHT: FontWeight = FontWeight(300);
+    pub const DEMILIGHT: FontWeight = FontWeight(350);
+    pub const BOOK: FontWeight = FontWeight(380);
+    pub const REGULAR: FontWeight = FontWeight(400);
+    pub const MEDIUM: FontWeight = FontWeight(500);
+    pub const DEMIBOLD: FontWeight = FontWeight(600);
+    pub const BOLD: FontWeight = FontWeight(700);
+    pub const EXTRABOLD: FontWeight = FontWeight(800);
+    pub const BLACK: FontWeight = FontWeight(900);
+    pub const EXTRABLACK: FontWeight = FontWeight(1000);
+}
+
+impl Default for FontWeight {
+    fn default() -> Self {
+        Self::REGULAR
+    }
+}
+
+impl FontWeight {
+    pub const fn from_opentype_weight(w: u16) -> Self {
+        Self(w)
     }
 
     pub fn to_opentype_weight(self) -> u16 {
-        match self {
-            Self::Thin => 100,
-            Self::ExtraLight => 200,
-            Self::Light => 300,
-            Self::DemiLight => 350,
-            Self::Book => 380,
-            Self::Regular => 400,
-            Self::Medium => 500,
-            Self::DemiBold => 600,
-            Self::Bold => 700,
-            Self::ExtraBold => 800,
-            Self::Black => 900,
-            Self::ExtraBlack => 1000,
-        }
+        self.0
     }
 
     pub fn lighter(self) -> Self {
@@ -237,7 +318,7 @@ impl std::fmt::Display for FontAttributes {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         write!(
             fmt,
-            "wezterm.font('{}', {{weight='{}', stretch='{}', italic={}}})",
+            "wezterm.font('{}', {{weight={}, stretch='{}', italic={}}})",
             self.family, self.weight, self.stretch, self.italic
         )
     }

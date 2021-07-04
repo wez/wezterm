@@ -500,9 +500,9 @@ fn font<'lua>(
 
     if let Some(map_defaults) = map_defaults {
         attrs.weight = match map_defaults.bold {
-            Some(true) => FontWeight::Bold,
-            Some(false) => FontWeight::Regular,
-            None => map_defaults.weight.unwrap_or(FontWeight::Regular),
+            Some(true) => FontWeight::BOLD,
+            Some(false) => FontWeight::REGULAR,
+            None => map_defaults.weight.unwrap_or(FontWeight::REGULAR),
         };
         attrs.stretch = map_defaults.stretch;
         attrs.italic = map_defaults.italic;
@@ -538,9 +538,9 @@ fn font_with_fallback<'lua>(
     for (idx, mut attrs) in fallback.into_iter().enumerate() {
         if let Some(map_defaults) = &map_defaults {
             attrs.weight = match map_defaults.bold {
-                Some(true) => FontWeight::Bold,
-                Some(false) => FontWeight::Regular,
-                None => map_defaults.weight.unwrap_or(FontWeight::Regular),
+                Some(true) => FontWeight::BOLD,
+                Some(false) => FontWeight::REGULAR,
+                None => map_defaults.weight.unwrap_or(FontWeight::REGULAR),
             };
             attrs.stretch = map_defaults.stretch;
             attrs.italic = map_defaults.italic;

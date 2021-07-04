@@ -129,7 +129,7 @@ impl ParsedFont {
 
     pub fn lua_name(&self) -> String {
         format!(
-            "wezterm.font(\"{}\", weight=\"{}\", stretch=\"{}\", italic={})",
+            "wezterm.font(\"{}\", {{weight={}, stretch=\"{}\", italic={}}})",
             self.names.family, self.weight, self.stretch, self.italic
         )
     }
@@ -148,12 +148,12 @@ impl ParsedFont {
                 code.push_str("  -- Will synthesize dim\n");
             }
 
-            if p.weight == FontWeight::Regular && p.stretch == FontStretch::Normal && !p.italic {
+            if p.weight == FontWeight::REGULAR && p.stretch == FontStretch::Normal && !p.italic {
                 code.push_str(&format!("  \"{}\",\n", p.names.family));
             } else {
                 code.push_str(&format!("  {{family=\"{}\"", p.names.family));
-                if p.weight != FontWeight::Regular {
-                    code.push_str(&format!(", weight=\"{}\"", p.weight));
+                if p.weight != FontWeight::REGULAR {
+                    code.push_str(&format!(", weight={}", p.weight));
                 }
                 if p.stretch != FontStretch::Normal {
                     code.push_str(&format!(", stretch=\"{}\"", p.stretch));
@@ -171,8 +171,8 @@ impl ParsedFont {
 
     pub fn from_face(face: &crate::ftwrap::Face, handle: FontDataHandle) -> anyhow::Result<Self> {
         let italic = face.italic();
-        let (weight, width) = face.weight_and_width();
-        let weight = FontWeight::from_opentype_weight(weight);
+        let (ot_weight, width) = face.weight_and_width();
+        let weight = FontWeight::from_opentype_weight(ot_weight);
         let stretch = FontStretch::from_opentype_stretch(width);
         let cap_height = face.cap_height();
 
@@ -323,24 +323,24 @@ impl ParsedFont {
         {
             // Exact match for the requested weight
             attr.weight
-        } else if attr.weight == FontWeight::Regular
+        } else if attr.weight == FontWeight::REGULAR
             && candidates
                 .iter()
-                .any(|&idx| fonts[idx].weight == FontWeight::Medium)
+                .any(|&idx| fonts[idx].weight == FontWeight::MEDIUM)
         {
             // https://drafts.csswg.org/css-fonts-3/#font-style-matching says
             // that if they want weight=400 and we don't have 400,
             // look at weight 500 first
-            FontWeight::Medium
-        } else if attr.weight == FontWeight::Medium
+            FontWeight::MEDIUM
+        } else if attr.weight == FontWeight::MEDIUM
             && candidates
                 .iter()
-                .any(|&idx| fonts[idx].weight == FontWeight::Regular)
+                .any(|&idx| fonts[idx].weight == FontWeight::REGULAR)
         {
             // Similarly, look at regular before Medium if they wanted
             // Medium and we didn't have it
-            FontWeight::Regular
-        } else if attr.weight <= FontWeight::Medium {
+            FontWeight::REGULAR
+        } else if attr.weight <= FontWeight::MEDIUM {
             // Find best lighter weight, else best heavier weight
             match candidates
                 .iter()
@@ -389,12 +389,12 @@ impl ParsedFont {
     /// italic for this font.
     pub fn synthesize(mut self, attr: &FontAttributes) -> Self {
         self.synthesize_italic = !self.italic && attr.italic;
-        self.synthesize_bold = attr.weight > FontWeight::Regular
+        self.synthesize_bold = attr.weight >= FontWeight::BOLD
             && attr.weight > self.weight
-            && self.weight <= FontWeight::Regular;
-        self.synthesize_dim = attr.weight < FontWeight::Regular
+            && self.weight <= FontWeight::REGULAR;
+        self.synthesize_dim = attr.weight < FontWeight::REGULAR
             && attr.weight < self.weight
-            && self.weight >= FontWeight::Regular;
+            && self.weight >= FontWeight::REGULAR;
         self
     }
 }
