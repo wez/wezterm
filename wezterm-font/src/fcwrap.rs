@@ -396,18 +396,28 @@ impl fmt::Debug for Pattern {
 }
 
 pub fn to_fc_weight(weight: FontWeight) -> c_int {
-    match weight {
-        FontWeight::Thin => FC_WEIGHT_THIN,
-        FontWeight::ExtraLight => FC_WEIGHT_EXTRALIGHT,
-        FontWeight::Light => FC_WEIGHT_LIGHT,
-        FontWeight::DemiLight | FontWeight::Book => FC_WEIGHT_BOOK,
-        FontWeight::Regular => FC_WEIGHT_REGULAR,
-        FontWeight::Medium => FC_WEIGHT_MEDIUM,
-        FontWeight::DemiBold => FC_WEIGHT_DEMIBOLD,
-        FontWeight::Bold => FC_WEIGHT_BOLD,
-        FontWeight::ExtraBold => FC_WEIGHT_EXTRABOLD,
-        FontWeight::Black => FC_WEIGHT_BLACK,
-        FontWeight::ExtraBlack => FC_WEIGHT_EXTRABLACK,
+    if weight >= FontWeight::EXTRABLACK {
+        FC_WEIGHT_EXTRABLACK
+    } else if weight >= FontWeight::BLACK {
+        FC_WEIGHT_BLACK
+    } else if weight >= FontWeight::EXTRABOLD {
+        FC_WEIGHT_EXTRABOLD
+    } else if weight >= FontWeight::BOLD {
+        FC_WEIGHT_BOLD
+    } else if weight >= FontWeight::DEMIBOLD {
+        FC_WEIGHT_DEMIBOLD
+    } else if weight >= FontWeight::MEDIUM {
+        FC_WEIGHT_MEDIUM
+    } else if weight >= FontWeight::REGULAR {
+        FC_WEIGHT_REGULAR
+    } else if weight >= FontWeight::BOOL {
+        FC_WEIGHT_BOOK
+    } else if weight >= FontWeight::LIGHT {
+        FC_WEIGHT_LIGHT
+    } else if weight >= FontWeight::EXTRALIGHT {
+        FC_WEIGHT_EXTRALIGHT
+    } else {
+        FC_WEIGHT_THIN
     }
 }
 
