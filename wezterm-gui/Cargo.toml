@@ -31,7 +31,7 @@ env-bootstrap = { path = "../env-bootstrap" }
 euclid = "0.22"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 hdrhistogram = "7.1"
-http_req = {version="0.7", default-features=false, features=["rust-tls"]}
+http_req = {version="0.8", default-features=false, features=["rust-tls"]}
 image = "0.23"
 lazy_static = "1.4"
 libc = "0.2"
