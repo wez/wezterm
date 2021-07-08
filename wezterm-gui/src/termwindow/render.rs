@@ -673,38 +673,6 @@ impl super::TermWindow {
             let bg_is_default = attrs.background == ColorAttribute::Default;
             let bg_color = params.palette.resolve_bg(attrs.background);
 
-            fn resolve_fg_color_attr(
-                attrs: &CellAttributes,
-                fg: &ColorAttribute,
-                params: &RenderScreenLineOpenGLParams,
-                style: &config::TextStyle,
-            ) -> RgbColor {
-                match fg {
-                    wezterm_term::color::ColorAttribute::Default => {
-                        if let Some(fg) = style.foreground {
-                            fg
-                        } else {
-                            params.palette.resolve_fg(attrs.foreground)
-                        }
-                    }
-                    wezterm_term::color::ColorAttribute::PaletteIndex(idx)
-                        if *idx < 8 && params.config.bold_brightens_ansi_colors =>
-                    {
-                        // For compatibility purposes, switch to a brighter version
-                        // of one of the standard ANSI colors when Bold is enabled.
-                        // This lifts black to dark grey.
-                        let idx = if attrs.intensity() == wezterm_term::Intensity::Bold {
-                            *idx + 8
-                        } else {
-                            *idx
-                        };
-                        params
-                            .palette
-                            .resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
-                    }
-                    _ => params.palette.resolve_fg(*fg),
-                }
-            }
             let fg_color = resolve_fg_color_attr(&attrs, &attrs.foreground, &params, &style);
 
             let (fg_color, bg_color, bg_is_default) = {
@@ -1294,4 +1262,37 @@ fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> LinearRgba {
     // as though it is linear RGB, hence this is using with_rgba rather than
     // with_srgba.
     LinearRgba::with_rgba(color.red, color.green, color.blue, alpha)
+}
+
+fn resolve_fg_color_attr(
+    attrs: &CellAttributes,
+    fg: &ColorAttribute,
+    params: &RenderScreenLineOpenGLParams,
+    style: &config::TextStyle,
+) -> RgbColor {
+    match fg {
+        wezterm_term::color::ColorAttribute::Default => {
+            if let Some(fg) = style.foreground {
+                fg
+            } else {
+                params.palette.resolve_fg(attrs.foreground)
+            }
+        }
+        wezterm_term::color::ColorAttribute::PaletteIndex(idx)
+            if *idx < 8 && params.config.bold_brightens_ansi_colors =>
+        {
+            // For compatibility purposes, switch to a brighter version
+            // of one of the standard ANSI colors when Bold is enabled.
+            // This lifts black to dark grey.
+            let idx = if attrs.intensity() == wezterm_term::Intensity::Bold {
+                *idx + 8
+            } else {
+                *idx
+            };
+            params
+                .palette
+                .resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
+        }
+        _ => params.palette.resolve_fg(*fg),
+    }
 }
