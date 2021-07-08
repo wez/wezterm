@@ -650,62 +650,87 @@ impl super::TermWindow {
 
         let mut last_cell_idx = 0;
 
+        // Basic cache of computed data from prior cluster to avoid doing the same
+        // work for space separated clusters with the same style
+        struct ClusterStyleCache<'a> {
+            attrs: &'a CellAttributes,
+            style: &'a TextStyle,
+            underline_tex_rect: TextureRect,
+            fg_color: LinearRgba,
+            bg_color: LinearRgba,
+            underline_color: LinearRgba,
+        }
+        let mut last_style = None;
+
         for cluster in &cell_clusters {
-            let attrs = &cluster.attrs;
+            if !matches!(last_style.as_ref(), Some(ClusterStyleCache{attrs,..}) if *attrs == &cluster.attrs)
+            {
+                let attrs = &cluster.attrs;
+                let style = self.fonts.match_style(params.config, attrs);
+                let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
+                    (Some(ref this), &Some(ref highlight)) => **this == *highlight,
+                    _ => false,
+                };
+                // underline and strikethrough
+                let underline_tex_rect = gl_state
+                    .glyph_cache
+                    .borrow_mut()
+                    .cached_line_sprite(
+                        is_highlited_hyperlink,
+                        attrs.strikethrough(),
+                        attrs.underline(),
+                        attrs.overline(),
+                    )?
+                    .texture_coords();
+                let bg_is_default = attrs.background == ColorAttribute::Default;
+                let bg_color = params.palette.resolve_bg(attrs.background);
 
-            let is_highlited_hyperlink = match (attrs.hyperlink(), &self.current_highlight) {
-                (Some(ref this), &Some(ref highlight)) => **this == *highlight,
-                _ => false,
-            };
-            let style = self.fonts.match_style(params.config, attrs);
-            // underline and strikethrough
-            let underline_tex_rect = gl_state
-                .glyph_cache
-                .borrow_mut()
-                .cached_line_sprite(
-                    is_highlited_hyperlink,
-                    attrs.strikethrough(),
-                    attrs.underline(),
-                    attrs.overline(),
-                )?
-                .texture_coords();
+                let fg_color = resolve_fg_color_attr(&attrs, &attrs.foreground, &params, style);
 
-            let bg_is_default = attrs.background == ColorAttribute::Default;
-            let bg_color = params.palette.resolve_bg(attrs.background);
+                let (fg_color, bg_color, bg_is_default) = {
+                    let mut fg = fg_color;
+                    let mut bg = bg_color;
+                    let mut bg_default = bg_is_default;
 
-            let fg_color = resolve_fg_color_attr(&attrs, &attrs.foreground, &params, &style);
+                    if attrs.reverse() {
+                        std::mem::swap(&mut fg, &mut bg);
+                        bg_default = false;
+                    }
 
-            let (fg_color, bg_color, bg_is_default) = {
-                let mut fg = fg_color;
-                let mut bg = bg_color;
-                let mut bg_default = bg_is_default;
+                    (fg, bg, bg_default)
+                };
 
-                if attrs.reverse() {
-                    std::mem::swap(&mut fg, &mut bg);
-                    bg_default = false;
-                }
+                let glyph_color = rgbcolor_to_window_color(fg_color);
+                let underline_color = match attrs.underline_color() {
+                    ColorAttribute::Default => fg_color,
+                    c => resolve_fg_color_attr(&attrs, &c, &params, style),
+                };
+                let underline_color = rgbcolor_to_window_color(underline_color);
 
-                (fg, bg, bg_default)
-            };
+                let bg_color = rgbcolor_alpha_to_window_color(
+                    bg_color,
+                    if window_is_transparent && bg_is_default {
+                        0x00
+                    } else {
+                        (params.config.text_background_opacity * 255.0) as u8
+                    },
+                );
 
-            let glyph_color = rgbcolor_to_window_color(fg_color);
-            let underline_color = match attrs.underline_color() {
-                ColorAttribute::Default => fg_color,
-                c => resolve_fg_color_attr(&attrs, &c, &params, &style),
-            };
-            let underline_color = rgbcolor_to_window_color(underline_color);
+                last_style.replace(ClusterStyleCache {
+                    attrs,
+                    style,
+                    underline_tex_rect: underline_tex_rect.clone(),
+                    bg_color,
+                    fg_color: glyph_color,
+                    underline_color,
+                });
+            }
 
-            let bg_color = rgbcolor_alpha_to_window_color(
-                bg_color,
-                if window_is_transparent && bg_is_default {
-                    0x00
-                } else {
-                    (params.config.text_background_opacity * 255.0) as u8
-                },
-            );
+            let style_params = last_style.as_ref().expect("we literally just assigned it");
 
             // Shape the printable text from this cluster
-            let glyph_info = self.cached_cluster_shape(style, &cluster, &gl_state, params.line)?;
+            let glyph_info =
+                self.cached_cluster_shape(style_params.style, &cluster, &gl_state, params.line)?;
 
             for info in glyph_info.iter() {
                 let cell_idx = cluster.byte_to_cell_idx(info.pos.cluster as usize);
@@ -743,8 +768,8 @@ impl super::TermWindow {
                         cell_idx,
                         cursor: params.cursor,
                         selection: &params.selection,
-                        fg_color: glyph_color,
-                        bg_color,
+                        fg_color: style_params.fg_color,
+                        bg_color: style_params.bg_color,
                         palette: params.palette,
                         is_active_pane: params.pos.is_active,
                         config: params.config,
@@ -754,7 +779,7 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                     });
 
-                    if let Some(image) = attrs.image() {
+                    if let Some(image) = cluster.attrs.image() {
                         self.populate_image_quad(
                             image,
                             gl_state,
@@ -764,7 +789,7 @@ impl super::TermWindow {
                             hsv,
                             cursor_shape,
                             glyph_color,
-                            underline_color,
+                            style_params.underline_color,
                             bg_color,
                             white_space,
                         )?;
@@ -782,7 +807,7 @@ impl super::TermWindow {
                                 hsv,
                                 cursor_shape,
                                 glyph_color,
-                                underline_color,
+                                style_params.underline_color,
                                 bg_color,
                                 white_space,
                             )?;
@@ -832,8 +857,8 @@ impl super::TermWindow {
                     quad.set_bg_color(bg_color);
                     quad.set_texture(texture_rect);
                     quad.set_texture_adjust(left, top, right, bottom);
-                    quad.set_underline(underline_tex_rect);
-                    quad.set_underline_color(underline_color);
+                    quad.set_underline(style_params.underline_tex_rect);
+                    quad.set_underline_color(style_params.underline_color);
                     quad.set_hsv(if glyph.brightness_adjust != 1.0 {
                         let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
                         Some(HsbTransform {
