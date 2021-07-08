@@ -93,8 +93,10 @@ impl TabStop {
                     *t = false;
                 }
             }
-            TabulationClear::ClearAllCharacterTabStops
-            | TabulationClear::ClearCharacterTabStopsAtActiveLine => {
+            // If we want to exactly match VT100/xterm behavior, then
+            // we cannot honor ClearCharacterTabStopsAtActiveLine.
+            TabulationClear::ClearAllCharacterTabStops => {
+                // | TabulationClear::ClearCharacterTabStopsAtActiveLine => {
                 for t in &mut self.tabs {
                     *t = false;
                 }
@@ -290,6 +292,7 @@ pub struct TerminalState {
     g0_charset: CharSet,
     g1_charset: CharSet,
     shift_out: bool,
+    newline_mode: bool,
 
     tabs: TabStop,
 
@@ -495,6 +498,7 @@ impl TerminalState {
             g0_charset: CharSet::Ascii,
             g1_charset: CharSet::DecLineDrawing,
             shift_out: false,
+            newline_mode: false,
             current_mouse_button: MouseButton::None,
             tabs: TabStop::new(size.physical_cols, 8),
             title: "wezterm".to_string(),
@@ -1028,6 +1032,9 @@ impl TerminalState {
                         buf.push(0x1b as char);
                     }
                     buf.push(c);
+                    if self.newline_mode && key == Enter {
+                        buf.push(0x0a as char);
+                    }
                 }
                 buf.as_str()
             }
@@ -1789,6 +1796,7 @@ impl TerminalState {
                 self.application_keypad = false;
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
                 self.left_and_right_margins = 0..self.screen().physical_cols;
+                self.screen.reverse_video_mode = false;
                 self.screen.activate_alt_screen();
                 self.screen.saved_cursor().take();
                 self.screen.activate_primary_screen();
@@ -1817,6 +1825,12 @@ impl TerminalState {
                     .write(format!(">|{} {}", self.term_program, self.term_version).as_bytes())
                     .ok();
                 self.writer.write(ST.as_bytes()).ok();
+                self.writer.flush().ok();
+            }
+            Device::RequestTerminalParameters(a) => {
+                self.writer
+                    .write(format!("\x1b[{};1;1;128;128;1;0x", a + 2).as_bytes())
+                    .ok();
                 self.writer.flush().ok();
             }
             Device::StatusReport => {
@@ -1949,10 +1963,26 @@ impl TerminalState {
                 // We always output at our "best" rate
             }
 
-            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo))
-            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
-                // I'm mostly intentionally ignoring this in favor
-                // of respecting the configured colors
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
+                // Turn on reverse video for all of the lines on the
+                // display.
+                self.screen.reverse_video_mode = true;
+                for y in 0..self.screen.physical_rows as i64 {
+                    let line_idx = self.screen.phys_row(VisibleRowIndex::from(y));
+                    let line = self.screen.line_mut(line_idx);
+                    line.set_reverse(true);
+                }
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
+                // Turn off reverse video for all of the lines on the
+                // display.
+                self.screen.reverse_video_mode = false;
+                for y in 0..self.screen.physical_rows as i64 {
+                    let line_idx = self.screen.phys_row(VisibleRowIndex::from(y));
+                    let line = self.screen.line_mut(line_idx);
+                    line.set_reverse(false);
+                }
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Select132Columns))
@@ -1975,6 +2005,13 @@ impl TerminalState {
             }
             Mode::ResetMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
                 self.insert = false;
+            }
+
+            Mode::SetMode(TerminalMode::Code(TerminalModeCode::AutomaticNewline)) => {
+                self.newline_mode = true;
+            }
+            Mode::ResetMode(TerminalMode::Code(TerminalModeCode::AutomaticNewline)) => {
+                self.newline_mode = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste)) => {
@@ -2824,6 +2861,7 @@ impl TerminalState {
         self.g0_charset = saved.g0_charset;
         self.g1_charset = saved.g1_charset;
         self.shift_out = false;
+        self.newline_mode = false;
     }
 
     fn perform_csi_sgr(&mut self, sgr: Sgr) {
@@ -3189,6 +3227,9 @@ impl<'a> Performer<'a> {
                     self.cursor.y = y;
                     self.wrap_next = false;
                 }
+                if self.newline_mode {
+                    self.cursor.x = 0;
+                }
             }
             ControlCode::CarriageReturn => {
                 if self.cursor.x >= self.left_and_right_margins.start {
@@ -3258,6 +3299,15 @@ impl<'a> Performer<'a> {
             ControlCode::ShiftOut => {
                 self.shift_out = true;
             }
+
+            ControlCode::Enquiry => {
+                let response = self.config.enq_answerback();
+                if response.len() > 0 {
+                    write!(self.writer, "{}", response).ok();
+                    self.writer.flush().ok();
+                }
+            }
+
             _ => log::warn!("unhandled ControlCode {:?}", control),
         }
     }
@@ -3318,6 +3368,23 @@ impl<'a> Performer<'a> {
             Esc::Code(EscCode::DecSaveCursorPosition) => self.dec_save_cursor(),
             Esc::Code(EscCode::DecRestoreCursorPosition) => self.dec_restore_cursor(),
 
+            Esc::Code(EscCode::DecDoubleHeightTopHalfLine) => {
+                let idx = self.screen.phys_row(self.cursor.y);
+                self.screen.line_mut(idx).set_double_height_top();
+            }
+            Esc::Code(EscCode::DecDoubleHeightBottomHalfLine) => {
+                let idx = self.screen.phys_row(self.cursor.y);
+                self.screen.line_mut(idx).set_double_height_bottom();
+            }
+            Esc::Code(EscCode::DecDoubleWidthLine) => {
+                let idx = self.screen.phys_row(self.cursor.y);
+                self.screen.line_mut(idx).set_double_width();
+            }
+            Esc::Code(EscCode::DecSingleWidthLine) => {
+                let idx = self.screen.phys_row(self.cursor.y);
+                self.screen.line_mut(idx).set_single_width();
+            }
+
             Esc::Code(EscCode::DecScreenAlignmentDisplay) => {
                 // This one is just to make vttest happy;
                 // its original purpose was for aligning the CRT.
@@ -3351,6 +3418,7 @@ impl<'a> Performer<'a> {
                 self.insert = false;
                 self.dec_auto_wrap = true;
                 self.reverse_wraparound_mode = false;
+                self.screen.reverse_video_mode = false;
                 self.dec_origin_mode = false;
                 self.use_private_color_registers_for_each_graphic = false;
                 self.color_map = default_color_map();
@@ -3369,6 +3437,7 @@ impl<'a> Performer<'a> {
                 self.g0_charset = CharSet::Ascii;
                 self.g1_charset = CharSet::DecLineDrawing;
                 self.shift_out = false;
+                self.newline_mode = false;
                 self.tabs = TabStop::new(self.screen().physical_cols, 8);
                 self.palette.take();
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as VisibleRowIndex;

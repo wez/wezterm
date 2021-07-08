@@ -72,4 +72,8 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     fn alternate_buffer_wheel_scroll_speed(&self) -> u8 {
         3
     }
+
+    fn enq_answerback(&self) -> String {
+        "".to_string()
+    }
 }

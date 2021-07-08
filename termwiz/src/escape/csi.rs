@@ -289,6 +289,7 @@ pub enum Device {
     /// https://github.com/mintty/mintty/issues/881
     /// https://gitlab.gnome.org/GNOME/vte/-/issues/235
     RequestTerminalNameAndVersion,
+    RequestTerminalParameters(i64),
     XtSmGraphics(XtSmGraphics),
 }
 
@@ -307,6 +308,7 @@ impl Display for Device {
             Device::RequestPrimaryDeviceAttributes => write!(f, "c")?,
             Device::RequestSecondaryDeviceAttributes => write!(f, ">c")?,
             Device::RequestTerminalNameAndVersion => write!(f, ">q")?,
+            Device::RequestTerminalParameters(n) => write!(f, "{};1;1;128;128;1;0x", n + 2)?,
             Device::StatusReport => write!(f, "5n")?,
             Device::XtSmGraphics(g) => {
                 write!(f, "?{};{}", g.item, g.action_or_status)?;
@@ -1518,6 +1520,9 @@ impl<'a> CSIParser<'a> {
             ('s', &[]) => self.decslrm(params),
             ('t', &[]) => self.window(params).map(CSI::Window),
             ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
+            ('x', &[]) => self
+                .req_terminal_parameters(params.get(0).and_then(CsiParam::as_integer).ok_or(())?)
+                .map(|dev| CSI::Device(Box::new(dev))),
             ('y', &[b'*']) => {
                 fn p(params: &[CsiParam], idx: usize) -> Result<i64, ()> {
                     params.get(idx).and_then(CsiParam::as_integer).ok_or(())
@@ -1767,6 +1772,13 @@ impl<'a> CSIParser<'a> {
             ))
         } else {
             Err(())
+        }
+    }
+
+    fn req_terminal_parameters(&mut self, n: i64) -> Result<Device, ()> {
+        match n {
+            0 | 1 => Ok(Device::RequestTerminalParameters(n)),
+            _ => Err(()),
         }
     }
 

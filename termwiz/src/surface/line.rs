@@ -22,6 +22,28 @@ bitflags! {
         const SCANNED_IMPLICIT_HYPERLINKS = 1<<2;
         /// true if we found implicit hyperlinks in the last scan
         const HAS_IMPLICIT_HYPERLINKS = 1<<3;
+
+        /// true if this line should be displayed with
+        /// foreground/background colors reversed
+        const REVERSE = 1<<4;
+
+        /// true if this line should be displayed with
+        /// in double-width
+        const DOUBLE_WIDTH = 1<<5;
+
+        /// true if this line should be displayed
+        /// as double-height top-half
+        const DOUBLE_HEIGHT_TOP = 1<<6;
+
+        /// true if this line should be displayed
+        /// as double-height bottom-half
+        const DOUBLE_HEIGHT_BOTTOM = 1<<7;
+
+        const DOUBLE_WIDTH_HEIGHT_MASK =
+            Self::DOUBLE_WIDTH.bits |
+            Self::DOUBLE_HEIGHT_TOP.bits |
+            Self::DOUBLE_HEIGHT_BOTTOM.bits;
+
     }
 }
 
@@ -43,6 +65,16 @@ impl Line {
         let mut cells = Vec::with_capacity(width);
         cells.resize(width, Cell::default());
         let bits = LineBits::DIRTY;
+        Self { bits, cells }
+    }
+
+    pub fn with_width_reverse(width: usize, reverse: bool) -> Self {
+        let mut cells = Vec::with_capacity(width);
+        cells.resize(width, Cell::default());
+        let mut bits = LineBits::DIRTY;
+        if reverse {
+            bits |= LineBits::REVERSE;
+        }
         Self { bits, cells }
     }
 
@@ -97,6 +129,13 @@ impl Line {
                 .map(|chunk| {
                     let mut line = Line {
                         cells: chunk.to_vec(),
+                        // AZL TODO:
+                        //
+                        // How to "| self.bits.LineBits::REVERSE"
+                        // here?
+                        //
+                        // The wrapped line pieces should also be
+                        // reversed.
                         bits: LineBits::DIRTY,
                     };
                     if line.cells.len() == width {
@@ -135,6 +174,93 @@ impl Line {
     #[inline]
     pub fn clear_dirty(&mut self) {
         self.bits &= !LineBits::DIRTY;
+    }
+
+    /// Check whether the reverse video bit is set.  If it is set,
+    /// then the line should be displayed with foreground/background
+    /// colors reversed.
+    #[inline]
+    pub fn is_reverse(&self) -> bool {
+        (self.bits & LineBits::REVERSE) == LineBits::REVERSE
+    }
+
+    /// Force the reverse bit set.  This also implicitly sets dirty.
+    #[inline]
+    pub fn set_reverse(&mut self, reverse: bool) {
+        if reverse {
+            self.bits |= LineBits::REVERSE;
+        } else {
+            self.bits &= !LineBits::REVERSE;
+        }
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Check whether the line is single-width.
+    #[inline]
+    pub fn is_single_width(&self) -> bool {
+        (self.bits
+            & (LineBits::DOUBLE_WIDTH
+                | LineBits::DOUBLE_HEIGHT_TOP
+                | LineBits::DOUBLE_HEIGHT_BOTTOM))
+            == LineBits::NONE
+    }
+
+    /// Force single-width.  This also implicitly sets
+    /// double-height-(top/bottom) and dirty.
+    #[inline]
+    pub fn set_single_width(&mut self) {
+        self.bits &= !LineBits::DOUBLE_WIDTH_HEIGHT_MASK;
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Check whether the line is double-width and not double-height.
+    #[inline]
+    pub fn is_double_width(&self) -> bool {
+        (self.bits & LineBits::DOUBLE_WIDTH_HEIGHT_MASK) == LineBits::DOUBLE_WIDTH
+    }
+
+    /// Force double-width.  This also implicitly sets
+    /// double-height-(top/bottom) and dirty.
+    #[inline]
+    pub fn set_double_width(&mut self) {
+        self.bits |= LineBits::DOUBLE_WIDTH;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_TOP;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_BOTTOM;
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Check whether the line is double-height-top.
+    #[inline]
+    pub fn is_double_height_top(&self) -> bool {
+        (self.bits & LineBits::DOUBLE_WIDTH_HEIGHT_MASK)
+            == LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_TOP
+    }
+
+    /// Force double-height top-half.  This also implicitly sets
+    /// double-width and dirty.
+    #[inline]
+    pub fn set_double_height_top(&mut self) {
+        self.bits |= LineBits::DOUBLE_WIDTH;
+        self.bits |= LineBits::DOUBLE_HEIGHT_TOP;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_BOTTOM;
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Check whether the line is double-height-bottom.
+    #[inline]
+    pub fn is_double_height_bottom(&self) -> bool {
+        (self.bits & LineBits::DOUBLE_WIDTH_HEIGHT_MASK)
+            == LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_BOTTOM
+    }
+
+    /// Force double-height bottom-half.  This also implicitly sets
+    /// double-width and dirty.
+    #[inline]
+    pub fn set_double_height_bottom(&mut self) {
+        self.bits |= LineBits::DOUBLE_WIDTH;
+        self.bits &= !LineBits::DOUBLE_HEIGHT_TOP;
+        self.bits |= LineBits::DOUBLE_HEIGHT_BOTTOM;
+        self.bits |= LineBits::DIRTY;
     }
 
     /// If we have any cells with an implicit hyperlink, remove the hyperlink

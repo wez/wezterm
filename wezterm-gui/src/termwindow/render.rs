@@ -19,7 +19,8 @@ use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
 use std::ops::Range;
 use std::rc::Rc;
-use std::time::Instant;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use termwiz::cell::Blink;
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::PixelLength;
@@ -598,6 +599,10 @@ impl super::TermWindow {
             Some(params.config.inactive_pane_hsb)
         };
 
+        // Hang onto time to see if blinking text should not be seen.
+        let uptime = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        let milli_uptime = uptime.as_secs() as u128 * 1000 + uptime.subsec_millis() as u128;
+
         let window_is_transparent =
             self.window_background.is_some() || params.config.window_background_opacity != 1.0;
 
@@ -712,9 +717,30 @@ impl super::TermWindow {
                 let mut bg = bg_color;
                 let mut bg_default = bg_is_default;
 
-                if attrs.reverse() {
+                // Check the line reverse_video flag and flip.
+                if (attrs.reverse() && !params.line.is_reverse())
+                    || (!attrs.reverse() && params.line.is_reverse())
+                {
                     std::mem::swap(&mut fg, &mut bg);
                     bg_default = false;
+                }
+
+                // Check for blink, and if this is the "not-visible"
+                // part of blinking then set fg = bg.  This is a cheap
+                // means of getting it done without impacting other
+                // features.
+                let blink_rate = match attrs.blink() {
+                    Blink::None => 0,
+                    Blink::Slow => params.config.text_blink_rate,
+                    Blink::Rapid => params.config.text_blink_rate_rapid,
+                };
+                if blink_rate != 0
+                    && (self.config.text_blink_rate != 0 || self.config.text_blink_rate_rapid != 0)
+                {
+                    let ticks = milli_uptime / blink_rate as u128;
+                    if (ticks & 1) == 0 {
+                        fg = bg;
+                    }
                 }
 
                 (fg, bg, bg_default)
