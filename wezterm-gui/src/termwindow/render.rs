@@ -131,6 +131,7 @@ impl super::TermWindow {
         self.call_draw(frame).ok();
         log::debug!("paint_impl elapsed={:?}", start.elapsed());
         metrics::histogram!("gui.paint.opengl", start.elapsed());
+        metrics::histogram!("gui.paint.opengl.rate", 1.);
         self.update_title_post_status();
     }
 

@@ -2,6 +2,7 @@
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
+use crate::cache::LruCache;
 use crate::glium::texture::SrgbTexture2d;
 use crate::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
@@ -22,7 +23,6 @@ use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, SpawnCommand,
 };
 use config::{configuration, ConfigHandle, WindowCloseConfirmation};
-use lru::LruCache;
 use luahelper::impl_lua_conversion;
 use mlua::FromLua;
 use mux::domain::{DomainId, DomainState};
@@ -479,7 +479,11 @@ impl TermWindow {
             current_mouse_button: None,
             last_mouse_click: None,
             current_highlight: None,
-            shape_cache: RefCell::new(LruCache::new(65536)),
+            shape_cache: RefCell::new(LruCache::new(
+                "shape_cache.hit.rate",
+                "shape_cache.miss.rate",
+                65536,
+            )),
             last_blink_paint: Instant::now(),
             last_status_call: Instant::now(),
             event_states: HashMap::new(),
@@ -836,6 +840,7 @@ impl TermWindow {
     }
 
     fn mux_pane_output_event(&mut self, pane_id: PaneId) {
+        metrics::histogram!("mux.pane_output_event.rate", 1.);
         if self.is_pane_visible(pane_id) {
             if let Some(ref win) = self.window {
                 win.invalidate();

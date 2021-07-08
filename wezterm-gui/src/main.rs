@@ -20,6 +20,7 @@ use wezterm_gui_subcommands::*;
 use wezterm_ssh::*;
 use wezterm_toast_notification::*;
 
+mod cache;
 mod frontend;
 mod glyphcache;
 mod markdown;

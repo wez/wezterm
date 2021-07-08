@@ -1,4 +1,5 @@
 use super::utilsprites::RenderMetrics;
+use crate::cache::LruCache;
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::bitmaps::atlas::{Atlas, Sprite};
 #[cfg(test)]
@@ -11,7 +12,6 @@ use ::window::glium::texture::SrgbTexture2d;
 use ::window::{Point, Rect};
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
-use lru::LruCache;
 use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
@@ -3830,7 +3830,11 @@ impl GlyphCache<ImageTexture> {
         Ok(Self {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
-            image_cache: LruCache::new(16),
+            image_cache: LruCache::new(
+                "glyph_cache.image_cache.hit.rate",
+                "glyph_cache.image_cache.miss.rate",
+                16,
+            ),
             frame_cache: HashMap::new(),
             atlas,
             metrics: metrics.clone(),
@@ -3859,7 +3863,11 @@ impl GlyphCache<SrgbTexture2d> {
         Ok(Self {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
-            image_cache: LruCache::new(16),
+            image_cache: LruCache::new(
+                "glyph_cache.image_cache.hit.rate",
+                "glyph_cache.image_cache.miss.rate",
+                16,
+            ),
             frame_cache: HashMap::new(),
             atlas,
             metrics: metrics.clone(),
@@ -3895,8 +3903,10 @@ impl<T: Texture2d> GlyphCache<T> {
         };
 
         if let Some(entry) = self.glyph_cache.get(&key as &dyn GlyphKeyTrait) {
+            metrics::histogram!("glyph_cache.glyph_cache.hit.rate", 1.);
             return Ok(Rc::clone(entry));
         }
+        metrics::histogram!("glyph_cache.glyph_cache.miss.rate", 1.);
 
         let glyph = match self.load_glyph(info, style, followed_by_space) {
             Ok(g) => g,

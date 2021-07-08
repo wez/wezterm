@@ -1,5 +1,4 @@
 use crate::ICON_DATA;
-use std::convert::TryFrom;
 use anyhow::anyhow;
 use config::configuration;
 use config::wezterm_version;
@@ -10,6 +9,7 @@ use portable_pty::PtySize;
 use regex::Regex;
 use serde::*;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
