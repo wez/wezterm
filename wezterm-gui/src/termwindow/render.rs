@@ -964,6 +964,7 @@ impl super::TermWindow {
             "render_screen_line_opengl.right_fill",
             right_fill_start.elapsed()
         );
+        metrics::histogram!("render_screen_line_opengl", start.elapsed());
         log::trace!(
             "right fill {} -> elapsed {:?}",
             num_cols.saturating_sub(last_cell_idx),
