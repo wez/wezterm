@@ -4348,11 +4348,11 @@ impl<T: Texture2d> GlyphCache<T> {
                 //
                 // NOTE: for simplicity & performance reasons, a dot is a square not a circle.
 
-                let cell_width = self.metrics.cell_size.width as f32 / 2.;
-                let cell_height = self.metrics.cell_size.height as f32 / 4.;
-                let square_length = cell_width / 2.;
-                let topleft_offset_x = cell_width / 2. - square_length / 2.;
-                let topleft_offset_y = cell_height / 2. - square_length / 2.;
+                let dot_area_width = self.metrics.cell_size.width as f32 / 2.;
+                let dot_area_height = self.metrics.cell_size.height as f32 / 4.;
+                let square_length = dot_area_width / 2.;
+                let topleft_offset_x = dot_area_width / 2. - square_length / 2.;
+                let topleft_offset_y = dot_area_height / 2. - square_length / 2.;
 
                 let (width, height) = buffer.image_dimensions();
                 let mut pixmap = PixmapMut::from_bytes(
@@ -4382,8 +4382,8 @@ impl<T: Texture2d> GlyphCache<T> {
                         // Bit for this dot position is not set
                         continue;
                     }
-                    let topleft_x = (*dot_pos_x) * cell_width + topleft_offset_x;
-                    let topleft_y = (*dot_pos_y) * cell_height + topleft_offset_y;
+                    let topleft_x = (*dot_pos_x) * dot_area_width + topleft_offset_x;
+                    let topleft_y = (*dot_pos_y) * dot_area_height + topleft_offset_y;
 
                     let path = PathBuilder::from_rect(
                         tiny_skia::Rect::from_xywh(
