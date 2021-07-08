@@ -191,6 +191,7 @@ impl super::TermWindow {
         let start = Instant::now();
         let mut quads = gl_state.quads.map(&mut vb);
         log::trace!("quad map elapsed {:?}", start.elapsed());
+        metrics::histogram!("quad.map", start.elapsed());
 
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
         let foreground = rgbcolor_to_window_color(palette.foreground);
@@ -345,10 +346,12 @@ impl super::TermWindow {
                 &mut quads,
             )?;
         }
+        metrics::histogram!("paint_pane_opengl.lines", start.elapsed());
         log::trace!("lines elapsed {:?}", start.elapsed());
 
         let start = Instant::now();
         drop(quads);
+        metrics::histogram!("paint_pane_opengl.drop.quads", start.elapsed());
         log::trace!("quad drop elapsed {:?}", start.elapsed());
 
         Ok(())
@@ -642,6 +645,7 @@ impl super::TermWindow {
         // Break the line into clusters of cells with the same attributes
         let start = Instant::now();
         let cell_clusters = params.line.cluster();
+        metrics::histogram!("render_screen_line_opengl.line.cluster", start.elapsed());
         log::trace!(
             "cluster -> {} clusters, elapsed {:?}",
             cell_clusters.len(),
@@ -951,6 +955,10 @@ impl super::TermWindow {
                 }
             }
         }
+        metrics::histogram!(
+            "render_screen_line_opengl.right_fill",
+            right_fill_start.elapsed()
+        );
         log::trace!(
             "right fill {} -> elapsed {:?}",
             num_cols.saturating_sub(last_cell_idx),
@@ -1250,6 +1258,7 @@ impl super::TermWindow {
                 }
             }
         };
+        metrics::histogram!("cached_cluster_shape", shape_resolve_start.elapsed());
         log::trace!(
             "shape_resolve for cluster len {} -> elapsed {:?}",
             cluster.text.len(),
