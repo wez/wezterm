@@ -731,17 +731,17 @@ impl super::TermWindow {
                                     &mut gl_state.glyph_cache.borrow_mut(),
                                     &info,
                                 )?;
-                                let shaped = ShapedInfo::process(
+                                let shaped = Rc::new(ShapedInfo::process(
                                     &self.render_metrics,
                                     cluster,
                                     &info,
                                     &glyphs,
-                                );
+                                ));
 
                                 self.shape_cache
                                     .borrow_mut()
-                                    .put(key.to_owned(), Ok(Rc::new(shaped)));
-                                self.lookup_cached_shape(&key).unwrap().unwrap()
+                                    .put(key.to_owned(), Ok(Rc::clone(&shaped)));
+                                shaped
                             }
                             Err(err) => {
                                 if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
