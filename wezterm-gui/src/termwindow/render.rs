@@ -41,6 +41,8 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub config: &'a ConfigHandle,
     pub pos: &'a PositionedPane,
 
+    pub white_space: TextureRect,
+
     pub cursor_border_color: LinearRgba,
     pub foreground: LinearRgba,
     pub is_active: bool,
@@ -49,6 +51,9 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub selection_bg: LinearRgba,
     pub cursor_fg: LinearRgba,
     pub cursor_bg: LinearRgba,
+
+    pub window_is_transparent: bool,
+    pub default_bg: LinearRgba,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -195,6 +200,25 @@ impl super::TermWindow {
 
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
         let foreground = rgbcolor_to_window_color(palette.foreground);
+        let white_space = gl_state.util_sprites.white_space.texture_coords();
+
+        let window_is_transparent =
+            self.window_background.is_some() || config.window_background_opacity != 1.0;
+
+        // Pre-set the row with the whitespace glyph.
+        // This is here primarily because clustering/shaping can cause the line updates
+        // to skip setting a quad that is logically obscured by a double-wide glyph.
+        // If eg: scrolling the viewport causes the pair of quads to change from two
+        // individual cells to a single double-wide cell then we might leave the second
+        // one of the pair with the glyph from the prior viewport position.
+        let default_bg = rgbcolor_alpha_to_window_color(
+            palette.resolve_bg(ColorAttribute::Default),
+            if window_is_transparent {
+                0x00
+            } else {
+                (config.text_background_opacity * 255.0) as u8
+            },
+        );
 
         if self.show_tab_bar && pos.index == 0 {
             let tab_dims = RenderableDimensions {
@@ -231,6 +255,9 @@ impl super::TermWindow {
                     selection_bg: LinearRgba::default(),
                     cursor_fg: LinearRgba::default(),
                     cursor_bg: LinearRgba::default(),
+                    white_space,
+                    window_is_transparent,
+                    default_bg,
                 },
                 &mut quads,
             )?;
@@ -270,8 +297,6 @@ impl super::TermWindow {
             let right = self.dimensions.pixel_width as f32 / 2.;
             let left = right - padding;
 
-            let white_space = gl_state.util_sprites.white_space.texture_coords();
-
             quad.set_bg_color(color);
             quad.set_fg_color(color);
             quad.set_underline_color(color);
@@ -287,7 +312,6 @@ impl super::TermWindow {
 
         {
             let mut quad = quads.background_image();
-            let white_space = gl_state.util_sprites.white_space.texture_coords();
             quad.set_underline(white_space);
             quad.set_cursor(white_space);
 
@@ -342,6 +366,9 @@ impl super::TermWindow {
                     selection_bg,
                     cursor_fg,
                     cursor_bg,
+                    white_space,
+                    window_is_transparent,
+                    default_bg,
                 },
                 &mut quads,
             )?;
@@ -601,26 +628,6 @@ impl super::TermWindow {
             Some(params.config.inactive_pane_hsb)
         };
 
-        let window_is_transparent =
-            self.window_background.is_some() || params.config.window_background_opacity != 1.0;
-
-        let white_space = gl_state.util_sprites.white_space.texture_coords();
-
-        // Pre-set the row with the whitespace glyph.
-        // This is here primarily because clustering/shaping can cause the line updates
-        // to skip setting a quad that is logically obscured by a double-wide glyph.
-        // If eg: scrolling the viewport causes the pair of quads to change from two
-        // individual cells to a single double-wide cell then we might leave the second
-        // one of the pair with the glyph from the prior viewport position.
-        let default_bg = rgbcolor_alpha_to_window_color(
-            params.palette.resolve_bg(ColorAttribute::Default),
-            if window_is_transparent {
-                0x00
-            } else {
-                (params.config.text_background_opacity * 255.0) as u8
-            },
-        );
-
         // Clear the cells to basic blanks to avoid leaving artifacts behind.
         // The easiest reproduction for the artifacts is to maximize the window and
         // open a vim split horizontally.  Backgrounding vim would leave
@@ -633,11 +640,11 @@ impl super::TermWindow {
                     Err(_) => break,
                 };
 
-            quad.set_bg_color(default_bg);
-            quad.set_texture(white_space);
+            quad.set_bg_color(params.default_bg);
+            quad.set_texture(params.white_space);
             quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_underline(white_space);
-            quad.set_cursor(white_space);
+            quad.set_underline(params.white_space);
+            quad.set_cursor(params.white_space);
             quad.set_has_color(false);
             quad.set_hsv(hsv);
         }
@@ -713,7 +720,7 @@ impl super::TermWindow {
 
                 let bg_color = rgbcolor_alpha_to_window_color(
                     bg_color,
-                    if window_is_transparent && bg_is_default {
+                    if params.window_is_transparent && bg_is_default {
                         0x00
                     } else {
                         (params.config.text_background_opacity * 255.0) as u8
@@ -795,7 +802,6 @@ impl super::TermWindow {
                             glyph_color,
                             style_params.underline_color,
                             bg_color,
-                            white_space,
                         )?;
                         continue;
                     }
@@ -813,7 +819,6 @@ impl super::TermWindow {
                                 glyph_color,
                                 style_params.underline_color,
                                 bg_color,
-                                white_space,
                             )?;
                             continue;
                         }
@@ -925,7 +930,7 @@ impl super::TermWindow {
                     cursor: params.cursor,
                     selection: &params.selection,
                     fg_color: params.foreground,
-                    bg_color: default_bg,
+                    bg_color: params.default_bg,
                     palette: params.palette,
                     is_active_pane: params.pos.is_active,
                     config: params.config,
@@ -980,7 +985,6 @@ impl super::TermWindow {
         glyph_color: LinearRgba,
         underline_color: LinearRgba,
         bg_color: LinearRgba,
-        white_space: TextureRect,
     ) -> anyhow::Result<()> {
         let sprite = gl_state
             .glyph_cache
@@ -1000,7 +1004,7 @@ impl super::TermWindow {
         quad.set_bg_color(bg_color);
         quad.set_texture(sprite);
         quad.set_texture_adjust(0., 0., 0., 0.);
-        quad.set_underline(white_space);
+        quad.set_underline(params.white_space);
         quad.set_has_color(false);
         quad.set_cursor(
             gl_state
@@ -1030,7 +1034,6 @@ impl super::TermWindow {
         glyph_color: LinearRgba,
         underline_color: LinearRgba,
         bg_color: LinearRgba,
-        white_space: TextureRect,
     ) -> anyhow::Result<()> {
         let padding = self
             .render_metrics
@@ -1085,7 +1088,7 @@ impl super::TermWindow {
         quad.set_bg_color(bg_color);
         quad.set_texture(texture_rect);
         quad.set_texture_adjust(0., 0., 0., 0.);
-        quad.set_underline(white_space);
+        quad.set_underline(params.white_space);
         quad.set_has_color(true);
         quad.set_cursor(
             gl_state
