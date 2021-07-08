@@ -705,62 +705,7 @@ impl super::TermWindow {
             );
 
             // Shape the printable text from this cluster
-
-            let shape_resolve_start = Instant::now();
-            let glyph_info = {
-                let key = BorrowedShapeCacheKey {
-                    style,
-                    text: &cluster.text,
-                };
-                match self.lookup_cached_shape(&key) {
-                    Some(Ok(info)) => info,
-                    Some(Err(err)) => return Err(err),
-                    None => {
-                        let font = self.fonts.resolve_font(style)?;
-                        let window = self.window.as_ref().unwrap().clone();
-                        match font.shape(
-                            &cluster.text,
-                            move || window.notify(TermWindowNotif::InvalidateShapeCache),
-                            BlockKey::filter_out_synthetic,
-                        ) {
-                            Ok(info) => {
-                                let glyphs = self.glyph_infos_to_glyphs(
-                                    cluster,
-                                    &params.line,
-                                    &style,
-                                    &mut gl_state.glyph_cache.borrow_mut(),
-                                    &info,
-                                )?;
-                                let shaped = Rc::new(ShapedInfo::process(
-                                    &self.render_metrics,
-                                    cluster,
-                                    &info,
-                                    &glyphs,
-                                ));
-
-                                self.shape_cache
-                                    .borrow_mut()
-                                    .put(key.to_owned(), Ok(Rc::clone(&shaped)));
-                                shaped
-                            }
-                            Err(err) => {
-                                if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
-                                    return Err(err);
-                                }
-
-                                let res = anyhow!("shaper error: {}", err);
-                                self.shape_cache.borrow_mut().put(key.to_owned(), Err(err));
-                                return Err(res);
-                            }
-                        }
-                    }
-                }
-            };
-            log::trace!(
-                "shape_resolve for cluster len {} -> elapsed {:?}",
-                cluster.text.len(),
-                shape_resolve_start.elapsed()
-            );
+            let glyph_info = self.cached_cluster_shape(style, &cluster, &gl_state, params.line)?;
 
             for info in glyph_info.iter() {
                 let cell_idx = cluster.byte_to_cell_idx(info.pos.cluster as usize);
@@ -1222,6 +1167,70 @@ impl super::TermWindow {
             glyphs.push(glyph_cache.cached_glyph(info, &style, followed_by_space)?);
         }
         Ok(glyphs)
+    }
+
+    /// Shape the printable text from a cluster
+    fn cached_cluster_shape(
+        &self,
+        style: &TextStyle,
+        cluster: &CellCluster,
+        gl_state: &RenderState,
+        line: &Line,
+    ) -> anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>> {
+        let shape_resolve_start = Instant::now();
+        let key = BorrowedShapeCacheKey {
+            style,
+            text: &cluster.text,
+        };
+        let glyph_info = match self.lookup_cached_shape(&key) {
+            Some(Ok(info)) => info,
+            Some(Err(err)) => return Err(err),
+            None => {
+                let font = self.fonts.resolve_font(style)?;
+                let window = self.window.as_ref().unwrap().clone();
+                match font.shape(
+                    &cluster.text,
+                    move || window.notify(TermWindowNotif::InvalidateShapeCache),
+                    BlockKey::filter_out_synthetic,
+                ) {
+                    Ok(info) => {
+                        let glyphs = self.glyph_infos_to_glyphs(
+                            cluster,
+                            line,
+                            &style,
+                            &mut gl_state.glyph_cache.borrow_mut(),
+                            &info,
+                        )?;
+                        let shaped = Rc::new(ShapedInfo::process(
+                            &self.render_metrics,
+                            cluster,
+                            &info,
+                            &glyphs,
+                        ));
+
+                        self.shape_cache
+                            .borrow_mut()
+                            .put(key.to_owned(), Ok(Rc::clone(&shaped)));
+                        shaped
+                    }
+                    Err(err) => {
+                        if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
+                            return Err(err);
+                        }
+
+                        let res = anyhow!("shaper error: {}", err);
+                        self.shape_cache.borrow_mut().put(key.to_owned(), Err(err));
+                        return Err(res);
+                    }
+                }
+            }
+        };
+        log::trace!(
+            "shape_resolve for cluster len {} -> elapsed {:?}",
+            cluster.text.len(),
+            shape_resolve_start.elapsed()
+        );
+        Ok(glyph_info)
     }
 
     fn lookup_cached_shape(
