@@ -703,6 +703,26 @@ fn test_dec_special_graphics() {
     );
 }
 
+/// Test double-width / double-height sequences.
+#[test]
+fn test_dec_double_width() {
+    let mut term = TestTerm::new(4, 50, 0);
+
+    term.print("\u{1b}#3line1\r\nline2\u{1b}#4\r\nli\u{1b}#6ne3\r\n\u{1b}#5line4");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["line1", "line2", "line3", "line4"],
+    );
+
+    let lines = term.screen().visible_lines();
+    assert!(lines[0].is_double_height_top());
+    assert!(lines[1].is_double_height_bottom());
+    assert!(lines[2].is_double_width());
+    assert!(lines[3].is_single_width());
+}
+
 /// Test the behavior of wrapped lines when we resize the terminal
 /// wider and then narrower.
 #[test]

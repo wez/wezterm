@@ -730,9 +730,7 @@ impl super::TermWindow {
                 let mut bg_default = bg_is_default;
 
                 // Check the line reverse_video flag and flip.
-                if (attrs.reverse() && !params.line.is_reverse())
-                    || (!attrs.reverse() && params.line.is_reverse())
-                {
+                if attrs.reverse() == !params.line.is_reverse() {
                     std::mem::swap(&mut fg, &mut bg);
                     bg_default = false;
                 }
@@ -746,9 +744,7 @@ impl super::TermWindow {
                     Blink::Slow => params.config.text_blink_rate,
                     Blink::Rapid => params.config.text_blink_rate_rapid,
                 };
-                if blink_rate != 0
-                    && (self.config.text_blink_rate != 0 || self.config.text_blink_rate_rapid != 0)
-                {
+                if blink_rate != 0 {
                     let ticks = milli_uptime / blink_rate as u128;
                     if (ticks & 1) == 0 {
                         fg = bg;

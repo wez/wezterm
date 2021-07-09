@@ -192,5 +192,12 @@ mod test {
         assert_eq!(parse("(B"), Esc::Code(EscCode::AsciiCharacterSetG0));
         assert_eq!(parse(")0"), Esc::Code(EscCode::DecLineDrawingG1));
         assert_eq!(parse(")B"), Esc::Code(EscCode::AsciiCharacterSetG1));
+        assert_eq!(parse("#3"), Esc::Code(EscCode::DecDoubleHeightTopHalfLine));
+        assert_eq!(
+            parse("#4"),
+            Esc::Code(EscCode::DecDoubleHeightBottomHalfLine)
+        );
+        assert_eq!(parse("#5"), Esc::Code(EscCode::DecSingleWidthLine));
+        assert_eq!(parse("#6"), Esc::Code(EscCode::DecDoubleWidthLine));
     }
 }

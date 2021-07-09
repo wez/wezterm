@@ -594,7 +594,7 @@ impl Display for Mode {
                     TerminalMode::Code(mode) => mode.to_u16().ok_or_else(|| FmtError)?,
                     TerminalMode::Unspecified(mode) => *mode,
                 };
-                write!(f, "?{}{}", value, $flag)
+                write!(f, "{}{}", value, $flag)
             }};
         }
         match self {
@@ -2340,6 +2340,22 @@ mod test {
     }
 
     #[test]
+    fn blinks() {
+        assert_eq!(
+            parse('m', &[5], "\x1b[5m"),
+            vec![CSI::Sgr(Sgr::Blink(Blink::Slow))]
+        );
+        assert_eq!(
+            parse('m', &[6], "\x1b[6m"),
+            vec![CSI::Sgr(Sgr::Blink(Blink::Rapid))]
+        );
+        assert_eq!(
+            parse('m', &[25], "\x1b[25m"),
+            vec![CSI::Sgr(Sgr::Blink(Blink::None))]
+        );
+    }
+
+    #[test]
     fn underlines() {
         assert_eq!(
             parse('m', &[21], "\x1b[21m"),
@@ -2480,6 +2496,22 @@ mod test {
                 line: OneBased::new(2),
                 col: OneBased::new(1)
             })]
+        );
+    }
+
+    #[test]
+    fn ansiset() {
+        assert_eq!(
+            parse('h', &[20], "\x1b[20h"),
+            vec![CSI::Mode(Mode::SetMode(TerminalMode::Code(
+                TerminalModeCode::AutomaticNewline
+            )))]
+        );
+        assert_eq!(
+            parse('l', &[20], "\x1b[20l"),
+            vec![CSI::Mode(Mode::ResetMode(TerminalMode::Code(
+                TerminalModeCode::AutomaticNewline
+            )))]
         );
     }
 
