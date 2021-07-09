@@ -32,10 +32,6 @@ pub struct Screen {
     /// that we're the primary rather than the alternate screen.
     allow_scrollback: bool,
 
-    /// Whether reverse video mode is enabled.  If set, all new lines will
-    /// be in reverse video.
-    pub reverse_video_mode: bool,
-
     /// Physical, visible height of the screen (not including scrollback)
     pub physical_rows: usize,
     /// Physical, visible width of the screen
@@ -76,7 +72,6 @@ impl Screen {
             physical_rows,
             physical_cols,
             stable_row_index_offset: 0,
-            reverse_video_mode: false,
         }
     }
 
@@ -217,8 +212,7 @@ impl Screen {
         // lines than the viewport size, or we resized taller,
         // pad us back out to the viewport size
         while self.lines.len() < physical_rows {
-            self.lines
-                .push_back(Line::with_width_reverse(0, self.reverse_video_mode));
+            self.lines.push_back(Line::with_width(0));
         }
 
         let new_cursor_y;
@@ -239,8 +233,7 @@ impl Screen {
                 physical_rows.saturating_sub(new_cursor_y as usize);
             let actual_num_rows_after_cursor = self.lines.len().saturating_sub(cursor_y);
             for _ in actual_num_rows_after_cursor..required_num_rows_after_cursor {
-                self.lines
-                    .push_back(Line::with_width_reverse(0, self.reverse_video_mode));
+                self.lines.push_back(Line::with_width(0));
             }
         } else {
             // Compute the new cursor location; this is logically the inverse
@@ -580,15 +573,11 @@ impl Screen {
         if scroll_region.end as usize == self.physical_rows {
             // It's cheaper to push() than it is insert() at the end
             for _ in 0..to_add {
-                self.lines
-                    .push_back(Line::with_width_reverse(0, self.reverse_video_mode));
+                self.lines.push_back(Line::with_width(0));
             }
         } else {
             for _ in 0..to_add {
-                self.lines.insert(
-                    phys_scroll.end,
-                    Line::with_width_reverse(0, self.reverse_video_mode),
-                );
+                self.lines.insert(phys_scroll.end, Line::with_width(0));
             }
         }
     }
@@ -631,10 +620,7 @@ impl Screen {
         }
 
         for _ in 0..num_rows {
-            self.lines.insert(
-                phys_scroll.start,
-                Line::with_width_reverse(0, self.reverse_video_mode),
-            );
+            self.lines.insert(phys_scroll.start, Line::with_width(0));
         }
     }
 

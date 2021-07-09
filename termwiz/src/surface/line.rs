@@ -68,16 +68,6 @@ impl Line {
         Self { bits, cells }
     }
 
-    pub fn with_width_reverse(width: usize, reverse: bool) -> Self {
-        let mut cells = Vec::with_capacity(width);
-        cells.resize(width, Cell::default());
-        let mut bits = LineBits::DIRTY;
-        if reverse {
-            bits |= LineBits::REVERSE;
-        }
-        Self { bits, cells }
-    }
-
     pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
         let mut cells = Vec::new();
 
@@ -129,13 +119,6 @@ impl Line {
                 .map(|chunk| {
                     let mut line = Line {
                         cells: chunk.to_vec(),
-                        // AZL TODO:
-                        //
-                        // How to "| self.bits.LineBits::REVERSE"
-                        // here?
-                        //
-                        // The wrapped line pieces should also be
-                        // reversed.
                         bits: LineBits::DIRTY,
                     };
                     if line.cells.len() == width {
@@ -181,18 +164,14 @@ impl Line {
     /// colors reversed.
     #[inline]
     pub fn is_reverse(&self) -> bool {
-        (self.bits & LineBits::REVERSE) == LineBits::REVERSE
+        self.bits.contains(LineBits::REVERSE)
     }
 
     /// Force the reverse bit set.  This also implicitly sets dirty.
     #[inline]
     pub fn set_reverse(&mut self, reverse: bool) {
-        if reverse {
-            self.bits |= LineBits::REVERSE;
-        } else {
-            self.bits &= !LineBits::REVERSE;
-        }
-        self.bits |= LineBits::DIRTY;
+        self.bits.set(LineBits::REVERSE, reverse);
+        self.bits.insert(LineBits::DIRTY);
     }
 
     /// Check whether the line is single-width.
@@ -209,8 +188,8 @@ impl Line {
     /// double-height-(top/bottom) and dirty.
     #[inline]
     pub fn set_single_width(&mut self) {
-        self.bits &= !LineBits::DOUBLE_WIDTH_HEIGHT_MASK;
-        self.bits |= LineBits::DIRTY;
+        self.bits.remove(LineBits::DOUBLE_WIDTH_HEIGHT_MASK);
+        self.bits.insert(LineBits::DIRTY);
     }
 
     /// Check whether the line is double-width and not double-height.
@@ -223,10 +202,9 @@ impl Line {
     /// double-height-(top/bottom) and dirty.
     #[inline]
     pub fn set_double_width(&mut self) {
-        self.bits |= LineBits::DOUBLE_WIDTH;
-        self.bits &= !LineBits::DOUBLE_HEIGHT_TOP;
-        self.bits &= !LineBits::DOUBLE_HEIGHT_BOTTOM;
-        self.bits |= LineBits::DIRTY;
+        self.bits
+            .remove(LineBits::DOUBLE_HEIGHT_TOP | LineBits::DOUBLE_HEIGHT_BOTTOM);
+        self.bits.insert(LineBits::DOUBLE_WIDTH | LineBits::DIRTY);
     }
 
     /// Check whether the line is double-height-top.
@@ -240,10 +218,9 @@ impl Line {
     /// double-width and dirty.
     #[inline]
     pub fn set_double_height_top(&mut self) {
-        self.bits |= LineBits::DOUBLE_WIDTH;
-        self.bits |= LineBits::DOUBLE_HEIGHT_TOP;
-        self.bits &= !LineBits::DOUBLE_HEIGHT_BOTTOM;
-        self.bits |= LineBits::DIRTY;
+        self.bits.remove(LineBits::DOUBLE_HEIGHT_BOTTOM);
+        self.bits
+            .insert(LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_TOP | LineBits::DIRTY);
     }
 
     /// Check whether the line is double-height-bottom.
@@ -257,10 +234,9 @@ impl Line {
     /// double-width and dirty.
     #[inline]
     pub fn set_double_height_bottom(&mut self) {
-        self.bits |= LineBits::DOUBLE_WIDTH;
-        self.bits &= !LineBits::DOUBLE_HEIGHT_TOP;
-        self.bits |= LineBits::DOUBLE_HEIGHT_BOTTOM;
-        self.bits |= LineBits::DIRTY;
+        self.bits.remove(LineBits::DOUBLE_HEIGHT_TOP);
+        self.bits
+            .insert(LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_BOTTOM | LineBits::DIRTY);
     }
 
     /// If we have any cells with an implicit hyperlink, remove the hyperlink

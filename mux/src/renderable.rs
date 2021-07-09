@@ -74,6 +74,7 @@ pub fn terminal_get_lines(
     term: &mut Terminal,
     lines: Range<StableRowIndex>,
 ) -> (StableRowIndex, Vec<Line>) {
+    let reverse = term.get_reverse_video();
     let screen = term.screen_mut();
     let phys_range = screen.stable_range(&lines);
     (
@@ -84,8 +85,9 @@ pub fn terminal_get_lines(
             .skip(phys_range.start)
             .take(phys_range.end - phys_range.start)
             .map(|line| {
-                let cloned = line.clone();
+                let mut cloned = line.clone();
                 line.clear_dirty();
+                cloned.set_reverse(reverse);
                 cloned
             })
             .collect(),

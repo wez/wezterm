@@ -96,7 +96,7 @@ impl TabStop {
             // If we want to exactly match VT100/xterm behavior, then
             // we cannot honor ClearCharacterTabStopsAtActiveLine.
             TabulationClear::ClearAllCharacterTabStops => {
-                // | TabulationClear::ClearCharacterTabStopsAtActiveLine => {
+                // | TabulationClear::ClearCharacterTabStopsAtActiveLine
                 for t in &mut self.tabs {
                     *t = false;
                 }
@@ -241,6 +241,9 @@ pub struct TerminalState {
 
     /// Reverse Wraparound Mode
     reverse_wraparound_mode: bool,
+
+    /// Reverse video mode
+    reverse_video_mode: bool,
 
     /// https://vt100.net/docs/vt510-rm/DECOM.html
     /// When OriginMode is enabled, cursor is constrained to the
@@ -478,6 +481,7 @@ impl TerminalState {
             // a dec terminal is false, because it is more useful this way.
             dec_auto_wrap: true,
             reverse_wraparound_mode: false,
+            reverse_video_mode: false,
             dec_origin_mode: false,
             insert: false,
             application_cursor_keys: false,
@@ -1796,13 +1800,13 @@ impl TerminalState {
                 self.application_keypad = false;
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
                 self.left_and_right_margins = 0..self.screen().physical_cols;
-                self.screen.reverse_video_mode = false;
                 self.screen.activate_alt_screen();
                 self.screen.saved_cursor().take();
                 self.screen.activate_primary_screen();
                 self.screen.saved_cursor().take();
 
                 self.reverse_wraparound_mode = false;
+                self.reverse_video_mode = false;
             }
             Device::RequestPrimaryDeviceAttributes => {
                 let mut ident = "\x1b[?65".to_string(); // Vt500
@@ -1966,23 +1970,13 @@ impl TerminalState {
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
                 // Turn on reverse video for all of the lines on the
                 // display.
-                self.screen.reverse_video_mode = true;
-                for y in 0..self.screen.physical_rows as i64 {
-                    let line_idx = self.screen.phys_row(VisibleRowIndex::from(y));
-                    let line = self.screen.line_mut(line_idx);
-                    line.set_reverse(true);
-                }
+                self.reverse_video_mode = true;
             }
 
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
                 // Turn off reverse video for all of the lines on the
                 // display.
-                self.screen.reverse_video_mode = false;
-                for y in 0..self.screen.physical_rows as i64 {
-                    let line_idx = self.screen.phys_row(VisibleRowIndex::from(y));
-                    let line = self.screen.line_mut(line_idx);
-                    line.set_reverse(false);
-                }
+                self.reverse_video_mode = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Select132Columns))
@@ -2979,6 +2973,11 @@ impl TerminalState {
 
         Ok(zones)
     }
+
+    #[inline]
+    pub fn get_reverse_video(&self) -> bool {
+        self.reverse_video_mode
+    }
 }
 
 /// A helper struct for implementing `vtparse::VTActor` while compartmentalizing
@@ -3418,7 +3417,7 @@ impl<'a> Performer<'a> {
                 self.insert = false;
                 self.dec_auto_wrap = true;
                 self.reverse_wraparound_mode = false;
-                self.screen.reverse_video_mode = false;
+                self.reverse_video_mode = false;
                 self.dec_origin_mode = false;
                 self.use_private_color_registers_for_each_graphic = false;
                 self.color_map = default_color_map();
