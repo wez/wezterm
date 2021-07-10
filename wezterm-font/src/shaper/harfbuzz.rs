@@ -68,6 +68,7 @@ pub struct HarfbuzzShaper {
     lib: ftwrap::Library,
     metrics: RefCell<HashMap<MetricsKey, FontMetrics>>,
     features: Vec<harfbuzz::hb_feature_t>,
+    lang: harfbuzz::hb_language_t,
 }
 
 #[derive(Error, Debug)]
@@ -112,6 +113,8 @@ impl HarfbuzzShaper {
             fonts.push(RefCell::new(None));
         }
 
+        let lang = harfbuzz::language_from_string("en")?;
+
         let features: Vec<harfbuzz::hb_feature_t> = config
             .harfbuzz_features
             .iter()
@@ -124,6 +127,7 @@ impl HarfbuzzShaper {
             lib,
             metrics: RefCell::new(HashMap::new()),
             features,
+            lang,
         })
     }
 
@@ -166,7 +170,7 @@ impl HarfbuzzShaper {
         let mut buf = harfbuzz::Buffer::new()?;
         buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);
         buf.set_direction(harfbuzz::hb_direction_t::HB_DIRECTION_LTR);
-        buf.set_language(harfbuzz::language_from_string("en")?);
+        buf.set_language(self.lang);
         buf.add_str(s);
         buf.set_cluster_level(
             harfbuzz::hb_buffer_cluster_level_t::HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES,
@@ -223,18 +227,18 @@ impl HarfbuzzShaper {
         // and they're handy to have for debugging
         // purposes too.
         let mut info_clusters: Vec<Vec<Info>> = Vec::with_capacity(s.len());
-        let mut info_iter = hb_infos.iter().enumerate().peekable();
-        while let Some((i, info)) = info_iter.next() {
+        let mut info_iter = hb_infos.iter().zip(positions.iter()).peekable();
+        while let Some((info, pos)) = info_iter.next() {
             let next_pos = info_iter
                 .peek()
-                .map(|(_, info)| info.cluster as usize)
+                .map(|(info, _)| info.cluster as usize)
                 .unwrap_or(s.len());
 
             let info = Info {
                 cluster: info.cluster as usize,
                 len: next_pos - info.cluster as usize,
                 codepoint: info.codepoint,
-                pos: &positions[i],
+                pos,
             };
 
             if let Some(ref mut cluster) = info_clusters.last_mut() {
