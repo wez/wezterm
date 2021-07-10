@@ -1,5 +1,5 @@
 //! Model a cell in the terminal display
-use crate::color::ColorAttribute;
+use crate::color::{ColorAttribute, PaletteIndex};
 pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
 #[cfg(feature = "use_serde")]
@@ -7,6 +7,28 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::mem;
 use std::sync::Arc;
 use unicode_width::UnicodeWidthStr;
+
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum SmallColor {
+    Default,
+    PaletteIndex(PaletteIndex),
+}
+
+impl Default for SmallColor {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
+impl Into<ColorAttribute> for SmallColor {
+    fn into(self) -> ColorAttribute {
+        match self {
+            Self::Default => ColorAttribute::Default,
+            Self::PaletteIndex(idx) => ColorAttribute::PaletteIndex(idx),
+        }
+    }
+}
 
 /// Holds the attributes for a cell.
 /// Most style attributes are stored internally as part of a bitfield
@@ -18,9 +40,9 @@ use unicode_width::UnicodeWidthStr;
 pub struct CellAttributes {
     attributes: u16,
     /// The foreground color
-    foreground: ColorAttribute,
+    foreground: SmallColor,
     /// The background color
-    background: ColorAttribute,
+    background: SmallColor,
     /// Relatively rarely used attributes spill over to a heap
     /// allocated struct in order to keep CellAttributes
     /// smaller in the common case.
@@ -58,6 +80,8 @@ struct FatAttributes {
     /// The color of the underline.  If None, then
     /// the foreground color is to be used
     underline_color: ColorAttribute,
+    foreground: ColorAttribute,
+    background: ColorAttribute,
 }
 
 /// Define getter and setter for the attributes bitfield.
@@ -227,21 +251,75 @@ impl CellAttributes {
 
     /// Set the foreground color for the cell to that specified
     pub fn set_foreground<C: Into<ColorAttribute>>(&mut self, foreground: C) -> &mut Self {
-        self.foreground = foreground.into();
+        let foreground: ColorAttribute = foreground.into();
+        match foreground {
+            ColorAttribute::Default => {
+                self.foreground = SmallColor::Default;
+                if let Some(fat) = self.fat.as_mut() {
+                    fat.foreground = ColorAttribute::Default;
+                }
+                self.deallocate_fat_attributes_if_none();
+            }
+            ColorAttribute::PaletteIndex(idx) => {
+                self.foreground = SmallColor::PaletteIndex(idx);
+                if let Some(fat) = self.fat.as_mut() {
+                    fat.foreground = ColorAttribute::Default;
+                }
+                self.deallocate_fat_attributes_if_none();
+            }
+            foreground => {
+                self.foreground = SmallColor::Default;
+                self.allocate_fat_attributes();
+                self.fat.as_mut().unwrap().foreground = foreground;
+            }
+        }
+
         self
     }
 
     pub fn foreground(&self) -> ColorAttribute {
-        self.foreground
+        if let Some(fat) = self.fat.as_ref() {
+            if fat.foreground != ColorAttribute::Default {
+                return fat.foreground;
+            }
+        }
+        self.foreground.into()
     }
 
     pub fn set_background<C: Into<ColorAttribute>>(&mut self, background: C) -> &mut Self {
-        self.background = background.into();
+        let background: ColorAttribute = background.into();
+        match background {
+            ColorAttribute::Default => {
+                self.background = SmallColor::Default;
+                if let Some(fat) = self.fat.as_mut() {
+                    fat.background = ColorAttribute::Default;
+                }
+                self.deallocate_fat_attributes_if_none();
+            }
+            ColorAttribute::PaletteIndex(idx) => {
+                self.background = SmallColor::PaletteIndex(idx);
+                if let Some(fat) = self.fat.as_mut() {
+                    fat.background = ColorAttribute::Default;
+                }
+                self.deallocate_fat_attributes_if_none();
+            }
+            background => {
+                self.background = SmallColor::Default;
+                self.allocate_fat_attributes();
+                self.fat.as_mut().unwrap().background = background;
+            }
+        }
+
         self
     }
 
     pub fn background(&self) -> ColorAttribute {
-        self.background
+        if let Some(fat) = self.fat.as_ref() {
+            if fat.background != ColorAttribute::Default {
+                return fat.background;
+            }
+        }
+        self.background.into()
     }
 
     fn allocate_fat_attributes(&mut self) {
@@ -250,6 +328,8 @@ impl CellAttributes {
                 hyperlink: None,
                 image: None,
                 underline_color: ColorAttribute::Default,
+                foreground: ColorAttribute::Default,
+                background: ColorAttribute::Default,
             }));
         }
     }
@@ -262,6 +342,8 @@ impl CellAttributes {
                 fat.image.is_none()
                     && fat.hyperlink.is_none()
                     && fat.underline_color == ColorAttribute::Default
+                    && fat.foreground == ColorAttribute::Default
+                    && fat.background == ColorAttribute::Default
             })
             .unwrap_or(false);
         if deallocate {
@@ -640,8 +722,8 @@ mod test {
     fn memory_usage() {
         assert_eq!(std::mem::size_of::<crate::color::RgbColor>(), 4);
         assert_eq!(std::mem::size_of::<ColorAttribute>(), 8);
-        assert_eq!(std::mem::size_of::<CellAttributes>(), 32);
-        assert_eq!(std::mem::size_of::<Cell>(), 40);
+        assert_eq!(std::mem::size_of::<CellAttributes>(), 16);
+        assert_eq!(std::mem::size_of::<Cell>(), 24);
         assert_eq!(std::mem::size_of::<Vec<u8>>(), 24);
         assert_eq!(std::mem::size_of::<char>(), 4);
         assert_eq!(std::mem::size_of::<TeenyString>(), 8);
