@@ -5024,6 +5024,7 @@ name = "wezterm-ssh"
 version = "0.1.1"
 dependencies = [
  "anyhow",
+ "async_ossl",
  "base64",
  "dirs-next",
  "filedescriptor",
