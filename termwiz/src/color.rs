@@ -87,47 +87,104 @@ fn build_colors() -> HashMap<String, RgbColor> {
 /// components in the range 0-255.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
 pub struct RgbColor {
-    red: u8,
-    green: u8,
-    blue: u8,
+    // MSB set means that we have stored 10bpc color.
+    // Otherwise: 8bpc.
+    bits: u32,
+}
+
+const TEN_BITS: u16 = 0b11_1111_1111;
+const MAX_TEN: f32 = 1023.;
+
+fn ten_to_eight(bits: u32) -> u8 {
+    ((bits as u16 & TEN_BITS) as f32 * MAX_TEN / 255.0) as u8
 }
 
 impl RgbColor {
     /// Construct a color from discrete red, green, blue values
     /// in the range 0-255.
     pub const fn new_8bpc(red: u8, green: u8, blue: u8) -> Self {
-        Self { red, green, blue }
+        Self {
+            bits: ((red as u32) << 16) | ((green as u32) << 8) | blue as u32,
+        }
     }
 
+    /// Construct a color from discrete red, green, blue values
+    /// in the range 0-1023.
+    pub const fn new_10bpc(red: u16, green: u16, blue: u16) -> Self {
+        Self {
+            bits: 0x8000_0000
+                | (((red & TEN_BITS) as u32) << 20)
+                | (((green & TEN_BITS) as u32) << 10)
+                | (blue & TEN_BITS) as u32,
+        }
+    }
+
+    /// Construct a color from discrete red, green, blue values
+    /// in the range 0.0-1.0 in the sRGB colorspace.
+    pub fn new_f32(red: f32, green: f32, blue: f32) -> Self {
+        let red = (red * MAX_TEN) as u16;
+        let green = (green * MAX_TEN) as u16;
+        let blue = (blue * MAX_TEN) as u16;
+        Self::new_10bpc(red, green, blue)
+    }
+
+    /// Returns red, green, blue as 8bpc values.
+    /// Will convert from 10bpc if that is the internal storage.
     pub fn to_tuple_rgb8(self) -> (u8, u8, u8) {
-        (self.red, self.green, self.blue)
+        if self.bits & 0x8000_0000 == 0 {
+            // 8bpc
+            (
+                (self.bits >> 16) as u8,
+                (self.bits >> 8) as u8,
+                self.bits as u8,
+            )
+        } else {
+            // 10bpc.
+            (
+                ten_to_eight(self.bits >> 20),
+                ten_to_eight(self.bits >> 10),
+                ten_to_eight(self.bits),
+            )
+        }
     }
 
+    /// Returns red, green, blue as floating point values in the range 0.0-1.0.
+    /// An alpha channel with the value of 1.0 is included.
+    /// The values are in the sRGB colorspace.
     pub fn to_tuple_rgba(self) -> RgbaTuple {
-        (
-            self.red as f32 / 255.0,
-            self.green as f32 / 255.0,
-            self.blue as f32 / 255.0,
-            1.0,
-        )
+        if self.bits & 0x8000_0000 == 0 {
+            // 8bpc
+            (
+                (self.bits >> 16) as u8 as f32 / 255.0,
+                (self.bits >> 8) as u8 as f32 / 255.0,
+                self.bits as u8 as f32 / 255.0,
+                1.0,
+            )
+        } else {
+            // 10bpc
+            (
+                ((self.bits >> 20) as u16 & TEN_BITS) as f32 / MAX_TEN,
+                ((self.bits >> 10) as u16 & TEN_BITS) as f32 / MAX_TEN,
+                (self.bits as u16 & TEN_BITS) as f32 / MAX_TEN,
+                1.0,
+            )
+        }
     }
 
+    /// Returns red, green, blue as floating point values in the range 0.0-1.0.
+    /// An alpha channel with the value of 1.0 is included.
+    /// The values are converted from sRGB to linear colorspace.
     pub fn to_linear_tuple_rgba(self) -> RgbaTuple {
+        let (red, green, blue, _alpha) = self.to_tuple_rgba();
         // See https://docs.rs/palette/0.5.0/src/palette/encoding/srgb.rs.html#43
-        fn to_linear(v: u8) -> f32 {
-            let v = v as f32 / 255.0;
+        fn to_linear(v: f32) -> f32 {
             if v <= 0.04045 {
                 v / 12.92
             } else {
                 ((v + 0.055) / 1.055).powf(2.4)
             }
         }
-        (
-            to_linear(self.red),
-            to_linear(self.green),
-            to_linear(self.blue),
-            1.0,
-        )
+        (to_linear(red), to_linear(green), to_linear(blue), 1.0)
     }
 
     /// Construct a color from an X11/SVG/CSS3 color name.
@@ -140,14 +197,16 @@ impl RgbColor {
 
     /// Returns a string of the form `#RRGGBB`
     pub fn to_rgb_string(self) -> String {
-        format!("#{:02x}{:02x}{:02x}", self.red, self.green, self.blue)
+        let (red, green, blue) = self.to_tuple_rgb8();
+        format!("#{:02x}{:02x}{:02x}", red, green, blue)
     }
 
     /// Returns a string of the form `rgb:RRRR/GGGG/BBBB`
     pub fn to_x11_16bit_rgb_string(self) -> String {
+        let (red, green, blue) = self.to_tuple_rgb8();
         format!(
             "rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}",
-            self.red, self.red, self.green, self.green, self.blue, self.blue
+            red, red, green, green, blue, blue
         )
     }
 
@@ -377,9 +436,7 @@ mod tests {
     #[test]
     fn named_rgb() {
         let dark_green = RgbColor::from_named("DarkGreen").unwrap();
-        assert_eq!(dark_green.red, 0);
-        assert_eq!(dark_green.green, 0x64);
-        assert_eq!(dark_green.blue, 0);
+        assert_eq!(dark_green.bits, 0x006400);
     }
 
     #[test]
@@ -388,34 +445,22 @@ mod tests {
         assert!(RgbColor::from_rgb_str("#xyxyxy").is_none());
 
         let foo = RgbColor::from_rgb_str("#f00f00f00").unwrap();
-        assert_eq!(foo.red, 0xf0);
-        assert_eq!(foo.green, 0xf0);
-        assert_eq!(foo.blue, 0xf0);
+        assert_eq!(foo.bits, 0xf0f0f0);
 
         let black = RgbColor::from_rgb_str("#000").unwrap();
-        assert_eq!(black.red, 0);
-        assert_eq!(black.green, 0);
-        assert_eq!(black.blue, 0);
+        assert_eq!(black.bits, 0);
 
         let black = RgbColor::from_rgb_str("#FFF").unwrap();
-        assert_eq!(black.red, 0xf0);
-        assert_eq!(black.green, 0xf0);
-        assert_eq!(black.blue, 0xf0);
+        assert_eq!(black.bits, 0xf0f0f0);
 
         let black = RgbColor::from_rgb_str("#000000").unwrap();
-        assert_eq!(black.red, 0);
-        assert_eq!(black.green, 0);
-        assert_eq!(black.blue, 0);
+        assert_eq!(black.bits, 0);
 
         let grey = RgbColor::from_rgb_str("rgb:D6/D6/D6").unwrap();
-        assert_eq!(grey.red, 0xd6);
-        assert_eq!(grey.green, 0xd6);
-        assert_eq!(grey.blue, 0xd6);
+        assert_eq!(grey.bits, 0xd6d6d6);
 
         let grey = RgbColor::from_rgb_str("rgb:f0f0/f0f0/f0f0").unwrap();
-        assert_eq!(grey.red, 0xf0);
-        assert_eq!(grey.green, 0xf0);
-        assert_eq!(grey.blue, 0xf0);
+        assert_eq!(grey.bits, 0xf0f0f0);
     }
 
     #[cfg(feature = "use_serde")]
