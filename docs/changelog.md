@@ -52,6 +52,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: `force_reverse_video_cursor` wasn't correctly swapping the cursor colors in all cases. [#706](https://github.com/wez/wezterm/issues/706)
 * Fixed: allow multuple `IdentityFile` lines in an ssh_config block to be considered
 * Improved: implement braille characters as custom glyphs, to have perfect rendering when `custom_block_glyphs` is enabled. Thanks to [@bew](http://github.com/bew)!
+* Fixed: Mod3 is no longer treater as SUPER on X11 and Wayland [#933](https://github.com/wez/wezterm/issues/933)
 
 ### 20210502-154244-3f7122cb
 
