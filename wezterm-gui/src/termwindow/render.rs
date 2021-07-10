@@ -660,6 +660,7 @@ impl super::TermWindow {
         );
 
         let mut last_cell_idx = 0;
+        let mut current_idx = 0;
 
         // Basic cache of computed data from prior cluster to avoid doing the same
         // work for space separated clusters with the same style
@@ -744,7 +745,6 @@ impl super::TermWindow {
                 self.cached_cluster_shape(style_params.style, &cluster, &gl_state, params.line)?;
 
             for info in glyph_info.iter() {
-                let cell_idx = cluster.byte_to_cell_idx(info.pos.cluster as usize);
                 let glyph = &info.glyph;
 
                 let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)
@@ -759,7 +759,7 @@ impl super::TermWindow {
                 // a single cell per glyph but combining characters, ligatures
                 // and emoji can be 2 or more cells wide.
                 for glyph_idx in 0..info.pos.num_cells as usize {
-                    let cell_idx = cell_idx + glyph_idx;
+                    let cell_idx = current_idx + glyph_idx;
 
                     if cell_idx >= num_cols {
                         // terminal line data is wider than the window.
@@ -768,7 +768,7 @@ impl super::TermWindow {
                         break;
                     }
 
-                    last_cell_idx = cell_idx;
+                    last_cell_idx = current_idx;
 
                     let ComputeCellFgBgResult {
                         fg_color: glyph_color,
@@ -807,20 +807,22 @@ impl super::TermWindow {
                     }
 
                     if self.config.custom_block_glyphs && glyph_idx == 0 {
-                        if let Some(block) = BlockKey::from_cell(&params.line.cells()[cell_idx]) {
-                            self.populate_block_quad(
-                                block,
-                                gl_state,
-                                quads,
-                                cell_idx,
-                                &params,
-                                hsv,
-                                cursor_shape,
-                                glyph_color,
-                                style_params.underline_color,
-                                bg_color,
-                            )?;
-                            continue;
+                        if let Some(cell) = params.line.cells().get(cell_idx) {
+                            if let Some(block) = BlockKey::from_cell(cell) {
+                                self.populate_block_quad(
+                                    block,
+                                    gl_state,
+                                    quads,
+                                    cell_idx,
+                                    &params,
+                                    hsv,
+                                    cursor_shape,
+                                    glyph_color,
+                                    style_params.underline_color,
+                                    bg_color,
+                                    )?;
+                                continue;
+                            }
                         }
                     }
 
@@ -890,6 +892,7 @@ impl super::TermWindow {
                         params.cursor_border_color
                     });
                 }
+                current_idx += info.pos.num_cells as usize;
             }
         }
 
