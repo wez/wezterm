@@ -226,10 +226,6 @@ impl Keyboard {
             // Mod4
             res |= Modifiers::SUPER;
         }
-        if self.mod_is_active("Mod3") {
-            res |= Modifiers::SUPER;
-        }
-        //Mod2 is numlock
         res
     }
 
