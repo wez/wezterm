@@ -1306,14 +1306,17 @@ impl Display for Sgr {
                 (Aqua, ForegroundBrightCyan),
                 (White, ForegroundBrightWhite)
             ),
-            Sgr::Foreground(ColorSpec::TrueColor(c)) => write!(
-                f,
-                "{}:2::{}:{}:{}m",
-                SgrCode::ForegroundColor as i64,
-                c.red,
-                c.green,
-                c.blue
-            )?,
+            Sgr::Foreground(ColorSpec::TrueColor(c)) => {
+                let (red, green, blue) = c.to_tuple_rgb8();
+                write!(
+                    f,
+                    "{}:2::{}:{}:{}m",
+                    SgrCode::ForegroundColor as i64,
+                    red,
+                    green,
+                    blue
+                )?
+            }
             Sgr::Background(ColorSpec::PaletteIndex(idx)) => ansi_color!(
                 *idx,
                 BackgroundColor,
@@ -1337,23 +1340,29 @@ impl Display for Sgr {
                 (Aqua, BackgroundBrightCyan),
                 (White, BackgroundBrightWhite)
             ),
-            Sgr::Background(ColorSpec::TrueColor(c)) => write!(
-                f,
-                "{}:2::{}:{}:{}m",
-                SgrCode::BackgroundColor as i64,
-                c.red,
-                c.green,
-                c.blue
-            )?,
+            Sgr::Background(ColorSpec::TrueColor(c)) => {
+                let (red, green, blue) = c.to_tuple_rgb8();
+                write!(
+                    f,
+                    "{}:2::{}:{}:{}m",
+                    SgrCode::BackgroundColor as i64,
+                    red,
+                    green,
+                    blue
+                )?
+            }
             Sgr::UnderlineColor(ColorSpec::Default) => code!(ResetUnderlineColor),
-            Sgr::UnderlineColor(ColorSpec::TrueColor(c)) => write!(
-                f,
-                "{}:2::{}:{}:{}m",
-                SgrCode::UnderlineColor as i64,
-                c.red,
-                c.green,
-                c.blue
-            )?,
+            Sgr::UnderlineColor(ColorSpec::TrueColor(c)) => {
+                let (red, green, blue) = c.to_tuple_rgb8();
+                write!(
+                    f,
+                    "{}:2::{}:{}:{}m",
+                    SgrCode::UnderlineColor as i64,
+                    red,
+                    green,
+                    blue
+                )?
+            }
             Sgr::UnderlineColor(ColorSpec::PaletteIndex(idx)) => {
                 write!(f, "{}:5:{}m", SgrCode::UnderlineColor as i64, *idx)?
             }
@@ -1866,7 +1875,7 @@ impl<'a> CSIParser<'a> {
             let red = to_u8(&params[2])?;
             let green = to_u8(&params[3])?;
             let blue = to_u8(&params[4])?;
-            let res = RgbColor::new(red, green, blue).into();
+            let res = RgbColor::new_8bpc(red, green, blue).into();
             Ok(self.advance_by(5, params, res))
         } else if params.len() >= 3 && params[1].as_integer() == Some(5) {
             let idx = to_u8(&params[2])?;
@@ -2100,31 +2109,35 @@ impl<'a> CSIParser<'a> {
                         &[Some(4), Some(5)] => one!(Sgr::Underline(Underline::Dashed)),
 
                         &[Some(38), Some(2), _colorspace, Some(r), Some(g), Some(b)] => one!(
-                            Sgr::Foreground(RgbColor::new(r as u8, g as u8, b as u8).into())
+                            Sgr::Foreground(RgbColor::new_8bpc(r as u8, g as u8, b as u8).into())
                         ),
                         &[Some(38), Some(2), Some(r), Some(g), Some(b)] => one!(Sgr::Foreground(
-                            RgbColor::new(r as u8, g as u8, b as u8).into()
+                            RgbColor::new_8bpc(r as u8, g as u8, b as u8).into()
                         )),
                         &[Some(38), Some(5), Some(idx)] => {
                             one!(Sgr::Foreground(ColorSpec::PaletteIndex(idx as u8)))
                         }
 
                         &[Some(48), Some(2), _colorspace, Some(r), Some(g), Some(b)] => one!(
-                            Sgr::Background(RgbColor::new(r as u8, g as u8, b as u8).into())
+                            Sgr::Background(RgbColor::new_8bpc(r as u8, g as u8, b as u8).into())
                         ),
                         &[Some(48), Some(2), Some(r), Some(g), Some(b)] => one!(Sgr::Background(
-                            RgbColor::new(r as u8, g as u8, b as u8).into()
+                            RgbColor::new_8bpc(r as u8, g as u8, b as u8).into()
                         )),
                         &[Some(48), Some(5), Some(idx)] => {
                             one!(Sgr::Background(ColorSpec::PaletteIndex(idx as u8)))
                         }
 
-                        &[Some(58), Some(2), _colorspace, Some(r), Some(g), Some(b)] => one!(
-                            Sgr::UnderlineColor(RgbColor::new(r as u8, g as u8, b as u8).into())
-                        ),
-                        &[Some(58), Some(2), Some(r), Some(g), Some(b)] => one!(
-                            Sgr::UnderlineColor(RgbColor::new(r as u8, g as u8, b as u8).into())
-                        ),
+                        &[Some(58), Some(2), _colorspace, Some(r), Some(g), Some(b)] => {
+                            one!(Sgr::UnderlineColor(
+                                RgbColor::new_8bpc(r as u8, g as u8, b as u8).into()
+                            ))
+                        }
+                        &[Some(58), Some(2), Some(r), Some(g), Some(b)] => {
+                            one!(Sgr::UnderlineColor(
+                                RgbColor::new_8bpc(r as u8, g as u8, b as u8).into()
+                            ))
+                        }
                         &[Some(58), Some(5), Some(idx)] => {
                             one!(Sgr::UnderlineColor(ColorSpec::PaletteIndex(idx as u8)))
                         }
@@ -2354,7 +2367,7 @@ mod test {
         assert_eq!(
             parse('m', &[58, 2, 255, 255, 255], "\x1b[58:2::255:255:255m"),
             vec![CSI::Sgr(Sgr::UnderlineColor(ColorSpec::TrueColor(
-                RgbColor::new(255, 255, 255),
+                RgbColor::new_8bpc(255, 255, 255),
             )))]
         );
         assert_eq!(
@@ -2386,7 +2399,7 @@ mod test {
         assert_eq!(
             parse('m', &[38, 2, 255, 255, 255], "\x1b[38:2::255:255:255m"),
             vec![CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
-                RgbColor::new(255, 255, 255),
+                RgbColor::new_8bpc(255, 255, 255),
             )))]
         );
         assert_eq!(

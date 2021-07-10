@@ -400,7 +400,7 @@ impl SixelBuilder {
                     let r = a as f32 * 255.0 / 100.;
                     let g = b as f32 * 255.0 / 100.;
                     let b = c as f32 * 255.0 / 100.;
-                    let rgb = RgbColor::new(r as u8, g as u8, b as u8); // FIXME: from linear
+                    let rgb = RgbColor::new_8bpc(r as u8, g as u8, b as u8); // FIXME: from linear
                     self.sixel
                         .data
                         .push(SixelData::DefineColorMapRGB { color_number, rgb });
@@ -530,7 +530,7 @@ mod test {
         assert_eq!(
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
-                    RgbColor::new(128, 64, 192)
+                    RgbColor::new_8bpc(128, 64, 192)
                 )))),
                 Action::Print('w'),
             ],
@@ -543,7 +543,7 @@ mod test {
         assert_eq!(
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
-                    RgbColor::new(0, 255, 0)
+                    RgbColor::new_8bpc(0, 255, 0)
                 )))),
                 Action::Print('w'),
             ],
@@ -663,27 +663,15 @@ mod test {
                     data: vec![
                         DefineColorMapRGB {
                             color_number: 0,
-                            rgb: RgbColor {
-                                red: 0,
-                                green: 0,
-                                blue: 0
-                            }
+                            rgb: RgbColor::new_8bpc(0, 0, 0)
                         },
                         DefineColorMapRGB {
                             color_number: 1,
-                            rgb: RgbColor {
-                                red: 255,
-                                green: 255,
-                                blue: 0
-                            }
+                            rgb: RgbColor::new_8bpc(255, 255, 0)
                         },
                         DefineColorMapRGB {
                             color_number: 2,
-                            rgb: RgbColor {
-                                red: 0,
-                                green: 255,
-                                blue: 0
-                            }
+                            rgb: RgbColor::new_8bpc(0, 255, 0)
                         },
                         SelectColorMapEntry(1),
                         Data(63),

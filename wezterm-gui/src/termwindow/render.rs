@@ -820,7 +820,7 @@ impl super::TermWindow {
                                     glyph_color,
                                     style_params.underline_color,
                                     bg_color,
-                                    )?;
+                                )?;
                                 continue;
                             }
                         }
@@ -1311,7 +1311,8 @@ fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> LinearRgba {
     // Note `RgbColor` is intended to be SRGB, but in practice it appears
     // as though it is linear RGB, hence this is using with_rgba rather than
     // with_srgba.
-    LinearRgba::with_rgba(color.red, color.green, color.blue, alpha)
+    let (red, green, blue) = color.to_tuple_rgb8();
+    LinearRgba::with_rgba(red, green, blue, alpha)
 }
 
 fn resolve_fg_color_attr(

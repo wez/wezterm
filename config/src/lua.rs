@@ -307,7 +307,7 @@ impl Into<ColorSpec> for FormatColor {
             FormatColor::AnsiColor(c) => c.into(),
             FormatColor::Color(s) => {
                 let rgb = RgbColor::from_named_or_rgb_string(&s)
-                    .unwrap_or(RgbColor::new(0xff, 0xff, 0xff));
+                    .unwrap_or(RgbColor::new_8bpc(0xff, 0xff, 0xff));
                 rgb.into()
             }
             FormatColor::Default => ColorSpec::Default,

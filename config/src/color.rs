@@ -145,28 +145,28 @@ pub struct TabBarColors {
 impl_lua_conversion!(TabBarColors);
 
 fn default_background() -> RgbColor {
-    RgbColor::new(0x0b, 0x00, 0x22)
+    RgbColor::new_8bpc(0x0b, 0x00, 0x22)
 }
 
 fn default_inactive_tab() -> TabBarColor {
     TabBarColor {
-        bg_color: RgbColor::new(0x1b, 0x10, 0x32),
-        fg_color: RgbColor::new(0x80, 0x80, 0x80),
+        bg_color: RgbColor::new_8bpc(0x1b, 0x10, 0x32),
+        fg_color: RgbColor::new_8bpc(0x80, 0x80, 0x80),
         ..TabBarColor::default()
     }
 }
 fn default_inactive_tab_hover() -> TabBarColor {
     TabBarColor {
-        bg_color: RgbColor::new(0x3b, 0x30, 0x52),
-        fg_color: RgbColor::new(0x90, 0x90, 0x90),
+        bg_color: RgbColor::new_8bpc(0x3b, 0x30, 0x52),
+        fg_color: RgbColor::new_8bpc(0x90, 0x90, 0x90),
         italic: true,
         ..TabBarColor::default()
     }
 }
 fn default_active_tab() -> TabBarColor {
     TabBarColor {
-        bg_color: RgbColor::new(0x2b, 0x20, 0x42),
-        fg_color: RgbColor::new(0xc0, 0xc0, 0xc0),
+        bg_color: RgbColor::new_8bpc(0x2b, 0x20, 0x42),
+        fg_color: RgbColor::new_8bpc(0xc0, 0xc0, 0xc0),
         ..TabBarColor::default()
     }
 }
@@ -273,43 +273,43 @@ impl Default for WindowFrameConfig {
 }
 
 fn default_inactive_titlebar_bg() -> RgbColor {
-    RgbColor::new(0x35, 0x35, 0x35)
+    RgbColor::new_8bpc(0x35, 0x35, 0x35)
 }
 
 fn default_active_titlebar_bg() -> RgbColor {
-    RgbColor::new(0x2b, 0x20, 0x42)
+    RgbColor::new_8bpc(0x2b, 0x20, 0x42)
 }
 
 fn default_inactive_titlebar_fg() -> RgbColor {
-    RgbColor::new(0xcc, 0xcc, 0xcc)
+    RgbColor::new_8bpc(0xcc, 0xcc, 0xcc)
 }
 
 fn default_active_titlebar_fg() -> RgbColor {
-    RgbColor::new(0xff, 0xff, 0xff)
+    RgbColor::new_8bpc(0xff, 0xff, 0xff)
 }
 
 fn default_inactive_titlebar_border_bottom() -> RgbColor {
-    RgbColor::new(0x2b, 0x20, 0x42)
+    RgbColor::new_8bpc(0x2b, 0x20, 0x42)
 }
 
 fn default_active_titlebar_border_bottom() -> RgbColor {
-    RgbColor::new(0x2b, 0x20, 0x42)
+    RgbColor::new_8bpc(0x2b, 0x20, 0x42)
 }
 
 fn default_button_hover_fg() -> RgbColor {
-    RgbColor::new(0xff, 0xff, 0xff)
+    RgbColor::new_8bpc(0xff, 0xff, 0xff)
 }
 
 fn default_button_fg() -> RgbColor {
-    RgbColor::new(0xcc, 0xcc, 0xcc)
+    RgbColor::new_8bpc(0xcc, 0xcc, 0xcc)
 }
 
 fn default_button_hover_bg() -> RgbColor {
-    RgbColor::new(0x3b, 0x30, 0x52)
+    RgbColor::new_8bpc(0x3b, 0x30, 0x52)
 }
 
 fn default_button_bg() -> RgbColor {
-    RgbColor::new(0x2b, 0x20, 0x42)
+    RgbColor::new_8bpc(0x2b, 0x20, 0x42)
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

@@ -72,7 +72,7 @@ fn build_colors() -> HashMap<String, RgbColor> {
         let name = name.to_ascii_lowercase();
         map.insert(
             name,
-            RgbColor::new(
+            RgbColor::new_8bpc(
                 red.parse().unwrap(),
                 green.parse().unwrap(),
                 blue.parse().unwrap(),
@@ -87,16 +87,20 @@ fn build_colors() -> HashMap<String, RgbColor> {
 /// components in the range 0-255.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
 pub struct RgbColor {
-    pub red: u8,
-    pub green: u8,
-    pub blue: u8,
+    red: u8,
+    green: u8,
+    blue: u8,
 }
 
 impl RgbColor {
     /// Construct a color from discrete red, green, blue values
     /// in the range 0-255.
-    pub fn new(red: u8, green: u8, blue: u8) -> Self {
+    pub const fn new_8bpc(red: u8, green: u8, blue: u8) -> Self {
         Self { red, green, blue }
+    }
+
+    pub fn to_tuple_rgb8(self) -> (u8, u8, u8) {
+        (self.red, self.green, self.blue)
     }
 
     pub fn to_tuple_rgba(self) -> RgbaTuple {
@@ -192,7 +196,7 @@ impl RgbColor {
                     }
                 }};
             }
-            Some(Self::new(digit!(), digit!(), digit!()))
+            Some(Self::new_8bpc(digit!(), digit!(), digit!()))
         } else if s.starts_with("rgb:") && s.len() > 6 {
             // The string includes two slashes: `rgb:r/g/b`
             let digits = (s.len() - 3) / 3;
@@ -247,7 +251,7 @@ impl RgbColor {
             slash!();
             let blue = digit!();
 
-            Some(Self::new(red, green, blue))
+            Some(Self::new_8bpc(red, green, blue))
         } else {
             None
         }

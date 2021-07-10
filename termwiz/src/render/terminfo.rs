@@ -1170,7 +1170,7 @@ mod test {
         let mut out = FakeTerm::new(xterm_terminfo());
         out.render(&[
             Change::Attribute(AttributeChange::Foreground(
-                ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
+                ColorSpec::TrueColor(RgbColor::new_8bpc(255, 128, 64)).into(),
             )),
             Change::Text("A".into()),
         ])
@@ -1181,7 +1181,7 @@ mod test {
             result,
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Foreground(
-                    ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
+                    ColorSpec::TrueColor(RgbColor::new_8bpc(255, 128, 64)).into(),
                 ))),
                 Action::Print('A'),
             ]
@@ -1193,7 +1193,7 @@ mod test {
         let mut out = FakeTerm::new(no_terminfo_all_enabled());
         out.render(&[
             Change::Attribute(AttributeChange::Foreground(
-                ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
+                ColorSpec::TrueColor(RgbColor::new_8bpc(255, 128, 64)).into(),
             )),
             Change::Text("A".into()),
         ])
@@ -1204,7 +1204,7 @@ mod test {
             result,
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Foreground(
-                    ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
+                    ColorSpec::TrueColor(RgbColor::new_8bpc(255, 128, 64)).into(),
                 ))),
                 Action::Print('A'),
             ]

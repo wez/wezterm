@@ -63,7 +63,8 @@ pub struct ColorPalette {
 /// to avoid termwiz requiring a dep on the palette crate.
 fn grey_out(color: RgbColor) -> RgbColor {
     use palette::{Lch, Saturate, Srgba};
-    let color = Srgba::new(color.red, color.green, color.blue, 0xff);
+    let (red, green, blue) = color.to_tuple_rgb8();
+    let color = Srgba::new(red, green, blue, 0xff);
     let color: Srgba = color.into_format();
     let color = color.into_linear();
 
@@ -73,7 +74,7 @@ fn grey_out(color: RgbColor) -> RgbColor {
     let result = Srgba::from_linear(desaturated.into());
     let result = Srgba::<u8>::from_format(result);
 
-    RgbColor::new(result.red, result.green, result.blue)
+    RgbColor::new_8bpc(result.red, result.green, result.blue)
 }
 
 impl fmt::Debug for Palette256 {
@@ -139,101 +140,37 @@ impl ColorPalette {
         // The XTerm ansi color set
         static ANSI: [RgbColor; 16] = [
             // Black
-            RgbColor {
-                red: 0x00,
-                green: 0x00,
-                blue: 0x00,
-            },
+            RgbColor::new_8bpc(0x00, 0x00, 0x00),
             // Maroon
-            RgbColor {
-                red: 0xcc,
-                green: 0x55,
-                blue: 0x55,
-            },
+            RgbColor::new_8bpc(0xcc, 0x55, 0x55),
             // Green
-            RgbColor {
-                red: 0x55,
-                green: 0xcc,
-                blue: 0x55,
-            },
+            RgbColor::new_8bpc(0x55, 0xcc, 0x55),
             // Olive
-            RgbColor {
-                red: 0xcd,
-                green: 0xcd,
-                blue: 0x55,
-            },
+            RgbColor::new_8bpc(0xcd, 0xcd, 0x55),
             // Navy
-            RgbColor {
-                red: 0x54,
-                green: 0x55,
-                blue: 0xcb,
-            },
+            RgbColor::new_8bpc(0x54, 0x55, 0xcb),
             // Purple
-            RgbColor {
-                red: 0xcc,
-                green: 0x55,
-                blue: 0xcc,
-            },
+            RgbColor::new_8bpc(0xcc, 0x55, 0xcc),
             // Teal
-            RgbColor {
-                red: 0x7a,
-                green: 0xca,
-                blue: 0xca,
-            },
+            RgbColor::new_8bpc(0x7a, 0xca, 0xca),
             // Silver
-            RgbColor {
-                red: 0xcc,
-                green: 0xcc,
-                blue: 0xcc,
-            },
+            RgbColor::new_8bpc(0xcc, 0xcc, 0xcc),
             // Grey
-            RgbColor {
-                red: 0x55,
-                green: 0x55,
-                blue: 0x55,
-            },
+            RgbColor::new_8bpc(0x55, 0x55, 0x55),
             // Red
-            RgbColor {
-                red: 0xff,
-                green: 0x55,
-                blue: 0x55,
-            },
+            RgbColor::new_8bpc(0xff, 0x55, 0x55),
             // Lime
-            RgbColor {
-                red: 0x55,
-                green: 0xff,
-                blue: 0x55,
-            },
+            RgbColor::new_8bpc(0x55, 0xff, 0x55),
             // Yellow
-            RgbColor {
-                red: 0xff,
-                green: 0xff,
-                blue: 0x55,
-            },
+            RgbColor::new_8bpc(0xff, 0xff, 0x55),
             // Blue
-            RgbColor {
-                red: 0x55,
-                green: 0x55,
-                blue: 0xff,
-            },
+            RgbColor::new_8bpc(0x55, 0x55, 0xff),
             // Fuschia
-            RgbColor {
-                red: 0xff,
-                green: 0x55,
-                blue: 0xff,
-            },
+            RgbColor::new_8bpc(0xff, 0x55, 0xff),
             // Aqua
-            RgbColor {
-                red: 0x55,
-                green: 0xff,
-                blue: 0xff,
-            },
+            RgbColor::new_8bpc(0x55, 0xff, 0xff),
             // White
-            RgbColor {
-                red: 0xff,
-                green: 0xff,
-                blue: 0xff,
-            },
+            RgbColor::new_8bpc(0xff, 0xff, 0xff),
         ];
 
         colors[0..16].copy_from_slice(&ANSI);
@@ -247,7 +184,7 @@ impl ColorPalette {
             let green = RAMP6[idx / 6 % 6];
             let red = RAMP6[idx / 6 / 6 % 6];
 
-            colors[16 + idx] = RgbColor { red, green, blue };
+            colors[16 + idx] = RgbColor::new_8bpc(red, green, blue);
         }
 
         // 24 grey scales
@@ -259,21 +196,21 @@ impl ColorPalette {
 
         for idx in 0..24 {
             let grey = GREYS[idx];
-            colors[232 + idx] = RgbColor::new(grey, grey, grey);
+            colors[232 + idx] = RgbColor::new_8bpc(grey, grey, grey);
         }
 
         let foreground = colors[249]; // Grey70
         let background = colors[AnsiColor::Black as usize];
 
-        let cursor_bg = RgbColor::new(0x52, 0xad, 0x70);
-        let cursor_border = RgbColor::new(0x52, 0xad, 0x70);
+        let cursor_bg = RgbColor::new_8bpc(0x52, 0xad, 0x70);
+        let cursor_border = RgbColor::new_8bpc(0x52, 0xad, 0x70);
         let cursor_fg = colors[AnsiColor::Black as usize];
 
         let selection_fg = colors[AnsiColor::Black as usize];
-        let selection_bg = RgbColor::new(0xff, 0xfa, 0xcd);
+        let selection_bg = RgbColor::new_8bpc(0xff, 0xfa, 0xcd);
 
-        let scrollbar_thumb = RgbColor::new(0x22, 0x22, 0x22);
-        let split = RgbColor::new(0x44, 0x44, 0x44);
+        let scrollbar_thumb = RgbColor::new_8bpc(0x22, 0x22, 0x22);
+        let split = RgbColor::new_8bpc(0x44, 0x44, 0x44);
 
         ColorPalette {
             colors: Palette256(colors),

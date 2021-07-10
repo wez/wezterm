@@ -393,8 +393,8 @@ fn ctrl_mapping(c: char) -> Option<char> {
 
 fn default_color_map() -> HashMap<u16, RgbColor> {
     let mut color_map = HashMap::new();
-    color_map.insert(0, RgbColor::new(0, 0, 0));
-    color_map.insert(3, RgbColor::new(0, 255, 0));
+    color_map.insert(0, RgbColor::new_8bpc(0, 0, 0));
+    color_map.insert(3, RgbColor::new_8bpc(0, 255, 0));
     color_map
 }
 
@@ -1461,37 +1461,27 @@ impl TerminalState {
         let mut image = if sixel.background_is_transparent {
             image::RgbaImage::new(width, height)
         } else {
-            let background_color = color_map.get(&0).cloned().unwrap_or(RgbColor::new(0, 0, 0));
-            image::RgbaImage::from_pixel(
-                width,
-                height,
-                [
-                    background_color.red,
-                    background_color.green,
-                    background_color.blue,
-                    0xffu8,
-                ]
-                .into(),
-            )
+            let background_color = color_map
+                .get(&0)
+                .cloned()
+                .unwrap_or(RgbColor::new_8bpc(0, 0, 0));
+            let (red, green, blue) = background_color.to_tuple_rgb8();
+            image::RgbaImage::from_pixel(width, height, [red, green, blue, 0xffu8].into())
         };
 
         let mut x = 0;
         let mut y = 0;
-        let mut foreground_color = RgbColor::new(0, 0xff, 0);
+        let mut foreground_color = RgbColor::new_8bpc(0, 0xff, 0);
 
         let mut emit_sixel = |d: &u8, foreground_color: &RgbColor, x: u32, y: u32| {
+            let (red, green, blue) = foreground_color.to_tuple_rgb8();
             for bitno in 0..6 {
                 if y + bitno >= height {
                     break;
                 }
                 let on = (d & (1 << bitno)) != 0;
                 if on {
-                    image.get_pixel_mut(x, y + bitno).0 = [
-                        foreground_color.red,
-                        foreground_color.green,
-                        foreground_color.blue,
-                        0xffu8,
-                    ];
+                    image.get_pixel_mut(x, y + bitno).0 = [red, green, blue, 0xffu8];
                 }
             }
         };
@@ -1541,13 +1531,13 @@ impl TerminalState {
                     let rgb: palette::Srgb = hsl.into();
                     let rgb: [u8; 3] = rgb.into_linear().into_format().into_raw();
 
-                    color_map.insert(*color_number, RgbColor::new(rgb[0], rgb[1], rgb[2]));
+                    color_map.insert(*color_number, RgbColor::new_8bpc(rgb[0], rgb[1], rgb[2]));
                 }
 
                 SixelData::SelectColorMapEntry(n) => {
                     foreground_color = color_map.get(n).cloned().unwrap_or_else(|| {
                         log::error!("sixel selected noexistent colormap entry {}", n);
-                        RgbColor::new(255, 255, 255)
+                        RgbColor::new_8bpc(255, 255, 255)
                     });
                 }
             }
