@@ -658,8 +658,8 @@ impl RenderableState {
                         .saturating_sub(wezterm_term::unicode_column_width(&status));
 
                     let mut attr = CellAttributes::default();
-                    attr.foreground = AnsiColor::White.into();
-                    attr.background = AnsiColor::Blue.into();
+                    attr.set_foreground(AnsiColor::White);
+                    attr.set_background(AnsiColor::Blue);
 
                     result
                         .last_mut()

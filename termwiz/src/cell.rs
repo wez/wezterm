@@ -18,9 +18,9 @@ use unicode_width::UnicodeWidthStr;
 pub struct CellAttributes {
     attributes: u16,
     /// The foreground color
-    pub foreground: ColorAttribute,
+    foreground: ColorAttribute,
     /// The background color
-    pub background: ColorAttribute,
+    background: ColorAttribute,
     /// Relatively rarely used attributes spill over to a heap
     /// allocated struct in order to keep CellAttributes
     /// smaller in the common case.
@@ -231,9 +231,17 @@ impl CellAttributes {
         self
     }
 
+    pub fn foreground(&self) -> ColorAttribute {
+        self.foreground
+    }
+
     pub fn set_background<C: Into<ColorAttribute>>(&mut self, background: C) -> &mut Self {
         self.background = background.into();
         self
+    }
+
+    pub fn background(&self) -> ColorAttribute {
+        self.background
     }
 
     fn allocate_fat_attributes(&mut self) {

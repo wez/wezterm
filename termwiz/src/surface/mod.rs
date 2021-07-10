@@ -480,8 +480,12 @@ impl Surface {
             Invisible(value) => {
                 self.attributes.set_invisible(*value);
             }
-            Foreground(value) => self.attributes.foreground = *value,
-            Background(value) => self.attributes.background = *value,
+            Foreground(value) => {
+                self.attributes.set_foreground(*value);
+            }
+            Background(value) => {
+                self.attributes.set_background(*value);
+            }
             Hyperlink(value) => {
                 self.attributes.set_hyperlink(value.clone());
             }

@@ -694,10 +694,10 @@ impl super::TermWindow {
                         attrs.overline(),
                     )?
                     .texture_coords();
-                let bg_is_default = attrs.background == ColorAttribute::Default;
-                let bg_color = params.palette.resolve_bg(attrs.background);
+                let bg_is_default = attrs.background() == ColorAttribute::Default;
+                let bg_color = params.palette.resolve_bg(attrs.background());
 
-                let fg_color = resolve_fg_color_attr(&attrs, &attrs.foreground, &params, style);
+                let fg_color = resolve_fg_color_attr(&attrs, attrs.foreground(), &params, style);
 
                 let (fg_color, bg_color, bg_is_default) = {
                     let mut fg = fg_color;
@@ -715,7 +715,7 @@ impl super::TermWindow {
                 let glyph_color = rgbcolor_to_window_color(fg_color);
                 let underline_color = match attrs.underline_color() {
                     ColorAttribute::Default => fg_color,
-                    c => resolve_fg_color_attr(&attrs, &c, &params, style),
+                    c => resolve_fg_color_attr(&attrs, c, &params, style),
                 };
                 let underline_color = rgbcolor_to_window_color(underline_color);
 
@@ -1317,7 +1317,7 @@ fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> LinearRgba {
 
 fn resolve_fg_color_attr(
     attrs: &CellAttributes,
-    fg: &ColorAttribute,
+    fg: ColorAttribute,
     params: &RenderScreenLineOpenGLParams,
     style: &config::TextStyle,
 ) -> RgbColor {
@@ -1326,24 +1326,24 @@ fn resolve_fg_color_attr(
             if let Some(fg) = style.foreground {
                 fg
             } else {
-                params.palette.resolve_fg(attrs.foreground)
+                params.palette.resolve_fg(attrs.foreground())
             }
         }
         wezterm_term::color::ColorAttribute::PaletteIndex(idx)
-            if *idx < 8 && params.config.bold_brightens_ansi_colors =>
+            if idx < 8 && params.config.bold_brightens_ansi_colors =>
         {
             // For compatibility purposes, switch to a brighter version
             // of one of the standard ANSI colors when Bold is enabled.
             // This lifts black to dark grey.
             let idx = if attrs.intensity() == wezterm_term::Intensity::Bold {
-                *idx + 8
+                idx + 8
             } else {
-                *idx
+                idx
             };
             params
                 .palette
                 .resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
         }
-        _ => params.palette.resolve_fg(*fg),
+        _ => params.palette.resolve_fg(fg),
     }
 }

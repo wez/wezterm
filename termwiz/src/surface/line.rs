@@ -534,7 +534,7 @@ impl Line {
             // to emit ClearToEndOfLine instead.
             if attr
                 == CellAttributes::default()
-                    .set_background(attr.background)
+                    .set_background(attr.background())
                     .clone()
             {
                 let left = text_run.trim_end_matches(' ').to_string();
@@ -558,8 +558,8 @@ impl Line {
                     // background color, we don't need to emit an instruction
                     // to clear the remainder of the line unless it has a different
                     // background color.
-                    if attr.background != Default::default() {
-                        result.push(Change::ClearToEndOfLine(attr.background));
+                    if attr.background() != Default::default() {
+                        result.push(Change::ClearToEndOfLine(attr.background()));
                     }
                 } else {
                     result.push(Change::Text(text_run));

@@ -417,14 +417,14 @@ fn parse_status_text(text: &str, default_cell: CellAttributes) -> Vec<Cell> {
                         }
                         Sgr::Foreground(col) => {
                             if let ColorSpec::Default = col {
-                                pen.set_foreground(default_cell.foreground);
+                                pen.set_foreground(default_cell.foreground());
                             } else {
                                 pen.set_foreground(col);
                             }
                         }
                         Sgr::Background(col) => {
                             if let ColorSpec::Default = col {
-                                pen.set_background(default_cell.background);
+                                pen.set_background(default_cell.background());
                             } else {
                                 pen.set_background(col);
                             }
