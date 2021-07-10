@@ -108,7 +108,7 @@ pub struct GraphicsDriversLostContext {}
 #[async_trait(?Send)]
 pub trait WindowOps {
     /// Show a hidden window
-    fn show(&self) -> Future<()>;
+    fn show(&self);
 
     fn notify<T: Any + Send + Sync>(&self, t: T)
     where
@@ -123,58 +123,48 @@ pub trait WindowOps {
     }
 
     /// Hide a visible window
-    fn hide(&self) -> Future<()>;
+    fn hide(&self);
 
     /// Schedule the window to be closed
-    fn close(&self) -> Future<()>;
+    fn close(&self);
 
     /// Change the cursor
-    fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()>;
+    fn set_cursor(&self, cursor: Option<MouseCursor>);
 
     /// Invalidate the window so that the entire client area will
     /// be repainted shortly
-    fn invalidate(&self) -> Future<()>;
+    fn invalidate(&self);
 
     /// Change the titlebar text for the window
-    fn set_title(&self, title: &str) -> Future<()>;
+    fn set_title(&self, title: &str);
 
     fn default_key_processing(&self, _key: KeyEvent) {}
 
     /// Resize the inner or client area of the window
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions>;
+    fn set_inner_size(&self, width: usize, height: usize);
 
     /// Changes the location of the window on the screen.
     /// The coordinates are of the top left pixel of the
     /// client area.
-    fn set_window_position(&self, _coords: ScreenPoint) -> Future<()> {
-        Future::ok(())
-    }
+    fn set_window_position(&self, _coords: ScreenPoint) {}
 
     /// inform the windowing system of the current textual
     /// cursor input location.  This is used primarily for
     /// the platform specific input method editor
-    fn set_text_cursor_position(&self, _cursor: Rect) -> Future<()> {
-        Future::ok(())
-    }
+    fn set_text_cursor_position(&self, _cursor: Rect) {}
 
     /// Initiate textual transfer from the clipboard
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String>;
 
     /// Set some text in the clipboard
-    fn set_clipboard(&self, clipboard: Clipboard, text: String) -> Future<()>;
+    fn set_clipboard(&self, clipboard: Clipboard, text: String);
 
     /// Set the icon for the window.
     /// Depending on the system this may be shown in its titlebar
     /// and/or in the task manager/task switcher
-    fn set_icon(&self, _image: Image) -> Future<()> {
-        Future::ok(())
-    }
+    fn set_icon(&self, _image: Image) {}
 
-    fn toggle_fullscreen(&self) -> Future<()> {
-        Future::ok(())
-    }
+    fn toggle_fullscreen(&self) {}
 
-    fn config_did_change(&self, _config: &config::ConfigHandle) -> Future<()> {
-        Future::ok(())
-    }
+    fn config_did_change(&self, _config: &config::ConfigHandle) {}
 }

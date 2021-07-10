@@ -562,65 +562,65 @@ impl WindowOps for Window {
         }
     }
 
-    fn close(&self) -> Future<()> {
+    fn close(&self) {
         Connection::with_window_inner(self.0, |inner| {
             inner.close();
             Ok(())
-        })
+        });
     }
 
-    fn hide(&self) -> Future<()> {
+    fn hide(&self) {
         Connection::with_window_inner(self.0, |inner| {
             inner.hide();
             Ok(())
-        })
+        });
     }
 
-    fn show(&self) -> Future<()> {
+    fn show(&self) {
         Connection::with_window_inner(self.0, |inner| {
             inner.show();
             Ok(())
-        })
+        });
     }
 
-    fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
+    fn set_cursor(&self, cursor: Option<MouseCursor>) {
         Connection::with_window_inner(self.0, move |inner| {
             let _ = inner.set_cursor(cursor);
             Ok(())
-        })
+        });
     }
 
-    fn invalidate(&self) -> Future<()> {
+    fn invalidate(&self) {
         Connection::with_window_inner(self.0, |inner| {
             inner.invalidate();
             Ok(())
-        })
+        });
     }
 
-    fn set_title(&self, title: &str) -> Future<()> {
+    fn set_title(&self, title: &str) {
         let title = title.to_owned();
         Connection::with_window_inner(self.0, move |inner| {
             inner.set_title(&title);
             Ok(())
-        })
+        });
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
-        Connection::with_window_inner(self.0, move |inner| Ok(inner.set_inner_size(width, height)))
+    fn set_inner_size(&self, width: usize, height: usize) {
+        Connection::with_window_inner(self.0, move |inner| Ok(inner.set_inner_size(width, height)));
     }
 
-    fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
+    fn set_window_position(&self, coords: ScreenPoint) {
         Connection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
             Ok(())
-        })
+        });
     }
 
-    fn set_text_cursor_position(&self, cursor: Rect) -> Future<()> {
+    fn set_text_cursor_position(&self, cursor: Rect) {
         Connection::with_window_inner(self.0, move |inner| {
             inner.set_text_cursor_position(cursor);
             Ok(())
-        })
+        });
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
@@ -632,28 +632,26 @@ impl WindowOps for Window {
         )
     }
 
-    fn set_clipboard(&self, _clipboard: Clipboard, text: String) -> Future<()> {
+    fn set_clipboard(&self, _clipboard: Clipboard, text: String) {
         use clipboard::ClipboardProvider;
-        Future::result(
-            clipboard::ClipboardContext::new()
-                .and_then(|mut ctx| ctx.set_contents(text))
-                .map_err(|e| anyhow!("Failed to set clipboard:{}", e)),
-        )
+        clipboard::ClipboardContext::new()
+            .and_then(|mut ctx| ctx.set_contents(text))
+            .ok();
     }
 
-    fn toggle_fullscreen(&self) -> Future<()> {
+    fn toggle_fullscreen(&self) {
         Connection::with_window_inner(self.0, move |inner| {
             inner.toggle_fullscreen();
             Ok(())
-        })
+        });
     }
 
-    fn config_did_change(&self, config: &ConfigHandle) -> Future<()> {
+    fn config_did_change(&self, config: &ConfigHandle) {
         let config = config.clone();
         Connection::with_window_inner(self.0, move |inner| {
             inner.config_did_change(&config);
             Ok(())
-        })
+        });
     }
 }
 

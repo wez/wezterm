@@ -919,74 +919,66 @@ impl WindowOps for XWindow {
         }
     }
 
-    fn close(&self) -> Future<()> {
+    fn close(&self) {
         XConnection::with_window_inner(self.0, |inner| {
             inner.close();
             Ok(())
-        })
+        });
     }
 
-    fn hide(&self) -> Future<()> {
+    fn hide(&self) {
         XConnection::with_window_inner(self.0, |inner| {
             inner.hide();
             Ok(())
-        })
+        });
     }
 
-    fn toggle_fullscreen(&self) -> Future<()> {
+    fn toggle_fullscreen(&self) {
         XConnection::with_window_inner(self.0, |inner| {
             inner.toggle_fullscreen();
             Ok(())
-        })
+        });
     }
 
-    fn config_did_change(&self, config: &ConfigHandle) -> Future<()> {
+    fn config_did_change(&self, config: &ConfigHandle) {
         let config = config.clone();
         XConnection::with_window_inner(self.0, move |inner| {
             inner.config_did_change(&config);
             Ok(())
-        })
+        });
     }
 
-    fn show(&self) -> Future<()> {
+    fn show(&self) {
         XConnection::with_window_inner(self.0, |inner| {
             inner.show();
             Ok(())
-        })
+        });
     }
 
-    fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
+    fn set_cursor(&self, cursor: Option<MouseCursor>) {
         XConnection::with_window_inner(self.0, move |inner| {
             let _ = inner.set_cursor(cursor);
             Ok(())
-        })
+        });
     }
 
-    fn invalidate(&self) -> Future<()> {
+    fn invalidate(&self) {
         XConnection::with_window_inner(self.0, |inner| {
             inner.invalidate();
             Ok(())
-        })
+        });
     }
 
-    fn set_title(&self, title: &str) -> Future<()> {
+    fn set_title(&self, title: &str) {
         let title = title.to_owned();
         XConnection::with_window_inner(self.0, move |inner| {
             inner.set_title(&title);
             Ok(())
-        })
+        });
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
-        let mut promise = Promise::new();
-        let future = promise.get_future().unwrap();
-
-        let mut promise = Some(promise);
-
+    fn set_inner_size(&self, width: usize, height: usize) {
         XConnection::with_window_inner(self.0, move |inner| {
-            if let Some(promise) = promise.take() {
-                inner.resize_promises.push(promise);
-            }
             xcb::configure_window(
                 inner.conn().conn(),
                 inner.window_id,
@@ -997,22 +989,20 @@ impl WindowOps for XWindow {
             );
             Ok(())
         });
-
-        future
     }
 
-    fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
+    fn set_window_position(&self, coords: ScreenPoint) {
         XConnection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
             Ok(())
-        })
+        });
     }
 
-    fn set_icon(&self, image: Image) -> Future<()> {
+    fn set_icon(&self, image: Image) {
         XConnection::with_window_inner(self.0, move |inner| {
             inner.set_icon(&image);
             Ok(())
-        })
+        });
     }
 
     /// Initiate textual transfer from the clipboard
@@ -1054,7 +1044,7 @@ impl WindowOps for XWindow {
     }
 
     /// Set some text in the clipboard
-    fn set_clipboard(&self, clipboard: Clipboard, text: String) -> Future<()> {
+    fn set_clipboard(&self, clipboard: Clipboard, text: String) {
         XConnection::with_window_inner(self.0, move |inner| {
             inner
                 .copy_and_paste
@@ -1062,6 +1052,6 @@ impl WindowOps for XWindow {
                 .replace(text.clone());
             inner.update_selection_owner(clipboard);
             Ok(())
-        })
+        });
     }
 }

@@ -7,7 +7,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{Clipboard, Dimensions, MouseCursor, ScreenPoint, WindowEventReceiver, WindowOps};
+use crate::{Clipboard, MouseCursor, ScreenPoint, WindowEventReceiver, WindowOps};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
@@ -146,7 +146,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn close(&self) -> Future<()> {
+    fn close(&self) {
         match self {
             Self::X11(x) => x.close(),
             #[cfg(feature = "wayland")]
@@ -164,7 +164,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn hide(&self) -> Future<()> {
+    fn hide(&self) {
         match self {
             Self::X11(x) => x.hide(),
             #[cfg(feature = "wayland")]
@@ -172,7 +172,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn toggle_fullscreen(&self) -> Future<()> {
+    fn toggle_fullscreen(&self) {
         match self {
             Self::X11(x) => x.toggle_fullscreen(),
             #[cfg(feature = "wayland")]
@@ -180,7 +180,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn config_did_change(&self, config: &ConfigHandle) -> Future<()> {
+    fn config_did_change(&self, config: &ConfigHandle) {
         match self {
             Self::X11(x) => x.config_did_change(config),
             #[cfg(feature = "wayland")]
@@ -188,7 +188,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn show(&self) -> Future<()> {
+    fn show(&self) {
         match self {
             Self::X11(x) => x.show(),
             #[cfg(feature = "wayland")]
@@ -196,7 +196,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
+    fn set_cursor(&self, cursor: Option<MouseCursor>) {
         match self {
             Self::X11(x) => x.set_cursor(cursor),
             #[cfg(feature = "wayland")]
@@ -204,7 +204,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn invalidate(&self) -> Future<()> {
+    fn invalidate(&self) {
         match self {
             Self::X11(x) => x.invalidate(),
             #[cfg(feature = "wayland")]
@@ -212,7 +212,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn set_title(&self, title: &str) -> Future<()> {
+    fn set_title(&self, title: &str) {
         match self {
             Self::X11(x) => x.set_title(title),
             #[cfg(feature = "wayland")]
@@ -220,7 +220,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn set_icon(&self, image: crate::bitmaps::Image) -> Future<()> {
+    fn set_icon(&self, image: crate::bitmaps::Image) {
         match self {
             Self::X11(x) => x.set_icon(image),
             #[cfg(feature = "wayland")]
@@ -228,7 +228,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
+    fn set_inner_size(&self, width: usize, height: usize) {
         match self {
             Self::X11(x) => x.set_inner_size(width, height),
             #[cfg(feature = "wayland")]
@@ -236,7 +236,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
+    fn set_window_position(&self, coords: ScreenPoint) {
         match self {
             Self::X11(x) => x.set_window_position(coords),
             #[cfg(feature = "wayland")]
@@ -251,7 +251,7 @@ impl WindowOps for Window {
             Self::Wayland(w) => w.get_clipboard(clipboard),
         }
     }
-    fn set_clipboard(&self, clipboard: Clipboard, text: String) -> Future<()> {
+    fn set_clipboard(&self, clipboard: Clipboard, text: String) {
         match self {
             Self::X11(x) => x.set_clipboard(clipboard, text),
             #[cfg(feature = "wayland")]

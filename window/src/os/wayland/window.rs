@@ -698,67 +698,67 @@ impl WindowOps for WaylandWindow {
         }
     }
 
-    fn close(&self) -> Future<()> {
+    fn close(&self) {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.close();
             Ok(())
-        })
+        });
     }
 
-    fn hide(&self) -> Future<()> {
+    fn hide(&self) {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.hide();
             Ok(())
-        })
+        });
     }
 
-    fn toggle_fullscreen(&self) -> Future<()> {
+    fn toggle_fullscreen(&self) {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.toggle_fullscreen();
             Ok(())
-        })
+        });
     }
 
-    fn show(&self) -> Future<()> {
+    fn show(&self) {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.show();
             Ok(())
-        })
+        });
     }
 
-    fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
+    fn set_cursor(&self, cursor: Option<MouseCursor>) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_cursor(cursor);
             Ok(())
-        })
+        });
     }
 
-    fn invalidate(&self) -> Future<()> {
+    fn invalidate(&self) {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.invalidate();
             Ok(())
-        })
+        });
     }
 
-    fn set_title(&self, title: &str) -> Future<()> {
+    fn set_title(&self, title: &str) {
         let title = title.to_owned();
         WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_title(&title);
             Ok(())
-        })
+        });
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) -> Future<Dimensions> {
+    fn set_inner_size(&self, width: usize, height: usize) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             Ok(inner.set_inner_size(width, height))
-        })
+        });
     }
 
-    fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
+    fn set_window_position(&self, coords: ScreenPoint) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
             Ok(())
-        })
+        });
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
@@ -788,7 +788,7 @@ impl WindowOps for WaylandWindow {
         future
     }
 
-    fn set_clipboard(&self, _clipboard: Clipboard, text: String) -> Future<()> {
+    fn set_clipboard(&self, _clipboard: Clipboard, text: String) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             let text = text.clone();
             let conn = Connection::get().unwrap().wayland();
@@ -810,7 +810,7 @@ impl WindowOps for WaylandWindow {
             inner.copy_and_paste.lock().unwrap().set_selection(&source);
 
             Ok(())
-        })
+        });
     }
 }
 
