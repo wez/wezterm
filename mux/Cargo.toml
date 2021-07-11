@@ -19,6 +19,7 @@ lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
 luahelper = { path = "../luahelper" }
+metrics = { version="0.16", features=["std"]}
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
 rangeset = { path = "../rangeset" }

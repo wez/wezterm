@@ -5,6 +5,7 @@ use anyhow::{anyhow, Error};
 use config::{configuration, ExitBehavior};
 use domain::{Domain, DomainId};
 use log::error;
+use metrics::histogram;
 use portable_pty::ExitStatus;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
@@ -13,9 +14,8 @@ use std::io::Read;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
-use std::time::Duration;
-
 use std::thread;
+use std::time::{Duration, Instant};
 use termwiz::escape::Action;
 use thiserror::*;
 
@@ -66,12 +66,18 @@ pub struct Mux {
 /// It blocks until the mux has finished consuming the data, which provides
 /// some back-pressure so that eg: ctrl-c can remain responsive.
 fn send_actions_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, actions: Vec<Action>) {
+    let start = Instant::now();
     promise::spawn::block_on(promise::spawn::spawn_into_main_thread({
         let dead = Arc::clone(&dead);
         async move {
             let mux = Mux::get().unwrap();
             if let Some(pane) = mux.get_pane(pane_id) {
+                let start = Instant::now();
                 pane.perform_actions(actions);
+                histogram!(
+                    "send_actions_to_mux.perform_actions.latency",
+                    start.elapsed()
+                );
                 mux.notify(MuxNotification::PaneOutput(pane_id));
             } else {
                 // Something else removed the pane from
@@ -81,6 +87,8 @@ fn send_actions_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, actions: Vec<Act
             }
         }
     }));
+    histogram!("send_actions_to_mux.latency", start.elapsed());
+    histogram!("send_actions_to_mux.rate", 1.);
 }
 
 struct BufState {
@@ -91,8 +99,10 @@ struct BufState {
 
 impl BufState {
     fn write(&self, buf: &[u8]) {
+        let start = Instant::now();
         let mut queue = self.queue.lock().unwrap();
         queue.extend(buf);
+        histogram!("read_from_pane_pty.BufState.extend", start.elapsed());
         self.cond.notify_one();
     }
 }
@@ -179,6 +189,7 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
                 break;
             }
             Ok(size) => {
+                histogram!("read_from_pane_pty.bytes.rate", size as f64);
                 state.write(&buf[..size]);
             }
         }

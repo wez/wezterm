@@ -2499,6 +2499,7 @@ dependencies = [
  "libc",
  "log",
  "luahelper",
+ "metrics",
  "portable-pty",
  "promise",
  "rangeset",
