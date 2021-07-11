@@ -8,7 +8,6 @@ struct MyWindow {
     allow_close: bool,
     cursor_pos: Point,
     dims: Dimensions,
-    win: Option<Window>,
     gl: Option<Rc<glium::backend::Context>>,
 }
 
@@ -19,12 +18,7 @@ impl Drop for MyWindow {
 }
 
 impl MyWindow {
-    fn dispatch(&mut self, event: WindowEvent) {
-        let win = match self.win.as_ref() {
-            Some(win) => win,
-            None => return,
-        };
-
+    fn dispatch(&mut self, event: WindowEvent, win: &Window) {
         match dbg!(event) {
             WindowEvent::CloseRequested => {
                 eprintln!("can I close?");
@@ -95,7 +89,6 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
             pixel_height: 600,
             dpi: 0,
         },
-        win: None,
         gl: None,
     }));
 
@@ -107,14 +100,12 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
         600,
         None,
         fontconfig,
-        move |event| {
+        move |event, window| {
             let mut state = cb_state.borrow_mut();
-            state.dispatch(event)
+            state.dispatch(event, window)
         },
     )
     .await?;
-
-    state.borrow_mut().win.replace(win.clone());
 
     eprintln!("before show");
     win.show();

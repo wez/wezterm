@@ -24,7 +24,8 @@ use wezterm_font::{FontConfiguration, FontMetrics, GlyphInfo, RasterizedGlyph};
 
 fn color_to_paint(c: RgbColor) -> Paint<'static> {
     let mut paint = Paint::default();
-    paint.set_color_rgba8(c.blue, c.green, c.red, 0xff);
+    let (red, green, blue) = c.to_tuple_rgb8();
+    paint.set_color_rgba8(blue, green, red, 0xff);
     paint.anti_alias = true;
     paint
 }
@@ -463,7 +464,8 @@ impl ConceptFrame {
         let title_color = match self.active {
             WindowState::Active => colors.active_titlebar_fg,
             WindowState::Inactive => colors.inactive_titlebar_fg,
-        };
+        }
+        .to_tuple_rgba();
 
         for info in infos {
             if let Ok(mut glyph) = font.rasterize_glyph(info.glyph_pos, info.font_idx) {
@@ -481,10 +483,9 @@ impl ConceptFrame {
                         } else {
                             // Apply the preferred title color
                             *p = ColorU8::from_rgba(
-                                ((b as f32 / 255.) * (title_color.red as f32 / 255.) * 255.) as u8,
-                                ((g as f32 / 255.) * (title_color.green as f32 / 255.) * 255.)
-                                    as u8,
-                                ((r as f32 / 255.) * (title_color.blue as f32 / 255.) * 255.) as u8,
+                                ((b as f32 / 255.) * (title_color.0 * 255.)) as u8,
+                                ((g as f32 / 255.) * (title_color.1 * 255.)) as u8,
+                                ((r as f32 / 255.) * (title_color.2 * 255.)) as u8,
                                 a,
                             )
                             .premultiply();
@@ -1190,17 +1191,18 @@ fn request_for_location_on_rmb(pointer_data: &PointerUserData) -> Option<FrameRe
 // result is as transparent as the most transparent color
 fn mix_colors(x: RgbColor, y: RgbColor) -> RgbColor {
     #[inline]
-    fn gamma_mix(x: u8, y: u8) -> u8 {
-        let x = x as f32 / 255.0;
-        let y = y as f32 / 255.0;
+    fn gamma_mix(x: f32, y: f32) -> f32 {
         let z = ((x * x + y * y) / 2.0).sqrt();
-        (z * 255.0) as u8
+        z
     }
 
-    RgbColor::new(
-        gamma_mix(x.red, y.red),
-        gamma_mix(x.green, y.green),
-        gamma_mix(x.blue, y.blue),
+    let x = x.to_tuple_rgba();
+    let y = y.to_tuple_rgba();
+
+    RgbColor::new_f32(
+        gamma_mix(x.0, y.0),
+        gamma_mix(x.1, y.1),
+        gamma_mix(x.2, y.2),
     )
 }
 
