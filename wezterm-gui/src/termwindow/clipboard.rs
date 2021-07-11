@@ -110,5 +110,6 @@ impl TermWindow {
             }
         })
         .detach();
+        self.maybe_scroll_to_bottom_for_input(&pane);
     }
 }

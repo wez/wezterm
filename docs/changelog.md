@@ -53,6 +53,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: allow multuple `IdentityFile` lines in an ssh_config block to be considered
 * Improved: implement braille characters as custom glyphs, to have perfect rendering when `custom_block_glyphs` is enabled. Thanks to [@bew](http://github.com/bew)!
 * Fixed: Mod3 is no longer treater as SUPER on X11 and Wayland [#933](https://github.com/wez/wezterm/issues/933)
+* Fixed: paste now respects `scroll_to_bottom_on_input`. [#931](https://github.com/wez/wezterm/issues/931)
 
 ### 20210502-154244-3f7122cb
 
