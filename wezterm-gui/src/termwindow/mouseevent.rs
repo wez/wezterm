@@ -18,7 +18,7 @@ use wezterm_term::input::MouseEventKind as TMEK;
 use wezterm_term::{LastMouseClick, StableRowIndex};
 
 impl super::TermWindow {
-    pub async fn mouse_event_impl(&mut self, event: MouseEvent, context: &dyn WindowOps) {
+    pub fn mouse_event_impl(&mut self, event: MouseEvent, context: &dyn WindowOps) {
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
             None => return,
@@ -202,8 +202,7 @@ impl super::TermWindow {
         } else if in_scroll_bar {
             self.mouse_event_scroll_bar(pane, event, context);
         } else {
-            self.mouse_event_terminal(pane, x, term_y, event, context)
-                .await;
+            self.mouse_event_terminal(pane, x, term_y, event, context);
         }
     }
 
@@ -296,7 +295,7 @@ impl super::TermWindow {
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
-    pub async fn mouse_event_terminal(
+    pub fn mouse_event_terminal(
         &mut self,
         mut pane: Rc<dyn Pane>,
         mut x: usize,
@@ -503,7 +502,7 @@ impl super::TermWindow {
                     .input_map
                     .lookup_mouse(event_trigger_type.clone(), modifiers)
                 {
-                    self.perform_key_assignment(&pane, &action).await.ok();
+                    self.perform_key_assignment(&pane, &action).ok();
                     return;
                 }
             }

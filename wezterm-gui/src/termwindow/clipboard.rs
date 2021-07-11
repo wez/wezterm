@@ -1,3 +1,4 @@
+use crate::termwindow::TermWindowNotif;
 use crate::TermWindow;
 use config::keyassignment::{ClipboardCopyDestination, ClipboardPasteSource};
 use mux::pane::Pane;
@@ -88,11 +89,7 @@ impl TermWindow {
         }
     }
 
-    pub async fn paste_from_clipboard(
-        &mut self,
-        pane: &Rc<dyn Pane>,
-        clipboard: ClipboardPasteSource,
-    ) {
+    pub fn paste_from_clipboard(&mut self, pane: &Rc<dyn Pane>, clipboard: ClipboardPasteSource) {
         let pane_id = pane.pane_id();
         let window = self.window.as_ref().unwrap().clone();
         let clipboard = match clipboard {
@@ -100,14 +97,18 @@ impl TermWindow {
             ClipboardPasteSource::PrimarySelection => Clipboard::PrimarySelection,
         };
         let future = window.get_clipboard(clipboard);
-
-        if let Ok(clip) = future.await {
-            if let Some(pane) = self.pane_state(pane_id).overlay.clone().or_else(|| {
-                let mux = Mux::get().unwrap();
-                mux.get_pane(pane_id)
-            }) {
-                pane.trickle_paste(clip).ok();
+        promise::spawn::spawn(async move {
+            if let Ok(clip) = future.await {
+                window.notify(TermWindowNotif::Apply(Box::new(move |myself| {
+                    if let Some(pane) = myself.pane_state(pane_id).overlay.clone().or_else(|| {
+                        let mux = Mux::get().unwrap();
+                        mux.get_pane(pane_id)
+                    }) {
+                        pane.trickle_paste(clip).ok();
+                    }
+                })));
             }
-        }
+        })
+        .detach();
     }
 }

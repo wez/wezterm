@@ -17,8 +17,10 @@ use config::{ConfigHandle, HsbTransform, TextStyle};
 use mux::pane::Pane;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
+use smol::Timer;
 use std::ops::Range;
 use std::rc::Rc;
+use std::time::Duration;
 use std::time::Instant;
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
@@ -138,6 +140,23 @@ impl super::TermWindow {
         metrics::histogram!("gui.paint.opengl", start.elapsed());
         metrics::histogram!("gui.paint.opengl.rate", 1.);
         self.update_title_post_status();
+
+        // If self.has_animation is some, then the last render detected
+        // image attachments with multiple frames, so we also need to
+        // invalidate the viewport when the next frame is due
+        if self.focused.is_some() {
+            if let Some(next_due) = *self.has_animation.borrow() {
+                if Some(next_due) != *self.scheduled_animation.borrow() {
+                    self.scheduled_animation.borrow_mut().replace(next_due);
+                    let window = self.window.clone().take().unwrap();
+                    promise::spawn::spawn(async move {
+                        Timer::at(next_due).await;
+                        window.invalidate();
+                    })
+                    .detach();
+                }
+            }
+        }
     }
 
     fn update_next_frame_time(&self, next_due: Option<Instant>) {
@@ -1133,10 +1152,34 @@ impl super::TermWindow {
                     && params.config.cursor_blink_rate != 0
                     && self.focused.is_some();
                 if blinking {
+                    let now = std::time::Instant::now();
+
+                    // schedule an invalidation so that we can paint the next
+                    // cycle at the right time.
+                    if let Some(window) = self.window.clone() {
+                        let interval = Duration::from_millis(params.config.cursor_blink_rate);
+                        let next = *self.next_blink_paint.borrow();
+                        if next < now {
+                            let target = next + interval;
+                            let target = if target <= now {
+                                now + interval
+                            } else {
+                                target
+                            };
+
+                            *self.next_blink_paint.borrow_mut() = target;
+                            promise::spawn::spawn(async move {
+                                Timer::at(target).await;
+                                window.invalidate();
+                            })
+                            .detach();
+                        }
+                    }
+
                     // Divide the time since we last moved by the blink rate.
                     // If the result is even then the cursor is "on", else it
                     // is "off"
-                    let now = std::time::Instant::now();
+
                     let milli_uptime = now
                         .duration_since(self.prev_cursor.last_cursor_movement())
                         .as_millis();

@@ -34,7 +34,6 @@ use mux::{Mux, MuxNotification};
 use portable_pty::PtySize;
 use serde::*;
 use smol::channel::Sender;
-use smol::future::FutureExt;
 use smol::Timer;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -220,13 +219,17 @@ pub struct TermWindow {
     shape_cache:
         RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>>>,
 
-    last_blink_paint: Instant,
+    next_blink_paint: RefCell<Instant>,
     last_status_call: Instant,
 
     palette: Option<ColorPalette>,
 
     event_states: HashMap<String, EventState>,
     has_animation: RefCell<Option<Instant>>,
+    scheduled_animation: RefCell<Option<Instant>>,
+
+    gl: Option<Rc<glium::backend::Context>>,
+    config_subscription: Option<config::ConfigSubscription>,
 }
 
 impl TermWindow {
@@ -271,7 +274,7 @@ impl TermWindow {
         }
     }
 
-    fn focus_changed(&mut self, focused: bool) {
+    fn focus_changed(&mut self, focused: bool, window: &Window) {
         log::trace!("Setting focus to {:?}", focused);
         self.focused = if focused { Some(Instant::now()) } else { None };
 
@@ -284,7 +287,7 @@ impl TermWindow {
         self.prev_cursor.bump();
 
         // force cursor to be repainted
-        self.window.as_ref().unwrap().invalidate();
+        window.invalidate();
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
             pane.focus_changed(focused);
@@ -445,7 +448,9 @@ impl TermWindow {
 
         let clipboard_contents = Arc::new(Mutex::new(None));
 
-        let mut myself = Self {
+        let myself = Self {
+            config_subscription: None,
+            gl: None,
             window: None,
             window_background,
             config: config.clone(),
@@ -484,19 +489,29 @@ impl TermWindow {
                 "shape_cache.miss.rate",
                 65536,
             )),
-            last_blink_paint: Instant::now(),
+            next_blink_paint: RefCell::new(Instant::now()),
             last_status_call: Instant::now(),
             event_states: HashMap::new(),
             has_animation: RefCell::new(None),
+            scheduled_animation: RefCell::new(None),
         };
 
-        let (window, events) = Window::new_window(
+        let tw = Rc::new(RefCell::new(myself));
+        let tw_event = Rc::clone(&tw);
+
+        let window = Window::new_window(
             &*WINDOW_CLASS.lock().unwrap(),
             "wezterm",
             dimensions.pixel_width,
             dimensions.pixel_height,
             Some(&config),
             Rc::clone(&fontconfig),
+            move |event, window| {
+                let mut tw = tw_event.borrow_mut();
+                if let Err(err) = tw.dispatch_window_event(event, window) {
+                    log::error!("dispatch_window_event: {:#}", err);
+                }
+            },
         )
         .await?;
 
@@ -513,144 +528,37 @@ impl TermWindow {
             }
         });
 
-        promise::spawn::spawn(async move {
-            let gl = window.enable_opengl().await?;
+        let gl = window.enable_opengl().await?;
+        {
+            let mut myself = tw.borrow_mut();
+            myself.config_subscription.replace(config_subscription);
+            myself.gl.replace(Rc::clone(&gl));
             myself.created(&window, Rc::clone(&gl))?;
             myself.subscribe_to_pane_updates();
             myself.emit_status_event();
-
-            loop {
-                let mut need_invalidate = false;
-                let mut sleep_interval = None;
-
-                let now = Instant::now();
-
-                for f in &[
-                    Self::maintain_status,
-                    Self::maintain_animation,
-                    Self::maintain_blink,
-                ] {
-                    let (invalidate, next) = f(&mut myself, now);
-                    if invalidate {
-                        need_invalidate = true;
-                    }
-                    if let Some(next) = next {
-                        let next = sleep_interval.unwrap_or(next).min(next);
-                        sleep_interval.replace(next);
-                    }
-                }
-
-                if need_invalidate {
-                    if !myself.do_paint(&gl, &window) {
-                        break;
-                    }
-                }
-
-                let recv = async {
-                    let event = events.recv().await?;
-                    anyhow::Result::<Option<WindowEvent>>::Ok(Some(event))
-                };
-
-                let wakeup = async {
-                    Timer::at(sleep_interval.unwrap_or(now + Duration::from_secs(86400))).await;
-                    anyhow::Result::<Option<WindowEvent>>::Ok(None)
-                };
-
-                match recv.or(wakeup).await {
-                    Err(_) => break,
-                    Ok(None) => {}
-                    Ok(Some(event)) => {
-                        let (event, peeked) = Self::coalesce_window_events(event, &events);
-
-                        match myself.dispatch_window_event(event, &window, &gl).await {
-                            Ok(true) => {}
-                            Ok(false) => break,
-                            Err(err) => {
-                                log::error!("{:#}", err);
-                                break;
-                            }
-                        }
-
-                        if let Some(event) = peeked {
-                            match myself.dispatch_window_event(event, &window, &gl).await {
-                                Ok(true) => {}
-                                Ok(false) => break,
-                                Err(err) => {
-                                    log::error!("{:#}", err);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            drop(config_subscription);
-            anyhow::Result::<()>::Ok(())
-        })
-        .detach();
+        }
 
         crate::update::start_update_checker();
         Ok(())
     }
 
-    /// Collapse a series of Resized and NeedRepaint events into a single
-    /// Resized event, or a series of NeedRepaint into a single NeedRepaint
-    /// event.
-    /// Returns the coalesced event, and possibly a subsequent event of
-    /// some other type.
-    fn coalesce_window_events(
-        event: WindowEvent,
-        events: &WindowEventReceiver,
-    ) -> (WindowEvent, Option<WindowEvent>) {
-        if matches!(
-            &event,
-            WindowEvent::Resized { .. } | WindowEvent::NeedRepaint
-        ) {
-            let mut resize = if matches!(&event, WindowEvent::Resized { .. }) {
-                Some(event)
-            } else {
-                None
-            };
-            let mut peek = None;
-
-            while let Ok(next) = events.try_recv() {
-                match next {
-                    WindowEvent::NeedRepaint => {}
-                    e @ WindowEvent::Resized { .. } => {
-                        resize.replace(e);
-                    }
-                    other => {
-                        peek.replace(other);
-                        break;
-                    }
-                }
-            }
-
-            (resize.unwrap_or(WindowEvent::NeedRepaint), peek)
-        } else {
-            (event, None)
-        }
-    }
-
-    async fn dispatch_window_event(
+    fn dispatch_window_event(
         &mut self,
         event: WindowEvent,
         window: &Window,
-        gl: &Rc<glium::backend::Context>,
     ) -> anyhow::Result<bool> {
         match event {
             WindowEvent::Destroyed => Ok(false),
             WindowEvent::CloseRequested => {
-                self.close_requested(&window);
+                self.close_requested(window);
                 Ok(true)
             }
             WindowEvent::FocusChanged(focused) => {
-                self.focus_changed(focused);
+                self.focus_changed(focused, window);
                 Ok(true)
             }
             WindowEvent::MouseEvent(event) => {
-                self.mouse_event_impl(event, window).await;
+                self.mouse_event_impl(event, window);
                 Ok(true)
             }
             WindowEvent::Resized {
@@ -658,17 +566,16 @@ impl TermWindow {
                 is_full_screen,
             } => {
                 self.resize(dimensions, is_full_screen);
-                Ok(self.do_paint(&gl, window))
-            }
-            WindowEvent::KeyEvent(event) => {
-                self.key_event_impl(event, window).await;
                 Ok(true)
             }
-            WindowEvent::NeedRepaint => Ok(self.do_paint(&gl, window)),
+            WindowEvent::KeyEvent(event) => {
+                self.key_event_impl(event, window);
+                Ok(true)
+            }
+            WindowEvent::NeedRepaint => Ok(self.do_paint(window)),
             WindowEvent::Notification(item) => {
                 if let Ok(notif) = item.downcast::<TermWindowNotif>() {
                     self.dispatch_notif(*notif, window)
-                        .await
                         .context("dispatch_notif")?;
                 }
                 Ok(true)
@@ -676,7 +583,12 @@ impl TermWindow {
         }
     }
 
-    fn do_paint(&mut self, gl: &Rc<glium::backend::Context>, window: &Window) -> bool {
+    fn do_paint(&mut self, window: &Window) -> bool {
+        let gl = match self.gl.as_ref() {
+            Some(gl) => gl,
+            None => return false,
+        };
+
         if gl.is_context_lost() {
             log::error!("opengl context was lost; should reinit");
             window.close();
@@ -695,12 +607,8 @@ impl TermWindow {
         window.finish_frame(frame).is_ok()
     }
 
-    async fn dispatch_notif(
-        &mut self,
-        notif: TermWindowNotif,
-        window: &Window,
-    ) -> anyhow::Result<()> {
-        fn chan_err<T>(e: smol::channel::SendError<T>) -> anyhow::Error {
+    fn dispatch_notif(&mut self, notif: TermWindowNotif, window: &Window) -> anyhow::Result<()> {
+        fn chan_err<T>(e: smol::channel::TrySendError<T>) -> anyhow::Error {
             anyhow::anyhow!("{}", e)
         }
 
@@ -718,24 +626,23 @@ impl TermWindow {
                     .get_pane(pane_id)
                     .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
                 self.perform_key_assignment(&pane, &assignment)
-                    .await
                     .context("perform_key_assignment")?;
             }
             TermWindowNotif::SetRightStatus(status) => {
                 if status != self.right_status {
                     self.right_status = status;
                     self.update_title_post_status();
+                } else {
+                    self.schedule_next_status_update();
                 }
             }
             TermWindowNotif::GetDimensions(tx) => {
-                tx.send((self.dimensions, self.is_full_screen))
-                    .await
+                tx.try_send((self.dimensions, self.is_full_screen))
                     .map_err(chan_err)
                     .context("send GetDimensions response")?;
             }
             TermWindowNotif::GetEffectiveConfig(tx) => {
-                tx.send(self.config.clone())
-                    .await
+                tx.try_send(self.config.clone())
                     .map_err(chan_err)
                     .context("send GetEffectiveConfig response")?;
             }
@@ -743,8 +650,7 @@ impl TermWindow {
                 self.finish_window_event(&name, again);
             }
             TermWindowNotif::GetConfigOverrides(tx) => {
-                tx.send(self.config_overrides.clone())
-                    .await
+                tx.try_send(self.config_overrides.clone())
                     .map_err(chan_err)
                     .context("send GetConfigOverrides response")?;
             }
@@ -793,8 +699,7 @@ impl TermWindow {
                     .get_pane(pane_id)
                     .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
 
-                tx.send(self.selection_text(&pane))
-                    .await
+                tx.try_send(self.selection_text(&pane))
                     .map_err(chan_err)
                     .context("send GetSelectionForPane response")?;
             }
@@ -1029,66 +934,6 @@ impl TermWindow {
                 self.schedule_window_event(name);
             }
         }
-    }
-
-    fn maintain_status(&mut self, now: Instant) -> (bool, Option<Instant>) {
-        let interval = Duration::from_millis(self.config.status_update_interval);
-        if now.duration_since(self.last_status_call) > interval {
-            self.last_status_call = now;
-            self.schedule_status_update();
-        }
-
-        (false, Some(self.last_status_call + interval))
-    }
-
-    /// If self.has_animation is some, then the last render detected
-    /// image attachments with multiple frames, so we also need to
-    /// invalidate the viewport when the next frame is due
-    fn maintain_animation(&mut self, now: Instant) -> (bool, Option<Instant>) {
-        if self.focused.is_some() {
-            if let Some(next_due) = *self.has_animation.borrow() {
-                return (now >= next_due, Some(next_due));
-            }
-        }
-        (false, None)
-    }
-
-    /// If blinking is permitted, and the cursor shape is set
-    /// to a blinking variant, and it's been longer than the
-    /// blink rate interval, then invalidate and redraw
-    /// so that we will re-evaluate the cursor visibility.
-    /// This is pretty heavyweight: it would be nice to only invalidate
-    /// the line on which the cursor resides, and then only if the cursor
-    /// is within the viewport.
-    fn maintain_blink(&mut self, now: Instant) -> (bool, Option<Instant>) {
-        if self.focused.is_none() || self.config.cursor_blink_rate == 0 {
-            return (false, None);
-        }
-
-        let panes = self.get_panes_to_render();
-        if panes.is_empty() {
-            self.window.as_ref().unwrap().close();
-            return (false, None);
-        }
-
-        for pos in panes {
-            if pos.is_active {
-                let shape = self
-                    .config
-                    .default_cursor_style
-                    .effective_shape(pos.pane.get_cursor_position().shape);
-                if shape.is_blinking() {
-                    let interval = Duration::from_millis(self.config.cursor_blink_rate);
-                    if now.duration_since(self.last_blink_paint) > interval {
-                        self.last_blink_paint = now;
-                        return (true, Some(self.last_blink_paint + interval));
-                    }
-                    return (false, Some(self.last_blink_paint + interval));
-                }
-            }
-        }
-
-        (false, None)
     }
 
     fn check_for_dirty_lines_and_invalidate_selection(&mut self, pane: &Rc<dyn Pane>) -> bool {
@@ -1345,6 +1190,25 @@ impl TermWindow {
             // is what we're doing.
             if show_tab_bar != self.show_tab_bar {
                 self.config_was_reloaded();
+            }
+        }
+        self.schedule_next_status_update();
+    }
+
+    fn schedule_next_status_update(&mut self) {
+        if let Some(window) = self.window.as_ref() {
+            let now = Instant::now();
+            if self.last_status_call <= now {
+                let interval = Duration::from_millis(self.config.status_update_interval);
+                let target = now + interval;
+                self.last_status_call = target;
+
+                let window = window.clone();
+                promise::spawn::spawn(async move {
+                    Timer::at(target).await;
+                    window.notify(TermWindowNotif::EmitStatusUpdate);
+                })
+                .detach();
             }
         }
     }
@@ -1652,7 +1516,7 @@ impl TermWindow {
         self.move_tab(tab)
     }
 
-    pub async fn perform_key_assignment(
+    pub fn perform_key_assignment(
         &mut self,
         pane: &Rc<dyn Pane>,
         assignment: &KeyAssignment,
@@ -1694,15 +1558,13 @@ impl TermWindow {
                 self.copy_to_clipboard(*dest, text);
             }
             Paste => {
-                self.paste_from_clipboard(pane, ClipboardPasteSource::Clipboard)
-                    .await;
+                self.paste_from_clipboard(pane, ClipboardPasteSource::Clipboard);
             }
             PastePrimarySelection => {
-                self.paste_from_clipboard(pane, ClipboardPasteSource::PrimarySelection)
-                    .await;
+                self.paste_from_clipboard(pane, ClipboardPasteSource::PrimarySelection);
             }
             PasteFrom(source) => {
-                self.paste_from_clipboard(pane, *source).await;
+                self.paste_from_clipboard(pane, *source);
             }
             ActivateTabRelative(n) => {
                 self.activate_tab_relative(*n)?;

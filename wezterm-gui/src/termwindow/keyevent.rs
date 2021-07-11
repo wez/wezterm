@@ -34,7 +34,7 @@ pub enum Key {
 }
 
 impl super::TermWindow {
-    pub async fn key_event_impl(&mut self, window_key: KeyEvent, context: &dyn WindowOps) -> bool {
+    pub fn key_event_impl(&mut self, window_key: KeyEvent, context: &dyn WindowOps) -> bool {
         if !window_key.key_is_down {
             return false;
         }
@@ -95,7 +95,7 @@ impl super::TermWindow {
                 .input_map
                 .lookup_key(&raw_code_key, window_key.raw_modifiers | leader_mod)
             {
-                self.perform_key_assignment(&pane, &assignment).await.ok();
+                self.perform_key_assignment(&pane, &assignment).ok();
                 context.invalidate();
 
                 if leader_active {
@@ -124,7 +124,7 @@ impl super::TermWindow {
                 .input_map
                 .lookup_key(key, window_key.raw_modifiers | leader_mod)
             {
-                self.perform_key_assignment(&pane, &assignment).await.ok();
+                self.perform_key_assignment(&pane, &assignment).ok();
                 context.invalidate();
 
                 if leader_active {
@@ -189,7 +189,7 @@ impl super::TermWindow {
             .input_map
             .lookup_key(&window_key.key, window_key.modifiers | leader_mod)
         {
-            self.perform_key_assignment(&pane, &assignment).await.ok();
+            self.perform_key_assignment(&pane, &assignment).ok();
             context.invalidate();
             if leader_active {
                 // A successful leader key-lookup cancels the leader

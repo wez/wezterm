@@ -380,7 +380,11 @@ impl Window {
         height: usize,
         config: Option<&ConfigHandle>,
         _font_config: Rc<FontConfiguration>,
-    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
+        event_handler: F,
+    ) -> anyhow::Result<Window>
+    where
+        F: 'static + FnMut(WindowEvent),
+    {
         let (events, receiver) = async_channel::unbounded();
         let config = match config {
             Some(c) => c.clone(),
@@ -580,27 +584,13 @@ impl WindowOps for Window {
     where
         Self: Sized,
     {
-        // If we're already on the correct thread, just queue it up
-        if let Some(conn) = Connection::get() {
-            let handle = match conn.get_window(self.0) {
-                Some(h) => h,
-                None => return,
-            };
-            let inner = handle.borrow_mut();
+        Connection::with_window_inner(self.0, move |inner| {
             inner
                 .events
                 .try_send(WindowEvent::Notification(Box::new(t)))
                 .ok();
-        } else {
-            // Otherwise, get into that thread and write to the queue
-            Connection::with_window_inner(self.0, move |inner| {
-                inner
-                    .events
-                    .try_send(WindowEvent::Notification(Box::new(t)))
-                    .ok();
-                Ok(())
-            });
-        }
+            Ok(())
+        });
     }
 
     fn close(&self) {

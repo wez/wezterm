@@ -98,8 +98,27 @@ pub enum WindowEvent {
     Notification(Box<dyn Any + Send + Sync>),
 }
 
-pub type WindowEventSender = async_channel::Sender<WindowEvent>;
-pub type WindowEventReceiver = async_channel::Receiver<WindowEvent>;
+pub struct WindowEventSender {
+    handler: Box<dyn FnMut(WindowEvent, &Window)>,
+    window: Option<Window>,
+}
+
+impl WindowEventSender {
+    pub fn new<F: 'static + FnMut(WindowEvent, &Window)>(handler: F) -> Self {
+        Self {
+            handler: Box::new(handler),
+            window: None,
+        }
+    }
+
+    pub(crate) fn assign_window(&mut self, window: Window) {
+        self.window.replace(window);
+    }
+
+    pub fn dispatch(&mut self, event: WindowEvent) {
+        (self.handler)(event, self.window.as_ref().unwrap());
+    }
+}
 
 #[derive(Debug, Error)]
 #[error("Graphics drivers lost context")]

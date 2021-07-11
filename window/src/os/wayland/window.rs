@@ -6,7 +6,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::x11::keyboard::Keyboard;
 use crate::{
     Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowEvent,
-    WindowEventReceiver, WindowEventSender, WindowOps,
+    WindowEventSender, WindowOps,
 };
 use anyhow::{anyhow, bail, Context};
 use async_io::Timer;
@@ -65,7 +65,7 @@ impl KeyRepeatState {
                         }
                     };
 
-                    let inner = handle.borrow();
+                    let mut inner = handle.borrow_mut();
 
                     if inner.key_repeat.as_ref().map(|k| Arc::as_ptr(k))
                         != Some(Arc::as_ptr(&state))
@@ -93,7 +93,7 @@ impl KeyRepeatState {
                         event.repeat_count += 1;
                         elapsed -= gap;
                     }
-                    inner.events.try_send(WindowEvent::KeyEvent(event)).ok();
+                    inner.events.dispatch(WindowEvent::KeyEvent(event));
 
                     st.when = Instant::now();
                 }
@@ -189,14 +189,18 @@ impl PendingEvent {
 pub struct WaylandWindow(usize);
 
 impl WaylandWindow {
-    pub async fn new_window(
+    pub async fn new_window<F>(
         class_name: &str,
         name: &str,
         width: usize,
         height: usize,
         config: Option<&ConfigHandle>,
         font_config: Rc<FontConfiguration>,
-    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
+        event_handler: F,
+    ) -> anyhow::Result<Window>
+    where
+        F: 'static + FnMut(WindowEvent, &Window),
+    {
         let conn = WaylandConnection::get()
             .ok_or_else(|| {
                 anyhow!(
@@ -207,7 +211,6 @@ impl WaylandWindow {
 
         let window_id = conn.next_window_id();
         let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
-        let (events, receiver) = async_channel::unbounded();
 
         let (pending_first_configure, wait_configure) = async_channel::bounded(1);
 
@@ -285,7 +288,7 @@ impl WaylandWindow {
             window_id,
             key_repeat: None,
             copy_and_paste,
-            events,
+            events: WindowEventSender::new(event_handler),
             surface: surface.detach(),
             window: Some(window),
             dimensions,
@@ -301,12 +304,16 @@ impl WaylandWindow {
         }));
 
         let window_handle = Window::Wayland(WaylandWindow(window_id));
+        inner
+            .borrow_mut()
+            .events
+            .assign_window(window_handle.clone());
 
         conn.windows.borrow_mut().insert(window_id, inner.clone());
 
         wait_configure.recv().await?;
 
-        Ok((window_handle, receiver))
+        Ok(window_handle)
     }
 }
 
@@ -355,7 +362,7 @@ impl WaylandWindowInner {
                     } else {
                         self.key_repeat.take();
                     }
-                    self.events.try_send(WindowEvent::KeyEvent(event)).ok();
+                    self.events.dispatch(WindowEvent::KeyEvent(event));
                 } else {
                     self.key_repeat.take();
                 }
@@ -383,9 +390,7 @@ impl WaylandWindowInner {
         self.modifiers = Modifiers::NONE;
         mapper.update_modifier_state(0, 0, 0, 0);
         self.key_repeat.take();
-        self.events
-            .try_send(WindowEvent::FocusChanged(focused))
-            .ok();
+        self.events.dispatch(WindowEvent::FocusChanged(focused));
     }
 
     pub(crate) fn dispatch_pending_mouse(&mut self) {
@@ -408,7 +413,7 @@ impl WaylandWindowInner {
                 mouse_buttons: self.mouse_buttons,
                 modifiers: self.modifiers,
             };
-            self.events.try_send(WindowEvent::MouseEvent(event)).ok();
+            self.events.dispatch(WindowEvent::MouseEvent(event));
             self.refresh_frame();
         }
 
@@ -439,7 +444,7 @@ impl WaylandWindowInner {
                 mouse_buttons: self.mouse_buttons,
                 modifiers: self.modifiers,
             };
-            self.events.try_send(WindowEvent::MouseEvent(event)).ok();
+            self.events.dispatch(WindowEvent::MouseEvent(event));
         }
 
         if let Some((value_x, value_y)) = PendingMouse::scroll(&pending_mouse) {
@@ -456,7 +461,7 @@ impl WaylandWindowInner {
                     mouse_buttons: self.mouse_buttons,
                     modifiers: self.modifiers,
                 };
-                self.events.try_send(WindowEvent::MouseEvent(event)).ok();
+                self.events.dispatch(WindowEvent::MouseEvent(event));
             }
 
             let discrete_y = value_y.trunc() * factor;
@@ -471,7 +476,7 @@ impl WaylandWindowInner {
                     mouse_buttons: self.mouse_buttons,
                     modifiers: self.modifiers,
                 };
-                self.events.try_send(WindowEvent::MouseEvent(event)).ok();
+                self.events.dispatch(WindowEvent::MouseEvent(event));
             }
         }
     }
@@ -499,9 +504,7 @@ impl WaylandWindowInner {
             *pending_events = PendingEvent::default();
         }
         if pending.close {
-            if self.events.try_send(WindowEvent::CloseRequested).is_err() {
-                self.window.take();
-            }
+            self.events.dispatch(WindowEvent::CloseRequested);
         }
 
         if let Some(full_screen) = pending.full_screen.take() {
@@ -549,12 +552,10 @@ impl WaylandWindowInner {
                 if new_dimensions != self.dimensions {
                     self.dimensions = new_dimensions;
 
-                    self.events
-                        .try_send(WindowEvent::Resized {
-                            dimensions: self.dimensions,
-                            is_full_screen: self.full_screen,
-                        })
-                        .ok();
+                    self.events.dispatch(WindowEvent::Resized {
+                        dimensions: self.dimensions,
+                        is_full_screen: self.full_screen,
+                    });
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
                         wegl_surface.resize(pixel_width, pixel_height, 0, 0);
                     }
@@ -629,7 +630,7 @@ impl WaylandWindowInner {
     }
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
-        self.events.try_send(WindowEvent::NeedRepaint).ok();
+        self.events.dispatch(WindowEvent::NeedRepaint);
         Ok(())
     }
 }
@@ -675,27 +676,12 @@ impl WindowOps for WaylandWindow {
     where
         Self: Sized,
     {
-        // If we're already on the correct thread, just queue it up
-        if let Some(conn) = Connection::get() {
-            let handle = match conn.wayland().window_by_id(self.0) {
-                Some(h) => h,
-                None => return,
-            };
-            let inner = handle.borrow();
+        WaylandConnection::with_window_inner(self.0, move |inner| {
             inner
                 .events
-                .try_send(WindowEvent::Notification(Box::new(t)))
-                .ok();
-        } else {
-            // Otherwise, get into that thread and write to the queue
-            WaylandConnection::with_window_inner(self.0, move |inner| {
-                inner
-                    .events
-                    .try_send(WindowEvent::Notification(Box::new(t)))
-                    .ok();
-                Ok(())
-            });
-        }
+                .dispatch(WindowEvent::Notification(Box::new(t)));
+            Ok(())
+        });
     }
 
     fn close(&self) {
@@ -876,7 +862,7 @@ fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
 
 impl WaylandWindowInner {
     fn close(&mut self) {
-        self.events.try_send(WindowEvent::Destroyed).ok();
+        self.events.dispatch(WindowEvent::Destroyed);
         self.window.take();
     }
 

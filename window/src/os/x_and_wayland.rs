@@ -7,7 +7,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{Clipboard, MouseCursor, ScreenPoint, WindowEventReceiver, WindowOps};
+use crate::{Clipboard, MouseCursor, ScreenPoint, WindowEvent, WindowOps};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
@@ -46,7 +46,7 @@ impl Connection {
         Ok(Connection::X11(Rc::new(XConnection::create_new()?)))
     }
 
-    pub async fn new_window(
+    pub async fn new_window<F>(
         &self,
         class_name: &str,
         name: &str,
@@ -54,15 +54,36 @@ impl Connection {
         height: usize,
         config: Option<&ConfigHandle>,
         font_config: Rc<FontConfiguration>,
-    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
+        event_handler: F,
+    ) -> anyhow::Result<Window>
+    where
+        F: 'static + FnMut(WindowEvent, &Window),
+    {
         match self {
             Self::X11(_) => {
-                XWindow::new_window(class_name, name, width, height, config, font_config).await
+                XWindow::new_window(
+                    class_name,
+                    name,
+                    width,
+                    height,
+                    config,
+                    font_config,
+                    event_handler,
+                )
+                .await
             }
             #[cfg(feature = "wayland")]
             Self::Wayland(_) => {
-                WaylandWindow::new_window(class_name, name, width, height, config, font_config)
-                    .await
+                WaylandWindow::new_window(
+                    class_name,
+                    name,
+                    width,
+                    height,
+                    config,
+                    font_config,
+                    event_handler,
+                )
+                .await
             }
         }
     }
@@ -103,17 +124,29 @@ impl ConnectionOps for Connection {
 }
 
 impl Window {
-    pub async fn new_window(
+    pub async fn new_window<F>(
         class_name: &str,
         name: &str,
         width: usize,
         height: usize,
         config: Option<&ConfigHandle>,
         font_config: Rc<FontConfiguration>,
-    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
+        event_handler: F,
+    ) -> anyhow::Result<Window>
+    where
+        F: 'static + FnMut(WindowEvent, &Window),
+    {
         Connection::get()
             .unwrap()
-            .new_window(class_name, name, width, height, config, font_config)
+            .new_window(
+                class_name,
+                name,
+                width,
+                height,
+                config,
+                font_config,
+                event_handler,
+            )
             .await
     }
 }

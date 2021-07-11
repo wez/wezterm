@@ -1,5 +1,6 @@
 use ::window::*;
 use promise::spawn::spawn;
+use std::cell::RefCell;
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
 
@@ -7,6 +8,8 @@ struct MyWindow {
     allow_close: bool,
     cursor_pos: Point,
     dims: Dimensions,
+    win: Option<Window>,
+    gl: Option<Rc<glium::backend::Context>>,
 }
 
 impl Drop for MyWindow {
@@ -15,37 +18,20 @@ impl Drop for MyWindow {
     }
 }
 
-async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
-    let fontconfig = Rc::new(FontConfiguration::new(
-        None,
-        ::window::default_dpi() as usize,
-    )?);
-    let (win, events) =
-        Window::new_window("myclass", "the title", 800, 600, None, fontconfig).await?;
+impl MyWindow {
+    fn dispatch(&mut self, event: WindowEvent) {
+        let win = match self.win.as_ref() {
+            Some(win) => win,
+            None => return,
+        };
 
-    let mut state = MyWindow {
-        allow_close: false,
-        cursor_pos: Point::new(100, 200),
-        dims: Dimensions {
-            pixel_width: 800,
-            pixel_height: 600,
-            dpi: 0,
-        },
-    };
-
-    eprintln!("before show");
-    win.show().await?;
-    let gl = win.enable_opengl().await?;
-    eprintln!("window is visible, do loop");
-
-    while let Ok(event) = events.recv().await {
         match dbg!(event) {
             WindowEvent::CloseRequested => {
                 eprintln!("can I close?");
-                if state.allow_close {
+                if self.allow_close {
                     win.close();
                 } else {
-                    state.allow_close = true;
+                    self.allow_close = true;
                 }
             }
             WindowEvent::Destroyed => {
@@ -57,11 +43,11 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
                 is_full_screen,
             } => {
                 eprintln!("resize {:?} is_full_screen={}", dimensions, is_full_screen);
-                state.dims = dimensions;
+                self.dims = dimensions;
             }
             WindowEvent::MouseEvent(event) => {
-                state.cursor_pos = event.coords;
-                win.invalidate();
+                self.cursor_pos = event.coords;
+                // win.invalidate();
                 win.set_cursor(Some(MouseCursor::Arrow));
 
                 if event.kind == MouseEventKind::Press(MousePress::Left) {
@@ -74,27 +60,68 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
                 win.default_key_processing(key);
             }
             WindowEvent::NeedRepaint => {
-                if gl.is_context_lost() {
-                    eprintln!("opengl context was lost; should reinit");
-                    break;
+                if let Some(gl) = self.gl.as_mut() {
+                    if gl.is_context_lost() {
+                        eprintln!("opengl context was lost; should reinit");
+                        return;
+                    }
+
+                    let mut frame = glium::Frame::new(
+                        Rc::clone(&gl),
+                        (self.dims.pixel_width as u32, self.dims.pixel_height as u32),
+                    );
+
+                    use glium::Surface;
+                    frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
+                    win.finish_frame(frame).unwrap();
                 }
-
-                let mut frame = glium::Frame::new(
-                    Rc::clone(&gl),
-                    (
-                        state.dims.pixel_width as u32,
-                        state.dims.pixel_height as u32,
-                    ),
-                );
-
-                use glium::Surface;
-                frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
-                win.finish_frame(frame)?;
             }
             WindowEvent::Notification(_) | WindowEvent::FocusChanged(_) => {}
         }
     }
+}
 
+async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
+    let fontconfig = Rc::new(FontConfiguration::new(
+        None,
+        ::window::default_dpi() as usize,
+    )?);
+
+    let state = Rc::new(RefCell::new(MyWindow {
+        allow_close: false,
+        cursor_pos: Point::new(100, 200),
+        dims: Dimensions {
+            pixel_width: 800,
+            pixel_height: 600,
+            dpi: 0,
+        },
+        win: None,
+        gl: None,
+    }));
+
+    let cb_state = Rc::clone(&state);
+    let win = Window::new_window(
+        "myclass",
+        "the title",
+        800,
+        600,
+        None,
+        fontconfig,
+        move |event| {
+            let mut state = cb_state.borrow_mut();
+            state.dispatch(event)
+        },
+    )
+    .await?;
+
+    state.borrow_mut().win.replace(win.clone());
+
+    eprintln!("before show");
+    win.show();
+    let gl = win.enable_opengl().await?;
+
+    state.borrow_mut().gl.replace(gl);
+    win.invalidate();
     Ok(())
 }
 
