@@ -358,7 +358,14 @@ fn function_key_to_keycode(function_key: char) -> KeyCode {
 }
 
 #[derive(Debug, Clone)]
-pub struct Window(usize);
+pub struct Window {
+    id: usize,
+    ns_window: *mut Object,
+    ns_view: *mut Object,
+}
+
+unsafe impl Send for Window {}
+unsafe impl Sync for Window {}
 
 impl Window {
     pub async fn new_window<F>(
@@ -388,9 +395,7 @@ impl Window {
             let conn = Connection::get().expect("Connection::init has not been called");
 
             let window_id = conn.next_window_id();
-            let window_handle = Window(window_id);
-            let mut events = WindowEventSender::new(event_handler);
-            events.assign_window(window_handle.clone());
+            let events = WindowEventSender::new(event_handler);
 
             let inner = Rc::new(RefCell::new(Inner {
                 events,
@@ -470,6 +475,11 @@ impl Window {
             let height = backing_frame.size.height;
 
             let weak_window = window.weak();
+            let window_handle = Window {
+                id: window_id,
+                ns_window: *window,
+                ns_view: *view,
+            };
             let window_inner = Rc::new(RefCell::new(WindowInner {
                 window,
                 view,
@@ -479,6 +489,11 @@ impl Window {
             conn.windows
                 .borrow_mut()
                 .insert(window_id, Rc::clone(&window_inner));
+
+            inner
+                .borrow_mut()
+                .events
+                .assign_window(window_handle.clone());
 
             window_handle.config_did_change(&config);
 
@@ -502,21 +517,18 @@ impl Window {
 
 unsafe impl HasRawWindowHandle for Window {
     fn raw_window_handle(&self) -> RawWindowHandle {
-        let conn = Connection::get().expect("raw_window_handle only callable on main thread");
-        let handle = conn.window_by_id(self.0).expect("window handle invalid!?");
-
-        let inner = handle.borrow();
-        let window_view =
-            WindowView::get_this(unsafe { &**inner.view }).expect("window view invalid!?");
-
-        window_view.inner.borrow().raw_window_handle()
+        RawWindowHandle::MacOS(MacOSHandle {
+            ns_window: self.ns_window as *mut _,
+            ns_view: self.ns_view as *mut _,
+            ..MacOSHandle::empty()
+        })
     }
 }
 
 #[async_trait(?Send)]
 impl WindowOps for Window {
     async fn enable_opengl(&self) -> anyhow::Result<Rc<glium::backend::Context>> {
-        let window_id = self.0;
+        let window_id = self.id;
         promise::spawn::spawn(async move {
             if let Some(handle) = Connection::get().unwrap().window_by_id(window_id) {
                 let mut inner = handle.borrow_mut();
@@ -532,7 +544,7 @@ impl WindowOps for Window {
     where
         Self: Sized,
     {
-        Connection::with_window_inner(self.0, move |inner| {
+        Connection::with_window_inner(self.id, move |inner| {
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
                 window_view
                     .inner
@@ -545,35 +557,35 @@ impl WindowOps for Window {
     }
 
     fn close(&self) {
-        Connection::with_window_inner(self.0, |inner| {
+        Connection::with_window_inner(self.id, |inner| {
             inner.close();
             Ok(())
         });
     }
 
     fn hide(&self) {
-        Connection::with_window_inner(self.0, |inner| {
+        Connection::with_window_inner(self.id, |inner| {
             inner.hide();
             Ok(())
         });
     }
 
     fn show(&self) {
-        Connection::with_window_inner(self.0, |inner| {
+        Connection::with_window_inner(self.id, |inner| {
             inner.show();
             Ok(())
         });
     }
 
     fn set_cursor(&self, cursor: Option<MouseCursor>) {
-        Connection::with_window_inner(self.0, move |inner| {
+        Connection::with_window_inner(self.id, move |inner| {
             let _ = inner.set_cursor(cursor);
             Ok(())
         });
     }
 
     fn invalidate(&self) {
-        Connection::with_window_inner(self.0, |inner| {
+        Connection::with_window_inner(self.id, |inner| {
             inner.invalidate();
             Ok(())
         });
@@ -581,25 +593,28 @@ impl WindowOps for Window {
 
     fn set_title(&self, title: &str) {
         let title = title.to_owned();
-        Connection::with_window_inner(self.0, move |inner| {
+        Connection::with_window_inner(self.id, move |inner| {
             inner.set_title(&title);
             Ok(())
         });
     }
 
     fn set_inner_size(&self, width: usize, height: usize) {
-        Connection::with_window_inner(self.0, move |inner| Ok(inner.set_inner_size(width, height)));
+        Connection::with_window_inner(
+            self.id,
+            move |inner| Ok(inner.set_inner_size(width, height)),
+        );
     }
 
     fn set_window_position(&self, coords: ScreenPoint) {
-        Connection::with_window_inner(self.0, move |inner| {
+        Connection::with_window_inner(self.id, move |inner| {
             inner.set_window_position(coords);
             Ok(())
         });
     }
 
     fn set_text_cursor_position(&self, cursor: Rect) {
-        Connection::with_window_inner(self.0, move |inner| {
+        Connection::with_window_inner(self.id, move |inner| {
             inner.set_text_cursor_position(cursor);
             Ok(())
         });
@@ -622,7 +637,7 @@ impl WindowOps for Window {
     }
 
     fn toggle_fullscreen(&self) {
-        Connection::with_window_inner(self.0, move |inner| {
+        Connection::with_window_inner(self.id, move |inner| {
             inner.toggle_fullscreen();
             Ok(())
         });
@@ -630,7 +645,7 @@ impl WindowOps for Window {
 
     fn config_did_change(&self, config: &ConfigHandle) {
         let config = config.clone();
-        Connection::with_window_inner(self.0, move |inner| {
+        Connection::with_window_inner(self.id, move |inner| {
             inner.config_did_change(&config);
             Ok(())
         });
@@ -985,18 +1000,6 @@ struct Inner {
     fullscreen: Option<NSRect>,
 
     config: ConfigHandle,
-}
-
-unsafe impl HasRawWindowHandle for Inner {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        let ns_window = self.window.as_ref().unwrap().load();
-        let ns_view = self.view_id.as_ref().unwrap().load();
-        RawWindowHandle::MacOS(MacOSHandle {
-            ns_window: *ns_window as *mut _,
-            ns_view: *ns_view as *mut _,
-            ..MacOSHandle::empty()
-        })
-    }
 }
 
 #[repr(C)]

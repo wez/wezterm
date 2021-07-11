@@ -132,10 +132,12 @@ impl MyWindow {
             );
 
         self.gpu.replace(gpu);
+        self.paint(win)?;
         Ok(())
     }
 
-    fn paint(&mut self) -> anyhow::Result<()> {
+    fn paint(&mut self, win: &Window) -> anyhow::Result<()> {
+        self.fix_transparency(win);
         if let Some(gpu) = self.gpu.as_mut() {
             let frame = match gpu.swap_chain.get_current_frame() {
                 Ok(frame) => frame,
@@ -179,6 +181,19 @@ impl MyWindow {
         Ok(())
     }
 
+    fn fix_transparency(&mut self, win: &Window) {
+        #[cfg(target_os = "macos")]
+        if let RawWindowHandle::MacOS(h) = win.raw_window_handle() {
+            use cocoa::base::{id, NO};
+            use objc::*;
+            unsafe {
+                // Allow transparency, as the default for Metal is opaque
+                let layer: id = msg_send![h.ns_view as id, layer];
+                let () = msg_send![layer, setOpaque: NO];
+            }
+        }
+    }
+
     fn resize(&mut self, dims: Dimensions) {
         if self.dims == dims {
             // May just be a move event
@@ -211,17 +226,7 @@ impl MyWindow {
             } => {
                 self.resize(dimensions);
                 #[cfg(target_os = "macos")]
-                if let RawWindowHandle::MacOS(h) = win.raw_window_handle() {
-                    use cocoa::base::{id, NO};
-                    use objc::*;
-                    unsafe {
-                        // Allow transparency, as the default for Metal is opaque
-                        let layer: id = msg_send![h.ns_view as id, layer];
-                        let () = msg_send![layer, setOpaque: NO];
-                    }
-
-                    self.paint().unwrap();
-                }
+                self.paint(win).unwrap();
             }
             WindowEvent::MouseEvent(event) => {
                 self.cursor_pos = event.coords;
@@ -238,7 +243,7 @@ impl MyWindow {
                 win.default_key_processing(key);
             }
             WindowEvent::NeedRepaint => {
-                self.paint().unwrap();
+                self.paint(win).unwrap();
             }
             WindowEvent::Notification(_) | WindowEvent::FocusChanged(_) => {}
         }
