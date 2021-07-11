@@ -22,3 +22,5 @@ as colored underlines, styled underlines (eg: undercurl).  If the system
 you are using has a relatively outdated ncurses installation, the `wezterm`
 terminfo will also enable italics and true color support.
 
+If you are using WSL in wezterm you need to set the `WSLENV` variable in Windows to `TERM` otherwise WSL will default to `xterm-256color`.
+See [this Microsoft blog post](https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/#what-are-environment-variables) for more information on how to do that.
