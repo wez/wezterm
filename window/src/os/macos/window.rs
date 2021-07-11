@@ -6,7 +6,7 @@ use crate::connection::ConnectionOps;
 use crate::{
     Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
     MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size, WindowDecorations,
-    WindowEvent, WindowEventReceiver, WindowEventSender, WindowOps,
+    WindowEvent, WindowEventSender, WindowOps,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
@@ -361,19 +361,22 @@ fn function_key_to_keycode(function_key: char) -> KeyCode {
 pub struct Window(usize);
 
 impl Window {
-    pub async fn new_window(
+    pub async fn new_window<F>(
         _class_name: &str,
         name: &str,
         width: usize,
         height: usize,
         config: Option<&ConfigHandle>,
         _font_config: Rc<FontConfiguration>,
-    ) -> anyhow::Result<(Window, WindowEventReceiver)> {
+        event_handler: F,
+    ) -> anyhow::Result<Window>
+    where
+        F: 'static + FnMut(WindowEvent, &Window),
+    {
         let config = match config {
             Some(c) => c.clone(),
             None => config::configuration(),
         };
-        let (events, receiver) = async_channel::unbounded();
 
         unsafe {
             let style_mask = decoration_to_mask(config.window_decorations);
@@ -385,6 +388,9 @@ impl Window {
             let conn = Connection::get().expect("Connection::init has not been called");
 
             let window_id = conn.next_window_id();
+            let window_handle = Window(window_id);
+            let mut events = WindowEventSender::new(event_handler);
+            events.assign_window(window_handle.clone());
 
             let inner = Rc::new(RefCell::new(Inner {
                 events,
@@ -474,27 +480,22 @@ impl Window {
                 .borrow_mut()
                 .insert(window_id, Rc::clone(&window_inner));
 
-            let window = Window(window_id);
-            window.config_did_change(&config);
+            window_handle.config_did_change(&config);
 
             // Synthesize a resize event immediately; this allows
             // the embedding application an opportunity to discover
             // the dpi and adjust for display scaling
-            inner
-                .borrow_mut()
-                .events
-                .try_send(WindowEvent::Resized {
-                    dimensions: Dimensions {
-                        pixel_width: width as usize,
-                        pixel_height: height as usize,
-                        dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
-                            as usize,
-                    },
-                    is_full_screen: false,
-                })
-                .ok();
+            inner.borrow_mut().events.dispatch(WindowEvent::Resized {
+                dimensions: Dimensions {
+                    pixel_width: width as usize,
+                    pixel_height: height as usize,
+                    dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
+                        as usize,
+                },
+                is_full_screen: false,
+            });
 
-            Ok((window, receiver))
+            Ok(window_handle)
         }
     }
 }
@@ -535,10 +536,9 @@ impl WindowOps for Window {
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
                 window_view
                     .inner
-                    .borrow()
+                    .borrow_mut()
                     .events
-                    .try_send(WindowEvent::Notification(Box::new(t)))
-                    .ok();
+                    .dispatch(WindowEvent::Notification(Box::new(t)));
             }
             Ok(())
         });
@@ -1336,8 +1336,8 @@ impl WindowView {
         .normalize_shift();
 
         if let Some(myself) = Self::get_this(this) {
-            let inner = myself.inner.borrow();
-            inner.events.try_send(WindowEvent::KeyEvent(event)).ok();
+            let mut inner = myself.inner.borrow_mut();
+            inner.events.dispatch(WindowEvent::KeyEvent(event));
         }
     }
 
@@ -1376,7 +1376,7 @@ impl WindowView {
             }
             .normalize_shift();
 
-            inner.events.try_send(WindowEvent::KeyEvent(event)).ok();
+            inner.events.dispatch(WindowEvent::KeyEvent(event));
         }
     }
 
@@ -1479,17 +1479,11 @@ impl WindowView {
         }
 
         if let Some(this) = Self::get_this(this) {
-            if this
-                .inner
+            this.inner
                 .borrow_mut()
                 .events
-                .try_send(WindowEvent::CloseRequested)
-                .is_err()
-            {
-                YES
-            } else {
-                NO
-            }
+                .dispatch(WindowEvent::CloseRequested);
+            NO
         } else {
             YES
         }
@@ -1500,8 +1494,7 @@ impl WindowView {
             this.inner
                 .borrow_mut()
                 .events
-                .try_send(WindowEvent::FocusChanged(true))
-                .ok();
+                .dispatch(WindowEvent::FocusChanged(true));
         }
     }
 
@@ -1510,8 +1503,7 @@ impl WindowView {
             this.inner
                 .borrow_mut()
                 .events
-                .try_send(WindowEvent::FocusChanged(false))
-                .ok();
+                .dispatch(WindowEvent::FocusChanged(false));
         }
     }
 
@@ -1537,8 +1529,7 @@ impl WindowView {
             this.inner
                 .borrow_mut()
                 .events
-                .try_send(WindowEvent::Destroyed)
-                .ok();
+                .dispatch(WindowEvent::Destroyed);
         }
 
         // Release and zero out the inner member
@@ -1574,8 +1565,8 @@ impl WindowView {
         };
 
         if let Some(myself) = Self::get_this(this) {
-            let inner = myself.inner.borrow();
-            inner.events.try_send(WindowEvent::MouseEvent(event)).ok();
+            let mut inner = myself.inner.borrow_mut();
+            inner.events.dispatch(WindowEvent::MouseEvent(event));
         }
     }
 
@@ -1864,8 +1855,8 @@ impl WindowView {
             );
 
             if let Some(myself) = Self::get_this(this) {
-                let inner = myself.inner.borrow();
-                inner.events.try_send(WindowEvent::KeyEvent(event)).ok();
+                let mut inner = myself.inner.borrow_mut();
+                inner.events.dispatch(WindowEvent::KeyEvent(event));
             }
         }
     }
@@ -1903,7 +1894,7 @@ impl WindowView {
         let width = backing_frame.size.width;
         let height = backing_frame.size.height;
         if let Some(this) = Self::get_this(this) {
-            let inner = this.inner.borrow();
+            let mut inner = this.inner.borrow_mut();
 
             // This is a little gross; ideally we'd call
             // WindowInner:is_fullscreen to determine this, but
@@ -1918,18 +1909,15 @@ impl WindowView {
                     style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
                 });
 
-            inner
-                .events
-                .try_send(WindowEvent::Resized {
-                    dimensions: Dimensions {
-                        pixel_width: width as usize,
-                        pixel_height: height as usize,
-                        dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
-                            as usize,
-                    },
-                    is_full_screen,
-                })
-                .ok();
+            inner.events.dispatch(WindowEvent::Resized {
+                dimensions: Dimensions {
+                    pixel_width: width as usize,
+                    pixel_height: height as usize,
+                    dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
+                        as usize,
+                },
+                is_full_screen,
+            });
         }
     }
 
@@ -1949,7 +1937,7 @@ impl WindowView {
                 return;
             }
 
-            inner.events.try_send(WindowEvent::NeedRepaint).ok();
+            inner.events.dispatch(WindowEvent::NeedRepaint);
         }
     }
 

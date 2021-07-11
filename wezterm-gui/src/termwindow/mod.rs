@@ -299,8 +299,6 @@ impl TermWindow {
         window: &Window,
         ctx: std::rc::Rc<glium::backend::Context>,
     ) -> anyhow::Result<()> {
-        self.window.replace(window.clone());
-
         self.render_state = None;
 
         match RenderState::new(
@@ -514,6 +512,7 @@ impl TermWindow {
             },
         )
         .await?;
+        tw.borrow_mut().window.replace(window.clone());
 
         Self::apply_icon(&window)?;
         Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
@@ -908,7 +907,7 @@ impl TermWindow {
     }
 
     fn emit_window_event(&mut self, name: &str) {
-        if self.get_active_pane_or_overlay().is_none() {
+        if self.get_active_pane_or_overlay().is_none() || self.window.is_none() {
             return;
         }
 
