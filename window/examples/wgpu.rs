@@ -220,7 +220,7 @@ impl MyWindow {
                         let () = msg_send![layer, setOpaque: NO];
                     }
 
-                    self.paint()?;
+                    self.paint().unwrap();
                 }
             }
             WindowEvent::MouseEvent(event) => {
