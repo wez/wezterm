@@ -5,6 +5,8 @@ use anyhow::{anyhow, Context, Error};
 use config::{configuration, ExitBehavior};
 use domain::{Domain, DomainId};
 use filedescriptor::{socketpair, AsRawSocketDescriptor, FileDescriptor};
+#[cfg(unix)]
+use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 use log::error;
 use metrics::histogram;
 use portable_pty::ExitStatus;
@@ -18,6 +20,8 @@ use std::thread;
 use std::time::Instant;
 use termwiz::escape::Action;
 use thiserror::*;
+#[cfg(windows)]
+use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
 pub mod activity;
 pub mod connui;
@@ -123,7 +127,7 @@ fn set_socket_buffer(fd: &mut FileDescriptor, option: i32, size: usize) -> anyho
     unsafe {
         let res = libc::setsockopt(
             fd.as_socket_descriptor(),
-            libc::SOL_SOCKET,
+            SOL_SOCKET,
             option,
             &size as *const usize as *const _,
             socklen as _,
@@ -148,8 +152,8 @@ fn read_from_pane_pty(pane_id: PaneId, banner: Option<String>, mut reader: Box<d
     let dead = Arc::new(AtomicBool::new(false));
 
     let (mut tx, mut rx) = socketpair().unwrap();
-    set_socket_buffer(&mut tx, libc::SO_SNDBUF, BUFSIZE).unwrap();
-    set_socket_buffer(&mut rx, libc::SO_RCVBUF, BUFSIZE).unwrap();
+    set_socket_buffer(&mut tx, SO_SNDBUF, BUFSIZE).unwrap();
+    set_socket_buffer(&mut rx, SO_RCVBUF, BUFSIZE).unwrap();
 
     std::thread::spawn({
         let dead = Arc::clone(&dead);
