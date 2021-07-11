@@ -3,13 +3,13 @@ use crate::connection::ConnectionOps;
 use crate::{
     Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
     MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
-    WindowEventReceiver, WindowEventSender, WindowOps,
+    WindowEventSender, WindowOps,
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use lazy_static::lazy_static;
-use promise::{Future, Promise};
+use promise::Future;
 use raw_window_handle::windows::WindowsHandle;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use shared_library::shared_library;
@@ -217,12 +217,10 @@ impl WindowInner {
             let imc = ImmContext::get(self.hwnd.0);
             imc.set_position(0, 0);
 
-            self.events
-                .try_send(WindowEvent::Resized {
-                    dimensions: current_dims,
-                    is_full_screen: self.saved_placement.is_some(),
-                })
-                .ok();
+            self.events.dispatch(WindowEvent::Resized {
+                dimensions: current_dims,
+                is_full_screen: self.saved_placement.is_some(),
+            });
         }
 
         !same
@@ -373,7 +371,7 @@ impl Window {
         Ok(hwnd)
     }
 
-    pub async fn new_window(
+    pub async fn new_window<F>(
         class_name: &str,
         name: &str,
         width: usize,
@@ -383,9 +381,10 @@ impl Window {
         event_handler: F,
     ) -> anyhow::Result<Window>
     where
-        F: 'static + FnMut(WindowEvent),
+        F: 'static + FnMut(WindowEvent, &Window),
     {
-        let (events, receiver) = async_channel::unbounded();
+        let events = WindowEventSender::new(event_handler);
+
         let config = match config {
             Some(c) => c.clone(),
             None => config::configuration(),
@@ -415,6 +414,11 @@ impl Window {
                 return Err(err);
             }
         };
+        let window_handle = Window(hwnd);
+        inner
+            .borrow_mut()
+            .events
+            .assign_window(window_handle.clone());
 
         enable_dark_mode(hwnd.0);
         enable_blur_behind(hwnd.0);
@@ -425,10 +429,7 @@ impl Window {
             .borrow_mut()
             .insert(hwnd.clone(), Rc::clone(&inner));
 
-        let window = Window(hwnd);
-        // inner.borrow_mut().enable_opengl()?;
-
-        Ok((window, receiver))
+        Ok(window_handle)
     }
 }
 
@@ -587,8 +588,7 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, move |inner| {
             inner
                 .events
-                .try_send(WindowEvent::Notification(Box::new(t)))
-                .ok();
+                .dispatch(WindowEvent::Notification(Box::new(t)));
             Ok(())
         });
     }
@@ -725,7 +725,7 @@ unsafe fn wm_ncdestroy(
     if !raw.is_null() {
         let inner = take_rc_from_pointer(raw);
         let mut inner = inner.borrow_mut();
-        inner.events.try_send(WindowEvent::Destroyed).ok();
+        inner.events.dispatch(WindowEvent::Destroyed);
         inner.hwnd = HWindow(null_mut());
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
     }
@@ -875,8 +875,10 @@ unsafe fn wm_set_focus(
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow();
-        inner.events.try_send(WindowEvent::FocusChanged(true)).ok();
+        inner
+            .borrow_mut()
+            .events
+            .dispatch(WindowEvent::FocusChanged(true));
     }
     None
 }
@@ -888,15 +890,17 @@ unsafe fn wm_kill_focus(
     _lparam: LPARAM,
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow();
-        inner.events.try_send(WindowEvent::FocusChanged(false)).ok();
+        inner
+            .borrow_mut()
+            .events
+            .dispatch(WindowEvent::FocusChanged(false));
     }
     None
 }
 
 unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow();
+        let mut inner = inner.borrow_mut();
 
         let mut ps = PAINTSTRUCT {
             fErase: 0,
@@ -916,7 +920,7 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
         EndPaint(hwnd, &mut ps);
 
         // Ask the app to repaint in a bit
-        inner.events.try_send(WindowEvent::NeedRepaint).ok();
+        inner.events.dispatch(WindowEvent::NeedRepaint);
 
         Some(0)
     } else {
@@ -1020,8 +1024,10 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
             mouse_buttons,
             modifiers,
         };
-        let inner = inner.borrow();
-        inner.events.try_send(WindowEvent::MouseEvent(event)).ok();
+        inner
+            .borrow_mut()
+            .events
+            .dispatch(WindowEvent::MouseEvent(event));
         Some(0)
     } else {
         None
@@ -1040,8 +1046,10 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             modifiers,
         };
 
-        let inner = inner.borrow();
-        inner.events.try_send(WindowEvent::MouseEvent(event)).ok();
+        inner
+            .borrow_mut()
+            .events
+            .dispatch(WindowEvent::MouseEvent(event));
         Some(0)
     } else {
         None
@@ -1095,8 +1103,10 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             mouse_buttons,
             modifiers,
         };
-        let inner = inner.borrow();
-        inner.events.try_send(WindowEvent::MouseEvent(event)).ok();
+        inner
+            .borrow_mut()
+            .events
+            .dispatch(WindowEvent::MouseEvent(event));
         Some(0)
     } else {
         None
@@ -1153,7 +1163,7 @@ unsafe fn ime_composition(
     lparam: LPARAM,
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow();
+        let mut inner = inner.borrow_mut();
 
         if (lparam as DWORD) & GCS_RESULTSTR == 0 {
             // No finished result; continue with the default
@@ -1186,7 +1196,7 @@ unsafe fn ime_composition(
                         key_is_down: true,
                     }
                     .normalize_shift();
-                    inner.events.try_send(WindowEvent::KeyEvent(key)).ok();
+                    inner.events.dispatch(WindowEvent::KeyEvent(key));
 
                     return Some(1);
                 }
@@ -1743,7 +1753,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             .normalize_shift()
                             .normalize_ctrl();
 
-                            inner.events.try_send(WindowEvent::KeyEvent(key)).ok();
+                            inner.events.dispatch(WindowEvent::KeyEvent(key));
 
                             // And then we'll perform normal processing on the
                             // current key press
@@ -1853,7 +1863,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 return None;
             }
 
-            inner.events.try_send(WindowEvent::KeyEvent(key)).ok();
+            inner.events.dispatch(WindowEvent::KeyEvent(key));
             return Some(0);
         }
     }
@@ -1886,14 +1896,10 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_ERASEBKGND => Some(1),
         WM_CLOSE => {
             if let Some(inner) = rc_from_hwnd(hwnd) {
-                let inner = inner.borrow();
-                if inner.events.try_send(WindowEvent::CloseRequested).is_err() {
-                    // Close it!
-                    return None;
-                } else {
-                    // Don't let it close
-                    return Some(0);
-                }
+                let mut inner = inner.borrow_mut();
+                inner.events.dispatch(WindowEvent::CloseRequested);
+                // Don't let it close
+                return Some(0);
             }
             None
         }

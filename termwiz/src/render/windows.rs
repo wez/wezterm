@@ -69,7 +69,7 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
         };
     }
 
-    let fg = match attr.foreground {
+    let fg = match attr.foreground() {
         ColorAttribute::TrueColorWithDefaultFallback(_) | ColorAttribute::Default => {
             FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN
         }
@@ -85,7 +85,7 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
         ),
     };
 
-    let bg = match attr.background {
+    let bg = match attr.background() {
         ColorAttribute::TrueColorWithDefaultFallback(_) | ColorAttribute::Default => 0,
         ColorAttribute::TrueColorWithPaletteFallback(_, idx)
         | ColorAttribute::PaletteIndex(idx) => ansi_colors!(
