@@ -165,7 +165,7 @@ where
     }
 }
 
-fn de_modifiers<'de, D>(deserializer: D) -> Result<Modifiers, D::Error>
+pub(crate) fn de_modifiers<'de, D>(deserializer: D) -> Result<Modifiers, D::Error>
 where
     D: Deserializer<'de>,
 {

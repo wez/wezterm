@@ -2,8 +2,7 @@ use crate::tabbar::TabBarItem;
 use crate::termwindow::keyevent::window_mods_to_termwiz_mods;
 use crate::termwindow::{ScrollHit, TMB};
 use ::window::{
-    Modifiers, MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress,
-    WindowOps,
+    MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress, WindowOps,
 };
 use config::keyassignment::{MouseEventTrigger, SpawnTabDomain};
 use mux::pane::Pane;
@@ -486,16 +485,20 @@ impl super::TermWindow {
             WMEK::VertWheel(_) | WMEK::HorzWheel(_) => None,
         };
 
-        let ignore_grab_modifier = Modifiers::SHIFT;
-
-        if !pane.is_mouse_grabbed() || event.modifiers.contains(ignore_grab_modifier) {
+        if !pane.is_mouse_grabbed()
+            || event
+                .modifiers
+                .contains(self.config.bypass_mouse_reporting_modifiers)
+        {
             if let Some(event_trigger_type) = event_trigger_type {
                 let mut modifiers = event.modifiers;
 
                 // Since we use shift to force assessing the mouse bindings, pretend
                 // that shift is not one of the mods when the mouse is grabbed.
                 if pane.is_mouse_grabbed() {
-                    modifiers -= ignore_grab_modifier;
+                    if modifiers.contains(self.config.bypass_mouse_reporting_modifiers) {
+                        modifiers.remove(self.config.bypass_mouse_reporting_modifiers);
+                    }
                 }
 
                 if let Some(action) = self

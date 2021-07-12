@@ -1,7 +1,21 @@
-Mouse bindings are configurable.
+Mouse bindings are configurable, and there are a number of default assignments
+described below.
 
 The assignments are based around a triggering mouse event which may be combined
 with a set of modifier keys to produce an action.
+
+By default applications running in the terminal don't respond to the mouse.
+However, applications can emit escape sequences to request mouse event tracking.
+When mouse event tracking is enabled, mouse events are NOT matched against
+the mouse assignments and are instead passed through to the application.
+
+You can bypass the mouse reporting capture by holding down the `SHIFT` key;
+that will prevent the event from being passed to the application and allow matching
+it against your assignments as though the `SHIFT` key were not pressed.
+
+The [bypass_mouse_reporting_modifiers](config/lua/config/bypass_mouse_reporting_modifiers.md)
+option allows you to specify an alternative set of modifiers to use for
+bypassing mouse reporting capture.
 
 ## Default Mouse Assignments
 

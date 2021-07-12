@@ -887,6 +887,12 @@ pub struct Config {
 
     #[serde(default)]
     pub keys: Vec<Key>,
+    #[serde(
+        default = "default_bypass_mouse_reporting_modifiers",
+        deserialize_with = "crate::keys::de_modifiers"
+    )]
+    pub bypass_mouse_reporting_modifiers: Modifiers,
+
     #[serde(default)]
     pub debug_key_events: bool,
 
@@ -1781,4 +1787,8 @@ fn default_read_timeout() -> Duration {
 
 fn default_write_timeout() -> Duration {
     Duration::from_secs(60)
+}
+
+fn default_bypass_mouse_reporting_modifiers() -> Modifiers {
+    Modifiers::SHIFT
 }
