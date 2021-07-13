@@ -1257,12 +1257,35 @@ impl Tab {
             .iter()
             .find(|p| p.pane.pane_id() == pane.pane_id())
         {
+            let prior = self.get_active_pane();
             *self.active.borrow_mut() = item.index;
+            self.advise_focus_change(prior);
+        }
+    }
+
+    fn advise_focus_change(&self, prior: Option<Rc<dyn Pane>>) {
+        let current = self.get_active_pane();
+        match (prior, current) {
+            (Some(prior), Some(current)) if prior.pane_id() != current.pane_id() => {
+                prior.focus_changed(false);
+                current.focus_changed(true);
+            }
+            (None, Some(current)) => {
+                current.focus_changed(true);
+            }
+            (Some(prior), None) => {
+                prior.focus_changed(false);
+            }
+            (Some(_), Some(_)) | (None, None) => {
+                // no change
+            }
         }
     }
 
     pub fn set_active_idx(&self, pane_index: usize) {
+        let prior = self.get_active_pane();
         *self.active.borrow_mut() = pane_index;
+        self.advise_focus_change(prior);
     }
 
     /// Assigns the root pane.
