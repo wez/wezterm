@@ -468,13 +468,20 @@ impl super::TermWindow {
                 }
             }
             WMEK::Move => {
-                if let Some(LastMouseClick { streak, button, .. }) = self.last_mouse_click.as_ref()
-                {
-                    if Some(*button) == self.current_mouse_button.as_ref().map(mouse_press_to_tmb) {
-                        Some(MouseEventTrigger::Drag {
-                            streak: *streak,
-                            button: *button,
-                        })
+                if self.current_mouse_button.is_some() {
+                    if let Some(LastMouseClick { streak, button, .. }) =
+                        self.last_mouse_click.as_ref()
+                    {
+                        if Some(*button)
+                            == self.current_mouse_button.as_ref().map(mouse_press_to_tmb)
+                        {
+                            Some(MouseEventTrigger::Drag {
+                                streak: *streak,
+                                button: *button,
+                            })
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     }
