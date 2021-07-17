@@ -420,7 +420,7 @@ impl Window {
             .events
             .assign_window(window_handle.clone());
 
-        enable_dark_mode(hwnd.0);
+        enable_theme(hwnd.0);
         enable_blur_behind(hwnd.0);
 
         Connection::get()
@@ -759,12 +759,19 @@ fn enable_blur_behind(hwnd: HWND) {
     }
 }
 
-fn enable_dark_mode(hwnd: HWND) {
-    // Prefer to run in dark mode. This could be made configurable without
-    // a huge amount of effort, but I think it's fine to just be always
-    // dark mode by default :-p
-    // Note that the MS terminal app uses the logic found here for this
-    // stuff:
+fn read_theme() -> io::Result<u32> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let theme =
+        hkcu.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")?;
+
+    theme.get_value::<u32, _>("AppsUseLightTheme")
+}
+
+fn enable_theme(hwnd: HWND) {
+    // Check for OS app theme, and set window attributes accordingly.
+    // If the OS app theme changes, the wezterm window would have to be
+    // restarted for changes to reflect.
+    // Note that the MS terminal app uses the logic found here for this stuff:
     // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
     use winapi::um::dwmapi::DwmSetWindowAttribute;
     use winapi::um::uxtheme::SetWindowTheme;
@@ -787,13 +794,20 @@ fn enable_dark_mode(hwnd: HWND) {
 
     const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 19;
     unsafe {
+        let is_dark = if read_theme().unwrap_or(1) == 1 { 0 } else { 1 };
+        let theme_string = if is_dark == 1 {
+            "DarkMode_Explorer"
+        } else {
+            ""
+        };
+
         SetWindowTheme(
             hwnd as _,
-            wide_string("DarkMode_Explorer").as_slice().as_ptr(),
+            wide_string(theme_string).as_slice().as_ptr(),
             std::ptr::null_mut(),
         );
 
-        let mut enabled: BOOL = 1;
+        let mut enabled: BOOL = is_dark;
         DwmSetWindowAttribute(
             hwnd as _,
             DWMWA_USE_IMMERSIVE_DARK_MODE,
