@@ -195,6 +195,26 @@ return {
 
         -- The same options that were listed under the `active_tab` section above
         -- can also be used for `inactive_tab_hover`.
+      },
+
+      -- The new tab button that let you create new tabs
+      new_tab = {
+        bg_color = "#1b1032",
+        fg_color = "#808080",
+
+        -- The same options that were listed under the `active_tab` section above
+        -- can also be used for `new_tab`.
+      },
+
+      -- You can configure some alternate styling when the mouse pointer
+      -- moves over the new tab button
+      new_tab_hover = {
+        bg_color = "#3b3052",
+        fg_color = "#909090",
+        italic = true,
+
+        -- The same options that were listed under the `active_tab` section above
+        -- can also be used for `new_tab_hover`.
       }
     }
   }
