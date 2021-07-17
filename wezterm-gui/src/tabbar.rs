@@ -143,6 +143,12 @@ fn compute_tab_title(
     }
 }
 
+fn is_tab_hover(mouse_x: Option<usize>, x: usize, tab_title_len: usize) -> bool {
+    return mouse_x
+        .map(|mouse_x| mouse_x >= x && mouse_x < x + tab_title_len)
+        .unwrap_or(false);
+}
+
 impl TabBarState {
     pub fn default() -> Self {
         Self {
@@ -173,22 +179,13 @@ impl TabBarState {
         let active_cell_attrs = colors.active_tab.as_cell_attributes();
         let inactive_hover_attrs = colors.inactive_tab_hover.as_cell_attributes();
         let inactive_cell_attrs = colors.inactive_tab.as_cell_attributes();
+        let new_tab_hover_attrs = colors.new_tab_hover.as_cell_attributes();
+        let new_tab_attrs = colors.new_tab.as_cell_attributes();
 
-        let new_tab_left = parse_status_text(
-            &config.tab_bar_style.new_tab_left,
-            inactive_cell_attrs.clone(),
-        );
-        let new_tab_right = parse_status_text(
-            &config.tab_bar_style.new_tab_right,
-            inactive_cell_attrs.clone(),
-        );
-        let new_tab_hover_left = parse_status_text(
-            &config.tab_bar_style.new_tab_hover_left,
-            inactive_hover_attrs.clone(),
-        );
-        let new_tab_hover_right = parse_status_text(
-            &config.tab_bar_style.new_tab_hover_right,
-            inactive_hover_attrs.clone(),
+        let new_tab = parse_status_text(&config.tab_bar_style.new_tab, new_tab_attrs.clone());
+        let new_tab_hover = parse_status_text(
+            &config.tab_bar_style.new_tab_hover,
+            new_tab_hover_attrs.clone(),
         );
 
         // We ultimately want to produce a line looking like this:
@@ -218,9 +215,8 @@ impl TabBarState {
         let titles_len: usize = tab_titles.iter().map(|s| s.len).sum();
         let number_of_tabs = tab_titles.len();
 
-        let available_cells = title_width.saturating_sub(
-            (number_of_tabs.saturating_sub(1)) + (new_tab_left.len() + new_tab_right.len() + 1),
-        );
+        let available_cells =
+            title_width.saturating_sub((number_of_tabs.saturating_sub(1)) + (new_tab.len()));
         let tab_width_max = if available_cells >= titles_len {
             // We can render each title with its full width
             usize::max_value()
@@ -238,10 +234,7 @@ impl TabBarState {
         for (tab_idx, tab_title) in tab_titles.iter().enumerate() {
             let tab_title_len = tab_title.len.min(tab_width_max);
             let active = tab_idx == active_tab_no;
-            let hover = !active
-                && mouse_x
-                    .map(|mouse_x| mouse_x >= x && mouse_x < x + tab_title_len)
-                    .unwrap_or(false);
+            let hover = !active && is_tab_hover(mouse_x, x, tab_title_len);
 
             // Recompute the title so that it factors in both the hover state
             // and the adjusted maximum tab width based on available space.
@@ -286,35 +279,16 @@ impl TabBarState {
 
         // New tab button
         {
-            let hover = mouse_x
-                .map(|mouse_x| {
-                    mouse_x >= x
-                        && mouse_x < x + new_tab_hover_left.len() + new_tab_hover_right.len() + 1
-                })
-                .unwrap_or(false);
+            let hover = is_tab_hover(mouse_x, x, new_tab_hover.len());
 
-            let (cell_attrs, left, right) = if hover {
-                (
-                    &inactive_hover_attrs,
-                    &new_tab_hover_left,
-                    &new_tab_hover_right,
-                )
-            } else {
-                (&inactive_cell_attrs, &new_tab_left, &new_tab_right)
-            };
+            let cells = if hover { &new_tab_hover } else { &new_tab };
 
             let button_start = x;
 
-            for c in left {
+            for c in cells {
+                let len = c.width();
                 line.set_cell(x, c.clone());
-                x += 1;
-            }
-            line.set_cell(x, Cell::new('+', cell_attrs.clone()));
-            x += 1;
-
-            for c in right {
-                line.set_cell(x, c.clone());
-                x += 1;
+                x += len;
             }
 
             items.push(TabEntry {

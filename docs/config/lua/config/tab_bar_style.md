@@ -1,5 +1,10 @@
 # `tab_bar_style`
 
+*Since: nightly builds only*
+
+`new_tab_left`, `new_tab_right`, `new_tab_hover_left`, `new_tab_hover_right`
+have been removed and replaced by the more flexible `new_tab` and `new_tab_hover` elements.
+
 *Since: 20210502-154244-3f7122cb*
 
 `active_tab_left`, `active_tab_right`, `inactive_tab_left`,

@@ -141,6 +141,14 @@ pub struct TabBarColors {
     /// Styling for an inactive tab with a mouse hovering
     #[serde(default = "default_inactive_tab_hover")]
     pub inactive_tab_hover: TabBarColor,
+
+    /// Styling for the new tab button
+    #[serde(default = "default_inactive_tab")]
+    pub new_tab: TabBarColor,
+
+    /// Styling for the new tab button with a mouse hovering
+    #[serde(default = "default_inactive_tab_hover")]
+    pub new_tab_hover: TabBarColor,
 }
 impl_lua_conversion!(TabBarColors);
 
@@ -178,39 +186,31 @@ impl Default for TabBarColors {
             inactive_tab: default_inactive_tab(),
             inactive_tab_hover: default_inactive_tab_hover(),
             active_tab: default_active_tab(),
+            new_tab: default_inactive_tab(),
+            new_tab_hover: default_inactive_tab_hover(),
         }
     }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TabBarStyle {
-    #[serde(default = "default_tab_left")]
-    pub new_tab_left: String,
-    #[serde(default = "default_tab_right")]
-    pub new_tab_right: String,
-    #[serde(default = "default_tab_left")]
-    pub new_tab_hover_left: String,
-    #[serde(default = "default_tab_right")]
-    pub new_tab_hover_right: String,
+    #[serde(default = "default_new_tab")]
+    pub new_tab: String,
+    #[serde(default = "default_new_tab")]
+    pub new_tab_hover: String,
 }
 
 impl Default for TabBarStyle {
     fn default() -> Self {
         Self {
-            new_tab_left: default_tab_left(),
-            new_tab_right: default_tab_right(),
-            new_tab_hover_left: default_tab_left(),
-            new_tab_hover_right: default_tab_right(),
+            new_tab: default_new_tab(),
+            new_tab_hover: default_new_tab(),
         }
     }
 }
 
-fn default_tab_left() -> String {
-    format_as_escapes(vec![FormatItem::Text(" ".to_string())]).unwrap()
-}
-
-fn default_tab_right() -> String {
-    format_as_escapes(vec![FormatItem::Text(" ".to_string())]).unwrap()
+fn default_new_tab() -> String {
+    format_as_escapes(vec![FormatItem::Text(" + ".to_string())]).unwrap()
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
