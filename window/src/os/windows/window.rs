@@ -767,10 +767,8 @@ fn read_theme() -> io::Result<u32> {
     theme.get_value::<u32, _>("AppsUseLightTheme")
 }
 
-fn enable_theme(hwnd: HWND) {
+fn enable_theme(hwnd: HWND) -> Option<LRESULT> {
     // Check for OS app theme, and set window attributes accordingly.
-    // If the OS app theme changes, the wezterm window would have to be
-    // restarted for changes to reflect.
     // Note that the MS terminal app uses the logic found here for this stuff:
     // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
     use winapi::um::dwmapi::DwmSetWindowAttribute;
@@ -824,8 +822,10 @@ fn enable_theme(hwnd: HWND) {
                     cbData: std::mem::size_of_val(&enabled) as _,
                 },
             );
-        }
+        };
     }
+
+    None
 }
 
 unsafe fn wm_enter_exit_size_move(
@@ -1900,6 +1900,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             crate::spawn::SPAWN_QUEUE.run();
             None
         }
+        WM_SETTINGCHANGE => enable_theme(hwnd),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
         WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),
