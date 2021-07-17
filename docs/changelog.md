@@ -56,6 +56,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: paste now respects `scroll_to_bottom_on_input`. [#931](https://github.com/wez/wezterm/issues/931)
 * New: [bypass_mouse_reporting_modifiers](config/lua/config/bypass_mouse_reporting_modifiers.md) to specify which modifier(s) override application mouse reporting mode.
 * Fixed: focus tracking events are now also generated when switching between panes [#941](https://github.com/wez/wezterm/issues/941)
+* New: [window_frame](config/lua/config/window_frame.md) option to configure Wayland window decorations [#761](https://github.com/wez/wezterm/issues/761)
 
 ### 20210502-154244-3f7122cb
 
