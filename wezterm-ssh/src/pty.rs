@@ -20,7 +20,7 @@ pub(crate) struct NewPty {
 pub(crate) struct ResizePty {
     pub channel: ChannelId,
     pub size: PtySize,
-    pub reply: Sender<()>,
+    pub reply: Option<Sender<()>>,
 }
 
 #[derive(Debug)]
@@ -44,17 +44,15 @@ impl std::io::Write for SshPty {
 
 impl portable_pty::MasterPty for SshPty {
     fn resize(&self, size: PtySize) -> anyhow::Result<()> {
-        let (tx, rx) = bounded(1);
         self.tx
             .as_ref()
             .unwrap()
             .try_send(SessionRequest::ResizePty(ResizePty {
                 channel: self.channel,
                 size,
-                reply: tx,
+                reply: None,
             }))?;
 
-        smol::block_on(rx.recv())?;
         *self.size.lock().unwrap() = size;
         Ok(())
     }
@@ -272,7 +270,9 @@ impl crate::session::SessionInner {
             Some(resize.size.pixel_width.into()),
             Some(resize.size.pixel_height.into()),
         )?;
-        resize.reply.try_send(())?;
+        if let Some(reply) = resize.reply.as_ref() {
+            reply.try_send(())?;
+        }
         Ok(())
     }
 }

@@ -147,6 +147,12 @@ impl RemoteSshDomain {
             events: RefCell::new(Some(events)),
         })
     }
+
+    // This is a method of its own so that we can ensure that the
+    // borrow is released when we return
+    fn take_events(&self) -> Option<smol::channel::Receiver<SessionEvent>> {
+        self.events.borrow_mut().take()
+    }
 }
 
 /// Carry out the authentication process and create the initial pty.
@@ -456,7 +462,7 @@ impl Domain for RemoteSshDomain {
         let child: Box<dyn portable_pty::Child + Send>;
         let writer: BoxedWriter;
 
-        if let Some(events) = self.events.borrow_mut().take() {
+        if let Some(events) = self.take_events() {
             // We get to establish the session!
             //
             // Since we want spawn to return the Pane in which

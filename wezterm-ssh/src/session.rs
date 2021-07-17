@@ -311,12 +311,7 @@ impl SessionInner {
 
             let stdin = &mut chan.descriptors[0];
             if stdin.fd.is_some() && !stdin.buf.is_empty() {
-                match write_from_buf(&mut chan.channel, &mut stdin.buf) {
-                    Ok(_) => {}
-                    Err(err) => {
-                        log::error!("Failed to write data to channel: {:#}. Now what?", err);
-                    }
-                }
+                write_from_buf(&mut chan.channel, &mut stdin.buf).context("writing to channel")?;
             }
 
             for (idx, out) in chan
