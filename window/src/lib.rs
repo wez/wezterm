@@ -116,6 +116,7 @@ impl WindowEventSender {
     }
 
     pub fn dispatch(&mut self, event: WindowEvent) {
+        log::trace!("{:?}", event);
         (self.handler)(event, self.window.as_ref().unwrap());
     }
 }

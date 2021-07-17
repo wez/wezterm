@@ -1090,12 +1090,26 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 inner.hscroll_remainder += remainder;
                 position += inner.hscroll_remainder / WHEEL_DELTA;
                 inner.hscroll_remainder %= WHEEL_DELTA;
+                log::trace!(
+                    "mouse_hwheel delta={} scaled={} remainder={} pos={}",
+                    delta,
+                    scaled_delta,
+                    inner.hscroll_remainder,
+                    position
+                );
                 MouseEventKind::HorzWheel(position)
             } else {
                 let mut inner = inner.borrow_mut();
                 inner.vscroll_remainder += remainder;
                 position += inner.vscroll_remainder / WHEEL_DELTA;
                 inner.vscroll_remainder %= WHEEL_DELTA;
+                log::trace!(
+                    "mouse_wheel delta={} scaled={} remainder={} pos={}",
+                    delta,
+                    scaled_delta,
+                    inner.vscroll_remainder,
+                    position
+                );
                 MouseEventKind::VertWheel(position)
             },
             coords,
