@@ -47,6 +47,12 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
     let button_row = top_row + message_rows + 1;
     let mut active = ActiveButton::None;
 
+    let yes_x = x_pos;
+    let yes_w = 7;
+
+    let no_x =  yes_x + yes_w + 8 /* spacer */;
+    let no_w = 6;
+
     #[derive(Copy, Clone, PartialEq, Eq)]
     enum ActiveButton {
         None,
@@ -133,12 +139,12 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
             }) => {
                 let x = x as usize;
                 let y = y as usize;
-                if y == button_row && x >= x_pos && x <= x_pos + 7 {
+                if y == button_row && x >= yes_x && x < yes_x + yes_w {
                     active = ActiveButton::Yes;
                     if mouse_buttons == MouseButtons::LEFT {
                         return Ok(true);
                     }
-                } else if y == button_row && x >= x_pos + 14 && x <= x_pos + 22 {
+                } else if y == button_row && x >= no_x && x < no_x + no_w {
                     active = ActiveButton::No;
                     if mouse_buttons == MouseButtons::LEFT {
                         return Ok(false);
