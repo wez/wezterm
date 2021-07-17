@@ -61,6 +61,34 @@ pub enum MouseCursor {
     SizeLeftRight,
 }
 
+/// Represents the preferred appearance of the windowing
+/// environment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Appearance {
+    /// Standard dark-text-on-light-background presentation
+    Light,
+    /// Dark mode, with predominantly dark or muted colors
+    Dark,
+    /// dark-text-on-light-background, but in a higher contrast
+    /// more accesible palette
+    LightHighContrast,
+    /// darker background but with higher contrast than regular
+    /// dark mode
+    DarkHighContrast,
+}
+
+impl std::string::ToString for Appearance {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Light => "Light",
+            Self::Dark => "Dark",
+            Self::LightHighContrast => "LightHighContrast",
+            Self::DarkHighContrast => "DarkHighContrast",
+        }
+        .to_string()
+    }
+}
+
 #[derive(Debug)]
 pub enum WindowEvent {
     /// Called when the window close button is clicked.

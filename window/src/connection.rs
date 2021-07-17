@@ -1,4 +1,4 @@
-use crate::Connection;
+use crate::{Appearance, Connection};
 use anyhow::Result as Fallible;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -35,6 +35,11 @@ pub trait ConnectionOps {
 
     fn terminate_message_loop(&self);
     fn run_message_loop(&self) -> Fallible<()>;
+
+    /// Retrieve the current appearance for the application.
+    fn get_appearance(&self) -> Appearance {
+        Appearance::Light
+    }
 
     /// Hide the application.
     /// This actions hides all of the windows of the application and switches

@@ -1,9 +1,11 @@
 // let () = msg_send! is a common pattern for objc
 #![allow(clippy::let_unit_value)]
 
+use super::nsstring_to_str;
 use super::window::WindowInner;
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
+use crate::Appearance;
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
 use cocoa::base::{id, nil};
 use objc::*;
@@ -78,6 +80,22 @@ impl ConnectionOps for Connection {
             // Generate a UI event so that the run loop breaks out
             // after receiving the stop
             let () = msg_send![NSApp(), abortModal];
+        }
+    }
+
+    fn get_appearance(&self) -> Appearance {
+        let name = unsafe {
+            let appearance: id = msg_send![self.ns_app, effectiveAppearance];
+            nsstring_to_str(msg_send![appearance, name])
+        };
+        match name {
+            "NSAppearanceNameVibrantDark" | "NSAppearanceNameDarkAqua" => Appearance::Dark,
+            "NSAppearanceNameVibrantLight" | "NSAppearanceNameAqua" => Appearance::Light,
+            "NSAppearanceNameAccessibilityHighContrastVibrantLight"
+            | "NSAppearanceNameAccessibilityHighContrastAqua" => Appearance::LightHighContrast,
+            "NSAppearanceNameAccessibilityHighContrastVibrantDark"
+            | "NSAppearanceNameAccessibilityHighContrastDarkAqua" => Appearance::DarkHighContrast,
+            _ => Appearance::Light,
         }
     }
 
