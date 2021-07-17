@@ -614,10 +614,6 @@ struct RemoteClipboard {
 }
 
 impl Clipboard for RemoteClipboard {
-    fn get_contents(&self, _selection: ClipboardSelection) -> anyhow::Result<String> {
-        Ok("".to_owned())
-    }
-
     fn set_contents(
         &self,
         selection: ClipboardSelection,

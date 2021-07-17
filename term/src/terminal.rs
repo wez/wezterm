@@ -10,7 +10,6 @@ pub enum ClipboardSelection {
 }
 
 pub trait Clipboard {
-    fn get_contents(&self, selection: ClipboardSelection) -> anyhow::Result<String>;
     fn set_contents(
         &self,
         selection: ClipboardSelection,
@@ -19,10 +18,6 @@ pub trait Clipboard {
 }
 
 impl Clipboard for Box<dyn Clipboard> {
-    fn get_contents(&self, selection: ClipboardSelection) -> anyhow::Result<String> {
-        self.as_ref().get_contents(selection)
-    }
-
     fn set_contents(
         &self,
         selection: ClipboardSelection,

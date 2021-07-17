@@ -204,10 +204,6 @@ pub struct TermWindow {
 
     window_background: Option<Arc<ImageData>>,
 
-    /// Gross workaround for managing async keyboard fetching
-    /// just for middle mouse button paste function
-    clipboard_contents: Arc<Mutex<Option<String>>>,
-
     current_mouse_button: Option<MousePress>,
 
     /// Keeps track of double and triple clicks
@@ -444,8 +440,6 @@ impl TermWindow {
 
         let render_state = None;
 
-        let clipboard_contents = Arc::new(Mutex::new(None));
-
         let myself = Self {
             config_subscription: None,
             gl: None,
@@ -476,7 +470,6 @@ impl TermWindow {
             current_mouse_event: None,
             prev_cursor: PrevCursorPos::new(),
             last_scroll_info: RenderableDimensions::default(),
-            clipboard_contents: Arc::clone(&clipboard_contents),
             tab_state: RefCell::new(HashMap::new()),
             pane_state: RefCell::new(HashMap::new()),
             current_mouse_button: None,
@@ -515,7 +508,7 @@ impl TermWindow {
         tw.borrow_mut().window.replace(window.clone());
 
         Self::apply_icon(&window)?;
-        Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
+        Self::setup_clipboard(&window, mux_window_id);
 
         let config_subscription = config::subscribe_to_config_reload({
             let window = window.clone();
@@ -757,7 +750,6 @@ impl TermWindow {
         window: &Window,
         mux_window_id: MuxWindowId,
         dead: &Arc<AtomicBool>,
-        clipboard_contents: &Arc<Mutex<Option<String>>>,
     ) -> bool {
         if dead.load(Ordering::Relaxed) {
             // Subscription cancelled asynchronously
@@ -794,7 +786,6 @@ impl TermWindow {
                                 let clipboard: Arc<dyn wezterm_term::Clipboard> =
                                     Arc::new(ClipboardHelper {
                                         window: window.clone(),
-                                        clipboard_contents: Arc::clone(clipboard_contents),
                                     });
                                 pos.pane.set_clipboard(&clipboard);
                                 break;
@@ -826,15 +817,8 @@ impl TermWindow {
         let mux_window_id = self.mux_window_id;
         let mux = Mux::get().expect("mux started and running on main thread");
         let dead = Arc::new(AtomicBool::new(false));
-        let clipboard_contents = Arc::clone(&self.clipboard_contents);
         mux.subscribe(move |n| {
-            Self::mux_pane_output_event_callback(
-                n,
-                &window,
-                mux_window_id,
-                &dead,
-                &clipboard_contents,
-            )
+            Self::mux_pane_output_event_callback(n, &window, mux_window_id, &dead)
         });
     }
 
@@ -1380,7 +1364,6 @@ impl TermWindow {
 
         let clipboard = ClipboardHelper {
             window: self.window.as_ref().unwrap().clone(),
-            clipboard_contents: Arc::clone(&self.clipboard_contents),
         };
 
         let mut domains = mux.iter_domains();

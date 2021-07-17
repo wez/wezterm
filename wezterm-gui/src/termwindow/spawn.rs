@@ -30,7 +30,6 @@ impl super::TermWindow {
             self.mux_window_id,
             ClipboardHelper {
                 window: self.window.as_ref().unwrap().clone(),
-                clipboard_contents: Arc::clone(&self.clipboard_contents),
             },
         )
     }

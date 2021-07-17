@@ -37,14 +37,6 @@ impl Clipboard for LocalClip {
         *self.clip.borrow_mut() = clip;
         Ok(())
     }
-
-    fn get_contents(&self, _selection: ClipboardSelection) -> anyhow::Result<String> {
-        self.clip
-            .borrow()
-            .as_ref()
-            .map(|c| c.clone())
-            .ok_or_else(|| anyhow::anyhow!("no clipboard"))
-    }
 }
 
 struct TestTerm {
