@@ -285,6 +285,7 @@ pub enum Device {
     SoftReset,
     RequestPrimaryDeviceAttributes,
     RequestSecondaryDeviceAttributes,
+    RequestTertiaryDeviceAttributes,
     StatusReport,
     /// https://github.com/mintty/mintty/issues/881
     /// https://gitlab.gnome.org/GNOME/vte/-/issues/235
@@ -306,6 +307,7 @@ impl Display for Device {
             Device::SoftReset => write!(f, "!p")?,
             Device::RequestPrimaryDeviceAttributes => write!(f, "c")?,
             Device::RequestSecondaryDeviceAttributes => write!(f, ">c")?,
+            Device::RequestTertiaryDeviceAttributes => write!(f, "=c")?,
             Device::RequestTerminalNameAndVersion => write!(f, ">q")?,
             Device::StatusReport => write!(f, "5n")?,
             Device::XtSmGraphics(g) => {
@@ -1577,6 +1579,9 @@ impl<'a> CSIParser<'a> {
             ('c', &[b'?']) => self
                 .secondary_device_attributes(params)
                 .map(|dev| CSI::Device(Box::new(dev))),
+            ('c', &[b'=']) => self
+                .req_tertiary_device_attributes(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
 
             _ => Err(()),
         }
@@ -1730,6 +1735,16 @@ impl<'a> CSIParser<'a> {
             Ok(Device::RequestSecondaryDeviceAttributes)
         } else if params == [CsiParam::Integer(0)] {
             Ok(self.advance_by(1, params, Device::RequestSecondaryDeviceAttributes))
+        } else {
+            Err(())
+        }
+    }
+
+    fn req_tertiary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
+        if params == [] {
+            Ok(Device::RequestTertiaryDeviceAttributes)
+        } else if params == [CsiParam::Integer(0)] {
+            Ok(self.advance_by(1, params, Device::RequestTertiaryDeviceAttributes))
         } else {
             Err(())
         }
