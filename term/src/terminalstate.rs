@@ -1801,6 +1801,11 @@ impl TerminalState {
                 self.writer.write(b"\x1b[>0;0;0c").ok();
                 self.writer.flush().ok();
             }
+            Device::RequestTertiaryDeviceAttributes => {
+                self.writer.write(b"\x1b[=00000000").ok();
+                self.writer.write(ST.as_bytes()).ok();
+                self.writer.flush().ok();
+            }
             Device::RequestTerminalNameAndVersion => {
                 self.writer.write(DCS.as_bytes()).ok();
                 self.writer
