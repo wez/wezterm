@@ -1,5 +1,6 @@
 use super::*;
 use crate::connection::ConnectionOps;
+use crate::Appearance;
 use crate::{
     Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
     MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
@@ -56,6 +57,7 @@ pub(crate) struct WindowInner {
     saved_placement: Option<WINDOWPLACEMENT>,
 
     keyboard_info: KeyboardLayoutInfo,
+    appearance: Appearance,
 
     config: ConfigHandle,
 }
@@ -389,8 +391,10 @@ impl Window {
             Some(c) => c.clone(),
             None => config::configuration(),
         };
+        let appearance = get_appearance();
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),
+            appearance,
             events,
             gl_state: None,
             vscroll_remainder: 0,
@@ -420,7 +424,7 @@ impl Window {
             .events
             .assign_window(window_handle.clone());
 
-        enable_theme(hwnd.0);
+        apply_theme(hwnd.0);
         enable_blur_behind(hwnd.0);
 
         Connection::get()
@@ -759,15 +763,7 @@ fn enable_blur_behind(hwnd: HWND) {
     }
 }
 
-fn read_theme() -> io::Result<u32> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let theme =
-        hkcu.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")?;
-
-    theme.get_value::<u32, _>("AppsUseLightTheme")
-}
-
-fn enable_theme(hwnd: HWND) -> Option<LRESULT> {
+fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     // Check for OS app theme, and set window attributes accordingly.
     // Note that the MS terminal app uses the logic found here for this stuff:
     // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
@@ -792,8 +788,8 @@ fn enable_theme(hwnd: HWND) -> Option<LRESULT> {
 
     const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 19;
     unsafe {
-        let is_dark = if read_theme().unwrap_or(1) == 1 { 0 } else { 1 };
-        let theme_string = if is_dark == 1 {
+        let appearance = get_appearance();
+        let theme_string = if appearance == Appearance::Dark {
             "DarkMode_Explorer"
         } else {
             ""
@@ -805,7 +801,7 @@ fn enable_theme(hwnd: HWND) -> Option<LRESULT> {
             std::ptr::null_mut(),
         );
 
-        let mut enabled: BOOL = is_dark;
+        let mut enabled: BOOL = if appearance == Appearance::Dark { 1 } else { 0 };
         DwmSetWindowAttribute(
             hwnd as _,
             DWMWA_USE_IMMERSIVE_DARK_MODE,
@@ -823,6 +819,16 @@ fn enable_theme(hwnd: HWND) -> Option<LRESULT> {
                 },
             );
         };
+
+        if let Some(inner) = rc_from_hwnd(hwnd) {
+            let mut inner = inner.borrow_mut();
+            if appearance != inner.appearance {
+                inner.appearance = appearance;
+                inner
+                    .events
+                    .dispatch(WindowEvent::AppearanceChanged(appearance));
+            }
+        }
     }
 
     None
@@ -1914,7 +1920,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             crate::spawn::SPAWN_QUEUE.run();
             None
         }
-        WM_SETTINGCHANGE => enable_theme(hwnd),
+        WM_SETTINGCHANGE => apply_theme(hwnd),
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
         WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),

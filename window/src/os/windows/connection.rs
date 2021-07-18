@@ -2,6 +2,7 @@
 use super::{HWindow, WindowInner};
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
+use crate::Appearance;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr::null_mut;
@@ -9,6 +10,7 @@ use std::rc::Rc;
 use winapi::um::winbase::INFINITE;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::*;
+use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
 pub struct Connection {
     event_handle: HANDLE,
@@ -16,11 +18,30 @@ pub struct Connection {
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 }
 
+pub(crate) fn get_appearance() -> Appearance {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    match hkcu.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize") {
+        Ok(theme) => {
+            let light = theme.get_value::<u32, _>("AppsUseLightTheme").unwrap_or(1) == 1;
+            if light {
+                Appearance::Light
+            } else {
+                Appearance::Dark
+            }
+        }
+        _ => Appearance::Light,
+    }
+}
+
 impl ConnectionOps for Connection {
     fn terminate_message_loop(&self) {
         unsafe {
             PostQuitMessage(0);
         }
+    }
+
+    fn get_appearance(&self) -> Appearance {
+        get_appearance()
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
