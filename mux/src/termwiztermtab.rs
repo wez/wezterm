@@ -112,7 +112,7 @@ impl TermWizTerminalPane {
 
         let terminal = RefCell::new(wezterm_term::Terminal::new(
             crate::pty_size_to_terminal_size(size),
-            std::sync::Arc::new(config::TermConfig {}),
+            std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
             Box::new(Vec::new()), // FIXME: connect to something?

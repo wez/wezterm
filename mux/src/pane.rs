@@ -3,6 +3,7 @@ use crate::renderable::*;
 use crate::Mux;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
+use config::TermConfig;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
 use rangeset::RangeSet;
@@ -340,6 +341,7 @@ pub trait Pane: Downcast {
     fn is_alt_screen_active(&self) -> bool;
 
     fn set_clipboard(&self, _clipboard: &Arc<dyn Clipboard>) {}
+    fn set_config(&self, _config: Arc<TermConfig>) {}
 
     fn get_current_working_dir(&self) -> Option<Url>;
 

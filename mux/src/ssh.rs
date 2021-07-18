@@ -552,7 +552,7 @@ impl Domain for RemoteSshDomain {
 
         let terminal = wezterm_term::Terminal::new(
             crate::pty_size_to_terminal_size(size),
-            std::sync::Arc::new(config::TermConfig {}),
+            std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
             writer,
@@ -632,7 +632,7 @@ impl Domain for RemoteSshDomain {
 
         let terminal = wezterm_term::Terminal::new(
             crate::pty_size_to_terminal_size(split_size.second),
-            std::sync::Arc::new(config::TermConfig {}),
+            std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
             Box::new(writer),

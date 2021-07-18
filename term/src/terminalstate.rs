@@ -514,6 +514,10 @@ impl TerminalState {
         }
     }
 
+    pub fn set_config(&mut self, config: Arc<dyn TerminalConfiguration>) {
+        self.config = config;
+    }
+
     pub fn set_clipboard(&mut self, clipboard: &Arc<dyn Clipboard>) {
         self.clipboard.replace(Arc::clone(clipboard));
     }

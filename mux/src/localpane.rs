@@ -6,7 +6,7 @@ use crate::{Domain, Mux, MuxNotification};
 use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
-use config::{configuration, ExitBehavior};
+use config::{configuration, ExitBehavior, TermConfig};
 #[cfg(windows)]
 use filedescriptor::OwnedHandle;
 use portable_pty::{Child, ExitStatus, MasterPty, PtySize};
@@ -200,6 +200,10 @@ impl Pane for LocalPane {
 
     fn set_clipboard(&self, clipboard: &Arc<dyn Clipboard>) {
         self.terminal.borrow_mut().set_clipboard(clipboard);
+    }
+
+    fn set_config(&self, config: Arc<TermConfig>) {
+        self.terminal.borrow_mut().set_config(config);
     }
 
     fn perform_actions(&self, actions: Vec<termwiz::escape::Action>) {

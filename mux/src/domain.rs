@@ -137,16 +137,16 @@ impl Domain for LocalDomain {
         log::trace!("spawned: {:?}", child);
 
         let writer = pair.master.try_clone_writer()?;
+        let mux = Mux::get().unwrap();
 
         let terminal = wezterm_term::Terminal::new(
             crate::pty_size_to_terminal_size(size),
-            std::sync::Arc::new(config::TermConfig {}),
+            std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
             Box::new(writer),
         );
 
-        let mux = Mux::get().unwrap();
         let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
             pane_id,
             terminal,
@@ -219,7 +219,7 @@ impl Domain for LocalDomain {
 
         let terminal = wezterm_term::Terminal::new(
             crate::pty_size_to_terminal_size(split_size.second),
-            std::sync::Arc::new(config::TermConfig {}),
+            std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
             Box::new(writer),

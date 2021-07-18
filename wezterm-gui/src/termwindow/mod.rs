@@ -22,7 +22,7 @@ use anyhow::{anyhow, ensure};
 use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, SpawnCommand,
 };
-use config::{configuration, ConfigHandle, WindowCloseConfirmation};
+use config::{configuration, ConfigHandle, TermConfig, WindowCloseConfirmation};
 use luahelper::impl_lua_conversion;
 use mlua::FromLua;
 use mux::domain::{DomainId, DomainState};
@@ -963,7 +963,8 @@ impl TermWindow {
 impl TermWindow {
     fn palette(&mut self) -> &ColorPalette {
         if self.palette.is_none() {
-            self.palette.replace(config::TermConfig.color_palette());
+            self.palette
+                .replace(config::TermConfig::new().color_palette());
         }
         self.palette.as_ref().unwrap()
     }
@@ -1009,6 +1010,18 @@ impl TermWindow {
         if let Err(err) = self.fonts.config_changed(&config) {
             log::error!("Failed to load font configuration: {:#}", err);
         }
+
+        if let Some(window) = mux.get_window(self.mux_window_id) {
+            let term_config = TermConfig::new();
+            term_config.set_config(config.clone());
+            let term_config = Arc::new(term_config);
+            for tab in window.iter() {
+                for pane in tab.iter_panes() {
+                    pane.pane.set_config(Arc::clone(&term_config));
+                }
+            }
+        };
+
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
         self.apply_dimensions(&dimensions, None);
         if let Some(window) = self.window.as_ref() {
