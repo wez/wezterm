@@ -70,7 +70,9 @@ impl MyWindow {
                     win.finish_frame(frame).unwrap();
                 }
             }
-            WindowEvent::Notification(_) | WindowEvent::FocusChanged(_) => {}
+            WindowEvent::AppearanceChanged(_)
+            | WindowEvent::Notification(_)
+            | WindowEvent::FocusChanged(_) => {}
         }
     }
 }

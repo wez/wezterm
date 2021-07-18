@@ -3,7 +3,6 @@ use crate::renderable::*;
 use crate::Mux;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
-use config::TermConfig;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
 use rangeset::RangeSet;
@@ -16,7 +15,10 @@ use termwiz::hyperlink::Rule;
 use termwiz::surface::Line;
 use url::Url;
 use wezterm_term::color::ColorPalette;
-use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex};
+use wezterm_term::{
+    Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
+    TerminalConfiguration,
+};
 
 static PANE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type PaneId = usize;
@@ -341,7 +343,10 @@ pub trait Pane: Downcast {
     fn is_alt_screen_active(&self) -> bool;
 
     fn set_clipboard(&self, _clipboard: &Arc<dyn Clipboard>) {}
-    fn set_config(&self, _config: Arc<TermConfig>) {}
+    fn set_config(&self, _config: Arc<dyn TerminalConfiguration>) {}
+    fn get_config(&self) -> Option<Arc<dyn TerminalConfiguration>> {
+        None
+    }
 
     fn get_current_working_dir(&self) -> Option<Url>;
 

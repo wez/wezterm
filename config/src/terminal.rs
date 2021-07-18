@@ -17,6 +17,12 @@ impl TermConfig {
         }
     }
 
+    pub fn with_config(config: ConfigHandle) -> Self {
+        Self {
+            config: Mutex::new(Some(config)),
+        }
+    }
+
     pub fn set_config(&self, config: ConfigHandle) {
         self.config.lock().unwrap().replace(config);
     }

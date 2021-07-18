@@ -527,6 +527,7 @@ impl TermWindow {
             myself.gl.replace(Rc::clone(&gl));
             myself.created(&window, Rc::clone(&gl))?;
             myself.subscribe_to_pane_updates();
+            myself.emit_window_event("window-config-reloaded");
             myself.emit_status_event();
         }
 
@@ -543,6 +544,10 @@ impl TermWindow {
             WindowEvent::Destroyed => Ok(false),
             WindowEvent::CloseRequested => {
                 self.close_requested(window);
+                Ok(true)
+            }
+            WindowEvent::AppearanceChanged(_appearance) => {
+                self.config_was_reloaded();
                 Ok(true)
             }
             WindowEvent::FocusChanged(focused) => {
@@ -1012,9 +1017,8 @@ impl TermWindow {
         }
 
         if let Some(window) = mux.get_window(self.mux_window_id) {
-            let term_config = TermConfig::new();
-            term_config.set_config(config.clone());
-            let term_config = Arc::new(term_config);
+            let term_config: Arc<dyn TerminalConfiguration> =
+                Arc::new(TermConfig::with_config(config.clone()));
             for tab in window.iter() {
                 for pane in tab.iter_panes() {
                     pane.pane.set_config(Arc::clone(&term_config));
@@ -1413,6 +1417,7 @@ impl TermWindow {
             .expect("tab has no panes!")
             .domain_id();
         let size = self.terminal_size;
+        let term_config = Arc::new(TermConfig::with_config(self.config.clone()));
 
         let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
             launcher(
@@ -1423,6 +1428,7 @@ impl TermWindow {
                 domains,
                 clipboard,
                 size,
+                term_config,
             )
         });
         self.assign_overlay(tab.tab_id(), overlay);

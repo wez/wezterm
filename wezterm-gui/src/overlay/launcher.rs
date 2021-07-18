@@ -9,14 +9,15 @@ use crate::termwindow::clipboard::ClipboardHelper;
 use crate::termwindow::spawn::SpawnWhere;
 use crate::termwindow::TermWindow;
 use anyhow::anyhow;
-use config::configuration;
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
+use config::{configuration, TermConfig};
 use mux::domain::{DomainId, DomainState};
 use mux::tab::TabId;
 use mux::termwiztermtab::TermWizTerminal;
 use mux::window::WindowId;
 use mux::Mux;
 use portable_pty::PtySize;
+use std::sync::Arc;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent, MouseButtons, MouseEvent};
@@ -106,6 +107,7 @@ pub fn launcher(
     domains: Vec<(DomainId, String, DomainState, String)>,
     clipboard: ClipboardHelper,
     size: PtySize,
+    term_config: Arc<TermConfig>,
 ) -> anyhow::Result<()> {
     let mut active_idx = 0;
     let mut entries = vec![];
@@ -205,6 +207,7 @@ pub fn launcher(
         size: PtySize,
         mux_window_id: WindowId,
         clipboard: ClipboardHelper,
+        term_config: Arc<TermConfig>,
     ) {
         match entries[active_idx].clone() {
             Entry::Spawn {
@@ -219,6 +222,7 @@ pub fn launcher(
                         size,
                         mux_window_id,
                         clipboard,
+                        term_config,
                     );
                 })
                 .detach();
@@ -270,7 +274,14 @@ pub fn launcher(
                     active_idx = y as usize - 1;
 
                     if mouse_buttons == MouseButtons::LEFT {
-                        launch(active_idx, &entries, size, mux_window_id, clipboard);
+                        launch(
+                            active_idx,
+                            &entries,
+                            size,
+                            mux_window_id,
+                            clipboard,
+                            term_config,
+                        );
                         break;
                     }
                 }
@@ -283,7 +294,14 @@ pub fn launcher(
                 key: KeyCode::Enter,
                 ..
             }) => {
-                launch(active_idx, &entries, size, mux_window_id, clipboard);
+                launch(
+                    active_idx,
+                    &entries,
+                    size,
+                    mux_window_id,
+                    clipboard,
+                    term_config,
+                );
                 break;
             }
             _ => {}

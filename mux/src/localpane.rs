@@ -6,7 +6,7 @@ use crate::{Domain, Mux, MuxNotification};
 use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
-use config::{configuration, ExitBehavior, TermConfig};
+use config::{configuration, ExitBehavior};
 #[cfg(windows)]
 use filedescriptor::OwnedHandle;
 use portable_pty::{Child, ExitStatus, MasterPty, PtySize};
@@ -25,7 +25,7 @@ use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     Alert, AlertHandler, CellAttributes, Clipboard, KeyCode, KeyModifiers, MouseEvent,
-    SemanticZone, StableRowIndex, Terminal,
+    SemanticZone, StableRowIndex, Terminal, TerminalConfiguration,
 };
 
 #[derive(Debug)]
@@ -202,8 +202,12 @@ impl Pane for LocalPane {
         self.terminal.borrow_mut().set_clipboard(clipboard);
     }
 
-    fn set_config(&self, config: Arc<TermConfig>) {
+    fn set_config(&self, config: Arc<dyn TerminalConfiguration>) {
         self.terminal.borrow_mut().set_config(config);
+    }
+
+    fn get_config(&self) -> Option<Arc<dyn TerminalConfiguration>> {
+        Some(self.terminal.borrow().get_config())
     }
 
     fn perform_actions(&self, actions: Vec<termwiz::escape::Action>) {

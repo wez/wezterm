@@ -123,6 +123,8 @@ pub enum WindowEvent {
 
     MouseEvent(MouseEvent),
 
+    AppearanceChanged(Appearance),
+
     Notification(Box<dyn Any + Send + Sync>),
 }
 
@@ -144,8 +146,10 @@ impl WindowEventSender {
     }
 
     pub fn dispatch(&mut self, event: WindowEvent) {
-        log::trace!("{:?}", event);
-        (self.handler)(event, self.window.as_ref().unwrap());
+        if let Some(window) = self.window.as_ref() {
+            log::trace!("{:?}", event);
+            (self.handler)(event, window);
+        }
     }
 }
 

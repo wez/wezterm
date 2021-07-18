@@ -9,7 +9,7 @@ use mlua::{UserData, UserDataMethods};
 use mux::window::WindowId as MuxWindowId;
 use serde::*;
 use wezterm_toast_notification::ToastNotification;
-use window::WindowOps;
+use window::{Connection, ConnectionOps, WindowOps};
 
 #[derive(Clone)]
 pub struct GuiWin {
@@ -43,6 +43,9 @@ impl UserData for GuiWin {
                 Ok(())
             },
         );
+        methods.add_method("get_appearance", |_, _, _: ()| {
+            Ok(Connection::get().unwrap().get_appearance().to_string())
+        });
         methods.add_method("set_right_status", |_, this, status: String| {
             this.window.notify(TermWindowNotif::SetRightStatus(status));
             Ok(())

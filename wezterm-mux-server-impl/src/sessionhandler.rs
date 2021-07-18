@@ -648,6 +648,11 @@ async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> 
     };
 
     let pane_id = split.pane_id;
+    let current_pane = mux
+        .get_pane(pane_id)
+        .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+    let term_config = current_pane.get_config();
+
     let cwd = split.command_dir.or_else(|| {
         mux.get_pane(pane_id)
             .and_then(|pane| pane.get_current_working_dir())
@@ -686,6 +691,9 @@ async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> 
         sender,
     });
     pane.set_clipboard(&clip);
+    if let Some(config) = term_config {
+        pane.set_config(config);
+    }
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
         pane_id: pane.pane_id(),
@@ -745,12 +753,23 @@ async fn domain_spawn_v2(spawn: SpawnV2, sender: PduSender) -> anyhow::Result<Pd
     };
 
     let window_builder;
+    let term_config;
 
     let window_id = if let Some(window_id) = spawn.window_id {
-        mux.get_window_mut(window_id)
+        let window = mux
+            .get_window_mut(window_id)
             .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
+        let tab = window
+            .get_active()
+            .ok_or_else(|| anyhow!("window {} has no tabs", window_id))?;
+        let pane = tab
+            .get_active_pane()
+            .ok_or_else(|| anyhow!("active tab in window {} has no panes", window_id))?;
+        term_config = pane.get_config();
+
         window_id
     } else {
+        term_config = None;
         window_builder = mux.new_empty_window();
         *window_builder
     };
@@ -762,6 +781,10 @@ async fn domain_spawn_v2(spawn: SpawnV2, sender: PduSender) -> anyhow::Result<Pd
     let pane = tab
         .get_active_pane()
         .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
+
+    if let Some(config) = term_config {
+        pane.set_config(config);
+    }
 
     let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
         pane_id: pane.pane_id(),

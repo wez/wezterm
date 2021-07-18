@@ -1,6 +1,7 @@
 use crate::termwindow::{ClipboardHelper, MuxWindowId};
 use anyhow::{anyhow, bail};
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
+use config::TermConfig;
 use mux::activity::Activity;
 use mux::domain::DomainState;
 use mux::tab::SplitDirection;
@@ -23,6 +24,8 @@ impl super::TermWindow {
         } else {
             self.terminal_size
         };
+        let term_config = Arc::new(TermConfig::with_config(self.config.clone()));
+
         Self::spawn_command_impl(
             spawn,
             spawn_where,
@@ -31,6 +34,7 @@ impl super::TermWindow {
             ClipboardHelper {
                 window: self.window.as_ref().unwrap().clone(),
             },
+            term_config,
         )
     }
 
@@ -40,13 +44,20 @@ impl super::TermWindow {
         size: PtySize,
         src_window_id: MuxWindowId,
         clipboard: ClipboardHelper,
+        term_config: Arc<TermConfig>,
     ) {
         let spawn = spawn.clone();
 
         promise::spawn::spawn(async move {
-            if let Err(err) =
-                Self::spawn_command_internal(spawn, spawn_where, size, src_window_id, clipboard)
-                    .await
+            if let Err(err) = Self::spawn_command_internal(
+                spawn,
+                spawn_where,
+                size,
+                src_window_id,
+                clipboard,
+                term_config,
+            )
+            .await
             {
                 log::error!("Failed to spawn: {:#}", err);
             }
@@ -60,6 +71,7 @@ impl super::TermWindow {
         size: PtySize,
         src_window_id: MuxWindowId,
         clipboard: ClipboardHelper,
+        term_config: Arc<TermConfig>,
     ) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let activity = Activity::new();
@@ -173,9 +185,10 @@ impl super::TermWindow {
                     let pane = domain
                         .split_pane(cmd_builder, cwd, tab.tab_id(), pane.pane_id(), direction)
                         .await?;
+                    pane.set_config(term_config);
                     pane.set_clipboard(&clipboard);
                 } else {
-                    log::error!("there is no active tab while splitting pane!?");
+                    bail!("there is no active tab while splitting pane!?");
                 }
             }
             _ => {
@@ -186,6 +199,7 @@ impl super::TermWindow {
                 let pane = tab
                     .get_active_pane()
                     .ok_or_else(|| anyhow!("newly spawned tab to have a pane"))?;
+                pane.set_config(term_config);
 
                 if spawn_where != SpawnWhere::NewWindow {
                     pane.set_clipboard(&clipboard);

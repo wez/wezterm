@@ -1476,6 +1476,16 @@ impl WindowView {
         YES
     }
 
+    extern "C" fn view_did_change_effective_appearance(this: &mut Object, _sel: Sel) {
+        if let Some(this) = Self::get_this(this) {
+            let appearance = Connection::get().unwrap().get_appearance();
+            this.inner
+                .borrow_mut()
+                .events
+                .dispatch(WindowEvent::AppearanceChanged(appearance));
+        }
+    }
+
     extern "C" fn window_should_close(this: &mut Object, _sel: Sel, _id: id) -> BOOL {
         unsafe {
             let () = msg_send![this, setNeedsDisplay: YES];
@@ -2098,6 +2108,11 @@ impl WindowView {
             cls.add_method(
                 sel!(acceptsFirstMouse:),
                 Self::accepts_first_mouse as extern "C" fn(&mut Object, Sel, id) -> BOOL,
+            );
+
+            cls.add_method(
+                sel!(viewDidChangeEffectiveAppearance),
+                Self::view_did_change_effective_appearance as extern "C" fn(&mut Object, Sel),
             );
 
             // NSTextInputClient

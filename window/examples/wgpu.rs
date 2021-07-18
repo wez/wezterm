@@ -245,7 +245,9 @@ impl MyWindow {
             WindowEvent::NeedRepaint => {
                 self.paint(win).unwrap();
             }
-            WindowEvent::Notification(_) | WindowEvent::FocusChanged(_) => {}
+            WindowEvent::AppearanceChanged(_)
+            | WindowEvent::Notification(_)
+            | WindowEvent::FocusChanged(_) => {}
         }
     }
 }
