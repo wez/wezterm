@@ -142,29 +142,21 @@ impl CommandBuilder {
             // basename with `-` and setting that as argv0
             let basename = shell.rsplit('/').next().unwrap_or(&shell);
             cmd.arg0(&format!("-{}", basename));
-
-            let home = Self::get_home_dir()?;
-            let dir: &OsStr = self
-                .cwd
-                .as_ref()
-                .map(|dir| dir.as_os_str())
-                .filter(|dir| std::path::Path::new(dir).is_dir())
-                .unwrap_or(home.as_ref());
-            cmd.current_dir(dir);
             cmd
         } else {
             let mut cmd = std::process::Command::new(&self.args[0]);
             cmd.args(&self.args[1..]);
-            let home = Self::get_home_dir()?;
-            let dir: &OsStr = self
-                .cwd
-                .as_ref()
-                .map(|dir| dir.as_os_str())
-                .filter(|dir| std::path::Path::new(dir).is_dir())
-                .unwrap_or(home.as_ref());
-            cmd.current_dir(dir);
             cmd
         };
+
+        let home = Self::get_home_dir()?;
+        let dir: &OsStr = self
+            .cwd
+            .as_ref()
+            .map(|dir| dir.as_os_str())
+            .filter(|dir| std::path::Path::new(dir).is_dir())
+            .unwrap_or(home.as_ref());
+        cmd.current_dir(dir);
 
         for (key, val) in &self.envs {
             cmd.env(key, val);
@@ -243,9 +235,15 @@ impl CommandBuilder {
     }
 
     pub(crate) fn current_directory(&self) -> Option<Vec<u16>> {
-        self.cwd.as_ref().map(|c| {
+        use std::path::Path;
+
+        let home = std::env::var_os("USERPROFILE").filter(|path| Path::new(path).is_dir());
+        let cwd = self.cwd.as_ref().filter(|path| Path::new(path).is_dir());
+        let dir = cwd.or_else(|| home.as_ref());
+
+        dir.map(|dir| {
             let mut wide = vec![];
-            wide.extend(c.encode_wide());
+            wide.extend(dir.encode_wide());
             wide.push(0);
             wide
         })
