@@ -57,6 +57,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [bypass_mouse_reporting_modifiers](config/lua/config/bypass_mouse_reporting_modifiers.md) to specify which modifier(s) override application mouse reporting mode.
 * Fixed: focus tracking events are now also generated when switching between panes [#941](https://github.com/wez/wezterm/issues/941)
 * New: [window_frame](config/lua/config/window_frame.md) option to configure Wayland window decorations [#761](https://github.com/wez/wezterm/issues/761)
+* New: [window:get_appearance()] to determine if the window has a dark mode appearance, and adjust color scheme to match [#806](https://github.com/wez/wezterm/issues/806)
 
 ### 20210502-154244-3f7122cb
 
