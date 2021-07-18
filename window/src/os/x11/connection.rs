@@ -1,8 +1,10 @@
 use super::keyboard::Keyboard;
 use crate::connection::ConnectionOps;
 use crate::os::x11::window::XWindowInner;
+use crate::os::x11::xsettings::*;
 use crate::os::Connection;
 use crate::spawn::*;
+use crate::Appearance;
 use anyhow::{anyhow, bail, Context as _};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
@@ -16,6 +18,7 @@ use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_ke
 pub struct XConnection {
     pub conn: xcb_util::ewmh::Connection,
     default_dpi: RefCell<f64>,
+    pub(crate) xsettings: RefCell<XSettingsMap>,
     pub screen_num: i32,
     pub root: xcb::xproto::Window,
     pub keyboard: Keyboard,
@@ -28,6 +31,9 @@ pub struct XConnection {
     pub atom_targets: xcb::Atom,
     pub atom_clipboard: xcb::Atom,
     pub atom_gtk_edge_constraints: xcb::Atom,
+    pub atom_xsettings_selection: xcb::Atom,
+    pub atom_xsettings_settings: xcb::Atom,
+    pub atom_manager: xcb::Atom,
     keysyms: *mut xcb_key_symbols_t,
     pub(crate) xrm: RefCell<HashMap<String, String>>,
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<XWindowInner>>>>,
@@ -150,6 +156,27 @@ impl ConnectionOps for XConnection {
         *self.default_dpi.borrow()
     }
 
+    fn get_appearance(&self) -> Appearance {
+        if let Some(XSetting::String(name)) = self.xsettings.borrow().get("Net/ThemeName") {
+            let lower = name.to_ascii_lowercase();
+            match lower.as_str() {
+                "highcontrast" => Appearance::LightHighContrast,
+                "highcontrastinverse" => Appearance::DarkHighContrast,
+                "adwaita" => Appearance::Light,
+                "adwaita-dark" => Appearance::Dark,
+                lower => {
+                    if lower.contains("dark") {
+                        Appearance::Dark
+                    } else {
+                        Appearance::Light
+                    }
+                }
+            }
+        } else {
+            Appearance::Dark
+        }
+    }
+
     fn run_message_loop(&self) -> anyhow::Result<()> {
         self.conn.flush();
 
@@ -195,19 +222,42 @@ impl ConnectionOps for XConnection {
     }
 }
 
-impl XConnection {
-    pub(crate) fn update_xrm(&self) {
-        let xrm = crate::x11::xrm::parse_root_resource_manager(&self.conn, self.root)
-            .unwrap_or(HashMap::new());
-        let dpi = xrm
-            .get("Xft.dpi")
+fn compute_default_dpi(xrm: &HashMap<String, String>, xsettings: &XSettingsMap) -> f64 {
+    if let Some(XSetting::Integer(dpi)) = xsettings.get("Xft/DPI") {
+        *dpi as f64 / 1024.0
+    } else {
+        xrm.get("Xft.dpi")
             .as_ref()
             .map(|s| s.as_str())
             .unwrap_or("96")
             .parse::<f64>()
-            .unwrap_or(crate::DEFAULT_DPI);
+            .unwrap_or(crate::DEFAULT_DPI)
+    }
+}
 
+impl XConnection {
+    pub(crate) fn update_xrm(&self) {
+        match read_xsettings(
+            &self.conn,
+            self.atom_xsettings_selection,
+            self.atom_xsettings_settings,
+        ) {
+            Ok(settings) => {
+                if *self.xsettings.borrow() != settings {
+                    log::trace!("xsettings changed to {:?}", settings);
+                    *self.xsettings.borrow_mut() = settings;
+                }
+            }
+            Err(err) => {
+                log::error!("error reading xsettings: {:#}", err);
+            }
+        }
+
+        let xrm = crate::x11::xrm::parse_root_resource_manager(&self.conn, self.root)
+            .unwrap_or(HashMap::new());
         *self.xrm.borrow_mut() = xrm;
+
+        let dpi = compute_default_dpi(&self.xrm.borrow(), &self.xsettings.borrow());
         *self.default_dpi.borrow_mut() = dpi;
     }
 
@@ -297,6 +347,16 @@ impl XConnection {
         let atom_gtk_edge_constraints = xcb::intern_atom(&conn, false, "_GTK_EDGE_CONSTRAINTS")
             .get_reply()?
             .atom();
+        let atom_xsettings_selection =
+            xcb::intern_atom(&conn, false, &format!("_XSETTINGS_S{}", screen_num))
+                .get_reply()?
+                .atom();
+        let atom_xsettings_settings = xcb::intern_atom(&conn, false, "_XSETTINGS_SETTINGS")
+            .get_reply()?
+            .atom();
+        let atom_manager = xcb::intern_atom(&conn, false, "MANAGER")
+            .get_reply()?
+            .atom();
 
         let keysyms = unsafe { xcb_key_symbols_alloc((*conn).get_raw_conn()) };
 
@@ -349,18 +409,16 @@ impl XConnection {
 
         let xrm =
             crate::x11::xrm::parse_root_resource_manager(&conn, root).unwrap_or(HashMap::new());
-        let default_dpi = RefCell::new(
-            xrm.get("Xft.dpi")
-                .as_ref()
-                .map(|s| s.as_str())
-                .unwrap_or("96")
-                .parse::<f64>()
-                .unwrap_or(crate::DEFAULT_DPI),
-        );
+
+        let xsettings = read_xsettings(&conn, atom_xsettings_selection, atom_xsettings_settings)?;
+        log::trace!("xsettings are {:?}", xsettings);
+
+        let default_dpi = RefCell::new(compute_default_dpi(&xrm, &xsettings));
 
         let conn = XConnection {
             conn,
             default_dpi,
+            xsettings: RefCell::new(xsettings),
             cursor_font_id,
             screen_num,
             root,
@@ -368,6 +426,9 @@ impl XConnection {
             atom_protocols,
             atom_clipboard,
             atom_gtk_edge_constraints,
+            atom_xsettings_selection,
+            atom_xsettings_settings,
+            atom_manager,
             atom_delete,
             keysyms,
             keyboard,

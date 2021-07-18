@@ -11,6 +11,7 @@ build = "build.rs"
 [dev-dependencies]
 pretty_env_logger = "0.4"
 wgpu = "0.9"
+k9 = "0.11.0"
 
 [build-dependencies]
 gl_generator = "0.14"
@@ -24,6 +25,7 @@ async-io = "1.1"
 async-task = "4.0"
 async-trait = "0.1"
 anyhow = "1.0"
+bytes = "1.0"
 config = { path = "../config" }
 color-types = { path = "../color-types" }
 thiserror = "1.0"

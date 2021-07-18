@@ -14,6 +14,7 @@ The default value is system specific:
 |Windows        |Probed from the display |Probed from the display |
 |X11            |96.0                    |96.0                    |
 |X11 (*version 20210314-114017-04b7cedd and later*)|Probed from `Xft.dpi`, fallback to 96.0 |Probed from `Xft.dpi`, fallback to 96.0 |
+|X11 (*Since: nightly builds only*)|Reads `Xft/DPI` via xsettings, fallback to `Xft.dpi`, then fallback to 96.0 | same as standard density |
 |Wayland        |96.0                    |192.0       |
 
 In macOS and Wayland environments there isn't strictly a system DPI value that

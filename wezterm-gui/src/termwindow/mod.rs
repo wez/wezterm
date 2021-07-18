@@ -546,7 +546,8 @@ impl TermWindow {
                 self.close_requested(window);
                 Ok(true)
             }
-            WindowEvent::AppearanceChanged(_appearance) => {
+            WindowEvent::AppearanceChanged(appearance) => {
+                log::debug!("Appearance is now {:?}", appearance);
                 self.config_was_reloaded();
                 Ok(true)
             }

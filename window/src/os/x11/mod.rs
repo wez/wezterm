@@ -4,6 +4,7 @@ pub mod cursor;
 pub mod keyboard;
 pub mod window;
 pub mod xrm;
+pub mod xsettings;
 
 pub use self::window::*;
 pub use connection::*;

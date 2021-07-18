@@ -4,8 +4,8 @@ use crate::connection::ConnectionOps;
 use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
-    Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Point, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
+    Appearance, Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
+    MousePress, Point, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -61,6 +61,7 @@ pub(crate) struct XWindowInner {
     cursors: CursorInfo,
     copy_and_paste: CopyAndPaste,
     config: ConfigHandle,
+    appearance: Appearance,
 }
 
 impl Drop for XWindowInner {
@@ -319,6 +320,12 @@ impl XWindowInner {
                     // when running under gnome.
                     conn.update_xrm();
                     self.check_dpi_and_synthesize_resize();
+                    let appearance = conn.get_appearance();
+                    if appearance != self.appearance {
+                        self.appearance = appearance;
+                        self.events
+                            .dispatch(WindowEvent::AppearanceChanged(appearance));
+                    }
                 }
             }
             xcb::FOCUS_IN => {
@@ -735,7 +742,10 @@ impl XWindow {
 
             events.assign_window(Window::X11(XWindow::from_id(window_id)));
 
+            let appearance = conn.get_appearance();
+
             Arc::new(Mutex::new(XWindowInner {
+                appearance,
                 window_id,
                 conn: Rc::downgrade(&conn),
                 events,
