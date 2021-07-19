@@ -243,7 +243,17 @@ impl CommandBuilder {
 
         dir.map(|dir| {
             let mut wide = vec![];
-            wide.extend(dir.encode_wide());
+
+            if Path::new(dir).is_relative() {
+                if let Ok(ccwd) = std::env::current_dir() {
+                    wide.extend(ccwd.join(dir).as_os_str().encode_wide());
+                } else {
+                    wide.extend(dir.encode_wide());
+                }
+            } else {
+                wide.extend(dir.encode_wide());
+            }
+
             wide.push(0);
             wide
         })
