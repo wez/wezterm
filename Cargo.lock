@@ -30,6 +30,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "739f4a8db6605981345c5654f3a85b056ce52f37a39d34da03f25bf2151ea16e"
 
 [[package]]
+name = "ahash"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43bb833f0bf979d8475d38fbf09ed3b8a55e1885fe93ad3f93239fc6a4f17b98"
+dependencies = [
+ "getrandom 0.2.3",
+ "once_cell",
+ "version_check",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -666,7 +677,7 @@ dependencies = [
  "config",
  "leb128",
  "log",
- "metrics",
+ "metrics 0.16.0",
  "mux",
  "portable-pty",
  "rangeset",
@@ -1861,7 +1872,7 @@ version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7afe4a420e3fe79967a00898cc1f4db7c8a49a9333a29f8a4bd76a253d5cd04"
 dependencies = [
- "ahash",
+ "ahash 0.4.7",
 ]
 
 [[package]]
@@ -2395,6 +2406,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "metrics"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a00f42f354a2ed4894db863b3a4db47aef2d2e4435b937221749bd37a8a7aaa8"
+dependencies = [
+ "ahash 0.7.4",
+ "metrics-macros",
+ "proc-macro-hack",
+]
+
+[[package]]
 name = "metrics-macros"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2505,7 +2527,7 @@ dependencies = [
  "libc",
  "log",
  "luahelper",
- "metrics",
+ "metrics 0.16.0",
  "portable-pty",
  "promise",
  "rangeset",
@@ -4891,7 +4913,7 @@ dependencies = [
  "futures",
  "log",
  "lru",
- "metrics",
+ "metrics 0.16.0",
  "mux",
  "openssl",
  "portable-pty",
@@ -4928,7 +4950,7 @@ dependencies = [
  "lazy_static",
  "log",
  "memmap2",
- "metrics",
+ "metrics 0.16.0",
  "mux",
  "ordered-float",
  "pretty_env_logger",
@@ -4970,7 +4992,7 @@ dependencies = [
  "log",
  "lru",
  "luahelper",
- "metrics",
+ "metrics 0.17.0",
  "mlua",
  "mux",
  "open",
@@ -5282,7 +5304,7 @@ dependencies = [
  "libloading 0.6.7",
  "line_drawing",
  "log",
- "metrics",
+ "metrics 0.16.0",
  "mio",
  "objc",
  "pretty_env_logger",
