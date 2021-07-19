@@ -36,7 +36,7 @@ lazy_static = "1.4"
 libloading = "0.6"
 line_drawing = "0.8"
 log = "0.4"
-metrics = { version="0.16", features=["std"]}
+metrics = { version="0.17", features=["std"]}
 promise = { path = "../promise" }
 raw-window-handle = "0.3"
 resize = "0.5"
