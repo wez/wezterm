@@ -1956,6 +1956,26 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
 
         -- The same options that were listed under the `active_tab` section above
         -- can also be used for `inactive_tab_hover`.
+      },
+
+      -- The new tab button that let you create new tabs
+      new_tab = {
+        bg_color = &quot;#1b1032&quot;,
+        fg_color = &quot;#808080&quot;,
+
+        -- The same options that were listed under the `active_tab` section above
+        -- can also be used for `new_tab`.
+      },
+
+      -- You can configure some alternate styling when the mouse pointer
+      -- moves over the new tab button
+      new_tab_hover = {
+        bg_color = &quot;#3b3052&quot;,
+        fg_color = &quot;#909090&quot;,
+        italic = true,
+
+        -- The same options that were listed under the `active_tab` section above
+        -- can also be used for `new_tab_hover`.
       }
     }
   }
@@ -6813,6 +6833,9 @@ zero-based index.  The default is <code>false</code> and the tab shows a one-bas
 the window rather than the top of the window.</p>
 <p>The default is <code>false</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="tab_bar_style"><a class="header" href="#tab_bar_style"><code>tab_bar_style</code></a></h1>
+<p><em>Since: nightly builds only</em></p>
+<p><code>new_tab_left</code>, <code>new_tab_right</code>, <code>new_tab_hover_left</code>, <code>new_tab_hover_right</code>
+have been removed and replaced by the more flexible <code>new_tab</code> and <code>new_tab_hover</code> elements.</p>
 <p><em>Since: 20210502-154244-3f7122cb</em></p>
 <p><code>active_tab_left</code>, <code>active_tab_right</code>, <code>inactive_tab_left</code>,
 <code>inactive_tab_right</code>, <code>inactive_tab_hover_left</code>, <code>inactive_tab_hover_right</code>
