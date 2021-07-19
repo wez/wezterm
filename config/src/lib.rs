@@ -1698,8 +1698,25 @@ impl Config {
             cmd.cwd(cwd);
         }
 
+        // Augment WSLENV so that TERM related environment propagates
+        // across the win32/wsl boundary
+        let mut wsl_env = std::env::var("WSLENV").ok();
+
         for (k, v) in &self.set_environment_variables {
-            cmd.env(k, v);
+            if k == "WSLENV" {
+                wsl_env.replace(k.clone());
+            } else {
+                cmd.env(k, v);
+            }
+        }
+
+        if wsl_env.is_some() || cfg!(windows) || running_under_wsl() {
+            let mut wsl_env = wsl_env.unwrap_or_else(String::new);
+            if !wsl_env.is_empty() {
+                wsl_env.push(':');
+            }
+            wsl_env.push_str("TERM:COLORTERM:TERM_PROGRAM:TERM_PROGRAM_VERSION");
+            cmd.env("WSLENV", wsl_env);
         }
 
         #[cfg(unix)]
