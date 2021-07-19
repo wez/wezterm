@@ -410,7 +410,11 @@ impl XConnection {
         let xrm =
             crate::x11::xrm::parse_root_resource_manager(&conn, root).unwrap_or(HashMap::new());
 
-        let xsettings = read_xsettings(&conn, atom_xsettings_selection, atom_xsettings_settings)?;
+        let xsettings = read_xsettings(&conn, atom_xsettings_selection, atom_xsettings_settings)
+            .unwrap_or_else(|err| {
+                log::info!("Failed to read xsettings: {:#}", err);
+                Default::default()
+            });
         log::trace!("xsettings are {:?}", xsettings);
 
         let default_dpi = RefCell::new(compute_default_dpi(&xrm, &xsettings));

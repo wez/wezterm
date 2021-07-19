@@ -1,3 +1,4 @@
+use anyhow::Context;
 /// This module parses xsettings data.
 /// The data format is slightly incorrectly documented here:
 /// <https://specifications.freedesktop.org/xsettings-spec/xsettings-latest.html>
@@ -34,7 +35,8 @@ fn read_xsettings_grabbed(
         0,
         u32::max_value(),
     )
-    .get_reply()?;
+    .get_reply()
+    .context("get_property")?;
 
     anyhow::ensure!(reply.format() == 8);
 
@@ -45,10 +47,14 @@ pub fn read_xsettings(
     conn: &xcb::Connection,
     atom_xsettings_selection: xcb::Atom,
     atom_xsettings_settings: xcb::Atom,
-) -> anyhow::Result<BTreeMap<String, XSetting>> {
-    xcb::xproto::grab_server(conn).request_check()?;
+) -> anyhow::Result<XSettingsMap> {
+    xcb::xproto::grab_server(conn)
+        .request_check()
+        .context("grab_server")?;
     let res = read_xsettings_grabbed(conn, atom_xsettings_selection, atom_xsettings_settings);
-    xcb::xproto::ungrab_server(conn).request_check()?;
+    xcb::xproto::ungrab_server(conn)
+        .request_check()
+        .context("ungrab_server")?;
     res
 }
 
