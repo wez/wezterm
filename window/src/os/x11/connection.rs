@@ -249,7 +249,7 @@ impl XConnection {
                 }
             }
             Err(err) => {
-                log::error!("error reading xsettings: {:#}", err);
+                log::trace!("error reading xsettings: {:#}", err);
             }
         }
 
@@ -412,7 +412,7 @@ impl XConnection {
 
         let xsettings = read_xsettings(&conn, atom_xsettings_selection, atom_xsettings_settings)
             .unwrap_or_else(|err| {
-                log::info!("Failed to read xsettings: {:#}", err);
+                log::trace!("Failed to read xsettings: {:#}", err);
                 Default::default()
             });
         log::trace!("xsettings are {:?}", xsettings);
