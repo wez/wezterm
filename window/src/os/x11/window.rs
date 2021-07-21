@@ -62,6 +62,7 @@ pub(crate) struct XWindowInner {
     copy_and_paste: CopyAndPaste,
     config: ConfigHandle,
     appearance: Appearance,
+    title: String,
 }
 
 impl Drop for XWindowInner {
@@ -745,6 +746,7 @@ impl XWindow {
             let appearance = conn.get_appearance();
 
             Arc::new(Mutex::new(XWindowInner {
+                title: String::new(),
                 appearance,
                 window_id,
                 conn: Rc::downgrade(&conn),
@@ -842,6 +844,10 @@ impl XWindowInner {
 
     /// Change the title for the window manager
     fn set_title(&mut self, title: &str) {
+        if title == self.title {
+            return;
+        }
+        self.title = title.to_string();
         // Ideally, we'd simply call this:
         // xcb_util::icccm::set_wm_name(self.conn().conn(), self.window_id, title);
         // However, it uses ATOM_STRING internally, rather than UTF8_STRING
