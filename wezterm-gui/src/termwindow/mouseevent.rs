@@ -415,6 +415,13 @@ impl super::TermWindow {
             (Some(old_link), Some(new_link)) if Arc::ptr_eq(&old_link, &new_link) => {
                 // Unchanged
             }
+            (Some(old_link), Some(new_link)) if *old_link == new_link => {
+                // Unchanged
+                // Note: ideally this case wouldn't exist, as we *should*
+                // only be matching distinct instances of the hyperlink.
+                // However, for horrible reasons, we always end up with duplicated
+                // hyperlink instances today, so we have to do a deeper compare.
+            }
             (None, None) => {
                 // Unchanged
             }
