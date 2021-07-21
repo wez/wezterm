@@ -397,6 +397,16 @@ impl CellAttributes {
             background: self.background,
             fat: None,
         };
+        if let Some(fat) = self.fat.as_ref() {
+            if fat.background != ColorAttribute::Default
+                || fat.foreground != ColorAttribute::Default
+            {
+                res.allocate_fat_attributes();
+                let mut new_fat = res.fat.as_mut().unwrap();
+                new_fat.foreground = fat.foreground;
+                new_fat.background = fat.background;
+            }
+        }
         // Reset the semantic type; clone_sgr_only is used primarily
         // to create a "blank" cell when clearing and we want that to
         // be deterministically tagged as Output so that we have an
