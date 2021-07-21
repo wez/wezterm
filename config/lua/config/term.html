@@ -158,6 +158,16 @@ wish to install a copy of the <code>wezterm</code> TERM definition:</p>
 as colored underlines, styled underlines (eg: undercurl).  If the system
 you are using has a relatively outdated ncurses installation, the <code>wezterm</code>
 terminfo will also enable italics and true color support.</p>
+<p>If you are using WSL, wezterm will automatically populate <code>WSLENV</code> to properly set TERM, COLORTERM, TERM_PROGRAM and TERM_PROGRAM_VERSION in the environment when crossing between win32 and WSL environments.
+See <a href="https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/#what-are-environment-variables">this Microsoft blog post</a> for more information on how <code>WSLENV</code> works.</p>
+<p>If your package manager installed the terminfo data in a non-standard location, which will likely be the case if your are using nixpkgs/home-manager/NixOS, then you need to set <code>TERMINFO_DIRS</code> in the environment in order for applications to find it.
+The following snippet works if you installed <code>wezterm.terminfo</code> with nix into your user profile. Update the path to <code>TERMINFO_DIRS</code> to match the location on your system.</p>
+<pre><code class="language-lua">  set_environment_variables={
+    TERMINFO_DIRS='/home/user/.nix-profile/share/terminfo',
+    WSLENV='TERMINFO_DIRS'
+  },
+  term = &quot;wezterm&quot;,
+</code></pre>
 
                     </main>
 
