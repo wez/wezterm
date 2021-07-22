@@ -24,6 +24,8 @@ pub struct Vertex {
     pub adjust: (f32, f32),
     // glyph texture
     pub tex: (f32, f32),
+    // iterm/sixel/image protocol texture
+    pub img_tex: (f32, f32),
     // underline texture
     pub underline: (f32, f32),
     // cursor texture
@@ -52,6 +54,7 @@ pub struct Vertex {
     position,
     adjust,
     tex,
+    img_tex,
     underline,
     cursor,
     cursor_color,
@@ -139,6 +142,13 @@ impl<'a> Quad<'a> {
         self.vert[V_TOP_RIGHT].tex = (coords.max_x(), coords.min_y());
         self.vert[V_BOT_LEFT].tex = (coords.min_x(), coords.max_y());
         self.vert[V_BOT_RIGHT].tex = (coords.max_x(), coords.max_y());
+    }
+
+    pub fn set_image_texture(&mut self, coords: TextureRect) {
+        self.vert[V_TOP_LEFT].img_tex = (coords.min_x(), coords.min_y());
+        self.vert[V_TOP_RIGHT].img_tex = (coords.max_x(), coords.min_y());
+        self.vert[V_BOT_LEFT].img_tex = (coords.min_x(), coords.max_y());
+        self.vert[V_BOT_RIGHT].img_tex = (coords.max_x(), coords.max_y());
     }
 
     /// Apply bearing adjustment for the glyph texture.

@@ -1620,20 +1620,18 @@ impl TerminalState {
                 cursor_x + width_in_cells
             );
             for x in 0..width_in_cells {
-                self.screen_mut().set_cell(
-                    cursor_x + x,
-                    cursor_y, // + y as VisibleRowIndex,
-                    &Cell::new(
-                        ' ',
-                        CellAttributes::default()
-                            .set_image(Some(Box::new(ImageCell::new(
-                                TextureCoordinate::new(xpos, ypos),
-                                TextureCoordinate::new(xpos + x_delta, ypos + y_delta),
-                                image_data.clone(),
-                            ))))
-                            .clone(),
-                    ),
-                );
+                let mut cell = self
+                    .screen()
+                    .get_cell(cursor_x + x, cursor_y)
+                    .cloned()
+                    .unwrap_or_else(|| Cell::new(' ', CellAttributes::default()));
+                cell.attrs_mut().set_image(Some(Box::new(ImageCell::new(
+                    TextureCoordinate::new(xpos, ypos),
+                    TextureCoordinate::new(xpos + x_delta, ypos + y_delta),
+                    image_data.clone(),
+                ))));
+
+                self.screen_mut().set_cell(cursor_x + x, cursor_y, &cell);
                 xpos += x_delta;
             }
             ypos += y_delta;

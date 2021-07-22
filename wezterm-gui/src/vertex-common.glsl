@@ -6,6 +6,7 @@ precision highp float;
 in vec2 position;
 in vec2 adjust;
 in vec2 tex;
+in vec2 img_tex;
 in vec2 underline;
 in vec4 bg_color;
 in vec4 fg_color;
@@ -20,6 +21,7 @@ uniform mat4 projection;
 out float o_has_color;
 out vec2 o_cursor;
 out vec2 o_tex;
+out vec2 o_img_tex;
 out vec2 o_underline;
 out vec3 o_hsv;
 out vec4 o_bg_color;
@@ -29,6 +31,7 @@ out vec4 o_underline_color;
 
 void pass_through_vertex() {
   o_tex = tex;
+  o_img_tex = img_tex;
   o_has_color = has_color;
   o_fg_color = fg_color;
   o_bg_color = bg_color;

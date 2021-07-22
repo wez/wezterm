@@ -23,6 +23,7 @@ pub struct RenderState {
     pub background_prog: glium::Program,
     pub line_prog: glium::Program,
     pub glyph_prog: glium::Program,
+    pub img_prog: glium::Program,
     pub glyph_vertex_buffer: RefCell<TripleVertexBuffer>,
     pub glyph_index_buffer: IndexBuffer<u32>,
     pub quads: Quads,
@@ -44,16 +45,15 @@ impl RenderState {
             let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
-                    let background_prog = Self::compile_prog(
-                        &context,
-                        cfg!(target_os = "macos"),
-                        Self::background_shader,
-                    )?;
-                    let line_prog =
-                        Self::compile_prog(&context, cfg!(target_os = "macos"), Self::line_shader)?;
+                    let do_gamma = cfg!(target_os = "macos");
 
+                    let background_prog =
+                        Self::compile_prog(&context, do_gamma, Self::background_shader)?;
+                    let line_prog = Self::compile_prog(&context, do_gamma, Self::line_shader)?;
+
+                    let glyph_prog = Self::compile_prog(&context, do_gamma, Self::glyph_shader)?;
                     // Last prog outputs srgb for gamma correction
-                    let glyph_prog = Self::compile_prog(&context, true, Self::glyph_shader)?;
+                    let img_prog = Self::compile_prog(&context, true, Self::img_shader)?;
 
                     let (glyph_vertex_buffer, glyph_index_buffer, quads) = Self::compute_vertices(
                         config,
@@ -70,6 +70,7 @@ impl RenderState {
                         background_prog,
                         line_prog,
                         glyph_prog,
+                        img_prog,
                         glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
                         glyph_index_buffer,
                         quads,
@@ -151,6 +152,23 @@ impl RenderState {
                 version,
                 include_str!("fragment-common.glsl"),
                 include_str!("glyph-frag.glsl")
+            ),
+        )
+    }
+
+    fn img_shader(version: &str) -> (String, String) {
+        (
+            format!(
+                "#version {}\n{}\n{}",
+                version,
+                include_str!("vertex-common.glsl"),
+                include_str!("img-vertex.glsl")
+            ),
+            format!(
+                "#version {}\n{}\n{}",
+                version,
+                include_str!("fragment-common.glsl"),
+                include_str!("img-frag.glsl")
             ),
         )
     }

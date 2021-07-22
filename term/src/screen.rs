@@ -318,6 +318,12 @@ impl Screen {
         line.set_cell(x, cell.clone())
     }
 
+    pub fn get_cell(&self, x: usize, y: VisibleRowIndex) -> Option<&Cell> {
+        let line_idx = self.phys_row(y);
+        let line = self.lines.get(line_idx)?;
+        line.cells().get(x)
+    }
+
     pub fn clear_line(&mut self, y: VisibleRowIndex, cols: Range<usize>, attr: &CellAttributes) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);

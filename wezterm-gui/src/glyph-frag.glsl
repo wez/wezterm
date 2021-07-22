@@ -1,6 +1,5 @@
 // This is the Glyph fragment shader.
-// It is the last stage in drawing, and is responsible
-// for laying down the glyph graphics on top of the other layers.
+// It is responsible for laying down the glyph graphics on top of the other layers.
 
 // Note: fragment-common.glsl is automatically prepended!
 

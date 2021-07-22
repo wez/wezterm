@@ -532,6 +532,20 @@ impl super::TermWindow {
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
             },
+            &alpha_blending,
+        )?;
+
+        // Pass 4: Draw image attachments
+        frame.draw(
+            &vb.bufs[vb.index],
+            &gl_state.glyph_index_buffer,
+            &gl_state.img_prog,
+            &uniform! {
+                projection: projection,
+                atlas_nearest_sampler:  atlas_nearest_sampler,
+                atlas_linear_sampler:  atlas_linear_sampler,
+                foreground_text_hsb: foreground_text_hsb,
+            },
             &blend_but_set_alpha_to_one,
         )?;
 
@@ -661,6 +675,7 @@ impl super::TermWindow {
 
             quad.set_bg_color(params.default_bg);
             quad.set_texture(params.white_space);
+            quad.set_image_texture(params.white_space);
             quad.set_texture_adjust(0., 0., 0., 0.);
             quad.set_underline(params.white_space);
             quad.set_cursor(params.white_space);
@@ -822,7 +837,6 @@ impl super::TermWindow {
                             style_params.underline_color,
                             bg_color,
                         )?;
-                        continue;
                     }
 
                     if self.config.custom_block_glyphs && glyph_idx == 0 {
@@ -1109,8 +1123,7 @@ impl super::TermWindow {
         quad.set_fg_color(glyph_color);
         quad.set_underline_color(underline_color);
         quad.set_bg_color(bg_color);
-        quad.set_texture(texture_rect);
-        quad.set_texture_adjust(0., 0., 0., 0.);
+        quad.set_image_texture(texture_rect);
         quad.set_underline(params.white_space);
         quad.set_has_color(true);
         quad.set_cursor(
