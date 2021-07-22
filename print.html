@@ -446,6 +446,7 @@ usually the best available version.</p>
 <li>New: [window:get_appearance()] to determine if the window has a dark mode appearance, and adjust color scheme to match <a href="https://github.com/wez/wezterm/issues/806">#806</a></li>
 <li>Improved: <a href="config/lua/config/tab_bar_style.html">improve the new-tab button formatting</a>. Thanks to <a href="https://github.com/sdrik">@sdrik</a>! <a href="https://github.com/wez/wezterm/pull/950">#950</a></li>
 <li>Fixed: if a line of text was exactly the width of the terminal it would get marked as wrappable even when followed by a newline, causing text to reflow incorrectly on resize. <a href="https://github.com/wez/wezterm/issues/971">#971</a></li>
+<li>Fixed: <code>wezterm ssh</code> could loop forever in the background if the connection drops and the window is closed. <a href="https://github.com/wez/wezterm/issues/857">#857</a></li>
 </ul>
 <h3 id="20210502-154244-3f7122cb"><a class="header" href="#20210502-154244-3f7122cb">20210502-154244-3f7122cb</a></h3>
 <ul>
