@@ -1704,7 +1704,7 @@ impl Config {
 
         for (k, v) in &self.set_environment_variables {
             if k == "WSLENV" {
-                wsl_env.replace(k.clone());
+                wsl_env.replace(v.clone());
             } else {
                 cmd.env(k, v);
             }
