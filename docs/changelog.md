@@ -59,6 +59,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [window_frame](config/lua/config/window_frame.md) option to configure Wayland window decorations [#761](https://github.com/wez/wezterm/issues/761)
 * New: [window:get_appearance()] to determine if the window has a dark mode appearance, and adjust color scheme to match [#806](https://github.com/wez/wezterm/issues/806)
 * Improved: [improve the new-tab button formatting](config/lua/config/tab_bar_style.md). Thanks to [@sdrik](https://github.com/sdrik)! [#950](https://github.com/wez/wezterm/pull/950)
+* Fixed: if a line of text was exactly the width of the terminal it would get marked as wrappable even when followed by a newline, causing text to reflow incorrectly on resize. [#971](https://github.com/wez/wezterm/issues/971)
 
 ### 20210502-154244-3f7122cb
 

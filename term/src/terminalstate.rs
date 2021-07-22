@@ -2969,7 +2969,7 @@ impl<'a> DerefMut for Performer<'a> {
 
 impl<'a> Drop for Performer<'a> {
     fn drop(&mut self) {
-        self.flush_print();
+        self.flush_print(false);
     }
 }
 
@@ -2991,13 +2991,16 @@ impl<'a> Performer<'a> {
         Self { state, print: None }
     }
 
-    fn flush_print(&mut self) {
+    fn flush_print(&mut self, cr_follows: bool) {
         let p = match self.print.take() {
             Some(s) => s,
             None => return,
         };
 
-        for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
+        let mut graphemes =
+            unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true).peekable();
+
+        while let Some(g) = graphemes.next() {
             let g = if (self.shift_out && self.g1_charset == CharSet::DecLineDrawing)
                 || (!self.shift_out && self.g0_charset == CharSet::DecLineDrawing)
             {
@@ -3061,8 +3064,15 @@ impl<'a> Performer<'a> {
             // If we didn't do this, then we'd effectively filter them out from
             // the model, which seems like a lossy design choice.
             let print_width = unicode_column_width(g).max(1);
+            let is_last = graphemes.peek().is_none();
 
-            if x + print_width >= width {
+            // We're going to mark the cell as being wrapped, but not if this grapheme
+            // is the last in this run and we know that we're followed by a CR.
+            // In that case, we know that there is an explicit line break and
+            // we mustn't record a wrap for that!
+            let wrappable = (x + print_width >= width) && !(is_last && cr_follows);
+
+            if wrappable {
                 pen.set_wrapped(true);
             }
 
@@ -3077,10 +3087,19 @@ impl<'a> Performer<'a> {
             }
 
             // Assign the cell
-            log::trace!("print x={} y={} cell={:?}", x, y, cell);
+            log::trace!(
+                "print x={} y={} is_last={} cr_follows={} print_width={} width={} cell={:?}",
+                x,
+                y,
+                is_last,
+                cr_follows,
+                print_width,
+                width,
+                cell
+            );
             self.screen_mut().set_cell(x, y, &cell);
 
-            if x + print_width < width {
+            if !wrappable {
                 self.cursor.x += print_width;
                 self.wrap_next = false;
             } else {
@@ -3173,7 +3192,8 @@ impl<'a> Performer<'a> {
     }
 
     fn control(&mut self, control: ControlCode) {
-        self.flush_print();
+        let cr_follows = matches!(control, ControlCode::CarriageReturn);
+        self.flush_print(cr_follows);
         match control {
             ControlCode::LineFeed | ControlCode::VerticalTab | ControlCode::FormFeed => {
                 if self.left_and_right_margins.contains(&self.cursor.x) {
@@ -3266,7 +3286,7 @@ impl<'a> Performer<'a> {
     }
 
     fn csi_dispatch(&mut self, csi: CSI) {
-        self.flush_print();
+        self.flush_print(false);
         match csi {
             CSI::Sgr(sgr) => self.state.perform_csi_sgr(sgr),
             CSI::Cursor(cursor) => self.state.perform_csi_cursor(cursor),
@@ -3282,7 +3302,7 @@ impl<'a> Performer<'a> {
     }
 
     fn esc_dispatch(&mut self, esc: Esc) {
-        self.flush_print();
+        self.flush_print(false);
         match esc {
             Esc::Code(EscCode::StringTerminator) => {
                 // String Terminator (ST); explicitly has nothing to do here, as its purpose is
@@ -3390,7 +3410,7 @@ impl<'a> Performer<'a> {
     }
 
     fn osc_dispatch(&mut self, osc: OperatingSystemCommand) {
-        self.flush_print();
+        self.flush_print(false);
         match osc {
             OperatingSystemCommand::SetIconNameSun(title)
             | OperatingSystemCommand::SetIconName(title) => {

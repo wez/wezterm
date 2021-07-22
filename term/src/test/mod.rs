@@ -769,6 +769,16 @@ fn test_resize_wrap() {
 }
 
 #[test]
+fn test_resize_wrap_issue_971() {
+    const LINES: usize = 4;
+    let mut term = TestTerm::new(LINES, 4, 0);
+    term.print("====\r\nSS\r\n");
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+    term.resize(LINES, 6, 0, 0);
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+}
+
+#[test]
 fn test_scrollup() {
     let mut term = TestTerm::new(2, 1, 4);
     term.print("1\n");
