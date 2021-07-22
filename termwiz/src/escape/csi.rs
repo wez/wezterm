@@ -694,6 +694,9 @@ pub enum DecPrivateModeCode {
     /// Applies to sixel and regis modes
     UsePrivateColorRegistersForEachGraphic = 1070,
 
+    /// <https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036>
+    SynchronizedOutput = 2026,
+
     /// xterm: adjust cursor positioning after emitting sixel
     SixelScrollsRight = 8452,
 }

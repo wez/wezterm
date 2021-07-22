@@ -18,7 +18,8 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Instant;
-use termwiz::escape::Action;
+use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Device, Mode};
+use termwiz::escape::{Action, CSI};
 use thiserror::*;
 #[cfg(windows)]
 use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
@@ -100,6 +101,8 @@ fn send_actions_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, actions: Vec<Act
 fn parse_buffered_data(pane_id: PaneId, dead: &Arc<AtomicBool>, mut rx: FileDescriptor) {
     let mut buf = vec![0; BUFSIZE];
     let mut parser = termwiz::escape::parser::Parser::new();
+    let mut actions = vec![];
+    let mut hold = false;
 
     loop {
         match rx.read(&mut buf) {
@@ -112,10 +115,27 @@ fn parse_buffered_data(pane_id: PaneId, dead: &Arc<AtomicBool>, mut rx: FileDesc
                 break;
             }
             Ok(size) => {
-                let mut actions = vec![];
-                parser.parse(&buf[0..size], |action| actions.push(action));
-                if !actions.is_empty() {
-                    send_actions_to_mux(pane_id, dead, actions);
+                parser.parse(&buf[0..size], |action| {
+                    match &action {
+                        Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                            DecPrivateModeCode::SynchronizedOutput,
+                        )))) => {
+                            hold = true;
+                        }
+                        Action::CSI(CSI::Mode(Mode::ResetDecPrivateMode(
+                            DecPrivateMode::Code(DecPrivateModeCode::SynchronizedOutput),
+                        ))) => {
+                            hold = false;
+                        }
+                        Action::CSI(CSI::Device(dev)) if matches!(**dev, Device::SoftReset) => {
+                            hold = false;
+                        }
+                        _ => {}
+                    };
+                    actions.push(action)
+                });
+                if !actions.is_empty() && !hold {
+                    send_actions_to_mux(pane_id, dead, std::mem::take(&mut actions));
                 }
             }
         }
