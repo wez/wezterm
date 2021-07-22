@@ -1945,6 +1945,17 @@ impl TerminalState {
                 self.use_private_color_registers_for_each_graphic = false;
             }
 
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::SynchronizedOutput,
+            )) => {
+                // This is handled in wezterm's mux
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::SynchronizedOutput,
+            )) => {
+                // This is handled in wezterm's mux
+            }
+
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SmoothScroll))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SmoothScroll)) => {
                 // We always output at our "best" rate
