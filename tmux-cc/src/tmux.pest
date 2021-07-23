@@ -24,7 +24,7 @@ window_renamed = { "%window-renamed " ~ window_id ~ " " ~ any_text }
 session_changed = { "%session-changed " ~ session_id ~ " " ~ any_text }
 session_renamed = { "%session-renamed " ~ any_text }
 session_window_changed = { "%session-window-changed " ~ session_id ~ " " ~ window_id }
-layout_change = { "%layout-change " ~ window_id ~ " " ~ window_layout }
+layout_change = { "%layout-change " ~ window_id ~ " " ~ (window_layout ~ " " ~ window_layout ~ " " ~any_text | window_layout) }
 
 line = _{ (
   client_session_changed |

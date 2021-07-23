@@ -628,6 +628,7 @@ here
 %session-changed $1 1
 %client-session-changed /dev/pts/5 $1 home
 %layout-change @1 b25d,80x24,0,0,0
+%layout-change @1 cafd,120x29,0,0,0 cafd,120x29,0,0,0 *
 %output %1 \\033[1m\\033[7m%\\033[27m\\033[1m\\033[0m    \\015 \\015
 %output %1 \\033kwez@cube-localdomain:~\\033\\134\\033]2;wez@cube-localdomain:~\\033\\134
 %output %1 \\033]7;file://cube-localdomain/home/wez\\033\\134
@@ -665,6 +666,12 @@ here
                     layout_id: "b25d".to_owned(),
                     width: 80,
                     height: 24
+                },
+                Event::LayoutChange {
+                    window: 1,
+                    layout_id: "cafd".to_owned(),
+                    width: 120,
+                    height: 29
                 },
                 Event::Output {
                     pane: 1,
