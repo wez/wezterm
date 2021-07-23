@@ -82,6 +82,12 @@ pub enum Event {
         window: TmuxWindowId,
         name: String,
     },
+    LayoutChange {
+        window: TmuxWindowId,
+        layout_id: String,
+        width: u64,
+        height: u64
+    }
 }
 
 fn parse_pane_id(pair: Pair<Rule>) -> anyhow::Result<TmuxPaneId> {
@@ -141,6 +147,23 @@ fn parse_guard(mut pairs: Pairs<Rule>) -> anyhow::Result<(i64, u64, i64)> {
     let number = pairs.next().unwrap().as_str().parse::<u64>()?;
     let flags = pairs.next().unwrap().as_str().parse::<i64>()?;
     Ok((timestamp, number, flags))
+}
+
+/// Parses a window_layout line, for example "b25d,80x24,0,0,0"
+fn parse_window_layout(pair: Pair<Rule>) ->  anyhow::Result<(String, u64, u64)> {
+    match pair.as_rule() {
+        Rule::window_layout => {
+            let mut pairs = pair.into_inner();
+            let layout_id = pairs.next().unwrap().as_str().parse::<String>()?;
+            let width = pairs.next().unwrap().as_str().parse::<u64>()?;
+            let height = pairs.next().unwrap().as_str().parse::<u64>()?;
+            Ok((layout_id, width, height))
+        }
+        _ => anyhow::bail!(
+            "parse_window_layout can only parse Rule::window_layout, got {:?}",
+            pair
+        )
+    }
 }
 
 fn parse_line(line: &str) -> anyhow::Result<Event> {
@@ -238,11 +261,18 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
             let window = parse_window_id(pairs.next().unwrap())?;
             Ok(Event::SessionWindowChanged { session, window })
         }
+        Rule::layout_change => {
+            let mut pairs = pair.into_inner();
+            let window = parse_window_id(pairs.next().unwrap())?;
+            let (layout_id, width, height) = parse_window_layout(pairs.next().unwrap())?;
+            Ok(Event::LayoutChange { window, layout_id, width, height })
+        }
         Rule::pane_id
         | Rule::word
         | Rule::client_name
         | Rule::window_id
         | Rule::session_id
+        | Rule::window_layout
         | Rule::any_text
         | Rule::line
         | Rule::line_entire
@@ -596,6 +626,7 @@ here
 %window-add @1
 %sessions-changed
 %session-changed $1 1
+%layout-change @1 b25d,80x24,0,0,0
 %output %1 \\033[1m\\033[7m%\\033[27m\\033[1m\\033[0m    \\015 \\015
 %output %1 \\033kwez@cube-localdomain:~\\033\\134\\033]2;wez@cube-localdomain:~\\033\\134
 %output %1 \\033]7;file://cube-localdomain/home/wez\\033\\134
@@ -622,6 +653,12 @@ here
                 Event::SessionChanged {
                     session: 1,
                     name: "1".to_owned(),
+                },
+                Event::LayoutChange {
+                    window: 1,
+                    layout_id: "b25d".to_owned(),
+                    width: 80,
+                    height: 24
                 },
                 Event::Output {
                     pane: 1,
