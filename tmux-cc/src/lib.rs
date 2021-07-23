@@ -626,6 +626,7 @@ here
 %window-add @1
 %sessions-changed
 %session-changed $1 1
+%client-session-changed /dev/pts/5 $1 home
 %layout-change @1 b25d,80x24,0,0,0
 %output %1 \\033[1m\\033[7m%\\033[27m\\033[1m\\033[0m    \\015 \\015
 %output %1 \\033kwez@cube-localdomain:~\\033\\134\\033]2;wez@cube-localdomain:~\\033\\134
@@ -653,6 +654,11 @@ here
                 Event::SessionChanged {
                     session: 1,
                     name: "1".to_owned(),
+                },
+                Event::ClientSessionChanged {
+                    client_name: "/dev/pts/5".to_owned(),
+                    session: 1,
+                    session_name: "home".to_owned()
                 },
                 Event::LayoutChange {
                     window: 1,

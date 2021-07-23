@@ -1,6 +1,6 @@
 number = { ASCII_DIGIT+ }
 any_text = { ANY* }
-word = { ASCII_ALPHANUMERIC+ }
+word = { (ASCII_ALPHANUMERIC | "/")+ }
 
 pane_id = { "%" ~ number }
 window_id = { "@" ~ number }
