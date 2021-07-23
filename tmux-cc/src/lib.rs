@@ -24,6 +24,13 @@ pub struct Guarded {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WindowLayout {
+    pub layout_id: String,
+    pub width: u64,
+    pub height: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Event {
     Begin {
         timestamp: i64,
@@ -84,10 +91,10 @@ pub enum Event {
     },
     LayoutChange {
         window: TmuxWindowId,
-        layout_id: String,
-        width: u64,
-        height: u64
-    }
+        layout: WindowLayout,
+        visible_layout: Option<WindowLayout>,
+        raw_flags: Option<String>,
+    },
 }
 
 fn parse_pane_id(pair: Pair<Rule>) -> anyhow::Result<TmuxPaneId> {
@@ -150,19 +157,25 @@ fn parse_guard(mut pairs: Pairs<Rule>) -> anyhow::Result<(i64, u64, i64)> {
 }
 
 /// Parses a window_layout line, for example "b25d,80x24,0,0,0"
-fn parse_window_layout(pair: Pair<Rule>) ->  anyhow::Result<(String, u64, u64)> {
+fn parse_window_layout(pair: Pair<Rule>) -> Option<WindowLayout> {
     match pair.as_rule() {
         Rule::window_layout => {
             let mut pairs = pair.into_inner();
-            let layout_id = pairs.next().unwrap().as_str().parse::<String>()?;
-            let width = pairs.next().unwrap().as_str().parse::<u64>()?;
-            let height = pairs.next().unwrap().as_str().parse::<u64>()?;
-            Ok((layout_id, width, height))
+            let layout_id_option = pairs.next()?.as_str().parse::<String>().ok();
+            let width_option = pairs.next()?.as_str().parse::<u64>().ok();
+            let height_option = pairs.next()?.as_str().parse::<u64>().ok();
+            if let (Some(layout_id), Some(width), Some(height)) =
+                (layout_id_option, width_option, height_option)
+            {
+                return Option::Some(WindowLayout {
+                    layout_id,
+                    width,
+                    height,
+                });
+            }
+            return Option::None;
         }
-        _ => anyhow::bail!(
-            "parse_window_layout can only parse Rule::window_layout, got {:?}",
-            pair
-        )
+        _ => Option::None,
     }
 }
 
@@ -264,8 +277,17 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
         Rule::layout_change => {
             let mut pairs = pair.into_inner();
             let window = parse_window_id(pairs.next().unwrap())?;
-            let (layout_id, width, height) = parse_window_layout(pairs.next().unwrap())?;
-            Ok(Event::LayoutChange { window, layout_id, width, height })
+            let layout = pairs.next().and_then(parse_window_layout).unwrap();
+            let visible_layout = pairs.next().and_then(parse_window_layout);
+            let raw_flags = pairs
+                .next()
+                .and_then(|r| Option::Some(r.as_str().to_owned()));
+            Ok(Event::LayoutChange {
+                window,
+                layout,
+                visible_layout,
+                raw_flags,
+            })
         }
         Rule::pane_id
         | Rule::word
@@ -663,15 +685,27 @@ here
                 },
                 Event::LayoutChange {
                     window: 1,
-                    layout_id: "b25d".to_owned(),
-                    width: 80,
-                    height: 24
+                    layout: WindowLayout {
+                        layout_id: "b25d".to_owned(),
+                        width: 80,
+                        height: 24
+                    },
+                    visible_layout: Option::None,
+                    raw_flags: Option::None
                 },
                 Event::LayoutChange {
                     window: 1,
-                    layout_id: "cafd".to_owned(),
-                    width: 120,
-                    height: 29
+                    layout: WindowLayout {
+                        layout_id: "cafd".to_owned(),
+                        width: 120,
+                        height: 29
+                    },
+                    visible_layout: Option::Some(WindowLayout {
+                        layout_id: "cafd".to_owned(),
+                        width: 120,
+                        height: 29
+                    }),
+                    raw_flags: Option::Some("*".to_owned())
                 },
                 Event::Output {
                     pane: 1,
