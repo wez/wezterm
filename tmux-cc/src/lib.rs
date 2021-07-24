@@ -24,6 +24,13 @@ pub struct Guarded {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WindowLayout {
+    pub layout_id: String,
+    pub width: u64,
+    pub height: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Event {
     Begin {
         timestamp: i64,
@@ -81,6 +88,12 @@ pub enum Event {
     WindowRenamed {
         window: TmuxWindowId,
         name: String,
+    },
+    LayoutChange {
+        window: TmuxWindowId,
+        layout: WindowLayout,
+        visible_layout: Option<WindowLayout>,
+        raw_flags: Option<String>,
     },
 }
 
@@ -141,6 +154,29 @@ fn parse_guard(mut pairs: Pairs<Rule>) -> anyhow::Result<(i64, u64, i64)> {
     let number = pairs.next().unwrap().as_str().parse::<u64>()?;
     let flags = pairs.next().unwrap().as_str().parse::<i64>()?;
     Ok((timestamp, number, flags))
+}
+
+/// Parses a window_layout line, for example "b25d,80x24,0,0,0"
+fn parse_window_layout(pair: Pair<Rule>) -> Option<WindowLayout> {
+    match pair.as_rule() {
+        Rule::window_layout => {
+            let mut pairs = pair.into_inner();
+            let layout_id_option = pairs.next()?.as_str().parse::<String>().ok();
+            let width_option = pairs.next()?.as_str().parse::<u64>().ok();
+            let height_option = pairs.next()?.as_str().parse::<u64>().ok();
+            if let (Some(layout_id), Some(width), Some(height)) =
+                (layout_id_option, width_option, height_option)
+            {
+                return Some(WindowLayout {
+                    layout_id,
+                    width,
+                    height,
+                });
+            }
+            return None;
+        }
+        _ => None,
+    }
 }
 
 fn parse_line(line: &str) -> anyhow::Result<Event> {
@@ -238,11 +274,25 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
             let window = parse_window_id(pairs.next().unwrap())?;
             Ok(Event::SessionWindowChanged { session, window })
         }
+        Rule::layout_change => {
+            let mut pairs = pair.into_inner();
+            let window = parse_window_id(pairs.next().unwrap())?;
+            let layout = pairs.next().and_then(parse_window_layout).unwrap();
+            let visible_layout = pairs.next().and_then(parse_window_layout);
+            let raw_flags = pairs.next().map(|r| r.as_str().to_owned());
+            Ok(Event::LayoutChange {
+                window,
+                layout,
+                visible_layout,
+                raw_flags,
+            })
+        }
         Rule::pane_id
         | Rule::word
         | Rule::client_name
         | Rule::window_id
         | Rule::session_id
+        | Rule::window_layout
         | Rule::any_text
         | Rule::line
         | Rule::line_entire
@@ -596,6 +646,9 @@ here
 %window-add @1
 %sessions-changed
 %session-changed $1 1
+%client-session-changed /dev/pts/5 $1 home
+%layout-change @1 b25d,80x24,0,0,0
+%layout-change @1 cafd,120x29,0,0,0 cafd,120x29,0,0,0 *
 %output %1 \\033[1m\\033[7m%\\033[27m\\033[1m\\033[0m    \\015 \\015
 %output %1 \\033kwez@cube-localdomain:~\\033\\134\\033]2;wez@cube-localdomain:~\\033\\134
 %output %1 \\033]7;file://cube-localdomain/home/wez\\033\\134
@@ -622,6 +675,35 @@ here
                 Event::SessionChanged {
                     session: 1,
                     name: "1".to_owned(),
+                },
+                Event::ClientSessionChanged {
+                    client_name: "/dev/pts/5".to_owned(),
+                    session: 1,
+                    session_name: "home".to_owned()
+                },
+                Event::LayoutChange {
+                    window: 1,
+                    layout: WindowLayout {
+                        layout_id: "b25d".to_owned(),
+                        width: 80,
+                        height: 24
+                    },
+                    visible_layout: None,
+                    raw_flags: None
+                },
+                Event::LayoutChange {
+                    window: 1,
+                    layout: WindowLayout {
+                        layout_id: "cafd".to_owned(),
+                        width: 120,
+                        height: 29
+                    },
+                    visible_layout: Some(WindowLayout {
+                        layout_id: "cafd".to_owned(),
+                        width: 120,
+                        height: 29
+                    }),
+                    raw_flags: Some("*".to_owned())
                 },
                 Event::Output {
                     pane: 1,

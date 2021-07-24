@@ -1,11 +1,12 @@
 number = { ASCII_DIGIT+ }
 any_text = { ANY* }
-word = { ASCII_ALPHANUMERIC+ }
+word = { (ASCII_ALPHANUMERIC | "/")+ }
 
 pane_id = { "%" ~ number }
 window_id = { "@" ~ number }
 session_id = { "$" ~ number }
 client_name = { word }
+window_layout = { word ~ "," ~ number ~ "x" ~ number ~ "," ~ number ~ "," ~ number ~ "," ~ number }
 
 begin = { "%begin " ~ number ~ " " ~ number ~ " " ~ number }
 end = { "%end " ~ number ~ " " ~ number ~ " " ~ number }
@@ -23,6 +24,7 @@ window_renamed = { "%window-renamed " ~ window_id ~ " " ~ any_text }
 session_changed = { "%session-changed " ~ session_id ~ " " ~ any_text }
 session_renamed = { "%session-renamed " ~ any_text }
 session_window_changed = { "%session-window-changed " ~ session_id ~ " " ~ window_id }
+layout_change = { "%layout-change " ~ window_id ~ " " ~ (window_layout ~ " " ~ window_layout ~ " " ~any_text | window_layout) }
 
 line = _{ (
   client_session_changed |
@@ -39,7 +41,8 @@ line = _{ (
   window_add |
   window_close |
   window_pane_changed |
-  window_renamed
+  window_renamed |
+  layout_change
 ) }
 
 line_entire = _{ SOI ~ line ~ EOI }
