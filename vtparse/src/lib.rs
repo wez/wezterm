@@ -679,6 +679,14 @@ impl VTParser {
             self.parse_byte(*b, actor);
         }
     }
+
+    /// Force DCS pass through for tmux cc
+    pub fn force_dcs_passthrough(&mut self, bytes: &[u8], actor: &mut dyn VTActor) {
+        for b in bytes {
+            let action = Action::Put;
+            self.action(action, *b, actor);
+        }
+    }
 }
 
 #[cfg(test)]

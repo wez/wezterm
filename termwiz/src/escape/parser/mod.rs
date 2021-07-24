@@ -23,6 +23,7 @@ struct SixelBuilder {
 struct ParseState {
     sixel: Option<SixelBuilder>,
     dcs: Option<ShortDeviceControl>,
+    tmux_cc: bool
 }
 
 /// The `Parser` struct holds the state machine that is used to decode
@@ -55,7 +56,13 @@ impl Parser {
             callback: &mut callback,
             state: &mut self.state.borrow_mut(),
         };
-        self.state_machine.parse(bytes, &mut perform);
+
+        if perform.state.tmux_cc {
+            self.state_machine.force_dcs_passthrough(bytes, &mut perform);
+        }
+        else {
+            self.state_machine.parse(bytes, &mut perform);
+        }
     }
 
     /// A specialized version of the parser that halts after recognizing the
@@ -173,6 +180,9 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
                 data: vec![],
             });
         } else {
+            if byte == b'p' && params == vec![1000] {
+                self.state.tmux_cc = true;
+            }
             (self.callback)(Action::DeviceControl(DeviceControlMode::Enter(Box::new(
                 EnterDeviceControlMode {
                     byte,
