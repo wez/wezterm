@@ -291,7 +291,7 @@ impl VTActor for CollectingVTActor {
 
 const MAX_INTERMEDIATES: usize = 2;
 const MAX_OSC: usize = 16;
-const MAX_PARAMS: usize = 16;
+const MAX_PARAMS: usize = 32;
 
 struct OscState {
     buffer: Vec<u8>,
@@ -355,11 +355,17 @@ pub struct VTParser {
 /// extend the meaning.  For example: `CSI 4:3 m` is a sequence used
 /// to denote a curly underline.  That would be represented as:
 /// `[CsiParam::ColonList(vec![Some(4), Some(3)])]`.
+///
+/// Later: reading ECMA 48, CSI is defined as:
+/// CSI P ... P  I ... I  F
+/// Where P are parameter bytes in the range 0x30-0x3F [0-9:;<=>?]
+/// and I are intermediate bytes in the range 0x20-0x2F
+/// and F is the final byte in the range 0x40-0x7E
+///
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub enum CsiParam {
     Integer(i64),
-    ColonList(Vec<Option<i64>>),
-    // TODO: add a None case here, but that requires more care
+    P(u8),
 }
 
 impl Default for CsiParam {
@@ -368,29 +374,7 @@ impl Default for CsiParam {
     }
 }
 
-fn add_digit(target: &mut i64, digit: u8) {
-    *target = target
-        .saturating_mul(10)
-        .saturating_add((digit - b'0') as i64);
-}
-
 impl CsiParam {
-    fn add_digit(&mut self, digit: u8) {
-        match self {
-            Self::Integer(i) => add_digit(i, digit),
-            Self::ColonList(list) => {
-                if let Some(target) = list.last_mut().unwrap() {
-                    add_digit(target, digit);
-                } else {
-                    // Promote trailing None into a 0 value
-                    let mut target = 0;
-                    add_digit(&mut target, digit);
-                    list.last_mut().unwrap().replace(target);
-                }
-            }
-        }
-    }
-
     pub fn as_integer(&self) -> Option<i64> {
         match self {
             Self::Integer(i) => Some(*i),
@@ -405,15 +389,8 @@ impl std::fmt::Display for CsiParam {
             CsiParam::Integer(v) => {
                 write!(f, "{}", v)?;
             }
-            CsiParam::ColonList(list) => {
-                for (idx, p) in list.iter().enumerate() {
-                    if idx > 0 {
-                        write!(f, ":")?;
-                    }
-                    if let Some(num) = p {
-                        write!(f, "{}", num)?;
-                    }
-                }
+            CsiParam::P(p) => {
+                write!(f, "{}", *p as char)?;
             }
         }
         Ok(())
@@ -451,13 +428,11 @@ impl VTParser {
 
     fn as_integer_params(&self) -> [i64; MAX_PARAMS] {
         let mut res = [0i64; MAX_PARAMS];
-        for (src, dest) in self.params[0..self.num_params]
-            .iter()
-            .zip(&mut res[0..self.num_params])
-        {
-            match src {
-                CsiParam::Integer(i) => *dest = *i,
-                bad => panic!("illegal parameter type: {:?}", bad),
+        let mut i = 0;
+        for src in &self.params[0..self.num_params] {
+            if let CsiParam::Integer(value) = src {
+                res[i] = *value;
+                i += 1;
             }
         }
         res
@@ -498,31 +473,29 @@ impl VTParser {
                 if self.params_full {
                     return;
                 }
-                if param == b';' {
-                    if self.num_params + 1 > MAX_OSC {
-                        self.params_full = true;
-                    } else {
-                        // FIXME: the unwrap_or here is a lossy representation.
-                        // Consider replacing this with a CsiParam::None variant
-                        // to indicate that it wasn't present?
-                        self.params[self.num_params] =
-                            self.current_param.take().unwrap_or(CsiParam::Integer(0));
-                        self.num_params += 1;
+                match param {
+                    b'0'..=b'9' => match self.current_param.take() {
+                        Some(CsiParam::Integer(i)) => {
+                            self.current_param.replace(CsiParam::Integer(
+                                i.saturating_mul(10).saturating_add((param - b'0') as i64),
+                            ));
+                        }
+                        Some(_) => unreachable!(),
+                        None => {
+                            self.current_param
+                                .replace(CsiParam::Integer((param - b'0') as i64));
+                        }
+                    },
+                    p => {
+                        self.finish_param();
+
+                        if self.num_params + 1 > MAX_PARAMS {
+                            self.params_full = true;
+                        } else {
+                            self.params[self.num_params] = CsiParam::P(p);
+                            self.num_params += 1;
+                        }
                     }
-                } else if param == b':' {
-                    let mut current = match self.current_param.take() {
-                        None => vec![None],
-                        Some(CsiParam::Integer(i)) => vec![Some(i)],
-                        Some(CsiParam::ColonList(list)) => list,
-                    };
-
-                    current.push(None); // Start a new, empty parameter
-
-                    self.current_param.replace(CsiParam::ColonList(current));
-                } else {
-                    let mut current = self.current_param.take().unwrap_or(CsiParam::Integer(0));
-                    current.add_digit(param);
-                    self.current_param.replace(current);
                 }
             }
             Action::Hook => {
@@ -826,7 +799,11 @@ mod test {
             // This is the kitty curly underline sequence.
             parse_as_vec(b"\x1b[4:3m"),
             vec![VTAction::CsiDispatch {
-                params: vec![CsiParam::ColonList(vec![Some(4), Some(3)])],
+                params: vec![
+                    CsiParam::Integer(4),
+                    CsiParam::P(b':'),
+                    CsiParam::Integer(3)
+                ],
                 intermediates: b"".to_vec(),
                 ignored_excess_intermediates: false,
                 byte: b'm'
@@ -839,14 +816,18 @@ mod test {
         assert_eq!(
             parse_as_vec(b"\x1b[38:2::128:64:192m"),
             vec![VTAction::CsiDispatch {
-                params: vec![CsiParam::ColonList(vec![
-                    Some(38),
-                    Some(2),
-                    None,
-                    Some(128),
-                    Some(64),
-                    Some(192)
-                ])],
+                params: vec![
+                    CsiParam::Integer(38),
+                    CsiParam::P(b':'),
+                    CsiParam::Integer(2),
+                    CsiParam::P(b':'),
+                    CsiParam::P(b':'),
+                    CsiParam::Integer(128),
+                    CsiParam::P(b':'),
+                    CsiParam::Integer(64),
+                    CsiParam::P(b':'),
+                    CsiParam::Integer(192),
+                ],
                 intermediates: b"".to_vec(),
                 ignored_excess_intermediates: false,
                 byte: b'm'
@@ -859,8 +840,7 @@ mod test {
         assert_eq!(
             parse_as_vec(b"\x1b[;1m"),
             vec![VTAction::CsiDispatch {
-                // The omitted parameter defaults to 0
-                params: vec![CsiParam::Integer(0), CsiParam::Integer(1)],
+                params: vec![CsiParam::P(b';'), CsiParam::Integer(1)],
                 intermediates: b"".to_vec(),
                 ignored_excess_intermediates: false,
                 byte: b'm'
@@ -873,10 +853,40 @@ mod test {
         assert_eq!(
             parse_as_vec(b"\x1b[0;1;2;3;4;5;6;7;8;9;0;1;2;3;4;51;6p"),
             vec![VTAction::CsiDispatch {
-                params: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 51]
-                    .iter()
-                    .map(|&i| CsiParam::Integer(i))
-                    .collect(),
+                params: vec![
+                    CsiParam::Integer(0),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(1),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(2),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(3),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(4),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(5),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(6),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(7),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(8),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(9),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(0),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(1),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(2),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(3),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(4),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(51),
+                    CsiParam::P(b';'),
+                ],
                 intermediates: b"".to_vec(),
                 ignored_excess_intermediates: false,
                 byte: b'p'

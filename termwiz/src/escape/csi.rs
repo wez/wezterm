@@ -48,15 +48,11 @@ pub struct Unspecified {
 
 impl Display for Unspecified {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        for p in &self.params {
+            write!(f, "{}", p)?;
+        }
         for i in &self.intermediates {
             write!(f, "{}", *i as char)?;
-        }
-        for (idx, p) in self.params.iter().enumerate() {
-            if idx > 0 {
-                write!(f, ";{}", p)?;
-            } else {
-                write!(f, "{}", p)?;
-            }
         }
         write!(f, "{}", self.control)
     }
@@ -152,6 +148,7 @@ impl DeviceAttributeFlags {
                     Some(c) => attributes.push(DeviceAttribute::Code(c)),
                     None => attributes.push(DeviceAttribute::Unspecified(i.clone())),
                 },
+                CsiParam::P(b';') => {}
                 _ => attributes.push(DeviceAttribute::Unspecified(i.clone())),
             }
         }
@@ -1077,12 +1074,10 @@ trait ParseParams: Sized {
 /// Parse an input parameter into a 1-based unsigned value
 impl ParseParams for u32 {
     fn parse_params(params: &[CsiParam]) -> Result<u32, ()> {
-        if params.is_empty() {
-            Ok(1)
-        } else if params.len() == 1 {
-            to_1b_u32(&params[0])
-        } else {
-            Err(())
+        match params {
+            [] => Ok(1),
+            [p] => to_1b_u32(p),
+            _ => Err(()),
         }
     }
 }
@@ -1090,12 +1085,10 @@ impl ParseParams for u32 {
 /// Parse an input parameter into a 1-based unsigned value
 impl ParseParams for OneBased {
     fn parse_params(params: &[CsiParam]) -> Result<OneBased, ()> {
-        if params.is_empty() {
-            Ok(OneBased::new(1))
-        } else if params.len() == 1 {
-            OneBased::from_esc_param(&params[0])
-        } else {
-            Err(())
+        match params {
+            [] => Ok(OneBased::new(1)),
+            [p] => OneBased::from_esc_param(p),
+            _ => Err(()),
         }
     }
 }
@@ -1105,17 +1098,13 @@ impl ParseParams for OneBased {
 /// the pair of values.
 impl ParseParams for (OneBased, OneBased) {
     fn parse_params(params: &[CsiParam]) -> Result<(OneBased, OneBased), ()> {
-        if params.is_empty() {
-            Ok((OneBased::new(1), OneBased::new(1)))
-        } else if params.len() == 1 {
-            Ok((OneBased::from_esc_param(&params[0])?, OneBased::new(1)))
-        } else if params.len() == 2 {
-            Ok((
-                OneBased::from_esc_param(&params[0])?,
-                OneBased::from_esc_param(&params[1])?,
-            ))
-        } else {
-            Err(())
+        match params {
+            [] => Ok((OneBased::new(1), OneBased::new(1))),
+            [p] => Ok((OneBased::from_esc_param(p)?, OneBased::new(1))),
+            [a, CsiParam::P(b';'), b] => {
+                Ok((OneBased::from_esc_param(a)?, OneBased::from_esc_param(b)?))
+            }
+            _ => Err(()),
         }
     }
 }
@@ -1131,15 +1120,10 @@ trait ParamEnum: FromPrimitive {
 /// implement ParseParams for the enums that also implement ParamEnum.
 impl<T: ParamEnum> ParseParams for T {
     fn parse_params(params: &[CsiParam]) -> Result<Self, ()> {
-        if params.is_empty() {
-            Ok(ParamEnum::default())
-        } else if params.len() == 1 {
-            match params[0] {
-                CsiParam::Integer(i) => FromPrimitive::from_i64(i).ok_or(()),
-                CsiParam::ColonList(_) => Err(()),
-            }
-        } else {
-            Err(())
+        match params {
+            [] => Ok(ParamEnum::default()),
+            [CsiParam::Integer(i)] => FromPrimitive::from_i64(*i).ok_or(()),
+            _ => Err(()),
         }
     }
 }
@@ -1427,7 +1411,7 @@ impl CSI {
 /// A little helper to convert i64 -> u8 if safe
 fn to_u8(v: &CsiParam) -> Result<u8, ()> {
     match v {
-        CsiParam::ColonList(_) => Err(()),
+        CsiParam::P(_) => Err(()),
         CsiParam::Integer(v) => {
             if *v <= i64::from(u8::max_value()) {
                 Ok(*v as u8)
@@ -1485,6 +1469,13 @@ macro_rules! parse {
 impl<'a> CSIParser<'a> {
     fn parse_next(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
         match (self.control, self.intermediates) {
+            ('m', &[]) | ('M', &[]) if params.get(0) == Some(&CsiParam::P(b'<')) => {
+                self.mouse_sgr1006(params).map(CSI::Mouse)
+            }
+            ('c', &[]) if params.get(0) == Some(&CsiParam::P(b'?')) => self
+                .secondary_device_attributes(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
+
             ('@', &[]) => parse!(Edit, InsertCharacter, params),
             ('`', &[]) => parse!(Cursor, CharacterPositionAbsolute, params),
             ('A', &[]) => parse!(Cursor, Up, params),
@@ -1570,7 +1561,6 @@ impl<'a> CSIParser<'a> {
                 .dec(params)
                 .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
 
-            ('m', &[b'<']) | ('M', &[b'<']) => self.mouse_sgr1006(params).map(CSI::Mouse),
             ('m', &[b'>']) => self.xterm_key_modifier(params),
 
             ('c', &[]) => self
@@ -1578,9 +1568,6 @@ impl<'a> CSIParser<'a> {
                 .map(|dev| CSI::Device(Box::new(dev))),
             ('c', &[b'>']) => self
                 .req_secondary_device_attributes(params)
-                .map(|dev| CSI::Device(Box::new(dev))),
-            ('c', &[b'?']) => self
-                .secondary_device_attributes(params)
                 .map(|dev| CSI::Device(Box::new(dev))),
             ('c', &[b'=']) => self
                 .req_tertiary_device_attributes(params)
@@ -1595,6 +1582,12 @@ impl<'a> CSIParser<'a> {
     /// as this would trigger returning a default value and/or
     /// an unterminated parse loop.
     fn advance_by<T>(&mut self, n: usize, params: &'a [CsiParam], result: T) -> T {
+        let n = if matches!(params.get(n), Some(CsiParam::P(b';'))) {
+            n + 1
+        } else {
+            n
+        };
+
         let (_, next) = params.split_at(n);
         if !next.is_empty() {
             self.params = Some(next);
@@ -1616,194 +1609,195 @@ impl<'a> CSIParser<'a> {
     }
 
     fn dsr(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
-        if params == [CsiParam::Integer(5)] {
-            Ok(self.advance_by(1, params, CSI::Device(Box::new(Device::StatusReport))))
-        } else if params == [CsiParam::Integer(6)] {
-            Ok(self.advance_by(1, params, CSI::Cursor(Cursor::RequestActivePositionReport)))
-        } else {
-            Err(())
+        match params {
+            [CsiParam::Integer(5)] => {
+                Ok(self.advance_by(1, params, CSI::Device(Box::new(Device::StatusReport))))
+            }
+
+            [CsiParam::Integer(6)] => {
+                Ok(self.advance_by(1, params, CSI::Cursor(Cursor::RequestActivePositionReport)))
+            }
+            _ => Err(()),
         }
     }
 
     fn decstbm(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
-        if params.is_empty() {
-            Ok(CSI::Cursor(Cursor::SetTopAndBottomMargins {
+        match params {
+            [] => Ok(CSI::Cursor(Cursor::SetTopAndBottomMargins {
                 top: OneBased::new(1),
                 bottom: OneBased::new(u32::max_value()),
-            }))
-        } else if params.len() == 1 {
-            Ok(self.advance_by(
+            })),
+            [p] => Ok(self.advance_by(
                 1,
                 params,
                 CSI::Cursor(Cursor::SetTopAndBottomMargins {
-                    top: OneBased::from_esc_param(&params[0])?,
+                    top: OneBased::from_esc_param(p)?,
                     bottom: OneBased::new(u32::max_value()),
                 }),
-            ))
-        } else if params.len() == 2 {
-            Ok(self.advance_by(
-                2,
+            )),
+            [a, CsiParam::P(b';'), b] => Ok(self.advance_by(
+                3,
                 params,
                 CSI::Cursor(Cursor::SetTopAndBottomMargins {
-                    top: OneBased::from_esc_param(&params[0])?,
-                    bottom: OneBased::from_esc_param_with_big_default(&params[1])?,
+                    top: OneBased::from_esc_param(a)?,
+                    bottom: OneBased::from_esc_param_with_big_default(b)?,
                 }),
-            ))
-        } else {
-            Err(())
+            )),
+            _ => Err(()),
         }
     }
 
     fn xterm_key_modifier(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
-        if params.len() == 2 {
-            let resource = XtermKeyModifierResource::parse(params[0].as_integer().unwrap())
-                .ok_or_else(|| ())?;
-            Ok(self.advance_by(
-                2,
-                params,
-                CSI::Mode(Mode::XtermKeyMode {
-                    resource,
-                    value: Some(params[1].as_integer().ok_or_else(|| ())?),
-                }),
-            ))
-        } else if params.len() == 1 {
-            let resource = XtermKeyModifierResource::parse(params[0].as_integer().unwrap())
-                .ok_or_else(|| ())?;
-            Ok(self.advance_by(
-                1,
-                params,
-                CSI::Mode(Mode::XtermKeyMode {
-                    resource,
-                    value: None,
-                }),
-            ))
-        } else {
-            Err(())
+        match params {
+            [a, CsiParam::P(b';'), b] => {
+                let resource =
+                    XtermKeyModifierResource::parse(a.as_integer().unwrap()).ok_or_else(|| ())?;
+                Ok(self.advance_by(
+                    3,
+                    params,
+                    CSI::Mode(Mode::XtermKeyMode {
+                        resource,
+                        value: Some(b.as_integer().ok_or_else(|| ())?),
+                    }),
+                ))
+            }
+            [p] => {
+                let resource =
+                    XtermKeyModifierResource::parse(p.as_integer().unwrap()).ok_or_else(|| ())?;
+                Ok(self.advance_by(
+                    1,
+                    params,
+                    CSI::Mode(Mode::XtermKeyMode {
+                        resource,
+                        value: None,
+                    }),
+                ))
+            }
+            _ => Err(()),
         }
     }
 
     fn decslrm(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
-        if params.is_empty() {
-            // with no params this is a request to save the cursor
-            // and is technically in conflict with SetLeftAndRightMargins.
-            // The emulator needs to decide based on DECSLRM mode
-            // whether this saves the cursor or is SetLeftAndRightMargins
-            // with default parameters!
-            Ok(CSI::Cursor(Cursor::SaveCursor))
-        } else if params.len() == 1 {
-            Ok(self.advance_by(
+        match params {
+            [] => {
+                // with no params this is a request to save the cursor
+                // and is technically in conflict with SetLeftAndRightMargins.
+                // The emulator needs to decide based on DECSLRM mode
+                // whether this saves the cursor or is SetLeftAndRightMargins
+                // with default parameters!
+                Ok(CSI::Cursor(Cursor::SaveCursor))
+            }
+            [p] => Ok(self.advance_by(
                 1,
                 params,
                 CSI::Cursor(Cursor::SetLeftAndRightMargins {
-                    left: OneBased::from_esc_param(&params[0])?,
+                    left: OneBased::from_esc_param(p)?,
                     right: OneBased::new(u32::max_value()),
                 }),
-            ))
-        } else if params.len() == 2 {
-            Ok(self.advance_by(
-                2,
+            )),
+            [a, CsiParam::P(b';'), b] => Ok(self.advance_by(
+                3,
                 params,
                 CSI::Cursor(Cursor::SetLeftAndRightMargins {
-                    left: OneBased::from_esc_param(&params[0])?,
-                    right: OneBased::from_esc_param(&params[1])?,
+                    left: OneBased::from_esc_param(a)?,
+                    right: OneBased::from_esc_param(b)?,
                 }),
-            ))
-        } else {
-            Err(())
+            )),
+            _ => Err(()),
         }
     }
 
     fn req_primary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
-        if params == [] {
-            Ok(Device::RequestPrimaryDeviceAttributes)
-        } else if params == [CsiParam::Integer(0)] {
-            Ok(self.advance_by(1, params, Device::RequestPrimaryDeviceAttributes))
-        } else {
-            Err(())
+        match params {
+            [] => Ok(Device::RequestPrimaryDeviceAttributes),
+            [CsiParam::Integer(0)] => {
+                Ok(self.advance_by(1, params, Device::RequestPrimaryDeviceAttributes))
+            }
+            _ => Err(()),
         }
     }
 
     fn req_terminal_name_and_version(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
-        if params == [] {
-            Ok(Device::RequestTerminalNameAndVersion)
-        } else if params == [CsiParam::Integer(0)] {
-            Ok(self.advance_by(1, params, Device::RequestTerminalNameAndVersion))
-        } else {
-            Err(())
+        match params {
+            [] => Ok(Device::RequestTerminalNameAndVersion),
+
+            [CsiParam::Integer(0)] => {
+                Ok(self.advance_by(1, params, Device::RequestTerminalNameAndVersion))
+            }
+            _ => Err(()),
         }
     }
 
     fn req_secondary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
-        if params == [] {
-            Ok(Device::RequestSecondaryDeviceAttributes)
-        } else if params == [CsiParam::Integer(0)] {
-            Ok(self.advance_by(1, params, Device::RequestSecondaryDeviceAttributes))
-        } else {
-            Err(())
+        match params {
+            [] => Ok(Device::RequestSecondaryDeviceAttributes),
+            [CsiParam::Integer(0)] => {
+                Ok(self.advance_by(1, params, Device::RequestSecondaryDeviceAttributes))
+            }
+            _ => Err(()),
         }
     }
 
     fn req_tertiary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
-        if params == [] {
-            Ok(Device::RequestTertiaryDeviceAttributes)
-        } else if params == [CsiParam::Integer(0)] {
-            Ok(self.advance_by(1, params, Device::RequestTertiaryDeviceAttributes))
-        } else {
-            Err(())
+        match params {
+            [] => Ok(Device::RequestTertiaryDeviceAttributes),
+            [CsiParam::Integer(0)] => {
+                Ok(self.advance_by(1, params, Device::RequestTertiaryDeviceAttributes))
+            }
+            _ => Err(()),
         }
     }
 
     fn secondary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
-        if params == [CsiParam::Integer(1), CsiParam::Integer(0)] {
-            Ok(self.advance_by(
-                2,
-                params,
-                Device::DeviceAttributes(DeviceAttributes::Vt101WithNoOptions),
-            ))
-        } else if params == [CsiParam::Integer(6)] {
-            Ok(self.advance_by(1, params, Device::DeviceAttributes(DeviceAttributes::Vt102)))
-        } else if params == [CsiParam::Integer(1), CsiParam::Integer(2)] {
-            Ok(self.advance_by(
-                2,
-                params,
-                Device::DeviceAttributes(DeviceAttributes::Vt100WithAdvancedVideoOption),
-            ))
-        } else if !params.is_empty() && params[0] == CsiParam::Integer(62) {
-            Ok(self.advance_by(
+        match params {
+            [_, CsiParam::Integer(1), CsiParam::P(b';'), CsiParam::Integer(0)] => Ok(self
+                .advance_by(
+                    4,
+                    params,
+                    Device::DeviceAttributes(DeviceAttributes::Vt101WithNoOptions),
+                )),
+            [_, CsiParam::Integer(6)] => {
+                Ok(self.advance_by(2, params, Device::DeviceAttributes(DeviceAttributes::Vt102)))
+            }
+            [_, CsiParam::Integer(1), CsiParam::P(b';'), CsiParam::Integer(2)] => Ok(self
+                .advance_by(
+                    3,
+                    params,
+                    Device::DeviceAttributes(DeviceAttributes::Vt100WithAdvancedVideoOption),
+                )),
+            [_, CsiParam::Integer(62), ..] => Ok(self.advance_by(
                 params.len(),
                 params,
                 Device::DeviceAttributes(DeviceAttributes::Vt220(
-                    DeviceAttributeFlags::from_params(&params[1..]),
+                    DeviceAttributeFlags::from_params(&params[2..]),
                 )),
-            ))
-        } else if !params.is_empty() && params[0] == CsiParam::Integer(63) {
-            Ok(self.advance_by(
+            )),
+            [_, CsiParam::Integer(63), ..] => Ok(self.advance_by(
                 params.len(),
                 params,
                 Device::DeviceAttributes(DeviceAttributes::Vt320(
-                    DeviceAttributeFlags::from_params(&params[1..]),
+                    DeviceAttributeFlags::from_params(&params[2..]),
                 )),
-            ))
-        } else if !params.is_empty() && params[0] == CsiParam::Integer(64) {
-            Ok(self.advance_by(
+            )),
+            [_, CsiParam::Integer(64), ..] => Ok(self.advance_by(
                 params.len(),
                 params,
                 Device::DeviceAttributes(DeviceAttributes::Vt420(
-                    DeviceAttributeFlags::from_params(&params[1..]),
+                    DeviceAttributeFlags::from_params(&params[2..]),
                 )),
-            ))
-        } else {
-            Err(())
+            )),
+            _ => Err(()),
         }
     }
 
     /// Parse extended mouse reports known as SGR 1006 mode
     fn mouse_sgr1006(&mut self, params: &'a [CsiParam]) -> Result<MouseReport, ()> {
-        if params.len() != 3 {
-            return Err(());
-        }
-
-        let p0 = params[0].as_integer().unwrap();
+        let (p0, p1, p2) = match params {
+            [CsiParam::P(b'<'), CsiParam::Integer(p0), CsiParam::P(b';'), CsiParam::Integer(p1), CsiParam::P(b';'), CsiParam::Integer(p2)] => {
+                (*p0, *p1, *p2)
+            }
+            _ => return Err(()),
+        };
 
         // 'M' encodes a press, 'm' a release.
         let button = match (self.control, p0 & 0b110_0011) {
@@ -1845,11 +1839,8 @@ impl<'a> CSIParser<'a> {
             modifiers |= Modifiers::CTRL;
         }
 
-        let p1 = params[1].as_integer().unwrap();
-        let p2 = params[2].as_integer().unwrap();
-
         Ok(self.advance_by(
-            3,
+            6,
             params,
             MouseReport::SGR1006 {
                 x: p1 as u16,
@@ -1889,99 +1880,146 @@ impl<'a> CSIParser<'a> {
     }
 
     fn parse_sgr_color(&mut self, params: &'a [CsiParam]) -> Result<ColorSpec, ()> {
-        if params.len() >= 5 && params[1].as_integer() == Some(2) {
-            let red = to_u8(&params[2])?;
-            let green = to_u8(&params[3])?;
-            let blue = to_u8(&params[4])?;
-            let res = RgbColor::new_8bpc(red, green, blue).into();
-            Ok(self.advance_by(5, params, res))
-        } else if params.len() >= 3 && params[1].as_integer() == Some(5) {
-            let idx = to_u8(&params[2])?;
-            Ok(self.advance_by(3, params, ColorSpec::PaletteIndex(idx)))
-        } else {
-            Err(())
+        match params {
+            [_, CsiParam::P(b':'), CsiParam::Integer(2), CsiParam::P(b':'),
+             CsiParam::Integer(_colorspace), CsiParam::P(b':'),
+             red, CsiParam::P(b':'), green, CsiParam::P(b':'), blue, ..] => {
+                let res = RgbColor::new_8bpc(to_u8(red)?, to_u8(green)?, to_u8(blue)?).into();
+                Ok(self.advance_by(11, params, res))
+            }
+
+            [_, CsiParam::P(b':'), CsiParam::Integer(2), CsiParam::P(b':'), /* empty colorspace */ CsiParam::P(b':'), red, CsiParam::P(b':'), green, CsiParam::P(b':'), blue, ..] => {
+                let res = RgbColor::new_8bpc(to_u8(red)?, to_u8(green)?, to_u8(blue)?).into();
+                Ok(self.advance_by(10, params, res))
+            }
+
+            [_, CsiParam::P(b';'), CsiParam::Integer(2), CsiParam::P(b';'), red, CsiParam::P(b';'), green, CsiParam::P(b';'), blue, ..] |
+            [_, CsiParam::P(b':'), CsiParam::Integer(2), CsiParam::P(b':'), red, CsiParam::P(b':'), green, CsiParam::P(b':'), blue, ..] =>
+            {
+                let res = RgbColor::new_8bpc(to_u8(red)?, to_u8(green)?, to_u8(blue)?).into();
+                Ok(self.advance_by(9, params, res))
+            }
+
+            [_, CsiParam::P(b';'), CsiParam::Integer(5), CsiParam::P(b';'), idx, ..] |
+            [_, CsiParam::P(b':'), CsiParam::Integer(5), CsiParam::P(b':'), idx, ..] => {
+                Ok(self.advance_by(5, params, ColorSpec::PaletteIndex(to_u8(idx)?)))
+            }
+            _ => Err(()),
         }
     }
 
     fn window(&mut self, params: &'a [CsiParam]) -> Result<Window, ()> {
-        if params.is_empty() {
-            Err(())
-        } else {
-            let arg1 = params.get(1).and_then(CsiParam::as_integer);
-            let arg2 = params.get(2).and_then(CsiParam::as_integer);
-            match params[0].as_integer() {
-                None => Err(()),
-                Some(p) => match p {
-                    1 => Ok(Window::DeIconify),
-                    2 => Ok(Window::Iconify),
-                    3 => Ok(Window::MoveWindow {
-                        x: arg1.unwrap_or(0),
-                        y: arg2.unwrap_or(0),
-                    }),
-                    4 => Ok(Window::ResizeWindowPixels {
-                        height: arg1,
-                        width: arg2,
-                    }),
-                    5 => Ok(Window::RaiseWindow),
-                    6 => match params.len() {
-                        1 => Ok(Window::LowerWindow),
-                        3 => Ok(Window::ReportCellSizePixelsResponse {
-                            height: arg1,
-                            width: arg2,
-                        }),
-                        _ => Err(()),
-                    },
-                    7 => Ok(Window::RefreshWindow),
-                    8 => Ok(Window::ResizeWindowCells {
-                        height: arg1,
-                        width: arg2,
-                    }),
-                    9 => match arg1 {
-                        Some(0) => Ok(Window::RestoreMaximizedWindow),
-                        Some(1) => Ok(Window::MaximizeWindow),
-                        Some(2) => Ok(Window::MaximizeWindowVertically),
-                        Some(3) => Ok(Window::MaximizeWindowHorizontally),
-                        _ => Err(()),
-                    },
-                    10 => match arg1 {
-                        Some(0) => Ok(Window::UndoFullScreenMode),
-                        Some(1) => Ok(Window::ChangeToFullScreenMode),
-                        Some(2) => Ok(Window::ToggleFullScreen),
-                        _ => Err(()),
-                    },
-                    11 => Ok(Window::ReportWindowState),
-                    13 => match arg1 {
-                        None => Ok(Window::ReportWindowPosition),
-                        Some(2) => Ok(Window::ReportTextAreaPosition),
-                        _ => Err(()),
-                    },
-                    14 => match arg1 {
-                        None => Ok(Window::ReportTextAreaSizePixels),
-                        Some(2) => Ok(Window::ReportWindowSizePixels),
-                        _ => Err(()),
-                    },
-                    15 => Ok(Window::ReportScreenSizePixels),
-                    16 => Ok(Window::ReportCellSizePixels),
-                    18 => Ok(Window::ReportTextAreaSizeCells),
-                    19 => Ok(Window::ReportScreenSizeCells),
-                    20 => Ok(Window::ReportIconLabel),
-                    21 => Ok(Window::ReportWindowTitle),
-                    22 => match arg1 {
-                        Some(0) => Ok(Window::PushIconAndWindowTitle),
-                        Some(1) => Ok(Window::PushIconTitle),
-                        Some(2) => Ok(Window::PushWindowTitle),
-                        _ => Err(()),
-                    },
-                    23 => match arg1 {
-                        Some(0) => Ok(Window::PopIconAndWindowTitle),
-                        Some(1) => Ok(Window::PopIconTitle),
-                        Some(2) => Ok(Window::PopWindowTitle),
-                        _ => Err(()),
-                    },
-                    _ => Err(()),
-                },
+        let (p, arg1, arg2) = match params {
+            [CsiParam::Integer(p), CsiParam::P(b';'), CsiParam::Integer(arg1), CsiParam::P(b';'), CsiParam::Integer(arg2)] => {
+                (*p, Some(*arg1), Some(*arg2))
             }
+            [CsiParam::Integer(p), CsiParam::P(b';'), CsiParam::P(b';'), CsiParam::Integer(arg2)] => {
+                (*p, None, Some(*arg2))
+            }
+            [CsiParam::Integer(p), CsiParam::P(b';'), CsiParam::Integer(arg1), CsiParam::P(b';')] => {
+                (*p, Some(*arg1), None)
+            }
+            [CsiParam::Integer(p), CsiParam::P(b';'), CsiParam::P(b';')]
+            | [CsiParam::Integer(p), CsiParam::P(b';')]
+            | [CsiParam::Integer(p)] => (*p, None, None),
+            _ => {
+                return Err(());
+            }
+        };
+        match p {
+            1 => Ok(Window::DeIconify),
+            2 => Ok(Window::Iconify),
+            3 => Ok(Window::MoveWindow {
+                x: arg1.unwrap_or(0),
+                y: arg2.unwrap_or(0),
+            }),
+            4 => Ok(Window::ResizeWindowPixels {
+                height: arg1,
+                width: arg2,
+            }),
+            5 => Ok(Window::RaiseWindow),
+            6 => match params.len() {
+                1 => Ok(Window::LowerWindow),
+                _ => Ok(Window::ReportCellSizePixelsResponse {
+                    height: arg1,
+                    width: arg2,
+                }),
+            },
+            7 => Ok(Window::RefreshWindow),
+            8 => Ok(Window::ResizeWindowCells {
+                height: arg1,
+                width: arg2,
+            }),
+            9 => match arg1 {
+                Some(0) => Ok(Window::RestoreMaximizedWindow),
+                Some(1) => Ok(Window::MaximizeWindow),
+                Some(2) => Ok(Window::MaximizeWindowVertically),
+                Some(3) => Ok(Window::MaximizeWindowHorizontally),
+                _ => Err(()),
+            },
+            10 => match arg1 {
+                Some(0) => Ok(Window::UndoFullScreenMode),
+                Some(1) => Ok(Window::ChangeToFullScreenMode),
+                Some(2) => Ok(Window::ToggleFullScreen),
+                _ => Err(()),
+            },
+            11 => Ok(Window::ReportWindowState),
+            13 => match arg1 {
+                None => Ok(Window::ReportWindowPosition),
+                Some(2) => Ok(Window::ReportTextAreaPosition),
+                _ => Err(()),
+            },
+            14 => match arg1 {
+                None => Ok(Window::ReportTextAreaSizePixels),
+                Some(2) => Ok(Window::ReportWindowSizePixels),
+                _ => Err(()),
+            },
+            15 => Ok(Window::ReportScreenSizePixels),
+            16 => Ok(Window::ReportCellSizePixels),
+            18 => Ok(Window::ReportTextAreaSizeCells),
+            19 => Ok(Window::ReportScreenSizeCells),
+            20 => Ok(Window::ReportIconLabel),
+            21 => Ok(Window::ReportWindowTitle),
+            22 => match arg1 {
+                Some(0) => Ok(Window::PushIconAndWindowTitle),
+                Some(1) => Ok(Window::PushIconTitle),
+                Some(2) => Ok(Window::PushWindowTitle),
+                _ => Err(()),
+            },
+            23 => match arg1 {
+                Some(0) => Ok(Window::PopIconAndWindowTitle),
+                Some(1) => Ok(Window::PopIconTitle),
+                Some(2) => Ok(Window::PopWindowTitle),
+                _ => Err(()),
+            },
+            _ => Err(()),
         }
+    }
+
+    fn underline(&mut self, params: &'a [CsiParam]) -> Result<Sgr, ()> {
+        let (sgr, n) = match params {
+            [_, CsiParam::P(b':'), CsiParam::Integer(0), ..] => {
+                (Sgr::Underline(Underline::None), 3)
+            }
+            [_, CsiParam::P(b':'), CsiParam::Integer(1), ..] => {
+                (Sgr::Underline(Underline::Single), 3)
+            }
+            [_, CsiParam::P(b':'), CsiParam::Integer(2), ..] => {
+                (Sgr::Underline(Underline::Double), 3)
+            }
+            [_, CsiParam::P(b':'), CsiParam::Integer(3), ..] => {
+                (Sgr::Underline(Underline::Curly), 3)
+            }
+            [_, CsiParam::P(b':'), CsiParam::Integer(4), ..] => {
+                (Sgr::Underline(Underline::Dotted), 3)
+            }
+            [_, CsiParam::P(b':'), CsiParam::Integer(5), ..] => {
+                (Sgr::Underline(Underline::Dashed), 3)
+            }
+            _ => (Sgr::Underline(Underline::Single), 1),
+        };
+
+        Ok(self.advance_by(n, params, sgr))
     }
 
     fn sgr(&mut self, params: &'a [CsiParam]) -> Result<Sgr, ()> {
@@ -1997,6 +2035,7 @@ impl<'a> CSIParser<'a> {
             }
 
             match &params[0] {
+                CsiParam::P(_) => Err(()),
                 CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
                     None => Err(()),
                     Some(sgr) => match sgr {
@@ -2004,7 +2043,9 @@ impl<'a> CSIParser<'a> {
                         SgrCode::IntensityBold => one!(Sgr::Intensity(Intensity::Bold)),
                         SgrCode::IntensityDim => one!(Sgr::Intensity(Intensity::Half)),
                         SgrCode::NormalIntensity => one!(Sgr::Intensity(Intensity::Normal)),
-                        SgrCode::UnderlineOn => one!(Sgr::Underline(Underline::Single)),
+                        SgrCode::UnderlineOn => {
+                            self.underline(params) //.map(Sgr::Underline)
+                        }
                         SgrCode::UnderlineDouble => one!(Sgr::Underline(Underline::Double)),
                         SgrCode::UnderlineOff => one!(Sgr::Underline(Underline::None)),
                         SgrCode::UnderlineColor => {
@@ -2116,53 +2157,6 @@ impl<'a> CSIParser<'a> {
                         SgrCode::AltFont9 => one!(Sgr::Font(Font::Alternate(9))),
                     },
                 },
-                CsiParam::ColonList(list) => {
-                    match list.as_slice() {
-                        // Kitty styled underlines
-                        &[Some(4), Some(0)] => one!(Sgr::Underline(Underline::None)),
-                        &[Some(4), Some(1)] => one!(Sgr::Underline(Underline::Single)),
-                        &[Some(4), Some(2)] => one!(Sgr::Underline(Underline::Double)),
-                        &[Some(4), Some(3)] => one!(Sgr::Underline(Underline::Curly)),
-                        &[Some(4), Some(4)] => one!(Sgr::Underline(Underline::Dotted)),
-                        &[Some(4), Some(5)] => one!(Sgr::Underline(Underline::Dashed)),
-
-                        &[Some(38), Some(2), _colorspace, Some(r), Some(g), Some(b)] => one!(
-                            Sgr::Foreground(RgbColor::new_8bpc(r as u8, g as u8, b as u8).into())
-                        ),
-                        &[Some(38), Some(2), Some(r), Some(g), Some(b)] => one!(Sgr::Foreground(
-                            RgbColor::new_8bpc(r as u8, g as u8, b as u8).into()
-                        )),
-                        &[Some(38), Some(5), Some(idx)] => {
-                            one!(Sgr::Foreground(ColorSpec::PaletteIndex(idx as u8)))
-                        }
-
-                        &[Some(48), Some(2), _colorspace, Some(r), Some(g), Some(b)] => one!(
-                            Sgr::Background(RgbColor::new_8bpc(r as u8, g as u8, b as u8).into())
-                        ),
-                        &[Some(48), Some(2), Some(r), Some(g), Some(b)] => one!(Sgr::Background(
-                            RgbColor::new_8bpc(r as u8, g as u8, b as u8).into()
-                        )),
-                        &[Some(48), Some(5), Some(idx)] => {
-                            one!(Sgr::Background(ColorSpec::PaletteIndex(idx as u8)))
-                        }
-
-                        &[Some(58), Some(2), _colorspace, Some(r), Some(g), Some(b)] => {
-                            one!(Sgr::UnderlineColor(
-                                RgbColor::new_8bpc(r as u8, g as u8, b as u8).into()
-                            ))
-                        }
-                        &[Some(58), Some(2), Some(r), Some(g), Some(b)] => {
-                            one!(Sgr::UnderlineColor(
-                                RgbColor::new_8bpc(r as u8, g as u8, b as u8).into()
-                            ))
-                        }
-                        &[Some(58), Some(5), Some(idx)] => {
-                            one!(Sgr::UnderlineColor(ColorSpec::PaletteIndex(idx as u8)))
-                        }
-
-                        _ => Err(()),
-                    }
-                }
             }
         }
     }
@@ -2276,22 +2270,29 @@ mod test {
     use std::io::Write;
 
     fn parse(control: char, params: &[i64], expected: &str) -> Vec<CSI> {
-        let params = params
-            .iter()
-            .map(|&i| CsiParam::Integer(i))
-            .collect::<Vec<_>>();
-        let res = CSI::parse(&params, &[], false, control).collect();
+        let mut cparams = vec![];
+        for &p in params {
+            if !cparams.is_empty() {
+                cparams.push(CsiParam::P(b';'));
+            }
+            cparams.push(CsiParam::Integer(p));
+        }
+        let res = CSI::parse(&cparams, &[], false, control).collect();
+        println!("parsed -> {:#?}", res);
         assert_eq!(encode(&res), expected);
         res
     }
 
     fn parse_int(control: char, params: &[i64], intermediate: u8, expected: &str) -> Vec<CSI> {
-        let params = params
-            .iter()
-            .map(|&i| CsiParam::Integer(i))
-            .collect::<Vec<_>>();
+        let mut cparams = vec![];
+        for &p in params {
+            if !cparams.is_empty() {
+                cparams.push(CsiParam::P(b';'));
+            }
+            cparams.push(CsiParam::Integer(p));
+        }
         let intermediates = [intermediate];
-        let res = CSI::parse(&params, &intermediates, false, control).collect();
+        let res = CSI::parse(&cparams, &intermediates, false, control).collect();
         assert_eq!(encode(&res), expected);
         res
     }
@@ -2340,7 +2341,12 @@ mod test {
             vec![
                 CSI::Sgr(Sgr::Intensity(Intensity::Bold)),
                 CSI::Unspecified(Box::new(Unspecified {
-                    params: [CsiParam::Integer(1231231), CsiParam::Integer(3)].to_vec(),
+                    params: [
+                        CsiParam::Integer(1231231),
+                        CsiParam::P(b';'),
+                        CsiParam::Integer(3)
+                    ]
+                    .to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',
@@ -2350,7 +2356,12 @@ mod test {
         assert_eq!(
             parse('m', &[1231231, 3], "\x1b[1231231;3m"),
             vec![CSI::Unspecified(Box::new(Unspecified {
-                params: [CsiParam::Integer(1231231), CsiParam::Integer(3)].to_vec(),
+                params: [
+                    CsiParam::Integer(1231231),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(3)
+                ]
+                .to_vec(),
                 intermediates: vec![],
                 ignored_extra_intermediates: false,
                 control: 'm',
@@ -2375,7 +2386,12 @@ mod test {
         assert_eq!(
             parse('m', &[58, 2], "\x1b[58;2m"),
             vec![CSI::Unspecified(Box::new(Unspecified {
-                params: [CsiParam::Integer(58), CsiParam::Integer(2)].to_vec(),
+                params: [
+                    CsiParam::Integer(58),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(2)
+                ]
+                .to_vec(),
                 intermediates: vec![],
                 ignored_extra_intermediates: false,
                 control: 'm',
@@ -2393,7 +2409,12 @@ mod test {
             vec![
                 CSI::Sgr(Sgr::UnderlineColor(ColorSpec::PaletteIndex(220))),
                 CSI::Unspecified(Box::new(Unspecified {
-                    params: [CsiParam::Integer(255), CsiParam::Integer(255)].to_vec(),
+                    params: [
+                        CsiParam::Integer(255),
+                        CsiParam::P(b';'),
+                        CsiParam::Integer(255)
+                    ]
+                    .to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',
@@ -2407,7 +2428,12 @@ mod test {
         assert_eq!(
             parse('m', &[38, 2], "\x1b[38;2m"),
             vec![CSI::Unspecified(Box::new(Unspecified {
-                params: [CsiParam::Integer(38), CsiParam::Integer(2)].to_vec(),
+                params: [
+                    CsiParam::Integer(38),
+                    CsiParam::P(b';'),
+                    CsiParam::Integer(2)
+                ]
+                .to_vec(),
                 intermediates: vec![],
                 ignored_extra_intermediates: false,
                 control: 'm',
@@ -2425,7 +2451,12 @@ mod test {
             vec![
                 CSI::Sgr(Sgr::Foreground(ColorSpec::PaletteIndex(220))),
                 CSI::Unspecified(Box::new(Unspecified {
-                    params: [CsiParam::Integer(255), CsiParam::Integer(255)].to_vec(),
+                    params: [
+                        CsiParam::Integer(255),
+                        CsiParam::P(b';'),
+                        CsiParam::Integer(255)
+                    ]
+                    .to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',
@@ -2510,6 +2541,14 @@ mod test {
                 DecPrivateMode::Unspecified(23434),
             ))]
         );
+
+        /*
+        {
+            let res = CSI::parse(&[CsiParam::Integer(2026)], &[b'?', b'$'], false, 'p').collect();
+            assert_eq!(encode(&res), "\x1b[?2026$p");
+        }
+        */
+
         assert_eq!(
             parse_int('l', &[1], b'?', "\x1b[?1l"),
             vec![CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
@@ -2565,8 +2604,23 @@ mod test {
 
     #[test]
     fn mouse() {
+        let res: Vec<_> = CSI::parse(
+            &[
+                CsiParam::P(b'<'),
+                CsiParam::Integer(0),
+                CsiParam::P(b';'),
+                CsiParam::Integer(12),
+                CsiParam::P(b';'),
+                CsiParam::Integer(300),
+            ],
+            &[],
+            false,
+            'M',
+        )
+        .collect();
+        assert_eq!(encode(&res), "\x1b[<0;12;300M");
         assert_eq!(
-            parse_int('M', &[0, 12, 300], b'<', "\x1b[<0;12;300M"),
+            res,
             vec![CSI::Mouse(MouseReport::SGR1006 {
                 x: 12,
                 y: 300,
@@ -2578,13 +2632,33 @@ mod test {
 
     #[test]
     fn device_attr() {
+        let res: Vec<_> = CSI::parse(
+            &[
+                CsiParam::P(b'?'),
+                CsiParam::Integer(63),
+                CsiParam::P(b';'),
+                CsiParam::Integer(1),
+                CsiParam::P(b';'),
+                CsiParam::Integer(2),
+                CsiParam::P(b';'),
+                CsiParam::Integer(4),
+                CsiParam::P(b';'),
+                CsiParam::Integer(6),
+                CsiParam::P(b';'),
+                CsiParam::Integer(9),
+                CsiParam::P(b';'),
+                CsiParam::Integer(15),
+                CsiParam::P(b';'),
+                CsiParam::Integer(22),
+            ],
+            &[],
+            false,
+            'c',
+        )
+        .collect();
+
         assert_eq!(
-            parse_int(
-                'c',
-                &[63, 1, 2, 4, 6, 9, 15, 22],
-                b'?',
-                "\x1b[?63;1;2;4;6;9;15;22c"
-            ),
+            res,
             vec![CSI::Device(Box::new(Device::DeviceAttributes(
                 DeviceAttributes::Vt320(DeviceAttributeFlags::new(vec![
                     DeviceAttribute::Code(DeviceAttributeCodes::Columns132),
@@ -2597,5 +2671,6 @@ mod test {
                 ])),
             )))]
         );
+        assert_eq!(encode(&res), "\x1b[?63;1;2;4;6;9;15;22c");
     }
 }
