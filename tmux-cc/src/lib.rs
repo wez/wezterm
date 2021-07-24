@@ -167,15 +167,15 @@ fn parse_window_layout(pair: Pair<Rule>) -> Option<WindowLayout> {
             if let (Some(layout_id), Some(width), Some(height)) =
                 (layout_id_option, width_option, height_option)
             {
-                return Option::Some(WindowLayout {
+                return Some(WindowLayout {
                     layout_id,
                     width,
                     height,
                 });
             }
-            return Option::None;
+            return None;
         }
-        _ => Option::None,
+        _ => None,
     }
 }
 
@@ -281,7 +281,7 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
             let visible_layout = pairs.next().and_then(parse_window_layout);
             let raw_flags = pairs
                 .next()
-                .and_then(|r| Option::Some(r.as_str().to_owned()));
+                .map(|r| r.as_str().to_owned());
             Ok(Event::LayoutChange {
                 window,
                 layout,
@@ -690,8 +690,8 @@ here
                         width: 80,
                         height: 24
                     },
-                    visible_layout: Option::None,
-                    raw_flags: Option::None
+                    visible_layout: None,
+                    raw_flags: None
                 },
                 Event::LayoutChange {
                     window: 1,
@@ -700,12 +700,12 @@ here
                         width: 120,
                         height: 29
                     },
-                    visible_layout: Option::Some(WindowLayout {
+                    visible_layout: Some(WindowLayout {
                         layout_id: "cafd".to_owned(),
                         width: 120,
                         height: 29
                     }),
-                    raw_flags: Option::Some("*".to_owned())
+                    raw_flags: Some("*".to_owned())
                 },
                 Event::Output {
                     pane: 1,
