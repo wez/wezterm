@@ -150,13 +150,7 @@ pub trait VTActor {
     ///
     /// See [ECMA-48](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-48,%202nd%20Edition,%20August%201979.pdf)
     /// for more information on control functions.
-    fn csi_dispatch(
-        &mut self,
-        params: &[CsiParam],
-        intermediates: &[u8],
-        ignored_excess_intermediates: bool,
-        byte: u8,
-    );
+    fn csi_dispatch(&mut self, params: &[CsiParam], parameters_truncated: bool, byte: u8);
 
     /// Called when an OSC string is terminated by ST, CAN, SUB or ESC.
     ///
@@ -189,8 +183,7 @@ pub enum VTAction {
     },
     CsiDispatch {
         params: Vec<CsiParam>,
-        intermediates: Vec<u8>,
-        ignored_excess_intermediates: bool,
+        parameters_truncated: bool,
         byte: u8,
     },
     OscDispatch(Vec<Vec<u8>>),
@@ -267,17 +260,10 @@ impl VTActor for CollectingVTActor {
         });
     }
 
-    fn csi_dispatch(
-        &mut self,
-        params: &[CsiParam],
-        intermediates: &[u8],
-        ignored_excess_intermediates: bool,
-        byte: u8,
-    ) {
+    fn csi_dispatch(&mut self, params: &[CsiParam], parameters_truncated: bool, byte: u8) {
         self.actions.push(VTAction::CsiDispatch {
             params: params.to_vec(),
-            intermediates: intermediates.to_vec(),
-            ignored_excess_intermediates,
+            parameters_truncated,
             byte,
         });
     }
@@ -447,6 +433,25 @@ impl VTParser {
         }
     }
 
+    /// Promote early intermediates to parameters.
+    /// This is handle sequences such as DECSET that use `?`
+    /// prior to other numeric parameters.
+    /// `?` is technically in the intermediate range and shouldn't
+    /// appear in the parameter position according to ECMA 48
+    fn promote_intermediates_to_params(&mut self) {
+        if self.num_intermediates > 0 {
+            for &p in &self.intermediates[..self.num_intermediates] {
+                if self.num_params >= MAX_PARAMS {
+                    self.ignored_excess_intermediates = true;
+                    break;
+                }
+                self.params[self.num_params] = CsiParam::P(p);
+                self.num_params += 1;
+            }
+            self.num_intermediates = 0;
+        }
+    }
+
     fn action(&mut self, action: Action, param: u8, actor: &mut dyn VTActor) {
         match action {
             Action::None | Action::Ignore => {}
@@ -473,6 +478,9 @@ impl VTParser {
                 if self.params_full {
                     return;
                 }
+
+                self.promote_intermediates_to_params();
+
                 match param {
                     b'0'..=b'9' => match self.current_param.take() {
                         Some(CsiParam::Integer(i)) => {
@@ -519,9 +527,9 @@ impl VTParser {
             }
             Action::CsiDispatch => {
                 self.finish_param();
+                self.promote_intermediates_to_params();
                 actor.csi_dispatch(
                     &self.params[0..self.num_params],
-                    &self.intermediates[0..self.num_intermediates],
                     self.ignored_excess_intermediates,
                     param,
                 );
@@ -676,8 +684,7 @@ mod test {
                 VTAction::ExecuteC0orC1(0x07,),
                 VTAction::CsiDispatch {
                     params: vec![CsiParam::Integer(32)],
-                    intermediates: vec![],
-                    ignored_excess_intermediates: false,
+                    parameters_truncated: false,
                     byte: b'm',
                 },
                 VTAction::Print('w',),
@@ -686,8 +693,7 @@ mod test {
                 VTAction::Print('t',),
                 VTAction::CsiDispatch {
                     params: vec![CsiParam::Integer(0)],
-                    intermediates: vec![],
-                    ignored_excess_intermediates: false,
+                    parameters_truncated: false,
                     byte: b'm',
                 },
                 VTAction::Print('d',),
@@ -725,6 +731,18 @@ mod test {
                 b"0".to_vec(),
                 b"hello".to_vec()
             ])]
+        );
+    }
+
+    #[test]
+    fn test_decset() {
+        assert_eq!(
+            parse_as_vec(b"\x1b[?1l"),
+            vec![VTAction::CsiDispatch {
+                params: vec![CsiParam::P(b'?'), CsiParam::Integer(1)],
+                parameters_truncated: false,
+                byte: b'l',
+            },]
         );
     }
 
@@ -789,8 +807,7 @@ mod test {
             parse_as_vec(b"\x1b[4m"),
             vec![VTAction::CsiDispatch {
                 params: vec![CsiParam::Integer(4)],
-                intermediates: b"".to_vec(),
-                ignored_excess_intermediates: false,
+                parameters_truncated: false,
                 byte: b'm'
             }]
         );
@@ -804,8 +821,7 @@ mod test {
                     CsiParam::P(b':'),
                     CsiParam::Integer(3)
                 ],
-                intermediates: b"".to_vec(),
-                ignored_excess_intermediates: false,
+                parameters_truncated: false,
                 byte: b'm'
             }]
         );
@@ -828,8 +844,7 @@ mod test {
                     CsiParam::P(b':'),
                     CsiParam::Integer(192),
                 ],
-                intermediates: b"".to_vec(),
-                ignored_excess_intermediates: false,
+                parameters_truncated: false,
                 byte: b'm'
             }]
         );
@@ -841,8 +856,7 @@ mod test {
             parse_as_vec(b"\x1b[;1m"),
             vec![VTAction::CsiDispatch {
                 params: vec![CsiParam::P(b';'), CsiParam::Integer(1)],
-                intermediates: b"".to_vec(),
-                ignored_excess_intermediates: false,
+                parameters_truncated: false,
                 byte: b'm'
             }]
         );
@@ -887,8 +901,7 @@ mod test {
                     CsiParam::Integer(51),
                     CsiParam::P(b';'),
                 ],
-                intermediates: b"".to_vec(),
-                ignored_excess_intermediates: false,
+                parameters_truncated: false,
                 byte: b'p'
             }]
         );
@@ -899,28 +912,25 @@ mod test {
         assert_eq!(
             parse_as_vec(b"\x1b[1 p"),
             vec![VTAction::CsiDispatch {
-                params: vec![CsiParam::Integer(1)],
-                intermediates: b" ".to_vec(),
-                ignored_excess_intermediates: false,
+                params: vec![CsiParam::Integer(1), CsiParam::P(b' ')],
+                parameters_truncated: false,
                 byte: b'p'
             }]
         );
         assert_eq!(
             parse_as_vec(b"\x1b[1 !p"),
             vec![VTAction::CsiDispatch {
-                params: vec![CsiParam::Integer(1)],
-                intermediates: b" !".to_vec(),
-                ignored_excess_intermediates: false,
+                params: vec![CsiParam::Integer(1), CsiParam::P(b' '), CsiParam::P(b'!')],
+                parameters_truncated: false,
                 byte: b'p'
             }]
         );
         assert_eq!(
             parse_as_vec(b"\x1b[1 !#p"),
             vec![VTAction::CsiDispatch {
-                params: vec![CsiParam::Integer(1)],
                 // Note that the `#` was discarded
-                intermediates: b" !".to_vec(),
-                ignored_excess_intermediates: true,
+                params: vec![CsiParam::Integer(1), CsiParam::P(b' '), CsiParam::P(b'!')],
+                parameters_truncated: true,
                 byte: b'p'
             }]
         );

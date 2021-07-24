@@ -212,19 +212,8 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         (self.callback)(Action::OperatingSystemCommand(Box::new(osc)));
     }
 
-    fn csi_dispatch(
-        &mut self,
-        params: &[CsiParam],
-        intermediates: &[u8],
-        ignored_extra_intermediates: bool,
-        control: u8,
-    ) {
-        for action in CSI::parse(
-            params,
-            intermediates,
-            ignored_extra_intermediates,
-            control as char,
-        ) {
+    fn csi_dispatch(&mut self, params: &[CsiParam], parameters_truncated: bool, control: u8) {
+        for action in CSI::parse(params, parameters_truncated, control as char) {
             (self.callback)(Action::CSI(action));
         }
     }
@@ -439,8 +428,10 @@ mod test {
     use super::*;
     use crate::cell::{Intensity, Underline};
     use crate::color::ColorSpec;
-    use crate::escape::csi::Sgr;
-    use crate::escape::EscCode;
+    use crate::escape::csi::{
+        DecPrivateMode, DecPrivateModeCode, Device, Mode, Sgr, Window, XtermKeyModifierResource,
+    };
+    use crate::escape::{EscCode, OneBased};
     use std::io::Write;
 
     fn encode(seq: &Vec<Action>) -> String {
@@ -715,6 +706,143 @@ mod test {
                 Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ],
             actions
+        );
+    }
+
+    #[test]
+    fn soft_reset() {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1b[!p");
+        assert_eq!(
+            vec![Action::CSI(CSI::Device(Box::new(
+                crate::escape::csi::Device::SoftReset
+            )))],
+            actions
+        );
+        assert_eq!(encode(&actions), "\x1b[!p");
+    }
+
+    fn round_trip_parse(s: &str) -> Vec<Action> {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(s.as_bytes());
+        println!("actions: {:?}", actions);
+        assert_eq!(s, encode(&actions));
+        actions
+    }
+
+    #[test]
+    fn xterm_key() {
+        assert_eq!(
+            round_trip_parse("\x1b[>4;2m"),
+            vec![Action::CSI(CSI::Mode(Mode::XtermKeyMode {
+                resource: XtermKeyModifierResource::OtherKeys,
+                value: Some(2),
+            }))]
+        );
+    }
+
+    #[test]
+    fn window() {
+        assert_eq!(
+            round_trip_parse("\x1b[22;2t"),
+            vec![Action::CSI(CSI::Window(Window::PushWindowTitle))],
+        );
+    }
+
+    #[test]
+    fn checksum_area() {
+        assert_eq!(
+            round_trip_parse("\x1b[1;2;3;4;5;6*y"),
+            vec![Action::CSI(CSI::Window(Window::ChecksumRectangularArea {
+                request_id: 1,
+                page_number: 2,
+                top: OneBased::new(3),
+                left: OneBased::new(4),
+                bottom: OneBased::new(5),
+                right: OneBased::new(6),
+            }))]
+        );
+    }
+
+    #[test]
+    fn req_attr() {
+        assert_eq!(
+            round_trip_parse("\x1b[=c"),
+            vec![Action::CSI(CSI::Device(Box::new(
+                Device::RequestTertiaryDeviceAttributes
+            )))]
+        );
+        assert_eq!(
+            round_trip_parse("\x1b[>c"),
+            vec![Action::CSI(CSI::Device(Box::new(
+                Device::RequestSecondaryDeviceAttributes
+            )))]
+        );
+    }
+
+    #[test]
+    fn decset() {
+        assert_eq!(
+            round_trip_parse("\x1b[?23434h"),
+            vec![Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(
+                DecPrivateMode::Unspecified(23434),
+            )))]
+        );
+
+        /*
+        {
+            let res = CSI::parse(&[CsiParam::Integer(2026)], &[b'?', b'$'], false, 'p').collect();
+            assert_eq!(encode(&res), "\x1b[?2026$p");
+        }
+        */
+
+        assert_eq!(
+            round_trip_parse("\x1b[?1l"),
+            vec![Action::CSI(CSI::Mode(Mode::ResetDecPrivateMode(
+                DecPrivateMode::Code(DecPrivateModeCode::ApplicationCursorKeys,)
+            )))]
+        );
+
+        assert_eq!(
+            round_trip_parse("\x1b[?25s"),
+            vec![Action::CSI(CSI::Mode(Mode::SaveDecPrivateMode(
+                DecPrivateMode::Code(DecPrivateModeCode::ShowCursor,)
+            )))]
+        );
+        assert_eq!(
+            round_trip_parse("\x1b[?2004r"),
+            vec![Action::CSI(CSI::Mode(Mode::RestoreDecPrivateMode(
+                DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste),
+            )))]
+        );
+        assert_eq!(
+            round_trip_parse("\x1b[?12h\x1b[?25h"),
+            vec![
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::StartBlinkingCursor,
+                )))),
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::ShowCursor,
+                )))),
+            ]
+        );
+
+        assert_eq!(
+            round_trip_parse("\x1b[?1002h\x1b[?1003h\x1b[?1005h\x1b[?1006h"),
+            vec![
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::ButtonEventMouse,
+                )))),
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::AnyEventMouse,
+                )))),
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(
+                    DecPrivateMode::Unspecified(1005)
+                ))),
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::SGRMouse,
+                )))),
+            ]
         );
     }
 }

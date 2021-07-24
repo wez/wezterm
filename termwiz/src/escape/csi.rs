@@ -36,11 +36,9 @@ pub enum CSI {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unspecified {
     pub params: Vec<CsiParam>,
-    // TODO: can we just make intermediates a single u8?
-    pub intermediates: Vec<u8>,
     /// if true, more than two intermediates arrived and the
     /// remaining data was ignored
-    pub ignored_extra_intermediates: bool,
+    pub parameters_truncated: bool,
     /// The final character in the CSI sequence; this typically
     /// defines how to interpret the other parameters.
     pub control: char,
@@ -50,9 +48,6 @@ impl Display for Unspecified {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         for p in &self.params {
             write!(f, "{}", p)?;
-        }
-        for i in &self.intermediates {
-            write!(f, "{}", *i as char)?;
         }
         write!(f, "{}", self.control)
     }
@@ -1373,10 +1368,9 @@ pub enum Font {
 /// `CSIParser` implements an Iterator that yields `CSI` instances as
 /// it parses them out from the input sequence.
 struct CSIParser<'a> {
-    intermediates: &'a [u8],
     /// this flag is set when more than two intermediates
     /// arrived and subsequent characters were ignored.
-    ignored_extra_intermediates: bool,
+    parameters_truncated: bool,
     control: char,
     /// While params is_some we have more data to consume.  The advance_by
     /// method updates the slice as we consume data.
@@ -1395,13 +1389,11 @@ impl CSI {
     /// of the sequence is returned wrapped in a `CSI::Unspecified` container.
     pub fn parse<'a>(
         params: &'a [CsiParam],
-        intermediates: &'a [u8],
-        ignored_extra_intermediates: bool,
+        parameters_truncated: bool,
         control: char,
     ) -> impl Iterator<Item = CSI> + 'a {
         CSIParser {
-            intermediates,
-            ignored_extra_intermediates,
+            parameters_truncated,
             control,
             params: Some(params),
         }
@@ -1441,6 +1433,48 @@ fn to_1b_u32(v: &CsiParam) -> Result<u32, ()> {
     }
 }
 
+struct Cracked {
+    params: Vec<Option<CsiParam>>,
+}
+
+impl Cracked {
+    pub fn parse(params: &[CsiParam]) -> Result<Self, ()> {
+        let mut res = vec![];
+        let mut iter = params.iter().peekable();
+        while let Some(p) = iter.next() {
+            match p {
+                CsiParam::P(b';') => {
+                    res.push(None);
+                }
+                CsiParam::Integer(_) => {
+                    res.push(Some(p.clone()));
+                    if let Some(CsiParam::P(b';')) = iter.peek() {
+                        iter.next();
+                    }
+                }
+                _ => return Err(()),
+            }
+        }
+        Ok(Self { params: res })
+    }
+
+    pub fn get(&self, idx: usize) -> Option<&CsiParam> {
+        self.params.get(idx)?.as_ref()
+    }
+
+    pub fn opt_int(&self, idx: usize) -> Option<i64> {
+        self.get(idx).and_then(CsiParam::as_integer)
+    }
+
+    pub fn int(&self, idx: usize) -> Result<i64, ()> {
+        self.get(idx).and_then(CsiParam::as_integer).ok_or(())
+    }
+
+    pub fn len(&self) -> usize {
+        self.params.len()
+    }
+}
+
 macro_rules! noparams {
     ($ns:ident, $variant:ident, $params:expr) => {{
         if $params.len() != 0 {
@@ -1468,110 +1502,94 @@ macro_rules! parse {
 
 impl<'a> CSIParser<'a> {
     fn parse_next(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
-        match (self.control, self.intermediates) {
-            ('m', &[]) | ('M', &[]) if params.get(0) == Some(&CsiParam::P(b'<')) => {
+        match (self.control, params) {
+            ('q', [.., CsiParam::P(b' ')]) => self.cursor_style(params),
+            ('y', [.., CsiParam::P(b'*')]) => self.checksum_area(params),
+
+            ('c', [CsiParam::P(b'='), ..]) => self
+                .req_tertiary_device_attributes(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
+            ('c', [CsiParam::P(b'>'), ..]) => self
+                .req_secondary_device_attributes(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
+
+            ('m', [CsiParam::P(b'<'), ..]) | ('M', [CsiParam::P(b'<'), ..]) => {
                 self.mouse_sgr1006(params).map(CSI::Mouse)
             }
-            ('c', &[]) if params.get(0) == Some(&CsiParam::P(b'?')) => self
+
+            ('c', [CsiParam::P(b'?'), ..]) => self
                 .secondary_device_attributes(params)
                 .map(|dev| CSI::Device(Box::new(dev))),
 
-            ('@', &[]) => parse!(Edit, InsertCharacter, params),
-            ('`', &[]) => parse!(Cursor, CharacterPositionAbsolute, params),
-            ('A', &[]) => parse!(Cursor, Up, params),
-            ('B', &[]) => parse!(Cursor, Down, params),
-            ('C', &[]) => parse!(Cursor, Right, params),
-            ('D', &[]) => parse!(Cursor, Left, params),
-            ('E', &[]) => parse!(Cursor, NextLine, params),
-            ('F', &[]) => parse!(Cursor, PrecedingLine, params),
-            ('G', &[]) => parse!(Cursor, CharacterAbsolute, params),
-            ('H', &[]) => parse!(Cursor, Position, line, col, params),
-            ('I', &[]) => parse!(Cursor, ForwardTabulation, params),
-            ('J', &[]) => parse!(Edit, EraseInDisplay, params),
-            ('K', &[]) => parse!(Edit, EraseInLine, params),
-            ('L', &[]) => parse!(Edit, InsertLine, params),
-            ('M', &[]) => parse!(Edit, DeleteLine, params),
-            ('P', &[]) => parse!(Edit, DeleteCharacter, params),
-            ('R', &[]) => parse!(Cursor, ActivePositionReport, line, col, params),
-            ('S', &[]) => parse!(Edit, ScrollUp, params),
-            ('S', &[b'?']) => XtSmGraphics::parse(params),
-            ('T', &[]) => parse!(Edit, ScrollDown, params),
-            ('W', &[]) => parse!(Cursor, TabulationControl, params),
-            ('X', &[]) => parse!(Edit, EraseCharacter, params),
-            ('Y', &[]) => parse!(Cursor, LineTabulation, params),
-            ('Z', &[]) => parse!(Cursor, BackwardTabulation, params),
+            ('S', [CsiParam::P(b'?'), ..]) => XtSmGraphics::parse(params),
+            ('h', [CsiParam::P(b'?'), ..]) => self
+                .dec(params)
+                .map(|mode| CSI::Mode(Mode::SetDecPrivateMode(mode))),
+            ('l', [CsiParam::P(b'?'), ..]) => self
+                .dec(params)
+                .map(|mode| CSI::Mode(Mode::ResetDecPrivateMode(mode))),
+            ('r', [CsiParam::P(b'?'), ..]) => self
+                .dec(params)
+                .map(|mode| CSI::Mode(Mode::RestoreDecPrivateMode(mode))),
+            ('q', [CsiParam::P(b'>'), ..]) => self
+                .req_terminal_name_and_version(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
+            ('s', [CsiParam::P(b'?'), ..]) => self
+                .dec(params)
+                .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
+            ('m', [CsiParam::P(b'>'), ..]) => self.xterm_key_modifier(params),
 
-            ('a', &[]) => parse!(Cursor, CharacterPositionForward, params),
-            ('b', &[]) => parse!(Edit, Repeat, params),
-            ('d', &[]) => parse!(Cursor, LinePositionAbsolute, params),
-            ('e', &[]) => parse!(Cursor, LinePositionForward, params),
-            ('f', &[]) => parse!(Cursor, CharacterAndLinePosition, line, col, params),
-            ('g', &[]) => parse!(Cursor, TabulationClear, params),
-            ('h', &[]) => self
+            ('p', [CsiParam::P(b'!')]) => Ok(CSI::Device(Box::new(Device::SoftReset))),
+
+            ('c', _) => self
+                .req_primary_device_attributes(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
+
+            ('@', _) => parse!(Edit, InsertCharacter, params),
+            ('`', _) => parse!(Cursor, CharacterPositionAbsolute, params),
+            ('A', _) => parse!(Cursor, Up, params),
+            ('B', _) => parse!(Cursor, Down, params),
+            ('C', _) => parse!(Cursor, Right, params),
+            ('D', _) => parse!(Cursor, Left, params),
+            ('E', _) => parse!(Cursor, NextLine, params),
+            ('F', _) => parse!(Cursor, PrecedingLine, params),
+            ('G', _) => parse!(Cursor, CharacterAbsolute, params),
+            ('H', _) => parse!(Cursor, Position, line, col, params),
+            ('I', _) => parse!(Cursor, ForwardTabulation, params),
+            ('J', _) => parse!(Edit, EraseInDisplay, params),
+            ('K', _) => parse!(Edit, EraseInLine, params),
+            ('L', _) => parse!(Edit, InsertLine, params),
+            ('M', _) => parse!(Edit, DeleteLine, params),
+            ('P', _) => parse!(Edit, DeleteCharacter, params),
+            ('R', _) => parse!(Cursor, ActivePositionReport, line, col, params),
+            ('S', _) => parse!(Edit, ScrollUp, params),
+            ('T', _) => parse!(Edit, ScrollDown, params),
+            ('W', _) => parse!(Cursor, TabulationControl, params),
+            ('X', _) => parse!(Edit, EraseCharacter, params),
+            ('Y', _) => parse!(Cursor, LineTabulation, params),
+            ('Z', _) => parse!(Cursor, BackwardTabulation, params),
+
+            ('a', _) => parse!(Cursor, CharacterPositionForward, params),
+            ('b', _) => parse!(Edit, Repeat, params),
+            ('d', _) => parse!(Cursor, LinePositionAbsolute, params),
+            ('e', _) => parse!(Cursor, LinePositionForward, params),
+            ('f', _) => parse!(Cursor, CharacterAndLinePosition, line, col, params),
+            ('g', _) => parse!(Cursor, TabulationClear, params),
+            ('h', _) => self
                 .terminal_mode(params)
                 .map(|mode| CSI::Mode(Mode::SetMode(mode))),
-            ('j', &[]) => parse!(Cursor, CharacterPositionBackward, params),
-            ('k', &[]) => parse!(Cursor, LinePositionBackward, params),
-            ('l', &[]) => self
+            ('j', _) => parse!(Cursor, CharacterPositionBackward, params),
+            ('k', _) => parse!(Cursor, LinePositionBackward, params),
+            ('l', _) => self
                 .terminal_mode(params)
                 .map(|mode| CSI::Mode(Mode::ResetMode(mode))),
 
-            ('m', &[]) => self.sgr(params).map(CSI::Sgr),
-            ('n', &[]) => self.dsr(params),
-            ('q', &[b' ']) => self.cursor_style(params),
-            ('r', &[]) => self.decstbm(params),
-            ('s', &[]) => self.decslrm(params),
-            ('t', &[]) => self.window(params).map(CSI::Window),
-            ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
-            ('y', &[b'*']) => {
-                fn p(params: &[CsiParam], idx: usize) -> Result<i64, ()> {
-                    params.get(idx).and_then(CsiParam::as_integer).ok_or(())
-                }
-                let request_id = p(params, 0)?;
-                let page_number = p(params, 1)?;
-                let top = OneBased::from_optional_esc_param(params.get(2))?;
-                let left = OneBased::from_optional_esc_param(params.get(3))?;
-                let bottom = OneBased::from_optional_esc_param(params.get(4))?;
-                let right = OneBased::from_optional_esc_param(params.get(5))?;
-                Ok(CSI::Window(Window::ChecksumRectangularArea {
-                    request_id,
-                    page_number,
-                    top,
-                    left,
-                    bottom,
-                    right,
-                }))
-            }
-
-            ('p', &[b'!']) => Ok(CSI::Device(Box::new(Device::SoftReset))),
-
-            ('h', &[b'?']) => self
-                .dec(params)
-                .map(|mode| CSI::Mode(Mode::SetDecPrivateMode(mode))),
-            ('l', &[b'?']) => self
-                .dec(params)
-                .map(|mode| CSI::Mode(Mode::ResetDecPrivateMode(mode))),
-            ('r', &[b'?']) => self
-                .dec(params)
-                .map(|mode| CSI::Mode(Mode::RestoreDecPrivateMode(mode))),
-            ('q', &[b'>']) => self
-                .req_terminal_name_and_version(params)
-                .map(|dev| CSI::Device(Box::new(dev))),
-            ('s', &[b'?']) => self
-                .dec(params)
-                .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
-
-            ('m', &[b'>']) => self.xterm_key_modifier(params),
-
-            ('c', &[]) => self
-                .req_primary_device_attributes(params)
-                .map(|dev| CSI::Device(Box::new(dev))),
-            ('c', &[b'>']) => self
-                .req_secondary_device_attributes(params)
-                .map(|dev| CSI::Device(Box::new(dev))),
-            ('c', &[b'=']) => self
-                .req_tertiary_device_attributes(params)
-                .map(|dev| CSI::Device(Box::new(dev))),
+            ('m', _) => self.sgr(params).map(CSI::Sgr),
+            ('n', _) => self.dsr(params),
+            ('r', _) => self.decstbm(params),
+            ('s', _) => self.decslrm(params),
+            ('t', _) => self.window(params).map(CSI::Window),
+            ('u', _) => noparams!(Cursor, RestoreCursor, params),
 
             _ => Err(()),
         }
@@ -1596,16 +1614,34 @@ impl<'a> CSIParser<'a> {
     }
 
     fn cursor_style(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
-        if params.len() != 1 {
-            Err(())
-        } else {
-            match FromPrimitive::from_i64(params[0].as_integer().unwrap()) {
+        match params {
+            [CsiParam::Integer(p), CsiParam::P(b' ')] => match FromPrimitive::from_i64(*p) {
                 None => Err(()),
                 Some(style) => {
-                    Ok(self.advance_by(1, params, CSI::Cursor(Cursor::CursorStyle(style))))
+                    Ok(self.advance_by(2, params, CSI::Cursor(Cursor::CursorStyle(style))))
                 }
-            }
+            },
+            _ => Err(()),
         }
+    }
+
+    fn checksum_area(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
+        let params = Cracked::parse(&params[..params.len() - 1])?;
+
+        let request_id = params.int(0)?;
+        let page_number = params.int(1)?;
+        let top = OneBased::from_optional_esc_param(params.get(2))?;
+        let left = OneBased::from_optional_esc_param(params.get(3))?;
+        let bottom = OneBased::from_optional_esc_param(params.get(4))?;
+        let right = OneBased::from_optional_esc_param(params.get(5))?;
+        Ok(CSI::Window(Window::ChecksumRectangularArea {
+            request_id,
+            page_number,
+            top,
+            left,
+            bottom,
+            right,
+        }))
     }
 
     fn dsr(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
@@ -1649,11 +1685,11 @@ impl<'a> CSIParser<'a> {
 
     fn xterm_key_modifier(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
         match params {
-            [a, CsiParam::P(b';'), b] => {
+            [CsiParam::P(b'>'), a, CsiParam::P(b';'), b] => {
                 let resource =
                     XtermKeyModifierResource::parse(a.as_integer().unwrap()).ok_or_else(|| ())?;
                 Ok(self.advance_by(
-                    3,
+                    4,
                     params,
                     CSI::Mode(Mode::XtermKeyMode {
                         resource,
@@ -1661,11 +1697,11 @@ impl<'a> CSIParser<'a> {
                     }),
                 ))
             }
-            [p] => {
+            [CsiParam::P(b'>'), p] => {
                 let resource =
                     XtermKeyModifierResource::parse(p.as_integer().unwrap()).ok_or_else(|| ())?;
                 Ok(self.advance_by(
-                    1,
+                    2,
                     params,
                     CSI::Mode(Mode::XtermKeyMode {
                         resource,
@@ -1730,9 +1766,9 @@ impl<'a> CSIParser<'a> {
 
     fn req_secondary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
         match params {
-            [] => Ok(Device::RequestSecondaryDeviceAttributes),
-            [CsiParam::Integer(0)] => {
-                Ok(self.advance_by(1, params, Device::RequestSecondaryDeviceAttributes))
+            [CsiParam::P(b'>')] => Ok(Device::RequestSecondaryDeviceAttributes),
+            [CsiParam::P(b'>'), CsiParam::Integer(0)] => {
+                Ok(self.advance_by(2, params, Device::RequestSecondaryDeviceAttributes))
             }
             _ => Err(()),
         }
@@ -1740,9 +1776,9 @@ impl<'a> CSIParser<'a> {
 
     fn req_tertiary_device_attributes(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
         match params {
-            [] => Ok(Device::RequestTertiaryDeviceAttributes),
-            [CsiParam::Integer(0)] => {
-                Ok(self.advance_by(1, params, Device::RequestTertiaryDeviceAttributes))
+            [CsiParam::P(b'=')] => Ok(Device::RequestTertiaryDeviceAttributes),
+            [CsiParam::P(b'='), CsiParam::Integer(0)] => {
+                Ok(self.advance_by(2, params, Device::RequestTertiaryDeviceAttributes))
             }
             _ => Err(()),
         }
@@ -1761,7 +1797,7 @@ impl<'a> CSIParser<'a> {
             }
             [_, CsiParam::Integer(1), CsiParam::P(b';'), CsiParam::Integer(2)] => Ok(self
                 .advance_by(
-                    3,
+                    4,
                     params,
                     Device::DeviceAttributes(DeviceAttributes::Vt100WithAdvancedVideoOption),
                 )),
@@ -1852,17 +1888,16 @@ impl<'a> CSIParser<'a> {
     }
 
     fn dec(&mut self, params: &'a [CsiParam]) -> Result<DecPrivateMode, ()> {
-        let p0 = params
-            .get(0)
-            .and_then(CsiParam::as_integer)
-            .ok_or_else(|| ())?;
-        match FromPrimitive::from_i64(p0) {
-            None => Ok(self.advance_by(
-                1,
-                params,
-                DecPrivateMode::Unspecified(p0.to_u16().ok_or(())?),
-            )),
-            Some(mode) => Ok(self.advance_by(1, params, DecPrivateMode::Code(mode))),
+        match params {
+            [CsiParam::P(b'?'), CsiParam::Integer(p0), ..] => match FromPrimitive::from_i64(*p0) {
+                None => Ok(self.advance_by(
+                    2,
+                    params,
+                    DecPrivateMode::Unspecified(p0.to_u16().ok_or(())?),
+                )),
+                Some(mode) => Ok(self.advance_by(2, params, DecPrivateMode::Code(mode))),
+            },
+            _ => Err(()),
         }
     }
 
@@ -1909,23 +1944,12 @@ impl<'a> CSIParser<'a> {
     }
 
     fn window(&mut self, params: &'a [CsiParam]) -> Result<Window, ()> {
-        let (p, arg1, arg2) = match params {
-            [CsiParam::Integer(p), CsiParam::P(b';'), CsiParam::Integer(arg1), CsiParam::P(b';'), CsiParam::Integer(arg2)] => {
-                (*p, Some(*arg1), Some(*arg2))
-            }
-            [CsiParam::Integer(p), CsiParam::P(b';'), CsiParam::P(b';'), CsiParam::Integer(arg2)] => {
-                (*p, None, Some(*arg2))
-            }
-            [CsiParam::Integer(p), CsiParam::P(b';'), CsiParam::Integer(arg1), CsiParam::P(b';')] => {
-                (*p, Some(*arg1), None)
-            }
-            [CsiParam::Integer(p), CsiParam::P(b';'), CsiParam::P(b';')]
-            | [CsiParam::Integer(p), CsiParam::P(b';')]
-            | [CsiParam::Integer(p)] => (*p, None, None),
-            _ => {
-                return Err(());
-            }
-        };
+        let params = Cracked::parse(params)?;
+
+        let p = params.int(0)?;
+        let arg1 = params.opt_int(1);
+        let arg2 = params.opt_int(2);
+
         match p {
             1 => Ok(Window::DeIconify),
             2 => Ok(Window::Iconify),
@@ -2027,6 +2051,13 @@ impl<'a> CSIParser<'a> {
             // With no parameters, treat as equivalent to Reset.
             Ok(Sgr::Reset)
         } else {
+            for p in params {
+                match p {
+                    CsiParam::P(b';') | CsiParam::P(b':') | CsiParam::Integer(_) => {}
+                    _ => return Err(()),
+                }
+            }
+
             // Consume a single parameter and return the parsed result
             macro_rules! one {
                 ($t:expr) => {
@@ -2256,8 +2287,7 @@ impl<'a> Iterator for CSIParser<'a> {
             Ok(csi) => Some(csi),
             Err(()) => Some(CSI::Unspecified(Box::new(Unspecified {
                 params: params.to_vec(),
-                intermediates: self.intermediates.to_vec(),
-                ignored_extra_intermediates: self.ignored_extra_intermediates,
+                parameters_truncated: self.parameters_truncated,
                 control: self.control,
             }))),
         }
@@ -2277,22 +2307,8 @@ mod test {
             }
             cparams.push(CsiParam::Integer(p));
         }
-        let res = CSI::parse(&cparams, &[], false, control).collect();
+        let res = CSI::parse(&cparams, false, control).collect();
         println!("parsed -> {:#?}", res);
-        assert_eq!(encode(&res), expected);
-        res
-    }
-
-    fn parse_int(control: char, params: &[i64], intermediate: u8, expected: &str) -> Vec<CSI> {
-        let mut cparams = vec![];
-        for &p in params {
-            if !cparams.is_empty() {
-                cparams.push(CsiParam::P(b';'));
-            }
-            cparams.push(CsiParam::Integer(p));
-        }
-        let intermediates = [intermediate];
-        let res = CSI::parse(&cparams, &intermediates, false, control).collect();
         assert_eq!(encode(&res), expected);
         res
     }
@@ -2330,8 +2346,7 @@ mod test {
                 CSI::Sgr(Sgr::Italic(true)),
                 CSI::Unspecified(Box::new(Unspecified {
                     params: [CsiParam::Integer(1231231)].to_vec(),
-                    intermediates: vec![],
-                    ignored_extra_intermediates: false,
+                    parameters_truncated: false,
                     control: 'm',
                 })),
             ]
@@ -2347,8 +2362,7 @@ mod test {
                         CsiParam::Integer(3)
                     ]
                     .to_vec(),
-                    intermediates: vec![],
-                    ignored_extra_intermediates: false,
+                    parameters_truncated: false,
                     control: 'm',
                 })),
             ]
@@ -2362,8 +2376,7 @@ mod test {
                     CsiParam::Integer(3)
                 ]
                 .to_vec(),
-                intermediates: vec![],
-                ignored_extra_intermediates: false,
+                parameters_truncated: false,
                 control: 'm',
             }))]
         );
@@ -2392,8 +2405,7 @@ mod test {
                     CsiParam::Integer(2)
                 ]
                 .to_vec(),
-                intermediates: vec![],
-                ignored_extra_intermediates: false,
+                parameters_truncated: false,
                 control: 'm',
             }))]
         );
@@ -2415,8 +2427,7 @@ mod test {
                         CsiParam::Integer(255)
                     ]
                     .to_vec(),
-                    intermediates: vec![],
-                    ignored_extra_intermediates: false,
+                    parameters_truncated: false,
                     control: 'm',
                 })),
             ]
@@ -2434,8 +2445,7 @@ mod test {
                     CsiParam::Integer(2)
                 ]
                 .to_vec(),
-                intermediates: vec![],
-                ignored_extra_intermediates: false,
+                parameters_truncated: false,
                 control: 'm',
             }))]
         );
@@ -2457,8 +2467,7 @@ mod test {
                         CsiParam::Integer(255)
                     ]
                     .to_vec(),
-                    intermediates: vec![],
-                    ignored_extra_intermediates: false,
+                    parameters_truncated: false,
                     control: 'm',
                 })),
             ]
@@ -2534,75 +2543,6 @@ mod test {
     }
 
     #[test]
-    fn decset() {
-        assert_eq!(
-            parse_int('h', &[23434], b'?', "\x1b[?23434h"),
-            vec![CSI::Mode(Mode::SetDecPrivateMode(
-                DecPrivateMode::Unspecified(23434),
-            ))]
-        );
-
-        /*
-        {
-            let res = CSI::parse(&[CsiParam::Integer(2026)], &[b'?', b'$'], false, 'p').collect();
-            assert_eq!(encode(&res), "\x1b[?2026$p");
-        }
-        */
-
-        assert_eq!(
-            parse_int('l', &[1], b'?', "\x1b[?1l"),
-            vec![CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
-                DecPrivateModeCode::ApplicationCursorKeys,
-            )))]
-        );
-
-        assert_eq!(
-            parse_int('s', &[25], b'?', "\x1b[?25s"),
-            vec![CSI::Mode(Mode::SaveDecPrivateMode(DecPrivateMode::Code(
-                DecPrivateModeCode::ShowCursor,
-            )))]
-        );
-        assert_eq!(
-            parse_int('r', &[2004], b'?', "\x1b[?2004r"),
-            vec![CSI::Mode(Mode::RestoreDecPrivateMode(
-                DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste),
-            ))]
-        );
-        assert_eq!(
-            parse_int('h', &[12, 25], b'?', "\x1b[?12h\x1b[?25h"),
-            vec![
-                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
-                    DecPrivateModeCode::StartBlinkingCursor,
-                ))),
-                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
-                    DecPrivateModeCode::ShowCursor,
-                ))),
-            ]
-        );
-
-        assert_eq!(
-            parse_int(
-                'h',
-                &[1002, 1003, 1005, 1006],
-                b'?',
-                "\x1b[?1002h\x1b[?1003h\x1b[?1005h\x1b[?1006h"
-            ),
-            vec![
-                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
-                    DecPrivateModeCode::ButtonEventMouse,
-                ))),
-                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
-                    DecPrivateModeCode::AnyEventMouse,
-                ))),
-                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(1005))),
-                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
-                    DecPrivateModeCode::SGRMouse,
-                ))),
-            ]
-        );
-    }
-
-    #[test]
     fn mouse() {
         let res: Vec<_> = CSI::parse(
             &[
@@ -2613,7 +2553,6 @@ mod test {
                 CsiParam::P(b';'),
                 CsiParam::Integer(300),
             ],
-            &[],
             false,
             'M',
         )
@@ -2628,6 +2567,13 @@ mod test {
                 modifiers: Modifiers::NONE,
             })]
         );
+    }
+
+    #[test]
+    fn soft_reset() {
+        let res: Vec<_> = CSI::parse(&[CsiParam::P(b'!')], false, 'p').collect();
+        assert_eq!(encode(&res), "\x1b[!p");
+        assert_eq!(res, vec![CSI::Device(Box::new(Device::SoftReset))],);
     }
 
     #[test]
@@ -2651,7 +2597,6 @@ mod test {
                 CsiParam::P(b';'),
                 CsiParam::Integer(22),
             ],
-            &[],
             false,
             'c',
         )
