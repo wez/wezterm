@@ -279,9 +279,7 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
             let window = parse_window_id(pairs.next().unwrap())?;
             let layout = pairs.next().and_then(parse_window_layout).unwrap();
             let visible_layout = pairs.next().and_then(parse_window_layout);
-            let raw_flags = pairs
-                .next()
-                .map(|r| r.as_str().to_owned());
+            let raw_flags = pairs.next().map(|r| r.as_str().to_owned());
             Ok(Event::LayoutChange {
                 window,
                 layout,
