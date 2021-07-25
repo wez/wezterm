@@ -62,6 +62,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: if a line of text was exactly the width of the terminal it would get marked as wrappable even when followed by a newline, causing text to reflow incorrectly on resize. [#971](https://github.com/wez/wezterm/issues/971)
 * Fixed: `wezterm ssh` could loop forever in the background if the connection drops and the window is closed. [#857](https://github.com/wez/wezterm/issues/857)
 * Improved: VT102 conformance. Many thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#904](https://github.com/wez/wezterm/pull/904)
+* New: [text_blink_rate](config/lua/config/text_blink_rate.md) and [text_blink_rate_rapid](config/lua/config/text_blink_rate_rapid.md) options to control blinking text. Thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#904](https://github.com/wez/wezterm/pull/904)
 
 ### 20210502-154244-3f7122cb
 
