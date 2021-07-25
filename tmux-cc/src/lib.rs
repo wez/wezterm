@@ -269,9 +269,7 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
         Rule::client_detached => {
             let mut pairs = pair.into_inner();
             let client_name = unvis(pairs.next().unwrap().as_str())?;
-            Ok(Event::ClientDetached {
-                client_name
-             })
+            Ok(Event::ClientDetached { client_name })
         }
         Rule::session_renamed => {
             let mut pairs = pair.into_inner();
