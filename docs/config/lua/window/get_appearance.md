@@ -15,7 +15,7 @@ systems, and will always report `"Light"`.
 
 On macOS, X11 and Windows systems, wezterm is able to detect when the
 appearance has changed and will generate a
-[window-config-reloaded](../events/window-config-reloaded.md) event for each
+[window-config-reloaded](../window-events/window-config-reloaded.md) event for each
 window.
 
 This example configuration shows how you can have your color scheme

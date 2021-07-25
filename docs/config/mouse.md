@@ -13,7 +13,7 @@ You can bypass the mouse reporting capture by holding down the `SHIFT` key;
 that will prevent the event from being passed to the application and allow matching
 it against your assignments as though the `SHIFT` key were not pressed.
 
-The [bypass_mouse_reporting_modifiers](config/lua/config/bypass_mouse_reporting_modifiers.md)
+The [bypass_mouse_reporting_modifiers](lua/config/bypass_mouse_reporting_modifiers.md)
 option allows you to specify an alternative set of modifiers to use for
 bypassing mouse reporting capture.
 
