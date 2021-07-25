@@ -13,6 +13,7 @@ end = { "%end " ~ number ~ " " ~ number ~ " " ~ number }
 error = { "%error " ~ number ~ " " ~ number ~ " " ~ number }
 
 client_session_changed = { "%client-session-changed " ~ client_name ~ " " ~ session_id ~ " " ~any_text }
+client_detached = { "%client-detached " ~ client_name }
 output = { "%output " ~ pane_id ~ " " ~ any_text }
 exit = { "%exit" ~ (" " ~ any_text)? }
 sessions_changed = { "%sessions-changed" }
@@ -28,6 +29,7 @@ layout_change = { "%layout-change " ~ window_id ~ " " ~ (window_layout ~ " " ~ w
 
 line = _{ (
   client_session_changed |
+  client_detached |
   begin |
   end |
   error |
