@@ -63,6 +63,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: `wezterm ssh` could loop forever in the background if the connection drops and the window is closed. [#857](https://github.com/wez/wezterm/issues/857)
 * Improved: VT102 conformance. Many thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#904](https://github.com/wez/wezterm/pull/904)
 * New: [text_blink_rate](config/lua/config/text_blink_rate.md) and [text_blink_rate_rapid](config/lua/config/text_blink_rate_rapid.md) options to control blinking text. Thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#904](https://github.com/wez/wezterm/pull/904)
+* New: Added support for [Synchronized Rendering](https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036) [#882](https://github.com/wez/wezterm/issues/882)
 
 ### 20210502-154244-3f7122cb
 

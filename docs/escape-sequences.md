@@ -301,6 +301,11 @@ CSI 58 : 2 : R : G : B m
 
 #### Mode Functions
 
+*Since: nightly builds only*
+
+WezTerm supports [Synchronized Rendering](https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036).
+DECSET 2026 is set to batch (hold) rendering until DECSET 2026 is reset to flush the queued screen data.
+
 #### Device Functions
 
 #### Window Functions
