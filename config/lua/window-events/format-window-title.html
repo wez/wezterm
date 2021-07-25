@@ -154,7 +154,7 @@ to call from inside the event handler and will generate a <code>format-window-ti
 <p>This example overrides the default window title with code that is equivalent
 to the default processing--not very useful except as a starting point for
 making your own title text:</p>
-<pre><code class="language-lua">wezterm.on(&quot;format-window-title&quot;, function(tab, tabs, panes, config)
+<pre><code class="language-lua">wezterm.on(&quot;format-window-title&quot;, function(tab, pane, tabs, panes, config)
   local zoomed = &quot;&quot;
   if tab.active_pane.is_zoomed then
     zoomed = &quot;[Z] &quot;
@@ -171,6 +171,7 @@ end)
 <p>The parameters to the event are:</p>
 <ul>
 <li><code>tab</code> - the <a href="../TabInformation.html">TabInformation</a> for the active tab</li>
+<li><code>pane</code> - the <a href="../PaneInformation.html">PaneInformation</a> for the active pane</li>
 <li><code>tabs</code> - an array containing <a href="../TabInformation.html">TabInformation</a> for each of the tabs in the window</li>
 <li><code>panes</code> - an array containing <a href="../PaneInformation.html">PaneInformation</a> for each of the panes in the active tab</li>
 <li><code>config</code> - the effective configuration for the window</li>
