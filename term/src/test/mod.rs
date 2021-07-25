@@ -799,6 +799,36 @@ fn test_resize_wrap_issue_971() {
 }
 
 #[test]
+fn test_resize_wrap_sgc_issue_978() {
+    const LINES: usize = 4;
+    let mut term = TestTerm::new(LINES, 4, 0);
+    term.print("\u{1b}(0qqqq\u{1b}(B\r\nSS\r\n");
+    assert_visible_contents(&term, file!(), line!(), &["────", "SS", "", ""]);
+    term.resize(LINES, 6, 0, 0);
+    assert_visible_contents(&term, file!(), line!(), &["────", "SS", "", ""]);
+}
+
+#[test]
+fn test_resize_wrap_dectcm_issue_978() {
+    const LINES: usize = 4;
+    let mut term = TestTerm::new(LINES, 4, 0);
+    term.print("\u{1b}[?25l====\u{1b}[?25h\r\nSS\r\n");
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+    term.resize(LINES, 6, 0, 0);
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+}
+
+#[test]
+fn test_resize_wrap_escape_code_issue_978() {
+    const LINES: usize = 4;
+    let mut term = TestTerm::new(LINES, 4, 0);
+    term.print("====\u{1b}[0m\r\nSS\r\n");
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+    term.resize(LINES, 6, 0, 0);
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+}
+
+#[test]
 fn test_scrollup() {
     let mut term = TestTerm::new(2, 1, 4);
     term.print("1\n");
@@ -901,11 +931,7 @@ fn test_hyperlinks() {
         file!(),
         line!(),
         &term.screen().visible_lines(),
-        &[
-            Line::from_text_with_wrapped_last_col("hello", &linked),
-            "".into(),
-            "".into(),
-        ],
+        &[Line::from_text("hello", &linked), "".into(), "".into()],
         Compare::TEXT | Compare::ATTRS,
     );
 
@@ -921,7 +947,7 @@ fn test_hyperlinks() {
         &term.screen().visible_lines(),
         &[
             Line::from_text_with_wrapped_last_col("hello", &linked),
-            Line::from_text_with_wrapped_last_col("hey!!", &linked),
+            Line::from_text("hey!!", &linked),
             "".into(),
         ],
         Compare::TEXT | Compare::ATTRS,
@@ -936,8 +962,7 @@ fn test_hyperlinks() {
     term.soft_reset();
     term.print("00t");
 
-    let mut partial_line =
-        Line::from_text_with_wrapped_last_col("wo00t", &CellAttributes::default());
+    let mut partial_line = Line::from_text("wo00t", &CellAttributes::default());
     partial_line.set_cell(
         0,
         Cell::new(

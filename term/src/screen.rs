@@ -318,6 +318,12 @@ impl Screen {
         line.set_cell(x, cell.clone())
     }
 
+    pub fn cell_mut(&mut self, x: usize, y: VisibleRowIndex) -> Option<&mut Cell> {
+        let line_idx = self.phys_row(y);
+        let line = self.lines.get_mut(line_idx)?;
+        line.cells_mut().get_mut(x)
+    }
+
     pub fn get_cell(&self, x: usize, y: VisibleRowIndex) -> Option<&Cell> {
         let line_idx = self.phys_row(y);
         let line = self.lines.get(line_idx)?;

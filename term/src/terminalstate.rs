@@ -3202,7 +3202,7 @@ impl<'a> DerefMut for Performer<'a> {
 
 impl<'a> Drop for Performer<'a> {
     fn drop(&mut self) {
-        self.flush_print(false);
+        self.flush_print();
     }
 }
 
@@ -3224,7 +3224,7 @@ impl<'a> Performer<'a> {
         Self { state, print: None }
     }
 
-    fn flush_print(&mut self, cr_follows: bool) {
+    fn flush_print(&mut self) {
         let p = match self.print.take() {
             Some(s) => s,
             None => return,
@@ -3283,6 +3283,18 @@ impl<'a> Performer<'a> {
             };
 
             if self.wrap_next {
+                // Since we're implicitly moving the cursor to the next
+                // line, we need to tag the current position as wrapped
+                // so that we can correctly reflow it if the window is
+                // resized.
+                {
+                    let x = self.cursor.x;
+                    let y = self.cursor.y;
+                    let screen = self.screen_mut();
+                    if let Some(cell) = screen.cell_mut(x, y) {
+                        cell.attrs_mut().set_wrapped(true);
+                    }
+                }
                 self.new_line(true);
             }
 
@@ -3290,7 +3302,7 @@ impl<'a> Performer<'a> {
             let y = self.cursor.y;
             let width = self.left_and_right_margins.end;
 
-            let mut pen = self.pen.clone();
+            let pen = self.pen.clone();
             // the max(1) here is to ensure that we advance to the next cell
             // position for zero-width graphemes.  We want to make sure that
             // they occupy a cell so that we can re-emit them when we output them.
@@ -3298,16 +3310,7 @@ impl<'a> Performer<'a> {
             // the model, which seems like a lossy design choice.
             let print_width = unicode_column_width(g).max(1);
             let is_last = graphemes.peek().is_none();
-
-            // We're going to mark the cell as being wrapped, but not if this grapheme
-            // is the last in this run and we know that we're followed by a CR.
-            // In that case, we know that there is an explicit line break and
-            // we mustn't record a wrap for that!
-            let wrappable = (x + print_width >= width) && !(is_last && cr_follows);
-
-            if wrappable {
-                pen.set_wrapped(true);
-            }
+            let wrappable = x + print_width >= width;
 
             let cell = Cell::new_grapheme(g, pen);
 
@@ -3321,11 +3324,10 @@ impl<'a> Performer<'a> {
 
             // Assign the cell
             log::trace!(
-                "print x={} y={} is_last={} cr_follows={} print_width={} width={} cell={:?}",
+                "print x={} y={} is_last={} print_width={} width={} cell={:?}",
                 x,
                 y,
                 is_last,
-                cr_follows,
                 print_width,
                 width,
                 cell
@@ -3426,8 +3428,7 @@ impl<'a> Performer<'a> {
     }
 
     fn control(&mut self, control: ControlCode) {
-        let cr_follows = matches!(control, ControlCode::CarriageReturn);
-        self.flush_print(cr_follows);
+        self.flush_print();
         match control {
             ControlCode::LineFeed | ControlCode::VerticalTab | ControlCode::FormFeed => {
                 if self.left_and_right_margins.contains(&self.cursor.x) {
@@ -3532,7 +3533,7 @@ impl<'a> Performer<'a> {
     }
 
     fn csi_dispatch(&mut self, csi: CSI) {
-        self.flush_print(false);
+        self.flush_print();
         match csi {
             CSI::Sgr(sgr) => self.state.perform_csi_sgr(sgr),
             CSI::Cursor(cursor) => self.state.perform_csi_cursor(cursor),
@@ -3548,7 +3549,7 @@ impl<'a> Performer<'a> {
     }
 
     fn esc_dispatch(&mut self, esc: Esc) {
-        self.flush_print(false);
+        self.flush_print();
         match esc {
             Esc::Code(EscCode::StringTerminator) => {
                 // String Terminator (ST); explicitly has nothing to do here, as its purpose is
@@ -3675,7 +3676,7 @@ impl<'a> Performer<'a> {
     }
 
     fn osc_dispatch(&mut self, osc: OperatingSystemCommand) {
-        self.flush_print(false);
+        self.flush_print();
         match osc {
             OperatingSystemCommand::SetIconNameSun(title)
             | OperatingSystemCommand::SetIconName(title) => {
