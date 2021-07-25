@@ -116,23 +116,35 @@ fn parse_buffered_data(pane_id: PaneId, dead: &Arc<AtomicBool>, mut rx: FileDesc
             }
             Ok(size) => {
                 parser.parse(&buf[0..size], |action| {
+                    let mut flush = false;
                     match &action {
                         Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
                             DecPrivateModeCode::SynchronizedOutput,
                         )))) => {
                             hold = true;
+
+                            // Flush prior actions
+                            if !actions.is_empty() {
+                                send_actions_to_mux(pane_id, dead, std::mem::take(&mut actions));
+                            }
                         }
                         Action::CSI(CSI::Mode(Mode::ResetDecPrivateMode(
                             DecPrivateMode::Code(DecPrivateModeCode::SynchronizedOutput),
                         ))) => {
                             hold = false;
+                            flush = true;
                         }
                         Action::CSI(CSI::Device(dev)) if matches!(**dev, Device::SoftReset) => {
                             hold = false;
+                            flush = true;
                         }
                         _ => {}
                     };
-                    actions.push(action)
+                    actions.push(action);
+
+                    if flush && !actions.is_empty() {
+                        send_actions_to_mux(pane_id, dead, std::mem::take(&mut actions));
+                    }
                 });
                 if !actions.is_empty() && !hold {
                     send_actions_to_mux(pane_id, dead, std::mem::take(&mut actions));

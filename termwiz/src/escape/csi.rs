@@ -247,6 +247,7 @@ impl XtSmGraphics {
     }
 
     pub fn parse(params: &[CsiParam]) -> Result<CSI, ()> {
+        let params = Cracked::parse(&params[1..])?;
         Ok(CSI::Device(Box::new(Device::XtSmGraphics(XtSmGraphics {
             item: match params.get(0).ok_or(())? {
                 CsiParam::Integer(1) => XtSmGraphicsItem::NumberOfColorRegisters,
@@ -259,10 +260,10 @@ impl XtSmGraphics {
                 CsiParam::Integer(n) => *n,
                 _ => return Err(()),
             },
-            value: params[2..]
+            value: params.params[2..]
                 .iter()
                 .filter_map(|p| match p {
-                    CsiParam::Integer(n) => Some(*n),
+                    Some(CsiParam::Integer(n)) => Some(*n),
                     _ => None,
                 })
                 .collect(),
@@ -561,8 +562,10 @@ pub enum Mode {
     ResetDecPrivateMode(DecPrivateMode),
     SaveDecPrivateMode(DecPrivateMode),
     RestoreDecPrivateMode(DecPrivateMode),
+    QueryDecPrivateMode(DecPrivateMode),
     SetMode(TerminalMode),
     ResetMode(TerminalMode),
+    QueryMode(TerminalMode),
     XtermKeyMode {
         resource: XtermKeyModifierResource,
         value: Option<i64>,
@@ -594,8 +597,18 @@ impl Display for Mode {
             Mode::ResetDecPrivateMode(mode) => emit!("l", mode),
             Mode::SaveDecPrivateMode(mode) => emit!("s", mode),
             Mode::RestoreDecPrivateMode(mode) => emit!("r", mode),
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(mode)) => {
+                write!(f, "?{}$p", mode.to_u16().ok_or_else(|| FmtError)?)
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Unspecified(mode)) => {
+                write!(f, "?{}$p", mode)
+            }
             Mode::SetMode(mode) => emit_mode!("h", mode),
             Mode::ResetMode(mode) => emit_mode!("l", mode),
+            Mode::QueryMode(TerminalMode::Code(mode)) => {
+                write!(f, "?{}$p", mode.to_u16().ok_or_else(|| FmtError)?)
+            }
+            Mode::QueryMode(TerminalMode::Unspecified(mode)) => write!(f, "?{}$p", mode),
             Mode::XtermKeyMode { resource, value } => {
                 write!(
                     f,
@@ -1378,6 +1391,7 @@ struct CSIParser<'a> {
     /// default values, especially for SGR, so we need to be careful not
     /// to update params to an empty slice.
     params: Option<&'a [CsiParam]>,
+    orig_params: &'a [CsiParam],
 }
 
 impl CSI {
@@ -1396,6 +1410,7 @@ impl CSI {
             parameters_truncated,
             control,
             params: Some(params),
+            orig_params: params,
         }
     }
 }
@@ -1502,7 +1517,7 @@ macro_rules! parse {
 
 impl<'a> CSIParser<'a> {
     fn parse_next(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
-        match (self.control, params) {
+        match (self.control, self.orig_params) {
             ('q', [.., CsiParam::P(b' ')]) => self.cursor_style(params),
             ('y', [.., CsiParam::P(b'*')]) => self.checksum_area(params),
 
@@ -1522,76 +1537,82 @@ impl<'a> CSIParser<'a> {
                 .map(|dev| CSI::Device(Box::new(dev))),
 
             ('S', [CsiParam::P(b'?'), ..]) => XtSmGraphics::parse(params),
+            ('p', [CsiParam::Integer(_), CsiParam::P(b'$')])
+            | ('p', [CsiParam::P(b'?'), CsiParam::Integer(_), CsiParam::P(b'$')]) => {
+                self.decrqm(params)
+            }
             ('h', [CsiParam::P(b'?'), ..]) => self
-                .dec(params)
+                .dec(self.focus(params, 1, 0))
                 .map(|mode| CSI::Mode(Mode::SetDecPrivateMode(mode))),
             ('l', [CsiParam::P(b'?'), ..]) => self
-                .dec(params)
+                .dec(self.focus(params, 1, 0))
                 .map(|mode| CSI::Mode(Mode::ResetDecPrivateMode(mode))),
             ('r', [CsiParam::P(b'?'), ..]) => self
-                .dec(params)
+                .dec(self.focus(params, 1, 0))
                 .map(|mode| CSI::Mode(Mode::RestoreDecPrivateMode(mode))),
             ('q', [CsiParam::P(b'>'), ..]) => self
                 .req_terminal_name_and_version(params)
                 .map(|dev| CSI::Device(Box::new(dev))),
             ('s', [CsiParam::P(b'?'), ..]) => self
-                .dec(params)
+                .dec(self.focus(params, 1, 0))
                 .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
             ('m', [CsiParam::P(b'>'), ..]) => self.xterm_key_modifier(params),
 
             ('p', [CsiParam::P(b'!')]) => Ok(CSI::Device(Box::new(Device::SoftReset))),
 
-            ('c', _) => self
-                .req_primary_device_attributes(params)
-                .map(|dev| CSI::Device(Box::new(dev))),
+            _ => match self.control {
+                'c' => self
+                    .req_primary_device_attributes(params)
+                    .map(|dev| CSI::Device(Box::new(dev))),
 
-            ('@', _) => parse!(Edit, InsertCharacter, params),
-            ('`', _) => parse!(Cursor, CharacterPositionAbsolute, params),
-            ('A', _) => parse!(Cursor, Up, params),
-            ('B', _) => parse!(Cursor, Down, params),
-            ('C', _) => parse!(Cursor, Right, params),
-            ('D', _) => parse!(Cursor, Left, params),
-            ('E', _) => parse!(Cursor, NextLine, params),
-            ('F', _) => parse!(Cursor, PrecedingLine, params),
-            ('G', _) => parse!(Cursor, CharacterAbsolute, params),
-            ('H', _) => parse!(Cursor, Position, line, col, params),
-            ('I', _) => parse!(Cursor, ForwardTabulation, params),
-            ('J', _) => parse!(Edit, EraseInDisplay, params),
-            ('K', _) => parse!(Edit, EraseInLine, params),
-            ('L', _) => parse!(Edit, InsertLine, params),
-            ('M', _) => parse!(Edit, DeleteLine, params),
-            ('P', _) => parse!(Edit, DeleteCharacter, params),
-            ('R', _) => parse!(Cursor, ActivePositionReport, line, col, params),
-            ('S', _) => parse!(Edit, ScrollUp, params),
-            ('T', _) => parse!(Edit, ScrollDown, params),
-            ('W', _) => parse!(Cursor, TabulationControl, params),
-            ('X', _) => parse!(Edit, EraseCharacter, params),
-            ('Y', _) => parse!(Cursor, LineTabulation, params),
-            ('Z', _) => parse!(Cursor, BackwardTabulation, params),
+                '@' => parse!(Edit, InsertCharacter, params),
+                '`' => parse!(Cursor, CharacterPositionAbsolute, params),
+                'A' => parse!(Cursor, Up, params),
+                'B' => parse!(Cursor, Down, params),
+                'C' => parse!(Cursor, Right, params),
+                'D' => parse!(Cursor, Left, params),
+                'E' => parse!(Cursor, NextLine, params),
+                'F' => parse!(Cursor, PrecedingLine, params),
+                'G' => parse!(Cursor, CharacterAbsolute, params),
+                'H' => parse!(Cursor, Position, line, col, params),
+                'I' => parse!(Cursor, ForwardTabulation, params),
+                'J' => parse!(Edit, EraseInDisplay, params),
+                'K' => parse!(Edit, EraseInLine, params),
+                'L' => parse!(Edit, InsertLine, params),
+                'M' => parse!(Edit, DeleteLine, params),
+                'P' => parse!(Edit, DeleteCharacter, params),
+                'R' => parse!(Cursor, ActivePositionReport, line, col, params),
+                'S' => parse!(Edit, ScrollUp, params),
+                'T' => parse!(Edit, ScrollDown, params),
+                'W' => parse!(Cursor, TabulationControl, params),
+                'X' => parse!(Edit, EraseCharacter, params),
+                'Y' => parse!(Cursor, LineTabulation, params),
+                'Z' => parse!(Cursor, BackwardTabulation, params),
 
-            ('a', _) => parse!(Cursor, CharacterPositionForward, params),
-            ('b', _) => parse!(Edit, Repeat, params),
-            ('d', _) => parse!(Cursor, LinePositionAbsolute, params),
-            ('e', _) => parse!(Cursor, LinePositionForward, params),
-            ('f', _) => parse!(Cursor, CharacterAndLinePosition, line, col, params),
-            ('g', _) => parse!(Cursor, TabulationClear, params),
-            ('h', _) => self
-                .terminal_mode(params)
-                .map(|mode| CSI::Mode(Mode::SetMode(mode))),
-            ('j', _) => parse!(Cursor, CharacterPositionBackward, params),
-            ('k', _) => parse!(Cursor, LinePositionBackward, params),
-            ('l', _) => self
-                .terminal_mode(params)
-                .map(|mode| CSI::Mode(Mode::ResetMode(mode))),
+                'a' => parse!(Cursor, CharacterPositionForward, params),
+                'b' => parse!(Edit, Repeat, params),
+                'd' => parse!(Cursor, LinePositionAbsolute, params),
+                'e' => parse!(Cursor, LinePositionForward, params),
+                'f' => parse!(Cursor, CharacterAndLinePosition, line, col, params),
+                'g' => parse!(Cursor, TabulationClear, params),
+                'h' => self
+                    .terminal_mode(params)
+                    .map(|mode| CSI::Mode(Mode::SetMode(mode))),
+                'j' => parse!(Cursor, CharacterPositionBackward, params),
+                'k' => parse!(Cursor, LinePositionBackward, params),
+                'l' => self
+                    .terminal_mode(params)
+                    .map(|mode| CSI::Mode(Mode::ResetMode(mode))),
 
-            ('m', _) => self.sgr(params).map(CSI::Sgr),
-            ('n', _) => self.dsr(params),
-            ('r', _) => self.decstbm(params),
-            ('s', _) => self.decslrm(params),
-            ('t', _) => self.window(params).map(CSI::Window),
-            ('u', _) => noparams!(Cursor, RestoreCursor, params),
+                'm' => self.sgr(params).map(CSI::Sgr),
+                'n' => self.dsr(params),
+                'r' => self.decstbm(params),
+                's' => self.decslrm(params),
+                't' => self.window(params).map(CSI::Window),
+                'u' => noparams!(Cursor, RestoreCursor, params),
 
-            _ => Err(()),
+                _ => Err(()),
+            },
         }
     }
 
@@ -1611,6 +1632,15 @@ impl<'a> CSIParser<'a> {
             self.params = Some(next);
         }
         result
+    }
+
+    fn focus(&self, params: &'a [CsiParam], from_start: usize, from_end: usize) -> &'a [CsiParam] {
+        if params == self.orig_params {
+            let len = params.len();
+            &params[from_start..len - from_end]
+        } else {
+            params
+        }
     }
 
     fn cursor_style(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
@@ -1755,10 +1785,10 @@ impl<'a> CSIParser<'a> {
 
     fn req_terminal_name_and_version(&mut self, params: &'a [CsiParam]) -> Result<Device, ()> {
         match params {
-            [] => Ok(Device::RequestTerminalNameAndVersion),
+            [_] => Ok(Device::RequestTerminalNameAndVersion),
 
-            [CsiParam::Integer(0)] => {
-                Ok(self.advance_by(1, params, Device::RequestTerminalNameAndVersion))
+            [_, CsiParam::Integer(0)] => {
+                Ok(self.advance_by(2, params, Device::RequestTerminalNameAndVersion))
             }
             _ => Err(()),
         }
@@ -1887,15 +1917,33 @@ impl<'a> CSIParser<'a> {
         ))
     }
 
+    fn decrqm(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
+        Ok(CSI::Mode(match params {
+            [CsiParam::Integer(p), CsiParam::P(b'$')] => {
+                Mode::QueryMode(match FromPrimitive::from_i64(*p) {
+                    None => TerminalMode::Unspecified(p.to_u16().ok_or(())?),
+                    Some(mode) => TerminalMode::Code(mode),
+                })
+            }
+            [CsiParam::P(b'?'), CsiParam::Integer(p), CsiParam::P(b'$')] => {
+                Mode::QueryDecPrivateMode(match FromPrimitive::from_i64(*p) {
+                    None => DecPrivateMode::Unspecified(p.to_u16().ok_or(())?),
+                    Some(mode) => DecPrivateMode::Code(mode),
+                })
+            }
+            _ => return Err(()),
+        }))
+    }
+
     fn dec(&mut self, params: &'a [CsiParam]) -> Result<DecPrivateMode, ()> {
         match params {
-            [CsiParam::P(b'?'), CsiParam::Integer(p0), ..] => match FromPrimitive::from_i64(*p0) {
+            [CsiParam::Integer(p0), ..] => match FromPrimitive::from_i64(*p0) {
                 None => Ok(self.advance_by(
-                    2,
+                    1,
                     params,
                     DecPrivateMode::Unspecified(p0.to_u16().ok_or(())?),
                 )),
-                Some(mode) => Ok(self.advance_by(2, params, DecPrivateMode::Code(mode))),
+                Some(mode) => Ok(self.advance_by(1, params, DecPrivateMode::Code(mode))),
             },
             _ => Err(()),
         }

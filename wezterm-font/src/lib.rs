@@ -353,7 +353,7 @@ impl FontConfigInner {
                     }
                     .show();
                 } else {
-                    log::warn!(
+                    log::debug!(
                         "No fonts contain glyphs for these codepoints: {}",
                         fallback_str.escape_unicode()
                     );

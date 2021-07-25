@@ -429,7 +429,8 @@ mod test {
     use crate::cell::{Intensity, Underline};
     use crate::color::ColorSpec;
     use crate::escape::csi::{
-        DecPrivateMode, DecPrivateModeCode, Device, Mode, Sgr, Window, XtermKeyModifierResource,
+        DecPrivateMode, DecPrivateModeCode, Device, Mode, Sgr, Window, XtSmGraphics,
+        XtSmGraphicsItem, XtermKeyModifierResource,
     };
     use crate::escape::{EscCode, OneBased};
     use std::io::Write;
@@ -730,6 +731,14 @@ mod test {
         actions
     }
 
+    fn parse_as(s: &str, expected: &str) -> Vec<Action> {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(s.as_bytes());
+        println!("actions: {:?}", actions);
+        assert_eq!(expected, encode(&actions));
+        actions
+    }
+
     #[test]
     fn xterm_key() {
         assert_eq!(
@@ -761,6 +770,35 @@ mod test {
                 bottom: OneBased::new(5),
                 right: OneBased::new(6),
             }))]
+        );
+    }
+
+    #[test]
+    fn dec_private_modes() {
+        assert_eq!(
+            parse_as("\x1b[?1;1006h", "\x1b[?1h\x1b[?1006h"),
+            vec![
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::ApplicationCursorKeys
+                ),))),
+                Action::CSI(CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::SGRMouse
+                ),))),
+            ]
+        );
+    }
+
+    #[test]
+    fn xtsmgraphics() {
+        assert_eq!(
+            round_trip_parse("\x1b[?1;3;256S"),
+            vec![Action::CSI(CSI::Device(Box::new(Device::XtSmGraphics(
+                XtSmGraphics {
+                    item: XtSmGraphicsItem::NumberOfColorRegisters,
+                    action_or_status: 3,
+                    value: vec![256]
+                }
+            ))))]
         );
     }
 

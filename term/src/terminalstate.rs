@@ -7,7 +7,7 @@ use anyhow::bail;
 use image::imageops::FilterType;
 use image::ImageFormat;
 use log::{debug, error};
-use num_traits::FromPrimitive;
+use num_traits::{FromPrimitive, ToPrimitive};
 use ordered_float::NotNan;
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -1869,6 +1869,37 @@ impl TerminalState {
         }
     }
 
+    fn decqrm_response(&mut self, mode: Mode, mut recognized: bool, enabled: bool) {
+        let (is_dec, number) = match &mode {
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(code)) => (true, code.to_u16().unwrap()),
+            Mode::QueryDecPrivateMode(DecPrivateMode::Unspecified(code)) => {
+                recognized = false;
+                (true, *code)
+            }
+            Mode::QueryMode(TerminalMode::Code(code)) => (false, code.to_u16().unwrap()),
+            Mode::QueryMode(TerminalMode::Unspecified(code)) => {
+                recognized = false;
+                (false, *code)
+            }
+            _ => unreachable!(),
+        };
+
+        let prefix = if is_dec { "?" } else { "" };
+
+        let status = if recognized {
+            if enabled {
+                1 // set
+            } else {
+                2 // reset
+            }
+        } else {
+            0
+        };
+
+        log::trace!("{:?} -> recognized={} status={}", mode, recognized, status);
+        write!(self.writer, "\x1b[{}{};{}$y", prefix, number, status).ok();
+    }
+
     fn perform_csi_mode(&mut self, mode: Mode) {
         match mode {
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -1877,6 +1908,11 @@ impl TerminalState {
             | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::StartBlinkingCursor,
             )) => {}
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::StartBlinkingCursor,
+            )) => {
+                self.decqrm_response(mode, true, false);
+            }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat)) => {
@@ -1895,6 +1931,12 @@ impl TerminalState {
                 self.reverse_wraparound_mode = false;
             }
 
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ReverseWraparound,
+            )) => {
+                self.decqrm_response(mode, true, self.reverse_wraparound_mode);
+            }
+
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::LeftRightMarginMode,
             )) => {
@@ -1906,6 +1948,12 @@ impl TerminalState {
             )) => {
                 self.left_and_right_margin_mode = false;
                 self.left_and_right_margins = 0..self.screen().physical_cols;
+            }
+
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::LeftRightMarginMode,
+            )) => {
+                self.decqrm_response(mode, true, self.left_and_right_margin_mode);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SaveCursor)) => {
@@ -1924,6 +1972,10 @@ impl TerminalState {
                 self.dec_auto_wrap = false;
             }
 
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoWrap)) => {
+                self.decqrm_response(mode, true, self.dec_auto_wrap);
+            }
+
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
                 self.dec_origin_mode = true;
                 self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
@@ -1932,6 +1984,10 @@ impl TerminalState {
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
                 self.dec_origin_mode = false;
                 self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
+            }
+
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
+                self.decqrm_response(mode, true, self.dec_origin_mode);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -1944,6 +2000,15 @@ impl TerminalState {
             )) => {
                 self.use_private_color_registers_for_each_graphic = false;
             }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::UsePrivateColorRegistersForEachGraphic,
+            )) => {
+                self.decqrm_response(
+                    mode,
+                    true,
+                    self.use_private_color_registers_for_each_graphic,
+                );
+            }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::SynchronizedOutput,
@@ -1954,6 +2019,13 @@ impl TerminalState {
                 DecPrivateModeCode::SynchronizedOutput,
             )) => {
                 // This is handled in wezterm's mux
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::SynchronizedOutput,
+            )) => {
+                // This is handled in wezterm's mux; if we get here, then it isn't enabled,
+                // so we always report false
+                self.decqrm_response(mode, true, false);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SmoothScroll))
@@ -1988,12 +2060,18 @@ impl TerminalState {
             Mode::ResetMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
                 self.insert = false;
             }
+            Mode::QueryMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
+                self.decqrm_response(mode, true, self.insert);
+            }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste)) => {
                 self.bracketed_paste = true;
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste)) => {
                 self.bracketed_paste = false;
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste)) => {
+                self.decqrm_response(mode, true, self.bracketed_paste);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -2036,12 +2114,20 @@ impl TerminalState {
             )) => {
                 self.application_cursor_keys = false;
             }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ApplicationCursorKeys,
+            )) => {
+                self.decqrm_response(mode, true, self.application_cursor_keys);
+            }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelScrolling)) => {
                 self.sixel_scrolling = true;
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelScrolling)) => {
                 self.sixel_scrolling = false;
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelScrolling)) => {
+                self.decqrm_response(mode, true, self.sixel_scrolling);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::DecAnsiMode)) => {
@@ -2050,12 +2136,18 @@ impl TerminalState {
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::DecAnsiMode)) => {
                 self.dec_ansi_mode = false;
             }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::DecAnsiMode)) => {
+                self.decqrm_response(mode, true, self.dec_ansi_mode);
+            }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ShowCursor)) => {
                 self.cursor_visible = true;
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ShowCursor)) => {
                 self.cursor_visible = false;
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ShowCursor)) => {
+                self.decqrm_response(mode, true, self.cursor_visible);
             }
             Mode::SetMode(TerminalMode::Code(TerminalModeCode::ShowCursor)) => {
                 self.cursor_visible = true;
@@ -2071,6 +2163,9 @@ impl TerminalState {
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking)) => {
                 self.mouse_tracking = false;
                 self.last_mouse_move.take();
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking)) => {
+                self.decqrm_response(mode, true, self.mouse_tracking);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -2090,6 +2185,11 @@ impl TerminalState {
                 self.button_event_mouse = false;
                 self.last_mouse_move.take();
             }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ButtonEventMouse,
+            )) => {
+                self.decqrm_response(mode, true, self.button_event_mouse);
+            }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse)) => {
                 self.any_event_mouse = true;
@@ -2098,6 +2198,9 @@ impl TerminalState {
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse)) => {
                 self.any_event_mouse = false;
                 self.last_mouse_move.take();
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse)) => {
+                self.decqrm_response(mode, true, self.any_event_mouse);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking)) => {
@@ -2108,6 +2211,9 @@ impl TerminalState {
                 self.focus_tracking = false;
                 self.last_mouse_move.take();
             }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking)) => {
+                self.decqrm_response(mode, true, self.focus_tracking);
+            }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
                 self.sgr_mouse = true;
@@ -2116,6 +2222,9 @@ impl TerminalState {
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
                 self.sgr_mouse = false;
                 self.last_mouse_move.take();
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
+                self.decqrm_response(mode, true, self.sgr_mouse);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -2127,6 +2236,11 @@ impl TerminalState {
                 DecPrivateModeCode::SixelScrollsRight,
             )) => {
                 self.sixel_scrolls_right = false;
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::SixelScrollsRight,
+            )) => {
+                self.decqrm_response(mode, true, self.sixel_scrolls_right);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -2153,24 +2267,23 @@ impl TerminalState {
                 log::warn!("save/restore dec mode {:?} unimplemented", n)
             }
 
-            Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(n))
-            | Mode::ResetDecPrivateMode(DecPrivateMode::Unspecified(n))
-            | Mode::SaveDecPrivateMode(DecPrivateMode::Unspecified(n))
-            | Mode::RestoreDecPrivateMode(DecPrivateMode::Unspecified(n)) => {
-                log::warn!("unhandled DecPrivateMode {}", n);
+            Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(_))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Unspecified(_))
+            | Mode::SaveDecPrivateMode(DecPrivateMode::Unspecified(_))
+            | Mode::RestoreDecPrivateMode(DecPrivateMode::Unspecified(_)) => {
+                log::warn!("unhandled DecPrivateMode {:?}", mode);
             }
 
-            Mode::SetMode(TerminalMode::Unspecified(n))
-            | Mode::ResetMode(TerminalMode::Unspecified(n)) => {
-                log::warn!("unhandled TerminalMode {}", n);
-            }
-
-            Mode::SetMode(m) | Mode::ResetMode(m) => {
-                log::warn!("unhandled TerminalMode {:?}", m);
+            mode @ Mode::SetMode(_) | mode @ Mode::ResetMode(_) => {
+                log::warn!("unhandled {:?}", mode);
             }
 
             Mode::XtermKeyMode { resource, value } => {
                 log::warn!("unhandled XtermKeyMode {:?} {:?}", resource, value);
+            }
+
+            Mode::QueryDecPrivateMode(_) | Mode::QueryMode(_) => {
+                self.decqrm_response(mode, false, false);
             }
         }
     }
