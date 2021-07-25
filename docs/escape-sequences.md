@@ -164,8 +164,8 @@ It is valid to omit the code number; for example `CSI m` is equivalent to `CSI
 |4:3 |UnderlineCurly|Text will be rendered with a curly underline|
 |4:4 |UnderlineDotted|Text will be rendered with a dotted underline|
 |4:5 |UnderlineDashed|Text will be rendered with a dashed underline|
-|5   |BlinkOn|Indicates that the text should blink <150 times per minute.  While the attribute is preserved, WezTerm doesn't render blinking text|
-|6   |RapidBlinkOn|Indicates that the text should blink >150 times per minute.  While the attribute is preserved, WezTerm doesn't render blinking text|
+|5   |BlinkOn|Indicates that the text should blink <150 times per minute|
+|6   |RapidBlinkOn|Indicates that the text should blink >150 times per minute|
 |7   |InverseOn|Causes the foreground and background colors to be swapped|
 |8   |InvisibleOn|Marks text as invisible.|
 |9   |StrikeThroughOn|Text will be rendered with a single line struck through the middle|
