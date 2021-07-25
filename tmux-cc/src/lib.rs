@@ -72,6 +72,9 @@ pub enum Event {
         session: TmuxSessionId,
         session_name: String,
     },
+    ClientDetached {
+        client_name: String,
+    },
     PaneModeChanged {
         pane: TmuxPaneId,
     },
@@ -262,6 +265,11 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
                 session,
                 session_name,
             })
+        }
+        Rule::client_detached => {
+            let mut pairs = pair.into_inner();
+            let client_name = unvis(pairs.next().unwrap().as_str())?;
+            Ok(Event::ClientDetached { client_name })
         }
         Rule::session_renamed => {
             let mut pairs = pair.into_inner();
@@ -647,6 +655,7 @@ here
 %sessions-changed
 %session-changed $1 1
 %client-session-changed /dev/pts/5 $1 home
+%client-detached /dev/pts/10
 %layout-change @1 b25d,80x24,0,0,0
 %layout-change @1 cafd,120x29,0,0,0 cafd,120x29,0,0,0 *
 %output %1 \\033[1m\\033[7m%\\033[27m\\033[1m\\033[0m    \\015 \\015
@@ -680,6 +689,9 @@ here
                     client_name: "/dev/pts/5".to_owned(),
                     session: 1,
                     session_name: "home".to_owned()
+                },
+                Event::ClientDetached {
+                    client_name: "/dev/pts/10".to_owned()
                 },
                 Event::LayoutChange {
                     window: 1,
