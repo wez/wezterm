@@ -868,6 +868,17 @@ mod test {
     }
 
     #[test]
+    fn sgr() {
+        assert_eq!(
+            parse_as("\x1b[;4m", "\x1b[0m\x1b[4m"),
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Reset)),
+                Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Single))),
+            ]
+        );
+    }
+
+    #[test]
     fn decset() {
         assert_eq!(
             round_trip_parse("\x1b[?23434h"),

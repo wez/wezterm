@@ -2127,6 +2127,10 @@ impl<'a> CSIParser<'a> {
             }
 
             match &params[0] {
+                CsiParam::P(b';') => {
+                    // Starting with an empty item is equivalent to a reset
+                    self.advance_by(1, params, Ok(Sgr::Reset))
+                }
                 CsiParam::P(_) => Err(()),
                 CsiParam::Integer(i) => match FromPrimitive::from_i64(*i) {
                     None => Err(()),
