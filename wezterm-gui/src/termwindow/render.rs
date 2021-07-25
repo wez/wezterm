@@ -674,6 +674,12 @@ impl super::TermWindow {
         // open a vim split horizontally.  Backgrounding vim would leave
         // the right pane with its prior contents instead of showing the
         // cleared lines from the shell in the main screen.
+        let clear_bg = if params.line.is_reverse() {
+            params.foreground
+        } else {
+            params.default_bg
+        };
+
         for cell_idx in 0..num_cols {
             let mut quad =
                 match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
@@ -681,7 +687,7 @@ impl super::TermWindow {
                     Err(_) => break,
                 };
 
-            quad.set_bg_color(params.default_bg);
+            quad.set_bg_color(clear_bg);
             quad.set_texture(params.white_space);
             quad.set_image_texture(params.white_space);
             quad.set_texture_adjust(0., 0., 0., 0.);
