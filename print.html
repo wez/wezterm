@@ -450,6 +450,7 @@ usually the best available version.</p>
 <li>Improved: VT102 conformance. Many thanks to <a href="https://gitlab.com/klamonte">Autumn Lamonte</a>! <a href="https://github.com/wez/wezterm/pull/904">#904</a></li>
 <li>New: <a href="config/lua/config/text_blink_rate.html">text_blink_rate</a> and <a href="config/lua/config/text_blink_rate_rapid.html">text_blink_rate_rapid</a> options to control blinking text. Thanks to <a href="https://gitlab.com/klamonte">Autumn Lamonte</a>! <a href="https://github.com/wez/wezterm/pull/904">#904</a></li>
 <li>New: Added support for <a href="https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036">Synchronized Rendering</a> <a href="https://github.com/wez/wezterm/issues/882">#882</a></li>
+<li>New: wezterm now draws its own pixel-perfect versions of more block drawing glyphs.  See <a href="config/lua/config/custom_block_glyphs.html">custom_block_glyphs</a> for more details. <a href="https://github.com/wez/wezterm/issues/584">#584</a></li>
 </ul>
 <h3 id="20210502-154244-3f7122cb"><a class="header" href="#20210502-154244-3f7122cb">20210502-154244-3f7122cb</a></h3>
 <ul>
@@ -6071,10 +6072,16 @@ relatively costly to keep re-rendering for the blink!</p>
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="custom_block_glyphs--true"><a class="header" href="#custom_block_glyphs--true"><code>custom_block_glyphs = true</code></a></h2>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
-<p>When set to <code>true</code> (the default), WezTerm will compute its own idea of what the
-<a href="https://www.unicode.org/charts/PDF/U2580.pdf">U2580</a> unicode block elements
-range, instead of using glyphs resolved from a font.</p>
+<p>When set to <code>true</code> (the default), WezTerm will compute its own idea of what the glyphs
+in the following unicode ranges should be, instead of using glyphs resolved from a font.</p>
 <p>Ideally this option wouldn't exist, but it is present to work around a <a href="https://gitlab.freedesktop.org/freetype/freetype/-/issues/761">hinting issue in freetype</a>.</p>
+<p>|Block|What|Since|
++-----+----+-----+
+|<a href="https://www.unicode.org/charts/PDF/U2580.pdf">U2500</a>|Box Drawing|<em>Nightly builds only</em>|
+|<a href="https://www.unicode.org/charts/PDF/U2580.pdf">U2580</a>|unicode block elements|<em>20210314-114017-04b7cedd</em>|
+|<a href="https://www.unicode.org/charts/PDF/U1FB00.pdf">U1FB00</a>|Symbols for Legacy Computing (Sextants and Smooth mosaic graphics)|<em>Nightly builds only</em>|
+|<a href="https://www.unicode.org/charts/PDF/U2800.pdf">U2800</a>|Braille Patterns|<em>Nightly builds only</em>|
+|<a href="https://github.com/ryanoasis/powerline-extra-symbols#glyphs">Powerline</a>|Powerline triangle, curve and diagonal glyphs|<em>Nightly builds only</em>|</p>
 <p>You can set this to <code>false</code> to use the block characters provided by your font selection.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="daemon_options"><a class="header" href="#daemon_options"><code>daemon_options</code></a></h1>
 <p>Allows configuring the multiplexer (mux) server and how it places itself into
