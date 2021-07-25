@@ -8,7 +8,7 @@ in the following unicode ranges should be, instead of using glyphs resolved from
 Ideally this option wouldn't exist, but it is present to work around a [hinting issue in freetype](https://gitlab.freedesktop.org/freetype/freetype/-/issues/761).
 
 |Block|What|Since|
-+-----+----+-----+
+|-----|----|-----|
 |[U2500](https://www.unicode.org/charts/PDF/U2580.pdf)|Box Drawing|*Nightly builds only*|
 |[U2580](https://www.unicode.org/charts/PDF/U2580.pdf)|unicode block elements|*20210314-114017-04b7cedd*|
 |[U1FB00](https://www.unicode.org/charts/PDF/U1FB00.pdf)|Symbols for Legacy Computing (Sextants and Smooth mosaic graphics)|*Nightly builds only*|
