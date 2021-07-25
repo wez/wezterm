@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
+use terminfo::{Database, Value};
 use termwiz::escape::csi::{
     Cursor, CursorStyle, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay,
     EraseInLine, Mode, Sgr, TabulationClear, TerminalMode, TerminalModeCode, Window, XtSmGraphics,
@@ -29,6 +30,13 @@ use termwiz::escape::{
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::{CursorShape, CursorVisibility};
 use url::Url;
+
+lazy_static::lazy_static! {
+    static ref DB: Database = {
+        let data = include_bytes!("../../termwiz/data/wezterm");
+        Database::from_buffer(&data[..]).unwrap()
+    };
+}
 
 struct TabStop {
     tabs: Vec<bool>,
@@ -1453,6 +1461,68 @@ impl TerminalState {
             Some(hyperlink) => Some(Arc::new(hyperlink)),
             None => None,
         });
+    }
+
+    /// <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h4-Device-Control-functions:DCS-plus-q-Pt-ST.F95>
+    fn xt_get_tcap(&mut self, names: Vec<String>) {
+        let mut res = "\x1bP".to_string();
+
+        for (i, name) in names.iter().enumerate() {
+            if i > 0 {
+                res.push(';');
+            }
+
+            let encoded_name = hex::encode_upper(&name);
+            match name.as_str() {
+                "TN" | "name" => {
+                    res.push_str("1+r");
+                    res.push_str(&encoded_name);
+                    res.push('=');
+
+                    let encoded_val = hex::encode_upper(&self.term_program);
+                    res.push_str(&encoded_val);
+                }
+
+                "Co" | "colors" => {
+                    res.push_str("1+r");
+                    res.push_str(&encoded_name);
+                    res.push('=');
+                    res.push_str(&256.to_string());
+                }
+
+                "RGB" => {
+                    res.push_str("1+r");
+                    res.push_str(&encoded_name);
+                    res.push('=');
+                    res.push_str("8/8/8");
+                }
+
+                _ => {
+                    if let Some(value) = DB.raw(name) {
+                        res.push_str("1+r");
+                        res.push_str(&encoded_name);
+                        res.push('=');
+                        match value {
+                            Value::True => res.push('1'),
+                            Value::Number(n) => res.push_str(&n.to_string()),
+                            Value::String(s) => {
+                                for &b in s {
+                                    res.push(b as char);
+                                }
+                            }
+                        }
+                    } else {
+                        log::trace!("xt_get_tcap: unknown name {}", name);
+                        res.push_str("0+r");
+                        res.push_str(&encoded_name);
+                    }
+                }
+            }
+        }
+
+        res.push_str("\x1b\\");
+        log::trace!("responding with {}", res.escape_debug());
+        self.writer.write_all(res.as_bytes()).ok();
     }
 
     fn sixel(&mut self, sixel: Box<Sixel>) {
@@ -3240,6 +3310,7 @@ impl<'a> Performer<'a> {
             Action::Esc(esc) => self.esc_dispatch(esc),
             Action::CSI(csi) => self.csi_dispatch(csi),
             Action::Sixel(sixel) => self.sixel(sixel),
+            Action::XtGetTcap(names) => self.xt_get_tcap(names),
         }
     }
 

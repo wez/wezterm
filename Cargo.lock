@@ -1914,6 +1914,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
 name = "hostname"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4306,6 +4312,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "filedescriptor",
  "fnv",
+ "hex",
  "lazy_static",
  "libc",
  "log",
@@ -5110,6 +5117,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bitflags",
+ "hex",
  "image",
  "k9",
  "lazy_static",
@@ -5122,6 +5130,7 @@ dependencies = [
  "pretty_env_logger",
  "serde",
  "sha2",
+ "terminfo",
  "termwiz",
  "unicode-segmentation",
  "unicode-width",

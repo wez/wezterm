@@ -20,9 +20,39 @@ struct SixelBuilder {
 }
 
 #[derive(Default)]
+struct GetTcapBuilder {
+    current: Vec<u8>,
+    names: Vec<String>,
+}
+
+impl GetTcapBuilder {
+    fn flush(&mut self) {
+        let decoded = hex::decode(&self.current)
+            .map(|s| String::from_utf8_lossy(&s).to_string())
+            .unwrap_or_else(|_| String::from_utf8_lossy(&self.current).to_string());
+        self.names.push(decoded);
+        self.current.clear();
+    }
+
+    pub fn push(&mut self, data: u8) {
+        if data == b';' {
+            self.flush();
+        } else {
+            self.current.push(data);
+        }
+    }
+
+    pub fn finish(mut self) -> Vec<String> {
+        self.flush();
+        self.names
+    }
+}
+
+#[derive(Default)]
 struct ParseState {
     sixel: Option<SixelBuilder>,
     dcs: Option<ShortDeviceControl>,
+    get_tcap: Option<GetTcapBuilder>,
 }
 
 /// The `Parser` struct holds the state machine that is used to decode
@@ -162,10 +192,14 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         intermediates: &[u8],
         ignored_extra_intermediates: bool,
     ) {
+        self.state.sixel.take();
+        self.state.get_tcap.take();
+        self.state.dcs.take();
         if byte == b'q' && intermediates.is_empty() && !ignored_extra_intermediates {
             self.state.sixel.replace(SixelBuilder::new(params));
+        } else if byte == b'q' && intermediates == [b'+'] {
+            self.state.get_tcap.replace(GetTcapBuilder::default());
         } else if !ignored_extra_intermediates && is_short_dcs(intermediates, byte) {
-            self.state.sixel.take();
             self.state.dcs.replace(ShortDeviceControl {
                 params: params.to_vec(),
                 intermediates: intermediates.to_vec(),
@@ -189,6 +223,8 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
             dcs.data.push(data);
         } else if let Some(sixel) = self.state.sixel.as_mut() {
             sixel.push(data);
+        } else if let Some(tcap) = self.state.get_tcap.as_mut() {
+            tcap.push(data);
         } else {
             (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));
         }
@@ -202,6 +238,8 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         } else if let Some(mut sixel) = self.state.sixel.take() {
             sixel.finish();
             (self.callback)(Action::Sixel(Box::new(sixel.sixel)));
+        } else if let Some(tcap) = self.state.get_tcap.take() {
+            (self.callback)(Action::XtGetTcap(tcap.finish()));
         } else {
             (self.callback)(Action::DeviceControl(DeviceControlMode::Exit));
         }
@@ -737,6 +775,17 @@ mod test {
         println!("actions: {:?}", actions);
         assert_eq!(expected, encode(&actions));
         actions
+    }
+
+    #[test]
+    fn xtgettcap() {
+        assert_eq!(
+            round_trip_parse("\x1bP+q544e\x1b\\"),
+            vec![
+                Action::XtGetTcap(vec!["TN".to_string()]),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ]
+        );
     }
 
     #[test]

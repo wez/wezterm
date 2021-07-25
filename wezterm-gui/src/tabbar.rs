@@ -414,7 +414,7 @@ fn parse_status_text(text: &str, default_cell: CellAttributes) -> Vec<Cell> {
             Action::Esc(_) => {
                 flush_print(&mut print_buffer, &mut cells, &pen);
             }
-            Action::Sixel(_) => {
+            Action::XtGetTcap(_) | Action::Sixel(_) => {
                 flush_print(&mut print_buffer, &mut cells, &pen);
             }
             Action::DeviceControl(_) => {

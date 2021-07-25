@@ -36,6 +36,9 @@ pub enum Action {
     CSI(CSI),
     Esc(Esc),
     Sixel(Box<Sixel>),
+    /// A list of termcap, terminfo names for which the application
+    /// whats information
+    XtGetTcap(Vec<String>),
 }
 
 /// Encode self as an escape sequence.  The escape sequence may potentially
@@ -50,6 +53,19 @@ impl Display for Action {
             Action::CSI(csi) => csi.fmt(f),
             Action::Esc(esc) => esc.fmt(f),
             Action::Sixel(sixel) => sixel.fmt(f),
+            Action::XtGetTcap(names) => {
+                write!(f, "\x1bP+q")?;
+                for (i, name) in names.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ";")?;
+                    }
+                    for &b in name.as_bytes() {
+                        write!(f, "{:x}", b)?;
+                    }
+                }
+
+                Ok(())
+            }
         }
     }
 }
@@ -176,7 +192,9 @@ impl Display for DeviceControlMode {
                 }
                 f.write_char(mode.byte as char)
             }
-            Self::Exit => write!(f, "\x1b\\"),
+            // We don't need to emit a sequence for the Exit, as we're
+            // followed by eg: StringTerminator
+            Self::Exit => Ok(()),
             Self::Data(c) => f.write_char(*c as char),
             Self::ShortDeviceControl(s) => s.fmt(f),
         }
