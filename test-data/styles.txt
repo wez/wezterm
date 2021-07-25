@@ -6,3 +6,5 @@ Regular
 [2mHalf Bright[0m
 [2m[3mHalf Bright Italic[0m
 
+[5mBlink[0m
+[6mRapid Blink[0m

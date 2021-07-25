@@ -217,8 +217,8 @@ pub struct TermWindow {
 
     next_blink_paint: RefCell<Instant>,
     last_status_call: Instant,
-    last_text_blink_paint: Instant,
-    last_text_blink_paint_rapid: Instant,
+    last_text_blink_paint: RefCell<Instant>,
+    last_text_blink_paint_rapid: RefCell<Instant>,
 
     palette: Option<ColorPalette>,
 
@@ -484,8 +484,8 @@ impl TermWindow {
             )),
             next_blink_paint: RefCell::new(Instant::now()),
             last_status_call: Instant::now(),
-            last_text_blink_paint: Instant::now(),
-            last_text_blink_paint_rapid: Instant::now(),
+            last_text_blink_paint: RefCell::new(Instant::now()),
+            last_text_blink_paint_rapid: RefCell::new(Instant::now()),
             event_states: HashMap::new(),
             has_animation: RefCell::new(None),
             scheduled_animation: RefCell::new(None),

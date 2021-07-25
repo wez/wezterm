@@ -151,7 +151,11 @@ impl super::TermWindow {
                     let window = self.window.clone().take().unwrap();
                     promise::spawn::spawn(async move {
                         Timer::at(next_due).await;
-                        window.invalidate();
+                        let win = window.clone();
+                        window.notify(TermWindowNotif::Apply(Box::new(move |tw| {
+                            tw.scheduled_animation.borrow_mut().take();
+                            win.invalidate();
+                        })));
                     })
                     .detach();
                 }
@@ -748,22 +752,35 @@ impl super::TermWindow {
                         bg_default = false;
                     }
 
-                    // TODO: maintain/update last_text_blink_paint here
                     // Check for blink, and if this is the "not-visible"
                     // part of blinking then set fg = bg.  This is a cheap
                     // means of getting it done without impacting other
                     // features.
                     let blink_rate = match attrs.blink() {
-                        Blink::None => 0,
-                        Blink::Slow => params.config.text_blink_rate,
-                        Blink::Rapid => params.config.text_blink_rate_rapid,
+                        Blink::None => None,
+                        Blink::Slow => Some((
+                            params.config.text_blink_rate,
+                            self.last_text_blink_paint.borrow_mut(),
+                        )),
+                        Blink::Rapid => Some((
+                            params.config.text_blink_rate_rapid,
+                            self.last_text_blink_paint_rapid.borrow_mut(),
+                        )),
                     };
-                    if blink_rate != 0
-                        && (self.config.text_blink_rate != 0 || self.config.text_blink_rate_rapid != 0)
-                    {
-                        let ticks = milli_uptime / blink_rate as u128;
-                        if (ticks & 1) == 0 {
-                            fg = bg;
+                    if let Some((blink_rate, mut last_time)) = blink_rate {
+                        if blink_rate != 0 {
+                            let ticks = milli_uptime / blink_rate as u128;
+                            if (ticks & 1) == 0 {
+                                fg = bg;
+                            }
+
+                            let interval = Duration::from_millis(blink_rate);
+                            if last_time.elapsed() >= interval {
+                                *last_time = Instant::now();
+                            }
+                            let due = *last_time + interval;
+
+                            self.update_next_frame_time(Some(due));
                         }
                     }
 
