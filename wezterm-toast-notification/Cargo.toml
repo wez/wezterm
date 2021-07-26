@@ -8,7 +8,7 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-open = "1.4"
+open = "2.0"
 log = "0.4"
 
 [target.'cfg(all(not(windows), not(target_os="macos"), not(target_os="freebsd")))'.dependencies]
