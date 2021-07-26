@@ -41,7 +41,7 @@ luahelper = { path = "../luahelper" }
 metrics = { version="0.17", features=["std"]}
 mlua = "0.5"
 mux = { path = "../mux" }
-open = "1.4"
+open = "2.0"
 ordered-float = "2.7"
 palette = "0.5"
 percent-encoding = "2"
