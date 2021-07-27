@@ -3,10 +3,10 @@
 
 use crate::enums::{Action, State};
 
-/// Apply all u8 values to `fn(u8) -> u8`, return `[u8; 256]`.
+/// Apply all u8 values to `fn(u8) -> u16`, return `[u16; 256]`.
 macro_rules! define_table {
     ( $func:tt ) => {{
-        const fn gen() -> [u8; 256] {
+        const fn gen() -> [u16; 256] {
             let mut arr = [0; 256];
 
             let mut i = 0;
@@ -20,11 +20,11 @@ macro_rules! define_table {
     }};
 }
 
-const fn pack(action: Action, state: State) -> u8 {
-    ((action as u8) << 4) | (state as u8)
+const fn pack(action: Action, state: State) -> u16 {
+    ((action as u16) << 8) | (state as u16)
 }
 
-const fn anywhere_or(i: u8, state: State) -> u8 {
+const fn anywhere_or(i: u8, state: State) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -36,9 +36,9 @@ const fn anywhere_or(i: u8, state: State) -> u8 {
         0x9a => pack(Execute, Ground),
         0x9c => pack(None, Ground),
         0x1b => pack(None, Escape),
-        0x98 => pack(None, SosPmApcString),
-        0x9e => pack(None, SosPmApcString),
-        0x9f => pack(None, SosPmApcString),
+        0x98 => pack(None, SosPmString),
+        0x9e => pack(None, SosPmString),
+        0x9f => pack(None, SosPmString),
         0x90 => pack(None, DcsEntry),
         0x9d => pack(None, OscString),
         0x9b => pack(None, CsiEntry),
@@ -46,7 +46,7 @@ const fn anywhere_or(i: u8, state: State) -> u8 {
     }
 }
 
-const fn ground(i: u8) -> u8 {
+const fn ground(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -65,7 +65,7 @@ const fn ground(i: u8) -> u8 {
     }
 }
 
-const fn escape(i: u8) -> u8 {
+const fn escape(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -83,14 +83,14 @@ const fn escape(i: u8) -> u8 {
         0x5b => pack(None, CsiEntry),
         0x5d => pack(None, OscString),
         0x50 => pack(None, DcsEntry),
-        0x58 => pack(None, SosPmApcString),
-        0x5e => pack(None, SosPmApcString),
-        0x5f => pack(None, SosPmApcString),
+        0x58 => pack(None, SosPmString),
+        0x5e => pack(None, SosPmString),
+        0x5f => pack(None, ApcString),
         _ => anywhere_or(i, Escape),
     }
 }
 
-const fn escape_intermediate(i: u8) -> u8 {
+const fn escape_intermediate(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -104,7 +104,7 @@ const fn escape_intermediate(i: u8) -> u8 {
     }
 }
 
-const fn csi_entry(i: u8) -> u8 {
+const fn csi_entry(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -122,7 +122,7 @@ const fn csi_entry(i: u8) -> u8 {
     }
 }
 
-const fn csi_param(i: u8) -> u8 {
+const fn csi_param(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -138,7 +138,7 @@ const fn csi_param(i: u8) -> u8 {
     }
 }
 
-const fn csi_intermediate(i: u8) -> u8 {
+const fn csi_intermediate(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -153,7 +153,7 @@ const fn csi_intermediate(i: u8) -> u8 {
     }
 }
 
-const fn csi_ignore(i: u8) -> u8 {
+const fn csi_ignore(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -167,7 +167,7 @@ const fn csi_ignore(i: u8) -> u8 {
     }
 }
 
-const fn dcs_entry(i: u8) -> u8 {
+const fn dcs_entry(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -185,7 +185,7 @@ const fn dcs_entry(i: u8) -> u8 {
     }
 }
 
-const fn dcs_param(i: u8) -> u8 {
+const fn dcs_param(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -203,7 +203,7 @@ const fn dcs_param(i: u8) -> u8 {
     }
 }
 
-const fn dcs_intermediate(i: u8) -> u8 {
+const fn dcs_intermediate(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -218,7 +218,7 @@ const fn dcs_intermediate(i: u8) -> u8 {
     }
 }
 
-const fn dcs_passthrough(i: u8) -> u8 {
+const fn dcs_passthrough(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -231,7 +231,7 @@ const fn dcs_passthrough(i: u8) -> u8 {
     }
 }
 
-const fn dcs_ignore(i: u8) -> u8 {
+const fn dcs_ignore(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -243,7 +243,7 @@ const fn dcs_ignore(i: u8) -> u8 {
     }
 }
 
-const fn osc_string(i: u8) -> u8 {
+const fn osc_string(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
@@ -266,19 +266,31 @@ const fn osc_string(i: u8) -> u8 {
     }
 }
 
-const fn sos_pm_apc_string(i: u8) -> u8 {
+const fn sos_pm_string(i: u8) -> u16 {
     use Action::*;
     use State::*;
     match i {
-        0x00..=0x17 => pack(Ignore, SosPmApcString),
-        0x19 => pack(Ignore, SosPmApcString),
-        0x1c..=0x1f => pack(Ignore, SosPmApcString),
-        0x20..=0x7f => pack(Ignore, SosPmApcString),
-        _ => anywhere_or(i, SosPmApcString),
+        0x00..=0x17 => pack(Ignore, SosPmString),
+        0x19 => pack(Ignore, SosPmString),
+        0x1c..=0x1f => pack(Ignore, SosPmString),
+        0x20..=0x7f => pack(Ignore, SosPmString),
+        _ => anywhere_or(i, SosPmString),
     }
 }
 
-pub(crate) static TRANSITIONS: [[u8; 256]; 14] = [
+const fn apc_string(i: u8) -> u16 {
+    use Action::*;
+    use State::*;
+    match i {
+        0x00..=0x17 => pack(ApcPut, ApcString),
+        0x19 => pack(ApcPut, ApcString),
+        0x1c..=0x1f => pack(ApcPut, ApcString),
+        0x20..=0x7f => pack(ApcPut, ApcString),
+        _ => anywhere_or(i, ApcString),
+    }
+}
+
+pub(crate) static TRANSITIONS: [[u16; 256]; 15] = [
     define_table!(ground),
     define_table!(escape),
     define_table!(escape_intermediate),
@@ -292,10 +304,11 @@ pub(crate) static TRANSITIONS: [[u8; 256]; 14] = [
     define_table!(dcs_passthrough),
     define_table!(dcs_ignore),
     define_table!(osc_string),
-    define_table!(sos_pm_apc_string),
+    define_table!(sos_pm_string),
+    define_table!(apc_string),
 ];
 
-pub(crate) static ENTRY: [Action; 14] = [
+pub(crate) static ENTRY: [Action; 15] = [
     Action::None,     // Ground
     Action::Clear,    // Escape
     Action::None,     // EscapeIntermediate
@@ -309,10 +322,11 @@ pub(crate) static ENTRY: [Action; 14] = [
     Action::Hook,     // DcsPassthrough
     Action::None,     // DcsIgnore
     Action::OscStart, // OscString
-    Action::None,     // SosPmApcString
+    Action::None,     // SosPmString
+    Action::ApcStart, // ApcString
 ];
 
-pub(crate) static EXIT: [Action; 14] = [
+pub(crate) static EXIT: [Action; 15] = [
     Action::None,   // Ground
     Action::None,   // Escape
     Action::None,   // EscapeIntermediate
@@ -326,7 +340,8 @@ pub(crate) static EXIT: [Action; 14] = [
     Action::Unhook, // DcsPassthrough
     Action::None,   // DcsIgnore
     Action::OscEnd, // OscString
-    Action::None,   // SosPmApcString
+    Action::None,   // SosPmString
+    Action::ApcEnd, // ApcString
 ];
 
 #[cfg(test)]
@@ -342,7 +357,7 @@ mod tests {
                 hash(&v, 5381, 33), // djb2
                 hash(&v, 0, 65599), // sdbm
             ),
-            (14021, 626090, 11884276359605205711, 6929800990073628062)
+            (17385, 799944, 12647816782590382477, 3641575052870461598)
         );
     }
 

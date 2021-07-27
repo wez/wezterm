@@ -185,6 +185,10 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         }
     }
 
+    fn apc_dispatch(&mut self, _data: Vec<u8>) {
+        // Ignored
+    }
+
     fn dcs_hook(
         &mut self,
         byte: u8,

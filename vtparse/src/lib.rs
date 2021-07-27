@@ -25,7 +25,7 @@ fn lookup(state: State, b: u8) -> (Action, State) {
             .get_unchecked(state as usize)
             .get_unchecked(b as usize)
     };
-    (Action::from_u8(v >> 4), State::from_u8(v & 0xf))
+    (Action::from_u16(v >> 8), State::from_u16(v & 0xff))
 }
 
 #[inline(always)]
@@ -158,6 +158,10 @@ pub trait VTActor {
     /// that were passed as semicolon separated parameters to the operating
     /// system command.
     fn osc_dispatch(&mut self, params: &[&[u8]]);
+
+    /// Called when an APC string is terminated by ST
+    /// `data` is the data contained within the APC sequence.
+    fn apc_dispatch(&mut self, data: Vec<u8>);
 }
 
 /// `VTAction` is an alternative way to work with the parser; rather
@@ -187,6 +191,7 @@ pub enum VTAction {
         byte: u8,
     },
     OscDispatch(Vec<Vec<u8>>),
+    ApcDispatch(Vec<u8>),
 }
 
 /// This is an implementation of `VTActor` that captures the events
@@ -273,6 +278,10 @@ impl VTActor for CollectingVTActor {
             params.iter().map(|i| i.to_vec()).collect(),
         ));
     }
+
+    fn apc_dispatch(&mut self, data: Vec<u8>) {
+        self.actions.push(VTAction::ApcDispatch(data));
+    }
 }
 
 const MAX_INTERMEDIATES: usize = 2;
@@ -324,6 +333,7 @@ pub struct VTParser {
     num_params: usize,
     current_param: Option<CsiParam>,
     params_full: bool,
+    apc_data: Vec<u8>,
 
     utf8_parser: Utf8Parser,
     utf8_return_state: State,
@@ -409,6 +419,7 @@ impl VTParser {
             current_param: None,
 
             utf8_parser: Utf8Parser::new(),
+            apc_data: vec![],
         }
     }
 
@@ -465,6 +476,7 @@ impl VTParser {
                 self.num_params = 0;
                 self.params_full = false;
                 self.current_param.take();
+                self.apc_data.clear();
             }
             Action::Collect => {
                 if self.num_intermediates < MAX_INTERMEDIATES {
@@ -560,6 +572,16 @@ impl VTParser {
                     params[limit - 1] = slice;
                     actor.osc_dispatch(&params[0..limit]);
                 }
+            }
+
+            Action::ApcStart => {
+                self.apc_data.clear();
+            }
+            Action::ApcPut => {
+                self.apc_data.push(param);
+            }
+            Action::ApcEnd => {
+                actor.apc_dispatch(std::mem::take(&mut self.apc_data));
             }
 
             Action::Utf8 => self.next_utf8(actor, param),
@@ -1022,6 +1044,22 @@ mod test {
                 VTAction::DcsPut(b't'),
                 VTAction::DcsPut(b'a'),
                 VTAction::DcsUnhook,
+                VTAction::EscDispatch {
+                    params: vec![],
+                    intermediates: vec![],
+                    ignored_excess_intermediates: false,
+                    byte: b'\\',
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn kitty_img() {
+        assert_eq!(
+            parse_as_vec("\x1b_Gf=24,s=10,v=20;payload\x1b\\".as_bytes()),
+            vec![
+                VTAction::ApcDispatch(b"Gf=24,s=10,v=20;payload".to_vec()),
                 VTAction::EscDispatch {
                     params: vec![],
                     intermediates: vec![],

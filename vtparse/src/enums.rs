@@ -1,6 +1,7 @@
+#![allow(dead_code)]
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[repr(u8)]
-#[allow(dead_code)]
+#[repr(u16)]
 pub enum Action {
     None = 0,
     Ignore = 1,
@@ -18,19 +19,20 @@ pub enum Action {
     OscPut = 13,
     OscEnd = 14,
     Utf8 = 15,
+    ApcStart = 16,
+    ApcPut = 17,
+    ApcEnd = 18,
 }
 
 impl Action {
     #[inline(always)]
-    #[allow(dead_code)]
-    pub fn from_u8(v: u8) -> Self {
+    pub fn from_u16(v: u16) -> Self {
         unsafe { std::mem::transmute(v) }
     }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-#[repr(u8)]
-#[allow(dead_code)]
+#[repr(u16)]
 pub enum State {
     Ground = 0,
     Escape = 1,
@@ -45,15 +47,16 @@ pub enum State {
     DcsPassthrough = 10,
     DcsIgnore = 11,
     OscString = 12,
-    SosPmApcString = 13,
-    Anywhere = 14,
-    Utf8Sequence = 15,
+    SosPmString = 13,
+    ApcString = 14,
+    // Special states, always last (no tables for these)
+    Anywhere = 15,
+    Utf8Sequence = 16,
 }
 
 impl State {
     #[inline(always)]
-    #[allow(dead_code)]
-    pub fn from_u8(v: u8) -> Self {
+    pub fn from_u16(v: u16) -> Self {
         unsafe { std::mem::transmute(v) }
     }
 }
