@@ -9,11 +9,13 @@
 use num_derive::*;
 use std::fmt::{Display, Error as FmtError, Formatter, Write as FmtWrite};
 
+pub mod apc;
 pub mod csi;
 pub mod esc;
 pub mod osc;
 pub mod parser;
 
+pub use self::apc::KittyImage;
 pub use self::csi::CSI;
 pub use self::esc::Esc;
 pub use self::esc::EscCode;
@@ -39,6 +41,7 @@ pub enum Action {
     /// A list of termcap, terminfo names for which the application
     /// whats information
     XtGetTcap(Vec<String>),
+    KittyImage(KittyImage),
 }
 
 /// Encode self as an escape sequence.  The escape sequence may potentially
@@ -66,6 +69,7 @@ impl Display for Action {
 
                 Ok(())
             }
+            Action::KittyImage(img) => img.fmt(f),
         }
     }
 }

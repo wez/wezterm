@@ -185,8 +185,10 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         }
     }
 
-    fn apc_dispatch(&mut self, _data: Vec<u8>) {
-        // Ignored
+    fn apc_dispatch(&mut self, data: Vec<u8>) {
+        if let Some(img) = super::KittyImage::parse_apc(&data) {
+            (self.callback)(Action::KittyImage(img))
+        }
     }
 
     fn dcs_hook(
@@ -878,6 +880,32 @@ mod test {
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Reset)),
                 Action::CSI(CSI::Sgr(Sgr::Underline(Underline::Single))),
+            ]
+        );
+    }
+
+    #[test]
+    fn kitty_img() {
+        use crate::escape::apc::*;
+        assert_eq!(
+            round_trip_parse("\x1b_Gf=24,s=10,v=20;aGVsbG8=\x1b\\"),
+            vec![
+                Action::KittyImage(KittyImage::TransmitData {
+                    transmit: KittyImageTransmit {
+                        format: KittyImageFormat::Rgb,
+                        data: KittyImageData::Direct(b"hello".to_vec()),
+                        width: Some(10),
+                        height: Some(20),
+                        data_size: None,
+                        data_offset: None,
+                        image_id: None,
+                        image_number: None,
+                        compression: KittyImageCompression::None,
+                        more_data_follows: false,
+                    },
+                    verbosity: KittyImageVerbosity::Verbose,
+                }),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ]
         );
     }

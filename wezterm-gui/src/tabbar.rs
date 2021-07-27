@@ -411,16 +411,12 @@ fn parse_status_text(text: &str, default_cell: CellAttributes) -> Vec<Cell> {
                     _ => {}
                 }
             }
-            Action::Esc(_) => {
-                flush_print(&mut print_buffer, &mut cells, &pen);
-            }
-            Action::XtGetTcap(_) | Action::Sixel(_) => {
-                flush_print(&mut print_buffer, &mut cells, &pen);
-            }
-            Action::DeviceControl(_) => {
-                flush_print(&mut print_buffer, &mut cells, &pen);
-            }
-            Action::OperatingSystemCommand(_) => {
+            Action::OperatingSystemCommand(_)
+            | Action::DeviceControl(_)
+            | Action::Esc(_)
+            | Action::KittyImage(_)
+            | Action::XtGetTcap(_)
+            | Action::Sixel(_) => {
                 flush_print(&mut print_buffer, &mut cells, &pen);
             }
         }

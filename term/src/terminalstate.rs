@@ -24,8 +24,8 @@ use termwiz::escape::osc::{
     Selection,
 };
 use termwiz::escape::{
-    Action, ControlCode, DeviceControlMode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel,
-    SixelData, CSI,
+    Action, ControlCode, DeviceControlMode, Esc, EscCode, KittyImage, OneBased,
+    OperatingSystemCommand, Sixel, SixelData, CSI,
 };
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::{CursorShape, CursorVisibility};
@@ -1536,6 +1536,8 @@ impl TerminalState {
         log::trace!("responding with {}", res.escape_debug());
         self.writer.write_all(res.as_bytes()).ok();
     }
+
+    fn kitty_img(&mut self, _img: KittyImage) {}
 
     fn sixel(&mut self, sixel: Box<Sixel>) {
         let (width, height) = sixel.dimensions();
@@ -3354,6 +3356,7 @@ impl<'a> Performer<'a> {
             Action::CSI(csi) => self.csi_dispatch(csi),
             Action::Sixel(sixel) => self.sixel(sixel),
             Action::XtGetTcap(names) => self.xt_get_tcap(names),
+            Action::KittyImage(img) => self.kitty_img(img),
         }
     }
 
