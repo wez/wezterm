@@ -64,6 +64,61 @@ impl KittyImageData {
             }
         }
     }
+
+    /// Take the image data bytes.
+    /// This operation is not repeatable as some of the sources require
+    /// removing the underlying file or shared memory object as part
+    /// of the read operaiton.
+    pub fn load_data(self) -> std::io::Result<Vec<u8>> {
+        match self {
+            Self::Direct(data) => Ok(data),
+            Self::File(name) => std::fs::read(name),
+            Self::TemporaryFile(name) => {
+                let data = std::fs::read(&name)?;
+                // need to sanity check that the path looks like a reasonable
+                // temporary directory path before blindly unlinking it here.
+
+                fn looks_like_temp_path(p: &str) -> bool {
+                    if p.starts_with("/tmp/")
+                        || p.starts_with("/var/tmp/")
+                        || p.starts_with("/dev/shm/")
+                    {
+                        return true;
+                    }
+
+                    if let Ok(t) = std::env::var("TMPDIR") {
+                        if p.starts_with(&t) {
+                            return true;
+                        }
+                    }
+
+                    false
+                }
+
+                if looks_like_temp_path(&name) {
+                    if let Err(err) = std::fs::remove_file(&name) {
+                        log::error!(
+                            "Unable to remove kitty image protocol temporary file {}: {:#}",
+                            name,
+                            err
+                        );
+                    }
+                } else {
+                    log::warn!(
+                        "kitty image protocol temporary file {} isn't in a known \
+                                temporary directory; won't try to remove it",
+                        name
+                    );
+                }
+
+                Ok(data)
+            }
+            Self::SharedMem(_name) => {
+                log::error!("kitty image protocol via shared memory is not supported");
+                Err(std::io::ErrorKind::Unsupported.into())
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
