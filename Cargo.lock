@@ -2524,6 +2524,7 @@ dependencies = [
  "luahelper",
  "metrics",
  "portable-pty",
+ "pretty_assertions",
  "promise",
  "rangeset",
  "ratelim",

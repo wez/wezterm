@@ -21,7 +21,21 @@ enum State {
 
 trait TmuxCommand {
     fn get_command(&self) -> String;
-    fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()>;
+    fn process_result(&self, domain_id: DomainId, result: &Guarded, state: &mut TmuxInnerState) -> anyhow::Result<()>;
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct TmuxPane {
+    session_id: TmuxSessionId,
+    window_id: TmuxWindowId,
+    pane_id: TmuxPaneId,
+    pane_index: u64,
+    cursor_x: u64,
+    cursor_y: u64,
+    pane_width: u64,
+    pane_height: u64,
+    pane_left: u64,
+    pane_top: u64,
 }
 
 struct ListAllPanes;
@@ -33,22 +47,9 @@ impl TmuxCommand for ListAllPanes {
             .to_owned()
     }
 
-    fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
-        #[derive(Debug)]
-        struct Item {
-            session_id: TmuxSessionId,
-            window_id: TmuxWindowId,
-            pane_id: TmuxPaneId,
-            pane_index: u64,
-            cursor_x: u64,
-            cursor_y: u64,
-            pane_width: u64,
-            pane_height: u64,
-            pane_left: u64,
-            pane_top: u64,
-        }
+    fn process_result(&self, domain_id: DomainId, result: &Guarded, state: &mut TmuxInnerState) -> anyhow::Result<()> {
 
-        let mut items = vec![];
+        state.panes.clear();
 
         for line in result.output.split('\n') {
             if line.is_empty() {
@@ -93,7 +94,7 @@ impl TmuxCommand for ListAllPanes {
             let window_id = window_id[1..].parse()?;
             let pane_id = pane_id[1..].parse()?;
 
-            items.push(Item {
+            state.panes.push(TmuxPane {
                 session_id,
                 window_id,
                 pane_id,
@@ -107,9 +108,13 @@ impl TmuxCommand for ListAllPanes {
             });
         }
 
-        log::error!("panes in domain_id {}: {:?}", domain_id, items);
+        log::error!("panes in domain_id {}: {:?}", domain_id, state.panes);
         Ok(())
     }
+}
+
+struct TmuxInnerState {
+    panes: Vec<TmuxPane>
 }
 
 pub(crate) struct TmuxDomainState {
@@ -117,6 +122,7 @@ pub(crate) struct TmuxDomainState {
     pub domain_id: DomainId,
     parser: RefCell<Parser>,
     state: RefCell<State>,
+    inner: RefCell<TmuxInnerState>,
     cmd_queue: RefCell<VecDeque<Box<dyn TmuxCommand>>>,
 }
 
@@ -139,12 +145,9 @@ impl TmuxDomainState {
                         let cmd = self.cmd_queue.borrow_mut().pop_front().unwrap();
                         let domain_id = self.domain_id;
                         *self.state.borrow_mut() = State::Idle;
-                        promise::spawn::spawn(async move {
-                            if let Err(err) = cmd.process_result(domain_id, &response) {
-                                log::error!("error processing result: {}", err);
-                            }
-                        })
-                        .detach();
+                        if let Err(err) = cmd.process_result(domain_id, &response, &mut self.inner.borrow_mut()) {
+                            log::error!("error processing result: {}", err);
+                        }
                     }
                     State::Idle => {}
                 }
@@ -192,6 +195,9 @@ impl TmuxDomain {
             pane_id,
             parser,
             state: RefCell::new(State::WaitForInitialGuard),
+            inner: RefCell::new(TmuxInnerState {
+                panes: vec![]
+            }),
             cmd_queue: RefCell::new(cmd_queue),
         });
         Self { inner }
@@ -243,5 +249,74 @@ impl Domain for TmuxDomain {
 
     fn state(&self) -> DomainState {
         DomainState::Attached
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_list_panes() {
+        let domain = TmuxDomain::new(0 as usize);
+        let domain_state = domain.inner;
+        let command = ListAllPanes;
+        let result = Guarded {
+            timestamp: 1604279270,
+            number: 310,
+            flags: 0,
+            error: false,
+            output: "
+$0 @0 %0 0 2 37 104 38 0 0
+$1 @1 %1 0 2 37 104 38 0 0
+$2 @2 %2 0 2 2 80 24 0 0
+            ".to_owned()
+        };
+
+        let tmux_inner_state = &mut domain_state.inner.borrow_mut();
+        command.process_result(0 as usize, &result, tmux_inner_state);
+        assert_eq!(
+            vec![
+                TmuxPane {
+                    session_id: 0,
+                    window_id: 0,
+                    pane_id: 0,
+                    pane_index: 0,
+                    cursor_x: 2,
+                    cursor_y: 37,
+                    pane_width: 104,
+                    pane_height: 38,
+                    pane_left: 0,
+                    pane_top: 0,
+                },
+                TmuxPane {
+                    session_id: 1,
+                    window_id: 1,
+                    pane_id: 1,
+                    pane_index: 0,
+                    cursor_x: 2,
+                    cursor_y: 37,
+                    pane_width: 104,
+                    pane_height: 38,
+                    pane_left: 0,
+                    pane_top: 0,
+                },
+                TmuxPane {
+                    session_id: 2,
+                    window_id: 2,
+                    pane_id: 2,
+                    pane_index: 0,
+                    cursor_x: 2,
+                    cursor_y: 2,
+                    pane_width: 80,
+                    pane_height: 24,
+                    pane_left: 0,
+                    pane_top: 0,
+                }
+            ],
+            tmux_inner_state.panes
+        )
     }
 }
