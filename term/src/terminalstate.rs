@@ -1657,9 +1657,7 @@ impl TerminalState {
 
         let data = match transmit.compression {
             KittyImageCompression::None => data,
-            KittyImageCompression::Deflate => {
-                anyhow::bail!("TODO: handle deflate for kitty data");
-            }
+            KittyImageCompression::Deflate => deflate::deflate_bytes(&data),
         };
 
         let img = match transmit.format {

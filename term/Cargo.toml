@@ -16,6 +16,7 @@ use_serde = ["termwiz/use_serde"]
 [dependencies]
 anyhow = "1.0"
 bitflags = "1.0"
+deflate = "0.9"
 hex = "0.4"
 image = "0.23"
 lazy_static = "1.4"
