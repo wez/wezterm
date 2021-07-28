@@ -892,12 +892,10 @@ mod test {
             vec![
                 Action::KittyImage(KittyImage::TransmitData {
                     transmit: KittyImageTransmit {
-                        format: KittyImageFormat::Rgb,
-                        data: KittyImageData::Direct(b"hello".to_vec()),
+                        format: Some(KittyImageFormat::Rgb),
+                        data: KittyImageData::Direct("aGVsbG8=".to_string()),
                         width: Some(10),
                         height: Some(20),
-                        data_size: None,
-                        data_offset: None,
                         image_id: None,
                         image_number: None,
                         compression: KittyImageCompression::None,

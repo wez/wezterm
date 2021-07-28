@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
+use std::io::{Read, Seek};
 
 fn get<'a>(keys: &BTreeMap<&str, &'a str>, k: &str) -> Option<&'a str> {
     keys.get(k).map(|&s| s)
@@ -9,38 +10,122 @@ fn geti<T: std::str::FromStr>(keys: &BTreeMap<&str, &str>, k: &str) -> Option<T>
     get(keys, k).and_then(|s| s.parse().ok())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+fn set<T: std::string::ToString>(
+    keys: &mut BTreeMap<&'static str, String>,
+    k: &'static str,
+    v: &Option<T>,
+) {
+    if let Some(v) = v {
+        keys.insert(k, v.to_string());
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
 pub enum KittyImageData {
-    /// The data bytes, baes64-decoded.
+    /// The data bytes, baes64-encoded fragments.
     /// t='d'
-    Direct(Vec<u8>),
+    Direct(String),
     /// The path to a file containing the data.
     /// t='f'
-    File(String),
+    File {
+        path: String,
+        /// the amount of data to read.
+        /// S=...
+        data_size: Option<u32>,
+        /// The offset at which to read.
+        /// O=...
+        data_offset: Option<u32>,
+    },
     /// The path to a temporary file containing the data.
     /// If the path is in a known temporary location,
     /// it should be removed once the data has been read
     /// t='t'
-    TemporaryFile(String),
+    TemporaryFile {
+        path: String,
+        /// the amount of data to read.
+        /// S=...
+        data_size: Option<u32>,
+        /// The offset at which to read.
+        /// O=...
+        data_offset: Option<u32>,
+    },
+
     /// The name of a shared memory object.
     /// Can be opened via shm_open() and then should be removed
     /// via shm_unlink().
     /// On Windows, OpenFileMapping(), MapViewOfFile(), UnmapViewOfFile()
     /// and CloseHandle() are used to access and release the data.
     /// t='s'
-    SharedMem(String),
+    SharedMem {
+        name: String,
+        /// the amount of data to read.
+        /// S=...
+        data_size: Option<u32>,
+        /// The offset at which to read.
+        /// O=...
+        data_offset: Option<u32>,
+    },
+}
+
+impl std::fmt::Debug for KittyImageData {
+    fn fmt(&self, fmt: &mut Formatter) -> std::fmt::Result {
+        match self {
+            Self::Direct(data) => write!(fmt, "Direct({} bytes of data)", data.len()),
+            Self::File {
+                path,
+                data_offset,
+                data_size,
+            } => fmt
+                .debug_struct("File")
+                .field("path", &path)
+                .field("data_offset", &data_offset)
+                .field("data_size", data_size)
+                .finish(),
+            Self::TemporaryFile {
+                path,
+                data_offset,
+                data_size,
+            } => fmt
+                .debug_struct("TemporaryFile")
+                .field("path", &path)
+                .field("data_offset", &data_offset)
+                .field("data_size", data_size)
+                .finish(),
+            Self::SharedMem {
+                name,
+                data_offset,
+                data_size,
+            } => fmt
+                .debug_struct("SharedMem")
+                .field("name", &name)
+                .field("data_offset", &data_offset)
+                .field("data_size", data_size)
+                .finish(),
+        }
+    }
 }
 
 impl KittyImageData {
     fn from_keys(keys: &BTreeMap<&str, &str>, payload: &[u8]) -> Option<Self> {
         let t = get(keys, "t").unwrap_or("d");
+
         match t {
-            "d" => Some(Self::Direct(base64::decode(payload).ok()?)),
-            "f" => Some(Self::File(String::from_utf8(payload.to_vec()).ok()?)),
-            "t" => Some(Self::TemporaryFile(
-                String::from_utf8(payload.to_vec()).ok()?,
-            )),
-            "s" => Some(Self::SharedMem(String::from_utf8(payload.to_vec()).ok()?)),
+            "d" => Some(Self::Direct(String::from_utf8(payload.to_vec()).ok()?)),
+            "f" => Some(Self::File {
+                path: String::from_utf8(payload.to_vec()).ok()?,
+                data_size: geti(keys, "S"),
+                data_offset: geti(keys, "O"),
+            }),
+            "t" => Some(Self::TemporaryFile {
+                path: String::from_utf8(payload.to_vec()).ok()?,
+                data_size: geti(keys, "S"),
+                data_offset: geti(keys, "O"),
+            }),
+            "s" => Some(Self::SharedMem {
+                name: String::from_utf8(payload.to_vec()).ok()?,
+                data_size: geti(keys, "S"),
+                data_offset: geti(keys, "O"),
+            }),
             _ => None,
         }
     }
@@ -48,19 +133,37 @@ impl KittyImageData {
     fn to_keys(&self, keys: &mut BTreeMap<&'static str, String>) {
         match self {
             Self::Direct(d) => {
-                keys.insert("payload", base64::encode(&d));
+                keys.insert("payload", d.to_string());
             }
-            Self::File(f) => {
+            Self::File {
+                path,
+                data_offset,
+                data_size,
+            } => {
                 keys.insert("t", "f".to_string());
-                keys.insert("payload", base64::encode(&f));
+                keys.insert("payload", base64::encode(&path));
+                set(keys, "S", data_size);
+                set(keys, "S", data_offset);
             }
-            Self::TemporaryFile(f) => {
+            Self::TemporaryFile {
+                path,
+                data_offset,
+                data_size,
+            } => {
                 keys.insert("t", "t".to_string());
-                keys.insert("payload", base64::encode(&f));
+                keys.insert("payload", base64::encode(&path));
+                set(keys, "S", data_size);
+                set(keys, "S", data_offset);
             }
-            Self::SharedMem(f) => {
+            Self::SharedMem {
+                name,
+                data_offset,
+                data_size,
+            } => {
                 keys.insert("t", "s".to_string());
-                keys.insert("payload", base64::encode(&f));
+                keys.insert("payload", base64::encode(&name));
+                set(keys, "S", data_size);
+                set(keys, "S", data_offset);
             }
         }
     }
@@ -70,11 +173,41 @@ impl KittyImageData {
     /// removing the underlying file or shared memory object as part
     /// of the read operaiton.
     pub fn load_data(self) -> std::io::Result<Vec<u8>> {
+        fn read_from_file(
+            path: &str,
+            data_offset: Option<u32>,
+            data_size: Option<u32>,
+        ) -> std::io::Result<Vec<u8>> {
+            let mut f = std::fs::File::open(path)?;
+            if let Some(offset) = data_offset {
+                f.seek(std::io::SeekFrom::Start(offset.into()))?;
+            }
+            if let Some(len) = data_size {
+                let mut res = vec![0u8; len as usize];
+                f.read_exact(&mut res)?;
+                Ok(res)
+            } else {
+                let mut res = vec![];
+                f.read_to_end(&mut res)?;
+                Ok(res)
+            }
+        }
+
         match self {
-            Self::Direct(data) => Ok(data),
-            Self::File(name) => std::fs::read(name),
-            Self::TemporaryFile(name) => {
-                let data = std::fs::read(&name)?;
+            Self::Direct(data) => {
+                base64::decode(data).or_else(|_| Err(std::io::ErrorKind::InvalidInput.into()))
+            }
+            Self::File {
+                path,
+                data_offset,
+                data_size,
+            } => read_from_file(&path, data_offset, data_size),
+            Self::TemporaryFile {
+                path,
+                data_offset,
+                data_size,
+            } => {
+                let data = read_from_file(&path, data_offset, data_size)?;
                 // need to sanity check that the path looks like a reasonable
                 // temporary directory path before blindly unlinking it here.
 
@@ -95,11 +228,11 @@ impl KittyImageData {
                     false
                 }
 
-                if looks_like_temp_path(&name) {
-                    if let Err(err) = std::fs::remove_file(&name) {
+                if looks_like_temp_path(&path) {
+                    if let Err(err) = std::fs::remove_file(&path) {
                         log::error!(
                             "Unable to remove kitty image protocol temporary file {}: {:#}",
-                            name,
+                            path,
                             err
                         );
                     }
@@ -107,13 +240,13 @@ impl KittyImageData {
                     log::warn!(
                         "kitty image protocol temporary file {} isn't in a known \
                                 temporary directory; won't try to remove it",
-                        name
+                        path
                     );
                 }
 
                 Ok(data)
             }
-            Self::SharedMem(_name) => {
+            Self::SharedMem { .. } => {
                 log::error!("kitty image protocol via shared memory is not supported");
                 Err(std::io::ErrorKind::Unsupported.into())
             }
@@ -121,7 +254,7 @@ impl KittyImageData {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum KittyImageVerbosity {
     Verbose,
     OnlyErrors,
@@ -162,11 +295,12 @@ pub enum KittyImageFormat {
 }
 
 impl KittyImageFormat {
-    fn from_keys(keys: &BTreeMap<&str, &str>) -> Option<Self> {
+    fn from_keys(keys: &BTreeMap<&str, &str>) -> Option<Option<Self>> {
         match get(keys, "f") {
-            None | Some("32") => Some(Self::Rgba),
-            Some("24") => Some(Self::Rgb),
-            Some("100") => Some(Self::Png),
+            None => Some(None),
+            Some("32") => Some(Some(Self::Rgba)),
+            Some("24") => Some(Some(Self::Rgb)),
+            Some("100") => Some(Some(Self::Png)),
             _ => None,
         }
     }
@@ -209,19 +343,13 @@ impl KittyImageCompression {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KittyImageTransmit {
     /// f=...
-    pub format: KittyImageFormat,
+    pub format: Option<KittyImageFormat>,
     /// combination of t=... and d=...
     pub data: KittyImageData,
     /// s=...
     pub width: Option<u32>,
     /// v=...
     pub height: Option<u32>,
-    /// the amount of data to read.
-    /// S=...
-    pub data_size: Option<u32>,
-    /// The offset at which to read.
-    /// O=...
-    pub data_offset: Option<u32>,
     /// The image id.
     /// i=...
     pub image_id: Option<u32>,
@@ -243,8 +371,6 @@ impl KittyImageTransmit {
             compression: KittyImageCompression::from_keys(keys)?,
             width: geti(keys, "s"),
             height: geti(keys, "v"),
-            data_size: geti(keys, "S"),
-            data_offset: geti(keys, "O"),
             image_id: geti(keys, "i"),
             image_number: geti(keys, "I"),
             more_data_follows: match get(keys, "m") {
@@ -256,26 +382,14 @@ impl KittyImageTransmit {
     }
 
     fn to_keys(&self, keys: &mut BTreeMap<&'static str, String>) {
-        self.format.to_keys(keys);
+        if let Some(f) = &self.format {
+            f.to_keys(keys);
+        }
 
-        if let Some(v) = &self.width {
-            keys.insert("s", v.to_string());
-        }
-        if let Some(v) = &self.height {
-            keys.insert("v", v.to_string());
-        }
-        if let Some(v) = &self.data_size {
-            keys.insert("S", v.to_string());
-        }
-        if let Some(v) = &self.data_offset {
-            keys.insert("O", v.to_string());
-        }
-        if let Some(v) = &self.image_id {
-            keys.insert("i", v.to_string());
-        }
-        if let Some(v) = &self.image_number {
-            keys.insert("I", v.to_string());
-        }
+        set(keys, "s", &self.width);
+        set(keys, "v", &self.height);
+        set(keys, "i", &self.image_id);
+        set(keys, "I", &self.image_number);
         if self.more_data_follows {
             keys.insert("m", "1".to_string());
         }
@@ -340,39 +454,21 @@ impl KittyImagePlacement {
     }
 
     fn to_keys(&self, keys: &mut BTreeMap<&'static str, String>) {
-        if let Some(v) = self.x {
-            keys.insert("x", v.to_string());
-        }
-        if let Some(v) = self.y {
-            keys.insert("y", v.to_string());
-        }
-        if let Some(v) = self.w {
-            keys.insert("w", v.to_string());
-        }
-        if let Some(v) = self.h {
-            keys.insert("h", v.to_string());
-        }
-        if let Some(v) = self.x_offset {
-            keys.insert("X", v.to_string());
-        }
-        if let Some(v) = self.y_offset {
-            keys.insert("Y", v.to_string());
-        }
-        if let Some(v) = self.columns {
-            keys.insert("c", v.to_string());
-        }
-        if let Some(v) = self.rows {
-            keys.insert("r", v.to_string());
-        }
-        if let Some(v) = self.placement_id {
-            keys.insert("p", v.to_string());
-        }
+        set(keys, "x", &self.x);
+        set(keys, "y", &self.y);
+        set(keys, "w", &self.w);
+        set(keys, "h", &self.h);
+        set(keys, "X", &self.x_offset);
+        set(keys, "Y", &self.y_offset);
+        set(keys, "c", &self.columns);
+        set(keys, "r", &self.rows);
+        set(keys, "p", &self.placement_id);
+
         if self.do_not_move_cursor {
             keys.insert("C", "1".to_string());
         }
-        if let Some(v) = self.z_index {
-            keys.insert("z", v.to_string());
-        }
+
+        set(keys, "z", &self.z_index);
     }
 }
 
@@ -581,6 +677,15 @@ pub enum KittyImage {
 }
 
 impl KittyImage {
+    pub fn verbosity(&self) -> KittyImageVerbosity {
+        match self {
+            Self::TransmitData { verbosity, .. } => *verbosity,
+            Self::TransmitDataAndDisplay { verbosity, .. } => *verbosity,
+            Self::Display { verbosity, .. } => *verbosity,
+            Self::Delete { verbosity, .. } => *verbosity,
+        }
+    }
+
     pub fn parse_apc(data: &[u8]) -> Option<Self> {
         if data.is_empty() || data[0] != b'G' {
             return None;
@@ -703,12 +808,10 @@ mod test {
             KittyImage::parse_apc("Gf=24,s=10,v=20;aGVsbG8=".as_bytes()).unwrap(),
             KittyImage::TransmitData {
                 transmit: KittyImageTransmit {
-                    format: KittyImageFormat::Rgb,
-                    data: KittyImageData::Direct(b"hello".to_vec()),
+                    format: Some(KittyImageFormat::Rgb),
+                    data: KittyImageData::Direct("aGVsbG8=".to_string()),
                     width: Some(10),
                     height: Some(20),
-                    data_size: None,
-                    data_offset: None,
                     image_id: None,
                     image_number: None,
                     compression: KittyImageCompression::None,

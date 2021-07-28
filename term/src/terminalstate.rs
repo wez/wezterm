@@ -3,9 +3,9 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
 use crate::color::{ColorPalette, RgbColor};
-use anyhow::bail;
+use anyhow::{bail, Context};
 use image::imageops::FilterType;
-use image::ImageFormat;
+use image::{GenericImageView, ImageFormat};
 use log::{debug, error};
 use num_traits::{FromPrimitive, ToPrimitive};
 use ordered_float::NotNan;
@@ -14,6 +14,10 @@ use std::fmt::Write;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 use terminfo::{Database, Value};
+use termwiz::escape::apc::{
+    KittyImage, KittyImageCompression, KittyImageData, KittyImageFormat, KittyImagePlacement,
+    KittyImageTransmit, KittyImageVerbosity,
+};
 use termwiz::escape::csi::{
     Cursor, CursorStyle, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay,
     EraseInLine, Mode, Sgr, TabulationClear, TerminalMode, TerminalModeCode, Window, XtSmGraphics,
@@ -24,8 +28,8 @@ use termwiz::escape::osc::{
     Selection,
 };
 use termwiz::escape::{
-    Action, ControlCode, DeviceControlMode, Esc, EscCode, KittyImage, OneBased,
-    OperatingSystemCommand, Sixel, SixelData, CSI,
+    Action, ControlCode, DeviceControlMode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel,
+    SixelData, CSI,
 };
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::{CursorShape, CursorVisibility};
@@ -333,6 +337,11 @@ pub struct TerminalState {
     sixel_scrolls_right: bool,
 
     user_vars: HashMap<String, String>,
+
+    kitty_image_accumulator: Vec<KittyImage>,
+    max_kitty_image_id: u32,
+    kitty_image_number_to_id: HashMap<u32, u32>,
+    kitty_image_id_to_data: HashMap<u32, Arc<ImageData>>,
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -528,6 +537,10 @@ impl TerminalState {
             writer: Box::new(std::io::BufWriter::new(writer)),
             image_cache: lru::LruCache::new(16),
             user_vars: HashMap::new(),
+            kitty_image_accumulator: vec![],
+            max_kitty_image_id: 0,
+            kitty_image_number_to_id: HashMap::new(),
+            kitty_image_id_to_data: HashMap::new(),
         }
     }
 
@@ -1537,7 +1550,307 @@ impl TerminalState {
         self.writer.write_all(res.as_bytes()).ok();
     }
 
-    fn kitty_img(&mut self, _img: KittyImage) {}
+    fn coalesce_kitty_accumulation(&mut self, img: KittyImage) -> anyhow::Result<KittyImage> {
+        log::info!(
+            "coalesce: accumulator={:#?} img:{:#?}",
+            self.kitty_image_accumulator,
+            img
+        );
+        if self.kitty_image_accumulator.is_empty() {
+            Ok(img)
+        } else {
+            let mut data = vec![];
+            let mut trans;
+            let place;
+            let final_verbosity = img.verbosity();
+
+            self.kitty_image_accumulator.push(img);
+
+            let mut empty_data = KittyImageData::Direct(String::new());
+            match self.kitty_image_accumulator.remove(0) {
+                KittyImage::TransmitData { transmit, .. } => {
+                    trans = transmit;
+                    place = None;
+                    std::mem::swap(&mut empty_data, &mut trans.data);
+                }
+                KittyImage::TransmitDataAndDisplay {
+                    transmit,
+                    placement,
+                    ..
+                } => {
+                    place = Some(placement);
+                    trans = transmit;
+                    std::mem::swap(&mut empty_data, &mut trans.data);
+                }
+                _ => unreachable!(),
+            }
+            data.push(empty_data);
+
+            for item in self.kitty_image_accumulator.drain(..) {
+                match item {
+                    KittyImage::TransmitData { transmit, .. }
+                    | KittyImage::TransmitDataAndDisplay { transmit, .. } => {
+                        data.push(transmit.data);
+                    }
+                    _ => unreachable!(),
+                }
+            }
+
+            let mut b64_encoded = String::new();
+            for data in data.into_iter() {
+                match data {
+                    KittyImageData::Direct(b) => {
+                        b64_encoded.push_str(&b);
+                    }
+                    data => {
+                        anyhow::bail!("expected data chunks to be Direct data, found {:#?}", data)
+                    }
+                }
+            }
+
+            trans.data = KittyImageData::Direct(b64_encoded);
+
+            if let Some(placement) = place {
+                Ok(KittyImage::TransmitDataAndDisplay {
+                    transmit: trans,
+                    placement,
+                    verbosity: final_verbosity,
+                })
+            } else {
+                Ok(KittyImage::TransmitData {
+                    transmit: trans,
+                    verbosity: final_verbosity,
+                })
+            }
+        }
+    }
+
+    fn kitty_img_transmit(
+        &mut self,
+        transmit: KittyImageTransmit,
+        verbosity: KittyImageVerbosity,
+    ) -> anyhow::Result<u32> {
+        let (image_id, image_number) = match (transmit.image_id, transmit.image_number) {
+            (Some(_), Some(_)) => {
+                // TODO: send an EINVAL error back here
+                anyhow::bail!("cannot use both i= and I= in the same request");
+            }
+            (None, None) => {
+                // Assume image id 0
+                (0, None)
+            }
+            (Some(id), None) => (id, None),
+            (None, Some(no)) => {
+                let id = self.max_kitty_image_id + 1;
+                self.kitty_image_number_to_id.insert(no, id);
+                (id, Some(no))
+            }
+        };
+
+        self.max_kitty_image_id = self.max_kitty_image_id.max(image_id);
+
+        let data = transmit
+            .data
+            .load_data()
+            .context("data should have been materialized in coalesce_kitty_accumulation")?;
+        log::info!("data is {} in size", data.len());
+
+        let data = match transmit.compression {
+            KittyImageCompression::None => data,
+            KittyImageCompression::Deflate => {
+                anyhow::bail!("TODO: handle deflate for kitty data");
+            }
+        };
+
+        let img = match transmit.format {
+            None | Some(KittyImageFormat::Rgba) | Some(KittyImageFormat::Rgb) => {
+                let (width, height) = match (transmit.width, transmit.height) {
+                    (Some(w), Some(h)) => (w, h),
+                    _ => {
+                        anyhow::bail!("missing width/height info for kitty img");
+                    }
+                };
+
+                let format = match transmit.format {
+                    Some(KittyImageFormat::Rgb) => image::ColorType::Rgb8,
+                    _ => image::ColorType::Rgba8,
+                };
+
+                let mut png_image_data = vec![];
+                let encoder = image::png::PngEncoder::new(&mut png_image_data);
+                encoder
+                    .encode(&data, width, height, format)
+                    .context("encode data as PNG")?;
+
+                self.raw_image_to_image_data(png_image_data.into_boxed_slice())
+            }
+            Some(KittyImageFormat::Png) => self.raw_image_to_image_data(data.into_boxed_slice()),
+        };
+
+        self.kitty_image_id_to_data.insert(image_id, img);
+
+        if let Some(no) = image_number {
+            match verbosity {
+                KittyImageVerbosity::Verbose => {
+                    write!(self.writer, "\x1b_Gi={},I={};OK\x1b\\", image_id, no).ok();
+                }
+                _ => {}
+            }
+        }
+
+        Ok(image_id)
+    }
+
+    fn kitty_img_place(
+        &mut self,
+        image_id: Option<u32>,
+        image_number: Option<u32>,
+        placement: KittyImagePlacement,
+        verbosity: KittyImageVerbosity,
+    ) -> anyhow::Result<()> {
+        let image_id = match image_id {
+            Some(id) => id,
+            None => *self
+                .kitty_image_number_to_id
+                .get(
+                    &image_number
+                        .ok_or_else(|| anyhow::anyhow!("no image_id or image_number specified!"))?,
+                )
+                .ok_or_else(|| anyhow::anyhow!("image_number has no matching image id"))?,
+        };
+
+        // FIXME: need to support all kinds of fields in placement!
+
+        if placement.x.is_some()
+            || placement.y.is_some()
+            || placement.w.is_some()
+            || placement.h.is_some()
+        {
+            anyhow::bail!(
+                "kitty image placement x/y/w/h not yet implemented {:#?}",
+                placement
+            );
+        }
+
+        if placement.x_offset.is_some() || placement.y_offset.is_some() {
+            anyhow::bail!(
+                "kitty image placement offsets not yet implemented {:#?}",
+                placement
+            );
+        }
+
+        if placement.columns.is_some() || placement.rows.is_some() {
+            anyhow::bail!(
+                "kitty image placement scaling rows/columns not yet implemented {:#?}",
+                placement
+            );
+        }
+
+        if placement.placement_id.is_some() {
+            log::warn!(
+                "kitty image placement_id not yet implemented {:#?}",
+                placement
+            );
+        }
+        if placement.z_index.is_some() {
+            log::warn!("kitty image z_index not yet implemented {:#?}", placement);
+        }
+
+        let img = Arc::clone(
+            self.kitty_image_id_to_data
+                .get(&image_id)
+                .ok_or_else(|| anyhow::anyhow!("no matching image id"))?,
+        );
+
+        let decoded = image::load_from_memory(img.data()).context("decode png")?;
+        let (width, height) = decoded.dimensions();
+
+        let saved_cursor = self.cursor.clone();
+
+        self.assign_image_to_cells(width, height, img, true);
+
+        if placement.do_not_move_cursor {
+            self.cursor = saved_cursor;
+        }
+
+        Ok(())
+    }
+
+    fn kitty_img_inner(&mut self, img: KittyImage) -> anyhow::Result<()> {
+        match self
+            .coalesce_kitty_accumulation(img)
+            .context("coalesce_kitty_accumulation")?
+        {
+            KittyImage::TransmitData {
+                transmit,
+                verbosity,
+            } => {
+                self.kitty_img_transmit(transmit, verbosity)?;
+                Ok(())
+            }
+            KittyImage::TransmitDataAndDisplay {
+                transmit,
+                placement,
+                verbosity,
+            } => {
+                log::info!("TransmitDataAndDisplay {:#?} {:#?}", transmit, placement);
+                let image_number = transmit.image_number;
+                let image_id = self.kitty_img_transmit(transmit, verbosity)?;
+                self.kitty_img_place(Some(image_id), image_number, placement, verbosity)
+            }
+            _ => anyhow::bail!("impossible KittImage variant"),
+        }
+    }
+
+    fn kitty_img(&mut self, img: KittyImage) -> anyhow::Result<()> {
+        match img {
+            KittyImage::TransmitData {
+                transmit,
+                verbosity,
+            } => {
+                let more_data_follows = transmit.more_data_follows;
+                let img = KittyImage::TransmitData {
+                    transmit,
+                    verbosity,
+                };
+                if more_data_follows {
+                    self.kitty_image_accumulator.push(img);
+                } else {
+                    self.kitty_img_inner(img)?;
+                }
+            }
+            KittyImage::TransmitDataAndDisplay {
+                transmit,
+                placement,
+                verbosity,
+            } => {
+                let more_data_follows = transmit.more_data_follows;
+                let img = KittyImage::TransmitDataAndDisplay {
+                    transmit,
+                    placement,
+                    verbosity,
+                };
+                if more_data_follows {
+                    self.kitty_image_accumulator.push(img);
+                } else {
+                    self.kitty_img_inner(img)?;
+                }
+            }
+            KittyImage::Display {
+                image_id,
+                image_number,
+                placement,
+                verbosity,
+            } => {
+                self.kitty_img_place(image_id, image_number, placement, verbosity)?;
+            }
+            KittyImage::Delete { what, verbosity } => {
+                log::warn!("unhandled KittyImage::Delete {:?} {:?}", what, verbosity);
+            }
+        };
+
+        Ok(())
+    }
 
     fn sixel(&mut self, sixel: Box<Sixel>) {
         let (width, height) = sixel.dimensions();
@@ -3356,7 +3669,11 @@ impl<'a> Performer<'a> {
             Action::CSI(csi) => self.csi_dispatch(csi),
             Action::Sixel(sixel) => self.sixel(sixel),
             Action::XtGetTcap(names) => self.xt_get_tcap(names),
-            Action::KittyImage(img) => self.kitty_img(img),
+            Action::KittyImage(img) => {
+                if let Err(err) = self.kitty_img(img) {
+                    log::error!("kitty_img: {:#}", err);
+                }
+            }
         }
     }
 
