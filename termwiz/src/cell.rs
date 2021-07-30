@@ -76,7 +76,7 @@ struct FatAttributes {
     /// The hyperlink content, if any
     hyperlink: Option<Arc<Hyperlink>>,
     /// The image data, if any
-    image: Option<Box<ImageCell>>,
+    image: Vec<Box<ImageCell>>,
     /// The color of the underline.  If None, then
     /// the foreground color is to be used
     underline_color: ColorAttribute,
@@ -326,7 +326,7 @@ impl CellAttributes {
         if self.fat.is_none() {
             self.fat.replace(Box::new(FatAttributes {
                 hyperlink: None,
-                image: None,
+                image: vec![],
                 underline_color: ColorAttribute::Default,
                 foreground: ColorAttribute::Default,
                 background: ColorAttribute::Default,
@@ -339,7 +339,7 @@ impl CellAttributes {
             .fat
             .as_ref()
             .map(|fat| {
-                fat.image.is_none()
+                fat.image.is_empty()
                     && fat.hyperlink.is_none()
                     && fat.underline_color == ColorAttribute::Default
                     && fat.foreground == ColorAttribute::Default
@@ -362,15 +362,35 @@ impl CellAttributes {
         }
     }
 
-    pub fn set_image(&mut self, image: Option<Box<ImageCell>>) -> &mut Self {
-        if image.is_none() && self.fat.is_none() {
-            self
-        } else {
-            self.allocate_fat_attributes();
-            self.fat.as_mut().unwrap().image = image;
-            self.deallocate_fat_attributes_if_none();
-            self
+    /// Assign a single image to a cell.
+    pub fn set_image(&mut self, image: Box<ImageCell>) -> &mut Self {
+        self.allocate_fat_attributes();
+        self.fat.as_mut().unwrap().image = vec![image];
+        self
+    }
+
+    /// Clear all images from a cell
+    pub fn clear_images(&mut self) -> &mut Self {
+        if let Some(fat) = self.fat.as_mut() {
+            fat.image.clear();
         }
+        self.deallocate_fat_attributes_if_none();
+        self
+    }
+
+    /// Add an image attachement, preserving any existing attachments.
+    /// The list of images is maintained in z-index order
+    pub fn attach_image(&mut self, image: Box<ImageCell>) -> &mut Self {
+        self.allocate_fat_attributes();
+        let fat = self.fat.as_mut().unwrap();
+        let z_index = image.z_index();
+        match fat
+            .image
+            .binary_search_by(|probe| probe.z_index().cmp(&z_index))
+        {
+            Ok(idx) | Err(idx) => fat.image.insert(idx, image),
+        }
+        self
     }
 
     pub fn set_underline_color<C: Into<ColorAttribute>>(
@@ -420,10 +440,15 @@ impl CellAttributes {
         self.fat.as_ref().and_then(|fat| fat.hyperlink.as_ref())
     }
 
-    pub fn image(&self) -> Option<&ImageCell> {
-        self.fat
-            .as_ref()
-            .and_then(|fat| fat.image.as_ref().map(|im| im.as_ref()))
+    /// Returns the list of attached images in z-index order.
+    /// Returns None if there are no attached images; will
+    /// never return Some(vec![]).
+    pub fn images(&self) -> Option<Vec<ImageCell>> {
+        let fat = self.fat.as_ref()?;
+        if fat.image.is_empty() {
+            return None;
+        }
+        Some(fat.image.iter().map(|im| im.as_ref().clone()).collect())
     }
 
     pub fn underline_color(&self) -> ColorAttribute {

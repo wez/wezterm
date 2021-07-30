@@ -83,6 +83,7 @@ pub struct ImageCell {
     bottom_right: TextureCoordinate,
     /// References the underlying image data
     data: Arc<ImageData>,
+    z_index: i32,
 }
 
 impl ImageCell {
@@ -91,10 +92,20 @@ impl ImageCell {
         bottom_right: TextureCoordinate,
         data: Arc<ImageData>,
     ) -> Self {
+        Self::with_z_index(top_left, bottom_right, data, 0)
+    }
+
+    pub fn with_z_index(
+        top_left: TextureCoordinate,
+        bottom_right: TextureCoordinate,
+        data: Arc<ImageData>,
+        z_index: i32,
+    ) -> Self {
         Self {
             top_left,
             bottom_right,
             data,
+            z_index,
         }
     }
 
@@ -108,6 +119,14 @@ impl ImageCell {
 
     pub fn image_data(&self) -> &Arc<ImageData> {
         &self.data
+    }
+
+    /// negative z_index is rendered beneath the text layer.
+    /// >= 0 is rendered above the text.
+    /// negative z_index < INT32_MIN/2 will be drawn under cells
+    /// with non-default background colors
+    pub fn z_index(&self) -> i32 {
+        self.z_index
     }
 }
 

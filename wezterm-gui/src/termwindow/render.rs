@@ -871,19 +871,24 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                     });
 
-                    if let Some(image) = cluster.attrs.image() {
-                        self.populate_image_quad(
-                            image,
-                            gl_state,
-                            quads,
-                            cell_idx,
-                            &params,
-                            hsv,
-                            cursor_shape,
-                            glyph_color,
-                            style_params.underline_color,
-                            bg_color,
-                        )?;
+                    if let Some(images) = cluster.attrs.images() {
+                        // FIXME: This is where we need to allocate distinct quads for each of
+                        // these images
+
+                        for image in images {
+                            self.populate_image_quad(
+                                &image,
+                                gl_state,
+                                quads,
+                                cell_idx,
+                                &params,
+                                hsv,
+                                cursor_shape,
+                                glyph_color,
+                                style_params.underline_color,
+                                bg_color,
+                            )?;
+                        }
                     }
 
                     if self.config.custom_block_glyphs && glyph_idx == 0 {

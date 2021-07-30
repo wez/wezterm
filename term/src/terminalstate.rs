@@ -2020,11 +2020,11 @@ impl TerminalState {
                     .get_cell(cursor_x + x, cursor_y)
                     .cloned()
                     .unwrap_or_else(|| Cell::new(' ', CellAttributes::default()));
-                cell.attrs_mut().set_image(Some(Box::new(ImageCell::new(
+                cell.attrs_mut().set_image(Box::new(ImageCell::new(
                     TextureCoordinate::new(xpos, ypos),
                     TextureCoordinate::new(xpos + x_delta, ypos + y_delta),
                     image_data.clone(),
-                ))));
+                )));
 
                 self.screen_mut().set_cell(cursor_x + x, cursor_y, &cell);
                 xpos += x_delta;
