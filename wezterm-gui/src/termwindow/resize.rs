@@ -145,7 +145,6 @@ impl super::TermWindow {
 
         if let Some(render_state) = self.render_state.as_mut() {
             if let Err(err) = render_state.advise_of_window_size_change(
-                &config,
                 &self.render_metrics,
                 dimensions.pixel_width,
                 dimensions.pixel_height,

@@ -3,23 +3,69 @@ use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::glium::backend::Context as GliumContext;
+use ::window::glium::buffer::Mapping;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{IndexBuffer, VertexBuffer};
 use ::window::*;
-use config::ConfigHandle;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
+
+const INDICES_PER_CELL: usize = 6;
+
+pub struct MappedQuads<'a> {
+    mapping: Mapping<'a, [Vertex]>,
+    next: RefMut<'a, usize>,
+    capacity: usize,
+}
+
+impl<'a> MappedQuads<'a> {
+    pub fn allocate<'b>(&'b mut self) -> anyhow::Result<Quad<'b>> {
+        let idx = *self.next;
+        if idx >= self.capacity {
+            anyhow::bail!("not enough quads! do something like OutOfTextureSpace");
+        }
+        *self.next += 1;
+
+        let idx = idx * VERTICES_PER_CELL;
+        let mut quad = Quad {
+            vert: &mut self.mapping[idx..idx + VERTICES_PER_CELL],
+        };
+
+        quad.set_texture_adjust(0., 0., 0., 0.);
+        quad.set_has_color(false);
+
+        Ok(quad)
+    }
+}
 
 pub struct TripleVertexBuffer {
     pub index: RefCell<usize>,
     pub bufs: RefCell<[VertexBuffer<Vertex>; 3]>,
     pub indices: IndexBuffer<u32>,
     pub capacity: usize,
-    pub quads: Quads,
+    pub next_quad: RefCell<usize>,
 }
 
 impl TripleVertexBuffer {
+    pub fn clear_quad_allocation(&self) {
+        *self.next_quad.borrow_mut() = 0;
+    }
+
+    pub fn vertex_index_count(&self) -> (usize, usize) {
+        let num_quads = *self.next_quad.borrow();
+        (num_quads * VERTICES_PER_CELL, num_quads * INDICES_PER_CELL)
+    }
+
+    pub fn map<'a>(&'a self, bufs: &'a mut RefMut<VertexBuffer<Vertex>>) -> MappedQuads<'a> {
+        let mapping = bufs.slice_mut(..).expect("to map vertex buffer").map();
+        MappedQuads {
+            mapping,
+            next: self.next_quad.borrow_mut(),
+            capacity: self.capacity,
+        }
+    }
+
     pub fn current_vb(&self) -> Ref<VertexBuffer<Vertex>> {
         let index = *self.index.borrow();
         let bufs = self.bufs.borrow();
@@ -54,7 +100,6 @@ pub struct RenderState {
 
 impl RenderState {
     pub fn new(
-        config: &ConfigHandle,
         context: Rc<GliumContext>,
         fonts: &Rc<FontConfiguration>,
         metrics: &RenderMetrics,
@@ -79,7 +124,6 @@ impl RenderState {
                     let img_prog = Self::compile_prog(&context, true, Self::img_shader)?;
 
                     let glyph_vertex_buffer = Self::compute_vertices(
-                        config,
                         &context,
                         metrics,
                         pixel_width as f32,
@@ -141,13 +185,11 @@ impl RenderState {
 
     pub fn advise_of_window_size_change(
         &mut self,
-        config: &ConfigHandle,
         metrics: &RenderMetrics,
         pixel_width: usize,
         pixel_height: usize,
     ) -> anyhow::Result<()> {
         let glyph_vertex_buffer = Self::compute_vertices(
-            config,
             &self.context,
             metrics,
             pixel_width as f32,
@@ -233,7 +275,6 @@ impl RenderState {
     /// to a changed cell when we need to repaint the screen, and then just
     /// let the GPU figure out the rest.
     fn compute_vertices(
-        config: &ConfigHandle,
         context: &Rc<GliumContext>,
         metrics: &RenderMetrics,
         width: f32,
@@ -241,58 +282,25 @@ impl RenderState {
     ) -> anyhow::Result<TripleVertexBuffer> {
         let cell_width = metrics.cell_size.width as f32;
         let cell_height = metrics.cell_size.height as f32;
-        let mut verts = Vec::new();
-        let mut indices = Vec::new();
 
-        let padding_right = super::termwindow::resize::effective_right_padding(&config, metrics);
-        let avail_width =
-            (width as usize).saturating_sub((config.window_padding.left + padding_right) as usize);
-        let avail_height = (height as usize)
-            .saturating_sub((config.window_padding.top + config.window_padding.bottom) as usize);
-
-        let num_cols = avail_width as usize / cell_width as usize;
-        let num_rows = avail_height as usize / cell_height as usize;
-
-        let padding_left = config.window_padding.left as f32;
-        let padding_top = config.window_padding.top as f32;
+        let num_cols = width as usize / cell_width as usize;
+        let num_rows = height as usize / cell_height as usize;
 
         log::debug!(
-            "compute_vertices {}x{} {}x{} padding={} {}",
+            "compute_vertices {}x{} {}x{}",
             num_cols,
             num_rows,
             width,
             height,
-            padding_left,
-            padding_top
         );
 
-        let mut quads = Quads::default();
-        quads.cols = num_cols;
+        let num_quads = num_cols * num_rows + 2 /* bg image, scroll thumb */;
+        let verts = vec![Vertex::default(); num_quads * VERTICES_PER_CELL];
+        let mut indices = vec![];
+        indices.reserve(num_quads * INDICES_PER_CELL);
 
-        let mut define_quad = |left, top, right, bottom| -> u32 {
-            // Remember starting index for this position
-            let idx = verts.len() as u32;
-
-            verts.push(Vertex {
-                // Top left
-                position: (left, top),
-                ..Default::default()
-            });
-            verts.push(Vertex {
-                // Top Right
-                position: (right, top),
-                ..Default::default()
-            });
-            verts.push(Vertex {
-                // Bottom Left
-                position: (left, bottom),
-                ..Default::default()
-            });
-            verts.push(Vertex {
-                // Bottom Right
-                position: (right, bottom),
-                ..Default::default()
-            });
+        for q in 0..num_quads {
+            let idx = (q * VERTICES_PER_CELL) as u32;
 
             // Emit two triangles to form the glyph quad
             indices.push(idx + V_TOP_LEFT as u32);
@@ -302,30 +310,7 @@ impl RenderState {
             indices.push(idx + V_TOP_RIGHT as u32);
             indices.push(idx + V_BOT_LEFT as u32);
             indices.push(idx + V_BOT_RIGHT as u32);
-
-            idx
-        };
-
-        // Background image fills the entire window background
-        quads.background_image =
-            define_quad(width / -2.0, height / -2.0, width / 2.0, height / 2.0) as usize;
-
-        for y in 0..=num_rows {
-            let y_pos = (height / -2.0) + (y as f32 * cell_height) + padding_top;
-
-            for x in 0..num_cols {
-                let x_pos = (width / -2.0) + (x as f32 * cell_width) + padding_left;
-
-                let idx = define_quad(x_pos, y_pos, x_pos + cell_width, y_pos + cell_height);
-                if x == 0 {
-                    // build row -> vertex mapping
-                    quads.row_starts.push(idx as usize);
-                }
-            }
         }
-
-        // And a quad for the scrollbar thumb
-        quads.scroll_thumb = define_quad(0.0, 0.0, 0.0, 0.0) as usize;
 
         let buffer = TripleVertexBuffer {
             index: RefCell::new(0),
@@ -334,13 +319,13 @@ impl RenderState {
                 VertexBuffer::dynamic(context, &verts)?,
                 VertexBuffer::dynamic(context, &verts)?,
             ]),
-            capacity: verts.len(),
+            capacity: verts.len() / VERTICES_PER_CELL,
             indices: IndexBuffer::new(
                 context,
                 glium::index::PrimitiveType::TrianglesList,
                 &indices,
             )?,
-            quads,
+            next_quad: RefCell::new(0),
         };
 
         Ok(buffer)

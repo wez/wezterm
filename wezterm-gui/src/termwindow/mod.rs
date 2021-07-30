@@ -1,5 +1,4 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
-use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::cache::LruCache;
@@ -300,7 +299,6 @@ impl TermWindow {
         self.render_state = None;
 
         match RenderState::new(
-            &self.config,
             ctx,
             &self.fonts,
             &self.render_metrics,

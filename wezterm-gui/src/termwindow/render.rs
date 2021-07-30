@@ -218,7 +218,7 @@ impl super::TermWindow {
 
         let start = Instant::now();
         let mut vb_mut = vb.current_vb_mut();
-        let mut quads = vb.quads.map(&mut vb_mut);
+        let mut quads = vb.map(&mut vb_mut);
         log::trace!("quad map elapsed {:?}", start.elapsed());
         metrics::histogram!("quad.map", start.elapsed());
 
@@ -229,12 +229,6 @@ impl super::TermWindow {
         let window_is_transparent =
             self.window_background.is_some() || config.window_background_opacity != 1.0;
 
-        // Pre-set the row with the whitespace glyph.
-        // This is here primarily because clustering/shaping can cause the line updates
-        // to skip setting a quad that is logically obscured by a double-wide glyph.
-        // If eg: scrolling the viewport causes the pair of quads to change from two
-        // individual cells to a single double-wide cell then we might leave the second
-        // one of the pair with the glyph from the prior viewport position.
         let default_bg = rgbcolor_alpha_to_window_color(
             palette.resolve_bg(ColorAttribute::Default),
             if window_is_transparent {
@@ -309,7 +303,7 @@ impl super::TermWindow {
                 (0., 0., color)
             };
 
-            let mut quad = quads.scroll_thumb();
+            let mut quad = quads.allocate()?;
 
             // Adjust the scrollbar thumb position
             let top = (self.dimensions.pixel_height as f32 / -2.0) + thumb_top;
@@ -335,9 +329,15 @@ impl super::TermWindow {
         }
 
         {
-            let mut quad = quads.background_image();
+            let mut quad = quads.allocate()?;
             quad.set_underline(white_space);
             quad.set_cursor(white_space);
+            quad.set_position(
+                self.dimensions.pixel_width as f32 / -2.,
+                self.dimensions.pixel_height as f32 / -2.,
+                self.dimensions.pixel_width as f32 / 2.,
+                self.dimensions.pixel_height as f32 / 2.,
+            );
 
             let background_image_alpha = (config.window_background_opacity * 255.0) as u8;
             let color = rgbcolor_alpha_to_window_color(palette.background, background_image_alpha);
@@ -411,6 +411,7 @@ impl super::TermWindow {
     pub fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
         let vb = &gl_state.glyph_vertex_buffer;
+        let (vertex_count, index_count) = vb.vertex_index_count();
 
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
         let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
@@ -459,10 +460,12 @@ impl super::TermWindow {
             foreground_text_hsb.brightness,
         );
 
+        let vertices = vb.current_vb();
+
         // Pass 1: Draw backgrounds
         frame.draw(
-            &*vb.current_vb(),
-            &vb.indices,
+            vertices.slice(0..vertex_count).unwrap(),
+            vb.indices.slice(0..index_count).unwrap(),
             &gl_state.background_prog,
             &uniform! {
                 projection: projection,
@@ -474,8 +477,8 @@ impl super::TermWindow {
 
         // Pass 2: strikethrough and underline
         frame.draw(
-            &*vb.current_vb(),
-            &vb.indices,
+            vertices.slice(0..vertex_count).unwrap(),
+            vb.indices.slice(0..index_count).unwrap(),
             &gl_state.line_prog,
             &uniform! {
                 projection: projection,
@@ -528,8 +531,8 @@ impl super::TermWindow {
 
         // Pass 3: Draw glyphs
         frame.draw(
-            &*vb.current_vb(),
-            &vb.indices,
+            vertices.slice(0..vertex_count).unwrap(),
+            vb.indices.slice(0..index_count).unwrap(),
             &gl_state.glyph_prog,
             &uniform! {
                 projection: projection,
@@ -542,8 +545,8 @@ impl super::TermWindow {
 
         // Pass 4: Draw image attachments
         frame.draw(
-            &*vb.current_vb(),
-            &vb.indices,
+            vertices.slice(0..vertex_count).unwrap(),
+            vb.indices.slice(0..index_count).unwrap(),
             &gl_state.img_prog,
             &uniform! {
                 projection: projection,
@@ -567,7 +570,7 @@ impl super::TermWindow {
         let gl_state = self.render_state.as_ref().unwrap();
         let vb = &gl_state.glyph_vertex_buffer;
         let mut vb_mut = vb.current_vb_mut();
-        let mut quads = vb.quads.map(&mut vb_mut);
+        let mut quads = vb.map(&mut vb_mut);
         let config = &self.config;
         let block = BlockKey::from_char(if split.direction == SplitDirection::Horizontal {
             '\u{2502}'
@@ -599,6 +602,8 @@ impl super::TermWindow {
             } else {
                 Box::new((split.left..split.left + split.size).zip(std::iter::repeat(split.top)))
             };
+        let cell_width = self.render_metrics.cell_size.width as f32;
+        let cell_height = self.render_metrics.cell_size.height as f32;
         for (x, y) in x_y_iter {
             let sprite = gl_state
                 .glyph_cache
@@ -606,10 +611,14 @@ impl super::TermWindow {
                 .cached_block(block)?
                 .texture_coords();
 
-            let mut quad = match quads.cell(x, y + first_row_offset) {
-                Ok(quad) => quad,
-                Err(_) => break,
-            };
+            let pos_y = (self.dimensions.pixel_height as f32 / -2.)
+                + (y + first_row_offset) as f32 * cell_height
+                + self.config.window_padding.top as f32;
+            let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                + x as f32 * cell_width
+                + self.config.window_padding.left as f32;
+            let mut quad = quads.allocate()?;
+            quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
             quad.set_fg_color(foreground);
             quad.set_underline_color(foreground);
@@ -626,6 +635,11 @@ impl super::TermWindow {
     }
 
     pub fn paint_opengl_pass(&mut self) -> anyhow::Result<()> {
+        {
+            let gl_state = self.render_state.as_ref().unwrap();
+            gl_state.glyph_vertex_buffer.clear_quad_allocation();
+        }
+
         let panes = self.get_panes_to_render();
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
@@ -668,33 +682,11 @@ impl super::TermWindow {
         let uptime = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let milli_uptime = uptime.as_secs() as u128 * 1000 + uptime.subsec_millis() as u128;
 
-        // Clear the cells to basic blanks to avoid leaving artifacts behind.
-        // The easiest reproduction for the artifacts is to maximize the window and
-        // open a vim split horizontally.  Backgrounding vim would leave
-        // the right pane with its prior contents instead of showing the
-        // cleared lines from the shell in the main screen.
-        let clear_bg = if params.line.is_reverse() {
-            params.foreground
-        } else {
-            params.default_bg
-        };
-
-        for cell_idx in 0..num_cols {
-            let mut quad =
-                match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
-                    Ok(quad) => quad,
-                    Err(_) => break,
-                };
-
-            quad.set_bg_color(clear_bg);
-            quad.set_texture(params.white_space);
-            quad.set_image_texture(params.white_space);
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_underline(params.white_space);
-            quad.set_cursor(params.white_space);
-            quad.set_has_color(false);
-            quad.set_hsv(hsv);
-        }
+        let cell_width = self.render_metrics.cell_size.width as f32;
+        let cell_height = self.render_metrics.cell_size.height as f32;
+        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
+            + (params.line_idx + params.pos.top) as f32 * cell_height
+            + self.config.window_padding.top as f32;
 
         // Break the line into clusters of cells with the same attributes
         let start = Instant::now();
@@ -941,16 +933,15 @@ impl super::TermWindow {
                     // `left` value to be 0 when glyph_idx > 0.
                     slice_left = right;
 
-                    let mut quad = match quads
-                        .cell(cell_idx + params.pos.left, params.line_idx + params.pos.top)
-                    {
-                        Ok(quad) => quad,
-                        Err(_) => break,
-                    };
-
+                    let mut quad = quads.allocate()?;
+                    let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                        + (cell_idx + params.pos.left) as f32 * cell_width
+                        + self.config.window_padding.left as f32;
+                    quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
                     quad.set_fg_color(glyph_color);
                     quad.set_bg_color(bg_color);
                     quad.set_texture(texture_rect);
+                    quad.set_image_texture(params.white_space);
                     quad.set_texture_adjust(left, top, right, bottom);
                     quad.set_underline(style_params.underline_tex_rect);
                     quad.set_underline_color(style_params.underline_color);
@@ -987,19 +978,65 @@ impl super::TermWindow {
         //   of one of the clusters)
         let right_fill_start = Instant::now();
         if last_cell_idx < num_cols {
-            // We only need to update the cells that have the cursor or the
-            // selection.
+            let mut reverse_left = 0..0;
+            let mut reverse_right = last_cell_idx..num_cols;
+
+            // Render the selection beyond the end of the line
             if let Some(sel_range) =
                 rangeset::range_intersection(&params.selection, &(last_cell_idx + 1..num_cols))
             {
-                for cell_idx in sel_range {
-                    if let Ok(mut quad) =
-                        quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top)
-                    {
-                        quad.set_bg_color(params.selection_bg);
-                        quad.set_fg_color(params.selection_fg);
-                        quad.set_underline_color(params.selection_fg);
-                    }
+                // revise the reverse video range
+                reverse_left = last_cell_idx..sel_range.start;
+                reverse_right = sel_range.end..num_cols;
+
+                let mut quad = quads.allocate()?;
+
+                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                    + (sel_range.start + params.pos.left) as f32 * cell_width
+                    + self.config.window_padding.left as f32;
+                quad.set_position(
+                    pos_x,
+                    pos_y,
+                    pos_x + (sel_range.end - sel_range.start) as f32 * cell_width,
+                    pos_y + cell_height,
+                );
+
+                quad.set_bg_color(params.selection_bg);
+                quad.set_fg_color(params.selection_fg);
+                quad.set_image_texture(params.white_space);
+                quad.set_texture_adjust(0., 0., 0., 0.);
+                quad.set_texture(params.white_space);
+                quad.set_underline_color(params.selection_fg);
+                quad.set_underline(params.white_space);
+                quad.set_cursor(params.white_space);
+                quad.set_has_color(false);
+                quad.set_hsv(hsv);
+            }
+
+            if params.line.is_reverse() {
+                for r in [reverse_left, reverse_right] {
+                    let mut quad = quads.allocate()?;
+
+                    let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                        + (r.start + params.pos.left) as f32 * cell_width
+                        + self.config.window_padding.left as f32;
+                    quad.set_position(
+                        pos_x,
+                        pos_y,
+                        pos_x + (r.end - r.start) as f32 * cell_width,
+                        pos_y + cell_height,
+                    );
+
+                    quad.set_bg_color(params.foreground); // reverse video
+                    quad.set_fg_color(params.default_bg);
+                    quad.set_image_texture(params.white_space);
+                    quad.set_texture_adjust(0., 0., 0., 0.);
+                    quad.set_texture(params.white_space);
+                    quad.set_underline_color(params.selection_fg);
+                    quad.set_underline(params.white_space);
+                    quad.set_cursor(params.white_space);
+                    quad.set_has_color(false);
+                    quad.set_hsv(hsv);
                 }
             }
 
@@ -1027,24 +1064,32 @@ impl super::TermWindow {
                     cursor_bg: params.cursor_bg,
                 });
 
-                if let Ok(mut quad) = quads.cell(
-                    params.cursor.x + params.pos.left,
-                    params.line_idx + params.pos.top,
-                ) {
-                    quad.set_bg_color(bg_color);
-                    quad.set_fg_color(glyph_color);
-                    quad.set_cursor(
-                        gl_state
-                            .util_sprites
-                            .cursor_sprite(cursor_shape)
-                            .texture_coords(),
-                    );
-                    quad.set_cursor_color(if self.config.force_reverse_video_cursor {
-                        bg_color
-                    } else {
-                        params.cursor_border_color
-                    });
-                }
+                let mut quad = quads.allocate()?;
+                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                    + (params.cursor.x + params.pos.left) as f32 * cell_width
+                    + self.config.window_padding.left as f32;
+                quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+
+                quad.set_texture(params.white_space);
+                quad.set_image_texture(params.white_space);
+                quad.set_texture_adjust(0., 0., 0., 0.);
+                quad.set_underline(params.white_space);
+                quad.set_has_color(false);
+                quad.set_hsv(hsv);
+
+                quad.set_bg_color(bg_color);
+                quad.set_fg_color(glyph_color);
+                quad.set_cursor(
+                    gl_state
+                        .util_sprites
+                        .cursor_sprite(cursor_shape)
+                        .texture_coords(),
+                );
+                quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+                    bg_color
+                } else {
+                    params.cursor_border_color
+                });
             }
         }
         metrics::histogram!(
@@ -1080,17 +1125,22 @@ impl super::TermWindow {
             .cached_block(block)?
             .texture_coords();
 
-        let mut quad =
-            match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
-                Ok(quad) => quad,
-                Err(_) => return Ok(()),
-            };
-
+        let mut quad = quads.allocate()?;
+        let cell_width = self.render_metrics.cell_size.width as f32;
+        let cell_height = self.render_metrics.cell_size.height as f32;
+        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
+            + (params.line_idx + params.pos.top) as f32 * cell_height
+            + self.config.window_padding.top as f32;
+        let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+            + (cell_idx + params.pos.left) as f32 * cell_width
+            + self.config.window_padding.left as f32;
+        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
         quad.set_underline_color(underline_color);
         quad.set_bg_color(bg_color);
         quad.set_texture(sprite);
+        quad.set_image_texture(params.white_space);
         quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_underline(params.white_space);
         quad.set_has_color(false);
@@ -1164,12 +1214,18 @@ impl super::TermWindow {
 
         let texture_rect = TextureRect::new(origin, size);
 
-        let mut quad =
-            match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
-                Ok(quad) => quad,
-                Err(_) => return Ok(()),
-            };
+        let mut quad = quads.allocate()?;
+        let cell_width = self.render_metrics.cell_size.width as f32;
+        let cell_height = self.render_metrics.cell_size.height as f32;
+        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
+            + (params.line_idx + params.pos.top) as f32 * cell_height
+            + self.config.window_padding.top as f32;
 
+        let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+            + (cell_idx + params.pos.left) as f32 * cell_width
+            + self.config.window_padding.left as f32;
+
+        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
         quad.set_underline_color(underline_color);

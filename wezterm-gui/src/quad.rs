@@ -4,9 +4,6 @@
 
 use ::window::bitmaps::TextureRect;
 use ::window::color::LinearRgba;
-use ::window::glium::buffer::Mapping;
-use ::window::glium::VertexBuffer;
-use std::cell::RefMut;
 
 /// Each cell is composed of two triangles built from 4 vertices.
 /// The buffer is organized row by row.
@@ -65,70 +62,9 @@ pub struct Vertex {
     has_color
 );
 
-/// A helper for knowing how to locate the right quad for an element
-/// in the UI
-#[derive(Default, Debug, Clone)]
-pub struct Quads {
-    /// How many cells per row
-    pub cols: usize,
-    /// row number to vertex index for the first vertex on that row
-    pub row_starts: Vec<usize>,
-    /// The vertex index for the first vertex of the scroll bar thumb
-    pub scroll_thumb: usize,
-    pub background_image: usize,
-}
-
-pub struct MappedQuads<'a> {
-    mapping: Mapping<'a, [Vertex]>,
-    quads: Quads,
-}
-
-impl<'a> MappedQuads<'a> {
-    pub fn cell<'b>(&'b mut self, x: usize, y: usize) -> anyhow::Result<Quad<'b>> {
-        if x >= self.quads.cols {
-            anyhow::bail!("column {} is outside of the vertex buffer range", x);
-        }
-
-        let start = self
-            .quads
-            .row_starts
-            .get(y)
-            .ok_or_else(|| anyhow::anyhow!("line {} is outside the vertex buffer range", y))?
-            + x * VERTICES_PER_CELL;
-
-        Ok(Quad {
-            vert: &mut self.mapping[start..start + VERTICES_PER_CELL],
-        })
-    }
-
-    pub fn scroll_thumb<'b>(&'b mut self) -> Quad<'b> {
-        let start = self.quads.scroll_thumb;
-        Quad {
-            vert: &mut self.mapping[start..start + VERTICES_PER_CELL],
-        }
-    }
-
-    pub fn background_image<'b>(&'b mut self) -> Quad<'b> {
-        let start = self.quads.background_image;
-        Quad {
-            vert: &mut self.mapping[start..start + VERTICES_PER_CELL],
-        }
-    }
-}
-
-impl Quads {
-    pub fn map<'a>(&self, bufs: &'a mut RefMut<VertexBuffer<Vertex>>) -> MappedQuads<'a> {
-        let mapping = bufs.slice_mut(..).expect("to map vertex buffer").map();
-        MappedQuads {
-            mapping,
-            quads: self.clone(),
-        }
-    }
-}
-
 /// A helper for updating the 4 vertices that compose a glyph cell
 pub struct Quad<'a> {
-    vert: &'a mut [Vertex],
+    pub(crate) vert: &'a mut [Vertex],
 }
 
 impl<'a> Quad<'a> {
