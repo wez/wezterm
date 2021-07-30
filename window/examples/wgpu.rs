@@ -181,8 +181,11 @@ impl MyWindow {
         Ok(())
     }
 
+    #[cfg(not(target_os = "macos"))]
+    fn fix_transparency(&mut self, _: &Window) {}
+
+    #[cfg(target_os = "macos")]
     fn fix_transparency(&mut self, win: &Window) {
-        #[cfg(target_os = "macos")]
         if let RawWindowHandle::MacOS(h) = win.raw_window_handle() {
             use cocoa::base::{id, NO};
             use objc::*;
