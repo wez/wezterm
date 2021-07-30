@@ -7,13 +7,38 @@ use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{IndexBuffer, VertexBuffer};
 use ::window::*;
 use config::ConfigHandle;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wezterm_font::FontConfiguration;
 
 pub struct TripleVertexBuffer {
-    pub index: usize,
-    pub bufs: [VertexBuffer<Vertex>; 3],
+    pub index: RefCell<usize>,
+    pub bufs: RefCell<[VertexBuffer<Vertex>; 3]>,
+    pub indices: IndexBuffer<u32>,
+    pub capacity: usize,
+    pub quads: Quads,
+}
+
+impl TripleVertexBuffer {
+    pub fn current_vb(&self) -> Ref<VertexBuffer<Vertex>> {
+        let index = *self.index.borrow();
+        let bufs = self.bufs.borrow();
+        Ref::map(bufs, |bufs| &bufs[index])
+    }
+
+    pub fn current_vb_mut(&self) -> RefMut<VertexBuffer<Vertex>> {
+        let index = *self.index.borrow();
+        let bufs = self.bufs.borrow_mut();
+        RefMut::map(bufs, |bufs| &mut bufs[index])
+    }
+
+    pub fn next_index(&self) {
+        let mut index = self.index.borrow_mut();
+        *index += 1;
+        if *index >= 3 {
+            *index = 0;
+        }
+    }
 }
 
 pub struct RenderState {
@@ -24,9 +49,7 @@ pub struct RenderState {
     pub line_prog: glium::Program,
     pub glyph_prog: glium::Program,
     pub img_prog: glium::Program,
-    pub glyph_vertex_buffer: RefCell<TripleVertexBuffer>,
-    pub glyph_index_buffer: IndexBuffer<u32>,
-    pub quads: Quads,
+    pub glyph_vertex_buffer: TripleVertexBuffer,
 }
 
 impl RenderState {
@@ -55,7 +78,7 @@ impl RenderState {
                     // Last prog outputs srgb for gamma correction
                     let img_prog = Self::compile_prog(&context, true, Self::img_shader)?;
 
-                    let (glyph_vertex_buffer, glyph_index_buffer, quads) = Self::compute_vertices(
+                    let glyph_vertex_buffer = Self::compute_vertices(
                         config,
                         &context,
                         metrics,
@@ -71,9 +94,7 @@ impl RenderState {
                         line_prog,
                         glyph_prog,
                         img_prog,
-                        glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
-                        glyph_index_buffer,
-                        quads,
+                        glyph_vertex_buffer,
                     });
                 }
                 Err(OutOfTextureSpace {
@@ -125,7 +146,7 @@ impl RenderState {
         pixel_width: usize,
         pixel_height: usize,
     ) -> anyhow::Result<()> {
-        let (glyph_vertex_buffer, glyph_index_buffer, quads) = Self::compute_vertices(
+        let glyph_vertex_buffer = Self::compute_vertices(
             config,
             &self.context,
             metrics,
@@ -133,9 +154,7 @@ impl RenderState {
             pixel_height as f32,
         )?;
 
-        *self.glyph_vertex_buffer.borrow_mut() = glyph_vertex_buffer;
-        self.glyph_index_buffer = glyph_index_buffer;
-        self.quads = quads;
+        self.glyph_vertex_buffer = glyph_vertex_buffer;
         Ok(())
     }
 
@@ -219,7 +238,7 @@ impl RenderState {
         metrics: &RenderMetrics,
         width: f32,
         height: f32,
-    ) -> anyhow::Result<(TripleVertexBuffer, IndexBuffer<u32>, Quads)> {
+    ) -> anyhow::Result<TripleVertexBuffer> {
         let cell_width = metrics.cell_size.width as f32;
         let cell_height = metrics.cell_size.height as f32;
         let mut verts = Vec::new();
@@ -309,23 +328,22 @@ impl RenderState {
         quads.scroll_thumb = define_quad(0.0, 0.0, 0.0, 0.0) as usize;
 
         let buffer = TripleVertexBuffer {
-            index: 0,
-            bufs: [
+            index: RefCell::new(0),
+            bufs: RefCell::new([
                 VertexBuffer::dynamic(context, &verts)?,
                 VertexBuffer::dynamic(context, &verts)?,
                 VertexBuffer::dynamic(context, &verts)?,
-            ],
-        };
-
-        Ok((
-            buffer,
-            IndexBuffer::new(
+            ]),
+            capacity: verts.len(),
+            indices: IndexBuffer::new(
                 context,
                 glium::index::PrimitiveType::TrianglesList,
                 &indices,
             )?,
             quads,
-        ))
+        };
+
+        Ok(buffer)
     }
 
     pub fn clear_texture_atlas(&mut self, metrics: &RenderMetrics) -> anyhow::Result<()> {

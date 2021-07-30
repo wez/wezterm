@@ -2,10 +2,10 @@
 // this warning to its use
 #![allow(clippy::unneeded_field_pattern)]
 
-use crate::renderstate::TripleVertexBuffer;
 use ::window::bitmaps::TextureRect;
 use ::window::color::LinearRgba;
 use ::window::glium::buffer::Mapping;
+use ::window::glium::VertexBuffer;
 use std::cell::RefMut;
 
 /// Each cell is composed of two triangles built from 4 vertices.
@@ -117,12 +117,8 @@ impl<'a> MappedQuads<'a> {
 }
 
 impl Quads {
-    pub fn map<'a>(&self, tb: &'a mut RefMut<TripleVertexBuffer>) -> MappedQuads<'a> {
-        let index = tb.index;
-        let mapping = tb.bufs[index]
-            .slice_mut(..)
-            .expect("to map vertex buffer")
-            .map();
+    pub fn map<'a>(&self, bufs: &'a mut RefMut<VertexBuffer<Vertex>>) -> MappedQuads<'a> {
+        let mapping = bufs.slice_mut(..).expect("to map vertex buffer").map();
         MappedQuads {
             mapping,
             quads: self.clone(),

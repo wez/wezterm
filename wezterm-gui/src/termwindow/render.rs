@@ -214,10 +214,11 @@ impl super::TermWindow {
         }
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
+        let vb = &gl_state.glyph_vertex_buffer;
 
         let start = Instant::now();
-        let mut quads = gl_state.quads.map(&mut vb);
+        let mut vb_mut = vb.current_vb_mut();
+        let mut quads = vb.quads.map(&mut vb_mut);
         log::trace!("quad map elapsed {:?}", start.elapsed());
         metrics::histogram!("quad.map", start.elapsed());
 
@@ -409,7 +410,7 @@ impl super::TermWindow {
 
     pub fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
-        let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
+        let vb = &gl_state.glyph_vertex_buffer;
 
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
         let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
@@ -460,8 +461,8 @@ impl super::TermWindow {
 
         // Pass 1: Draw backgrounds
         frame.draw(
-            &vb.bufs[vb.index],
-            &gl_state.glyph_index_buffer,
+            &*vb.current_vb(),
+            &vb.indices,
             &gl_state.background_prog,
             &uniform! {
                 projection: projection,
@@ -473,8 +474,8 @@ impl super::TermWindow {
 
         // Pass 2: strikethrough and underline
         frame.draw(
-            &vb.bufs[vb.index],
-            &gl_state.glyph_index_buffer,
+            &*vb.current_vb(),
+            &vb.indices,
             &gl_state.line_prog,
             &uniform! {
                 projection: projection,
@@ -527,8 +528,8 @@ impl super::TermWindow {
 
         // Pass 3: Draw glyphs
         frame.draw(
-            &vb.bufs[vb.index],
-            &gl_state.glyph_index_buffer,
+            &*vb.current_vb(),
+            &vb.indices,
             &gl_state.glyph_prog,
             &uniform! {
                 projection: projection,
@@ -541,8 +542,8 @@ impl super::TermWindow {
 
         // Pass 4: Draw image attachments
         frame.draw(
-            &vb.bufs[vb.index],
-            &gl_state.glyph_index_buffer,
+            &*vb.current_vb(),
+            &vb.indices,
             &gl_state.img_prog,
             &uniform! {
                 projection: projection,
@@ -553,10 +554,7 @@ impl super::TermWindow {
             &blend_but_set_alpha_to_one,
         )?;
 
-        vb.index += 1;
-        if vb.index >= 3 {
-            vb.index = 0;
-        }
+        vb.next_index();
 
         Ok(())
     }
@@ -567,8 +565,9 @@ impl super::TermWindow {
         pane: &Rc<dyn Pane>,
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
-        let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
-        let mut quads = gl_state.quads.map(&mut vb);
+        let vb = &gl_state.glyph_vertex_buffer;
+        let mut vb_mut = vb.current_vb_mut();
+        let mut quads = vb.quads.map(&mut vb_mut);
         let config = &self.config;
         let block = BlockKey::from_char(if split.direction == SplitDirection::Horizontal {
             '\u{2502}'
