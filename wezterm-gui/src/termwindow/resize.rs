@@ -74,10 +74,8 @@ impl super::TermWindow {
     pub fn apply_dimensions(
         &mut self,
         dimensions: &Dimensions,
-        mut scale_changed_cells: Option<RowsAndCols>,
+        scale_changed_cells: Option<RowsAndCols>,
     ) {
-        let orig_dimensions = self.dimensions;
-
         self.dimensions = *dimensions;
 
         // Technically speaking, we should compute the rows and cols
@@ -143,25 +141,8 @@ impl super::TermWindow {
             (size, *dimensions)
         };
 
-        if let Some(render_state) = self.render_state.as_mut() {
-            if let Err(err) = render_state.advise_of_window_size_change(
-                &self.render_metrics,
-                dimensions.pixel_width,
-                dimensions.pixel_height,
-            ) {
-                log::error!(
-                    "failed to advise of resize from {:?} -> {:?}: {:?}",
-                    orig_dimensions,
-                    dimensions,
-                    err
-                );
-                // Try to restore the original dimensions
-                self.dimensions = orig_dimensions;
-                // Avoid the inner resize below
-                scale_changed_cells.take();
-            } else {
-                self.terminal_size = size;
-            }
+        if self.render_state.is_some() {
+            self.terminal_size = size;
         }
 
         let mux = Mux::get().unwrap();

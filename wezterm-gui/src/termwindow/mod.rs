@@ -298,14 +298,7 @@ impl TermWindow {
     ) -> anyhow::Result<()> {
         self.render_state = None;
 
-        match RenderState::new(
-            ctx,
-            &self.fonts,
-            &self.render_metrics,
-            ATLAS_SIZE,
-            self.dimensions.pixel_width,
-            self.dimensions.pixel_height,
-        ) {
+        match RenderState::new(ctx, &self.fonts, &self.render_metrics, ATLAS_SIZE) {
             Ok(gl) => {
                 log::info!(
                     "OpenGL initialized! {} {} is_context_loss_possible={} wezterm version: {}",

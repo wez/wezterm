@@ -99,7 +99,27 @@ impl super::TermWindow {
 
         for pass in 0.. {
             match self.paint_opengl_pass() {
-                Ok(_) => break,
+                Ok(_) => {
+                    let gl_state = self.render_state.as_mut().unwrap();
+                    if let Some(need_quads) = gl_state.glyph_vertex_buffer.need_more_quads() {
+                        // Round up to next multiple of 1024 that is >=
+                        // the number of needed quads for this frame
+                        let num_quads = (need_quads + 1023) & !1023;
+                        if let Err(err) = gl_state.reallocate_quads(num_quads) {
+                            log::error!(
+                                "Failed to allocate {} quads (needed {}): {:#}",
+                                num_quads,
+                                need_quads,
+                                err
+                            );
+                            break;
+                        }
+                        log::trace!("Allocated {} quads (needed {})", num_quads, need_quads);
+                        continue;
+                    }
+
+                    break;
+                }
                 Err(err) => {
                     if let Some(&OutOfTextureSpace {
                         size: Some(size),

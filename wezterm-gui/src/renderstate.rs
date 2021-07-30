@@ -22,10 +22,16 @@ pub struct MappedQuads<'a> {
 impl<'a> MappedQuads<'a> {
     pub fn allocate<'b>(&'b mut self) -> anyhow::Result<Quad<'b>> {
         let idx = *self.next;
-        if idx >= self.capacity {
-            anyhow::bail!("not enough quads! do something like OutOfTextureSpace");
-        }
         *self.next += 1;
+        let idx = if idx >= self.capacity {
+            // We don't have enough quads, so we'll keep re-using
+            // the first quad until we reach the end of the render
+            // pass, at which point we'll detect this condition
+            // and re-allocate the quads.
+            0
+        } else {
+            idx
+        };
 
         let idx = idx * VERTICES_PER_CELL;
         let mut quad = Quad {
@@ -50,6 +56,15 @@ pub struct TripleVertexBuffer {
 impl TripleVertexBuffer {
     pub fn clear_quad_allocation(&self) {
         *self.next_quad.borrow_mut() = 0;
+    }
+
+    pub fn need_more_quads(&self) -> Option<usize> {
+        let next = *self.next_quad.borrow();
+        if next > self.capacity {
+            Some(next)
+        } else {
+            None
+        }
     }
 
     pub fn vertex_index_count(&self) -> (usize, usize) {
@@ -104,8 +119,6 @@ impl RenderState {
         fonts: &Rc<FontConfiguration>,
         metrics: &RenderMetrics,
         mut atlas_size: usize,
-        pixel_width: usize,
-        pixel_height: usize,
     ) -> anyhow::Result<Self> {
         loop {
             let glyph_cache =
@@ -123,12 +136,7 @@ impl RenderState {
                     // Last prog outputs srgb for gamma correction
                     let img_prog = Self::compile_prog(&context, true, Self::img_shader)?;
 
-                    let glyph_vertex_buffer = Self::compute_vertices(
-                        &context,
-                        metrics,
-                        pixel_width as f32,
-                        pixel_height as f32,
-                    )?;
+                    let glyph_vertex_buffer = Self::compute_vertices(&context, 1024)?;
 
                     return Ok(Self {
                         context,
@@ -183,18 +191,8 @@ impl RenderState {
         anyhow::bail!("Failed to compile shaders: {}", errors.join("\n"))
     }
 
-    pub fn advise_of_window_size_change(
-        &mut self,
-        metrics: &RenderMetrics,
-        pixel_width: usize,
-        pixel_height: usize,
-    ) -> anyhow::Result<()> {
-        let glyph_vertex_buffer = Self::compute_vertices(
-            &self.context,
-            metrics,
-            pixel_width as f32,
-            pixel_height as f32,
-        )?;
+    pub fn reallocate_quads(&mut self, num_quads: usize) -> anyhow::Result<()> {
+        let glyph_vertex_buffer = Self::compute_vertices(&self.context, num_quads)?;
 
         self.glyph_vertex_buffer = glyph_vertex_buffer;
         Ok(())
@@ -276,25 +274,8 @@ impl RenderState {
     /// let the GPU figure out the rest.
     fn compute_vertices(
         context: &Rc<GliumContext>,
-        metrics: &RenderMetrics,
-        width: f32,
-        height: f32,
+        num_quads: usize,
     ) -> anyhow::Result<TripleVertexBuffer> {
-        let cell_width = metrics.cell_size.width as f32;
-        let cell_height = metrics.cell_size.height as f32;
-
-        let num_cols = width as usize / cell_width as usize;
-        let num_rows = height as usize / cell_height as usize;
-
-        log::debug!(
-            "compute_vertices {}x{} {}x{}",
-            num_cols,
-            num_rows,
-            width,
-            height,
-        );
-
-        let num_quads = num_cols * num_rows + 2 /* bg image, scroll thumb */;
         let verts = vec![Vertex::default(); num_quads * VERTICES_PER_CELL];
         let mut indices = vec![];
         indices.reserve(num_quads * INDICES_PER_CELL);
@@ -319,7 +300,7 @@ impl RenderState {
                 VertexBuffer::dynamic(context, &verts)?,
                 VertexBuffer::dynamic(context, &verts)?,
             ]),
-            capacity: verts.len() / VERTICES_PER_CELL,
+            capacity: num_quads,
             indices: IndexBuffer::new(
                 context,
                 glium::index::PrimitiveType::TrianglesList,
