@@ -75,7 +75,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             .to_str()
             .ok_or_else(|| anyhow!("config file path is not UTF-8"))?;
 
-        wezterm_mod.set("watch_path", config_file_str)?;
+        globals.set("watch_path", config_file_str.to_string())?;
         wezterm_mod.set("config_file", config_file_str)?;
         wezterm_mod.set(
             "config_dir",
@@ -88,6 +88,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             lua.create_function(|lua, args: Variadic<String>| {
                 let globals = lua.globals();
                 let watch_path: String = globals.get("watch_path")?;
+                log::info!("watch_path: {}, args: {:?}", watch_path, args);
                 globals.set("watch_path", format!("{};{}", watch_path, args.join(";")))?;
                 Ok(())
             })?,
