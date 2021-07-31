@@ -99,7 +99,7 @@ fn send_actions_to_mux(pane_id: PaneId, dead: &Arc<AtomicBool>, actions: Vec<Act
 }
 
 fn parse_buffered_data(pane_id: PaneId, dead: &Arc<AtomicBool>, mut rx: FileDescriptor) {
-    let mut buf = vec![0; BUFSIZE];
+    let mut buf = vec![0; configuration().mux_output_parser_buffer_size];
     let mut parser = termwiz::escape::parser::Parser::new();
     let mut actions = vec![];
     let mut hold = false;
@@ -149,6 +149,8 @@ fn parse_buffered_data(pane_id: PaneId, dead: &Arc<AtomicBool>, mut rx: FileDesc
                 if !actions.is_empty() && !hold {
                     send_actions_to_mux(pane_id, dead, std::mem::take(&mut actions));
                 }
+
+                buf.resize(configuration().mux_output_parser_buffer_size, 0);
             }
         }
     }

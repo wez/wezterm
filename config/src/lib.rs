@@ -885,6 +885,13 @@ pub struct Config {
     #[serde(default = "default_ratelimit_line_prefetches_per_second")]
     pub ratelimit_mux_line_prefetches_per_second: u32,
 
+    /// The buffer size used by parse_buffered_data in the mux module.
+    /// This should not be too large, otherwise the processing cost
+    /// of applying a batch of actions to the terminal will be too
+    /// high and the user experience will be laggy and less responsive.
+    #[serde(default = "default_mux_output_parser_buffer_size")]
+    pub mux_output_parser_buffer_size: usize,
+
     #[serde(default)]
     pub keys: Vec<Key>,
     #[serde(
@@ -1753,6 +1760,10 @@ impl Config {
         cmd.env("TERM_PROGRAM", "WezTerm");
         cmd.env("TERM_PROGRAM_VERSION", crate::wezterm_version());
     }
+}
+
+fn default_mux_output_parser_buffer_size() -> usize {
+    10 * 1024
 }
 
 fn default_ratelimit_line_prefetches_per_second() -> u32 {
