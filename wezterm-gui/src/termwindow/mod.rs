@@ -333,7 +333,7 @@ fn load_background_image(config: &ConfigHandle) -> Option<Arc<ImageData>> {
     match &config.window_background_image {
         Some(p) => match std::fs::read(p) {
             Ok(data) => {
-                log::error!("loaded {}", p.display());
+                log::info!("loaded {}", p.display());
                 Some(Arc::new(ImageData::with_raw_data(data.into_boxed_slice())))
             }
             Err(err) => {
