@@ -109,7 +109,6 @@ pub struct RenderState {
     pub background_prog: glium::Program,
     pub line_prog: glium::Program,
     pub glyph_prog: glium::Program,
-    pub img_prog: glium::Program,
     pub glyph_vertex_buffer: TripleVertexBuffer,
 }
 
@@ -132,9 +131,8 @@ impl RenderState {
                         Self::compile_prog(&context, do_gamma, Self::background_shader)?;
                     let line_prog = Self::compile_prog(&context, do_gamma, Self::line_shader)?;
 
-                    let glyph_prog = Self::compile_prog(&context, do_gamma, Self::glyph_shader)?;
                     // Last prog outputs srgb for gamma correction
-                    let img_prog = Self::compile_prog(&context, true, Self::img_shader)?;
+                    let glyph_prog = Self::compile_prog(&context, true, Self::glyph_shader)?;
 
                     let glyph_vertex_buffer = Self::compute_vertices(&context, 1024)?;
 
@@ -145,7 +143,6 @@ impl RenderState {
                         background_prog,
                         line_prog,
                         glyph_prog,
-                        img_prog,
                         glyph_vertex_buffer,
                     });
                 }
@@ -211,23 +208,6 @@ impl RenderState {
                 version,
                 include_str!("fragment-common.glsl"),
                 include_str!("glyph-frag.glsl")
-            ),
-        )
-    }
-
-    fn img_shader(version: &str) -> (String, String) {
-        (
-            format!(
-                "#version {}\n{}\n{}",
-                version,
-                include_str!("vertex-common.glsl"),
-                include_str!("img-vertex.glsl")
-            ),
-            format!(
-                "#version {}\n{}\n{}",
-                version,
-                include_str!("fragment-common.glsl"),
-                include_str!("img-frag.glsl")
             ),
         )
     }

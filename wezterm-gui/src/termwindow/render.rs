@@ -560,20 +560,6 @@ impl super::TermWindow {
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
             },
-            &alpha_blending,
-        )?;
-
-        // Pass 4: Draw image attachments
-        frame.draw(
-            vertices.slice(0..vertex_count).unwrap(),
-            vb.indices.slice(0..index_count).unwrap(),
-            &gl_state.img_prog,
-            &uniform! {
-                projection: projection,
-                atlas_nearest_sampler:  atlas_nearest_sampler,
-                atlas_linear_sampler:  atlas_linear_sampler,
-                foreground_text_hsb: foreground_text_hsb,
-            },
             &blend_but_set_alpha_to_one,
         )?;
 
@@ -882,13 +868,12 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                     });
 
-                    if let Some(images) = cluster.attrs.images() {
-                        // FIXME: This is where we need to allocate distinct quads for each of
-                        // these images
+                    let images = cluster.attrs.images().unwrap_or_else(|| vec![]);
 
-                        for image in images {
+                    for img in &images {
+                        if img.z_index() < 0 {
                             self.populate_image_quad(
-                                &image,
+                                &img,
                                 gl_state,
                                 quads,
                                 cell_idx,
@@ -901,6 +886,7 @@ impl super::TermWindow {
                             )?;
                         }
                     }
+                    let mut did_custom = false;
 
                     if self.config.custom_block_glyphs && glyph_idx == 0 {
                         if let Some(cell) = params.line.cells().get(cell_idx) {
@@ -917,75 +903,93 @@ impl super::TermWindow {
                                     style_params.underline_color,
                                     bg_color,
                                 )?;
-                                continue;
+                                did_custom = true;
                             }
                         }
                     }
 
-                    let texture = glyph
-                        .texture
-                        .as_ref()
-                        .unwrap_or(&gl_state.util_sprites.white_space);
+                    if !did_custom {
+                        let texture = glyph
+                            .texture
+                            .as_ref()
+                            .unwrap_or(&gl_state.util_sprites.white_space);
 
-                    let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
-                    let slice = SpriteSlice {
-                        cell_idx: glyph_idx,
-                        num_cells: info.pos.num_cells as usize,
-                        cell_width: self.render_metrics.cell_size.width as usize,
-                        scale: glyph.scale as f32,
-                        left_offset: left,
-                    };
+                        let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
+                        let slice = SpriteSlice {
+                            cell_idx: glyph_idx,
+                            num_cells: info.pos.num_cells as usize,
+                            cell_width: self.render_metrics.cell_size.width as usize,
+                            scale: glyph.scale as f32,
+                            left_offset: left,
+                        };
 
-                    let pixel_rect = slice.pixel_rect(texture);
-                    let texture_rect = texture.texture.to_texture_coords(pixel_rect);
+                        let pixel_rect = slice.pixel_rect(texture);
+                        let texture_rect = texture.texture.to_texture_coords(pixel_rect);
 
-                    let left = if glyph_idx == 0 { left } else { slice_left };
-                    let bottom = (pixel_rect.size.height as f32 * glyph.scale as f32) + top
-                        - self.render_metrics.cell_size.height as f32;
-                    let right = pixel_rect.size.width as f32 + left
-                        - self.render_metrics.cell_size.width as f32;
+                        let left = if glyph_idx == 0 { left } else { slice_left };
+                        let bottom = (pixel_rect.size.height as f32 * glyph.scale as f32) + top
+                            - self.render_metrics.cell_size.height as f32;
+                        let right = pixel_rect.size.width as f32 + left
+                            - self.render_metrics.cell_size.width as f32;
 
-                    // Save the `right` position; we'll use it for the `left` adjust for
-                    // the next slice that comprises this glyph.
-                    // This is important because some glyphs (eg: 현재 브랜치) can have
-                    // fractional advance/offset positions that leave one half slightly
-                    // out of alignment with the other if we were to simply force the
-                    // `left` value to be 0 when glyph_idx > 0.
-                    slice_left = right;
+                        // Save the `right` position; we'll use it for the `left` adjust for
+                        // the next slice that comprises this glyph.
+                        // This is important because some glyphs (eg: 현재 브랜치) can have
+                        // fractional advance/offset positions that leave one half slightly
+                        // out of alignment with the other if we were to simply force the
+                        // `left` value to be 0 when glyph_idx > 0.
+                        slice_left = right;
 
-                    let mut quad = quads.allocate()?;
-                    let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                        + (cell_idx + params.pos.left) as f32 * cell_width
-                        + self.config.window_padding.left as f32;
-                    quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
-                    quad.set_fg_color(glyph_color);
-                    quad.set_bg_color(bg_color);
-                    quad.set_texture(texture_rect);
-                    quad.set_image_texture(params.white_space);
-                    quad.set_texture_adjust(left, top, right, bottom);
-                    quad.set_underline(style_params.underline_tex_rect);
-                    quad.set_underline_color(style_params.underline_color);
-                    quad.set_hsv(if glyph.brightness_adjust != 1.0 {
-                        let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
-                        Some(HsbTransform {
-                            brightness: hsv.brightness * glyph.brightness_adjust,
-                            ..hsv
-                        })
-                    } else {
-                        hsv
-                    });
-                    quad.set_has_color(glyph.has_color);
-                    quad.set_cursor(
-                        gl_state
-                            .util_sprites
-                            .cursor_sprite(cursor_shape)
-                            .texture_coords(),
-                    );
-                    quad.set_cursor_color(if self.config.force_reverse_video_cursor {
-                        bg_color
-                    } else {
-                        params.cursor_border_color
-                    });
+                        let mut quad = quads.allocate()?;
+                        let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                            + (cell_idx + params.pos.left) as f32 * cell_width
+                            + self.config.window_padding.left as f32;
+                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+                        quad.set_fg_color(glyph_color);
+                        quad.set_bg_color(bg_color);
+                        quad.set_texture(texture_rect);
+                        quad.set_texture_adjust(left, top, right, bottom);
+                        quad.set_underline(style_params.underline_tex_rect);
+                        quad.set_underline_color(style_params.underline_color);
+                        quad.set_hsv(if glyph.brightness_adjust != 1.0 {
+                            let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
+                            Some(HsbTransform {
+                                brightness: hsv.brightness * glyph.brightness_adjust,
+                                ..hsv
+                            })
+                        } else {
+                            hsv
+                        });
+                        quad.set_has_color(glyph.has_color);
+                        quad.set_cursor(
+                            gl_state
+                                .util_sprites
+                                .cursor_sprite(cursor_shape)
+                                .texture_coords(),
+                        );
+                        quad.set_cursor_color(if self.config.force_reverse_video_cursor {
+                            bg_color
+                        } else {
+                            params.cursor_border_color
+                        });
+                    }
+
+                    for img in &images {
+                        if img.z_index() >= 0 {
+                            self.populate_image_quad(
+                                &img,
+                                gl_state,
+                                quads,
+                                cell_idx,
+                                &params,
+                                hsv,
+                                cursor_shape,
+                                glyph_color,
+                                style_params.underline_color,
+                                bg_color,
+                            )?;
+                        }
+                    }
                 }
                 current_idx += info.pos.num_cells as usize;
             }
@@ -1023,7 +1027,6 @@ impl super::TermWindow {
 
                 quad.set_bg_color(params.selection_bg);
                 quad.set_fg_color(params.selection_fg);
-                quad.set_image_texture(params.white_space);
                 quad.set_texture_adjust(0., 0., 0., 0.);
                 quad.set_texture(params.white_space);
                 quad.set_underline_color(params.selection_fg);
@@ -1049,7 +1052,6 @@ impl super::TermWindow {
 
                     quad.set_bg_color(params.foreground); // reverse video
                     quad.set_fg_color(params.default_bg);
-                    quad.set_image_texture(params.white_space);
                     quad.set_texture_adjust(0., 0., 0., 0.);
                     quad.set_texture(params.white_space);
                     quad.set_underline_color(params.selection_fg);
@@ -1091,7 +1093,6 @@ impl super::TermWindow {
                 quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
                 quad.set_texture(params.white_space);
-                quad.set_image_texture(params.white_space);
                 quad.set_texture_adjust(0., 0., 0., 0.);
                 quad.set_underline(params.white_space);
                 quad.set_has_color(false);
@@ -1160,7 +1161,6 @@ impl super::TermWindow {
         quad.set_underline_color(underline_color);
         quad.set_bg_color(bg_color);
         quad.set_texture(sprite);
-        quad.set_image_texture(params.white_space);
         quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_underline(params.white_space);
         quad.set_has_color(false);
@@ -1250,7 +1250,7 @@ impl super::TermWindow {
         quad.set_fg_color(glyph_color);
         quad.set_underline_color(underline_color);
         quad.set_bg_color(bg_color);
-        quad.set_image_texture(texture_rect);
+        quad.set_texture(texture_rect);
         quad.set_underline(params.white_space);
         quad.set_has_color(true);
         quad.set_cursor(

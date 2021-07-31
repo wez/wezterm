@@ -5,7 +5,6 @@ precision highp float;
 in float o_has_color;
 in vec2 o_cursor;
 in vec2 o_tex;
-in vec2 o_img_tex;
 in vec2 o_underline;
 in vec3 o_hsv;
 in vec4 o_bg_color;
