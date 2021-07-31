@@ -188,17 +188,11 @@ impl RenderState {
     fn glyph_shader(version: &str) -> (String, String) {
         (
             format!(
-                "#version {}\n{}\n{}",
+                "#version {}\n{}",
                 version,
-                include_str!("vertex-common.glsl"),
                 include_str!("glyph-vertex.glsl")
             ),
-            format!(
-                "#version {}\n{}\n{}",
-                version,
-                include_str!("fragment-common.glsl"),
-                include_str!("glyph-frag.glsl")
-            ),
+            format!("#version {}\n{}", version, include_str!("glyph-frag.glsl")),
         )
     }
 
