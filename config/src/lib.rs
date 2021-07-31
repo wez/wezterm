@@ -474,13 +474,14 @@ impl ConfigInner {
                 // call to `with_lua_config` to reference this lua context
                 // even though we are (probably) resolving this from a background
                 // reloading thread.
-                lua.and_then(|lua| {
+                lua.map(|lua| {
                     if self.config.automatically_reload_config {
-                        let watch_path: String = lua.globals().get("watch_path").ok()?;
-                        for path in watch_path.split(";") {
-                            log::debug!("watching path: {}", &path);
-                            self.watch_path(PathBuf::from(path));
-                        }
+                        lua.globals().get("watch_path").ok().and_then(|watch_path| {
+                            for path in watch_path.split(";") {
+                                log::debug!("watching path: {}", &path);
+                                self.watch_path(PathBuf::from(path));
+                            }
+                        });
                     }
                     LUA_PIPE.sender.try_send(lua).ok();
                     Some(())
