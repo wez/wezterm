@@ -1,4 +1,6 @@
 {pkgs ? import <nixpkgs> {}}:
-pkgs.mkShell {
-  buildInputs = with pkgs; pkgs.wezterm.buildInputs ++ [cargo rustc rust-analyzer];
-}
+with pkgs;
+mkShell ({
+  nativeBuildInputs = wezterm.nativeBuildInputs ++  [rust-analyzer rustfmt clippy];
+  buildInputs = wezterm.buildInputs;
+})
