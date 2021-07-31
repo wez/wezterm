@@ -106,8 +106,6 @@ pub struct RenderState {
     pub context: Rc<GliumContext>,
     pub glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
     pub util_sprites: UtilSprites<SrgbTexture2d>,
-    pub background_prog: glium::Program,
-    pub line_prog: glium::Program,
     pub glyph_prog: glium::Program,
     pub glyph_vertex_buffer: TripleVertexBuffer,
 }
@@ -125,12 +123,6 @@ impl RenderState {
             let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
-                    let do_gamma = cfg!(target_os = "macos");
-
-                    let background_prog =
-                        Self::compile_prog(&context, do_gamma, Self::background_shader)?;
-                    let line_prog = Self::compile_prog(&context, do_gamma, Self::line_shader)?;
-
                     // Last prog outputs srgb for gamma correction
                     let glyph_prog = Self::compile_prog(&context, true, Self::glyph_shader)?;
 
@@ -140,8 +132,6 @@ impl RenderState {
                         context,
                         glyph_cache,
                         util_sprites,
-                        background_prog,
-                        line_prog,
                         glyph_prog,
                         glyph_vertex_buffer,
                     });
@@ -208,40 +198,6 @@ impl RenderState {
                 version,
                 include_str!("fragment-common.glsl"),
                 include_str!("glyph-frag.glsl")
-            ),
-        )
-    }
-
-    fn line_shader(version: &str) -> (String, String) {
-        (
-            format!(
-                "#version {}\n{}\n{}",
-                version,
-                include_str!("vertex-common.glsl"),
-                include_str!("line-vertex.glsl")
-            ),
-            format!(
-                "#version {}\n{}\n{}",
-                version,
-                include_str!("fragment-common.glsl"),
-                include_str!("line-frag.glsl")
-            ),
-        )
-    }
-
-    fn background_shader(version: &str) -> (String, String) {
-        (
-            format!(
-                "#version {}\n{}\n{}",
-                version,
-                include_str!("vertex-common.glsl"),
-                include_str!("background-vertex.glsl")
-            ),
-            format!(
-                "#version {}\n{}\n{}",
-                version,
-                include_str!("fragment-common.glsl"),
-                include_str!("background-frag.glsl")
             ),
         )
     }

@@ -21,7 +21,7 @@ use smol::Timer;
 use std::ops::Range;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use termwiz::cell::Blink;
+use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::PixelLength;
@@ -44,6 +44,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub pos: &'a PositionedPane,
 
     pub white_space: TextureRect,
+    pub filled_box: TextureRect,
 
     pub cursor_border_color: LinearRgba,
     pub foreground: LinearRgba,
@@ -245,6 +246,7 @@ impl super::TermWindow {
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
         let foreground = rgbcolor_to_window_color(palette.foreground);
         let white_space = gl_state.util_sprites.white_space.texture_coords();
+        let filled_box = gl_state.util_sprites.filled_box.texture_coords();
 
         let window_is_transparent =
             self.window_background.is_some() || config.window_background_opacity != 1.0;
@@ -257,6 +259,32 @@ impl super::TermWindow {
                 (config.text_background_opacity * 255.0) as u8
             },
         );
+
+        if pos.index == 0 {
+            // Render the window background image
+            if let Some(im) = self.window_background.as_ref() {
+                let mut quad = quads.allocate()?;
+                quad.set_position(
+                    self.dimensions.pixel_width as f32 / -2.,
+                    self.dimensions.pixel_height as f32 / -2.,
+                    self.dimensions.pixel_width as f32 / 2.,
+                    self.dimensions.pixel_height as f32 / 2.,
+                );
+
+                let background_image_alpha = (config.window_background_opacity * 255.0) as u8;
+                let color =
+                    rgbcolor_alpha_to_window_color(palette.background, background_image_alpha);
+
+                let (sprite, next_due) =
+                    gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
+                self.update_next_frame_time(next_due);
+                quad.set_texture(sprite.texture_coords());
+                quad.set_texture_adjust(0., 0., 0., 0.);
+                quad.set_is_background_image();
+                quad.set_hsv(config.window_background_image_hsb);
+                quad.set_fg_color(color);
+            }
+        }
 
         if self.show_tab_bar && pos.index == 0 {
             let tab_dims = RenderableDimensions {
@@ -294,6 +322,7 @@ impl super::TermWindow {
                     cursor_fg: LinearRgba::default(),
                     cursor_bg: LinearRgba::default(),
                     white_space,
+                    filled_box,
                     window_is_transparent,
                     default_bg,
                 },
@@ -335,49 +364,12 @@ impl super::TermWindow {
             let right = self.dimensions.pixel_width as f32 / 2.;
             let left = right - padding;
 
-            quad.set_bg_color(color);
             quad.set_fg_color(color);
-            quad.set_underline_color(color);
             quad.set_position(left, top, right, bottom);
-            quad.set_texture(white_space);
+            quad.set_texture(filled_box);
             quad.set_texture_adjust(0., 0., 0., 0.);
             quad.set_hsv(None);
-            quad.set_underline(white_space);
             quad.set_has_color(false);
-            quad.set_cursor(white_space);
-            quad.set_cursor_color(rgbcolor_to_window_color(background_color));
-        }
-
-        {
-            let mut quad = quads.allocate()?;
-            quad.set_underline(white_space);
-            quad.set_cursor(white_space);
-            quad.set_position(
-                self.dimensions.pixel_width as f32 / -2.,
-                self.dimensions.pixel_height as f32 / -2.,
-                self.dimensions.pixel_width as f32 / 2.,
-                self.dimensions.pixel_height as f32 / 2.,
-            );
-
-            let background_image_alpha = (config.window_background_opacity * 255.0) as u8;
-            let color = rgbcolor_alpha_to_window_color(palette.background, background_image_alpha);
-
-            if let Some(im) = self.window_background.as_ref() {
-                let (sprite, next_due) =
-                    gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
-                self.update_next_frame_time(next_due);
-                quad.set_texture(sprite.texture_coords());
-                quad.set_is_background_image();
-            } else {
-                quad.set_texture(white_space);
-                quad.set_is_background();
-            }
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_hsv(config.window_background_image_hsb);
-            quad.set_cursor_color(color);
-            quad.set_fg_color(color);
-            quad.set_underline_color(color);
-            quad.set_bg_color(color);
         }
 
         let selrange = self.selection(pos.pane.pane_id()).range.clone();
@@ -411,6 +403,7 @@ impl super::TermWindow {
                     cursor_fg,
                     cursor_bg,
                     white_space,
+                    filled_box,
                     window_is_transparent,
                     default_bg,
                 },
@@ -482,33 +475,6 @@ impl super::TermWindow {
 
         let vertices = vb.current_vb();
 
-        // Pass 1: Draw backgrounds
-        frame.draw(
-            vertices.slice(0..vertex_count).unwrap(),
-            vb.indices.slice(0..index_count).unwrap(),
-            &gl_state.background_prog,
-            &uniform! {
-                projection: projection,
-                atlas_linear_sampler:  atlas_linear_sampler,
-                foreground_text_hsb: foreground_text_hsb,
-            },
-            &alpha_blending,
-        )?;
-
-        // Pass 2: strikethrough and underline
-        frame.draw(
-            vertices.slice(0..vertex_count).unwrap(),
-            vb.indices.slice(0..index_count).unwrap(),
-            &gl_state.line_prog,
-            &uniform! {
-                projection: projection,
-                atlas_nearest_sampler:  atlas_nearest_sampler,
-                atlas_linear_sampler:  atlas_linear_sampler,
-                foreground_text_hsb: foreground_text_hsb,
-            },
-            &alpha_blending,
-        )?;
-
         // Use regular alpha blending when we draw the glyphs!
         // This is trying to avoid an issue that is most prevalent
         // on Wayland and X11.  If our glyph pixels end up with alpha
@@ -549,7 +515,6 @@ impl super::TermWindow {
             ..Default::default()
         };
 
-        // Pass 3: Draw glyphs
         frame.draw(
             vertices.slice(0..vertex_count).unwrap(),
             vb.indices.slice(0..index_count).unwrap(),
@@ -560,7 +525,8 @@ impl super::TermWindow {
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
             },
-            &blend_but_set_alpha_to_one,
+            //&blend_but_set_alpha_to_one,
+            &alpha_blending,
         )?;
 
         vb.next_index();
@@ -577,7 +543,6 @@ impl super::TermWindow {
         let vb = &gl_state.glyph_vertex_buffer;
         let mut vb_mut = vb.current_vb_mut();
         let mut quads = vb.map(&mut vb_mut);
-        let config = &self.config;
         let block = BlockKey::from_char(if split.direction == SplitDirection::Horizontal {
             '\u{2502}'
         } else {
@@ -586,21 +551,12 @@ impl super::TermWindow {
         .expect("to have box drawing glyph");
         let palette = pane.palette();
         let foreground = rgbcolor_to_window_color(palette.split);
-        let background = rgbcolor_alpha_to_window_color(
-            palette.background,
-            if self.window_background.is_some() || config.window_background_opacity != 1.0 {
-                0x00
-            } else {
-                (config.text_background_opacity * 255.0) as u8
-            },
-        );
 
         let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             1
         } else {
             0
         };
-        let white_space = gl_state.util_sprites.white_space.texture_coords();
 
         let x_y_iter: Box<dyn Iterator<Item = (usize, usize)>> =
             if split.direction == SplitDirection::Horizontal {
@@ -627,15 +583,10 @@ impl super::TermWindow {
             quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
             quad.set_fg_color(foreground);
-            quad.set_underline_color(foreground);
-            quad.set_bg_color(background);
             quad.set_hsv(None);
             quad.set_texture(sprite);
             quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_underline(white_space);
             quad.set_has_color(false);
-            quad.set_cursor(white_space);
-            quad.set_cursor_color(background);
         }
         Ok(())
     }
@@ -718,6 +669,79 @@ impl super::TermWindow {
             underline_color: LinearRgba,
         }
         let mut last_style = None;
+
+        // Make a pass to compute background colors.
+        // Need to consider:
+        // * background when it is not the default color
+        // * Reverse video attribute
+        for cluster in &cell_clusters {
+            let attrs = &cluster.attrs;
+            let cluster_width = unicode_column_width(&cluster.text);
+
+            let bg_is_default = attrs.background() == ColorAttribute::Default;
+            let bg_color = params.palette.resolve_bg(attrs.background());
+
+            let fg_color =
+                resolve_fg_color_attr(&attrs, attrs.foreground(), &params, &Default::default());
+
+            let (bg_color, bg_is_default) = {
+                let mut fg = fg_color;
+                let mut bg = bg_color;
+                let mut bg_default = bg_is_default;
+
+                // Check the line reverse_video flag and flip.
+                if attrs.reverse() == !params.line.is_reverse() {
+                    std::mem::swap(&mut fg, &mut bg);
+                    bg_default = false;
+                }
+
+                (rgbcolor_to_window_color(bg), bg_default)
+            };
+
+            if !bg_is_default {
+                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                    + (current_idx + params.pos.left) as f32 * cell_width
+                    + self.config.window_padding.left as f32;
+
+                let mut quad = quads.allocate()?;
+                quad.set_position(
+                    pos_x,
+                    pos_y,
+                    pos_x + cluster_width as f32 * cell_width,
+                    pos_y + cell_height,
+                );
+                quad.set_fg_color(bg_color);
+                quad.set_texture(params.filled_box);
+                quad.set_texture_adjust(0., 0., 0., 0.);
+                quad.set_hsv(hsv);
+                quad.set_has_color(false);
+            }
+
+            current_idx += cluster_width;
+        }
+
+        // Render the selection background color
+        if !params.selection.is_empty() {
+            let mut quad = quads.allocate()?;
+
+            let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                + (params.selection.start + params.pos.left) as f32 * cell_width
+                + self.config.window_padding.left as f32;
+            quad.set_position(
+                pos_x,
+                pos_y,
+                pos_x + (params.selection.end - params.selection.start) as f32 * cell_width,
+                pos_y + cell_height,
+            );
+
+            quad.set_fg_color(params.selection_bg);
+            quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_texture(params.filled_box);
+            quad.set_has_color(false);
+            quad.set_hsv(hsv);
+        }
+
+        current_idx = 0;
 
         for cluster in &cell_clusters {
             if !matches!(last_style.as_ref(), Some(ClusterStyleCache{attrs,..}) if *attrs == &cluster.attrs)
@@ -868,6 +892,41 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                     });
 
+                    let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                        + (cell_idx + params.pos.left) as f32 * cell_width
+                        + self.config.window_padding.left as f32;
+
+                    if bg_color != style_params.bg_color {
+                        // Override the background color
+                        let mut quad = quads.allocate()?;
+                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+                        quad.set_fg_color(bg_color);
+                        quad.set_texture(params.filled_box);
+                        quad.set_texture_adjust(0., 0., 0., 0.);
+                        quad.set_hsv(hsv);
+                        quad.set_has_color(false);
+                    }
+
+                    if cursor_shape.is_some() {
+                        let mut quad = quads.allocate()?;
+                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+                        quad.set_texture_adjust(0., 0., 0., 0.);
+                        quad.set_hsv(hsv);
+                        quad.set_has_color(false);
+
+                        quad.set_texture(
+                            gl_state
+                                .util_sprites
+                                .cursor_sprite(cursor_shape)
+                                .texture_coords(),
+                        );
+                        quad.set_fg_color(if self.config.force_reverse_video_cursor {
+                            bg_color
+                        } else {
+                            params.cursor_border_color
+                        });
+                    }
+
                     let images = cluster.attrs.images().unwrap_or_else(|| vec![]);
 
                     for img in &images {
@@ -879,30 +938,39 @@ impl super::TermWindow {
                                 cell_idx,
                                 &params,
                                 hsv,
-                                cursor_shape,
                                 glyph_color,
-                                style_params.underline_color,
-                                bg_color,
                             )?;
                         }
                     }
+
+                    // Underlines
+                    if style_params.underline_tex_rect != params.white_space {
+                        let mut quad = quads.allocate()?;
+                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+                        quad.set_texture_adjust(0., 0., 0., 0.);
+                        quad.set_hsv(hsv);
+                        quad.set_has_color(false);
+
+                        quad.set_texture(style_params.underline_tex_rect);
+                        quad.set_fg_color(style_params.underline_color);
+                    }
+
                     let mut did_custom = false;
 
                     if self.config.custom_block_glyphs && glyph_idx == 0 {
                         if let Some(cell) = params.line.cells().get(cell_idx) {
                             if let Some(block) = BlockKey::from_cell(cell) {
-                                self.populate_block_quad(
-                                    block,
-                                    gl_state,
-                                    quads,
-                                    cell_idx,
-                                    &params,
-                                    hsv,
-                                    cursor_shape,
-                                    glyph_color,
-                                    style_params.underline_color,
-                                    bg_color,
-                                )?;
+                                if glyph_color != bg_color {
+                                    self.populate_block_quad(
+                                        block,
+                                        gl_state,
+                                        quads,
+                                        cell_idx,
+                                        &params,
+                                        hsv,
+                                        glyph_color,
+                                    )?;
+                                }
                                 did_custom = true;
                             }
                         }
@@ -940,38 +1008,28 @@ impl super::TermWindow {
                         // `left` value to be 0 when glyph_idx > 0.
                         slice_left = right;
 
-                        let mut quad = quads.allocate()?;
-                        let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                            + (cell_idx + params.pos.left) as f32 * cell_width
-                            + self.config.window_padding.left as f32;
-                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
-                        quad.set_fg_color(glyph_color);
-                        quad.set_bg_color(bg_color);
-                        quad.set_texture(texture_rect);
-                        quad.set_texture_adjust(left, top, right, bottom);
-                        quad.set_underline(style_params.underline_tex_rect);
-                        quad.set_underline_color(style_params.underline_color);
-                        quad.set_hsv(if glyph.brightness_adjust != 1.0 {
-                            let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
-                            Some(HsbTransform {
-                                brightness: hsv.brightness * glyph.brightness_adjust,
-                                ..hsv
-                            })
-                        } else {
-                            hsv
-                        });
-                        quad.set_has_color(glyph.has_color);
-                        quad.set_cursor(
-                            gl_state
-                                .util_sprites
-                                .cursor_sprite(cursor_shape)
-                                .texture_coords(),
-                        );
-                        quad.set_cursor_color(if self.config.force_reverse_video_cursor {
-                            bg_color
-                        } else {
-                            params.cursor_border_color
-                        });
+                        if glyph_color != bg_color || glyph.has_color {
+                            let mut quad = quads.allocate()?;
+                            quad.set_position(
+                                pos_x,
+                                pos_y,
+                                pos_x + cell_width,
+                                pos_y + cell_height,
+                            );
+                            quad.set_fg_color(glyph_color);
+                            quad.set_texture(texture_rect);
+                            quad.set_texture_adjust(left, top, right, bottom);
+                            quad.set_hsv(if glyph.brightness_adjust != 1.0 {
+                                let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
+                                Some(HsbTransform {
+                                    brightness: hsv.brightness * glyph.brightness_adjust,
+                                    ..hsv
+                                })
+                            } else {
+                                hsv
+                            });
+                            quad.set_has_color(glyph.has_color);
+                        }
                     }
 
                     for img in &images {
@@ -983,10 +1041,7 @@ impl super::TermWindow {
                                 cell_idx,
                                 &params,
                                 hsv,
-                                cursor_shape,
                                 glyph_color,
-                                style_params.underline_color,
-                                bg_color,
                             )?;
                         }
                     }
@@ -998,68 +1053,27 @@ impl super::TermWindow {
         // If the clusters don't extend to the full physical width of the display,
         // we have a little bit more work to do to ensure that we correctly paint:
         // * Selection
-        // * Cursor (although it is really unlikely that the cursor is outside
-        //   of one of the clusters)
+        // * Cursor
         let right_fill_start = Instant::now();
         if last_cell_idx < num_cols {
-            let mut reverse_left = 0..0;
-            let mut reverse_right = last_cell_idx..num_cols;
-
-            // Render the selection beyond the end of the line
-            if let Some(sel_range) =
-                rangeset::range_intersection(&params.selection, &(last_cell_idx + 1..num_cols))
-            {
-                // revise the reverse video range
-                reverse_left = last_cell_idx..sel_range.start;
-                reverse_right = sel_range.end..num_cols;
-
+            if params.line.is_reverse() {
                 let mut quad = quads.allocate()?;
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + (sel_range.start + params.pos.left) as f32 * cell_width
+                    + (last_cell_idx + params.pos.left) as f32 * cell_width
                     + self.config.window_padding.left as f32;
                 quad.set_position(
                     pos_x,
                     pos_y,
-                    pos_x + (sel_range.end - sel_range.start) as f32 * cell_width,
+                    pos_x + (num_cols - last_cell_idx) as f32 * cell_width,
                     pos_y + cell_height,
                 );
 
-                quad.set_bg_color(params.selection_bg);
-                quad.set_fg_color(params.selection_fg);
+                quad.set_fg_color(params.foreground);
                 quad.set_texture_adjust(0., 0., 0., 0.);
-                quad.set_texture(params.white_space);
-                quad.set_underline_color(params.selection_fg);
-                quad.set_underline(params.white_space);
-                quad.set_cursor(params.white_space);
+                quad.set_texture(params.filled_box);
                 quad.set_has_color(false);
                 quad.set_hsv(hsv);
-            }
-
-            if params.line.is_reverse() {
-                for r in [reverse_left, reverse_right] {
-                    let mut quad = quads.allocate()?;
-
-                    let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                        + (r.start + params.pos.left) as f32 * cell_width
-                        + self.config.window_padding.left as f32;
-                    quad.set_position(
-                        pos_x,
-                        pos_y,
-                        pos_x + (r.end - r.start) as f32 * cell_width,
-                        pos_y + cell_height,
-                    );
-
-                    quad.set_bg_color(params.foreground); // reverse video
-                    quad.set_fg_color(params.default_bg);
-                    quad.set_texture_adjust(0., 0., 0., 0.);
-                    quad.set_texture(params.white_space);
-                    quad.set_underline_color(params.selection_fg);
-                    quad.set_underline(params.white_space);
-                    quad.set_cursor(params.white_space);
-                    quad.set_has_color(false);
-                    quad.set_hsv(hsv);
-                }
             }
 
             if params.stable_line_idx == Some(params.cursor.y)
@@ -1067,7 +1081,7 @@ impl super::TermWindow {
             {
                 // Compute the cursor fg/bg
                 let ComputeCellFgBgResult {
-                    fg_color: glyph_color,
+                    fg_color: _glyph_color,
                     bg_color,
                     cursor_shape,
                 } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
@@ -1086,31 +1100,34 @@ impl super::TermWindow {
                     cursor_bg: params.cursor_bg,
                 });
 
-                let mut quad = quads.allocate()?;
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
                     + (params.cursor.x + params.pos.left) as f32 * cell_width
                     + self.config.window_padding.left as f32;
-                quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
-                quad.set_texture(params.white_space);
-                quad.set_texture_adjust(0., 0., 0., 0.);
-                quad.set_underline(params.white_space);
-                quad.set_has_color(false);
-                quad.set_hsv(hsv);
+                for (tex, color) in [
+                    (params.filled_box, bg_color),
+                    (
+                        gl_state
+                            .util_sprites
+                            .cursor_sprite(cursor_shape)
+                            .texture_coords(),
+                        params.cursor_border_color,
+                    ),
+                ] {
+                    let mut quad = quads.allocate()?;
+                    quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
-                quad.set_bg_color(bg_color);
-                quad.set_fg_color(glyph_color);
-                quad.set_cursor(
-                    gl_state
-                        .util_sprites
-                        .cursor_sprite(cursor_shape)
-                        .texture_coords(),
-                );
-                quad.set_cursor_color(if self.config.force_reverse_video_cursor {
-                    bg_color
-                } else {
-                    params.cursor_border_color
-                });
+                    quad.set_texture_adjust(0., 0., 0., 0.);
+                    quad.set_has_color(false);
+                    quad.set_hsv(hsv);
+
+                    quad.set_texture(tex);
+                    quad.set_fg_color(if self.config.force_reverse_video_cursor {
+                        bg_color
+                    } else {
+                        color
+                    });
+                }
             }
         }
         metrics::histogram!(
@@ -1135,10 +1152,7 @@ impl super::TermWindow {
         cell_idx: usize,
         params: &RenderScreenLineOpenGLParams,
         hsv: Option<config::HsbTransform>,
-        cursor_shape: Option<CursorShape>,
         glyph_color: LinearRgba,
-        underline_color: LinearRgba,
-        bg_color: LinearRgba,
     ) -> anyhow::Result<()> {
         let sprite = gl_state
             .glyph_cache
@@ -1158,24 +1172,9 @@ impl super::TermWindow {
         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
-        quad.set_underline_color(underline_color);
-        quad.set_bg_color(bg_color);
         quad.set_texture(sprite);
         quad.set_texture_adjust(0., 0., 0., 0.);
-        quad.set_underline(params.white_space);
         quad.set_has_color(false);
-        quad.set_cursor(
-            gl_state
-                .util_sprites
-                .cursor_sprite(cursor_shape)
-                .texture_coords(),
-        );
-        quad.set_cursor_color(if self.config.force_reverse_video_cursor {
-            bg_color
-        } else {
-            params.cursor_border_color
-        });
-
         Ok(())
     }
 
@@ -1188,10 +1187,7 @@ impl super::TermWindow {
         cell_idx: usize,
         params: &RenderScreenLineOpenGLParams,
         hsv: Option<config::HsbTransform>,
-        cursor_shape: Option<CursorShape>,
         glyph_color: LinearRgba,
-        underline_color: LinearRgba,
-        bg_color: LinearRgba,
     ) -> anyhow::Result<()> {
         let padding = self
             .render_metrics
@@ -1248,29 +1244,14 @@ impl super::TermWindow {
         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
-        quad.set_underline_color(underline_color);
-        quad.set_bg_color(bg_color);
         quad.set_texture(texture_rect);
-        quad.set_underline(params.white_space);
         quad.set_has_color(true);
-        quad.set_cursor(
-            gl_state
-                .util_sprites
-                .cursor_sprite(cursor_shape)
-                .texture_coords(),
-        );
-        quad.set_cursor_color(if self.config.force_reverse_video_cursor {
-            bg_color
-        } else {
-            params.cursor_border_color
-        });
 
         Ok(())
     }
 
     pub fn compute_cell_fg_bg(&self, params: ComputeCellFgBgParams) -> ComputeCellFgBgResult {
         let selected = params.selection.contains(&params.cell_idx);
-
         let is_cursor =
             params.stable_line_idx == Some(params.cursor.y) && params.cursor.x == params.cell_idx;
 

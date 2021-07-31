@@ -205,7 +205,7 @@ impl SrgbaPixel {
 }
 
 /// A pixel value encoded as linear RGBA values in f32 format (range: 0.0-1.0)
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct LinearRgba(f32, f32, f32, f32);
 
 impl LinearRgba {
@@ -232,9 +232,11 @@ impl LinearRgba {
     }
 
     /// Create using the provided f32 components in the range 0.0-1.0
-    pub fn with_components(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+    pub const fn with_components(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
         Self(red, green, blue, alpha)
     }
+
+    pub const TRANSPARENT: Self = Self::with_components(0., 0., 0., 0.);
 
     /// Convert to an SRGB u32 pixel
     pub fn srgba_pixel(self) -> SrgbaPixel {

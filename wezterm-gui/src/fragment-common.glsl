@@ -3,14 +3,9 @@
 precision highp float;
 
 in float o_has_color;
-in vec2 o_cursor;
 in vec2 o_tex;
-in vec2 o_underline;
 in vec3 o_hsv;
-in vec4 o_bg_color;
-in vec4 o_cursor_color;
 in vec4 o_fg_color;
-in vec4 o_underline_color;
 
 out vec4 color;
 
@@ -83,6 +78,15 @@ vec4 colorize(vec4 glyph, vec4 color, vec4 background) {
   float r = glyph.r * color.r + (1.0 - glyph.r) * background.r;
   float g = glyph.g * color.g + (1.0 - glyph.g) * background.g;
   float b = glyph.b * color.b + (1.0 - glyph.b) * background.b;
+
+  return vec4(r, g, b, glyph.a);
+//  return vec4(glyph.rgb * color.rgb, glyph.a);
+}
+
+vec4 colorize2(vec4 glyph, vec4 color) {
+  float r = glyph.r * color.r;// + (1.0 - glyph.r) * background.r;
+  float g = glyph.g * color.g;// + (1.0 - glyph.g) * background.g;
+  float b = glyph.b * color.b;// + (1.0 - glyph.b) * background.b;
 
   return vec4(r, g, b, glyph.a);
 //  return vec4(glyph.rgb * color.rgb, glyph.a);

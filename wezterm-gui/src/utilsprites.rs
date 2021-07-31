@@ -58,6 +58,7 @@ impl RenderMetrics {
 
 pub struct UtilSprites<T: Texture2d> {
     pub white_space: Sprite<T>,
+    pub filled_box: Sprite<T>,
     pub cursor_box: Sprite<T>,
     pub cursor_i_beam: Sprite<T>,
     pub cursor_underline: Sprite<T>,
@@ -77,6 +78,9 @@ impl<T: Texture2d> UtilSprites<T> {
         let white = SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff);
 
         let cell_rect = Rect::new(Point::new(0, 0), metrics.cell_size);
+
+        buffer.clear_rect(cell_rect, white);
+        let filled_box = glyph_cache.atlas.allocate(&buffer)?;
 
         buffer.clear_rect(cell_rect, black);
         let white_space = glyph_cache.atlas.allocate(&buffer)?;
@@ -169,6 +173,7 @@ impl<T: Texture2d> UtilSprites<T> {
 
         Ok(Self {
             white_space,
+            filled_box,
             cursor_box,
             cursor_i_beam,
             cursor_underline,
