@@ -66,4 +66,8 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
     fn enq_answerback(&self) -> String {
         configuration().enq_answerback.clone()
     }
+
+    fn enable_kitty_graphics(&self) -> bool {
+        self.configuration().enable_kitty_graphics
+    }
 }

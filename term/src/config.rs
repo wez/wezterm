@@ -76,4 +76,8 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     fn enq_answerback(&self) -> String {
         "".to_string()
     }
+
+    fn enable_kitty_graphics(&self) -> bool {
+        false
+    }
 }

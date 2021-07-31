@@ -791,6 +791,10 @@ pub struct Config {
     #[serde(default = "default_initial_rows")]
     pub initial_rows: u16,
 
+    /// Disabled by default until the implementation is complete enough
+    #[serde(default)]
+    pub enable_kitty_graphics: bool,
+
     /// Specifies the width of a new window, expressed in character cells
     #[serde(default = "default_initial_cols")]
     pub initial_cols: u16,

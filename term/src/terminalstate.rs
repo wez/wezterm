@@ -1801,6 +1801,9 @@ impl TerminalState {
     }
 
     fn kitty_img(&mut self, img: KittyImage) -> anyhow::Result<()> {
+        if !self.config.enable_kitty_graphics() {
+            return Ok(());
+        }
         match img {
             KittyImage::TransmitData {
                 transmit,
