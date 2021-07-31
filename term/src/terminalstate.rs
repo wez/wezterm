@@ -42,6 +42,60 @@ lazy_static::lazy_static! {
     };
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct PlacementInfo {
+    first_row: StableRowIndex,
+    num_cells: usize,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct ImageAttachParams {
+    /// Dimensions of the underlying ImageData, in pixels
+    image_width: u32,
+    image_height: u32,
+
+    /// Dimensions of the area of the image to be displayed, in pixels
+    source_width: u32,
+    source_height: u32,
+
+    /// Origin of the source data region, top left corner in pixels
+    source_origin_x: u32,
+    source_origin_y: u32,
+
+    /// When rendering in the cell, use this offset from the top left
+    /// of the cell
+    display_offset_x: u32,
+    display_offset_y: u32,
+
+    /// Plane on which to display the image
+    z_index: i32,
+
+    /// Desired number of cells to span.
+    /// If None, then compute based on source_width and source_height
+    columns: Option<usize>,
+    rows: Option<usize>,
+
+    style: ImageAttachStyle,
+
+    data: Arc<ImageData>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ImageAttachStyle {
+    Sixel,
+    Iterm,
+    Kitty,
+}
+
+#[derive(Debug, Default)]
+struct KittyImageState {
+    accumulator: Vec<KittyImage>,
+    max_image_id: u32,
+    number_to_id: HashMap<u32, u32>,
+    id_to_data: HashMap<u32, Arc<ImageData>>,
+    placements: HashMap<(u32, Option<u32>), PlacementInfo>,
+}
+
 struct TabStop {
     tabs: Vec<bool>,
     tab_width: usize,
@@ -338,10 +392,7 @@ pub struct TerminalState {
 
     user_vars: HashMap<String, String>,
 
-    kitty_image_accumulator: Vec<KittyImage>,
-    max_kitty_image_id: u32,
-    kitty_image_number_to_id: HashMap<u32, u32>,
-    kitty_image_id_to_data: HashMap<u32, Arc<ImageData>>,
+    kitty_img: KittyImageState,
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -537,10 +588,7 @@ impl TerminalState {
             writer: Box::new(std::io::BufWriter::new(writer)),
             image_cache: lru::LruCache::new(16),
             user_vars: HashMap::new(),
-            kitty_image_accumulator: vec![],
-            max_kitty_image_id: 0,
-            kitty_image_number_to_id: HashMap::new(),
-            kitty_image_id_to_data: HashMap::new(),
+            kitty_img: Default::default(),
         }
     }
 
@@ -1553,10 +1601,10 @@ impl TerminalState {
     fn coalesce_kitty_accumulation(&mut self, img: KittyImage) -> anyhow::Result<KittyImage> {
         log::info!(
             "coalesce: accumulator={:#?} img:{:#?}",
-            self.kitty_image_accumulator,
+            self.kitty_img.accumulator,
             img
         );
-        if self.kitty_image_accumulator.is_empty() {
+        if self.kitty_img.accumulator.is_empty() {
             Ok(img)
         } else {
             let mut data = vec![];
@@ -1564,10 +1612,10 @@ impl TerminalState {
             let place;
             let final_verbosity = img.verbosity();
 
-            self.kitty_image_accumulator.push(img);
+            self.kitty_img.accumulator.push(img);
 
             let mut empty_data = KittyImageData::Direct(String::new());
-            match self.kitty_image_accumulator.remove(0) {
+            match self.kitty_img.accumulator.remove(0) {
                 KittyImage::TransmitData { transmit, .. } => {
                     trans = transmit;
                     place = None;
@@ -1586,7 +1634,7 @@ impl TerminalState {
             }
             data.push(empty_data);
 
-            for item in self.kitty_image_accumulator.drain(..) {
+            for item in self.kitty_img.accumulator.drain(..) {
                 match item {
                     KittyImage::TransmitData { transmit, .. }
                     | KittyImage::TransmitDataAndDisplay { transmit, .. } => {
@@ -1641,13 +1689,13 @@ impl TerminalState {
             }
             (Some(id), None) => (id, None),
             (None, Some(no)) => {
-                let id = self.max_kitty_image_id + 1;
-                self.kitty_image_number_to_id.insert(no, id);
+                let id = self.kitty_img.max_image_id + 1;
+                self.kitty_img.number_to_id.insert(no, id);
                 (id, Some(no))
             }
         };
 
-        self.max_kitty_image_id = self.max_kitty_image_id.max(image_id);
+        self.kitty_img.max_image_id = self.kitty_img.max_image_id.max(image_id);
 
         let data = transmit
             .data
@@ -1685,7 +1733,7 @@ impl TerminalState {
             Some(KittyImageFormat::Png) => self.raw_image_to_image_data(data.into_boxed_slice()),
         };
 
-        self.kitty_image_id_to_data.insert(image_id, img);
+        self.kitty_img.id_to_data.insert(image_id, img);
 
         if let Some(no) = image_number {
             match verbosity {
@@ -1709,7 +1757,8 @@ impl TerminalState {
         let image_id = match image_id {
             Some(id) => id,
             None => *self
-                .kitty_image_number_to_id
+                .kitty_img
+                .number_to_id
                 .get(
                     &image_number
                         .ok_or_else(|| anyhow::anyhow!("no image_id or image_number specified!"))?,
@@ -1717,55 +1766,37 @@ impl TerminalState {
                 .ok_or_else(|| anyhow::anyhow!("image_number has no matching image id"))?,
         };
 
-        // FIXME: need to support all kinds of fields in placement!
-
-        if placement.x.is_some()
-            || placement.y.is_some()
-            || placement.w.is_some()
-            || placement.h.is_some()
-        {
-            anyhow::bail!(
-                "kitty image placement x/y/w/h not yet implemented {:#?}",
-                placement
-            );
-        }
-
-        if placement.x_offset.is_some() || placement.y_offset.is_some() {
-            anyhow::bail!(
-                "kitty image placement offsets not yet implemented {:#?}",
-                placement
-            );
-        }
-
-        if placement.columns.is_some() || placement.rows.is_some() {
-            anyhow::bail!(
-                "kitty image placement scaling rows/columns not yet implemented {:#?}",
-                placement
-            );
-        }
-
-        if placement.placement_id.is_some() {
-            log::warn!(
-                "kitty image placement_id not yet implemented {:#?}",
-                placement
-            );
-        }
-        if placement.z_index.is_some() {
-            log::warn!("kitty image z_index not yet implemented {:#?}", placement);
-        }
-
         let img = Arc::clone(
-            self.kitty_image_id_to_data
+            self.kitty_img
+                .id_to_data
                 .get(&image_id)
                 .ok_or_else(|| anyhow::anyhow!("no matching image id"))?,
         );
 
         let decoded = image::load_from_memory(img.data()).context("decode png")?;
-        let (width, height) = decoded.dimensions();
+        let (image_width, image_height) = decoded.dimensions();
 
         let saved_cursor = self.cursor.clone();
 
-        self.assign_image_to_cells(width, height, img, true);
+        let info = self.assign_image_to_cells(ImageAttachParams {
+            image_width,
+            image_height,
+            source_width: placement.w.unwrap_or(image_width),
+            source_height: placement.h.unwrap_or(image_height),
+            source_origin_x: placement.x.unwrap_or(0),
+            source_origin_y: placement.y.unwrap_or(0),
+            display_offset_x: placement.x_offset.unwrap_or(0),
+            display_offset_y: placement.y_offset.unwrap_or(0),
+            data: img,
+            style: ImageAttachStyle::Kitty,
+            z_index: placement.z_index.unwrap_or(0),
+            columns: placement.columns.map(|x| x as usize),
+            rows: placement.rows.map(|x| x as usize),
+        });
+
+        self.kitty_img
+            .placements
+            .insert((image_id, placement.placement_id), info);
 
         if placement.do_not_move_cursor {
             self.cursor = saved_cursor;
@@ -1815,7 +1846,7 @@ impl TerminalState {
                     verbosity,
                 };
                 if more_data_follows {
-                    self.kitty_image_accumulator.push(img);
+                    self.kitty_img.accumulator.push(img);
                 } else {
                     self.kitty_img_inner(img)?;
                 }
@@ -1832,7 +1863,7 @@ impl TerminalState {
                     verbosity,
                 };
                 if more_data_follows {
-                    self.kitty_image_accumulator.push(img);
+                    self.kitty_img.accumulator.push(img);
                 } else {
                     self.kitty_img_inner(img)?;
                 }
@@ -1957,7 +1988,21 @@ impl TerminalState {
         }
 
         let image_data = self.raw_image_to_image_data(png_image_data.into_boxed_slice());
-        self.assign_image_to_cells(width, height, image_data, false);
+        self.assign_image_to_cells(ImageAttachParams {
+            image_width: width,
+            image_height: height,
+            source_width: width,
+            source_height: height,
+            rows: None,
+            columns: None,
+            source_origin_x: 0,
+            source_origin_y: 0,
+            display_offset_x: 0,
+            display_offset_y: 0,
+            data: image_data,
+            style: ImageAttachStyle::Sixel,
+            z_index: 0,
+        });
     }
 
     /// cache recent images and avoid assigning a new id for repeated data!
@@ -1976,31 +2021,43 @@ impl TerminalState {
         }
     }
 
-    fn assign_image_to_cells(
-        &mut self,
-        width: u32,
-        height: u32,
-        image_data: Arc<ImageData>,
-        iterm_cursor_position: bool,
-    ) {
+    fn assign_image_to_cells(&mut self, params: ImageAttachParams) -> PlacementInfo {
         let physical_cols = self.screen().physical_cols;
         let physical_rows = self.screen().physical_rows;
         let cell_pixel_width = self.pixel_width / physical_cols;
         let cell_pixel_height = self.pixel_height / physical_rows;
 
-        let width_in_cells = (width as f32 / cell_pixel_width as f32).ceil() as usize;
-        let height_in_cells = (height as f32 / cell_pixel_height as f32).ceil() as usize;
+        let avail_width = params.image_width.saturating_sub(params.source_origin_x);
+        let avail_height = params.image_height.saturating_sub(params.source_origin_y);
+        let source_width = params.source_width.min(params.image_width).min(avail_width);
+        let source_height = params
+            .source_height
+            .min(params.image_height)
+            .min(avail_height);
 
-        let mut ypos = NotNan::new(0.0).unwrap();
+        let width_in_cells = params
+            .columns
+            .unwrap_or_else(|| (source_width as f32 / cell_pixel_width as f32).ceil() as usize);
+        let height_in_cells = params
+            .rows
+            .unwrap_or_else(|| (source_height as f32 / cell_pixel_height as f32).ceil() as usize);
+
+        let first_row = self.screen().visible_row_to_stable_row(self.cursor.y);
+        let num_cells = width_in_cells * height_in_cells;
+
+        let mut ypos =
+            NotNan::new(params.source_origin_y as f32 / params.image_height as f32).unwrap();
+        let start_xpos =
+            NotNan::new(params.source_origin_x as f32 / params.image_width as f32).unwrap();
+
         let cursor_x = self.cursor.x;
-        let x_delta = 1.0 / (width as f32 / (self.pixel_width as f32 / physical_cols as f32));
-        let y_delta = 1.0 / (height as f32 / (self.pixel_height as f32 / physical_rows as f32));
+        let x_delta = (source_width as f32 / params.image_width as f32) / width_in_cells as f32;
+        let y_delta = (source_height as f32 / params.image_height as f32) / height_in_cells as f32;
         log::debug!(
-            "image is {}x{} cells, {}x{} pixels, x_delta:{} y_delta:{} ({}x{}@{}x{})",
+            "image is {}x{} cells, {:?}, x_delta:{} y_delta:{} ({}x{}@{}x{})",
             width_in_cells,
             height_in_cells,
-            width,
-            height,
+            params,
             x_delta,
             y_delta,
             physical_cols,
@@ -2009,7 +2066,7 @@ impl TerminalState {
             self.pixel_height
         );
         for _ in 0..height_in_cells {
-            let mut xpos = NotNan::new(0.0).unwrap();
+            let mut xpos = start_xpos;
             let cursor_y = self.cursor.y;
             debug!(
                 "setting cells for y={} x=[{}..{}]",
@@ -2023,11 +2080,20 @@ impl TerminalState {
                     .get_cell(cursor_x + x, cursor_y)
                     .cloned()
                     .unwrap_or_else(|| Cell::new(' ', CellAttributes::default()));
-                cell.attrs_mut().set_image(Box::new(ImageCell::new(
+                let img = Box::new(ImageCell::with_z_index(
                     TextureCoordinate::new(xpos, ypos),
                     TextureCoordinate::new(xpos + x_delta, ypos + y_delta),
-                    image_data.clone(),
-                )));
+                    params.data.clone(),
+                    params.z_index,
+                    params.display_offset_x,
+                    params.display_offset_y,
+                ));
+                match params.style {
+                    ImageAttachStyle::Kitty => cell.attrs_mut().attach_image(img),
+                    ImageAttachStyle::Sixel | ImageAttachStyle::Iterm => {
+                        cell.attrs_mut().set_image(img)
+                    }
+                };
 
                 self.screen_mut().set_cell(cursor_x + x, cursor_y, &cell);
                 xpos += x_delta;
@@ -2039,11 +2105,21 @@ impl TerminalState {
         // Sixel places the cursor under the left corner of the image,
         // unless sixel_scrolls_right is enabled.
         // iTerm places it after the bottom right corner.
-        if iterm_cursor_position || self.sixel_scrolls_right {
+        let bottom_right = match params.style {
+            ImageAttachStyle::Kitty | ImageAttachStyle::Iterm => true,
+            ImageAttachStyle::Sixel => self.sixel_scrolls_right,
+        };
+
+        if bottom_right {
             self.set_cursor_pos(
                 &Position::Relative(width_in_cells as i64),
                 &Position::Relative(-1),
             );
+        }
+
+        PlacementInfo {
+            first_row,
+            num_cells,
         }
     }
 
@@ -2165,7 +2241,21 @@ impl TerminalState {
         };
 
         let image_data = self.raw_image_to_image_data(data);
-        self.assign_image_to_cells(width as u32, height as u32, image_data, true);
+        self.assign_image_to_cells(ImageAttachParams {
+            image_width: width as u32,
+            image_height: height as u32,
+            source_width: width as u32,
+            source_height: height as u32,
+            source_origin_x: 0,
+            source_origin_y: 0,
+            display_offset_x: 0,
+            display_offset_y: 0,
+            z_index: 0,
+            columns: None,
+            rows: None,
+            data: image_data,
+            style: ImageAttachStyle::Iterm,
+        });
     }
 
     fn perform_device(&mut self, dev: Device) {
