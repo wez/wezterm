@@ -474,16 +474,19 @@ impl ConfigInner {
                 // call to `with_lua_config` to reference this lua context
                 // even though we are (probably) resolving this from a background
                 // reloading thread.
-                if let Some(lua) = lua {
+                lua.and_then(|lua| {
+                    if self.config.automatically_reload_config {}
+                    let watch_path: String = lua.globals().get("watch_path").ok()?;
                     LUA_PIPE.sender.try_send(lua).ok();
-                }
+                    for path in watch_path.split(";") {
+                        self.watch_path(PathBuf::from(path));
+                    }
+                    Some(())
+                })
+                .or_else(|| Some(self.watch_path(file_name?)));
+
                 log::debug!("Reloaded configuration! generation={}", self.generation);
                 self.notify();
-                if self.config.automatically_reload_config {
-                    if let Some(path) = file_name {
-                        self.watch_path(path);
-                    }
-                }
             }
             Err(err) => {
                 let err = format!("{:#}", err);
