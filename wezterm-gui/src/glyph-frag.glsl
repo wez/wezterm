@@ -7,6 +7,7 @@ in float o_has_color;
 in vec2 o_tex;
 in vec3 o_hsv;
 in vec4 o_fg_color;
+in vec4 o_bg_color;
 
 out vec4 color;
 
@@ -86,6 +87,11 @@ vec4 colorize(vec4 glyph, vec4 color, vec4 background) {
   return vec4(r, g, b, glyph.a);
 }
 
+// Like colorize, but for when the background color is unknown.
+// This isn't "good" because it generally results in dark fringes.
+// Ideally we wouldn't need to know the background and we could
+// use dual source blending instead of colorize and colorize2.
+// <https://github.com/wez/wezterm/issues/932>
 vec4 colorize2(vec4 glyph, vec4 color) {
   return vec4(glyph.rgb * color.rgb, glyph.a);
 }
@@ -121,7 +127,7 @@ void main() {
     if (o_has_color == 0.0) {
       // if it's not a color emoji it will be grayscale
       // and we need to tint with the fg_color
-      color = colorize2(color, o_fg_color);
+      color = colorize(color, o_fg_color, o_bg_color);
       color = apply_hsv(color, foreground_text_hsb);
     }
   }

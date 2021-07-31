@@ -551,6 +551,8 @@ impl super::TermWindow {
         .expect("to have box drawing glyph");
         let palette = pane.palette();
         let foreground = rgbcolor_to_window_color(palette.split);
+        let background_alpha = (self.config.window_background_opacity * 255.0) as u8;
+        let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
 
         let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             1
@@ -582,6 +584,7 @@ impl super::TermWindow {
             let mut quad = quads.allocate()?;
             quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
+            quad.set_bg_color(background);
             quad.set_fg_color(foreground);
             quad.set_hsv(None);
             quad.set_texture(sprite);
@@ -710,6 +713,7 @@ impl super::TermWindow {
                     pos_x + cluster_width as f32 * cell_width,
                     pos_y + cell_height,
                 );
+                quad.set_bg_color(bg_color);
                 quad.set_fg_color(bg_color);
                 quad.set_texture(params.filled_box);
                 quad.set_texture_adjust(0., 0., 0., 0.);
@@ -734,6 +738,7 @@ impl super::TermWindow {
                 pos_y + cell_height,
             );
 
+            quad.set_bg_color(params.selection_bg);
             quad.set_fg_color(params.selection_bg);
             quad.set_texture_adjust(0., 0., 0., 0.);
             quad.set_texture(params.filled_box);
@@ -900,6 +905,7 @@ impl super::TermWindow {
                         // Override the background color
                         let mut quad = quads.allocate()?;
                         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+                        quad.set_bg_color(bg_color);
                         quad.set_fg_color(bg_color);
                         quad.set_texture(params.filled_box);
                         quad.set_texture_adjust(0., 0., 0., 0.);
@@ -920,11 +926,14 @@ impl super::TermWindow {
                                 .cursor_sprite(cursor_shape)
                                 .texture_coords(),
                         );
-                        quad.set_fg_color(if self.config.force_reverse_video_cursor {
+
+                        let color = if self.config.force_reverse_video_cursor {
                             bg_color
                         } else {
                             params.cursor_border_color
-                        });
+                        };
+                        quad.set_fg_color(color);
+                        quad.set_bg_color(bg_color);
                     }
 
                     let images = cluster.attrs.images().unwrap_or_else(|| vec![]);
@@ -953,6 +962,7 @@ impl super::TermWindow {
 
                         quad.set_texture(style_params.underline_tex_rect);
                         quad.set_fg_color(style_params.underline_color);
+                        quad.set_bg_color(bg_color);
                     }
 
                     let mut did_custom = false;
@@ -969,6 +979,7 @@ impl super::TermWindow {
                                         &params,
                                         hsv,
                                         glyph_color,
+                                        bg_color,
                                     )?;
                                 }
                                 did_custom = true;
@@ -1016,6 +1027,7 @@ impl super::TermWindow {
                                 pos_x + cell_width,
                                 pos_y + cell_height,
                             );
+                            quad.set_bg_color(bg_color);
                             quad.set_fg_color(glyph_color);
                             quad.set_texture(texture_rect);
                             quad.set_texture_adjust(left, top, right, bottom);
@@ -1069,6 +1081,7 @@ impl super::TermWindow {
                     pos_y + cell_height,
                 );
 
+                quad.set_bg_color(params.foreground);
                 quad.set_fg_color(params.foreground);
                 quad.set_texture_adjust(0., 0., 0., 0.);
                 quad.set_texture(params.filled_box);
@@ -1122,6 +1135,7 @@ impl super::TermWindow {
                     quad.set_hsv(hsv);
 
                     quad.set_texture(tex);
+                    quad.set_bg_color(bg_color);
                     quad.set_fg_color(if self.config.force_reverse_video_cursor {
                         bg_color
                     } else {
@@ -1153,6 +1167,7 @@ impl super::TermWindow {
         params: &RenderScreenLineOpenGLParams,
         hsv: Option<config::HsbTransform>,
         glyph_color: LinearRgba,
+        bg_color: LinearRgba,
     ) -> anyhow::Result<()> {
         let sprite = gl_state
             .glyph_cache
@@ -1171,6 +1186,7 @@ impl super::TermWindow {
             + self.config.window_padding.left as f32;
         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
         quad.set_hsv(hsv);
+        quad.set_bg_color(bg_color);
         quad.set_fg_color(glyph_color);
         quad.set_texture(sprite);
         quad.set_texture_adjust(0., 0., 0., 0.);

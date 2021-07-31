@@ -22,6 +22,7 @@ pub struct Vertex {
     // glyph texture
     pub tex: (f32, f32),
     pub fg_color: (f32, f32, f32, f32),
+    pub bg_color: (f32, f32, f32, f32),
     pub hsv: (f32, f32, f32),
     // We use a float for this because I can't get
     // bool or integer values to work:
@@ -37,7 +38,9 @@ pub struct Vertex {
     //        image, we use the solid bg color
     pub has_color: f32,
 }
-::window::glium::implement_vertex!(Vertex, position, adjust, tex, fg_color, hsv, has_color);
+::window::glium::implement_vertex!(
+    Vertex, position, adjust, tex, fg_color, bg_color, hsv, has_color
+);
 
 /// A helper for updating the 4 vertices that compose a glyph cell
 pub struct Quad<'a> {
@@ -86,6 +89,12 @@ impl<'a> Quad<'a> {
     pub fn set_fg_color(&mut self, color: LinearRgba) {
         for v in self.vert.iter_mut() {
             v.fg_color = color.tuple();
+        }
+    }
+
+    pub fn set_bg_color(&mut self, color: LinearRgba) {
+        for v in self.vert.iter_mut() {
+            v.bg_color = color.tuple();
         }
     }
 
