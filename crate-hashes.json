@@ -1,0 +1,6 @@
+{
+  "allsorts 0.4.0 (git+https://github.com/yeslogic/allsorts.git?rev=3947164a201ab5e15d5f23204faaaaaad52531aa#3947164a201ab5e15d5f23204faaaaaad52531aa)": "0cvb7371lk1l128c0al2qf2xlfhi5i072fikg0lh65z0vrkpmsd2",
+  "libssh2-sys 0.2.21 (git+https://github.com/wez/ssh2-rs.git?branch=win32ssl#c65067040c97a0cf7f96c69d6fc87764a32c34ae)": "1jlnjz2z6bgf1wy9337fn0hywsdmvjb1mgysl4gbkc92176030ia",
+  "ssh2 0.9.1 (git+https://github.com/wez/ssh2-rs.git?branch=win32ssl#c65067040c97a0cf7f96c69d6fc87764a32c34ae)": "1jlnjz2z6bgf1wy9337fn0hywsdmvjb1mgysl4gbkc92176030ia",
+  "xkbcommon 0.5.0 (git+https://github.com/wez/xkbcommon-rs.git?rev=01a0a0cd5663405e6e4abb1ad3add9add1496f58#01a0a0cd5663405e6e4abb1ad3add9add1496f58)": "0q6h2kh0afk7cky5l91nf7s2d2z3d42qin785nzp4300dhw5wcim"
+}
