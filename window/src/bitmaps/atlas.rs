@@ -1,7 +1,7 @@
 use crate::bitmaps::{BitmapImage, Texture2d, TextureRect};
 use crate::{Point, Rect, Size};
 use anyhow::{ensure, Result as Fallible};
-use guillotiere::{AtlasAllocator, Size as AtlasSize};
+use guillotiere::{SimpleAtlasAllocator, Size as AtlasSize};
 use std::convert::TryInto;
 use std::rc::Rc;
 use thiserror::*;
@@ -24,7 +24,7 @@ where
 {
     texture: Rc<T>,
 
-    allocator: AtlasAllocator,
+    allocator: SimpleAtlasAllocator,
 
     /// Dimensions of the texture
     side: usize,
@@ -46,7 +46,8 @@ where
         let rect = Rect::new(Point::new(0, 0), Size::new(iside, iside));
         texture.write(rect, &image);
 
-        let allocator = AtlasAllocator::new(AtlasSize::new(side.try_into()?, side.try_into()?));
+        let allocator =
+            SimpleAtlasAllocator::new(AtlasSize::new(side.try_into()?, side.try_into()?));
         Ok(Self {
             texture: Rc::clone(texture),
             side,
@@ -92,8 +93,8 @@ where
             .allocator
             .allocate(AtlasSize::new(reserve_width, reserve_height))
         {
-            let left = allocation.rectangle.min.x;
-            let top = allocation.rectangle.min.y;
+            let left = allocation.min.x;
+            let top = allocation.min.y;
             let rect = Rect::new(
                 Point::new((left + PADDING) as isize, (top + PADDING) as isize),
                 Size::new(width as isize, height as isize),
