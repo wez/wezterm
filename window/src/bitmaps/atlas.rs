@@ -89,7 +89,8 @@ where
         let reserve_width = reserve_width + padding.unwrap_or(0) as i32 + PADDING * 2;
         let reserve_height = reserve_height + padding.unwrap_or(0) as i32 + PADDING * 2;
 
-        if let Some(allocation) = self
+        let start = std::time::Instant::now();
+        let res = if let Some(allocation) = self
             .allocator
             .allocate(AtlasSize::new(reserve_width, reserve_height))
         {
@@ -102,6 +103,7 @@ where
 
             self.texture.write(rect, im);
 
+            metrics::histogram!("window.atlas.allocate.success.rate", 1.);
             Ok(Sprite {
                 texture: Rc::clone(&self.texture),
                 coords: rect,
@@ -109,11 +111,15 @@ where
         } else {
             // It's not possible to satisfy that request
             let size = (reserve_width.max(reserve_height) as usize).next_power_of_two();
+            metrics::histogram!("window.atlas.allocate.failure.rate", 1.);
             Err(OutOfTextureSpace {
                 size: Some((self.side * 2).max(size)),
                 current_size: self.side,
             })
-        }
+        };
+        metrics::histogram!("window.atlas.allocate.latency", start.elapsed());
+
+        res
     }
 
     pub fn size(&self) -> usize {

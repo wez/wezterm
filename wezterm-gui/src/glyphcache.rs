@@ -4266,13 +4266,15 @@ impl<T: Texture2d> GlyphCache<T> {
             }
         }
 
-        // FIXME: add latency metric around this load
+        let start = Instant::now();
         let mut decoded =
             DecodedImage::load(image_data).or_else(|e| -> anyhow::Result<DecodedImage> {
                 log::debug!("Failed to decode image: {:#}", e);
                 // Use a placeholder instead
                 Ok(DecodedImage::placeholder())
             })?;
+        metrics::histogram!("glyphcache.cached_image.decode.rate", 1.);
+        metrics::histogram!("glyphcache.cached_image.decode.latency", start.elapsed());
         let sprite = self
             .atlas
             .allocate_with_padding(&decoded.frames[0].image, padding)?;

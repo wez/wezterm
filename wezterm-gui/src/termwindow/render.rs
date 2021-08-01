@@ -238,9 +238,15 @@ impl super::TermWindow {
                 None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
             };
 
+            let start = Instant::now();
             let (top, vp_lines) = pos
                 .pane
                 .get_lines_with_hyperlinks_applied(stable_range, &self.config.hyperlink_rules);
+            metrics::histogram!("get_lines_with_hyperlinks_applied.latency", start.elapsed());
+            log::trace!(
+                "get_lines_with_hyperlinks_applied took {:?}",
+                start.elapsed()
+            );
             stable_top = top;
             lines = vp_lines;
         }
