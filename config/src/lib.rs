@@ -476,7 +476,7 @@ impl ConfigInner {
                 // reloading thread.
                 lua.map(|lua| {
                     if self.config.automatically_reload_config {
-                        lua.globals().get("watch_path").ok().and_then(|watch_path| {
+                        lua.globals().get("watch_path").ok().map(|watch_path : String| {
                             for path in watch_path.split(";") {
                                 log::debug!("watching path: {}", &path);
                                 self.watch_path(PathBuf::from(path));
