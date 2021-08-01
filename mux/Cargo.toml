@@ -48,4 +48,3 @@ winapi = { version = "0.3", features = [
 
 [dev-dependencies]
 k9 = "0.11"
-pretty_assertions = "0.6"

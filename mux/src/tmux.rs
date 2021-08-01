@@ -21,7 +21,12 @@ enum State {
 
 trait TmuxCommand {
     fn get_command(&self) -> String;
-    fn process_result(&self, domain_id: DomainId, result: &Guarded, state: &mut TmuxInnerState) -> anyhow::Result<()>;
+    fn process_result(
+        &self,
+        domain_id: DomainId,
+        result: &Guarded,
+        state: &mut TmuxInnerState,
+    ) -> anyhow::Result<()>;
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -47,8 +52,12 @@ impl TmuxCommand for ListAllPanes {
             .to_owned()
     }
 
-    fn process_result(&self, domain_id: DomainId, result: &Guarded, state: &mut TmuxInnerState) -> anyhow::Result<()> {
-
+    fn process_result(
+        &self,
+        domain_id: DomainId,
+        result: &Guarded,
+        state: &mut TmuxInnerState,
+    ) -> anyhow::Result<()> {
         state.panes.clear();
 
         for line in result.output.split('\n') {
@@ -114,7 +123,7 @@ impl TmuxCommand for ListAllPanes {
 }
 
 struct TmuxInnerState {
-    panes: Vec<TmuxPane>
+    panes: Vec<TmuxPane>,
 }
 
 pub(crate) struct TmuxDomainState {
@@ -145,7 +154,9 @@ impl TmuxDomainState {
                         let cmd = self.cmd_queue.borrow_mut().pop_front().unwrap();
                         let domain_id = self.domain_id;
                         *self.state.borrow_mut() = State::Idle;
-                        if let Err(err) = cmd.process_result(domain_id, &response, &mut self.inner.borrow_mut()) {
+                        if let Err(err) =
+                            cmd.process_result(domain_id, &response, &mut self.inner.borrow_mut())
+                        {
                             log::error!("error processing result: {}", err);
                         }
                     }
@@ -195,9 +206,7 @@ impl TmuxDomain {
             pane_id,
             parser,
             state: RefCell::new(State::WaitForInitialGuard),
-            inner: RefCell::new(TmuxInnerState {
-                panes: vec![]
-            }),
+            inner: RefCell::new(TmuxInnerState { panes: vec![] }),
             cmd_queue: RefCell::new(cmd_queue),
         });
         Self { inner }
@@ -252,11 +261,10 @@ impl Domain for TmuxDomain {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_eq;
+    use k9::assert_equal;
 
     #[test]
     fn test_list_panes() {
@@ -272,12 +280,13 @@ mod tests {
 $0 @0 %0 0 2 37 104 38 0 0
 $1 @1 %1 0 2 37 104 38 0 0
 $2 @2 %2 0 2 2 80 24 0 0
-            ".to_owned()
+            "
+            .to_owned(),
         };
 
         let tmux_inner_state = &mut domain_state.inner.borrow_mut();
         command.process_result(0 as usize, &result, tmux_inner_state);
-        assert_eq!(
+        assert_equal!(
             vec![
                 TmuxPane {
                     session_id: 0,
@@ -317,6 +326,6 @@ $2 @2 %2 0 2 2 80 24 0 0
                 }
             ],
             tmux_inner_state.panes
-        )
+        );
     }
 }
