@@ -9,7 +9,7 @@ use image::{DynamicImage, GenericImageView, ImageFormat, RgbImage, RgbaImage};
 use log::{debug, error};
 use num_traits::{FromPrimitive, ToPrimitive};
 use ordered_float::NotNan;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
@@ -98,6 +98,46 @@ struct KittyImageState {
     number_to_id: HashMap<u32, u32>,
     id_to_data: HashMap<u32, Arc<ImageData>>,
     placements: HashMap<(u32, Option<u32>), PlacementInfo>,
+    used_memory: usize,
+}
+
+impl KittyImageState {
+    fn remove_data_for_id(&mut self, image_id: u32) {
+        if let Some(data) = self.id_to_data.remove(&image_id) {
+            self.used_memory = self.used_memory.saturating_sub(data.len());
+        }
+    }
+
+    fn record_id_to_data(&mut self, image_id: u32, data: Arc<ImageData>) {
+        self.remove_data_for_id(image_id);
+        self.prune_unreferenced();
+        self.used_memory += data.len();
+        self.id_to_data.insert(image_id, data);
+    }
+
+    fn prune_unreferenced(&mut self) {
+        let budget = 320 * 1024 * 1024; // FIXME: make this configurable
+        if self.used_memory > budget {
+            let referenced: HashSet<u32> = self.placements.keys().map(|(k, _)| *k).collect();
+            let target = self.used_memory - budget;
+            let mut freed = 0;
+            self.id_to_data.retain(|id, data| {
+                if referenced.contains(id) || freed > target {
+                    true
+                } else {
+                    freed += data.len();
+                    false
+                }
+            });
+
+            log::info!(
+                "using {} RAM for images, pruned {}",
+                self.used_memory,
+                freed
+            );
+            self.used_memory = self.used_memory.saturating_sub(freed);
+        }
+    }
 }
 
 struct TabStop {
@@ -1700,7 +1740,7 @@ impl TerminalState {
         };
 
         self.kitty_img.max_image_id = self.kitty_img.max_image_id.max(image_id);
-        log::info!("transmit {:?}", transmit);
+        log::trace!("transmit {:?}", transmit);
 
         let data = transmit
             .data
@@ -1754,7 +1794,7 @@ impl TerminalState {
             }
         };
 
-        self.kitty_img.id_to_data.insert(image_id, img);
+        self.kitty_img.record_id_to_data(image_id, img);
 
         if let Some(no) = image_number {
             match verbosity {
@@ -1788,7 +1828,7 @@ impl TerminalState {
                 .ok_or_else(|| anyhow::anyhow!("image_number has no matching image id"))?,
         };
 
-        log::warn!(
+        log::trace!(
             "kitty_img_place image_id {:?} image_no {:?} placement {:?} verb {:?}",
             image_id,
             image_number,
@@ -1834,7 +1874,7 @@ impl TerminalState {
         self.kitty_img
             .placements
             .insert((image_id, placement.placement_id), info);
-        log::info!(
+        log::trace!(
             "record placement for {} {:?}",
             image_id,
             placement.placement_id
@@ -1864,7 +1904,7 @@ impl TerminalState {
                 placement,
                 verbosity,
             } => {
-                log::info!("TransmitDataAndDisplay {:#?} {:#?}", transmit, placement);
+                log::trace!("TransmitDataAndDisplay {:#?} {:#?}", transmit, placement);
                 let image_number = transmit.image_number;
                 let image_id = self.kitty_img_transmit(transmit, verbosity)?;
                 self.kitty_img_place(Some(image_id), image_number, placement, verbosity)
@@ -1954,7 +1994,7 @@ impl TerminalState {
                 self.kitty_remove_placement(image_id, placement_id);
 
                 if delete {
-                    self.kitty_img.id_to_data.remove(&image_id);
+                    self.kitty_img.remove_data_for_id(image_id);
                 }
             }
             KittyImage::Delete { what, verbosity } => {
@@ -1987,10 +2027,8 @@ impl TerminalState {
     fn kitty_remove_placement(&mut self, image_id: u32, placement_id: Option<u32>) {
         if placement_id.is_some() {
             if let Some(info) = self.kitty_img.placements.remove(&(image_id, placement_id)) {
-                log::info!("removed placement {} {:?}", image_id, placement_id);
+                log::trace!("removed placement {} {:?}", image_id, placement_id);
                 self.kitty_remove_placement_from_model(image_id, placement_id, info);
-            } else {
-                log::warn!("no placement matched i={} p={:?}", image_id, placement_id);
             }
         } else {
             let mut to_clear = vec![];
@@ -2006,10 +2044,11 @@ impl TerminalState {
             }
         }
 
-        log::info!(
-            "after remove: there are {} placements, {} images",
+        log::trace!(
+            "after remove: there are {} placements, {} images, {} memory",
             self.kitty_img.placements.len(),
-            self.kitty_img.id_to_data.len()
+            self.kitty_img.id_to_data.len(),
+            self.kitty_img.used_memory,
         );
     }
 
