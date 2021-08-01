@@ -145,11 +145,20 @@ impl ImageCell {
 static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ImageData {
     id: usize,
     /// The image data bytes.  Data is the native image file format
     data: Box<[u8]>,
+}
+
+impl std::fmt::Debug for ImageData {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fmt.debug_struct("ImageData")
+            .field("id", &self.id)
+            .field("data_of_len", &self.data.len())
+            .finish()
+    }
 }
 
 impl ImageData {

@@ -188,6 +188,8 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
     fn apc_dispatch(&mut self, data: Vec<u8>) {
         if let Some(img) = super::KittyImage::parse_apc(&data) {
             (self.callback)(Action::KittyImage(img))
+        } else {
+            log::trace!("Ignoring APC data: {:?}", String::from_utf8_lossy(&data));
         }
     }
 
@@ -477,6 +479,7 @@ mod test {
         XtSmGraphicsItem, XtermKeyModifierResource,
     };
     use crate::escape::{EscCode, OneBased};
+    use pretty_assertions::assert_eq;
     use std::io::Write;
 
     fn encode(seq: &Vec<Action>) -> String {
@@ -902,6 +905,53 @@ mod test {
                         more_data_follows: false,
                     },
                     verbosity: KittyImageVerbosity::Verbose,
+                }),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ]
+        );
+
+        assert_eq!(
+            parse_as(
+                "\x1b_Ga=q,s=1,v=1,i=1;YWJjZA==\x1b\\",
+                "\x1b_Ga=q,i=1,s=1,v=1;YWJjZA==\x1b\\"
+            ),
+            vec![
+                Action::KittyImage(KittyImage::Query {
+                    transmit: KittyImageTransmit {
+                        format: None,
+                        data: KittyImageData::Direct("YWJjZA==".to_string()),
+                        width: Some(1),
+                        height: Some(1),
+                        image_id: Some(1),
+                        image_number: None,
+                        compression: KittyImageCompression::None,
+                        more_data_follows: false,
+                    },
+                }),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ]
+        );
+        assert_eq!(
+            parse_as(
+                "\x1b_Ga=q,t=f,s=1,v=1,i=2;L3Zhci90bXAvdG1wdGYxd3E4Ym4=\x1b\\",
+                "\x1b_Ga=q,i=2,s=1,t=f,v=1;L3Zhci90bXAvdG1wdGYxd3E4Ym4=\x1b\\"
+            ),
+            vec![
+                Action::KittyImage(KittyImage::Query {
+                    transmit: KittyImageTransmit {
+                        format: None,
+                        data: KittyImageData::File {
+                            path: "/var/tmp/tmptf1wq8bn".to_string(),
+                            data_offset: None,
+                            data_size: None,
+                        },
+                        width: Some(1),
+                        height: Some(1),
+                        image_id: Some(2),
+                        image_number: None,
+                        compression: KittyImageCompression::None,
+                        more_data_follows: false,
+                    },
                 }),
                 Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ]

@@ -112,17 +112,17 @@ impl KittyImageData {
         match t {
             "d" => Some(Self::Direct(String::from_utf8(payload.to_vec()).ok()?)),
             "f" => Some(Self::File {
-                path: String::from_utf8(payload.to_vec()).ok()?,
+                path: String::from_utf8(base64::decode(payload.to_vec()).ok()?).ok()?,
                 data_size: geti(keys, "S"),
                 data_offset: geti(keys, "O"),
             }),
             "t" => Some(Self::TemporaryFile {
-                path: String::from_utf8(payload.to_vec()).ok()?,
+                path: String::from_utf8(base64::decode(payload.to_vec()).ok()?).ok()?,
                 data_size: geti(keys, "S"),
                 data_offset: geti(keys, "O"),
             }),
             "s" => Some(Self::SharedMem {
-                name: String::from_utf8(payload.to_vec()).ok()?,
+                name: String::from_utf8(base64::decode(payload.to_vec()).ok()?).ok()?,
                 data_size: geti(keys, "S"),
                 data_offset: geti(keys, "O"),
             }),
@@ -674,12 +674,15 @@ pub enum KittyImage {
         what: KittyImageDelete,
         verbosity: KittyImageVerbosity,
     },
+    /// a='q'
+    Query { transmit: KittyImageTransmit },
 }
 
 impl KittyImage {
     pub fn verbosity(&self) -> KittyImageVerbosity {
         match self {
             Self::TransmitData { verbosity, .. } => *verbosity,
+            Self::Query { .. } => KittyImageVerbosity::Verbose,
             Self::TransmitDataAndDisplay { verbosity, .. } => *verbosity,
             Self::Display { verbosity, .. } => *verbosity,
             Self::Delete { verbosity, .. } => *verbosity,
@@ -709,6 +712,9 @@ impl KittyImage {
                 transmit: KittyImageTransmit::from_keys(&keys, payload?)?,
                 verbosity,
             }),
+            "q" => Some(Self::Query {
+                transmit: KittyImageTransmit::from_keys(&keys, payload?)?,
+            }),
             "T" => Some(Self::TransmitDataAndDisplay {
                 transmit: KittyImageTransmit::from_keys(&keys, payload?)?,
                 placement: KittyImagePlacement::from_keys(&keys)?,
@@ -734,7 +740,12 @@ impl KittyImage {
                 transmit,
                 verbosity,
             } => {
+                // Implied: keys.insert("a", "t".to_string());
                 verbosity.to_keys(keys);
+                transmit.to_keys(keys);
+            }
+            Self::Query { transmit } => {
+                keys.insert("a", "q".to_string());
                 transmit.to_keys(keys);
             }
             Self::TransmitDataAndDisplay {
@@ -742,6 +753,7 @@ impl KittyImage {
                 verbosity,
                 placement,
             } => {
+                keys.insert("a", "Q".to_string());
                 verbosity.to_keys(keys);
                 placement.to_keys(keys);
                 transmit.to_keys(keys);
@@ -752,6 +764,7 @@ impl KittyImage {
                 placement,
                 verbosity,
             } => {
+                keys.insert("a", "p".to_string());
                 verbosity.to_keys(keys);
                 placement.to_keys(keys);
                 if let Some(image_id) = image_id {
@@ -762,6 +775,7 @@ impl KittyImage {
                 }
             }
             Self::Delete { what, verbosity } => {
+                keys.insert("a", "d".to_string());
                 verbosity.to_keys(keys);
                 what.to_keys(keys);
             }

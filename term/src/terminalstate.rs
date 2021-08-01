@@ -1739,6 +1739,7 @@ impl TerminalState {
             match verbosity {
                 KittyImageVerbosity::Verbose => {
                     write!(self.writer, "\x1b_Gi={},I={};OK\x1b\\", image_id, no).ok();
+                    self.writer.flush().ok();
                 }
                 _ => {}
             }
@@ -1832,10 +1833,26 @@ impl TerminalState {
     }
 
     fn kitty_img(&mut self, img: KittyImage) -> anyhow::Result<()> {
+        log::trace!("{:?}", img);
         if !self.config.enable_kitty_graphics() {
             return Ok(());
         }
         match img {
+            KittyImage::Query { transmit } => {
+                let image_id = transmit.image_id.unwrap_or(0);
+                let response = match transmit.data.load_data() {
+                    Ok(_) => {
+                        format!("\x1b_Gi={};OK\x1b\\", image_id)
+                    }
+                    Err(err) => {
+                        format!("\x1b_Gi={};ERROR:{:#}\x1b\\", image_id, err)
+                    }
+                };
+
+                log::trace!("Query Response: {}", response.escape_debug());
+                write!(self.writer, "{}", response).ok();
+                self.writer.flush().ok();
+            }
             KittyImage::TransmitData {
                 transmit,
                 verbosity,
@@ -3761,6 +3778,7 @@ impl<'a> Performer<'a> {
             Action::Sixel(sixel) => self.sixel(sixel),
             Action::XtGetTcap(names) => self.xt_get_tcap(names),
             Action::KittyImage(img) => {
+                self.flush_print();
                 if let Err(err) = self.kitty_img(img) {
                     log::error!("kitty_img: {:#}", err);
                 }
