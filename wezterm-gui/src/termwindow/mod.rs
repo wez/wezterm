@@ -223,6 +223,9 @@ pub struct TermWindow {
 
     event_states: HashMap<String, EventState>,
     has_animation: RefCell<Option<Instant>>,
+    /// We use this to attempt to do something reasonable
+    /// if we run out of texture space
+    allow_images: bool,
     scheduled_animation: RefCell<Option<Instant>>,
 
     gl: Option<Rc<glium::backend::Context>>,
@@ -483,6 +486,7 @@ impl TermWindow {
             event_states: HashMap::new(),
             has_animation: RefCell::new(None),
             scheduled_animation: RefCell::new(None),
+            allow_images: true,
         };
 
         let tw = Rc::new(RefCell::new(myself));

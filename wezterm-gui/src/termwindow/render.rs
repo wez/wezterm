@@ -86,6 +86,8 @@ impl super::TermWindow {
         // If nothing on screen needs animating, then we can avoid
         // invalidating as frequently
         *self.has_animation.borrow_mut() = None;
+        // Start with the assumption that we should allow images to render
+        self.allow_images = true;
 
         let start = Instant::now();
 
@@ -138,12 +140,21 @@ impl super::TermWindow {
                         };
 
                         if let Err(err) = result {
-                            log::error!(
-                                "Failed to {} texture: {}",
-                                if pass == 0 { "clear" } else { "resize" },
-                                err
-                            );
-                            break;
+                            if self.allow_images {
+                                self.allow_images = false;
+                                log::info!(
+                                    "Not enough texture space ({:#}); \
+                                     will retry render with images disabled",
+                                    err
+                                );
+                            } else {
+                                log::error!(
+                                    "Failed to {} texture: {}",
+                                    if pass == 0 { "clear" } else { "resize" },
+                                    err
+                                );
+                                break;
+                            }
                         }
                     } else if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
                         self.shape_cache.borrow_mut().clear();
@@ -260,7 +271,7 @@ impl super::TermWindow {
             },
         );
 
-        if pos.index == 0 {
+        if pos.index == 0 && self.allow_images {
             // Render the window background image
             if let Some(im) = self.window_background.as_ref() {
                 let mut quad = quads.allocate()?;
@@ -1214,6 +1225,10 @@ impl super::TermWindow {
         hsv: Option<config::HsbTransform>,
         glyph_color: LinearRgba,
     ) -> anyhow::Result<()> {
+        if !self.allow_images {
+            return Ok(());
+        }
+
         let padding = self
             .render_metrics
             .cell_size
