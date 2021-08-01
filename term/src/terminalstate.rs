@@ -1834,6 +1834,11 @@ impl TerminalState {
         self.kitty_img
             .placements
             .insert((image_id, placement.placement_id), info);
+        log::info!(
+            "record placement for {} {:?}",
+            image_id,
+            placement.placement_id
+        );
 
         if placement.do_not_move_cursor {
             self.cursor = saved_cursor;
@@ -1960,21 +1965,45 @@ impl TerminalState {
         Ok(())
     }
 
+    fn kitty_remove_placement_from_model(
+        &mut self,
+        image_id: u32,
+        placement_id: Option<u32>,
+        info: PlacementInfo,
+    ) {
+        let screen = self.screen_mut();
+        let range =
+            screen.stable_range(&(info.first_row..info.first_row + info.rows as StableRowIndex));
+        for idx in range {
+            let line = screen.line_mut(idx);
+            for c in line.cells_mut() {
+                c.attrs_mut()
+                    .detach_image_with_placement(image_id, placement_id);
+            }
+            line.set_dirty();
+        }
+    }
+
     fn kitty_remove_placement(&mut self, image_id: u32, placement_id: Option<u32>) {
-        if let Some(info) = self.kitty_img.placements.remove(&(image_id, placement_id)) {
-            let screen = self.screen_mut();
-            for idx in
-                screen.stable_range(&(info.first_row..info.first_row + info.rows as StableRowIndex))
-            {
-                let line = screen.line_mut(idx);
-                for c in line.cells_mut() {
-                    c.attrs_mut()
-                        .detach_image_with_placement(image_id, placement_id);
-                }
-                line.set_dirty();
+        if placement_id.is_some() {
+            if let Some(info) = self.kitty_img.placements.remove(&(image_id, placement_id)) {
+                log::info!("removed placement {} {:?}", image_id, placement_id);
+                self.kitty_remove_placement_from_model(image_id, placement_id, info);
+            } else {
+                log::warn!("no placement matched i={} p={:?}", image_id, placement_id);
             }
         } else {
-            log::warn!("no placement matched i={} p={:?}", image_id, placement_id);
+            let mut to_clear = vec![];
+            for (id, p) in self.kitty_img.placements.keys() {
+                if *id == image_id {
+                    to_clear.push(*p);
+                }
+            }
+            for p in to_clear.into_iter() {
+                if let Some(info) = self.kitty_img.placements.remove(&(image_id, p)) {
+                    self.kitty_remove_placement_from_model(image_id, p, info);
+                }
+            }
         }
 
         log::info!(
