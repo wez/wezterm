@@ -1,26 +1,33 @@
+# flake.nix
 {
   inputs = {
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
+    naersk.url = "github:nmattia/naersk";
+
   };
-  outputs = { self, flake-utils, fenix, nixpkgs,  flake-compat, ... }:
+
+  outputs = { self, fenix, flake-utils, nixpkgs, naersk,}:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        # Add rust nightly to pkgs
         pkgs = nixpkgs.legacyPackages.${system} // { inherit (fenix.packages.${system}.latest) cargo rustc rust-src; };
+        inherit (pkgs) lib stdenv;
 
+      package = pkgs.wezterm;
 
       in
       rec {
+        devShell = pkgs.mkShell {
+          inherit (defaultPackage) nativeBuildInputs;
+          buildInputs = with pkgs; [ rust-analyzer rustfmt ] ++ defaultPackage.buildInputs;
+          RUST_SRC_PATH = "${pkgs.rust-src}/lib/rustlib/src/rust/library";
 
-        devShell = import ./shell.nix { inherit pkgs; };
+        };
+        defaultPackage = package;
       });
 }
+
