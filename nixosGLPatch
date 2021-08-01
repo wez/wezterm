@@ -1,1 +1,0 @@
-patchelf --add-needed /nix/store/zf44435sdgyys6rxanbbyns62n7fzv7j-libglvnd-1.3.3/lib/libEGL.so target/debug/wezterm-gui
