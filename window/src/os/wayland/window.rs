@@ -897,7 +897,7 @@ impl WaylandWindowInner {
             Some(MouseCursor::Hand) => "hand",
             Some(MouseCursor::SizeUpDown) => "ns-resize",
             Some(MouseCursor::SizeLeftRight) => "ew-resize",
-            Some(MouseCursor::Text) => "text",
+            Some(MouseCursor::Text) => "xterm",
             None => return,
         };
         let conn = Connection::get().unwrap().wayland();

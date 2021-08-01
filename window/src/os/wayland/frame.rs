@@ -1117,8 +1117,8 @@ fn change_pointer(pointer: &ThemedPointer, inner: &Inner, location: Location, se
         _ => "left_ptr",
     };
 
-    if pointer.set_cursor(name, serial).is_err() {
-        log::error!("Failed to set cursor");
+    if let Err(err) = pointer.set_cursor(name, serial) {
+        log::error!("Unable to set cursor to {}: {:#}", name, err);
     }
 }
 
