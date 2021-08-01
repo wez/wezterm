@@ -42,7 +42,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use termwiz::hyperlink::Hyperlink;
-use termwiz::image::ImageData;
+use termwiz::image::{ImageData, ImageDataType};
 use wezterm_font::FontConfiguration;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
@@ -357,8 +357,11 @@ fn reload_background_image(
         Some(p) => match std::fs::read(p) {
             Ok(data) => {
                 if let Some(existing) = image {
-                    if existing.data() == &*data {
-                        return Some(Arc::clone(existing));
+                    match existing.data() {
+                        ImageDataType::EncodedFile(d) if &**d == &*data => {
+                            return Some(Arc::clone(existing));
+                        }
+                        _ => {}
                     }
                 }
                 Some(Arc::new(ImageData::with_raw_data(data.into_boxed_slice())))

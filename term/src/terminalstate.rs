@@ -5,7 +5,7 @@ use super::*;
 use crate::color::{ColorPalette, RgbColor};
 use anyhow::{bail, Context};
 use image::imageops::FilterType;
-use image::{GenericImageView, ImageFormat};
+use image::{DynamicImage, GenericImageView, ImageFormat, RgbImage, RgbaImage};
 use log::{debug, error};
 use num_traits::{FromPrimitive, ToPrimitive};
 use ordered_float::NotNan;
@@ -15,8 +15,8 @@ use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 use terminfo::{Database, Value};
 use termwiz::escape::apc::{
-    KittyImage, KittyImageCompression, KittyImageData, KittyImageFormat, KittyImagePlacement,
-    KittyImageTransmit, KittyImageVerbosity,
+    KittyImage, KittyImageCompression, KittyImageData, KittyImageDelete, KittyImageFormat,
+    KittyImagePlacement, KittyImageTransmit, KittyImageVerbosity,
 };
 use termwiz::escape::csi::{
     Cursor, CursorStyle, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay,
@@ -31,7 +31,7 @@ use termwiz::escape::{
     Action, ControlCode, DeviceControlMode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel,
     SixelData, CSI,
 };
-use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
+use termwiz::image::{ImageCell, ImageData, ImageDataType, TextureCoordinate};
 use termwiz::surface::{CursorShape, CursorVisibility};
 use url::Url;
 
@@ -45,7 +45,8 @@ lazy_static::lazy_static! {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct PlacementInfo {
     first_row: StableRowIndex,
-    num_cells: usize,
+    rows: usize,
+    cols: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -74,6 +75,9 @@ struct ImageAttachParams {
     /// If None, then compute based on source_width and source_height
     columns: Option<usize>,
     rows: Option<usize>,
+
+    image_id: u32,
+    placement_id: Option<u32>,
 
     style: ImageAttachStyle,
 
@@ -1599,7 +1603,7 @@ impl TerminalState {
     }
 
     fn coalesce_kitty_accumulation(&mut self, img: KittyImage) -> anyhow::Result<KittyImage> {
-        log::info!(
+        log::trace!(
             "coalesce: accumulator={:#?} img:{:#?}",
             self.kitty_img.accumulator,
             img
@@ -1696,12 +1700,12 @@ impl TerminalState {
         };
 
         self.kitty_img.max_image_id = self.kitty_img.max_image_id.max(image_id);
+        log::info!("transmit {:?}", transmit);
 
         let data = transmit
             .data
             .load_data()
             .context("data should have been materialized in coalesce_kitty_accumulation")?;
-        log::info!("data is {} in size", data.len());
 
         let data = match transmit.compression {
             KittyImageCompression::None => data,
@@ -1717,20 +1721,37 @@ impl TerminalState {
                     }
                 };
 
-                let format = match transmit.format {
-                    Some(KittyImageFormat::Rgb) => image::ColorType::Rgb8,
-                    _ => image::ColorType::Rgba8,
+                let data = match transmit.format {
+                    Some(KittyImageFormat::Rgb) => {
+                        let img = DynamicImage::ImageRgb8(
+                            RgbImage::from_vec(width, height, data)
+                                .ok_or_else(|| anyhow::anyhow!("failed to decode image"))?,
+                        );
+                        let img = img.into_rgba8();
+                        img.into_vec().into_boxed_slice()
+                    }
+                    _ => data.into_boxed_slice(),
                 };
 
-                let mut png_image_data = vec![];
-                let encoder = image::png::PngEncoder::new(&mut png_image_data);
-                encoder
-                    .encode(&data, width, height, format)
-                    .context("encode data as PNG")?;
+                let image_data = ImageDataType::Rgba8 {
+                    width,
+                    height,
+                    data,
+                };
 
-                self.raw_image_to_image_data(png_image_data.into_boxed_slice())
+                self.raw_image_to_image_data(image_data)
             }
-            Some(KittyImageFormat::Png) => self.raw_image_to_image_data(data.into_boxed_slice()),
+            Some(KittyImageFormat::Png) => {
+                let decoded = image::load_from_memory(&data).context("decode png")?;
+                let (width, height) = decoded.dimensions();
+                let data = decoded.into_rgba8().into_vec().into_boxed_slice();
+                let image_data = ImageDataType::Rgba8 {
+                    width,
+                    height,
+                    data,
+                };
+                self.raw_image_to_image_data(image_data)
+            }
         };
 
         self.kitty_img.id_to_data.insert(image_id, img);
@@ -1767,6 +1788,14 @@ impl TerminalState {
                 .ok_or_else(|| anyhow::anyhow!("image_number has no matching image id"))?,
         };
 
+        log::warn!(
+            "kitty_img_place image_id {:?} image_no {:?} placement {:?} verb {:?}",
+            image_id,
+            image_number,
+            placement,
+            verbosity
+        );
+        self.kitty_remove_placement(image_id, placement.placement_id);
         let img = Arc::clone(
             self.kitty_img
                 .id_to_data
@@ -1774,8 +1803,13 @@ impl TerminalState {
                 .ok_or_else(|| anyhow::anyhow!("no matching image id"))?,
         );
 
-        let decoded = image::load_from_memory(img.data()).context("decode png")?;
-        let (image_width, image_height) = decoded.dimensions();
+        let (image_width, image_height) = match img.data() {
+            ImageDataType::EncodedFile(data) => {
+                let decoded = image::load_from_memory(data).context("decode png")?;
+                decoded.dimensions()
+            }
+            ImageDataType::Rgba8 { width, height, .. } => (*width, *height),
+        };
 
         let saved_cursor = self.cursor.clone();
 
@@ -1793,6 +1827,8 @@ impl TerminalState {
             z_index: placement.z_index.unwrap_or(0),
             columns: placement.columns.map(|x| x as usize),
             rows: placement.rows.map(|x| x as usize),
+            image_id,
+            placement_id: placement.placement_id,
         });
 
         self.kitty_img
@@ -1893,12 +1929,59 @@ impl TerminalState {
             } => {
                 self.kitty_img_place(image_id, image_number, placement, verbosity)?;
             }
+            KittyImage::Delete {
+                what:
+                    KittyImageDelete::ByImageId {
+                        image_id,
+                        placement_id,
+                        delete,
+                    },
+                verbosity,
+            } => {
+                log::trace!(
+                    "remove a placement: image_id {} placement_id {:?} delete {} verb {:?}",
+                    image_id,
+                    placement_id,
+                    delete,
+                    verbosity
+                );
+
+                self.kitty_remove_placement(image_id, placement_id);
+
+                if delete {
+                    self.kitty_img.id_to_data.remove(&image_id);
+                }
+            }
             KittyImage::Delete { what, verbosity } => {
                 log::warn!("unhandled KittyImage::Delete {:?} {:?}", what, verbosity);
             }
         };
 
         Ok(())
+    }
+
+    fn kitty_remove_placement(&mut self, image_id: u32, placement_id: Option<u32>) {
+        if let Some(info) = self.kitty_img.placements.remove(&(image_id, placement_id)) {
+            let screen = self.screen_mut();
+            for idx in
+                screen.stable_range(&(info.first_row..info.first_row + info.rows as StableRowIndex))
+            {
+                let line = screen.line_mut(idx);
+                for c in line.cells_mut() {
+                    c.attrs_mut()
+                        .detach_image_with_placement(image_id, placement_id);
+                }
+                line.set_dirty();
+            }
+        } else {
+            log::warn!("no placement matched i={} p={:?}", image_id, placement_id);
+        }
+
+        log::info!(
+            "after remove: there are {} placements, {} images",
+            self.kitty_img.placements.len(),
+            self.kitty_img.id_to_data.len()
+        );
     }
 
     fn sixel(&mut self, sixel: Box<Sixel>) {
@@ -1913,14 +1996,14 @@ impl TerminalState {
         };
 
         let mut image = if sixel.background_is_transparent {
-            image::RgbaImage::new(width, height)
+            RgbaImage::new(width, height)
         } else {
             let background_color = color_map
                 .get(&0)
                 .cloned()
                 .unwrap_or(RgbColor::new_8bpc(0, 0, 0));
             let (red, green, blue) = background_color.to_tuple_rgb8();
-            image::RgbaImage::from_pixel(width, height, [red, green, blue, 0xffu8].into())
+            RgbaImage::from_pixel(width, height, [red, green, blue, 0xffu8].into())
         };
 
         let mut x = 0;
@@ -1997,14 +2080,13 @@ impl TerminalState {
             }
         }
 
-        let mut png_image_data = Vec::new();
-        let encoder = image::png::PngEncoder::new(&mut png_image_data);
-        if let Err(e) = encoder.encode(&image.into_vec(), width, height, image::ColorType::Rgba8) {
-            error!("failed to encode sixel data into png: {}", e);
-            return;
-        }
+        let image_data = ImageDataType::Rgba8 {
+            width,
+            height,
+            data: image.into_vec().into_boxed_slice(),
+        };
 
-        let image_data = self.raw_image_to_image_data(png_image_data.into_boxed_slice());
+        let image_data = self.raw_image_to_image_data(image_data);
         self.assign_image_to_cells(ImageAttachParams {
             image_width: width,
             image_height: height,
@@ -2019,20 +2101,25 @@ impl TerminalState {
             data: image_data,
             style: ImageAttachStyle::Sixel,
             z_index: 0,
+            image_id: 0,
+            placement_id: None,
         });
     }
 
     /// cache recent images and avoid assigning a new id for repeated data!
-    fn raw_image_to_image_data(&mut self, raw_data: Box<[u8]>) -> Arc<ImageData> {
+    fn raw_image_to_image_data(&mut self, data: ImageDataType) -> Arc<ImageData> {
         use sha2::Digest;
         let mut hasher = sha2::Sha256::new();
-        hasher.update(&raw_data);
+        match &data {
+            ImageDataType::EncodedFile(data) => hasher.update(data),
+            ImageDataType::Rgba8 { data, .. } => hasher.update(data),
+        };
         let key = hasher.finalize().into();
 
         if let Some(item) = self.image_cache.get(&key) {
             Arc::clone(item)
         } else {
-            let image_data = Arc::new(ImageData::with_raw_data(raw_data));
+            let image_data = Arc::new(ImageData::with_data(data));
             self.image_cache.put(key, Arc::clone(&image_data));
             image_data
         }
@@ -2060,7 +2147,6 @@ impl TerminalState {
             .unwrap_or_else(|| (source_height as f32 / cell_pixel_height as f32).ceil() as usize);
 
         let first_row = self.screen().visible_row_to_stable_row(self.cursor.y);
-        let num_cells = width_in_cells * height_in_cells;
 
         let mut ypos =
             NotNan::new(params.source_origin_y as f32 / params.image_height as f32).unwrap();
@@ -2104,6 +2190,8 @@ impl TerminalState {
                     params.z_index,
                     params.display_offset_x,
                     params.display_offset_y,
+                    params.image_id,
+                    params.placement_id,
                 ));
                 match params.style {
                     ImageAttachStyle::Kitty => cell.attrs_mut().attach_image(img),
@@ -2136,7 +2224,8 @@ impl TerminalState {
 
         PlacementInfo {
             first_row,
-            num_cells,
+            rows: height_in_cells,
+            cols: width_in_cells,
         }
     }
 
@@ -2242,18 +2331,19 @@ impl TerminalState {
             (true, ImageFormat::Gif) | (true, ImageFormat::Png) | (false, _) => {
                 // Don't resample things that might be animations,
                 // or things that don't need resampling
-                image.data
+                ImageDataType::EncodedFile(image.data)
             }
             (true, _) => match image::load_from_memory(&image.data) {
                 Ok(im) => {
                     let im = im.resize_exact(width as u32, height as u32, FilterType::CatmullRom);
-                    let mut data = vec![];
-                    match im.write_to(&mut data, ImageFormat::Png) {
-                        Ok(_) => data.into_boxed_slice(),
-                        Err(_) => image.data,
+                    let data = im.into_rgba8().into_vec().into_boxed_slice();
+                    ImageDataType::Rgba8 {
+                        width: width as u32,
+                        height: height as u32,
+                        data,
                     }
                 }
-                Err(_) => image.data,
+                Err(_) => ImageDataType::EncodedFile(image.data),
             },
         };
 
@@ -2272,6 +2362,8 @@ impl TerminalState {
             rows: None,
             data: image_data,
             style: ImageAttachStyle::Iterm,
+            image_id: 0,
+            placement_id: None,
         });
     }
 

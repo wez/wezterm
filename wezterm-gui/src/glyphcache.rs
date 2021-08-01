@@ -20,7 +20,7 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use termwiz::image::ImageData;
+use termwiz::image::{ImageData, ImageDataType};
 use tiny_skia::{FillRule, Paint, Path, PathBuilder, PixmapMut, Stroke, Transform};
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo};
@@ -3733,15 +3733,47 @@ impl BlockKey {
 }
 
 #[derive(Debug)]
+pub enum ImageFrameBitmap {
+    Owned(::window::bitmaps::Image),
+    Ref(Arc<ImageData>),
+}
+
+impl BitmapImage for ImageFrameBitmap {
+    unsafe fn pixel_data(&self) -> *const u8 {
+        match self {
+            Self::Owned(im) => im.pixel_data(),
+            Self::Ref(im) => match im.data() {
+                ImageDataType::EncodedFile(_) => unreachable!(),
+                ImageDataType::Rgba8 { data, .. } => data.as_ptr(),
+            },
+        }
+    }
+
+    unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
+        panic!("cannot mutate ImageFrameBitmap");
+    }
+
+    fn image_dimensions(&self) -> (usize, usize) {
+        match self {
+            Self::Owned(im) => im.image_dimensions(),
+            Self::Ref(im) => match im.data() {
+                ImageDataType::EncodedFile(_) => unreachable!(),
+                ImageDataType::Rgba8 { width, height, .. } => (*width as usize, *height as usize),
+            },
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct ImageFrame {
     duration: Duration,
-    image: ::window::bitmaps::Image,
+    image: ImageFrameBitmap,
 }
 
 #[derive(Debug)]
 pub enum CachedImage {
     Animation(DecodedImage),
-    SingleFrame,
+    SingleFrame(ImageFrameBitmap),
 }
 
 #[derive(Debug)]
@@ -3756,7 +3788,7 @@ impl DecodedImage {
         let image = ::window::bitmaps::Image::new(1, 1);
         let frame = ImageFrame {
             duration: Duration::default(),
-            image,
+            image: ImageFrameBitmap::Owned(image),
         };
         Self {
             frame_start: Instant::now(),
@@ -3774,7 +3806,11 @@ impl DecodedImage {
                 let (w, h) = image.dimensions();
                 let width = w as usize;
                 let height = h as usize;
-                let image = ::window::bitmaps::Image::from_raw(width, height, image.into_vec());
+                let image = ImageFrameBitmap::Owned(::window::bitmaps::Image::from_raw(
+                    width,
+                    height,
+                    image.into_vec(),
+                ));
                 ImageFrame { duration, image }
             })
             .collect();
@@ -3786,11 +3822,20 @@ impl DecodedImage {
     }
 
     fn with_single(image_data: &Arc<ImageData>) -> anyhow::Result<Self> {
-        let image = image::load_from_memory(image_data.data())?.to_rgba8();
-        let (width, height) = image.dimensions();
-        let width = width as usize;
-        let height = height as usize;
-        let image = ::window::bitmaps::Image::from_raw(width, height, image.into_vec());
+        let image = match image_data.data() {
+            ImageDataType::EncodedFile(data) => {
+                let image = image::load_from_memory(data)?.to_rgba8();
+                let (width, height) = image.dimensions();
+                let width = width as usize;
+                let height = height as usize;
+                ImageFrameBitmap::Owned(::window::bitmaps::Image::from_raw(
+                    width,
+                    height,
+                    image.into_vec(),
+                ))
+            }
+            ImageDataType::Rgba8 { .. } => ImageFrameBitmap::Ref(Arc::clone(image_data)),
+        };
         Ok(Self {
             frame_start: Instant::now(),
             current_frame: 0,
@@ -3802,29 +3847,34 @@ impl DecodedImage {
     }
 
     fn load(image_data: &Arc<ImageData>) -> anyhow::Result<Self> {
-        use image::{AnimationDecoder, ImageFormat};
-        let format = image::guess_format(image_data.data())?;
-        match format {
-            ImageFormat::Gif => image::gif::GifDecoder::new(image_data.data())
-                .and_then(|decoder| decoder.into_frames().collect_frames())
-                .and_then(|frames| Ok(Self::with_frames(frames)))
-                .or_else(|err| {
-                    log::error!(
-                        "Unable to parse animated gif: {:#}, trying as single frame",
-                        err
-                    );
-                    Self::with_single(image_data)
-                }),
-            ImageFormat::Png => {
-                let decoder = image::png::PngDecoder::new(image_data.data())?;
-                if decoder.is_apng() {
-                    let frames = decoder.apng().into_frames().collect_frames()?;
-                    Ok(Self::with_frames(frames))
-                } else {
-                    Self::with_single(image_data)
+        match image_data.data() {
+            ImageDataType::Rgba8 { .. } => Self::with_single(image_data),
+            ImageDataType::EncodedFile(data) => {
+                use image::{AnimationDecoder, ImageFormat};
+                let format = image::guess_format(data)?;
+                match format {
+                    ImageFormat::Gif => image::gif::GifDecoder::new(&**data)
+                        .and_then(|decoder| decoder.into_frames().collect_frames())
+                        .and_then(|frames| Ok(Self::with_frames(frames)))
+                        .or_else(|err| {
+                            log::error!(
+                                "Unable to parse animated gif: {:#}, trying as single frame",
+                                err
+                            );
+                            Self::with_single(image_data)
+                        }),
+                    ImageFormat::Png => {
+                        let decoder = image::png::PngDecoder::new(&**data)?;
+                        if decoder.is_apng() {
+                            let frames = decoder.apng().into_frames().collect_frames()?;
+                            Ok(Self::with_frames(frames))
+                        } else {
+                            Self::with_single(image_data)
+                        }
+                    }
+                    _ => Self::with_single(image_data),
                 }
             }
-            _ => Self::with_single(image_data),
         }
     }
 }
@@ -3907,7 +3957,7 @@ impl GlyphCache<SrgbTexture2d> {
             image_cache: LruCache::new(
                 "glyph_cache.image_cache.hit.rate",
                 "glyph_cache.image_cache.miss.rate",
-                16,
+                64, // FIXME: make configurable
             ),
             frame_cache: HashMap::new(),
             atlas,
@@ -3915,15 +3965,6 @@ impl GlyphCache<SrgbTexture2d> {
             line_glyphs: HashMap::new(),
             block_glyphs: HashMap::new(),
         })
-    }
-
-    pub fn clear(&mut self) {
-        self.atlas.clear();
-        // self.image_cache.clear(); - relatively expensive to re-populate
-        self.frame_cache.clear();
-        self.glyph_cache.clear();
-        self.line_glyphs.clear();
-        self.block_glyphs.clear();
     }
 }
 
@@ -4173,13 +4214,17 @@ impl<T: Texture2d> GlyphCache<T> {
         let id = image_data.id();
         if let Some(cached) = self.image_cache.get_mut(&id) {
             match cached {
-                CachedImage::SingleFrame => {
+                CachedImage::SingleFrame(im) => {
                     // We can simply use the frame cache to manage
                     // the texture space; the frame is always 0 for
                     // a single frame
                     if let Some(sprite) = self.frame_cache.get(&(id, 0)) {
                         return Ok((sprite.clone(), None));
                     }
+                    let sprite = self.atlas.allocate_with_padding(im, padding)?;
+                    self.frame_cache.insert((id, 0), sprite.clone());
+
+                    return Ok((sprite, None));
                 }
                 CachedImage::Animation(decoded) => {
                     let mut next = None;
@@ -4221,7 +4266,8 @@ impl<T: Texture2d> GlyphCache<T> {
             }
         }
 
-        let decoded =
+        // FIXME: add latency metric around this load
+        let mut decoded =
             DecodedImage::load(image_data).or_else(|e| -> anyhow::Result<DecodedImage> {
                 log::debug!("Failed to decode image: {:#}", e);
                 // Use a placeholder instead
@@ -4236,7 +4282,8 @@ impl<T: Texture2d> GlyphCache<T> {
             self.image_cache.put(id, CachedImage::Animation(decoded));
             Ok((sprite, next))
         } else {
-            self.image_cache.put(id, CachedImage::SingleFrame);
+            self.image_cache
+                .put(id, CachedImage::SingleFrame(decoded.frames.remove(0).image));
             Ok((sprite, None))
         }
     }

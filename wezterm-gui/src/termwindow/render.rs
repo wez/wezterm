@@ -1482,15 +1482,6 @@ impl super::TermWindow {
         }
     }
 
-    pub fn clear_texture_atlas(&mut self) -> anyhow::Result<()> {
-        log::trace!("clear_texture_atlas");
-        self.shape_cache.borrow_mut().clear();
-        if let Some(render_state) = self.render_state.as_mut() {
-            render_state.clear_texture_atlas(&self.render_metrics)?;
-        }
-        Ok(())
-    }
-
     pub fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
         self.shape_cache.borrow_mut().clear();
         if let Some(render_state) = self.render_state.as_mut() {

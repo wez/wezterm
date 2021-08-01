@@ -5,7 +5,7 @@ use crate::color::{ColorAttribute, ColorSpec};
 use crate::escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
 use crate::escape::osc::{ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand};
 use crate::escape::OneBased;
-use crate::image::TextureCoordinate;
+use crate::image::{ImageDataType, TextureCoordinate};
 use crate::render::RenderTty;
 use crate::surface::{Change, CursorShape, CursorVisibility, Position};
 use crate::Result;
@@ -567,7 +567,12 @@ impl TerminfoRenderer {
                         {
                             // The whole image is requested, so we can send the
                             // original image bytes over
-                            image.image.data().to_vec().into_boxed_slice()
+                            match image.image.data() {
+                                ImageDataType::EncodedFile(data) => {
+                                    data.to_vec().into_boxed_slice()
+                                }
+                                ImageDataType::Rgba8 { .. } => unimplemented!(),
+                            }
                         } else {
                             // TODO: slice out the requested region of the image,
                             // and encode as a PNG.

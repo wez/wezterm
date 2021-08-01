@@ -242,13 +242,6 @@ impl RenderState {
         Ok(buffer)
     }
 
-    pub fn clear_texture_atlas(&mut self, metrics: &RenderMetrics) -> anyhow::Result<()> {
-        let mut glyph_cache = self.glyph_cache.borrow_mut();
-        glyph_cache.clear();
-        self.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
-        Ok(())
-    }
-
     pub fn recreate_texture_atlas(
         &mut self,
         fonts: &Rc<FontConfiguration>,
