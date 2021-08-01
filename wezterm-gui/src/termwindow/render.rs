@@ -543,16 +543,12 @@ impl super::TermWindow {
         let vb = &gl_state.glyph_vertex_buffer;
         let mut vb_mut = vb.current_vb_mut();
         let mut quads = vb.map(&mut vb_mut);
-        let block = BlockKey::from_char(if split.direction == SplitDirection::Horizontal {
-            '\u{2502}'
-        } else {
-            '\u{2500}'
-        })
-        .expect("to have box drawing glyph");
         let palette = pane.palette();
         let foreground = rgbcolor_to_window_color(palette.split);
         let background_alpha = (self.config.window_background_opacity * 255.0) as u8;
         let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
+        let cell_width = self.render_metrics.cell_size.width as f32;
+        let cell_height = self.render_metrics.cell_size.height as f32;
 
         let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             1
@@ -560,37 +556,50 @@ impl super::TermWindow {
             0
         };
 
-        let x_y_iter: Box<dyn Iterator<Item = (usize, usize)>> =
-            if split.direction == SplitDirection::Horizontal {
-                Box::new(std::iter::repeat(split.left).zip(split.top..split.top + split.size))
-            } else {
-                Box::new((split.left..split.left + split.size).zip(std::iter::repeat(split.top)))
-            };
-        let cell_width = self.render_metrics.cell_size.width as f32;
-        let cell_height = self.render_metrics.cell_size.height as f32;
-        for (x, y) in x_y_iter {
-            let sprite = gl_state
-                .glyph_cache
-                .borrow_mut()
-                .cached_block(block)?
-                .texture_coords();
+        let block = BlockKey::from_char(if split.direction == SplitDirection::Horizontal {
+            '\u{2502}'
+        } else {
+            '\u{2500}'
+        })
+        .expect("to have box drawing glyph");
 
-            let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-                + (y + first_row_offset) as f32 * cell_height
-                + self.config.window_padding.top as f32;
-            let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                + x as f32 * cell_width
-                + self.config.window_padding.left as f32;
-            let mut quad = quads.allocate()?;
-            quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+        let sprite = gl_state
+            .glyph_cache
+            .borrow_mut()
+            .cached_block(block)?
+            .texture_coords();
 
-            quad.set_bg_color(background);
-            quad.set_fg_color(foreground);
-            quad.set_hsv(None);
-            quad.set_texture(sprite);
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_has_color(false);
+        let mut quad = quads.allocate()?;
+        quad.set_bg_color(background);
+        quad.set_fg_color(foreground);
+        quad.set_hsv(None);
+        quad.set_texture(sprite);
+        quad.set_texture_adjust(0., 0., 0., 0.);
+        quad.set_has_color(false);
+
+        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
+            + (split.top + first_row_offset) as f32 * cell_height
+            + self.config.window_padding.top as f32;
+        let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+            + split.left as f32 * cell_width
+            + self.config.window_padding.left as f32;
+
+        if split.direction == SplitDirection::Horizontal {
+            quad.set_position(
+                pos_x,
+                pos_y,
+                pos_x + cell_width,
+                pos_y + split.size as f32 * cell_height,
+            );
+        } else {
+            quad.set_position(
+                pos_x,
+                pos_y,
+                pos_x + split.size as f32 * cell_width,
+                pos_y + cell_height,
+            );
         }
+
         Ok(())
     }
 
