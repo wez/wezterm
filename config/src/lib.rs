@@ -453,6 +453,16 @@ impl ConfigInner {
         }
     }
 
+    fn accumulate_watch_paths(lua: &Lua, watch_paths: &mut Vec<PathBuf>) {
+        if let Ok(mlua::Value::Table(tbl)) = lua.named_registry_value("wezterm-watch-paths") {
+            for path in tbl.sequence_values::<String>() {
+                if let Ok(path) = path {
+                    watch_paths.push(PathBuf::from(path));
+                }
+            }
+        }
+    }
+
     /// Attempt to load the user's configuration.
     /// On success, clear any error and replace the current
     /// configuration.
@@ -469,32 +479,29 @@ impl ConfigInner {
                 self.error.take();
                 self.generation += 1;
 
-                // If we loaded a user config, publish this latest version of
-                // the lua state to the LUA_PIPE.  This allows a subsequent
-                // call to `with_lua_config` to reference this lua context
-                // even though we are (probably) resolving this from a background
-                // reloading thread.
-                lua.map(|lua| {
-                    if self.config.automatically_reload_config {
-                        lua.globals()
-                            .get("watch_path")
-                            .ok()
-                            .map(|watch_path: String| {
-                                for path in watch_path.split(";") {
-                                    log::debug!("watching path: {}", &path);
-                                    self.watch_path(PathBuf::from(path));
-                                }
-                            });
-                    }
+                let mut watch_paths = vec![];
+                if let Some(lua) = lua {
+                    ConfigInner::accumulate_watch_paths(&lua, &mut watch_paths);
+                    // If we loaded a user config, publish this latest version of
+                    // the lua state to the LUA_PIPE.  This allows a subsequent
+                    // call to `with_lua_config` to reference this lua context
+                    // even though we are (probably) resolving this from a background
+                    // reloading thread.
                     LUA_PIPE.sender.try_send(lua).ok();
-                })
-                .or_else(|| {
-                    if self.config.automatically_reload_config {
-                        Some(self.watch_path(file_name?))
-                    } else {
-                        None
+                }
+
+                log::debug!("Reloaded configuration! generation={}", self.generation);
+                self.notify();
+                if self.config.automatically_reload_config {
+                    if watch_paths.is_empty() {
+                        if let Some(path) = file_name {
+                            watch_paths.push(path);
+                        }
                     }
-                });
+                    for path in watch_paths {
+                        self.watch_path(path);
+                    }
+                }
 
                 log::debug!("Reloaded configuration! generation={}", self.generation);
                 self.notify();
