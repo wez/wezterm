@@ -9,10 +9,13 @@ use ::window::color::{LinearRgba, SrgbaPixel};
 use ::window::glium;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
+use ::window::glium::CapabilitiesSource;
 use ::window::{Point, Rect};
+use anyhow::Context;
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -3871,6 +3874,24 @@ impl GlyphCache<SrgbTexture2d> {
         size: usize,
         metrics: &RenderMetrics,
     ) -> anyhow::Result<Self> {
+        let caps = backend.get_capabilities();
+        // You'd hope that allocating a texture would automatically
+        // include this check, but it doesn't, and instead, the texture
+        // silently fails to bind when attempting to render into it later.
+        // So! We check and raise here for ourselves!
+        if size
+            > caps
+                .max_texture_size
+                .try_into()
+                .context("represent Capabilities.max_texture_size as usize")?
+        {
+            anyhow::bail!(
+                "Cannot use a texture of size {} as it is larger \
+                 than the max {} supported by your GPU",
+                size,
+                caps.max_texture_size
+            );
+        }
         let surface = Rc::new(SrgbTexture2d::empty_with_format(
             backend,
             glium::texture::SrgbFormat::U8U8U8U8,
