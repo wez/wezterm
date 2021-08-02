@@ -538,7 +538,7 @@ pub enum KittyImageDelete {
 
 impl KittyImageDelete {
     fn from_keys(keys: &BTreeMap<&str, &str>) -> Option<Self> {
-        let d = get(keys, "d")?;
+        let d = get(keys, "d").unwrap_or("a");
         if d.len() != 1 {
             return None;
         }
@@ -649,6 +649,87 @@ impl KittyImageDelete {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KittyFrameCompositionMode {
+    AlphaBlending,
+    Overwrite,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KittyImageFrame {
+    /// Left edge in pixels to update
+    pub x: Option<u32>,
+    /// Top edge in pixels to update
+    pub y: Option<u32>,
+
+    /// 1-based number of the frame which should be the base
+    /// data for the new frame being created.
+    /// If omitted, a black, fully-transparent background is used.
+    /// c=...
+    pub base_frame: Option<u32>,
+
+    /// 1-based number of the frame which should be edited.
+    /// If omitted, a new frame is created.
+    /// r=...
+    pub frame_number: Option<u32>,
+
+    /// Gap in milliseconds of this frame from the next one.
+    /// Zero or omitted values are interpreted as 40ms.
+    /// z=...
+    pub duration_ms: Option<u32>,
+
+    /// Composition mode.
+    /// Default is AlphaBlending
+    /// X=...
+    pub composition_mode: KittyFrameCompositionMode,
+
+    /// Background color for pixels not specified in the frame data.
+    /// Y=...
+    pub background_pixel: Option<u32>,
+}
+
+impl KittyImageFrame {
+    fn from_keys(keys: &BTreeMap<&str, &str>) -> Option<Self> {
+        Some(Self {
+            x: geti(keys, "x"),
+            y: geti(keys, "y"),
+            base_frame: match geti(keys, "c") {
+                None | Some(0) => None,
+                n => n,
+            },
+            frame_number: match geti(keys, "r") {
+                None | Some(0) => None,
+                n => n,
+            },
+            duration_ms: match geti(keys, "Z") {
+                None | Some(0) => None,
+                n => n,
+            },
+            composition_mode: match geti(keys, "X") {
+                None | Some(0) => KittyFrameCompositionMode::AlphaBlending,
+                Some(1) => KittyFrameCompositionMode::Overwrite,
+                _ => return None,
+            },
+            background_pixel: geti(keys, "Y"),
+        })
+    }
+
+    fn to_keys(&self, keys: &mut BTreeMap<&'static str, String>) {
+        set(keys, "x", &self.x);
+        set(keys, "y", &self.y);
+        set(keys, "c", &self.base_frame);
+        set(keys, "r", &self.base_frame);
+        set(keys, "Z", &self.duration_ms);
+        match &self.composition_mode {
+            KittyFrameCompositionMode::AlphaBlending => {}
+            KittyFrameCompositionMode::Overwrite => {
+                keys.insert("X", "1".to_string());
+            }
+        }
+        set(keys, "Y", &self.background_pixel);
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KittyImage {
     /// a='t'
@@ -676,6 +757,12 @@ pub enum KittyImage {
     },
     /// a='q'
     Query { transmit: KittyImageTransmit },
+    /// a='f'
+    TransmitFrame {
+        transmit: KittyImageTransmit,
+        frame: KittyImageFrame,
+        verbosity: KittyImageVerbosity,
+    },
 }
 
 impl KittyImage {
@@ -686,6 +773,7 @@ impl KittyImage {
             Self::TransmitDataAndDisplay { verbosity, .. } => *verbosity,
             Self::Display { verbosity, .. } => *verbosity,
             Self::Delete { verbosity, .. } => *verbosity,
+            Self::TransmitFrame { verbosity, .. } => *verbosity,
         }
     }
 
@@ -728,6 +816,11 @@ impl KittyImage {
             }),
             "d" => Some(Self::Delete {
                 what: KittyImageDelete::from_keys(&keys)?,
+                verbosity,
+            }),
+            "f" => Some(Self::TransmitFrame {
+                transmit: KittyImageTransmit::from_keys(&keys, payload?)?,
+                frame: KittyImageFrame::from_keys(&keys)?,
                 verbosity,
             }),
             _ => None,
@@ -779,6 +872,16 @@ impl KittyImage {
                 verbosity.to_keys(keys);
                 what.to_keys(keys);
             }
+            Self::TransmitFrame {
+                transmit,
+                verbosity,
+                frame,
+            } => {
+                keys.insert("a", "f".to_string());
+                transmit.to_keys(keys);
+                frame.to_keys(keys);
+                verbosity.to_keys(keys);
+            }
         }
     }
 }
@@ -815,6 +918,7 @@ impl Display for KittyImage {
 #[cfg(test)]
 mod test {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn kitty_payload() {
@@ -832,6 +936,43 @@ mod test {
                     more_data_follows: false,
                 },
                 verbosity: KittyImageVerbosity::Verbose,
+            }
+        );
+
+        assert_eq!(
+            KittyImage::parse_apc("Ga=d,q=2".as_bytes()).unwrap(),
+            KittyImage::Delete {
+                what: KittyImageDelete::All { delete: false },
+                verbosity: KittyImageVerbosity::Quiet
+            },
+        );
+
+        assert_eq!(
+            KittyImage::parse_apc(
+                "Ga=f,x=119,y=384,s=17,v=32,i=7257421,X=1,r=1,q=2;AAAA=".as_bytes()
+            )
+            .unwrap(),
+            KittyImage::TransmitFrame {
+                transmit: KittyImageTransmit {
+                    format: None,
+                    data: KittyImageData::Direct("AAAA=".to_string()),
+                    width: Some(17),
+                    height: Some(32),
+                    image_id: Some(7257421),
+                    image_number: None,
+                    compression: KittyImageCompression::None,
+                    more_data_follows: false,
+                },
+                verbosity: KittyImageVerbosity::Quiet,
+                frame: KittyImageFrame {
+                    x: Some(119),
+                    y: Some(384),
+                    base_frame: None,
+                    frame_number: Some(1),
+                    composition_mode: KittyFrameCompositionMode::Overwrite,
+                    background_pixel: None,
+                    duration_ms: None,
+                },
             }
         );
     }

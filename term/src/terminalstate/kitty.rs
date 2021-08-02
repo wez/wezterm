@@ -254,6 +254,18 @@ impl TerminalState {
             KittyImage::Delete { what, verbosity } => {
                 log::warn!("unhandled KittyImage::Delete {:?} {:?}", what, verbosity);
             }
+            KittyImage::TransmitFrame {
+                frame,
+                transmit,
+                verbosity,
+            } => {
+                log::warn!(
+                    "unhandled KittyImage::TransmitFrame {:?} {:?} {:?}",
+                    frame,
+                    transmit,
+                    verbosity
+                );
+            }
         };
 
         Ok(())
