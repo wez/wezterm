@@ -28,6 +28,7 @@ ordered-float = "2.7"
 regex = "1"
 semver = "0.11"
 serde = {version="1.0", features = ["rc", "derive"], optional=true}
+sha2 = "0.9"
 terminfo = "0.7"
 thiserror = "1.0"
 unicode-segmentation = "1.7"

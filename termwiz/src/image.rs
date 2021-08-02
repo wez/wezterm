@@ -153,8 +153,6 @@ impl ImageCell {
     }
 }
 
-static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
-
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Clone, PartialEq, Eq)]
 pub enum ImageDataType {
@@ -190,10 +188,25 @@ impl std::fmt::Debug for ImageDataType {
     }
 }
 
+impl ImageDataType {
+    pub fn compute_hash(&self) -> [u8; 32] {
+        use sha2::Digest;
+        let mut hasher = sha2::Sha256::new();
+        match self {
+            ImageDataType::EncodedFile(data) => hasher.update(data),
+            ImageDataType::Rgba8 { data, .. } => hasher.update(data),
+        };
+        hasher.finalize().into()
+    }
+}
+
+static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
+
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImageData {
     id: usize,
+    hash: [u8; 32],
     data: ImageDataType,
 }
 
@@ -205,7 +218,8 @@ impl ImageData {
 
     pub fn with_data(data: ImageDataType) -> Self {
         let id = IMAGE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
-        Self { id, data }
+        let hash = data.compute_hash();
+        Self { id, hash, data }
     }
 
     pub fn len(&self) -> usize {
@@ -220,8 +234,11 @@ impl ImageData {
         &self.data
     }
 
-    #[inline]
     pub fn id(&self) -> usize {
         self.id
+    }
+
+    pub fn hash(&self) -> [u8; 32] {
+        self.hash
     }
 }
