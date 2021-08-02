@@ -1,5 +1,6 @@
+use crate::customglyph::BlockKey;
 use crate::glium::texture::SrgbTexture2d;
-use crate::glyphcache::{BlockKey, CachedGlyph, GlyphCache};
+use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::shapecache::*;
 use crate::termwindow::{
     BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,

@@ -21,6 +21,7 @@ use wezterm_ssh::*;
 use wezterm_toast_notification::*;
 
 mod cache;
+mod customglyph;
 mod frontend;
 mod glyphcache;
 mod markdown;
@@ -443,7 +444,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                 let parsed = &handles[info.font_idx];
                 let escaped = format!("{}", cluster.text.escape_unicode());
                 if config.custom_block_glyphs {
-                    if let Some(block) = glyphcache::BlockKey::from_str(&text) {
+                    if let Some(block) = customglyph::BlockKey::from_str(&text) {
                         println!(
                             "{:4} {:12} drawn by wezterm: {:?}",
                             cluster.text, escaped, block
