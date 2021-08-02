@@ -1,4 +1,5 @@
 use super::*;
+use crate::terminalstate::performer::Performer;
 use std::sync::Arc;
 use termwiz::escape::parser::Parser;
 
