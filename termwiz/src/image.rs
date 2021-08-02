@@ -14,7 +14,7 @@
 use ordered_float::NotNan;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 #[cfg(feature = "use_serde")]
@@ -312,11 +312,17 @@ impl ImageDataType {
 static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct ImageData {
     id: usize,
-    hash: [u8; 32],
-    data: ImageDataType,
+    data: Mutex<ImageDataType>,
+}
+
+impl Eq for ImageData {}
+impl PartialEq for ImageData {
+    fn eq(&self, rhs: &Self) -> bool {
+        self.id == rhs.id
+    }
 }
 
 impl ImageData {
@@ -327,22 +333,23 @@ impl ImageData {
 
     pub fn with_data(data: ImageDataType) -> Self {
         let id = IMAGE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
-        let hash = data.compute_hash();
-        Self { id, hash, data }
+        Self {
+            id,
+            data: Mutex::new(data),
+        }
     }
 
     /// Returns the in-memory footprint
     pub fn len(&self) -> usize {
-        match &self.data {
+        match &*self.data() {
             ImageDataType::EncodedFile(d) => d.len(),
             ImageDataType::Rgba8 { data, .. } => data.len(),
             ImageDataType::AnimRgba8 { frames, .. } => frames.len() * frames[0].len(),
         }
     }
 
-    #[inline]
-    pub fn data(&self) -> &ImageDataType {
-        &self.data
+    pub fn data(&self) -> MutexGuard<ImageDataType> {
+        self.data.lock().unwrap()
     }
 
     pub fn id(&self) -> usize {
@@ -350,6 +357,6 @@ impl ImageData {
     }
 
     pub fn hash(&self) -> [u8; 32] {
-        self.hash
+        self.data().compute_hash()
     }
 }

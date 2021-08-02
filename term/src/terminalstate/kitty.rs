@@ -97,7 +97,7 @@ impl TerminalState {
                 .ok_or_else(|| anyhow::anyhow!("no matching image id"))?,
         );
 
-        let (image_width, image_height) = match img.data() {
+        let (image_width, image_height) = match &*img.data() {
             ImageDataType::EncodedFile(data) => {
                 let decoded = ::image::load_from_memory(data).context("decode png")?;
                 decoded.dimensions()

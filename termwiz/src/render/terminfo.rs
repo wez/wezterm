@@ -567,7 +567,7 @@ impl TerminfoRenderer {
                         {
                             // The whole image is requested, so we can send the
                             // original image bytes over
-                            match image.image.data() {
+                            match &*image.image.data() {
                                 ImageDataType::EncodedFile(data) => data.to_vec(),
                                 ImageDataType::AnimRgba8 { .. } | ImageDataType::Rgba8 { .. } => {
                                     unimplemented!()

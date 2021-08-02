@@ -359,15 +359,13 @@ fn reload_background_image(
     match &config.window_background_image {
         Some(p) => match std::fs::read(p) {
             Ok(data) => {
-                if let Some(existing) = image {
-                    match existing.data() {
-                        ImageDataType::EncodedFile(d) if &**d == &*data => {
-                            return Some(Arc::clone(existing));
-                        }
-                        _ => {}
+                let data = ImageDataType::EncodedFile(data).decode();
+                match image {
+                    Some(existing) if existing.hash() == data.compute_hash() => {
+                        Some(Arc::clone(existing))
                     }
+                    _ => Some(Arc::new(ImageData::with_data(data))),
                 }
-                Some(Arc::new(ImageData::with_raw_data(data)))
             }
             Err(err) => {
                 log::error!(

@@ -17,7 +17,7 @@ use euclid::num::Zero;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, MutexGuard};
 use std::time::Instant;
 use termwiz::image::{ImageData, ImageDataType};
 use wezterm_font::units::*;
@@ -131,9 +131,16 @@ struct LineKey {
     overline: bool,
 }
 
-impl BitmapImage for DecodedImage {
+/// A helper struct to implement BitmapImage for ImageDataType while
+/// holding the mutex for the sake of safety.
+struct DecodedImageHandle<'a> {
+    current_frame: usize,
+    h: MutexGuard<'a, ImageDataType>,
+}
+
+impl<'a> BitmapImage for DecodedImageHandle<'a> {
     unsafe fn pixel_data(&self) -> *const u8 {
-        match self.image.data() {
+        match &*self.h {
             ImageDataType::Rgba8 { data, .. } => data.as_ptr(),
             ImageDataType::AnimRgba8 { frames, .. } => frames[self.current_frame].as_ptr(),
             ImageDataType::EncodedFile(_) => unreachable!(),
@@ -145,7 +152,7 @@ impl BitmapImage for DecodedImage {
     }
 
     fn image_dimensions(&self) -> (usize, usize) {
-        match self.image.data() {
+        match &*self.h {
             ImageDataType::Rgba8 { width, height, .. }
             | ImageDataType::AnimRgba8 { width, height, .. } => (*width as usize, *height as usize),
             ImageDataType::EncodedFile(_) => unreachable!(),
@@ -176,7 +183,7 @@ impl DecodedImage {
     }
 
     fn load(image_data: &Arc<ImageData>) -> Self {
-        match image_data.data() {
+        match &*image_data.data() {
             ImageDataType::EncodedFile(_) => {
                 log::warn!("Unexpected ImageDataType::EncodedFile; either file is unreadable or we missed a .decode call somewhere");
                 Self::placeholder()
@@ -516,6 +523,7 @@ impl<T: Texture2d> GlyphCache<T> {
 
         Ok(Rc::new(glyph))
     }
+
     fn cached_image_impl(
         frame_cache: &mut HashMap<(usize, usize), Sprite<T>>,
         atlas: &mut Atlas<T>,
@@ -523,12 +531,16 @@ impl<T: Texture2d> GlyphCache<T> {
         padding: Option<usize>,
     ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
         let id = decoded.image.id();
-        match decoded.image.data() {
+        let mut handle = DecodedImageHandle {
+            h: decoded.image.data(),
+            current_frame: decoded.current_frame,
+        };
+        match &*handle.h {
             ImageDataType::Rgba8 { .. } => {
                 if let Some(sprite) = frame_cache.get(&(id, 0)) {
                     return Ok((sprite.clone(), None));
                 }
-                let sprite = atlas.allocate_with_padding(decoded, padding)?;
+                let sprite = atlas.allocate_with_padding(&handle, padding)?;
                 frame_cache.insert((id, 0), sprite.clone());
 
                 return Ok((sprite, None));
@@ -548,6 +560,7 @@ impl<T: Texture2d> GlyphCache<T> {
                         }
                         decoded.frame_start = now;
                         next_due = decoded.frame_start + durations[decoded.current_frame];
+                        handle.current_frame = decoded.current_frame;
                     }
 
                     next.replace(next_due);
@@ -557,7 +570,7 @@ impl<T: Texture2d> GlyphCache<T> {
                     return Ok((sprite.clone(), next));
                 }
 
-                let sprite = atlas.allocate_with_padding(decoded, padding)?;
+                let sprite = atlas.allocate_with_padding(&handle, padding)?;
 
                 frame_cache.insert((id, decoded.current_frame), sprite.clone());
 
