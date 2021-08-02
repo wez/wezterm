@@ -66,6 +66,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: Added support for [Synchronized Rendering](https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036) [#882](https://github.com/wez/wezterm/issues/882)
 * New: wezterm now draws its own pixel-perfect versions of more block drawing glyphs.  See [custom_block_glyphs](config/lua/config/custom_block_glyphs.md) for more details. [#584](https://github.com/wez/wezterm/issues/584)
 * Fixed: wayland: CursorNotFound error with the whiteglass theme. [#532](https://github.com/wez/wezterm/issues/532)
+* Improved: Can now recover from exhausting available texture space by clearing the screen. [#879](https://github.com/wez/wezterm/issues/879)
 
 ### 20210502-154244-3f7122cb
 
