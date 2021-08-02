@@ -15,6 +15,7 @@ use ordered_float::NotNan;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::sync::Arc;
+use std::time::Duration;
 
 #[cfg(feature = "use_serde")]
 fn deserialize_notnan<'de, D>(deserializer: D) -> Result<NotNan<f32>, D::Error>
@@ -158,12 +159,19 @@ impl ImageCell {
 pub enum ImageDataType {
     /// Data is in the native image file format
     /// (best for file formats that have animated content)
-    EncodedFile(Box<[u8]>),
+    EncodedFile(Vec<u8>),
     /// Data is RGBA u8 data
     Rgba8 {
-        data: Box<[u8]>,
+        data: Vec<u8>,
         width: u32,
         height: u32,
+    },
+    /// Data is an animated sequence
+    AnimRgba8 {
+        width: u32,
+        height: u32,
+        durations: Vec<Duration>,
+        frames: Vec<Vec<u8>>,
     },
 }
 
@@ -184,6 +192,18 @@ impl std::fmt::Debug for ImageDataType {
                 .field("width", &width)
                 .field("height", &height)
                 .finish(),
+            Self::AnimRgba8 {
+                frames,
+                width,
+                height,
+                durations,
+            } => fmt
+                .debug_struct("AnimRgba8")
+                .field("frames_of_len", &frames.len())
+                .field("width", &width)
+                .field("height", &height)
+                .field("durations", durations)
+                .finish(),
         }
     }
 }
@@ -195,8 +215,97 @@ impl ImageDataType {
         match self {
             ImageDataType::EncodedFile(data) => hasher.update(data),
             ImageDataType::Rgba8 { data, .. } => hasher.update(data),
+            ImageDataType::AnimRgba8 { frames, .. } => {
+                for data in frames {
+                    hasher.update(data);
+                }
+            }
         };
         hasher.finalize().into()
+    }
+
+    /// Decode an encoded file into either an Rgba8 or AnimRgba8 variant
+    /// if we recognize the file format, otherwise the EncodedFile data
+    /// is preserved as is.
+    #[cfg(feature = "use_image")]
+    pub fn decode(self) -> Self {
+        use image::{AnimationDecoder, ImageFormat};
+
+        match self {
+            Self::EncodedFile(data) => {
+                let format = match image::guess_format(&data) {
+                    Ok(format) => format,
+                    _ => return Self::EncodedFile(data),
+                };
+                match format {
+                    ImageFormat::Gif => image::gif::GifDecoder::new(&*data)
+                        .and_then(|decoder| decoder.into_frames().collect_frames())
+                        .and_then(|frames| Ok(Self::decode_frames(frames)))
+                        .unwrap_or_else(|err| {
+                            log::error!(
+                                "Unable to parse animated gif: {:#}, trying as single frame",
+                                err
+                            );
+                            Self::decode_single(data)
+                        }),
+                    ImageFormat::Png => {
+                        let decoder = match image::png::PngDecoder::new(&*data) {
+                            Ok(d) => d,
+                            _ => return Self::EncodedFile(data),
+                        };
+                        if decoder.is_apng() {
+                            match decoder.apng().into_frames().collect_frames() {
+                                Ok(frames) => Self::decode_frames(frames),
+                                _ => Self::EncodedFile(data),
+                            }
+                        } else {
+                            Self::decode_single(data)
+                        }
+                    }
+                    _ => Self::EncodedFile(data),
+                }
+            }
+            data => data,
+        }
+    }
+
+    #[cfg(feature = "use_image")]
+    fn decode_frames(img_frames: Vec<image::Frame>) -> Self {
+        let mut width = 0;
+        let mut height = 0;
+        let mut frames = vec![];
+        let mut durations = vec![];
+        for frame in img_frames.into_iter() {
+            let duration: Duration = frame.delay().into();
+            durations.push(duration);
+            let image = image::DynamicImage::ImageRgba8(frame.into_buffer()).to_rgba8();
+            let (w, h) = image.dimensions();
+            width = w;
+            height = h;
+            frames.push(image.into_vec());
+        }
+        Self::AnimRgba8 {
+            width,
+            height,
+            frames,
+            durations,
+        }
+    }
+
+    #[cfg(feature = "use_image")]
+    fn decode_single(data: Vec<u8>) -> Self {
+        match image::load_from_memory(&data) {
+            Ok(image) => {
+                let image = image.to_rgba8();
+                let (width, height) = image.dimensions();
+                Self::Rgba8 {
+                    width,
+                    height,
+                    data: image.into_vec(),
+                }
+            }
+            _ => Self::EncodedFile(data),
+        }
     }
 }
 
@@ -212,7 +321,7 @@ pub struct ImageData {
 
 impl ImageData {
     /// Create a new ImageData struct with the provided raw data.
-    pub fn with_raw_data(data: Box<[u8]>) -> Self {
+    pub fn with_raw_data(data: Vec<u8>) -> Self {
         Self::with_data(ImageDataType::EncodedFile(data))
     }
 
@@ -222,10 +331,12 @@ impl ImageData {
         Self { id, hash, data }
     }
 
+    /// Returns the in-memory footprint
     pub fn len(&self) -> usize {
         match &self.data {
             ImageDataType::EncodedFile(d) => d.len(),
             ImageDataType::Rgba8 { data, .. } => data.len(),
+            ImageDataType::AnimRgba8 { frames, .. } => frames.len() * frames[0].len(),
         }
     }
 

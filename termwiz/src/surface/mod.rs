@@ -1575,7 +1575,7 @@ mod test {
     #[test]
     fn images() {
         // a dummy image blob with nonsense content
-        let data = Arc::new(ImageData::with_raw_data(vec![].into_boxed_slice()));
+        let data = Arc::new(ImageData::with_raw_data(vec![]));
         let mut s = Surface::new(2, 2);
         s.add_change(Change::Image(Image {
             top_left: TextureCoordinate::new_f32(0.0, 0.0),

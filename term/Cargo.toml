@@ -39,3 +39,4 @@ k9 = "0.11.0"
 [dependencies.termwiz]
 version = "0.13"
 path = "../termwiz"
+features = ["use_image"]

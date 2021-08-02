@@ -4325,6 +4325,7 @@ dependencies = [
  "filedescriptor",
  "fnv",
  "hex",
+ "image",
  "lazy_static",
  "libc",
  "log",

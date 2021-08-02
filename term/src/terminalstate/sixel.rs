@@ -106,7 +106,7 @@ impl TerminalState {
         let image_data = ImageDataType::Rgba8 {
             width,
             height,
-            data: image.into_vec().into_boxed_slice(),
+            data: image.into_vec(),
         };
 
         let image_data = self.raw_image_to_image_data(image_data);

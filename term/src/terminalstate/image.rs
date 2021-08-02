@@ -162,6 +162,7 @@ impl TerminalState {
 
     /// cache recent images and avoid assigning a new id for repeated data!
     pub(crate) fn raw_image_to_image_data(&mut self, data: ImageDataType) -> Arc<ImageData> {
+        let data = data.decode();
         let key = data.compute_hash();
         if let Some(item) = self.image_cache.get(&key) {
             Arc::clone(item)

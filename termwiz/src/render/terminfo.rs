@@ -568,10 +568,10 @@ impl TerminfoRenderer {
                             // The whole image is requested, so we can send the
                             // original image bytes over
                             match image.image.data() {
-                                ImageDataType::EncodedFile(data) => {
-                                    data.to_vec().into_boxed_slice()
+                                ImageDataType::EncodedFile(data) => data.to_vec(),
+                                ImageDataType::AnimRgba8 { .. } | ImageDataType::Rgba8 { .. } => {
+                                    unimplemented!()
                                 }
-                                ImageDataType::Rgba8 { .. } => unimplemented!(),
                             }
                         } else {
                             // TODO: slice out the requested region of the image,

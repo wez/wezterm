@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use termwiz::image::{ImageData, ImageDataType};
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo};
@@ -131,149 +131,61 @@ struct LineKey {
     overline: bool,
 }
 
-#[derive(Debug)]
-pub enum ImageFrameBitmap {
-    Owned(::window::bitmaps::Image),
-    Ref(Arc<ImageData>),
-}
-
-impl BitmapImage for ImageFrameBitmap {
+impl BitmapImage for DecodedImage {
     unsafe fn pixel_data(&self) -> *const u8 {
-        match self {
-            Self::Owned(im) => im.pixel_data(),
-            Self::Ref(im) => match im.data() {
-                ImageDataType::EncodedFile(_) => unreachable!(),
-                ImageDataType::Rgba8 { data, .. } => data.as_ptr(),
-            },
+        match self.image.data() {
+            ImageDataType::Rgba8 { data, .. } => data.as_ptr(),
+            ImageDataType::AnimRgba8 { frames, .. } => frames[self.current_frame].as_ptr(),
+            ImageDataType::EncodedFile(_) => unreachable!(),
         }
     }
 
     unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
-        panic!("cannot mutate ImageFrameBitmap");
+        panic!("cannot mutate DecodedImage");
     }
 
     fn image_dimensions(&self) -> (usize, usize) {
-        match self {
-            Self::Owned(im) => im.image_dimensions(),
-            Self::Ref(im) => match im.data() {
-                ImageDataType::EncodedFile(_) => unreachable!(),
-                ImageDataType::Rgba8 { width, height, .. } => (*width as usize, *height as usize),
-            },
+        match self.image.data() {
+            ImageDataType::Rgba8 { width, height, .. }
+            | ImageDataType::AnimRgba8 { width, height, .. } => (*width as usize, *height as usize),
+            ImageDataType::EncodedFile(_) => unreachable!(),
         }
     }
-}
-
-#[derive(Debug)]
-pub struct ImageFrame {
-    duration: Duration,
-    image: ImageFrameBitmap,
-}
-
-#[derive(Debug)]
-pub enum CachedImage {
-    Animation(DecodedImage),
-    SingleFrame(ImageFrameBitmap),
 }
 
 #[derive(Debug)]
 pub struct DecodedImage {
     frame_start: Instant,
     current_frame: usize,
-    frames: Vec<ImageFrame>,
+    image: Arc<ImageData>,
 }
 
 impl DecodedImage {
     fn placeholder() -> Self {
-        let image = ::window::bitmaps::Image::new(1, 1);
-        let frame = ImageFrame {
-            duration: Duration::default(),
-            image: ImageFrameBitmap::Owned(image),
-        };
+        let image = ImageData::with_data(ImageDataType::Rgba8 {
+            // A single black pixel
+            data: vec![0, 0, 0, 0],
+            width: 1,
+            height: 1,
+        });
         Self {
             frame_start: Instant::now(),
             current_frame: 0,
-            frames: vec![frame],
+            image: Arc::new(image),
         }
     }
 
-    fn with_frames(frames: Vec<image::Frame>) -> Self {
-        let frames = frames
-            .into_iter()
-            .map(|frame| {
-                let duration: Duration = frame.delay().into();
-                let image = image::DynamicImage::ImageRgba8(frame.into_buffer()).to_rgba8();
-                let (w, h) = image.dimensions();
-                let width = w as usize;
-                let height = h as usize;
-                let image = ImageFrameBitmap::Owned(::window::bitmaps::Image::from_raw(
-                    width,
-                    height,
-                    image.into_vec(),
-                ));
-                ImageFrame { duration, image }
-            })
-            .collect();
-        Self {
-            frame_start: Instant::now(),
-            current_frame: 0,
-            frames,
-        }
-    }
-
-    fn with_single(image_data: &Arc<ImageData>) -> anyhow::Result<Self> {
-        let image = match image_data.data() {
-            ImageDataType::EncodedFile(data) => {
-                let image = image::load_from_memory(data)?.to_rgba8();
-                let (width, height) = image.dimensions();
-                let width = width as usize;
-                let height = height as usize;
-                ImageFrameBitmap::Owned(::window::bitmaps::Image::from_raw(
-                    width,
-                    height,
-                    image.into_vec(),
-                ))
-            }
-            ImageDataType::Rgba8 { .. } => ImageFrameBitmap::Ref(Arc::clone(image_data)),
-        };
-        Ok(Self {
-            frame_start: Instant::now(),
-            current_frame: 0,
-            frames: vec![ImageFrame {
-                duration: Default::default(),
-                image,
-            }],
-        })
-    }
-
-    fn load(image_data: &Arc<ImageData>) -> anyhow::Result<Self> {
+    fn load(image_data: &Arc<ImageData>) -> Self {
         match image_data.data() {
-            ImageDataType::Rgba8 { .. } => Self::with_single(image_data),
-            ImageDataType::EncodedFile(data) => {
-                use image::{AnimationDecoder, ImageFormat};
-                let format = image::guess_format(data)?;
-                match format {
-                    ImageFormat::Gif => image::gif::GifDecoder::new(&**data)
-                        .and_then(|decoder| decoder.into_frames().collect_frames())
-                        .and_then(|frames| Ok(Self::with_frames(frames)))
-                        .or_else(|err| {
-                            log::error!(
-                                "Unable to parse animated gif: {:#}, trying as single frame",
-                                err
-                            );
-                            Self::with_single(image_data)
-                        }),
-                    ImageFormat::Png => {
-                        let decoder = image::png::PngDecoder::new(&**data)?;
-                        if decoder.is_apng() {
-                            let frames = decoder.apng().into_frames().collect_frames()?;
-                            Ok(Self::with_frames(frames))
-                        } else {
-                            Self::with_single(image_data)
-                        }
-                    }
-                    _ => Self::with_single(image_data),
-                }
+            ImageDataType::EncodedFile(_) => {
+                log::warn!("Unexpected ImageDataType::EncodedFile; either file is unreadable or we missed a .decode call somewhere");
+                Self::placeholder()
             }
+            _ => Self {
+                frame_start: Instant::now(),
+                current_frame: 0,
+                image: Arc::clone(image_data),
+            },
         }
     }
 }
@@ -282,7 +194,7 @@ pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
-    pub image_cache: LruCache<usize, CachedImage>,
+    pub image_cache: LruCache<usize, DecodedImage>,
     frame_cache: HashMap<(usize, usize), Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     pub block_glyphs: HashMap<BlockKey, Sprite<T>>,
@@ -604,6 +516,59 @@ impl<T: Texture2d> GlyphCache<T> {
 
         Ok(Rc::new(glyph))
     }
+    fn cached_image_impl(
+        frame_cache: &mut HashMap<(usize, usize), Sprite<T>>,
+        atlas: &mut Atlas<T>,
+        decoded: &mut DecodedImage,
+        padding: Option<usize>,
+    ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
+        let id = decoded.image.id();
+        match decoded.image.data() {
+            ImageDataType::Rgba8 { .. } => {
+                if let Some(sprite) = frame_cache.get(&(id, 0)) {
+                    return Ok((sprite.clone(), None));
+                }
+                let sprite = atlas.allocate_with_padding(decoded, padding)?;
+                frame_cache.insert((id, 0), sprite.clone());
+
+                return Ok((sprite, None));
+            }
+            ImageDataType::AnimRgba8 {
+                frames, durations, ..
+            } => {
+                let mut next = None;
+                if frames.len() > 1 {
+                    let now = Instant::now();
+                    let mut next_due = decoded.frame_start + durations[decoded.current_frame];
+                    if now >= next_due {
+                        // Advance to next frame
+                        decoded.current_frame += 1;
+                        if decoded.current_frame >= frames.len() {
+                            decoded.current_frame = 0;
+                        }
+                        decoded.frame_start = now;
+                        next_due = decoded.frame_start + durations[decoded.current_frame];
+                    }
+
+                    next.replace(next_due);
+                }
+
+                if let Some(sprite) = frame_cache.get(&(id, decoded.current_frame)) {
+                    return Ok((sprite.clone(), next));
+                }
+
+                let sprite = atlas.allocate_with_padding(decoded, padding)?;
+
+                frame_cache.insert((id, decoded.current_frame), sprite.clone());
+
+                return Ok((
+                    sprite,
+                    Some(decoded.frame_start + durations[decoded.current_frame]),
+                ));
+            }
+            ImageDataType::EncodedFile(_) => unreachable!(),
+        }
+    }
 
     pub fn cached_image(
         &mut self,
@@ -611,81 +576,19 @@ impl<T: Texture2d> GlyphCache<T> {
         padding: Option<usize>,
     ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
         let id = image_data.id();
-        if let Some(cached) = self.image_cache.get_mut(&id) {
-            match cached {
-                CachedImage::SingleFrame(im) => {
-                    // We can simply use the frame cache to manage
-                    // the texture space; the frame is always 0 for
-                    // a single frame
-                    if let Some(sprite) = self.frame_cache.get(&(id, 0)) {
-                        return Ok((sprite.clone(), None));
-                    }
-                    let sprite = self.atlas.allocate_with_padding(im, padding)?;
-                    self.frame_cache.insert((id, 0), sprite.clone());
 
-                    return Ok((sprite, None));
-                }
-                CachedImage::Animation(decoded) => {
-                    let mut next = None;
-                    if decoded.frames.len() > 1 {
-                        let now = Instant::now();
-                        let mut next_due =
-                            decoded.frame_start + decoded.frames[decoded.current_frame].duration;
-                        if now >= next_due {
-                            // Advance to next frame
-                            decoded.current_frame += 1;
-                            if decoded.current_frame >= decoded.frames.len() {
-                                decoded.current_frame = 0;
-                            }
-                            decoded.frame_start = now;
-                            next_due = decoded.frame_start
-                                + decoded.frames[decoded.current_frame].duration;
-                        }
-
-                        next.replace(next_due);
-                    }
-
-                    if let Some(sprite) = self.frame_cache.get(&(id, decoded.current_frame)) {
-                        return Ok((sprite.clone(), next));
-                    }
-
-                    let sprite = self.atlas.allocate_with_padding(
-                        &decoded.frames[decoded.current_frame].image,
-                        padding,
-                    )?;
-
-                    self.frame_cache
-                        .insert((id, decoded.current_frame), sprite.clone());
-
-                    return Ok((
-                        sprite,
-                        Some(decoded.frame_start + decoded.frames[decoded.current_frame].duration),
-                    ));
-                }
-            }
-        }
-
-        let start = Instant::now();
-        let mut decoded =
-            DecodedImage::load(image_data).or_else(|e| -> anyhow::Result<DecodedImage> {
-                log::debug!("Failed to decode image: {:#}", e);
-                // Use a placeholder instead
-                Ok(DecodedImage::placeholder())
-            })?;
-        metrics::histogram!("glyphcache.cached_image.decode.rate", 1.);
-        metrics::histogram!("glyphcache.cached_image.decode.latency", start.elapsed());
-        let sprite = self
-            .atlas
-            .allocate_with_padding(&decoded.frames[0].image, padding)?;
-        self.frame_cache.insert((id, 0), sprite.clone());
-        if decoded.frames.len() > 1 {
-            let next = Some(decoded.frame_start + decoded.frames[0].duration);
-            self.image_cache.put(id, CachedImage::Animation(decoded));
-            Ok((sprite, next))
+        if let Some(decoded) = self.image_cache.get_mut(&id) {
+            Self::cached_image_impl(&mut self.frame_cache, &mut self.atlas, decoded, padding)
         } else {
-            self.image_cache
-                .put(id, CachedImage::SingleFrame(decoded.frames.remove(0).image));
-            Ok((sprite, None))
+            let mut decoded = DecodedImage::load(image_data);
+            let res = Self::cached_image_impl(
+                &mut self.frame_cache,
+                &mut self.atlas,
+                &mut decoded,
+                padding,
+            )?;
+            self.image_cache.put(id, decoded);
+            Ok(res)
         }
     }
 

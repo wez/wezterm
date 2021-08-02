@@ -170,9 +170,7 @@ impl RenderState {
                     let mut data = vec![];
                     if let Ok(_len) = f.read_to_end(&mut data) {
                         if let Ok(decoded_image) = image::load_from_memory(&data) {
-                            let image = Arc::new(termwiz::image::ImageData::with_raw_data(
-                                data.into_boxed_slice(),
-                            ));
+                            let image = Arc::new(termwiz::image::ImageData::with_raw_data(data));
 
                             let scale = self.wrap_width as f32 / decoded_image.width() as f32;
 

@@ -114,7 +114,7 @@ impl TerminalState {
             (true, _) => match ::image::load_from_memory(&image.data) {
                 Ok(im) => {
                     let im = im.resize_exact(width as u32, height as u32, FilterType::CatmullRom);
-                    let data = im.into_rgba8().into_vec().into_boxed_slice();
+                    let data = im.into_rgba8().into_vec();
                     ImageDataType::Rgba8 {
                         width: width as u32,
                         height: height as u32,

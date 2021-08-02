@@ -102,7 +102,8 @@ impl TerminalState {
                 let decoded = ::image::load_from_memory(data).context("decode png")?;
                 decoded.dimensions()
             }
-            ImageDataType::Rgba8 { width, height, .. } => (*width, *height),
+            ImageDataType::AnimRgba8 { width, height, .. }
+            | ImageDataType::Rgba8 { width, height, .. } => (*width, *height),
         };
 
         let saved_cursor = self.cursor.clone();
@@ -369,9 +370,9 @@ impl TerminalState {
                                 .ok_or_else(|| anyhow::anyhow!("failed to decode image"))?,
                         );
                         let img = img.into_rgba8();
-                        img.into_vec().into_boxed_slice()
+                        img.into_vec()
                     }
-                    _ => data.into_boxed_slice(),
+                    _ => data,
                 };
 
                 let image_data = ImageDataType::Rgba8 {
@@ -385,7 +386,7 @@ impl TerminalState {
             Some(KittyImageFormat::Png) => {
                 let decoded = image::load_from_memory(&data).context("decode png")?;
                 let (width, height) = decoded.dimensions();
-                let data = decoded.into_rgba8().into_vec().into_boxed_slice();
+                let data = decoded.into_rgba8().into_vec();
                 let image_data = ImageDataType::Rgba8 {
                     width,
                     height,
