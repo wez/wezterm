@@ -1,14 +1,17 @@
 use crate::terminalstate::image::*;
 use crate::terminalstate::{ImageAttachParams, PlacementInfo};
 use crate::{StableRowIndex, TerminalState};
-use ::image::{DynamicImage, GenericImageView, RgbImage};
+use ::image::{
+    DynamicImage, GenericImage, GenericImageView, ImageBuffer, RgbImage, Rgba, RgbaImage,
+};
 use anyhow::Context;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use termwiz::escape::apc::KittyImageData;
 use termwiz::escape::apc::{
-    KittyImage, KittyImageCompression, KittyImageDelete, KittyImageFormat, KittyImagePlacement,
-    KittyImageTransmit, KittyImageVerbosity,
+    KittyFrameCompositionMode, KittyImage, KittyImageCompression, KittyImageDelete,
+    KittyImageFormat, KittyImageFrame, KittyImagePlacement, KittyImageTransmit,
+    KittyImageVerbosity,
 };
 use termwiz::image::ImageDataType;
 use termwiz::surface::change::ImageData;
@@ -256,16 +259,13 @@ impl TerminalState {
                 log::warn!("unhandled KittyImage::Delete {:?} {:?}", what, verbosity);
             }
             KittyImage::TransmitFrame {
-                frame,
                 transmit,
+                frame,
                 verbosity,
             } => {
-                log::warn!(
-                    "unhandled KittyImage::TransmitFrame {:?} {:?} {:?}",
-                    frame,
-                    transmit,
-                    verbosity
-                );
+                if let Err(err) = self.kitty_frame_transmit(transmit, frame, verbosity) {
+                    log::error!("Error {:#} while handling KittyImage::TransmitFrame", err,);
+                }
             }
         };
 
@@ -319,12 +319,127 @@ impl TerminalState {
         );
     }
 
-    fn kitty_img_transmit(
+    fn kitty_frame_transmit(
         &mut self,
         transmit: KittyImageTransmit,
+        frame: KittyImageFrame,
         verbosity: KittyImageVerbosity,
-    ) -> anyhow::Result<u32> {
-        let (image_id, image_number) = match (transmit.image_id, transmit.image_number) {
+    ) -> anyhow::Result<()> {
+        let (image_id, _image_number, img) = self.kitty_img_transmit_inner(transmit)?;
+
+        let img = match img.decode() {
+            ImageDataType::Rgba8 {
+                data,
+                width,
+                height,
+            } => RgbaImage::from_vec(width, height, data)
+                .ok_or_else(|| anyhow::anyhow!("data isn't rgba8"))?,
+            wat => anyhow::bail!("data isn't rgba8 {:?}", wat),
+        };
+
+        let anim = self
+            .kitty_img
+            .id_to_data
+            .get(&image_id)
+            .ok_or_else(|| anyhow::anyhow!("no matching image id"))?;
+
+        let mut anim = anim.data();
+
+        match &mut *anim {
+            ImageDataType::EncodedFile(_) => {
+                anyhow::bail!("Expected decoded image for image id {}", image_id)
+            }
+            ImageDataType::Rgba8 {
+                data,
+                width,
+                height,
+            } => {
+                let base_frame = match frame.base_frame {
+                    Some(1) => Some(1),
+                    None => None,
+                    Some(n) => anyhow::bail!(
+                        "attempted to copy frame {} but there is only a single frame",
+                        n
+                    ),
+                };
+
+                match frame.frame_number {
+                    Some(1) => {
+                        // Edit in place
+                        let len = data.len();
+                        let mut anim: ImageBuffer<Rgba<u8>, &mut [u8]> =
+                            ImageBuffer::from_raw(*width, *height, data.as_mut_slice())
+                                .ok_or_else(|| {
+                                    anyhow::anyhow!(
+                                        "ImageBuffer::from_raw failed for single \
+                                         frame of {}x{} ({} bytes)",
+                                        width,
+                                        height,
+                                        len
+                                    )
+                                })?;
+
+                        match frame.composition_mode {
+                            KittyFrameCompositionMode::Overwrite => {
+                                // Notcurses can send an img with x,y position that overflows
+                                // the target frame, so we need to make a view that clips the
+                                // source image data.
+                                let x = frame.x.unwrap_or(0);
+                                let y = frame.y.unwrap_or(0);
+
+                                let (src_w, src_h) = img.dimensions();
+
+                                let w = src_w.min(width.saturating_sub(x));
+                                let h = src_h.min(height.saturating_sub(y));
+
+                                let img = img.view(0, 0, w, h);
+
+                                anim.copy_from(&img, frame.x.unwrap_or(0), frame.y.unwrap_or(0))
+                                    .with_context(|| {
+                                        format!(
+                                            "copying img with dims {:?} to frame \
+                                             with dims {:?} @ offset {:?}x{:?}",
+                                            img.dimensions(),
+                                            anim.dimensions(),
+                                            frame.x,
+                                            frame.y
+                                        )
+                                    })?;
+                            }
+                            KittyFrameCompositionMode::AlphaBlending => {
+                                anyhow::bail!("alphablend compositing not implemented");
+                            }
+                        }
+                    }
+                    None => {
+                        // Create a second frame
+                        anyhow::bail!("crating frames not yet done");
+                    }
+                    Some(n) => anyhow::bail!(
+                        "attempted to edit frame {} but there is only a single frame",
+                        n
+                    ),
+                }
+            }
+            ImageDataType::AnimRgba8 {
+                width,
+                height,
+                frames,
+                durations,
+            } => {
+                anyhow::bail!("editing animations not yet done");
+            }
+        }
+
+        Ok(())
+    }
+
+    fn kitty_img_transmit_inner(
+        &mut self,
+        transmit: KittyImageTransmit,
+    ) -> anyhow::Result<(u32, Option<u32>, ImageDataType)> {
+        log::trace!("transmit {:?}", transmit);
+        let (id, no) = match (transmit.image_id, transmit.image_number) {
             (Some(_), Some(_)) => {
                 // TODO: send an EINVAL error back here
                 anyhow::bail!("cannot use both i= and I= in the same request");
@@ -341,9 +456,6 @@ impl TerminalState {
             }
         };
 
-        self.kitty_img.max_image_id = self.kitty_img.max_image_id.max(image_id);
-        log::trace!("transmit {:?}", transmit);
-
         let data = transmit
             .data
             .load_data()
@@ -351,7 +463,10 @@ impl TerminalState {
 
         let data = match transmit.compression {
             KittyImageCompression::None => data,
-            KittyImageCompression::Deflate => deflate::deflate_bytes(&data),
+            KittyImageCompression::Deflate => {
+                miniz_oxide::inflate::decompress_to_vec_zlib(&data)
+                    .map_err(|e| anyhow::anyhow!("decompressing data: {:?}", e))?
+            }
         };
 
         let img = match transmit.format {
@@ -375,27 +490,45 @@ impl TerminalState {
                     _ => data,
                 };
 
-                let image_data = ImageDataType::Rgba8 {
+                anyhow::ensure!(
+                    width * height * 4 == data.len() as u32,
+                    "transmit data len is {} but it doesn't match width*height*4 {}x{}x4 = {}",
+                    data.len(),
+                    width,
+                    height,
+                    width * height * 4
+                );
+
+                ImageDataType::Rgba8 {
                     width,
                     height,
                     data,
-                };
-
-                self.raw_image_to_image_data(image_data)
+                }
             }
             Some(KittyImageFormat::Png) => {
                 let decoded = image::load_from_memory(&data).context("decode png")?;
                 let (width, height) = decoded.dimensions();
                 let data = decoded.into_rgba8().into_vec();
-                let image_data = ImageDataType::Rgba8 {
+                ImageDataType::Rgba8 {
                     width,
                     height,
                     data,
-                };
-                self.raw_image_to_image_data(image_data)
+                }
             }
         };
 
+        Ok((id, no, img))
+    }
+
+    fn kitty_img_transmit(
+        &mut self,
+        transmit: KittyImageTransmit,
+        verbosity: KittyImageVerbosity,
+    ) -> anyhow::Result<u32> {
+        let (image_id, image_number, img) = self.kitty_img_transmit_inner(transmit)?;
+        self.kitty_img.max_image_id = self.kitty_img.max_image_id.max(image_id);
+
+        let img = self.raw_image_to_image_data(img);
         self.kitty_img.record_id_to_data(image_id, img);
 
         if let Some(no) = image_number {

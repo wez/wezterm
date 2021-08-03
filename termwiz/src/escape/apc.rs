@@ -664,7 +664,7 @@ pub struct KittyImageFrame {
 
     /// 1-based number of the frame which should be the base
     /// data for the new frame being created.
-    /// If omitted, a black, fully-transparent background is used.
+    /// If omitted, use background_pixel to specify color.
     /// c=...
     pub base_frame: Option<u32>,
 
@@ -684,6 +684,7 @@ pub struct KittyImageFrame {
     pub composition_mode: KittyFrameCompositionMode,
 
     /// Background color for pixels not specified in the frame data.
+    /// If omitted, use a black, fully-transparent pixel (0)
     /// Y=...
     pub background_pixel: Option<u32>,
 }
