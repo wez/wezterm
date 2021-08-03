@@ -928,10 +928,31 @@ impl super::TermWindow {
                         + (cell_idx + params.pos.left) as f32 * cell_width
                         + self.config.window_padding.left as f32;
 
+                    // We'd like to render the cursor with the cell width
+                    // so that double-wide cells look more reasonable.
+                    // If we have a cursor shape, compute the intended cursor
+                    // width.  We only use that if we're the first cell that
+                    // comprises this glyph; if for some reason the cursor position
+                    // is in the middle of a glyph we just use a single cell.
+                    let cursor_width = cursor_shape
+                        .map(|_| {
+                            if glyph_idx == 0 {
+                                info.pos.num_cells
+                            } else {
+                                1
+                            }
+                        })
+                        .unwrap_or(1) as f32;
+
                     if bg_color != style_params.bg_color {
                         // Override the background color
                         let mut quad = quads.allocate()?;
-                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+                        quad.set_position(
+                            pos_x,
+                            pos_y,
+                            pos_x + cursor_width * cell_width,
+                            pos_y + cell_height,
+                        );
                         quad.set_bg_color(bg_color);
                         quad.set_fg_color(bg_color);
                         quad.set_texture(params.filled_box);
@@ -942,7 +963,12 @@ impl super::TermWindow {
 
                     if cursor_shape.is_some() {
                         let mut quad = quads.allocate()?;
-                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+                        quad.set_position(
+                            pos_x,
+                            pos_y,
+                            pos_x + cursor_width * cell_width,
+                            pos_y + cell_height,
+                        );
                         quad.set_texture_adjust(0., 0., 0., 0.);
                         quad.set_hsv(hsv);
                         quad.set_has_color(false);
