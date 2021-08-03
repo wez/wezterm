@@ -707,15 +707,29 @@ pub fn grapheme_column_width(s: &str) -> usize {
     // Let's check for emoji-ness for ourselves first
     use xi_unicode::EmojiExt;
     let mut emoji = false;
+    let mut implied_emoji_presentation = false;
+
     for c in s.chars() {
-        if c.is_emoji_modifier_base() || c.is_emoji_modifier() {
-            // treat modifier sequences as double wide
+        if c == '\u{FE0F}' {
+            // Explicit emoji presentation
             return 2;
-        }
-        if c.is_emoji() {
+        } else if c == '\u{FE0E}' {
+            // Explicit text presentation
+            return 1;
+        } else if c.is_emoji_modifier_base() || c.is_emoji_modifier() {
+            // We'll probably use emoji presentation for this,
+            // but defer the decision until we've had a chance
+            // to look for an explicit presentation selection.
+            implied_emoji_presentation = true;
+        } else if c.is_emoji() {
             emoji = true;
         }
     }
+
+    if implied_emoji_presentation {
+        return 2;
+    }
+
     let width = UnicodeWidthStr::width(s);
     if emoji {
         // For sequences such as "deaf man", UnicodeWidthStr::width()
@@ -833,5 +847,44 @@ mod test {
         let font_awesome_star = "\u{f005}";
         eprintln!("font_awesome_star {}", font_awesome_star.escape_debug());
         assert_eq!(unicode_column_width(font_awesome_star), 1);
+    }
+
+    #[test]
+    fn issue_997() {
+        use unicode_segmentation::UnicodeSegmentation;
+        let waving_hand = "\u{270c}";
+        let waving_hand_text_presentation = "\u{270c}\u{fe0e}";
+
+        assert_eq!(unicode_column_width(waving_hand_text_presentation), 1);
+        assert_eq!(unicode_column_width(waving_hand), 2);
+
+        assert_eq!(
+            waving_hand_text_presentation
+                .graphemes(true)
+                .collect::<Vec<_>>(),
+            vec![waving_hand_text_presentation.to_string()]
+        );
+        assert_eq!(
+            waving_hand.graphemes(true).collect::<Vec<_>>(),
+            vec![waving_hand.to_string()]
+        );
+
+        let copyright_emoji_presentation = "\u{00A9}\u{FE0F}";
+        assert_eq!(
+            copyright_emoji_presentation
+                .graphemes(true)
+                .collect::<Vec<_>>(),
+            vec![copyright_emoji_presentation.to_string()]
+        );
+        assert_eq!(unicode_column_width(copyright_emoji_presentation), 2);
+
+        let copyright_text_presentation = "\u{00A9}";
+        assert_eq!(
+            copyright_text_presentation
+                .graphemes(true)
+                .collect::<Vec<_>>(),
+            vec![copyright_text_presentation.to_string()]
+        );
+        assert_eq!(unicode_column_width(copyright_text_presentation), 1);
     }
 }
