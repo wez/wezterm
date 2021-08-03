@@ -115,11 +115,7 @@ impl TerminalState {
                 Ok(im) => {
                     let im = im.resize_exact(width as u32, height as u32, FilterType::CatmullRom);
                     let data = im.into_rgba8().into_vec();
-                    ImageDataType::Rgba8 {
-                        width: width as u32,
-                        height: height as u32,
-                        data,
-                    }
+                    ImageDataType::new_single_frame(width as u32, height as u32, data)
                 }
                 Err(_) => ImageDataType::EncodedFile(image.data),
             },

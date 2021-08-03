@@ -165,6 +165,7 @@ pub enum ImageDataType {
         data: Vec<u8>,
         width: u32,
         height: u32,
+        hash: [u8; 32],
     },
     /// Data is an animated sequence
     AnimRgba8 {
@@ -172,6 +173,7 @@ pub enum ImageDataType {
         height: u32,
         durations: Vec<Duration>,
         frames: Vec<Vec<u8>>,
+        hashes: Vec<[u8; 32]>,
     },
 }
 
@@ -186,29 +188,58 @@ impl std::fmt::Debug for ImageDataType {
                 data,
                 width,
                 height,
+                hash,
             } => fmt
                 .debug_struct("Rgba8")
                 .field("data_of_len", &data.len())
                 .field("width", &width)
                 .field("height", &height)
+                .field("hash", &hash)
                 .finish(),
             Self::AnimRgba8 {
                 frames,
                 width,
                 height,
                 durations,
+                hashes,
             } => fmt
                 .debug_struct("AnimRgba8")
                 .field("frames_of_len", &frames.len())
                 .field("width", &width)
                 .field("height", &height)
                 .field("durations", durations)
+                .field("hashes", hashes)
                 .finish(),
         }
     }
 }
 
 impl ImageDataType {
+    pub fn new_single_frame(width: u32, height: u32, data: Vec<u8>) -> Self {
+        let hash = Self::hash_bytes(&data);
+        assert_eq!(
+            width * height * 4,
+            data.len() as u32,
+            "invalid dimensions {}x{} for pixel data of length {}",
+            width,
+            height,
+            data.len()
+        );
+        Self::Rgba8 {
+            width,
+            height,
+            data,
+            hash,
+        }
+    }
+
+    pub fn hash_bytes(bytes: &[u8]) -> [u8; 32] {
+        use sha2::Digest;
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(bytes);
+        hasher.finalize().into()
+    }
+
     pub fn compute_hash(&self) -> [u8; 32] {
         use sha2::Digest;
         let mut hasher = sha2::Sha256::new();
@@ -275,6 +306,7 @@ impl ImageDataType {
         let mut height = 0;
         let mut frames = vec![];
         let mut durations = vec![];
+        let mut hashes = vec![];
         for frame in img_frames.into_iter() {
             let duration: Duration = frame.delay().into();
             durations.push(duration);
@@ -282,13 +314,16 @@ impl ImageDataType {
             let (w, h) = image.dimensions();
             width = w;
             height = h;
-            frames.push(image.into_vec());
+            let data = image.into_vec();
+            hashes.push(Self::hash_bytes(&data));
+            frames.push(data);
         }
         Self::AnimRgba8 {
             width,
             height,
             frames,
             durations,
+            hashes,
         }
     }
 
@@ -298,10 +333,13 @@ impl ImageDataType {
             Ok(image) => {
                 let image = image.to_rgba8();
                 let (width, height) = image.dimensions();
+                let data = image.into_vec();
+                let hash = Self::hash_bytes(&data);
                 Self::Rgba8 {
                     width,
                     height,
-                    data: image.into_vec(),
+                    data,
+                    hash,
                 }
             }
             _ => Self::EncodedFile(data),

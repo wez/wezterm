@@ -103,11 +103,8 @@ impl TerminalState {
             }
         }
 
-        let image_data = ImageDataType::Rgba8 {
-            width,
-            height,
-            data: image.into_vec(),
-        };
+        let data = image.into_vec();
+        let image_data = ImageDataType::new_single_frame(width, height, data);
 
         let image_data = self.raw_image_to_image_data(image_data);
         self.assign_image_to_cells(ImageAttachParams {

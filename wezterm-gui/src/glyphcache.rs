@@ -169,12 +169,8 @@ pub struct DecodedImage {
 
 impl DecodedImage {
     fn placeholder() -> Self {
-        let image = ImageData::with_data(ImageDataType::Rgba8 {
-            // A single black pixel
-            data: vec![0, 0, 0, 0],
-            width: 1,
-            height: 1,
-        });
+        // A single black pixel
+        let image = ImageData::with_data(ImageDataType::new_single_frame(1, 1, vec![0, 0, 0, 0]));
         Self {
             frame_start: Instant::now(),
             current_frame: 0,
@@ -202,7 +198,7 @@ pub struct GlyphCache<T: Texture2d> {
     pub atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
     pub image_cache: LruCache<usize, DecodedImage>,
-    frame_cache: HashMap<(usize, usize), Sprite<T>>,
+    frame_cache: HashMap<[u8; 32], Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     pub block_glyphs: HashMap<BlockKey, Sprite<T>>,
     pub metrics: RenderMetrics,
@@ -525,28 +521,30 @@ impl<T: Texture2d> GlyphCache<T> {
     }
 
     fn cached_image_impl(
-        frame_cache: &mut HashMap<(usize, usize), Sprite<T>>,
+        frame_cache: &mut HashMap<[u8; 32], Sprite<T>>,
         atlas: &mut Atlas<T>,
         decoded: &mut DecodedImage,
         padding: Option<usize>,
     ) -> anyhow::Result<(Sprite<T>, Option<Instant>)> {
-        let id = decoded.image.id();
         let mut handle = DecodedImageHandle {
             h: decoded.image.data(),
             current_frame: decoded.current_frame,
         };
         match &*handle.h {
-            ImageDataType::Rgba8 { .. } => {
-                if let Some(sprite) = frame_cache.get(&(id, 0)) {
+            ImageDataType::Rgba8 { hash, .. } => {
+                if let Some(sprite) = frame_cache.get(hash) {
                     return Ok((sprite.clone(), None));
                 }
                 let sprite = atlas.allocate_with_padding(&handle, padding)?;
-                frame_cache.insert((id, 0), sprite.clone());
+                frame_cache.insert(*hash, sprite.clone());
 
                 return Ok((sprite, None));
             }
             ImageDataType::AnimRgba8 {
-                frames, durations, ..
+                hashes,
+                frames,
+                durations,
+                ..
             } => {
                 let mut next = None;
                 if frames.len() > 1 {
@@ -566,13 +564,15 @@ impl<T: Texture2d> GlyphCache<T> {
                     next.replace(next_due);
                 }
 
-                if let Some(sprite) = frame_cache.get(&(id, decoded.current_frame)) {
+                let hash = hashes[decoded.current_frame];
+
+                if let Some(sprite) = frame_cache.get(&hash) {
                     return Ok((sprite.clone(), next));
                 }
 
                 let sprite = atlas.allocate_with_padding(&handle, padding)?;
 
-                frame_cache.insert((id, decoded.current_frame), sprite.clone());
+                frame_cache.insert(hash, sprite.clone());
 
                 return Ok((
                     sprite,

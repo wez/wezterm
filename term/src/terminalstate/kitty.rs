@@ -332,6 +332,7 @@ impl TerminalState {
                 data,
                 width,
                 height,
+                ..
             } => RgbaImage::from_vec(width, height, data)
                 .ok_or_else(|| anyhow::anyhow!("data isn't rgba8"))?,
             wat => anyhow::bail!("data isn't rgba8 {:?}", wat),
@@ -353,6 +354,7 @@ impl TerminalState {
                 data,
                 width,
                 height,
+                hash,
             } => {
                 let base_frame = match frame.base_frame {
                     Some(1) => Some(1),
@@ -367,7 +369,7 @@ impl TerminalState {
                     Some(1) => {
                         // Edit in place
                         let len = data.len();
-                        let mut anim: ImageBuffer<Rgba<u8>, &mut [u8]> =
+                        let mut anim_img: ImageBuffer<Rgba<u8>, &mut [u8]> =
                             ImageBuffer::from_raw(*width, *height, data.as_mut_slice())
                                 .ok_or_else(|| {
                                     anyhow::anyhow!(
@@ -394,13 +396,14 @@ impl TerminalState {
 
                                 let img = img.view(0, 0, w, h);
 
-                                anim.copy_from(&img, frame.x.unwrap_or(0), frame.y.unwrap_or(0))
+                                anim_img
+                                    .copy_from(&img, frame.x.unwrap_or(0), frame.y.unwrap_or(0))
                                     .with_context(|| {
                                         format!(
                                             "copying img with dims {:?} to frame \
                                              with dims {:?} @ offset {:?}x{:?}",
                                             img.dimensions(),
-                                            anim.dimensions(),
+                                            anim_img.dimensions(),
                                             frame.x,
                                             frame.y
                                         )
@@ -410,6 +413,9 @@ impl TerminalState {
                                 anyhow::bail!("alphablend compositing not implemented");
                             }
                         }
+
+                        drop(anim_img);
+                        *hash = ImageDataType::hash_bytes(data);
                     }
                     None => {
                         // Create a second frame
@@ -426,6 +432,7 @@ impl TerminalState {
                 height,
                 frames,
                 durations,
+                hashes,
             } => {
                 anyhow::bail!("editing animations not yet done");
             }
@@ -499,21 +506,13 @@ impl TerminalState {
                     width * height * 4
                 );
 
-                ImageDataType::Rgba8 {
-                    width,
-                    height,
-                    data,
-                }
+                ImageDataType::new_single_frame(width, height, data)
             }
             Some(KittyImageFormat::Png) => {
                 let decoded = image::load_from_memory(&data).context("decode png")?;
                 let (width, height) = decoded.dimensions();
                 let data = decoded.into_rgba8().into_vec();
-                ImageDataType::Rgba8 {
-                    width,
-                    height,
-                    data,
-                }
+                ImageDataType::new_single_frame(width, height, data)
             }
         };
 
