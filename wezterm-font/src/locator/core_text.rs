@@ -6,7 +6,6 @@ use config::{FontAttributes, FontStretch, FontWeight};
 use core_foundation::array::CFArray;
 use core_foundation::base::TCFType;
 use core_foundation::dictionary::CFDictionary;
-use core_foundation::number::CFNumber;
 use core_foundation::string::CFString;
 use core_text::font::*;
 use core_text::font_descriptor::*;
@@ -28,35 +27,9 @@ fn descriptor_from_attr(attr: &FontAttributes) -> anyhow::Result<CFArray<CTFontD
         .parse::<CFString>()
         .map_err(|_| anyhow::anyhow!("failed to parse family name {} as CFString", attr.family))?;
 
-    let symbolic_traits: CTFontSymbolicTraits = kCTFontMonoSpaceTrait
-        | if attr.weight >= FontWeight::BOLD {
-            kCTFontBoldTrait
-        } else {
-            0
-        }
-        | if attr.stretch < FontStretch::Normal {
-            kCTFontCondensedTrait
-        } else if attr.stretch > FontStretch::Normal {
-            kCTFontExpandedTrait
-        } else {
-            0
-        }
-        | if attr.italic { kCTFontItalicTrait } else { 0 };
-
     let family_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontFamilyNameAttribute) };
-    let traits_attr: CFString = unsafe { TCFType::wrap_under_get_rule(kCTFontTraitsAttribute) };
-    let symbolic_traits_attr: CFString =
-        unsafe { TCFType::wrap_under_get_rule(kCTFontSymbolicTrait) };
 
-    let traits = CFDictionary::from_CFType_pairs(&[(
-        symbolic_traits_attr.as_CFType(),
-        CFNumber::from(symbolic_traits as i32).as_CFType(),
-    )]);
-
-    let attributes = CFDictionary::from_CFType_pairs(&[
-        (traits_attr, traits.as_CFType()),
-        (family_attr, family_name.as_CFType()),
-    ]);
+    let attributes = CFDictionary::from_CFType_pairs(&[(family_attr, family_name.as_CFType())]);
     let desc = core_text::font_descriptor::new_from_attributes(&attributes);
 
     let array = unsafe {
@@ -98,17 +71,20 @@ impl FontLocator for CoreTextFontLocator {
         let mut fonts = vec![];
 
         for attr in fonts_selection {
-            if let Ok(descriptors) = descriptor_from_attr(attr) {
-                let mut handles = vec![];
-                for descriptor in descriptors.iter() {
-                    handles.append(&mut handles_from_descriptor(&descriptor));
+            match descriptor_from_attr(attr) {
+                Ok(descriptors) => {
+                    let mut handles = vec![];
+                    for descriptor in descriptors.iter() {
+                        handles.append(&mut handles_from_descriptor(&descriptor));
+                    }
+                    log::trace!("core text matched {:?} to {:#?}", attr, handles);
+                    if let Some(parsed) = ParsedFont::best_match(attr, handles) {
+                        log::trace!("best match from core text is {:?}", parsed);
+                        fonts.push(parsed);
+                        loaded.insert(attr.clone());
+                    }
                 }
-                log::trace!("core text matched {:?} to {:#?}", attr, handles);
-                if let Some(parsed) = ParsedFont::best_match(attr, handles) {
-                    log::trace!("best match from core text is {:?}", parsed);
-                    fonts.push(parsed);
-                    loaded.insert(attr.clone());
-                }
+                Err(err) => log::trace!("load_fonts: descriptor_from_attr: {:#}", err),
             }
         }
 
