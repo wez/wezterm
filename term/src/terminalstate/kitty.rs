@@ -11,8 +11,8 @@ use std::time::Duration;
 use termwiz::escape::apc::KittyImageData;
 use termwiz::escape::apc::{
     KittyFrameCompositionMode, KittyImage, KittyImageCompression, KittyImageDelete,
-    KittyImageFormat, KittyImageFrame, KittyImagePlacement, KittyImageTransmit,
-    KittyImageVerbosity,
+    KittyImageFormat, KittyImageFrame, KittyImageFrameCompose, KittyImagePlacement,
+    KittyImageTransmit, KittyImageVerbosity,
 };
 use termwiz::image::ImageDataType;
 use termwiz::surface::change::ImageData;
@@ -269,6 +269,11 @@ impl TerminalState {
                     log::error!("Error {:#} while handling KittyImage::TransmitFrame", err,);
                 }
             }
+            KittyImage::ComposeFrame { frame, verbosity } => {
+                if let Err(err) = self.kitty_frame_compose(frame, verbosity) {
+                    log::error!("Error {:#} while handling KittyImage::ComposeFrame", err);
+                }
+            }
         };
 
         Ok(())
@@ -319,6 +324,115 @@ impl TerminalState {
             self.kitty_img.id_to_data.len(),
             self.kitty_img.used_memory,
         );
+    }
+
+    fn kitty_frame_compose(
+        &mut self,
+        frame: KittyImageFrameCompose,
+        verbosity: KittyImageVerbosity,
+    ) -> anyhow::Result<()> {
+        let image_id = match frame.image_number {
+            Some(no) => match self.kitty_img.number_to_id.get(&no) {
+                Some(id) => *id,
+                None => anyhow::bail!("no such image_number {}", no),
+            },
+            None => frame
+                .image_id
+                .ok_or_else(|| anyhow::anyhow!("no image_id"))?,
+        };
+
+        let src_frame = frame
+            .source_frame
+            .ok_or_else(|| anyhow::anyhow!("missing source frame"))?
+            as usize;
+        let target_frame = frame
+            .target_frame
+            .ok_or_else(|| anyhow::anyhow!("missing target frame"))?
+            as usize;
+
+        let img = self
+            .kitty_img
+            .id_to_data
+            .get(&image_id)
+            .ok_or_else(|| anyhow::anyhow!("invalid image id {}", image_id))?;
+
+        let mut img = img.data();
+        match &mut *img {
+            ImageDataType::EncodedFile(_) => anyhow::bail!("invalid image type"),
+            ImageDataType::Rgba8 {
+                width,
+                height,
+                data,
+                hash,
+            } => {
+                anyhow::ensure!(
+                    src_frame == target_frame && src_frame == 1,
+                    "src_frame={} target_frame={} but there is only a single frame",
+                    src_frame,
+                    target_frame
+                );
+
+                let mut anim_img: ImageBuffer<Rgba<u8>, &mut [u8]> =
+                    ImageBuffer::from_raw(*width, *height, data.as_mut_slice())
+                        .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
+
+                anyhow::bail!("TODO: finish this case in frame compose");
+            }
+            ImageDataType::AnimRgba8 {
+                width,
+                height,
+                frames,
+                hashes,
+                ..
+            } => {
+                anyhow::ensure!(
+                    src_frame > 0 && src_frame <= frames.len(),
+                    "src_frame {} is out of range",
+                    src_frame
+                );
+                anyhow::ensure!(
+                    target_frame > 0 && target_frame <= frames.len(),
+                    "target_frame {} is out of range",
+                    target_frame
+                );
+
+                if src_frame != target_frame {
+                    let src = RgbaImage::from_vec(*width, *height, frames[src_frame - 1].clone())
+                        .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
+
+                    let src = src.view(
+                        frame.src_x.unwrap_or(0),
+                        frame.src_y.unwrap_or(0),
+                        frame.w.unwrap_or(*width),
+                        frame.h.unwrap_or(*height),
+                    );
+
+                    let mut dest: ImageBuffer<Rgba<u8>, &mut [u8]> = ImageBuffer::from_raw(
+                        *width,
+                        *height,
+                        frames[target_frame - 1].as_mut_slice(),
+                    )
+                    .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
+
+                    blit(
+                        &mut dest,
+                        *width,
+                        *height,
+                        &src,
+                        frame.x.unwrap_or(0),
+                        frame.y.unwrap_or(0),
+                        frame.composition_mode,
+                    )?;
+
+                    drop(dest);
+                    hashes[target_frame - 1] = ImageDataType::hash_bytes(&frames[target_frame - 1]);
+                } else {
+                    anyhow::bail!("TODO: editing in place not yet impl");
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn kitty_frame_transmit(
@@ -373,50 +487,6 @@ impl TerminalState {
             Some(n) => n.into(),
         });
 
-        fn blit<D, S, P>(
-            dest: &mut D,
-            dest_width: u32,
-            dest_height: u32,
-            src: &S,
-            x: u32,
-            y: u32,
-            mode: KittyFrameCompositionMode,
-        ) -> anyhow::Result<()>
-        where
-            D: GenericImage<Pixel = P>,
-            S: GenericImageView<Pixel = P>,
-        {
-            // Notcurses can send an img with x,y position that overflows
-            // the target frame, so we need to make a view that clips the
-            // source image data.
-
-            let (src_w, src_h) = src.dimensions();
-
-            let w = src_w.min(dest_width.saturating_sub(x));
-            let h = src_h.min(dest_height.saturating_sub(y));
-
-            let src = src.view(0, 0, w, h);
-            match mode {
-                KittyFrameCompositionMode::Overwrite => {
-                    dest.copy_from(&src, x, y).with_context(|| {
-                        format!(
-                            "copying img with dims {:?} to frame \
-                                             with dims {}x{} @ offset {:?}x{:?}",
-                            src.dimensions(),
-                            dest_width,
-                            dest_height,
-                            x,
-                            y
-                        )
-                    })?;
-                }
-                KittyFrameCompositionMode::AlphaBlending => {
-                    ::image::imageops::overlay(dest, &src, x, y);
-                }
-            }
-            Ok(())
-        }
-
         match &mut *anim {
             ImageDataType::EncodedFile(_) => {
                 anyhow::bail!("Expected decoded image for image id {}", image_id)
@@ -465,7 +535,7 @@ impl TerminalState {
                         drop(anim_img);
                         *hash = ImageDataType::hash_bytes(data);
                     }
-                    None => {
+                    Some(2) | None => {
                         // Create a second frame
 
                         let mut new_frame = if base_frame.is_some() {
@@ -488,7 +558,7 @@ impl TerminalState {
                         let new_frame_hash = ImageDataType::hash_bytes(&new_frame_data);
 
                         let frames = vec![std::mem::take(data), new_frame_data];
-                        let durations = vec![Duration::from_millis(40), frame_gap];
+                        let durations = vec![Duration::from_millis(0), frame_gap];
                         let hashes = vec![*hash, new_frame_hash];
 
                         *anim = ImageDataType::AnimRgba8 {
@@ -691,11 +761,6 @@ impl TerminalState {
     }
 
     fn coalesce_kitty_accumulation(&mut self, img: KittyImage) -> anyhow::Result<KittyImage> {
-        log::trace!(
-            "coalesce: accumulator={:#?} img:{:#?}",
-            self.kitty_img.accumulator,
-            img
-        );
         if self.kitty_img.accumulator.is_empty() {
             Ok(img)
         } else {
@@ -764,4 +829,48 @@ impl TerminalState {
             }
         }
     }
+}
+
+fn blit<D, S, P>(
+    dest: &mut D,
+    dest_width: u32,
+    dest_height: u32,
+    src: &S,
+    x: u32,
+    y: u32,
+    mode: KittyFrameCompositionMode,
+) -> anyhow::Result<()>
+where
+    D: GenericImage<Pixel = P>,
+    S: GenericImageView<Pixel = P>,
+{
+    // Notcurses can send an img with x,y position that overflows
+    // the target frame, so we need to make a view that clips the
+    // source image data.
+
+    let (src_w, src_h) = src.dimensions();
+
+    let w = src_w.min(dest_width.saturating_sub(x));
+    let h = src_h.min(dest_height.saturating_sub(y));
+
+    let src = src.view(0, 0, w, h);
+    match mode {
+        KittyFrameCompositionMode::Overwrite => {
+            dest.copy_from(&src, x, y).with_context(|| {
+                format!(
+                    "copying img with dims {:?} to frame \
+                                             with dims {}x{} @ offset {:?}x{:?}",
+                    src.dimensions(),
+                    dest_width,
+                    dest_height,
+                    x,
+                    y
+                )
+            })?;
+        }
+        KittyFrameCompositionMode::AlphaBlending => {
+            ::image::imageops::overlay(dest, &src, x, y);
+        }
+    }
+    Ok(())
 }
