@@ -975,8 +975,9 @@ impl super::TermWindow {
 
                         quad.set_texture(
                             gl_state
-                                .util_sprites
-                                .cursor_sprite(cursor_shape)
+                                .glyph_cache
+                                .borrow_mut()
+                                .cursor_sprite(cursor_shape)?
                                 .texture_coords(),
                         );
 
@@ -1174,8 +1175,9 @@ impl super::TermWindow {
                     (params.filled_box, bg_color),
                     (
                         gl_state
-                            .util_sprites
-                            .cursor_sprite(cursor_shape)
+                            .glyph_cache
+                            .borrow_mut()
+                            .cursor_sprite(cursor_shape)?
                             .texture_coords(),
                         params.cursor_border_color,
                     ),

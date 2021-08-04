@@ -20,6 +20,7 @@ use std::rc::Rc;
 use std::sync::{Arc, MutexGuard};
 use std::time::Instant;
 use termwiz::image::{ImageData, ImageDataType};
+use termwiz::surface::CursorShape;
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo};
 use wezterm_term::Underline;
@@ -201,6 +202,7 @@ pub struct GlyphCache<T: Texture2d> {
     frame_cache: HashMap<[u8; 32], Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     pub block_glyphs: HashMap<BlockKey, Sprite<T>>,
+    pub cursor_glyphs: HashMap<Option<CursorShape>, Sprite<T>>,
     pub metrics: RenderMetrics,
 }
 
@@ -227,6 +229,7 @@ impl GlyphCache<ImageTexture> {
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
             block_glyphs: HashMap::new(),
+            cursor_glyphs: HashMap::new(),
         })
     }
 }
@@ -278,6 +281,7 @@ impl GlyphCache<SrgbTexture2d> {
             metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
             block_glyphs: HashMap::new(),
+            cursor_glyphs: HashMap::new(),
         })
     }
 }

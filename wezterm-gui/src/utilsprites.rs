@@ -5,7 +5,6 @@ use ::window::color::SrgbaPixel;
 use ::window::{Point, Rect, Size};
 use anyhow::Context;
 use std::rc::Rc;
-use termwiz::surface::CursorShape;
 use wezterm_font::units::*;
 use wezterm_font::FontConfiguration;
 
@@ -59,9 +58,6 @@ impl RenderMetrics {
 pub struct UtilSprites<T: Texture2d> {
     pub white_space: Sprite<T>,
     pub filled_box: Sprite<T>,
-    pub cursor_box: Sprite<T>,
-    pub cursor_i_beam: Sprite<T>,
-    pub cursor_underline: Sprite<T>,
 }
 
 impl<T: Texture2d> UtilSprites<T> {
@@ -85,112 +81,9 @@ impl<T: Texture2d> UtilSprites<T> {
         buffer.clear_rect(cell_rect, black);
         let white_space = glyph_cache.atlas.allocate(&buffer)?;
 
-        // Derive a width for the border box from the underline height,
-        // but aspect ratio adjusted for width.
-        let border_width = (metrics.underline_height as f64 * metrics.cell_size.width as f64
-            / metrics.cell_size.height as f64)
-            .ceil() as usize;
-
-        buffer.clear_rect(cell_rect, black);
-        for i in 0..metrics.underline_height {
-            // Top border
-            buffer.draw_line(
-                Point::new(cell_rect.origin.x, cell_rect.origin.y + i),
-                Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width,
-                    cell_rect.origin.y + i,
-                ),
-                white,
-            );
-            // Bottom border
-            buffer.draw_line(
-                Point::new(
-                    cell_rect.origin.x,
-                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
-                ),
-                Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width,
-                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
-                ),
-                white,
-            );
-        }
-        for i in 0..border_width {
-            // Left border
-            buffer.draw_line(
-                Point::new(cell_rect.origin.x + i as isize, cell_rect.origin.y),
-                Point::new(
-                    cell_rect.origin.x + i as isize,
-                    cell_rect.origin.y + metrics.cell_size.height,
-                ),
-                white,
-            );
-            // Right border
-            buffer.draw_line(
-                Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width.saturating_sub(1 + i as isize),
-                    cell_rect.origin.y,
-                ),
-                Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width.saturating_sub(1 + i as isize),
-                    cell_rect.origin.y + metrics.cell_size.height,
-                ),
-                white,
-            );
-        }
-        let cursor_box = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        for i in 0..border_width * 2 {
-            // Left border
-            buffer.draw_line(
-                Point::new(cell_rect.origin.x + i as isize, cell_rect.origin.y),
-                Point::new(
-                    cell_rect.origin.x + i as isize,
-                    cell_rect.origin.y + metrics.cell_size.height,
-                ),
-                white,
-            );
-        }
-        let cursor_i_beam = glyph_cache.atlas.allocate(&buffer)?;
-
-        buffer.clear_rect(cell_rect, black);
-        for i in 0..metrics.underline_height {
-            // Bottom border
-            buffer.draw_line(
-                Point::new(
-                    cell_rect.origin.x,
-                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
-                ),
-                Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width,
-                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
-                ),
-                white,
-            );
-        }
-        let cursor_underline = glyph_cache.atlas.allocate(&buffer)?;
-
         Ok(Self {
             white_space,
             filled_box,
-            cursor_box,
-            cursor_i_beam,
-            cursor_underline,
         })
-    }
-
-    pub fn cursor_sprite(&self, shape: Option<CursorShape>) -> &Sprite<T> {
-        match shape {
-            None => &self.white_space,
-            Some(shape) => match shape {
-                CursorShape::Default => &self.white_space,
-                CursorShape::BlinkingBlock | CursorShape::SteadyBlock => &self.cursor_box,
-                CursorShape::BlinkingBar | CursorShape::SteadyBar => &self.cursor_i_beam,
-                CursorShape::BlinkingUnderline | CursorShape::SteadyUnderline => {
-                    &self.cursor_underline
-                }
-            },
-        }
     }
 }

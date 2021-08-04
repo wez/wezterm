@@ -2,6 +2,7 @@ use crate::glyphcache::GlyphCache;
 use ::window::bitmaps::atlas::Sprite;
 use ::window::color::{LinearRgba, SrgbaPixel};
 use std::ops::Range;
+use termwiz::surface::CursorShape;
 use tiny_skia::{FillRule, Paint, Path, PathBuilder, PixmapMut, Stroke, Transform};
 use window::bitmaps::Texture2d;
 use window::{BitmapImage, Image, Point, Rect};
@@ -3626,6 +3627,104 @@ impl BlockKey {
 }
 
 impl<T: Texture2d> GlyphCache<T> {
+    fn draw_polys(&mut self, polys: &[Poly], buffer: &mut Image) {
+        let (width, height) = buffer.image_dimensions();
+        let mut pixmap =
+            PixmapMut::from_bytes(buffer.pixel_data_slice_mut(), width as u32, height as u32)
+                .expect("make pixmap from existing bitmap");
+
+        for Poly {
+            path,
+            intensity,
+            style,
+        } in polys
+        {
+            let intensity = (intensity.to_scale() * 255.) as u8;
+            let mut paint = Paint::default();
+            paint.set_color_rgba8(intensity, intensity, intensity, intensity);
+            paint.anti_alias = true;
+            paint.force_hq_pipeline = true;
+            let mut pb = PathBuilder::new();
+            for item in path.iter() {
+                item.to_skia(width, height, self.metrics.underline_height as f32, &mut pb);
+            }
+            let path = pb.finish().expect("poly path to be valid");
+            style.apply(
+                self.metrics.underline_height as f32,
+                &paint,
+                &path,
+                &mut pixmap,
+            );
+        }
+    }
+
+    pub fn cursor_sprite(&mut self, shape: Option<CursorShape>) -> anyhow::Result<Sprite<T>> {
+        if let Some(sprite) = self.cursor_glyphs.get(&shape) {
+            return Ok(sprite.clone());
+        }
+
+        let mut buffer = Image::new(
+            self.metrics.cell_size.width as usize,
+            self.metrics.cell_size.height as usize,
+        );
+        let black = SrgbaPixel::rgba(0, 0, 0, 0);
+        let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
+        buffer.clear_rect(cell_rect, black);
+
+        match shape {
+            None => {}
+            Some(CursorShape::Default) => {
+                buffer.clear_rect(cell_rect, SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff));
+            }
+            Some(CursorShape::BlinkingBlock | CursorShape::SteadyBlock) => {
+                self.draw_polys(
+                    &[Poly {
+                        path: &[
+                            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                            PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                            PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                            PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                            PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
+                        ],
+                        intensity: BlockAlpha::Full,
+                        style: PolyStyle::OutlineHeavy,
+                    }],
+                    &mut buffer,
+                );
+            }
+            Some(CursorShape::BlinkingBar | CursorShape::SteadyBar) => {
+                self.draw_polys(
+                    &[Poly {
+                        path: &[
+                            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                            PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+                        ],
+                        intensity: BlockAlpha::Full,
+                        style: PolyStyle::OutlineHeavy,
+                    }],
+                    &mut buffer,
+                );
+            }
+            Some(CursorShape::BlinkingUnderline | CursorShape::SteadyUnderline) => {
+                self.draw_polys(
+                    &[Poly {
+                        path: &[
+                            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                            PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+                        ],
+                        intensity: BlockAlpha::Full,
+                        style: PolyStyle::OutlineHeavy,
+                    }],
+                    &mut buffer,
+                );
+            }
+        }
+
+        let sprite = self.atlas.allocate(&buffer)?;
+        self.cursor_glyphs.insert(shape, sprite.clone());
+        Ok(sprite)
+    }
+
     pub fn block_sprite(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {
         let mut buffer = Image::new(
             self.metrics.cell_size.width as usize,
@@ -3635,39 +3734,7 @@ impl<T: Texture2d> GlyphCache<T> {
 
         let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
 
-        fn scale(f: f32) -> usize {
-            f.ceil().max(1.) as usize
-        }
-
         buffer.clear_rect(cell_rect, black);
-
-        // Fill a rectangular region described by the x and y ranges
-        let fill_rect = |buffer: &mut Image, x: Range<usize>, y: Range<usize>| {
-            let (width, height) = buffer.image_dimensions();
-            let mut pixmap =
-                PixmapMut::from_bytes(buffer.pixel_data_slice_mut(), width as u32, height as u32)
-                    .expect("make pixmap from existing bitmap");
-
-            let x = x.start as f32..x.end as f32;
-            let y = y.start as f32..y.end as f32;
-
-            let path = PathBuilder::from_rect(
-                tiny_skia::Rect::from_xywh(x.start, y.start, x.end - x.start, y.end - y.start)
-                    .expect("valid rect"),
-            );
-
-            let mut paint = Paint::default();
-            paint.set_color(tiny_skia::Color::WHITE);
-            paint.force_hq_pipeline = true;
-
-            pixmap.fill_path(
-                &path,
-                &paint,
-                FillRule::Winding,
-                Transform::identity(),
-                None,
-            );
-        };
 
         match block {
             BlockKey::Upper(num) => {
@@ -3814,37 +3881,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 }
             }
             BlockKey::Poly(polys) => {
-                let (width, height) = buffer.image_dimensions();
-                let mut pixmap = PixmapMut::from_bytes(
-                    buffer.pixel_data_slice_mut(),
-                    width as u32,
-                    height as u32,
-                )
-                .expect("make pixmap from existing bitmap");
-
-                for Poly {
-                    path,
-                    intensity,
-                    style,
-                } in polys
-                {
-                    let intensity = (intensity.to_scale() * 255.) as u8;
-                    let mut paint = Paint::default();
-                    paint.set_color_rgba8(intensity, intensity, intensity, intensity);
-                    paint.anti_alias = true;
-                    paint.force_hq_pipeline = true;
-                    let mut pb = PathBuilder::new();
-                    for item in path.iter() {
-                        item.to_skia(width, height, self.metrics.underline_height as f32, &mut pb);
-                    }
-                    let path = pb.finish().expect("poly path to be valid");
-                    style.apply(
-                        self.metrics.underline_height as f32,
-                        &paint,
-                        &path,
-                        &mut pixmap,
-                    );
-                }
+                self.draw_polys(polys, &mut buffer);
             }
         }
 
@@ -3857,4 +3894,36 @@ impl<T: Texture2d> GlyphCache<T> {
         self.block_glyphs.insert(block, sprite.clone());
         Ok(sprite)
     }
+}
+
+// Fill a rectangular region described by the x and y ranges
+fn fill_rect(buffer: &mut Image, x: Range<usize>, y: Range<usize>) {
+    let (width, height) = buffer.image_dimensions();
+    let mut pixmap =
+        PixmapMut::from_bytes(buffer.pixel_data_slice_mut(), width as u32, height as u32)
+            .expect("make pixmap from existing bitmap");
+
+    let x = x.start as f32..x.end as f32;
+    let y = y.start as f32..y.end as f32;
+
+    let path = PathBuilder::from_rect(
+        tiny_skia::Rect::from_xywh(x.start, y.start, x.end - x.start, y.end - y.start)
+            .expect("valid rect"),
+    );
+
+    let mut paint = Paint::default();
+    paint.set_color(tiny_skia::Color::WHITE);
+    paint.force_hq_pipeline = true;
+
+    pixmap.fill_path(
+        &path,
+        &paint,
+        FillRule::Winding,
+        Transform::identity(),
+        None,
+    );
+}
+
+fn scale(f: f32) -> usize {
+    f.ceil().max(1.) as usize
 }

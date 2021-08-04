@@ -44,7 +44,7 @@ impl Default for CursorVisibility {
 }
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CursorShape {
     Default,
     BlinkingBlock,
