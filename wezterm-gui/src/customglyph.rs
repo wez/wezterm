@@ -3415,6 +3415,26 @@ impl BlockKey {
                 intensity: BlockAlpha::Full,
                 style: PolyStyle::Fill,
             }]),
+            // [🮂] Upper One Quarter Block
+            0x1fb82 => Self::Upper(2),
+            // [🮃] Upper three eighths block
+            0x1fb83 => Self::Upper(3),
+            // [🮄] Upper five eighths block
+            0x1fb84 => Self::Upper(5),
+            // [🮅] Upper three quarters block
+            0x1fb85 => Self::Upper(6),
+            // [🮆] Upper seven eighths block
+            0x1fb86 => Self::Upper(7),
+            // [🮇] Right One Quarter Block
+            0x1fb87 => Self::Right(2),
+            // [🮈] Right three eighths block
+            0x1fb88 => Self::Right(3),
+            // [🮉] Right five eighths block
+            0x1fb89 => Self::Right(5),
+            // [🮊] Right three quarters block
+            0x1fb8a => Self::Right(6),
+            // [🮋] Right seven eighths block
+            0x1fb8b => Self::Right(7),
 
             // [] Powerline filled right arrow
             0xe0b0 => Self::Poly(&[Poly {
