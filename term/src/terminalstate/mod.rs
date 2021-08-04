@@ -1002,6 +1002,7 @@ impl TerminalState {
                 self.screen.saved_cursor().take();
                 self.screen.activate_primary_screen();
                 self.screen.saved_cursor().take();
+                self.kitty_remove_all_placements(true);
 
                 self.reverse_wraparound_mode = false;
                 self.reverse_video_mode = false;

@@ -252,6 +252,12 @@ impl TerminalState {
                     self.kitty_img.remove_data_for_id(image_id);
                 }
             }
+            KittyImage::Delete {
+                what: KittyImageDelete::All { delete },
+                verbosity,
+            } => {
+                self.kitty_remove_all_placements(delete);
+            }
             KittyImage::Delete { what, verbosity } => {
                 log::warn!("unhandled KittyImage::Delete {:?} {:?}", what, verbosity);
             }
@@ -319,6 +325,17 @@ impl TerminalState {
             self.kitty_img.id_to_data.len(),
             self.kitty_img.used_memory,
         );
+    }
+
+    pub(crate) fn kitty_remove_all_placements(&mut self, delete: bool) {
+        for ((image_id, p), info) in std::mem::take(&mut self.kitty_img.placements).into_iter() {
+            self.kitty_remove_placement_from_model(image_id, p, info);
+        }
+        if delete {
+            self.kitty_img.id_to_data.clear();
+            self.kitty_img.used_memory = 0;
+            self.kitty_img.number_to_id.clear();
+        }
     }
 
     fn kitty_frame_compose(
