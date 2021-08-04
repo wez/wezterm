@@ -7,6 +7,7 @@ use ::image::{
 use anyhow::Context;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::time::Duration;
 use termwiz::escape::apc::KittyImageData;
 use termwiz::escape::apc::{
     KittyFrameCompositionMode, KittyImage, KittyImageCompression, KittyImageDelete,
@@ -133,8 +134,9 @@ impl TerminalState {
             .placements
             .insert((image_id, placement.placement_id), info);
         log::trace!(
-            "record placement for {} {:?}",
+            "record placement for {} (image_number {:?}) {:?}",
             image_id,
+            image_number,
             placement.placement_id
         );
 
@@ -321,10 +323,21 @@ impl TerminalState {
 
     fn kitty_frame_transmit(
         &mut self,
-        transmit: KittyImageTransmit,
+        mut transmit: KittyImageTransmit,
         frame: KittyImageFrame,
         verbosity: KittyImageVerbosity,
     ) -> anyhow::Result<()> {
+        if let Some(no) = transmit.image_number.take() {
+            match self.kitty_img.number_to_id.get(&no) {
+                Some(id) => {
+                    transmit.image_id.replace(*id);
+                }
+                None => {
+                    transmit.image_number.replace(no);
+                }
+            }
+        }
+
         let (image_id, _image_number, img) = self.kitty_img_transmit_inner(transmit)?;
 
         let img = match img.decode() {
@@ -338,6 +351,14 @@ impl TerminalState {
             wat => anyhow::bail!("data isn't rgba8 {:?}", wat),
         };
 
+        let background_pixel = frame.background_pixel.unwrap_or(0);
+        let background_pixel = Rgba([
+            ((background_pixel >> 24) & 0xff) as u8,
+            ((background_pixel >> 16) & 0xff) as u8,
+            ((background_pixel >> 8) & 0xff) as u8,
+            (background_pixel & 0xff) as u8,
+        ]);
+
         let anim = self
             .kitty_img
             .id_to_data
@@ -345,6 +366,56 @@ impl TerminalState {
             .ok_or_else(|| anyhow::anyhow!("no matching image id"))?;
 
         let mut anim = anim.data();
+        let x = frame.x.unwrap_or(0);
+        let y = frame.y.unwrap_or(0);
+        let frame_gap = Duration::from_millis(match frame.duration_ms {
+            None | Some(0) => 40,
+            Some(n) => n.into(),
+        });
+
+        fn blit<D, S, P>(
+            dest: &mut D,
+            dest_width: u32,
+            dest_height: u32,
+            src: &S,
+            x: u32,
+            y: u32,
+            mode: KittyFrameCompositionMode,
+        ) -> anyhow::Result<()>
+        where
+            D: GenericImage<Pixel = P>,
+            S: GenericImageView<Pixel = P>,
+        {
+            // Notcurses can send an img with x,y position that overflows
+            // the target frame, so we need to make a view that clips the
+            // source image data.
+
+            let (src_w, src_h) = src.dimensions();
+
+            let w = src_w.min(dest_width.saturating_sub(x));
+            let h = src_h.min(dest_height.saturating_sub(y));
+
+            let src = src.view(0, 0, w, h);
+            match mode {
+                KittyFrameCompositionMode::Overwrite => {
+                    dest.copy_from(&src, x, y).with_context(|| {
+                        format!(
+                            "copying img with dims {:?} to frame \
+                                             with dims {}x{} @ offset {:?}x{:?}",
+                            src.dimensions(),
+                            dest_width,
+                            dest_height,
+                            x,
+                            y
+                        )
+                    })?;
+                }
+                KittyFrameCompositionMode::AlphaBlending => {
+                    ::image::imageops::overlay(dest, &src, x, y);
+                }
+            }
+            Ok(())
+        }
 
         match &mut *anim {
             ImageDataType::EncodedFile(_) => {
@@ -381,45 +452,52 @@ impl TerminalState {
                                     )
                                 })?;
 
-                        match frame.composition_mode {
-                            KittyFrameCompositionMode::Overwrite => {
-                                // Notcurses can send an img with x,y position that overflows
-                                // the target frame, so we need to make a view that clips the
-                                // source image data.
-                                let x = frame.x.unwrap_or(0);
-                                let y = frame.y.unwrap_or(0);
-
-                                let (src_w, src_h) = img.dimensions();
-
-                                let w = src_w.min(width.saturating_sub(x));
-                                let h = src_h.min(height.saturating_sub(y));
-
-                                let img = img.view(0, 0, w, h);
-
-                                anim_img
-                                    .copy_from(&img, frame.x.unwrap_or(0), frame.y.unwrap_or(0))
-                                    .with_context(|| {
-                                        format!(
-                                            "copying img with dims {:?} to frame \
-                                             with dims {:?} @ offset {:?}x{:?}",
-                                            img.dimensions(),
-                                            anim_img.dimensions(),
-                                            frame.x,
-                                            frame.y
-                                        )
-                                    })?;
-                            }
-                            KittyFrameCompositionMode::AlphaBlending => {
-                                anyhow::bail!("alphablend compositing not implemented");
-                            }
-                        }
+                        blit(
+                            &mut anim_img,
+                            *width,
+                            *height,
+                            &img,
+                            x,
+                            y,
+                            frame.composition_mode,
+                        )?;
 
                         drop(anim_img);
                         *hash = ImageDataType::hash_bytes(data);
                     }
                     None => {
                         // Create a second frame
-                        anyhow::bail!("crating frames not yet done");
+
+                        let mut new_frame = if base_frame.is_some() {
+                            RgbaImage::from_vec(*width, *height, data.clone()).unwrap()
+                        } else {
+                            RgbaImage::from_pixel(*width, *height, background_pixel)
+                        };
+
+                        blit(
+                            &mut new_frame,
+                            *width,
+                            *height,
+                            &img,
+                            x,
+                            y,
+                            frame.composition_mode,
+                        )?;
+
+                        let new_frame_data = new_frame.into_vec();
+                        let new_frame_hash = ImageDataType::hash_bytes(&new_frame_data);
+
+                        let frames = vec![std::mem::take(data), new_frame_data];
+                        let durations = vec![Duration::from_millis(40), frame_gap];
+                        let hashes = vec![*hash, new_frame_hash];
+
+                        *anim = ImageDataType::AnimRgba8 {
+                            width: *width,
+                            height: *height,
+                            frames,
+                            durations,
+                            hashes,
+                        };
                     }
                     Some(n) => anyhow::bail!(
                         "attempted to edit frame {} but there is only a single frame",
@@ -434,7 +512,76 @@ impl TerminalState {
                 durations,
                 hashes,
             } => {
-                anyhow::bail!("editing animations not yet done");
+                let frame_no = frame.frame_number.unwrap_or(frames.len() as u32 + 1);
+                if frame_no == frames.len() as u32 + 1 {
+                    // Append a new frame
+
+                    let mut new_frame = match frame.base_frame {
+                        None => RgbaImage::from_pixel(*width, *height, background_pixel),
+                        Some(n) => {
+                            let n = n as usize;
+                            anyhow::ensure!(
+                                n > 0 && n <= frames.len(),
+                                "attempted to copy frame {} which is outside range 1-{}",
+                                n,
+                                frames.len()
+                            );
+                            RgbaImage::from_vec(*width, *height, frames[n - 1].clone()).unwrap()
+                        }
+                    };
+
+                    blit(
+                        &mut new_frame,
+                        *width,
+                        *height,
+                        &img,
+                        x,
+                        y,
+                        frame.composition_mode,
+                    )?;
+
+                    let new_frame_data = new_frame.into_vec();
+                    let new_frame_hash = ImageDataType::hash_bytes(&new_frame_data);
+
+                    frames.push(new_frame_data);
+                    hashes.push(new_frame_hash);
+                    durations.push(frame_gap);
+                } else {
+                    anyhow::ensure!(
+                        frame_no > 0 && frame_no <= frames.len() as u32,
+                        "attempted to edit frame {} which is outside range 1-{}",
+                        frame_no,
+                        frames.len()
+                    );
+
+                    let frame_no = frame_no as usize;
+
+                    let len = frames[frame_no - 1].len();
+                    let mut anim_img: ImageBuffer<Rgba<u8>, &mut [u8]> =
+                        ImageBuffer::from_raw(*width, *height, frames[frame_no - 1].as_mut_slice())
+                            .ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "ImageBuffer::from_raw failed for single \
+                                         frame of {}x{} ({} bytes)",
+                                    width,
+                                    height,
+                                    len
+                                )
+                            })?;
+
+                    blit(
+                        &mut anim_img,
+                        *width,
+                        *height,
+                        &img,
+                        x,
+                        y,
+                        frame.composition_mode,
+                    )?;
+
+                    drop(anim_img);
+                    hashes[frame_no - 1] = ImageDataType::hash_bytes(&frames[frame_no - 1]);
+                }
             }
         }
 
