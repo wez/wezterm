@@ -1195,6 +1195,9 @@ pub struct Config {
 
     #[serde(default)]
     pub pane_focus_follows_mouse: bool,
+
+    #[serde(default)]
+    pub use_alternative_alpha_blending: bool,
 }
 impl_lua_conversion!(Config);
 

@@ -543,8 +543,11 @@ impl super::TermWindow {
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
             },
-            //&blend_but_set_alpha_to_one,
-            &alpha_blending,
+            if self.config.use_alternative_alpha_blending {
+                &blend_but_set_alpha_to_one
+            } else {
+                &alpha_blending
+            },
         )?;
 
         vb.next_index();
