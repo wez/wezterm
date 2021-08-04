@@ -384,11 +384,40 @@ impl TerminalState {
                     target_frame
                 );
 
-                let mut anim_img: ImageBuffer<Rgba<u8>, &mut [u8]> =
+                let src = {
+                    let src = ImageBuffer::from_raw(*width, *height, data.as_mut_slice())
+                        .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
+
+                    let view = src.view(
+                        frame.src_x.unwrap_or(0),
+                        frame.src_y.unwrap_or(0),
+                        frame.w.unwrap_or(*width),
+                        frame.h.unwrap_or(*height),
+                    );
+
+                    let mut tmp =
+                        RgbaImage::new(frame.w.unwrap_or(*width), frame.h.unwrap_or(*height));
+                    tmp.copy_from(&view, 0, 0).context("copy source image")?;
+                    tmp
+                };
+
+                let mut dest: ImageBuffer<Rgba<u8>, &mut [u8]> =
                     ImageBuffer::from_raw(*width, *height, data.as_mut_slice())
                         .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
 
-                anyhow::bail!("TODO: finish this case in frame compose");
+                blit(
+                    &mut dest,
+                    *width,
+                    *height,
+                    &src,
+                    frame.x.unwrap_or(0),
+                    frame.y.unwrap_or(0),
+                    frame.composition_mode,
+                )?;
+
+                drop(dest);
+
+                *hash = ImageDataType::hash_bytes(data);
             }
             ImageDataType::AnimRgba8 {
                 width,
@@ -408,39 +437,47 @@ impl TerminalState {
                     target_frame
                 );
 
-                if src_frame != target_frame {
-                    let src = RgbaImage::from_vec(*width, *height, frames[src_frame - 1].clone())
-                        .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
+                // Make a copy of the source region.
+                // Ideally we wouldn't need this, but Rust's mutability rules
+                // make it very awkward to mutably reference a frame while
+                // an immutable reference exists to a separate frame.
+                let src = {
+                    let src = ImageBuffer::from_raw(
+                        *width,
+                        *height,
+                        frames[src_frame - 1].as_mut_slice(),
+                    )
+                    .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
 
-                    let src = src.view(
+                    let view = src.view(
                         frame.src_x.unwrap_or(0),
                         frame.src_y.unwrap_or(0),
                         frame.w.unwrap_or(*width),
                         frame.h.unwrap_or(*height),
                     );
 
-                    let mut dest: ImageBuffer<Rgba<u8>, &mut [u8]> = ImageBuffer::from_raw(
-                        *width,
-                        *height,
-                        frames[target_frame - 1].as_mut_slice(),
-                    )
-                    .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
+                    let mut tmp =
+                        RgbaImage::new(frame.w.unwrap_or(*width), frame.h.unwrap_or(*height));
+                    tmp.copy_from(&view, 0, 0).context("copy source image")?;
+                    tmp
+                };
 
-                    blit(
-                        &mut dest,
-                        *width,
-                        *height,
-                        &src,
-                        frame.x.unwrap_or(0),
-                        frame.y.unwrap_or(0),
-                        frame.composition_mode,
-                    )?;
+                let mut dest: ImageBuffer<Rgba<u8>, &mut [u8]> =
+                    ImageBuffer::from_raw(*width, *height, frames[target_frame - 1].as_mut_slice())
+                        .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
 
-                    drop(dest);
-                    hashes[target_frame - 1] = ImageDataType::hash_bytes(&frames[target_frame - 1]);
-                } else {
-                    anyhow::bail!("TODO: editing in place not yet impl");
-                }
+                blit(
+                    &mut dest,
+                    *width,
+                    *height,
+                    &src,
+                    frame.x.unwrap_or(0),
+                    frame.y.unwrap_or(0),
+                    frame.composition_mode,
+                )?;
+
+                drop(dest);
+                hashes[target_frame - 1] = ImageDataType::hash_bytes(&frames[target_frame - 1]);
             }
         }
 
