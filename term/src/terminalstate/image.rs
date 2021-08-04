@@ -44,6 +44,7 @@ pub struct ImageAttachParams {
     pub placement_id: Option<u32>,
 
     pub style: ImageAttachStyle,
+    pub do_not_move_cursor: bool,
 
     pub data: Arc<ImageData>,
 }
@@ -99,9 +100,20 @@ impl TerminalState {
             self.pixel_width,
             self.pixel_height
         );
-        for _ in 0..height_in_cells {
+
+        let height_in_cells = if params.do_not_move_cursor {
+            height_in_cells.min(self.screen().physical_rows - self.cursor.y as usize)
+        } else {
+            height_in_cells
+        };
+
+        for y in 0..height_in_cells {
             let mut xpos = start_xpos;
-            let cursor_y = self.cursor.y;
+            let cursor_y = if params.do_not_move_cursor {
+                self.cursor.y + y as i64
+            } else {
+                self.cursor.y
+            };
             log::debug!(
                 "setting cells for y={} x=[{}..{}]",
                 cursor_y,
@@ -135,22 +147,26 @@ impl TerminalState {
                 xpos += x_delta;
             }
             ypos += y_delta;
-            self.new_line(false);
+            if !params.do_not_move_cursor {
+                self.new_line(false);
+            }
         }
 
-        // Sixel places the cursor under the left corner of the image,
-        // unless sixel_scrolls_right is enabled.
-        // iTerm places it after the bottom right corner.
-        let bottom_right = match params.style {
-            ImageAttachStyle::Kitty | ImageAttachStyle::Iterm => true,
-            ImageAttachStyle::Sixel => self.sixel_scrolls_right,
-        };
+        if !params.do_not_move_cursor {
+            // Sixel places the cursor under the left corner of the image,
+            // unless sixel_scrolls_right is enabled.
+            // iTerm places it after the bottom right corner.
+            let bottom_right = match params.style {
+                ImageAttachStyle::Kitty | ImageAttachStyle::Iterm => true,
+                ImageAttachStyle::Sixel => self.sixel_scrolls_right,
+            };
 
-        if bottom_right {
-            self.set_cursor_pos(
-                &Position::Relative(width_in_cells as i64),
-                &Position::Relative(-1),
-            );
+            if bottom_right {
+                self.set_cursor_pos(
+                    &Position::Relative(width_in_cells as i64),
+                    &Position::Relative(-1),
+                );
+            }
         }
 
         PlacementInfo {

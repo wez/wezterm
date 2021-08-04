@@ -110,8 +110,6 @@ impl TerminalState {
             | ImageDataType::Rgba8 { width, height, .. } => (*width, *height),
         };
 
-        let saved_cursor = self.cursor.clone();
-
         let info = self.assign_image_to_cells(ImageAttachParams {
             image_width,
             image_height,
@@ -128,6 +126,7 @@ impl TerminalState {
             rows: placement.rows.map(|x| x as usize),
             image_id,
             placement_id: placement.placement_id,
+            do_not_move_cursor: placement.do_not_move_cursor,
         });
 
         self.kitty_img
@@ -139,10 +138,6 @@ impl TerminalState {
             image_number,
             placement.placement_id
         );
-
-        if placement.do_not_move_cursor {
-            self.cursor = saved_cursor;
-        }
 
         Ok(())
     }

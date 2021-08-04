@@ -138,6 +138,7 @@ impl TerminalState {
             style: ImageAttachStyle::Iterm,
             image_id: 0,
             placement_id: None,
+            do_not_move_cursor: false,
         });
     }
 }
