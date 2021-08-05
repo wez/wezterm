@@ -1,4 +1,5 @@
 use crate::cell::{Cell, CellAttributes};
+use crate::emoji::Presentation;
 use std::borrow::Cow;
 
 /// A `CellCluster` is another representation of a Line.
@@ -10,6 +11,7 @@ use std::borrow::Cow;
 pub struct CellCluster {
     pub attrs: CellAttributes,
     pub text: String,
+    pub presentation: Presentation,
     byte_to_cell_idx: Vec<usize>,
     first_cell_idx: usize,
 }
@@ -37,6 +39,7 @@ impl CellCluster {
         let mut only_whitespace = false;
 
         for (cell_idx, c) in iter {
+            let presentation = c.presentation();
             let cell_str = c.str();
             let normalized_attr = if c.attrs().wrapped() {
                 let mut attr_storage = c.attrs().clone();
@@ -53,13 +56,14 @@ impl CellCluster {
                     whitespace_run = if only_whitespace { 1 } else { 0 };
                     Some(CellCluster::new(
                         hint,
+                        presentation,
                         normalized_attr.into_owned(),
                         cell_str,
                         cell_idx,
                     ))
                 }
                 Some(mut last) => {
-                    if last.attrs != *normalized_attr {
+                    if last.attrs != *normalized_attr || last.presentation != presentation {
                         // Flush pending cluster and start a new one
                         clusters.push(last);
 
@@ -67,6 +71,7 @@ impl CellCluster {
                         whitespace_run = if only_whitespace { 1 } else { 0 };
                         Some(CellCluster::new(
                             hint,
+                            presentation,
                             normalized_attr.into_owned(),
                             cell_str,
                             cell_idx,
@@ -93,6 +98,7 @@ impl CellCluster {
                             whitespace_run = 1;
                             Some(CellCluster::new(
                                 hint,
+                                presentation,
                                 normalized_attr.into_owned(),
                                 cell_str,
                                 cell_idx,
@@ -115,7 +121,13 @@ impl CellCluster {
     }
 
     /// Start off a new cluster with some initial data
-    fn new(hint: usize, attrs: CellAttributes, text: &str, cell_idx: usize) -> CellCluster {
+    fn new(
+        hint: usize,
+        presentation: Presentation,
+        attrs: CellAttributes,
+        text: &str,
+        cell_idx: usize,
+    ) -> CellCluster {
         let mut idx = Vec::new();
         if text.len() > 1 {
             // Prefer to avoid pushing any index data; this saves
@@ -131,6 +143,7 @@ impl CellCluster {
         CellCluster {
             attrs,
             text: storage,
+            presentation,
             byte_to_cell_idx: idx,
             first_cell_idx: cell_idx,
         }
