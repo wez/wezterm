@@ -40,6 +40,8 @@
 //! * `widgets` - enables the widget layout and related traits
 //! * `use_serde` - makes a number of structs serde serializable
 
+mod emoji;
+
 pub mod caps;
 pub mod cell;
 pub mod cellcluster;

@@ -1,5 +1,6 @@
 //! Model a cell in the terminal display
 use crate::color::{ColorAttribute, PaletteIndex};
+pub use crate::emoji::Presentation;
 pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
 #[cfg(feature = "use_serde")]
@@ -647,6 +648,16 @@ impl Cell {
         }
     }
 
+    /// Indicates whether this cell has text or emoji presentation.
+    /// The width already reflects that choice; this information
+    /// is also useful when selecting an appropriate font.
+    pub fn presentation(&self) -> Presentation {
+        match Presentation::for_grapheme(self.str()) {
+            (_, Some(variation)) => variation,
+            (presentation, None) => presentation,
+        }
+    }
+
     /// Create a new cell holding the specified grapheme.
     /// The grapheme is passed as a string slice and is intended to hold
     /// double-width characters, or combining unicode sequences, that need
@@ -700,46 +711,11 @@ pub fn unicode_column_width(s: &str) -> usize {
 /// Returns the number of cells visually occupied by a grapheme.
 /// The input string must be a single grapheme.
 pub fn grapheme_column_width(s: &str) -> usize {
-    // Due to this issue:
-    // https://github.com/unicode-rs/unicode-width/issues/4
-    // we cannot simply use the unicode-width crate to compute
-    // the desired value.
-    // Let's check for emoji-ness for ourselves first
-    use xi_unicode::EmojiExt;
-    let mut emoji = false;
-    let mut implied_emoji_presentation = false;
-
-    for c in s.chars() {
-        if c == '\u{FE0F}' {
-            // Explicit emoji presentation
-            return 2;
-        } else if c == '\u{FE0E}' {
-            // Explicit text presentation
-            return 1;
-        } else if c.is_emoji_modifier_base() || c.is_emoji_modifier() {
-            // We'll probably use emoji presentation for this,
-            // but defer the decision until we've had a chance
-            // to look for an explicit presentation selection.
-            implied_emoji_presentation = true;
-        } else if c.is_emoji() {
-            emoji = true;
-        }
-    }
-
-    if implied_emoji_presentation {
-        return 2;
-    }
-
-    let width = UnicodeWidthStr::width(s);
-    if emoji {
-        // For sequences such as "deaf man", UnicodeWidthStr::width()
-        // returns 3 because of the widths of the component glyphs,
-        // rather than 2 for a single double width grapheme.
-        // If we saw any emoji within the characters then we assume
-        // that it can be a maximum of 2 cells in width.
-        width.min(2)
-    } else {
-        width
+    match Presentation::for_grapheme(s) {
+        (_, Some(Presentation::Emoji)) => 2,
+        (_, Some(Presentation::Text)) => 1,
+        (Presentation::Emoji, None) => 2,
+        (Presentation::Text, None) => UnicodeWidthStr::width(s).min(2),
     }
 }
 
@@ -852,21 +828,21 @@ mod test {
     #[test]
     fn issue_997() {
         use unicode_segmentation::UnicodeSegmentation;
-        let waving_hand = "\u{270c}";
-        let waving_hand_text_presentation = "\u{270c}\u{fe0e}";
+        let victory_hand = "\u{270c}";
+        let victory_hand_text_presentation = "\u{270c}\u{fe0e}";
 
-        assert_eq!(unicode_column_width(waving_hand_text_presentation), 1);
-        assert_eq!(unicode_column_width(waving_hand), 2);
+        assert_eq!(unicode_column_width(victory_hand_text_presentation), 1);
+        assert_eq!(unicode_column_width(victory_hand), 1);
 
         assert_eq!(
-            waving_hand_text_presentation
+            victory_hand_text_presentation
                 .graphemes(true)
                 .collect::<Vec<_>>(),
-            vec![waving_hand_text_presentation.to_string()]
+            vec![victory_hand_text_presentation.to_string()]
         );
         assert_eq!(
-            waving_hand.graphemes(true).collect::<Vec<_>>(),
-            vec![waving_hand.to_string()]
+            victory_hand.graphemes(true).collect::<Vec<_>>(),
+            vec![victory_hand.to_string()]
         );
 
         let copyright_emoji_presentation = "\u{00A9}\u{FE0F}";
@@ -886,5 +862,27 @@ mod test {
             vec![copyright_text_presentation.to_string()]
         );
         assert_eq!(unicode_column_width(copyright_text_presentation), 1);
+
+        let raised_fist = "\u{270a}";
+        let raised_fist_text = "\u{270a}\u{fe0e}";
+        assert_eq!(
+            Presentation::for_grapheme(raised_fist),
+            (Presentation::Emoji, None)
+        );
+        assert_eq!(unicode_column_width(raised_fist), 2);
+        assert_eq!(
+            Presentation::for_grapheme(raised_fist_text),
+            (Presentation::Emoji, Some(Presentation::Text))
+        );
+        assert_eq!(unicode_column_width(raised_fist_text), 1);
+
+        assert_eq!(
+            raised_fist_text.graphemes(true).collect::<Vec<_>>(),
+            vec![raised_fist_text.to_string()]
+        );
+        assert_eq!(
+            raised_fist.graphemes(true).collect::<Vec<_>>(),
+            vec![raised_fist.to_string()]
+        );
     }
 }
