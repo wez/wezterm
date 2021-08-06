@@ -92,16 +92,7 @@ impl super::TermWindow {
 
         let start = Instant::now();
 
-        {
-            let palette = self.palette();
-            let background = rgbcolor_alpha_to_window_color(
-                palette.background,
-                self.config.window_background_opacity,
-            );
-
-            let (r, g, b, a) = background.tuple();
-            frame.clear_color(r, g, b, a);
-        }
+        frame.clear_color(0., 0., 0., 0.);
 
         for pass in 0.. {
             match self.paint_opengl_pass() {
@@ -216,6 +207,7 @@ impl super::TermWindow {
     pub fn paint_pane_opengl(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {
         self.check_for_dirty_lines_and_invalidate_selection(&pos.pane);
 
+        let global_bg_color = self.palette().background;
         let config = &self.config;
         let palette = pos.pane.palette();
 
@@ -280,30 +272,45 @@ impl super::TermWindow {
             },
         );
 
-        if pos.index == 0 && self.allow_images {
-            // Render the window background image
-            if let Some(im) = self.window_background.as_ref() {
-                let mut quad = quads.allocate()?;
-                quad.set_position(
-                    self.dimensions.pixel_width as f32 / -2.,
-                    self.dimensions.pixel_height as f32 / -2.,
-                    self.dimensions.pixel_width as f32 / 2.,
-                    self.dimensions.pixel_height as f32 / 2.,
-                );
+        // Render the full window background
+        if pos.index == 0 {
+            let mut quad = quads.allocate()?;
+            quad.set_position(
+                self.dimensions.pixel_width as f32 / -2.,
+                self.dimensions.pixel_height as f32 / -2.,
+                self.dimensions.pixel_width as f32 / 2.,
+                self.dimensions.pixel_height as f32 / 2.,
+            );
+            quad.set_texture_adjust(0., 0., 0., 0.);
 
-                let color = rgbcolor_alpha_to_window_color(
-                    palette.background,
-                    config.window_background_opacity,
-                );
+            match (self.window_background.as_ref(), self.allow_images) {
+                (Some(im), true) => {
+                    // Render the window background image
+                    let color = rgbcolor_alpha_to_window_color(
+                        palette.background,
+                        config.window_background_opacity,
+                    );
 
-                let (sprite, next_due) =
-                    gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
-                self.update_next_frame_time(next_due);
-                quad.set_texture(sprite.texture_coords());
-                quad.set_texture_adjust(0., 0., 0., 0.);
-                quad.set_is_background_image();
-                quad.set_hsv(config.window_background_image_hsb);
-                quad.set_fg_color(color);
+                    let (sprite, next_due) =
+                        gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
+                    self.update_next_frame_time(next_due);
+                    quad.set_texture(sprite.texture_coords());
+                    quad.set_is_background_image();
+                    quad.set_hsv(config.window_background_image_hsb);
+                    quad.set_fg_color(color);
+                }
+                _ => {
+                    // Regular window background color
+                    let background = rgbcolor_alpha_to_window_color(
+                        global_bg_color,
+                        self.config.window_background_opacity,
+                    );
+                    quad.set_texture(filled_box);
+                    quad.set_fg_color(background);
+                    quad.set_bg_color(background);
+                    quad.set_has_color(false);
+                    quad.set_hsv(None);
+                }
             }
         }
 
@@ -637,18 +644,18 @@ impl super::TermWindow {
 
         let panes = self.get_panes_to_render();
 
-        if let Some(pane) = self.get_active_pane_or_overlay() {
-            let splits = self.get_splits();
-            for split in &splits {
-                self.paint_split_opengl(split, &pane)?;
-            }
-        }
-
         for pos in panes {
             if pos.is_active {
                 self.update_text_cursor(&pos.pane);
             }
             self.paint_pane_opengl(&pos)?;
+        }
+
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            let splits = self.get_splits();
+            for split in &splits {
+                self.paint_split_opengl(split, &pane)?;
+            }
         }
 
         Ok(())
