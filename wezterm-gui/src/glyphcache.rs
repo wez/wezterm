@@ -185,6 +185,20 @@ impl DecodedImage {
                 log::warn!("Unexpected ImageDataType::EncodedFile; either file is unreadable or we missed a .decode call somewhere");
                 Self::placeholder()
             }
+            ImageDataType::AnimRgba8 { durations, .. } => {
+                let current_frame = if durations.len() > 1 && durations[0].as_millis() == 0 {
+                    // Skip possible 0-duration root frame
+                    1
+                } else {
+                    0
+                };
+                Self {
+                    frame_start: Instant::now(),
+                    current_frame,
+                    image: Arc::clone(image_data),
+                }
+            }
+
             _ => Self {
                 frame_start: Instant::now(),
                 current_frame: 0,
@@ -559,6 +573,10 @@ impl<T: Texture2d> GlyphCache<T> {
                         decoded.current_frame += 1;
                         if decoded.current_frame >= frames.len() {
                             decoded.current_frame = 0;
+                            // Skip potential 0-duration root frame
+                            if durations[0].as_millis() == 0 && frames.len() > 1 {
+                                decoded.current_frame += 1;
+                            }
                         }
                         decoded.frame_start = now;
                         next_due = decoded.frame_start + durations[decoded.current_frame];

@@ -457,22 +457,15 @@ impl TerminalState {
                     target_frame
                 );
 
-                let src = {
-                    let src = ImageBuffer::from_raw(*width, *height, data.as_mut_slice())
-                        .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
-
-                    let view = src.view(
-                        frame.src_x.unwrap_or(0),
-                        frame.src_y.unwrap_or(0),
-                        frame.w.unwrap_or(*width),
-                        frame.h.unwrap_or(*height),
-                    );
-
-                    let mut tmp =
-                        RgbaImage::new(frame.w.unwrap_or(*width), frame.h.unwrap_or(*height));
-                    tmp.copy_from(&view, 0, 0).context("copy source image")?;
-                    tmp
-                };
+                let src = clip_view(
+                    *width,
+                    *height,
+                    data.as_mut_slice(),
+                    frame.src_x,
+                    frame.src_y,
+                    frame.w,
+                    frame.h,
+                )?;
 
                 let mut dest: ImageBuffer<Rgba<u8>, &mut [u8]> =
                     ImageBuffer::from_raw(*width, *height, data.as_mut_slice())
@@ -480,8 +473,6 @@ impl TerminalState {
 
                 blit(
                     &mut dest,
-                    *width,
-                    *height,
                     &src,
                     frame.x.unwrap_or(0),
                     frame.y.unwrap_or(0),
@@ -510,30 +501,15 @@ impl TerminalState {
                     target_frame
                 );
 
-                // Make a copy of the source region.
-                // Ideally we wouldn't need this, but Rust's mutability rules
-                // make it very awkward to mutably reference a frame while
-                // an immutable reference exists to a separate frame.
-                let src = {
-                    let src = ImageBuffer::from_raw(
-                        *width,
-                        *height,
-                        frames[src_frame - 1].as_mut_slice(),
-                    )
-                    .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
-
-                    let view = src.view(
-                        frame.src_x.unwrap_or(0),
-                        frame.src_y.unwrap_or(0),
-                        frame.w.unwrap_or(*width),
-                        frame.h.unwrap_or(*height),
-                    );
-
-                    let mut tmp =
-                        RgbaImage::new(frame.w.unwrap_or(*width), frame.h.unwrap_or(*height));
-                    tmp.copy_from(&view, 0, 0).context("copy source image")?;
-                    tmp
-                };
+                let src = clip_view(
+                    *width,
+                    *height,
+                    frames[src_frame - 1].as_mut_slice(),
+                    frame.src_x,
+                    frame.src_y,
+                    frame.w,
+                    frame.h,
+                )?;
 
                 let mut dest: ImageBuffer<Rgba<u8>, &mut [u8]> =
                     ImageBuffer::from_raw(*width, *height, frames[target_frame - 1].as_mut_slice())
@@ -541,8 +517,6 @@ impl TerminalState {
 
                 blit(
                     &mut dest,
-                    *width,
-                    *height,
                     &src,
                     frame.x.unwrap_or(0),
                     frame.y.unwrap_or(0),
@@ -652,15 +626,7 @@ impl TerminalState {
                                     )
                                 })?;
 
-                        blit(
-                            &mut anim_img,
-                            *width,
-                            *height,
-                            &img,
-                            x,
-                            y,
-                            frame.composition_mode,
-                        )?;
+                        blit(&mut anim_img, &img, x, y, frame.composition_mode)?;
 
                         drop(anim_img);
                         *hash = ImageDataType::hash_bytes(data);
@@ -674,15 +640,7 @@ impl TerminalState {
                             RgbaImage::from_pixel(*width, *height, background_pixel)
                         };
 
-                        blit(
-                            &mut new_frame,
-                            *width,
-                            *height,
-                            &img,
-                            x,
-                            y,
-                            frame.composition_mode,
-                        )?;
+                        blit(&mut new_frame, &img, x, y, frame.composition_mode)?;
 
                         let new_frame_data = new_frame.into_vec();
                         let new_frame_hash = ImageDataType::hash_bytes(&new_frame_data);
@@ -730,15 +688,7 @@ impl TerminalState {
                         }
                     };
 
-                    blit(
-                        &mut new_frame,
-                        *width,
-                        *height,
-                        &img,
-                        x,
-                        y,
-                        frame.composition_mode,
-                    )?;
+                    blit(&mut new_frame, &img, x, y, frame.composition_mode)?;
 
                     let new_frame_data = new_frame.into_vec();
                     let new_frame_hash = ImageDataType::hash_bytes(&new_frame_data);
@@ -769,15 +719,7 @@ impl TerminalState {
                                 )
                             })?;
 
-                    blit(
-                        &mut anim_img,
-                        *width,
-                        *height,
-                        &img,
-                        x,
-                        y,
-                        frame.composition_mode,
-                    )?;
+                    blit(&mut anim_img, &img, x, y, frame.composition_mode)?;
 
                     drop(anim_img);
                     hashes[frame_no - 1] = ImageDataType::hash_bytes(&frames[frame_no - 1]);
@@ -961,10 +903,40 @@ impl TerminalState {
     }
 }
 
+/// Make a copy of the source region.
+/// Ideally we wouldn't need this, but Rust's mutability rules
+/// make it very awkward to mutably reference a frame while
+/// an immutable reference exists to a separate frame.
+fn clip_view(
+    width: u32,
+    height: u32,
+    data: &mut [u8],
+    src_x: Option<u32>,
+    src_y: Option<u32>,
+    view_width: Option<u32>,
+    view_height: Option<u32>,
+) -> anyhow::Result<RgbaImage> {
+    let src = ImageBuffer::from_raw(width, height, data)
+        .ok_or_else(|| anyhow::anyhow!("ill formed image"))?;
+
+    let src_x = src_x.unwrap_or(0);
+    let src_y = src_y.unwrap_or(0);
+
+    let view_width = view_width.unwrap_or(width);
+    let view_height = view_height.unwrap_or(height);
+
+    let (view_width, view_height) =
+        image::imageops::overlay_bounds((width, height), (view_width, view_height), src_x, src_y);
+
+    let view = src.view(src_x, src_y, view_width, view_height);
+
+    let mut tmp = RgbaImage::new(view_width, view_height);
+    tmp.copy_from(&view, 0, 0).context("copy source image")?;
+    Ok(tmp)
+}
+
 fn blit<D, S, P>(
     dest: &mut D,
-    dest_width: u32,
-    dest_height: u32,
     src: &S,
     x: u32,
     y: u32,
@@ -974,32 +946,12 @@ where
     D: GenericImage<Pixel = P>,
     S: GenericImageView<Pixel = P>,
 {
-    // Notcurses can send an img with x,y position that overflows
-    // the target frame, so we need to make a view that clips the
-    // source image data.
-
-    let (src_w, src_h) = src.dimensions();
-
-    let w = src_w.min(dest_width.saturating_sub(x));
-    let h = src_h.min(dest_height.saturating_sub(y));
-
-    let src = src.view(0, 0, w, h);
     match mode {
         KittyFrameCompositionMode::Overwrite => {
-            dest.copy_from(&src, x, y).with_context(|| {
-                format!(
-                    "copying img with dims {:?} to frame \
-                                             with dims {}x{} @ offset {:?}x{:?}",
-                    src.dimensions(),
-                    dest_width,
-                    dest_height,
-                    x,
-                    y
-                )
-            })?;
+            ::image::imageops::replace(dest, src, x, y);
         }
         KittyFrameCompositionMode::AlphaBlending => {
-            ::image::imageops::overlay(dest, &src, x, y);
+            ::image::imageops::overlay(dest, src, x, y);
         }
     }
     Ok(())
