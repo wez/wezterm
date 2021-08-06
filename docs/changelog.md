@@ -67,6 +67,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: wezterm now draws its own pixel-perfect versions of more block drawing glyphs.  See [custom_block_glyphs](config/lua/config/custom_block_glyphs.md) for more details. [#584](https://github.com/wez/wezterm/issues/584)
 * Fixed: wayland: CursorNotFound error with the whiteglass theme. [#532](https://github.com/wez/wezterm/issues/532)
 * Improved: Can now recover from exhausting available texture space by clearing the screen. [#879](https://github.com/wez/wezterm/issues/879)
+* Updated bundled `Noto Color Emoji` font to version 2.028 featuring a [design update](https://blog.google/products/android/emoji-day-redesign-easier-sharing/). Thanks to [@4cm4k1](https://github.com/4cm4k1)! [#1003](https://github.com/wez/wezterm/pull/1003)
 
 ### 20210502-154244-3f7122cb
 
