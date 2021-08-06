@@ -14,11 +14,13 @@ use ::window::{Point, Rect};
 use anyhow::Context;
 use config::{AllowSquareGlyphOverflow, TextStyle};
 use euclid::num::Zero;
+use ordered_float::NotNan;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, MutexGuard};
 use std::time::Instant;
+use termwiz::color::RgbColor;
 use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
 use wezterm_font::units::*;
@@ -217,6 +219,7 @@ pub struct GlyphCache<T: Texture2d> {
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     pub block_glyphs: HashMap<BlockKey, Sprite<T>>,
     pub cursor_glyphs: HashMap<Option<CursorShape>, Sprite<T>>,
+    pub color: HashMap<(RgbColor, NotNan<f32>), Sprite<T>>,
     pub metrics: RenderMetrics,
 }
 
@@ -244,6 +247,7 @@ impl GlyphCache<ImageTexture> {
             line_glyphs: HashMap::new(),
             block_glyphs: HashMap::new(),
             cursor_glyphs: HashMap::new(),
+            color: HashMap::new(),
         })
     }
 }
@@ -296,6 +300,7 @@ impl GlyphCache<SrgbTexture2d> {
             line_glyphs: HashMap::new(),
             block_glyphs: HashMap::new(),
             cursor_glyphs: HashMap::new(),
+            color: HashMap::new(),
         })
     }
 }
@@ -625,6 +630,27 @@ impl<T: Texture2d> GlyphCache<T> {
             self.image_cache.put(id, decoded);
             Ok(res)
         }
+    }
+
+    pub fn cached_color(&mut self, color: RgbColor, alpha: f32) -> anyhow::Result<Sprite<T>> {
+        let key = (color, NotNan::new(alpha).unwrap());
+
+        if let Some(s) = self.color.get(&key) {
+            return Ok(s.clone());
+        }
+
+        let (red, green, blue) = color.to_tuple_rgb8();
+        let alpha = (alpha * 255.0) as u8;
+
+        let data = vec![
+            red, green, blue, alpha, red, green, blue, alpha, red, green, blue, alpha, red, green,
+            blue, alpha,
+        ];
+        let image = Image::from_raw(2, 2, data);
+
+        let sprite = self.atlas.allocate(&image)?;
+        self.color.insert(key, sprite.clone());
+        Ok(sprite)
     }
 
     pub fn cached_block(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {

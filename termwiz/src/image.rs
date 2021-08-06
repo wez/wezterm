@@ -270,7 +270,10 @@ impl ImageDataType {
             Self::EncodedFile(data) => {
                 let format = match image::guess_format(&data) {
                     Ok(format) => format,
-                    _ => return Self::EncodedFile(data),
+                    Err(err) => {
+                        log::warn!("Unable to decode raw image data: {:#}", err);
+                        return Self::EncodedFile(data);
+                    }
                 };
                 match format {
                     ImageFormat::Gif => image::gif::GifDecoder::new(&*data)
@@ -297,7 +300,7 @@ impl ImageDataType {
                             Self::decode_single(data)
                         }
                     }
-                    _ => Self::EncodedFile(data),
+                    _ => Self::decode_single(data),
                 }
             }
             data => data,
@@ -370,7 +373,7 @@ impl PartialEq for ImageData {
 impl ImageData {
     /// Create a new ImageData struct with the provided raw data.
     pub fn with_raw_data(data: Vec<u8>) -> Self {
-        Self::with_data(ImageDataType::EncodedFile(data))
+        Self::with_data(ImageDataType::EncodedFile(data).decode())
     }
 
     pub fn with_data(data: ImageDataType) -> Self {

@@ -343,7 +343,8 @@ fn load_background_image(config: &ConfigHandle) -> Option<Arc<ImageData>> {
         Some(p) => match std::fs::read(p) {
             Ok(data) => {
                 log::info!("loaded {}", p.display());
-                Some(Arc::new(ImageData::with_raw_data(data)))
+                let data = ImageDataType::EncodedFile(data).decode();
+                Some(Arc::new(ImageData::with_data(data)))
             }
             Err(err) => {
                 log::error!(
