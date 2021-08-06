@@ -124,7 +124,7 @@ impl TerminalState {
             z_index: placement.z_index.unwrap_or(0),
             columns: placement.columns.map(|x| x as usize),
             rows: placement.rows.map(|x| x as usize),
-            image_id,
+            image_id: Some(image_id),
             placement_id: placement.placement_id,
             do_not_move_cursor: placement.do_not_move_cursor,
         });

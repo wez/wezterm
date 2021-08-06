@@ -90,7 +90,7 @@ pub struct ImageCell {
     display_offset_x: u32,
     display_offset_y: u32,
 
-    image_id: u32,
+    image_id: Option<u32>,
     placement_id: Option<u32>,
 }
 
@@ -100,7 +100,7 @@ impl ImageCell {
         bottom_right: TextureCoordinate,
         data: Arc<ImageData>,
     ) -> Self {
-        Self::with_z_index(top_left, bottom_right, data, 0, 0, 0, 0, None)
+        Self::with_z_index(top_left, bottom_right, data, 0, 0, 0, None, None)
     }
 
     pub fn with_z_index(
@@ -110,7 +110,7 @@ impl ImageCell {
         z_index: i32,
         display_offset_x: u32,
         display_offset_y: u32,
-        image_id: u32,
+        image_id: Option<u32>,
         placement_id: Option<u32>,
     ) -> Self {
         Self {
@@ -126,7 +126,11 @@ impl ImageCell {
     }
 
     pub fn matches_placement(&self, image_id: u32, placement_id: Option<u32>) -> bool {
-        self.image_id == image_id && self.placement_id == placement_id
+        self.image_id == Some(image_id) && self.placement_id == placement_id
+    }
+
+    pub fn has_placement_id(&self) -> bool {
+        self.placement_id.is_some()
     }
 
     pub fn top_left(&self) -> TextureCoordinate {

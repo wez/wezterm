@@ -40,7 +40,7 @@ pub struct ImageAttachParams {
     pub columns: Option<usize>,
     pub rows: Option<usize>,
 
-    pub image_id: u32,
+    pub image_id: Option<u32>,
     pub placement_id: Option<u32>,
 
     pub style: ImageAttachStyle,

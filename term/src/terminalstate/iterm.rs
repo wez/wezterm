@@ -136,7 +136,7 @@ impl TerminalState {
             rows: None,
             data: image_data,
             style: ImageAttachStyle::Iterm,
-            image_id: 0,
+            image_id: None,
             placement_id: None,
             do_not_move_cursor: false,
         });

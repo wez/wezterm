@@ -405,6 +405,27 @@ impl Line {
     /// Similarly, when we assign a cell, we need to blank out those
     /// occluded successor cells.
     pub fn set_cell(&mut self, idx: usize, cell: Cell) -> &Cell {
+        self.set_cell_impl(idx, cell, false)
+    }
+
+    pub fn set_cell_clearing_image_placements(&mut self, idx: usize, cell: Cell) -> &Cell {
+        self.set_cell_impl(idx, cell, true)
+    }
+
+    fn raw_set_cell(&mut self, idx: usize, mut cell: Cell, clear: bool) {
+        if !clear {
+            if let Some(images) = self.cells[idx].attrs().images() {
+                for image in images {
+                    if image.has_placement_id() {
+                        cell.attrs_mut().attach_image(Box::new(image));
+                    }
+                }
+            }
+        }
+        self.cells[idx] = cell;
+    }
+
+    fn set_cell_impl(&mut self, idx: usize, cell: Cell, clear: bool) -> &Cell {
         let width = cell.width();
 
         // if the line isn't wide enough, pad it out with the default attributes.
@@ -428,10 +449,10 @@ impl Line {
         // For double-wide or wider chars, ensure that the cells that
         // are overlapped by this one are blanked out.
         for i in 1..=width.saturating_sub(1) {
-            self.cells[idx + i] = Cell::new(' ', cell.attrs().clone());
+            self.raw_set_cell(idx + i, Cell::new(' ', cell.attrs().clone()), clear);
         }
 
-        self.cells[idx] = cell;
+        self.raw_set_cell(idx, cell, clear);
         &self.cells[idx]
     }
 
@@ -529,7 +550,7 @@ impl Line {
     pub fn fill_range(&mut self, cols: Range<usize>, cell: &Cell) {
         for x in cols {
             // FIXME: we can skip the look-back for second and subsequent iterations
-            self.set_cell(x, cell.clone());
+            self.set_cell_impl(x, cell.clone(), true);
         }
         self.prune_trailing_blanks();
     }
