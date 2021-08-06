@@ -123,8 +123,7 @@ impl RenderState {
             let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
-                    // Last prog outputs srgb for gamma correction
-                    let glyph_prog = Self::compile_prog(&context, true, Self::glyph_shader)?;
+                    let glyph_prog = Self::compile_prog(&context, Self::glyph_shader)?;
 
                     let glyph_vertex_buffer = Self::compute_vertices(&context, 1024)?;
 
@@ -150,7 +149,6 @@ impl RenderState {
 
     fn compile_prog(
         context: &Rc<GliumContext>,
-        outputs_srgb: bool,
         fragment_shader: fn(&str) -> (String, String),
     ) -> anyhow::Result<glium::Program> {
         let mut errors = vec![];
@@ -159,7 +157,7 @@ impl RenderState {
             let source = glium::program::ProgramCreationInput::SourceCode {
                 vertex_shader: &vertex_shader,
                 fragment_shader: &fragment_shader,
-                outputs_srgb,
+                outputs_srgb: true,
                 tessellation_control_shader: None,
                 tessellation_evaluation_shader: None,
                 transform_feedback_varyings: None,
