@@ -8,8 +8,8 @@ use wezterm_font::FontConfiguration;
 
 #[derive(Debug, Clone, Copy)]
 pub struct RowsAndCols {
-    rows: usize,
-    cols: usize,
+    pub rows: usize,
+    pub cols: usize,
 }
 
 impl super::TermWindow {
@@ -23,10 +23,12 @@ impl super::TermWindow {
         if dimensions.pixel_width == 0 || dimensions.pixel_height == 0 {
             // on windows, this can happen when minimizing the window.
             // NOP!
+            log::trace!("new dimensions are zero: NOP!");
             return;
         }
         if self.dimensions == dimensions && self.is_full_screen == is_full_screen {
             // It didn't really change
+            log::trace!("dimensions didn't change NOP!");
             return;
         }
         self.is_full_screen = is_full_screen;
@@ -76,6 +78,11 @@ impl super::TermWindow {
         dimensions: &Dimensions,
         scale_changed_cells: Option<RowsAndCols>,
     ) {
+        log::trace!(
+            "apply_dimensions {:?} scale_changed_cells {:?}",
+            dimensions,
+            scale_changed_cells
+        );
         self.dimensions = *dimensions;
 
         // Technically speaking, we should compute the rows and cols
@@ -140,6 +147,8 @@ impl super::TermWindow {
 
             (size, *dimensions)
         };
+
+        log::trace!("apply_dimensions computed size {:?}, dims {:?}", size, dims);
 
         if self.render_state.is_some() {
             self.terminal_size = size;
