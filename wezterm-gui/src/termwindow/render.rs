@@ -783,6 +783,8 @@ impl super::TermWindow {
 
         current_idx = 0;
 
+        let mut overlay_images = vec![];
+
         for cluster in &cell_clusters {
             if !matches!(last_style.as_ref(), Some(ClusterStyleCache{attrs,..}) if *attrs == &cluster.attrs)
             {
@@ -1050,78 +1052,71 @@ impl super::TermWindow {
                     }
 
                     if !did_custom {
-                        let texture = glyph
-                            .texture
-                            .as_ref()
-                            .unwrap_or(&gl_state.util_sprites.white_space);
+                        if let Some(texture) = glyph.texture.as_ref() {
+                            let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
+                            let slice = SpriteSlice {
+                                cell_idx: glyph_idx,
+                                num_cells: info.pos.num_cells as usize,
+                                cell_width: self.render_metrics.cell_size.width as usize,
+                                scale: glyph.scale as f32,
+                                left_offset: left,
+                            };
 
-                        let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
-                        let slice = SpriteSlice {
-                            cell_idx: glyph_idx,
-                            num_cells: info.pos.num_cells as usize,
-                            cell_width: self.render_metrics.cell_size.width as usize,
-                            scale: glyph.scale as f32,
-                            left_offset: left,
-                        };
+                            let pixel_rect = slice.pixel_rect(texture);
+                            let texture_rect = texture.texture.to_texture_coords(pixel_rect);
 
-                        let pixel_rect = slice.pixel_rect(texture);
-                        let texture_rect = texture.texture.to_texture_coords(pixel_rect);
+                            let left = if glyph_idx == 0 { left } else { slice_left };
+                            let bottom = (pixel_rect.size.height as f32 * glyph.scale as f32) + top
+                                - self.render_metrics.cell_size.height as f32;
+                            let right = pixel_rect.size.width as f32 + left
+                                - self.render_metrics.cell_size.width as f32;
 
-                        let left = if glyph_idx == 0 { left } else { slice_left };
-                        let bottom = (pixel_rect.size.height as f32 * glyph.scale as f32) + top
-                            - self.render_metrics.cell_size.height as f32;
-                        let right = pixel_rect.size.width as f32 + left
-                            - self.render_metrics.cell_size.width as f32;
+                            // Save the `right` position; we'll use it for the `left` adjust for
+                            // the next slice that comprises this glyph.
+                            // This is important because some glyphs (eg: 현재 브랜치) can have
+                            // fractional advance/offset positions that leave one half slightly
+                            // out of alignment with the other if we were to simply force the
+                            // `left` value to be 0 when glyph_idx > 0.
+                            slice_left = right;
 
-                        // Save the `right` position; we'll use it for the `left` adjust for
-                        // the next slice that comprises this glyph.
-                        // This is important because some glyphs (eg: 현재 브랜치) can have
-                        // fractional advance/offset positions that leave one half slightly
-                        // out of alignment with the other if we were to simply force the
-                        // `left` value to be 0 when glyph_idx > 0.
-                        slice_left = right;
-
-                        if glyph_color != bg_color || glyph.has_color {
-                            let mut quad = quads.allocate()?;
-                            quad.set_position(
-                                pos_x,
-                                pos_y,
-                                pos_x + cell_width,
-                                pos_y + cell_height,
-                            );
-                            quad.set_bg_color(bg_color);
-                            quad.set_fg_color(glyph_color);
-                            quad.set_texture(texture_rect);
-                            quad.set_texture_adjust(left, top, right, bottom);
-                            quad.set_hsv(if glyph.brightness_adjust != 1.0 {
-                                let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
-                                Some(HsbTransform {
-                                    brightness: hsv.brightness * glyph.brightness_adjust,
-                                    ..hsv
-                                })
-                            } else {
-                                hsv
-                            });
-                            quad.set_has_color(glyph.has_color);
+                            if glyph_color != bg_color || glyph.has_color {
+                                let mut quad = quads.allocate()?;
+                                quad.set_position(
+                                    pos_x,
+                                    pos_y,
+                                    pos_x + cell_width,
+                                    pos_y + cell_height,
+                                );
+                                quad.set_bg_color(bg_color);
+                                quad.set_fg_color(glyph_color);
+                                quad.set_texture(texture_rect);
+                                quad.set_texture_adjust(left, top, right, bottom);
+                                quad.set_hsv(if glyph.brightness_adjust != 1.0 {
+                                    let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
+                                    Some(HsbTransform {
+                                        brightness: hsv.brightness * glyph.brightness_adjust,
+                                        ..hsv
+                                    })
+                                } else {
+                                    hsv
+                                });
+                                quad.set_has_color(glyph.has_color);
+                            }
                         }
                     }
 
-                    for img in &images {
+                    for img in images {
                         if img.z_index() >= 0 {
-                            self.populate_image_quad(
-                                &img,
-                                gl_state,
-                                quads,
-                                cell_idx,
-                                &params,
-                                hsv,
-                                glyph_color,
-                            )?;
+                            overlay_images.push((cell_idx, img, glyph_color));
                         }
                     }
                 }
                 current_idx += info.pos.num_cells as usize;
             }
+        }
+
+        for (cell_idx, img, glyph_color) in overlay_images {
+            self.populate_image_quad(&img, gl_state, quads, cell_idx, &params, hsv, glyph_color)?;
         }
 
         // If the clusters don't extend to the full physical width of the display,
