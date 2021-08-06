@@ -93,9 +93,11 @@ impl super::TermWindow {
         let start = Instant::now();
 
         {
-            let background_alpha = (self.config.window_background_opacity * 255.0) as u8;
             let palette = self.palette();
-            let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
+            let background = rgbcolor_alpha_to_window_color(
+                palette.background,
+                self.config.window_background_opacity,
+            );
 
             let (r, g, b, a) = background.tuple();
             frame.clear_color(r, g, b, a);
@@ -272,9 +274,9 @@ impl super::TermWindow {
         let default_bg = rgbcolor_alpha_to_window_color(
             palette.resolve_bg(ColorAttribute::Default),
             if window_is_transparent {
-                0x00
+                0.
             } else {
-                (config.text_background_opacity * 255.0) as u8
+                config.text_background_opacity
             },
         );
 
@@ -289,9 +291,10 @@ impl super::TermWindow {
                     self.dimensions.pixel_height as f32 / 2.,
                 );
 
-                let background_image_alpha = (config.window_background_opacity * 255.0) as u8;
-                let color =
-                    rgbcolor_alpha_to_window_color(palette.background, background_image_alpha);
+                let color = rgbcolor_alpha_to_window_color(
+                    palette.background,
+                    config.window_background_opacity,
+                );
 
                 let (sprite, next_due) =
                     gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
@@ -566,8 +569,10 @@ impl super::TermWindow {
         let mut quads = vb.map(&mut vb_mut);
         let palette = pane.palette();
         let foreground = rgbcolor_to_window_color(palette.split);
-        let background_alpha = (self.config.window_background_opacity * 255.0) as u8;
-        let background = rgbcolor_alpha_to_window_color(palette.background, background_alpha);
+        let background = rgbcolor_alpha_to_window_color(
+            palette.background,
+            self.config.window_background_opacity,
+        );
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
 
@@ -859,9 +864,9 @@ impl super::TermWindow {
                 let bg_color = rgbcolor_alpha_to_window_color(
                     bg_color,
                     if params.window_is_transparent && bg_is_default {
-                        0x00
+                        0.0
                     } else {
-                        (params.config.text_background_opacity * 255.0) as u8
+                        params.config.text_background_opacity
                     },
                 );
 
@@ -1545,15 +1550,12 @@ impl super::TermWindow {
 }
 
 fn rgbcolor_to_window_color(color: RgbColor) -> LinearRgba {
-    rgbcolor_alpha_to_window_color(color, 0xff)
+    rgbcolor_alpha_to_window_color(color, 1.0)
 }
 
-fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: u8) -> LinearRgba {
-    // Note `RgbColor` is intended to be SRGB, but in practice it appears
-    // as though it is linear RGB, hence this is using with_rgba rather than
-    // with_srgba.
-    let (red, green, blue) = color.to_tuple_rgb8();
-    LinearRgba::with_rgba(red, green, blue, alpha)
+fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: f32) -> LinearRgba {
+    let (red, green, blue, _) = color.to_tuple_rgba();
+    LinearRgba::with_components(red, green, blue, alpha)
 }
 
 fn resolve_fg_color_attr(
