@@ -1,5 +1,5 @@
 use crate::utilsprites::RenderMetrics;
-use ::window::{Dimensions, WindowOps, WindowState};
+use ::window::{Dimensions, Window, WindowOps, WindowState};
 use config::ConfigHandle;
 use mux::Mux;
 use portable_pty::PtySize;
@@ -13,7 +13,7 @@ pub struct RowsAndCols {
 }
 
 impl super::TermWindow {
-    pub fn resize(&mut self, dimensions: Dimensions, window_state: WindowState) {
+    pub fn resize(&mut self, dimensions: Dimensions, window_state: WindowState, window: &Window) {
         log::trace!(
             "resize event, current cells: {:?}, new dims: {:?} window_state:{:?}",
             self.current_cell_dimensions(),
@@ -32,7 +32,7 @@ impl super::TermWindow {
             return;
         }
         self.window_state = window_state;
-        self.scaling_changed(dimensions, self.fonts.get_font_scale());
+        self.scaling_changed(dimensions, self.fonts.get_font_scale(), window);
         self.emit_window_event("window-resized");
     }
 
@@ -77,6 +77,7 @@ impl super::TermWindow {
         &mut self,
         dimensions: &Dimensions,
         mut scale_changed_cells: Option<RowsAndCols>,
+        window: &Window,
     ) {
         log::trace!(
             "apply_dimensions {:?} scale_changed_cells {:?}. window_state {:?}",
@@ -175,24 +176,22 @@ impl super::TermWindow {
 
         // Queue up a speculative resize in order to preserve the number of rows+cols
         if let Some(cell_dims) = scale_changed_cells {
-            if let Some(window) = self.window.as_ref() {
-                // If we don't think the dimensions have changed, don't request
-                // the window to change.  This seems to help on Wayland where
-                // we won't know what size the compositor thinks we should have
-                // when we're first opened, until after it sends us a configure event.
-                // If we send this too early, it will trump that configure event
-                // and we'll end up with weirdness where our window renders in the
-                // middle of a larger region that the compositor thinks we live in.
-                // Wayland is weird!
-                if saved_dims != dims {
-                    log::trace!(
-                        "scale changed so resize from {:?} to {:?} {:?}",
-                        saved_dims,
-                        dims,
-                        cell_dims
-                    );
-                    window.set_inner_size(dims.pixel_width, dims.pixel_height);
-                }
+            // If we don't think the dimensions have changed, don't request
+            // the window to change.  This seems to help on Wayland where
+            // we won't know what size the compositor thinks we should have
+            // when we're first opened, until after it sends us a configure event.
+            // If we send this too early, it will trump that configure event
+            // and we'll end up with weirdness where our window renders in the
+            // middle of a larger region that the compositor thinks we live in.
+            // Wayland is weird!
+            if saved_dims != dims {
+                log::trace!(
+                    "scale changed so resize from {:?} to {:?} {:?}",
+                    saved_dims,
+                    dims,
+                    cell_dims
+                );
+                window.set_inner_size(dims.pixel_width, dims.pixel_height);
             }
         }
     }
@@ -205,7 +204,7 @@ impl super::TermWindow {
     }
 
     #[allow(clippy::float_cmp)]
-    pub fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64) {
+    pub fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64, window: &Window) {
         let scale_changed =
             dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale();
 
@@ -217,38 +216,38 @@ impl super::TermWindow {
             None
         };
 
-        self.apply_dimensions(&dimensions, scale_changed_cells);
+        self.apply_dimensions(&dimensions, scale_changed_cells, window);
     }
 
     /// Used for applying font size changes only; this takes into account
     /// the `adjust_window_size_when_changing_font_size` configuration and
     /// revises the scaling/resize change accordingly
-    pub fn adjust_font_scale(&mut self, font_scale: f64) {
+    pub fn adjust_font_scale(&mut self, font_scale: f64, window: &Window) {
         if self.window_state.can_resize() && self.config.adjust_window_size_when_changing_font_size
         {
-            self.scaling_changed(self.dimensions, font_scale);
+            self.scaling_changed(self.dimensions, font_scale, window);
         } else {
             let dimensions = self.dimensions;
             // Compute new font metrics
             self.apply_scale_change(&dimensions, font_scale);
             // Now revise the pty size to fit the window
-            self.apply_dimensions(&dimensions, None);
+            self.apply_dimensions(&dimensions, None, window);
         }
     }
 
-    pub fn decrease_font_size(&mut self) {
-        self.adjust_font_scale(self.fonts.get_font_scale() * 0.9);
+    pub fn decrease_font_size(&mut self, window: &Window) {
+        self.adjust_font_scale(self.fonts.get_font_scale() * 0.9, window);
     }
 
-    pub fn increase_font_size(&mut self) {
-        self.adjust_font_scale(self.fonts.get_font_scale() * 1.1);
+    pub fn increase_font_size(&mut self, window: &Window) {
+        self.adjust_font_scale(self.fonts.get_font_scale() * 1.1, window);
     }
 
-    pub fn reset_font_size(&mut self) {
-        self.adjust_font_scale(1.0);
+    pub fn reset_font_size(&mut self, window: &Window) {
+        self.adjust_font_scale(1.0, window);
     }
 
-    pub fn reset_font_and_window_size(&mut self) -> anyhow::Result<()> {
+    pub fn reset_font_and_window_size(&mut self, window: &Window) -> anyhow::Result<()> {
         let config = &self.config;
         let size = config.initial_size();
         let fontconfig = Rc::new(FontConfiguration::new(
@@ -285,6 +284,7 @@ impl super::TermWindow {
                 rows: size.rows as usize,
                 cols: size.cols as usize,
             }),
+            window,
         );
         Ok(())
     }

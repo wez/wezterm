@@ -571,7 +571,7 @@ impl TermWindow {
                 dimensions,
                 window_state,
             } => {
-                self.resize(dimensions, window_state);
+                self.resize(dimensions, window_state, window);
                 Ok(true)
             }
             WindowEvent::KeyEvent(event) => {
@@ -1035,9 +1035,9 @@ impl TermWindow {
             }
         };
 
-        self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
-        self.apply_dimensions(&dimensions, None);
-        if let Some(window) = self.window.as_ref() {
+        if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
+            self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
+            self.apply_dimensions(&dimensions, None, &window);
             window.config_did_change(&config);
             window.invalidate();
         }
@@ -1532,6 +1532,9 @@ impl TermWindow {
         assignment: &KeyAssignment,
     ) -> anyhow::Result<()> {
         use KeyAssignment::*;
+
+        let window = self.window.as_ref().map(|w| w.clone());
+
         match assignment {
             SpawnTab(spawn_where) => {
                 self.spawn_tab(spawn_where);
@@ -1580,21 +1583,37 @@ impl TermWindow {
                 self.activate_tab_relative(*n)?;
             }
             ActivateLastTab => self.activate_last_tab()?,
-            DecreaseFontSize => self.decrease_font_size(),
-            IncreaseFontSize => self.increase_font_size(),
-            ResetFontSize => self.reset_font_size(),
-            ResetFontAndWindowSize => self.reset_font_and_window_size()?,
+            DecreaseFontSize => {
+                if let Some(w) = window.as_ref() {
+                    self.decrease_font_size(w)
+                }
+            }
+            IncreaseFontSize => {
+                if let Some(w) = window.as_ref() {
+                    self.increase_font_size(w)
+                }
+            }
+            ResetFontSize => {
+                if let Some(w) = window.as_ref() {
+                    self.reset_font_size(w)
+                }
+            }
+            ResetFontAndWindowSize => {
+                if let Some(w) = window.as_ref() {
+                    self.reset_font_and_window_size(&w)?
+                }
+            }
             ActivateTab(n) => {
                 self.activate_tab(*n)?;
             }
             SendString(s) => pane.writer().write_all(s.as_bytes())?,
             Hide => {
-                if let Some(w) = self.window.as_ref() {
+                if let Some(w) = window.as_ref() {
                     w.hide();
                 }
             }
             Show => {
-                if let Some(w) = self.window.as_ref() {
+                if let Some(w) = window.as_ref() {
                     w.show();
                 }
             }
