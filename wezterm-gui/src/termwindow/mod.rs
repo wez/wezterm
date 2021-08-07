@@ -81,7 +81,7 @@ pub enum TermWindowNotif {
         assignment: KeyAssignment,
     },
     SetRightStatus(String),
-    GetDimensions(Sender<(Dimensions, bool)>),
+    GetDimensions(Sender<(Dimensions, WindowState)>),
     GetSelectionForPane {
         pane_id: PaneId,
         tx: Sender<String>,
@@ -176,7 +176,7 @@ pub struct TermWindow {
     fonts: Rc<FontConfiguration>,
     /// Window dimensions and dpi
     pub dimensions: Dimensions,
-    pub is_full_screen: bool,
+    pub window_state: WindowState,
     /// Terminal dimensions
     terminal_size: PtySize,
     pub mux_window_id: MuxWindowId,
@@ -457,7 +457,7 @@ impl TermWindow {
             fonts: Rc::clone(&fontconfig),
             render_metrics,
             dimensions,
-            is_full_screen: false,
+            window_state: WindowState::default(),
             terminal_size,
             render_state,
             input_map: InputMap::new(&config),
@@ -568,9 +568,9 @@ impl TermWindow {
             }
             WindowEvent::Resized {
                 dimensions,
-                is_full_screen,
+                window_state,
             } => {
-                self.resize(dimensions, is_full_screen);
+                self.resize(dimensions, window_state);
                 Ok(true)
             }
             WindowEvent::KeyEvent(event) => {
@@ -642,7 +642,7 @@ impl TermWindow {
                 }
             }
             TermWindowNotif::GetDimensions(tx) => {
-                tx.try_send((self.dimensions, self.is_full_screen))
+                tx.try_send((self.dimensions, self.window_state))
                     .map_err(chan_err)
                     .context("send GetDimensions response")?;
             }

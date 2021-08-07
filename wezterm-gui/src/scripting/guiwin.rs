@@ -9,7 +9,7 @@ use mlua::{UserData, UserDataMethods};
 use mux::window::WindowId as MuxWindowId;
 use serde::*;
 use wezterm_toast_notification::ToastNotification;
-use window::{Connection, ConnectionOps, WindowOps};
+use window::{Connection, ConnectionOps, WindowOps, WindowState};
 
 #[derive(Clone)]
 pub struct GuiWin {
@@ -53,7 +53,7 @@ impl UserData for GuiWin {
         methods.add_async_method("get_dimensions", |_, this, _: ()| async move {
             let (tx, rx) = smol::channel::bounded(1);
             this.window.notify(TermWindowNotif::GetDimensions(tx));
-            let (dims, is_full_screen) = rx
+            let (dims, window_state) = rx
                 .recv()
                 .await
                 .map_err(|e| anyhow::anyhow!("{:#}", e))
@@ -72,7 +72,8 @@ impl UserData for GuiWin {
                 pixel_width: dims.pixel_width,
                 pixel_height: dims.pixel_height,
                 dpi: dims.dpi,
-                is_full_screen,
+                is_full_screen: window_state.contains(WindowState::FULL_SCREEN),
+                // FIXME: expose other states here
             };
             Ok(dims)
         });

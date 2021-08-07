@@ -507,7 +507,7 @@ impl Window {
                     dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
                         as usize,
                 },
-                is_full_screen: false,
+                window_state: WindowState::default(),
             });
 
             Ok(window_handle)
@@ -1929,7 +1929,11 @@ impl WindowView {
                     dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
                         as usize,
                 },
-                is_full_screen,
+                window_state: if is_full_screen {
+                    WindowState::FULL_SCREEN
+                } else {
+                    WindowState::default()
+                },
             });
         }
     }

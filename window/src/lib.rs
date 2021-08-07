@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use bitflags::bitflags;
 use promise::Future;
 use std::any::Any;
 use std::rc::Rc;
@@ -89,6 +90,30 @@ impl std::string::ToString for Appearance {
     }
 }
 
+bitflags! {
+    #[derive(Default)]
+    pub struct WindowState: u8 {
+        /// Occupies the whole screen; cannot be resized while in this state.
+        const FULL_SCREEN = 1<<1;
+        /// Maximized along either or both of horizontal or vertical dimensions;
+        /// cannot be resized while in this state.
+        const MAXIMIZED = 1<<2;
+        /// Minimized or in some kind of off-screen state. Cannot be repainted
+        /// while in this state.
+        const HIDDEN = 1<<3;
+    }
+}
+
+impl WindowState {
+    pub fn can_resize(self) -> bool {
+        !self.intersects(Self::FULL_SCREEN | Self::MAXIMIZED)
+    }
+
+    pub fn can_paint(self) -> bool {
+        !self.contains(Self::HIDDEN)
+    }
+}
+
 #[derive(Debug)]
 pub enum WindowEvent {
     /// Called when the window close button is clicked.
@@ -103,7 +128,7 @@ pub enum WindowEvent {
     /// Called when the window has been resized
     Resized {
         dimensions: Dimensions,
-        is_full_screen: bool,
+        window_state: WindowState,
     },
 
     /// Called when the window has been invalidated and needs to

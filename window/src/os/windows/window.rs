@@ -4,7 +4,7 @@ use crate::Appearance;
 use crate::{
     Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
     MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
-    WindowEventSender, WindowOps,
+    WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
@@ -221,7 +221,11 @@ impl WindowInner {
 
             self.events.dispatch(WindowEvent::Resized {
                 dimensions: current_dims,
-                is_full_screen: self.saved_placement.is_some(),
+                window_state: if self.saved_placement.is_some() {
+                    WindowState::FULL_SCREEN
+                } else {
+                    WindowState::default()
+                },
             });
         }
 

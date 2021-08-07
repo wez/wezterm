@@ -1,5 +1,5 @@
 use crate::utilsprites::RenderMetrics;
-use ::window::{Dimensions, WindowOps};
+use ::window::{Dimensions, WindowOps, WindowState};
 use config::ConfigHandle;
 use mux::Mux;
 use portable_pty::PtySize;
@@ -13,12 +13,12 @@ pub struct RowsAndCols {
 }
 
 impl super::TermWindow {
-    pub fn resize(&mut self, dimensions: Dimensions, is_full_screen: bool) {
+    pub fn resize(&mut self, dimensions: Dimensions, window_state: WindowState) {
         log::trace!(
-            "resize event, current cells: {:?}, new dims: {:?} is_full_screen:{}",
+            "resize event, current cells: {:?}, new dims: {:?} window_state:{:?}",
             self.current_cell_dimensions(),
             dimensions,
-            is_full_screen,
+            window_state,
         );
         if dimensions.pixel_width == 0 || dimensions.pixel_height == 0 {
             // on windows, this can happen when minimizing the window.
@@ -26,12 +26,12 @@ impl super::TermWindow {
             log::trace!("new dimensions are zero: NOP!");
             return;
         }
-        if self.dimensions == dimensions && self.is_full_screen == is_full_screen {
+        if self.dimensions == dimensions && self.window_state == window_state {
             // It didn't really change
             log::trace!("dimensions didn't change NOP!");
             return;
         }
-        self.is_full_screen = is_full_screen;
+        self.window_state = window_state;
         self.scaling_changed(dimensions, self.fonts.get_font_scale());
         self.emit_window_event("window-resized");
     }
@@ -198,7 +198,8 @@ impl super::TermWindow {
     /// the `adjust_window_size_when_changing_font_size` configuration and
     /// revises the scaling/resize change accordingly
     pub fn adjust_font_scale(&mut self, font_scale: f64) {
-        if !self.is_full_screen && self.config.adjust_window_size_when_changing_font_size {
+        if self.window_state.can_resize() && self.config.adjust_window_size_when_changing_font_size
+        {
             self.scaling_changed(self.dimensions, font_scale);
         } else {
             let dimensions = self.dimensions;

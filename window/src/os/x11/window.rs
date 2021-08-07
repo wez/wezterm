@@ -6,6 +6,7 @@ use crate::os::{Connection, Window};
 use crate::{
     Appearance, Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
     MousePress, Point, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
+    WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -152,7 +153,7 @@ impl XWindowInner {
                     pixel_height: self.height as usize,
                     dpi: self.dpi as usize,
                 },
-                is_full_screen: self.is_fullscreen().unwrap_or(false),
+                window_state: self.get_window_state().unwrap_or(WindowState::default()),
             });
         }
     }
@@ -189,7 +190,7 @@ impl XWindowInner {
 
                 self.events.dispatch(WindowEvent::Resized {
                     dimensions,
-                    is_full_screen: self.is_fullscreen().unwrap_or(false),
+                    window_state: self.get_window_state().unwrap_or(WindowState::default()),
                 });
             }
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
@@ -515,22 +516,14 @@ impl XWindowInner {
         Ok(())
     }
 
-    fn is_fullscreen(&self) -> anyhow::Result<bool> {
+    fn get_window_state(&self) -> anyhow::Result<WindowState> {
         let conn = self.conn();
-
-        let net_wm_state = xcb::intern_atom(conn.conn(), false, "_NET_WM_STATE")
-            .get_reply()?
-            .atom();
-        let net_wm_state_fullscreen =
-            xcb::intern_atom(conn.conn(), false, "_NET_WM_STATE_FULLSCREEN")
-                .get_reply()?
-                .atom();
 
         let reply = xcb::xproto::get_property(
             &conn,
             false,
             self.window_id,
-            net_wm_state,
+            conn.atom_net_wm_state,
             xcb::xproto::ATOM_ATOM,
             0,
             1024,
@@ -538,11 +531,19 @@ impl XWindowInner {
         .get_reply()?;
 
         let state = reply.value::<u32>();
+        let mut window_state = WindowState::default();
 
-        Ok(state
-            .iter()
-            .position(|&x| x == net_wm_state_fullscreen)
-            .is_some())
+        for &s in state {
+            if s == conn.atom_state_fullscreen {
+                window_state |= WindowState::FULL_SCREEN;
+            } else if s == conn.atom_state_maximized_vert || s == conn.atom_state_maximized_horz {
+                window_state |= WindowState::MAXIMIZED;
+            } else if s == conn.atom_state_hidden {
+                window_state |= WindowState::HIDDEN;
+            }
+        }
+
+        Ok(window_state)
     }
 
     fn set_fullscreen_hint(&mut self, enable: bool) -> anyhow::Result<()> {
@@ -804,8 +805,8 @@ impl XWindowInner {
     }
 
     fn toggle_fullscreen(&mut self) {
-        let fullscreen = match self.is_fullscreen() {
-            Ok(f) => f,
+        let fullscreen = match self.get_window_state() {
+            Ok(f) => f.contains(WindowState::FULL_SCREEN),
             Err(err) => {
                 log::error!("Failed to determine fullscreen state: {}", err);
                 return;

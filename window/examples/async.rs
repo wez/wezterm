@@ -34,9 +34,9 @@ impl MyWindow {
             }
             WindowEvent::Resized {
                 dimensions,
-                is_full_screen,
+                window_state,
             } => {
-                eprintln!("resize {:?} is_full_screen={}", dimensions, is_full_screen);
+                eprintln!("resize {:?} state={:?}", dimensions, window_state);
                 self.dims = dimensions;
             }
             WindowEvent::MouseEvent(event) => {

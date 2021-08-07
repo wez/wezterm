@@ -225,7 +225,7 @@ impl MyWindow {
             }
             WindowEvent::Resized {
                 dimensions,
-                is_full_screen: _,
+                window_state: _,
             } => {
                 self.resize(dimensions);
                 #[cfg(target_os = "macos")]

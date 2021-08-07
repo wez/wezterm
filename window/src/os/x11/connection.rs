@@ -34,6 +34,11 @@ pub struct XConnection {
     pub atom_xsettings_selection: xcb::Atom,
     pub atom_xsettings_settings: xcb::Atom,
     pub atom_manager: xcb::Atom,
+    pub atom_state_maximized_vert: xcb::Atom,
+    pub atom_state_maximized_horz: xcb::Atom,
+    pub atom_state_hidden: xcb::Atom,
+    pub atom_state_fullscreen: xcb::Atom,
+    pub atom_net_wm_state: xcb::Atom,
     keysyms: *mut xcb_key_symbols_t,
     pub(crate) xrm: RefCell<HashMap<String, String>>,
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<XWindowInner>>>>,
@@ -357,6 +362,23 @@ impl XConnection {
         let atom_manager = xcb::intern_atom(&conn, false, "MANAGER")
             .get_reply()?
             .atom();
+        let atom_state_maximized_vert =
+            xcb::intern_atom(&conn, false, "_NET_WM_STATE_MAXIMIZED_VERT")
+                .get_reply()?
+                .atom();
+        let atom_state_maximized_horz =
+            xcb::intern_atom(&conn, false, "_NET_WM_STATE_MAXIMIZED_HORZ")
+                .get_reply()?
+                .atom();
+        let atom_state_hidden = xcb::intern_atom(&conn, false, "_NET_WM_STATE_HIDDEN")
+            .get_reply()?
+            .atom();
+        let atom_state_fullscreen = xcb::intern_atom(&conn, false, "_NET_WM_STATE_FULLSCREEN")
+            .get_reply()?
+            .atom();
+        let atom_net_wm_state = xcb::intern_atom(&conn, false, "_NET_WM_STATE")
+            .get_reply()?
+            .atom();
 
         let keysyms = unsafe { xcb_key_symbols_alloc((*conn).get_raw_conn()) };
 
@@ -434,6 +456,11 @@ impl XConnection {
             atom_xsettings_settings,
             atom_manager,
             atom_delete,
+            atom_state_maximized_vert,
+            atom_state_maximized_horz,
+            atom_state_hidden,
+            atom_state_fullscreen,
+            atom_net_wm_state,
             keysyms,
             keyboard,
             kbd_ev,

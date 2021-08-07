@@ -6,7 +6,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::x11::keyboard::Keyboard;
 use crate::{
     Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowEvent,
-    WindowEventSender, WindowOps,
+    WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, Context};
 use async_io::Timer;
@@ -112,7 +112,7 @@ pub struct WaylandWindowInner {
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<ConceptFrame>>,
     dimensions: Dimensions,
-    full_screen: bool,
+    window_state: WindowState,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
     modifiers: Modifiers,
@@ -134,7 +134,7 @@ struct PendingEvent {
     refresh_decorations: bool,
     configure: Option<(u32, u32)>,
     dpi: Option<i32>,
-    full_screen: Option<bool>,
+    window_state: Option<WindowState>,
 }
 
 impl PendingEvent {
@@ -165,17 +165,32 @@ impl PendingEvent {
                 } else {
                     changed = true;
                 }
-                let full_screen = states.contains(&State::Fullscreen);
+                let mut state = WindowState::default();
+                for s in &states {
+                    match s {
+                        State::Fullscreen => {
+                            state |= WindowState::FULL_SCREEN;
+                        }
+                        State::Maximized
+                        | State::TiledLeft
+                        | State::TiledRight
+                        | State::TiledTop
+                        | State::TiledBottom => {
+                            state |= WindowState::MAXIMIZED;
+                        }
+                        _ => {}
+                    }
+                }
                 log::debug!(
-                    "Config: self.full_screen={:?}, states:{:?} {:?}",
-                    self.full_screen,
-                    full_screen,
+                    "Config: self.window_state={:?}, states:{:?} {:?}",
+                    self.window_state,
+                    state,
                     states
                 );
-                match (self.full_screen, full_screen) {
-                    (None, false) => {}
+                match (self.window_state, state) {
+                    (None, s) if s == WindowState::default() => {}
                     _ => {
-                        self.full_screen.replace(full_screen);
+                        self.window_state.replace(state);
                         changed = true;
                     }
                 }
@@ -292,7 +307,7 @@ impl WaylandWindow {
             surface: surface.detach(),
             window: Some(window),
             dimensions,
-            full_screen: false,
+            window_state: WindowState::default(),
             last_mouse_coords: Point::new(0, 0),
             mouse_buttons: MouseButtons::NONE,
             modifiers: Modifiers::NONE,
@@ -507,13 +522,13 @@ impl WaylandWindowInner {
             self.events.dispatch(WindowEvent::CloseRequested);
         }
 
-        if let Some(full_screen) = pending.full_screen.take() {
+        if let Some(window_state) = pending.window_state.take() {
             log::debug!(
-                "dispatch_pending_event self.full_screen={} pending:{}",
-                self.full_screen,
-                full_screen
+                "dispatch_pending_event self.window_state={:?} pending:{:?}",
+                self.window_state,
+                window_state
             );
-            self.full_screen = full_screen;
+            self.window_state = window_state;
         }
 
         if pending.configure.is_none() && pending.dpi.is_some() {
@@ -554,7 +569,7 @@ impl WaylandWindowInner {
 
                     self.events.dispatch(WindowEvent::Resized {
                         dimensions: self.dimensions,
-                        is_full_screen: self.full_screen,
+                        window_state: self.window_state,
                     });
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
                         wegl_surface.resize(pixel_width, pixel_height, 0, 0);
@@ -874,7 +889,7 @@ impl WaylandWindowInner {
 
     fn toggle_fullscreen(&mut self) {
         if let Some(window) = self.window.as_ref() {
-            if self.full_screen {
+            if self.window_state.contains(WindowState::FULL_SCREEN) {
                 window.unset_fullscreen();
             } else {
                 window.set_fullscreen(None);
