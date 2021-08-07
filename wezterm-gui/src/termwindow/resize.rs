@@ -76,14 +76,25 @@ impl super::TermWindow {
     pub fn apply_dimensions(
         &mut self,
         dimensions: &Dimensions,
-        scale_changed_cells: Option<RowsAndCols>,
+        mut scale_changed_cells: Option<RowsAndCols>,
     ) {
         log::trace!(
-            "apply_dimensions {:?} scale_changed_cells {:?}",
+            "apply_dimensions {:?} scale_changed_cells {:?}. window_state {:?}",
             dimensions,
-            scale_changed_cells
+            scale_changed_cells,
+            self.window_state
         );
+        let saved_dims = self.dimensions;
         self.dimensions = *dimensions;
+
+        if scale_changed_cells.is_some() && !self.window_state.can_resize() {
+            log::warn!(
+                "cannot resize window to match {:?} because window_state is {:?}",
+                scale_changed_cells,
+                self.window_state
+            );
+            scale_changed_cells.take();
+        }
 
         // Technically speaking, we should compute the rows and cols
         // from the new dimensions and apply those to the tabs, and
@@ -165,8 +176,23 @@ impl super::TermWindow {
         // Queue up a speculative resize in order to preserve the number of rows+cols
         if let Some(cell_dims) = scale_changed_cells {
             if let Some(window) = self.window.as_ref() {
-                log::trace!("scale changed so resize to {:?} {:?}", cell_dims, dims);
-                window.set_inner_size(dims.pixel_width, dims.pixel_height);
+                // If we don't think the dimensions have changed, don't request
+                // the window to change.  This seems to help on Wayland where
+                // we won't know what size the compositor thinks we should have
+                // when we're first opened, until after it sends us a configure event.
+                // If we send this too early, it will trump that configure event
+                // and we'll end up with weirdness where our window renders in the
+                // middle of a larger region that the compositor thinks we live in.
+                // Wayland is weird!
+                if saved_dims != dims {
+                    log::trace!(
+                        "scale changed so resize from {:?} to {:?} {:?}",
+                        saved_dims,
+                        dims,
+                        cell_dims
+                    );
+                    window.set_inner_size(dims.pixel_width, dims.pixel_height);
+                }
             }
         }
     }
