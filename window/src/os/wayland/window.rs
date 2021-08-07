@@ -123,6 +123,7 @@ pub struct WaylandWindowInner {
     pending_mouse: Arc<Mutex<PendingMouse>>,
     pending_first_configure: Option<async_channel::Sender<()>>,
     frame_callback: Option<Main<WlCallback>>,
+    invalidated: bool,
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
     // libraries will segfault on shutdown
@@ -308,6 +309,7 @@ impl WaylandWindow {
             copy_and_paste,
             events: WindowEventSender::new(event_handler),
             surface,
+            invalidated: false,
             window: Some(window),
             dimensions,
             window_state: WindowState::default(),
@@ -648,26 +650,36 @@ impl WaylandWindowInner {
         Ok(gl_state)
     }
 
+    fn next_frame_is_ready(&mut self) {
+        self.frame_callback.take();
+        if self.invalidated {
+            self.do_paint().ok();
+        }
+    }
+
     fn do_paint(&mut self) -> anyhow::Result<()> {
+        if self.frame_callback.is_some() {
+            // Painting now won't be productive, so skip it but
+            // remember that we need to be painted so that when
+            // the compositor is ready for us, we can paint then.
+            self.invalidated = true;
+            return Ok(());
+        }
+
+        self.invalidated = false;
         self.events.dispatch(WindowEvent::NeedRepaint);
 
-        // We could request a callback when we should render the next frame
-        // by doing this here, but unconditionally doing this will make us
-        // redraw at the display refresh rate which is potentially more
-        // often than we want.
-        if false {
-            let callback = self.surface.frame();
-            let window_id = self.window_id;
-            callback.quick_assign(move |_source, _event, _data| {
-                WaylandConnection::with_window_inner(window_id, |inner| {
-                    inner.invalidate();
-                    Ok(())
-                });
+        // Ask the compositor to wake us up when its time to paint
+        // the next frame
+        let window_id = self.window_id;
+        let callback = self.surface.frame();
+        callback.quick_assign(move |_source, _event, _data| {
+            WaylandConnection::with_window_inner(window_id, |inner| {
+                inner.next_frame_is_ready();
+                Ok(())
             });
-            self.frame_callback.replace(callback);
-        } else {
-            self.frame_callback.take();
-        }
+        });
+        self.frame_callback.replace(callback);
 
         Ok(())
     }
@@ -943,6 +955,10 @@ impl WaylandWindowInner {
     }
 
     fn invalidate(&mut self) {
+        if self.frame_callback.is_some() {
+            self.invalidated = true;
+            return;
+        }
         self.do_paint().unwrap();
     }
 
