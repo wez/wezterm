@@ -6,7 +6,7 @@ use crate::connection::ConnectionOps;
 use crate::{
     Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
     MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size, WindowDecorations,
-    WindowEvent, WindowEventSender, WindowOps,
+    WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
