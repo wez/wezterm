@@ -30,8 +30,10 @@ use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEve
 use toolkit::reexports::client::protocol::wl_pointer::ButtonState;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::window::{Event as SCTKWindowEvent, State};
+use wayland_client::protocol::wl_callback::WlCallback;
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
+use wayland_client::{Attached, Main};
 use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::*;
@@ -108,7 +110,7 @@ impl KeyRepeatState {
 pub struct WaylandWindowInner {
     window_id: usize,
     events: WindowEventSender,
-    surface: WlSurface,
+    surface: Attached<WlSurface>,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<ConceptFrame>>,
     dimensions: Dimensions,
@@ -120,6 +122,7 @@ pub struct WaylandWindowInner {
     pending_event: Arc<Mutex<PendingEvent>>,
     pending_mouse: Arc<Mutex<PendingMouse>>,
     pending_first_configure: Option<async_channel::Sender<()>>,
+    frame_callback: Option<Main<WlCallback>>,
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
     // libraries will segfault on shutdown
@@ -304,7 +307,7 @@ impl WaylandWindow {
             key_repeat: None,
             copy_and_paste,
             events: WindowEventSender::new(event_handler),
-            surface: surface.detach(),
+            surface,
             window: Some(window),
             dimensions,
             window_state: WindowState::default(),
@@ -314,6 +317,7 @@ impl WaylandWindow {
             pending_event,
             pending_mouse,
             pending_first_configure: Some(pending_first_configure),
+            frame_callback: None,
             gl_state: None,
             wegl_surface: None,
         }));
@@ -646,6 +650,25 @@ impl WaylandWindowInner {
 
     fn do_paint(&mut self) -> anyhow::Result<()> {
         self.events.dispatch(WindowEvent::NeedRepaint);
+
+        // We could request a callback when we should render the next frame
+        // by doing this here, but unconditionally doing this will make us
+        // redraw at the display refresh rate which is potentially more
+        // often than we want.
+        if false {
+            let callback = self.surface.frame();
+            let window_id = self.window_id;
+            callback.quick_assign(move |_source, _event, _data| {
+                WaylandConnection::with_window_inner(window_id, |inner| {
+                    inner.invalidate();
+                    Ok(())
+                });
+            });
+            self.frame_callback.replace(callback);
+        } else {
+            self.frame_callback.take();
+        }
+
         Ok(())
     }
 }

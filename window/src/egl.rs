@@ -467,7 +467,17 @@ impl GlState {
         display: Option<ffi::EGLNativeDisplayType>,
         wegl_surface: &wayland_egl::WlEglSurface,
     ) -> anyhow::Result<Self> {
-        Self::create(display, wegl_surface.ptr())
+        let state = Self::create(display, wegl_surface.ptr())?;
+        // Request non-blocking buffer swaps when using egl with wayland:
+        // <https://emersion.fr/blog/2018/wayland-rendering-loop/>
+        unsafe {
+            state
+                .connection
+                .egl
+                .egl
+                .SwapInterval(state.connection.display, 0);
+        }
+        Ok(state)
     }
 
     pub fn create(
