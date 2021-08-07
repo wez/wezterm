@@ -311,6 +311,7 @@ impl TermWindow {
                     config::wezterm_version(),
                 );
                 self.render_state.replace(gl);
+                /*
                 // Update dimensions: the goal here is to factor in the dpi and font
                 // size adjusted GUI window dimensions and apply those to the dimensions
                 // of the pty in the Mux layer.
@@ -322,6 +323,7 @@ impl TermWindow {
                         cols: self.terminal_size.cols as _,
                     }),
                 );
+                */
             }
             Err(err) => {
                 log::error!("failed to create OpenGLRenderState: {}", err);
@@ -393,10 +395,9 @@ impl TermWindow {
 
         let window_background = load_background_image(&config);
 
-        let fontconfig = Rc::new(FontConfiguration::new(
-            Some(config.clone()),
-            config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
-        )?);
+        let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize;
+
+        let fontconfig = Rc::new(FontConfiguration::new(Some(config.clone()), dpi)?);
         let mux = Mux::get().expect("to be main thread with mux running");
         let size = match mux.get_active_tab_for_window(mux_window_id) {
             Some(tab) => tab.get_size(),
@@ -425,14 +426,14 @@ impl TermWindow {
         let rows_with_tab_bar = if show_tab_bar { 1 } else { 0 } + terminal_size.rows;
 
         let dimensions = Dimensions {
-            pixel_width: ((terminal_size.cols * render_metrics.cell_size.width as u16)
+            pixel_width: (terminal_size.pixel_width
                 + config.window_padding.left
                 + resize::effective_right_padding(&config, &render_metrics))
                 as usize,
             pixel_height: ((rows_with_tab_bar * render_metrics.cell_size.height as u16)
                 + config.window_padding.top
                 + config.window_padding.bottom) as usize,
-            dpi: config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+            dpi,
         };
 
         log::trace!(
