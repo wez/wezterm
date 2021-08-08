@@ -1770,7 +1770,7 @@ impl Config {
 }
 
 fn default_mux_output_parser_buffer_size() -> usize {
-    10 * 1024
+    10 * 1024 * 1024
 }
 
 fn default_ratelimit_line_prefetches_per_second() -> u32 {
