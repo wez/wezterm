@@ -14,23 +14,27 @@ impl super::TermWindow {
             .map(|r| r.normalize())
         {
             let mut last_was_wrapped = false;
-            let (first_row, lines) =
-                pane.get_lines_with_hyperlinks_applied(sel.rows(), &self.config.hyperlink_rules);
-            for (idx, line) in lines.iter().enumerate() {
-                let cols = sel.cols_for_row(first_row + idx as StableRowIndex);
-                let last_col_idx = cols.end.min(line.cells().len()).saturating_sub(1);
+            let first_row = sel.rows().start;
+            let last_row = sel.rows().end;
+
+            for line in pane.get_logical_lines(sel.rows()) {
                 if !s.is_empty() && !last_was_wrapped {
                     s.push('\n');
                 }
-                s.push_str(line.columns_as_str(cols).trim_end());
+                for (idx, phys) in line.physical_lines.iter().enumerate() {
+                    let this_row = line.first_row + idx as StableRowIndex;
+                    if this_row >= first_row && this_row < last_row {
+                        let last_phys_idx = phys.cells().len().saturating_sub(1);
+                        let cols = sel.cols_for_row(this_row);
+                        let last_col_idx = cols.end.saturating_sub(1).min(last_phys_idx);
+                        s.push_str(phys.columns_as_str(cols).trim_end());
 
-                match line.cells().get(last_col_idx) {
-                    Some(last_cell) => {
-                        // TODO: should really test for any unicode whitespace
-                        last_was_wrapped = last_cell.attrs().wrapped() && last_cell.str() != " ";
-                    }
-                    None => {
-                        last_was_wrapped = false;
+                        last_was_wrapped = last_col_idx == last_phys_idx
+                            && phys
+                                .cells()
+                                .get(last_col_idx)
+                                .map(|c| c.attrs().wrapped())
+                                .unwrap_or(false);
                     }
                 }
             }
