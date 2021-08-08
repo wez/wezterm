@@ -70,6 +70,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Updated bundled `Noto Color Emoji` font to version 2.028 featuring a [design update](https://blog.google/products/android/emoji-day-redesign-easier-sharing/). Thanks to [@4cm4k1](https://github.com/4cm4k1)! [#1003](https://github.com/wez/wezterm/pull/1003)
 * Fixed: wayland: putting a window in the Sway scratchpad no longer blocks the wezterm process [#884](https://github.com/wez/wezterm/issues/884)
 * Fixed: mouse reporting now correctly reports release events when multiple buttons are pressed and released at the same time. [#973](https://github.com/wez/wezterm/issues/973)
+* Fixed: incorrect initial window/pty size when running with some tiling window managers. [#695](https://github.com/wez/wezterm/issues/695)
 
 ### 20210502-154244-3f7122cb
 
