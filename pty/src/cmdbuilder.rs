@@ -129,6 +129,28 @@ impl CommandBuilder {
         self.umask = mask;
     }
 
+    fn search_path(exe: &OsStr) -> anyhow::Result<OsString> {
+        let exe_path: &std::path::Path = exe.as_ref();
+        if exe_path.is_relative() {
+            if let Some(path) = std::env::var_os("PATH") {
+                for path in std::env::split_paths(&path) {
+                    let candidate = path.join(&exe);
+                    if candidate.exists() {
+                        return Ok(candidate.into_os_string());
+                    }
+                }
+            }
+        }
+        if !exe_path.exists() {
+            anyhow::bail!(
+                "Unable to spawn {} because it doesn't exist on the filesystem",
+                exe_path.display()
+            );
+        }
+
+        Ok(exe.to_owned())
+    }
+
     /// Convert the CommandBuilder to a `std::process::Command` instance.
     pub(crate) fn as_command(&self) -> anyhow::Result<std::process::Command> {
         use std::os::unix::process::CommandExt;
@@ -144,7 +166,9 @@ impl CommandBuilder {
             cmd.arg0(&format!("-{}", basename));
             cmd
         } else {
-            let mut cmd = std::process::Command::new(&self.args[0]);
+            let resolved = Self::search_path(&self.args[0])?;
+            let mut cmd = std::process::Command::new(&resolved);
+            cmd.arg0(&self.args[0]);
             cmd.args(&self.args[1..]);
             cmd
         };
