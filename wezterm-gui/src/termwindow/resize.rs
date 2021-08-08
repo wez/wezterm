@@ -219,11 +219,17 @@ impl super::TermWindow {
             && dpi_adjusted(dimensions.pixel_width, dimensions.dpi)
                 == dpi_adjusted(self.dimensions.pixel_width, self.dimensions.dpi);
 
-        let scale_changed = simple_dpi_change || font_scale != self.fonts.get_font_scale();
+        let dpi_changed = dimensions.dpi != self.dimensions.dpi;
+        let font_scale_changed = font_scale != self.fonts.get_font_scale();
+        let scale_changed = dpi_changed || font_scale_changed;
 
-        let scale_changed_cells = if scale_changed {
-            let cell_dims = self.current_cell_dimensions();
+        let cell_dims = self.current_cell_dimensions();
+
+        if scale_changed {
             self.apply_scale_change(&dimensions, font_scale);
+        }
+
+        let scale_changed_cells = if font_scale_changed || simple_dpi_change {
             Some(cell_dims)
         } else {
             None
