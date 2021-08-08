@@ -307,6 +307,11 @@ impl ImageDataType {
         }
     }
 
+    #[cfg(not(feature = "use_image"))]
+    pub fn decode(self) -> Self {
+        self
+    }
+
     #[cfg(feature = "use_image")]
     fn decode_frames(img_frames: Vec<image::Frame>) -> Self {
         let mut width = 0;
