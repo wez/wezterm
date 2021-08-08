@@ -73,6 +73,7 @@ impl CursorShape {
 /// SequenceNo indicates a logical position within a stream of changes.
 /// The sequence is only meaningful within a given `Surface` instance.
 pub type SequenceNo = usize;
+pub const SEQ_ZERO: SequenceNo = 0;
 
 /// The `Surface` type represents the contents of a terminal screen.
 /// It is not directly connected to a terminal device.
@@ -229,7 +230,7 @@ impl Surface {
     pub fn resize(&mut self, width: usize, height: usize) {
         self.lines.resize(height, Line::with_width(width));
         for line in &mut self.lines {
-            line.resize(width);
+            line.resize(width, self.seqno);
         }
         self.width = width;
         self.height = height;
@@ -339,6 +340,7 @@ impl Surface {
                             )))
                             .clone(),
                     ),
+                    self.seqno,
                 );
 
                 xpos += xsize;
@@ -353,7 +355,7 @@ impl Surface {
         self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
         for line in &mut self.lines {
-            line.fill_range(0..self.width, &cleared);
+            line.fill_range(0..self.width, &cleared, self.seqno);
         }
         self.xpos = 0;
         self.ypos = 0;
@@ -362,16 +364,16 @@ impl Surface {
     fn clear_eos(&mut self, color: ColorAttribute) {
         self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
-        self.lines[self.ypos].fill_range(self.xpos..self.width, &cleared);
+        self.lines[self.ypos].fill_range(self.xpos..self.width, &cleared, self.seqno);
         for line in &mut self.lines.iter_mut().skip(self.ypos + 1) {
-            line.fill_range(0..self.width, &cleared);
+            line.fill_range(0..self.width, &cleared, self.seqno);
         }
     }
 
     fn clear_eol(&mut self, color: ColorAttribute) {
         self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
-        self.lines[self.ypos].fill_range(self.xpos..self.width, &cleared);
+        self.lines[self.ypos].fill_range(self.xpos..self.width, &cleared, self.seqno);
     }
 
     fn scroll_screen_up(&mut self) {
@@ -447,7 +449,7 @@ impl Surface {
             // the model, which seems like a lossy design choice.
             let width = cell.width().max(1);
 
-            self.lines[self.ypos].set_cell(self.xpos, cell);
+            self.lines[self.ypos].set_cell(self.xpos, cell, self.seqno);
 
             // Increment the position now; we'll defer processing
             // wrapping until the next printed character, otherwise

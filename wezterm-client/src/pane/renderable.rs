@@ -17,6 +17,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::cell::{Cell, CellAttributes, Underline};
 use termwiz::color::AnsiColor;
+use termwiz::surface::{SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::{KeyCode, KeyModifiers};
 use wezterm_term::{Line, StableRowIndex};
@@ -68,6 +69,7 @@ pub struct RenderableInner {
     lines: LruCache<StableRowIndex, LineEntry>,
     pub title: String,
     pub working_dir: Option<Url>,
+    pub seqno: SequenceNo,
 
     fetch_limiter: RateLimiter,
 
@@ -113,6 +115,7 @@ impl RenderableInner {
             last_late_dirty: now,
             last_input_rtt: 0,
             input_serial: InputSerial::empty(),
+            seqno: SEQ_ZERO,
         }
     }
 
@@ -174,11 +177,11 @@ impl RenderableInner {
                 self.cursor_position.x = self.cursor_position.x.saturating_sub(1);
             }
             KeyCode::Delete => {
-                line.erase_cell(self.cursor_position.x);
+                line.erase_cell(self.cursor_position.x, SEQ_ZERO);
             }
             KeyCode::Backspace => {
                 if self.cursor_position.x > 0 {
-                    line.erase_cell(self.cursor_position.x - 1);
+                    line.erase_cell(self.cursor_position.x - 1, SEQ_ZERO);
                     self.cursor_position.x -= 1;
                 }
             }
@@ -190,7 +193,7 @@ impl RenderableInner {
                         .clone(),
                 );
 
-                let cell = line.set_cell(self.cursor_position.x, cell);
+                let cell = line.set_cell(self.cursor_position.x, cell, SEQ_ZERO);
                 // Adjust the cursor to reflect the width of this new cell
                 self.cursor_position.x += cell.width();
             }
@@ -251,13 +254,13 @@ impl RenderableInner {
 
         if row == 0 {
             for cell in text_line.cells() {
-                line.set_cell(self.cursor_position.x, cell.clone());
+                line.set_cell(self.cursor_position.x, cell.clone(), SEQ_ZERO);
                 self.cursor_position.x += cell.width();
             }
         } else {
             // The pasted line replaces the data for the existing line
-            line.resize_and_clear(0);
-            line.append_line(text_line);
+            line.resize_and_clear(0, SEQ_ZERO);
+            line.append_line(text_line, SEQ_ZERO);
             self.cursor_position.x = line.cells().len();
         }
     }
@@ -340,6 +343,7 @@ impl RenderableInner {
         self.dimensions = delta.dimensions;
         self.title = delta.title;
         self.working_dir = delta.working_dir.map(Into::into);
+        self.seqno = delta.seqno;
 
         let config = configuration();
         for (stable_row, line) in delta.bonus_lines.lines() {
@@ -664,7 +668,7 @@ impl RenderableState {
                     result
                         .last_mut()
                         .unwrap()
-                        .overlay_text_with_attribute(col, &status, attr);
+                        .overlay_text_with_attribute(col, &status, attr, SEQ_ZERO);
                 }
             }
 
@@ -675,7 +679,15 @@ impl RenderableState {
         (lines.start, result)
     }
 
-    pub fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+    pub fn get_current_seqno(&self) -> SequenceNo {
+        self.inner.borrow().seqno
+    }
+
+    pub fn get_changed_since(
+        &self,
+        lines: Range<StableRowIndex>,
+        _seqno: SequenceNo,
+    ) -> RangeSet<StableRowIndex> {
         let mut inner = self.inner.borrow_mut();
         if let Err(err) = inner.poll() {
             // We allow for BrokenPromise here for now; for a TLS backed
@@ -710,7 +722,7 @@ impl RenderableState {
         }
 
         if !result.is_empty() {
-            log::trace!("get_dirty_lines: {:?}", result);
+            log::trace!("get_changed_since: {:?}", result);
         }
 
         result

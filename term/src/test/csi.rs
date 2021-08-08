@@ -169,7 +169,7 @@ fn test_ed() {
         .set_background(color::AnsiColor::Navy)
         .clone();
     let mut line: Line = "   ".into();
-    line.fill_range(0..3, &Cell::new(' ', attr.clone()));
+    line.fill_range(0..3, &Cell::new(' ', attr.clone()), SEQ_ZERO);
     assert_lines_equal(
         file!(),
         line!(),

@@ -9,11 +9,11 @@ use mux::Mux;
 use percent_encoding::percent_decode_str;
 use portable_pty::PtySize;
 use promise::spawn::spawn_into_main_thread;
-use rangeset::RangeSet;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
+use termwiz::surface::SequenceNo;
 use url::Url;
 use wezterm_term::terminal::{Alert, Clipboard, ClipboardSelection};
 use wezterm_term::StableRowIndex;
@@ -42,9 +42,9 @@ pub(crate) struct PerPane {
     title: String,
     working_dir: Option<Url>,
     dimensions: RenderableDimensions,
-    dirty_lines: RangeSet<StableRowIndex>,
     mouse_grabbed: bool,
     sent_initial_palette: bool,
+    seqno: SequenceNo,
     pub(crate) notifications: Vec<Alert>,
 }
 
@@ -80,10 +80,11 @@ impl PerPane {
             changed = true;
         }
 
-        let mut all_dirty_lines =
-            pane.get_dirty_lines(0..dims.physical_top + dims.viewport_rows as StableRowIndex);
-        let dirty_delta = all_dirty_lines.difference(&self.dirty_lines);
-        if !dirty_delta.is_empty() {
+        let mut all_dirty_lines = pane.get_changed_since(
+            0..dims.physical_top + dims.viewport_rows as StableRowIndex,
+            self.seqno,
+        );
+        if !all_dirty_lines.is_empty() {
             changed = true;
         }
 
@@ -115,26 +116,22 @@ impl PerPane {
         self.title = title.clone();
         self.working_dir = working_dir.clone();
         self.dimensions = dims;
-        self.dirty_lines = all_dirty_lines;
         self.mouse_grabbed = mouse_grabbed;
+        self.seqno = pane.get_current_seqno();
 
-        let dirty_lines = dirty_delta.iter().cloned().collect();
         let bonus_lines = bonus_lines.into();
         Some(GetPaneRenderChangesResponse {
             pane_id: pane.pane_id(),
             mouse_grabbed,
-            dirty_lines,
+            dirty_lines: all_dirty_lines.iter().cloned().collect(),
             dimensions: dims,
             cursor_position,
             title,
             bonus_lines,
             working_dir: working_dir.map(Into::into),
             input_serial: force_with_input_serial,
+            seqno: self.seqno,
         })
-    }
-
-    fn mark_clean(&mut self, stable_row: StableRowIndex) {
-        self.dirty_lines.remove(stable_row);
     }
 }
 
@@ -509,7 +506,6 @@ impl SessionHandler {
             }
 
             Pdu::GetLines(GetLines { pane_id, lines }) => {
-                let per_pane = self.per_pane(pane_id);
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
@@ -518,13 +514,11 @@ impl SessionHandler {
                                 .get_pane(pane_id)
                                 .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
                             let mut lines_and_indices = vec![];
-                            let mut per_pane = per_pane.lock().unwrap();
 
                             for range in lines {
                                 let (first_row, lines) = pane.get_lines(range);
                                 for (idx, line) in lines.into_iter().enumerate() {
                                     let stable_row = first_row + idx as StableRowIndex;
-                                    per_pane.mark_clean(stable_row);
                                     lines_and_indices.push((stable_row, line));
                                 }
                             }

@@ -10,6 +10,7 @@ use std::cell::{RefCell, RefMut};
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
+use termwiz::surface::SequenceNo;
 use unicode_segmentation::*;
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -520,8 +521,16 @@ impl Pane for CopyOverlay {
         self.render.borrow_mut().cursor
     }
 
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
-        self.delegate.get_dirty_lines(lines)
+    fn get_current_seqno(&self) -> SequenceNo {
+        self.delegate.get_current_seqno()
+    }
+
+    fn get_changed_since(
+        &self,
+        lines: Range<StableRowIndex>,
+        seqno: SequenceNo,
+    ) -> RangeSet<StableRowIndex> {
+        self.delegate.get_changed_since(lines, seqno)
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {

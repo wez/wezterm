@@ -48,6 +48,7 @@ impl super::TermWindow {
         mode: Option<SelectionMode>,
         pane: &Rc<dyn Pane>,
     ) {
+        self.selection(pane.pane_id()).seqno = pane.get_current_seqno();
         let mode = mode.unwrap_or(SelectionMode::Cell);
         let (x, y) = self.last_mouse_terminal_coords;
         match mode {
@@ -165,6 +166,7 @@ impl super::TermWindow {
             }
         }
 
+        self.selection(pane.pane_id()).seqno = pane.get_current_seqno();
         self.window.as_ref().unwrap().invalidate();
     }
 }

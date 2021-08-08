@@ -49,6 +49,8 @@ impl<'a> Performer<'a> {
     }
 
     fn flush_print(&mut self) {
+        let seqno = self.seqno;
+
         let p = match self.print.take() {
             Some(s) => s,
             None => return,
@@ -142,7 +144,7 @@ impl<'a> Performer<'a> {
                 let margin = self.left_and_right_margins.end;
                 let screen = self.screen_mut();
                 for _ in x..x + print_width as usize {
-                    screen.insert_cell(x, y, margin);
+                    screen.insert_cell(x, y, margin, seqno);
                 }
             }
 
@@ -156,7 +158,7 @@ impl<'a> Performer<'a> {
                 width,
                 cell
             );
-            self.screen_mut().set_cell(x, y, &cell);
+            self.screen_mut().set_cell(x, y, &cell, seqno);
 
             if !wrappable {
                 self.cursor.x += print_width;
@@ -258,6 +260,7 @@ impl<'a> Performer<'a> {
     }
 
     fn control(&mut self, control: ControlCode) {
+        let seqno = self.seqno;
         self.flush_print();
         match control {
             ControlCode::LineFeed | ControlCode::VerticalTab | ControlCode::FormFeed => {
@@ -272,8 +275,8 @@ impl<'a> Performer<'a> {
                     } else {
                         (old_y + 1).min(self.screen().physical_rows as i64 - 1)
                     };
-                    self.screen_mut().dirty_line(old_y);
-                    self.screen_mut().dirty_line(y);
+                    self.screen_mut().dirty_line(old_y, seqno);
+                    self.screen_mut().dirty_line(y, seqno);
                     self.cursor.y = y;
                     self.wrap_next = false;
                 }
@@ -289,7 +292,7 @@ impl<'a> Performer<'a> {
                 }
                 let y = self.cursor.y;
                 self.wrap_next = false;
-                self.screen_mut().dirty_line(y);
+                self.screen_mut().dirty_line(y, seqno);
             }
 
             ControlCode::Backspace => {
@@ -379,6 +382,7 @@ impl<'a> Performer<'a> {
     }
 
     fn esc_dispatch(&mut self, esc: Esc) {
+        let seqno = self.seqno;
         self.flush_print();
         match esc {
             Esc::Code(EscCode::StringTerminator) => {
@@ -420,19 +424,19 @@ impl<'a> Performer<'a> {
 
             Esc::Code(EscCode::DecDoubleHeightTopHalfLine) => {
                 let idx = self.screen.phys_row(self.cursor.y);
-                self.screen.line_mut(idx).set_double_height_top();
+                self.screen.line_mut(idx).set_double_height_top(seqno);
             }
             Esc::Code(EscCode::DecDoubleHeightBottomHalfLine) => {
                 let idx = self.screen.phys_row(self.cursor.y);
-                self.screen.line_mut(idx).set_double_height_bottom();
+                self.screen.line_mut(idx).set_double_height_bottom(seqno);
             }
             Esc::Code(EscCode::DecDoubleWidthLine) => {
                 let idx = self.screen.phys_row(self.cursor.y);
-                self.screen.line_mut(idx).set_double_width();
+                self.screen.line_mut(idx).set_double_width(seqno);
             }
             Esc::Code(EscCode::DecSingleWidthLine) => {
                 let idx = self.screen.phys_row(self.cursor.y);
-                self.screen.line_mut(idx).set_single_width();
+                self.screen.line_mut(idx).set_single_width(seqno);
             }
 
             Esc::Code(EscCode::DecScreenAlignmentDisplay) => {
@@ -445,10 +449,11 @@ impl<'a> Performer<'a> {
                 for y in 0..screen.physical_rows as VisibleRowIndex {
                     let line_idx = screen.phys_row(y);
                     let line = screen.line_mut(line_idx);
-                    line.resize(col_range.end);
+                    line.resize(col_range.end, seqno);
                     line.fill_range(
                         col_range.clone(),
                         &Cell::new('E', CellAttributes::default()),
+                        seqno,
                     );
                 }
 
@@ -462,6 +467,7 @@ impl<'a> Performer<'a> {
             // reset graphic rendition, erase all positions, move active position to first
             // character position of first line.
             Esc::Code(EscCode::FullReset) => {
+                let seqno = self.seqno;
                 self.pen = Default::default();
                 self.cursor = Default::default();
                 self.wrap_next = false;
@@ -493,7 +499,7 @@ impl<'a> Performer<'a> {
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as VisibleRowIndex;
                 self.left_and_right_margins = 0..self.screen().physical_cols;
 
-                self.screen.activate_primary_screen();
+                self.screen.activate_primary_screen(seqno);
                 self.erase_in_display(EraseInDisplay::EraseScrollback);
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
                 if let Some(handler) = self.alert_handler.as_mut() {

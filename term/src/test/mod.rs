@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
-use termwiz::surface::{CursorShape, CursorVisibility};
+use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo, SEQ_ZERO};
 
 #[derive(Debug)]
 struct LocalClip {
@@ -164,13 +164,19 @@ impl TestTerm {
         );
     }
 
-    fn assert_dirty_lines(&self, expected: &[usize], reason: Option<&str>) {
+    fn assert_dirty_lines(&self, seqno: SequenceNo, expected: &[usize], reason: Option<&str>) {
         let dirty_indices: Vec<usize> = self
             .screen()
             .lines
             .iter()
             .enumerate()
-            .filter_map(|(i, line)| if line.is_dirty() { Some(i) } else { None })
+            .filter_map(|(i, line)| {
+                if line.changed_since(seqno) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
             .collect();
         assert_eq!(
             &dirty_indices, &expected,
@@ -219,15 +225,6 @@ fn assert_lines_equal(
             Some(e) => e,
             None => break,
         };
-
-        if compare.contains(Compare::DIRTY) {
-            assert_eq!(
-                line.is_dirty(),
-                expect.is_dirty(),
-                "line {} dirty didn't match",
-                idx,
-            );
-        }
 
         if compare.contains(Compare::ATTRS) {
             let line_attrs: Vec<_> = line.cells().iter().map(|c| c.attrs().clone()).collect();
@@ -503,21 +500,27 @@ fn basic_output() {
 fn cursor_movement_damage() {
     let mut term = TestTerm::new(2, 3, 0);
 
+    let seqno = term.current_seqno();
     term.print("fooo.");
     assert_visible_contents(&term, file!(), line!(), &["foo", "o."]);
     term.assert_cursor_pos(2, 1, None);
-    term.assert_dirty_lines(&[0, 1], None);
+    term.assert_dirty_lines(seqno, &[0, 1], None);
 
     term.cup(0, 1);
-    term.clean_dirty_lines();
+
+    let seqno = term.current_seqno();
     term.print("\x08");
     term.assert_cursor_pos(0, 1, Some("BS doesn't change the line"));
     // Since we didn't move, the line isn't dirty
-    term.assert_dirty_lines(&[], None);
-    term.clean_dirty_lines();
+    term.assert_dirty_lines(seqno, &[], None);
 
+    let seqno = term.current_seqno();
     term.cup(0, 0);
-    term.assert_dirty_lines(&[0, 1], Some("cursor movement dirties old and new lines"));
+    term.assert_dirty_lines(
+        seqno,
+        &[0, 1],
+        Some("cursor movement dirties old and new lines"),
+    );
 }
 const NUM_COLS: usize = 3;
 
@@ -625,6 +628,7 @@ fn scroll_down_within_left_and_right_margins() {
 fn test_delete_lines() {
     let mut term = TestTerm::new(5, 3, 0);
 
+    let seqno = term.current_seqno();
     term.print("111\r\n222\r\n333\r\n444\r\n555");
     assert_visible_contents(
         &term,
@@ -632,20 +636,20 @@ fn test_delete_lines() {
         line!(),
         &["111", "222", "333", "444", "555"],
     );
-    term.assert_dirty_lines(&[0, 1, 2, 3, 4], None);
+    term.assert_dirty_lines(seqno, &[0, 1, 2, 3, 4], None);
     term.cup(0, 1);
-    term.clean_dirty_lines();
 
-    term.assert_dirty_lines(&[], None);
+    let seqno = term.current_seqno();
+    term.assert_dirty_lines(seqno, &[], None);
     term.delete_lines(2);
     assert_visible_contents(&term, file!(), line!(), &["111", "444", "555", "", ""]);
-    term.assert_dirty_lines(&[1, 2, 3, 4], None);
-    term.clean_dirty_lines();
+    term.assert_dirty_lines(seqno, &[1, 2, 3, 4], None);
 
     term.cup(0, 3);
     term.print("aaa\r\nbbb");
     term.cup(0, 1);
-    term.clean_dirty_lines();
+
+    let seqno = term.current_seqno();
     assert_visible_contents(
         &term,
         file!(),
@@ -660,16 +664,17 @@ fn test_delete_lines() {
     term.delete_lines(2);
 
     assert_visible_contents(&term, file!(), line!(), &["111", "aaa", "", "", "bbb"]);
-    term.assert_dirty_lines(&[0, 1, 2, 3], None);
+    term.assert_dirty_lines(seqno, &[0, 1, 2, 3], None);
 
     // expand the scroll region to fill the screen
     term.set_scroll_region(0, 4);
-    term.clean_dirty_lines();
+
+    let seqno = term.current_seqno();
     print_all_lines(&term);
     term.delete_lines(1);
 
     assert_visible_contents(&term, file!(), line!(), &["aaa", "", "", "bbb", ""]);
-    term.assert_dirty_lines(&[4], None);
+    term.assert_dirty_lines(seqno, &[4], None);
 }
 
 /// Test DEC Special Graphics character set.
@@ -971,6 +976,7 @@ fn test_hyperlinks() {
                 .set_hyperlink(Some(Arc::clone(&otherlink)))
                 .clone(),
         ),
+        SEQ_ZERO,
     );
     partial_line.set_cell(
         1,
@@ -980,6 +986,7 @@ fn test_hyperlinks() {
                 .set_hyperlink(Some(Arc::clone(&otherlink)))
                 .clone(),
         ),
+        SEQ_ZERO,
     );
 
     assert_lines_equal(

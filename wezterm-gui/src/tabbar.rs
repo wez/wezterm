@@ -8,6 +8,7 @@ use termwiz::color::ColorSpec;
 use termwiz::escape::csi::Sgr;
 use termwiz::escape::parser::Parser;
 use termwiz::escape::{Action, ControlCode, CSI};
+use termwiz::surface::SEQ_ZERO;
 use wezterm_term::Line;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -265,7 +266,7 @@ impl TabBarState {
                 if n + len > tab_width_max {
                     break;
                 }
-                line.set_cell(x, cell);
+                line.set_cell(x, cell, SEQ_ZERO);
                 x += len;
                 n += len;
             }
@@ -287,7 +288,7 @@ impl TabBarState {
 
             for c in cells {
                 let len = c.width();
-                line.set_cell(x, c.clone());
+                line.set_cell(x, c.clone(), SEQ_ZERO);
                 x += len;
             }
 
@@ -306,7 +307,7 @@ impl TabBarState {
         );
 
         for idx in x..title_width {
-            line.set_cell(idx, black_cell.clone());
+            line.set_cell(idx, black_cell.clone(), SEQ_ZERO);
         }
 
         let rhs_cells = parse_status_text(right_status, black_cell.attrs().clone());
@@ -314,7 +315,7 @@ impl TabBarState {
         let skip = rhs_cells.len() - rhs_len;
 
         for (idx, cell) in rhs_cells.into_iter().skip(skip).rev().enumerate() {
-            line.set_cell(title_width - (1 + idx), cell);
+            line.set_cell(title_width - (1 + idx), cell, SEQ_ZERO);
         }
 
         Self { line, items }

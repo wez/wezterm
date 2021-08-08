@@ -292,6 +292,7 @@ impl TerminalState {
         placement_id: Option<u32>,
         info: PlacementInfo,
     ) {
+        let seqno = self.seqno;
         let screen = self.screen_mut();
         let range =
             screen.stable_range(&(info.first_row..info.first_row + info.rows as StableRowIndex));
@@ -301,7 +302,7 @@ impl TerminalState {
                 c.attrs_mut()
                     .detach_image_with_placement(image_id, placement_id);
             }
-            line.set_dirty();
+            line.update_last_change_seqno(seqno);
         }
     }
 

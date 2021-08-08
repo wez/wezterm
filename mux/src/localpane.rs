@@ -20,7 +20,7 @@ use std::ops::Range;
 use std::os::windows::io::{AsRawHandle, RawHandle};
 use std::sync::Arc;
 use termwiz::escape::DeviceControlMode;
-use termwiz::surface::Line;
+use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
@@ -65,8 +65,16 @@ impl Pane for LocalPane {
         cursor
     }
 
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
-        terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines)
+    fn get_current_seqno(&self) -> SequenceNo {
+        self.terminal.borrow().current_seqno()
+    }
+
+    fn get_changed_since(
+        &self,
+        lines: Range<StableRowIndex>,
+        seqno: SequenceNo,
+    ) -> RangeSet<StableRowIndex> {
+        terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines, seqno)
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
@@ -81,6 +89,7 @@ impl Pane for LocalPane {
                         0,
                         "This pane is running tmux control mode. Press q to detach.",
                         CellAttributes::default(),
+                        SEQ_ZERO,
                     );
                 }
             }

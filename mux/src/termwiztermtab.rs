@@ -26,8 +26,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use termwiz::input::{InputEvent, KeyEvent, Modifiers, MouseEvent as TermWizMouseEvent};
 use termwiz::render::terminfo::TerminfoRenderer;
-use termwiz::surface::Change;
-use termwiz::surface::Line;
+use termwiz::surface::{Change, Line, SequenceNo};
 use termwiz::terminal::{ScreenSize, TerminalWaker};
 use termwiz::Context;
 use url::Url;
@@ -139,8 +138,16 @@ impl Pane for TermWizTerminalPane {
         terminal_get_cursor_position(&mut self.terminal.borrow_mut())
     }
 
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
-        terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines)
+    fn get_current_seqno(&self) -> SequenceNo {
+        self.terminal.borrow().current_seqno()
+    }
+
+    fn get_changed_since(
+        &self,
+        lines: Range<StableRowIndex>,
+        seqno: SequenceNo,
+    ) -> RangeSet<StableRowIndex> {
+        terminal_get_dirty_lines(&mut self.terminal.borrow_mut(), lines, seqno)
     }
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {

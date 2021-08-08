@@ -20,6 +20,7 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use termwiz::input::KeyEvent;
+use termwiz::surface::SequenceNo;
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{Alert, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
@@ -173,8 +174,16 @@ impl Pane for ClientPane {
         self.renderable.borrow().get_lines(lines)
     }
 
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
-        self.renderable.borrow().get_dirty_lines(lines)
+    fn get_current_seqno(&self) -> SequenceNo {
+        self.renderable.borrow().get_current_seqno()
+    }
+
+    fn get_changed_since(
+        &self,
+        lines: Range<StableRowIndex>,
+        seqno: SequenceNo,
+    ) -> RangeSet<StableRowIndex> {
+        self.renderable.borrow().get_changed_since(lines, seqno)
     }
 
     fn set_clipboard(&self, clipboard: &Arc<dyn Clipboard>) {

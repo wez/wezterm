@@ -16,7 +16,7 @@ use termwiz::escape::csi::{
 };
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::image::ImageData;
-use termwiz::surface::{CursorShape, CursorVisibility};
+use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
 use url::Url;
 
 mod image;
@@ -179,9 +179,14 @@ impl ScreenOrAlt {
         physical_rows: usize,
         physical_cols: usize,
         cursor: CursorPosition,
+        seqno: SequenceNo,
     ) -> CursorPosition {
-        let cursor_main = self.screen.resize(physical_rows, physical_cols, cursor);
-        let cursor_alt = self.alt_screen.resize(physical_rows, physical_cols, cursor);
+        let cursor_main = self
+            .screen
+            .resize(physical_rows, physical_cols, cursor, seqno);
+        let cursor_alt = self
+            .alt_screen
+            .resize(physical_rows, physical_cols, cursor, seqno);
         if self.alt_screen_is_active {
             cursor_alt
         } else {
@@ -189,24 +194,26 @@ impl ScreenOrAlt {
         }
     }
 
-    pub fn activate_alt_screen(&mut self) {
+    pub fn activate_alt_screen(&mut self, seqno: SequenceNo) {
         self.alt_screen_is_active = true;
-        self.dirty_top_phys_rows();
+        self.dirty_top_phys_rows(seqno);
     }
 
-    pub fn activate_primary_screen(&mut self) {
+    pub fn activate_primary_screen(&mut self, seqno: SequenceNo) {
         self.alt_screen_is_active = false;
-        self.dirty_top_phys_rows();
+        self.dirty_top_phys_rows(seqno);
     }
 
     // When switching between alt and primary screen, we implicitly change
     // the content associated with StableRowIndex 0..num_rows.  The muxer
     // use case needs to know to invalidate its cache, so we mark those rows
     // as dirty.
-    fn dirty_top_phys_rows(&mut self) {
+    fn dirty_top_phys_rows(&mut self, seqno: SequenceNo) {
         let num_rows = self.screen.physical_rows;
         for line_idx in 0..num_rows {
-            self.screen.line_mut(line_idx).set_dirty();
+            self.screen
+                .line_mut(line_idx)
+                .update_last_change_seqno(seqno);
         }
     }
 
@@ -333,6 +340,7 @@ pub struct TerminalState {
     user_vars: HashMap<String, String>,
 
     kitty_img: KittyImageState,
+    seqno: SequenceNo,
 }
 
 fn default_color_map() -> HashMap<u16, RgbColor> {
@@ -458,7 +466,16 @@ impl TerminalState {
             image_cache: lru::LruCache::new(16),
             user_vars: HashMap::new(),
             kitty_img: Default::default(),
+            seqno: 0,
         }
+    }
+
+    pub fn current_seqno(&self) -> SequenceNo {
+        self.seqno
+    }
+
+    pub fn increment_seqno(&mut self) {
+        self.seqno += 1;
     }
 
     pub fn set_config(&mut self, config: Arc<dyn TerminalConfiguration>) {
@@ -685,9 +702,9 @@ impl TerminalState {
         pixel_width: usize,
         pixel_height: usize,
     ) {
-        let adjusted_cursor = self
-            .screen
-            .resize(physical_rows, physical_cols, self.cursor);
+        let adjusted_cursor =
+            self.screen
+                .resize(physical_rows, physical_cols, self.cursor, self.seqno);
         self.top_and_bottom_margins = 0..physical_rows as i64;
         self.left_and_right_margins = 0..physical_cols;
         self.pixel_height = pixel_height;
@@ -699,19 +716,12 @@ impl TerminalState {
         );
     }
 
-    /// Clear the dirty flag for all dirty lines
-    pub fn clean_dirty_lines(&mut self) {
-        let screen = self.screen_mut();
-        for line in &mut screen.lines {
-            line.clear_dirty();
-        }
-    }
-
     /// When dealing with selection, mark a range of lines as dirty
     pub fn make_all_lines_dirty(&mut self) {
+        let seqno = self.seqno;
         let screen = self.screen_mut();
         for line in &mut screen.lines {
-            line.set_dirty();
+            line.update_last_change_seqno(seqno);
         }
     }
 
@@ -736,6 +746,7 @@ impl TerminalState {
 
     /// Sets the cursor position to precisely the x and values provided
     fn set_cursor_position_absolute(&mut self, x: usize, y: VisibleRowIndex) {
+        let seqno = self.seqno;
         let old_y = self.cursor.y;
 
         self.cursor.y = y;
@@ -743,8 +754,8 @@ impl TerminalState {
         self.wrap_next = false;
 
         let screen = self.screen_mut();
-        screen.dirty_line(old_y);
-        screen.dirty_line(y);
+        screen.dirty_line(old_y, seqno);
+        screen.dirty_line(y, seqno);
     }
 
     /// Sets the cursor position. x and y are 0-based and relative to the
@@ -806,22 +817,26 @@ impl TerminalState {
     }
 
     fn scroll_up(&mut self, num_rows: usize) {
+        let seqno = self.seqno;
         let top_and_bottom_margins = self.top_and_bottom_margins.clone();
         let left_and_right_margins = self.left_and_right_margins.clone();
         self.screen_mut().scroll_up_within_margins(
             &top_and_bottom_margins,
             &left_and_right_margins,
             num_rows,
+            seqno,
         )
     }
 
     fn scroll_down(&mut self, num_rows: usize) {
+        let seqno = self.seqno;
         let top_and_bottom_margins = self.top_and_bottom_margins.clone();
         let left_and_right_margins = self.left_and_right_margins.clone();
         self.screen_mut().scroll_down_within_margins(
             &top_and_bottom_margins,
             &left_and_right_margins,
             num_rows,
+            seqno,
         )
     }
 
@@ -904,13 +919,14 @@ impl TerminalState {
     /// the cursor moves to the right margin. HT does not cause text to auto
     /// wrap.
     fn c0_horizontal_tab(&mut self) {
+        let seqno = self.seqno;
         let x = match self.tabs.find_next_tab_stop(self.cursor.x) {
             Some(x) => x,
             None => self.left_and_right_margins.end - 1,
         };
         self.cursor.x = x.min(self.left_and_right_margins.end - 1);
         let y = self.cursor.y;
-        self.screen_mut().dirty_line(y);
+        self.screen_mut().dirty_line(y, seqno);
     }
 
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
@@ -1009,9 +1025,9 @@ impl TerminalState {
                 self.application_keypad = false;
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
                 self.left_and_right_margins = 0..self.screen().physical_cols;
-                self.screen.activate_alt_screen();
+                self.screen.activate_alt_screen(self.seqno);
                 self.screen.saved_cursor().take();
-                self.screen.activate_primary_screen();
+                self.screen.activate_primary_screen(self.seqno);
                 self.screen.saved_cursor().take();
                 self.kitty_remove_all_placements(true);
 
@@ -1329,7 +1345,7 @@ impl TerminalState {
                 DecPrivateModeCode::EnableAlternateScreen,
             )) => {
                 if !self.screen.is_alt_screen_active() {
-                    self.screen.activate_alt_screen();
+                    self.screen.activate_alt_screen(self.seqno);
                     self.pen = CellAttributes::default();
                 }
             }
@@ -1339,7 +1355,7 @@ impl TerminalState {
                 if self.screen.is_alt_screen_active() {
                     self.pen = CellAttributes::default();
                     self.erase_in_display(EraseInDisplay::EraseDisplay);
-                    self.screen.activate_primary_screen();
+                    self.screen.activate_primary_screen(self.seqno);
                 }
             }
 
@@ -1347,7 +1363,7 @@ impl TerminalState {
                 DecPrivateModeCode::EnableAlternateScreen,
             )) => {
                 if self.screen.is_alt_screen_active() {
-                    self.screen.activate_primary_screen();
+                    self.screen.activate_primary_screen(self.seqno);
                     self.pen = CellAttributes::default();
                 }
             }
@@ -1496,7 +1512,7 @@ impl TerminalState {
             )) => {
                 if !self.screen.is_alt_screen_active() {
                     self.dec_save_cursor();
-                    self.screen.activate_alt_screen();
+                    self.screen.activate_alt_screen(self.seqno);
                     self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
                     self.pen = CellAttributes::default();
                     self.erase_in_display(EraseInDisplay::EraseDisplay);
@@ -1506,7 +1522,7 @@ impl TerminalState {
                 DecPrivateModeCode::ClearAndEnableAlternateScreen,
             )) => {
                 if self.screen.is_alt_screen_active() {
-                    self.screen.activate_primary_screen();
+                    self.screen.activate_primary_screen(self.seqno);
                     self.dec_restore_cursor();
                 }
             }
@@ -1658,6 +1674,7 @@ impl TerminalState {
     }
 
     fn erase_in_display(&mut self, erase: EraseInDisplay) {
+        let seqno = self.seqno;
         let cy = self.cursor.y;
         let pen = self.pen.clone_sgr_only();
         let rows = self.screen().physical_rows as VisibleRowIndex;
@@ -1681,12 +1698,13 @@ impl TerminalState {
         {
             let screen = self.screen_mut();
             for y in row_range.clone() {
-                screen.clear_line(y, col_range.clone(), &pen);
+                screen.clear_line(y, col_range.clone(), &pen, seqno);
             }
         }
     }
 
     fn perform_csi_edit(&mut self, edit: Edit) {
+        let seqno = self.seqno;
         match edit {
             Edit::DeleteCharacter(n) => {
                 let y = self.cursor.y;
@@ -1698,7 +1716,7 @@ impl TerminalState {
 
                     let screen = self.screen_mut();
                     for _ in x..limit as usize {
-                        screen.erase_cell(x, y, right_margin);
+                        screen.erase_cell(x, y, right_margin, seqno);
                     }
                 }
             }
@@ -1712,6 +1730,7 @@ impl TerminalState {
                         &top_and_bottom_margins,
                         &left_and_right_margins,
                         n as usize,
+                        seqno,
                     );
                 }
             }
@@ -1723,7 +1742,7 @@ impl TerminalState {
                     let blank = Cell::new(' ', self.pen.clone_sgr_only());
                     let screen = self.screen_mut();
                     for x in x..limit as usize {
-                        screen.set_cell(x, y, &blank);
+                        screen.set_cell(x, y, &blank, seqno);
                     }
                 }
             }
@@ -1739,7 +1758,7 @@ impl TerminalState {
                     EraseInLine::EraseLine => 0..cols,
                 };
 
-                self.screen_mut().clear_line(cy, range.clone(), &pen);
+                self.screen_mut().clear_line(cy, range.clone(), &pen, seqno);
             }
             Edit::InsertCharacter(n) => {
                 // https://vt100.net/docs/vt510-rm/ICH.html
@@ -1756,7 +1775,7 @@ impl TerminalState {
                     let margin = self.left_and_right_margins.end;
                     let screen = self.screen_mut();
                     for _ in 0..n as usize {
-                        screen.insert_cell(x, y, margin);
+                        screen.insert_cell(x, y, margin, seqno);
                     }
                 }
             }
@@ -1770,6 +1789,7 @@ impl TerminalState {
                         &top_and_bottom_margins,
                         &left_and_right_margins,
                         n as usize,
+                        seqno,
                     );
                 }
             }
@@ -1814,7 +1834,7 @@ impl TerminalState {
                         let line_idx = screen.phys_row(y);
                         let line = screen.line_mut(line_idx);
 
-                        line.set_cell(x, cell.clone());
+                        line.set_cell(x, cell.clone(), seqno);
                     }
                     x += 1;
                     if x > left_and_right_margins.end - 1 {
@@ -1866,6 +1886,7 @@ impl TerminalState {
     }
 
     fn perform_csi_cursor(&mut self, cursor: Cursor) {
+        let seqno = self.seqno;
         match cursor {
             Cursor::SetTopAndBottomMargins { top, bottom } => {
                 let rows = self.screen().physical_rows;
@@ -1938,7 +1959,7 @@ impl TerminalState {
                 self.cursor.x = new_x;
                 self.wrap_next = false;
                 let screen = self.screen_mut();
-                screen.dirty_line(y);
+                screen.dirty_line(y, seqno);
             }
 
             Cursor::Right(n) => {
@@ -1956,7 +1977,7 @@ impl TerminalState {
                 self.cursor.x = new_x;
                 self.wrap_next = false;
                 let screen = self.screen_mut();
-                screen.dirty_line(y);
+                screen.dirty_line(y, seqno);
             }
 
             Cursor::Up(n) => {
@@ -1982,8 +2003,8 @@ impl TerminalState {
                 self.cursor.y = new_y;
                 self.wrap_next = false;
                 let screen = self.screen_mut();
-                screen.dirty_line(old_y);
-                screen.dirty_line(new_y);
+                screen.dirty_line(old_y, seqno);
+                screen.dirty_line(new_y, seqno);
             }
             Cursor::Down(n) => {
                 // https://vt100.net/docs/vt510-rm/CUD.html
@@ -2001,8 +2022,8 @@ impl TerminalState {
                 self.cursor.y = new_y;
                 self.wrap_next = false;
                 let screen = self.screen_mut();
-                screen.dirty_line(old_y);
-                screen.dirty_line(new_y);
+                screen.dirty_line(old_y, seqno);
+                screen.dirty_line(new_y, seqno);
             }
 
             Cursor::CharacterAndLinePosition { line, col } | Cursor::Position { line, col } => self
@@ -2026,7 +2047,7 @@ impl TerminalState {
                 self.wrap_next = false;
                 let y = self.cursor.y;
                 let screen = self.screen_mut();
-                screen.dirty_line(y);
+                screen.dirty_line(y, seqno);
             }
 
             Cursor::CharacterPositionBackward(col) => self.set_cursor_pos(
@@ -2064,8 +2085,8 @@ impl TerminalState {
                 self.cursor.x = self.left_and_right_margins.start;
                 self.wrap_next = false;
                 let screen = self.screen_mut();
-                screen.dirty_line(old_y);
-                screen.dirty_line(new_y);
+                screen.dirty_line(old_y, seqno);
+                screen.dirty_line(new_y, seqno);
             }
             Cursor::PrecedingLine(n) => {
                 // https://vt100.net/docs/vt510-rm/CPL.html
@@ -2090,8 +2111,8 @@ impl TerminalState {
                 self.cursor.x = self.left_and_right_margins.start;
                 self.wrap_next = false;
                 let screen = self.screen_mut();
-                screen.dirty_line(old_y);
-                screen.dirty_line(new_y);
+                screen.dirty_line(old_y, seqno);
+                screen.dirty_line(new_y, seqno);
             }
 
             Cursor::ActivePositionReport { .. } => {

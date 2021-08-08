@@ -5,6 +5,7 @@ use mux::pane::Pane;
 use std::cmp::Ordering;
 use std::ops::Range;
 use termwiz::surface::line::DoubleClickRange;
+use termwiz::surface::SequenceNo;
 use wezterm_term::{SemanticZone, StableRowIndex};
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
@@ -14,6 +15,8 @@ pub struct Selection {
     pub start: Option<SelectionCoordinate>,
     /// Holds the not-normalized selection range.
     pub range: Option<SelectionRange>,
+    /// When the selection was made wrt. the pane content
+    pub seqno: SequenceNo,
 }
 
 pub use config::keyassignment::SelectionMode;

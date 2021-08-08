@@ -5088,6 +5088,7 @@ dependencies = [
  "rangeset",
  "rcgen",
  "smol",
+ "termwiz",
  "uds_windows",
  "url",
  "wezterm-term",

@@ -123,6 +123,7 @@ impl Terminal {
     /// characters; it is valid to feed in chunks of data as they arrive.
     /// The output is parsed and applied to the terminal model.
     pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) {
+        self.state.increment_seqno();
         let bytes = bytes.as_ref();
 
         let mut performer = Performer::new(&mut self.state);
@@ -131,6 +132,7 @@ impl Terminal {
     }
 
     pub fn perform_actions(&mut self, actions: Vec<termwiz::escape::Action>) {
+        self.state.increment_seqno();
         let mut performer = Performer::new(&mut self.state);
         for action in actions {
             performer.perform(action);

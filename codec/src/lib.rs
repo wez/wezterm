@@ -28,7 +28,7 @@ use std::io::Cursor;
 use std::ops::Range;
 use std::sync::Arc;
 use termwiz::hyperlink::Hyperlink;
-use termwiz::surface::Line;
+use termwiz::surface::{Line, SequenceNo};
 use varbincode;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{Alert, ClipboardSelection, StableRowIndex};
@@ -401,7 +401,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 8;
+pub const CODEC_VERSION: usize = 9;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -729,6 +729,7 @@ pub struct GetPaneRenderChangesResponse {
     pub bonus_lines: SerializedLines,
 
     pub input_serial: Option<InputSerial>,
+    pub seqno: SequenceNo,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

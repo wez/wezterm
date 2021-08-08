@@ -1,7 +1,7 @@
 use crate::cell::{Cell, CellAttributes};
 use crate::cellcluster::CellCluster;
 use crate::hyperlink::Rule;
-use crate::surface::Change;
+use crate::surface::{Change, SequenceNo, SEQ_ZERO};
 use bitflags::bitflags;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
@@ -13,9 +13,7 @@ bitflags! {
     #[cfg_attr(feature="use_serde", derive(Serialize, Deserialize))]
     struct LineBits : u8 {
         const NONE = 0;
-        /// The contents of the Line have changed and cached or
-        /// derived data will need to be reassessed.
-        const DIRTY = 1;
+        const _UNUSED = 1;
         /// The line contains 1+ cells with explicit hyperlinks set
         const HAS_HYPERLINK = 1<<1;
         /// true if we have scanned for implicit hyperlinks
@@ -51,6 +49,7 @@ bitflags! {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Line {
     cells: Vec<Cell>,
+    seqno: SequenceNo,
     bits: LineBits,
 }
 
@@ -64,8 +63,12 @@ impl Line {
     pub fn with_width(width: usize) -> Self {
         let mut cells = Vec::with_capacity(width);
         cells.resize(width, Cell::default());
-        let bits = LineBits::DIRTY;
-        Self { bits, cells }
+        let bits = LineBits::NONE;
+        Self {
+            bits,
+            cells,
+            seqno: SEQ_ZERO,
+        }
     }
 
     pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
@@ -82,7 +85,8 @@ impl Line {
 
         Line {
             cells,
-            bits: LineBits::DIRTY,
+            bits: LineBits::NONE,
+            seqno: SEQ_ZERO,
         }
     }
 
@@ -94,22 +98,23 @@ impl Line {
         line
     }
 
-    pub fn resize_and_clear(&mut self, width: usize) {
+    pub fn resize_and_clear(&mut self, width: usize, seqno: SequenceNo) {
         let blank = Cell::default();
         self.cells.clear();
         self.cells.resize(width, blank);
         self.cells.shrink_to_fit();
-        self.bits = LineBits::DIRTY;
+        self.update_last_change_seqno(seqno);
+        self.bits = LineBits::NONE;
     }
 
-    pub fn resize(&mut self, width: usize) {
+    pub fn resize(&mut self, width: usize, seqno: SequenceNo) {
         self.cells.resize(width, Cell::default());
-        self.bits |= LineBits::DIRTY;
+        self.update_last_change_seqno(seqno);
     }
 
     /// Wrap the line so that it fits within the provided width.
     /// Returns the list of resultant line(s)
-    pub fn wrap(mut self, width: usize) -> Vec<Self> {
+    pub fn wrap(mut self, width: usize, seqno: SequenceNo) -> Vec<Self> {
         if let Some(end_idx) = self.cells.iter().rposition(|c| c.str() != " ") {
             self.cells.resize(end_idx + 1, Cell::default());
 
@@ -119,18 +124,19 @@ impl Line {
                 .map(|chunk| {
                     let mut line = Line {
                         cells: chunk.to_vec(),
-                        bits: LineBits::DIRTY,
+                        bits: LineBits::NONE,
+                        seqno: seqno,
                     };
                     if line.cells.len() == width {
                         // Ensure that we don't forget that we wrapped
-                        line.set_last_cell_was_wrapped(true);
+                        line.set_last_cell_was_wrapped(true, seqno);
                     }
                     line
                 })
                 .collect();
             // The last of the chunks wasn't actually wrapped
             if let Some(line) = lines.last_mut() {
-                line.set_last_cell_was_wrapped(false);
+                line.set_last_cell_was_wrapped(false, seqno);
             }
             lines
         } else {
@@ -138,25 +144,22 @@ impl Line {
         }
     }
 
-    /// Check whether the dirty bit is set.
-    /// If it is set, then something about the line has changed since
-    /// the dirty bit was last cleared.
-    #[inline]
-    pub fn is_dirty(&self) -> bool {
-        (self.bits & LineBits::DIRTY) == LineBits::DIRTY
+    /// Returns true if the line's last changed seqno is more recent
+    /// than the provided seqno parameter
+    pub fn changed_since(&self, seqno: SequenceNo) -> bool {
+        self.seqno == SEQ_ZERO || self.seqno > seqno
     }
 
-    /// Force the dirty bit set.
-    /// FIXME: this is abused by term::Screen, want to remove or rethink it.
-    #[inline]
-    pub fn set_dirty(&mut self) {
-        self.bits |= LineBits::DIRTY;
+    pub fn current_seqno(&self) -> SequenceNo {
+        self.seqno
     }
 
-    /// Clear the dirty bit.
+    /// Annotate the line with the sequence number of a change.
+    /// This can be used together with Line::changed_since to
+    /// manage caching and rendering
     #[inline]
-    pub fn clear_dirty(&mut self) {
-        self.bits &= !LineBits::DIRTY;
+    pub fn update_last_change_seqno(&mut self, seqno: SequenceNo) {
+        self.seqno = self.seqno.max(seqno);
     }
 
     /// Check whether the reverse video bit is set.  If it is set,
@@ -169,9 +172,9 @@ impl Line {
 
     /// Force the reverse bit set.  This also implicitly sets dirty.
     #[inline]
-    pub fn set_reverse(&mut self, reverse: bool) {
+    pub fn set_reverse(&mut self, reverse: bool, seqno: SequenceNo) {
         self.bits.set(LineBits::REVERSE, reverse);
-        self.bits.insert(LineBits::DIRTY);
+        self.update_last_change_seqno(seqno);
     }
 
     /// Check whether the line is single-width.
@@ -187,9 +190,9 @@ impl Line {
     /// Force single-width.  This also implicitly sets
     /// double-height-(top/bottom) and dirty.
     #[inline]
-    pub fn set_single_width(&mut self) {
+    pub fn set_single_width(&mut self, seqno: SequenceNo) {
         self.bits.remove(LineBits::DOUBLE_WIDTH_HEIGHT_MASK);
-        self.bits.insert(LineBits::DIRTY);
+        self.update_last_change_seqno(seqno);
     }
 
     /// Check whether the line is double-width and not double-height.
@@ -201,10 +204,11 @@ impl Line {
     /// Force double-width.  This also implicitly sets
     /// double-height-(top/bottom) and dirty.
     #[inline]
-    pub fn set_double_width(&mut self) {
+    pub fn set_double_width(&mut self, seqno: SequenceNo) {
         self.bits
             .remove(LineBits::DOUBLE_HEIGHT_TOP | LineBits::DOUBLE_HEIGHT_BOTTOM);
-        self.bits.insert(LineBits::DOUBLE_WIDTH | LineBits::DIRTY);
+        self.bits.insert(LineBits::DOUBLE_WIDTH);
+        self.update_last_change_seqno(seqno);
     }
 
     /// Check whether the line is double-height-top.
@@ -217,10 +221,11 @@ impl Line {
     /// Force double-height top-half.  This also implicitly sets
     /// double-width and dirty.
     #[inline]
-    pub fn set_double_height_top(&mut self) {
+    pub fn set_double_height_top(&mut self, seqno: SequenceNo) {
         self.bits.remove(LineBits::DOUBLE_HEIGHT_BOTTOM);
         self.bits
-            .insert(LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_TOP | LineBits::DIRTY);
+            .insert(LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_TOP);
+        self.update_last_change_seqno(seqno);
     }
 
     /// Check whether the line is double-height-bottom.
@@ -233,15 +238,16 @@ impl Line {
     /// Force double-height bottom-half.  This also implicitly sets
     /// double-width and dirty.
     #[inline]
-    pub fn set_double_height_bottom(&mut self) {
+    pub fn set_double_height_bottom(&mut self, seqno: SequenceNo) {
         self.bits.remove(LineBits::DOUBLE_HEIGHT_TOP);
         self.bits
-            .insert(LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_BOTTOM | LineBits::DIRTY);
+            .insert(LineBits::DOUBLE_WIDTH | LineBits::DOUBLE_HEIGHT_BOTTOM);
+        self.update_last_change_seqno(seqno);
     }
 
     /// If we have any cells with an implicit hyperlink, remove the hyperlink
     /// from the cell attributes but leave the remainder of the attributes alone.
-    pub fn invalidate_implicit_hyperlinks(&mut self) {
+    pub fn invalidate_implicit_hyperlinks(&mut self, seqno: SequenceNo) {
         if (self.bits & (LineBits::SCANNED_IMPLICIT_HYPERLINKS | LineBits::HAS_IMPLICIT_HYPERLINKS))
             == LineBits::NONE
         {
@@ -267,7 +273,7 @@ impl Line {
         }
 
         self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
-        self.bits |= LineBits::DIRTY;
+        self.update_last_change_seqno(seqno);
     }
 
     /// Scan through the line and look for sequences that match the provided
@@ -342,6 +348,7 @@ impl Line {
         Self {
             bits: self.bits,
             cells,
+            seqno: SEQ_ZERO,
         }
     }
 
@@ -404,12 +411,17 @@ impl Line {
     /// of cells to avoid partial rendering concerns.
     /// Similarly, when we assign a cell, we need to blank out those
     /// occluded successor cells.
-    pub fn set_cell(&mut self, idx: usize, cell: Cell) -> &Cell {
-        self.set_cell_impl(idx, cell, false)
+    pub fn set_cell(&mut self, idx: usize, cell: Cell, seqno: SequenceNo) -> &Cell {
+        self.set_cell_impl(idx, cell, false, seqno)
     }
 
-    pub fn set_cell_clearing_image_placements(&mut self, idx: usize, cell: Cell) -> &Cell {
-        self.set_cell_impl(idx, cell, true)
+    pub fn set_cell_clearing_image_placements(
+        &mut self,
+        idx: usize,
+        cell: Cell,
+        seqno: SequenceNo,
+    ) -> &Cell {
+        self.set_cell_impl(idx, cell, true, seqno)
     }
 
     fn raw_set_cell(&mut self, idx: usize, mut cell: Cell, clear: bool) {
@@ -425,7 +437,7 @@ impl Line {
         self.cells[idx] = cell;
     }
 
-    fn set_cell_impl(&mut self, idx: usize, cell: Cell, clear: bool) -> &Cell {
+    fn set_cell_impl(&mut self, idx: usize, cell: Cell, clear: bool, seqno: SequenceNo) -> &Cell {
         let width = cell.width();
 
         // if the line isn't wide enough, pad it out with the default attributes.
@@ -439,8 +451,8 @@ impl Line {
             self.cells.resize(idx + width.max(1), Cell::default());
         }
 
-        self.invalidate_implicit_hyperlinks();
-        self.bits |= LineBits::DIRTY;
+        self.invalidate_implicit_hyperlinks(seqno);
+        self.update_last_change_seqno(seqno);
         if cell.attrs().hyperlink().is_some() {
             self.bits |= LineBits::HAS_HYPERLINK;
         }
@@ -463,11 +475,12 @@ impl Line {
         mut start_idx: usize,
         text: &str,
         attr: CellAttributes,
+        seqno: SequenceNo,
     ) {
         for (i, c) in text.graphemes(true).enumerate() {
             let cell = Cell::new_grapheme(c, attr.clone());
             let width = cell.width();
-            self.set_cell(i + start_idx, cell);
+            self.set_cell(i + start_idx, cell, seqno);
 
             // Compensate for required spacing/placement of
             // double width characters
@@ -490,8 +503,8 @@ impl Line {
         }
     }
 
-    pub fn insert_cell(&mut self, x: usize, cell: Cell, right_margin: usize) {
-        self.invalidate_implicit_hyperlinks();
+    pub fn insert_cell(&mut self, x: usize, cell: Cell, right_margin: usize, seqno: SequenceNo) {
+        self.invalidate_implicit_hyperlinks(seqno);
 
         if right_margin <= self.cells.len() {
             self.cells.remove(right_margin - 1);
@@ -509,23 +522,23 @@ impl Line {
         }
 
         self.cells.insert(x, cell);
-        self.set_dirty();
+        self.update_last_change_seqno(seqno);
     }
 
-    pub fn erase_cell(&mut self, x: usize) {
+    pub fn erase_cell(&mut self, x: usize, seqno: SequenceNo) {
         if x >= self.cells.len() {
             // Already implicitly erased
             return;
         }
-        self.invalidate_implicit_hyperlinks();
+        self.invalidate_implicit_hyperlinks(seqno);
         self.invalidate_grapheme_at_or_before(x);
         self.cells.remove(x);
         self.cells.push(Cell::default());
-        self.set_dirty();
+        self.update_last_change_seqno(seqno);
     }
 
-    pub fn erase_cell_with_margin(&mut self, x: usize, right_margin: usize) {
-        self.invalidate_implicit_hyperlinks();
+    pub fn erase_cell_with_margin(&mut self, x: usize, right_margin: usize, seqno: SequenceNo) {
+        self.invalidate_implicit_hyperlinks(seqno);
         if x < self.cells.len() {
             self.invalidate_grapheme_at_or_before(x);
             self.cells.remove(x);
@@ -533,10 +546,10 @@ impl Line {
         if right_margin <= self.cells.len() {
             self.cells.insert(right_margin - 1, Cell::default());
         }
-        self.set_dirty();
+        self.update_last_change_seqno(seqno);
     }
 
-    pub fn prune_trailing_blanks(&mut self) {
+    pub fn prune_trailing_blanks(&mut self, seqno: SequenceNo) {
         let def_attr = CellAttributes::default();
         if let Some(end_idx) = self
             .cells
@@ -544,15 +557,16 @@ impl Line {
             .rposition(|c| c.str() != " " || c.attrs() != &def_attr)
         {
             self.cells.resize(end_idx + 1, Cell::default());
+            self.update_last_change_seqno(seqno);
         }
     }
 
-    pub fn fill_range(&mut self, cols: Range<usize>, cell: &Cell) {
+    pub fn fill_range(&mut self, cols: Range<usize>, cell: &Cell, seqno: SequenceNo) {
         for x in cols {
             // FIXME: we can skip the look-back for second and subsequent iterations
-            self.set_cell_impl(x, cell.clone(), true);
+            self.set_cell_impl(x, cell.clone(), true, seqno);
         }
-        self.prune_trailing_blanks();
+        self.prune_trailing_blanks(seqno);
     }
 
     /// Iterates the visible cells, respecting the width of the cell.
@@ -604,10 +618,10 @@ impl Line {
 
     /// Adjust the value of the wrapped attribute on the last cell of this
     /// line.
-    pub fn set_last_cell_was_wrapped(&mut self, wrapped: bool) {
+    pub fn set_last_cell_was_wrapped(&mut self, wrapped: bool, seqno: SequenceNo) {
         if let Some(cell) = self.cells.last_mut() {
             cell.attrs_mut().set_wrapped(wrapped);
-            self.set_dirty();
+            self.update_last_change_seqno(seqno);
         }
     }
 
@@ -615,9 +629,9 @@ impl Line {
     /// to this line.
     /// This function is used by rewrapping logic when joining wrapped
     /// lines back together.
-    pub fn append_line(&mut self, mut other: Line) {
+    pub fn append_line(&mut self, mut other: Line, seqno: SequenceNo) {
         self.cells.append(&mut other.cells);
-        self.set_dirty();
+        self.update_last_change_seqno(seqno);
     }
 
     /// mutable access the cell data, but the caller must take care

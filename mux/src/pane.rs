@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
 use termwiz::hyperlink::Rule;
-use termwiz::surface::Line;
+use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
@@ -128,7 +128,7 @@ impl LogicalLine {
     }
 
     pub fn apply_hyperlink_rules(&mut self, rules: &[Rule]) {
-        self.logical.invalidate_implicit_hyperlinks();
+        self.logical.invalidate_implicit_hyperlinks(SEQ_ZERO);
         self.logical.scan_and_create_hyperlinks(rules);
         if !self.logical.has_hyperlink() {
             return;
@@ -143,7 +143,7 @@ impl LogicalLine {
             *phys = line;
             line = remainder;
             let wrapped = idx == num_phys - 1;
-            phys.set_last_cell_was_wrapped(wrapped);
+            phys.set_last_cell_was_wrapped(wrapped, SEQ_ZERO);
         }
     }
 }
@@ -157,9 +157,15 @@ pub trait Pane: Downcast {
     /// the visible screen
     fn get_cursor_position(&self) -> StableCursorPosition;
 
+    fn get_current_seqno(&self) -> SequenceNo;
+
     /// Given a range of lines, return the subset of those lines that
-    /// have their dirty flag set to true.
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex>;
+    /// have changed since the supplied sequence no.
+    fn get_changed_since(
+        &self,
+        lines: Range<StableRowIndex>,
+        seqno: SequenceNo,
+    ) -> RangeSet<StableRowIndex>;
 
     /// Returns a set of lines from the scrollback or visible portion of
     /// the display.  The lines are indexed using StableRowIndex, which
@@ -240,8 +246,8 @@ pub trait Pane: Downcast {
                     if prior.logical.last_cell_was_wrapped()
                         && prior.logical.cells().len() <= MAX_LOGICAL_LINE_LEN
                     {
-                        prior.logical.set_last_cell_was_wrapped(false);
-                        prior.logical.append_line(line.clone());
+                        prior.logical.set_last_cell_was_wrapped(false, SEQ_ZERO);
+                        prior.logical.append_line(line.clone(), SEQ_ZERO);
                         prior.physical_lines.push(line);
                     } else {
                         let logical = line.clone();
@@ -384,7 +390,16 @@ mod test {
         fn get_cursor_position(&self) -> StableCursorPosition {
             unimplemented!()
         }
-        fn get_dirty_lines(&self, _: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+
+        fn get_current_seqno(&self) -> SequenceNo {
+            unimplemented!()
+        }
+
+        fn get_changed_since(
+            &self,
+            _: Range<StableRowIndex>,
+            _: SequenceNo,
+        ) -> RangeSet<StableRowIndex> {
             unimplemented!()
         }
         fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
@@ -462,7 +477,7 @@ mod test {
             for (idx, chunk) in chunks.into_iter().enumerate() {
                 let mut line = Line::from_text(&chunk, &Default::default());
                 if idx < n_chunks - 1 {
-                    line.set_last_cell_was_wrapped(true);
+                    line.set_last_cell_was_wrapped(true, SEQ_ZERO);
                 }
                 physical_lines.push(line);
             }

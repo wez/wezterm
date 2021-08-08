@@ -3,6 +3,7 @@ use super::*;
 use log::debug;
 use std::collections::VecDeque;
 use std::sync::Arc;
+use termwiz::surface::SequenceNo;
 
 /// Holds the model of a screen.  This can either be the primary screen
 /// which includes lines of scrollback text, or the alternate screen
@@ -85,6 +86,7 @@ impl Screen {
         physical_rows: usize,
         cursor_x: usize,
         cursor_y: PhysRowIndex,
+        seqno: SequenceNo,
     ) -> (usize, PhysRowIndex) {
         let mut rewrapped = VecDeque::new();
         let mut logical_line: Option<Line> = None;
@@ -92,12 +94,12 @@ impl Screen {
         let mut adjusted_cursor = (cursor_y, cursor_y);
 
         for (phys_idx, mut line) in self.lines.drain(..).enumerate() {
-            line.invalidate_implicit_hyperlinks();
-            line.set_dirty();
+            line.invalidate_implicit_hyperlinks(seqno);
+            line.update_last_change_seqno(seqno);
             let was_wrapped = line.last_cell_was_wrapped();
 
             if was_wrapped {
-                line.set_last_cell_was_wrapped(false);
+                line.set_last_cell_was_wrapped(false, seqno);
             }
 
             let line = match logical_line.take() {
@@ -111,7 +113,7 @@ impl Screen {
                     if phys_idx == cursor_y {
                         logical_cursor_x = Some(cursor_x + prior.cells().len());
                     }
-                    prior.append_line(line);
+                    prior.append_line(line, seqno);
                     prior
                 }
             };
@@ -130,7 +132,7 @@ impl Screen {
             if line.cells().len() <= physical_cols {
                 rewrapped.push_back(line);
             } else {
-                for line in line.wrap(physical_cols) {
+                for line in line.wrap(physical_cols, seqno) {
                     rewrapped.push_back(line);
                 }
             }
@@ -158,6 +160,7 @@ impl Screen {
         physical_rows: usize,
         physical_cols: usize,
         cursor: CursorPosition,
+        seqno: SequenceNo,
     ) -> CursorPosition {
         let physical_rows = physical_rows.max(1);
         let physical_cols = physical_cols.max(1);
@@ -185,15 +188,15 @@ impl Screen {
             // screen (hence the check for allow_scrollback), to avoid
             // conflicting screen updates with full screen apps.
             if self.allow_scrollback {
-                self.rewrap_lines(physical_cols, physical_rows, cursor.x, cursor_phys)
+                self.rewrap_lines(physical_cols, physical_rows, cursor.x, cursor_phys, seqno)
             } else {
                 for line in &mut self.lines {
                     if physical_cols < self.physical_cols {
                         // Do a simple prune of the lines instead
-                        line.resize(physical_cols);
+                        line.resize(physical_cols, seqno);
                     } else {
                         // otherwise: invalidate them
-                        line.set_dirty();
+                        line.update_last_change_seqno(seqno);
                     }
                 }
                 (cursor.x, cursor_phys)
@@ -262,10 +265,10 @@ impl Screen {
 
     /// Sets a line dirty.  The line is relative to the visible origin.
     #[inline]
-    pub fn dirty_line(&mut self, idx: VisibleRowIndex) {
+    pub fn dirty_line(&mut self, idx: VisibleRowIndex, seqno: SequenceNo) {
         let line_idx = self.phys_row(idx);
         if line_idx < self.lines.len() {
-            self.lines[line_idx].set_dirty();
+            self.lines[line_idx].update_last_change_seqno(seqno);
         }
     }
 
@@ -289,33 +292,52 @@ impl Screen {
         self.lines.iter().map(|l| l.clone()).collect()
     }
 
-    pub fn insert_cell(&mut self, x: usize, y: VisibleRowIndex, right_margin: usize) {
+    pub fn insert_cell(
+        &mut self,
+        x: usize,
+        y: VisibleRowIndex,
+        right_margin: usize,
+        seqno: SequenceNo,
+    ) {
         let phys_cols = self.physical_cols;
 
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.insert_cell(x, Cell::default(), right_margin);
+        line.update_last_change_seqno(seqno);
+        line.insert_cell(x, Cell::default(), right_margin, seqno);
         if line.cells().len() > phys_cols {
             // Don't allow the line width to grow beyond
             // the physical width
-            line.resize(phys_cols);
+            line.resize(phys_cols, seqno);
         }
     }
 
-    pub fn erase_cell(&mut self, x: usize, y: VisibleRowIndex, right_margin: usize) {
+    pub fn erase_cell(
+        &mut self,
+        x: usize,
+        y: VisibleRowIndex,
+        right_margin: usize,
+        seqno: SequenceNo,
+    ) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.erase_cell_with_margin(x, right_margin);
+        line.erase_cell_with_margin(x, right_margin, seqno);
     }
 
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
     /// origin.  0,0 is the top left.
-    pub fn set_cell(&mut self, x: usize, y: VisibleRowIndex, cell: &Cell) -> &Cell {
+    pub fn set_cell(
+        &mut self,
+        x: usize,
+        y: VisibleRowIndex,
+        cell: &Cell,
+        seqno: SequenceNo,
+    ) -> &Cell {
         let line_idx = self.phys_row(y);
         //debug!("set_cell x={} y={} phys={} {:?}", x, y, line_idx, cell);
 
         let line = self.line_mut(line_idx);
-        line.set_cell(x, cell.clone())
+        line.set_cell(x, cell.clone(), seqno)
     }
 
     pub fn cell_mut(&mut self, x: usize, y: VisibleRowIndex) -> Option<&mut Cell> {
@@ -330,10 +352,16 @@ impl Screen {
         line.cells().get(x)
     }
 
-    pub fn clear_line(&mut self, y: VisibleRowIndex, cols: Range<usize>, attr: &CellAttributes) {
+    pub fn clear_line(
+        &mut self,
+        y: VisibleRowIndex,
+        cols: Range<usize>,
+        attr: &CellAttributes,
+        seqno: SequenceNo,
+    ) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.fill_range(cols, &Cell::new(' ', attr.clone()));
+        line.fill_range(cols, &Cell::new(' ', attr.clone()), seqno);
     }
 
     /// Translate a VisibleRowIndex into a PhysRowIndex.  The resultant index
@@ -425,6 +453,7 @@ impl Screen {
         scroll_region: &Range<VisibleRowIndex>,
         left_and_right_margins: &Range<usize>,
         num_rows: usize,
+        seqno: SequenceNo,
     ) {
         log::debug!(
             "scroll_up_within_margins region:{:?} margins:{:?} rows={}",
@@ -434,7 +463,7 @@ impl Screen {
         );
 
         if left_and_right_margins.start == 0 && left_and_right_margins.end == self.physical_cols {
-            return self.scroll_up(scroll_region, num_rows);
+            return self.scroll_up(scroll_region, num_rows, seqno);
         }
 
         // Need to do the slower, more complex left and right bounded scroll
@@ -462,12 +491,12 @@ impl Screen {
 
                 // and place them into the dest
                 let dest_row = self.line_mut(dest_row);
-                dest_row.set_dirty();
-                dest_row.invalidate_implicit_hyperlinks();
+                dest_row.update_last_change_seqno(seqno);
+                dest_row.invalidate_implicit_hyperlinks(seqno);
                 let dest_range =
                     left_and_right_margins.start..left_and_right_margins.start + cells.len();
                 if dest_row.cells().len() < dest_range.end {
-                    dest_row.resize(dest_range.end);
+                    dest_row.resize(dest_range.end, seqno);
                 }
 
                 let tail_range = dest_range.end..left_and_right_margins.end;
@@ -478,15 +507,15 @@ impl Screen {
                     *dest_cell = src_cell.clone();
                 }
 
-                dest_row.fill_range(tail_range, &Cell::default());
+                dest_row.fill_range(tail_range, &Cell::default(), seqno);
             }
         }
 
         // and blank out rows at the bottom
         for n in phys_scroll.start + rows_to_copy..phys_scroll.end {
             let dest_row = self.line_mut(n);
-            dest_row.set_dirty();
-            dest_row.invalidate_implicit_hyperlinks();
+            dest_row.update_last_change_seqno(seqno);
+            dest_row.invalidate_implicit_hyperlinks(seqno);
             for cell in dest_row
                 .cells_mut()
                 .iter_mut()
@@ -512,7 +541,12 @@ impl Screen {
     /// at bottom.
     /// If the top of the region is the top of the visible display, rather than
     /// removing the lines we let them go into the scrollback.
-    pub fn scroll_up(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
+    pub fn scroll_up(
+        &mut self,
+        scroll_region: &Range<VisibleRowIndex>,
+        num_rows: usize,
+        seqno: SequenceNo,
+    ) {
         let phys_scroll = self.phys_range(scroll_region);
         let num_rows = num_rows.min(phys_scroll.end - phys_scroll.start);
 
@@ -528,7 +562,7 @@ impl Screen {
         // so we use the scroll region bounds to gate the invalidation.
         if scroll_region.start != 0 || scroll_region.end as usize != self.physical_rows {
             for y in phys_scroll.clone() {
-                self.line_mut(y).set_dirty();
+                self.line_mut(y).update_last_change_seqno(seqno);
             }
         }
 
@@ -560,8 +594,8 @@ impl Screen {
             for _ in 0..to_move {
                 let mut line = self.lines.remove(remove_idx).unwrap();
                 // Make the line like a new one of the appropriate width
-                line.resize_and_clear(0);
-                line.set_dirty();
+                line.resize_and_clear(0, seqno);
+                line.update_last_change_seqno(seqno);
                 if scroll_region.end as usize == self.physical_rows {
                     self.lines.push_back(line);
                 } else {
@@ -615,7 +649,12 @@ impl Screen {
     /// beyond the bottom get removed from the screen.
     /// In other words, we remove (bottom-num_rows..bottom) and then insert
     /// num_rows at scroll_top.
-    pub fn scroll_down(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
+    pub fn scroll_down(
+        &mut self,
+        scroll_region: &Range<VisibleRowIndex>,
+        num_rows: usize,
+        seqno: SequenceNo,
+    ) {
         debug!("scroll_down {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(scroll_region);
         let num_rows = num_rows.min(phys_scroll.end - phys_scroll.start);
@@ -624,7 +663,7 @@ impl Screen {
 
         // dirty the rows in the region
         for y in phys_scroll.start..middle {
-            self.line_mut(y).set_dirty();
+            self.line_mut(y).update_last_change_seqno(seqno);
         }
 
         for _ in 0..num_rows {
@@ -641,9 +680,10 @@ impl Screen {
         scroll_region: &Range<VisibleRowIndex>,
         left_and_right_margins: &Range<usize>,
         num_rows: usize,
+        seqno: SequenceNo,
     ) {
         if left_and_right_margins.start == 0 && left_and_right_margins.end == self.physical_cols {
-            return self.scroll_down(scroll_region, num_rows);
+            return self.scroll_down(scroll_region, num_rows, seqno);
         }
 
         // Need to do the slower, more complex left and right bounded scroll
@@ -671,12 +711,12 @@ impl Screen {
 
                 // and place them into the dest
                 let dest_row = self.line_mut(dest_row);
-                dest_row.set_dirty();
-                dest_row.invalidate_implicit_hyperlinks();
+                dest_row.update_last_change_seqno(seqno);
+                dest_row.invalidate_implicit_hyperlinks(seqno);
                 let dest_range =
                     left_and_right_margins.start..left_and_right_margins.start + cells.len();
                 if dest_row.cells().len() < dest_range.end {
-                    dest_row.resize(dest_range.end);
+                    dest_row.resize(dest_range.end, seqno);
                 }
                 let tail_range = dest_range.end..left_and_right_margins.end;
 
@@ -686,15 +726,15 @@ impl Screen {
                     *dest_cell = src_cell.clone();
                 }
 
-                dest_row.fill_range(tail_range, &Cell::default());
+                dest_row.fill_range(tail_range, &Cell::default(), seqno);
             }
         }
 
         // and blank out rows at the top
         for n in phys_scroll.start..phys_scroll.start + num_rows {
             let dest_row = self.line_mut(n);
-            dest_row.set_dirty();
-            dest_row.invalidate_implicit_hyperlinks();
+            dest_row.update_last_change_seqno(seqno);
+            dest_row.invalidate_implicit_hyperlinks(seqno);
             for cell in dest_row
                 .cells_mut()
                 .iter_mut()

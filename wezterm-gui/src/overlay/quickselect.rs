@@ -14,6 +14,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::AnsiColor;
+use termwiz::surface::{SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
@@ -406,8 +407,16 @@ impl Pane for QuickSelectOverlay {
         }
     }
 
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
-        let mut dirty = self.delegate.get_dirty_lines(lines.clone());
+    fn get_current_seqno(&self) -> SequenceNo {
+        self.delegate.get_current_seqno()
+    }
+
+    fn get_changed_since(
+        &self,
+        lines: Range<StableRowIndex>,
+        seqno: SequenceNo,
+    ) -> RangeSet<StableRowIndex> {
+        let mut dirty = self.delegate.get_changed_since(lines.clone(), seqno);
         dirty.add_set(&self.renderer.borrow().dirty_results);
         dirty.intersection_with_range(lines)
     }
@@ -429,7 +438,7 @@ impl Pane for QuickSelectOverlay {
             if stable_idx == search_row {
                 // Replace with search UI
                 let rev = CellAttributes::default().set_reverse(true).clone();
-                line.fill_range(0..dims.cols, &Cell::new(' ', rev.clone()));
+                line.fill_range(0..dims.cols, &Cell::new(' ', rev.clone()), SEQ_ZERO);
                 line.overlay_text_with_attribute(
                     0,
                     &format!(
@@ -437,6 +446,7 @@ impl Pane for QuickSelectOverlay {
                         renderer.selection,
                     ),
                     rev,
+                    SEQ_ZERO,
                 );
                 renderer.last_bar_pos = Some(search_row);
             } else if let Some(matches) = renderer.by_line.get(&stable_idx) {
@@ -460,7 +470,7 @@ impl Pane for QuickSelectOverlay {
                         attr.set_background(AnsiColor::Black)
                             .set_foreground(AnsiColor::Olive)
                             .set_reverse(false);
-                        line.set_cell(m.range.start + idx, Cell::new(c, attr));
+                        line.set_cell(m.range.start + idx, Cell::new(c, attr), SEQ_ZERO);
                     }
                 }
             }

@@ -2,6 +2,7 @@ use luahelper::impl_lua_conversion;
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
+use termwiz::surface::{SequenceNo, SEQ_ZERO};
 use wezterm_term::{Line, StableRowIndex, Terminal};
 
 /// Describes the location of the cursor
@@ -51,6 +52,7 @@ pub fn terminal_get_cursor_position(term: &mut Terminal) -> StableCursorPosition
 pub fn terminal_get_dirty_lines(
     term: &mut Terminal,
     lines: Range<StableRowIndex>,
+    seqno: SequenceNo,
 ) -> RangeSet<StableRowIndex> {
     let screen = term.screen();
     let phys = screen.stable_range(&lines);
@@ -62,7 +64,7 @@ pub fn terminal_get_dirty_lines(
         .skip(phys.start)
         .take(phys.end - phys.start)
     {
-        if line.is_dirty() {
+        if line.changed_since(seqno) {
             set.add(screen.phys_to_stable_row_index(idx))
         }
     }
@@ -86,8 +88,7 @@ pub fn terminal_get_lines(
             .take(phys_range.end - phys_range.start)
             .map(|line| {
                 let mut cloned = line.clone();
-                line.clear_dirty();
-                cloned.set_reverse(reverse);
+                cloned.set_reverse(reverse, SEQ_ZERO);
                 cloned
             })
             .collect(),

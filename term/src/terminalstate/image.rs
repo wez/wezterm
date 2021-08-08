@@ -58,6 +58,7 @@ pub enum ImageAttachStyle {
 
 impl TerminalState {
     pub(crate) fn assign_image_to_cells(&mut self, params: ImageAttachParams) -> PlacementInfo {
+        let seqno = self.seqno;
         let physical_cols = self.screen().physical_cols;
         let physical_rows = self.screen().physical_rows;
         let cell_pixel_width = self.pixel_width / physical_cols;
@@ -143,7 +144,8 @@ impl TerminalState {
                     }
                 };
 
-                self.screen_mut().set_cell(cursor_x + x, cursor_y, &cell);
+                self.screen_mut()
+                    .set_cell(cursor_x + x, cursor_y, &cell, seqno);
                 xpos += x_delta;
             }
             ypos += y_delta;

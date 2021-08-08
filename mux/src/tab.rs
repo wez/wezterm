@@ -1534,6 +1534,7 @@ mod test {
     use crate::renderable::*;
     use rangeset::RangeSet;
     use std::ops::Range;
+    use termwiz::surface::SequenceNo;
     use url::Url;
     use wezterm_term::color::ColorPalette;
     use wezterm_term::{KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
@@ -1561,7 +1562,15 @@ mod test {
             unimplemented!();
         }
 
-        fn get_dirty_lines(&self, _lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
+        fn get_current_seqno(&self) -> SequenceNo {
+            unimplemented!();
+        }
+
+        fn get_changed_since(
+            &self,
+            _lines: Range<StableRowIndex>,
+            _: SequenceNo,
+        ) -> RangeSet<StableRowIndex> {
             unimplemented!();
         }
 
