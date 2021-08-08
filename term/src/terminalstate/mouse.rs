@@ -14,9 +14,13 @@ impl TerminalState {
         position.max(0).saturating_add(1 + 32).min(127) as u8 as char
     }
 
-    fn mouse_report_button_number(&self, event: &MouseEvent) -> i8 {
+    fn mouse_report_button_number(&self, event: &MouseEvent) -> (i8, MouseButton) {
         let button = match event.button {
-            MouseButton::None => self.current_mouse_button,
+            MouseButton::None => self
+                .current_mouse_buttons
+                .last()
+                .copied()
+                .unwrap_or(MouseButton::None),
             b => b,
         };
         let mut code = match button {
@@ -38,11 +42,11 @@ impl TerminalState {
             code += 16;
         }
 
-        code
+        (code, button)
     }
 
     fn mouse_wheel(&mut self, event: MouseEvent) -> anyhow::Result<()> {
-        let button = self.mouse_report_button_number(&event);
+        let (button, _button) = self.mouse_report_button_number(&event);
 
         if self.sgr_mouse
             && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
@@ -81,13 +85,14 @@ impl TerminalState {
     }
 
     fn mouse_button_press(&mut self, event: MouseEvent) -> anyhow::Result<()> {
-        self.current_mouse_button = event.button;
+        let (button, event_button) = self.mouse_report_button_number(&event);
+        self.current_mouse_buttons.retain(|&b| b != event_button);
+        self.current_mouse_buttons.push(event_button);
 
         if !(self.mouse_tracking || self.button_event_mouse || self.any_event_mouse) {
             return Ok(());
         }
 
-        let button = self.mouse_report_button_number(&event);
         if self.sgr_mouse {
             write!(
                 self.writer,
@@ -112,31 +117,30 @@ impl TerminalState {
     }
 
     fn mouse_button_release(&mut self, event: MouseEvent) -> anyhow::Result<()> {
-        if self.current_mouse_button != MouseButton::None
-            && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
-        {
-            if self.sgr_mouse {
-                let release_button = self.mouse_report_button_number(&event);
-                self.current_mouse_button = MouseButton::None;
-                write!(
-                    self.writer,
-                    "\x1b[<{};{};{}m",
-                    release_button,
-                    event.x + 1,
-                    event.y + 1
-                )?;
-                self.writer.flush()?;
-            } else {
-                let release_button = 3;
-                self.current_mouse_button = MouseButton::None;
-                write!(
-                    self.writer,
-                    "\x1b[M{}{}{}",
-                    (32 + release_button) as u8 as char,
-                    Self::legacy_mouse_coord(event.x as i64),
-                    Self::legacy_mouse_coord(event.y),
-                )?;
-                self.writer.flush()?;
+        let (release_button, button) = self.mouse_report_button_number(&event);
+        if !self.current_mouse_buttons.is_empty() {
+            self.current_mouse_buttons.retain(|&b| b != button);
+            if self.mouse_tracking || self.button_event_mouse || self.any_event_mouse {
+                if self.sgr_mouse {
+                    write!(
+                        self.writer,
+                        "\x1b[<{};{};{}m",
+                        release_button,
+                        event.x + 1,
+                        event.y + 1
+                    )?;
+                    self.writer.flush()?;
+                } else {
+                    let release_button = 3;
+                    write!(
+                        self.writer,
+                        "\x1b[M{}{}{}",
+                        (32 + release_button) as u8 as char,
+                        Self::legacy_mouse_coord(event.x as i64),
+                        Self::legacy_mouse_coord(event.y),
+                    )?;
+                    self.writer.flush()?;
+                }
             }
         }
 
@@ -144,7 +148,7 @@ impl TerminalState {
     }
 
     fn mouse_move(&mut self, event: MouseEvent) -> anyhow::Result<()> {
-        let reportable = self.any_event_mouse || self.current_mouse_button != MouseButton::None;
+        let reportable = self.any_event_mouse || !self.current_mouse_buttons.is_empty();
         // Note: self.mouse_tracking on its own is for clicks, not drags!
         if reportable && (self.button_event_mouse || self.any_event_mouse) {
             match self.last_mouse_move.as_ref() {
@@ -155,7 +159,8 @@ impl TerminalState {
             }
             self.last_mouse_move.replace(event.clone());
 
-            let button = 32 + self.mouse_report_button_number(&event);
+            let (button, _button) = self.mouse_report_button_number(&event);
+            let button = 32 + button;
 
             if self.sgr_mouse {
                 write!(

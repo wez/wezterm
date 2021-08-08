@@ -293,7 +293,7 @@ pub struct TerminalState {
     mouse_tracking: bool,
     /// Button events enabled
     button_event_mouse: bool,
-    current_mouse_button: MouseButton,
+    current_mouse_buttons: Vec<MouseButton>,
     last_mouse_move: Option<MouseEvent>,
     cursor_visible: bool,
 
@@ -441,7 +441,7 @@ impl TerminalState {
             g1_charset: CharSet::DecLineDrawing,
             shift_out: false,
             newline_mode: false,
-            current_mouse_button: MouseButton::None,
+            current_mouse_buttons: vec![],
             tabs: TabStop::new(size.physical_cols, 8),
             title: "wezterm".to_string(),
             icon_title: None,
@@ -597,7 +597,18 @@ impl TerminalState {
     /// Advise the terminal about a change in its focus state
     pub fn focus_changed(&mut self, focused: bool) {
         if !focused {
-            self.current_mouse_button = MouseButton::None;
+            // notify app of release of buttons
+            let buttons = self.current_mouse_buttons.clone();
+            for b in buttons {
+                self.mouse_event(MouseEvent {
+                    kind: MouseEventKind::Release,
+                    button: b,
+                    modifiers: KeyModifiers::NONE,
+                    x: 0,
+                    y: 0,
+                })
+                .ok();
+            }
         }
         if self.focus_tracking {
             write!(self.writer, "{}{}", CSI, if focused { "I" } else { "O" }).ok();

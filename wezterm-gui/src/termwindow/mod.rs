@@ -203,7 +203,7 @@ pub struct TermWindow {
 
     window_background: Option<Arc<ImageData>>,
 
-    current_mouse_button: Option<MousePress>,
+    current_mouse_buttons: Vec<MousePress>,
 
     /// Keeps track of double and triple clicks
     last_mouse_click: Option<LastMouseClick>,
@@ -280,7 +280,7 @@ impl TermWindow {
 
         if self.focused.is_none() {
             self.last_mouse_click = None;
-            self.current_mouse_button = None;
+            self.current_mouse_buttons.clear();
         }
 
         // Reset the cursor blink phase
@@ -477,7 +477,7 @@ impl TermWindow {
             last_scroll_info: RenderableDimensions::default(),
             tab_state: RefCell::new(HashMap::new()),
             pane_state: RefCell::new(HashMap::new()),
-            current_mouse_button: None,
+            current_mouse_buttons: vec![],
             last_mouse_click: None,
             current_highlight: None,
             shape_cache: RefCell::new(LruCache::new(

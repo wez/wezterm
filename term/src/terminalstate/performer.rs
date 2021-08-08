@@ -1,4 +1,3 @@
-use crate::input::MouseButton;
 use crate::terminal::Alert;
 use crate::terminalstate::{default_color_map, CharSet, TabStop};
 use crate::{ClipboardSelection, Position, TerminalState, VisibleRowIndex};
@@ -483,7 +482,7 @@ impl<'a> Performer<'a> {
                 self.sixel_scrolls_right = false;
                 self.any_event_mouse = false;
                 self.button_event_mouse = false;
-                self.current_mouse_button = MouseButton::None;
+                self.current_mouse_buttons.clear();
                 self.cursor_visible = true;
                 self.g0_charset = CharSet::Ascii;
                 self.g1_charset = CharSet::DecLineDrawing;

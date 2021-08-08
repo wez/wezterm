@@ -78,7 +78,7 @@ impl super::TermWindow {
 
         match event.kind {
             WMEK::Release(ref press) => {
-                self.current_mouse_button = None;
+                self.current_mouse_buttons.retain(|p| p != press);
                 if press == &MousePress::Left && self.scroll_drag_start.take().is_some() {
                     // Completed a scrollbar drag
                     return;
@@ -102,7 +102,8 @@ impl super::TermWindow {
                     Some(click) => click.add(button),
                 };
                 self.last_mouse_click = Some(click);
-                self.current_mouse_button = Some(press.clone());
+                self.current_mouse_buttons.retain(|p| p != press);
+                self.current_mouse_buttons.push(*press);
             }
 
             WMEK::VertWheel(amount) if !pane.is_mouse_grabbed() && !pane.is_alt_screen_active() => {
@@ -475,12 +476,12 @@ impl super::TermWindow {
                 }
             }
             WMEK::Move => {
-                if self.current_mouse_button.is_some() {
+                if !self.current_mouse_buttons.is_empty() {
                     if let Some(LastMouseClick { streak, button, .. }) =
                         self.last_mouse_click.as_ref()
                     {
                         if Some(*button)
-                            == self.current_mouse_button.as_ref().map(mouse_press_to_tmb)
+                            == self.current_mouse_buttons.last().map(mouse_press_to_tmb)
                         {
                             Some(MouseEventTrigger::Drag {
                                 streak: *streak,
