@@ -794,6 +794,11 @@ impl XWindow {
 
 impl XWindowInner {
     fn close(&mut self) {
+        // Remove the window from the map now, as GL state
+        // requires that it is able to make_current() in its
+        // Drop impl, and that cannot succeed after we've
+        // destroyed the window at the X11 level.
+        self.conn().windows.borrow_mut().remove(&self.window_id);
         xcb::destroy_window(self.conn().conn(), self.window_id);
     }
     fn hide(&mut self) {}
