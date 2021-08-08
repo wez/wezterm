@@ -311,19 +311,6 @@ impl TermWindow {
                     config::wezterm_version(),
                 );
                 self.render_state.replace(gl);
-                /*
-                // Update dimensions: the goal here is to factor in the dpi and font
-                // size adjusted GUI window dimensions and apply those to the dimensions
-                // of the pty in the Mux layer.
-                let dims = self.dimensions.clone();
-                self.apply_dimensions(
-                    &dims,
-                    Some(resize::RowsAndCols {
-                        rows: self.terminal_size.rows as _,
-                        cols: self.terminal_size.cols as _,
-                    }),
-                );
-                */
             }
             Err(err) => {
                 log::error!("failed to create OpenGLRenderState: {}", err);

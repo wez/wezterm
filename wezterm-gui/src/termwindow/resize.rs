@@ -205,8 +205,21 @@ impl super::TermWindow {
 
     #[allow(clippy::float_cmp)]
     pub fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64, window: &Window) {
-        let scale_changed =
-            dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale();
+        fn dpi_adjusted(n: usize, dpi: usize) -> f32 {
+            n as f32 / dpi as f32
+        }
+
+        // Distinguish between eg: dpi being detected as double the initial dpi (where
+        // the pixel dimensions don't change), and the dpi change being detected, but
+        // where the window manager also decides to tile/resize the window.
+        // In the latter case, we don't want to preserve the terminal rows/cols.
+        let simple_dpi_change = dimensions.dpi != self.dimensions.dpi
+            && dpi_adjusted(dimensions.pixel_height, dimensions.dpi)
+                == dpi_adjusted(self.dimensions.pixel_height, self.dimensions.dpi)
+            && dpi_adjusted(dimensions.pixel_width, dimensions.dpi)
+                == dpi_adjusted(self.dimensions.pixel_width, self.dimensions.dpi);
+
+        let scale_changed = simple_dpi_change || font_scale != self.fonts.get_font_scale();
 
         let scale_changed_cells = if scale_changed {
             let cell_dims = self.current_cell_dimensions();
