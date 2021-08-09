@@ -20,6 +20,7 @@ use anyhow::Error;
 use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut, Range};
 use std::str;
+use termwiz::surface::SequenceNo;
 
 pub mod config;
 pub use config::TerminalConfiguration;
@@ -112,6 +113,7 @@ pub struct CursorPosition {
     pub y: VisibleRowIndex,
     pub shape: termwiz::surface::CursorShape,
     pub visibility: termwiz::surface::CursorVisibility,
+    pub seqno: SequenceNo,
 }
 
 #[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]

@@ -737,6 +737,7 @@ impl TerminalState {
             } else {
                 CursorVisibility::Hidden
             },
+            seqno: self.cursor.seqno,
         }
     }
 
@@ -746,16 +747,10 @@ impl TerminalState {
 
     /// Sets the cursor position to precisely the x and values provided
     fn set_cursor_position_absolute(&mut self, x: usize, y: VisibleRowIndex) {
-        let seqno = self.seqno;
-        let old_y = self.cursor.y;
-
         self.cursor.y = y;
         self.cursor.x = x;
+        self.cursor.seqno = self.seqno;
         self.wrap_next = false;
-
-        let screen = self.screen_mut();
-        screen.dirty_line(old_y, seqno);
-        screen.dirty_line(y, seqno);
     }
 
     /// Sets the cursor position. x and y are 0-based and relative to the
@@ -925,8 +920,7 @@ impl TerminalState {
             None => self.left_and_right_margins.end - 1,
         };
         self.cursor.x = x.min(self.left_and_right_margins.end - 1);
-        let y = self.cursor.y;
-        self.screen_mut().dirty_line(y, seqno);
+        self.cursor.seqno = seqno;
     }
 
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
@@ -1935,7 +1929,6 @@ impl TerminalState {
             Cursor::Left(n) => {
                 // https://vt100.net/docs/vt510-rm/CUB.html
 
-                let y = self.cursor.y;
                 let candidate = self.cursor.x as i64 - n as i64;
                 let new_x = if self.cursor.x < self.left_and_right_margins.start {
                     // outside the margin, so allow movement to the border
@@ -1957,14 +1950,12 @@ impl TerminalState {
                 let new_x = new_x.max(0) as usize;
 
                 self.cursor.x = new_x;
+                self.cursor.seqno = seqno;
                 self.wrap_next = false;
-                let screen = self.screen_mut();
-                screen.dirty_line(y, seqno);
             }
 
             Cursor::Right(n) => {
                 // https://vt100.net/docs/vt510-rm/CUF.html
-                let y = self.cursor.y;
                 let cols = self.screen().physical_cols;
                 let new_x = if self.cursor.x >= self.left_and_right_margins.end {
                     // outside the margin, so allow movement to screen edge
@@ -1975,15 +1966,13 @@ impl TerminalState {
                 };
 
                 self.cursor.x = new_x;
+                self.cursor.seqno = seqno;
                 self.wrap_next = false;
-                let screen = self.screen_mut();
-                screen.dirty_line(y, seqno);
             }
 
             Cursor::Up(n) => {
                 // https://vt100.net/docs/vt510-rm/CUU.html
 
-                let old_y = self.cursor.y;
                 let candidate = self.cursor.y.saturating_sub(i64::from(n));
                 let new_y = if self.cursor.y < self.top_and_bottom_margins.start {
                     // above the top margin, so allow movement to
@@ -2001,14 +1990,11 @@ impl TerminalState {
                 let new_y = new_y.max(0);
 
                 self.cursor.y = new_y;
+                self.cursor.seqno = seqno;
                 self.wrap_next = false;
-                let screen = self.screen_mut();
-                screen.dirty_line(old_y, seqno);
-                screen.dirty_line(new_y, seqno);
             }
             Cursor::Down(n) => {
                 // https://vt100.net/docs/vt510-rm/CUD.html
-                let old_y = self.cursor.y;
                 let rows = self.screen().physical_rows;
                 let new_y = if self.cursor.y >= self.top_and_bottom_margins.end {
                     // below the bottom margin, so allow movement to
@@ -2020,10 +2006,8 @@ impl TerminalState {
                 };
 
                 self.cursor.y = new_y;
+                self.cursor.seqno = seqno;
                 self.wrap_next = false;
-                let screen = self.screen_mut();
-                screen.dirty_line(old_y, seqno);
-                screen.dirty_line(new_y, seqno);
             }
 
             Cursor::CharacterAndLinePosition { line, col } | Cursor::Position { line, col } => self
@@ -2044,10 +2028,8 @@ impl TerminalState {
                     col
                 };
                 self.cursor.x = col.min(self.screen().physical_cols - 1);
+                self.cursor.seqno = seqno;
                 self.wrap_next = false;
-                let y = self.cursor.y;
-                let screen = self.screen_mut();
-                screen.dirty_line(y, seqno);
             }
 
             Cursor::CharacterPositionBackward(col) => self.set_cursor_pos(
@@ -2070,7 +2052,6 @@ impl TerminalState {
             }
             Cursor::NextLine(n) => {
                 // https://vt100.net/docs/vt510-rm/CNL.html
-                let old_y = self.cursor.y;
                 let rows = self.screen().physical_rows;
                 let new_y = if self.cursor.y >= self.top_and_bottom_margins.end {
                     // below the bottom margin, so allow movement to
@@ -2083,14 +2064,11 @@ impl TerminalState {
 
                 self.cursor.y = new_y;
                 self.cursor.x = self.left_and_right_margins.start;
+                self.cursor.seqno = seqno;
                 self.wrap_next = false;
-                let screen = self.screen_mut();
-                screen.dirty_line(old_y, seqno);
-                screen.dirty_line(new_y, seqno);
             }
             Cursor::PrecedingLine(n) => {
                 // https://vt100.net/docs/vt510-rm/CPL.html
-                let old_y = self.cursor.y;
                 let candidate = self.cursor.y.saturating_sub(i64::from(n));
                 let new_y = if self.cursor.y < self.top_and_bottom_margins.start {
                     // above the top margin, so allow movement to
@@ -2109,10 +2087,8 @@ impl TerminalState {
 
                 self.cursor.y = new_y;
                 self.cursor.x = self.left_and_right_margins.start;
+                self.cursor.seqno = seqno;
                 self.wrap_next = false;
-                let screen = self.screen_mut();
-                screen.dirty_line(old_y, seqno);
-                screen.dirty_line(new_y, seqno);
             }
 
             Cursor::ActivePositionReport { .. } => {

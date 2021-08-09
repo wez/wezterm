@@ -254,6 +254,7 @@ impl Screen {
             y: new_cursor_y,
             shape: cursor.shape,
             visibility: cursor.visibility,
+            seqno,
         }
     }
 

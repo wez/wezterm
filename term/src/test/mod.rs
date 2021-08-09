@@ -149,13 +149,14 @@ impl TestTerm {
         self.print("!p");
     }
 
-    fn assert_cursor_pos(&self, x: usize, y: i64, reason: Option<&str>) {
+    fn assert_cursor_pos(&self, x: usize, y: i64, reason: Option<&str>, seqno: Option<SequenceNo>) {
         let cursor = self.cursor_pos();
         let expect = CursorPosition {
             x,
             y,
             shape: CursorShape::Default,
             visibility: CursorVisibility::Visible,
+            seqno: seqno.unwrap_or_else(|| self.current_seqno()),
         };
         assert_eq!(
             cursor, expect,
@@ -165,12 +166,14 @@ impl TestTerm {
     }
 
     fn assert_dirty_lines(&self, seqno: SequenceNo, expected: &[usize], reason: Option<&str>) {
+        let mut seqs = vec![];
         let dirty_indices: Vec<usize> = self
             .screen()
             .lines
             .iter()
             .enumerate()
             .filter_map(|(i, line)| {
+                seqs.push(line.current_seqno());
                 if line.changed_since(seqno) {
                     Some(i)
                 } else {
@@ -180,8 +183,9 @@ impl TestTerm {
             .collect();
         assert_eq!(
             &dirty_indices, &expected,
-            "actual dirty lines (left) didn't match expected dirty lines (right) reason={:?}",
-            reason
+            "actual dirty lines (left) didn't match expected dirty \
+             lines (right) reason={:?}. threshold seq: {} seqs: {:?}",
+            reason, seqno, seqs
         );
     }
 }
@@ -503,14 +507,14 @@ fn cursor_movement_damage() {
     let seqno = term.current_seqno();
     term.print("fooo.");
     assert_visible_contents(&term, file!(), line!(), &["foo", "o."]);
-    term.assert_cursor_pos(2, 1, None);
+    term.assert_cursor_pos(2, 1, None, None);
     term.assert_dirty_lines(seqno, &[0, 1], None);
 
     term.cup(0, 1);
 
     let seqno = term.current_seqno();
     term.print("\x08");
-    term.assert_cursor_pos(0, 1, Some("BS doesn't change the line"));
+    term.assert_cursor_pos(0, 1, Some("BS doesn't change the line"), Some(seqno));
     // Since we didn't move, the line isn't dirty
     term.assert_dirty_lines(seqno, &[], None);
 
@@ -518,9 +522,10 @@ fn cursor_movement_damage() {
     term.cup(0, 0);
     term.assert_dirty_lines(
         seqno,
-        &[0, 1],
-        Some("cursor movement dirties old and new lines"),
+        &[],
+        Some("cursor movement no longer dirties old and new lines"),
     );
+    term.assert_cursor_pos(0, 0, None, None);
 }
 const NUM_COLS: usize = 3;
 
@@ -664,7 +669,7 @@ fn test_delete_lines() {
     term.delete_lines(2);
 
     assert_visible_contents(&term, file!(), line!(), &["111", "aaa", "", "", "bbb"]);
-    term.assert_dirty_lines(seqno, &[0, 1, 2, 3], None);
+    term.assert_dirty_lines(seqno, &[1, 2, 3], None);
 
     // expand the scroll region to fill the screen
     term.set_scroll_region(0, 4);
