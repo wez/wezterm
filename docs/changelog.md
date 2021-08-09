@@ -71,6 +71,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: wayland: putting a window in the Sway scratchpad no longer blocks the wezterm process [#884](https://github.com/wez/wezterm/issues/884)
 * Fixed: mouse reporting now correctly reports release events when multiple buttons are pressed and released at the same time. [#973](https://github.com/wez/wezterm/issues/973)
 * Fixed: incorrect initial window/pty size when running with some tiling window managers. [#695](https://github.com/wez/wezterm/issues/695)
+* New: CTRL-SHIFT-L shows the [debug overlay](config/lua/keyassignment/ShowDebugOverlay.md), which shows the error log and a lua repl. [#641](https://github.com/wez/wezterm/issues/641)
 
 ### 20210502-154244-3f7122cb
 
