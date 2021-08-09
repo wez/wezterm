@@ -117,7 +117,10 @@ vec4 sample_texture(sampler2D s, vec2 coords) {
 }
 
 void main() {
-  if (o_has_color == 2.0) {
+  if (o_has_color == 3.0) {
+    // Solid color block
+    color = o_fg_color;
+  } else if (o_has_color == 2.0) {
     // The window background attachment
     color = sample_texture(atlas_linear_sampler, o_tex);
     // Apply window_background_image_opacity to the background image

@@ -282,7 +282,6 @@ impl super::TermWindow {
                 self.dimensions.pixel_height as f32 / 2.,
             );
             quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_is_background_image();
 
             match (self.window_background.as_ref(), self.allow_images) {
                 (Some(im), true) => {
@@ -296,6 +295,7 @@ impl super::TermWindow {
                         gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
                     self.update_next_frame_time(next_due);
                     quad.set_texture(sprite.texture_coords());
+                    quad.set_is_background_image();
                     quad.set_hsv(config.window_background_image_hsb);
                     quad.set_fg_color(color);
                 }
@@ -305,13 +305,8 @@ impl super::TermWindow {
                         global_bg_color,
                         config.window_background_opacity,
                     );
-                    quad.set_texture(
-                        gl_state
-                            .glyph_cache
-                            .borrow_mut()
-                            .cached_color(global_bg_color, config.window_background_opacity)?
-                            .texture_coords(),
-                    );
+                    quad.set_texture(white_space);
+                    quad.set_is_background();
                     quad.set_fg_color(background);
                     quad.set_hsv(None);
                 }
