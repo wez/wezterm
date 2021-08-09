@@ -393,10 +393,10 @@ impl super::TermWindow {
 
             quad.set_fg_color(color);
             quad.set_position(left, top, right, bottom);
-            quad.set_texture(filled_box);
+            quad.set_texture(white_space);
             quad.set_texture_adjust(0., 0., 0., 0.);
             quad.set_hsv(None);
-            quad.set_has_color(false);
+            quad.set_is_background();
         }
 
         let selrange = self.selection(pos.pane.pane_id()).range.clone();
@@ -756,10 +756,10 @@ impl super::TermWindow {
                 );
                 quad.set_bg_color(bg_color);
                 quad.set_fg_color(bg_color);
-                quad.set_texture(params.filled_box);
+                quad.set_texture(params.white_space);
                 quad.set_texture_adjust(0., 0., 0., 0.);
                 quad.set_hsv(hsv);
-                quad.set_has_color(false);
+                quad.set_is_background();
             }
 
             current_idx += cluster_width;
@@ -782,8 +782,8 @@ impl super::TermWindow {
             quad.set_bg_color(params.selection_bg);
             quad.set_fg_color(params.selection_bg);
             quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_texture(params.filled_box);
-            quad.set_has_color(false);
+            quad.set_texture(params.white_space);
+            quad.set_is_background();
             quad.set_hsv(hsv);
         }
 
@@ -971,10 +971,10 @@ impl super::TermWindow {
                         );
                         quad.set_bg_color(bg_color);
                         quad.set_fg_color(bg_color);
-                        quad.set_texture(params.filled_box);
+                        quad.set_texture(params.white_space);
                         quad.set_texture_adjust(0., 0., 0., 0.);
                         quad.set_hsv(hsv);
-                        quad.set_has_color(false);
+                        quad.set_is_background();
                     }
 
                     if cursor_shape.is_some() {
@@ -1147,8 +1147,8 @@ impl super::TermWindow {
                 quad.set_bg_color(params.foreground);
                 quad.set_fg_color(params.foreground);
                 quad.set_texture_adjust(0., 0., 0., 0.);
-                quad.set_texture(params.filled_box);
-                quad.set_has_color(false);
+                quad.set_texture(params.white_space);
+                quad.set_is_background();
                 quad.set_hsv(hsv);
             }
 
