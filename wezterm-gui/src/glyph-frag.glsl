@@ -51,7 +51,7 @@ vec4 from_linear(vec4 v) {
   return pow(v, vec4(2.2));
 }
 
-vec4 to_gamma(vec4 v) {
+vec4 to_linear(vec4 v) {
   return pow(v, vec4(1.0/2.2));
 }
 
@@ -64,7 +64,8 @@ vec4 to_gamma(vec4 v) {
 // just be a call to `texture` and not do the gamma conversion.
 vec4 sample_texture(sampler2D s, vec2 coords) {
   vec4 color = texture(s, coords);
-  return to_gamma(color);
+  return color;
+//  return to_linear(color);
 }
 
 void main() {

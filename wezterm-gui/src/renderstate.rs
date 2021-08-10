@@ -5,7 +5,7 @@ use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::buffer::Mapping;
 use ::window::glium::texture::SrgbTexture2d;
-use ::window::glium::{IndexBuffer, VertexBuffer};
+use ::window::glium::{CapabilitiesSource, IndexBuffer, VertexBuffer};
 use ::window::*;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
@@ -152,12 +152,16 @@ impl RenderState {
         fragment_shader: fn(&str) -> (String, String),
     ) -> anyhow::Result<glium::Program> {
         let mut errors = vec![];
+
+        let caps = context.get_capabilities();
+        log::trace!("Compiling shader. context.capabilities.srgb={}", caps.srgb);
+
         for version in &["330 core", "330", "320 es", "300 es"] {
             let (vertex_shader, fragment_shader) = fragment_shader(version);
             let source = glium::program::ProgramCreationInput::SourceCode {
                 vertex_shader: &vertex_shader,
                 fragment_shader: &fragment_shader,
-                outputs_srgb: true,
+                outputs_srgb: false,
                 tessellation_control_shader: None,
                 tessellation_evaluation_shader: None,
                 transform_feedback_varyings: None,

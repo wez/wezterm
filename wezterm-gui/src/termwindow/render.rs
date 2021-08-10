@@ -1659,7 +1659,7 @@ fn rgbcolor_to_window_color(color: RgbColor) -> LinearRgba {
 }
 
 fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: f32) -> LinearRgba {
-    let (red, green, blue, _) = color.to_tuple_rgba();
+    let (red, green, blue, _) = color.to_linear_tuple_rgba();
     LinearRgba::with_components(red, green, blue, alpha)
 }
 

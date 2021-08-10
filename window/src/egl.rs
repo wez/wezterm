@@ -55,6 +55,17 @@ pub struct GlConnection {
     egl: EglWrapper,
     display: ffi::types::EGLDisplay,
     is_opengl: bool,
+    extensions: String,
+}
+
+impl GlConnection {
+    #[allow(dead_code)]
+    pub fn has_extension(&self, wanted: &str) -> bool {
+        self.extensions
+            .split(' ')
+            .find(|&ext| ext == wanted)
+            .is_some()
+    }
 }
 
 impl std::ops::Deref for GlConnection {
@@ -339,8 +350,17 @@ impl EglWrapper {
         window: ffi::EGLNativeWindowType,
     ) -> anyhow::Result<ffi::types::EGLSurface> {
         let surface = unsafe {
-            self.egl
-                .CreateWindowSurface(display, config, window, std::ptr::null())
+            self.egl.CreateWindowSurface(
+                display,
+                config,
+                window,
+                [
+                    ffi::GL_COLORSPACE as i32,
+                    ffi::GL_COLORSPACE_SRGB as i32,
+                    ffi::NONE as i32,
+                ]
+                .as_ptr(),
+            )
         };
         if surface.is_null() {
             Err(self.error("EGL CreateWindowSurface"))
@@ -503,10 +523,20 @@ impl GlState {
                 }
             };
 
+            let extensions = unsafe { egl.egl.QueryString(egl_display, ffi::EXTENSIONS as _) };
+            let extensions = if extensions.is_null() {
+                String::new()
+            } else {
+                let cstr = unsafe { std::ffi::CStr::from_ptr(extensions) };
+                String::from_utf8_lossy(cstr.to_bytes()).to_string()
+            };
+            log::trace!("EGL extensions: {}", extensions);
+
             let connection = Rc::new(GlConnection {
                 display: egl_display,
                 egl,
                 is_opengl,
+                extensions,
             });
 
             Self::create_with_existing_connection(&connection, window)

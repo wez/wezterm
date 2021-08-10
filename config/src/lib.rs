@@ -1013,7 +1013,7 @@ pub struct Config {
     /// EGL on Windows has jankier resize behavior than WGL (which
     /// is used if EGL is unavailable), but EGL survives graphics
     /// driver updates without breaking and losing your work.
-    #[serde(default = "default_true")]
+    #[serde(default = "default_prefer_egl")]
     pub prefer_egl: bool,
 
     #[serde(default = "default_true")]
@@ -1276,6 +1276,10 @@ fn default_tab_max_width() -> usize {
 
 fn default_update_interval() -> u64 {
     86400
+}
+
+fn default_prefer_egl() -> bool {
+    !cfg!(windows)
 }
 
 fn default_inactive_pane_hsb() -> HsbTransform {
