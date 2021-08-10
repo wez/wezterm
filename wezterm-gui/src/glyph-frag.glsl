@@ -1,6 +1,6 @@
 // This is the Glyph fragment shader.
 // It is responsible for laying down the glyph graphics on top of the other layers.
-
+#extension GL_EXT_blend_func_extended: enable
 precision highp float;
 
 in float o_has_color;
@@ -9,28 +9,15 @@ in vec3 o_hsv;
 in vec4 o_fg_color;
 in vec4 o_bg_color;
 
-out vec4 color;
+// The color + alpha
+layout(location=0, index=0) out vec4 color;
+// Individual alpha channels for RGBA in color, used for subpixel
+// antialiasing blending
+layout(location=0, index=1) out vec4 colorMask;
 
 uniform vec3 foreground_text_hsb;
 uniform sampler2D atlas_nearest_sampler;
 uniform sampler2D atlas_linear_sampler;
-
-
-float multiply_one(float src, float dst, float inv_dst_alpha, float inv_src_alpha) {
-  return (src * dst) + (src * (inv_dst_alpha)) + (dst * (inv_src_alpha));
-}
-
-// Alpha-regulated multiply to colorize the glyph bitmap.
-vec4 multiply(vec4 src, vec4 dst) {
-  float inv_src_alpha = 1.0 - src.a;
-  float inv_dst_alpha = 1.0 - dst.a;
-
-  return vec4(
-      multiply_one(src.r, dst.r, inv_dst_alpha, inv_src_alpha),
-      multiply_one(src.g, dst.g, inv_dst_alpha, inv_src_alpha),
-      multiply_one(src.b, dst.b, inv_dst_alpha, inv_src_alpha),
-      dst.a);
-}
 
 vec3 rgb2hsv(vec3 c)
 {
@@ -61,41 +48,6 @@ vec4 apply_hsv(vec4 c, vec3 transform)
   return vec4(hsv2rgb(hsv).rgb, c.a);
 }
 
-// Given glyph, the greyscale rgba value computed by freetype,
-// and color, the desired color, compute the resultant pixel
-// value for rendering over the top of the given background
-// color.
-//
-// The freetype glyph is greyscale (R=G=B=A) when font_antialias=Greyscale,
-// where each channel holds the brightness of the pixel.
-// It holds separate intensity values for the R, G and B channels when
-// subpixel anti-aliasing is in use, with an approximated A value
-// derived from the R, G, B values.
-//
-// In sub-pixel mode we don't want to look at glyph.a as we effective
-// have per-channel alpha.  In greyscale mode, glyph.a is the same
-// as the other channels, so this routine ignores glyph.a when
-// computing the blend, but does include that value for the returned
-// alpha value.
-//
-// See also: https://www.puredevsoftware.com/blog/2019/01/22/sub-pixel-gamma-correct-font-rendering/
-vec4 colorize(vec4 glyph, vec4 color, vec4 background) {
-  float r = glyph.r * color.r + (1.0 - glyph.r) * background.r;
-  float g = glyph.g * color.g + (1.0 - glyph.g) * background.g;
-  float b = glyph.b * color.b + (1.0 - glyph.b) * background.b;
-
-  return vec4(r, g, b, glyph.a);
-}
-
-// Like colorize, but for when the background color is unknown.
-// This isn't "good" because it generally results in dark fringes.
-// Ideally we wouldn't need to know the background and we could
-// use dual source blending instead of colorize and colorize2.
-// <https://github.com/wez/wezterm/issues/932>
-vec4 colorize2(vec4 glyph, vec4 color) {
-  return vec4(glyph.rgb * color.rgb, glyph.a);
-}
-
 vec4 from_linear(vec4 v) {
   return pow(v, vec4(2.2));
 }
@@ -120,18 +72,22 @@ void main() {
   if (o_has_color == 3.0) {
     // Solid color block
     color = o_fg_color;
+    colorMask = vec4(1.0, 1.0, 1.0, 1.0);
   } else if (o_has_color == 2.0) {
     // The window background attachment
     color = sample_texture(atlas_linear_sampler, o_tex);
     // Apply window_background_image_opacity to the background image
-    color.a = o_fg_color.a;
+    colorMask = o_fg_color.aaaa;
   } else {
     color = sample_texture(atlas_nearest_sampler, o_tex);
     if (o_has_color == 0.0) {
       // if it's not a color emoji it will be grayscale
       // and we need to tint with the fg_color
-      color = colorize(color, o_fg_color, o_bg_color);
+      colorMask = color;
+      color = o_fg_color;
       color = apply_hsv(color, foreground_text_hsb);
+    } else {
+      colorMask = color.aaaa;
     }
   }
 

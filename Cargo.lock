@@ -922,7 +922,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "crossbeam-utils",
  "lazy_static",
- "memoffset 0.6.4",
+ "memoffset",
  "scopeguard",
 ]
 
@@ -1759,15 +1759,14 @@ dependencies = [
 
 [[package]]
 name = "glium"
-version = "0.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7eeec7b733d14519e2541f4cc8a1230de9143d4ec439dd51b6c048d8ec991759"
+version = "0.30.1"
+source = "git+https://github.com/glium/glium.git?rev=aed95270f0714036003589d6e52de196e7ff75d1#aed95270f0714036003589d6e52de196e7ff75d1"
 dependencies = [
  "backtrace",
  "fnv",
  "gl_generator",
  "lazy_static",
- "memoffset 0.5.6",
+ "memoffset",
  "smallvec 1.6.1",
  "takeable-option",
 ]
@@ -2370,15 +2369,6 @@ name = "memmem"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a64a92489e2744ce060c349162be1c5f33c6969234104dbd99ddb5feb08b8c15"
-
-[[package]]
-name = "memoffset"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "043175f069eda7b85febe4a74abbaeff828d9f8b448515d3151a14a3542811aa"
-dependencies = [
- "autocfg",
-]
 
 [[package]]
 name = "memoffset"

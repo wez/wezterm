@@ -54,6 +54,7 @@ impl std::fmt::Debug for EglWrapper {
 pub struct GlConnection {
     egl: EglWrapper,
     display: ffi::types::EGLDisplay,
+    is_opengl: bool,
 }
 
 impl std::ops::Deref for GlConnection {
@@ -490,9 +491,22 @@ impl GlState {
             let (major, minor) = egl.initialize_and_get_version(egl_display)?;
             log::trace!("initialized EGL version {}.{}", major, minor);
 
+            let is_opengl = unsafe {
+                if egl.egl.BindAPI(ffi::OPENGL_API) != 0 {
+                    log::trace!("using OpenGL");
+                    true
+                } else if egl.egl.BindAPI(ffi::OPENGL_ES_API) != 0 {
+                    log::trace!("using GLES");
+                    false
+                } else {
+                    anyhow::bail!("Unable to bind to OpenGL or GL ES!?");
+                }
+            };
+
             let connection = Rc::new(GlConnection {
                 display: egl_display,
                 egl,
+                is_opengl,
             });
 
             Self::create_with_existing_connection(&connection, window)
@@ -539,9 +553,17 @@ impl GlState {
                 ffi::DEPTH_SIZE,
                 24,
                 ffi::CONFORMANT,
-                ffi::OPENGL_ES3_BIT,
+                if connection.is_opengl {
+                    ffi::OPENGL_BIT
+                } else {
+                    ffi::OPENGL_ES3_BIT
+                },
                 ffi::RENDERABLE_TYPE,
-                ffi::OPENGL_ES3_BIT,
+                if connection.is_opengl {
+                    ffi::OPENGL_BIT
+                } else {
+                    ffi::OPENGL_ES3_BIT
+                },
                 // Wayland EGL doesn't give us a working context if we request
                 // PBUFFER|PIXMAP.  We don't appear to require these for X11,
                 // so we're just asking for a WINDOW capable context

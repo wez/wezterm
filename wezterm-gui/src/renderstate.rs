@@ -152,7 +152,7 @@ impl RenderState {
         fragment_shader: fn(&str) -> (String, String),
     ) -> anyhow::Result<glium::Program> {
         let mut errors = vec![];
-        for version in &["330", "300 es"] {
+        for version in &["330 core", "330", "320 es", "300 es"] {
             let (vertex_shader, fragment_shader) = fragment_shader(version);
             let source = glium::program::ProgramCreationInput::SourceCode {
                 vertex_shader: &vertex_shader,
@@ -164,12 +164,11 @@ impl RenderState {
                 uses_point_size: false,
                 geometry_shader: None,
             };
-            log::trace!("compiling a prog with version {}", version);
             match glium::Program::new(context, source) {
                 Ok(prog) => {
                     return Ok(prog);
                 }
-                Err(err) => errors.push(err.to_string()),
+                Err(err) => errors.push(format!("shader version: {}: {:#}", version, err)),
             };
         }
 

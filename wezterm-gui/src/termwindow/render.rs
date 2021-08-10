@@ -467,12 +467,12 @@ impl super::TermWindow {
         let alpha_blending = glium::DrawParameters {
             blend: glium::Blend {
                 color: BlendingFunction::Addition {
-                    source: LinearBlendingFactor::SourceAlpha,
-                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
+                    source: LinearBlendingFactor::SourceOneColor,
+                    destination: LinearBlendingFactor::OneMinusSourceOneColor,
                 },
                 alpha: BlendingFunction::Addition {
-                    source: LinearBlendingFactor::One,
-                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
+                    source: LinearBlendingFactor::SourceOneColor,
+                    destination: LinearBlendingFactor::OneMinusSourceOneColor,
                 },
                 constant_value: (0.0, 0.0, 0.0, 0.0),
             },
