@@ -75,7 +75,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             .to_str()
             .ok_or_else(|| anyhow!("config file path is not UTF-8"))?;
 
-        lua.set_named_registry_value("wezterm-watch-paths", config_file_str)?;
+        lua.set_named_registry_value("wezterm-watch-paths", vec![config_file_str])?;
         wezterm_mod.set("config_file", config_file_str)?;
         wezterm_mod.set(
             "config_dir",
