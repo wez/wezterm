@@ -86,19 +86,10 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set(
             "add_to_config_reload_watch_list",
             lua.create_function(|lua, args: Variadic<String>| {
-                let watch_path: String = lua.named_registry_value("wezterm-watch-paths")?;
-                log::debug!("watch_path: {}, args: {:?}", watch_path, args);
-                lua.set_named_registry_value(
-                    "wezterm-watch-paths",
-                    format!("{};{}", watch_path, args.join(";")),
-                )
-            })?,
-        )?;
-        wezterm_mod.set(
-            "set_config_reload_watch_list",
-            lua.create_function(|lua, args: Variadic<String>| {
-                let combined = args.join(";");
-                lua.set_named_registry_value("wezterm-watch-paths", combined)
+                let mut watch_paths: Vec<String> =
+                    lua.named_registry_value("wezterm-watch-paths")?;
+                watch_paths.extend_from_slice(&args);
+                lua.set_named_registry_value("wezterm-watch-paths", watch_paths)
             })?,
         )?;
 
