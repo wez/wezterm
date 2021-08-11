@@ -73,6 +73,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: incorrect initial window/pty size when running with some tiling window managers. [#695](https://github.com/wez/wezterm/issues/695)
 * New: CTRL-SHIFT-L shows the [debug overlay](config/lua/keyassignment/ShowDebugOverlay.md), which shows the error log and a lua repl. [#641](https://github.com/wez/wezterm/issues/641)
 * Fixed: macOS: bright window padding on Intel-based macs [#653](https://github.com/wez/wezterm/issues/653), [#716](https://github.com/wez/wezterm/issues/716) and [#1000](https://github.com/wez/wezterm/issues/1000)
+* Improved: wezterm now uses the Dual Source Blending feature of OpenGL to manage subpixel anti-aliasing alpha blending, resulting in improved appearance particularly when using a transparent window over the top of something with a light background. [#932](https://github.com/wez/wezterm/issues/932)
 
 ### 20210502-154244-3f7122cb
 
