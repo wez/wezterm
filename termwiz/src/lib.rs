@@ -41,6 +41,7 @@
 //! * `use_serde` - makes a number of structs serde serializable
 
 mod emoji;
+mod emoji_presentation;
 
 pub mod caps;
 pub mod cell;

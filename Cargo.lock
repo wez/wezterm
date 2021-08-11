@@ -4323,6 +4323,7 @@ dependencies = [
  "terminfo",
  "termios 0.3.3",
  "thiserror",
+ "ucd-trie",
  "unicode-segmentation",
  "unicode-width",
  "varbincode",
