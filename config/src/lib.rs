@@ -453,6 +453,16 @@ impl ConfigInner {
         }
     }
 
+    fn accumulate_watch_paths(lua: &Lua, watch_paths: &mut Vec<PathBuf>) {
+        if let Ok(mlua::Value::Table(tbl)) = lua.named_registry_value("wezterm-watch-paths") {
+            for path in tbl.sequence_values::<String>() {
+                if let Ok(path) = path {
+                    watch_paths.push(PathBuf::from(path));
+                }
+            }
+        }
+    }
+
     /// Attempt to load the user's configuration.
     /// On success, clear any error and replace the current
     /// configuration.
@@ -469,21 +479,32 @@ impl ConfigInner {
                 self.error.take();
                 self.generation += 1;
 
-                // If we loaded a user config, publish this latest version of
-                // the lua state to the LUA_PIPE.  This allows a subsequent
-                // call to `with_lua_config` to reference this lua context
-                // even though we are (probably) resolving this from a background
-                // reloading thread.
+                let mut watch_paths = vec![];
                 if let Some(lua) = lua {
+                    ConfigInner::accumulate_watch_paths(&lua, &mut watch_paths);
+                    // If we loaded a user config, publish this latest version of
+                    // the lua state to the LUA_PIPE.  This allows a subsequent
+                    // call to `with_lua_config` to reference this lua context
+                    // even though we are (probably) resolving this from a background
+                    // reloading thread.
                     LUA_PIPE.sender.try_send(lua).ok();
                 }
+
                 log::debug!("Reloaded configuration! generation={}", self.generation);
                 self.notify();
                 if self.config.automatically_reload_config {
-                    if let Some(path) = file_name {
+                    if watch_paths.is_empty() {
+                        if let Some(path) = file_name {
+                            watch_paths.push(path);
+                        }
+                    }
+                    for path in watch_paths {
                         self.watch_path(path);
                     }
                 }
+
+                log::debug!("Reloaded configuration! generation={}", self.generation);
+                self.notify();
             }
             Err(err) => {
                 let err = format!("{:#}", err);

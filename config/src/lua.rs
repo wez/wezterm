@@ -71,18 +71,26 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
                 }
             }
         }
+        let config_file_str = config_file
+            .to_str()
+            .ok_or_else(|| anyhow!("config file path is not UTF-8"))?;
 
-        wezterm_mod.set(
-            "config_file",
-            config_file
-                .to_str()
-                .ok_or_else(|| anyhow!("config file path is not UTF-8"))?,
-        )?;
+        lua.set_named_registry_value("wezterm-watch-paths", vec![config_file_str])?;
+        wezterm_mod.set("config_file", config_file_str)?;
         wezterm_mod.set(
             "config_dir",
             config_dir
                 .to_str()
                 .ok_or_else(|| anyhow!("config dir path is not UTF-8"))?,
+        )?;
+        wezterm_mod.set(
+            "add_to_config_reload_watch_list",
+            lua.create_function(|lua, args: Variadic<String>| {
+                let mut watch_paths: Vec<String> =
+                    lua.named_registry_value("wezterm-watch-paths")?;
+                watch_paths.extend_from_slice(&args);
+                lua.set_named_registry_value("wezterm-watch-paths", watch_paths)
+            })?,
         )?;
 
         wezterm_mod.set("target_triple", crate::wezterm_target_triple())?;
