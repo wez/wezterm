@@ -252,7 +252,7 @@ impl CursorInfo {
             }
         }
 
-        let theme = self.theme.as_ref()?;
+        let theme = self.theme.as_ref().map(|s| s.as_str()).unwrap_or("default");
         if self.pict_format_id.is_none() {
             return None;
         }
