@@ -75,7 +75,6 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             .to_str()
             .ok_or_else(|| anyhow!("config file path is not UTF-8"))?;
 
-        lua.set_named_registry_value("wezterm-watch-paths", vec![config_file_str])?;
         wezterm_mod.set("config_file", config_file_str)?;
         wezterm_mod.set(
             "config_dir",
@@ -83,6 +82,8 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
                 .to_str()
                 .ok_or_else(|| anyhow!("config dir path is not UTF-8"))?,
         )?;
+
+        lua.set_named_registry_value("wezterm-watch-paths", Vec::<String>::new())?;
         wezterm_mod.set(
             "add_to_config_reload_watch_list",
             lua.create_function(|lua, args: Variadic<String>| {
