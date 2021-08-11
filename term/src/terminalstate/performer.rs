@@ -6,7 +6,7 @@ use log::{debug, error};
 use num_traits::FromPrimitive;
 use std::fmt::Write;
 use std::ops::{Deref, DerefMut};
-use termwiz::cell::{unicode_column_width, Cell, CellAttributes, SemanticType};
+use termwiz::cell::{grapheme_column_width, Cell, CellAttributes, SemanticType};
 use termwiz::escape::csi::EraseInDisplay;
 use termwiz::escape::osc::{
     ChangeColorPair, ColorOrQuery, FinalTermSemanticPrompt, ITermProprietary, Selection,
@@ -134,7 +134,7 @@ impl<'a> Performer<'a> {
             // they occupy a cell so that we can re-emit them when we output them.
             // If we didn't do this, then we'd effectively filter them out from
             // the model, which seems like a lossy design choice.
-            let print_width = unicode_column_width(g).max(1);
+            let print_width = grapheme_column_width(g).max(1);
             let is_last = graphemes.peek().is_none();
             let wrappable = x + print_width >= width;
 
