@@ -456,6 +456,7 @@ impl ConceptFrame {
                 |_| {
                     // We don't do synthesis here, so no need to filter
                 },
+                None,
             )
             .ok()?;
 

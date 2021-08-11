@@ -9,7 +9,7 @@ use log::error;
 use ordered_float::NotNan;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
-use termwiz::cell::unicode_column_width;
+use termwiz::cell::{unicode_column_width, Presentation};
 use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -53,6 +53,7 @@ struct FontPair {
     face: ftwrap::Face,
     font: harfbuzz::Font,
     shaped_any: bool,
+    presentation: Presentation,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -140,8 +141,9 @@ impl HarfbuzzShaper {
             Some(opt_pair) => {
                 let mut opt_pair = opt_pair.borrow_mut();
                 if opt_pair.is_none() {
-                    log::trace!("shaper wants {} {:?}", font_idx, &self.handles[font_idx]);
-                    let face = self.lib.face_from_locator(&self.handles[font_idx].handle)?;
+                    let handle = &self.handles[font_idx];
+                    log::trace!("shaper wants {} {:?}", font_idx, handle);
+                    let face = self.lib.face_from_locator(&handle.handle)?;
                     let mut font = harfbuzz::Font::new(face.face);
                     let (load_flags, _) = ftwrap::compute_load_flags_from_config();
                     font.set_load_flags(load_flags);
@@ -149,6 +151,11 @@ impl HarfbuzzShaper {
                         face,
                         font,
                         shaped_any: false,
+                        presentation: if handle.assume_emoji_presentation {
+                            Presentation::Emoji
+                        } else {
+                            Presentation::Text
+                        },
                     });
                 }
 
@@ -161,11 +168,12 @@ impl HarfbuzzShaper {
 
     fn do_shape(
         &self,
-        font_idx: FallbackIdx,
+        mut font_idx: FallbackIdx,
         s: &str,
         font_size: f64,
         dpi: u32,
         no_glyphs: &mut Vec<char>,
+        presentation: Option<Presentation>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut buf = harfbuzz::Buffer::new()?;
         buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);
@@ -179,13 +187,20 @@ impl HarfbuzzShaper {
         let cell_width;
         let shaped_any;
 
-        {
+        loop {
             match self.load_fallback(font_idx).context("load_fallback")? {
                 Some(mut pair) => {
+                    if let Some(p) = presentation {
+                        if pair.presentation != p {
+                            font_idx += 1;
+                            continue;
+                        }
+                    }
                     let size = pair.face.set_font_size(font_size, dpi)?;
                     cell_width = size.width;
                     shaped_any = pair.shaped_any;
                     pair.font.shape(&mut buf, self.features.as_slice());
+                    break;
                 }
                 None => {
                     // Note: since we added a last resort font, this case
@@ -283,12 +298,25 @@ impl HarfbuzzShaper {
                 }
                 */
 
-                let mut shape = match self.do_shape(font_idx + 1, substr, font_size, dpi, no_glyphs)
-                {
+                let mut shape = match self.do_shape(
+                    font_idx + 1,
+                    substr,
+                    font_size,
+                    dpi,
+                    no_glyphs,
+                    presentation,
+                ) {
                     Ok(shape) => Ok(shape),
                     Err(e) => {
                         error!("{:?} for {:?}", e, substr);
-                        self.do_shape(0, &make_question_string(substr), font_size, dpi, no_glyphs)
+                        self.do_shape(
+                            0,
+                            &make_question_string(substr),
+                            font_size,
+                            dpi,
+                            no_glyphs,
+                            presentation,
+                        )
                     }
                 }?;
 
@@ -368,10 +396,11 @@ impl FontShaper for HarfbuzzShaper {
         size: f64,
         dpi: u32,
         no_glyphs: &mut Vec<char>,
+        presentation: Option<Presentation>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         log::trace!("shape {} `{}`", text.len(), text);
         let start = std::time::Instant::now();
-        let result = self.do_shape(0, text, size, dpi, no_glyphs);
+        let result = self.do_shape(0, text, size, dpi, no_glyphs, presentation);
         metrics::histogram!("shape.harfbuzz", start.elapsed());
         /*
         if let Ok(glyphs) = &result {
@@ -516,7 +545,7 @@ mod test {
         let shaper = HarfbuzzShaper::new(&config, &[handle]).unwrap();
         {
             let mut no_glyphs = vec![];
-            let info = shaper.shape("abc", 10., 72, &mut no_glyphs).unwrap();
+            let info = shaper.shape("abc", 10., 72, &mut no_glyphs, None).unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             assert_eq!(
                 info,
@@ -565,7 +594,7 @@ mod test {
         }
         {
             let mut no_glyphs = vec![];
-            let info = shaper.shape("<", 10., 72, &mut no_glyphs).unwrap();
+            let info = shaper.shape("<", 10., 72, &mut no_glyphs, None).unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             assert_eq!(
                 info,
@@ -588,7 +617,7 @@ mod test {
             // This is a ligatured sequence, but you wouldn't know
             // from this info :-/
             let mut no_glyphs = vec![];
-            let info = shaper.shape("<-", 10., 72, &mut no_glyphs).unwrap();
+            let info = shaper.shape("<-", 10., 72, &mut no_glyphs, None).unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             assert_eq!(
                 info,
@@ -624,7 +653,7 @@ mod test {
         }
         {
             let mut no_glyphs = vec![];
-            let info = shaper.shape("<--", 10., 72, &mut no_glyphs).unwrap();
+            let info = shaper.shape("<--", 10., 72, &mut no_glyphs, None).unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
             assert_eq!(
                 info,

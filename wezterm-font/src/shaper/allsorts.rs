@@ -13,7 +13,7 @@ use allsorts::tables::{
 };
 use allsorts::tag;
 use anyhow::{anyhow, bail, Context};
-use termwiz::cell::unicode_column_width;
+use termwiz::cell::{unicode_column_width, Presentation};
 use tinyvec::*;
 use unicode_general_category::{get_general_category, GeneralCategory};
 
@@ -570,6 +570,7 @@ impl FontShaper for AllsortsShaper {
         size: f64,
         dpi: u32,
         no_glyphs: &mut Vec<char>,
+        _presentation: Option<Presentation>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut results = vec![];
         let script = allsorts::tag::LATN;

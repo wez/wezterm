@@ -438,7 +438,9 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
             let style = font_config.match_style(&config, &cluster.attrs);
             let font = font_config.resolve_font(style)?;
             let handles = font.clone_handles();
-            let infos = font.shape(&cluster.text, || {}, |_| {}).unwrap();
+            let infos = font
+                .shape(&cluster.text, || {}, |_| {}, Some(cluster.presentation))
+                .unwrap();
 
             for info in infos {
                 let parsed = &handles[info.font_idx];

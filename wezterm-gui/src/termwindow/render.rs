@@ -1488,6 +1488,7 @@ impl super::TermWindow {
                     &cluster.text,
                     move || window.notify(TermWindowNotif::InvalidateShapeCache),
                     BlockKey::filter_out_synthetic,
+                    Some(cluster.presentation),
                 ) {
                     Ok(info) => {
                         let glyphs = self.glyph_infos_to_glyphs(

@@ -69,6 +69,7 @@ pub trait FontShaper {
         size: f64,
         dpi: u32,
         no_glyphs: &mut Vec<char>,
+        presentation: Option<termwiz::cell::Presentation>,
     ) -> anyhow::Result<Vec<GlyphInfo>>;
 
     /// Compute the font metrics for the preferred font

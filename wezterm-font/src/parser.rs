@@ -24,6 +24,7 @@ pub struct ParsedFont {
     pub synthesize_italic: bool,
     pub synthesize_bold: bool,
     pub synthesize_dim: bool,
+    pub assume_emoji_presentation: bool,
 }
 
 impl std::fmt::Debug for ParsedFont {
@@ -35,6 +36,10 @@ impl std::fmt::Debug for ParsedFont {
             .field("italic", &self.italic)
             .field("handle", &self.handle)
             .field("cap_height", &self.cap_height)
+            .field("synthesize_italic", &self.synthesize_italic)
+            .field("synthesize_bold", &self.synthesize_bold)
+            .field("synthesize_dim", &self.synthesize_dim)
+            .field("assume_emoji_presentation", &self.assume_emoji_presentation)
             .finish()
     }
 }
@@ -49,6 +54,7 @@ impl Clone for ParsedFont {
             synthesize_italic: self.synthesize_italic,
             synthesize_bold: self.synthesize_bold,
             synthesize_dim: self.synthesize_dim,
+            assume_emoji_presentation: self.assume_emoji_presentation,
             handle: self.handle.clone(),
             cap_height: self.cap_height.clone(),
             coverage: Mutex::new(self.coverage.lock().unwrap().clone()),
@@ -147,6 +153,9 @@ impl ParsedFont {
             } else if p.synthesize_dim {
                 code.push_str("  -- Will synthesize dim\n");
             }
+            if p.assume_emoji_presentation {
+                code.push_str("  -- Assumed to have Emoji Presentation\n");
+            }
 
             if p.weight == FontWeight::REGULAR && p.stretch == FontStretch::Normal && !p.italic {
                 code.push_str(&format!("  \"{}\",\n", p.names.family));
@@ -175,6 +184,10 @@ impl ParsedFont {
         let weight = FontWeight::from_opentype_weight(ot_weight);
         let stretch = FontStretch::from_opentype_stretch(width);
         let cap_height = face.cap_height();
+        let has_color = unsafe {
+            (((*face.face).face_flags as u32) & (crate::ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
+        };
+        let assume_emoji_presentation = has_color;
 
         Ok(Self {
             names: Names::from_ft_face(&face),
@@ -184,6 +197,7 @@ impl ParsedFont {
             synthesize_italic: false,
             synthesize_bold: false,
             synthesize_dim: false,
+            assume_emoji_presentation,
             handle,
             coverage: Mutex::new(RangeSet::new()),
             cap_height,

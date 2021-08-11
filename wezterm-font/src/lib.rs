@@ -13,6 +13,7 @@ use std::collections::{HashMap, HashSet};
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use termwiz::cell::Presentation;
 use thiserror::Error;
 use wezterm_term::CellAttributes;
 use wezterm_toast_notification::ToastNotification;
@@ -83,6 +84,7 @@ impl LoadedFont {
         text: &str,
         completion: F,
         filter_out_synthetic: FS,
+        presentation: Option<Presentation>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut no_glyphs = vec![];
 
@@ -99,10 +101,13 @@ impl LoadedFont {
             }
         }
 
-        let result = self
-            .shaper
-            .borrow()
-            .shape(text, self.font_size, self.dpi, &mut no_glyphs);
+        let result = self.shaper.borrow().shape(
+            text,
+            self.font_size,
+            self.dpi,
+            &mut no_glyphs,
+            presentation,
+        );
 
         filter_out_synthetic(&mut no_glyphs);
 

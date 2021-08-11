@@ -276,7 +276,7 @@ mod test {
         let cell_clusters = line.cluster();
         assert_eq!(cell_clusters.len(), 1);
         let cluster = &cell_clusters[0];
-        let infos = font.shape(&cluster.text, || {}, |_| {}).unwrap();
+        let infos = font.shape(&cluster.text, || {}, |_| {}, None).unwrap();
         let glyphs = infos
             .iter()
             .map(|info| {
@@ -387,7 +387,7 @@ mod test {
                 let cluster = &cell_clusters[0];
 
                 measurer.measure(|| {
-                    let _x = font.shape(&cluster.text, || {}, |_| {}).unwrap();
+                    let _x = font.shape(&cluster.text, || {}, |_| {}, None).unwrap();
                     // println!("{:?}", &x[0..2]);
                 });
             })
