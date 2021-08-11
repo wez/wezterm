@@ -75,6 +75,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: macOS: bright window padding on Intel-based macs [#653](https://github.com/wez/wezterm/issues/653), [#716](https://github.com/wez/wezterm/issues/716) and [#1000](https://github.com/wez/wezterm/issues/1000)
 * Improved: wezterm now uses the Dual Source Blending feature of OpenGL to manage subpixel anti-aliasing alpha blending, resulting in improved appearance particularly when using a transparent window over the top of something with a light background. [#932](https://github.com/wez/wezterm/issues/932)
 * Fixed: copying really long lines could falsely introduce line breaks on line wrap boundaries [#874](https://github.com/wez/wezterm/issues/874)
+* New: [wezterm.add_to_config_reload_watch_list](config/lua/wezterm/add_to_config_reload_watch_list.md) function to aid with automatically reloading the config when you've split your config across multiple files. Thanks to [@AusCyberman](https://github.com/AusCyberman)! [#989](https://github.com/wez/wezterm/pull/989)
 
 ### 20210502-154244-3f7122cb
 
