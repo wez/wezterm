@@ -459,6 +459,7 @@ usually the best available version.</p>
 <li>Improved: wezterm now uses the Dual Source Blending feature of OpenGL to manage subpixel anti-aliasing alpha blending, resulting in improved appearance particularly when using a transparent window over the top of something with a light background. <a href="https://github.com/wez/wezterm/issues/932">#932</a></li>
 <li>Fixed: copying really long lines could falsely introduce line breaks on line wrap boundaries <a href="https://github.com/wez/wezterm/issues/874">#874</a></li>
 <li>New: <a href="config/lua/wezterm/add_to_config_reload_watch_list.html">wezterm.add_to_config_reload_watch_list</a> function to aid with automatically reloading the config when you've split your config across multiple files. Thanks to <a href="https://github.com/AusCyberman">@AusCyberman</a>! <a href="https://github.com/wez/wezterm/pull/989">#989</a></li>
+<li>Improved: wezterm now respects default emoji presentation and explicit emoji variation selectors (VS15 and VS16) so that glyphs that have both textual (usually monochrome, single cell width) and emoji (color, double width) presentations can be more faithfully rendered. <a href="https://github.com/wez/wezterm/issues/997">#997</a></li>
 </ul>
 <h3 id="20210502-154244-3f7122cb"><a class="header" href="#20210502-154244-3f7122cb">20210502-154244-3f7122cb</a></h3>
 <ul>
