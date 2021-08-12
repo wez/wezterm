@@ -190,10 +190,13 @@ impl HarfbuzzShaper {
         loop {
             match self.load_fallback(font_idx).context("load_fallback")? {
                 Some(mut pair) => {
-                    if let Some(p) = presentation {
-                        if pair.presentation != p {
-                            font_idx += 1;
-                            continue;
+                    // Ignore presentation if we've reached the last resort font
+                    if font_idx + 1 < self.fonts.len() {
+                        if let Some(p) = presentation {
+                            if pair.presentation != p {
+                                font_idx += 1;
+                                continue;
+                            }
                         }
                     }
                     let size = pair.face.set_font_size(font_size, dpi)?;
