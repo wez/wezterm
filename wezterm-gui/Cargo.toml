@@ -64,7 +64,7 @@ thiserror = "1.0"
 tiny-skia = "0.5"
 umask = { path = "../umask" }
 unicode-normalization = "0.1"
-unicode-segmentation = "1.7"
+unicode-segmentation = "1.8"
 unicode-width = "0.1"
 url = "2"
 walkdir = "2"
