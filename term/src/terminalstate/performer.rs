@@ -59,10 +59,7 @@ impl<'a> Performer<'a> {
         let seqno = self.seqno;
         let mut p = std::mem::take(&mut self.print);
 
-        let mut graphemes =
-            unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true).peekable();
-
-        while let Some(g) = graphemes.next() {
+        for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
             let g = if (self.shift_out && self.g1_charset == CharSet::DecLineDrawing)
                 || (!self.shift_out && self.g0_charset == CharSet::DecLineDrawing)
             {
@@ -138,7 +135,6 @@ impl<'a> Performer<'a> {
             // If we didn't do this, then we'd effectively filter them out from
             // the model, which seems like a lossy design choice.
             let print_width = grapheme_column_width(g).max(1);
-            let is_last = graphemes.peek().is_none();
             let wrappable = x + print_width >= width;
 
             let cell = Cell::new_grapheme_with_width(g, print_width, pen);
@@ -153,10 +149,9 @@ impl<'a> Performer<'a> {
 
             // Assign the cell
             log::trace!(
-                "print x={} y={} is_last={} print_width={} width={} cell={:?}",
+                "print x={} y={} print_width={} width={} cell={:?}",
                 x,
                 y,
-                is_last,
                 print_width,
                 width,
                 cell

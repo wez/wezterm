@@ -327,7 +327,18 @@ fn test_semantic() {
     ));
     term.print("there");
 
-    assert_visible_contents(&term, file!(), line!(), &["hello", "there", "", "", ""]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &[
+            "hello     ",
+            "there     ",
+            "          ",
+            "          ",
+            "          ",
+        ],
+    );
 
     term.cup(0, 2);
     term.print(format!(
@@ -339,7 +350,13 @@ fn test_semantic() {
         &term,
         file!(),
         line!(),
-        &["hello", "there", "three", "", ""],
+        &[
+            "hello     ",
+            "there     ",
+            "three     ",
+            "          ",
+            "          ",
+        ],
     );
 
     k9::snapshot!(
@@ -349,8 +366,8 @@ fn test_semantic() {
     SemanticZone {
         start_y: 0,
         start_x: 0,
-        end_y: 2,
-        end_x: 4,
+        end_y: 4,
+        end_x: 9,
         semantic_type: Output,
     },
 ]
@@ -386,7 +403,7 @@ fn test_semantic() {
     let mut input = CellAttributes::default();
     input.set_semantic_type(SemanticType::Input);
 
-    let mut prompt_line = Line::from_text("> ls -l", &output);
+    let mut prompt_line = Line::from_text("> ls -l   ", &output);
     for i in 0..2 {
         prompt_line.cells_mut()[i]
             .attrs_mut()
@@ -439,11 +456,11 @@ fn test_semantic() {
         line!(),
         &term.screen().visible_lines(),
         &[
-            Line::from_text("hello", &output),
-            Line::from_text("there", &output),
-            Line::from_text("three", &output),
+            Line::from_text("hello     ", &output),
+            Line::from_text("there     ", &output),
+            Line::from_text("three     ", &output),
             prompt_line,
-            Line::from_text("some file", &output),
+            Line::from_text("some file ", &output),
         ],
         Compare::TEXT | Compare::ATTRS,
     );
@@ -457,7 +474,18 @@ fn basic_output() {
 
     term.set_auto_wrap(false);
     term.print("hello, world!");
-    assert_visible_contents(&term, file!(), line!(), &["", " hello, w!", "", "", ""]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &[
+            "          ",
+            " hello, w!",
+            "          ",
+            "          ",
+            "          ",
+        ],
+    );
 
     term.set_auto_wrap(true);
     term.erase_in_display(EraseInDisplay::EraseToStartOfDisplay);
@@ -467,7 +495,13 @@ fn basic_output() {
         &term,
         file!(),
         line!(),
-        &["          ", " hello, wo", "rld!", "", ""],
+        &[
+            "          ",
+            " hello, wo",
+            "rld!      ",
+            "          ",
+            "          ",
+        ],
     );
 
     term.erase_in_display(EraseInDisplay::EraseToStartOfDisplay);
@@ -475,7 +509,13 @@ fn basic_output() {
         &term,
         file!(),
         line!(),
-        &["          ", "          ", "     ", "", ""],
+        &[
+            "          ",
+            "          ",
+            "          ",
+            "          ",
+            "          ",
+        ],
     );
 
     term.cup(0, 2);
@@ -486,7 +526,7 @@ fn basic_output() {
         &term,
         file!(),
         line!(),
-        &["          ", "          ", "wo", "", ""],
+        &["          ", "          ", "wo", "          ", "          "],
     );
 
     term.erase_in_line(EraseInLine::EraseToStartOfLine);
@@ -494,7 +534,13 @@ fn basic_output() {
         &term,
         file!(),
         line!(),
-        &["          ", "          ", "   ", "", ""],
+        &[
+            "          ",
+            "          ",
+            "   ",
+            "          ",
+            "          ",
+        ],
     );
 }
 
@@ -506,7 +552,7 @@ fn cursor_movement_damage() {
 
     let seqno = term.current_seqno();
     term.print("fooo.");
-    assert_visible_contents(&term, file!(), line!(), &["foo", "o."]);
+    assert_visible_contents(&term, file!(), line!(), &["foo", "o. "]);
     term.assert_cursor_pos(2, 1, None, None);
     term.assert_dirty_lines(seqno, &[0, 1], None);
 
@@ -553,7 +599,7 @@ fn scroll_up_within_left_and_right_margins() {
         &term,
         file!(),
         line!(),
-        &[&ones, &twos, &threes, &fours, &fives],
+        &["111  ", "222  ", "333  ", "44444", "555  "],
     );
 
     term.set_mode("?69", true); // allow left/right margins to be set
@@ -566,11 +612,11 @@ fn scroll_up_within_left_and_right_margins() {
         file!(),
         line!(),
         &[
-            &ones,
-            &twos,
+            "111  ",
+            "222  ",
             &format!("3{}", "4".repeat(NUM_COLS + 1)),
             &format!("4{}", "5".repeat(NUM_COLS - 1)),
-            &format!("5{}", " ".repeat(NUM_COLS - 1)),
+            &format!("5{}  ", " ".repeat(NUM_COLS - 1)),
         ],
     );
 }
@@ -599,7 +645,7 @@ fn scroll_down_within_left_and_right_margins() {
         &term,
         file!(),
         line!(),
-        &[&ones, &twos, &threes, &fours, &fives],
+        &["111  ", "222  ", "333  ", "44444", "555  "],
     );
 
     term.set_mode("?69", true); // allow left/right margins to be set
@@ -616,9 +662,9 @@ fn scroll_down_within_left_and_right_margins() {
         file!(),
         line!(),
         &[
-            &ones,
-            &twos,
-            &format!("3{}", " ".repeat(NUM_COLS - 1)),
+            "111  ",
+            "222  ",
+            &format!("3{}  ", " ".repeat(NUM_COLS - 1)),
             &format!("4{}", "3".repeat(NUM_COLS - 1)),
             &format!("5{}", "4".repeat(NUM_COLS + 1)),
         ],
@@ -647,7 +693,12 @@ fn test_delete_lines() {
     let seqno = term.current_seqno();
     term.assert_dirty_lines(seqno, &[], None);
     term.delete_lines(2);
-    assert_visible_contents(&term, file!(), line!(), &["111", "444", "555", "", ""]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["111", "444", "555", "   ", "   "],
+    );
     term.assert_dirty_lines(seqno, &[1, 2, 3, 4], None);
 
     term.cup(0, 3);
@@ -668,7 +719,12 @@ fn test_delete_lines() {
     print_all_lines(&term);
     term.delete_lines(2);
 
-    assert_visible_contents(&term, file!(), line!(), &["111", "aaa", "", "", "bbb"]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["111", "aaa", "   ", "   ", "bbb"],
+    );
     term.assert_dirty_lines(seqno, &[1, 2, 3], None);
 
     // expand the scroll region to fill the screen
@@ -678,7 +734,12 @@ fn test_delete_lines() {
     print_all_lines(&term);
     term.delete_lines(1);
 
-    assert_visible_contents(&term, file!(), line!(), &["aaa", "", "", "bbb", ""]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["aaa", "   ", "   ", "bbb", "   "],
+    );
     term.assert_dirty_lines(seqno, &[4], None);
 }
 
@@ -692,7 +753,10 @@ fn test_dec_special_graphics() {
         &term,
         file!(),
         line!(),
-        &["ABC▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥DEF", "hello"],
+        &[
+            "ABC▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥DEF                  ",
+            "hello                                             ",
+        ],
     );
 
     term = TestTerm::new(2, 50, 0);
@@ -701,7 +765,10 @@ fn test_dec_special_graphics() {
         &term,
         file!(),
         line!(),
-        &["SO-ABC▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥DEF", "SI-hello"],
+        &[
+            "SO-ABC▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥DEF               ",
+            "SI-hello                                          ",
+        ],
     );
 }
 
@@ -715,7 +782,12 @@ fn test_dec_double_width() {
         &term,
         file!(),
         line!(),
-        &["line1", "line2", "line3", "line4"],
+        &[
+            "line1                                             ",
+            "line2                                             ",
+            "line3                                             ",
+            "line4                                             ",
+        ],
     );
 
     let lines = term.screen().visible_lines();
@@ -736,35 +808,43 @@ fn test_resize_wrap() {
         &term,
         file!(),
         line!(),
-        &["111", "2222", "aa", "333", "", "", "", ""],
+        &[
+            "111 ", "2222", "aa  ", "333 ", "    ", "    ", "    ", "    ",
+        ],
     );
     term.resize(LINES, 5, 0, 0);
     assert_visible_contents(
         &term,
         file!(),
         line!(),
-        &["111", "2222a", "a", "333", "", "", "", ""],
+        &["111 ", "2222a", "a", "333 ", "    ", "    ", "    ", "    "],
     );
     term.resize(LINES, 6, 0, 0);
     assert_visible_contents(
         &term,
         file!(),
         line!(),
-        &["111", "2222aa", "333", "", "", "", "", ""],
+        &[
+            "111 ", "2222aa", "333 ", "    ", "     ", "     ", "     ", "     ",
+        ],
     );
     term.resize(LINES, 7, 0, 0);
     assert_visible_contents(
         &term,
         file!(),
         line!(),
-        &["111", "2222aa", "333", "", "", "", "", ""],
+        &[
+            "111 ", "2222aa", "333 ", "    ", "      ", "      ", "      ", "      ",
+        ],
     );
     term.resize(LINES, 8, 0, 0);
     assert_visible_contents(
         &term,
         file!(),
         line!(),
-        &["111", "2222aa", "333", "", "", "", "", ""],
+        &[
+            "111 ", "2222aa", "333 ", "    ", "       ", "       ", "       ", "       ",
+        ],
     );
 
     // Resize smaller again
@@ -773,28 +853,36 @@ fn test_resize_wrap() {
         &term,
         file!(),
         line!(),
-        &["111", "2222aa", "333", "", "", "", "", ""],
+        &[
+            "111 ", "2222aa", "333 ", "    ", "        ", "        ", "        ", "        ",
+        ],
     );
     term.resize(LINES, 6, 0, 0);
     assert_visible_contents(
         &term,
         file!(),
         line!(),
-        &["111", "2222aa", "333", "", "", "", "", ""],
+        &[
+            "111 ", "2222aa", "333 ", "    ", "       ", "       ", "       ", "       ",
+        ],
     );
     term.resize(LINES, 5, 0, 0);
     assert_visible_contents(
         &term,
         file!(),
         line!(),
-        &["111", "2222a", "a", "333", "", "", "", ""],
+        &[
+            "111 ", "2222a", "a", "333 ", "    ", "      ", "      ", "      ",
+        ],
     );
     term.resize(LINES, 4, 0, 0);
     assert_visible_contents(
         &term,
         file!(),
         line!(),
-        &["111", "2222", "aa", "333", "", "", "", ""],
+        &[
+            "111 ", "2222", "aa", "333 ", "    ", "     ", "     ", "     ",
+        ],
     );
 }
 
@@ -803,9 +891,9 @@ fn test_resize_wrap_issue_971() {
     const LINES: usize = 4;
     let mut term = TestTerm::new(LINES, 4, 0);
     term.print("====\r\nSS\r\n");
-    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
     term.resize(LINES, 6, 0, 0);
-    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
 }
 
 #[test]
@@ -813,9 +901,9 @@ fn test_resize_wrap_sgc_issue_978() {
     const LINES: usize = 4;
     let mut term = TestTerm::new(LINES, 4, 0);
     term.print("\u{1b}(0qqqq\u{1b}(B\r\nSS\r\n");
-    assert_visible_contents(&term, file!(), line!(), &["────", "SS", "", ""]);
+    assert_visible_contents(&term, file!(), line!(), &["────", "SS  ", "    ", "    "]);
     term.resize(LINES, 6, 0, 0);
-    assert_visible_contents(&term, file!(), line!(), &["────", "SS", "", ""]);
+    assert_visible_contents(&term, file!(), line!(), &["────", "SS  ", "    ", "    "]);
 }
 
 #[test]
@@ -823,9 +911,9 @@ fn test_resize_wrap_dectcm_issue_978() {
     const LINES: usize = 4;
     let mut term = TestTerm::new(LINES, 4, 0);
     term.print("\u{1b}[?25l====\u{1b}[?25h\r\nSS\r\n");
-    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
     term.resize(LINES, 6, 0, 0);
-    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
 }
 
 #[test]
@@ -833,44 +921,44 @@ fn test_resize_wrap_escape_code_issue_978() {
     const LINES: usize = 4;
     let mut term = TestTerm::new(LINES, 4, 0);
     term.print("====\u{1b}[0m\r\nSS\r\n");
-    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
     term.resize(LINES, 6, 0, 0);
-    assert_visible_contents(&term, file!(), line!(), &["====", "SS", "", ""]);
+    assert_visible_contents(&term, file!(), line!(), &["====", "SS  ", "    ", "    "]);
 }
 
 #[test]
 fn test_scrollup() {
     let mut term = TestTerm::new(2, 1, 4);
     term.print("1\n");
-    assert_all_contents(&term, file!(), line!(), &["1", ""]);
+    assert_all_contents(&term, file!(), line!(), &["1", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 0);
 
     term.print("2\n");
-    assert_all_contents(&term, file!(), line!(), &["1", "2", ""]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 1);
 
     term.print("3\n");
-    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", ""]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 2);
 
     term.print("4\n");
-    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", ""]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 3);
 
     term.print("5\n");
-    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", "5", ""]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", "5", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 4);
 
     term.print("6\n");
-    assert_all_contents(&term, file!(), line!(), &["2", "3", "4", "5", "6", ""]);
+    assert_all_contents(&term, file!(), line!(), &["2", "3", "4", "5", "6", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 5);
 
     term.print("7\n");
-    assert_all_contents(&term, file!(), line!(), &["3", "4", "5", "6", "7", ""]);
+    assert_all_contents(&term, file!(), line!(), &["3", "4", "5", "6", "7", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 6);
 
     term.print("8\n");
-    assert_all_contents(&term, file!(), line!(), &["4", "5", "6", "7", "8", ""]);
+    assert_all_contents(&term, file!(), line!(), &["4", "5", "6", "7", "8", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 7);
 }
 
@@ -878,14 +966,14 @@ fn test_scrollup() {
 fn test_ri() {
     let mut term = TestTerm::new(3, 1, 10);
     term.print("1\n\u{8d}\n");
-    assert_all_contents(&term, file!(), line!(), &["1", "", ""]);
+    assert_all_contents(&term, file!(), line!(), &["1", " ", " "]);
 }
 
 #[test]
 fn test_scroll_margins() {
     let mut term = TestTerm::new(3, 1, 10);
     term.print("1\n2\n3\n4\n");
-    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", ""]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", " "]);
 
     let margins = CSI::Cursor(termwiz::escape::csi::Cursor::SetTopAndBottomMargins {
         top: OneBased::new(1),
@@ -894,14 +982,19 @@ fn test_scroll_margins() {
     term.print(format!("{}", margins));
 
     term.print("z\n");
-    assert_all_contents(&term, file!(), line!(), &["1", "2", "z", "4", ""]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "z", "4", " "]);
 
     term.print("a\n");
-    assert_all_contents(&term, file!(), line!(), &["1", "2", "z", "a", "", ""]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "z", "a", " ", " "]);
 
     term.cup(0, 1);
     term.print("W\n");
-    assert_all_contents(&term, file!(), line!(), &["1", "2", "z", "a", "W", "", ""]);
+    assert_all_contents(
+        &term,
+        file!(),
+        line!(),
+        &["1", "2", "z", "a", "W", " ", " "],
+    );
 }
 
 #[test]
@@ -919,9 +1012,9 @@ fn test_emoji_with_modifier() {
         file!(),
         line!(),
         &[
-            &format!("{}", waving_hand),
-            &format!("{}", waving_hand_dark_tone),
-            "",
+            &format!("{}   ", waving_hand),
+            &format!("{}   ", waving_hand_dark_tone),
+            "     ",
         ],
     );
 }
@@ -941,7 +1034,11 @@ fn test_hyperlinks() {
         file!(),
         line!(),
         &term.screen().visible_lines(),
-        &[Line::from_text("hello", &linked), "".into(), "".into()],
+        &[
+            Line::from_text("hello", &linked),
+            "     ".into(),
+            "     ".into(),
+        ],
         Compare::TEXT | Compare::ATTRS,
     );
 
@@ -958,7 +1055,7 @@ fn test_hyperlinks() {
         &[
             Line::from_text_with_wrapped_last_col("hello", &linked),
             Line::from_text("hey!!", &linked),
-            "".into(),
+            "     ".into(),
         ],
         Compare::TEXT | Compare::ATTRS,
     );

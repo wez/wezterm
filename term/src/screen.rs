@@ -63,7 +63,7 @@ impl Screen {
         let mut lines =
             VecDeque::with_capacity(physical_rows + scrollback_size(config, allow_scrollback));
         for _ in 0..physical_rows {
-            lines.push_back(Line::with_width(0));
+            lines.push_back(Line::with_width(physical_cols));
         }
 
         Screen {
@@ -215,7 +215,7 @@ impl Screen {
         // lines than the viewport size, or we resized taller,
         // pad us back out to the viewport size
         while self.lines.len() < physical_rows {
-            self.lines.push_back(Line::with_width(0));
+            self.lines.push_back(Line::with_width(self.physical_cols));
         }
 
         let new_cursor_y;
@@ -236,7 +236,7 @@ impl Screen {
                 physical_rows.saturating_sub(new_cursor_y as usize);
             let actual_num_rows_after_cursor = self.lines.len().saturating_sub(cursor_y);
             for _ in actual_num_rows_after_cursor..required_num_rows_after_cursor {
-                self.lines.push_back(Line::with_width(0));
+                self.lines.push_back(Line::with_width(self.physical_cols));
             }
         } else {
             // Compute the new cursor location; this is logically the inverse
@@ -595,7 +595,7 @@ impl Screen {
             for _ in 0..to_move {
                 let mut line = self.lines.remove(remove_idx).unwrap();
                 // Make the line like a new one of the appropriate width
-                line.resize_and_clear(0, seqno);
+                line.resize_and_clear(self.physical_cols, seqno);
                 line.update_last_change_seqno(seqno);
                 if scroll_region.end as usize == self.physical_rows {
                     self.lines.push_back(line);
@@ -620,11 +620,12 @@ impl Screen {
         if scroll_region.end as usize == self.physical_rows {
             // It's cheaper to push() than it is insert() at the end
             for _ in 0..to_add {
-                self.lines.push_back(Line::with_width(0));
+                self.lines.push_back(Line::with_width(self.physical_cols));
             }
         } else {
             for _ in 0..to_add {
-                self.lines.insert(phys_scroll.end, Line::with_width(0));
+                self.lines
+                    .insert(phys_scroll.end, Line::with_width(self.physical_cols));
             }
         }
     }
@@ -672,7 +673,8 @@ impl Screen {
         }
 
         for _ in 0..num_rows {
-            self.lines.insert(phys_scroll.start, Line::with_width(0));
+            self.lines
+                .insert(phys_scroll.start, Line::with_width(self.physical_cols));
         }
     }
 
