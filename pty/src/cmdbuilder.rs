@@ -129,9 +129,16 @@ impl CommandBuilder {
         self.umask = mask;
     }
 
-    fn search_path(exe: &OsStr) -> anyhow::Result<OsString> {
-        let exe_path: &std::path::Path = exe.as_ref();
+    fn search_path(exe: &OsStr, cwd: &OsStr) -> anyhow::Result<OsString> {
+        use std::path::Path;
+        let exe_path: &Path = exe.as_ref();
         if exe_path.is_relative() {
+            let cwd: &Path = cwd.as_ref();
+            let abs_path = cwd.join(exe_path);
+            if abs_path.exists() {
+                return Ok(abs_path.into_os_string());
+            }
+
             if let Some(path) = std::env::var_os("PATH") {
                 for path in std::env::split_paths(&path) {
                     let candidate = path.join(&exe);
@@ -140,20 +147,34 @@ impl CommandBuilder {
                     }
                 }
             }
-        }
-        if !exe_path.exists() {
             anyhow::bail!(
-                "Unable to spawn {} because it doesn't exist on the filesystem",
+                "Unable to spawn {} because it doesn't exist on the filesystem \
+                and was not found in PATH",
                 exe_path.display()
             );
-        }
+        } else {
+            if !exe_path.exists() {
+                anyhow::bail!(
+                    "Unable to spawn {} because it doesn't exist on the filesystem",
+                    exe_path.display()
+                );
+            }
 
-        Ok(exe.to_owned())
+            Ok(exe.to_owned())
+        }
     }
 
     /// Convert the CommandBuilder to a `std::process::Command` instance.
     pub(crate) fn as_command(&self) -> anyhow::Result<std::process::Command> {
         use std::os::unix::process::CommandExt;
+
+        let home = Self::get_home_dir()?;
+        let dir: &OsStr = self
+            .cwd
+            .as_ref()
+            .map(|dir| dir.as_os_str())
+            .filter(|dir| std::path::Path::new(dir).is_dir())
+            .unwrap_or(home.as_ref());
 
         let mut cmd = if self.is_default_prog() {
             let shell = Self::get_shell()?;
@@ -166,20 +187,13 @@ impl CommandBuilder {
             cmd.arg0(&format!("-{}", basename));
             cmd
         } else {
-            let resolved = Self::search_path(&self.args[0])?;
+            let resolved = Self::search_path(&self.args[0], dir)?;
             let mut cmd = std::process::Command::new(&resolved);
             cmd.arg0(&self.args[0]);
             cmd.args(&self.args[1..]);
             cmd
         };
 
-        let home = Self::get_home_dir()?;
-        let dir: &OsStr = self
-            .cwd
-            .as_ref()
-            .map(|dir| dir.as_os_str())
-            .filter(|dir| std::path::Path::new(dir).is_dir())
-            .unwrap_or(home.as_ref());
         cmd.current_dir(dir);
 
         for (key, val) in &self.envs {
