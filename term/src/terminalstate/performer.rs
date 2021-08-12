@@ -20,7 +20,7 @@ use url::Url;
 /// the terminal state and the embedding/host terminal interface
 pub(crate) struct Performer<'a> {
     pub state: &'a mut TerminalState,
-    print: Option<String>,
+    print: String,
 }
 
 impl<'a> Deref for Performer<'a> {
@@ -45,16 +45,19 @@ impl<'a> Drop for Performer<'a> {
 
 impl<'a> Performer<'a> {
     pub fn new(state: &'a mut TerminalState) -> Self {
-        Self { state, print: None }
+        Self {
+            state,
+            print: String::new(),
+        }
     }
 
     fn flush_print(&mut self) {
-        let seqno = self.seqno;
+        if self.print.is_empty() {
+            return;
+        }
 
-        let p = match self.print.take() {
-            Some(s) => s,
-            None => return,
-        };
+        let seqno = self.seqno;
+        let mut p = std::mem::take(&mut self.print);
 
         let mut graphemes =
             unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true).peekable();
@@ -167,6 +170,9 @@ impl<'a> Performer<'a> {
                 self.wrap_next = self.dec_auto_wrap;
             }
         }
+
+        std::mem::swap(&mut self.print, &mut p);
+        self.print.clear();
     }
 
     pub fn perform(&mut self, action: Action) {
@@ -256,7 +262,7 @@ impl<'a> Performer<'a> {
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
         // We buffer up the chars to increase the chances of correctly grouping graphemes into cells
-        self.print.get_or_insert_with(String::new).push(c);
+        self.print.push(c);
     }
 
     fn control(&mut self, control: ControlCode) {
