@@ -138,7 +138,7 @@ impl<'a> Performer<'a> {
             let is_last = graphemes.peek().is_none();
             let wrappable = x + print_width >= width;
 
-            let cell = Cell::new_grapheme(g, pen);
+            let cell = Cell::new_grapheme_with_width(g, print_width, pen);
 
             if self.insert {
                 let margin = self.left_and_right_margins.end;

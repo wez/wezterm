@@ -37,7 +37,7 @@ impl Into<ColorAttribute> for SmallColor {
 /// The setter methods return a mutable self reference so that they can
 /// be chained together.
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Default, Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct CellAttributes {
     attributes: u16,
     /// The foreground color
@@ -231,6 +231,12 @@ impl Into<bool> for Blink {
     }
 }
 
+impl Default for CellAttributes {
+    fn default() -> Self {
+        Self::blank()
+    }
+}
+
 impl CellAttributes {
     bitfield!(intensity, set_intensity, Intensity, 0b11, 0);
     bitfield!(underline, set_underline, Underline, 0b111, 2);
@@ -242,6 +248,15 @@ impl CellAttributes {
     bitfield!(wrapped, set_wrapped, 11);
     bitfield!(overline, set_overline, 12);
     bitfield!(semantic_type, set_semantic_type, SemanticType, 0b11, 13);
+
+    pub const fn blank() -> Self {
+        Self {
+            attributes: 0,
+            foreground: SmallColor::Default,
+            background: SmallColor::Default,
+            fat: None,
+        }
+    }
 
     /// Returns true if the attribute bits in both objects are equal.
     /// This can be used to cheaply test whether the styles of the two
@@ -474,7 +489,7 @@ where
     D: Deserializer<'de>,
 {
     let text = String::deserialize(deserializer)?;
-    Ok(TeenyString::from_slice(text.as_bytes()))
+    Ok(TeenyString::from_str(&text, None))
 }
 
 #[cfg(feature = "use_serde")]
@@ -496,51 +511,91 @@ where
 /// set to indicate that the string is stored inline.
 /// If the string is longer than this then a `Vec<u8>` is allocated
 /// from the heap and the usize holds its raw pointer address.
+///
+/// When the string is inlined, the next-MSB is used to short-cut
+/// calling grapheme_column_width; if it is set, then the TeenyString
+/// has length 2, otherwise, it has length 1 (we don't allow zero-length
+/// strings).
 struct TeenyString(usize);
 impl TeenyString {
-    fn marker_mask() -> usize {
+    const fn marker_mask() -> usize {
         if cfg!(target_endian = "little") {
             cfg_if::cfg_if! {
                 if #[cfg(target_pointer_width = "64")] {
-                    0x7f000000_00000000
+                    0x80000000_00000000
                 } else if #[cfg(target_pointer_width = "32")] {
-                    0x7f000000
+                    0x80000000
                 } else if #[cfg(target_pointer_width = "16")] {
-                    0x7f00
+                    0x8000
                 } else {
                     panic!("unsupported target");
                 }
             }
         } else {
-            // I don't have a big endian machine to verify
-            // this on, but I think this is right!
             0x1
         }
     }
-    fn is_marker_bit_set(word: usize) -> bool {
+
+    const fn double_wide_mask() -> usize {
+        if cfg!(target_endian = "little") {
+            cfg_if::cfg_if! {
+                if #[cfg(target_pointer_width = "64")] {
+                    0xc0000000_00000000
+                } else if #[cfg(target_pointer_width = "32")] {
+                    0xc0000000
+                } else if #[cfg(target_pointer_width = "16")] {
+                    0xc000
+                } else {
+                    panic!("unsupported target");
+                }
+            }
+        } else {
+            0x3
+        }
+    }
+
+    const fn is_marker_bit_set(word: usize) -> bool {
         let mask = Self::marker_mask();
         word & mask == mask
     }
 
-    fn set_marker_bit(word: usize) -> usize {
-        word | Self::marker_mask()
+    const fn is_double_width(word: usize) -> bool {
+        let mask = Self::double_wide_mask();
+        word & mask == mask
     }
 
-    pub fn from_slice(bytes: &[u8]) -> Self {
+    const fn set_marker_bit(word: usize, width: usize) -> usize {
+        if width > 1 {
+            word | Self::double_wide_mask()
+        } else {
+            word | Self::marker_mask()
+        }
+    }
+
+    pub fn from_str(s: &str, width: Option<usize>) -> Self {
         // De-fang the input text such that it has no special meaning
         // to a terminal.  All control and movement characters are rewritten
         // as a space.
-        let bytes = if bytes.is_empty() {
-            b" "
-        } else if bytes == b"\r\n" {
-            b" "
-        } else if bytes.len() == 1 && (bytes[0] < 0x20 || bytes[0] == 0x7f) {
-            b" "
+        let s = if s.is_empty() || s == "\r\n" {
+            " "
+        } else if s.len() == 1 {
+            let b = s.as_bytes()[0];
+            if b < 0x20 || b == 0x7f {
+                " "
+            } else {
+                s
+            }
         } else {
-            bytes
+            s
         };
+
+        let bytes = s.as_bytes();
         let len = bytes.len();
+
         if len < std::mem::size_of::<usize>() {
+            let width = width.unwrap_or_else(|| grapheme_column_width(s));
+            debug_assert!(width < 3);
+
             let mut word = 0usize;
             unsafe {
                 std::ptr::copy_nonoverlapping(
@@ -549,7 +604,7 @@ impl TeenyString {
                     len,
                 );
             }
-            let word = Self::set_marker_bit(word);
+            let word = Self::set_marker_bit(word, width);
             Self(word)
         } else {
             let vec = Box::new(bytes.to_vec());
@@ -558,12 +613,55 @@ impl TeenyString {
         }
     }
 
+    pub const fn space() -> Self {
+        Self(if cfg!(target_endian = "little") {
+            cfg_if::cfg_if! {
+                if #[cfg(target_pointer_width = "64")] {
+                    0x80000000_00000020
+                } else if #[cfg(target_pointer_width = "32")] {
+                    0x80000020
+                } else if #[cfg(target_pointer_width = "16")] {
+                    0x8020
+                } else {
+                    panic!("unsupported target");
+                }
+            }
+        } else {
+            cfg_if::cfg_if! {
+                if #[cfg(target_pointer_width = "64")] {
+                    0x20000000_00000001
+                } else if #[cfg(target_pointer_width = "32")] {
+                    0x20000001
+                } else if #[cfg(target_pointer_width = "16")] {
+                    0x2001
+                } else {
+                    panic!("unsupported target");
+                }
+            }
+        })
+    }
+
     pub fn from_char(c: char) -> Self {
         let mut bytes = [0u8; 8];
-        let len = c.len_utf8();
-        debug_assert!(len < std::mem::size_of_val(&bytes));
-        c.encode_utf8(&mut bytes);
-        Self::from_slice(&bytes[0..len])
+        Self::from_str(c.encode_utf8(&mut bytes), None)
+    }
+
+    pub fn width(&self) -> usize {
+        if Self::is_marker_bit_set(self.0) {
+            if Self::is_double_width(self.0) {
+                2
+            } else {
+                1
+            }
+        } else {
+            grapheme_column_width(self.str())
+        }
+    }
+
+    pub fn str(&self) -> &str {
+        // unsafety: this is safe because the constructor guarantees
+        // that the storage is valid utf8
+        unsafe { std::str::from_utf8_unchecked(self.as_bytes()) }
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -595,7 +693,11 @@ impl Drop for TeenyString {
 
 impl std::clone::Clone for TeenyString {
     fn clone(&self) -> Self {
-        Self::from_slice(self.as_bytes())
+        if Self::is_marker_bit_set(self.0) {
+            Self(self.0)
+        } else {
+            Self::from_str(self.str(), None)
+        }
     }
 }
 
@@ -632,7 +734,7 @@ impl std::fmt::Debug for Cell {
 
 impl Default for Cell {
     fn default() -> Self {
-        Cell::new(' ', CellAttributes::default())
+        Self::blank()
     }
 }
 
@@ -644,6 +746,20 @@ impl Cell {
         let storage = TeenyString::from_char(text);
         Self {
             text: storage,
+            attrs,
+        }
+    }
+
+    pub const fn blank() -> Self {
+        Self {
+            text: TeenyString::space(),
+            attrs: CellAttributes::blank(),
+        }
+    }
+
+    pub const fn blank_with_attrs(attrs: CellAttributes) -> Self {
+        Self {
+            text: TeenyString::space(),
             attrs,
         }
     }
@@ -666,8 +782,16 @@ impl Cell {
     /// be passed but it should not be used to hold strings other than
     /// graphemes.
     pub fn new_grapheme(text: &str, attrs: CellAttributes) -> Self {
-        let storage = TeenyString::from_slice(text.as_bytes());
+        let storage = TeenyString::from_str(text, None);
 
+        Self {
+            text: storage,
+            attrs,
+        }
+    }
+
+    pub fn new_grapheme_with_width(text: &str, width: usize, attrs: CellAttributes) -> Self {
+        let storage = TeenyString::from_str(text, Some(width));
         Self {
             text: storage,
             attrs,
@@ -676,19 +800,12 @@ impl Cell {
 
     /// Returns the textual content of the cell
     pub fn str(&self) -> &str {
-        // unsafety: this is safe because the constructor guarantees
-        // that the storage is valid utf8
-        unsafe { std::str::from_utf8_unchecked(self.text.as_bytes()) }
+        self.text.str()
     }
 
     /// Returns the number of cells visually occupied by this grapheme
     pub fn width(&self) -> usize {
-        let s = self.str();
-        if s.len() == 1 {
-            1
-        } else {
-            grapheme_column_width(s)
-        }
+        self.text.width()
     }
 
     /// Returns the attributes of the cell
@@ -746,8 +863,13 @@ mod test {
         let s = TeenyString::from_char('a');
         assert_eq!(s.as_bytes(), &[b'a']);
 
-        let longer = TeenyString::from_slice(b"hellothere");
+        let longer = TeenyString::from_str("hellothere", None);
         assert_eq!(longer.as_bytes(), b"hellothere");
+
+        assert_eq!(
+            TeenyString::from_char(' ').as_bytes(),
+            TeenyString::space().as_bytes()
+        );
     }
 
     #[test]

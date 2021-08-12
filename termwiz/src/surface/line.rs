@@ -461,7 +461,7 @@ impl Line {
         // For double-wide or wider chars, ensure that the cells that
         // are overlapped by this one are blanked out.
         for i in 1..=width.saturating_sub(1) {
-            self.raw_set_cell(idx + i, Cell::new(' ', cell.attrs().clone()), clear);
+            self.raw_set_cell(idx + i, Cell::blank_with_attrs(cell.attrs().clone()), clear);
         }
 
         self.raw_set_cell(idx, cell, clear);
@@ -497,7 +497,7 @@ impl Line {
             if width > 1 {
                 let attrs = self.cells[prior].attrs().clone();
                 for nerf in prior..prior + width {
-                    self.cells[nerf] = Cell::new(' ', attrs.clone());
+                    self.cells[nerf] = Cell::blank_with_attrs(attrs.clone());
                 }
             }
         }
@@ -518,7 +518,8 @@ impl Line {
         // We insert them first so that the grapheme winds up left-most.
         let width = cell.width();
         for _ in 1..=width.saturating_sub(1) {
-            self.cells.insert(x, Cell::new(' ', cell.attrs().clone()));
+            self.cells
+                .insert(x, Cell::blank_with_attrs(cell.attrs().clone()));
         }
 
         self.cells.insert(x, cell);

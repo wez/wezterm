@@ -362,7 +362,7 @@ impl Screen {
     ) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.fill_range(cols, &Cell::new(' ', attr.clone()), seqno);
+        line.fill_range(cols, &Cell::blank_with_attrs(attr.clone()), seqno);
     }
 
     /// Translate a VisibleRowIndex into a PhysRowIndex.  The resultant index
@@ -508,7 +508,7 @@ impl Screen {
                     *dest_cell = src_cell.clone();
                 }
 
-                dest_row.fill_range(tail_range, &Cell::default(), seqno);
+                dest_row.fill_range(tail_range, &Cell::blank(), seqno);
             }
         }
 
@@ -523,7 +523,7 @@ impl Screen {
                 .skip(left_and_right_margins.start)
                 .take(left_and_right_margins.end - left_and_right_margins.start)
             {
-                *cell = Cell::default();
+                *cell = Cell::blank();
             }
         }
     }
