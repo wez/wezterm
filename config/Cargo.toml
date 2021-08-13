@@ -16,6 +16,7 @@ battery = "0.7"
 bitflags = "1.0"
 bstr = "0.2"
 chrono = {version="0.4", features=["unstable-locales"]}
+colorgrad = "0.4"
 dirs-next = "2.0"
 enum-display-derive = "0.1"
 filenamegen = "0.2"

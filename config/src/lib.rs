@@ -27,6 +27,7 @@ use termwiz::surface::CursorShape;
 use toml;
 use wezterm_input_types::{KeyCode, Modifiers, WindowDecorations};
 
+mod background;
 mod color;
 mod daemon;
 mod font;
@@ -40,6 +41,7 @@ mod tls;
 mod unix;
 mod version;
 
+pub use background::*;
 pub use color::*;
 pub use daemon::*;
 pub use font::*;
@@ -1031,6 +1033,8 @@ pub struct Config {
     #[serde(default)]
     pub window_background_image: Option<PathBuf>,
     #[serde(default)]
+    pub window_background_gradient: Option<Gradient>,
+    #[serde(default)]
     pub window_background_image_hsb: Option<HsbTransform>,
     #[serde(default)]
     pub foreground_text_hsb: HsbTransform,
@@ -1550,7 +1554,7 @@ impl Config {
                 }
             }
 
-            if let Some(path) = self.window_background_image.as_ref() {
+            if let Some(path) = &self.window_background_image {
                 if !path.is_absolute() {
                     cfg.window_background_image.replace(config_dir.join(path));
                 }

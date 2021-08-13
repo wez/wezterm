@@ -21,7 +21,9 @@ use anyhow::{anyhow, ensure};
 use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, SpawnCommand,
 };
-use config::{configuration, ConfigHandle, TermConfig, WindowCloseConfirmation};
+use config::{
+    configuration, ConfigHandle, GradientOrientation, TermConfig, WindowCloseConfirmation,
+};
 use luahelper::impl_lua_conversion;
 use mlua::FromLua;
 use mux::domain::{DomainId, DomainState};
@@ -327,7 +329,47 @@ impl TermWindow {
     }
 }
 
-fn load_background_image(config: &ConfigHandle) -> Option<Arc<ImageData>> {
+fn load_background_image(config: &ConfigHandle, dimensions: &Dimensions) -> Option<Arc<ImageData>> {
+    match &config.window_background_gradient {
+        Some(g) => match g.build() {
+            Ok(grad) => {
+                let width = dimensions.pixel_width as u32;
+                let height = dimensions.pixel_height as u32;
+                let mut imgbuf = image::RgbaImage::new(width, height);
+                let fw = dimensions.pixel_width as f64;
+                let fh = dimensions.pixel_height as f64;
+
+                match g.orientation {
+                    GradientOrientation::Horizontal => {
+                        for (x, _, pixel) in imgbuf.enumerate_pixels_mut() {
+                            let (r, g, b, a) = grad.at(x as f64 / fw).rgba_u8();
+                            *pixel = image::Rgba([r, g, b, a]);
+                        }
+                    }
+                    GradientOrientation::Vertical => {
+                        for (_, y, pixel) in imgbuf.enumerate_pixels_mut() {
+                            let (r, g, b, a) = grad.at(y as f64 / fh).rgba_u8();
+                            *pixel = image::Rgba([r, g, b, a]);
+                        }
+                    }
+                }
+
+                let data = imgbuf.into_vec();
+                return Some(Arc::new(ImageData::with_data(
+                    ImageDataType::new_single_frame(width, height, data),
+                )));
+            }
+            Err(err) => {
+                log::error!(
+                    "window_background_gradient: error building gradient: {:#} {:?}",
+                    err,
+                    g
+                );
+                return None;
+            }
+        },
+        None => {}
+    }
     match &config.window_background_image {
         Some(p) => match std::fs::read(p) {
             Ok(data) => {
@@ -351,36 +393,20 @@ fn load_background_image(config: &ConfigHandle) -> Option<Arc<ImageData>> {
 fn reload_background_image(
     config: &ConfigHandle,
     image: &Option<Arc<ImageData>>,
+    dimensions: &Dimensions,
 ) -> Option<Arc<ImageData>> {
-    match &config.window_background_image {
-        Some(p) => match std::fs::read(p) {
-            Ok(data) => {
-                let data = ImageDataType::EncodedFile(data).decode();
-                match image {
-                    Some(existing) if existing.hash() == data.compute_hash() => {
-                        Some(Arc::clone(existing))
-                    }
-                    _ => Some(Arc::new(ImageData::with_data(data))),
-                }
-            }
-            Err(err) => {
-                log::error!(
-                    "Failed to load window_background_image {}: {}",
-                    p.display(),
-                    err
-                );
-                None
-            }
-        },
-        None => None,
+    let data = load_background_image(config, dimensions)?;
+    match image {
+        Some(existing) if existing.hash() == data.data().compute_hash() => {
+            Some(Arc::clone(existing))
+        }
+        _ => Some(data),
     }
 }
 
 impl TermWindow {
     pub async fn new_window(mux_window_id: MuxWindowId) -> anyhow::Result<()> {
         let config = configuration();
-
-        let window_background = load_background_image(&config);
 
         let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize;
 
@@ -422,6 +448,8 @@ impl TermWindow {
                 + config.window_padding.bottom) as usize,
             dpi,
         };
+
+        let window_background = load_background_image(&config, &dimensions);
 
         log::trace!(
             "TermWindow::new_window called with mux_window_id {} {:?} {:?}",
@@ -988,7 +1016,8 @@ impl TermWindow {
         self.config = config.clone();
         self.palette.take();
 
-        self.window_background = reload_background_image(&config, &self.window_background);
+        self.window_background =
+            reload_background_image(&config, &self.window_background, &self.dimensions);
 
         let mux = Mux::get().unwrap();
         let window = match mux.get_window(self.mux_window_id) {
