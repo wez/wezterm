@@ -35,6 +35,14 @@ return {
     -- The default is "Rgb".
     blend = "Rgb",
 
+    -- To avoid vertical color banding for horizontal gradients, the
+    -- gradient position is randomly shifted by up to the `noise` value
+    -- for each pixel.
+    -- Smaller values, or 0, will make bands more prominent.
+    -- The default value is 64 which gives decent looking results
+    -- on a retina macbook pro display.
+    -- noise = 64,
+
     -- By default, the gradient smoothly transitions between the colors.
     -- You can adjust the sharpness by specifying the segment_size and
     -- segment_smoothness parameters.

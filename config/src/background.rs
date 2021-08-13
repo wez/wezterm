@@ -57,6 +57,9 @@ pub struct Gradient {
 
     #[serde(default)]
     pub segment_smoothness: Option<f64>,
+
+    #[serde(default)]
+    pub noise: Option<usize>,
 }
 
 impl Gradient {

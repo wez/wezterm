@@ -5004,6 +5004,7 @@ dependencies = [
  "embed-resource",
  "env-bootstrap",
  "euclid",
+ "fastrand",
  "filedescriptor",
  "hdrhistogram",
  "http_req",

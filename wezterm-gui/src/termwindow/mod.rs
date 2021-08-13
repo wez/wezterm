@@ -351,15 +351,43 @@ fn load_background_image(config: &ConfigHandle, dimensions: &Dimensions) -> Opti
 
                 let (dmin, dmax) = grad.domain();
 
+                let rng = fastrand::Rng::new();
+
+                // We add some randomness to the position that we use to
+                // index into the color gradient, so that we can avoid
+                // visible color banding.  The default 64 was selected
+                // because it it was the smallest value on my mac where
+                // the banding wasn't obvious.
+                let noise_amount = g.noise.unwrap_or(64);
+                fn noise(rng: &fastrand::Rng, noise_amount: usize) -> f64 {
+                    if noise_amount == 0 {
+                        0.
+                    } else {
+                        rng.usize(0..noise_amount) as f64 * -1.
+                    }
+                }
+
                 match g.orientation {
                     GradientOrientation::Horizontal => {
                         for (x, _, pixel) in imgbuf.enumerate_pixels_mut() {
-                            *pixel = to_pixel(grad.at(remap(x as f64, 0.0, fw, dmin, dmax)));
+                            *pixel = to_pixel(grad.at(remap(
+                                x as f64 + noise(&rng, noise_amount),
+                                0.0,
+                                fw,
+                                dmin,
+                                dmax,
+                            )));
                         }
                     }
                     GradientOrientation::Vertical => {
                         for (_, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                            *pixel = to_pixel(grad.at(remap(y as f64, 0.0, fh, dmin, dmax)));
+                            *pixel = to_pixel(grad.at(remap(
+                                y as f64 + noise(&rng, noise_amount),
+                                0.0,
+                                fh,
+                                dmin,
+                                dmax,
+                            )));
                         }
                     }
                 }
