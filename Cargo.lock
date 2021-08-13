@@ -4998,6 +4998,7 @@ dependencies = [
  "cc",
  "chrono",
  "codec",
+ "colorgrad",
  "config",
  "downcast-rs",
  "embed-resource",

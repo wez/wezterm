@@ -25,6 +25,7 @@ anyhow = "1.0"
 bitflags = "1.0"
 chrono = {version="0.4", features=["unstable-locales"]}
 codec = { path = "../codec" }
+colorgrad = "0.4"
 config = { path = "../config" }
 downcast-rs = "1.0"
 env-bootstrap = { path = "../env-bootstrap" }

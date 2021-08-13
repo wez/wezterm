@@ -339,17 +339,27 @@ fn load_background_image(config: &ConfigHandle, dimensions: &Dimensions) -> Opti
                 let fw = dimensions.pixel_width as f64;
                 let fh = dimensions.pixel_height as f64;
 
+                fn to_pixel(c: colorgrad::Color) -> image::Rgba<u8> {
+                    let (r, g, b, a) = c.rgba_u8();
+                    image::Rgba([r, g, b, a])
+                }
+
+                // Map t which is in range [a, b] to range [c, d]
+                fn remap(t: f64, a: f64, b: f64, c: f64, d: f64) -> f64 {
+                    (t - a) * ((d - c) / (b - a)) + c
+                }
+
+                let (dmin, dmax) = grad.domain();
+
                 match g.orientation {
                     GradientOrientation::Horizontal => {
                         for (x, _, pixel) in imgbuf.enumerate_pixels_mut() {
-                            let (r, g, b, a) = grad.at(x as f64 / fw).rgba_u8();
-                            *pixel = image::Rgba([r, g, b, a]);
+                            *pixel = to_pixel(grad.at(remap(x as f64, 0.0, fw, dmin, dmax)));
                         }
                     }
                     GradientOrientation::Vertical => {
                         for (_, y, pixel) in imgbuf.enumerate_pixels_mut() {
-                            let (r, g, b, a) = grad.at(y as f64 / fh).rgba_u8();
-                            *pixel = image::Rgba([r, g, b, a]);
+                            *pixel = to_pixel(grad.at(remap(y as f64, 0.0, fh, dmin, dmax)));
                         }
                     }
                 }
