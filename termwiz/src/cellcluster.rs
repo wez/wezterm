@@ -13,7 +13,7 @@ pub struct CellCluster {
     pub text: String,
     pub presentation: Presentation,
     byte_to_cell_idx: Vec<usize>,
-    first_cell_idx: usize,
+    pub first_cell_idx: usize,
 }
 
 impl CellCluster {

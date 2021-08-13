@@ -217,7 +217,7 @@ impl TabBarState {
         let number_of_tabs = tab_titles.len();
 
         let available_cells =
-            title_width.saturating_sub((number_of_tabs.saturating_sub(1)) + (new_tab.len()));
+            title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab.len());
         let tab_width_max = if available_cells >= titles_len {
             // We can render each title with its full width
             usize::max_value()
@@ -299,8 +299,7 @@ impl TabBarState {
             });
         }
 
-        let black_cell = Cell::new(
-            ' ',
+        let black_cell = Cell::blank_with_attrs(
             CellAttributes::default()
                 .set_background(ColorSpec::TrueColor(colors.background))
                 .clone(),

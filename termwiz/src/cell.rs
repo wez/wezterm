@@ -727,6 +727,7 @@ impl std::fmt::Debug for Cell {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         fmt.debug_struct("Cell")
             .field("text", &self.str())
+            .field("width", &self.width())
             .field("attrs", &self.attrs)
             .finish()
     }

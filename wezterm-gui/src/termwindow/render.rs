@@ -700,7 +700,6 @@ impl super::TermWindow {
         );
 
         let mut last_cell_idx = 0;
-        let mut current_idx = 0;
 
         // Basic cache of computed data from prior cluster to avoid doing the same
         // work for space separated clusters with the same style
@@ -744,7 +743,7 @@ impl super::TermWindow {
 
             if !bg_is_default {
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + (current_idx + params.pos.left) as f32 * cell_width
+                    + (cluster.first_cell_idx + params.pos.left) as f32 * cell_width
                     + self.config.window_padding.left as f32;
 
                 let mut quad = quads.allocate()?;
@@ -761,8 +760,6 @@ impl super::TermWindow {
                 quad.set_hsv(hsv);
                 quad.set_is_background();
             }
-
-            current_idx += cluster_width;
         }
 
         // Render the selection background color
@@ -786,8 +783,6 @@ impl super::TermWindow {
             quad.set_is_background();
             quad.set_hsv(hsv);
         }
-
-        current_idx = 0;
 
         let mut overlay_images = vec![];
 
@@ -893,6 +888,8 @@ impl super::TermWindow {
             // Shape the printable text from this cluster
             let glyph_info =
                 self.cached_cluster_shape(style_params.style, &cluster, &gl_state, params.line)?;
+
+            let mut current_idx = cluster.first_cell_idx;
 
             for info in glyph_info.iter() {
                 let glyph = &info.glyph;
