@@ -1,0 +1,12 @@
+# HaX0R_GR33N
+[colors]
+foreground = "#16b10e"
+background = "#020f01"
+cursor_bg = "#15d00d"
+cursor_border = "#15d00d"
+cursor_fg = "#ffffff"
+selection_bg = "#d4ffc1"
+selection_fg = "#fdfdfd"
+
+ansi = ["#001f0b","#15d00d","#15d00d","#15d00d","#15d00d","#15d00d","#15d00d","#fafafa"]
+brights = ["#001510","#19e20e","#19e20e","#19e20e","#19e20e","#19e20e","#19e20e","#fefefe"]

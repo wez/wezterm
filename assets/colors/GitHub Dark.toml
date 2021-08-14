@@ -1,0 +1,12 @@
+# GitHub Dark
+[colors]
+foreground = "#8b949e"
+background = "#101216"
+cursor_bg = "#c9d1d9"
+cursor_border = "#c9d1d9"
+cursor_fg = "#ffffff"
+selection_bg = "#3b5070"
+selection_fg = "#ffffff"
+
+ansi = ["#000000","#f78166","#56d364","#e3b341","#6ca4f8","#db61a2","#2b7489","#ffffff"]
+brights = ["#4d4d4d","#f78166","#56d364","#e3b341","#6ca4f8","#db61a2","#2b7489","#ffffff"]

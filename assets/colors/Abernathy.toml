@@ -1,0 +1,12 @@
+# Abernathy
+[colors]
+foreground = "#eeeeec"
+background = "#111416"
+cursor_bg = "#bbbbbb"
+cursor_border = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#eeeeec"
+selection_fg = "#333333"
+
+ansi = ["#000000","#cd0000","#00cd00","#cdcd00","#1093f5","#cd00cd","#00cdcd","#faebd7"]
+brights = ["#404040","#ff0000","#00ff00","#ffff00","#11b5f6","#ff00ff","#00ffff","#ffffff"]

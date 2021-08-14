@@ -1,0 +1,12 @@
+# HaX0R_R3D
+[colors]
+foreground = "#b10e0e"
+background = "#200101"
+cursor_bg = "#b00d0d"
+cursor_border = "#b00d0d"
+cursor_fg = "#ffffff"
+selection_bg = "#ebc1ff"
+selection_fg = "#fdfdfd"
+
+ansi = ["#1f0000","#b00d0d","#b00d0d","#b00d0d","#b00d0d","#b00d0d","#b00d0d","#fafafa"]
+brights = ["#150000","#ff1111","#ff1010","#ff1010","#ff1010","#ff1010","#ff1010","#fefefe"]

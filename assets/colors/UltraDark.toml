@@ -1,0 +1,12 @@
+# UltraDark
+[colors]
+foreground = "#ffffff"
+background = "#000000"
+cursor_bg = "#fefefe"
+cursor_border = "#fefefe"
+cursor_fg = "#000000"
+selection_bg = "#222222"
+selection_fg = "#cccccc"
+
+ansi = ["#000000","#f07178","#c3e88d","#ffcb6b","#82aaff","#c792ea","#89ddff","#cccccc"]
+brights = ["#333333","#f6a9ae","#dbf1ba","#ffdfa6","#b4ccff","#ddbdf2","#b8eaff","#ffffff"]

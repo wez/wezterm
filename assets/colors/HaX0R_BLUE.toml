@@ -1,0 +1,12 @@
+# HaX0R_BLUE
+[colors]
+foreground = "#11b7ff"
+background = "#010515"
+cursor_bg = "#10b6ff"
+cursor_border = "#10b6ff"
+cursor_fg = "#ffffff"
+selection_bg = "#c1e4ff"
+selection_fg = "#f6f6f6"
+
+ansi = ["#010921","#10b6ff","#10b6ff","#10b6ff","#10b6ff","#10b6ff","#10b6ff","#fafafa"]
+brights = ["#080117","#00b3f7","#00b3f7","#00b3f7","#00b3f7","#00b3f7","#00b3f7","#fefefe"]

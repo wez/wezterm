@@ -79,6 +79,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved: wezterm now respects default emoji presentation and explicit emoji variation selectors (VS15 and VS16) so that glyphs that have both textual (usually monochrome, single cell width) and emoji (color, double width) presentations can be more faithfully rendered. [#997](https://github.com/wez/wezterm/issues/997)
 * New: [window_background_gradient](config/lua/config/window_background_gradient.md) option to configure color gradients for your window background
 * New: [wezterm.gradient_colors](config/lua/wezterm/gradient_colors.md) function to compute RGB values for gradients for use in your config.
+* New: color schemes: [Abernathy](colorschemes/a/index.md#abernathy), [Ayu Mirage](colorschemes/a/index.md#ayu-mirage), [darkmatrix](colorschemes/d/index.md#darkmatrix), [Fairyfloss](colorschemes/f/index.md#fairyfloss), [GitHub Dark](colorschemes/g/index.md#github-dark), [HaX0R_BLUE](colorschemes/h/index.md#hax0r_blue), [HaX0R_GR33N](colorschemes/h/index.md#hax0r_gr33n), [HaX0R_R3D](colorschemes/h/index.md#hax0r_r3d), [Mariana](colorschemes/m/index.md#mariana), [matrix](colorschemes/m/index.md#matrix), [Peppermint](colorschemes/p/index.md#peppermint) and [UltraDark](colorschemes/u/index.md#ultradark)
 
 ### 20210502-154244-3f7122cb
 
