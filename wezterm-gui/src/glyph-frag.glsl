@@ -7,7 +7,6 @@ in float o_has_color;
 in vec2 o_tex;
 in vec3 o_hsv;
 in vec4 o_fg_color;
-in vec4 o_bg_color;
 
 // The color + alpha
 layout(location=0, index=0) out vec4 color;
