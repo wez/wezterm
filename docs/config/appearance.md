@@ -331,7 +331,7 @@ on hue, saturation, brigthness transformations.
 
 *Since: nightly builds only*
 
-<img src="../../../screenshots/radial-gradient.png">
+<img src="../screenshots/radial-gradient.png">
 
 See [window_background_gradient](lua/config/window_background_gradient.md)
 for configuration information on gradients.
