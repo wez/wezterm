@@ -2074,6 +2074,11 @@ return {
 </code></pre>
 <p>See <a href="config/appearance.html#style-inactive-panes">Styling Inactive Panes</a> for more information
 on hue, saturation, brigthness transformations.</p>
+<h2 id="window-background-gradient"><a class="header" href="#window-background-gradient">Window Background Gradient</a></h2>
+<p><em>Since: nightly builds only</em></p>
+<img src="config/../../../screenshots/radial-gradient.png">
+<p>See <a href="config/lua/config/window_background_gradient.html">window_background_gradient</a>
+for configuration information on gradients.</p>
 <h2 id="window-background-opacity"><a class="header" href="#window-background-opacity">Window Background Opacity</a></h2>
 <p><em>since: 20201031-154415-9614e117</em></p>
 <p>If your Operating System provides Compositing support then WezTerm is able to
@@ -7034,7 +7039,8 @@ for <code>window_background_image</code> is ignored.</p>
   window_background_gradient = {
     -- Can be &quot;Vertical&quot; or &quot;Horizontal&quot;.  Specifies the direction
     -- in which the color gradient varies.  The default is &quot;Horizontal&quot;,
-    -- with the gradient going from left-to-right
+    -- with the gradient going from left-to-right.
+    -- Radial gradients are also supported; see the other example below
     orientation = &quot;Vertical&quot;,
 
     -- Specifies the set of colors that are interpolated in the gradient.
@@ -7076,9 +7082,41 @@ for <code>window_background_image</code> is ignored.</p>
   },
 }
 </code></pre>
+<img src="config/lua/config/../../../screenshots/vertical-gradient.png">
 <p>Gradients are implemented using the <code>colorgrad</code> crate.
 Take a look at <a href="https://github.com/mazznoer/colorgrad-rs#using-web-color-format">https://github.com/mazznoer/colorgrad-rs#using-web-color-format</a>
 for some usage examples and additional information about gradients.</p>
+<h2 id="radial-gradient"><a class="header" href="#radial-gradient">Radial gradient:</a></h2>
+<p>Radial gradients are implemented using a notional perfect circle that is
+subsequently stretched to fill the dimensions of the window.</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;Github&quot;,
+  window_background_gradient = {
+     colors = {&quot;deeppink&quot;, &quot;gold&quot;},
+     orientation = {
+       Radial={
+         -- Specifies the x coordinate of the center of the circle,
+         -- in the range 0.0 through 1.0.  The default is 0.5 which
+         -- is centered in the X dimension.
+         cx = 0.75,
+
+         -- Specifies the y coordinate of the center of the circle,
+         -- in the range 0.0 through 1.0.  The default is 0.5 which
+         -- is centered in the Y dimension.
+         cy = 0.75,
+
+         -- Specifies the radius of the notional circle.
+         -- The default is 0.5, which combined with the default cx
+         -- and cy values places the circle in the center of the
+         -- window, with the edges touching the window edges.
+         -- Values larger than 1 are possible.
+         radius = 1.25,
+       }
+     },
+  }
+}
+</code></pre>
+<img src="config/lua/config/../../../screenshots/radial-gradient.png">
 <div style="break-before: page; page-break-before: always;"></div><h1 id="window_close_confirmation"><a class="header" href="#window_close_confirmation"><code>window_close_confirmation</code></a></h1>
 <p>Whether to display a confirmation prompt when the window is closed by the
 windowing environment, either because the user closed it with the window
