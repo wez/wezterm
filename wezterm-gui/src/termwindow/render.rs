@@ -204,7 +204,11 @@ impl super::TermWindow {
         }
     }
 
-    pub fn paint_pane_opengl(&mut self, pos: &PositionedPane) -> anyhow::Result<()> {
+    pub fn paint_pane_opengl(
+        &mut self,
+        pos: &PositionedPane,
+        num_panes: usize,
+    ) -> anyhow::Result<()> {
         self.check_for_dirty_lines_and_invalidate_selection(&pos.pane);
 
         let global_bg_color = self.palette().background;
@@ -302,7 +306,13 @@ impl super::TermWindow {
                 _ => {
                     // Regular window background color
                     let background = rgbcolor_alpha_to_window_color(
-                        global_bg_color,
+                        if num_panes == 1 {
+                            // If we're the only pane, use the pane's palette
+                            // to draw the padding background
+                            palette.background
+                        } else {
+                            global_bg_color
+                        },
                         config.window_background_opacity,
                     );
                     quad.set_texture(white_space);
@@ -311,6 +321,35 @@ impl super::TermWindow {
                     quad.set_hsv(None);
                 }
             }
+        }
+        if num_panes > 1 && self.window_background.is_none() {
+            // Per-pane, palette-specified background
+            let mut quad = quads.allocate()?;
+            let cell_width = self.render_metrics.cell_size.width as f32;
+            let cell_height = self.render_metrics.cell_size.height as f32;
+            let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                + (pos.left as f32 * cell_width)
+                + self.config.window_padding.left as f32;
+            let pos_y = (self.dimensions.pixel_height as f32 / -2.)
+                + ((first_line_offset + pos.top) as f32 * cell_height)
+                + self.config.window_padding.top as f32;
+
+            quad.set_position(
+                pos_x,
+                pos_y,
+                pos_x + pos.width as f32 * cell_width,
+                pos_y + pos.height as f32 * cell_height,
+            );
+            quad.set_texture_adjust(0., 0., 0., 0.);
+
+            let background = rgbcolor_alpha_to_window_color(
+                palette.background,
+                config.window_background_opacity,
+            );
+            quad.set_texture(filled_box);
+            quad.set_is_background();
+            quad.set_fg_color(background);
+            quad.set_hsv(None);
         }
 
         if self.show_tab_bar && pos.index == 0 {
@@ -637,12 +676,13 @@ impl super::TermWindow {
         }
 
         let panes = self.get_panes_to_render();
+        let num_panes = panes.len();
 
         for pos in panes {
             if pos.is_active {
                 self.update_text_cursor(&pos.pane);
             }
-            self.paint_pane_opengl(&pos)?;
+            self.paint_pane_opengl(&pos, num_panes)?;
         }
 
         if let Some(pane) = self.get_active_pane_or_overlay() {
