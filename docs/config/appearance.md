@@ -296,7 +296,8 @@ If the path is a relative path then it will be expanded relative
 to the directory containing your `wezterm.lua` config file.
 
 PNG, JPEG, GIF, BMP, ICO, TIFF, PNM, DDS, TGA and farbfeld files
-can be loaded.
+can be loaded.  Animated GIF and PNG files will animate while
+the window has focus.
 
 The image will be scaled to fit the window contents.  Very large
 images may decrease render performance and take up VRAM from the
