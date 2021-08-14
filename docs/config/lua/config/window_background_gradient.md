@@ -26,6 +26,11 @@ return {
       "#24243e"
     },
 
+    -- Instead of specifying `colors`, you can use one of a number of
+    -- predefined, preset gradients.
+    -- A list of presets is shown in a section below.
+    -- preset = "Warm",
+
     -- Specifies the interpolation style to be used.
     -- "Linear", "Basis" and "CatmullRom" as supported.
     -- The default is "Linear".
@@ -98,3 +103,48 @@ return {
 ```
 
 <img src="../../../screenshots/radial-gradient.png">
+
+## Presets
+
+The following presets are available:
+
+|Preset|Gradient|
+|------+--------|
+|Blues|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/blues.png">|
+|BrBg|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/br_bg.png">|
+|BuGn|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/bu_gn.png">|
+|BuPu|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/bu_pu.png">|
+|Cividis|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/cividis.png">|
+|Cool|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/cool.png">|
+|CubeHelixDefault|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/cubehelix_default.png">|
+|GnBu|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/gn_bu.png">|
+|Greens|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/greens.png">|
+|Greys|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/greys.png">|
+|Inferno|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/inferno.png">|
+|Magma|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/magma.png">|
+|OrRd|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/or_rd.png">|
+|Oranges|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/oranges.png">|
+|PiYg|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/pi_yg.png">|
+|Plasma|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/plasma.png">|
+|PrGn|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/pr_gn.png">|
+|PuBu|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/pu_bu.png">|
+|PuBuGn|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/pu_bu_gn.png">|
+|PuOr|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/pu_or.png">|
+|PuRd|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/pu_rd.png">|
+|Purples|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/purples.png">|
+|Rainbow|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/rainbow.png">|
+|RdBu|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/rd_bu.png">|
+|RdGy|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/rd_gy.png">|
+|RdPu|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/rd_pu.png">|
+|RdYlBu|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/rd_yl_bu.png">|
+|RdYlGn|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/rd_yl_gn.png">|
+|Reds|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/reds.png">|
+|Sinebow|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/sinebow.png">|
+|Spectral|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/spectral.png">|
+|Turbo|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/turbo.png">|
+|Viridis|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/viridis.png">|
+|Warm|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/warm.png">|
+|YlGn|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/yl_gn.png">|
+|YlGnBu|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/yl_gn_by.png">|
+|YlOrBr|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/yl_or_br.png">|
+|YlOrRd|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/yl_or_rd.png">|
