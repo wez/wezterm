@@ -333,11 +333,20 @@ fn load_background_image(config: &ConfigHandle, dimensions: &Dimensions) -> Opti
     match &config.window_background_gradient {
         Some(g) => match g.build() {
             Ok(grad) => {
-                let width = dimensions.pixel_width as u32;
-                let height = dimensions.pixel_height as u32;
+                let mut width = dimensions.pixel_width as u32;
+                let mut height = dimensions.pixel_height as u32;
+
+                if matches!(g.orientation, GradientOrientation::Radial { .. }) {
+                    // To simplify the math, we compute a perfect circle
+                    // for the radial gradient, and let the texture sampler
+                    // perturb it to fill the window
+                    width = width.min(height);
+                    height = height.min(width);
+                }
+
                 let mut imgbuf = image::RgbaImage::new(width, height);
-                let fw = dimensions.pixel_width as f64;
-                let fh = dimensions.pixel_height as f64;
+                let fw = width as f64;
+                let fh = height as f64;
 
                 fn to_pixel(c: colorgrad::Color) -> image::Rgba<u8> {
                     let (r, g, b, a) = c.rgba_u8();
@@ -358,7 +367,14 @@ fn load_background_image(config: &ConfigHandle, dimensions: &Dimensions) -> Opti
                 // visible color banding.  The default 64 was selected
                 // because it it was the smallest value on my mac where
                 // the banding wasn't obvious.
-                let noise_amount = g.noise.unwrap_or(64);
+                let noise_amount = g.noise.unwrap_or_else(|| {
+                    if matches!(g.orientation, GradientOrientation::Radial { .. }) {
+                        16
+                    } else {
+                        64
+                    }
+                });
+
                 fn noise(rng: &fastrand::Rng, noise_amount: usize) -> f64 {
                     if noise_amount == 0 {
                         0.
@@ -388,6 +404,21 @@ fn load_background_image(config: &ConfigHandle, dimensions: &Dimensions) -> Opti
                                 dmin,
                                 dmax,
                             )));
+                        }
+                    }
+                    GradientOrientation::Radial { radius, cx, cy } => {
+                        let radius = fw * radius.unwrap_or(0.5);
+                        let cx = fw * cx.unwrap_or(0.5);
+                        let cy = fh * cy.unwrap_or(0.5);
+
+                        for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
+                            let nx = noise(&rng, noise_amount);
+                            let ny = noise(&rng, noise_amount);
+
+                            let t = (nx + (x as f64 - cx).powi(2) + (ny + y as f64 - cy).powi(2))
+                                .sqrt()
+                                / radius;
+                            *pixel = to_pixel(grad.at(t));
                         }
                     }
                 }

@@ -327,6 +327,15 @@ return {
 See [Styling Inactive Panes](#style-inactive-panes) for more information
 on hue, saturation, brigthness transformations.
 
+## Window Background Gradient
+
+*Since: nightly builds only*
+
+<img src="../../../screenshots/radial-gradient.png">
+
+See [window_background_gradient](lua/config/window_background_gradient.md)
+for configuration information on gradients.
+
 ## Window Background Opacity
 
 *since: 20201031-154415-9614e117*
