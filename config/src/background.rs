@@ -1,3 +1,4 @@
+use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
@@ -157,6 +158,8 @@ pub struct Gradient {
     #[serde(default)]
     pub noise: Option<usize>,
 }
+
+impl_lua_conversion!(Gradient);
 
 impl Gradient {
     pub fn build(&self) -> anyhow::Result<colorgrad::Gradient> {

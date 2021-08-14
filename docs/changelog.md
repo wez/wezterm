@@ -78,6 +78,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [wezterm.add_to_config_reload_watch_list](config/lua/wezterm/add_to_config_reload_watch_list.md) function to aid with automatically reloading the config when you've split your config across multiple files. Thanks to [@AusCyberman](https://github.com/AusCyberman)! [#989](https://github.com/wez/wezterm/pull/989)
 * Improved: wezterm now respects default emoji presentation and explicit emoji variation selectors (VS15 and VS16) so that glyphs that have both textual (usually monochrome, single cell width) and emoji (color, double width) presentations can be more faithfully rendered. [#997](https://github.com/wez/wezterm/issues/997)
 * New: [window_background_gradient](config/lua/config/window_background_gradient.md) option to configure color gradients for your window background
+* New: [wezterm.gradient_colors](config/lua/wezterm/gradient_colors.md) function to compute RGB values for gradients for use in your config.
 
 ### 20210502-154244-3f7122cb
 

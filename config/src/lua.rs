@@ -1,3 +1,4 @@
+use crate::Gradient;
 use crate::{FontAttributes, FontStretch, FontWeight, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
@@ -255,6 +256,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("format", lua.create_function(format)?)?;
         wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
         wezterm_mod.set("battery_info", lua.create_function(battery_info)?)?;
+        wezterm_mod.set("gradient_colors", lua.create_function(gradient_colors)?)?;
 
         package.set("path", path_array.join(";"))?;
 
@@ -832,6 +834,17 @@ fn permute_mods<'lua>(
         }
     }
     Ok(result)
+}
+
+fn gradient_colors<'lua>(
+    _lua: &'lua Lua,
+    (gradient, num_colors): (Gradient, usize),
+) -> mlua::Result<Vec<String>> {
+    let g = gradient.build().map_err(|e| mlua::Error::external(e))?;
+    Ok(g.colors(num_colors)
+        .into_iter()
+        .map(|c| c.to_hex_string())
+        .collect())
 }
 
 #[cfg(test)]
