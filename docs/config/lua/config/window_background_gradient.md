@@ -109,7 +109,7 @@ return {
 The following presets are available:
 
 |Preset|Gradient|
-|------+--------|
+|------|--------|
 |Blues|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/blues.png">|
 |BrBg|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/br_bg.png">|
 |BuGn|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/bu_gn.png">|
@@ -145,6 +145,6 @@ The following presets are available:
 |Viridis|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/viridis.png">|
 |Warm|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/warm.png">|
 |YlGn|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/yl_gn.png">|
-|YlGnBu|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/yl_gn_by.png">|
+|YlGnBu|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/yl_gn_bu.png">|
 |YlOrBr|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/yl_or_br.png">|
 |YlOrRd|<img src="https://github.com/mazznoer/colorgrad-rs/raw/master/docs/images/preset/yl_or_rd.png">|
