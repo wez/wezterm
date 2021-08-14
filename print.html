@@ -462,6 +462,7 @@ usually the best available version.</p>
 <li>Improved: wezterm now respects default emoji presentation and explicit emoji variation selectors (VS15 and VS16) so that glyphs that have both textual (usually monochrome, single cell width) and emoji (color, double width) presentations can be more faithfully rendered. <a href="https://github.com/wez/wezterm/issues/997">#997</a></li>
 <li>New: <a href="config/lua/config/window_background_gradient.html">window_background_gradient</a> option to configure color gradients for your window background</li>
 <li>New: <a href="config/lua/wezterm/gradient_colors.html">wezterm.gradient_colors</a> function to compute RGB values for gradients for use in your config.</li>
+<li>New: color schemes: <a href="colorschemes/a/index.html#abernathy">Abernathy</a>, <a href="colorschemes/a/index.html#ayu-mirage">Ayu Mirage</a>, <a href="colorschemes/d/index.html#darkmatrix">darkmatrix</a>, <a href="colorschemes/f/index.html#fairyfloss">Fairyfloss</a>, <a href="colorschemes/g/index.html#github-dark">GitHub Dark</a>, <a href="colorschemes/h/index.html#hax0r_blue">HaX0R_BLUE</a>, <a href="colorschemes/h/index.html#hax0r_gr33n">HaX0R_GR33N</a>, <a href="colorschemes/h/index.html#hax0r_r3d">HaX0R_R3D</a>, <a href="colorschemes/m/index.html#mariana">Mariana</a>, <a href="colorschemes/m/index.html#matrix">matrix</a>, <a href="colorschemes/p/index.html#peppermint">Peppermint</a> and <a href="colorschemes/u/index.html#ultradark">UltraDark</a></li>
 </ul>
 <h3 id="20210502-154244-3f7122cb"><a class="header" href="#20210502-154244-3f7122cb">20210502-154244-3f7122cb</a></h3>
 <ul>
@@ -3222,7 +3223,14 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;3024 Night&quot;,
 }
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="adventure"><a class="header" href="#adventure">Adventure</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="abernathy"><a class="header" href="#abernathy">Abernathy</a></h1>
+<img width="800" height="550" src="colorschemes/a/Abernathy.png" alt="Abernathy">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;Abernathy&quot;,
+}
+</code></pre>
+<h1 id="adventure"><a class="header" href="#adventure">Adventure</a></h1>
 <img width="800" height="550" src="colorschemes/a/Adventure.png" alt="Adventure">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -3297,6 +3305,13 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
   color_scheme = &quot;Aurora&quot;,
+}
+</code></pre>
+<h1 id="ayu-mirage"><a class="header" href="#ayu-mirage">Ayu Mirage</a></h1>
+<img width="800" height="550" src="colorschemes/a/Ayu Mirage.png" alt="Ayu Mirage">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;Ayu Mirage&quot;,
 }
 </code></pre>
 <h1 id="ayu"><a class="header" href="#ayu">ayu</a></h1>
@@ -3670,6 +3685,13 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Duotone Dark&quot;,
 }
 </code></pre>
+<h1 id="darkmatrix"><a class="header" href="#darkmatrix">darkmatrix</a></h1>
+<img width="800" height="550" src="colorschemes/d/darkmatrix.png" alt="darkmatrix">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;darkmatrix&quot;,
+}
+</code></pre>
 <h1 id="deep"><a class="header" href="#deep">deep</a></h1>
 <img width="800" height="550" src="colorschemes/d/deep.png" alt="deep">
 <p>To use this scheme, add this to your config:</p>
@@ -3724,6 +3746,13 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
   color_scheme = &quot;Fahrenheit&quot;,
+}
+</code></pre>
+<h1 id="fairyfloss"><a class="header" href="#fairyfloss">Fairyfloss</a></h1>
+<img width="800" height="550" src="colorschemes/f/Fairyfloss.png" alt="Fairyfloss">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;Fairyfloss&quot;,
 }
 </code></pre>
 <h1 id="fideloper"><a class="header" href="#fideloper">Fideloper</a></h1>
@@ -3817,6 +3846,13 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Galizur&quot;,
 }
 </code></pre>
+<h1 id="github-dark"><a class="header" href="#github-dark">GitHub Dark</a></h1>
+<img width="800" height="550" src="colorschemes/g/GitHub Dark.png" alt="GitHub Dark">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;GitHub Dark&quot;,
+}
+</code></pre>
 <h1 id="github"><a class="header" href="#github">Github</a></h1>
 <img width="800" height="550" src="colorschemes/g/Github.png" alt="Github">
 <p>To use this scheme, add this to your config:</p>
@@ -3866,7 +3902,28 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Guezwhoz&quot;,
 }
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="hacktober"><a class="header" href="#hacktober">Hacktober</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="hax0r_blue"><a class="header" href="#hax0r_blue">HaX0R_BLUE</a></h1>
+<img width="800" height="550" src="colorschemes/h/HaX0R_BLUE.png" alt="HaX0R_BLUE">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;HaX0R_BLUE&quot;,
+}
+</code></pre>
+<h1 id="hax0r_gr33n"><a class="header" href="#hax0r_gr33n">HaX0R_GR33N</a></h1>
+<img width="800" height="550" src="colorschemes/h/HaX0R_GR33N.png" alt="HaX0R_GR33N">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;HaX0R_GR33N&quot;,
+}
+</code></pre>
+<h1 id="hax0r_r3d"><a class="header" href="#hax0r_r3d">HaX0R_R3D</a></h1>
+<img width="800" height="550" src="colorschemes/h/HaX0R_R3D.png" alt="HaX0R_R3D">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;HaX0R_R3D&quot;,
+}
+</code></pre>
+<h1 id="hacktober"><a class="header" href="#hacktober">Hacktober</a></h1>
 <img width="800" height="550" src="colorschemes/h/Hacktober.png" alt="Hacktober">
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
@@ -4111,6 +4168,13 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
   color_scheme = &quot;Man Page&quot;,
 }
 </code></pre>
+<h1 id="mariana"><a class="header" href="#mariana">Mariana</a></h1>
+<img width="800" height="550" src="colorschemes/m/Mariana.png" alt="Mariana">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;Mariana&quot;,
+}
+</code></pre>
 <h1 id="material"><a class="header" href="#material">Material</a></h1>
 <img width="800" height="550" src="colorschemes/m/Material.png" alt="Material">
 <p>To use this scheme, add this to your config:</p>
@@ -4200,6 +4264,13 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
   color_scheme = &quot;Monokai Vivid&quot;,
+}
+</code></pre>
+<h1 id="matrix"><a class="header" href="#matrix">matrix</a></h1>
+<img width="800" height="550" src="colorschemes/m/matrix.png" alt="matrix">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;matrix&quot;,
 }
 </code></pre>
 <h1 id="midnight-in-mojave"><a class="header" href="#midnight-in-mojave">midnight-in-mojave</a></h1>
@@ -4368,6 +4439,13 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
   color_scheme = &quot;PencilLight&quot;,
+}
+</code></pre>
+<h1 id="peppermint"><a class="header" href="#peppermint">Peppermint</a></h1>
+<img width="800" height="550" src="colorschemes/p/Peppermint.png" alt="Peppermint">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;Peppermint&quot;,
 }
 </code></pre>
 <h1 id="piatto-light"><a class="header" href="#piatto-light">Piatto Light</a></h1>
@@ -4830,6 +4908,13 @@ make WezTerm look cooler, I'd also welcome your contribution!</p>
 <p>To use this scheme, add this to your config:</p>
 <pre><code class="language-lua">return {
   color_scheme = &quot;Ubuntu&quot;,
+}
+</code></pre>
+<h1 id="ultradark"><a class="header" href="#ultradark">UltraDark</a></h1>
+<img width="800" height="550" src="colorschemes/u/UltraDark.png" alt="UltraDark">
+<p>To use this scheme, add this to your config:</p>
+<pre><code class="language-lua">return {
+  color_scheme = &quot;UltraDark&quot;,
 }
 </code></pre>
 <h1 id="ultraviolent"><a class="header" href="#ultraviolent">UltraViolent</a></h1>
