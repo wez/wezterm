@@ -11,6 +11,10 @@ usually the best available version.
 
 As features stabilize some brief notes about them will accumulate here.
 
+* Not yet!
+
+### 20210814-124438-54e29167
+
 * Fixed: ssh client would read `/etc/ssh/config` rather than the proper `/etc/ssh/ssh_config`
 * Updated: ssh client now processes `Include` statements in ssh config
 * x11: support for [VoidSymbol](config/keys.md#voidsymbol) in key assignments. Thanks to [@digitallyserviced](https://github.com/digitallyserviced)! [#759](https://github.com/wez/wezterm/pull/759)

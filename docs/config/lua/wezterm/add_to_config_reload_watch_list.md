@@ -1,6 +1,6 @@
 # wezterm.add_to_config_reload_watch_list(path)
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 Adds `path` to the list of files that are watched for config changes.
 If [automatically_reload_config](../config/automatically_reload_config.md)

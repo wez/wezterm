@@ -1,6 +1,6 @@
 # window_frame
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 This setting is applicable only on Wayland systems when client side decorations are in use.
 

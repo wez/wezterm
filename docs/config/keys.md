@@ -169,7 +169,7 @@ The default key bindings are:
 | `SUPER`          | `h`    | `HideApplication` (macOS only) |
 | `SUPER`          | `k`    | `ClearScrollback="ScrollbackOnly"` |
 | `CTRL+SHIFT`     | `K`    | `ClearScrollback="ScrollbackOnly"` |
-| `CTRL+SHIFT`     | `L`    | `ShowDebugOverlay` (*since: nightly builds only*)|
+| `CTRL+SHIFT`     | `L`    | `ShowDebugOverlay` (*Since: 20210814-124438-54e29167*)|
 | `SUPER`          | `f`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `X`    | `ActivateCopyMode` |
@@ -290,7 +290,7 @@ return {
 
 ### VoidSymbol
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 On X11 systems, If you decide to change certain keys on the keyboard to
 `VoidSymbol` (like `CapsLock`), then you can utilize it as a `LEADER` or any

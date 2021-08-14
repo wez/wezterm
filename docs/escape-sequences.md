@@ -257,7 +257,7 @@ is not specified in the accompanying ITU T.416 specification and is ignored by
 CSI 38 : 2 : : R : G : B m
 ```
 
-(*Since nightly builds only) For the sake of compatibility with some other
+(*Since 20210814-124438-54e29167*) For the sake of compatibility with some other
 terminal emulators this additional form is also supported where the colorspace
 ID argument is not specified:
 
@@ -272,7 +272,7 @@ The `R`, `G` and `B` symbols below are decimal numbers in the range `0-255`:
 CSI 48 : 2 : : R : G : B m
 ```
 
-(*Since nightly builds only) For the sake of compatibility with some other
+(*Since 20210814-124438-54e29167*) For the sake of compatibility with some other
 terminal emulators this additional form is also supported where the colorspace
 ID argument is not specified:
 
@@ -287,7 +287,7 @@ The `R`, `G` and `B` symbols below are decimal numbers in the range `0-255`:
 CSI 58 : 2 : : R : G : B m
 ```
 
-(*Since nightly builds only) For the sake of compatibility with some other
+(*Since 20210814-124438-54e29167*) For the sake of compatibility with some other
 terminal emulators this additional form is also supported where the colorspace
 ID argument is not specified:
 
@@ -301,7 +301,7 @@ CSI 58 : 2 : R : G : B m
 
 #### Mode Functions
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 WezTerm supports [Synchronized Rendering](https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036).
 DECSET 2026 is set to batch (hold) rendering until DECSET 2026 is reset to flush the queued screen data.

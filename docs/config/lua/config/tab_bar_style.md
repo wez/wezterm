@@ -1,6 +1,6 @@
 # `tab_bar_style`
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 `new_tab_left`, `new_tab_right`, `new_tab_hover_left`, `new_tab_hover_right`
 have been removed and replaced by the more flexible `new_tab` and `new_tab_hover` elements.

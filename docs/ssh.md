@@ -48,7 +48,7 @@ All other options are parsed but have no effect.  Notably, neither `Match` or
 `canonical` are not supported) configuration parsing for `Host` and
 `LocalUser`.  `Exec` based matches are recognized but not supported.
 
-*Since: nightly builds only:*
+*Since: 20210814-124438-54e29167:*
 
 `Include` is now supported.
 

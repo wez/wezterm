@@ -330,7 +330,7 @@ on hue, saturation, brigthness transformations.
 
 ## Window Background Gradient
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 <img src="../screenshots/radial-gradient.png">
 

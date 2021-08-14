@@ -1,6 +1,6 @@
 # `text_blink_rate`
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 Specifies how often blinking text (normal speed) transitions between visible
 and invisible, expressed in milliseconds.  Setting this to 0 disables slow text

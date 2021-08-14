@@ -1,6 +1,6 @@
 # wezterm.gradient_colors(gradient, num_colors)
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 Given a gradient spec and a number of colors, returns a table
 holding that many colors spaced evenly across the range of

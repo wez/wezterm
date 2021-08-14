@@ -12,7 +12,7 @@ local wezterm = require 'wezterm';
 wezterm.log_info("Hello!");
 ```
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 Now accepts multiple arguments, and those arguments can be of any type.
 

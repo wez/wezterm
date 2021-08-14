@@ -24,7 +24,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*:
+*Since: 20210814-124438-54e29167*:
 
 The default value for this setting now includes some
 windows shell processes:

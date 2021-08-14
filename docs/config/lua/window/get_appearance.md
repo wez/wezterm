@@ -1,6 +1,6 @@
 # window:get_appearance()
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 This method returns the appearance of the window environment.  The appearance
 can be one of the following 4 values:

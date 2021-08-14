@@ -1,6 +1,6 @@
 # window_background_gradient
 
-*Since: nightly builds only*
+*Since: 20210814-124438-54e29167*
 
 Dynamically generates a `window_background_image` from the provided gradient
 specification.  When `window_background_gradient` is configured, the value
