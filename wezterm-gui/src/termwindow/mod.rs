@@ -1570,6 +1570,7 @@ impl TermWindow {
             let mut zones = pane.get_semantic_zones().unwrap_or_else(|_| vec![]);
             zones.retain(|zone| zone.semantic_type == wezterm_term::SemanticType::Prompt);
             cache.zones = zones;
+            cache.seqno = seqno;
         }
         &cache.zones
     }
