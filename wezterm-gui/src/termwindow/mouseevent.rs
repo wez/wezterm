@@ -37,14 +37,20 @@ impl super::TermWindow {
             UIItemType::TabBar => {
                 self.update_title_post_status();
             }
-            UIItemType::ScrollBar | UIItemType::Split(_) => {}
+            UIItemType::AboveScrollThumb
+            | UIItemType::BelowScrollThumb
+            | UIItemType::ScrollThumb
+            | UIItemType::Split(_) => {}
         }
     }
 
     fn enter_ui_item(&mut self, item: &UIItem) {
         match item.item_type {
             UIItemType::TabBar => {}
-            UIItemType::ScrollBar | UIItemType::Split(_) => {}
+            UIItemType::AboveScrollThumb
+            | UIItemType::BelowScrollThumb
+            | UIItemType::ScrollThumb
+            | UIItemType::Split(_) => {}
         }
     }
 
@@ -104,16 +110,12 @@ impl super::TermWindow {
         match event.kind {
             WMEK::Release(ref press) => {
                 self.current_mouse_buttons.retain(|p| p != press);
-                if press == &MousePress::Left && self.scroll_drag_start.take().is_some() {
-                    // Completed a scrollbar drag
-                    return;
-                }
-                if press == &MousePress::Left && self.split_drag_start.take().is_some() {
-                    // Completed a split drag
-                    return;
-                }
                 if press == &MousePress::Left && self.window_drag_position.take().is_some() {
                     // Completed a window drag
+                    return;
+                }
+                if press == &MousePress::Left && self.dragging.take().is_some() {
+                    // Completed a drag
                     return;
                 }
             }
@@ -165,57 +167,8 @@ impl super::TermWindow {
                     return;
                 }
 
-                let current_viewport = self.get_viewport(pane.pane_id());
-                if let Some(from_top) = self.scroll_drag_start.as_ref() {
-                    // Dragging the scroll bar
-                    let pane = match self.get_active_pane_or_overlay() {
-                        Some(pane) => pane,
-                        None => return,
-                    };
-
-                    let dims = pane.get_dimensions();
-
-                    let effective_thumb_top =
-                        event.coords.y.saturating_sub(*from_top).max(0) as usize;
-
-                    // Convert thumb top into a row index by reversing the math
-                    // in ScrollHit::thumb
-                    let row = ScrollHit::thumb_top_to_scroll_top(
-                        effective_thumb_top,
-                        &*pane,
-                        current_viewport,
-                        self.terminal_size,
-                        &self.dimensions,
-                    );
-                    self.set_viewport(pane.pane_id(), Some(row), dims);
-                    context.invalidate();
-                    return;
-                }
-
-                if let Some(split) = self.split_drag_start.take() {
-                    let mux = Mux::get().unwrap();
-                    let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
-                        Some(tab) => tab,
-                        None => return,
-                    };
-                    let delta = match split.direction {
-                        SplitDirection::Horizontal => {
-                            (x as isize).saturating_sub(split.left as isize)
-                        }
-                        SplitDirection::Vertical => {
-                            (term_y as isize).saturating_sub(split.top as isize)
-                        }
-                    };
-
-                    if delta != 0 {
-                        tab.resize_split_by(split.index, delta);
-
-                        self.split_drag_start = tab.iter_splits().into_iter().nth(split.index);
-                        context.invalidate();
-                    } else {
-                        self.split_drag_start.replace(split);
-                    }
-
+                if let Some((item, start_event)) = self.dragging.take() {
+                    self.drag_ui_item(item, start_event, x, term_y, event, context);
                     return;
                 }
             }
@@ -245,6 +198,88 @@ impl super::TermWindow {
         }
     }
 
+    fn drag_split(
+        &mut self,
+        mut item: UIItem,
+        split: PositionedSplit,
+        start_event: MouseEvent,
+        x: usize,
+        y: i64,
+        context: &dyn WindowOps,
+    ) {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+        let delta = match split.direction {
+            SplitDirection::Horizontal => (x as isize).saturating_sub(split.left as isize),
+            SplitDirection::Vertical => (y as isize).saturating_sub(split.top as isize),
+        };
+
+        if delta != 0 {
+            tab.resize_split_by(split.index, delta);
+            if let Some(split) = tab.iter_splits().into_iter().nth(split.index) {
+                item.item_type = UIItemType::Split(split);
+                context.invalidate();
+            }
+        }
+        self.dragging.replace((item, start_event));
+    }
+
+    fn drag_scroll_thumb(
+        &mut self,
+        item: UIItem,
+        start_event: MouseEvent,
+        event: MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
+            None => return,
+        };
+
+        let dims = pane.get_dimensions();
+        let current_viewport = self.get_viewport(pane.pane_id());
+
+        let from_top = start_event.coords.y.saturating_sub(item.y as isize);
+        let effective_thumb_top = event.coords.y.saturating_sub(from_top).max(0) as usize;
+
+        // Convert thumb top into a row index by reversing the math
+        // in ScrollHit::thumb
+        let row = ScrollHit::thumb_top_to_scroll_top(
+            effective_thumb_top,
+            &*pane,
+            current_viewport,
+            &self.dimensions,
+        );
+        self.set_viewport(pane.pane_id(), Some(row), dims);
+        context.invalidate();
+        self.dragging.replace((item, start_event));
+    }
+
+    fn drag_ui_item(
+        &mut self,
+        item: UIItem,
+        start_event: MouseEvent,
+        x: usize,
+        y: i64,
+        event: MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        match item.item_type {
+            UIItemType::Split(split) => {
+                self.drag_split(item, split, start_event, x, y, context);
+            }
+            UIItemType::ScrollThumb => {
+                self.drag_scroll_thumb(item, start_event, event, context);
+            }
+            _ => {
+                log::error!("drag not implemented for {:?}", item);
+            }
+        }
+    }
+
     fn mouse_event_ui_item(
         &mut self,
         item: UIItem,
@@ -259,11 +294,17 @@ impl super::TermWindow {
             UIItemType::TabBar => {
                 self.mouse_event_tab_bar(x, event, context);
             }
-            UIItemType::ScrollBar => {
-                self.mouse_event_scroll_bar(pane, event, context);
+            UIItemType::AboveScrollThumb => {
+                self.mouse_event_above_scroll_thumb(item, pane, event, context);
+            }
+            UIItemType::ScrollThumb => {
+                self.mouse_event_scroll_thumb(item, pane, event, context);
+            }
+            UIItemType::BelowScrollThumb => {
+                self.mouse_event_below_scroll_thumb(item, pane, event, context);
             }
             UIItemType::Split(split) => {
-                self.mouse_event_split(split, event, context);
+                self.mouse_event_split(item, split, event, context);
             }
         }
     }
@@ -303,8 +344,9 @@ impl super::TermWindow {
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
-    pub fn mouse_event_scroll_bar(
+    pub fn mouse_event_above_scroll_thumb(
         &mut self,
+        _item: UIItem,
         pane: Rc<dyn Pane>,
         event: MouseEvent,
         context: &dyn WindowOps,
@@ -312,53 +354,64 @@ impl super::TermWindow {
         if let WMEK::Press(MousePress::Left) = event.kind {
             let dims = pane.get_dimensions();
             let current_viewport = self.get_viewport(pane.pane_id());
-
-            let hit_result = ScrollHit::test(
-                event.coords.y,
-                &*pane,
-                current_viewport,
-                self.terminal_size,
-                &self.dimensions,
+            // Page up
+            self.set_viewport(
+                pane.pane_id(),
+                Some(
+                    current_viewport
+                        .unwrap_or(dims.physical_top)
+                        .saturating_sub(self.terminal_size.rows.try_into().unwrap()),
+                ),
+                dims,
             );
+            context.invalidate();
+        }
+        context.set_cursor(Some(MouseCursor::Arrow));
+    }
 
-            match hit_result {
-                ScrollHit::Above => {
-                    // Page up
-                    self.set_viewport(
-                        pane.pane_id(),
-                        Some(
-                            current_viewport
-                                .unwrap_or(dims.physical_top)
-                                .saturating_sub(self.terminal_size.rows.try_into().unwrap()),
-                        ),
-                        dims,
-                    );
-                    context.invalidate();
-                }
-                ScrollHit::Below => {
-                    // Page down
-                    self.set_viewport(
-                        pane.pane_id(),
-                        Some(
-                            current_viewport
-                                .unwrap_or(dims.physical_top)
-                                .saturating_add(self.terminal_size.rows.try_into().unwrap()),
-                        ),
-                        dims,
-                    );
-                    context.invalidate();
-                }
-                ScrollHit::OnThumb(from_top) => {
-                    // Start a scroll drag
-                    self.scroll_drag_start = Some(from_top);
-                }
-            };
+    pub fn mouse_event_below_scroll_thumb(
+        &mut self,
+        _item: UIItem,
+        pane: Rc<dyn Pane>,
+        event: MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        if let WMEK::Press(MousePress::Left) = event.kind {
+            let dims = pane.get_dimensions();
+            let current_viewport = self.get_viewport(pane.pane_id());
+            // Page down
+            self.set_viewport(
+                pane.pane_id(),
+                Some(
+                    current_viewport
+                        .unwrap_or(dims.physical_top)
+                        .saturating_add(self.terminal_size.rows.try_into().unwrap()),
+                ),
+                dims,
+            );
+            context.invalidate();
+        }
+        context.set_cursor(Some(MouseCursor::Arrow));
+    }
+
+    pub fn mouse_event_scroll_thumb(
+        &mut self,
+        item: UIItem,
+        _pane: Rc<dyn Pane>,
+        event: MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        if let WMEK::Press(MousePress::Left) = event.kind {
+            // Start a scroll drag
+            // self.scroll_drag_start = Some(from_top);
+            self.dragging = Some((item, event));
         }
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
     pub fn mouse_event_split(
         &mut self,
+        item: UIItem,
         split: PositionedSplit,
         event: MouseEvent,
         context: &dyn WindowOps,
@@ -369,7 +422,7 @@ impl super::TermWindow {
         }));
 
         if event.kind == WMEK::Press(MousePress::Left) {
-            self.split_drag_start.replace(split);
+            self.dragging.replace((item, event));
         }
     }
 

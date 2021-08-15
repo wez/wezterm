@@ -429,12 +429,7 @@ impl super::TermWindow {
         // changes to ScrollHit, mouse positioning, PositionedPane
         // and tab size calculation.
         if pos.is_active && self.show_scroll_bar {
-            let info = ScrollHit::thumb(
-                &*pos.pane,
-                current_viewport,
-                self.terminal_size,
-                &self.dimensions,
-            );
+            let info = ScrollHit::thumb(&*pos.pane, current_viewport, &self.dimensions);
             let thumb_top = info.top as f32;
             let thumb_size = info.height as f32;
             let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
@@ -456,8 +451,25 @@ impl super::TermWindow {
                 x: self.dimensions.pixel_width - padding as usize,
                 width: padding as usize,
                 y: 0,
-                height: self.dimensions.pixel_height,
-                item_type: UIItemType::ScrollBar,
+                height: thumb_top as usize,
+                item_type: UIItemType::AboveScrollThumb,
+            });
+            self.ui_items.push(UIItem {
+                x: self.dimensions.pixel_width - padding as usize,
+                width: padding as usize,
+                y: thumb_top as usize,
+                height: thumb_size as usize,
+                item_type: UIItemType::ScrollThumb,
+            });
+            self.ui_items.push(UIItem {
+                x: self.dimensions.pixel_width - padding as usize,
+                width: padding as usize,
+                y: (thumb_top + thumb_size) as usize,
+                height: self
+                    .dimensions
+                    .pixel_height
+                    .saturating_sub((thumb_top + thumb_size) as usize),
+                item_type: UIItemType::BelowScrollThumb,
             });
 
             quad.set_fg_color(color);

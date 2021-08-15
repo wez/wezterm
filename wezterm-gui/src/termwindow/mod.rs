@@ -109,7 +109,9 @@ pub enum TermWindowNotif {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UIItemType {
     TabBar,
-    ScrollBar,
+    AboveScrollThumb,
+    ScrollThumb,
+    BelowScrollThumb,
     Split(PositionedSplit),
 }
 
@@ -217,8 +219,6 @@ pub struct TermWindow {
     last_ui_item: Option<UIItem>,
     last_mouse_coords: (usize, i64),
     last_mouse_terminal_coords: (usize, StableRowIndex),
-    scroll_drag_start: Option<isize>,
-    split_drag_start: Option<PositionedSplit>,
     window_drag_position: Option<MouseEvent>,
     current_mouse_event: Option<MouseEvent>,
     prev_cursor: PrevCursorPos,
@@ -249,6 +249,7 @@ pub struct TermWindow {
     palette: Option<ColorPalette>,
 
     ui_items: Vec<UIItem>,
+    dragging: Option<(UIItem, MouseEvent)>,
 
     event_states: HashMap<String, EventState>,
     has_animation: RefCell<Option<Instant>>,
@@ -580,8 +581,6 @@ impl TermWindow {
             right_status: String::new(),
             last_mouse_coords: (0, -1),
             last_mouse_terminal_coords: (0, 0),
-            scroll_drag_start: None,
-            split_drag_start: None,
             window_drag_position: None,
             current_mouse_event: None,
             prev_cursor: PrevCursorPos::new(),
@@ -606,6 +605,7 @@ impl TermWindow {
             allow_images: true,
             semantic_zones: HashMap::new(),
             ui_items: vec![],
+            dragging: None,
             last_ui_item: None,
         };
 
