@@ -210,6 +210,19 @@ impl super::TermWindow {
         num_panes: usize,
     ) -> anyhow::Result<()> {
         self.check_for_dirty_lines_and_invalidate_selection(&pos.pane);
+        let zone = {
+            let dims = pos.pane.get_dimensions();
+            let position = self
+                .get_viewport(pos.pane.pane_id())
+                .unwrap_or(dims.physical_top);
+
+            let zones = self.get_semantic_zones(&pos.pane);
+            let idx = match zones.binary_search_by(|zone| zone.start_y.cmp(&position)) {
+                Ok(idx) | Err(idx) => idx,
+            };
+            let idx = ((idx as isize) - 1).max(0) as usize;
+            zones.get(idx).cloned()
+        };
 
         let global_bg_color = self.palette().background;
         let config = &self.config;
@@ -475,6 +488,9 @@ impl super::TermWindow {
                 },
                 &mut quads,
             )?;
+        }
+        if let Some(zone) = zone {
+            // TODO: render a thingy to jump to prior prompt
         }
         metrics::histogram!("paint_pane_opengl.lines", start.elapsed());
         log::trace!("lines elapsed {:?}", start.elapsed());

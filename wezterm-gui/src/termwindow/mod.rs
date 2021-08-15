@@ -45,10 +45,11 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::image::{ImageData, ImageDataType};
+use termwiz::surface::SequenceNo;
 use wezterm_font::FontConfiguration;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration};
+use wezterm_term::{Alert, SemanticZone, StableRowIndex, TerminalConfiguration};
 
 pub mod clipboard;
 mod keyevent;
@@ -103,6 +104,12 @@ pub enum TermWindowNotif {
     MuxNotification(MuxNotification),
     EmitStatusUpdate,
     Apply(Box<dyn FnOnce(&mut TermWindow) + Send + Sync>),
+}
+
+#[derive(Clone, Default)]
+pub struct SemanticZoneCache {
+    seqno: SequenceNo,
+    zones: Vec<SemanticZone>,
 }
 
 #[derive(Default, Clone)]
@@ -202,6 +209,7 @@ pub struct TermWindow {
 
     tab_state: RefCell<HashMap<TabId, TabState>>,
     pane_state: RefCell<HashMap<PaneId, PaneState>>,
+    semantic_zones: HashMap<PaneId, SemanticZoneCache>,
 
     window_background: Option<Arc<ImageData>>,
 
@@ -577,6 +585,7 @@ impl TermWindow {
             has_animation: RefCell::new(None),
             scheduled_animation: RefCell::new(None),
             allow_images: true,
+            semantic_zones: HashMap::new(),
         };
 
         let tw = Rc::new(RefCell::new(myself));
@@ -1528,6 +1537,22 @@ impl TermWindow {
         promise::spawn::spawn(future).detach();
     }
 
+    /// Returns the Prompt semantic zones
+    fn get_semantic_zones(&mut self, pane: &Rc<dyn Pane>) -> &[SemanticZone] {
+        let mut cache = self
+            .semantic_zones
+            .entry(pane.pane_id())
+            .or_insert_with(SemanticZoneCache::default);
+
+        let seqno = pane.get_current_seqno();
+        if cache.seqno != seqno {
+            let mut zones = pane.get_semantic_zones().unwrap_or_else(|_| vec![]);
+            zones.retain(|zone| zone.semantic_type == wezterm_term::SemanticType::Prompt);
+            cache.zones = zones;
+        }
+        &cache.zones
+    }
+
     fn scroll_to_prompt(&mut self, amount: isize) -> anyhow::Result<()> {
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
@@ -1537,13 +1562,15 @@ impl TermWindow {
         let position = self
             .get_viewport(pane.pane_id())
             .unwrap_or(dims.physical_top);
-        let mut zones = pane.get_semantic_zones()?;
-        zones.retain(|zone| zone.semantic_type == wezterm_term::SemanticType::Prompt);
-        let idx = match zones.binary_search_by(|zone| zone.start_y.cmp(&position)) {
-            Ok(idx) | Err(idx) => idx,
+        let zone = {
+            let zones = self.get_semantic_zones(&pane);
+            let idx = match zones.binary_search_by(|zone| zone.start_y.cmp(&position)) {
+                Ok(idx) | Err(idx) => idx,
+            };
+            let idx = ((idx as isize) + amount).max(0) as usize;
+            zones.get(idx).cloned()
         };
-        let idx = ((idx as isize) + amount).max(0) as usize;
-        if let Some(zone) = zones.get(idx) {
+        if let Some(zone) = zone {
             self.set_viewport(pane.pane_id(), Some(zone.start_y), dims);
         }
 
