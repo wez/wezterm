@@ -1733,7 +1733,7 @@ impl TerminalState {
                 let x = self.cursor.x;
                 let limit = (x + n as usize).min(self.screen().physical_cols);
                 {
-                    let blank = Cell::new(' ', self.pen.clone_sgr_only());
+                    let blank = Cell::blank_with_attrs(self.pen.clone_sgr_only());
                     let screen = self.screen_mut();
                     for x in x..limit as usize {
                         screen.set_cell(x, y, &blank, seqno);
@@ -1804,7 +1804,7 @@ impl TerminalState {
                     let line = screen.line_mut(line_idx);
 
                     match line.cells().get(to_copy).cloned() {
-                        None => Cell::new(' ', CellAttributes::default()),
+                        None => Cell::blank(),
                         Some(candidate) => {
                             if candidate.str() == " " && to_copy > 0 {
                                 // It's a blank.  It may be the second part of
@@ -2259,7 +2259,7 @@ impl TerminalState {
         let mut last_cell: Option<&Cell> = None;
         let mut current_zone = None;
         let mut zones = vec![];
-        let blank_cell = Cell::new(' ', Default::default());
+        let blank_cell = Cell::blank();
 
         for (idx, line) in screen.lines.iter().enumerate() {
             let stable_row = screen.phys_to_stable_row_index(idx);
