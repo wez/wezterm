@@ -1,6 +1,6 @@
 use crate::tabbar::TabBarItem;
 use crate::termwindow::keyevent::window_mods_to_termwiz_mods;
-use crate::termwindow::{ScrollHit, TMB};
+use crate::termwindow::{PositionedSplit, ScrollHit, UIItem, UIItemType, TMB};
 use ::window::{
     MouseButtons as WMB, MouseCursor, MouseEvent, MouseEventKind as WMEK, MousePress, WindowOps,
 };
@@ -17,6 +17,37 @@ use wezterm_term::input::MouseEventKind as TMEK;
 use wezterm_term::{LastMouseClick, StableRowIndex};
 
 impl super::TermWindow {
+    fn resolve_ui_item(&self, event: &MouseEvent) -> Option<UIItem> {
+        let x = event.coords.x;
+        let y = event.coords.y;
+        self.ui_items
+            .iter()
+            .rev()
+            .find(|item| {
+                x >= item.x as isize
+                    && x <= (item.x + item.width) as isize
+                    && y >= item.y as isize
+                    && y <= (item.y + item.height) as isize
+            })
+            .cloned()
+    }
+
+    fn leave_ui_item(&mut self, item: &UIItem) {
+        match item.item_type {
+            UIItemType::TabBar => {
+                self.update_title_post_status();
+            }
+            UIItemType::ScrollBar | UIItemType::Split(_) => {}
+        }
+    }
+
+    fn enter_ui_item(&mut self, item: &UIItem) {
+        match item.item_type {
+            UIItemType::TabBar => {}
+            UIItemType::ScrollBar | UIItemType::Split(_) => {}
+        }
+    }
+
     pub fn mouse_event_impl(&mut self, event: MouseEvent, context: &dyn WindowOps) {
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
@@ -48,7 +79,6 @@ impl super::TermWindow {
         } else {
             0
         } as i64;
-        let was_in_tab_bar = self.show_tab_bar && self.last_mouse_coords.1 == 0;
         let in_tab_bar = self.show_tab_bar && y == tab_bar_y && event.coords.y >= 0;
 
         let x = (event
@@ -68,13 +98,8 @@ impl super::TermWindow {
 
         self.last_mouse_coords = (x, y);
 
-        let in_scroll_bar = self.show_scroll_bar && x >= self.terminal_size.cols as usize;
         // y position relative to top of viewport (not including tab bar)
         let term_y = y.saturating_sub(first_line_offset);
-
-        if was_in_tab_bar && !in_tab_bar {
-            self.update_title_post_status();
-        }
 
         match event.kind {
             WMEK::Release(ref press) => {
@@ -197,12 +222,49 @@ impl super::TermWindow {
             _ => {}
         }
 
-        if in_tab_bar {
-            self.mouse_event_tab_bar(x, event, context);
-        } else if in_scroll_bar {
-            self.mouse_event_scroll_bar(pane, event, context);
+        let ui_item = self.resolve_ui_item(&event);
+
+        match (self.last_ui_item.take(), &ui_item) {
+            (Some(prior), Some(item)) => {
+                self.leave_ui_item(&prior);
+                self.enter_ui_item(item);
+            }
+            (Some(prior), None) => {
+                self.leave_ui_item(&prior);
+            }
+            (None, Some(item)) => {
+                self.enter_ui_item(item);
+            }
+            (None, None) => {}
+        }
+
+        if let Some(item) = ui_item {
+            self.mouse_event_ui_item(item, pane, x, term_y, event, context);
         } else {
             self.mouse_event_terminal(pane, x, term_y, event, context);
+        }
+    }
+
+    fn mouse_event_ui_item(
+        &mut self,
+        item: UIItem,
+        pane: Rc<dyn Pane>,
+        x: usize,
+        _y: i64,
+        event: MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        self.last_ui_item.replace(item.clone());
+        match item.item_type {
+            UIItemType::TabBar => {
+                self.mouse_event_tab_bar(x, event, context);
+            }
+            UIItemType::ScrollBar => {
+                self.mouse_event_scroll_bar(pane, event, context);
+            }
+            UIItemType::Split(split) => {
+                self.mouse_event_split(split, event, context);
+            }
         }
     }
 
@@ -295,6 +357,22 @@ impl super::TermWindow {
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
+    pub fn mouse_event_split(
+        &mut self,
+        split: PositionedSplit,
+        event: MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        context.set_cursor(Some(match &split.direction {
+            SplitDirection::Horizontal => MouseCursor::SizeLeftRight,
+            SplitDirection::Vertical => MouseCursor::SizeUpDown,
+        }));
+
+        if event.kind == WMEK::Press(MousePress::Left) {
+            self.split_drag_start.replace(split);
+        }
+    }
+
     pub fn mouse_event_terminal(
         &mut self,
         mut pane: Rc<dyn Pane>,
@@ -303,42 +381,7 @@ impl super::TermWindow {
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
-        let mut on_split = None;
         let mut is_click_to_focus = false;
-        if y >= 0 {
-            let y = y as usize;
-
-            for split in self.get_splits() {
-                on_split = match split.direction {
-                    SplitDirection::Horizontal => {
-                        if x == split.left && y >= split.top && y <= split.top + split.size {
-                            Some(SplitDirection::Horizontal)
-                        } else {
-                            None
-                        }
-                    }
-                    SplitDirection::Vertical => {
-                        if y == split.top && x >= split.left && x <= split.left + split.size {
-                            Some(SplitDirection::Vertical)
-                        } else {
-                            None
-                        }
-                    }
-                };
-
-                if on_split.is_some() {
-                    if event.kind == WMEK::Press(MousePress::Left) {
-                        context.set_cursor(on_split.map(|d| match d {
-                            SplitDirection::Horizontal => MouseCursor::SizeLeftRight,
-                            SplitDirection::Vertical => MouseCursor::SizeUpDown,
-                        }));
-                        self.split_drag_start.replace(split);
-                        return;
-                    }
-                    break;
-                }
-            }
-        }
 
         for pos in self.get_panes_to_render() {
             if y >= pos.top as i64
@@ -434,20 +477,14 @@ impl super::TermWindow {
             }
         };
 
-        context.set_cursor(Some(match on_split {
-            Some(SplitDirection::Horizontal) => MouseCursor::SizeLeftRight,
-            Some(SplitDirection::Vertical) => MouseCursor::SizeUpDown,
-            None => {
-                if self.current_highlight.is_some() {
-                    // When hovering over a hyperlink, show an appropriate
-                    // mouse cursor to give the cue that it is clickable
-                    MouseCursor::Hand
-                } else if pane.is_mouse_grabbed() {
-                    MouseCursor::Arrow
-                } else {
-                    MouseCursor::Text
-                }
-            }
+        context.set_cursor(Some(if self.current_highlight.is_some() {
+            // When hovering over a hyperlink, show an appropriate
+            // mouse cursor to give the cue that it is clickable
+            MouseCursor::Hand
+        } else if pane.is_mouse_grabbed() {
+            MouseCursor::Arrow
+        } else {
+            MouseCursor::Text
         }));
 
         let event_trigger_type = match &event.kind {

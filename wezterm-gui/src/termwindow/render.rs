@@ -4,6 +4,7 @@ use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::shapecache::*;
 use crate::termwindow::{
     BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
+    UIItem, UIItemType,
 };
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
@@ -228,7 +229,6 @@ impl super::TermWindow {
         let config = &self.config;
         let palette = pos.pane.palette();
 
-        let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
         let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             1
         } else {
@@ -370,11 +370,11 @@ impl super::TermWindow {
                 cols: self.terminal_size.cols as _,
                 ..dims
             };
-            let tab_bar_y = if self.config.tab_bar_at_bottom {
-                let avail_height = self.dimensions.pixel_height.saturating_sub(
-                    (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
-                );
 
+            let avail_height = self.dimensions.pixel_height.saturating_sub(
+                (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
+            );
+            let tab_bar_y = if self.config.tab_bar_at_bottom {
                 let num_rows =
                     avail_height as usize / self.render_metrics.cell_size.height as usize;
 
@@ -382,6 +382,20 @@ impl super::TermWindow {
             } else {
                 0
             };
+
+            // Register the tab bar location
+            self.ui_items.push(UIItem {
+                x: 0,
+                width: self.dimensions.pixel_width,
+                y: if self.config.tab_bar_at_bottom {
+                    avail_height - self.render_metrics.cell_size.height as usize
+                } else {
+                    0
+                },
+                height: self.render_metrics.cell_size.height as usize,
+                item_type: UIItemType::TabBar,
+            });
+
             self.render_screen_line_opengl(
                 RenderScreenLineOpenGLParams {
                     line_idx: tab_bar_y,
@@ -414,22 +428,16 @@ impl super::TermWindow {
         // do a per-pane scrollbar.  That will require more extensive
         // changes to ScrollHit, mouse positioning, PositionedPane
         // and tab size calculation.
-        if pos.is_active {
-            let (thumb_top, thumb_size, color) = if self.show_scroll_bar {
-                let info = ScrollHit::thumb(
-                    &*pos.pane,
-                    current_viewport,
-                    self.terminal_size,
-                    &self.dimensions,
-                );
-                let thumb_top = info.top as f32;
-                let thumb_size = info.height as f32;
-                let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
-                (thumb_top, thumb_size, color)
-            } else {
-                let color = rgbcolor_to_window_color(background_color);
-                (0., 0., color)
-            };
+        if pos.is_active && self.show_scroll_bar {
+            let info = ScrollHit::thumb(
+                &*pos.pane,
+                current_viewport,
+                self.terminal_size,
+                &self.dimensions,
+            );
+            let thumb_top = info.top as f32;
+            let thumb_size = info.height as f32;
+            let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
 
             let mut quad = quads.allocate()?;
 
@@ -442,6 +450,15 @@ impl super::TermWindow {
 
             let right = self.dimensions.pixel_width as f32 / 2.;
             let left = right - padding;
+
+            // Register the scroll bar location
+            self.ui_items.push(UIItem {
+                x: self.dimensions.pixel_width - padding as usize,
+                width: padding as usize,
+                y: 0,
+                height: self.dimensions.pixel_height,
+                item_type: UIItemType::ScrollBar,
+            });
 
             quad.set_fg_color(color);
             quad.set_position(left, top, right, bottom);
@@ -673,6 +690,14 @@ impl super::TermWindow {
                 pos_x + cell_width,
                 pos_y + split.size as f32 * cell_height,
             );
+            self.ui_items.push(UIItem {
+                x: self.config.window_padding.left as usize + (split.left * cell_width as usize),
+                width: cell_width as usize,
+                y: self.config.window_padding.top as usize
+                    + (split.top + first_row_offset) * cell_height as usize,
+                height: split.size * cell_height as usize,
+                item_type: UIItemType::Split(split.clone()),
+            });
         } else {
             quad.set_position(
                 pos_x,
@@ -680,6 +705,14 @@ impl super::TermWindow {
                 pos_x + split.size as f32 * cell_width,
                 pos_y + cell_height,
             );
+            self.ui_items.push(UIItem {
+                x: self.config.window_padding.left as usize + (split.left * cell_width as usize),
+                width: split.size * cell_width as usize,
+                y: self.config.window_padding.top as usize
+                    + (split.top + first_row_offset) * cell_height as usize,
+                height: cell_height as usize,
+                item_type: UIItemType::Split(split.clone()),
+            });
         }
 
         Ok(())
@@ -690,6 +723,9 @@ impl super::TermWindow {
             let gl_state = self.render_state.as_ref().unwrap();
             gl_state.glyph_vertex_buffer.clear_quad_allocation();
         }
+
+        // Clear out UI item positions; we'll rebuild these as we render
+        self.ui_items.clear();
 
         let panes = self.get_panes_to_render();
         let num_panes = panes.len();

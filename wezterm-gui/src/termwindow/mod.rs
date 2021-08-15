@@ -106,6 +106,22 @@ pub enum TermWindowNotif {
     Apply(Box<dyn FnOnce(&mut TermWindow) + Send + Sync>),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum UIItemType {
+    TabBar,
+    ScrollBar,
+    Split(PositionedSplit),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UIItem {
+    pub x: usize,
+    pub y: usize,
+    pub width: usize,
+    pub height: usize,
+    pub item_type: UIItemType,
+}
+
 #[derive(Clone, Default)]
 pub struct SemanticZoneCache {
     seqno: SequenceNo,
@@ -198,6 +214,7 @@ pub struct TermWindow {
     show_scroll_bar: bool,
     tab_bar: TabBarState,
     pub right_status: String,
+    last_ui_item: Option<UIItem>,
     last_mouse_coords: (usize, i64),
     last_mouse_terminal_coords: (usize, StableRowIndex),
     scroll_drag_start: Option<isize>,
@@ -230,6 +247,8 @@ pub struct TermWindow {
     last_text_blink_paint_rapid: RefCell<Instant>,
 
     palette: Option<ColorPalette>,
+
+    ui_items: Vec<UIItem>,
 
     event_states: HashMap<String, EventState>,
     has_animation: RefCell<Option<Instant>>,
@@ -586,6 +605,8 @@ impl TermWindow {
             scheduled_animation: RefCell::new(None),
             allow_images: true,
             semantic_zones: HashMap::new(),
+            ui_items: vec![],
+            last_ui_item: None,
         };
 
         let tw = Rc::new(RefCell::new(myself));
