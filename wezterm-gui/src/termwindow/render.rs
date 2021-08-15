@@ -825,7 +825,10 @@ impl super::TermWindow {
                     bg_default = false;
                 }
 
-                (rgbcolor_to_window_color(bg), bg_default)
+                (
+                    rgbcolor_alpha_to_window_color(bg, self.config.text_background_opacity),
+                    bg_default,
+                )
             };
 
             if !bg_is_default {
