@@ -749,7 +749,7 @@ async fn domain_spawn_v2(spawn: SpawnV2, sender: PduSender) -> anyhow::Result<Pd
     let window_builder;
     let term_config;
 
-    let window_id = if let Some(window_id) = spawn.window_id {
+    let (window_id, size) = if let Some(window_id) = spawn.window_id {
         let window = mux
             .get_window_mut(window_id)
             .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
@@ -761,15 +761,17 @@ async fn domain_spawn_v2(spawn: SpawnV2, sender: PduSender) -> anyhow::Result<Pd
             .ok_or_else(|| anyhow!("active tab in window {} has no panes", window_id))?;
         term_config = pane.get_config();
 
-        window_id
+        let size = tab.get_size();
+
+        (window_id, size)
     } else {
         term_config = None;
         window_builder = mux.new_empty_window();
-        *window_builder
+        (*window_builder, spawn.size)
     };
 
     let tab = domain
-        .spawn(spawn.size, spawn.command, spawn.command_dir, window_id)
+        .spawn(size, spawn.command, spawn.command_dir, window_id)
         .await?;
 
     let pane = tab
