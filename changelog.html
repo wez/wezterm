@@ -149,6 +149,7 @@ usually the best available version.</p>
 <ul>
 <li>Fixed: <code>wezterm cli spawn</code> would use the initial terminal size for a new tab, rather than using the current tab size <a href="https://github.com/wez/wezterm/issues/920">#920</a></li>
 <li>Fixed: <code>text_background_opacity</code> opacity was not respected</li>
+<li>Fixed: spawning commands via the mux didn't respect the <code>PATH</code> configured in <code>set_environment_variables</code>. <a href="https://github.com/wez/wezterm/issues/1029">#1029</a></li>
 </ul>
 <h3 id="20210814-124438-54e29167"><a class="header" href="#20210814-124438-54e29167">20210814-124438-54e29167</a></h3>
 <ul>
