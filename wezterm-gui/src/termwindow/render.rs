@@ -364,7 +364,11 @@ impl super::TermWindow {
             quad.set_texture(filled_box);
             quad.set_is_background();
             quad.set_fg_color(background);
-            quad.set_hsv(None);
+            quad.set_hsv(if pos.is_active {
+                None
+            } else {
+                Some(config.inactive_pane_hsb)
+            });
         }
 
         if self.show_tab_bar && pos.index == 0 {
