@@ -401,7 +401,13 @@ impl SessionInner {
                     // Depending on the server configuration, a given
                     // setenv request may not succeed, but that doesn't
                     // prevent the connection from being set up.
-                    log::warn!("ssh: setenv {}={} failed: {}", key, val, err);
+                    log::warn!(
+                        "ssh: setenv {}={} failed: {}. \
+                         Check the AcceptEnv setting on the ssh server side.",
+                        key,
+                        val,
+                        err
+                    );
                 }
             }
         }
