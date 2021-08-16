@@ -43,7 +43,7 @@ impl Connection {
                 }
             }
         }
-        Ok(Connection::X11(Rc::new(XConnection::create_new()?)))
+        Ok(Connection::X11(XConnection::create_new()?))
     }
 
     pub async fn new_window<F>(

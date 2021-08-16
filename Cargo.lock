@@ -5339,6 +5339,7 @@ dependencies = [
  "winreg 0.6.2",
  "x11",
  "xcb 0.9.0",
+ "xcb-imdkit",
  "xcb-util",
  "xkbcommon",
 ]
@@ -5451,6 +5452,17 @@ dependencies = [
  "libc",
  "log",
  "x11",
+]
+
+[[package]]
+name = "xcb-imdkit"
+version = "0.1.0"
+source = "git+https://github.com/H-M-H/xcb-imdkit-rs#cacf04c536381c0d8d101d6f5c23fb46f7e4f1bc"
+dependencies = [
+ "cc",
+ "lazy_static",
+ "pkg-config",
+ "xcb 0.9.0",
 ]
 
 [[package]]
