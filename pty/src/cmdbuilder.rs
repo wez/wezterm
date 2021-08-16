@@ -129,7 +129,17 @@ impl CommandBuilder {
         self.umask = mask;
     }
 
-    fn search_path(exe: &OsStr, cwd: &OsStr) -> anyhow::Result<OsString> {
+    fn resolve_path(&self) -> Option<OsString> {
+        for (k, v) in &self.envs {
+            if k == "PATH" {
+                return Some(v.clone());
+            }
+        }
+
+        std::env::var_os("PATH")
+    }
+
+    fn search_path(&self, exe: &OsStr, cwd: &OsStr) -> anyhow::Result<OsString> {
         use std::path::Path;
         let exe_path: &Path = exe.as_ref();
         if exe_path.is_relative() {
@@ -139,7 +149,7 @@ impl CommandBuilder {
                 return Ok(abs_path.into_os_string());
             }
 
-            if let Some(path) = std::env::var_os("PATH") {
+            if let Some(path) = self.resolve_path() {
                 for path in std::env::split_paths(&path) {
                     let candidate = path.join(&exe);
                     if candidate.exists() {
@@ -187,7 +197,7 @@ impl CommandBuilder {
             cmd.arg0(&format!("-{}", basename));
             cmd
         } else {
-            let resolved = Self::search_path(&self.args[0], dir)?;
+            let resolved = self.search_path(&self.args[0], dir)?;
             let mut cmd = std::process::Command::new(&resolved);
             cmd.arg0(&self.args[0]);
             cmd.args(&self.args[1..]);
