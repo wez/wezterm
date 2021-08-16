@@ -1279,17 +1279,18 @@ impl super::TermWindow {
                     + (params.cursor.x + params.pos.left) as f32 * cell_width
                     + self.config.window_padding.left as f32;
 
-                for (tex, color) in [
-                    (params.filled_box, bg_color),
-                    (
-                        gl_state
-                            .glyph_cache
-                            .borrow_mut()
-                            .cursor_sprite(cursor_shape)?
-                            .texture_coords(),
-                        params.cursor_border_color,
-                    ),
-                ] {
+                if bg_color != LinearRgba::TRANSPARENT {
+                    // Avoid poking a transparent hole underneath the cursor
+                    let mut quad = quads.allocate()?;
+                    quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+
+                    quad.set_texture_adjust(0., 0., 0., 0.);
+                    quad.set_hsv(hsv);
+                    quad.set_texture(params.white_space);
+                    quad.set_is_background();
+                    quad.set_fg_color(bg_color);
+                }
+                {
                     let mut quad = quads.allocate()?;
                     quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
@@ -1297,11 +1298,17 @@ impl super::TermWindow {
                     quad.set_has_color(false);
                     quad.set_hsv(hsv);
 
-                    quad.set_texture(tex);
+                    quad.set_texture(
+                        gl_state
+                            .glyph_cache
+                            .borrow_mut()
+                            .cursor_sprite(cursor_shape)?
+                            .texture_coords(),
+                    );
                     quad.set_fg_color(if self.config.force_reverse_video_cursor {
                         bg_color
                     } else {
-                        color
+                        params.cursor_border_color
                     });
                 }
             }
