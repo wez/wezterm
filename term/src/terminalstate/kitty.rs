@@ -127,7 +127,7 @@ impl TerminalState {
             image_id: Some(image_id),
             placement_id: placement.placement_id,
             do_not_move_cursor: placement.do_not_move_cursor,
-        });
+        })?;
 
         self.kitty_img
             .placements

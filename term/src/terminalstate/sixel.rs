@@ -107,7 +107,7 @@ impl TerminalState {
         let image_data = ImageDataType::new_single_frame(width, height, data);
 
         let image_data = self.raw_image_to_image_data(image_data);
-        self.assign_image_to_cells(ImageAttachParams {
+        if let Err(err) = self.assign_image_to_cells(ImageAttachParams {
             image_width: width,
             image_height: height,
             source_width: width,
@@ -124,6 +124,8 @@ impl TerminalState {
             image_id: None,
             placement_id: None,
             do_not_move_cursor: false,
-        });
+        }) {
+            log::error!("set sixel image: {:#}", err);
+        }
     }
 }

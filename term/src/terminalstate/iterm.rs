@@ -50,6 +50,19 @@ impl TerminalState {
             }
         };
 
+        const MAX_IMAGE_SIZE: u32 = 100_000_000;
+        let size = info.width.saturating_mul(info.height).saturating_mul(4);
+        if size > MAX_IMAGE_SIZE {
+            log::error!(
+                "Ignoring iterm image data {}x{} because {} bytes > max allowed {}",
+                info.width,
+                info.height,
+                size,
+                MAX_IMAGE_SIZE
+            );
+            return;
+        }
+
         // Figure out the dimensions.
         let physical_cols = self.screen().physical_cols;
         let physical_rows = self.screen().physical_rows;
@@ -122,7 +135,7 @@ impl TerminalState {
         };
 
         let image_data = self.raw_image_to_image_data(data);
-        self.assign_image_to_cells(ImageAttachParams {
+        if let Err(err) = self.assign_image_to_cells(ImageAttachParams {
             image_width: width as u32,
             image_height: height as u32,
             source_width: width as u32,
@@ -139,6 +152,8 @@ impl TerminalState {
             image_id: None,
             placement_id: None,
             do_not_move_cursor: false,
-        });
+        }) {
+            log::error!("set iterm2 image: {:#}", err);
+        }
     }
 }

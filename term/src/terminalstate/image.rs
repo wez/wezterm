@@ -1,7 +1,8 @@
 use crate::{Position, StableRowIndex, TerminalState};
+use anyhow::Context;
 use ordered_float::NotNan;
 use std::sync::Arc;
-use termwiz::cell::{Cell, CellAttributes};
+use termwiz::cell::Cell;
 use termwiz::image::{ImageCell, ImageDataType};
 use termwiz::surface::change::ImageData;
 use termwiz::surface::TextureCoordinate;
@@ -57,7 +58,10 @@ pub enum ImageAttachStyle {
 }
 
 impl TerminalState {
-    pub(crate) fn assign_image_to_cells(&mut self, params: ImageAttachParams) -> PlacementInfo {
+    pub(crate) fn assign_image_to_cells(
+        &mut self,
+        params: ImageAttachParams,
+    ) -> anyhow::Result<PlacementInfo> {
         let seqno = self.seqno;
         let physical_cols = self.screen().physical_cols;
         let physical_rows = self.screen().physical_rows;
@@ -81,10 +85,10 @@ impl TerminalState {
 
         let first_row = self.screen().visible_row_to_stable_row(self.cursor.y);
 
-        let mut ypos =
-            NotNan::new(params.source_origin_y as f32 / params.image_height as f32).unwrap();
-        let start_xpos =
-            NotNan::new(params.source_origin_x as f32 / params.image_width as f32).unwrap();
+        let mut ypos = NotNan::new(params.source_origin_y as f32 / params.image_height as f32)
+            .context("computing ypos")?;
+        let start_xpos = NotNan::new(params.source_origin_x as f32 / params.image_width as f32)
+            .context("computing xpos")?;
 
         let cursor_x = self.cursor.x;
         let x_delta = (source_width as f32 / params.image_width as f32) / width_in_cells as f32;
@@ -126,7 +130,7 @@ impl TerminalState {
                     .screen()
                     .get_cell(cursor_x + x, cursor_y)
                     .cloned()
-                    .unwrap_or_else(|| Cell::new(' ', CellAttributes::default()));
+                    .unwrap_or_else(Cell::blank);
                 let img = Box::new(ImageCell::with_z_index(
                     TextureCoordinate::new(xpos, ypos),
                     TextureCoordinate::new(xpos + x_delta, ypos + y_delta),
@@ -171,11 +175,11 @@ impl TerminalState {
             }
         }
 
-        PlacementInfo {
+        Ok(PlacementInfo {
             first_row,
             rows: height_in_cells,
             cols: width_in_cells,
-        }
+        })
     }
 
     /// cache recent images and avoid assigning a new id for repeated data!
