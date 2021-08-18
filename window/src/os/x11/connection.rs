@@ -297,7 +297,7 @@ impl XConnection {
         // check for previous errors produced by the IME forward_event callback
         self.ime_process_event_result.replace(Ok(()))?;
 
-        if self.ime.borrow_mut().process_event(event) {
+        if config::configuration().use_ime && self.ime.borrow_mut().process_event(event) {
             self.ime_process_event_result.replace(Ok(()))
         } else {
             self.process_xcb_event(event)
