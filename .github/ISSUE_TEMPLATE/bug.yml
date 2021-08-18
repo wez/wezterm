@@ -1,8 +1,8 @@
 name: Bug Report Form
 description: Create a report to help us improve
-title: ""
+title: "Bug Report Form"
 labels: bug
-assignees: ""
+assignees: []
 body:
   - type: dropdown
     id: os
@@ -33,7 +33,7 @@ body:
     validations:
       required: true
   - type: textarea
-    id: description
+    id: to_repro
     attributes:
       label: To Reproduce
       description: Steps to reproduce the behavior
