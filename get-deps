@@ -112,6 +112,7 @@ fi
 
 if test -e /etc/debian_version ; then
   APT="$SUDO apt-get"
+  apt-cache show libxcb-util-dev > /dev/null 2>&1 && XCBUTIL="libxcb-util-dev" || XCBUTIL="libxcb-util0-dev"
   $APT install -y \
     bsdutils \
     cmake \
@@ -132,7 +133,7 @@ if test -e /etc/debian_version ; then
     libxcb-xkb-dev \
     libxkbcommon-dev \
     libxkbcommon-x11-dev \
-    libxcb-util-dev \
+    "$XCBUTIL" \
     lsb-release \
     python3 \
     xdg-utils \
