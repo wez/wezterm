@@ -109,6 +109,7 @@ impl LoadedFont {
             presentation,
         );
 
+        no_glyphs.retain(|&c| c != '\u{FE0F}' && c != '\u{FE0E}');
         filter_out_synthetic(&mut no_glyphs);
 
         if !no_glyphs.is_empty() {

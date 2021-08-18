@@ -186,6 +186,7 @@ impl HarfbuzzShaper {
 
         let cell_width;
         let shaped_any;
+        let initial_font_idx = font_idx;
 
         loop {
             match self.load_fallback(font_idx).context("load_fallback")? {
@@ -224,6 +225,22 @@ impl HarfbuzzShaper {
             // to be worthy of a fallback lookup
             for c in s.chars() {
                 no_glyphs.push(c);
+            }
+
+            if presentation.is_some() {
+                // We hit the last resort and we have an explicit presentation.
+                // This is a little awkward; we want to record the missing
+                // glyphs so that we can resolve them async, but we also
+                // want to try the current set of fonts without forcing
+                // the presentation match as we might find the results
+                // that way.
+                // Let's restart the shape but pretend that no specific
+                // presentation was used.
+                // We'll probably match the emoji presentation for something,
+                // but might potentially discover the text presentation for
+                // that glyph in a fallback font and swap it out a little
+                // later after a flash of showing the emoji one.
+                return self.do_shape(initial_font_idx, s, font_size, dpi, no_glyphs, None);
             }
         }
 
