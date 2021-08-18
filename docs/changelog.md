@@ -14,6 +14,9 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: `wezterm cli spawn` would use the initial terminal size for a new tab, rather than using the current tab size [#920](https://github.com/wez/wezterm/issues/920)
 * Fixed: `text_background_opacity` opacity was not respected
 * Fixed: spawning commands via the mux didn't respect the `PATH` configured in `set_environment_variables`. [#1029](https://github.com/wez/wezterm/issues/1029)
+* Fixed: cursor could have a transparent "hole" through the window with certain cursor styles
+* Fixed: Consolas font + random input could cause a divide-by-zero when computing glyph metrics [#1042](https://github.com/wez/wezterm/issues/1042)
+* Fixed: Emoji fallback was too strict in respecting VS15/VS16 presentation selection, adjust the fallback to allow showing Emoji/Text presentation if Text/Emoji was requested but not found.
 
 ### 20210814-124438-54e29167
 
