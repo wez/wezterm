@@ -19,6 +19,7 @@ use std::convert::TryInto;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use wezterm_font::FontConfiguration;
+use wezterm_input_types::{KeyCode, KeyEvent, Modifiers};
 
 #[derive(Default)]
 struct CopyAndPaste {
@@ -354,7 +355,17 @@ impl XWindowInner {
     }
 
     pub fn dispatch_ime_text(&mut self, text: &str) {
-        self.events.dispatch(WindowEvent::Ime(text.into()));
+        let key_event = KeyEvent {
+            key: KeyCode::Composed(text.into()),
+            raw_key: None,
+            raw_modifiers: Modifiers::NONE,
+            raw_code: None,
+            modifiers: Modifiers::NONE,
+            repeat_count: 1,
+            key_is_down: true,
+        }
+        .normalize_shift();
+        self.events.dispatch(WindowEvent::KeyEvent(key_event));
     }
 
     /// If we own the selection, make sure that the X server reflects

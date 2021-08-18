@@ -692,12 +692,6 @@ impl TermWindow {
                 self.key_event_impl(event, window);
                 Ok(true)
             }
-            WindowEvent::Ime(text) => {
-                if let Some(pane) = self.get_active_pane_or_overlay() {
-                    pane.writer().write_all(text.as_bytes())?;
-                }
-                Ok(true)
-            }
             WindowEvent::NeedRepaint => Ok(self.do_paint(window)),
             WindowEvent::Notification(item) => {
                 if let Ok(notif) = item.downcast::<TermWindowNotif>() {
