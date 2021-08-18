@@ -897,6 +897,9 @@ impl XWindowInner {
     }
 
     fn set_text_cursor_position(&mut self, cursor: Rect) {
+        if self.last_cursor_position == cursor {
+            return;
+        }
         self.last_cursor_position = cursor;
         self.update_ime_position();
     }
