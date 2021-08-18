@@ -501,12 +501,15 @@ impl XConnection {
 
         {
             let conn = conn.clone();
-            conn.clone().ime.borrow_mut().set_commit_string_cb(move |window_id, input| {
-                if let Some(window) = conn.window_by_id(window_id) {
-                    let mut inner = window.lock().unwrap();
-                    inner.dispatch_ime_text(input);
-                }
-            });
+            conn.clone()
+                .ime
+                .borrow_mut()
+                .set_commit_string_cb(move |window_id, input| {
+                    if let Some(window) = conn.window_by_id(window_id) {
+                        let mut inner = window.lock().unwrap();
+                        inner.dispatch_ime_text(input);
+                    }
+                });
         }
         {
             let conn = conn.clone();
@@ -514,7 +517,8 @@ impl XConnection {
                 .ime
                 .borrow_mut()
                 .set_forward_event_cb(move |_win, e| {
-                    if let err @ Err(_) = conn.process_xcb_event(unsafe { std::mem::transmute(e) }) {
+                    if let err @ Err(_) = conn.process_xcb_event(unsafe { std::mem::transmute(e) })
+                    {
                         if let Err(err) = conn.ime_process_event_result.replace(err) {
                             log::warn!("IME process event error dropped: {}", err);
                         }

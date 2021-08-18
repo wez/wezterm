@@ -7,7 +7,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{Clipboard, MouseCursor, ScreenPoint, Rect, WindowEvent, WindowOps};
+use crate::{Clipboard, MouseCursor, Rect, ScreenPoint, WindowEvent, WindowOps};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
