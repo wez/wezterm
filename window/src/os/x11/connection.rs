@@ -452,7 +452,14 @@ impl XConnection {
         let default_dpi = RefCell::new(compute_default_dpi(&xrm, &xsettings));
 
         xcb_imdkit::ImeClient::set_logger(|msg| log::debug!("Ime: {}", msg));
-        let ime = unsafe { xcb_imdkit::ImeClient::unsafe_new(&conn, screen_num, None) };
+        let ime = unsafe {
+            xcb_imdkit::ImeClient::unsafe_new(
+                &conn,
+                screen_num,
+                xcb_imdkit::InputStyle::DEFAULT,
+                None,
+            )
+        };
 
         let conn = Rc::new(XConnection {
             conn,
@@ -491,16 +498,19 @@ impl XConnection {
 
         {
             let conn = conn.clone();
-            conn.ime
-                .borrow_mut()
-                .set_commit_string_cb(|win, input| log::info!("Win: {}, got: {}", win, input));
+            conn.clone().ime.borrow_mut().set_commit_string_cb(move |window_id, input| {
+                if let Some(window) = conn.window_by_id(window_id) {
+                    let mut inner = window.lock().unwrap();
+                    inner.dispatch_ime_text(input);
+                }
+            });
         }
         {
             let conn = conn.clone();
             conn.clone()
                 .ime
                 .borrow_mut()
-                .set_forward_event_cb(move |win, e| {
+                .set_forward_event_cb(move |_win, e| {
                     let res = conn.process_xcb_event(unsafe { std::mem::transmute(e) });
                     let _ = conn.ime_process_event_result.replace(res);
                 });

@@ -346,6 +346,10 @@ impl XWindowInner {
         Ok(())
     }
 
+    pub fn dispatch_ime_text(&mut self, text: &str) {
+        self.events.dispatch(WindowEvent::Ime(text.into()));
+    }
+
     /// If we own the selection, make sure that the X server reflects
     /// that and vice versa.
     fn update_selection_owner(&mut self, clipboard: Clipboard) {

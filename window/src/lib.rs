@@ -146,6 +146,8 @@ pub enum WindowEvent {
     /// correctly.
     KeyEvent(KeyEvent),
 
+    Ime(String),
+
     MouseEvent(MouseEvent),
 
     AppearanceChanged(Appearance),
