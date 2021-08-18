@@ -5,8 +5,8 @@ use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
     Appearance, Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
-    MousePress, Point, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
-    WindowState,
+    MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender,
+    WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -876,6 +876,16 @@ impl XWindowInner {
         }
     }
 
+    fn set_text_cursor_position(&self, cursor: Rect) {
+        // TODO: only call this if this is the active window.
+        // Also handle switching between windows as well as geometry changes.
+        self.conn().ime.borrow_mut().update_pos(
+            self.window_id,
+            cursor.max_x() as i16,
+            cursor.max_y() as i16,
+        );
+    }
+
     fn set_icon(&mut self, image: &dyn BitmapImage) {
         let (width, height) = image.image_dimensions();
 
@@ -1012,6 +1022,13 @@ impl WindowOps for XWindow {
     fn set_window_position(&self, coords: ScreenPoint) {
         XConnection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
+            Ok(())
+        });
+    }
+
+    fn set_text_cursor_position(&self, cursor: Rect) {
+        XConnection::with_window_inner(self.0, move |inner| {
+            inner.set_text_cursor_position(cursor);
             Ok(())
         });
     }
