@@ -404,9 +404,15 @@ impl<T: Texture2d> GlyphCache<T> {
             false
         };
 
+        // We shouldn't need to render a glyph that occupies zero cells, but that
+        // can happen somehow; see <https://github.com/wez/wezterm/issues/1042>
+        // so let's treat 0 cells as 1 cell so that we don't try to divide by
+        // zero below.
+        let num_cells = info.num_cells.max(1) as f64;
+
         // Maximum width allowed for this glyph based on its unicode width and
         // the dimensions of a cell
-        let max_pixel_width = base_metrics.cell_width.get() * (info.num_cells as f64 + 0.25);
+        let max_pixel_width = base_metrics.cell_width.get() * (num_cells + 0.25);
 
         let scale;
         if info.font_idx == 0 {
@@ -415,7 +421,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 1.0
             } else {
                 // Scale the glyph to fit in its number of cells
-                1.0 / info.num_cells as f64
+                1.0 / num_cells
             };
         } else if !idx_metrics.is_scaled {
             // A bitmap font that isn't scaled to the requested height.
