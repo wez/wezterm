@@ -1,6 +1,6 @@
 name: Bug Report Form
 description: Create a report to help us improve
-title: "Bug Report Form"
+title: " "
 labels: bug
 assignees: []
 body:
@@ -11,9 +11,11 @@ body:
       multiple: true
       options:
         - Windows
-        - Linux/FreeBSD X11
-        - Linux/FreeBSD Wayland
+        - Linux X11
+        - Linux Wayland
         - macOS
+        - FreeBSD X11
+        - FreeBSD Wayland
     validations:
       required: true
   - type: input
@@ -21,7 +23,16 @@ body:
     attributes:
       label: WezTerm version
       description: "Please run `wezterm -V` and include its output here"
-      placeholder: "run `wezterm -V` and paste it here. ex: 20210816-085256-935c1f48"
+      placeholder: "ex: 20210816-085256-935c1f48"
+    validations:
+      required: true
+  - type: dropdown
+    id: triednightly
+    attributes:
+      label: Did you try the latest nightly build to see if the issue is better (or worse!) than your current version?
+      options:
+        - Yes, and I updated the version box above to show the version of the nightly that I tried
+        - No, and I'll explain why below
     validations:
       required: true
   - type: textarea
@@ -38,15 +49,35 @@ body:
       label: To Reproduce
       description: Steps to reproduce the behavior
       placeholder: |
-        Please include as much information as possible tha tcan help to reproduce and
+        Please include as much information as possible that can help to reproduce and
         understand the issue.
   - type: textarea
     id: config
     attributes:
       label: Configuration
       description: Please include the relevant section(s) of your `wezterm.lua` configuration file
+    validations:
+      required: true
   - type: textarea
     id: expected
     attributes:
       label: Expected Behavior
       description: A clear and concise description of what you expected to happen
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        If possible, activate the Debug Overlay by pressing CTRL-SHIFT-L and then copy
+        and paste the log lines in here.  Alternatively, if you launched wezterm from
+        the command line, copy and paste that output here.
+      placeholder: |
+        09:27:26.703 INFO wezterm_gui::termwindow > OpenGL initialized! NVIDIA GeForce GT 1030/PCIe/SSE2 4.6.0 NVIDIA 470.57.02 is_context_loss_possible=false wezterm version: 20210816-085256-935c1f48
+  - type: textarea
+    id: other
+    attributes:
+      label: Anything else?
+      description: |
+        Add any other context about the problem here.  You can attach screenshots by clicking
+        this area to highlight it and then drag the files in, or just paste the image from
+        the clipboard to upload it.
