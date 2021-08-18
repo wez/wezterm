@@ -150,6 +150,9 @@ usually the best available version.</p>
 <li>Fixed: <code>wezterm cli spawn</code> would use the initial terminal size for a new tab, rather than using the current tab size <a href="https://github.com/wez/wezterm/issues/920">#920</a></li>
 <li>Fixed: <code>text_background_opacity</code> opacity was not respected</li>
 <li>Fixed: spawning commands via the mux didn't respect the <code>PATH</code> configured in <code>set_environment_variables</code>. <a href="https://github.com/wez/wezterm/issues/1029">#1029</a></li>
+<li>Fixed: cursor could have a transparent &quot;hole&quot; through the window with certain cursor styles</li>
+<li>Fixed: Consolas font + random input could cause a divide-by-zero when computing glyph metrics <a href="https://github.com/wez/wezterm/issues/1042">#1042</a></li>
+<li>Fixed: Emoji fallback was too strict in respecting VS15/VS16 presentation selection, adjust the fallback to allow showing Emoji/Text presentation if Text/Emoji was requested but not found.</li>
 </ul>
 <h3 id="20210814-124438-54e29167"><a class="header" href="#20210814-124438-54e29167">20210814-124438-54e29167</a></h3>
 <ul>
