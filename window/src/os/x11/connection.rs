@@ -294,6 +294,9 @@ impl XConnection {
     }
 
     fn process_xcb_event_ime(&self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
+        // check for previous errors produced by the IME forward_event callback
+        self.ime_process_event_result.replace(Ok(()))?;
+
         if self.ime.borrow_mut().process_event(event) {
             self.ime_process_event_result.replace(Ok(()))
         } else {
@@ -511,8 +514,11 @@ impl XConnection {
                 .ime
                 .borrow_mut()
                 .set_forward_event_cb(move |_win, e| {
-                    let res = conn.process_xcb_event(unsafe { std::mem::transmute(e) });
-                    let _ = conn.ime_process_event_result.replace(res);
+                    if let err @ Err(_) = conn.process_xcb_event(unsafe { std::mem::transmute(e) }) {
+                        if let Err(err) = conn.ime_process_event_result.replace(err) {
+                            log::warn!("IME process event error dropped: {}", err);
+                        }
+                    }
                 });
         }
 
