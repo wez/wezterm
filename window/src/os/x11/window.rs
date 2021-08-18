@@ -64,6 +64,8 @@ pub(crate) struct XWindowInner {
     config: ConfigHandle,
     appearance: Appearance,
     title: String,
+    has_focus: bool,
+    last_cursor_position: Rect,
 }
 
 impl Drop for XWindowInner {
@@ -167,6 +169,8 @@ impl XWindowInner {
                 self.expose(expose.x(), expose.y(), expose.width(), expose.height());
             }
             xcb::CONFIGURE_NOTIFY => {
+                self.update_ime_position();
+
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
                 let width = cfg.width();
                 let height = cfg.height();
@@ -331,10 +335,13 @@ impl XWindowInner {
                 }
             }
             xcb::FOCUS_IN => {
+                self.has_focus = true;
+                self.update_ime_position();
                 log::trace!("Calling focus_change(true)");
                 self.events.dispatch(WindowEvent::FocusChanged(true));
             }
             xcb::FOCUS_OUT => {
+                self.has_focus = false;
                 log::trace!("Calling focus_change(false)");
                 self.events.dispatch(WindowEvent::FocusChanged(false));
             }
@@ -762,6 +769,8 @@ impl XWindow {
                 copy_and_paste: CopyAndPaste::default(),
                 cursors: CursorInfo::new(&conn),
                 config: config.clone(),
+                has_focus: false,
+                last_cursor_position: Rect::default(),
             }))
         };
 
@@ -876,13 +885,19 @@ impl XWindowInner {
         }
     }
 
-    fn set_text_cursor_position(&self, cursor: Rect) {
-        // TODO: only call this if this is the active window.
-        // Also handle switching between windows as well as geometry changes.
+    fn set_text_cursor_position(&mut self, cursor: Rect) {
+        self.last_cursor_position = cursor;
+        self.update_ime_position();
+    }
+
+    fn update_ime_position(&mut self) {
+        if !self.has_focus {
+            return;
+        }
         self.conn().ime.borrow_mut().update_pos(
             self.window_id,
-            cursor.max_x() as i16,
-            cursor.max_y() as i16,
+            self.last_cursor_position.max_x() as i16,
+            self.last_cursor_position.max_y() as i16,
         );
     }
 
