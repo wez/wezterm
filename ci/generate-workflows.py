@@ -578,6 +578,7 @@ on:
     - 'ci/generate-docs.py'
     - 'ci/subst-release-info.py'
     - '.github/workflows/pages.yml'
+    - '.github/ISSUE_TEMPLATE/*'
     - '**/*.md'
 """,
         is_continuous=False,
@@ -602,6 +603,7 @@ on:
     - 'ci/generate-docs.py'
     - 'ci/subst-release-info.py'
     - '.github/workflows/pages.yml'
+    - '.github/ISSUE_TEMPLATE/*'
     - '**/*.md'
 """,
         is_continuous=True,
