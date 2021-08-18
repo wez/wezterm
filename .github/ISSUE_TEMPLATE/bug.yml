@@ -1,0 +1,52 @@
+name: Bug Report Form
+description: Create a report to help us improve
+title: ""
+labels: bug
+assignees: ""
+body:
+  - type: dropdown
+    id: os
+    attributes:
+      label: What Operating System(s) are you seeing this problem on?
+      multiple: true
+      options:
+        - Windows
+        - Linux/FreeBSD X11
+        - Linux/FreeBSD Wayland
+        - macOS
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: WezTerm version
+      description: "Please run `wezterm -V` and include its output here"
+      placeholder: "run `wezterm -V` and paste it here. ex: 20210816-085256-935c1f48"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is
+      placeholder: Tell us what happened
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        Please include as much information as possible tha tcan help to reproduce and
+        understand the issue.
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Please include the relevant section(s) of your `wezterm.lua` configuration file
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen
