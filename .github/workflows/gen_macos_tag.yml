@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       fail-fast: false
-    runs-on: "macos-11.0"
+    runs-on: "macos-11"
     
     steps:
     - name: "checkout repo"
