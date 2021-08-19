@@ -78,16 +78,23 @@ void main() {
     color = sample_texture(atlas_linear_sampler, o_tex);
     // Apply window_background_image_opacity to the background image
     colorMask = o_fg_color.aaaa;
+    // don't double up on alpha
+    color.a = 1.0;
   } else {
-    color = sample_texture(atlas_nearest_sampler, o_tex);
     if (o_has_color == 0.0) {
-      // if it's not a color emoji it will be grayscale
+      // if it's not a color emoji or image attachment, then the texture is the color mask
+      colorMask = sample_texture(atlas_nearest_sampler, o_tex);
+      colorMask.a = 1.0;
       // and we need to tint with the fg_color
-      colorMask = color;
       color = o_fg_color;
       color = apply_hsv(color, foreground_text_hsb);
     } else {
+      // otherwise, the texture is full color info
+      color = sample_texture(atlas_nearest_sampler, o_tex);
+      // this is the alpha
       colorMask = color.aaaa;
+      // don't double up on alpha
+      color.a = 1.0;
     }
   }
 
