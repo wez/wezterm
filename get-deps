@@ -188,6 +188,7 @@ case $OSTYPE in
       python3 \
       rust \
       wayland \
+      libxcb \
       xcb-util \
       xcb-util-image \
       xcb-util-keysyms \
