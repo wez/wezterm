@@ -556,7 +556,7 @@ impl super::TermWindow {
         )
         .to_arrays_transposed();
 
-        let alpha_blending = glium::DrawParameters {
+        let dual_source_blending = glium::DrawParameters {
             blend: glium::Blend {
                 color: BlendingFunction::Addition {
                     source: LinearBlendingFactor::SourceOneColor,
@@ -594,46 +594,6 @@ impl super::TermWindow {
 
         let vertices = vb.current_vb();
 
-        // Use regular alpha blending when we draw the glyphs!
-        // This is trying to avoid an issue that is most prevalent
-        // on Wayland and X11.  If our glyph pixels end up with alpha
-        // that isn't 1.0 then the window behind can cause the resultant
-        // text to appear brighter or more bold, especially with a
-        // 100% white window behind.
-        //
-        // To avoid this, for the computed alpha channel, instruct
-        // the render phase to pick a larger alpha value.
-        // There doesn't appear to be a way to tell it to set the
-        // result to constant=1.0, only to influence the factors
-        // in the equation:
-        //
-        // alpha = src_alpha * src_factor + dest_alpha * dest_factor.
-        //
-        // src_alpha comes from the glyph we are rendering.
-        // dest_alpha comes from the background it is rendering over.
-        // src_factor from alpha.source below
-        // dest_factor from alpha.destination below
-        //
-        // If you're here troubleshooting this, please see:
-        // <https://github.com/wez/wezterm/issues/413>
-        // <https://github.com/wez/wezterm/issues/470>
-        let blend_but_set_alpha_to_one = glium::DrawParameters {
-            blend: glium::Blend {
-                // Standard alpha-blending color
-                color: BlendingFunction::Addition {
-                    source: LinearBlendingFactor::SourceAlpha,
-                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
-                },
-                // Try to result in an alpha closer to 1.0
-                alpha: BlendingFunction::Addition {
-                    source: LinearBlendingFactor::One,
-                    destination: LinearBlendingFactor::One,
-                },
-                constant_value: (0.0, 0.0, 0.0, 0.0),
-            },
-            ..Default::default()
-        };
-
         frame.draw(
             vertices.slice(0..vertex_count).unwrap(),
             vb.indices.slice(0..index_count).unwrap(),
@@ -644,11 +604,7 @@ impl super::TermWindow {
                 atlas_linear_sampler:  atlas_linear_sampler,
                 foreground_text_hsb: foreground_text_hsb,
             },
-            if self.config.use_alternative_alpha_blending {
-                &blend_but_set_alpha_to_one
-            } else {
-                &alpha_blending
-            },
+            &dual_source_blending,
         )?;
 
         vb.next_index();
