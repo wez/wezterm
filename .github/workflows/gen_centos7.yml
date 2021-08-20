@@ -31,10 +31,9 @@ jobs:
     - name: "Install Git from source"
       shell: bash
       run: |
-
-            yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel centos-release-scl-rh perl-ExtUtils-MakeMaker make
-            yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++
-
+            
+            yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make devtoolset-9-gcc devtoolset-9-gcc-c++
+            
             if test ! -x /usr/local/git/bin/git ; then
                 cd /tmp
                 wget https://github.com/git/git/archive/v2.26.2.tar.gz
@@ -42,9 +41,9 @@ jobs:
                 cd git-2.26.2
                 make prefix=/usr/local/git install
             fi
-
+            
             ln -s /usr/local/git/bin/git /usr/local/bin/git
-
+                    
 
     - name: "Install curl"
       shell: bash
@@ -97,7 +96,7 @@ jobs:
       run: |
             mkdir pkg_
             mv ~/rpmbuild/RPMS/*/*.rpm pkg_
-
+            
 
     - name: "Upload artifact"
       uses: actions/upload-artifact@master

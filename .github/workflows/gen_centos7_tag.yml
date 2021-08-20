@@ -23,7 +23,7 @@ jobs:
       shell: bash
       run: |
             
-            yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
+            yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make devtoolset-9-gcc devtoolset-9-gcc-c++
             
             if test ! -x /usr/local/git/bin/git ; then
                 cd /tmp
@@ -72,10 +72,10 @@ jobs:
       run: " env PATH=$PATH ./get-deps"
     - name: "Build (Release mode)"
       shell: bash
-      run: "cargo build --all --release"
+      run: "source /opt/rh/devtoolset-9/enable && cargo build --all --release"
     - name: "Test (Release mode)"
       shell: bash
-      run: "cargo test --all --release"
+      run: "source /opt/rh/devtoolset-9/enable && cargo test --all --release"
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"

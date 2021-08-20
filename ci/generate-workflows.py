@@ -167,6 +167,8 @@ class Target(object):
             pre_reqs = ""
             if self.uses_yum():
                 pre_reqs = "yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make"
+                if self.name == "centos7":
+                    pre_reqs += " devtoolset-9-gcc devtoolset-9-gcc-c++"
             elif self.uses_apt():
                 pre_reqs = "apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make"
 
@@ -216,7 +218,10 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
         ]
         if "macos" in self.name:
             steps += [
-                RunStep(name="Install Rust (ARM)", run="rustup target add aarch64-apple-darwin")
+                RunStep(
+                    name="Install Rust (ARM)",
+                    run="rustup target add aarch64-apple-darwin",
+                )
             ]
         if cache:
             cache_paths = ["~/.cargo/registry", "~/.cargo/git", "target"]
@@ -233,7 +238,9 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
         if "win" in self.name:
             return []
         sudo = "sudo -n " if self.needs_sudo() else ""
-        return [RunStep(name="Install System Deps", run=f"{sudo} env PATH=$PATH ./get-deps")]
+        return [
+            RunStep(name="Install System Deps", run=f"{sudo} env PATH=$PATH ./get-deps")
+        ]
 
     def check_formatting(self):
         return [RunStep(name="Check formatting", run="cargo fmt --all -- --check")]
@@ -253,17 +260,40 @@ cargo build --all --release""",
             return [
                 RunStep(
                     name="Build (Release mode Intel)",
-                    run="cargo build --target x86_64-apple-darwin --all --release"),
+                    run="cargo build --target x86_64-apple-darwin --all --release",
+                ),
                 RunStep(
                     name="Build (Release mode ARM)",
-                    run="cargo build --target aarch64-apple-darwin --all --release"),
+                    run="cargo build --target aarch64-apple-darwin --all --release",
+                ),
             ]
-        return [RunStep(name="Build (Release mode)", run="cargo build --all --release")]
+        if self.name == "centos7":
+            enable = "source /opt/rh/devtoolset-9/enable && "
+        else:
+            enable = ""
+        return [
+            RunStep(
+                name="Build (Release mode)", run=enable + "cargo build --all --release"
+            )
+        ]
 
     def test_all_release(self):
         if "macos" in self.name:
-            return [RunStep(name="Test (Release mode)", run="cargo test --target x86_64-apple-darwin --all --release")]
-        return [RunStep(name="Test (Release mode)", run="cargo test --all --release")]
+            return [
+                RunStep(
+                    name="Test (Release mode)",
+                    run="cargo test --target x86_64-apple-darwin --all --release",
+                )
+            ]
+        if self.name == "centos7":
+            enable = "source /opt/rh/devtoolset-9/enable && "
+        else:
+            enable = ""
+        return [
+            RunStep(
+                name="Test (Release mode)", run=enable + "cargo test --all --release"
+            )
+        ]
 
     def package(self):
         steps = [RunStep("Package", "bash ci/deploy.sh")]

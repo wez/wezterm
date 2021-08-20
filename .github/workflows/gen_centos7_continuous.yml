@@ -35,7 +35,7 @@ jobs:
       run: |
             export BUILD_REASON=Schedule
             
-            yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
+            yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make devtoolset-9-gcc devtoolset-9-gcc-c++
             
             if test ! -x /usr/local/git/bin/git ; then
                 cd /tmp
@@ -103,14 +103,14 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            cargo build --all --release
+            source /opt/rh/devtoolset-9/enable && cargo build --all --release
             
 
     - name: "Test (Release mode)"
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            cargo test --all --release
+            source /opt/rh/devtoolset-9/enable && cargo test --all --release
             
 
     - name: "Package"
