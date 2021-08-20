@@ -152,6 +152,17 @@ class Target(object):
             return self.install_system_package("curl")
         return []
 
+    def install_newer_compiler(self):
+        steps = []
+        if self.name == "centos7":
+            steps.append(
+                RunStep(
+                    "Update compiler",
+                    "yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++",
+                )
+            )
+        return steps
+
     def install_git(self):
         steps = []
         if self.bootstrap_git:
@@ -167,8 +178,6 @@ class Target(object):
             pre_reqs = ""
             if self.uses_yum():
                 pre_reqs = "yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make"
-                if self.name == "centos7":
-                    pre_reqs += " devtoolset-9-gcc devtoolset-9-gcc-c++"
             elif self.uses_apt():
                 pre_reqs = "apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make"
 
@@ -469,6 +478,7 @@ cargo build --all --release""",
                         "dnf config-manager --set-enabled powertools",
                     ),
                 ]
+        steps += self.install_newer_compiler()
         steps += self.install_git()
         steps += self.install_curl()
         steps += [
