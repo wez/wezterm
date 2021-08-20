@@ -33,7 +33,7 @@ jobs:
       run: |
 
             yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel centos-release-scl-rh perl-ExtUtils-MakeMaker make
-            yum install -y devtoolset-9-gcc
+            yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++
 
             if test ! -x /usr/local/git/bin/git ; then
                 cd /tmp
