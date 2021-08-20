@@ -73,6 +73,7 @@ smithay-client-toolkit = {version = "0.14", default-features=false, optional=tru
 wayland-protocols = {version="0.28", optional=true}
 wayland-client = {version="0.28", optional=true}
 wayland-egl = {version="0.28", optional=true}
+xcb-imdkit = { version="0.1", git = "https://github.com/H-M-H/xcb-imdkit-rs" }
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"

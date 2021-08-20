@@ -46,6 +46,8 @@ pub struct XConnection {
     pub(crate) visual: xcb::xproto::Visualtype,
     pub(crate) depth: u8,
     pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
+    pub(crate) ime: RefCell<std::pin::Pin<Box<xcb_imdkit::ImeClient>>>,
+    pub(crate) ime_process_event_result: RefCell<anyhow::Result<()>>,
 }
 
 impl std::ops::Deref for XConnection {
@@ -275,7 +277,7 @@ impl XConnection {
                 }
             },
             Some(event) => {
-                if let Err(err) = self.process_xcb_event(&event) {
+                if let Err(err) = self.process_xcb_event_ime(&event) {
                     return Err(err);
                 }
             }
@@ -285,9 +287,20 @@ impl XConnection {
         loop {
             match self.conn.poll_for_queued_event() {
                 None => return Ok(()),
-                Some(event) => self.process_xcb_event(&event)?,
+                Some(event) => self.process_xcb_event_ime(&event)?,
             }
             self.conn.flush();
+        }
+    }
+
+    fn process_xcb_event_ime(&self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
+        // check for previous errors produced by the IME forward_event callback
+        self.ime_process_event_result.replace(Ok(()))?;
+
+        if config::configuration().use_ime && self.ime.borrow_mut().process_event(event) {
+            self.ime_process_event_result.replace(Ok(()))
+        } else {
+            self.process_xcb_event(event)
         }
     }
 
@@ -326,7 +339,7 @@ impl XConnection {
         Ok(())
     }
 
-    pub(crate) fn create_new() -> anyhow::Result<XConnection> {
+    pub(crate) fn create_new() -> anyhow::Result<Rc<XConnection>> {
         let (conn, screen_num) = connect_with_xlib_display()?;
         let conn = xcb_util::ewmh::Connection::connect(conn)
             .map_err(|_| anyhow!("failed to init ewmh"))?;
@@ -441,7 +454,17 @@ impl XConnection {
 
         let default_dpi = RefCell::new(compute_default_dpi(&xrm, &xsettings));
 
-        let conn = XConnection {
+        xcb_imdkit::ImeClient::set_logger(|msg| log::debug!("Ime: {}", msg));
+        let ime = unsafe {
+            xcb_imdkit::ImeClient::unsafe_new(
+                &conn,
+                screen_num,
+                xcb_imdkit::InputStyle::DEFAULT,
+                None,
+            )
+        };
+
+        let conn = Rc::new(XConnection {
             conn,
             default_dpi,
             xsettings: RefCell::new(xsettings),
@@ -472,7 +495,36 @@ impl XConnection {
             depth,
             visual,
             gl_connection: RefCell::new(None),
-        };
+            ime: RefCell::new(ime),
+            ime_process_event_result: RefCell::new(Ok(())),
+        });
+
+        {
+            let conn = conn.clone();
+            conn.clone()
+                .ime
+                .borrow_mut()
+                .set_commit_string_cb(move |window_id, input| {
+                    if let Some(window) = conn.window_by_id(window_id) {
+                        let mut inner = window.lock().unwrap();
+                        inner.dispatch_ime_text(input);
+                    }
+                });
+        }
+        {
+            let conn = conn.clone();
+            conn.clone()
+                .ime
+                .borrow_mut()
+                .set_forward_event_cb(move |_win, e| {
+                    if let err @ Err(_) = conn.process_xcb_event(unsafe { std::mem::transmute(e) })
+                    {
+                        if let Err(err) = conn.ime_process_event_result.replace(err) {
+                            log::warn!("IME process event error dropped: {}", err);
+                        }
+                    }
+                });
+        }
 
         Ok(conn)
     }

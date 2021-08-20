@@ -77,6 +77,7 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
     libxkbcommon-x11-devel \
     wayland-devel \
     mesa-libEGL-devel \
+    xcb-util-devel \
     xcb-util-keysyms-devel \
     xcb-util-image-devel \
     xcb-util-wm-devel \
@@ -101,6 +102,7 @@ if test -x /usr/bin/lsb_release && test `lsb_release -si` = "openSUSE"; then
     libxkbcommon-x11-devel \
     wayland-devel \
     Mesa-libEGL-devel \
+    xcb-util-devel \
     xcb-util-keysyms-devel \
     xcb-util-image-devel \
     xcb-util-wm-devel \
@@ -110,6 +112,7 @@ fi
 
 if test -e /etc/debian_version ; then
   APT="$SUDO apt-get"
+  apt-cache show libxcb-util-dev > /dev/null 2>&1 && XCBUTIL="libxcb-util-dev" || XCBUTIL="libxcb-util0-dev"
   $APT install -y \
     bsdutils \
     cmake \
@@ -130,6 +133,7 @@ if test -e /etc/debian_version ; then
     libxcb-xkb-dev \
     libxkbcommon-dev \
     libxkbcommon-x11-dev \
+    "$XCBUTIL" \
     lsb-release \
     python3 \
     xdg-utils \
@@ -151,6 +155,7 @@ if test -e /etc/arch-release ; then
     'python3' \
     'rust' \
     'wayland' \
+    'xcb-util' \
     'xcb-util-image' \
     'xcb-util-keysyms' \
     'xcb-util-wm'
@@ -183,6 +188,8 @@ case $OSTYPE in
       python3 \
       rust \
       wayland \
+      libxcb \
+      xcb-util \
       xcb-util-image \
       xcb-util-keysyms \
       xcb-util-wm \

@@ -7,7 +7,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{Clipboard, MouseCursor, ScreenPoint, WindowEvent, WindowOps};
+use crate::{Clipboard, MouseCursor, Rect, ScreenPoint, WindowEvent, WindowOps};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
@@ -43,7 +43,7 @@ impl Connection {
                 }
             }
         }
-        Ok(Connection::X11(Rc::new(XConnection::create_new()?)))
+        Ok(Connection::X11(XConnection::create_new()?))
     }
 
     pub async fn new_window<F>(
@@ -274,6 +274,12 @@ impl WindowOps for Window {
             Self::X11(x) => x.set_window_position(coords),
             #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.set_window_position(coords),
+        }
+    }
+
+    fn set_text_cursor_position(&self, cursor: Rect) {
+        if let Self::X11(x) = self {
+            x.set_text_cursor_position(cursor);
         }
     }
 

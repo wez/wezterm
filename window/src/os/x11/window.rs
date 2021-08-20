@@ -5,8 +5,8 @@ use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
     Appearance, Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
-    MousePress, Point, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender, WindowOps,
-    WindowState,
+    MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender,
+    WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -19,6 +19,7 @@ use std::convert::TryInto;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use wezterm_font::FontConfiguration;
+use wezterm_input_types::{KeyCode, KeyEvent, Modifiers};
 
 #[derive(Default)]
 struct CopyAndPaste {
@@ -64,6 +65,8 @@ pub(crate) struct XWindowInner {
     config: ConfigHandle,
     appearance: Appearance,
     title: String,
+    has_focus: bool,
+    last_cursor_position: Rect,
 }
 
 impl Drop for XWindowInner {
@@ -167,6 +170,8 @@ impl XWindowInner {
                 self.expose(expose.x(), expose.y(), expose.width(), expose.height());
             }
             xcb::CONFIGURE_NOTIFY => {
+                self.update_ime_position();
+
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
                 let width = cfg.width();
                 let height = cfg.height();
@@ -331,10 +336,13 @@ impl XWindowInner {
                 }
             }
             xcb::FOCUS_IN => {
+                self.has_focus = true;
+                self.update_ime_position();
                 log::trace!("Calling focus_change(true)");
                 self.events.dispatch(WindowEvent::FocusChanged(true));
             }
             xcb::FOCUS_OUT => {
+                self.has_focus = false;
                 log::trace!("Calling focus_change(false)");
                 self.events.dispatch(WindowEvent::FocusChanged(false));
             }
@@ -344,6 +352,20 @@ impl XWindowInner {
         }
 
         Ok(())
+    }
+
+    pub fn dispatch_ime_text(&mut self, text: &str) {
+        let key_event = KeyEvent {
+            key: KeyCode::Composed(text.into()),
+            raw_key: None,
+            raw_modifiers: Modifiers::NONE,
+            raw_code: None,
+            modifiers: Modifiers::NONE,
+            repeat_count: 1,
+            key_is_down: true,
+        }
+        .normalize_shift();
+        self.events.dispatch(WindowEvent::KeyEvent(key_event));
     }
 
     /// If we own the selection, make sure that the X server reflects
@@ -758,6 +780,8 @@ impl XWindow {
                 copy_and_paste: CopyAndPaste::default(),
                 cursors: CursorInfo::new(&conn),
                 config: config.clone(),
+                has_focus: false,
+                last_cursor_position: Rect::default(),
             }))
         };
 
@@ -870,6 +894,25 @@ impl XWindowInner {
                 title.as_bytes().as_ptr() as *const _,
             );
         }
+    }
+
+    fn set_text_cursor_position(&mut self, cursor: Rect) {
+        if self.last_cursor_position == cursor {
+            return;
+        }
+        self.last_cursor_position = cursor;
+        self.update_ime_position();
+    }
+
+    fn update_ime_position(&mut self) {
+        if !self.has_focus {
+            return;
+        }
+        self.conn().ime.borrow_mut().update_pos(
+            self.window_id,
+            self.last_cursor_position.min_x() as i16,
+            self.last_cursor_position.max_y() as i16,
+        );
     }
 
     fn set_icon(&mut self, image: &dyn BitmapImage) {
@@ -1008,6 +1051,13 @@ impl WindowOps for XWindow {
     fn set_window_position(&self, coords: ScreenPoint) {
         XConnection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
+            Ok(())
+        });
+    }
+
+    fn set_text_cursor_position(&self, cursor: Rect) {
+        XConnection::with_window_inner(self.0, move |inner| {
+            inner.set_text_cursor_position(cursor);
             Ok(())
         });
     }
