@@ -36,7 +36,7 @@ vec3 hsv2rgb(vec3 c)
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-const vec3 unit3 = vec3(1.0, 1.0, 1.0);
+const vec3 unit3 = vec3(1.0);
 
 vec4 apply_hsv(vec4 c, vec3 transform)
 {
@@ -47,55 +47,27 @@ vec4 apply_hsv(vec4 c, vec3 transform)
   return vec4(hsv2rgb(hsv).rgb, c.a);
 }
 
-vec4 from_linear(vec4 v) {
-  return pow(v, vec4(2.2));
-}
-
-vec4 to_linear(vec4 v) {
-  return pow(v, vec4(1.0/2.2));
-}
-
-// For reasons that I haven't been able to figure out, we need
-// to gamma correct the data that we read from the textures that
-// are supplied to OpenGL, otherwise they appear too dark.
-// AFAICT, I've done what I thought were all of the right things
-// (but are perhaps only some of the right things) to tell OpenGL/EGL
-// that everything is already SRGB, so this function should really
-// just be a call to `texture` and not do the gamma conversion.
-vec4 sample_texture(sampler2D s, vec2 coords) {
-  vec4 color = texture(s, coords);
-  return color;
-//  return to_linear(color);
-}
-
 void main() {
   if (o_has_color == 3.0) {
     // Solid color block
     color = o_fg_color;
-    colorMask = vec4(1.0, 1.0, 1.0, 1.0);
+    colorMask = vec4(1.0);
   } else if (o_has_color == 2.0) {
     // The window background attachment
-    color = sample_texture(atlas_linear_sampler, o_tex);
+    color = texture(atlas_linear_sampler, o_tex);
     // Apply window_background_image_opacity to the background image
     colorMask = o_fg_color.aaaa;
-    // don't double up on alpha
-    color.a = 1.0;
-  } else {
-    if (o_has_color == 0.0) {
-      // if it's not a color emoji or image attachment, then the texture is the color mask
-      colorMask = sample_texture(atlas_nearest_sampler, o_tex);
-      colorMask.a = 1.0;
-      // and we need to tint with the fg_color
-      color = o_fg_color;
-      color = apply_hsv(color, foreground_text_hsb);
-    } else {
-      // otherwise, the texture is full color info
-      color = sample_texture(atlas_nearest_sampler, o_tex);
-      // this is the alpha
-      colorMask = color.aaaa;
-      // don't double up on alpha
-      color.a = 1.0;
-    }
+  } else if (o_has_color == 1.0) {
+    // the texture is full color info (eg: color emoji glyph)
+    color = texture(atlas_nearest_sampler, o_tex);
+    // this is the alpha
+    colorMask = color.aaaa;
+  } else if (o_has_color == 0.0) {
+    // the texture is the alpha channel/color mask
+    colorMask = texture(atlas_nearest_sampler, o_tex);
+    // and we need to tint with the fg_color
+    color = o_fg_color;
+    color = apply_hsv(color, foreground_text_hsb);
   }
 
   color = apply_hsv(color, o_hsv);
