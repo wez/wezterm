@@ -555,6 +555,7 @@ TARGETS = [
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
     Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
     Target(container="debian:10.3", continuous_only=True),
+    Target(container="debian:11", continuous_only=True),
     Target(name="macos", os="macos-11"),
     Target(container="fedora:31"),
     Target(container="fedora:32"),
