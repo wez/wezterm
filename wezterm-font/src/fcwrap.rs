@@ -104,10 +104,62 @@ pub struct CharSet {
     cset: *mut FcCharSet,
 }
 
+pub struct CharSetRef<'a> {
+    cset: *mut FcCharSet,
+    phantom: std::marker::PhantomData<&'a FcCharSet>,
+}
+
+impl<'a> CharSetRef<'a> {
+    pub fn to_range_set(&self) -> rangeset::RangeSet<u32> {
+        let mut coverage = rangeset::RangeSet::new();
+        let mut next_base_code_point = FcChar32::default();
+        const FC_CHARSET_MAP_SIZE: usize = 256 / 32;
+        const FC_CHARSET_DONE: FcChar32 = FcChar32::MAX;
+        let mut map = [FcChar32::default(); FC_CHARSET_MAP_SIZE];
+        let mut base_code_point =
+            unsafe { FcCharSetFirstPage(self.cset, map.as_mut_ptr(), &mut next_base_code_point) };
+        let mut range_start = FcChar32::MAX;
+        let mut code_point = FcChar32::MAX;
+        while base_code_point != FC_CHARSET_DONE {
+            for (i, mask) in map.iter().enumerate() {
+                for j in 0..32 {
+                    if mask & (1 << j) != 0 {
+                        let new_code_point = base_code_point + (j + i * 32) as u32;
+                        if new_code_point - 1 > code_point {
+                            coverage.add_range_unchecked(range_start..code_point + 1);
+                            range_start = new_code_point;
+                        }
+                        if range_start == FcChar32::MAX {
+                            range_start = new_code_point;
+                        }
+                        code_point = new_code_point;
+                    }
+                }
+            }
+            base_code_point = unsafe {
+                FcCharSetNextPage(self.cset, map.as_mut_ptr(), &mut next_base_code_point)
+            };
+        }
+        if range_start != FcChar32::MAX {
+            coverage.add_range_unchecked(range_start..code_point + 1);
+        }
+        coverage
+    }
+}
+
 impl Drop for CharSet {
     fn drop(&mut self) {
         unsafe {
             FcCharSetDestroy(self.cset);
+        }
+    }
+}
+
+impl<'a> From<&'a CharSet> for CharSetRef<'a> {
+    fn from(c: &'a CharSet) -> Self {
+        Self {
+            cset: c.cset,
+            phantom: std::marker::PhantomData,
         }
     }
 }
@@ -143,6 +195,18 @@ impl Pattern {
             ensure!(!p.is_null(), "FcPatternCreate failed");
             Ok(Pattern { pat: p })
         }
+    }
+
+    pub fn get_charset<'a>(&'a self) -> anyhow::Result<CharSetRef<'a>> {
+        let mut c = ptr::null_mut();
+        unsafe {
+            FcPatternGetCharSet(self.pat, b"charset\0".as_ptr() as *const c_char, 0, &mut c);
+        }
+        ensure!(!c.is_null(), "pattern has no charset");
+        Ok(CharSetRef {
+            cset: c,
+            phantom: std::marker::PhantomData,
+        })
     }
 
     pub fn add_charset(&mut self, charset: &CharSet) -> anyhow::Result<()> {

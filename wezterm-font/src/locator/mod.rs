@@ -108,12 +108,35 @@ impl std::fmt::Debug for FontDataSource {
 /// The `index` parameter is the index into a font
 /// collection if the data represents a collection of
 /// fonts.
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FontDataHandle {
     pub source: FontDataSource,
     pub index: u32,
     pub variation: u32,
     pub origin: FontOrigin,
+    pub coverage: Option<rangeset::RangeSet<u32>>
+}
+
+impl PartialOrd for FontDataHandle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        (&self.source, self.index, self.variation, &self.origin).partial_cmp(&(
+            &other.source,
+            other.index,
+            other.variation,
+            &other.origin,
+        ))
+    }
+}
+
+impl Ord for FontDataHandle {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (&self.source, self.index, self.variation, &self.origin).cmp(&(
+            &other.source,
+            other.index,
+            other.variation,
+            &other.origin,
+        ))
+    }
 }
 
 impl FontDataHandle {

@@ -6,7 +6,7 @@ use std::ops::Range;
 /// Track a set of integers, collapsing adjacent integers into ranges.
 /// Internally stores the set in an array of ranges.
 /// Allows adding and subtracting ranges.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct RangeSet<T: Integer + Copy> {
     ranges: Vec<Range<T>>,
 }
@@ -239,6 +239,10 @@ impl<T: Integer + Copy + Debug + ToPrimitive> RangeSet<T> {
                 self.ranges.insert(idx, range.clone());
             }
         }
+    }
+
+    pub fn add_range_unchecked(&mut self, range: Range<T>) {
+        self.ranges.push(range);
     }
 
     /// Add a set of ranges to this set

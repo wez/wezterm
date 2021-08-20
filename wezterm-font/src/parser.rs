@@ -448,6 +448,8 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
             index: 0,
             variation: 0,
             origin: FontOrigin::BuiltIn,
+            // TODO: precompute this!
+            coverage: None,
         };
         let face = lib.face_from_locator(&locator)?;
         let parsed = ParsedFont::from_face(&face, locator)?;
@@ -487,6 +489,8 @@ pub(crate) fn parse_and_collect_font_info(
             index,
             variation: 0,
             origin,
+            // TODO: ???
+            coverage: None,
         };
 
         let face = lib.face_from_locator(&locator)?;

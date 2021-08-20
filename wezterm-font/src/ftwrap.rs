@@ -157,6 +157,7 @@ impl Face {
                     index: self.source.index,
                     variation: i,
                     origin: self.source.origin,
+                    coverage: self.source.coverage.clone(),
                 };
                 res.push(ParsedFont::from_face(&self, source)?);
             }
@@ -258,6 +259,9 @@ impl Face {
     }
 
     pub fn compute_coverage(&self) -> RangeSet<u32> {
+        if let Some(coverage) = self.source.coverage.as_ref() {
+            return coverage.clone();
+        }
         let mut coverage = RangeSet::new();
 
         for encoding in &[
@@ -270,10 +274,22 @@ impl Face {
 
             let mut glyph = 0;
             let mut ucs4 = unsafe { FT_Get_First_Char(self.face, &mut glyph) };
-            while glyph != 0 {
-                coverage.add(ucs4 as u32);
-                ucs4 = unsafe { FT_Get_Next_Char(self.face, ucs4, &mut glyph) };
+            if glyph == 0 {
+                break;
             }
+            let mut ucs4_range_start = ucs4;
+            loop {
+                let ucs4_new = unsafe { FT_Get_Next_Char(self.face, ucs4, &mut glyph) };
+                if glyph == 0 {
+                    break;
+                }
+                if ucs4_new - ucs4 != 1 {
+                    coverage.add_range_unchecked(ucs4_range_start as u32..(ucs4 + 1) as u32);
+                    ucs4_range_start = ucs4_new;
+                }
+                ucs4 = ucs4_new;
+            }
+            coverage.add_range_unchecked(ucs4_range_start as u32..(ucs4 + 1) as u32);
 
             if *encoding == FT_Encoding::FT_ENCODING_MS_SYMBOL {
                 // Fontconfig duplicates F000..F0FF to 0000..00FF
@@ -284,7 +300,6 @@ impl Face {
                 }
             }
         }
-
         coverage
     }
 

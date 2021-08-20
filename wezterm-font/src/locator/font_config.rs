@@ -81,6 +81,7 @@ impl FontLocator for FontConfigFontLocator {
                                 index,
                                 variation,
                                 origin: FontOrigin::FontConfig,
+                                coverage: Some(pat.get_charset()?.to_range_set())
                             };
 
                             // fontconfig will give us a boatload of random fallbacks.
@@ -157,6 +158,7 @@ impl FontLocator for FontConfigFontLocator {
                     index: pat.get_integer("index")?.try_into()?,
                     variation: 0,
                     origin: FontOrigin::FontConfig,
+                    coverage: Some(pat.get_charset()?.to_range_set())
                 };
                 if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
                     fonts.push(parsed);
