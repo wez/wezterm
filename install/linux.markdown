@@ -47,6 +47,7 @@ you can try the AppImage download which should work on most Linux systems.
 |Ubuntu20    |[{{ ubuntu20_deb_stable_asset }}]({{ ubuntu20_deb_stable }})  |[{{ ubuntu20_deb_nightly_asset }}]({{ ubuntu20_deb_nightly }})|
 |Debian9     |[{{ debian9_deb_stable_asset }}]({{ debian9_deb_stable }}) |[{{ debian9_deb_nightly_asset }}]({{ debian9_deb_nightly }})|
 |Debian10    |[{{ debian10_deb_stable_asset }}]({{ debian10_deb_stable }}) |[{{ debian10_deb_nightly_asset }}]({{ debian10_deb_nightly }})|
+|Debian11    | Nightly only atm |[{{ debian11_deb_nightly_asset }}]({{ debian11_deb_nightly }})|
 
 To download and install from the CLI, you can use something like this, which
 shows how to install the Ubuntu 16 package:
