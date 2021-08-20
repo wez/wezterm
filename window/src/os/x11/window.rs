@@ -67,6 +67,8 @@ pub(crate) struct XWindowInner {
     title: String,
     has_focus: bool,
     last_cursor_position: Rect,
+    invalidated: bool,
+    paint_throttled: bool,
 }
 
 impl Drop for XWindowInner {
@@ -782,6 +784,8 @@ impl XWindow {
                 config: config.clone(),
                 has_focus: false,
                 last_cursor_position: Rect::default(),
+                paint_throttled: false,
+                invalidated: false,
             }))
         };
 
@@ -829,8 +833,29 @@ impl XWindowInner {
     fn show(&mut self) {
         xcb::map_window(self.conn().conn(), self.window_id);
     }
+
     fn invalidate(&mut self) {
+        if self.paint_throttled {
+            self.invalidated = true;
+            return;
+        }
+        self.invalidated = false;
         self.events.dispatch(WindowEvent::NeedRepaint);
+
+        self.paint_throttled = true;
+        let window_id = self.window_id;
+        promise::spawn::spawn(async move {
+            // Don't try to paint more frequently than 30 fps
+            async_io::Timer::after(std::time::Duration::from_millis(1000 / 30)).await;
+            XConnection::with_window_inner(window_id, |inner| {
+                inner.paint_throttled = false;
+                if inner.invalidated {
+                    inner.invalidate();
+                }
+                Ok(())
+            });
+        })
+        .detach();
     }
 
     fn toggle_fullscreen(&mut self) {
