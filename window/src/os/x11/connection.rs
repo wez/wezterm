@@ -286,7 +286,11 @@ impl XConnection {
 
         loop {
             match self.conn.poll_for_queued_event() {
-                None => return Ok(()),
+                None => {
+                    self.dispatch_pending_events()?;
+                    self.conn.flush();
+                    return Ok(());
+                }
                 Some(event) => self.process_xcb_event_ime(&event)?,
             }
             self.conn.flush();
@@ -325,6 +329,15 @@ impl XConnection {
         window_id: xcb::xproto::Window,
     ) -> Option<Arc<Mutex<XWindowInner>>> {
         self.windows.borrow().get(&window_id).map(Arc::clone)
+    }
+
+    fn dispatch_pending_events(&self) -> anyhow::Result<()> {
+        for window in self.windows.borrow().values() {
+            let mut inner = window.lock().unwrap();
+            inner.dispatch_pending_events()?;
+        }
+
+        Ok(())
     }
 
     fn process_window_event(
