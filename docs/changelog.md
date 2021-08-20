@@ -17,6 +17,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: cursor could have a transparent "hole" through the window with certain cursor styles
 * Fixed: Consolas font + random input could cause a divide-by-zero when computing glyph metrics [#1042](https://github.com/wez/wezterm/issues/1042)
 * Fixed: Emoji fallback was too strict in respecting VS15/VS16 presentation selection, adjust the fallback to allow showing Emoji/Text presentation if Text/Emoji was requested but not found.
+* New: X11 now supports IME. It currently defaults to disabled, but you can set `use_ime = true` in your config to enable it (you need to restart wezterm for this to take effect). Many thanks to [@H-M-H](https://github.com/H-M-H) for bringing xcb-imdkit to Rust and implementing this in wezterm! [#250](https://github.com/wez/wezterm/issues/250) [#1043](https://github.com/wez/wezterm/pull/1043)
 
 ### 20210814-124438-54e29167
 
