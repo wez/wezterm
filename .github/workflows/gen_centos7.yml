@@ -88,7 +88,7 @@ jobs:
       run: "source /opt/rh/devtoolset-9/enable && cargo build --all --release"
     - name: "Test (Release mode)"
       shell: bash
-      run: "cargo test --all --release"
+      run: "source /opt/rh/devtoolset-9/enable && cargo test --all --release"
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
