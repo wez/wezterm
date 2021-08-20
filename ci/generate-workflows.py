@@ -157,6 +157,12 @@ class Target(object):
         if self.name == "centos7":
             steps.append(
                 RunStep(
+                    "Install SCL",
+                    "yum install -y centos-release-scl-rh",
+                )
+            )
+            steps.append(
+                RunStep(
                     "Update compiler",
                     "yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++",
                 )
