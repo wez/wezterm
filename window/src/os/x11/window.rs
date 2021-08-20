@@ -69,6 +69,7 @@ pub(crate) struct XWindowInner {
     last_cursor_position: Rect,
     invalidated: bool,
     paint_throttled: bool,
+    pending: Vec<WindowEvent>,
 }
 
 impl Drop for XWindowInner {
@@ -129,7 +130,7 @@ impl XWindowInner {
     /// it to encompass both.  This avoids bloating the list with a series
     /// of increasing rectangles when resizing larger or smaller.
     fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) {
-        self.events.dispatch(WindowEvent::NeedRepaint);
+        self.queue_pending(WindowEvent::NeedRepaint);
     }
 
     fn do_mouse_event(&mut self, event: MouseEvent) -> anyhow::Result<()> {
@@ -161,6 +162,69 @@ impl XWindowInner {
                 window_state: self.get_window_state().unwrap_or(WindowState::default()),
             });
         }
+    }
+
+    fn queue_pending(&mut self, event: WindowEvent) {
+        self.pending.push(event);
+    }
+
+    pub fn dispatch_pending_events(&mut self) -> anyhow::Result<()> {
+        if self.pending.is_empty() {
+            return Ok(());
+        }
+
+        let mut need_paint = false;
+        let mut resize = None;
+
+        for event in self.pending.drain(..) {
+            match event {
+                WindowEvent::NeedRepaint => {
+                    if need_paint {
+                        log::info!("coalesce a repaint");
+                    }
+                    need_paint = true;
+                }
+                e @ WindowEvent::Resized { .. } => {
+                    if resize.is_some() {
+                        log::info!("coalesce a resize");
+                    }
+                    resize.replace(e);
+                }
+                e => {
+                    self.events.dispatch(e);
+                }
+            }
+        }
+
+        if let Some(resize) = resize.take() {
+            self.events.dispatch(resize);
+        }
+
+        if need_paint {
+            if self.paint_throttled {
+                self.invalidated = true;
+            } else {
+                self.invalidated = false;
+                self.events.dispatch(WindowEvent::NeedRepaint);
+
+                self.paint_throttled = true;
+                let window_id = self.window_id;
+                promise::spawn::spawn(async move {
+                    // Don't try to paint more frequently than 30 fps
+                    async_io::Timer::after(std::time::Duration::from_millis(1000 / 30)).await;
+                    XConnection::with_window_inner(window_id, |inner| {
+                        inner.paint_throttled = false;
+                        if inner.invalidated {
+                            inner.invalidate();
+                        }
+                        Ok(())
+                    });
+                })
+                .detach();
+            }
+        }
+
+        Ok(())
     }
 
     pub fn dispatch_event(&mut self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
@@ -195,7 +259,7 @@ impl XWindowInner {
                     dpi: self.dpi as usize,
                 };
 
-                self.events.dispatch(WindowEvent::Resized {
+                self.queue_pending(WindowEvent::Resized {
                     dimensions,
                     window_state: self.get_window_state().unwrap_or(WindowState::default()),
                 });
@@ -786,6 +850,7 @@ impl XWindow {
                 last_cursor_position: Rect::default(),
                 paint_throttled: false,
                 invalidated: false,
+                pending: vec![],
             }))
         };
 
@@ -835,27 +900,7 @@ impl XWindowInner {
     }
 
     fn invalidate(&mut self) {
-        if self.paint_throttled {
-            self.invalidated = true;
-            return;
-        }
-        self.invalidated = false;
-        self.events.dispatch(WindowEvent::NeedRepaint);
-
-        self.paint_throttled = true;
-        let window_id = self.window_id;
-        promise::spawn::spawn(async move {
-            // Don't try to paint more frequently than 30 fps
-            async_io::Timer::after(std::time::Duration::from_millis(1000 / 30)).await;
-            XConnection::with_window_inner(window_id, |inner| {
-                inner.paint_throttled = false;
-                if inner.invalidated {
-                    inner.invalidate();
-                }
-                Ok(())
-            });
-        })
-        .detach();
+        self.queue_pending(WindowEvent::NeedRepaint);
     }
 
     fn toggle_fullscreen(&mut self) {
