@@ -168,6 +168,35 @@ Outputs the pane-id for the newly created pane on success"
         #[structopt(parse(from_os_str))]
         prog: Vec<OsString>,
     },
+
+    #[structopt(
+    name = "spawn-popup",
+    about = "Spawn a command into a popup
+Outputs the pane-id for the newly created pane on success"
+    )]
+    SpawnPopup {
+        /// Specify the current pane.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        /// The pane is used to determine the current domain
+        /// and window.
+        #[structopt(long = "pane-id")]
+        pane_id: Option<PaneId>,
+
+        #[structopt(long = "domain-name")]
+        domain_name: Option<String>,
+
+        /// Specify the current working directory for the initially
+        /// spawned program
+        #[structopt(long = "cwd", parse(from_os_str))]
+        cwd: Option<OsString>,
+
+        /// Instead of executing your shell, run PROG.
+        /// For example: `wezterm start -- bash -l` will spawn bash
+        /// as if it were a login shell.
+        #[structopt(parse(from_os_str))]
+        prog: Vec<OsString>,
+    },
 }
 
 use termwiz::escape::osc::{
