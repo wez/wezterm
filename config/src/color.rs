@@ -24,6 +24,26 @@ impl Default for HsbTransform {
     }
 }
 
+fn de_indexed<'de, D>(deserializer: D) -> Result<HashMap<u8, RgbColor>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    struct Wrap(HashMap<String, RgbColor>);
+    let Wrap(map) = Wrap::deserialize(deserializer)?;
+
+    Ok(map
+        .into_iter()
+        .filter_map(|(k, v)| match k.parse::<u8>() {
+            Ok(n) if n >= 16 => Some((n, v)),
+            _ => {
+                log::warn!("Ignoring invalid color key {}", k);
+                None
+            }
+        })
+        .collect())
+}
+
 #[derive(Default, Debug, Deserialize, Serialize, Clone)]
 pub struct Palette {
     /// The text color to use when the attributes are reset to default
@@ -44,7 +64,8 @@ pub struct Palette {
     pub brights: Option<[RgbColor; 8]>,
     /// A map for setting arbitrary colors ranging from 16 to 256 in the color
     /// palette
-    pub indexed: Option<HashMap<String, RgbColor>>,
+    #[serde(default, deserialize_with = "de_indexed")]
+    pub indexed: HashMap<u8, RgbColor>,
     /// Configure the colors and styling of the tab bar
     pub tab_bar: Option<TabBarColors>,
     /// The color of the "thumb" of the scrollbar; the segment that
@@ -85,14 +106,8 @@ impl From<Palette> for wezterm_term::color::ColorPalette {
                 p.colors.0[idx + 8] = *col;
             }
         }
-        if let Some(indexed) = cfg.indexed {
-            for (idx, col) in indexed
-                .iter()
-                .filter_map(|(k, v)| Some((k.parse::<usize>().ok()?, v)))
-                .filter(|&(k, _)| 15 < k && k < 256)
-            {
-                p.colors.0[idx] = *col;
-            }
+        for (idx, col) in cfg.indexed.iter() {
+            p.colors.0[*idx as usize] = *col;
         }
         p
     }
