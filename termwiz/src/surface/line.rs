@@ -730,7 +730,11 @@ mod test {
             "❤ 😍🤢 http://example.com \u{1f468}\u{1f3fe}\u{200d}\u{1f9b0} http://example.com http://localhost:3000";
 
         let rules = vec![
-            Rule::new(r"\b\w+://(?:[\w.-]+)(?:(?:\.[a-z]{2,15}\S*)|(?::\d{1,5}))\b", "$0").unwrap(),
+            Rule::new(
+                r"\b\w+://(?:[\w.-]+)(?:(?:\.[a-z]{2,15}\S*)|(?::\d{1,5}))\b",
+                "$0",
+            )
+            .unwrap(),
             Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
         ];
 

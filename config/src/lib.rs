@@ -1838,7 +1838,11 @@ fn default_initial_cols() -> u16 {
 fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
     vec![
         // URL with a protocol
-        hyperlink::Rule::new(r"\b\w+://(?:[\w.-]+)(?:(?:\.[a-z]{2,15}\S*)|(?::\d{1,5}))\b", "$0").unwrap(),
+        hyperlink::Rule::new(
+            r"\b\w+://(?:[\w.-]+)(?:(?:\.[a-z]{2,15}\S*)|(?::\d{1,5}))\b",
+            "$0",
+        )
+        .unwrap(),
         // implicit mailto link
         hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
         // file://
