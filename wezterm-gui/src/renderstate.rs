@@ -107,7 +107,7 @@ pub struct RenderState {
     pub glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
     pub util_sprites: UtilSprites<SrgbTexture2d>,
     pub glyph_prog: glium::Program,
-    pub glyph_vertex_buffer: TripleVertexBuffer,
+    pub vb: [TripleVertexBuffer; 3],
 }
 
 impl RenderState {
@@ -125,14 +125,18 @@ impl RenderState {
                 Ok(util_sprites) => {
                     let glyph_prog = Self::compile_prog(&context, Self::glyph_shader)?;
 
-                    let glyph_vertex_buffer = Self::compute_vertices(&context, 1024)?;
+                    let vb = [
+                        Self::compute_vertices(&context, 128)?,
+                        Self::compute_vertices(&context, 1024)?,
+                        Self::compute_vertices(&context, 128)?,
+                    ];
 
                     return Ok(Self {
                         context,
                         glyph_cache,
                         util_sprites,
                         glyph_prog,
-                        glyph_vertex_buffer,
+                        vb,
                     });
                 }
                 Err(OutOfTextureSpace {
@@ -179,10 +183,9 @@ impl RenderState {
         anyhow::bail!("Failed to compile shaders: {}", errors.join("\n"))
     }
 
-    pub fn reallocate_quads(&mut self, num_quads: usize) -> anyhow::Result<()> {
-        let glyph_vertex_buffer = Self::compute_vertices(&self.context, num_quads)?;
-
-        self.glyph_vertex_buffer = glyph_vertex_buffer;
+    pub fn reallocate_quads(&mut self, idx: usize, num_quads: usize) -> anyhow::Result<()> {
+        let vb = Self::compute_vertices(&self.context, num_quads)?;
+        self.vb[idx] = vb;
         Ok(())
     }
 

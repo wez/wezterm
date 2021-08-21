@@ -95,28 +95,32 @@ impl super::TermWindow {
 
         frame.clear_color(0., 0., 0., 0.);
 
-        for pass in 0.. {
+        'pass: for pass in 0.. {
             match self.paint_opengl_pass() {
                 Ok(_) => {
                     let gl_state = self.render_state.as_mut().unwrap();
-                    if let Some(need_quads) = gl_state.glyph_vertex_buffer.need_more_quads() {
-                        // Round up to next multiple of 1024 that is >=
-                        // the number of needed quads for this frame
-                        let num_quads = (need_quads + 1023) & !1023;
-                        if let Err(err) = gl_state.reallocate_quads(num_quads) {
-                            log::error!(
-                                "Failed to allocate {} quads (needed {}): {:#}",
-                                num_quads,
-                                need_quads,
-                                err
-                            );
-                            break;
+                    let mut allocated = false;
+                    for vb_idx in 0..3 {
+                        if let Some(need_quads) = gl_state.vb[vb_idx].need_more_quads() {
+                            // Round up to next multiple of 1024 that is >=
+                            // the number of needed quads for this frame
+                            let num_quads = (need_quads + 1023) & !1023;
+                            if let Err(err) = gl_state.reallocate_quads(vb_idx, num_quads) {
+                                log::error!(
+                                    "Failed to allocate {} quads (needed {}): {:#}",
+                                    num_quads,
+                                    need_quads,
+                                    err
+                                );
+                                break 'pass;
+                            }
+                            log::trace!("Allocated {} quads (needed {})", num_quads, need_quads);
+                            allocated = true;
                         }
-                        log::trace!("Allocated {} quads (needed {})", num_quads, need_quads);
-                        continue;
                     }
-
-                    break;
+                    if !allocated {
+                        break 'pass;
+                    }
                 }
                 Err(err) => {
                     if let Some(&OutOfTextureSpace {
@@ -148,14 +152,14 @@ impl super::TermWindow {
                                     if pass == 0 { "clear" } else { "resize" },
                                     err
                                 );
-                                break;
+                                break 'pass;
                             }
                         }
                     } else if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
                         self.shape_cache.borrow_mut().clear();
                     } else {
                         log::error!("paint_opengl_pass failed: {:#}", err);
-                        break;
+                        break 'pass;
                     }
                 }
             }
@@ -266,11 +270,17 @@ impl super::TermWindow {
         }
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = &gl_state.glyph_vertex_buffer;
+        let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
 
         let start = Instant::now();
-        let mut vb_mut = vb.current_vb_mut();
-        let mut quads = vb.map(&mut vb_mut);
+        let mut vb_mut0 = vb[0].current_vb_mut();
+        let mut vb_mut1 = vb[1].current_vb_mut();
+        let mut vb_mut2 = vb[2].current_vb_mut();
+        let mut layers = [
+            vb[0].map(&mut vb_mut0),
+            vb[1].map(&mut vb_mut1),
+            vb[2].map(&mut vb_mut2),
+        ];
         log::trace!("quad map elapsed {:?}", start.elapsed());
         metrics::histogram!("quad.map", start.elapsed());
 
@@ -293,7 +303,7 @@ impl super::TermWindow {
 
         // Render the full window background
         if pos.index == 0 {
-            let mut quad = quads.allocate()?;
+            let mut quad = layers[0].allocate()?;
             quad.set_position(
                 self.dimensions.pixel_width as f32 / -2.,
                 self.dimensions.pixel_height as f32 / -2.,
@@ -339,7 +349,7 @@ impl super::TermWindow {
         }
         if num_panes > 1 && self.window_background.is_none() {
             // Per-pane, palette-specified background
-            let mut quad = quads.allocate()?;
+            let mut quad = layers[0].allocate()?;
             let cell_width = self.render_metrics.cell_size.width as f32;
             let cell_height = self.render_metrics.cell_size.height as f32;
             let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -425,7 +435,7 @@ impl super::TermWindow {
                     window_is_transparent,
                     default_bg,
                 },
-                &mut quads,
+                &mut layers,
             )?;
         }
 
@@ -440,7 +450,7 @@ impl super::TermWindow {
             let thumb_size = info.height as f32;
             let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
 
-            let mut quad = quads.allocate()?;
+            let mut quad = layers[2].allocate()?;
 
             // Adjust the scrollbar thumb position
             let top = (self.dimensions.pixel_height as f32 / -2.0) + thumb_top;
@@ -521,7 +531,7 @@ impl super::TermWindow {
                     window_is_transparent,
                     default_bg,
                 },
-                &mut quads,
+                &mut layers,
             )?;
         }
         /*
@@ -533,7 +543,7 @@ impl super::TermWindow {
         log::trace!("lines elapsed {:?}", start.elapsed());
 
         let start = Instant::now();
-        drop(quads);
+        drop(layers);
         metrics::histogram!("paint_pane_opengl.drop.quads", start.elapsed());
         log::trace!("quad drop elapsed {:?}", start.elapsed());
 
@@ -542,9 +552,6 @@ impl super::TermWindow {
 
     pub fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = &gl_state.glyph_vertex_buffer;
-        let (vertex_count, index_count) = vb.vertex_index_count();
-
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
         let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
             -(self.dimensions.pixel_width as f32) / 2.0,
@@ -572,6 +579,21 @@ impl super::TermWindow {
             ..Default::default()
         };
 
+        let alpha_blending = glium::DrawParameters {
+            blend: glium::Blend {
+                color: BlendingFunction::Addition {
+                    source: LinearBlendingFactor::SourceAlpha,
+                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
+                },
+                alpha: BlendingFunction::Addition {
+                    source: LinearBlendingFactor::One,
+                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
+                },
+                constant_value: (0.0, 0.0, 0.0, 0.0),
+            },
+            ..Default::default()
+        };
+
         // Clamp and use the nearest texel rather than interpolate.
         // This prevents things like the box cursor outlines from
         // being randomly doubled in width or height
@@ -592,22 +614,34 @@ impl super::TermWindow {
             foreground_text_hsb.brightness,
         );
 
-        let vertices = vb.current_vb();
+        for idx in 0..3 {
+            let vb = &gl_state.vb[idx];
+            let (vertex_count, index_count) = vb.vertex_index_count();
+            if vertex_count > 0 {
+                let vertices = vb.current_vb();
+                let subpixel_aa = idx == 1;
 
-        frame.draw(
-            vertices.slice(0..vertex_count).unwrap(),
-            vb.indices.slice(0..index_count).unwrap(),
-            &gl_state.glyph_prog,
-            &uniform! {
-                projection: projection,
-                atlas_nearest_sampler:  atlas_nearest_sampler,
-                atlas_linear_sampler:  atlas_linear_sampler,
-                foreground_text_hsb: foreground_text_hsb,
-            },
-            &dual_source_blending,
-        )?;
+                frame.draw(
+                    vertices.slice(0..vertex_count).unwrap(),
+                    vb.indices.slice(0..index_count).unwrap(),
+                    &gl_state.glyph_prog,
+                    &uniform! {
+                        projection: projection,
+                        atlas_nearest_sampler:  atlas_nearest_sampler,
+                        atlas_linear_sampler:  atlas_linear_sampler,
+                        foreground_text_hsb: foreground_text_hsb,
+                        subpixel_aa: subpixel_aa,
+                    },
+                    if subpixel_aa {
+                        &dual_source_blending
+                    } else {
+                        &alpha_blending
+                    },
+                )?;
+            }
 
-        vb.next_index();
+            vb.next_index();
+        }
 
         Ok(())
     }
@@ -618,7 +652,7 @@ impl super::TermWindow {
         pane: &Rc<dyn Pane>,
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = &gl_state.glyph_vertex_buffer;
+        let vb = &gl_state.vb[2];
         let mut vb_mut = vb.current_vb_mut();
         let mut quads = vb.map(&mut vb_mut);
         let palette = pane.palette();
@@ -697,7 +731,9 @@ impl super::TermWindow {
     pub fn paint_opengl_pass(&mut self) -> anyhow::Result<()> {
         {
             let gl_state = self.render_state.as_ref().unwrap();
-            gl_state.glyph_vertex_buffer.clear_quad_allocation();
+            for vb in &gl_state.vb {
+                vb.clear_quad_allocation();
+            }
         }
 
         // Clear out UI item positions; we'll rebuild these as we render
@@ -730,7 +766,7 @@ impl super::TermWindow {
     pub fn render_screen_line_opengl(
         &self,
         params: RenderScreenLineOpenGLParams,
-        quads: &mut MappedQuads,
+        layers: &mut [MappedQuads; 3],
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.as_ref().unwrap();
 
@@ -812,7 +848,7 @@ impl super::TermWindow {
                     + (cluster.first_cell_idx + params.pos.left) as f32 * cell_width
                     + self.config.window_padding.left as f32;
 
-                let mut quad = quads.allocate()?;
+                let mut quad = layers[0].allocate()?;
                 quad.set_position(
                     pos_x,
                     pos_y,
@@ -829,7 +865,7 @@ impl super::TermWindow {
 
         // Render the selection background color
         if !params.selection.is_empty() {
-            let mut quad = quads.allocate()?;
+            let mut quad = layers[0].allocate()?;
 
             let pos_x = (self.dimensions.pixel_width as f32 / -2.)
                 + (params.selection.start + params.pos.left) as f32 * cell_width
@@ -1023,7 +1059,7 @@ impl super::TermWindow {
 
                     if bg_color != style_params.bg_color {
                         // Override the background color
-                        let mut quad = quads.allocate()?;
+                        let mut quad = layers[0].allocate()?;
                         quad.set_position(
                             pos_x,
                             pos_y,
@@ -1038,7 +1074,7 @@ impl super::TermWindow {
                     }
 
                     if cursor_shape.is_some() {
-                        let mut quad = quads.allocate()?;
+                        let mut quad = layers[2].allocate()?;
                         quad.set_position(
                             pos_x,
                             pos_y,
@@ -1072,7 +1108,7 @@ impl super::TermWindow {
                             self.populate_image_quad(
                                 &img,
                                 gl_state,
-                                quads,
+                                &mut layers[0],
                                 cell_idx,
                                 &params,
                                 hsv,
@@ -1083,7 +1119,7 @@ impl super::TermWindow {
 
                     // Underlines
                     if style_params.underline_tex_rect != params.white_space {
-                        let mut quad = quads.allocate()?;
+                        let mut quad = layers[0].allocate()?;
                         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
                         quad.set_texture_adjust(0., 0., 0., 0.);
                         quad.set_hsv(hsv);
@@ -1102,7 +1138,7 @@ impl super::TermWindow {
                                     self.populate_block_quad(
                                         block,
                                         gl_state,
-                                        quads,
+                                        &mut layers[0],
                                         cell_idx,
                                         &params,
                                         hsv,
@@ -1143,7 +1179,7 @@ impl super::TermWindow {
                             slice_left = right;
 
                             if glyph_color != bg_color || glyph.has_color {
-                                let mut quad = quads.allocate()?;
+                                let mut quad = layers[1].allocate()?;
                                 quad.set_position(
                                     pos_x,
                                     pos_y,
@@ -1178,7 +1214,15 @@ impl super::TermWindow {
         }
 
         for (cell_idx, img, glyph_color) in overlay_images {
-            self.populate_image_quad(&img, gl_state, quads, cell_idx, &params, hsv, glyph_color)?;
+            self.populate_image_quad(
+                &img,
+                gl_state,
+                &mut layers[2],
+                cell_idx,
+                &params,
+                hsv,
+                glyph_color,
+            )?;
         }
 
         // If the clusters don't extend to the full physical width of the display,
@@ -1188,7 +1232,7 @@ impl super::TermWindow {
         let right_fill_start = Instant::now();
         if last_cell_idx < num_cols {
             if params.line.is_reverse() {
-                let mut quad = quads.allocate()?;
+                let mut quad = layers[0].allocate()?;
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
                     + (last_cell_idx + params.pos.left) as f32 * cell_width
@@ -1237,7 +1281,7 @@ impl super::TermWindow {
 
                 if bg_color != LinearRgba::TRANSPARENT {
                     // Avoid poking a transparent hole underneath the cursor
-                    let mut quad = quads.allocate()?;
+                    let mut quad = layers[2].allocate()?;
                     quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
                     quad.set_texture_adjust(0., 0., 0., 0.);
@@ -1247,7 +1291,7 @@ impl super::TermWindow {
                     quad.set_fg_color(bg_color);
                 }
                 {
-                    let mut quad = quads.allocate()?;
+                    let mut quad = layers[2].allocate()?;
                     quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
                     quad.set_texture_adjust(0., 0., 0., 0.);

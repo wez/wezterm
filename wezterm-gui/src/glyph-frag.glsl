@@ -17,6 +17,7 @@ layout(location=0, index=1) out vec4 colorMask;
 uniform vec3 foreground_text_hsb;
 uniform sampler2D atlas_nearest_sampler;
 uniform sampler2D atlas_linear_sampler;
+uniform bool subpixel_aa;
 
 vec3 rgb2hsv(vec3 c)
 {
@@ -56,7 +57,11 @@ void main() {
     // The window background attachment
     color = texture(atlas_linear_sampler, o_tex);
     // Apply window_background_image_opacity to the background image
-    colorMask = o_fg_color.aaaa;
+    if (subpixel_aa) {
+      colorMask = o_fg_color.aaaa;
+    } else {
+      color.a = o_fg_color.a;
+    }
   } else if (o_has_color == 1.0) {
     // the texture is full color info (eg: color emoji glyph)
     color = texture(atlas_nearest_sampler, o_tex);
@@ -67,6 +72,9 @@ void main() {
     colorMask = texture(atlas_nearest_sampler, o_tex);
     // and we need to tint with the fg_color
     color = o_fg_color;
+    if (!subpixel_aa) {
+      color.a = colorMask.a;
+    }
     color = apply_hsv(color, foreground_text_hsb);
   }
 
