@@ -42,6 +42,9 @@ pub struct Palette {
     /// A list of 8 colors corresponding to bright versions of the
     /// ANSI palette
     pub brights: Option<[RgbColor; 8]>,
+    /// A map for setting arbitrary colors ranging from 16 to 256 in the color
+    /// palette
+    pub indexed: Option<HashMap<String, RgbColor>>,
     /// Configure the colors and styling of the tab bar
     pub tab_bar: Option<TabBarColors>,
     /// The color of the "thumb" of the scrollbar; the segment that
@@ -80,6 +83,13 @@ impl From<Palette> for wezterm_term::color::ColorPalette {
         if let Some(brights) = cfg.brights {
             for (idx, col) in brights.iter().enumerate() {
                 p.colors.0[idx + 8] = *col;
+            }
+        }
+        if let Some(indexed) = cfg.indexed {
+            for (idx, col) in indexed.iter()
+                    .filter_map(|(k, v)| Some((k.parse::<usize>().ok()?, v)))
+                    .filter(|&(k, _)| 15 < k && k < 256) {
+                p.colors.0[idx] = *col;
             }
         }
         p
