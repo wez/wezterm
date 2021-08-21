@@ -553,6 +553,14 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             log::debug!("{:?}", spawned);
             println!("{}", spawned.pane_id);
         }
+        CliSubCommand::SpawnPopup {
+            cwd,
+            prog,
+            pane_id,
+            domain_name,
+        } => {
+            println!("spawning popup");
+        }
         CliSubCommand::Proxy => {
             // The client object we created above will have spawned
             // the server if needed, so now all we need to do is turn
