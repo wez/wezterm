@@ -175,17 +175,6 @@ Outputs the pane-id for the newly created pane on success"
 Outputs the pane-id for the newly created pane on success"
     )]
     SpawnPopup {
-        /// Specify the current pane.
-        /// The default is to use the current pane based on the
-        /// environment variable WEZTERM_PANE.
-        /// The pane is used to determine the current domain
-        /// and window.
-        #[structopt(long = "pane-id")]
-        pane_id: Option<PaneId>,
-
-        #[structopt(long = "domain-name")]
-        domain_name: Option<String>,
-
         /// Specify the current working directory for the initially
         /// spawned program
         #[structopt(long = "cwd", parse(from_os_str))]
@@ -556,8 +545,6 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
         CliSubCommand::SpawnPopup {
             cwd,
             prog,
-            pane_id,
-            domain_name,
         } => {
             println!("spawning popup");
         }
