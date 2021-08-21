@@ -192,7 +192,7 @@ Outputs the pane-id for the newly created pane on success"
         cwd: Option<OsString>,
 
         /// Instead of executing your shell, run PROG.
-        /// For example: `wezterm start -- bash -l` will spawn bash
+        /// For example: `wezterm cli spawn-popup -- bash -l` will spawn bash
         /// as if it were a login shell.
         #[structopt(parse(from_os_str))]
         prog: Vec<OsString>,
