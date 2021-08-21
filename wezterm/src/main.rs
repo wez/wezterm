@@ -546,7 +546,50 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             cwd,
             prog,
         } => {
-            println!("spawning popup");
+            let pane_id: PaneId = std::env::var("WEZTERM_PANE")
+                .map_err(|_| {
+                    anyhow!( "--pane-id was not specified and $WEZTERM_PANE
+                                    is not set in the environment"
+                                    )
+                })?
+                .parse()?;
+
+            let panes = client.list_panes().await?;
+            let mut window_id = None;
+            'outer: for tabroot in panes.tabs {
+                let mut cursor = tabroot.into_tree().cursor();
+
+                loop {
+                    if let Some(entry) = cursor.leaf_mut() {
+                        if entry.pane_id == pane_id {
+                            window_id.replace(entry.window_id);
+                            break 'outer;
+                        }
+                    }
+                    match cursor.preorder_next() {
+                        Ok(c) => cursor = c,
+                        Err(_) => break,
+                    }
+                }
+            }
+
+            let spawned = client
+                .spawn_popup(codec::SpawnPopup {
+                    domain: SpawnTabDomain::DomainName("local".to_string()),
+                    window_id,
+                    command: if prog.is_empty() {
+                        None
+                    } else {
+                        let builder = CommandBuilder::from_argv(prog);
+                        Some(builder)
+                    },
+                    command_dir: cwd.and_then(|c| c.to_str().map(|s| s.to_string())),
+                    size: config::configuration().initial_size(),
+                })
+                .await?;
+
+            log::debug!("{:?}", spawned);
+            println!("{}", spawned.pane_id);
         }
         CliSubCommand::Proxy => {
             // The client object we created above will have spawned
