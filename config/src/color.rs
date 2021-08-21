@@ -86,9 +86,11 @@ impl From<Palette> for wezterm_term::color::ColorPalette {
             }
         }
         if let Some(indexed) = cfg.indexed {
-            for (idx, col) in indexed.iter()
-                    .filter_map(|(k, v)| Some((k.parse::<usize>().ok()?, v)))
-                    .filter(|&(k, _)| 15 < k && k < 256) {
+            for (idx, col) in indexed
+                .iter()
+                .filter_map(|(k, v)| Some((k.parse::<usize>().ok()?, v)))
+                .filter(|&(k, _)| 15 < k && k < 256)
+            {
                 p.colors.0[idx] = *col;
             }
         }
