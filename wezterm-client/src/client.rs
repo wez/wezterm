@@ -987,6 +987,7 @@ impl Client {
     rpc!(list_panes, ListPanes = (), ListPanesResponse);
     rpc!(spawn, Spawn, SpawnResponse);
     rpc!(spawn_v2, SpawnV2, SpawnResponse);
+    rpc!(spawn_popup, SpawnPopup, SpawnResponse);
     rpc!(split_pane, SplitPane, SpawnResponse);
     rpc!(write_to_pane, WriteToPane, UnitResponse);
     rpc!(send_paste, SendPaste, UnitResponse);

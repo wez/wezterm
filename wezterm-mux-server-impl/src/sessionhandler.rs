@@ -472,6 +472,14 @@ impl SessionHandler {
                 .detach();
             }
 
+            Pdu::SpawnPopup(spawn_popup) => {
+                let sender = self.to_write_tx.clone();
+                spawn_into_main_thread(async move {
+                    schedule_domain_spawn_popup(spawn_popup, sender, send_response);
+                })
+                    .detach();
+            }
+
             Pdu::SplitPane(split) => {
                 let sender = self.to_write_tx.clone();
                 spawn_into_main_thread(async move {
@@ -592,6 +600,14 @@ where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
 {
     promise::spawn::spawn(async move { send_response(domain_spawn_v2(spawn, sender).await) })
+        .detach();
+}
+
+fn schedule_domain_spawn_popup<SND>(spawn_popup: SpawnPopup, sender: PduSender, send_response: SND)
+    where
+        SND: Fn(anyhow::Result<Pdu>) + 'static,
+{
+    promise::spawn::spawn(async move { send_response(domain_spawn_popup(spawn_popup, sender).await) })
         .detach();
 }
 
@@ -772,6 +788,67 @@ async fn domain_spawn_v2(spawn: SpawnV2, sender: PduSender) -> anyhow::Result<Pd
 
     let tab = domain
         .spawn(size, spawn.command, spawn.command_dir, window_id)
+        .await?;
+
+    let pane = tab
+        .get_active_pane()
+        .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
+
+    if let Some(config) = term_config {
+        pane.set_config(config);
+    }
+
+    let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
+        pane_id: pane.pane_id(),
+        sender,
+    });
+    pane.set_clipboard(&clip);
+
+    Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
+        pane_id: pane.pane_id(),
+        tab_id: tab.tab_id(),
+        window_id,
+        size: tab.get_size(),
+    }))
+}
+
+async fn domain_spawn_popup(spawn_popup: SpawnPopup, sender: PduSender) -> anyhow::Result<Pdu> {
+    let mux = Mux::get().unwrap();
+
+    let domain = match spawn_popup.domain {
+        SpawnTabDomain::DefaultDomain => mux.default_domain(),
+        SpawnTabDomain::CurrentPaneDomain => anyhow::bail!("must give a domain"),
+        SpawnTabDomain::DomainName(name) => mux
+            .get_domain_by_name(&name)
+            .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
+    };
+
+    let window_builder;
+    let term_config;
+
+    let (window_id, size) = if let Some(window_id) = spawn_popup.window_id {
+        let window = mux
+            .get_window_mut(window_id)
+            .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
+        let tab = window
+            .get_active()
+            .ok_or_else(|| anyhow!("window {} has no tabs", window_id))?;
+        let pane = tab
+            .get_active_pane()
+            .ok_or_else(|| anyhow!("active tab in window {} has no panes", window_id))?;
+        term_config = pane.get_config();
+
+        let size = tab.get_size();
+
+        (window_id, size)
+    } else {
+        term_config = None;
+        window_builder = mux.new_empty_window();
+        (*window_builder, spawn_popup.size)
+    };
+
+    let tab = domain
+        .spawn(size, spawn_popup.command, spawn_popup.command_dir, window_id)
         .await?;
 
     let pane = tab
