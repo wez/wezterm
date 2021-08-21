@@ -18,6 +18,7 @@ CATEGORIZE = {
     r".fedora34.rpm$": "fedora34_rpm",
     r"Debian9.12.deb$": "debian9_deb",
     r"Debian10.deb$": "debian10_deb",
+    r"Debian11.deb$": "debian11_deb",
     r"Ubuntu16.04.AppImage$": "ubuntu16_AppImage",
     r"^WezTerm-.*.x86_64.AppImage$": "ubuntu16_AppImage",
     r"Ubuntu16.04.deb$": "ubuntu16_deb",
