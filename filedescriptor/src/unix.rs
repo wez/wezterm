@@ -275,6 +275,20 @@ impl FileDescriptor {
         OwnedHandle::dup2_impl(f, dest_fd).map(|handle| Self { handle })
     }
 
+    /// Helper function to unset the close-on-exec flag for a raw descriptor
+    fn no_cloexec(fd: RawFd) -> Result<()> {
+        let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+        if flags == -1 {
+            return Err(Error::Fcntl(std::io::Error::last_os_error()));
+        }
+        let result = unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) };
+        if result == -1 {
+            Err(Error::Cloexec(std::io::Error::last_os_error()))
+        } else {
+            Ok(())
+        }
+    }
+
     pub(crate) fn redirect_stdio_impl<F: AsRawFileDescriptor>(
         f: &F,
         stdio: StdioDescriptor,
@@ -287,6 +301,7 @@ impl FileDescriptor {
 
         let std_original = FileDescriptor::dup(&std_descriptor)?;
         unsafe { FileDescriptor::dup2(f, std_descriptor) }?.into_raw_fd();
+        Self::no_cloexec(std_descriptor)?;
 
         Ok(std_original)
     }
