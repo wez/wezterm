@@ -740,7 +740,8 @@ mod test {
 
         let hyperlink = Arc::new(Hyperlink::new_implicit("http://example.com"));
         let hyperlink_port = Arc::new(Hyperlink::new_implicit("http://localhost:3000"));
-        let hyperlink_port_file = Arc::new(Hyperlink::new_implicit("http://localhost:3000/index.html"));
+        let hyperlink_port_file =
+            Arc::new(Hyperlink::new_implicit("http://localhost:3000/index.html"));
         let hyperlink_port_domain = Arc::new(Hyperlink::new_implicit("http://www.foo.com:3000"));
 
         let hyperlink_attr = CellAttributes::default()
