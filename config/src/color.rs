@@ -106,8 +106,8 @@ impl From<Palette> for wezterm_term::color::ColorPalette {
                 p.colors.0[idx + 8] = *col;
             }
         }
-        for (idx, col) in cfg.indexed.iter() {
-            p.colors.0[*idx as usize] = *col;
+        for (&idx, &col) in &cfg.indexed {
+            p.colors.0[idx as usize] = col;
         }
         p
     }
