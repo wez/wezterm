@@ -1839,7 +1839,7 @@ fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
     vec![
         // URL with a protocol
         hyperlink::Rule::new(
-            r"\b\w+://(?:[\w.-]+)(?:(?:\.[a-z]{2,15}\S*)|(?::\d{1,5}))\b",
+            r"(?:http|https)://[\w\d.]+(?:(?:\.[\w.]+)|(?::\d{1,5}))(?:[\w/.])*",
             "$0",
         )
         .unwrap(),

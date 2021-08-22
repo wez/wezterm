@@ -727,11 +727,11 @@ mod test {
     #[test]
     fn hyperlinks() {
         let text =
-            "❤ 😍🤢 http://example.com \u{1f468}\u{1f3fe}\u{200d}\u{1f9b0} http://example.com http://localhost:3000";
+            "❤ 😍🤢 http://example.com \u{1f468}\u{1f3fe}\u{200d}\u{1f9b0} http://example.com http://localhost:3000 http://localhost:3000/index.html http://www.foo.com:3000";
 
         let rules = vec![
             Rule::new(
-                r"\b\w+://(?:[\w.-]+)(?:(?:\.[a-z]{2,15}\S*)|(?::\d{1,5}))\b",
+                r"(?:http|https)://[\w\d.]+(?:(?:\.[\w.]+)|(?::\d{1,5}))(?:[\w/.])*",
                 "$0",
             )
             .unwrap(),
@@ -740,12 +740,20 @@ mod test {
 
         let hyperlink = Arc::new(Hyperlink::new_implicit("http://example.com"));
         let hyperlink_port = Arc::new(Hyperlink::new_implicit("http://localhost:3000"));
+        let hyperlink_port_file = Arc::new(Hyperlink::new_implicit("http://localhost:3000/index.html"));
+        let hyperlink_port_domain = Arc::new(Hyperlink::new_implicit("http://www.foo.com:3000"));
 
         let hyperlink_attr = CellAttributes::default()
             .set_hyperlink(Some(hyperlink.clone()))
             .clone();
         let hyperlink_port_attr = CellAttributes::default()
             .set_hyperlink(Some(hyperlink_port.clone()))
+            .clone();
+        let hyperlink_port_file_attr = CellAttributes::default()
+            .set_hyperlink(Some(hyperlink_port_file.clone()))
+            .clone();
+        let hyperlink_port_domain_attr = CellAttributes::default()
+            .set_hyperlink(Some(hyperlink_port_domain.clone()))
             .clone();
 
         let mut line: Line = text.into();
@@ -827,6 +835,63 @@ mod test {
                 Cell::new('0', hyperlink_port_attr.clone()),
                 Cell::new('0', hyperlink_port_attr.clone()),
                 Cell::new('0', hyperlink_port_attr.clone()),
+                Cell::new(' ', CellAttributes::default()),
+                Cell::new('h', hyperlink_port_file_attr.clone()),
+                Cell::new('t', hyperlink_port_file_attr.clone()),
+                Cell::new('t', hyperlink_port_file_attr.clone()),
+                Cell::new('p', hyperlink_port_file_attr.clone()),
+                Cell::new(':', hyperlink_port_file_attr.clone()),
+                Cell::new('/', hyperlink_port_file_attr.clone()),
+                Cell::new('/', hyperlink_port_file_attr.clone()),
+                Cell::new('l', hyperlink_port_file_attr.clone()),
+                Cell::new('o', hyperlink_port_file_attr.clone()),
+                Cell::new('c', hyperlink_port_file_attr.clone()),
+                Cell::new('a', hyperlink_port_file_attr.clone()),
+                Cell::new('l', hyperlink_port_file_attr.clone()),
+                Cell::new('h', hyperlink_port_file_attr.clone()),
+                Cell::new('o', hyperlink_port_file_attr.clone()),
+                Cell::new('s', hyperlink_port_file_attr.clone()),
+                Cell::new('t', hyperlink_port_file_attr.clone()),
+                Cell::new(':', hyperlink_port_file_attr.clone()),
+                Cell::new('3', hyperlink_port_file_attr.clone()),
+                Cell::new('0', hyperlink_port_file_attr.clone()),
+                Cell::new('0', hyperlink_port_file_attr.clone()),
+                Cell::new('0', hyperlink_port_file_attr.clone()),
+                Cell::new('/', hyperlink_port_file_attr.clone()),
+                Cell::new('i', hyperlink_port_file_attr.clone()),
+                Cell::new('n', hyperlink_port_file_attr.clone()),
+                Cell::new('d', hyperlink_port_file_attr.clone()),
+                Cell::new('e', hyperlink_port_file_attr.clone()),
+                Cell::new('x', hyperlink_port_file_attr.clone()),
+                Cell::new('.', hyperlink_port_file_attr.clone()),
+                Cell::new('h', hyperlink_port_file_attr.clone()),
+                Cell::new('t', hyperlink_port_file_attr.clone()),
+                Cell::new('m', hyperlink_port_file_attr.clone()),
+                Cell::new('l', hyperlink_port_file_attr.clone()),
+                Cell::new(' ', CellAttributes::default()),
+                Cell::new('h', hyperlink_port_domain_attr.clone()),
+                Cell::new('t', hyperlink_port_domain_attr.clone()),
+                Cell::new('t', hyperlink_port_domain_attr.clone()),
+                Cell::new('p', hyperlink_port_domain_attr.clone()),
+                Cell::new(':', hyperlink_port_domain_attr.clone()),
+                Cell::new('/', hyperlink_port_domain_attr.clone()),
+                Cell::new('/', hyperlink_port_domain_attr.clone()),
+                Cell::new('w', hyperlink_port_domain_attr.clone()),
+                Cell::new('w', hyperlink_port_domain_attr.clone()),
+                Cell::new('w', hyperlink_port_domain_attr.clone()),
+                Cell::new('.', hyperlink_port_domain_attr.clone()),
+                Cell::new('f', hyperlink_port_domain_attr.clone()),
+                Cell::new('o', hyperlink_port_domain_attr.clone()),
+                Cell::new('o', hyperlink_port_domain_attr.clone()),
+                Cell::new('.', hyperlink_port_domain_attr.clone()),
+                Cell::new('c', hyperlink_port_domain_attr.clone()),
+                Cell::new('o', hyperlink_port_domain_attr.clone()),
+                Cell::new('m', hyperlink_port_domain_attr.clone()),
+                Cell::new(':', hyperlink_port_domain_attr.clone()),
+                Cell::new('3', hyperlink_port_domain_attr.clone()),
+                Cell::new('0', hyperlink_port_domain_attr.clone()),
+                Cell::new('0', hyperlink_port_domain_attr.clone()),
+                Cell::new('0', hyperlink_port_domain_attr.clone()),
             ]
         );
     }
