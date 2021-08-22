@@ -57,6 +57,9 @@ return {
 
       ansi = {"black", "maroon", "green", "olive", "navy", "purple", "teal", "silver"},
       brights = {"grey", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"},
+
+      -- Arbitrary colors of the palette in the range from 16 to 255
+      indexed = {[136] = "#af8700"},
   }
 }
 ```
