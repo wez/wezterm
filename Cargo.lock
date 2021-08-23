@@ -1270,7 +1270,7 @@ dependencies = [
 
 [[package]]
 name = "filedescriptor"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "libc",
  "thiserror",
