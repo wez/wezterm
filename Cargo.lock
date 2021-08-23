@@ -5495,7 +5495,8 @@ dependencies = [
 [[package]]
 name = "xcb-imdkit"
 version = "0.1.1"
-source = "git+https://github.com/H-M-H/xcb-imdkit-rs#989d8d9710ec784f22e7a5e9ba7dd3f221507c7e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38c07996eb88f780ecd2a929d51fc5deb6d83aebac919d7329a2150f5feef0a1"
 dependencies = [
  "bitflags",
  "cc",
