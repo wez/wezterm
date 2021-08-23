@@ -38,6 +38,7 @@ pub mod ssh;
 pub mod tab;
 pub mod termwiztermtab;
 pub mod tmux;
+pub mod tmux_commands;
 pub mod window;
 
 use crate::activity::Activity;
