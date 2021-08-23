@@ -154,6 +154,7 @@ usually the best available version.</p>
 <li>Fixed: Consolas font + random input could cause a divide-by-zero when computing glyph metrics <a href="https://github.com/wez/wezterm/issues/1042">#1042</a></li>
 <li>Fixed: Emoji fallback was too strict in respecting VS15/VS16 presentation selection, adjust the fallback to allow showing Emoji/Text presentation if Text/Emoji was requested but not found.</li>
 <li>New: X11 now supports IME. It currently defaults to disabled, but you can set <code>use_ime = true</code> in your config to enable it (you need to restart wezterm for this to take effect). Many thanks to <a href="https://github.com/H-M-H">@H-M-H</a> for bringing xcb-imdkit to Rust and implementing this in wezterm! <a href="https://github.com/wez/wezterm/issues/250">#250</a> <a href="https://github.com/wez/wezterm/pull/1043">#1043</a></li>
+<li>New: it is now possible to define colors in the range 16-255 in <code>colors</code> and color scheme definitions. Thanks to <a href="https://github.com/potamides">@potamides</a>! <a href="https://github.com/wez/wezterm/issues/841">#841</a> <a href="https://github.com/wez/wezterm/pull/1056">#1056</a></li>
 </ul>
 <h3 id="20210814-124438-54e29167"><a class="header" href="#20210814-124438-54e29167">20210814-124438-54e29167</a></h3>
 <ul>
