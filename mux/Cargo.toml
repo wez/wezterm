@@ -42,6 +42,7 @@ unicode-segmentation = "1.8"
 url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
+flume = "0.10"
 
 [target."cfg(windows)".dependencies]
 ntapi = "0.3"
