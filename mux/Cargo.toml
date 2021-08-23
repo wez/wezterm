@@ -36,6 +36,7 @@ unicode-segmentation = "1.8"
 url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
+flume = "0.10"
 
 [target.'cfg(any(windows, target_os="linux", target_os="macos"))'.dependencies]
 sysinfo = "0.16"

@@ -5,9 +5,10 @@ use crate::window::WindowId;
 use crate::Mux;
 use anyhow::anyhow;
 use async_trait::async_trait;
+use flume;
 use portable_pty::{CommandBuilder, PtySize};
 use std::cell::RefCell;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 use std::sync::Arc;
 use tmux_cc::*;
@@ -112,12 +113,26 @@ impl TmuxCommand for ListAllPanes {
     }
 }
 
+struct TmuxRemotePane {
+    // members for local
+    local_pane_id: PaneId,
+    tx: flume::Sender<String>,
+    // members sync with remote
+    session_id: TmuxSessionId,
+    window_id: TmuxWindowId,
+    pane_id: TmuxPaneId,
+}
+
 pub(crate) struct TmuxDomainState {
     pane_id: PaneId,
     pub domain_id: DomainId,
-    parser: RefCell<Parser>,
+    // parser: RefCell<Parser>,
     state: RefCell<State>,
     cmd_queue: RefCell<VecDeque<Box<dyn TmuxCommand>>>,
+    gui_window_id: RefCell<Option<usize>>,
+    remote_panes: RefCell<HashMap<TmuxPaneId, TmuxRemotePane>>,
+    // TODO: Currently, a tmux pane is a local tab.
+    // add info about window-pane mapping to support this feature.
 }
 
 pub struct TmuxDomain {
@@ -125,13 +140,12 @@ pub struct TmuxDomain {
 }
 
 impl TmuxDomainState {
-    pub fn advance(&self, b: u8) {
-        let mut parser = self.parser.borrow_mut();
-        if let Some(event) = parser.advance_byte(b) {
+    pub fn advance(&self, events: Box<Vec<Event>>) {
+        for event in events.iter() {
             let state = *self.state.borrow();
             log::error!("tmux: {:?} in state {:?}", event, state);
-            if let Event::Guarded(response) = event {
-                match state {
+            match event {
+                Event::Guarded(response) => match state {
                     State::WaitForInitialGuard => {
                         *self.state.borrow_mut() = State::Idle;
                     }
@@ -139,17 +153,37 @@ impl TmuxDomainState {
                         let cmd = self.cmd_queue.borrow_mut().pop_front().unwrap();
                         let domain_id = self.domain_id;
                         *self.state.borrow_mut() = State::Idle;
+                        let resp = response.clone();
                         promise::spawn::spawn(async move {
-                            if let Err(err) = cmd.process_result(domain_id, &response) {
+                            if let Err(err) = cmd.process_result(domain_id, &resp) {
                                 log::error!("error processing result: {}", err);
                             }
                         })
                         .detach();
                     }
                     State::Idle => {}
+                },
+                Event::Output { pane, text } => {
+                    // TODO: write to pane's tmux queue
+                    // TODO: decode string
                 }
+                Event::WindowAdd { window } => {
+                    if self.gui_window_id.borrow().is_none() {
+                        if let Some(mux) = Mux::get() {
+                            let window_builder = mux.new_empty_window();
+                            log::info!("Tmux create window id {}", window_builder.window_id);
+                            {
+                                let mut window_id = self.gui_window_id.borrow_mut();
+                                *window_id = Some(window_builder.window_id);
+                            }
+                        }
+                    }
+                }
+                _ => {}
             }
         }
+
+        // send pending commands to tmux
         if *self.state.borrow() == State::Idle && !self.cmd_queue.borrow().is_empty() {
             let domain_id = self.domain_id;
             promise::spawn::spawn(async move {
@@ -184,15 +218,17 @@ impl TmuxDomainState {
 impl TmuxDomain {
     pub fn new(pane_id: PaneId) -> Self {
         let domain_id = alloc_domain_id();
-        let parser = RefCell::new(Parser::new());
+        // let parser = RefCell::new(Parser::new());
         let mut cmd_queue = VecDeque::<Box<dyn TmuxCommand>>::new();
         cmd_queue.push_back(Box::new(ListAllPanes));
         let inner = Arc::new(TmuxDomainState {
             domain_id,
             pane_id,
-            parser,
+            // parser,
             state: RefCell::new(State::WaitForInitialGuard),
             cmd_queue: RefCell::new(cmd_queue),
+            gui_window_id: RefCell::new(None),
+            remote_panes: RefCell::new(HashMap::default()),
         });
         Self { inner }
     }
