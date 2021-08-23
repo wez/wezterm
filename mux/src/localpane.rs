@@ -531,14 +531,17 @@ impl wezterm_term::DeviceControlHandler for LocalPaneDCSHandler {
                 }
             }
             DeviceControlMode::Data(c) => {
+                log::warn!(
+                    "unhandled DeviceControlMode::Data {:x} {}",
+                    c,
+                    (c as char).escape_debug()
+                );
+            }
+            DeviceControlMode::TmuxEvents(events) => {
                 if let Some(tmux) = self.tmux_domain.as_ref() {
-                    tmux.advance(c);
+                    tmux.advance(events);
                 } else {
-                    log::warn!(
-                        "unhandled DeviceControlMode::Data {:x} {}",
-                        c,
-                        (c as char).escape_debug()
-                    );
+                    log::warn!("unhandled DeviceControlMode::TmuxEvents {:?}", &events);
                 }
             }
             _ => {
