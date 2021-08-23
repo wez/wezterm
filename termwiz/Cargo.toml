@@ -32,6 +32,7 @@ serde = {version="1.0", features = ["rc", "derive"], optional=true}
 sha2 = "0.9"
 terminfo = "0.7"
 thiserror = "1.0"
+tmux-cc = {version = "0.1", path = "../tmux-cc"}
 unicode-segmentation = "1.8"
 ucd-trie = "0.1"
 vtparse = { version="0.6", path="../vtparse" }

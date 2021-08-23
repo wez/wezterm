@@ -7,7 +7,9 @@ use crate::escape::{
 use log::error;
 use num_traits::FromPrimitive;
 use regex::bytes::Regex;
-use std::cell::RefCell;
+use std::borrow::{Borrow, BorrowMut};
+use std::cell::{Ref, RefCell};
+use tmux_cc;
 use vtparse::{CsiParam, VTActor, VTParser};
 
 struct SixelBuilder {
@@ -53,6 +55,7 @@ struct ParseState {
     sixel: Option<SixelBuilder>,
     dcs: Option<ShortDeviceControl>,
     get_tcap: Option<GetTcapBuilder>,
+    tmux_state: Option<RefCell<tmux_cc::Parser>>,
 }
 
 /// The `Parser` struct holds the state machine that is used to decode
@@ -81,11 +84,23 @@ impl Parser {
     }
 
     pub fn parse<F: FnMut(Action)>(&mut self, bytes: &[u8], mut callback: F) {
-        let mut perform = Performer {
-            callback: &mut callback,
-            state: &mut self.state.borrow_mut(),
-        };
-        self.state_machine.parse(bytes, &mut perform);
+        let tmux_state: bool = self.state.borrow().tmux_state.is_some();
+        if tmux_state {
+            let parser_state = self.state.borrow();
+            let tmux_state = parser_state.tmux_state.as_ref().unwrap();
+            let mut tmux_parser = tmux_state.borrow_mut();
+            let tmux_events = tmux_parser.advance_bytes(bytes);
+            log::info!("parsed tmux events: {:?}", &tmux_events);
+            callback(Action::DeviceControl(DeviceControlMode::TmuxEvents(
+                Box::new(tmux_events),
+            )));
+        } else {
+            let mut perform = Performer {
+                callback: &mut callback,
+                state: &mut self.state.borrow_mut(),
+            };
+            self.state_machine.parse(bytes, &mut perform);
+        }
     }
 
     /// A specialized version of the parser that halts after recognizing the
@@ -215,6 +230,10 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
                 data: vec![],
             });
         } else {
+            if byte == b'p' && params == [1000] {
+                // into tmux_cc mode
+                self.state.borrow_mut().tmux_state = Some(RefCell::new(tmux_cc::Parser::new()));
+            }
             (self.callback)(Action::DeviceControl(DeviceControlMode::Enter(Box::new(
                 EnterDeviceControlMode {
                     byte,
@@ -234,7 +253,17 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         } else if let Some(tcap) = self.state.get_tcap.as_mut() {
             tcap.push(data);
         } else {
-            (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));
+            if let Some(tmux_state) = &self.state.tmux_state {
+                let mut tmux_parser = tmux_state.borrow_mut();
+                if let Some(tmux_event) = tmux_parser.advance_byte(data) {
+                    log::info!("parsed tmux event:{:?}", &tmux_event);
+                    (self.callback)(Action::DeviceControl(DeviceControlMode::TmuxEvents(
+                        Box::new(vec![tmux_event]),
+                    )));
+                }
+            } else {
+                (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));
+            }
         }
     }
 
