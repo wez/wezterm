@@ -20,6 +20,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: X11 now supports IME. It currently defaults to disabled, but you can set `use_ime = true` in your config to enable it (you need to restart wezterm for this to take effect). Many thanks to [@H-M-H](https://github.com/H-M-H) for bringing xcb-imdkit to Rust and implementing this in wezterm! [#250](https://github.com/wez/wezterm/issues/250) [#1043](https://github.com/wez/wezterm/pull/1043)
 * New: it is now possible to define colors in the range 16-255 in `colors` and color scheme definitions. Thanks to [@potamides](https://github.com/potamides)! [#841](https://github.com/wez/wezterm/issues/841) [#1056](https://github.com/wez/wezterm/pull/1056)
 * Fixed: X11: laggy input after selecting text. [#1027](https://github.com/wez/wezterm/issues/1027)
+* Updated: bundled harfbuzz to version 2.9.0
 
 ### 20210814-124438-54e29167
 
