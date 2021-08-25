@@ -1,7 +1,7 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{Pane, PaneId};
 use crate::tab::{SplitDirection, Tab, TabId};
-use crate::tmux_commands::{ListAllPanes, TmuxCommand};
+use crate::tmux_commands::{process_command_result, ListAllPanes, TmuxCommand};
 use crate::window::WindowId;
 use crate::Mux;
 use async_trait::async_trait;
@@ -62,8 +62,11 @@ impl TmuxDomainState {
                         *self.state.borrow_mut() = State::Idle;
                         let resp = response.clone();
                         promise::spawn::spawn(async move {
-                            if let Err(err) = cmd.process_result(domain_id, &resp) {
-                                log::error!("error processing result: {}", err);
+                            match cmd.process_result(domain_id, &resp) {
+                                Ok(result) => process_command_result(domain_id, result),
+                                Err(err) => {
+                                    log::error!("error processing result: {}", err);
+                                }
                             }
                         })
                         .detach();

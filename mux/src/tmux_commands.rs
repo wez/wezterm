@@ -1,8 +1,34 @@
+use crate::domain::DomainId;
+use crate::tmux::TmuxDomain;
+use crate::Mux;
 use anyhow::anyhow;
+use tmux_cc::*;
 
 pub(crate) trait TmuxCommand {
     fn get_command(&self) -> String;
-    fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()>;
+    fn process_result(
+        &self,
+        domain_id: DomainId,
+        result: &Guarded,
+    ) -> anyhow::Result<TmuxCommandResult>;
+}
+
+#[derive(Debug)]
+pub(crate) struct PaneItem {
+    session_id: TmuxSessionId,
+    window_id: TmuxWindowId,
+    pane_id: TmuxPaneId,
+    pane_index: u64,
+    cursor_x: u64,
+    cursor_y: u64,
+    pane_width: u64,
+    pane_height: u64,
+    pane_left: u64,
+    pane_top: u64,
+}
+
+pub(crate) enum TmuxCommandResult {
+    PaneList(Vec<PaneItem>),
 }
 
 pub(crate) struct ListAllPanes;
@@ -14,21 +40,11 @@ impl TmuxCommand for ListAllPanes {
             .to_owned()
     }
 
-    fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
-        #[derive(Debug)]
-        struct Item {
-            session_id: TmuxSessionId,
-            window_id: TmuxWindowId,
-            pane_id: TmuxPaneId,
-            pane_index: u64,
-            cursor_x: u64,
-            cursor_y: u64,
-            pane_width: u64,
-            pane_height: u64,
-            pane_left: u64,
-            pane_top: u64,
-        }
-
+    fn process_result(
+        &self,
+        domain_id: DomainId,
+        result: &Guarded,
+    ) -> anyhow::Result<TmuxCommandResult> {
         let mut items = vec![];
 
         for line in result.output.split('\n') {
@@ -74,7 +90,7 @@ impl TmuxCommand for ListAllPanes {
             let window_id = window_id[1..].parse()?;
             let pane_id = pane_id[1..].parse()?;
 
-            items.push(Item {
+            items.push(PaneItem {
                 session_id,
                 window_id,
                 pane_id,
@@ -89,6 +105,15 @@ impl TmuxCommand for ListAllPanes {
         }
 
         log::error!("panes in domain_id {}: {:?}", domain_id, items);
-        Ok(())
+        Ok(TmuxCommandResult::PaneList(items))
+    }
+}
+
+pub(crate) fn process_command_result(domain_id: DomainId, result: TmuxCommandResult) {
+    let mux = Mux::get().expect("to be called on main thread");
+    if let Some(domain) = mux.get_domain(domain_id) {
+        if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
+            // TODO:
+        }
     }
 }
