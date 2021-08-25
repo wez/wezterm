@@ -21,7 +21,6 @@ As features stabilize some brief notes about them will accumulate here.
 * New: it is now possible to define colors in the range 16-255 in `colors` and color scheme definitions. Thanks to [@potamides](https://github.com/potamides)! [#841](https://github.com/wez/wezterm/issues/841) [#1056](https://github.com/wez/wezterm/pull/1056)
 * Fixed: X11: laggy input after selecting text. [#1027](https://github.com/wez/wezterm/issues/1027)
 * Updated: bundled harfbuzz to version 2.9.0
-* Fixed: removed `TryExec` from .desktop file to workaround a KDE issue Thanks to [@SuperSandro2000](https://github.com/SuperSandro2000)! [#1081](https://github.com/wez/wezterm/pull/1081)
 
 ### 20210814-124438-54e29167
 
