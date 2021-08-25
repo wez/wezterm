@@ -89,6 +89,7 @@ impl Parser {
             let parser_state = self.state.borrow();
             let tmux_state = parser_state.tmux_state.as_ref().unwrap();
             let mut tmux_parser = tmux_state.borrow_mut();
+            // TODO: wrap events into some Result to capture bytes cannot be parsed
             let tmux_events = tmux_parser.advance_bytes(bytes);
             log::info!("parsed tmux events: {:?}", &tmux_events);
             callback(Action::DeviceControl(DeviceControlMode::TmuxEvents(
