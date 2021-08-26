@@ -1,7 +1,7 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{Pane, PaneId};
 use crate::tab::{SplitDirection, Tab, TabId};
-use crate::tmux_commands::{process_command_result, ListAllPanes, TmuxCommand};
+use crate::tmux_commands::{ListAllPanes, TmuxCommand};
 use crate::window::WindowId;
 use crate::Mux;
 use async_trait::async_trait;
@@ -10,7 +10,7 @@ use portable_pty::{CommandBuilder, PtySize};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tmux_cc::*;
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
@@ -20,7 +20,7 @@ enum State {
     WaitingForResponse,
 }
 
-struct TmuxRemotePane {
+pub(crate) struct TmuxRemotePane {
     // members for local
     local_pane_id: PaneId,
     tx: flume::Sender<String>,
@@ -28,6 +28,20 @@ struct TmuxRemotePane {
     session_id: TmuxSessionId,
     window_id: TmuxWindowId,
     pane_id: TmuxPaneId,
+    pub cursor_x: u64,
+    pub cursor_y: u64,
+    pub pane_width: u64,
+    pub pane_height: u64,
+    pub pane_left: u64,
+    pub pane_top: u64,
+}
+
+pub(crate) type RefTmuxRemotePane = Arc<Mutex<TmuxRemotePane>>;
+
+pub(crate) struct TmuxTab {
+    tab_id: TabId,
+    tmux_window_id: TmuxWindowId,
+    panes: Vec<TmuxPaneId>,
 }
 
 pub(crate) struct TmuxDomainState {
@@ -37,9 +51,8 @@ pub(crate) struct TmuxDomainState {
     state: RefCell<State>,
     cmd_queue: RefCell<VecDeque<Box<dyn TmuxCommand>>>,
     gui_window_id: RefCell<Option<usize>>,
-    remote_panes: RefCell<HashMap<TmuxPaneId, TmuxRemotePane>>,
-    // TODO: Currently, a tmux pane is a local tab.
-    // add info about window-pane mapping to support this feature.
+    gui_tabs: RefCell<Vec<TmuxTab>>,
+    remote_panes: RefCell<HashMap<TmuxPaneId, RefTmuxRemotePane>>,
 }
 
 pub struct TmuxDomain {
@@ -62,11 +75,8 @@ impl TmuxDomainState {
                         *self.state.borrow_mut() = State::Idle;
                         let resp = response.clone();
                         promise::spawn::spawn(async move {
-                            match cmd.process_result(domain_id, &resp) {
-                                Ok(result) => process_command_result(domain_id, result),
-                                Err(err) => {
-                                    log::error!("error processing result: {}", err);
-                                }
+                            if let Err(err) = cmd.process_result(domain_id, &resp) {
+                                log::error!("error processing result: {}", err);
                             }
                         })
                         .detach();
@@ -77,7 +87,7 @@ impl TmuxDomainState {
                     // TODO: write to pane's tmux queue
                     // TODO: decode string
                 }
-                Event::WindowAdd { window } => {
+                Event::WindowAdd { window: _ } => {
                     if self.gui_window_id.borrow().is_none() {
                         if let Some(mux) = Mux::get() {
                             let window_builder = mux.new_empty_window();
@@ -138,6 +148,7 @@ impl TmuxDomain {
             state: RefCell::new(State::WaitForInitialGuard),
             cmd_queue: RefCell::new(cmd_queue),
             gui_window_id: RefCell::new(None),
+            gui_tabs: RefCell::new(Vec::default()),
             remote_panes: RefCell::new(HashMap::default()),
         });
         Self { inner }

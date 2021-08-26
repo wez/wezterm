@@ -39,6 +39,7 @@ pub mod tab;
 pub mod termwiztermtab;
 pub mod tmux;
 pub mod tmux_commands;
+mod tmux_pty;
 pub mod window;
 
 use crate::activity::Activity;

@@ -1,16 +1,12 @@
 use crate::domain::DomainId;
-use crate::tmux::TmuxDomain;
+use crate::tmux::{TmuxDomain, TmuxDomainState};
 use crate::Mux;
 use anyhow::anyhow;
 use tmux_cc::*;
 
 pub(crate) trait TmuxCommand {
     fn get_command(&self) -> String;
-    fn process_result(
-        &self,
-        domain_id: DomainId,
-        result: &Guarded,
-    ) -> anyhow::Result<TmuxCommandResult>;
+    fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()>;
 }
 
 #[derive(Debug)]
@@ -27,6 +23,12 @@ pub(crate) struct PaneItem {
     pane_top: u64,
 }
 
+impl TmuxDomainState {
+    fn sync_pane_state(&self, panes: &[PaneItem]) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
 pub(crate) enum TmuxCommandResult {
     PaneList(Vec<PaneItem>),
 }
@@ -40,11 +42,7 @@ impl TmuxCommand for ListAllPanes {
             .to_owned()
     }
 
-    fn process_result(
-        &self,
-        domain_id: DomainId,
-        result: &Guarded,
-    ) -> anyhow::Result<TmuxCommandResult> {
+    fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
         let mut items = vec![];
 
         for line in result.output.split('\n') {
@@ -104,16 +102,13 @@ impl TmuxCommand for ListAllPanes {
             });
         }
 
-        log::error!("panes in domain_id {}: {:?}", domain_id, items);
-        Ok(TmuxCommandResult::PaneList(items))
-    }
-}
-
-pub(crate) fn process_command_result(domain_id: DomainId, result: TmuxCommandResult) {
-    let mux = Mux::get().expect("to be called on main thread");
-    if let Some(domain) = mux.get_domain(domain_id) {
-        if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
-            // TODO:
+        log::info!("panes in domain_id {}: {:?}", domain_id, items);
+        let mux = Mux::get().expect("to be called on main thread");
+        if let Some(domain) = mux.get_domain(domain_id) {
+            if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
+                return tmux_domain.inner.sync_pane_state(&items);
+            }
         }
+        anyhow::bail!("Tmux domain lost");
     }
 }
