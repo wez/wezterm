@@ -25,12 +25,19 @@ pub(crate) struct PaneItem {
 
 impl TmuxDomainState {
     fn sync_pane_state(&self, panes: &[PaneItem]) -> anyhow::Result<()> {
+        // TODO:
+        // 1) iter over current session panes
+        // 2) create pane if not exist
+        // 3) fetch scroll buffer if new created
+        // 4) update pane state if exist
+        let current_session = self.tmux_session.borrow().unwrap_or(0);
+        for pane in panes.iter() {
+            if pane.session_id != current_session {
+                continue;
+            }
+        }
         Ok(())
     }
-}
-
-pub(crate) enum TmuxCommandResult {
-    PaneList(Vec<PaneItem>),
 }
 
 pub(crate) struct ListAllPanes;
