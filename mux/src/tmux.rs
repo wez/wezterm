@@ -84,8 +84,15 @@ impl TmuxDomainState {
                     State::Idle => {}
                 },
                 Event::Output { pane, text } => {
-                    // TODO: write to pane's tmux queue
-                    // TODO: decode string
+                    let pane_map = self.remote_panes.borrow_mut();
+                    if let Some(ref_pane) = pane_map.get(pane) {
+                        // TODO: handle escape?
+                        let tmux_pane = ref_pane.lock().unwrap();
+                        tmux_pane
+                            .tx
+                            .send(text.to_string())
+                            .expect("send to tmux pane failed");
+                    }
                 }
                 Event::WindowAdd { window: _ } => {
                     if self.gui_window_id.borrow().is_none() {
