@@ -405,6 +405,7 @@ usually the best available version.</p>
 <li>New: it is now possible to define colors in the range 16-255 in <code>colors</code> and color scheme definitions. Thanks to <a href="https://github.com/potamides">@potamides</a>! <a href="https://github.com/wez/wezterm/issues/841">#841</a> <a href="https://github.com/wez/wezterm/pull/1056">#1056</a></li>
 <li>Fixed: X11: laggy input after selecting text. <a href="https://github.com/wez/wezterm/issues/1027">#1027</a></li>
 <li>Updated: bundled harfbuzz to version 2.9.0</li>
+<li>Changed: X11: we now allow matching visuals with &gt;= 8 bits per rgb value. Previously, we only matched exactly 8 bits. This improve compatibility with systems that have the COMPOSITE extension disabled. Thanks to <a href="https://github.com/shizeeg">@shizeeg</a>! <a href="https://github.com/wez/wezterm/pull/1083">#1083</a></li>
 </ul>
 <h3 id="20210814-124438-54e29167"><a class="header" href="#20210814-124438-54e29167">20210814-124438-54e29167</a></h3>
 <ul>
