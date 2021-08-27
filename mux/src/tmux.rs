@@ -45,14 +45,15 @@ pub(crate) struct TmuxTab {
 }
 
 pub(crate) struct TmuxDomainState {
-    pane_id: PaneId,
+    pub pane_id: PaneId,
     pub domain_id: DomainId,
     // parser: RefCell<Parser>,
     state: RefCell<State>,
-    cmd_queue: RefCell<VecDeque<Box<dyn TmuxCommand>>>,
-    gui_window_id: RefCell<Option<usize>>,
-    gui_tabs: RefCell<Vec<TmuxTab>>,
-    remote_panes: RefCell<HashMap<TmuxPaneId, RefTmuxRemotePane>>,
+    pub cmd_queue: RefCell<VecDeque<Box<dyn TmuxCommand>>>,
+    pub gui_window_id: RefCell<Option<usize>>,
+    pub gui_tabs: RefCell<Vec<TmuxTab>>,
+    pub remote_panes: RefCell<HashMap<TmuxPaneId, RefTmuxRemotePane>>,
+    pub tmux_session: RefCell<Option<TmuxSessionId>>,
 }
 
 pub struct TmuxDomain {
@@ -106,6 +107,9 @@ impl TmuxDomainState {
                         }
                     }
                 }
+                Event::SessionChanged { session, name: _ } => {
+                    *self.tmux_session.borrow_mut() = Some(*session);
+                }
                 _ => {}
             }
         }
@@ -157,6 +161,7 @@ impl TmuxDomain {
             gui_window_id: RefCell::new(None),
             gui_tabs: RefCell::new(Vec::default()),
             remote_panes: RefCell::new(HashMap::default()),
+            tmux_session: RefCell::new(None),
         });
         Self { inner }
     }
