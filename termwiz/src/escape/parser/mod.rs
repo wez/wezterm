@@ -91,7 +91,6 @@ impl Parser {
             let mut tmux_parser = tmux_state.borrow_mut();
             // TODO: wrap events into some Result to capture bytes cannot be parsed
             let tmux_events = tmux_parser.advance_bytes(bytes);
-            log::info!("parsed tmux events: {:?}", &tmux_events);
             callback(Action::DeviceControl(DeviceControlMode::TmuxEvents(
                 Box::new(tmux_events),
             )));
@@ -257,7 +256,6 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
             if let Some(tmux_state) = &self.state.tmux_state {
                 let mut tmux_parser = tmux_state.borrow_mut();
                 if let Some(tmux_event) = tmux_parser.advance_byte(data) {
-                    log::info!("parsed tmux event:{:?}", &tmux_event);
                     (self.callback)(Action::DeviceControl(DeviceControlMode::TmuxEvents(
                         Box::new(vec![tmux_event]),
                     )));

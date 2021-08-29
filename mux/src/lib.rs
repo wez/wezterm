@@ -493,7 +493,7 @@ impl Mux {
             for (window_id, win) in windows.iter_mut() {
                 win.prune_dead_tabs(&live_tab_ids);
                 if win.is_empty() {
-                    log::debug!("prune_dead_windows: window is now empty");
+                    log::info!("prune_dead_windows: window is now empty");
                     dead_windows.push(*window_id);
                 }
             }
