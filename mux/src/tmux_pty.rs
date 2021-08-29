@@ -1,5 +1,5 @@
 use flume;
-use portable_pty::MasterPty;
+use portable_pty::{Child, MasterPty};
 use std::io::{Read, Write};
 
 use crate::tmux::RefTmuxRemotePane;
@@ -10,7 +10,7 @@ pub(crate) struct TmuxReader {
 
 impl Read for TmuxReader {
     fn read(&mut self, mut buf: &mut [u8]) -> std::io::Result<usize> {
-        match self.rx.try_recv() {
+        match self.rx.recv() {
             Ok(str) => {
                 return buf.write(str.as_bytes());
             }
@@ -22,9 +22,10 @@ impl Read for TmuxReader {
 }
 
 // A local tmux pane(tab) based on a tmux pty
+#[derive(Debug, Clone)]
 pub(crate) struct TmuxPty {
-    master_pane: RefTmuxRemotePane,
-    rx: flume::Receiver<String>,
+    pub master_pane: RefTmuxRemotePane,
+    pub rx: flume::Receiver<String>,
     // TODO: wx
 }
 
@@ -36,6 +37,24 @@ impl Write for TmuxPty {
 
     fn flush(&mut self) -> std::io::Result<()> {
         Ok(())
+    }
+}
+
+impl Child for TmuxPty {
+    fn try_wait(&mut self) -> std::io::Result<Option<portable_pty::ExitStatus>> {
+        todo!()
+    }
+
+    fn kill(&mut self) -> std::io::Result<()> {
+        todo!()
+    }
+
+    fn wait(&mut self) -> std::io::Result<portable_pty::ExitStatus> {
+        loop {}
+    }
+
+    fn process_id(&self) -> Option<u32> {
+        Some(0)
     }
 }
 
