@@ -32,3 +32,12 @@ return {
 }
 ```
 
+An easy way to get the correct escape sequence is running `showkey -a`.
+
+This would be the output for pressing `CTRL+L`:
+
+```
+^L 	 12 0014 0x0c
+```
+
+You can then use `"\x0c"` in your `wezterm.lua`.
