@@ -146,11 +146,12 @@ impl TmuxDomainState {
             let tab = Rc::new(Tab::new(&size));
             tab.assign_pane(&local_pane);
 
+            self.create_gui_window();
             let mut gui_window = self.gui_window.borrow_mut();
             let gui_window_id = match gui_window.as_mut() {
-                Some(x) => &mut *x,
+                Some(x) => x,
                 None => {
-                    anyhow::bail!("None tmux GUI window created")
+                    anyhow::bail!("No tmux gui created");
                 }
             };
 
@@ -159,6 +160,7 @@ impl TmuxDomainState {
             gui_window_id.notify();
 
             self.add_attached_pane(&pane, &tab.tab_id())?;
+            log::info!("new pane attached");
         }
         Ok(())
     }

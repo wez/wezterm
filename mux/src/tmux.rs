@@ -98,16 +98,7 @@ impl TmuxDomainState {
                     }
                 }
                 Event::WindowAdd { window: _ } => {
-                    if self.gui_window.borrow().is_none() {
-                        if let Some(mux) = Mux::get() {
-                            let window_builder = mux.new_empty_window();
-                            log::info!("Tmux create window id {}", window_builder.window_id);
-                            {
-                                let mut window_id = self.gui_window.borrow_mut();
-                                *window_id = Some(window_builder); // keep the builder so it won't be purged
-                            }
-                        }
-                    }
+                    self.create_gui_window();
                 }
                 Event::SessionChanged { session, name: _ } => {
                     *self.tmux_session.borrow_mut() = Some(*session);
@@ -146,6 +137,18 @@ impl TmuxDomainState {
             }
             *self.state.borrow_mut() = State::WaitingForResponse;
         }
+    }
+
+    pub fn create_gui_window(&self) {
+        if self.gui_window.borrow().is_none() {
+            let mux = Mux::get().expect("should be call at main thread");
+            let window_builder = mux.new_empty_window();
+            log::info!("Tmux create window id {}", window_builder.window_id);
+            {
+                let mut window_id = self.gui_window.borrow_mut();
+                *window_id = Some(window_builder); // keep the builder so it won't be purged
+            }
+        };
     }
 }
 
