@@ -1736,7 +1736,12 @@ impl WindowView {
             return;
         };
 
-        let use_ime = config::configuration().use_ime;
+        let config_handle = config::configuration();
+        let use_ime = config_handle.use_ime;
+        let send_composed_key_when_left_alt_is_pressed =
+            config_handle.send_composed_key_when_left_alt_is_pressed;
+        let send_composed_key_when_right_alt_is_pressed =
+            config_handle.send_composed_key_when_right_alt_is_pressed;
 
         // `Delete` on macos is really Backspace and emits BS.
         // `Fn-Delete` emits DEL.
@@ -1771,10 +1776,29 @@ impl WindowView {
             modifiers
         };
 
-        let only_alt = (modifiers & !(Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT))
-            == Modifiers::NONE;
+        // Also respect `send_composed_key_when_(left|right)_alt_is_pressed` configs
+        // when `use_ime` is true.
+        let forward_to_ime = {
+            let only_alt = (modifiers
+                & !(Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT))
+                == Modifiers::NONE;
+            let only_left_alt =
+                (modifiers & !(Modifiers::LEFT_ALT | Modifiers::ALT)) == Modifiers::NONE;
+            let only_right_alt =
+                (modifiers & !(Modifiers::RIGHT_ALT | Modifiers::ALT)) == Modifiers::NONE;
 
-        if key_is_down && use_ime && (modifiers.is_empty() || only_alt) {
+            if modifiers.is_empty() {
+                true
+            } else if only_left_alt && !send_composed_key_when_left_alt_is_pressed {
+                false
+            } else if only_right_alt && !send_composed_key_when_right_alt_is_pressed {
+                false
+            } else {
+                only_alt
+            }
+        };
+
+        if key_is_down && use_ime && forward_to_ime {
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
                 inner.key_is_down.replace(key_is_down);
