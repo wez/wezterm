@@ -1,6 +1,9 @@
 use flume;
-use portable_pty::{Child, MasterPty};
-use std::io::{Read, Write};
+use portable_pty::{Child, ExitStatus, MasterPty};
+use std::{
+    io::{Read, Write},
+    sync::{Arc, Condvar, Mutex},
+};
 
 use crate::tmux::RefTmuxRemotePane;
 
@@ -26,6 +29,7 @@ impl Read for TmuxReader {
 pub(crate) struct TmuxPty {
     pub master_pane: RefTmuxRemotePane,
     pub rx: flume::Receiver<String>,
+    pub active_lock: Arc<(Mutex<bool>, Condvar)>,
     // TODO: wx
 }
 
@@ -50,7 +54,12 @@ impl Child for TmuxPty {
     }
 
     fn wait(&mut self) -> std::io::Result<portable_pty::ExitStatus> {
-        loop {}
+        let (lock, var) = &*self.active_lock;
+        let mut released = lock.lock().unwrap();
+        while !*released {
+            released = var.wait(released).unwrap();
+        }
+        return Ok(ExitStatus::with_exit_code(0));
     }
 
     fn process_id(&self) -> Option<u32> {
@@ -84,6 +93,7 @@ impl MasterPty for TmuxPty {
         Ok(Box::new(TmuxPty {
             master_pane: self.master_pane.clone(),
             rx: self.rx.clone(),
+            active_lock: self.active_lock.clone(),
         }))
     }
 
