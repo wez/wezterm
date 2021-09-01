@@ -86,14 +86,30 @@ impl Parser {
     pub fn parse<F: FnMut(Action)>(&mut self, bytes: &[u8], mut callback: F) {
         let tmux_state: bool = self.state.borrow().tmux_state.is_some();
         if tmux_state {
-            let parser_state = self.state.borrow();
-            let tmux_state = parser_state.tmux_state.as_ref().unwrap();
-            let mut tmux_parser = tmux_state.borrow_mut();
-            // TODO: wrap events into some Result to capture bytes cannot be parsed
-            let tmux_events = tmux_parser.advance_bytes(bytes);
-            callback(Action::DeviceControl(DeviceControlMode::TmuxEvents(
-                Box::new(tmux_events),
-            )));
+            if let Some(unparsed_str) = {
+                let parser_state = self.state.borrow();
+                let tmux_state = parser_state.tmux_state.as_ref().unwrap();
+                let mut tmux_parser = tmux_state.borrow_mut();
+                // TODO: wrap events into some Result to capture bytes cannot be parsed
+                match tmux_parser.advance_bytes(bytes) {
+                    Ok(tmux_events) => {
+                        callback(Action::DeviceControl(DeviceControlMode::TmuxEvents(
+                            Box::new(tmux_events),
+                        )));
+                        None
+                    }
+                    Err(err_buf) => Some(err_buf.to_string().to_owned()),
+                }
+            } {
+                let mut parser_state = self.state.borrow_mut();
+                parser_state.tmux_state = None;
+                let mut perform = Performer {
+                    callback: &mut callback,
+                    state: &mut parser_state,
+                };
+                self.state_machine
+                    .parse(unparsed_str.as_bytes(), &mut perform);
+            }
         } else {
             let mut perform = Performer {
                 callback: &mut callback,
@@ -255,10 +271,18 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         } else {
             if let Some(tmux_state) = &self.state.tmux_state {
                 let mut tmux_parser = tmux_state.borrow_mut();
-                if let Some(tmux_event) = tmux_parser.advance_byte(data) {
-                    (self.callback)(Action::DeviceControl(DeviceControlMode::TmuxEvents(
-                        Box::new(vec![tmux_event]),
-                    )));
+                match tmux_parser.advance_byte(data) {
+                    Ok(optional_events) => {
+                        if let Some(tmux_event) = optional_events {
+                            (self.callback)(Action::DeviceControl(DeviceControlMode::TmuxEvents(
+                                Box::new(vec![tmux_event]),
+                            )));
+                        }
+                    }
+                    Err(err) => {
+                        drop(tmux_parser);
+                        self.state.tmux_state = None; // drop tmux state
+                    }
                 }
             } else {
                 (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));

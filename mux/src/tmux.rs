@@ -105,6 +105,16 @@ impl TmuxDomainState {
                     *self.tmux_session.borrow_mut() = Some(*session);
                     log::info!("tmux session changed:{}", session);
                 }
+                Event::Exit { reason: _ } => {
+                    let mut pane_map = self.remote_panes.borrow_mut();
+                    for (_, v) in pane_map.iter_mut() {
+                        let remote_pane = v.lock().unwrap();
+                        let (lock, condvar) = &*remote_pane.active_lock;
+                        let mut released = lock.lock().unwrap();
+                        *released = true;
+                        condvar.notify_all();
+                    }
+                }
                 _ => {}
             }
         }
