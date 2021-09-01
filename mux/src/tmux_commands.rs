@@ -10,7 +10,7 @@ use anyhow::anyhow;
 use portable_pty::{MasterPty, PtySize};
 use std::collections::HashSet;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 use tmux_cc::*;
 
 pub(crate) trait TmuxCommand: Send {
@@ -95,9 +95,12 @@ impl TmuxDomainState {
 
             let local_pane_id = alloc_pane_id();
             let channel = flume::unbounded::<String>();
+            let active_lock = Arc::new((Mutex::new(false), Condvar::new()));
+
             let ref_pane = Arc::new(Mutex::new(TmuxRemotePane {
                 local_pane_id,
                 tx: channel.0.clone(),
+                active_lock: active_lock.clone(),
                 session_id: pane.session_id,
                 window_id: pane.window_id,
                 pane_id: pane.pane_id,
@@ -116,6 +119,7 @@ impl TmuxDomainState {
 
             let pane_pty = TmuxPty {
                 rx: channel.1.clone(),
+                active_lock: active_lock.clone(),
                 master_pane: ref_pane,
             };
             let writer = pane_pty.try_clone_writer().unwrap();

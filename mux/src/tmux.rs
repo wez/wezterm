@@ -10,7 +10,7 @@ use portable_pty::{CommandBuilder, PtySize};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 use tmux_cc::*;
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
@@ -25,6 +25,7 @@ pub(crate) struct TmuxRemotePane {
     // members for local
     pub local_pane_id: PaneId,
     pub tx: flume::Sender<String>,
+    pub active_lock: Arc<(Mutex<bool>, Condvar)>,
     // members sync with remote
     pub session_id: TmuxSessionId,
     pub window_id: TmuxWindowId,
