@@ -7,7 +7,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{Clipboard, MouseCursor, Rect, ScreenPoint, WindowEvent, WindowOps};
+use crate::{Appearance, Clipboard, MouseCursor, Rect, ScreenPoint, WindowEvent, WindowOps};
 use async_trait::async_trait;
 use config::ConfigHandle;
 use promise::*;
@@ -119,6 +119,14 @@ impl ConnectionOps for Connection {
             Self::X11(x) => x.run_message_loop(),
             #[cfg(feature = "wayland")]
             Self::Wayland(w) => w.run_message_loop(),
+        }
+    }
+
+    fn get_appearance(&self) -> Appearance {
+        match self {
+            Self::X11(x) => x.get_appearance(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.get_appearance(),
         }
     }
 }

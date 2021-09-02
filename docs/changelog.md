@@ -24,6 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Changed: X11: we now allow matching visuals with >= 8 bits per rgb value. Previously, we only matched exactly 8 bits. This improve compatibility with systems that have the COMPOSITE extension disabled. Thanks to [@shizeeg](https://github.com/shizeeg)! [#1083](https://github.com/wez/wezterm/pull/1083)
 * Fixed: macOS: `send_composed_key_when_left_alt_is_pressed` and `send_composed_key_when_right_alt_is_pressed` are now respected when `use_ime=true`. Thanks to [@jakelinnzy](https://github.com/jakelinnzy)! [#1096](https://github.com/wez/wezterm/pull/1096)
 * Fixed: X11: jittery resize with some window managers [#1051](https://github.com/wez/wezterm/issues/1051)
+* Fixed: X11: [window:get_appearance](config/lua/window/get_appearance.md) now actually returns Dark when the theme is dark. [#1098](https://github.com/wez/wezterm/issues/1098)
 
 ### 20210814-124438-54e29167
 
