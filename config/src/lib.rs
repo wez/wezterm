@@ -1219,8 +1219,15 @@ pub struct Config {
 
     #[serde(default)]
     pub pane_focus_follows_mouse: bool,
+
+    #[serde(default = "default_max_fps")]
+    pub max_fps: u8,
 }
 impl_lua_conversion!(Config);
+
+fn default_max_fps() -> u8 {
+    60
+}
 
 fn default_stateless_process_list() -> Vec<String> {
     [

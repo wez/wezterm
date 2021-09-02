@@ -220,6 +220,7 @@ impl ConnectionOps for XConnection {
                 continue;
             }
 
+            self.dispatch_pending_events()?;
             if let Err(err) = poll.poll(&mut events, None) {
                 bail!("polling for events: {:?}", err);
             }
@@ -287,7 +288,6 @@ impl XConnection {
         loop {
             match self.conn.poll_for_queued_event() {
                 None => {
-                    self.dispatch_pending_events()?;
                     self.conn.flush();
                     return Ok(());
                 }
