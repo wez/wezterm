@@ -15,8 +15,9 @@ pub struct RowsAndCols {
 impl super::TermWindow {
     pub fn resize(&mut self, dimensions: Dimensions, window_state: WindowState, window: &Window) {
         log::trace!(
-            "resize event, current cells: {:?}, new dims: {:?} window_state:{:?}",
+            "resize event, current cells: {:?}, current dims: {:?}, new dims: {:?} window_state:{:?}",
             self.current_cell_dimensions(),
+            self.dimensions,
             dimensions,
             window_state,
         );
