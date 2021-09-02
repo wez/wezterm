@@ -22,6 +22,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: X11: laggy input after selecting text. [#1027](https://github.com/wez/wezterm/issues/1027)
 * Updated: bundled harfbuzz to version 2.9.0
 * Changed: X11: we now allow matching visuals with >= 8 bits per rgb value. Previously, we only matched exactly 8 bits. This improve compatibility with systems that have the COMPOSITE extension disabled. Thanks to [@shizeeg](https://github.com/shizeeg)! [#1083](https://github.com/wez/wezterm/pull/1083)
+* Fixed: macOS: `send_composed_key_when_left_alt_is_pressed` and `send_composed_key_when_right_alt_is_pressed` are now respected when `use_ime=true`. Thanks to [@jakelinnzy](https://github.com/jakelinnzy)! [#1096](https://github.com/wez/wezterm/pull/1096)
 
 ### 20210814-124438-54e29167
 
