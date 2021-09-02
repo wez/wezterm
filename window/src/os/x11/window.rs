@@ -180,13 +180,13 @@ impl XWindowInner {
             match event {
                 WindowEvent::NeedRepaint => {
                     if need_paint {
-                        log::info!("coalesce a repaint");
+                        log::trace!("coalesce a repaint");
                     }
                     need_paint = true;
                 }
                 e @ WindowEvent::Resized { .. } => {
                     if resize.is_some() {
-                        log::info!("coalesce a resize");
+                        log::trace!("coalesce a resize");
                     }
                     resize.replace(e);
                 }
@@ -209,9 +209,10 @@ impl XWindowInner {
 
                 self.paint_throttled = true;
                 let window_id = self.window_id;
+                let max_fps = self.config.max_fps;
                 promise::spawn::spawn(async move {
-                    // Don't try to paint more frequently than 30 fps
-                    async_io::Timer::after(std::time::Duration::from_millis(1000 / 30)).await;
+                    async_io::Timer::after(std::time::Duration::from_millis(1000 / max_fps as u64))
+                        .await;
                     XConnection::with_window_inner(window_id, |inner| {
                         inner.paint_throttled = false;
                         if inner.invalidated {
@@ -901,6 +902,7 @@ impl XWindowInner {
 
     fn invalidate(&mut self) {
         self.queue_pending(WindowEvent::NeedRepaint);
+        self.dispatch_pending_events().ok();
     }
 
     fn toggle_fullscreen(&mut self) {
