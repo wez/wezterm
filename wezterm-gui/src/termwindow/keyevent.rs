@@ -238,7 +238,7 @@ impl super::TermWindow {
         }
     }
 
-    fn win_key_code_to_termwiz_key_code(&self, key: &::window::KeyCode) -> Key {
+    pub fn win_key_code_to_termwiz_key_code(&self, key: &::window::KeyCode) -> Key {
         use ::termwiz::input::KeyCode as KC;
         use ::window::KeyCode as WK;
 

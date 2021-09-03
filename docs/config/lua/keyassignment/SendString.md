@@ -32,3 +32,4 @@ return {
 }
 ```
 
+See also [SendKey](SendKey.md) which makes the example above much more convenient.

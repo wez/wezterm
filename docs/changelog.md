@@ -26,6 +26,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: X11: jittery resize with some window managers [#1051](https://github.com/wez/wezterm/issues/1051)
 * Fixed: X11: [window:get_appearance](config/lua/window/get_appearance.md) now actually returns Dark when the theme is dark. [#1098](https://github.com/wez/wezterm/issues/1098)
 * Fixed: ALT + Arrow, PageUp/PageDown, Ins, Del, Home, End incorrectly sent ESC prefixed key sequences. [#892](https://github.com/wez/wezterm/issues/892)
+* New: Added [SendKey](config/lua/keyassignment/SendKey.md) key assignment action that makes it more convenient to rebind the key input that is sent to a pane.
 
 ### 20210814-124438-54e29167
 

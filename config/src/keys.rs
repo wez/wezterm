@@ -4,6 +4,15 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use wezterm_input_types::{KeyCode, Modifiers};
 
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+pub struct KeyNoAction {
+    #[serde(deserialize_with = "de_keycode")]
+    pub key: KeyCode,
+    #[serde(deserialize_with = "de_modifiers", default)]
+    pub mods: Modifiers,
+}
+impl_lua_conversion!(KeyNoAction);
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Key {
     #[serde(deserialize_with = "de_keycode")]

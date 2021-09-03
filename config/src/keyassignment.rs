@@ -1,3 +1,4 @@
+use crate::keys::KeyNoAction;
 use crate::ConfigHandle;
 use crate::LeaderKey;
 use luahelper::impl_lua_conversion;
@@ -166,6 +167,7 @@ pub enum KeyAssignment {
     ActivateTab(isize),
     ActivateLastTab,
     SendString(String),
+    SendKey(KeyNoAction),
     Nop,
     DisableDefaultAssignment,
     Hide,

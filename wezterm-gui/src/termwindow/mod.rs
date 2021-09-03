@@ -1740,6 +1740,13 @@ impl TermWindow {
                 self.activate_tab(*n)?;
             }
             SendString(s) => pane.writer().write_all(s.as_bytes())?,
+            SendKey(key) => {
+                use keyevent::{window_mods_to_termwiz_mods, Key};
+                let mods = window_mods_to_termwiz_mods(key.mods);
+                if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key.key) {
+                    pane.key_down(key, mods)?;
+                }
+            }
             Hide => {
                 if let Some(w) = window.as_ref() {
                     w.hide();
