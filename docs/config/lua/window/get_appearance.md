@@ -45,4 +45,40 @@ end)
 return {
 }
 ```
+### Wayland GNOME Workaround
+
+If you happen to be running a Wayland session through GNOME desktop,
+a workaround exists in which you can query the `gsettings` command
+for the theme name. While GNOME does not specifically support
+appearance, it is common for themes to provide a dark variant (and
+this is the case for the default "Adwaita" theme), which are typically
+named with "-dark" appended to the theme name. With this heuristic,
+we can determine if GNOME is in dark mode or not, and abuse the
+[update-right-status](../window-events/update-right-status.md)
+event to poll for changes. When coupled with the [Night
+Theme](https://nightthemeswitcher.romainvigier.fr/) extension or
+similar, you can enjoy a Wezterm that changes theme based on day night
+cycle with the rest of your system.
+
+```lua
+function·compute_scheme_gnome_wayland()¬
+··local·success,·stdout·=·wezterm.run_child_process(¬
+····{"gsettings",·"get",·"org.gnome.desktop.interface",·"gtk-theme"}¬
+··)¬
+··if·stdout:match("-dark")·then¬
+····return·"Builtin Solarized Dark"¬
+··else¬
+····return·"Builtin Solarized Light"¬
+··end¬
+end¬
+¬
+wezterm.on("update-right-status",·function(window,·pane)¬
+··local·overrides·=·window:get_config_overrides()·or·{}¬
+··local·scheme·=·compute_scheme_gnome_wayland()¬
+··if·overrides.color_scheme·~=·scheme·then¬
+····overrides.color_scheme·=·scheme¬
+····window:set_config_overrides(overrides)¬
+··end¬
+end)¬
+```
 
