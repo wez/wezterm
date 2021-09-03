@@ -179,6 +179,37 @@ end)
 return {
 }
 </code></pre>
+<h3 id="wayland-gnome-appearance"><a class="header" href="#wayland-gnome-appearance">Wayland GNOME Appearance</a></h3>
+<p>The GNOME desktop environment provides the <code>gsettings</code> tool that can
+inform us of the selected appearance even in a Wayland session. We can
+substitute the call to <code>window:get_appearance</code> above with a call to the
+following function, which takes advantage of this.</p>
+<pre><code class="language-lua">function query_appearance_gnome()
+  local success, stdout = wezterm.run_child_process(
+    {&quot;gsettings&quot;, &quot;get&quot;, &quot;org.gnome.desktop.interface&quot;, &quot;gtk-theme&quot;}
+  )
+  -- lowercase and remove whitespace
+  stdout = stdout:lower():gsub(&quot;%s+&quot;, &quot;&quot;)
+  local mapping = {
+     highcontrast = &quot;LightHighContrast&quot;,
+     highcontrastinverse = &quot;DarkHighContrast&quot;,
+     adwaita = &quot;Light&quot;,
+     [&quot;adwaita-dark&quot;] = &quot;Dark&quot;
+  }
+  local appearance = mapping[stdout]
+  if appearance then
+     return appearance
+  end
+  if stdout:find(&quot;dark&quot;) then
+     return &quot;Dark&quot;
+  end
+  return &quot;Light&quot;
+end
+</code></pre>
+<p>Since Wezterm will not fire a <code>window-config-reloaded</code>
+event on Wayland, you will instead need to listen on the
+<a href="../window-events/update-right-status.html">update-right-status</a> event,
+which will essentially poll for the appearance continuously.</p>
 
                     </main>
 
