@@ -379,12 +379,12 @@ impl KeyCode {
                     CSI
                 };
 
-                if mods.contains(Modifiers::SHIFT) || mods.contains(Modifiers::CTRL) {
+                if mods.contains(Modifiers::ALT)
+                    || mods.contains(Modifiers::SHIFT)
+                    || mods.contains(Modifiers::CTRL)
+                {
                     write!(buf, "{}1;{}{}", CSI, 1 + encode_modifiers(mods), c)?;
                 } else {
-                    if mods.contains(Modifiers::ALT) {
-                        buf.push(0x1b as char);
-                    }
                     write!(buf, "{}{}", csi_or_ss3, c)?;
                 }
             }
@@ -398,12 +398,12 @@ impl KeyCode {
                     _ => unreachable!(),
                 };
 
-                if mods.contains(Modifiers::SHIFT) || mods.contains(Modifiers::CTRL) {
+                if mods.contains(Modifiers::ALT)
+                    || mods.contains(Modifiers::SHIFT)
+                    || mods.contains(Modifiers::CTRL)
+                {
                     write!(buf, "\x1b[{};{}~", c, 1 + encode_modifiers(mods))?;
                 } else {
-                    if mods.contains(Modifiers::ALT) {
-                        buf.push(0x1b as char);
-                    }
                     write!(buf, "\x1b[{}~", c)?;
                 }
             }
@@ -1489,6 +1489,48 @@ mod test {
                 }),
             ],
             inputs
+        );
+    }
+
+    #[test]
+    fn encode_issue_892() {
+        let mode = KeyCodeEncodeModes {
+            enable_csi_u_key_encoding: false,
+            newline_mode: false,
+            application_cursor_keys: false,
+        };
+
+        assert_eq!(
+            KeyCode::LeftArrow.encode(Modifiers::NONE, mode).unwrap(),
+            "\x1b[D".to_string()
+        );
+        assert_eq!(
+            KeyCode::LeftArrow.encode(Modifiers::ALT, mode).unwrap(),
+            "\x1b[1;3D".to_string()
+        );
+        assert_eq!(
+            KeyCode::Home.encode(Modifiers::NONE, mode).unwrap(),
+            "\x1b[H".to_string()
+        );
+        assert_eq!(
+            KeyCode::Home.encode(Modifiers::ALT, mode).unwrap(),
+            "\x1b[1;3H".to_string()
+        );
+        assert_eq!(
+            KeyCode::End.encode(Modifiers::NONE, mode).unwrap(),
+            "\x1b[F".to_string()
+        );
+        assert_eq!(
+            KeyCode::End.encode(Modifiers::ALT, mode).unwrap(),
+            "\x1b[1;3F".to_string()
+        );
+        assert_eq!(
+            KeyCode::Tab.encode(Modifiers::ALT, mode).unwrap(),
+            "\x1b\t".to_string()
+        );
+        assert_eq!(
+            KeyCode::PageUp.encode(Modifiers::ALT, mode).unwrap(),
+            "\x1b[5;3~".to_string()
         );
     }
 }
