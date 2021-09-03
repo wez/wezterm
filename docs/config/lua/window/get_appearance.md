@@ -51,7 +51,7 @@ return {
 The GNOME desktop environment provides the `gsettings` tool that can
 inform us of the selected appearance even in a Wayland session. We can
 substitute the call to `window:get_appearance` above with a call to the
-following function, which takes advantage of this.
+following function, which takes advantage of this:
 
 ```lua
 function query_appearance_gnome()
@@ -77,8 +77,32 @@ function query_appearance_gnome()
 end
 ```
 
-Since Wezterm will not fire a `window-config-reloaded`
+Since WezTerm will not fire a `window-config-reloaded`
 event on Wayland, you will instead need to listen on the
 [update-right-status](../window-events/update-right-status.md) event,
-which will essentially poll for the appearance continuously.
+which will essentially poll for the appearance periodically:
 
+```lua
+local wezterm = require 'wezterm'
+
+function scheme_for_appearance(appearance)
+  if appearance:find("Dark") then
+    return "Builtin Solarized Dark"
+  else
+    return "Builtin Solarized Light"
+  end
+end
+
+wezterm.on("update-right-status", function(window, pane)
+  local overrides = window:get_config_overrides() or {}
+  local appearance = query_appearance_gnome()
+  local scheme = scheme_for_appearance(appearance)
+  if overrides.color_scheme ~= scheme then
+    overrides.color_scheme = scheme
+    window:set_config_overrides(overrides)
+  end
+end)
+
+return {
+}
+```
