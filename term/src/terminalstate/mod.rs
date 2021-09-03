@@ -1708,9 +1708,10 @@ impl TerminalState {
                     let right_margin = self.left_and_right_margins.end;
                     let limit = (x + n as usize).min(right_margin);
 
+                    let blank_attr = self.pen.clone_sgr_only();
                     let screen = self.screen_mut();
                     for _ in x..limit as usize {
-                        screen.erase_cell(x, y, right_margin, seqno);
+                        screen.erase_cell(x, y, right_margin, seqno, blank_attr.clone());
                     }
                 }
             }

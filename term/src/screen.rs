@@ -319,10 +319,11 @@ impl Screen {
         y: VisibleRowIndex,
         right_margin: usize,
         seqno: SequenceNo,
+        blank_attr: CellAttributes,
     ) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.erase_cell_with_margin(x, right_margin, seqno);
+        line.erase_cell_with_margin(x, right_margin, seqno, blank_attr);
     }
 
     /// Set a cell.  the x and y coordinates are relative to the visible screeen

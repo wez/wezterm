@@ -539,14 +539,23 @@ impl Line {
         self.update_last_change_seqno(seqno);
     }
 
-    pub fn erase_cell_with_margin(&mut self, x: usize, right_margin: usize, seqno: SequenceNo) {
+    pub fn erase_cell_with_margin(
+        &mut self,
+        x: usize,
+        right_margin: usize,
+        seqno: SequenceNo,
+        blank_attr: CellAttributes,
+    ) {
         self.invalidate_implicit_hyperlinks(seqno);
         if x < self.cells.len() {
             self.invalidate_grapheme_at_or_before(x);
             self.cells.remove(x);
         }
-        if right_margin <= self.cells.len() {
-            self.cells.insert(right_margin - 1, Cell::default());
+        if right_margin <= self.cells.len() + 1
+        /* we just removed one */
+        {
+            self.cells
+                .insert(right_margin - 1, Cell::blank_with_attrs(blank_attr));
         }
         self.update_last_change_seqno(seqno);
     }

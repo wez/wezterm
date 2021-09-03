@@ -1,4 +1,32 @@
 use super::*;
+use termwiz::color::AnsiColor;
+
+/// In this issue, the `CSI 2 P` sequence incorrectly removed two
+/// cells from the line, leaving them effectively blank, when those
+/// two cells should have been erased to the current background
+/// color as set by `CSI 40 m`
+#[test]
+fn test_789() {
+    let mut term = TestTerm::new(1, 8, 0);
+    term.print("\x1b[40m\x1b[Kfoo\x1b[2P");
+
+    let black = CellAttributes::default()
+        .set_background(AnsiColor::Black)
+        .clone();
+    let mut line = Line::from_text("foo", &black);
+    line.resize(8, 0);
+    for x in 3..8 {
+        line.set_cell(x, Cell::blank_with_attrs(black.clone()), 0);
+    }
+
+    assert_lines_equal(
+        file!(),
+        line!(),
+        &term.screen().visible_lines(),
+        &[line],
+        Compare::TEXT | Compare::ATTRS,
+    );
+}
 
 #[test]
 fn test_vpa() {
@@ -76,14 +104,14 @@ fn test_dch() {
     term.print("hello world");
     term.cup(1, 0);
     term.print("\x1b[P");
-    assert_visible_contents(&term, file!(), line!(), &["hllo world "]);
+    assert_visible_contents(&term, file!(), line!(), &["hllo world  "]);
 
     term.cup(4, 0);
     term.print("\x1b[2P");
-    assert_visible_contents(&term, file!(), line!(), &["hlloorld "]);
+    assert_visible_contents(&term, file!(), line!(), &["hlloorld    "]);
 
     term.print("\x1b[-2P");
-    assert_visible_contents(&term, file!(), line!(), &["hlloorld "]);
+    assert_visible_contents(&term, file!(), line!(), &["hlloorld    "]);
 }
 
 #[test]
