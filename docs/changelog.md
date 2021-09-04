@@ -29,6 +29,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: Added [SendKey](config/lua/keyassignment/SendKey.md) key assignment action that makes it more convenient to rebind the key input that is sent to a pane.
 * Fixed: Crash due to Out of Memory condition when the iTerm2 protocol was used to send excessively large PNG files [#1031](https://github.com/wez/wezterm/issues/1031)
 * Fixed: `DCH` sequence would remove cells and replace them with default-blank cells instead of blank-cells-with-current-bg-color. [#789](https://github.com/wez/wezterm/issues/789)
+* New: Added [Multiple](config/lua/keyassignment/Multiple.md) key assignment action for combining multuple actions in a single press.
 
 ### 20210814-124438-54e29167
 

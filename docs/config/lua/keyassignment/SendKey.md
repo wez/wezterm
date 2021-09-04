@@ -18,7 +18,6 @@ shells and applications.
 The following configuration achieves that same effect:
 
 ```lua
-local wezterm = require 'wezterm';
 return {
   keys = {
      -- Rebind OPT-Left, OPT-Right as ALT-b, ALT-f respectively to match Terminal.app behavior
@@ -27,3 +26,5 @@ return {
   }
 }
 ```
+
+See also [Multiple](Multiple.md) for combining multiple actions in a single press.

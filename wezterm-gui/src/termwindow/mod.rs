@@ -1669,6 +1669,11 @@ impl TermWindow {
         let window = self.window.as_ref().map(|w| w.clone());
 
         match assignment {
+            Multiple(actions) => {
+                for a in actions {
+                    self.perform_key_assignment(pane, a)?;
+                }
+            }
             SpawnTab(spawn_where) => {
                 self.spawn_tab(spawn_where);
             }

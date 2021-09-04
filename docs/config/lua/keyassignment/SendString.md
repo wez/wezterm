@@ -32,4 +32,5 @@ return {
 }
 ```
 
-See also [SendKey](SendKey.md) which makes the example above much more convenient.
+See also [SendKey](SendKey.md) which makes the example above much more convenient,
+and [Multiple](Multiple.md) for combining multiple actions in a single press.

@@ -205,6 +205,8 @@ pub enum KeyAssignment {
     CloseCurrentPane { confirm: bool },
     EmitEvent(String),
     QuickSelect,
+
+    Multiple(Vec<KeyAssignment>),
 }
 impl_lua_conversion!(KeyAssignment);
 
