@@ -516,7 +516,7 @@ impl Parser {
                     return Err(anyhow::anyhow!(format!(
                         "{}{}",
                         err,
-                        std::str::from_utf8(bytes).unwrap()
+                        std::str::from_utf8(&bytes[i..]).unwrap()
                     )));
                 }
             }
