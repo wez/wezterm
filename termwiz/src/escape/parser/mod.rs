@@ -279,7 +279,7 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
                             )));
                         }
                     }
-                    Err(err) => {
+                    Err(_) => {
                         drop(tmux_parser);
                         self.state.tmux_state = None; // drop tmux state
                     }
