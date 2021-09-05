@@ -28,9 +28,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: ALT + Arrow, PageUp/PageDown, Ins, Del, Home, End incorrectly sent ESC prefixed key sequences. [#892](https://github.com/wez/wezterm/issues/892)
 * New: Added [SendKey](config/lua/keyassignment/SendKey.md) key assignment action that makes it more convenient to rebind the key input that is sent to a pane.
 * Fixed: Crash due to Out of Memory condition when the iTerm2 protocol was used to send excessively large PNG files [#1031](https://github.com/wez/wezterm/issues/1031)
-* Fixed: `DCH` sequence would remove cells and replace them with default-blank cells instead of blank-cells-with-current-bg-color. [#789](https://github.com/wez/wezterm/issues/789)
+* Fixed: `DCH` (delete char) sequence would remove cells and replace them with default-blank cells instead of blank-cells-with-current-bg-color. [#789](https://github.com/wez/wezterm/issues/789)
 * New: Added [Multiple](config/lua/keyassignment/Multiple.md) key assignment action for combining multuple actions in a single press.
 * Fixed: invisible I-beam or underline cursor when `force_reverse_video_cursor = true` [#1076](https://github.com/wez/wezterm/issues/1076)
+* Fixed: `SU` (scroll up) sequence would fill with default-blank cells instead of blank-cells-with-current-bg-color. [#1102](https://github.com/wez/wezterm/issues/1102)
 
 ### 20210814-124438-54e29167
 

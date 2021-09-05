@@ -60,6 +60,17 @@ pub enum DoubleClickRange {
 }
 
 impl Line {
+    pub fn with_width_and_cell(width: usize, cell: Cell) -> Self {
+        let mut cells = Vec::with_capacity(width);
+        cells.resize(width, cell.clone());
+        let bits = LineBits::NONE;
+        Self {
+            bits,
+            cells,
+            seqno: SEQ_ZERO,
+        }
+    }
+
     pub fn with_width(width: usize) -> Self {
         let mut cells = Vec::with_capacity(width);
         cells.resize_with(width, Cell::blank);
@@ -98,11 +109,17 @@ impl Line {
         line
     }
 
-    pub fn resize_and_clear(&mut self, width: usize, seqno: SequenceNo) {
+    pub fn resize_and_clear(
+        &mut self,
+        width: usize,
+        seqno: SequenceNo,
+        blank_attr: CellAttributes,
+    ) {
         for c in &mut self.cells {
-            *c = Cell::blank();
+            *c = Cell::blank_with_attrs(blank_attr.clone());
         }
-        self.cells.resize_with(width, Cell::blank);
+        self.cells
+            .resize_with(width, || Cell::blank_with_attrs(blank_attr.clone()));
         self.cells.shrink_to_fit();
         self.update_last_change_seqno(seqno);
         self.bits = LineBits::NONE;
@@ -561,7 +578,7 @@ impl Line {
     }
 
     pub fn prune_trailing_blanks(&mut self, seqno: SequenceNo) {
-        let def_attr = CellAttributes::default();
+        let def_attr = CellAttributes::blank();
         if let Some(end_idx) = self
             .cells
             .iter()

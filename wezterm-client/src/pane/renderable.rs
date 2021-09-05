@@ -259,7 +259,7 @@ impl RenderableInner {
             }
         } else {
             // The pasted line replaces the data for the existing line
-            line.resize_and_clear(0, SEQ_ZERO);
+            line.resize_and_clear(0, SEQ_ZERO, CellAttributes::default());
             line.append_line(text_line, SEQ_ZERO);
             self.cursor_position.x = line.cells().len();
         }

@@ -456,6 +456,7 @@ impl Screen {
         left_and_right_margins: &Range<usize>,
         num_rows: usize,
         seqno: SequenceNo,
+        blank_attr: CellAttributes,
     ) {
         log::debug!(
             "scroll_up_within_margins region:{:?} margins:{:?} rows={}",
@@ -465,7 +466,7 @@ impl Screen {
         );
 
         if left_and_right_margins.start == 0 && left_and_right_margins.end == self.physical_cols {
-            return self.scroll_up(scroll_region, num_rows, seqno);
+            return self.scroll_up(scroll_region, num_rows, seqno, blank_attr);
         }
 
         // Need to do the slower, more complex left and right bounded scroll
@@ -509,7 +510,11 @@ impl Screen {
                     *dest_cell = src_cell.clone();
                 }
 
-                dest_row.fill_range(tail_range, &Cell::blank(), seqno);
+                dest_row.fill_range(
+                    tail_range,
+                    &Cell::blank_with_attrs(blank_attr.clone()),
+                    seqno,
+                );
             }
         }
 
@@ -524,7 +529,7 @@ impl Screen {
                 .skip(left_and_right_margins.start)
                 .take(left_and_right_margins.end - left_and_right_margins.start)
             {
-                *cell = Cell::blank();
+                *cell = Cell::blank_with_attrs(blank_attr.clone());
             }
         }
     }
@@ -548,6 +553,7 @@ impl Screen {
         scroll_region: &Range<VisibleRowIndex>,
         num_rows: usize,
         seqno: SequenceNo,
+        blank_attr: CellAttributes,
     ) {
         let phys_scroll = self.phys_range(scroll_region);
         let num_rows = num_rows.min(phys_scroll.end - phys_scroll.start);
@@ -596,7 +602,7 @@ impl Screen {
             for _ in 0..to_move {
                 let mut line = self.lines.remove(remove_idx).unwrap();
                 // Make the line like a new one of the appropriate width
-                line.resize_and_clear(self.physical_cols, seqno);
+                line.resize_and_clear(self.physical_cols, seqno, blank_attr.clone());
                 line.update_last_change_seqno(seqno);
                 if scroll_region.end as usize == self.physical_rows {
                     self.lines.push_back(line);
@@ -621,12 +627,20 @@ impl Screen {
         if scroll_region.end as usize == self.physical_rows {
             // It's cheaper to push() than it is insert() at the end
             for _ in 0..to_add {
-                self.lines.push_back(Line::with_width(self.physical_cols));
+                self.lines.push_back(Line::with_width_and_cell(
+                    self.physical_cols,
+                    Cell::blank_with_attrs(blank_attr.clone()),
+                ));
             }
         } else {
             for _ in 0..to_add {
-                self.lines
-                    .insert(phys_scroll.end, Line::with_width(self.physical_cols));
+                self.lines.insert(
+                    phys_scroll.end,
+                    Line::with_width_and_cell(
+                        self.physical_cols,
+                        Cell::blank_with_attrs(blank_attr.clone()),
+                    ),
+                );
             }
         }
     }
@@ -657,6 +671,7 @@ impl Screen {
         scroll_region: &Range<VisibleRowIndex>,
         num_rows: usize,
         seqno: SequenceNo,
+        blank_attr: CellAttributes,
     ) {
         debug!("scroll_down {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(scroll_region);
@@ -674,8 +689,13 @@ impl Screen {
         }
 
         for _ in 0..num_rows {
-            self.lines
-                .insert(phys_scroll.start, Line::with_width(self.physical_cols));
+            self.lines.insert(
+                phys_scroll.start,
+                Line::with_width_and_cell(
+                    self.physical_cols,
+                    Cell::blank_with_attrs(blank_attr.clone()),
+                ),
+            );
         }
     }
 
@@ -685,9 +705,10 @@ impl Screen {
         left_and_right_margins: &Range<usize>,
         num_rows: usize,
         seqno: SequenceNo,
+        blank_attr: CellAttributes,
     ) {
         if left_and_right_margins.start == 0 && left_and_right_margins.end == self.physical_cols {
-            return self.scroll_down(scroll_region, num_rows, seqno);
+            return self.scroll_down(scroll_region, num_rows, seqno, blank_attr);
         }
 
         // Need to do the slower, more complex left and right bounded scroll
@@ -730,7 +751,11 @@ impl Screen {
                     *dest_cell = src_cell.clone();
                 }
 
-                dest_row.fill_range(tail_range, &Cell::default(), seqno);
+                dest_row.fill_range(
+                    tail_range,
+                    &Cell::blank_with_attrs(blank_attr.clone()),
+                    seqno,
+                );
             }
         }
 
@@ -745,7 +770,7 @@ impl Screen {
                 .skip(left_and_right_margins.start)
                 .take(left_and_right_margins.end - left_and_right_margins.start)
             {
-                *cell = Cell::default();
+                *cell = Cell::blank_with_attrs(blank_attr.clone());
             }
         }
     }

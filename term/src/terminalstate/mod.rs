@@ -813,6 +813,7 @@ impl TerminalState {
 
     fn scroll_up(&mut self, num_rows: usize) {
         let seqno = self.seqno;
+        let blank_attr = self.pen.clone_sgr_only();
         let top_and_bottom_margins = self.top_and_bottom_margins.clone();
         let left_and_right_margins = self.left_and_right_margins.clone();
         self.screen_mut().scroll_up_within_margins(
@@ -820,11 +821,13 @@ impl TerminalState {
             &left_and_right_margins,
             num_rows,
             seqno,
+            blank_attr,
         )
     }
 
     fn scroll_down(&mut self, num_rows: usize) {
         let seqno = self.seqno;
+        let blank_attr = self.pen.clone_sgr_only();
         let top_and_bottom_margins = self.top_and_bottom_margins.clone();
         let left_and_right_margins = self.left_and_right_margins.clone();
         self.screen_mut().scroll_down_within_margins(
@@ -832,6 +835,7 @@ impl TerminalState {
             &left_and_right_margins,
             num_rows,
             seqno,
+            blank_attr,
         )
     }
 
@@ -1721,11 +1725,13 @@ impl TerminalState {
                 {
                     let top_and_bottom_margins = self.cursor.y..self.top_and_bottom_margins.end;
                     let left_and_right_margins = self.left_and_right_margins.clone();
+                    let blank_attr = self.pen.clone_sgr_only();
                     self.screen_mut().scroll_up_within_margins(
                         &top_and_bottom_margins,
                         &left_and_right_margins,
                         n as usize,
                         seqno,
+                        blank_attr,
                     );
                 }
             }
@@ -1780,11 +1786,13 @@ impl TerminalState {
                 {
                     let top_and_bottom_margins = self.cursor.y..self.top_and_bottom_margins.end;
                     let left_and_right_margins = self.left_and_right_margins.clone();
+                    let blank_attr = self.pen.clone_sgr_only();
                     self.screen_mut().scroll_down_within_margins(
                         &top_and_bottom_margins,
                         &left_and_right_margins,
                         n as usize,
                         seqno,
+                        blank_attr,
                     );
                 }
             }
