@@ -537,13 +537,15 @@ impl WaylandWindowInner {
             self.window_state = window_state;
         }
 
-        if pending.configure.is_none() && pending.dpi.is_some() {
-            // Synthesize a pending configure event for the dpi change
-            pending.configure.replace((
-                self.pixels_to_surface(self.dimensions.pixel_width as i32) as u32,
-                self.pixels_to_surface(self.dimensions.pixel_height as i32) as u32,
-            ));
-            log::debug!("synthesize configure with {:?}", pending.configure);
+        if pending.configure.is_none() {
+            if let Some(scale) = pending.dpi {
+                // Synthesize a pending configure event for the dpi change
+                pending.configure.replace((
+                    self.pixels_to_surface(self.dimensions.pixel_width as i32 * scale) as u32,
+                    self.pixels_to_surface(self.dimensions.pixel_height as i32 * scale) as u32,
+                ));
+                log::debug!("synthesize configure with {:?}", pending.configure);
+            }
         }
 
         if let Some((w, h)) = pending.configure.take() {
