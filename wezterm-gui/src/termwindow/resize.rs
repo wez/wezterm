@@ -163,9 +163,7 @@ impl super::TermWindow {
 
         log::trace!("apply_dimensions computed size {:?}, dims {:?}", size, dims);
 
-        if self.render_state.is_some() {
-            self.terminal_size = size;
-        }
+        self.terminal_size = size;
 
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
