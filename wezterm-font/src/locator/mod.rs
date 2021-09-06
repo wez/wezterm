@@ -114,7 +114,7 @@ pub struct FontDataHandle {
     pub index: u32,
     pub variation: u32,
     pub origin: FontOrigin,
-    pub coverage: Option<rangeset::RangeSet<u32>>
+    pub coverage: Option<rangeset::RangeSet<u32>>,
 }
 
 impl PartialOrd for FontDataHandle {

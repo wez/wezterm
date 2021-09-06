@@ -33,6 +33,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: invisible I-beam or underline cursor when `force_reverse_video_cursor = true` [#1076](https://github.com/wez/wezterm/issues/1076)
 * Fixed: `SU` (scroll up) sequence would fill with default-blank cells instead of blank-cells-with-current-bg-color. [#1102](https://github.com/wez/wezterm/issues/1102)
 * Fixed: X11: computed but did not use the correct DPI for HiDPI screens [#947](https://github.com/wez/wezterm/issues/947)
+* Improved: performance when resolving fallback fonts via fontconfig, and of coverage calculation with freetype. Thanks to [@H-M-H](https://github.com/H-M-H)!
 
 ### 20210814-124438-54e29167
 
