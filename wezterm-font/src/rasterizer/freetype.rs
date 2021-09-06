@@ -134,7 +134,7 @@ impl FreeTypeRasterizer {
                 rgba[dest_offset + (x * 4)] = gray;
                 rgba[dest_offset + (x * 4) + 1] = gray;
                 rgba[dest_offset + (x * 4) + 2] = gray;
-                rgba[dest_offset + (x * 4) + 3] = 0xff;
+                rgba[dest_offset + (x * 4) + 3] = if gray == 0 { 0 } else { 0xff };
             }
         }
         RasterizedGlyph {
@@ -177,7 +177,7 @@ impl FreeTypeRasterizer {
                 rgba[dest_offset + (x * 4)] = red;
                 rgba[dest_offset + (x * 4) + 1] = green;
                 rgba[dest_offset + (x * 4) + 2] = blue;
-                rgba[dest_offset + (x * 4) + 3] = 0xff;
+                rgba[dest_offset + (x * 4) + 3] = if red | green | blue == 0 { 0 } else { 0xff };
             }
         }
 
