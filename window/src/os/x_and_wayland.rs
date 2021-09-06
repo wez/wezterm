@@ -114,6 +114,14 @@ impl ConnectionOps for Connection {
         }
     }
 
+    fn default_dpi(&self) -> f64 {
+        match self {
+            Self::X11(x) => x.default_dpi(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.default_dpi(),
+        }
+    }
+
     fn run_message_loop(&self) -> anyhow::Result<()> {
         match self {
             Self::X11(x) => x.run_message_loop(),
