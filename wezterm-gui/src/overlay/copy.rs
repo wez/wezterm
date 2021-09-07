@@ -10,7 +10,7 @@ use std::cell::{RefCell, RefMut};
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
-use termwiz::surface::SequenceNo;
+use termwiz::surface::{CursorVisibility, SequenceNo};
 use unicode_segmentation::*;
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -43,6 +43,7 @@ impl CopyOverlay {
     pub fn with_pane(term_window: &TermWindow, pane: &Rc<dyn Pane>) -> Rc<dyn Pane> {
         let mut cursor = pane.get_cursor_position();
         cursor.shape = termwiz::surface::CursorShape::SteadyBlock;
+        cursor.visibility = CursorVisibility::Visible;
 
         let window = term_window.window.clone().unwrap();
         let render = CopyRenderable {
@@ -518,7 +519,7 @@ impl Pane for CopyOverlay {
     }
 
     fn get_cursor_position(&self) -> StableCursorPosition {
-        self.render.borrow_mut().cursor
+        self.render.borrow().cursor
     }
 
     fn get_current_seqno(&self) -> SequenceNo {
