@@ -36,6 +36,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved: performance when resolving fallback fonts via fontconfig, and of coverage calculation with freetype. Thanks to [@H-M-H](https://github.com/H-M-H)!
 * Fixed: Wayland: incorrect initial surface size for HiDPI screens. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1111](https://github.com/wez/wezterm/issues/1111) [#1112](https://github.com/wez/wezterm/pull/1112)
 * Fixed: invisible cursor in CopyMode when using kakoune [#1113](https://github.com/wez/wezterm/issues/1113)
+* Fixed: Wayland: `bypass_mouse_reporting_modifiers` didn't work. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1122](https://github.com/wez/wezterm/issues/1122)
 
 ### 20210814-124438-54e29167
 
