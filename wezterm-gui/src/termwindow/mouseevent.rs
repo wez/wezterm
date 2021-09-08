@@ -125,8 +125,8 @@ impl super::TermWindow {
                 let button = mouse_press_to_tmb(press);
 
                 let click = match self.last_mouse_click.take() {
-                    None => LastMouseClick::new(button),
-                    Some(click) => click.add(button),
+                    None => LastMouseClick::new(button, (x, y)),
+                    Some(click) => click.add(button, (x, y)),
                 };
                 self.last_mouse_click = Some(click);
                 self.current_mouse_buttons.retain(|p| p != press);
