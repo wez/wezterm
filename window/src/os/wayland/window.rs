@@ -396,6 +396,7 @@ impl WaylandWindowInner {
                 ..
             } => {
                 mapper.update_modifier_state(mods_depressed, mods_latched, mods_locked, group);
+                self.modifiers = mapper.get_key_modifiers();
             }
             _ => {}
         }
