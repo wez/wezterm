@@ -38,6 +38,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: invisible cursor in CopyMode when using kakoune [#1113](https://github.com/wez/wezterm/issues/1113)
 * Fixed: Wayland: `bypass_mouse_reporting_modifiers` didn't work. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1122](https://github.com/wez/wezterm/issues/1122)
 * Improved: window close confirmations now accept both uppercase and lowercase Y/N key presses. Thanks to [@SpyrosRoum](https://github.com/SpyrosRoum)! [#1119](https://github.com/wez/wezterm/pull/1119)
+* Fixed: new tabs could have the wrong number of rows and columns if a tiling WM resizes the window before OpenGL has been setup. [#1074](https://github.com/wez/wezterm/issues/1074)
 
 ### 20210814-124438-54e29167
 
