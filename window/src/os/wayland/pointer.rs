@@ -94,6 +94,7 @@ pub struct PointerDispatcher {
     auto_pointer: ThemedPointer,
     #[allow(dead_code)]
     themer: ThemeManager,
+    pub(crate) seat: WlSeat,
 }
 
 #[derive(Clone, Debug)]
@@ -237,6 +238,7 @@ impl PointerDispatcher {
             data_device,
             themer,
             auto_pointer,
+            seat: seat.clone(),
         })
     }
 

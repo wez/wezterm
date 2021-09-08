@@ -10,7 +10,7 @@ use wayland_client::Attached;
 #[derive(Default)]
 pub struct CopyAndPaste {
     data_offer: Option<WlDataOffer>,
-    last_serial: u32,
+    pub(crate) last_serial: u32,
 }
 
 impl std::fmt::Debug for CopyAndPaste {
