@@ -116,13 +116,13 @@ fn run_confirmation_app(message: &str, term: &mut TermWizTerminal) -> anyhow::Re
     while let Ok(Some(event)) = term.poll_input(None) {
         match event {
             InputEvent::Key(KeyEvent {
-                key: KeyCode::Char('y'),
+                key: KeyCode::Char('y' | 'Y'),
                 ..
             }) => {
                 return Ok(true);
             }
             InputEvent::Key(KeyEvent {
-                key: KeyCode::Char('n'),
+                key: KeyCode::Char('n' | 'N'),
                 ..
             })
             | InputEvent::Key(KeyEvent {
