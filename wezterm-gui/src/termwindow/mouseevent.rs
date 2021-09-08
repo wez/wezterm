@@ -321,6 +321,7 @@ impl super::TermWindow {
                 TabBarItem::None => {
                     // Potentially starting a drag by the tab bar
                     self.window_drag_position.replace(event.clone());
+                    context.request_drag_move();
                 }
             },
             WMEK::Press(MousePress::Middle) => match self.tab_bar.hit_test(x) {

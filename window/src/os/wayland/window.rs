@@ -793,9 +793,9 @@ impl WindowOps for WaylandWindow {
         });
     }
 
-    fn set_window_position(&self, coords: ScreenPoint) {
+    fn request_drag_move(&self) {
         WaylandConnection::with_window_inner(self.0, move |inner| {
-            inner.set_window_position(coords);
+            inner.request_drag_move();
             Ok(())
         });
     }
@@ -1000,7 +1000,13 @@ impl WaylandWindowInner {
         }
     }
 
-    fn set_window_position(&self, _coords: ScreenPoint) {}
+    fn request_drag_move(&self) {
+        if let Some(window) = self.window.as_ref() {
+            let serial = self.copy_and_paste.lock().unwrap().last_serial;
+            let conn = Connection::get().unwrap().wayland();
+            window.start_interactive_move(&conn.pointer.seat, serial);
+        }
+    }
 
     /// Change the title for the window manager
     fn set_title(&mut self, title: &str) {

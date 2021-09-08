@@ -285,6 +285,14 @@ impl WindowOps for Window {
         }
     }
 
+    fn request_drag_move(&self) {
+        match self {
+            Self::X11(x) => x.request_drag_move(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.request_drag_move(),
+        }
+    }
+
     fn set_window_position(&self, coords: ScreenPoint) {
         match self {
             Self::X11(x) => x.set_window_position(coords),

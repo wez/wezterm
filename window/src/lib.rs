@@ -220,9 +220,18 @@ pub trait WindowOps {
     /// Resize the inner or client area of the window
     fn set_inner_size(&self, width: usize, height: usize);
 
+    /// Requests the windowing system to start a window drag.
+    ///
+    /// This is only implemented on backends that handle
+    /// window movement on the server side (Wayland).
+    fn request_drag_move(&self) {}
+
     /// Changes the location of the window on the screen.
     /// The coordinates are of the top left pixel of the
     /// client area.
+    ///
+    /// This is only implemented on backends that allow
+    /// windows to move themselves (not Wayland).
     fn set_window_position(&self, _coords: ScreenPoint) {}
 
     /// inform the windowing system of the current textual
