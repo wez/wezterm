@@ -45,10 +45,12 @@ pub struct MouseEvent {
 /// which is the number of successive clicks of the same mouse button
 /// within the `CLICK_INTERVAL`.  The streak is reset to 1 each time
 /// the mouse button differs from the last click, or when the elapsed
-/// time exceeds `CLICK_INTERVAL`.
+/// time exceeds `CLICK_INTERVAL`, or when the cursor position
+/// changes to a different character cell.
 #[derive(Debug, Clone)]
 pub struct LastMouseClick {
     pub button: MouseButton,
+    position: (usize, i64),
     time: Instant,
     pub streak: usize,
 }
@@ -57,17 +59,19 @@ pub struct LastMouseClick {
 const CLICK_INTERVAL: u64 = 500;
 
 impl LastMouseClick {
-    pub fn new(button: MouseButton) -> Self {
+    pub fn new(button: MouseButton, position: (usize, i64)) -> Self {
         Self {
             button,
+            position,
             time: Instant::now(),
             streak: 1,
         }
     }
 
-    pub fn add(&self, button: MouseButton) -> Self {
+    pub fn add(&self, button: MouseButton, position: (usize, i64)) -> Self {
         let now = Instant::now();
         let streak = if button == self.button
+            && position == self.position
             && now.duration_since(self.time) <= Duration::from_millis(CLICK_INTERVAL)
         {
             self.streak + 1
@@ -76,6 +80,7 @@ impl LastMouseClick {
         };
         Self {
             button,
+            position,
             time: now,
             streak,
         }
