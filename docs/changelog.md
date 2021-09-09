@@ -39,6 +39,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: Wayland: `bypass_mouse_reporting_modifiers` didn't work. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1122](https://github.com/wez/wezterm/issues/1122)
 * Improved: window close confirmations now accept both uppercase and lowercase Y/N key presses. Thanks to [@SpyrosRoum](https://github.com/SpyrosRoum)! [#1119](https://github.com/wez/wezterm/pull/1119)
 * Fixed: new tabs could have the wrong number of rows and columns if a tiling WM resizes the window before OpenGL has been setup. [#1074](https://github.com/wez/wezterm/issues/1074)
+* Improved: multi-click-streaks are now interrupted by the cursor moving to a different cell. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1126](https://github.com/wez/wezterm/issues/1126)
 
 ### 20210814-124438-54e29167
 
