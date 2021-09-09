@@ -41,6 +41,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: new tabs could have the wrong number of rows and columns if a tiling WM resizes the window before OpenGL has been setup. [#1074](https://github.com/wez/wezterm/issues/1074)
 * Improved: multi-click-streaks are now interrupted by the cursor moving to a different cell. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1126](https://github.com/wez/wezterm/issues/1126)
 * Fixed: Wayland: dragging the window using the tab bar now works. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1127](https://github.com/wez/wezterm/issues/1127)
+* New: X11, macOS: Window resizing now prefers to step in increments of the cell size
 
 ### 20210814-124438-54e29167
 

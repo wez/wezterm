@@ -643,6 +643,13 @@ impl WindowOps for Window {
         });
     }
 
+    fn set_resize_increments(&self, x: u16, y: u16) {
+        Connection::with_window_inner(self.id, move |inner| {
+            inner.set_resize_increments(x, y);
+            Ok(())
+        });
+    }
+
     fn config_did_change(&self, config: &ConfigHandle) {
         let config = config.clone();
         Connection::with_window_inner(self.id, move |inner| {
@@ -943,6 +950,13 @@ impl WindowInner {
             if !self.exit_native_fullscreen() {
                 self.toggle_simple_fullscreen();
             }
+        }
+    }
+
+    fn set_resize_increments(&self, x: u16, y: u16) {
+        unsafe {
+            self.window
+                .setResizeIncrements_(NSSize::new(x.into(), y.into()));
         }
     }
 

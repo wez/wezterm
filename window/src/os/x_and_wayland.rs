@@ -261,6 +261,14 @@ impl WindowOps for Window {
         }
     }
 
+    fn set_resize_increments(&self, x: u16, y: u16) {
+        match self {
+            Self::X11(x11) => x11.set_resize_increments(x, y),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.set_resize_increments(x, y),
+        }
+    }
+
     fn set_title(&self, title: &str) {
         match self {
             Self::X11(x) => x.set_title(title),

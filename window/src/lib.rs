@@ -253,4 +253,11 @@ pub trait WindowOps {
     fn toggle_fullscreen(&self) {}
 
     fn config_did_change(&self, _config: &config::ConfigHandle) {}
+
+    /// Configure the Window so that the desktop environment
+    /// will constrain resizes so that they are multiples of
+    /// the x and y values specified.
+    /// This may not be supported or respected by the desktop
+    /// environment.
+    fn set_resize_increments(&self, _x: u16, _y: u16) {}
 }

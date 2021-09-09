@@ -20,6 +20,7 @@ use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use wezterm_font::FontConfiguration;
 use wezterm_input_types::{KeyCode, KeyEvent, Modifiers};
+use xcb_util::icccm::SizeHints;
 
 #[derive(Default)]
 struct CopyAndPaste {
@@ -1006,6 +1007,14 @@ impl XWindowInner {
             &icon_data,
         );
     }
+
+    fn set_resize_increments(&mut self, x: u16, y: u16) -> anyhow::Result<()> {
+        let mut hints = SizeHints::empty();
+        hints = hints.resize(x.into(), y.into());
+        xcb_util::icccm::set_wm_normal_hints(&self.conn(), self.window_id, &hints.build());
+
+        Ok(())
+    }
 }
 
 unsafe impl HasRawWindowHandle for XWindow {
@@ -1137,6 +1146,15 @@ impl WindowOps for XWindow {
     fn set_icon(&self, image: Image) {
         XConnection::with_window_inner(self.0, move |inner| {
             inner.set_icon(&image);
+            Ok(())
+        });
+    }
+
+    fn set_resize_increments(&self, x: u16, y: u16) {
+        XConnection::with_window_inner(self.0, move |inner| {
+            if let Err(err) = inner.set_resize_increments(x, y) {
+                log::error!("set_resize_increments failed: {:#}", err);
+            }
             Ok(())
         });
     }

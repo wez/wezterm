@@ -37,7 +37,12 @@ impl super::TermWindow {
         self.emit_window_event("window-resized");
     }
 
-    pub fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
+    pub fn apply_scale_change(
+        &mut self,
+        dimensions: &Dimensions,
+        font_scale: f64,
+        window: &Window,
+    ) {
         let config = &self.config;
         let font_size = config.font_size * font_scale;
         let theoretical_height = font_size * dimensions.dpi as f64 / 72.0;
@@ -69,6 +74,12 @@ impl super::TermWindow {
                 self.fonts.change_scaling(prior_font, prior_dpi);
             }
         }
+
+        window.set_resize_increments(
+            self.render_metrics.cell_size.width as u16,
+            self.render_metrics.cell_size.height as u16,
+        );
+
         if let Err(err) = self.recreate_texture_atlas(None) {
             log::error!("recreate_texture_atlas: {:#}", err);
         }
@@ -225,7 +236,7 @@ impl super::TermWindow {
         let cell_dims = self.current_cell_dimensions();
 
         if scale_changed {
-            self.apply_scale_change(&dimensions, font_scale);
+            self.apply_scale_change(&dimensions, font_scale, window);
         }
 
         let scale_changed_cells = if font_scale_changed || simple_dpi_change {
@@ -247,7 +258,7 @@ impl super::TermWindow {
         } else {
             let dimensions = self.dimensions;
             // Compute new font metrics
-            self.apply_scale_change(&dimensions, font_scale);
+            self.apply_scale_change(&dimensions, font_scale, window);
             // Now revise the pty size to fit the window
             self.apply_dimensions(&dimensions, None, window);
         }
@@ -295,7 +306,7 @@ impl super::TermWindow {
             dpi: config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
         };
 
-        self.apply_scale_change(&dimensions, 1.0);
+        self.apply_scale_change(&dimensions, 1.0, window);
         self.apply_dimensions(
             &dimensions,
             Some(RowsAndCols {

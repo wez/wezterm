@@ -647,6 +647,11 @@ impl TermWindow {
             let mut myself = tw.borrow_mut();
             myself.config_subscription.replace(config_subscription);
             myself.gl.replace(Rc::clone(&gl));
+            window.set_resize_increments(
+                myself.render_metrics.cell_size.width as u16,
+                myself.render_metrics.cell_size.height as u16,
+            );
+
             myself.created(&window, Rc::clone(&gl))?;
             myself.subscribe_to_pane_updates();
             myself.emit_window_event("window-config-reloaded");
@@ -1150,7 +1155,7 @@ impl TermWindow {
         };
 
         if let Some(window) = self.window.as_ref().map(|w| w.clone()) {
-            self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
+            self.apply_scale_change(&dimensions, self.fonts.get_font_scale(), &window);
             self.apply_dimensions(&dimensions, None, &window);
             window.config_did_change(&config);
             window.invalidate();
