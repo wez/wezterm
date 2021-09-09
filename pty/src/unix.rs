@@ -84,9 +84,7 @@ impl std::ops::DerefMut for PtyFd {
 impl Read for PtyFd {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
         match self.0.read(buf) {
-            Err(ref e)
-                if e.kind() == io::ErrorKind::Other && e.raw_os_error() == Some(libc::EIO) =>
-            {
+            Err(ref e) if e.raw_os_error() == Some(libc::EIO) => {
                 // EIO indicates that the slave pty has been closed.
                 // Treat this as EOF so that std::io::Read::read_to_string
                 // and similar functions gracefully terminate when they
