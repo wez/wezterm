@@ -48,6 +48,9 @@ pub struct Dimensions {
     pub pixel_width: usize,
     pub pixel_height: usize,
     pub dpi: usize,
+
+    /// The desired rendered pixel area, will be applied using glScissor
+    pub crop_area: Option<(u32, u32)>,
 }
 
 pub type Rect = euclid::Rect<isize, PixelUnit>;

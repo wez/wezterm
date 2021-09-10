@@ -506,6 +506,7 @@ impl Window {
                     pixel_height: height as usize,
                     dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
                         as usize,
+                    crop_area: None,
                 },
                 window_state: WindowState::default(),
             });
@@ -904,6 +905,7 @@ impl WindowInner {
                 pixel_width: width as usize,
                 pixel_height: height as usize,
                 dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width)) as usize,
+                crop_area: None,
             }
         }
     }
@@ -1966,6 +1968,7 @@ impl WindowView {
                     pixel_height: height as usize,
                     dpi: (crate::DEFAULT_DPI * (backing_frame.size.width / frame.size.width))
                         as usize,
+                    crop_area: None,
                 },
                 window_state: if is_full_screen {
                     WindowState::FULL_SCREEN

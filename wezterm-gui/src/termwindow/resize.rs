@@ -142,6 +142,7 @@ impl super::TermWindow {
                 pixel_width: pixel_width as usize,
                 pixel_height: pixel_height as usize,
                 dpi: dimensions.dpi,
+                crop_area: None,
             };
 
             (size, dims)
@@ -304,6 +305,7 @@ impl super::TermWindow {
                 + config.window_padding.top
                 + config.window_padding.bottom) as usize,
             dpi: config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+            crop_area: None,
         };
 
         self.apply_scale_change(&dimensions, 1.0, window);

@@ -159,6 +159,7 @@ impl XWindowInner {
                     pixel_width: self.width as usize,
                     pixel_height: self.height as usize,
                     dpi: self.dpi as usize,
+                    crop_area: None,
                 },
                 window_state: self.get_window_state().unwrap_or(WindowState::default()),
             });
@@ -259,6 +260,7 @@ impl XWindowInner {
                     pixel_width: self.width as usize,
                     pixel_height: self.height as usize,
                     dpi: self.dpi as usize,
+                    crop_area: None,
                 };
 
                 self.queue_pending(WindowEvent::Resized {

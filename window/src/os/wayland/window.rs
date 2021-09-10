@@ -258,6 +258,7 @@ impl WaylandWindow {
             pixel_width: width,
             pixel_height: height,
             dpi: crate::DEFAULT_DPI as usize,
+            crop_area: None,
         };
 
         let theme_manager = None;
@@ -555,6 +556,7 @@ impl WaylandWindowInner {
 
                 let mut pixel_width = self.surface_to_pixels(w.try_into().unwrap());
                 let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+                let mut crop_area = None;
 
                 if self.window_state.can_resize() {
                     if let Some((x, y)) = self.resize_increments {
@@ -564,6 +566,12 @@ impl WaylandWindowInner {
                         h = self.pixels_to_surface(desired_pixel_height) as u32;
                         pixel_width = self.surface_to_pixels(w.try_into().unwrap());
                         pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+                        if pixel_width != desired_pixel_width
+                            || pixel_height != desired_pixel_height
+                        {
+                            crop_area =
+                                Some((desired_pixel_width as u32, desired_pixel_height as u32));
+                        }
                     }
                 }
 
@@ -581,6 +589,7 @@ impl WaylandWindowInner {
                     pixel_width: pixel_width.try_into().unwrap(),
                     pixel_height: pixel_height.try_into().unwrap(),
                     dpi: factor as usize * crate::DEFAULT_DPI as usize,
+                    crop_area,
                 };
                 // Only trigger a resize if the new dimensions are different;
                 // this makes things more efficient and a little more smooth
@@ -1014,6 +1023,7 @@ impl WaylandWindowInner {
             pixel_width: pixel_width as _,
             pixel_height: pixel_height as _,
             dpi: factor as usize * crate::DEFAULT_DPI as usize,
+            crop_area: None,
         }
     }
 

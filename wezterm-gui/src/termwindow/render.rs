@@ -563,6 +563,13 @@ impl super::TermWindow {
         )
         .to_arrays_transposed();
 
+        let scissor = self.dimensions.crop_area.map(|(w, h)| glium::Rect {
+            left: 0,
+            bottom: self.dimensions.pixel_height as u32 - h,
+            width: w,
+            height: h,
+        });
+
         let dual_source_blending = glium::DrawParameters {
             blend: glium::Blend {
                 color: BlendingFunction::Addition {
@@ -575,7 +582,7 @@ impl super::TermWindow {
                 },
                 constant_value: (0.0, 0.0, 0.0, 0.0),
             },
-
+            scissor,
             ..Default::default()
         };
 
@@ -591,6 +598,7 @@ impl super::TermWindow {
                 },
                 constant_value: (0.0, 0.0, 0.0, 0.0),
             },
+            scissor,
             ..Default::default()
         };
 

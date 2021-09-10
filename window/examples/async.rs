@@ -90,6 +90,7 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
             pixel_width: 800,
             pixel_height: 600,
             dpi: 0,
+            crop_area: None,
         },
         gl: None,
     }));

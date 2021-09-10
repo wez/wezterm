@@ -206,6 +206,7 @@ impl WindowInner {
             pixel_width,
             pixel_height,
             dpi: unsafe { GetDpiForWindow(self.hwnd.0) as usize },
+            crop_area: None,
         };
 
         let same = self

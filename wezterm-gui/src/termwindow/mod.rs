@@ -544,6 +544,7 @@ impl TermWindow {
                 + config.window_padding.top
                 + config.window_padding.bottom) as usize,
             dpi,
+            crop_area: None,
         };
 
         let window_background = load_background_image(&config, &dimensions);
