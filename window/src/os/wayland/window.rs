@@ -191,13 +191,11 @@ impl PendingEvent {
                     state,
                     states
                 );
-                match (self.window_state, state) {
-                    (None, s) if s == WindowState::default() => {}
-                    _ => {
-                        self.window_state.replace(state);
-                        changed = true;
-                    }
+                if self.window_state.is_none() && state != WindowState::default() {
+                    changed = true;
                 }
+                // Always set it to avoid losing non-default -> default transitions
+                self.window_state.replace(state);
                 changed
             }
         }
