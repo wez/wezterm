@@ -114,6 +114,7 @@ pub struct WaylandWindowInner {
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<ConceptFrame>>,
     dimensions: Dimensions,
+    resize_increments: Option<(u16, u16)>,
     window_state: WindowState,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
@@ -310,6 +311,7 @@ impl WaylandWindow {
             invalidated: false,
             window: Some(window),
             dimensions,
+            resize_increments: None,
             window_state: WindowState::default(),
             last_mouse_coords: Point::new(0, 0),
             mouse_buttons: MouseButtons::NONE,
@@ -547,12 +549,23 @@ impl WaylandWindowInner {
             }
         }
 
-        if let Some((w, h)) = pending.configure.take() {
+        if let Some((mut w, mut h)) = pending.configure.take() {
             if self.window.is_some() {
                 let factor = get_surface_scale_factor(&self.surface);
 
-                let pixel_width = self.surface_to_pixels(w.try_into().unwrap());
-                let pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+                let mut pixel_width = self.surface_to_pixels(w.try_into().unwrap());
+                let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+
+                if self.window_state.can_resize() {
+                    if let Some((x, y)) = self.resize_increments {
+                        let desired_pixel_width = pixel_width - (pixel_width % x as i32);
+                        let desired_pixel_height = pixel_height - (pixel_height % y as i32);
+                        w = self.pixels_to_surface(desired_pixel_width) as u32;
+                        h = self.pixels_to_surface(desired_pixel_height) as u32;
+                        pixel_width = self.surface_to_pixels(w.try_into().unwrap());
+                        pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+                    }
+                }
 
                 // Avoid blurring by matching the scaling factor of the
                 // compositor; if it is going to double the size then
@@ -798,6 +811,12 @@ impl WindowOps for WaylandWindow {
         });
     }
 
+    fn set_resize_increments(&self, x: u16, y: u16) {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            Ok(inner.set_resize_increments(x, y))
+        });
+    }
+
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
@@ -1012,5 +1031,9 @@ impl WaylandWindowInner {
             window.set_title(title.to_string());
         }
         self.refresh_frame();
+    }
+
+    fn set_resize_increments(&mut self, x: u16, y: u16) {
+        self.resize_increments = Some((x, y));
     }
 }
