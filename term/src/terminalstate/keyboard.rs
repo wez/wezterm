@@ -17,7 +17,7 @@ impl TerminalState {
             },
         )?;
 
-        // debug!("sending {:?}, {:?}", to_send, key);
+        log::trace!("sending {:?}, {:?}", to_send, key);
         self.writer.write_all(to_send.as_bytes())?;
         self.writer.flush()?;
 

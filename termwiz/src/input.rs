@@ -411,13 +411,17 @@ impl KeyCode {
             Function(n) => {
                 if mods.is_empty() && n < 5 {
                     // F1-F4 are encoded using SS3 if there are no modifiers
-                    match n {
-                        1 => "\x1bOP",
-                        2 => "\x1bOQ",
-                        3 => "\x1bOR",
-                        4 => "\x1bOS",
-                        _ => unreachable!("wat?"),
-                    };
+                    write!(
+                        buf,
+                        "{}",
+                        match n {
+                            1 => "\x1bOP",
+                            2 => "\x1bOQ",
+                            3 => "\x1bOR",
+                            4 => "\x1bOS",
+                            _ => unreachable!("wat?"),
+                        }
+                    )?;
                 } else {
                     // Higher numbered F-keys plus modified F-keys are encoded
                     // using CSI instead of SS3.
@@ -1531,6 +1535,10 @@ mod test {
         assert_eq!(
             KeyCode::PageUp.encode(Modifiers::ALT, mode).unwrap(),
             "\x1b[5;3~".to_string()
+        );
+        assert_eq!(
+            KeyCode::Function(1).encode(Modifiers::NONE, mode).unwrap(),
+            "\x1bOP".to_string()
         );
     }
 }
