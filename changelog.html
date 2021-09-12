@@ -147,6 +147,7 @@ and the feature set may change, but since @wez uses this as a daily driver, its
 usually the best available version.</p>
 <p>As features stabilize some brief notes about them will accumulate here.</p>
 <ul>
+<li>Changed: new default key assignments: CTRL+PageUp and CTRL+Tab activate next tab, CTRL+PageDown and CTRL+SHIFT+Tab activate previous tab. ALT+{1..8} directly select the first through 8th tabs. Thanks to <a href="https://github.com/friederbluemle">@friederbluemle</a>! <a href="https://github.com/wez/wezterm/pull/1132">#1132</a></li>
 <li>Fixed: <code>wezterm cli spawn</code> would use the initial terminal size for a new tab, rather than using the current tab size <a href="https://github.com/wez/wezterm/issues/920">#920</a></li>
 <li>Fixed: <code>text_background_opacity</code> opacity was not respected</li>
 <li>Fixed: spawning commands via the mux didn't respect the <code>PATH</code> configured in <code>set_environment_variables</code>. <a href="https://github.com/wez/wezterm/issues/1029">#1029</a></li>
