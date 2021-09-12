@@ -465,6 +465,7 @@ pub fn best_matching_font(
 ) -> anyhow::Result<Option<ParsedFont>> {
     let mut font_info = vec![];
     parse_and_collect_font_info(source, &mut font_info, origin)?;
+    font_info.retain(|font| font.matches_name(font_attr));
     Ok(ParsedFont::best_match(font_attr, font_info))
 }
 

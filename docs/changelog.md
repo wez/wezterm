@@ -43,6 +43,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved: multi-click-streaks are now interrupted by the cursor moving to a different cell. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1126](https://github.com/wez/wezterm/issues/1126)
 * Fixed: Wayland: dragging the window using the tab bar now works. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1127](https://github.com/wez/wezterm/issues/1127)
 * New: X11, macOS: Window resizing now prefers to step in increments of the cell size
+* Fixed: error matching a font when that font is in a .ttc that contains multiple font families. [#1137](https://github.com/wez/wezterm/issues/1137)
 
 ### 20210814-124438-54e29167
 
