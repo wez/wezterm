@@ -55,6 +55,7 @@ impl super::TermWindow {
     }
 
     pub fn mouse_event_impl(&mut self, event: MouseEvent, context: &dyn WindowOps) {
+        log::trace!("{:?}", event);
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
             None => return,
