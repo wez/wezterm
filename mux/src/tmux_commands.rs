@@ -9,11 +9,13 @@ use crate::Pane;
 use anyhow::anyhow;
 use portable_pty::{MasterPty, PtySize};
 use std::collections::HashSet;
+use std::fmt::Debug;
+use std::fmt::Write;
 use std::rc::Rc;
 use std::sync::{Arc, Condvar, Mutex};
 use tmux_cc::*;
 
-pub(crate) trait TmuxCommand: Send {
+pub(crate) trait TmuxCommand: Send + Debug {
     fn get_command(&self) -> String;
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()>;
 }
@@ -118,7 +120,9 @@ impl TmuxDomainState {
             }
 
             let pane_pty = TmuxPty {
+                domain_id: self.domain_id,
                 rx: channel.1.clone(),
+                cmd_queue: self.cmd_queue.clone(),
                 active_lock: active_lock.clone(),
                 master_pane: ref_pane,
             };
@@ -170,6 +174,7 @@ impl TmuxDomainState {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ListAllPanes;
 impl TmuxCommand for ListAllPanes {
     fn get_command(&self) -> String {
@@ -250,6 +255,7 @@ impl TmuxCommand for ListAllPanes {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct CapturePane(TmuxPaneId);
 impl TmuxCommand for CapturePane {
     fn get_command(&self) -> String {
@@ -273,6 +279,26 @@ impl TmuxCommand for CapturePane {
             lock.tx.send(result.output.to_owned()).unwrap();
         }
 
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct SendKeys {
+    pub keys: Vec<u8>,
+    pub pane: TmuxPaneId,
+}
+impl TmuxCommand for SendKeys {
+    fn get_command(&self) -> String {
+        let mut s = String::new();
+        for &byte in self.keys.iter() {
+            write!(&mut s, "0x{:X}\r", byte).expect("unable to write key");
+        }
+        format!("send-keys -t {} {}", self.pane, s)
+        // FIXME: An unexpected duplicated command will prompt next line, why?
+    }
+
+    fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
         Ok(())
     }
 }
