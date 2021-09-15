@@ -1,11 +1,13 @@
+use crate::{
+    tmux::{RefTmuxRemotePane, TmuxCmdQueue, TmuxDomainState},
+    tmux_commands::SendKeys,
+};
 use flume;
 use portable_pty::{Child, ExitStatus, MasterPty};
 use std::{
     io::{Read, Write},
     sync::{Arc, Condvar, Mutex},
 };
-
-use crate::tmux::RefTmuxRemotePane;
 
 pub(crate) struct TmuxReader {
     rx: flume::Receiver<String>,
@@ -27,15 +29,26 @@ impl Read for TmuxReader {
 // A local tmux pane(tab) based on a tmux pty
 #[derive(Debug, Clone)]
 pub(crate) struct TmuxPty {
+    pub domain_id: usize,
     pub master_pane: RefTmuxRemotePane,
     pub rx: flume::Receiver<String>,
+    pub cmd_queue: Arc<Mutex<TmuxCmdQueue>>,
     pub active_lock: Arc<(Mutex<bool>, Condvar)>,
-    // TODO: wx
 }
 
 impl Write for TmuxPty {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        // TODO: write to wx of pty
+        let pane_id = {
+            let pane_lock = self.master_pane.lock().unwrap();
+            pane_lock.pane_id
+        };
+        log::info!("pane:{}, content:{:?}", &pane_id, buf);
+        let mut cmd_queue = self.cmd_queue.lock().unwrap();
+        cmd_queue.push_back(Box::new(SendKeys {
+            pane: pane_id,
+            keys: buf.to_vec(),
+        }));
+        TmuxDomainState::kick_off(self.domain_id);
         Ok(0)
     }
 
@@ -91,8 +104,10 @@ impl MasterPty for TmuxPty {
 
     fn try_clone_writer(&self) -> Result<Box<dyn std::io::Write + Send>, anyhow::Error> {
         Ok(Box::new(TmuxPty {
+            domain_id: self.domain_id,
             master_pane: self.master_pane.clone(),
             rx: self.rx.clone(),
+            cmd_queue: self.cmd_queue.clone(),
             active_lock: self.active_lock.clone(),
         }))
     }

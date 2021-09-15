@@ -46,12 +46,13 @@ pub(crate) struct TmuxTab {
     pub panes: HashSet<TmuxPaneId>, // tmux panes within tmux window
 }
 
+pub(crate) type TmuxCmdQueue = VecDeque<Box<dyn TmuxCommand>>;
 pub(crate) struct TmuxDomainState {
     pub pane_id: PaneId,
     pub domain_id: DomainId,
     // parser: RefCell<Parser>,
     state: RefCell<State>,
-    pub cmd_queue: RefCell<VecDeque<Box<dyn TmuxCommand>>>,
+    pub cmd_queue: Arc<Mutex<TmuxCmdQueue>>,
     pub gui_window: RefCell<Option<MuxWindowBuilder>>,
     pub gui_tabs: RefCell<Vec<TmuxTab>>,
     pub remote_panes: RefCell<HashMap<TmuxPaneId, RefTmuxRemotePane>>,
@@ -73,7 +74,8 @@ impl TmuxDomainState {
                         *self.state.borrow_mut() = State::Idle;
                     }
                     State::WaitingForResponse => {
-                        let cmd = self.cmd_queue.borrow_mut().pop_front().unwrap();
+                        let mut cmd_queue = self.cmd_queue.as_ref().lock().unwrap();
+                        let cmd = cmd_queue.pop_front().unwrap();
                         let domain_id = self.domain_id;
                         *self.state.borrow_mut() = State::Idle;
                         let resp = response.clone();
@@ -120,17 +122,9 @@ impl TmuxDomainState {
         }
 
         // send pending commands to tmux
-        if *self.state.borrow() == State::Idle && !self.cmd_queue.borrow().is_empty() {
-            let domain_id = self.domain_id;
-            promise::spawn::spawn(async move {
-                let mux = Mux::get().expect("to be called on main thread");
-                if let Some(domain) = mux.get_domain(domain_id) {
-                    if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
-                        tmux_domain.send_next_command();
-                    }
-                }
-            })
-            .detach();
+        let cmd_queue = self.cmd_queue.as_ref().lock().unwrap();
+        if *self.state.borrow() == State::Idle && !cmd_queue.is_empty() {
+            TmuxDomainState::kick_off(self.domain_id);
         }
     }
 
@@ -138,7 +132,8 @@ impl TmuxDomainState {
         if *self.state.borrow() != State::Idle {
             return;
         }
-        if let Some(first) = self.cmd_queue.borrow().front() {
+        let cmd_queue = self.cmd_queue.as_ref().lock().unwrap();
+        if let Some(first) = cmd_queue.front() {
             let cmd = first.get_command();
             log::error!("sending cmd {:?}", cmd);
             let mux = Mux::get().expect("to be called on main thread");
@@ -148,6 +143,18 @@ impl TmuxDomainState {
             }
             *self.state.borrow_mut() = State::WaitingForResponse;
         }
+    }
+
+    pub fn kick_off(domain_id: usize) {
+        promise::spawn::spawn_into_main_thread(async move {
+            let mux = Mux::get().expect("to be called on main thread");
+            if let Some(domain) = mux.get_domain(domain_id) {
+                if let Some(tmux_domain) = domain.downcast_ref::<TmuxDomain>() {
+                    tmux_domain.send_next_command();
+                }
+            }
+        })
+        .detach();
     }
 
     pub fn create_gui_window(&self) {
@@ -174,12 +181,13 @@ impl TmuxDomain {
             pane_id,
             // parser,
             state: RefCell::new(State::WaitForInitialGuard),
-            cmd_queue: RefCell::new(cmd_queue),
+            cmd_queue: Arc::new(Mutex::new(cmd_queue)),
             gui_window: RefCell::new(None),
             gui_tabs: RefCell::new(Vec::default()),
             remote_panes: RefCell::new(HashMap::default()),
             tmux_session: RefCell::new(None),
         });
+
         Self { inner }
     }
 
