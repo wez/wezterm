@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if ! ./ci/check-rust-version.sh ; then
+if ! bash ./ci/check-rust-version.sh ; then
   exit 1
 fi
 
