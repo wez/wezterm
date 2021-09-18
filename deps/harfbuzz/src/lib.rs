@@ -237,6 +237,11 @@ pub enum hb_script_t {
     HB_SCRIPT_DIVES_AKURU = 1147756907,
     HB_SCRIPT_KHITAN_SMALL_SCRIPT = 1265202291,
     HB_SCRIPT_YEZIDI = 1499822697,
+    HB_SCRIPT_CYPRO_MINOAN = 1131441518,
+    HB_SCRIPT_OLD_UYGHUR = 1333094258,
+    HB_SCRIPT_TANGSA = 1416524641,
+    HB_SCRIPT_TOTO = 1416590447,
+    HB_SCRIPT_VITHKUQI = 1449751656,
     HB_SCRIPT_INVALID = 0,
     _HB_SCRIPT_MAX_VALUE = 2147483647,
 }
@@ -2254,6 +2259,20 @@ extern "C" {
     pub fn hb_shape_plan_get_shaper(
         shape_plan: *mut hb_shape_plan_t,
     ) -> *const ::std::os::raw::c_char;
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum hb_style_tag_t {
+    HB_STYLE_TAG_ITALIC = 1769234796,
+    HB_STYLE_TAG_OPTICAL_SIZE = 1869640570,
+    HB_STYLE_TAG_SLANT_ANGLE = 1936486004,
+    HB_STYLE_TAG_SLANT_RATIO = 1399615092,
+    HB_STYLE_TAG_WIDTH = 2003072104,
+    HB_STYLE_TAG_WEIGHT = 2003265652,
+    _HB_STYLE_TAG_MAX_VALUE = 2147483647,
+}
+extern "C" {
+    pub fn hb_style_get_value(font: *mut hb_font_t, style_tag: hb_style_tag_t) -> f32;
 }
 extern "C" {
     pub fn hb_version(
