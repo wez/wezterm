@@ -13,6 +13,8 @@ use termwiz::input::Modifiers;
 use termwiz::surface::change::Change;
 use unicode_segmentation::UnicodeSegmentation;
 
+static LUA_REGISTRY_USER_CALLBACK_COUNT: &str = "wezterm-user-callback-count";
+
 /// Set up a lua context for executing some code.
 /// The path to the directory containing the configuration is
 /// passed in and is used to pre-set some global values in
@@ -235,6 +237,8 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         )?;
         wezterm_mod.set("hostname", lua.create_function(hostname)?)?;
         wezterm_mod.set("action", lua.create_function(action)?)?;
+        lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, 0)?;
+        wezterm_mod.set("action_callback", lua.create_function(action_callback)?)?;
         wezterm_mod.set("permute_any_mods", lua.create_function(permute_any_mods)?)?;
         wezterm_mod.set(
             "permute_any_or_no_mods",
@@ -588,6 +592,17 @@ fn action<'lua>(
     action: Table<'lua>,
 ) -> mlua::Result<crate::keyassignment::KeyAssignment> {
     Ok(from_lua_value(Value::Table(action))?)
+}
+
+fn action_callback<'lua>(
+    lua: &'lua Lua,
+    callback: mlua::Function,
+) -> mlua::Result<crate::keyassignment::KeyAssignment> {
+    let callback_count: i32 = lua.named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT)?;
+    let user_event_id = format!("user-defined-{}", callback_count);
+    lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, callback_count + 1)?;
+    register_event(lua, (user_event_id.clone(), callback))?;
+    return Ok(crate::KeyAssignment::EmitEvent(user_event_id));
 }
 
 async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>> {

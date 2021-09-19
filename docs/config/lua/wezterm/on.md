@@ -22,6 +22,8 @@ There is no way to de-register an event handler.  However, since the Lua
 state is built from scratch when the configuration is reloaded, simply
 reloading the configuration will clear any existing event handlers.
 
+See [wezterm.action_callback](./action_callback.md) for a helper to define a custom action callback.
+
 ## Predefined Events
 
 See [Window Events](../window-events/index.md) for a list of pre-defined
