@@ -45,6 +45,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: X11, macOS: Window resizing now prefers to step in increments of the cell size
 * Fixed: error matching a font when that font is in a .ttc that contains multiple font families. [#1137](https://github.com/wez/wezterm/issues/1137)
 * Improved: `.deb` packages now `Provides: x-terminal-emulator`. [#1139](https://github.com/wez/wezterm/issues/1139)
+* Fixed: Wayland: panic with most recent wlroots. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1144](https://github.com/wez/wezterm/issues/1144)
 
 ### 20210814-124438-54e29167
 
