@@ -78,6 +78,11 @@ impl Child for TmuxPty {
     fn process_id(&self) -> Option<u32> {
         Some(0)
     }
+
+    #[cfg(windows)]
+    fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
+        None
+    }
 }
 
 impl MasterPty for TmuxPty {
@@ -112,6 +117,7 @@ impl MasterPty for TmuxPty {
         }))
     }
 
+    #[cfg(unix)]
     fn process_group_leader(&self) -> Option<libc::pid_t> {
         return None;
     }
