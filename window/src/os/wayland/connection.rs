@@ -11,8 +11,7 @@ use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
 use smithay_client_toolkit as toolkit;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::Read;
-use std::os::unix::io::FromRawFd;
+use std::os::unix::{fs::FileExt, io::FromRawFd};
 use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
 use toolkit::environment::Environment;
@@ -169,7 +168,7 @@ impl WaylandConnection {
                 match format {
                     KeymapFormat::XkbV1 => {
                         let mut data = vec![0u8; *size as usize];
-                        file.read_exact(&mut data)?;
+                        file.read_exact_at(&mut data, 0)?;
                         // Dance around CString panicing on the NUL terminator
                         // in the xkbcommon crate
                         while let Some(0) = data.last() {
