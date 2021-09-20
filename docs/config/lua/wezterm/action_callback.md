@@ -1,6 +1,6 @@
 # `wezterm.action_callback(callback)`
 
-*Since: nightly*
+*Since: nightly builds only*
 
 This function is a helper to register a custom event and return an action triggering it.
 
