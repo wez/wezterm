@@ -292,10 +292,10 @@ impl TmuxCommand for SendKeys {
     fn get_command(&self) -> String {
         let mut s = String::new();
         for &byte in self.keys.iter() {
-            write!(&mut s, "0x{:X}\r", byte).expect("unable to write key");
+            write!(&mut s, "0x{:X} ", byte).expect("unable to write key");
         }
-        format!("send-keys -t {} {}", self.pane, s)
-        // FIXME: An unexpected duplicated command will prompt next line, why?
+        format!("send-keys -t {} {}\r", self.pane, s)
+        // FIXME: disable ESC k sequence
     }
 
     fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
