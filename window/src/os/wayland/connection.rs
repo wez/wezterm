@@ -165,7 +165,7 @@ impl WaylandConnection {
                 *self.key_repeat_delay.borrow_mut() = *delay;
             }
             WlKeyboardEvent::Keymap { format, fd, size } => {
-                let mut file = unsafe { std::fs::File::from_raw_fd(*fd) };
+                let file = unsafe { std::fs::File::from_raw_fd(*fd) };
                 match format {
                     KeymapFormat::XkbV1 => {
                         let mut data = vec![0u8; *size as usize];
