@@ -105,6 +105,7 @@ jobs:
 
     - name: "Upload to Nightly Release"
       uses: wez/upload-release-assets@releases/v1
+      if: github.event.repository.fork == false
       with:
          files: "wezterm-*.deb;wezterm-*.xz;wezterm-*.tar.gz"
          release-tag: "nightly"
