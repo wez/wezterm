@@ -3,7 +3,7 @@ import os
 import sys
 
 
-def yv(v):
+def yv(v, depth=0):
     if v is True:
         return "true"
     if v is False:
@@ -13,15 +13,18 @@ def yv(v):
 
     if isinstance(v, str):
         if "\n" in v:
-            spacer = " " * 12
-            return "|\n" + spacer + v.replace("\n", "\n" + spacer) + "\n"
+            indent = "  " * depth
+            result = ""
+            for l in v.splitlines():
+                result = result + "\n" + (f"{indent}{l}" if l else "")
+            return "|" + result
         return '"' + v + '"'
 
     return v
 
 
 class Step(object):
-    def render(self, f, env):
+    def render(self, f, env, depth=0):
         raise NotImplementedError(repr(self))
 
 
@@ -31,10 +34,11 @@ class RunStep(Step):
         self.run = run
         self.shell = shell
 
-    def render(self, f, env):
-        f.write(f"    - name: {yv(self.name)}\n")
+    def render(self, f, env, depth=0):
+        indent = "  " * depth
+        f.write(f"{indent}- name: {yv(self.name)}\n")
         if self.shell:
-            f.write(f"      shell: {self.shell}\n")
+            f.write(f"{indent}  shell: {self.shell}\n")
 
         run = self.run
 
@@ -43,7 +47,7 @@ class RunStep(Step):
                 if self.shell == "bash":
                     run = f"export {k}={v}\n{run}\n"
 
-        f.write(f"      run: {yv(run)}\n")
+        f.write(f"{indent}  run: {yv(run, depth + 2)}\n")
 
 
 class ActionStep(Step):
@@ -54,19 +58,20 @@ class ActionStep(Step):
         self.env = env
         self.condition = condition
 
-    def render(self, f, env):
-        f.write(f"    - name: {yv(self.name)}\n")
-        f.write(f"      uses: {self.action}\n")
+    def render(self, f, env, depth=0):
+        indent = "  " * depth
+        f.write(f"{indent}- name: {yv(self.name)}\n")
+        f.write(f"{indent}  uses: {self.action}\n")
         if self.condition:
-            f.write(f"      if: {self.condition}\n")
+            f.write(f"{indent}  if: {self.condition}\n")
         if self.params:
-            f.write("      with:\n")
+            f.write(f"{indent}  with:\n")
             for k, v in self.params.items():
-                f.write(f"         {k}: {yv(v)}\n")
+                f.write(f"{indent}    {k}: {yv(v, depth + 3)}\n")
         if self.env:
-            f.write("      env:\n")
+            f.write(f"{indent}  env:\n")
             for k, v in self.env.items():
-                f.write(f"         {k}: {yv(v)}\n")
+                f.write(f"{indent}    {k}: {yv(v, depth + 3)}\n")
 
 
 class CacheStep(ActionStep):
@@ -90,9 +95,9 @@ class Job(object):
         self.steps = steps
         self.env = env
 
-    def render(self, f):
+    def render(self, f, depth=0):
         for s in self.steps:
-            s.render(f, self.env)
+            s.render(f, self.env, depth)
 
 
 class Target(object):
@@ -194,9 +199,7 @@ class Target(object):
                 RunStep(
                     name="Install Git from source",
                     shell="bash",
-                    run=f"""
-{pre_reqs}
-
+                    run=f"""{pre_reqs}
 if test ! -x /usr/local/git/bin/git ; then
     cd /tmp
     wget https://github.com/git/git/archive/v{GIT_VERS}.tar.gz
@@ -204,9 +207,7 @@ if test ! -x /usr/local/git/bin/git ; then
     cd git-{GIT_VERS}
     make prefix=/usr/local/git install
 fi
-
-ln -s /usr/local/git/bin/git /usr/local/bin/git
-        """,
+ln -s /usr/local/git/bin/git /usr/local/bin/git""",
                 )
             )
 
@@ -257,7 +258,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
             return []
         sudo = "sudo -n " if self.needs_sudo() else ""
         return [
-            RunStep(name="Install System Deps", run=f"{sudo} env PATH=$PATH ./get-deps")
+            RunStep(name="Install System Deps", run=f"{sudo}env PATH=$PATH ./get-deps")
         ]
 
     def check_formatting(self):
@@ -586,21 +587,17 @@ def generate_actions(namer, jobber, trigger, is_continuous):
 
         with open(file_name, "w") as f:
             f.write(
-                f"""
-name: {name}
+                f"""name: {name}
 {trigger}
-
 jobs:
   build:
-    strategy:
-      fail-fast: false
     runs-on: {yv(job.runs_on)}
     {container}
     steps:
 """
             )
 
-            job.render(f)
+            job.render(f, 3)
 
         # Sanity check the yaml, if pyyaml is available
         try:
@@ -620,16 +617,16 @@ def generate_pr_actions():
 on:
   pull_request:
     branches:
-    - main
+      - main
     paths-ignore:
-    - '.cirrus.yml'
-    - 'docs/*'
-    - 'ci/build-docs.sh'
-    - 'ci/generate-docs.py'
-    - 'ci/subst-release-info.py'
-    - '.github/workflows/pages.yml'
-    - '.github/ISSUE_TEMPLATE/*'
-    - '**/*.md'
+      - ".cirrus.yml"
+      - "docs/*"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/ISSUE_TEMPLATE/*"
+      - "**/*.md"
 """,
         is_continuous=False,
     )
@@ -645,16 +642,16 @@ on:
     - cron: "10 3 * * *"
   push:
     branches:
-    - main
+      - main
     paths-ignore:
-    - '.cirrus.yml'
-    - 'docs/**'
-    - 'ci/build-docs.sh'
-    - 'ci/generate-docs.py'
-    - 'ci/subst-release-info.py'
-    - '.github/workflows/pages.yml'
-    - '.github/ISSUE_TEMPLATE/*'
-    - '**/*.md'
+      - ".cirrus.yml"
+      - "docs/**"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/ISSUE_TEMPLATE/*"
+      - "**/*.md"
 """,
         is_continuous=True,
     )

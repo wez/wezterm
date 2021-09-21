@@ -1,4 +1,3 @@
-
 name: ubuntu18_continuous
 
 on:
@@ -6,121 +5,97 @@ on:
     - cron: "10 3 * * *"
   push:
     branches:
-    - main
+      - main
     paths-ignore:
-    - '.cirrus.yml'
-    - 'docs/**'
-    - 'ci/build-docs.sh'
-    - 'ci/generate-docs.py'
-    - 'ci/subst-release-info.py'
-    - '.github/workflows/pages.yml'
-    - '.github/ISSUE_TEMPLATE/*'
-    - '**/*.md'
-
+      - ".cirrus.yml"
+      - "docs/**"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/ISSUE_TEMPLATE/*"
+      - "**/*.md"
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
     runs-on: "ubuntu-18.04"
     
     steps:
-    - name: "Update APT"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            sudo -n apt update
-            
-
-    - name: "Install git"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            sudo -n apt-get install -y git
-            
-
-    - name: "checkout repo"
-      uses: actions/checkout@v2
-      with:
-         submodules: "recursive"
-    - name: "Fetch tags"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-            
-
-    - name: "Fetch tag/branch history"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            git fetch --prune --unshallow
-            
-
-    - name: "Install Rust"
-      uses: actions-rs/toolchain@v1
-      with:
-         profile: "minimal"
-         toolchain: "stable"
-         override: true
-         components: "rustfmt"
-      env:
-         ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
-    - name: "Cache cargo"
-      uses: actions/cache@v2.1.6
-      with:
-         path: |
+      - name: "Update APT"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          sudo -n apt update
+      - name: "Install git"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          sudo -n apt-get install -y git
+      - name: "checkout repo"
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: "Fetch tags"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+      - name: "Fetch tag/branch history"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          git fetch --prune --unshallow
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          toolchain: "stable"
+          override: true
+          components: "rustfmt"
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: "Cache cargo"
+        uses: actions/cache@v2.1.6
+        with:
+          path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-
-         key: "ubuntu18-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
-    - name: "Install System Deps"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            sudo -n  env PATH=$PATH ./get-deps
-            
-
-    - name: "Build (Release mode)"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            cargo build --all --release
-            
-
-    - name: "Test (Release mode)"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            cargo test --all --release
-            
-
-    - name: "Package"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            bash ci/deploy.sh
-            
-
-    - name: "Source Tarball"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            bash ci/source-archive.sh
-            
-
-    - name: "Build AppImage"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            bash ci/appimage.sh
-            
-
-    - name: "Upload to Nightly Release"
-      uses: wez/upload-release-assets@releases/v1
-      if: github.event.repository.fork == false
-      with:
-         files: "wezterm-*.deb;wezterm-*.xz;wezterm-*.tar.gz;*.AppImage;*.zsync"
-         release-tag: "nightly"
-         repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          key: "ubuntu18-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+      - name: "Install System Deps"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          sudo -n env PATH=$PATH ./get-deps
+      - name: "Build (Release mode)"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          cargo build --all --release
+      - name: "Test (Release mode)"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          cargo test --all --release
+      - name: "Package"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          bash ci/deploy.sh
+      - name: "Source Tarball"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          bash ci/source-archive.sh
+      - name: "Build AppImage"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          bash ci/appimage.sh
+      - name: "Upload to Nightly Release"
+        uses: wez/upload-release-assets@releases/v1
+        if: github.event.repository.fork == false
+        with:
+          files: "wezterm-*.deb;wezterm-*.xz;wezterm-*.tar.gz;*.AppImage;*.zsync"
+          release-tag: "nightly"
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"

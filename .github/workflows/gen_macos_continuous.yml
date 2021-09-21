@@ -1,4 +1,3 @@
-
 name: macos_continuous
 
 on:
@@ -6,114 +5,95 @@ on:
     - cron: "10 3 * * *"
   push:
     branches:
-    - main
+      - main
     paths-ignore:
-    - '.cirrus.yml'
-    - 'docs/**'
-    - 'ci/build-docs.sh'
-    - 'ci/generate-docs.py'
-    - 'ci/subst-release-info.py'
-    - '.github/workflows/pages.yml'
-    - '.github/ISSUE_TEMPLATE/*'
-    - '**/*.md'
-
+      - ".cirrus.yml"
+      - "docs/**"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/ISSUE_TEMPLATE/*"
+      - "**/*.md"
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
     runs-on: "macos-11"
     
     steps:
-    - name: "checkout repo"
-      uses: actions/checkout@v2
-      with:
-         submodules: "recursive"
-    - name: "Fetch tags"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-            git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-            
-            
+      - name: "checkout repo"
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: "Fetch tags"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
-    - name: "Fetch tag/branch history"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-            git fetch --prune --unshallow
-            
-            
+      - name: "Fetch tag/branch history"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          git fetch --prune --unshallow
 
-    - name: "Install Rust"
-      uses: actions-rs/toolchain@v1
-      with:
-         profile: "minimal"
-         toolchain: "stable"
-         override: true
-         components: "rustfmt"
-      env:
-         ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
-    - name: "Install Rust (ARM)"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-            rustup target add aarch64-apple-darwin
-            
-            
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          toolchain: "stable"
+          override: true
+          components: "rustfmt"
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: "Install Rust (ARM)"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          rustup target add aarch64-apple-darwin
 
-    - name: "Install System Deps"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-             env PATH=$PATH ./get-deps
-            
-            
+      - name: "Install System Deps"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          env PATH=$PATH ./get-deps
 
-    - name: "Build (Release mode Intel)"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-            cargo build --target x86_64-apple-darwin --all --release
-            
-            
+      - name: "Build (Release mode Intel)"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          cargo build --target x86_64-apple-darwin --all --release
 
-    - name: "Build (Release mode ARM)"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-            cargo build --target aarch64-apple-darwin --all --release
-            
-            
+      - name: "Build (Release mode ARM)"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          cargo build --target aarch64-apple-darwin --all --release
 
-    - name: "Test (Release mode)"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-            cargo test --target x86_64-apple-darwin --all --release
-            
-            
+      - name: "Test (Release mode)"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          cargo test --target x86_64-apple-darwin --all --release
 
-    - name: "Package"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-            bash ci/deploy.sh
-            
-            
+      - name: "Package"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          bash ci/deploy.sh
 
-    - name: "Upload to Nightly Release"
-      uses: wez/upload-release-assets@releases/v1
-      if: github.event.repository.fork == false
-      with:
-         files: "WezTerm-*.zip"
-         release-tag: "nightly"
-         repo-token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: "Upload to Nightly Release"
+        uses: wez/upload-release-assets@releases/v1
+        if: github.event.repository.fork == false
+        with:
+          files: "WezTerm-*.zip"
+          release-tag: "nightly"
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
