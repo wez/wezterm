@@ -10,6 +10,9 @@ documentation = "https://docs.rs/wezterm-ssh"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+vendored-openssl = ["ssh2/vendored-openssl"]
+
 [dependencies]
 anyhow = "1.0"
 base64 = "0.13"
