@@ -1,4 +1,3 @@
-
 name: centos7_tag
 
 on:
@@ -6,93 +5,84 @@ on:
     tags:
       - "20*"
 
-
 jobs:
   build:
-    strategy:
-      fail-fast: false
     runs-on: "ubuntu-latest"
     container: "centos:7"
     steps:
-    - name: "Install SCL"
-      shell: bash
-      run: "yum install -y centos-release-scl-rh"
-    - name: "Update compiler"
-      shell: bash
-      run: "yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++"
-    - name: "Cache Git installation"
-      uses: actions/cache@v2.1.6
-      with:
-         path: "/usr/local/git"
-         key: "centos7-git-2.26.2"
-    - name: "Install Git from source"
-      shell: bash
-      run: |
-            
-            yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
-            
-            if test ! -x /usr/local/git/bin/git ; then
-                cd /tmp
-                wget https://github.com/git/git/archive/v2.26.2.tar.gz
-                tar xzf v2.26.2.tar.gz
-                cd git-2.26.2
-                make prefix=/usr/local/git install
-            fi
-            
-            ln -s /usr/local/git/bin/git /usr/local/bin/git
-                    
-
-    - name: "Install curl"
-      shell: bash
-      run: "yum install -y curl"
-    - name: "checkout repo"
-      uses: actions/checkout@v2
-      with:
-         submodules: "recursive"
-    - name: "Fetch tags"
-      shell: bash
-      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
-    - name: "Fetch tag/branch history"
-      shell: bash
-      run: "git fetch --prune --unshallow"
-    - name: "Install Rust"
-      uses: actions-rs/toolchain@v1
-      with:
-         profile: "minimal"
-         toolchain: "stable"
-         override: true
-         components: "rustfmt"
-      env:
-         ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
-    - name: "Cache cargo"
-      uses: actions/cache@v2.1.6
-      with:
-         path: |
+      - name: "Install SCL"
+        shell: bash
+        run: "yum install -y centos-release-scl-rh"
+      - name: "Update compiler"
+        shell: bash
+        run: "yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++"
+      - name: "Cache Git installation"
+        uses: actions/cache@v2.1.6
+        with:
+          path: "/usr/local/git"
+          key: "centos7-git-2.26.2"
+      - name: "Install Git from source"
+        shell: bash
+        run: |
+          yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
+          if test ! -x /usr/local/git/bin/git ; then
+              cd /tmp
+              wget https://github.com/git/git/archive/v2.26.2.tar.gz
+              tar xzf v2.26.2.tar.gz
+              cd git-2.26.2
+              make prefix=/usr/local/git install
+          fi
+          ln -s /usr/local/git/bin/git /usr/local/bin/git
+      - name: "Install curl"
+        shell: bash
+        run: "yum install -y curl"
+      - name: "checkout repo"
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: "Fetch tags"
+        shell: bash
+        run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+      - name: "Fetch tag/branch history"
+        shell: bash
+        run: "git fetch --prune --unshallow"
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          toolchain: "stable"
+          override: true
+          components: "rustfmt"
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: "Cache cargo"
+        uses: actions/cache@v2.1.6
+        with:
+          path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-
-         key: "centos7-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
-    - name: "Install System Deps"
-      shell: bash
-      run: " env PATH=$PATH ./get-deps"
-    - name: "Build (Release mode)"
-      shell: bash
-      run: "source /opt/rh/devtoolset-9/enable && cargo build --all --release"
-    - name: "Test (Release mode)"
-      shell: bash
-      run: "source /opt/rh/devtoolset-9/enable && cargo test --all --release"
-    - name: "Package"
-      shell: bash
-      run: "bash ci/deploy.sh"
-    - name: "Move RPM"
-      shell: bash
-      run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
-    - name: "Upload to Tagged Release"
-      uses: softprops/action-gh-release@v1
-      if: github.event.repository.fork == false
-      with:
-         files: "wezterm-*.rpm"
-         prerelease: true
-      env:
-         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          key: "centos7-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+      - name: "Install System Deps"
+        shell: bash
+        run: "env PATH=$PATH ./get-deps"
+      - name: "Build (Release mode)"
+        shell: bash
+        run: "source /opt/rh/devtoolset-9/enable && cargo build --all --release"
+      - name: "Test (Release mode)"
+        shell: bash
+        run: "source /opt/rh/devtoolset-9/enable && cargo test --all --release"
+      - name: "Package"
+        shell: bash
+        run: "bash ci/deploy.sh"
+      - name: "Move RPM"
+        shell: bash
+        run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
+      - name: "Upload to Tagged Release"
+        uses: softprops/action-gh-release@v1
+        if: github.event.repository.fork == false
+        with:
+          files: "wezterm-*.rpm"
+          prerelease: true
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

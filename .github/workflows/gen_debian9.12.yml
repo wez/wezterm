@@ -1,111 +1,99 @@
-
 name: debian9.12
 
 on:
   pull_request:
     branches:
-    - main
+      - main
     paths-ignore:
-    - '.cirrus.yml'
-    - 'docs/*'
-    - 'ci/build-docs.sh'
-    - 'ci/generate-docs.py'
-    - 'ci/subst-release-info.py'
-    - '.github/workflows/pages.yml'
-    - '.github/ISSUE_TEMPLATE/*'
-    - '**/*.md'
-
+      - ".cirrus.yml"
+      - "docs/*"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/ISSUE_TEMPLATE/*"
+      - "**/*.md"
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
     runs-on: "ubuntu-latest"
     container: "debian:9.12"
     steps:
-    - name: "set APT to non-interactive"
-      shell: bash
-      run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
-    - name: "Update APT"
-      shell: bash
-      run: "apt update"
-    - name: "Cache Git installation"
-      uses: actions/cache@v2.1.6
-      with:
-         path: "/usr/local/git"
-         key: "debian9.12-git-2.26.2"
-    - name: "Install Git from source"
-      shell: bash
-      run: |
-            
-            apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
-            
-            if test ! -x /usr/local/git/bin/git ; then
-                cd /tmp
-                wget https://github.com/git/git/archive/v2.26.2.tar.gz
-                tar xzf v2.26.2.tar.gz
-                cd git-2.26.2
-                make prefix=/usr/local/git install
-            fi
-            
-            ln -s /usr/local/git/bin/git /usr/local/bin/git
-                    
-
-    - name: "Install curl"
-      shell: bash
-      run: "apt-get install -y curl"
-    - name: "checkout repo"
-      uses: actions/checkout@v2
-      with:
-         submodules: "recursive"
-    - name: "Fetch tags"
-      shell: bash
-      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
-    - name: "Fetch tag/branch history"
-      shell: bash
-      run: "git fetch --prune --unshallow"
-    - name: "Install Rust"
-      uses: actions-rs/toolchain@v1
-      with:
-         profile: "minimal"
-         toolchain: "stable"
-         override: true
-         components: "rustfmt"
-      env:
-         ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
-    - name: "Cache cargo"
-      uses: actions/cache@v2.1.6
-      with:
-         path: |
+      - name: "set APT to non-interactive"
+        shell: bash
+        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Cache Git installation"
+        uses: actions/cache@v2.1.6
+        with:
+          path: "/usr/local/git"
+          key: "debian9.12-git-2.26.2"
+      - name: "Install Git from source"
+        shell: bash
+        run: |
+          apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
+          if test ! -x /usr/local/git/bin/git ; then
+              cd /tmp
+              wget https://github.com/git/git/archive/v2.26.2.tar.gz
+              tar xzf v2.26.2.tar.gz
+              cd git-2.26.2
+              make prefix=/usr/local/git install
+          fi
+          ln -s /usr/local/git/bin/git /usr/local/bin/git
+      - name: "Install curl"
+        shell: bash
+        run: "apt-get install -y curl"
+      - name: "checkout repo"
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      - name: "Fetch tags"
+        shell: bash
+        run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+      - name: "Fetch tag/branch history"
+        shell: bash
+        run: "git fetch --prune --unshallow"
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          toolchain: "stable"
+          override: true
+          components: "rustfmt"
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: "Cache cargo"
+        uses: actions/cache@v2.1.6
+        with:
+          path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-
-         key: "debian9.12-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
-    - name: "Install System Deps"
-      shell: bash
-      run: " env PATH=$PATH ./get-deps"
-    - name: "Check formatting"
-      shell: bash
-      run: "cargo fmt --all -- --check"
-    - name: "Build (Release mode)"
-      shell: bash
-      run: "cargo build --all --release"
-    - name: "Test (Release mode)"
-      shell: bash
-      run: "cargo test --all --release"
-    - name: "Package"
-      shell: bash
-      run: "bash ci/deploy.sh"
-    - name: "Move Package for artifact upload"
-      shell: bash
-      run: |
-            mkdir pkg_
-            mv *.deb *.xz pkg_
-            
-
-    - name: "Upload artifact"
-      uses: actions/upload-artifact@master
-      with:
-         name: "debian9.12"
-         path: "pkg_"
+          key: "debian9.12-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+      - name: "Install System Deps"
+        shell: bash
+        run: "env PATH=$PATH ./get-deps"
+      - name: "Check formatting"
+        shell: bash
+        run: "cargo fmt --all -- --check"
+      - name: "Build (Release mode)"
+        shell: bash
+        run: "cargo build --all --release"
+      - name: "Test (Release mode)"
+        shell: bash
+        run: "cargo test --all --release"
+      - name: "Package"
+        shell: bash
+        run: "bash ci/deploy.sh"
+      - name: "Move Package for artifact upload"
+        shell: bash
+        run: |
+          mkdir pkg_
+          mv *.deb *.xz pkg_
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@master
+        with:
+          name: "debian9.12"
+          path: "pkg_"
