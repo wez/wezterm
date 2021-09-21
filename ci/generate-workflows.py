@@ -47,15 +47,18 @@ class RunStep(Step):
 
 
 class ActionStep(Step):
-    def __init__(self, name, action, params=None, env=None):
+    def __init__(self, name, action, params=None, env=None, condition=None):
         self.name = name
         self.action = action
         self.params = params
         self.env = env
+        self.condition = condition
 
     def render(self, f, env):
         f.write(f"    - name: {yv(self.name)}\n")
         f.write(f"      uses: {self.action}\n")
+        if self.condition:
+            f.write(f"      if: {self.condition}\n")
         if self.params:
             f.write("      with:\n")
             for k, v in self.params.items():
@@ -372,6 +375,7 @@ cargo build --all --release""",
             ActionStep(
                 "Upload to Nightly Release",
                 action="wez/upload-release-assets@releases/v1",
+                condition="github.event.repository.fork == false",
                 params={
                     "files": ";".join(patterns),
                     "release-tag": "nightly",
@@ -392,6 +396,7 @@ cargo build --all --release""",
             ActionStep(
                 "Upload to Tagged Release",
                 action="softprops/action-gh-release@v1",
+                condition="github.event.repository.fork == false",
                 params={"files": "\n".join(patterns), "prerelease": True},
                 env={
                     "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",

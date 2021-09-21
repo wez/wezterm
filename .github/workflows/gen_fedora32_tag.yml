@@ -65,6 +65,7 @@ jobs:
       run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
     - name: "Upload to Tagged Release"
       uses: softprops/action-gh-release@v1
+      if: github.event.repository.fork == false
       with:
          files: "wezterm-*.rpm"
          prerelease: true

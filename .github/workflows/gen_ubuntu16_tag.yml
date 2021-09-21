@@ -68,6 +68,7 @@ jobs:
       run: "bash ci/appimage.sh"
     - name: "Upload to Tagged Release"
       uses: softprops/action-gh-release@v1
+      if: github.event.repository.fork == false
       with:
          files: |
             wezterm-*.deb
