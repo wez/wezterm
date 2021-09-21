@@ -57,6 +57,22 @@ If you're seeing multiple garbage characters in your terminal in place of
 what should be a single glyph then you most likely have a problem with your
 locale environment variables.
 
+### Pasting or entering unicode in zsh looks broken
+
+By default, zsh's line editor doesn't support combining character sequences.
+Make sure that you have LANG and local configured correctly as shown above,
+and then tell zsh to enable combining characters:
+
+```
+setopt COMBINING_CHARS
+```
+
+You'll want to put that into your zshrc so that it is always enabled.
+
+See [this stackexchange
+question](https://unix.stackexchange.com/questions/598440/zsh-indic-fonts-support-rendering-issue-which-is-working-fine-on-bash)
+for more information.
+
 ### Fonts and fallback
 
 If you have configured the use of a font that contains only latin characters
