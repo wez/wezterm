@@ -60,6 +60,12 @@ impl Font {
         }
     }
 
+    pub fn font_changed(&mut self) {
+        unsafe {
+            hb_ft_font_changed(self.font);
+        }
+    }
+
     pub fn set_load_flags(&mut self, load_flags: freetype::FT_Int32) {
         unsafe {
             hb_ft_font_set_load_flags(self.font, load_flags);
@@ -110,12 +116,14 @@ impl Buffer {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_direction(&mut self, direction: hb_direction_t) {
         unsafe {
             hb_buffer_set_direction(self.buf, direction);
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_script(&mut self, script: hb_script_t) {
         unsafe {
             hb_buffer_set_script(self.buf, script);
@@ -168,6 +176,37 @@ impl Buffer {
             let mut len: u32 = 0;
             let pos = hb_buffer_get_glyph_positions(self.buf, &mut len as *mut _);
             slice::from_raw_parts(pos, len as usize)
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn serialize(&self, font: Option<&Font>) -> String {
+        unsafe {
+            let len = hb_buffer_get_length(self.buf);
+            let mut text = vec![0u8; len as usize * 16];
+            let buf_len = text.len();
+            let mut text_len = 0;
+            hb_buffer_serialize(
+                self.buf,
+                0,
+                len,
+                text.as_mut_ptr() as *mut _,
+                buf_len as _,
+                &mut text_len,
+                match font {
+                    Some(f) => f.font,
+                    None => std::ptr::null_mut(),
+                },
+                harfbuzz::hb_buffer_serialize_format_t::HB_BUFFER_SERIALIZE_FORMAT_TEXT,
+                harfbuzz::hb_buffer_serialize_flags_t::HB_BUFFER_SERIALIZE_FLAG_DEFAULT,
+            );
+            String::from_utf8_lossy(&text[0..text_len as usize]).into()
+        }
+    }
+
+    pub fn guess_segment_properties(&mut self) {
+        unsafe {
+            hb_buffer_guess_segment_properties(self.buf);
         }
     }
 }

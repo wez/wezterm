@@ -13,22 +13,15 @@ use termwiz::cell::{unicode_column_width, Presentation};
 use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 
-#[derive(Clone)]
-struct Info<'a> {
+#[derive(Clone, Debug)]
+struct Info {
     cluster: usize,
     len: usize,
     codepoint: harfbuzz::hb_codepoint_t,
-    pos: &'a harfbuzz::hb_glyph_position_t,
-}
-
-impl<'a> std::fmt::Debug for Info<'a> {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        fmt.debug_struct("Info")
-            .field("cluster", &self.cluster)
-            .field("len", &self.len)
-            .field("codepoint", &self.codepoint)
-            .finish()
-    }
+    x_advance: harfbuzz::hb_position_t,
+    y_advance: harfbuzz::hb_position_t,
+    x_offset: harfbuzz::hb_position_t,
+    y_offset: harfbuzz::hb_position_t,
 }
 
 fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
@@ -42,10 +35,10 @@ fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
         font_idx,
         glyph_pos: info.codepoint,
         cluster: info.cluster as u32,
-        x_advance: PixelLength::new(f64::from(info.pos.x_advance) / 64.0),
-        y_advance: PixelLength::new(f64::from(info.pos.y_advance) / 64.0),
-        x_offset: PixelLength::new(f64::from(info.pos.x_offset) / 64.0),
-        y_offset: PixelLength::new(f64::from(info.pos.y_offset) / 64.0),
+        x_advance: PixelLength::new(f64::from(info.x_advance) / 64.0),
+        y_advance: PixelLength::new(f64::from(info.y_advance) / 64.0),
+        x_offset: PixelLength::new(f64::from(info.x_offset) / 64.0),
+        y_offset: PixelLength::new(f64::from(info.y_offset) / 64.0),
     }
 }
 
@@ -180,6 +173,7 @@ impl HarfbuzzShaper {
         buf.set_direction(harfbuzz::hb_direction_t::HB_DIRECTION_LTR);
         buf.set_language(self.lang);
         buf.add_str(s);
+        buf.guess_segment_properties();
         buf.set_cluster_level(
             harfbuzz::hb_buffer_cluster_level_t::HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES,
         );
@@ -201,9 +195,18 @@ impl HarfbuzzShaper {
                         }
                     }
                     let size = pair.face.set_font_size(font_size, dpi)?;
+                    // Tell harfbuzz to recompute important font metrics!
+                    pair.font.font_changed();
                     cell_width = size.width;
                     shaped_any = pair.shaped_any;
                     pair.font.shape(&mut buf, self.features.as_slice());
+                    /*
+                    log::info!(
+                        "shaped font_idx={} as: {}",
+                        font_idx,
+                        buf.serialize(Some(&pair.font))
+                    );
+                    */
                     break;
                 }
                 None => {
@@ -273,7 +276,10 @@ impl HarfbuzzShaper {
                 cluster: info.cluster as usize,
                 len: next_pos - info.cluster as usize,
                 codepoint: info.codepoint,
-                pos,
+                x_advance: pos.x_advance,
+                y_advance: pos.y_advance,
+                x_offset: pos.x_offset,
+                y_offset: pos.y_offset,
             };
 
             if let Some(ref mut cluster) = info_clusters.last_mut() {
@@ -350,12 +356,11 @@ impl HarfbuzzShaper {
 
             let mut next_idx = 0;
             for info in infos.iter() {
-                if info.pos.x_advance == 0 {
+                if info.x_advance == 0 {
                     continue;
                 }
 
-                let nom_width =
-                    ((f64::from(info.pos.x_advance) / 64.0) / cell_width).ceil() as usize;
+                let nom_width = ((f64::from(info.x_advance) / 64.0) / cell_width).ceil() as usize;
 
                 let len;
                 if nom_width == 0 || !substr.is_char_boundary(next_idx + nom_width) {
@@ -418,7 +423,7 @@ impl FontShaper for HarfbuzzShaper {
         no_glyphs: &mut Vec<char>,
         presentation: Option<Presentation>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
-        log::trace!("shape {} `{}`", text.len(), text);
+        log::trace!("shape byte_len={} `{}`", text.len(), text.escape_debug());
         let start = std::time::Instant::now();
         let result = self.do_shape(0, text, size, dpi, no_glyphs, presentation);
         metrics::histogram!("shape.harfbuzz", start.elapsed());
@@ -717,6 +722,108 @@ mod test {
                         y_advance: PixelLength::new(0.),
                         y_offset: PixelLength::new(0.),
                     },
+                ]
+            );
+        }
+
+        {
+            let mut no_glyphs = vec![];
+            let info = shaper.shape("x x", 10., 72, &mut no_glyphs, None).unwrap();
+            assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
+            assert_eq!(
+                info,
+                vec![
+                    GlyphInfo {
+                        cluster: 0,
+                        is_space: false,
+                        font_idx: 0,
+                        glyph_pos: 350,
+                        num_cells: 1,
+                        #[cfg(debug_assertions)]
+                        text: "x".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                    GlyphInfo {
+                        #[cfg(debug_assertions)]
+                        text: " ".into(),
+                        is_space: true,
+                        cluster: 1,
+                        num_cells: 1,
+                        font_idx: 0,
+                        glyph_pos: 686,
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                    GlyphInfo {
+                        cluster: 2,
+                        is_space: false,
+                        font_idx: 0,
+                        glyph_pos: 350,
+                        num_cells: 1,
+                        #[cfg(debug_assertions)]
+                        text: "x".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    }
+                ]
+            );
+        }
+
+        {
+            let mut no_glyphs = vec![];
+            let info = shaper
+                .shape("x\u{3000}x", 10., 72, &mut no_glyphs, None)
+                .unwrap();
+            assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
+            assert_eq!(
+                info,
+                vec![
+                    GlyphInfo {
+                        cluster: 0,
+                        is_space: false,
+                        font_idx: 0,
+                        glyph_pos: 350,
+                        num_cells: 1,
+                        #[cfg(debug_assertions)]
+                        text: "x".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                    GlyphInfo {
+                        #[cfg(debug_assertions)]
+                        text: "\u{3000}".into(),
+                        is_space: false,
+                        cluster: 1,
+                        num_cells: 2,
+                        font_idx: 0,
+                        glyph_pos: 686,
+                        x_advance: PixelLength::new(10.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    },
+                    GlyphInfo {
+                        cluster: 4,
+                        is_space: false,
+                        font_idx: 0,
+                        glyph_pos: 350,
+                        num_cells: 1,
+                        #[cfg(debug_assertions)]
+                        text: "x".into(),
+                        x_advance: PixelLength::new(6.),
+                        x_offset: PixelLength::new(0.),
+                        y_advance: PixelLength::new(0.),
+                        y_offset: PixelLength::new(0.),
+                    }
                 ]
             );
         }

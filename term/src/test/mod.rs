@@ -467,6 +467,21 @@ fn test_semantic() {
 }
 
 #[test]
+fn issue_1161() {
+    let mut term = TestTerm::new(1, 5, 0);
+    term.print("x\u{3000}x");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &[
+            // U+3000 is ideographic space, a double-width space
+            "x\u{3000}x ",
+        ],
+    );
+}
+
+#[test]
 fn basic_output() {
     let mut term = TestTerm::new(5, 10, 0);
 

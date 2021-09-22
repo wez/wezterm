@@ -858,6 +858,7 @@ pub enum AttributeChange {
 #[cfg(test)]
 mod test {
     use super::*;
+    use unicode_segmentation::UnicodeSegmentation;
 
     #[test]
     fn teeny_string() {
@@ -949,8 +950,20 @@ mod test {
     }
 
     #[test]
+    fn issue_1161() {
+        let x_ideographic_space_x = "x\u{3000}x";
+        assert_eq!(unicode_column_width(x_ideographic_space_x), 4);
+        assert_eq!(
+            x_ideographic_space_x.graphemes(true).collect::<Vec<_>>(),
+            vec!["x".to_string(), "\u{3000}".to_string(), "x".to_string()],
+        );
+
+        let c = Cell::new_grapheme("\u{3000}", CellAttributes::blank());
+        assert_eq!(c.width(), 2);
+    }
+
+    #[test]
     fn issue_997() {
-        use unicode_segmentation::UnicodeSegmentation;
         let victory_hand = "\u{270c}";
         let victory_hand_text_presentation = "\u{270c}\u{fe0e}";
 
