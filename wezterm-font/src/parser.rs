@@ -189,8 +189,17 @@ impl ParsedFont {
         };
         let assume_emoji_presentation = has_color;
 
+        let names = Names::from_ft_face(&face);
+        let italic = italic || {
+            // Objectively gross, but freetype's italic property isn't always
+            // set for italic fonts.
+            // fontconfig resorts to name matching, so we do too :-/
+            let lower = names.full_name.to_lowercase();
+            lower.contains("italic") || lower.contains("kursiv")
+        };
+
         Ok(Self {
-            names: Names::from_ft_face(&face),
+            names,
             weight,
             stretch,
             italic,
