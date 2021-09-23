@@ -512,11 +512,11 @@ impl Parser {
                     }
                 }
                 Err(err) => {
-                    // TODO: concat remained bytes
+                    // concat remained bytes after digested bytes
                     return Err(anyhow::anyhow!(format!(
                         "{}{}",
                         err,
-                        std::str::from_utf8(&bytes[i..]).unwrap()
+                        String::from_utf8_lossy(&bytes[i..])
                     )));
                 }
             }
