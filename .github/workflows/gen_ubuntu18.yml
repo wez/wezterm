@@ -72,11 +72,18 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
+    - name: "Source Tarball"
+      shell: bash
+      run: "bash ci/source-archive.sh"
+    - name: "Build AppImage"
+      shell: bash
+      run: "bash ci/appimage.sh"
     - name: "Move Package for artifact upload"
       shell: bash
       run: |
             mkdir pkg_
             mv *.deb *.xz pkg_
+            mv *.AppImage *.zsync pkg_
             
 
     - name: "Upload artifact"
