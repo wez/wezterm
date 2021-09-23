@@ -63,8 +63,7 @@ impl GuiFrontEnd {
                         pane_id: _,
                         alert: Alert::Bell,
                     } => {
-                        // persistent_toast_notification("Ding!", "This is the bell");
-                        log::info!("Ding! (this is the bell)");
+                        // Handled via TermWindowNotif; NOP it here.
                     }
                     MuxNotification::Alert {
                         pane_id: _,

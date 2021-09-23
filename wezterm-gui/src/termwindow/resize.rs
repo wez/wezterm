@@ -34,7 +34,7 @@ impl super::TermWindow {
         }
         self.window_state = window_state;
         self.scaling_changed(dimensions, self.fonts.get_font_scale(), window);
-        self.emit_window_event("window-resized");
+        self.emit_window_event("window-resized", None);
     }
 
     pub fn apply_scale_change(

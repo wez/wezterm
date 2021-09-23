@@ -191,7 +191,7 @@ enum EventState {
     InProgress,
     /// The event is running, and we have another one ready to
     /// run once it completes
-    InProgressWithQueued,
+    InProgressWithQueued(Option<PaneId>),
 }
 
 pub struct TermWindow {
@@ -654,7 +654,7 @@ impl TermWindow {
 
             myself.created(&window, Rc::clone(&gl))?;
             myself.subscribe_to_pane_updates();
-            myself.emit_window_event("window-config-reloaded");
+            myself.emit_window_event("window-config-reloaded", None);
             myself.emit_status_event();
         }
 
@@ -802,6 +802,13 @@ impl TermWindow {
                 } => {
                     self.mux_pane_output_event(pane_id);
                 }
+                MuxNotification::Alert {
+                    alert: Alert::Bell,
+                    pane_id,
+                } => {
+                    log::info!("Ding! (this is the bell) in pane {}", pane_id);
+                    self.emit_window_event("bell", Some(pane_id));
+                }
                 MuxNotification::PaneOutput(pane_id) => {
                     self.mux_pane_output_event(pane_id);
                 }
@@ -892,7 +899,7 @@ impl TermWindow {
         match n {
             MuxNotification::Alert {
                 pane_id,
-                alert: Alert::TitleMaybeChanged,
+                alert: Alert::TitleMaybeChanged | Alert::Bell,
             }
             | MuxNotification::PaneOutput(pane_id) => {
                 // Ideally we'd check to see if pane_id is part of this window,
@@ -956,14 +963,21 @@ impl TermWindow {
     }
 
     fn emit_status_event(&mut self) {
-        self.emit_window_event("update-right-status");
+        self.emit_window_event("update-right-status", None);
     }
 
-    fn schedule_window_event(&mut self, name: &str) {
+    fn schedule_window_event(&mut self, name: &str, pane_id: Option<PaneId>) {
         let window = GuiWin::new(self);
-        let pane = match self.get_active_pane_or_overlay() {
+        let pane = match pane_id {
+            Some(pane_id) => Mux::get().expect("on main thread").get_pane(pane_id),
+            None => None,
+        };
+        let pane = match pane {
             Some(pane) => pane,
-            None => return,
+            None => match self.get_active_pane_or_overlay() {
+                Some(pane) => pane,
+                None => return,
+            },
         };
         let pane = PaneObject::new(&pane);
         let name = name.to_string();
@@ -1012,9 +1026,10 @@ impl TermWindow {
                 EventState::InProgress => {
                     *state = EventState::None;
                 }
-                EventState::InProgressWithQueued => {
+                EventState::InProgressWithQueued(pane) => {
+                    let pane = *pane;
                     *state = EventState::InProgress;
-                    self.schedule_window_event(name);
+                    self.schedule_window_event(name, pane);
                 }
                 EventState::None => {}
             }
@@ -1023,7 +1038,7 @@ impl TermWindow {
         }
     }
 
-    fn emit_window_event(&mut self, name: &str) {
+    fn emit_window_event(&mut self, name: &str, pane_id: Option<PaneId>) {
         if self.get_active_pane_or_overlay().is_none() || self.window.is_none() {
             return;
         }
@@ -1036,18 +1051,28 @@ impl TermWindow {
             EventState::InProgress => {
                 // Flag that we want to run again when the currently
                 // executing event calls finish_window_event().
-                *state = EventState::InProgressWithQueued;
+                *state = EventState::InProgressWithQueued(pane_id);
                 return;
             }
-            EventState::InProgressWithQueued => {
+            EventState::InProgressWithQueued(other_pane) => {
                 // We've already got one copy executing and another
                 // pending dispatch, so don't queue another.
+                if pane_id != *other_pane {
+                    log::warn!(
+                        "Cannot queue {} event for pane {:?}, as \
+                         there is already an event queued for pane {:?} \
+                         in the same window",
+                        name,
+                        pane_id,
+                        other_pane
+                    );
+                }
                 return;
             }
             EventState::None => {
                 // Nothing pending, so schedule a call now
                 *state = EventState::InProgress;
-                self.schedule_window_event(name);
+                self.schedule_window_event(name, pane_id);
             }
         }
     }
@@ -1161,7 +1186,7 @@ impl TermWindow {
             window.invalidate();
         }
 
-        self.emit_window_event("window-config-reloaded");
+        self.emit_window_event("window-config-reloaded", None);
     }
 
     fn update_scrollbar(&mut self) {
@@ -1818,7 +1843,7 @@ impl TermWindow {
                 self.do_open_link_at_mouse_cursor(pane);
             }
             EmitEvent(name) => {
-                self.emit_window_event(name);
+                self.emit_window_event(name, None);
             }
             CompleteSelectionOrOpenLinkAtMouseCursor(dest) => {
                 let text = self.selection_text(pane);

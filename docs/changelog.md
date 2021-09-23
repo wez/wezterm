@@ -48,6 +48,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: Wayland: panic with most recent wlroots. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1144](https://github.com/wez/wezterm/issues/1144)
 * Fixed: incorrect spacing for IDEOGRAPHIC SPACE. [#1161](https://github.com/wez/wezterm/issues/1161)
 * Fixed: italic fonts weren't always recognized as being italic, resulting in italic variants being used instead of the non-italic variants in some cases! [#1162](https://github.com/wez/wezterm/issues/1162)
+* New: [bell](config/lua/window-events/bell.md) event allows you to trigger lua code when the bell is run. [#3](https://github.com/wez/wezterm/issues/3)
 
 ### 20210814-124438-54e29167
 
