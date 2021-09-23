@@ -8,7 +8,7 @@ range of Linux distributions.
 Download and make the file executable and you're ready to run!
 
 <a href="{{ ubuntu16_AppImage_stable }}" class="btn">AppImage</a>
-<a href="{{ ubuntu16_AppImage_nightly }}" class="btn">Nightly AppImage</a>
+<a href="{{ ubuntu18_AppImage_nightly }}" class="btn">Nightly AppImage</a>
 
 ```bash
 curl -LO {{ ubuntu16_AppImage_stable }}
@@ -42,7 +42,7 @@ you can try the AppImage download which should work on most Linux systems.
 
 |Distro      | Stable           | Nightly             |
 |------------|------------------|---------------------|
-|Ubuntu16    |[{{ ubuntu16_deb_stable_asset }}]({{ ubuntu16_deb_stable }}) |[{{ ubuntu16_deb_nightly_asset }}]({{ ubuntu16_deb_nightly }})|
+|Ubuntu16    |[{{ ubuntu16_deb_stable_asset }}]({{ ubuntu16_deb_stable }}) |Ubuntu16 LTS is End of Life|
 |Ubuntu18    |[{{ ubuntu18_deb_stable_asset }}]({{ ubuntu18_deb_stable }}) |[{{ ubuntu18_deb_nightly_asset }}]({{ ubuntu18_deb_nightly }})|
 |Ubuntu20    |[{{ ubuntu20_deb_stable_asset }}]({{ ubuntu20_deb_stable }})  |[{{ ubuntu20_deb_nightly_asset }}]({{ ubuntu20_deb_nightly }})|
 |Debian9     |[{{ debian9_deb_stable_asset }}]({{ debian9_deb_stable }}) |[{{ debian9_deb_nightly_asset }}]({{ debian9_deb_nightly }})|
