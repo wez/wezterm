@@ -84,8 +84,8 @@ impl Parser {
     }
 
     pub fn parse<F: FnMut(Action)>(&mut self, bytes: &[u8], mut callback: F) {
-        let tmux_state: bool = self.state.borrow().tmux_state.is_some();
-        if tmux_state {
+        let is_tmux_mode: bool = self.state.borrow().tmux_state.is_some();
+        if is_tmux_mode {
             if let Some(unparsed_str) = {
                 let parser_state = self.state.borrow();
                 let tmux_state = parser_state.tmux_state.as_ref().unwrap();

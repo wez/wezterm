@@ -5,7 +5,6 @@ use crate::tmux_commands::{ListAllPanes, TmuxCommand};
 use crate::window::WindowId;
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
-use flume;
 use portable_pty::{CommandBuilder, PtySize};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -40,6 +39,8 @@ pub(crate) struct TmuxRemotePane {
 
 pub(crate) type RefTmuxRemotePane = Arc<Mutex<TmuxRemotePane>>;
 
+/// As a remote TmuxTab, keeping the TmuxPanes ID
+/// within the remote tab.
 pub(crate) struct TmuxTab {
     pub tab_id: TabId, // local tab ID
     pub tmux_window_id: TmuxWindowId,
@@ -48,9 +49,8 @@ pub(crate) struct TmuxTab {
 
 pub(crate) type TmuxCmdQueue = VecDeque<Box<dyn TmuxCommand>>;
 pub(crate) struct TmuxDomainState {
-    pub pane_id: PaneId,
-    pub domain_id: DomainId,
-    // parser: RefCell<Parser>,
+    pub pane_id: PaneId,     // ID of the original pane
+    pub domain_id: DomainId, // ID of TmuxDomain
     state: RefCell<State>,
     pub cmd_queue: Arc<Mutex<TmuxCmdQueue>>,
     pub gui_window: RefCell<Option<MuxWindowBuilder>>,
@@ -124,10 +124,12 @@ impl TmuxDomainState {
         // send pending commands to tmux
         let cmd_queue = self.cmd_queue.as_ref().lock().unwrap();
         if *self.state.borrow() == State::Idle && !cmd_queue.is_empty() {
-            TmuxDomainState::kick_off(self.domain_id);
+            TmuxDomainState::schedule_send_next_command(self.domain_id);
         }
     }
 
+    /// send next command at the front of cmd_queue.
+    /// must be called inside main thread
     fn send_next_command(&self) {
         if *self.state.borrow() != State::Idle {
             return;
@@ -145,7 +147,8 @@ impl TmuxDomainState {
         }
     }
 
-    pub fn kick_off(domain_id: usize) {
+    /// schedule a `send_next_command` into main thread
+    pub fn schedule_send_next_command(domain_id: usize) {
         promise::spawn::spawn_into_main_thread(async move {
             let mux = Mux::get().expect("to be called on main thread");
             if let Some(domain) = mux.get_domain(domain_id) {
@@ -157,6 +160,7 @@ impl TmuxDomainState {
         .detach();
     }
 
+    /// create a standalone window for tmux tabs
     pub fn create_gui_window(&self) {
         if self.gui_window.borrow().is_none() {
             let mux = Mux::get().expect("should be call at main thread");
