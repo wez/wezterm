@@ -43,7 +43,7 @@ impl Write for TmuxPty {
             let pane_lock = self.master_pane.lock().unwrap();
             pane_lock.pane_id
         };
-        log::info!("pane:{}, content:{:?}", &pane_id, buf);
+        log::trace!("pane:{}, content:{:?}", &pane_id, buf);
         let mut cmd_queue = self.cmd_queue.lock().unwrap();
         cmd_queue.push_back(Box::new(SendKeys {
             pane: pane_id,
