@@ -2,7 +2,6 @@ use crate::{
     tmux::{RefTmuxRemotePane, TmuxCmdQueue, TmuxDomainState},
     tmux_commands::SendKeys,
 };
-use flume;
 use portable_pty::{Child, ExitStatus, MasterPty};
 use std::{
     io::{Read, Write},
@@ -26,13 +25,15 @@ impl Read for TmuxReader {
     }
 }
 
-// A local tmux pane(tab) based on a tmux pty
+/// A local tmux pane(tab) based on a tmux pty
 #[derive(Debug, Clone)]
 pub(crate) struct TmuxPty {
     pub domain_id: usize,
     pub master_pane: RefTmuxRemotePane,
     pub rx: flume::Receiver<String>,
     pub cmd_queue: Arc<Mutex<TmuxCmdQueue>>,
+
+    /// would be released by TmuxDomain when detatched
     pub active_lock: Arc<(Mutex<bool>, Condvar)>,
 }
 
@@ -48,7 +49,7 @@ impl Write for TmuxPty {
             pane: pane_id,
             keys: buf.to_vec(),
         }));
-        TmuxDomainState::kick_off(self.domain_id);
+        TmuxDomainState::schedule_send_next_command(self.domain_id);
         Ok(0)
     }
 

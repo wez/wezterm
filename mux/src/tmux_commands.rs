@@ -35,6 +35,7 @@ pub(crate) struct PaneItem {
 }
 
 impl TmuxDomainState {
+    /// check if a PaneItem received from ListAllPanes has been attached
     fn check_pane_attached(&self, target: &PaneItem) -> bool {
         let pane_list = self.gui_tabs.borrow();
         let local_tab = match pane_list
@@ -56,6 +57,8 @@ impl TmuxDomainState {
         }
     }
 
+    /// after we create a tab for a remote pane, save its ID into the
+    /// TmuxPane-TmuxPane tree, so we can ref it later.
     fn add_attached_pane(&self, target: &PaneItem, tab_id: &TabId) -> anyhow::Result<()> {
         let mut pane_list = self.gui_tabs.borrow_mut();
         let local_tab = match pane_list
@@ -295,7 +298,6 @@ impl TmuxCommand for SendKeys {
             write!(&mut s, "0x{:X} ", byte).expect("unable to write key");
         }
         format!("send-keys -t {} {}\r", self.pane, s)
-        // FIXME: disable ESC k sequence
     }
 
     fn process_result(&self, _domain_id: DomainId, _result: &Guarded) -> anyhow::Result<()> {
