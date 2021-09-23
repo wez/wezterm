@@ -9,3 +9,6 @@ pub use config::*;
 pub use host::*;
 pub use pty::*;
 pub use session::*;
+
+// NOTE: Re-exported as is exposed in a public API of this crate
+pub use filedescriptor::FileDescriptor;
