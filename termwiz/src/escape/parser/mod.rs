@@ -9,7 +9,7 @@ use num_traits::FromPrimitive;
 use regex::bytes::Regex;
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Ref, RefCell};
-use tmux_cc;
+use tmux_cc::Event;
 use vtparse::{CsiParam, VTActor, VTParser};
 
 struct SixelBuilder {
@@ -83,32 +83,35 @@ impl Parser {
         }
     }
 
+    /// advance with tmux parser, bypass VTParse
+    fn advance_tmux_bytes(&mut self, bytes: &[u8]) -> anyhow::Result<Vec<Event>> {
+        let parser_state = self.state.borrow();
+        let tmux_state = parser_state.tmux_state.as_ref().unwrap();
+        let mut tmux_parser = tmux_state.borrow_mut();
+        return tmux_parser.advance_bytes(bytes);
+    }
+
     pub fn parse<F: FnMut(Action)>(&mut self, bytes: &[u8], mut callback: F) {
         let is_tmux_mode: bool = self.state.borrow().tmux_state.is_some();
         if is_tmux_mode {
-            if let Some(unparsed_str) = {
-                let parser_state = self.state.borrow();
-                let tmux_state = parser_state.tmux_state.as_ref().unwrap();
-                let mut tmux_parser = tmux_state.borrow_mut();
-                // TODO: wrap events into some Result to capture bytes cannot be parsed
-                match tmux_parser.advance_bytes(bytes) {
-                    Ok(tmux_events) => {
-                        callback(Action::DeviceControl(DeviceControlMode::TmuxEvents(
-                            Box::new(tmux_events),
-                        )));
-                        None
-                    }
-                    Err(err_buf) => Some(err_buf.to_string().to_owned()),
+            match self.advance_tmux_bytes(bytes) {
+                Ok(tmux_events) => {
+                    callback(Action::DeviceControl(DeviceControlMode::TmuxEvents(
+                        Box::new(tmux_events),
+                    )));
                 }
-            } {
-                let mut parser_state = self.state.borrow_mut();
-                parser_state.tmux_state = None;
-                let mut perform = Performer {
-                    callback: &mut callback,
-                    state: &mut parser_state,
-                };
-                self.state_machine
-                    .parse(unparsed_str.as_bytes(), &mut perform);
+                Err(err_buf) => {
+                    // capture bytes cannot be parsed
+                    let unparsed_str = err_buf.to_string().to_owned();
+                    let mut parser_state = self.state.borrow_mut();
+                    parser_state.tmux_state = None;
+                    let mut perform = Performer {
+                        callback: &mut callback,
+                        state: &mut parser_state,
+                    };
+                    self.state_machine
+                        .parse(unparsed_str.as_bytes(), &mut perform);
+                }
             }
         } else {
             let mut perform = Performer {

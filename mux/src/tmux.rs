@@ -137,7 +137,7 @@ impl TmuxDomainState {
         let cmd_queue = self.cmd_queue.as_ref().lock().unwrap();
         if let Some(first) = cmd_queue.front() {
             let cmd = first.get_command();
-            log::error!("sending cmd {:?}", cmd);
+            log::info!("sending cmd {:?}", cmd);
             let mux = Mux::get().expect("to be called on main thread");
             if let Some(pane) = mux.get_pane(self.pane_id) {
                 let mut writer = pane.writer();
