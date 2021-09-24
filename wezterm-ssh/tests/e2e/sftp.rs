@@ -45,6 +45,7 @@ async fn should_support_listing_directory_contents(#[future] session: Session) {
     link_file.symlink_to_file(file1.path()).unwrap();
 
     let mut contents = session
+        .sftp()
         .readdir(temp.path().to_path_buf())
         .await
         .expect("Failed to read directory")
