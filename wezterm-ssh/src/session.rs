@@ -78,6 +78,7 @@ pub(crate) enum SessionRequest {
     WriteFile(WriteFile),
     ReadFile(ReadFile),
     CloseFile(CloseFile),
+    FlushFile(FlushFile),
 }
 
 #[derive(Debug)]
@@ -142,11 +143,18 @@ pub(crate) struct WriteFile {
 #[derive(Debug)]
 pub(crate) struct ReadFile {
     pub file_id: FileId,
+    pub max_bytes: usize,
     pub reply: Sender<Vec<u8>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct CloseFile {
+    pub file_id: FileId,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct FlushFile {
     pub file_id: FileId,
     pub reply: Sender<()>,
 }
@@ -582,9 +590,15 @@ impl SessionInner {
                         }
                         Ok(true)
                     }
-                    SessionRequest::CloseFile(close) => {
-                        if let Err(err) = self.close_file(&sess, &close) {
-                            log::error!("{:?} -> error: {:#}", close, err);
+                    SessionRequest::CloseFile(close_file) => {
+                        if let Err(err) = self.close_file(&sess, &close_file) {
+                            log::error!("{:?} -> error: {:#}", close_file, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::FlushFile(flush_file) => {
+                        if let Err(err) = self.flush_file(&sess, &flush_file) {
+                            log::error!("{:?} -> error: {:#}", flush_file, err);
                         }
                         Ok(true)
                     }
@@ -821,11 +835,15 @@ impl SessionInner {
 
     /// Reads from a loaded file.
     fn read_file(&mut self, _sess: &ssh2::Session, read_file: &ReadFile) -> anyhow::Result<()> {
-        let ReadFile { file_id, reply } = read_file;
+        let ReadFile {
+            file_id,
+            max_bytes,
+            reply,
+        } = read_file;
 
         if let Some(file) = self.files.get_mut(file_id) {
             // TODO: Move this somewhere to avoid re-allocating buffer
-            let mut buf = vec![0u8; 8192];
+            let mut buf = vec![0u8; *max_bytes];
             let n = file.read(&mut buf)?;
             buf.truncate(n);
             reply.try_send(buf)?;
@@ -840,6 +858,16 @@ impl SessionInner {
     fn close_file(&mut self, _sess: &ssh2::Session, close_file: &CloseFile) -> anyhow::Result<()> {
         self.files.remove(&close_file.file_id);
         close_file.reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Flushes a file.
+    fn flush_file(&mut self, _sess: &ssh2::Session, flush_file: &FlushFile) -> anyhow::Result<()> {
+        if let Some(file) = self.files.get_mut(&flush_file.file_id) {
+            file.flush()?;
+        }
+        flush_file.reply.try_send(())?;
 
         Ok(())
     }
@@ -1292,9 +1320,84 @@ pub struct File {
     tx: Option<SessionSender>,
 }
 
+impl smol::io::AsyncRead for File {
+    fn poll_read(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut [u8],
+    ) -> std::task::Poll<std::io::Result<usize>> {
+        use smol::future::FutureExt;
+        async fn read(
+            mut _self: std::pin::Pin<&mut File>,
+            buf: &mut [u8],
+        ) -> std::io::Result<usize> {
+            let data = _self
+                .read(buf.len())
+                .await
+                .map_err(|x| std::io::Error::new(std::io::ErrorKind::Other, x))?;
+            let n = data.len();
+
+            buf.copy_from_slice(&data[..n]);
+
+            Ok(n)
+        }
+
+        Box::pin(read(self, buf)).poll(cx)
+    }
+}
+
+impl smol::io::AsyncWrite for File {
+    fn poll_write(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &[u8],
+    ) -> std::task::Poll<std::io::Result<usize>> {
+        use smol::future::FutureExt;
+        async fn write(mut _self: std::pin::Pin<&mut File>, buf: &[u8]) -> std::io::Result<usize> {
+            _self
+                .write(buf.to_vec())
+                .await
+                .map(|_| buf.len())
+                .map_err(|x| std::io::Error::new(std::io::ErrorKind::Other, x))
+        }
+
+        Box::pin(write(self, buf)).poll(cx)
+    }
+
+    fn poll_flush(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        use smol::future::FutureExt;
+        async fn flush(mut _self: std::pin::Pin<&mut File>) -> std::io::Result<()> {
+            _self
+                .flush()
+                .await
+                .map_err(|x| std::io::Error::new(std::io::ErrorKind::Other, x))
+        }
+
+        Box::pin(flush(self)).poll(cx)
+    }
+
+    fn poll_close(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        use smol::future::FutureExt;
+        async fn close(mut _self: std::pin::Pin<&mut File>) -> std::io::Result<()> {
+            _self
+                .close()
+                .await
+                .map_err(|x| std::io::Error::new(std::io::ErrorKind::Other, x))
+        }
+
+        Box::pin(close(self)).poll(cx)
+    }
+}
+
 impl File {
     /// Writes some bytes to the file.
-    pub async fn write(&mut self, data: Vec<u8>) -> anyhow::Result<()> {
+    async fn write(&mut self, data: Vec<u8>) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
@@ -1313,12 +1416,28 @@ impl File {
     ///
     /// If the vector is empty, this indicates that there are no more bytes
     /// to read at the moment.
-    pub async fn read(&mut self) -> anyhow::Result<Vec<u8>> {
+    async fn read(&mut self, max_bytes: usize) -> anyhow::Result<Vec<u8>> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
             .unwrap()
             .send(SessionRequest::ReadFile(ReadFile {
+                file_id: self.file_id,
+                max_bytes,
+                reply,
+            }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Flushes the remote file
+    async fn flush(&mut self) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .as_ref()
+            .unwrap()
+            .send(SessionRequest::FlushFile(FlushFile {
                 file_id: self.file_id,
                 reply,
             }))
@@ -1328,7 +1447,7 @@ impl File {
     }
 
     /// Closes the handle to the remote file
-    pub async fn close(self) -> anyhow::Result<()> {
+    async fn close(&mut self) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
