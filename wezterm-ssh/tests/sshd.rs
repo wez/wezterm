@@ -368,8 +368,8 @@ impl Sshd {
             .arg(log_path.as_ref())
             .spawn()?;
 
-        // Pause for couple of seconds to make sure that the server didn't die due to an error
-        thread::sleep(Duration::from_secs(2));
+        // Pause to make sure that the server didn't die due to an error
+        thread::sleep(Duration::from_millis(100));
 
         if let Some(exit_status) = child.try_wait()? {
             let output = child.wait_with_output()?;
@@ -391,6 +391,9 @@ impl Drop for Sshd {
     /// Kills server upon drop
     fn drop(&mut self) {
         let _ = self.child.kill();
+
+        // NOTE: Should wait to ensure that the process does not become a zombie
+        let _ = self.child.wait();
     }
 }
 
