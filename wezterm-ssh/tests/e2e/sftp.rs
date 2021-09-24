@@ -47,7 +47,7 @@ async fn readdir_should_return_list_of_directories_files_and_symlinks(#[future] 
 
     let mut contents = session
         .sftp()
-        .readdir(temp.path().to_path_buf())
+        .readdir(temp.path())
         .await
         .expect("Failed to read directory")
         .into_iter()
@@ -77,7 +77,7 @@ async fn mkdir_should_create_a_directory_on_the_remote_filesystem(#[future] sess
 
     session
         .sftp()
-        .mkdir(temp.child("dir").path().to_path_buf(), 0o644)
+        .mkdir(temp.child("dir").path(), 0o644)
         .await
         .expect("Failed to create directory");
 
@@ -95,11 +95,12 @@ async fn mkdir_should_return_error_if_unable_to_create_directory(#[future] sessi
     // Attempt to create a nested directory structure, which is not supported
     let result = session
         .sftp()
-        .mkdir(temp.child("dir").child("dir").path().to_path_buf(), 0o644)
+        .mkdir(temp.child("dir").child("dir").path(), 0o644)
         .await;
     assert!(
         result.is_err(),
-        "Unexpectedly succeeded in creating directory"
+        "Unexpectedly succeeded in creating directory: {:?}",
+        result
     );
 
     // Verify the path is not a directory
@@ -121,7 +122,7 @@ async fn rmdir_should_remove_a_remote_directory(#[future] session: Session) {
     dir.create_dir_all().unwrap();
     session
         .sftp()
-        .rmdir(dir.path().to_path_buf())
+        .rmdir(dir.path())
         .await
         .expect("Failed to remove directory");
 
@@ -137,13 +138,11 @@ async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] se
     let temp = TempDir::new().unwrap();
 
     // Attempt to remove a missing path
-    let result = session
-        .sftp()
-        .rmdir(temp.child("missing-dir").path().to_path_buf())
-        .await;
+    let result = session.sftp().rmdir(temp.child("missing-dir").path()).await;
     assert!(
         result.is_err(),
-        "Unexpectedly succeeded in removing missing directory"
+        "Unexpectedly succeeded in removing missing directory: {:?}",
+        result
     );
 
     // Attempt to remove a non-empty directory
@@ -151,10 +150,11 @@ async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] se
     dir.create_dir_all().unwrap();
     dir.child("file").touch().unwrap();
 
-    let result = session.sftp().rmdir(dir.path().to_path_buf()).await;
+    let result = session.sftp().rmdir(dir.path()).await;
     assert!(
         result.is_err(),
-        "Unexpectedly succeeded in removing non-empty directory"
+        "Unexpectedly succeeded in removing non-empty directory: {:?}",
+        result
     );
 
     // Verify the non-empty directory still exists
@@ -163,8 +163,12 @@ async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] se
     // Attempt to remove a file (not a directory)
     let file = temp.child("file");
     file.touch().unwrap();
-    let result = session.sftp().rmdir(file.path().to_path_buf()).await;
-    assert!(result.is_err(), "Unexpectedly succeeded in removing file");
+    let result = session.sftp().rmdir(file.path()).await;
+    assert!(
+        result.is_err(),
+        "Unexpectedly succeeded in removing file: {:?}",
+        result
+    );
 
     // Verify the file still exists
     file.assert(predicate::path::is_file());
@@ -181,7 +185,7 @@ async fn stat_should_return_metadata_about_a_file(#[future] session: Session) {
 
     let stat = session
         .sftp()
-        .stat(file.path().to_path_buf())
+        .stat(file.path())
         .await
         .expect("Failed to stat file");
 
@@ -200,7 +204,7 @@ async fn stat_should_return_metadata_about_a_directory(#[future] session: Sessio
 
     let stat = session
         .sftp()
-        .stat(dir.path().to_path_buf())
+        .stat(dir.path())
         .await
         .expect("Failed to stat dir");
 
@@ -224,7 +228,7 @@ async fn stat_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
 
     let stat = session
         .sftp()
-        .stat(link.path().to_path_buf())
+        .stat(link.path())
         .await
         .expect("Failed to stat symlink");
 
@@ -250,7 +254,7 @@ async fn stat_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
 
     let stat = session
         .sftp()
-        .stat(link.path().to_path_buf())
+        .stat(link.path())
         .await
         .expect("Failed to stat symlink");
 
@@ -267,11 +271,8 @@ async fn stat_should_fail_if_path_missing(#[future] session: Session) {
 
     let temp = TempDir::new().unwrap();
 
-    let result = session
-        .sftp()
-        .stat(temp.child("missing").path().to_path_buf())
-        .await;
-    assert!(result.is_err(), "Stat unexpectedly succeeded");
+    let result = session.sftp().stat(temp.child("missing").path()).await;
+    assert!(result.is_err(), "Stat unexpectedly succeeded: {:?}", result);
 }
 
 #[rstest]
@@ -285,7 +286,7 @@ async fn lstat_should_return_metadata_about_a_file(#[future] session: Session) {
 
     let lstat = session
         .sftp()
-        .lstat(file.path().to_path_buf())
+        .lstat(file.path())
         .await
         .expect("Failed to lstat file");
 
@@ -304,7 +305,7 @@ async fn lstat_should_return_metadata_about_a_directory(#[future] session: Sessi
 
     let lstat = session
         .sftp()
-        .lstat(dir.path().to_path_buf())
+        .lstat(dir.path())
         .await
         .expect("Failed to lstat dir");
 
@@ -326,7 +327,7 @@ async fn lstat_should_return_metadata_about_symlink_pointing_to_a_file(#[future]
 
     let lstat = session
         .sftp()
-        .lstat(link.path().to_path_buf())
+        .lstat(link.path())
         .await
         .expect("Failed to lstat symlink");
 
@@ -355,7 +356,7 @@ async fn lstat_should_return_metadata_about_symlink_pointing_to_a_directory(
 
     let lstat = session
         .sftp()
-        .lstat(link.path().to_path_buf())
+        .lstat(link.path())
         .await
         .expect("Failed to lstat symlink");
 
@@ -375,9 +376,344 @@ async fn lstat_should_fail_if_path_missing(#[future] session: Session) {
 
     let temp = TempDir::new().unwrap();
 
+    let result = session.sftp().lstat(temp.child("missing").path()).await;
+    assert!(
+        result.is_err(),
+        "lstat unexpectedly succeeded: {:?}",
+        result
+    );
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn symlink_should_create_symlink_pointing_to_file(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.child("file");
+    file.touch().unwrap();
+
+    let link = temp.child("link");
+
+    session
+        .sftp()
+        .symlink(file.path(), link.path())
+        .await
+        .expect("Failed to create symlink");
+
+    link.assert(predicate::path::is_symlink());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn symlink_should_create_symlink_pointing_to_directory(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+
+    let link = temp.child("link");
+
+    session
+        .sftp()
+        .symlink(dir.path(), link.path())
+        .await
+        .expect("Failed to create symlink");
+
+    link.assert(predicate::path::is_symlink());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn symlink_should_fail_if_path_missing(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.child("file");
+
+    let link = temp.child("link");
+
+    let result = session.sftp().symlink(file.path(), link.path()).await;
+    assert!(
+        result.is_err(),
+        "Unexpectedly created symlink for missing path: {:?}",
+        result
+    );
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn readlink_should_return_the_target_of_the_symlink(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    // Test a symlink to a directory
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+    let link = temp.child("link");
+    link.symlink_to_dir(dir.path()).unwrap();
+
+    let path = session
+        .sftp()
+        .readlink(link.path())
+        .await
+        .expect("Failed to read symlink");
+    assert_eq!(path, dir.path());
+
+    // Test a symlink to a file
+    let file = temp.child("file");
+    file.touch().unwrap();
+    let link = temp.child("link2");
+    link.symlink_to_file(file.path()).unwrap();
+
+    let path = session
+        .sftp()
+        .readlink(link.path())
+        .await
+        .expect("Failed to read symlink");
+    assert_eq!(path, file.path());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn readlink_should_fail_if_path_is_not_a_symlink(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    // Test missing path
+    let result = session.sftp().readlink(temp.child("missing").path()).await;
+    assert!(
+        result.is_err(),
+        "Unexpectedly read link for missing path: {:?}",
+        result
+    );
+
+    // Test a directory
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+    let result = session.sftp().readlink(dir.path()).await;
+    assert!(
+        result.is_err(),
+        "Unexpectedly read link for directory: {:?}",
+        result
+    );
+
+    // Test a file
+    let file = temp.child("file");
+    file.touch().unwrap();
+    let result = session.sftp().readlink(file.path()).await;
+    assert!(
+        result.is_err(),
+        "Unexpectedly read link for file: {:?}",
+        result
+    );
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn realpath_should_resolve_absolute_path_for_relative_path(#[future] session: Session) {
+    let session: Session = session.await;
+
+    // Create a relative component within a directory so we can guarantee what the path will be
+    let temp = TempDir::new().unwrap();
+    let file = temp.child("world");
+    file.touch().unwrap();
+
+    let rel = temp.child(".").child("hello").child("..").child("world");
+
+    let path = session
+        .sftp()
+        .realpath(rel.path())
+        .await
+        .expect("Failed to get real path");
+    assert_eq!(path, file.path());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn realpath_should_fail_if_path_missing(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let missing = temp.child("missing");
+
+    let result = session.sftp().realpath(missing.path()).await;
+    assert!(
+        result.is_err(),
+        "Realpath unexpectedly succeeded with missing path: {:?}",
+        result
+    );
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn rename_should_support_singular_file(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.child("file");
+    file.write_str("some text").unwrap();
+
+    let dst = temp.child("dst");
+
+    session
+        .sftp()
+        .rename(file.path(), dst.path(), None)
+        .await
+        .expect("Failed to rename file");
+
+    // Verify that file was moved to destination
+    file.assert(predicate::path::missing());
+    dst.assert("some text");
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn rename_should_support_dirtectory(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+    let dir_file = dir.child("file");
+    dir_file.write_str("some text").unwrap();
+    let dir_dir = dir.child("dir");
+    dir_dir.create_dir_all().unwrap();
+
+    let dst = temp.child("dst");
+
+    session
+        .sftp()
+        .rename(dir.path(), dst.path(), None)
+        .await
+        .expect("Failed to rename directory");
+
+    // Verify that directory was moved to destination
+    dir.assert(predicate::path::missing());
+    dir_file.assert(predicate::path::missing());
+    dir_dir.assert(predicate::path::missing());
+
+    dst.assert(predicate::path::is_dir());
+    dst.child("file").assert("some text");
+    dst.child("dir").assert(predicate::path::is_dir());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn rename_should_fail_if_source_path_missing(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let missing = temp.child("missing");
+    let dst = temp.child("dst");
+
     let result = session
         .sftp()
-        .lstat(temp.child("missing").path().to_path_buf())
+        .rename(missing.path(), dst.path(), None)
         .await;
-    assert!(result.is_err(), "lstat unexpectedly succeeded");
+    assert!(
+        result.is_err(),
+        "Rename unexpectedly succeeded with missing path: {:?}",
+        result
+    );
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn unlink_should_remove_file(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.child("file");
+    file.touch().unwrap();
+
+    session
+        .sftp()
+        .unlink(file.path())
+        .await
+        .expect("Failed to unlink file");
+
+    file.assert(predicate::path::missing());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn unlink_should_remove_symlink_to_file(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.child("file");
+    file.touch().unwrap();
+    let link = temp.child("link");
+    link.symlink_to_file(file.path()).unwrap();
+
+    session
+        .sftp()
+        .unlink(link.path())
+        .await
+        .expect("Failed to unlink symlink");
+
+    // Verify link removed but file still exists
+    link.assert(predicate::path::missing());
+    file.assert(predicate::path::is_file());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn unlink_should_remove_symlink_to_directory(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+    let link = temp.child("link");
+    link.symlink_to_dir(dir.path()).unwrap();
+
+    session
+        .sftp()
+        .unlink(link.path())
+        .await
+        .expect("Failed to unlink symlink");
+
+    // Verify link removed but directory still exists
+    link.assert(predicate::path::missing());
+    dir.assert(predicate::path::is_dir());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn unlink_should_fail_if_path_to_directory(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+
+    let result = session.sftp().unlink(dir.path()).await;
+    assert!(
+        result.is_err(),
+        "Unexpectedly unlinked directory: {:?}",
+        result
+    );
+
+    // Verify directory still here
+    dir.assert(predicate::path::is_dir());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn unlink_should_fail_if_path_missing(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let result = session.sftp().unlink(temp.child("missing").path()).await;
+    assert!(
+        result.is_err(),
+        "Unexpectedly unlinked missing path: {:?}",
+        result
+    );
 }
