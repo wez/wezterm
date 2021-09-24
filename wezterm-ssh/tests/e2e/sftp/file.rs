@@ -16,7 +16,7 @@ async fn should_support_async_reading(#[future] session: Session) {
 
     let mut remote_file = session
         .sftp()
-        .open(file.path().to_path_buf())
+        .open(file.path())
         .await
         .expect("Failed to open remote file");
 
@@ -41,7 +41,7 @@ async fn should_support_async_writing(#[future] session: Session) {
 
     let mut remote_file = session
         .sftp()
-        .create(file.path().to_path_buf())
+        .create(file.path())
         .await
         .expect("Failed to open remote file");
 

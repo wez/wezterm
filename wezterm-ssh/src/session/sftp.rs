@@ -19,7 +19,7 @@ impl Sftp {
     /// See [`Sftp::open_mode`] for more information.
     pub async fn open_mode(
         &self,
-        filename: PathBuf,
+        filename: impl Into<PathBuf>,
         flags: OpenFlags,
         mode: i32,
         open_type: OpenType,
@@ -27,7 +27,7 @@ impl Sftp {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::OpenMode(OpenMode {
-                filename,
+                filename: filename.into(),
                 flags,
                 mode,
                 open_type,
@@ -42,11 +42,11 @@ impl Sftp {
     /// Helper to open a file in the `Read` mode.
     ///
     /// See [`Sftp::open`] for more information.
-    pub async fn open(&self, filename: PathBuf) -> anyhow::Result<File> {
+    pub async fn open(&self, filename: impl Into<PathBuf>) -> anyhow::Result<File> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Open(Open {
-                filename,
+                filename: filename.into(),
                 reply,
             })))
             .await?;
@@ -58,11 +58,11 @@ impl Sftp {
     /// Helper to create a file in write-only mode with truncation.
     ///
     /// See [`Sftp::create`] for more information.
-    pub async fn create(&self, filename: PathBuf) -> anyhow::Result<File> {
+    pub async fn create(&self, filename: impl Into<PathBuf>) -> anyhow::Result<File> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Create(Create {
-                filename,
+                filename: filename.into(),
                 reply,
             })))
             .await?;
@@ -74,11 +74,11 @@ impl Sftp {
     /// Helper to open a directory for reading its contents.
     ///
     /// See [`Sftp::opendir`] for more information.
-    pub async fn opendir(&self, filename: PathBuf) -> anyhow::Result<File> {
+    pub async fn opendir(&self, filename: impl Into<PathBuf>) -> anyhow::Result<File> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Opendir(Opendir {
-                filename,
+                filename: filename.into(),
                 reply,
             })))
             .await?;
@@ -90,11 +90,14 @@ impl Sftp {
     /// Convenience function to read the files in a directory.
     ///
     /// See [`Sftp::readdir`] for more information.
-    pub async fn readdir(&self, filename: PathBuf) -> anyhow::Result<Vec<(PathBuf, FileStat)>> {
+    pub async fn readdir(
+        &self,
+        filename: impl Into<PathBuf>,
+    ) -> anyhow::Result<Vec<(PathBuf, FileStat)>> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Readdir(Readdir {
-                filename,
+                filename: filename.into(),
                 reply,
             })))
             .await?;
@@ -105,11 +108,11 @@ impl Sftp {
     /// Create a directory on the remote filesystem.
     ///
     /// See [`Sftp::rmdir`] for more information.
-    pub async fn mkdir(&self, filename: PathBuf, mode: i32) -> anyhow::Result<()> {
+    pub async fn mkdir(&self, filename: impl Into<PathBuf>, mode: i32) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Mkdir(Mkdir {
-                filename,
+                filename: filename.into(),
                 mode,
                 reply,
             })))
@@ -121,11 +124,11 @@ impl Sftp {
     /// Remove a directory from the remote filesystem.
     ///
     /// See [`Sftp::rmdir`] for more information.
-    pub async fn rmdir(&self, filename: PathBuf) -> anyhow::Result<()> {
+    pub async fn rmdir(&self, filename: impl Into<PathBuf>) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Rmdir(Rmdir {
-                filename,
+                filename: filename.into(),
                 reply,
             })))
             .await?;
@@ -136,11 +139,11 @@ impl Sftp {
     /// Get the metadata for a file, performed by stat(2).
     ///
     /// See [`Sftp::stat`] for more information.
-    pub async fn stat(&self, filename: PathBuf) -> anyhow::Result<FileStat> {
+    pub async fn stat(&self, filename: impl Into<PathBuf>) -> anyhow::Result<FileStat> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Stat(Stat {
-                filename,
+                filename: filename.into(),
                 reply,
             })))
             .await?;
@@ -151,11 +154,11 @@ impl Sftp {
     /// Get the metadata for a file, performed by lstat(2).
     ///
     /// See [`Sftp::lstat`] for more information.
-    pub async fn lstat(&self, filename: PathBuf) -> anyhow::Result<FileStat> {
+    pub async fn lstat(&self, filename: impl Into<PathBuf>) -> anyhow::Result<FileStat> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Lstat(Lstat {
-                filename,
+                filename: filename.into(),
                 reply,
             })))
             .await?;
@@ -166,11 +169,15 @@ impl Sftp {
     /// Set the metadata for a file.
     ///
     /// See [`Sftp::setstat`] for more information.
-    pub async fn setstat(&self, filename: PathBuf, stat: FileStat) -> anyhow::Result<()> {
+    pub async fn setstat(
+        &self,
+        filename: impl Into<PathBuf>,
+        stat: FileStat,
+    ) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Setstat(Setstat {
-                filename,
+                filename: filename.into(),
                 stat,
                 reply,
             })))
@@ -182,12 +189,16 @@ impl Sftp {
     /// Create symlink at `target` pointing at `path`.
     ///
     /// See [`Sftp::symlink`] for more information.
-    pub async fn symlink(&self, path: PathBuf, target: PathBuf) -> anyhow::Result<()> {
+    pub async fn symlink(
+        &self,
+        path: impl Into<PathBuf>,
+        target: impl Into<PathBuf>,
+    ) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Symlink(Symlink {
-                path,
-                target,
+                path: path.into(),
+                target: target.into(),
                 reply,
             })))
             .await?;
@@ -198,11 +209,11 @@ impl Sftp {
     /// Read a symlink at `path`.
     ///
     /// See [`Sftp::readlink`] for more information.
-    pub async fn readlink(&self, path: PathBuf) -> anyhow::Result<PathBuf> {
+    pub async fn readlink(&self, path: impl Into<PathBuf>) -> anyhow::Result<PathBuf> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Readlink(Readlink {
-                path,
+                path: path.into(),
                 reply,
             })))
             .await?;
@@ -213,11 +224,11 @@ impl Sftp {
     /// Resolve the real path for `path`.
     ///
     /// See [`Sftp::realpath`] for more information.
-    pub async fn realpath(&self, path: PathBuf) -> anyhow::Result<PathBuf> {
+    pub async fn realpath(&self, path: impl Into<PathBuf>) -> anyhow::Result<PathBuf> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Realpath(Realpath {
-                path,
+                path: path.into(),
                 reply,
             })))
             .await?;
@@ -230,15 +241,15 @@ impl Sftp {
     /// See [`Sftp::rename`] for more information.
     pub async fn rename(
         &self,
-        src: PathBuf,
-        dst: PathBuf,
+        src: impl Into<PathBuf>,
+        dst: impl Into<PathBuf>,
         flags: Option<RenameFlags>,
     ) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Rename(Rename {
-                src,
-                dst,
+                src: src.into(),
+                dst: dst.into(),
                 flags,
                 reply,
             })))
@@ -250,11 +261,11 @@ impl Sftp {
     /// Remove a file on the remote filesystem.
     ///
     /// See [`Sftp::unlink`] for more information.
-    pub async fn unlink(&self, file: PathBuf) -> anyhow::Result<()> {
+    pub async fn unlink(&self, file: impl Into<PathBuf>) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Unlink(Unlink {
-                file,
+                file: file.into(),
                 reply,
             })))
             .await?;
