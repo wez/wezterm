@@ -8,10 +8,12 @@ use filedescriptor::{
 };
 use portable_pty::{ExitStatus, PtySize};
 use smol::channel::{bounded, Receiver, Sender, TryRecvError};
-use ssh2::BlockDirections;
+use ssh2::{BlockDirections, FileStat, OpenFlags, OpenType, RenameFlags, Sftp};
 use std::collections::{HashMap, VecDeque};
+use std::fmt;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -54,6 +56,28 @@ pub(crate) enum SessionRequest {
     NewPty(NewPty),
     ResizePty(ResizePty),
     Exec(Exec),
+
+    // Below are standard SFTP operations
+    OpenMode(OpenMode),
+    Open(Open),
+    Create(Create),
+    Opendir(Opendir),
+    Readdir(Readdir),
+    Mkdir(Mkdir),
+    Rmdir(Rmdir),
+    Stat(Stat),
+    Lstat(Lstat),
+    Setstat(Setstat),
+    Symlink(Symlink),
+    Readlink(Readlink),
+    Realpath(Realpath),
+    Rename(Rename),
+    Unlink(Unlink),
+
+    // Below are specialized SFTP operations
+    WriteFile(WriteFile),
+    ReadFile(ReadFile),
+    CloseFile(CloseFile),
 }
 
 #[derive(Debug)]
@@ -61,6 +85,141 @@ pub(crate) struct Exec {
     pub command_line: String,
     pub env: Option<HashMap<String, String>>,
     pub reply: Sender<ExecResult>,
+}
+
+pub(crate) struct OpenMode {
+    pub filename: PathBuf,
+    pub flags: OpenFlags,
+    pub mode: i32,
+    pub open_type: OpenType,
+    pub reply: Sender<File>,
+}
+
+impl fmt::Debug for OpenMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // NOTE: OpenType does not implement debug,
+        //       so we create a string representation
+        let open_type_string = match self.open_type {
+            OpenType::Dir => String::from("OpenType::Dir"),
+            OpenType::File => String::from("OpenType::File"),
+        };
+
+        f.debug_struct("OpenMode")
+            .field("filename", &self.filename)
+            .field("flags", &self.flags)
+            .field("mode", &self.mode)
+            .field("open_type", &open_type_string)
+            .field("reply", &self.reply)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct Open {
+    pub filename: PathBuf,
+    pub reply: Sender<File>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Create {
+    pub filename: PathBuf,
+    pub reply: Sender<File>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Opendir {
+    pub filename: PathBuf,
+    pub reply: Sender<File>,
+}
+
+#[derive(Debug)]
+pub(crate) struct WriteFile {
+    pub file_id: FileId,
+    pub data: Vec<u8>,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct ReadFile {
+    pub file_id: FileId,
+    pub reply: Sender<Vec<u8>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct CloseFile {
+    pub file_id: FileId,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Readdir {
+    pub filename: PathBuf,
+    pub reply: Sender<Vec<(PathBuf, FileStat)>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Mkdir {
+    pub filename: PathBuf,
+    pub mode: i32,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Rmdir {
+    pub filename: PathBuf,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Stat {
+    pub filename: PathBuf,
+    pub reply: Sender<FileStat>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Lstat {
+    pub filename: PathBuf,
+    pub reply: Sender<FileStat>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Setstat {
+    pub filename: PathBuf,
+    pub stat: FileStat,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Symlink {
+    pub path: PathBuf,
+    pub target: PathBuf,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Readlink {
+    pub path: PathBuf,
+    pub reply: Sender<PathBuf>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Realpath {
+    pub path: PathBuf,
+    pub reply: Sender<PathBuf>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Rename {
+    pub src: PathBuf,
+    pub dst: PathBuf,
+    pub flags: Option<RenameFlags>,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Unlink {
+    pub file: PathBuf,
+    pub reply: Sender<()>,
 }
 
 pub(crate) struct DescriptorState {
@@ -76,13 +235,17 @@ pub(crate) struct ChannelInfo {
 }
 
 pub(crate) type ChannelId = usize;
+pub(crate) type FileId = usize;
 
 pub(crate) struct SessionInner {
     pub config: ConfigMap,
     pub tx_event: Sender<SessionEvent>,
     pub rx_req: Receiver<SessionRequest>,
     pub channels: HashMap<ChannelId, ChannelInfo>,
+    pub files: HashMap<FileId, ssh2::File>,
+    pub sftp: Option<Sftp>,
     pub next_channel_id: ChannelId,
+    pub next_file_id: FileId,
     pub sender_read: FileDescriptor,
 }
 
@@ -383,6 +546,114 @@ impl SessionInner {
                         }
                         Ok(true)
                     }
+                    SessionRequest::OpenMode(open_mode) => {
+                        if let Err(err) = self.open_mode(&sess, &open_mode) {
+                            log::error!("{:?} -> error: {:#}", open_mode, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Open(open) => {
+                        if let Err(err) = self.open(&sess, &open) {
+                            log::error!("{:?} -> error: {:#}", open, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Create(create) => {
+                        if let Err(err) = self.create(&sess, &create) {
+                            log::error!("{:?} -> error: {:#}", create, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Opendir(opendir) => {
+                        if let Err(err) = self.opendir(&sess, &opendir) {
+                            log::error!("{:?} -> error: {:#}", opendir, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::WriteFile(write_file) => {
+                        if let Err(err) = self.write_file(&sess, &write_file) {
+                            log::error!("{:?} -> error: {:#}", write_file, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::ReadFile(read_file) => {
+                        if let Err(err) = self.read_file(&sess, &read_file) {
+                            log::error!("{:?} -> error: {:#}", read_file, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::CloseFile(close) => {
+                        if let Err(err) = self.close_file(&sess, &close) {
+                            log::error!("{:?} -> error: {:#}", close, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Readdir(readdir) => {
+                        if let Err(err) = self.readdir(&sess, &readdir) {
+                            log::error!("{:?} -> error: {:#}", readdir, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Mkdir(mkdir) => {
+                        if let Err(err) = self.mkdir(&sess, &mkdir) {
+                            log::error!("{:?} -> error: {:#}", mkdir, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Rmdir(rmdir) => {
+                        if let Err(err) = self.rmdir(&sess, &rmdir) {
+                            log::error!("{:?} -> error: {:#}", rmdir, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Stat(stat) => {
+                        if let Err(err) = self.stat(&sess, &stat) {
+                            log::error!("{:?} -> error: {:#}", stat, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Lstat(lstat) => {
+                        if let Err(err) = self.lstat(&sess, &lstat) {
+                            log::error!("{:?} -> error: {:#}", lstat, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Setstat(setstat) => {
+                        if let Err(err) = self.setstat(&sess, &setstat) {
+                            log::error!("{:?} -> error: {:#}", setstat, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Symlink(symlink) => {
+                        if let Err(err) = self.symlink(&sess, &symlink) {
+                            log::error!("{:?} -> error: {:#}", symlink, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Readlink(readlink) => {
+                        if let Err(err) = self.readlink(&sess, &readlink) {
+                            log::error!("{:?} -> error: {:#}", readlink, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Realpath(realpath) => {
+                        if let Err(err) = self.realpath(&sess, &realpath) {
+                            log::error!("{:?} -> error: {:#}", realpath, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Rename(rename) => {
+                        if let Err(err) = self.rename(&sess, &rename) {
+                            log::error!("{:?} -> error: {:#}", rename, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Unlink(unlink) => {
+                        if let Err(err) = self.unlink(&sess, &unlink) {
+                            log::error!("{:?} -> error: {:#}", unlink, err);
+                        }
+                        Ok(true)
+                    }
                 };
                 sess.set_blocking(false);
                 res
@@ -466,6 +737,253 @@ impl SessionInner {
 
         Ok(())
     }
+
+    /// Open a handle to a file.
+    ///
+    /// See [`Sftp::open_mode`] for more information.
+    pub fn open_mode(&mut self, sess: &ssh2::Session, open_mode: &OpenMode) -> anyhow::Result<()> {
+        let ssh_file = self.init_sftp(sess)?.open_mode(
+            open_mode.filename.as_path(),
+            open_mode.flags,
+            open_mode.mode,
+            open_mode.open_type,
+        )?;
+
+        let (file_id, file) = self.make_file();
+        open_mode.reply.try_send(file)?;
+        self.files.insert(file_id, ssh_file);
+
+        Ok(())
+    }
+
+    /// Helper to open a file in the `Read` mode.
+    ///
+    /// See [`Sftp::open`] for more information.
+    pub fn open(&mut self, sess: &ssh2::Session, open: &Open) -> anyhow::Result<()> {
+        let ssh_file = self.init_sftp(sess)?.open(open.filename.as_path())?;
+
+        let (file_id, file) = self.make_file();
+        open.reply.try_send(file)?;
+        self.files.insert(file_id, ssh_file);
+
+        Ok(())
+    }
+
+    /// Helper to create a file in write-only mode with truncation.
+    ///
+    /// See [`Sftp::create`] for more information.
+    pub fn create(&mut self, sess: &ssh2::Session, create: &Create) -> anyhow::Result<()> {
+        let ssh_file = self.init_sftp(sess)?.create(create.filename.as_path())?;
+
+        let (file_id, file) = self.make_file();
+        create.reply.try_send(file)?;
+        self.files.insert(file_id, ssh_file);
+
+        Ok(())
+    }
+
+    /// Helper to open a directory for reading its contents.
+    ///
+    /// See [`Sftp::opendir`] for more information.
+    pub fn opendir(&mut self, sess: &ssh2::Session, opendir: &Opendir) -> anyhow::Result<()> {
+        let ssh_file = self.init_sftp(sess)?.opendir(opendir.filename.as_path())?;
+
+        let (file_id, file) = self.make_file();
+        opendir.reply.try_send(file)?;
+        self.files.insert(file_id, ssh_file);
+
+        Ok(())
+    }
+
+    fn make_file(&mut self) -> (FileId, File) {
+        let file_id = self.next_file_id;
+        self.next_file_id += 1;
+
+        let file = File { file_id, tx: None };
+        (file_id, file)
+    }
+
+    /// Writes to a loaded file.
+    fn write_file(&mut self, _sess: &ssh2::Session, write_file: &WriteFile) -> anyhow::Result<()> {
+        let WriteFile {
+            file_id,
+            data,
+            reply,
+        } = write_file;
+
+        if let Some(file) = self.files.get_mut(file_id) {
+            file.write_all(data)?;
+        }
+        reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Reads from a loaded file.
+    fn read_file(&mut self, _sess: &ssh2::Session, read_file: &ReadFile) -> anyhow::Result<()> {
+        let ReadFile { file_id, reply } = read_file;
+
+        if let Some(file) = self.files.get_mut(file_id) {
+            // TODO: Move this somewhere to avoid re-allocating buffer
+            let mut buf = vec![0u8; 8192];
+            let n = file.read(&mut buf)?;
+            buf.truncate(n);
+            reply.try_send(buf)?;
+        } else {
+            reply.try_send(Vec::new())?;
+        }
+
+        Ok(())
+    }
+
+    /// Closes a file and removes it from the internal memory.
+    fn close_file(&mut self, _sess: &ssh2::Session, close_file: &CloseFile) -> anyhow::Result<()> {
+        self.files.remove(&close_file.file_id);
+        close_file.reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Convenience function to read the files in a directory.
+    ///
+    /// See [`Sftp::readdir`] for more information.
+    pub fn readdir(&mut self, sess: &ssh2::Session, readdir: &Readdir) -> anyhow::Result<()> {
+        let result = self.init_sftp(sess)?.readdir(readdir.filename.as_path())?;
+        readdir.reply.try_send(result)?;
+
+        Ok(())
+    }
+
+    /// Create a directory on the remote filesystem.
+    ///
+    /// See [`Sftp::rmdir`] for more information.
+    pub fn mkdir(&mut self, sess: &ssh2::Session, mkdir: &Mkdir) -> anyhow::Result<()> {
+        self.init_sftp(sess)?
+            .mkdir(mkdir.filename.as_path(), mkdir.mode)?;
+        mkdir.reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Remove a directory from the remote filesystem.
+    ///
+    /// See [`Sftp::rmdir`] for more information.
+    pub fn rmdir(&mut self, sess: &ssh2::Session, rmdir: &Rmdir) -> anyhow::Result<()> {
+        self.init_sftp(sess)?.rmdir(rmdir.filename.as_path())?;
+        rmdir.reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Get the metadata for a file, performed by stat(2).
+    ///
+    /// See [`Sftp::stat`] for more information.
+    pub fn stat(&mut self, sess: &ssh2::Session, stat: &Stat) -> anyhow::Result<()> {
+        let stat_data = self.init_sftp(sess)?.stat(stat.filename.as_path())?;
+        stat.reply.try_send(stat_data)?;
+
+        Ok(())
+    }
+
+    /// Get the metadata for a file, performed by lstat(2).
+    ///
+    /// See [`Sftp::lstat`] for more information.
+    pub fn lstat(&mut self, sess: &ssh2::Session, lstat: &Lstat) -> anyhow::Result<()> {
+        let stat_data = self.init_sftp(sess)?.lstat(lstat.filename.as_path())?;
+        lstat.reply.try_send(stat_data)?;
+
+        Ok(())
+    }
+
+    /// Set the metadata for a file.
+    ///
+    /// See [`Sftp::setstat`] for more information.
+    pub fn setstat(&mut self, sess: &ssh2::Session, setstat: &Setstat) -> anyhow::Result<()> {
+        self.init_sftp(sess)?
+            .setstat(setstat.filename.as_path(), setstat.stat.clone())?;
+        setstat.reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Create symlink at `target` pointing at `path`.
+    ///
+    /// See [`Sftp::symlink`] for more information.
+    pub fn symlink(&mut self, sess: &ssh2::Session, symlink: &Symlink) -> anyhow::Result<()> {
+        self.init_sftp(sess)?
+            .symlink(symlink.path.as_path(), symlink.target.as_path())?;
+        symlink.reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Read a symlink at `path`.
+    ///
+    /// See [`Sftp::readlink`] for more information.
+    pub fn readlink(&mut self, sess: &ssh2::Session, readlink: &Readlink) -> anyhow::Result<()> {
+        let path = self.init_sftp(sess)?.readlink(readlink.path.as_path())?;
+        readlink.reply.try_send(path)?;
+
+        Ok(())
+    }
+
+    /// Resolve the real path for `path`.
+    ///
+    /// See [`Sftp::realpath`] for more information.
+    pub fn realpath(&mut self, sess: &ssh2::Session, realpath: &Realpath) -> anyhow::Result<()> {
+        let path = self.init_sftp(sess)?.realpath(realpath.path.as_path())?;
+        realpath.reply.try_send(path)?;
+
+        Ok(())
+    }
+
+    /// Rename the filesystem object on the remote filesystem.
+    ///
+    /// See [`Sftp::rename`] for more information.
+    pub fn rename(&mut self, sess: &ssh2::Session, rename: &Rename) -> anyhow::Result<()> {
+        self.init_sftp(sess)?.rename(
+            rename.src.as_path(),
+            rename.dst.as_path(),
+            rename.flags.as_ref().copied(),
+        )?;
+        rename.reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Remove a file on the remote filesystem.
+    ///
+    /// See [`Sftp::unlink`] for more information.
+    pub fn unlink(&mut self, sess: &ssh2::Session, unlink: &Unlink) -> anyhow::Result<()> {
+        self.init_sftp(sess)?.unlink(unlink.file.as_path())?;
+        unlink.reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Initialize the sftp channel if not already created, returning a mutable reference to it
+    fn init_sftp<'a, 'b>(&'a mut self, sess: &'b ssh2::Session) -> anyhow::Result<&'a mut Sftp> {
+        if self.sftp.is_none() {
+            self.do_blocking(sess, |this, sess| {
+                this.sftp = Some(sess.sftp()?);
+                Ok(())
+            })?;
+        }
+
+        // NOTE: sftp should have been replaced with Some(sftp) from above
+        Ok(self.sftp.as_mut().unwrap())
+    }
+
+    fn do_blocking<F, R>(&mut self, sess: &ssh2::Session, mut f: F) -> anyhow::Result<R>
+    where
+        F: FnMut(&mut Self, &ssh2::Session) -> anyhow::Result<R>,
+    {
+        let blocking = sess.is_blocking();
+        sess.set_blocking(true);
+        let result = f(self, sess);
+        sess.set_blocking(blocking);
+        result
+    }
 }
 
 #[derive(Clone)]
@@ -497,7 +1015,10 @@ impl Session {
             tx_event,
             rx_req,
             channels: HashMap::new(),
+            files: HashMap::new(),
+            sftp: None,
             next_channel_id: 1,
+            next_file_id: 1,
             sender_read,
         };
         std::thread::spawn(move || inner.run());
@@ -543,6 +1064,282 @@ impl Session {
         let mut exec = rx.recv().await?;
         exec.child.tx.replace(self.tx.clone());
         Ok(exec)
+    }
+
+    /// Open a handle to a file.
+    ///
+    /// See [`Sftp::open_mode`] for more information.
+    pub async fn open_mode(
+        &self,
+        filename: PathBuf,
+        flags: OpenFlags,
+        mode: i32,
+        open_type: OpenType,
+    ) -> anyhow::Result<File> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::OpenMode(OpenMode {
+                filename,
+                flags,
+                mode,
+                open_type,
+                reply,
+            }))
+            .await?;
+        let mut result = rx.recv().await?;
+        result.tx.replace(self.tx.clone());
+        Ok(result)
+    }
+
+    /// Helper to open a file in the `Read` mode.
+    ///
+    /// See [`Sftp::open`] for more information.
+    pub async fn open(&self, filename: PathBuf) -> anyhow::Result<File> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Open(Open { filename, reply }))
+            .await?;
+        let mut result = rx.recv().await?;
+        result.tx.replace(self.tx.clone());
+        Ok(result)
+    }
+
+    /// Helper to create a file in write-only mode with truncation.
+    ///
+    /// See [`Sftp::create`] for more information.
+    pub async fn create(&self, filename: PathBuf) -> anyhow::Result<File> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Create(Create { filename, reply }))
+            .await?;
+        let mut result = rx.recv().await?;
+        result.tx.replace(self.tx.clone());
+        Ok(result)
+    }
+
+    /// Helper to open a directory for reading its contents.
+    ///
+    /// See [`Sftp::opendir`] for more information.
+    pub async fn opendir(&self, filename: PathBuf) -> anyhow::Result<File> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Opendir(Opendir { filename, reply }))
+            .await?;
+        let mut result = rx.recv().await?;
+        result.tx.replace(self.tx.clone());
+        Ok(result)
+    }
+
+    /// Convenience function to read the files in a directory.
+    ///
+    /// See [`Sftp::readdir`] for more information.
+    pub async fn readdir(&self, filename: PathBuf) -> anyhow::Result<Vec<(PathBuf, FileStat)>> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Readdir(Readdir { filename, reply }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Create a directory on the remote filesystem.
+    ///
+    /// See [`Sftp::rmdir`] for more information.
+    pub async fn mkdir(&self, filename: PathBuf, mode: i32) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Mkdir(Mkdir {
+                filename,
+                mode,
+                reply,
+            }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Remove a directory from the remote filesystem.
+    ///
+    /// See [`Sftp::rmdir`] for more information.
+    pub async fn rmdir(&self, filename: PathBuf) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Rmdir(Rmdir { filename, reply }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Get the metadata for a file, performed by stat(2).
+    ///
+    /// See [`Sftp::stat`] for more information.
+    pub async fn stat(&self, filename: PathBuf) -> anyhow::Result<FileStat> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Stat(Stat { filename, reply }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Get the metadata for a file, performed by lstat(2).
+    ///
+    /// See [`Sftp::lstat`] for more information.
+    pub async fn lstat(&self, filename: PathBuf) -> anyhow::Result<FileStat> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Lstat(Lstat { filename, reply }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Set the metadata for a file.
+    ///
+    /// See [`Sftp::setstat`] for more information.
+    pub async fn setstat(&self, filename: PathBuf, stat: FileStat) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Setstat(Setstat {
+                filename,
+                stat,
+                reply,
+            }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Create symlink at `target` pointing at `path`.
+    ///
+    /// See [`Sftp::symlink`] for more information.
+    pub async fn symlink(&self, path: PathBuf, target: PathBuf) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Symlink(Symlink {
+                path,
+                target,
+                reply,
+            }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Read a symlink at `path`.
+    ///
+    /// See [`Sftp::readlink`] for more information.
+    pub async fn readlink(&self, path: PathBuf) -> anyhow::Result<PathBuf> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Readlink(Readlink { path, reply }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Resolve the real path for `path`.
+    ///
+    /// See [`Sftp::realpath`] for more information.
+    pub async fn realpath(&self, path: PathBuf) -> anyhow::Result<PathBuf> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Realpath(Realpath { path, reply }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Rename the filesystem object on the remote filesystem.
+    ///
+    /// See [`Sftp::rename`] for more information.
+    pub async fn rename(
+        &self,
+        src: PathBuf,
+        dst: PathBuf,
+        flags: Option<RenameFlags>,
+    ) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Rename(Rename {
+                src,
+                dst,
+                flags,
+                reply,
+            }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Remove a file on the remote filesystem.
+    ///
+    /// See [`Sftp::unlink`] for more information.
+    pub async fn unlink(&self, file: PathBuf) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .send(SessionRequest::Unlink(Unlink { file, reply }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+}
+
+/// A file handle to an SFTP connection.
+#[derive(Debug)]
+pub struct File {
+    file_id: FileId,
+    tx: Option<SessionSender>,
+}
+
+impl File {
+    /// Writes some bytes to the file.
+    pub async fn write(&mut self, data: Vec<u8>) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .as_ref()
+            .unwrap()
+            .send(SessionRequest::WriteFile(WriteFile {
+                file_id: self.file_id,
+                data,
+                reply,
+            }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Reads some bytes from the file, returning a vector of bytes read.
+    ///
+    /// If the vector is empty, this indicates that there are no more bytes
+    /// to read at the moment.
+    pub async fn read(&mut self) -> anyhow::Result<Vec<u8>> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .as_ref()
+            .unwrap()
+            .send(SessionRequest::ReadFile(ReadFile {
+                file_id: self.file_id,
+                reply,
+            }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Closes the handle to the remote file
+    pub async fn close(self) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .as_ref()
+            .unwrap()
+            .send(SessionRequest::CloseFile(CloseFile {
+                file_id: self.file_id,
+                reply,
+            }))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
     }
 }
 
