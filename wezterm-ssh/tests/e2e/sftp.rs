@@ -23,7 +23,7 @@ fn file_type_to_str(file_type: FileType) -> &'static str {
 #[rstest]
 #[smol_potat::test]
 async fn readdir_should_return_list_of_directories_files_and_symlinks(#[future] session: Session) {
-    let session = session.await;
+    let session: Session = session.await;
 
     // $TEMP/dir1/
     // $TEMP/dir2/
@@ -71,7 +71,7 @@ async fn readdir_should_return_list_of_directories_files_and_symlinks(#[future] 
 #[rstest]
 #[smol_potat::test]
 async fn mkdir_should_create_a_directory_on_the_remote_filesystem(#[future] session: Session) {
-    let session = session.await;
+    let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -88,7 +88,7 @@ async fn mkdir_should_create_a_directory_on_the_remote_filesystem(#[future] sess
 #[rstest]
 #[smol_potat::test]
 async fn mkdir_should_return_error_if_unable_to_create_directory(#[future] session: Session) {
-    let session = session.await;
+    let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -112,7 +112,7 @@ async fn mkdir_should_return_error_if_unable_to_create_directory(#[future] sessi
 #[rstest]
 #[smol_potat::test]
 async fn rmdir_should_remove_a_remote_directory(#[future] session: Session) {
-    let session = session.await;
+    let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -132,7 +132,7 @@ async fn rmdir_should_remove_a_remote_directory(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] session: Session) {
-    let session = session.await;
+    let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
 
@@ -168,4 +168,216 @@ async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] se
 
     // Verify the file still exists
     file.assert(predicate::path::is_file());
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn stat_should_return_metadata_about_a_file(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.child("file");
+    file.touch().unwrap();
+
+    let stat = session
+        .sftp()
+        .stat(file.path().to_path_buf())
+        .await
+        .expect("Failed to stat file");
+
+    // Verify that file stat makes sense
+    assert!(stat.is_file(), "Invalid file stat returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn stat_should_return_metadata_about_a_directory(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+
+    let stat = session
+        .sftp()
+        .stat(dir.path().to_path_buf())
+        .await
+        .expect("Failed to stat dir");
+
+    // Verify that file stat makes sense
+    assert!(stat.is_dir(), "Invalid file stat returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn stat_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
+    #[future] session: Session,
+) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let file = temp.child("file");
+    file.touch().unwrap();
+    let link = temp.child("link");
+    link.symlink_to_file(file.path()).unwrap();
+
+    let stat = session
+        .sftp()
+        .stat(link.path().to_path_buf())
+        .await
+        .expect("Failed to stat symlink");
+
+    // Verify that file stat makes sense
+    assert!(stat.is_file(), "Invalid file stat returned");
+    assert!(stat.file_type().is_file(), "Invalid file stat returned");
+    assert!(!stat.file_type().is_symlink(), "Invalid file stat returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn stat_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
+    #[future] session: Session,
+) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+    let link = temp.child("link");
+    link.symlink_to_dir(dir.path()).unwrap();
+
+    let stat = session
+        .sftp()
+        .stat(link.path().to_path_buf())
+        .await
+        .expect("Failed to stat symlink");
+
+    // Verify that file stat makes sense
+    assert!(stat.is_dir(), "Invalid file stat returned");
+    assert!(stat.file_type().is_dir(), "Invalid file stat returned");
+    assert!(!stat.file_type().is_symlink(), "Invalid file stat returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn stat_should_fail_if_path_missing(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let result = session
+        .sftp()
+        .stat(temp.child("missing").path().to_path_buf())
+        .await;
+    assert!(result.is_err(), "Stat unexpectedly succeeded");
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn lstat_should_return_metadata_about_a_file(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.child("file");
+    file.touch().unwrap();
+
+    let lstat = session
+        .sftp()
+        .lstat(file.path().to_path_buf())
+        .await
+        .expect("Failed to lstat file");
+
+    // Verify that file lstat makes sense
+    assert!(lstat.is_file(), "Invalid file lstat returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn lstat_should_return_metadata_about_a_directory(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+
+    let lstat = session
+        .sftp()
+        .lstat(dir.path().to_path_buf())
+        .await
+        .expect("Failed to lstat dir");
+
+    // Verify that file lstat makes sense
+    assert!(lstat.is_dir(), "Invalid file lstat returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn lstat_should_return_metadata_about_symlink_pointing_to_a_file(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let file = temp.child("file");
+    file.touch().unwrap();
+    let link = temp.child("link");
+    link.symlink_to_file(file.path()).unwrap();
+
+    let lstat = session
+        .sftp()
+        .lstat(link.path().to_path_buf())
+        .await
+        .expect("Failed to lstat symlink");
+
+    // Verify that file lstat makes sense
+    assert!(!lstat.is_file(), "Invalid file lstat returned");
+    assert!(!lstat.file_type().is_file(), "Invalid file lstat returned");
+    assert!(
+        lstat.file_type().is_symlink(),
+        "Invalid file lstat returned"
+    );
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn lstat_should_return_metadata_about_symlink_pointing_to_a_directory(
+    #[future] session: Session,
+) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+    let link = temp.child("link");
+    link.symlink_to_dir(dir.path()).unwrap();
+
+    let lstat = session
+        .sftp()
+        .lstat(link.path().to_path_buf())
+        .await
+        .expect("Failed to lstat symlink");
+
+    // Verify that file lstat makes sense
+    assert!(!lstat.is_dir(), "Invalid file lstat returned");
+    assert!(!lstat.file_type().is_dir(), "Invalid file lstat returned");
+    assert!(
+        lstat.file_type().is_symlink(),
+        "Invalid file lstat returned"
+    );
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn lstat_should_fail_if_path_missing(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let result = session
+        .sftp()
+        .lstat(temp.child("missing").path().to_path_buf())
+        .await;
+    assert!(result.is_err(), "lstat unexpectedly succeeded");
 }

@@ -8,7 +8,7 @@ use wezterm_ssh::Session;
 #[smol_potat::test]
 #[ignore]
 async fn should_support_async_reading(#[future] session: Session) {
-    let session = session.await;
+    let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("test-file");
@@ -33,7 +33,7 @@ async fn should_support_async_reading(#[future] session: Session) {
 #[smol_potat::test]
 #[ignore]
 async fn should_support_async_writing(#[future] session: Session) {
-    let session = session.await;
+    let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("test-file");
