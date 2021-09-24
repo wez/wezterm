@@ -13,3 +13,4 @@ pub use session::*;
 // NOTE: Re-exported as is exposed in a public API of this crate
 pub use filedescriptor::FileDescriptor;
 pub use portable_pty::Child;
+pub use ssh2::{FileStat, OpenFlags, OpenType, RenameFlags};
