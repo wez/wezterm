@@ -92,6 +92,9 @@ impl Sftp {
 
     /// Convenience function to read the files in a directory.
     ///
+    /// The returned paths are all joined with dirname when returned, and the paths . and .. are
+    /// filtered out of the returned list.
+    ///
     /// See [`Sftp::readdir`] for more information.
     pub async fn readdir(
         &self,
