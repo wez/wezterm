@@ -340,6 +340,7 @@ impl super::TermWindow {
                         },
                         config.window_background_opacity,
                     );
+
                     quad.set_texture(white_space);
                     quad.set_is_background();
                     quad.set_fg_color(background);
@@ -347,6 +348,7 @@ impl super::TermWindow {
                 }
             }
         }
+
         if num_panes > 1 && self.window_background.is_none() {
             // Per-pane, palette-specified background
             let mut quad = layers[0].allocate()?;
@@ -381,6 +383,92 @@ impl super::TermWindow {
             });
         }
 
+        {
+            // If the bell is ringing, we draw another background layer over the
+            // top of this in the configured bell color
+            let mut per_pane = self.pane_state(pos.pane.pane_id());
+            if let Some(ringing) = per_pane.bell_start {
+                let elapsed = ringing.elapsed().as_secs_f32();
+
+                let in_duration =
+                    Duration::from_millis(config.visual_bell.fade_in_duration_ms).as_secs_f32();
+                let out_duration =
+                    Duration::from_millis(config.visual_bell.fade_out_duration_ms).as_secs_f32();
+
+                let intensity = if elapsed < in_duration {
+                    Some(
+                        config
+                            .visual_bell
+                            .fade_in_function
+                            .evaluate_at_position(elapsed / in_duration),
+                    )
+                } else {
+                    let completion = (elapsed - in_duration) / out_duration;
+                    if completion >= 1.0 {
+                        None
+                    } else {
+                        Some(
+                            1.0 - config
+                                .visual_bell
+                                .fade_out_function
+                                .evaluate_at_position(completion),
+                        )
+                    }
+                };
+
+                match intensity {
+                    None => {
+                        per_pane.bell_start.take();
+                    }
+                    Some(intensity) => {
+                        let (r, g, b, _) = config
+                            .resolved_palette
+                            .visual_bell
+                            .unwrap_or(palette.foreground)
+                            .to_linear_tuple_rgba();
+
+                        let background = LinearRgba::with_components(
+                            r * intensity,
+                            g * intensity,
+                            b * intensity,
+                            1.0,
+                        );
+                        log::trace!("bell bg is {:?}", background);
+
+                        self.update_next_frame_time(Some(
+                            Instant::now() + Duration::from_millis(1000 / config.max_fps as u64),
+                        ));
+
+                        let mut quad = layers[0].allocate()?;
+                        let cell_width = self.render_metrics.cell_size.width as f32;
+                        let cell_height = self.render_metrics.cell_size.height as f32;
+                        let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                            + (pos.left as f32 * cell_width)
+                            + self.config.window_padding.left as f32;
+                        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
+                            + ((first_line_offset + pos.top) as f32 * cell_height)
+                            + self.config.window_padding.top as f32;
+
+                        quad.set_position(
+                            pos_x,
+                            pos_y,
+                            pos_x + pos.width as f32 * cell_width,
+                            pos_y + pos.height as f32 * cell_height,
+                        );
+
+                        quad.set_texture_adjust(0., 0., 0., 0.);
+                        quad.set_texture(white_space);
+                        quad.set_is_background();
+                        quad.set_fg_color(background);
+                        quad.set_hsv(if pos.is_active {
+                            None
+                        } else {
+                            Some(config.inactive_pane_hsb)
+                        });
+                    }
+                }
+            }
+        }
         if self.show_tab_bar && pos.index == 0 {
             let tab_dims = RenderableDimensions {
                 cols: self.terminal_size.cols as _,

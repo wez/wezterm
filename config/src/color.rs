@@ -73,6 +73,9 @@ pub struct Palette {
     pub scrollbar_thumb: Option<RgbColor>,
     /// The color of the split line between panes
     pub split: Option<RgbColor>,
+    /// The color of the visual bell. If unspecified, the foreground
+    /// color is used instead.
+    pub visual_bell: Option<RgbColor>,
 }
 impl_lua_conversion!(Palette);
 

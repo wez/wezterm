@@ -28,6 +28,7 @@ use toml;
 use wezterm_input_types::{KeyCode, Modifiers, WindowDecorations};
 
 mod background;
+mod bell;
 mod color;
 mod daemon;
 mod font;
@@ -42,6 +43,7 @@ mod unix;
 mod version;
 
 pub use background::*;
+pub use bell::*;
 pub use color::*;
 pub use daemon::*;
 pub use font::*;
@@ -1222,6 +1224,9 @@ pub struct Config {
 
     #[serde(default = "default_max_fps")]
     pub max_fps: u8,
+
+    #[serde(default)]
+    pub visual_bell: VisualBell,
 }
 impl_lua_conversion!(Config);
 

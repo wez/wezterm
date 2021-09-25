@@ -141,6 +141,8 @@ pub struct PaneState {
     /// contents, we're overlaying a little internal application
     /// tab.  We'll also route input to it.
     pub overlay: Option<Rc<dyn Pane>>,
+
+    bell_start: Option<Instant>,
 }
 
 /// Data used when synchronously formatting pane and window titles
@@ -808,6 +810,10 @@ impl TermWindow {
                 } => {
                     log::info!("Ding! (this is the bell) in pane {}", pane_id);
                     self.emit_window_event("bell", Some(pane_id));
+
+                    let mut per_pane = self.pane_state(pane_id);
+                    per_pane.bell_start.replace(Instant::now());
+                    window.invalidate();
                 }
                 MuxNotification::PaneOutput(pane_id) => {
                     self.mux_pane_output_event(pane_id);

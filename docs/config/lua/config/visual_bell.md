@@ -1,0 +1,44 @@
+# visual_bell
+
+*Since: nightly builds only*
+
+When the BEL ascii sequence is sent to a pane, the bell is "rung" in that pane.
+
+You may choose to configure the `visual_bell` option so show a visible representation of the bell event,
+by having the background color of the pane briefly change color.
+
+There are four fields to the visual_bell config option:
+
+* `fade_in_duration_ms` - how long it should take for the bell color to fade in, in milliseconds. The default is 0.
+* `fade_out_duration_ms` - how long it should take for the bell color to fade out, in milliseconds. The default is 0.
+* `fade_in_function` - an easing function, similar to [CSS easing functions](https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function), that affects how the bell color is faded in.
+* `fade_out_function` - an easing function that affects how the bell color is faded out.
+
+If the total fade in and out durations are 0, then there will be no visual bell indication.
+
+The bell color is itself specified in your color settings; if not specified, the text foreground color will be used.
+
+The following easing functions are supported:
+
+* `Linear` - the fade happens at a constant rate.
+* `Ease` - The fade starts slowly, accelerates sharply, and then slows gradually towards the end. This is the default.
+* `EaseIn` - The fade starts slowly, and then progressively speeds up until the end, at which point it stops abruptly.
+* `EaseInOut` - The fade starts slowly, speeds up, and then slows down towards the end.
+* `EaseOut` - The fade starts abruptly, and then progressively slows down towards the end.
+* `{CubicBezier={0.0, 0.0, 0.58, 1.0}}` - an arbitrary cubic bezier with the specified parameters.
+
+The following configuration enables a low intensity visual bell that takes a total of 300ms to "flash" the screen:
+
+```lua
+return {
+  visual_bell = {
+    fade_in_function = "EaseIn",
+    fade_in_duration_ms = 150,
+    fade_out_function = "EaseOut",
+    fade_out_duration_ms = 150,
+  },
+  colors = {
+    visual_bell = "#202020"
+  },
+}
+```
