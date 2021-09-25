@@ -421,18 +421,32 @@ impl super::TermWindow {
                         per_pane.bell_start.take();
                     }
                     Some(intensity) => {
+                        // target background color
                         let (r, g, b, _) = config
                             .resolved_palette
                             .visual_bell
                             .unwrap_or(palette.foreground)
                             .to_linear_tuple_rgba();
 
-                        let background = LinearRgba::with_components(
-                            r * intensity,
-                            g * intensity,
-                            b * intensity,
-                            1.0,
-                        );
+                        let background = if window_is_transparent {
+                            // for transparent windows, we fade in the target color
+                            // by adjusting its alpha
+                            LinearRgba::with_components(r, g, b, intensity)
+                        } else {
+                            // otherwise We'll interpolate between the background color
+                            // and the the target color
+                            let (r1, g1, b1, a) = rgbcolor_alpha_to_window_color(
+                                palette.background,
+                                config.window_background_opacity,
+                            )
+                            .tuple();
+                            LinearRgba::with_components(
+                                r1 + (r - r1) * intensity,
+                                g1 + (g - g1) * intensity,
+                                b1 + (b - b1) * intensity,
+                                a,
+                            )
+                        };
                         log::trace!("bell bg is {:?}", background);
 
                         self.update_next_frame_time(Some(
