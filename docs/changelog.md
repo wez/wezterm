@@ -51,6 +51,7 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [bell](config/lua/window-events/bell.md) event allows you to trigger lua code when the bell is run. [#3](https://github.com/wez/wezterm/issues/3)
 * Fixed: Ask freetype for cell metrics in bitmap-only fonts, rather than simply taking the bitmap width. [#1165](https://github.com/wez/wezterm/issues/1165)
 * New: [visual_bell](config/lua/config/visual_bell.md) configuration option
+* New: [wezterm.action_callback](config/lua/wezterm/action_callback.md) function to make it easier to use custom events. Thanks to [@bew](https://github.com/bew)! [#1151](https://github.com/wez/wezterm/pull/1151)
 
 ### 20210814-124438-54e29167
 
