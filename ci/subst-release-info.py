@@ -20,7 +20,7 @@ CATEGORIZE = {
     r"Debian10.deb$": "debian10_deb",
     r"Debian11.deb$": "debian11_deb",
     r"Ubuntu16.04.AppImage$": "ubuntu16_AppImage",
-    r"^WezTerm-.*.x86_64.AppImage$": "ubuntu16_AppImage",
+    r"Ubuntu18.04.AppImage$": "ubuntu18_AppImage",
     r"Ubuntu16.04.deb$": "ubuntu16_deb",
     r"^wezterm-\d+-\d+-[a-f0-9]+.deb$": "ubuntu16_deb",
     r"Ubuntu18.04.deb$": "ubuntu18_deb",
