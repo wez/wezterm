@@ -5,7 +5,10 @@ use std::{fmt, path::PathBuf};
 
 mod file;
 pub use file::File;
-pub(crate) use file::FileId;
+pub(crate) use file::{
+    CloseFile, FileId, FileRequest, FlushFile, FsyncFile, ReadFile, ReaddirFile, SetstatFile,
+    StatFile, WriteFile,
+};
 
 /// Represents an open sftp channel for performing filesystem operations
 #[derive(Clone, Debug)]
@@ -276,7 +279,6 @@ impl Sftp {
 
 #[derive(Debug)]
 pub(crate) enum SftpRequest {
-    // Below are standard SFTP operations
     OpenMode(OpenMode),
     Open(Open),
     Create(Create),
@@ -293,11 +295,8 @@ pub(crate) enum SftpRequest {
     Rename(Rename),
     Unlink(Unlink),
 
-    // Below are specialized SFTP operations for files
-    WriteFile(WriteFile),
-    ReadFile(ReadFile),
-    CloseFile(CloseFile),
-    FlushFile(FlushFile),
+    /// Specialized type for file-based operations
+    File(FileRequest),
 }
 
 pub(crate) struct OpenMode {
@@ -343,32 +342,6 @@ pub(crate) struct Create {
 pub(crate) struct Opendir {
     pub filename: PathBuf,
     pub reply: Sender<File>,
-}
-
-#[derive(Debug)]
-pub(crate) struct WriteFile {
-    pub file_id: FileId,
-    pub data: Vec<u8>,
-    pub reply: Sender<()>,
-}
-
-#[derive(Debug)]
-pub(crate) struct ReadFile {
-    pub file_id: FileId,
-    pub max_bytes: usize,
-    pub reply: Sender<Vec<u8>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct CloseFile {
-    pub file_id: FileId,
-    pub reply: Sender<()>,
-}
-
-#[derive(Debug)]
-pub(crate) struct FlushFile {
-    pub file_id: FileId,
-    pub reply: Sender<()>,
 }
 
 #[derive(Debug)]

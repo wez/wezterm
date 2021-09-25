@@ -17,7 +17,7 @@ use std::time::Duration;
 
 mod sftp;
 pub use sftp::{File, Sftp};
-use sftp::{FileId, SftpRequest};
+use sftp::{FileId, FileRequest, SftpRequest};
 
 #[derive(Debug)]
 pub enum SessionEvent {
@@ -415,27 +415,51 @@ impl SessionInner {
                         }
                         Ok(true)
                     }
-                    SessionRequest::Sftp(SftpRequest::WriteFile(write_file)) => {
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Write(write_file))) => {
                         if let Err(err) = self.write_file(&sess, &write_file) {
                             log::error!("{:?} -> error: {:#}", write_file, err);
                         }
                         Ok(true)
                     }
-                    SessionRequest::Sftp(SftpRequest::ReadFile(read_file)) => {
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Read(read_file))) => {
                         if let Err(err) = self.read_file(&sess, &read_file) {
                             log::error!("{:?} -> error: {:#}", read_file, err);
                         }
                         Ok(true)
                     }
-                    SessionRequest::Sftp(SftpRequest::CloseFile(close_file)) => {
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Close(close_file))) => {
                         if let Err(err) = self.close_file(&sess, &close_file) {
                             log::error!("{:?} -> error: {:#}", close_file, err);
                         }
                         Ok(true)
                     }
-                    SessionRequest::Sftp(SftpRequest::FlushFile(flush_file)) => {
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Flush(flush_file))) => {
                         if let Err(err) = self.flush_file(&sess, &flush_file) {
                             log::error!("{:?} -> error: {:#}", flush_file, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Setstat(setstat_file))) => {
+                        if let Err(err) = self.setstat_file(&sess, &setstat_file) {
+                            log::error!("{:?} -> error: {:#}", setstat_file, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Stat(stat_file))) => {
+                        if let Err(err) = self.stat_file(&sess, &stat_file) {
+                            log::error!("{:?} -> error: {:#}", stat_file, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Readdir(readdir_file))) => {
+                        if let Err(err) = self.readdir_file(&sess, &readdir_file) {
+                            log::error!("{:?} -> error: {:#}", readdir_file, err);
+                        }
+                        Ok(true)
+                    }
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Fsync(fsync_file))) => {
+                        if let Err(err) = self.fsync_file(&sess, &fsync_file) {
+                            log::error!("{:?} -> error: {:#}", fsync_file, err);
                         }
                         Ok(true)
                     }
@@ -725,6 +749,68 @@ impl SessionInner {
             file.flush()?;
         }
         flush_file.reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Sets file stat.
+    fn setstat_file(
+        &mut self,
+        _sess: &ssh2::Session,
+        setstat_file: &sftp::SetstatFile,
+    ) -> anyhow::Result<()> {
+        let sftp::SetstatFile {
+            file_id,
+            stat,
+            reply,
+        } = setstat_file;
+
+        if let Some(file) = self.files.get_mut(file_id) {
+            file.setstat(stat.clone())?;
+        }
+        reply.try_send(())?;
+
+        Ok(())
+    }
+
+    /// Gets file stat.
+    fn stat_file(
+        &mut self,
+        _sess: &ssh2::Session,
+        stat_file: &sftp::StatFile,
+    ) -> anyhow::Result<()> {
+        if let Some(file) = self.files.get_mut(&stat_file.file_id) {
+            let stat = file.stat()?;
+            stat_file.reply.try_send(stat)?;
+        }
+
+        Ok(())
+    }
+
+    /// Performs readdir for file.
+    fn readdir_file(
+        &mut self,
+        _sess: &ssh2::Session,
+        readdir_file: &sftp::ReaddirFile,
+    ) -> anyhow::Result<()> {
+        if let Some(file) = self.files.get_mut(&readdir_file.file_id) {
+            let result = file.readdir()?;
+            readdir_file.reply.try_send(result)?;
+        }
+
+        Ok(())
+    }
+
+    /// Fsync file.
+    fn fsync_file(
+        &mut self,
+        _sess: &ssh2::Session,
+        fsync_file: &sftp::FsyncFile,
+    ) -> anyhow::Result<()> {
+        if let Some(file) = self.files.get_mut(&fsync_file.file_id) {
+            file.fsync()?;
+        }
+        fsync_file.reply.try_send(())?;
 
         Ok(())
     }

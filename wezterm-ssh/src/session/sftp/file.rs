@@ -1,11 +1,13 @@
-use super::{
-    CloseFile, FlushFile, ReadFile, SessionRequest, SessionSender, SftpRequest, WriteFile,
+use super::{FileStat, SessionRequest, SessionSender, SftpRequest};
+use smol::{
+    channel::{bounded, Sender},
+    future::FutureExt,
 };
-use smol::{channel::bounded, future::FutureExt};
 use std::{
     fmt,
     future::Future,
     io,
+    path::PathBuf,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -27,11 +29,89 @@ struct FileState {
     f_close: Option<Pin<Box<dyn Future<Output = io::Result<()>> + Send + Sync + 'static>>>,
 }
 
+#[derive(Debug)]
+pub(crate) enum FileRequest {
+    Write(WriteFile),
+    Read(ReadFile),
+    Close(CloseFile),
+    Flush(FlushFile),
+    Setstat(SetstatFile),
+    Stat(StatFile),
+    Readdir(ReaddirFile),
+    Fsync(FsyncFile),
+}
+
+#[derive(Debug)]
+pub(crate) struct WriteFile {
+    pub file_id: FileId,
+    pub data: Vec<u8>,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct ReadFile {
+    pub file_id: FileId,
+    pub max_bytes: usize,
+    pub reply: Sender<Vec<u8>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct CloseFile {
+    pub file_id: FileId,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct FlushFile {
+    pub file_id: FileId,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct SetstatFile {
+    pub file_id: FileId,
+    pub stat: FileStat,
+    pub reply: Sender<()>,
+}
+
+#[derive(Debug)]
+pub(crate) struct StatFile {
+    pub file_id: FileId,
+    pub reply: Sender<FileStat>,
+}
+
+#[derive(Debug)]
+pub(crate) struct ReaddirFile {
+    pub file_id: FileId,
+    pub reply: Sender<(PathBuf, FileStat)>,
+}
+
+#[derive(Debug)]
+pub(crate) struct FsyncFile {
+    pub file_id: FileId,
+    pub reply: Sender<()>,
+}
+
 impl fmt::Debug for File {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("File")
             .field("file_id", &self.file_id)
             .finish()
+    }
+}
+
+impl Drop for File {
+    /// Attempts to close the file that exists in the dedicated ssh2 thread
+    fn drop(&mut self) {
+        if let Some(tx) = self.tx.take() {
+            let (reply, _) = bounded(1);
+            let _ = tx.try_send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Close(
+                CloseFile {
+                    file_id: self.file_id,
+                    reply,
+                },
+            ))));
+        }
     }
 }
 
@@ -46,6 +126,85 @@ impl File {
 
     pub(crate) fn initialize_sender(&mut self, sender: SessionSender) {
         self.tx.replace(sender);
+    }
+
+    /// Set the metadata for this handle.
+    ///
+    /// See [`ssh2::File::setstat`] for more information.
+    pub async fn setstat(&self, stat: FileStat) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .as_ref()
+            .unwrap()
+            .send(SessionRequest::Sftp(SftpRequest::File(
+                FileRequest::Setstat(SetstatFile {
+                    file_id: self.file_id,
+                    stat,
+                    reply,
+                }),
+            )))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Get the metadata for this handle.
+    ///
+    /// See [`ssh2::File::stat`] for more information.
+    pub async fn stat(&self) -> anyhow::Result<FileStat> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .as_ref()
+            .unwrap()
+            .send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Stat(
+                StatFile {
+                    file_id: self.file_id,
+                    reply,
+                },
+            ))))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// Reads a block of data from a handle and returns file entry information for the next entry,
+    /// if any.
+    ///
+    /// See [`ssh2::File::readdir`] for more information.
+    pub async fn readdir(&self) -> anyhow::Result<(PathBuf, FileStat)> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .as_ref()
+            .unwrap()
+            .send(SessionRequest::Sftp(SftpRequest::File(
+                FileRequest::Readdir(ReaddirFile {
+                    file_id: self.file_id,
+                    reply,
+                }),
+            )))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
+    }
+
+    /// This function causes the remote server to synchronize the file data and metadata to disk
+    /// (like fsync(2)).
+    ///
+    /// See [`ssh2::File::fsync`] for more information.
+    pub async fn fsync(&self) -> anyhow::Result<()> {
+        let (reply, rx) = bounded(1);
+        self.tx
+            .as_ref()
+            .unwrap()
+            .send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Fsync(
+                FsyncFile {
+                    file_id: self.file_id,
+                    reply,
+                },
+            ))))
+            .await?;
+        let result = rx.recv().await?;
+        Ok(result)
     }
 }
 
@@ -165,11 +324,13 @@ impl smol::io::AsyncWrite for File {
 /// Writes some bytes to the file.
 async fn inner_write(tx: SessionSender, file_id: usize, data: Vec<u8>) -> anyhow::Result<()> {
     let (reply, rx) = bounded(1);
-    tx.send(SessionRequest::Sftp(SftpRequest::WriteFile(WriteFile {
-        file_id,
-        data,
-        reply,
-    })))
+    tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Write(
+        WriteFile {
+            file_id,
+            data,
+            reply,
+        },
+    ))))
     .await?;
     let result = rx.recv().await?;
     Ok(result)
@@ -185,11 +346,13 @@ async fn inner_read(
     max_bytes: usize,
 ) -> anyhow::Result<Vec<u8>> {
     let (reply, rx) = bounded(1);
-    tx.send(SessionRequest::Sftp(SftpRequest::ReadFile(ReadFile {
-        file_id,
-        max_bytes,
-        reply,
-    })))
+    tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Read(
+        ReadFile {
+            file_id,
+            max_bytes,
+            reply,
+        },
+    ))))
     .await?;
     let result = rx.recv().await?;
     Ok(result)
@@ -198,10 +361,9 @@ async fn inner_read(
 /// Flushes the remote file
 async fn inner_flush(tx: SessionSender, file_id: usize) -> anyhow::Result<()> {
     let (reply, rx) = bounded(1);
-    tx.send(SessionRequest::Sftp(SftpRequest::FlushFile(FlushFile {
-        file_id,
-        reply,
-    })))
+    tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Flush(
+        FlushFile { file_id, reply },
+    ))))
     .await?;
     let result = rx.recv().await?;
     Ok(result)
@@ -210,10 +372,9 @@ async fn inner_flush(tx: SessionSender, file_id: usize) -> anyhow::Result<()> {
 /// Closes the handle to the remote file
 async fn inner_close(tx: SessionSender, file_id: usize) -> anyhow::Result<()> {
     let (reply, rx) = bounded(1);
-    tx.send(SessionRequest::Sftp(SftpRequest::CloseFile(CloseFile {
-        file_id,
-        reply,
-    })))
+    tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Close(
+        CloseFile { file_id, reply },
+    ))))
     .await?;
     let result = rx.recv().await?;
     Ok(result)
