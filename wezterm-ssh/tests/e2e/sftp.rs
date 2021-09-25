@@ -401,7 +401,17 @@ async fn symlink_should_create_symlink_pointing_to_file(#[future] session: Sessi
         .await
         .expect("Failed to create symlink");
 
-    link.assert(predicate::path::is_symlink());
+    assert!(
+        std::fs::symlink_metadata(link.path())
+            .unwrap()
+            .file_type()
+            .is_symlink(),
+        "Symlink is not a symlink!"
+    );
+
+    // TODO: This fails even though the type is a symlink:
+    //       https://github.com/assert-rs/assert_fs/issues/70
+    // link.assert(predicate::path::is_symlink());
 }
 
 #[rstest]
@@ -426,7 +436,7 @@ async fn symlink_should_create_symlink_pointing_to_directory(#[future] session: 
 
 #[rstest]
 #[smol_potat::test]
-async fn symlink_should_fail_if_path_missing(#[future] session: Session) {
+async fn symlink_should_succeed_even_if_path_missing(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -434,12 +444,13 @@ async fn symlink_should_fail_if_path_missing(#[future] session: Session) {
 
     let link = temp.child("link");
 
-    let result = session.sftp().symlink(file.path(), link.path()).await;
-    assert!(
-        result.is_err(),
-        "Unexpectedly created symlink for missing path: {:?}",
-        result
-    );
+    session
+        .sftp()
+        .symlink(file.path(), link.path())
+        .await
+        .expect("Failed to create symlink");
+
+    link.assert(predicate::path::is_symlink());
 }
 
 #[rstest]
@@ -517,35 +528,49 @@ async fn readlink_should_fail_if_path_is_not_a_symlink(#[future] session: Sessio
 async fn realpath_should_resolve_absolute_path_for_relative_path(#[future] session: Session) {
     let session: Session = session.await;
 
-    // Create a relative component within a directory so we can guarantee what the path will be
+    // For resolving parts of a path, all components must exist
     let temp = TempDir::new().unwrap();
-    let file = temp.child("world");
-    file.touch().unwrap();
+    temp.child("hello").create_dir_all().unwrap();
+    temp.child("world").touch().unwrap();
 
     let rel = temp.child(".").child("hello").child("..").child("world");
 
-    let path = session
-        .sftp()
-        .realpath(rel.path())
-        .await
-        .expect("Failed to get real path");
-    assert_eq!(path, file.path());
+    // NOTE: Because realpath can still resolve symlinks within a missing path, there
+    //       is no guarantee that the resulting path matches the missing path. In fact,
+    //       on mac the /tmp dir is a symlink to /private/tmp; so, we cannot successfully
+    //       check the accuracy of the path itself, meaning that we can only validate
+    //       that the operation was okay.
+    let result = session.sftp().realpath(rel.path()).await;
+    assert!(result.is_ok(), "Realpath unexpectedly failed: {:?}", result);
 }
 
 #[rstest]
 #[smol_potat::test]
-async fn realpath_should_fail_if_path_missing(#[future] session: Session) {
+async fn realpath_should_return_resolved_path_if_missing(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
     let missing = temp.child("missing");
 
+    // NOTE: Because realpath can still resolve symlinks within a missing path, there
+    //       is no guarantee that the resulting path matches the missing path. In fact,
+    //       on mac the /tmp dir is a symlink to /private/tmp; so, we cannot successfully
+    //       check the accuracy of the path itself, meaning that we can only validate
+    //       that the operation was okay.
     let result = session.sftp().realpath(missing.path()).await;
-    assert!(
-        result.is_err(),
-        "Realpath unexpectedly succeeded with missing path: {:?}",
-        result
-    );
+    assert!(result.is_ok(), "Realpath unexpectedly failed: {:?}", result);
+}
+
+#[rstest]
+#[smol_potat::test]
+async fn realpath_should_fail_if_resolving_missing_path_with_dots(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let missing = temp.child(".").child("hello").child("..").child("world");
+
+    let result = session.sftp().realpath(missing.path()).await;
+    assert!(result.is_err(), "Realpath unexpectedly succeeded");
 }
 
 #[rstest]
