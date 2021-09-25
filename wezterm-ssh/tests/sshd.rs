@@ -83,20 +83,6 @@ impl SshAgent {
     }
 }
 
-pub struct SshAdd;
-
-impl SshAdd {
-    pub fn exec(path: impl AsRef<Path>) -> io::Result<bool> {
-        let env_map = SshAgent::generate_shell_env()?;
-
-        Command::new("ssh-add")
-            .arg(path.as_ref())
-            .envs(env_map)
-            .status()
-            .map(|status| status.success())
-    }
-}
-
 #[derive(Debug)]
 pub struct SshdConfig(HashMap<String, Vec<String>>);
 
@@ -280,10 +266,6 @@ impl Sshd {
             SshKeygen::generate_rsa(id_rsa_file.path(), "")?,
             "Failed to ssh-keygen id_rsa"
         );
-        assert!(
-            SshAdd::exec(id_rsa_file.path())?,
-            "Failed to ssh-add id_rsa"
-        );
 
         // cp $ROOT/id_rsa.pub $ROOT/authorized_keys
         let authorized_keys_file = tmp.child("authorized_keys");
@@ -418,6 +400,7 @@ pub async fn session(sshd: &'_ Sshd) -> Session {
     // generated identity file, and host file
     let mut config = config.for_host("localhost");
     config.insert("port".to_string(), port.to_string());
+    config.insert("identitiesonly".to_string(), "yes".to_string());
     config.insert(
         "identityfile".to_string(),
         sshd.tmp
