@@ -35,7 +35,7 @@ impl Sftp {
             })))
             .await?;
         let mut result = rx.recv().await?;
-        result.tx.replace(self.tx.clone());
+        result.initialize_sender(self.tx.clone());
         Ok(result)
     }
 
@@ -51,7 +51,7 @@ impl Sftp {
             })))
             .await?;
         let mut result = rx.recv().await?;
-        result.tx.replace(self.tx.clone());
+        result.initialize_sender(self.tx.clone());
         Ok(result)
     }
 
@@ -67,7 +67,7 @@ impl Sftp {
             })))
             .await?;
         let mut result = rx.recv().await?;
-        result.tx.replace(self.tx.clone());
+        result.initialize_sender(self.tx.clone());
         Ok(result)
     }
 
@@ -83,7 +83,7 @@ impl Sftp {
             })))
             .await?;
         let mut result = rx.recv().await?;
-        result.tx.replace(self.tx.clone());
+        result.initialize_sender(self.tx.clone());
         Ok(result)
     }
 

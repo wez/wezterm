@@ -654,7 +654,7 @@ impl SessionInner {
         let file_id = self.next_file_id;
         self.next_file_id += 1;
 
-        let file = File { file_id, tx: None };
+        let file = File::new(file_id);
         (file_id, file)
     }
 
