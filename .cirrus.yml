@@ -13,6 +13,7 @@ task:
     - chmod +x /tmp/rustup.sh
     - RUSTUP_IO_THREADS=1 /tmp/rustup.sh -y -q
     - env PATH=$HOME/.cargo/bin:$PATH bash get-deps
+    - chmod og-rw $HOME
   test_script:
     - env PATH=$HOME/.cargo/bin:$PATH cargo build --all --release
     - env PATH=$HOME/.cargo/bin:$PATH cargo test --all --release
