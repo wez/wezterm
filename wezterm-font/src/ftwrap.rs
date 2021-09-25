@@ -101,6 +101,7 @@ struct FaceSize {
     is_scaled: bool,
 }
 
+#[derive(Debug)]
 pub struct SelectedFontSize {
     pub width: f64,
     pub height: f64,
@@ -383,9 +384,16 @@ impl Face {
                 }
                 let best = best.unwrap();
                 self.select_size(best.idx)?;
+                // Compute the cell metrics at this size.
+                // This stuff is a bit weird; for GohuFont.otb, cell_metrics()
+                // returns (8.0, 0.0) when the selected bitmap strike is (4, 14).
+                // 4 pixels is too thin for this font, so we take the max of the
+                // known dimensions to produce the size.
+                // <https://github.com/wez/wezterm/issues/1165>
+                let (m_width, m_height) = self.cell_metrics();
                 SelectedFontSize {
-                    width: f64::from(best.width),
-                    height: f64::from(best.height),
+                    width: f64::from(best.width).max(m_width),
+                    height: f64::from(best.height).max(m_height),
                     is_scaled: false,
                 }
             }
