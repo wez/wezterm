@@ -2,9 +2,8 @@ use crate::sshd::session;
 use assert_fs::{prelude::*, TempDir};
 use predicates::prelude::*;
 use rstest::*;
-use ssh2::FileType;
 use std::path::PathBuf;
-use wezterm_ssh::Session;
+use wezterm_ssh::{FileType, Session};
 
 // Sftp file tests
 mod file;
@@ -51,7 +50,7 @@ async fn readdir_should_return_list_of_directories_files_and_symlinks(#[future] 
         .await
         .expect("Failed to read directory")
         .into_iter()
-        .map(|(p, s)| (p, file_type_to_str(s.file_type())))
+        .map(|(p, s)| (p, file_type_to_str(s.ty)))
         .collect::<Vec<(PathBuf, &'static str)>>();
     contents.sort_unstable_by_key(|(p, _)| p.to_path_buf());
 
@@ -226,16 +225,16 @@ async fn stat_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
     let link = temp.child("link");
     link.symlink_to_file(file.path()).unwrap();
 
-    let stat = session
+    let metadata = session
         .sftp()
         .stat(link.path())
         .await
         .expect("Failed to stat symlink");
 
     // Verify that file stat makes sense
-    assert!(stat.is_file(), "Invalid file stat returned");
-    assert!(stat.file_type().is_file(), "Invalid file stat returned");
-    assert!(!stat.file_type().is_symlink(), "Invalid file stat returned");
+    assert!(metadata.is_file(), "Invalid file stat returned");
+    assert!(metadata.ty.is_file(), "Invalid file stat returned");
+    assert!(!metadata.ty.is_symlink(), "Invalid file stat returned");
 }
 
 #[rstest]
@@ -252,16 +251,16 @@ async fn stat_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
     let link = temp.child("link");
     link.symlink_to_dir(dir.path()).unwrap();
 
-    let stat = session
+    let metadata = session
         .sftp()
         .stat(link.path())
         .await
         .expect("Failed to stat symlink");
 
     // Verify that file stat makes sense
-    assert!(stat.is_dir(), "Invalid file stat returned");
-    assert!(stat.file_type().is_dir(), "Invalid file stat returned");
-    assert!(!stat.file_type().is_symlink(), "Invalid file stat returned");
+    assert!(metadata.is_dir(), "Invalid file stat returned");
+    assert!(metadata.ty.is_dir(), "Invalid file stat returned");
+    assert!(!metadata.ty.is_symlink(), "Invalid file stat returned");
 }
 
 #[rstest]
@@ -325,19 +324,16 @@ async fn lstat_should_return_metadata_about_symlink_pointing_to_a_file(#[future]
     let link = temp.child("link");
     link.symlink_to_file(file.path()).unwrap();
 
-    let lstat = session
+    let metadata = session
         .sftp()
         .lstat(link.path())
         .await
         .expect("Failed to lstat symlink");
 
     // Verify that file lstat makes sense
-    assert!(!lstat.is_file(), "Invalid file lstat returned");
-    assert!(!lstat.file_type().is_file(), "Invalid file lstat returned");
-    assert!(
-        lstat.file_type().is_symlink(),
-        "Invalid file lstat returned"
-    );
+    assert!(!metadata.is_file(), "Invalid file lstat returned");
+    assert!(!metadata.ty.is_file(), "Invalid file lstat returned");
+    assert!(metadata.ty.is_symlink(), "Invalid file lstat returned");
 }
 
 #[rstest]
@@ -354,19 +350,16 @@ async fn lstat_should_return_metadata_about_symlink_pointing_to_a_directory(
     let link = temp.child("link");
     link.symlink_to_dir(dir.path()).unwrap();
 
-    let lstat = session
+    let metadata = session
         .sftp()
         .lstat(link.path())
         .await
         .expect("Failed to lstat symlink");
 
     // Verify that file lstat makes sense
-    assert!(!lstat.is_dir(), "Invalid file lstat returned");
-    assert!(!lstat.file_type().is_dir(), "Invalid file lstat returned");
-    assert!(
-        lstat.file_type().is_symlink(),
-        "Invalid file lstat returned"
-    );
+    assert!(!metadata.is_dir(), "Invalid file lstat returned");
+    assert!(!metadata.ty.is_dir(), "Invalid file lstat returned");
+    assert!(metadata.ty.is_symlink(), "Invalid file lstat returned");
 }
 
 #[rstest]
@@ -586,7 +579,7 @@ async fn rename_should_support_singular_file(#[future] session: Session) {
 
     session
         .sftp()
-        .rename(file.path(), dst.path(), None)
+        .rename(file.path(), dst.path(), Default::default())
         .await
         .expect("Failed to rename file");
 
@@ -612,7 +605,7 @@ async fn rename_should_support_dirtectory(#[future] session: Session) {
 
     session
         .sftp()
-        .rename(dir.path(), dst.path(), None)
+        .rename(dir.path(), dst.path(), Default::default())
         .await
         .expect("Failed to rename directory");
 
@@ -637,7 +630,7 @@ async fn rename_should_fail_if_source_path_missing(#[future] session: Session) {
 
     let result = session
         .sftp()
-        .rename(missing.path(), dst.path(), None)
+        .rename(missing.path(), dst.path(), Default::default())
         .await;
     assert!(
         result.is_err(),

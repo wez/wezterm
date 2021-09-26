@@ -1,13 +1,17 @@
 use super::{SessionRequest, SessionSender};
 use smol::channel::{bounded, Sender};
-use ssh2::{FileStat, OpenFlags, OpenType, RenameFlags};
-use std::{fmt, path::PathBuf};
+use std::path::PathBuf;
 
 mod file;
 pub use file::File;
 pub(crate) use file::{
     CloseFile, FileId, FileRequest, FlushFile, FsyncFile, ReadFile, ReaddirFile, SetstatFile,
     StatFile, WriteFile,
+};
+
+mod types;
+pub use types::{
+    FilePermissions, FileType, Metadata, OpenFileType, OpenOptions, RenameOptions, WriteMode,
 };
 
 /// Represents an open sftp channel for performing filesystem operations
@@ -23,17 +27,14 @@ impl Sftp {
     pub async fn open_mode(
         &self,
         filename: impl Into<PathBuf>,
-        flags: OpenFlags,
-        mode: i32,
-        open_type: OpenType,
+        opts: OpenOptions,
     ) -> anyhow::Result<File> {
         let (reply, rx) = bounded(1);
+
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::OpenMode(OpenMode {
                 filename: filename.into(),
-                flags,
-                mode,
-                open_type,
+                opts,
                 reply,
             })))
             .await?;
@@ -99,7 +100,7 @@ impl Sftp {
     pub async fn readdir(
         &self,
         filename: impl Into<PathBuf>,
-    ) -> anyhow::Result<Vec<(PathBuf, FileStat)>> {
+    ) -> anyhow::Result<Vec<(PathBuf, Metadata)>> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Readdir(Readdir {
@@ -145,7 +146,7 @@ impl Sftp {
     /// Get the metadata for a file, performed by stat(2).
     ///
     /// See [`Sftp::stat`] for more information.
-    pub async fn stat(&self, filename: impl Into<PathBuf>) -> anyhow::Result<FileStat> {
+    pub async fn stat(&self, filename: impl Into<PathBuf>) -> anyhow::Result<Metadata> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Stat(Stat {
@@ -160,7 +161,7 @@ impl Sftp {
     /// Get the metadata for a file, performed by lstat(2).
     ///
     /// See [`Sftp::lstat`] for more information.
-    pub async fn lstat(&self, filename: impl Into<PathBuf>) -> anyhow::Result<FileStat> {
+    pub async fn lstat(&self, filename: impl Into<PathBuf>) -> anyhow::Result<Metadata> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Lstat(Lstat {
@@ -178,13 +179,13 @@ impl Sftp {
     pub async fn setstat(
         &self,
         filename: impl Into<PathBuf>,
-        stat: FileStat,
+        metadata: Metadata,
     ) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Setstat(Setstat {
                 filename: filename.into(),
-                stat,
+                metadata,
                 reply,
             })))
             .await?;
@@ -249,14 +250,14 @@ impl Sftp {
         &self,
         src: impl Into<PathBuf>,
         dst: impl Into<PathBuf>,
-        flags: Option<RenameFlags>,
+        opts: RenameOptions,
     ) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Rename(Rename {
                 src: src.into(),
                 dst: dst.into(),
-                flags,
+                opts,
                 reply,
             })))
             .await?;
@@ -302,31 +303,11 @@ pub(crate) enum SftpRequest {
     File(FileRequest),
 }
 
+#[derive(Debug)]
 pub(crate) struct OpenMode {
     pub filename: PathBuf,
-    pub flags: OpenFlags,
-    pub mode: i32,
-    pub open_type: OpenType,
+    pub opts: OpenOptions,
     pub reply: Sender<File>,
-}
-
-impl fmt::Debug for OpenMode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // NOTE: OpenType does not implement debug,
-        //       so we create a string representation
-        let open_type_string = match self.open_type {
-            OpenType::Dir => String::from("OpenType::Dir"),
-            OpenType::File => String::from("OpenType::File"),
-        };
-
-        f.debug_struct("OpenMode")
-            .field("filename", &self.filename)
-            .field("flags", &self.flags)
-            .field("mode", &self.mode)
-            .field("open_type", &open_type_string)
-            .field("reply", &self.reply)
-            .finish()
-    }
 }
 
 #[derive(Debug)]
@@ -350,7 +331,7 @@ pub(crate) struct Opendir {
 #[derive(Debug)]
 pub(crate) struct Readdir {
     pub filename: PathBuf,
-    pub reply: Sender<Vec<(PathBuf, FileStat)>>,
+    pub reply: Sender<Vec<(PathBuf, Metadata)>>,
 }
 
 #[derive(Debug)]
@@ -369,19 +350,19 @@ pub(crate) struct Rmdir {
 #[derive(Debug)]
 pub(crate) struct Stat {
     pub filename: PathBuf,
-    pub reply: Sender<FileStat>,
+    pub reply: Sender<Metadata>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Lstat {
     pub filename: PathBuf,
-    pub reply: Sender<FileStat>,
+    pub reply: Sender<Metadata>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Setstat {
     pub filename: PathBuf,
-    pub stat: FileStat,
+    pub metadata: Metadata,
     pub reply: Sender<()>,
 }
 
@@ -408,7 +389,7 @@ pub(crate) struct Realpath {
 pub(crate) struct Rename {
     pub src: PathBuf,
     pub dst: PathBuf,
-    pub flags: Option<RenameFlags>,
+    pub opts: RenameOptions,
     pub reply: Sender<()>,
 }
 

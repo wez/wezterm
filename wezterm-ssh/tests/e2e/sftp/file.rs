@@ -47,8 +47,8 @@ async fn readdir_should_retrieve_next_dir_entry(#[future] session: Session) {
 
     // Collect all of the directory contents (. and .. are included)
     let mut contents = Vec::new();
-    while let Ok((path, stat)) = remote_dir.readdir().await {
-        let ft = stat.file_type();
+    while let Ok((path, metadata)) = remote_dir.readdir().await {
+        let ft = metadata.ty;
         contents.push((
             path,
             if ft.is_dir() {

@@ -16,7 +16,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 mod sftp;
-pub use sftp::{File, Sftp};
+pub use sftp::{
+    File, FilePermissions, FileType, Metadata, OpenFileType, OpenOptions, RenameOptions, Sftp,
+    WriteMode,
+};
 use sftp::{FileId, FileRequest, SftpRequest};
 
 #[derive(Debug)]
@@ -621,11 +624,15 @@ impl SessionInner {
         sess: &ssh2::Session,
         open_mode: &sftp::OpenMode,
     ) -> anyhow::Result<()> {
+        let flags: ssh2::OpenFlags = open_mode.opts.into();
+        let mode = open_mode.opts.mode;
+        let open_type: ssh2::OpenType = open_mode.opts.ty.into();
+
         let ssh_file = self.init_sftp(sess)?.open_mode(
             open_mode.filename.as_path(),
-            open_mode.flags,
-            open_mode.mode,
-            open_mode.open_type,
+            flags,
+            mode,
+            open_type,
         )?;
 
         let (file_id, file) = self.make_file();
@@ -761,12 +768,12 @@ impl SessionInner {
     ) -> anyhow::Result<()> {
         let sftp::SetstatFile {
             file_id,
-            stat,
+            metadata,
             reply,
         } = setstat_file;
 
         if let Some(file) = self.files.get_mut(file_id) {
-            file.setstat(stat.clone())?;
+            file.setstat((*metadata).into())?;
         }
         reply.try_send(())?;
 
@@ -781,7 +788,7 @@ impl SessionInner {
     ) -> anyhow::Result<()> {
         if let Some(file) = self.files.get_mut(&stat_file.file_id) {
             let stat = file.stat()?;
-            stat_file.reply.try_send(stat)?;
+            stat_file.reply.try_send(Metadata::from(stat))?;
         }
 
         Ok(())
@@ -794,8 +801,8 @@ impl SessionInner {
         readdir_file: &sftp::ReaddirFile,
     ) -> anyhow::Result<()> {
         if let Some(file) = self.files.get_mut(&readdir_file.file_id) {
-            let result = file.readdir()?;
-            readdir_file.reply.try_send(result)?;
+            let (path, stat) = file.readdir()?;
+            readdir_file.reply.try_send((path, Metadata::from(stat)))?;
         }
 
         Ok(())
@@ -819,7 +826,12 @@ impl SessionInner {
     ///
     /// See [`Sftp::readdir`] for more information.
     pub fn readdir(&mut self, sess: &ssh2::Session, readdir: &sftp::Readdir) -> anyhow::Result<()> {
-        let result = self.init_sftp(sess)?.readdir(readdir.filename.as_path())?;
+        let result = self
+            .init_sftp(sess)?
+            .readdir(readdir.filename.as_path())?
+            .into_iter()
+            .map(|(path, stat)| (path, Metadata::from(stat)))
+            .collect();
         readdir.reply.try_send(result)?;
 
         Ok(())
@@ -850,8 +862,8 @@ impl SessionInner {
     ///
     /// See [`Sftp::stat`] for more information.
     pub fn stat(&mut self, sess: &ssh2::Session, stat: &sftp::Stat) -> anyhow::Result<()> {
-        let stat_data = self.init_sftp(sess)?.stat(stat.filename.as_path())?;
-        stat.reply.try_send(stat_data)?;
+        let metadata = Metadata::from(self.init_sftp(sess)?.stat(stat.filename.as_path())?);
+        stat.reply.try_send(metadata)?;
 
         Ok(())
     }
@@ -860,8 +872,8 @@ impl SessionInner {
     ///
     /// See [`Sftp::lstat`] for more information.
     pub fn lstat(&mut self, sess: &ssh2::Session, lstat: &sftp::Lstat) -> anyhow::Result<()> {
-        let stat_data = self.init_sftp(sess)?.lstat(lstat.filename.as_path())?;
-        lstat.reply.try_send(stat_data)?;
+        let metadata = Metadata::from(self.init_sftp(sess)?.lstat(lstat.filename.as_path())?);
+        lstat.reply.try_send(metadata)?;
 
         Ok(())
     }
@@ -871,7 +883,7 @@ impl SessionInner {
     /// See [`Sftp::setstat`] for more information.
     pub fn setstat(&mut self, sess: &ssh2::Session, setstat: &sftp::Setstat) -> anyhow::Result<()> {
         self.init_sftp(sess)?
-            .setstat(setstat.filename.as_path(), setstat.stat.clone())?;
+            .setstat(setstat.filename.as_path(), setstat.metadata.into())?;
         setstat.reply.try_send(())?;
 
         Ok(())
@@ -923,7 +935,7 @@ impl SessionInner {
         self.init_sftp(sess)?.rename(
             rename.src.as_path(),
             rename.dst.as_path(),
-            rename.flags.as_ref().copied(),
+            Some(rename.opts.into()),
         )?;
         rename.reply.try_send(())?;
 
