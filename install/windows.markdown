@@ -42,6 +42,7 @@ scoop itself can be installed like so:
 scoop bucket add extras
 scoop install wezterm
 ```
+
 ### For `Chocolatey` users
 
 If you prefer to use [Chocolatey](https://chocolatey.org) to manage software, wezterm is availabe from the Community Repository.
@@ -49,10 +50,4 @@ It can be installed like so:
 
 ```bash
 choco install wezterm -y
-```
-
-Alternatively, if you'd prefer the Portable installation:
-
-```bash
-choco install wezterm.portable -y
 ```
