@@ -8,6 +8,11 @@ TAG_NAME=${TAG_NAME:-$(git show -s "--format=%cd-%h" "--date=format:%Y%m%d-%H%M%
 
 HERE=$(pwd)
 
+if test -z "${SUDO+x}" && hash sudo 2>/dev/null; then
+  SUDO="sudo"
+fi
+
+
 case $OSTYPE in
   darwin*)
     zipdir=WezTerm-macos-$TAG_NAME
@@ -158,7 +163,7 @@ EOF
         fakeroot dpkg-deb --build pkg/debian $debname.deb
 
         if [[ "$BUILD_REASON" != '' ]] ; then
-          sudo apt-get install ./$debname.deb
+          $SUDO apt-get install ./$debname.deb
         fi
 
         mv pkg/debian pkg/wezterm
