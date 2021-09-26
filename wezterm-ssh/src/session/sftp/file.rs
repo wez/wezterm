@@ -1,4 +1,4 @@
-use super::{FileStat, SessionRequest, SessionSender, SftpRequest};
+use super::{Metadata, SessionRequest, SessionSender, SftpRequest};
 use smol::{
     channel::{bounded, Sender},
     future::FutureExt,
@@ -70,20 +70,20 @@ pub(crate) struct FlushFile {
 #[derive(Debug)]
 pub(crate) struct SetstatFile {
     pub file_id: FileId,
-    pub stat: FileStat,
+    pub metadata: Metadata,
     pub reply: Sender<()>,
 }
 
 #[derive(Debug)]
 pub(crate) struct StatFile {
     pub file_id: FileId,
-    pub reply: Sender<FileStat>,
+    pub reply: Sender<Metadata>,
 }
 
 #[derive(Debug)]
 pub(crate) struct ReaddirFile {
     pub file_id: FileId,
-    pub reply: Sender<(PathBuf, FileStat)>,
+    pub reply: Sender<(PathBuf, Metadata)>,
 }
 
 #[derive(Debug)]
@@ -131,7 +131,7 @@ impl File {
     /// Set the metadata for this handle.
     ///
     /// See [`ssh2::File::setstat`] for more information.
-    pub async fn setstat(&self, stat: FileStat) -> anyhow::Result<()> {
+    pub async fn setstat(&self, metadata: Metadata) -> anyhow::Result<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
@@ -139,7 +139,7 @@ impl File {
             .send(SessionRequest::Sftp(SftpRequest::File(
                 FileRequest::Setstat(SetstatFile {
                     file_id: self.file_id,
-                    stat,
+                    metadata,
                     reply,
                 }),
             )))
@@ -151,7 +151,7 @@ impl File {
     /// Get the metadata for this handle.
     ///
     /// See [`ssh2::File::stat`] for more information.
-    pub async fn stat(&self) -> anyhow::Result<FileStat> {
+    pub async fn stat(&self) -> anyhow::Result<Metadata> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
@@ -178,7 +178,7 @@ impl File {
     /// files in this directory.
     ///
     /// See [`ssh2::File::readdir`] for more information.
-    pub async fn readdir(&self) -> anyhow::Result<(PathBuf, FileStat)> {
+    pub async fn readdir(&self) -> anyhow::Result<(PathBuf, Metadata)> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
