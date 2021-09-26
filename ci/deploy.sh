@@ -148,15 +148,16 @@ Provides: x-terminal-emulator
 Source: https://wezfurlong.org/wezterm/
 EOF
 
-        deps=$(cd pkg && dpkg-shlibdeps -O -e ../target/release/wezterm-gui ../target/release/wezterm-mux-server ../target/release/wezterm ../target/release/strip-ansi-escapes)
-        mv pkg/debian/control pkg/debian/DEBIAN/control
-        echo $deps | sed -e 's/shlibs:Depends=/Depends: /' >> pkg/debian/DEBIAN/control
-        cat pkg/debian/DEBIAN/control
-
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-mux-server
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-gui
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm
         install -Dsm755 -t pkg/debian/usr/bin target/release/strip-ansi-escapes
+
+        deps=$(cd pkg && dpkg-shlibdeps -O -e debian/usr/bin/*)
+        mv pkg/debian/control pkg/debian/DEBIAN/control
+        echo $deps | sed -e 's/shlibs:Depends=/Depends: /' >> pkg/debian/DEBIAN/control
+        cat pkg/debian/DEBIAN/control
+
         install -Dm644 assets/icon/terminal.png pkg/debian/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
         install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/org.wezfurlong.wezterm.desktop
         install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
