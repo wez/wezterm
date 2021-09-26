@@ -561,8 +561,7 @@ TARGETS = [
     Target(container="debian:10.3", continuous_only=True),
     Target(container="debian:11", continuous_only=True),
     Target(name="macos", os="macos-11"),
-    Target(container="fedora:31"),
-    Target(container="fedora:32"),
+    # https://fedoraproject.org/wiki/End_of_life?rd=LifeCycle/EOL
     Target(container="fedora:33"),
     Target(container="fedora:34"),
     Target(container="centos:7", bootstrap_git=True),
