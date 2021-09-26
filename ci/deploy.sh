@@ -132,7 +132,7 @@ EOF
       Ubuntu*|Debian*)
         rm -rf pkg
         mkdir -p pkg/debian/usr/bin pkg/debian/DEBIAN pkg/debian/usr/share/{applications,wezterm}
-        cat > pkg/debian/DEBIAN/control <<EOF
+        cat > pkg/debian/control <<EOF
 Package: wezterm
 Version: ${TAG_NAME#nightly-}
 Architecture: $(dpkg-architecture -q DEB_BUILD_ARCH_CPU)
@@ -144,9 +144,15 @@ Description: Wez's Terminal Emulator.
  wezterm is a terminal emulator with support for modern features
  such as fonts with ligatures, hyperlinks, tabs and multiple
  windows.
-Depends: libc6, libegl-mesa0, libxcb-icccm4, libxcb-ewmh2, libxcb-keysyms1, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0, libfontconfig1, xdg-utils, libxcb-render0, libxcb-shape0, libx11-6, libegl1, libxcb-util1, libxcb-image0
 Provides: x-terminal-emulator
+Source: https://wezfurlong.org/wezterm/
 EOF
+
+        deps=$(cd pkg && dpkg-shlibdeps -O -e ../target/release/wezterm-gui ../target/release/wezterm-mux-server ../target/release/wezterm ../target/release/strip-ansi-escapes)
+        mv pkg/debian/control pkg/debian/DEBIAN/control
+        echo $deps | sed -e 's/shlibs:Depends=/Depends: /' >> pkg/debian/DEBIAN/control
+        cat pkg/debian/DEBIAN/control
+
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-mux-server
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-gui
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm
