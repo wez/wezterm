@@ -9,7 +9,7 @@ that wezterm makes when the bell rings.
 
 The follow are possible values:
 
-* `"SystemBeep"` - perform the system beep or alert sound. This is the default. On some systems, it may not produce a beep sound.
+* `"SystemBeep"` - perform the system beep or alert sound. This is the default. On Wayland systems, which have no system beep function, it does not produce a sound.
 * `"Disabled"` - don't make a sound
 
 

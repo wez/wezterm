@@ -70,6 +70,12 @@ impl ConnectionOps for Connection {
             }
         }
     }
+
+    fn beep(&self) {
+        unsafe {
+            MessageBeep(MB_OK);
+        }
+    }
 }
 
 impl Connection {
