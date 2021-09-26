@@ -137,6 +137,14 @@ impl ConnectionOps for Connection {
             Self::Wayland(w) => w.get_appearance(),
         }
     }
+
+    fn beep(&self) {
+        match self {
+            Self::X11(x) => x.beep(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.beep(),
+        }
+    }
 }
 
 impl Window {

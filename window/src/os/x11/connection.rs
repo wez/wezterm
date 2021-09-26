@@ -228,6 +228,10 @@ impl ConnectionOps for XConnection {
 
         Ok(())
     }
+
+    fn beep(&self) {
+        xcb::xproto::bell(&self.conn, 0);
+    }
 }
 
 fn compute_default_dpi(xrm: &HashMap<String, String>, xsettings: &XSettingsMap) -> f64 {
