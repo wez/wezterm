@@ -144,7 +144,7 @@ Description: Wez's Terminal Emulator.
  wezterm is a terminal emulator with support for modern features
  such as fonts with ligatures, hyperlinks, tabs and multiple
  windows.
-Depends: libc6, libegl-mesa0, libxcb-icccm4, libxcb-ewmh2, libxcb-keysyms1, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0, libfontconfig1, xdg-utils, libxcb-render0, libxcb-shape0, libx11-6, libegl1, libxcb-util, libxcb-image0
+Depends: libc6, libegl-mesa0, libxcb-icccm4, libxcb-ewmh2, libxcb-keysyms1, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0, libfontconfig1, xdg-utils, libxcb-render0, libxcb-shape0, libx11-6, libegl1, libxcb-util1, libxcb-image0
 Provides: x-terminal-emulator
 EOF
         install -Dsm755 -t pkg/debian/usr/bin target/release/wezterm-mux-server
