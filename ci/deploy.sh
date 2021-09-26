@@ -156,6 +156,11 @@ EOF
           debname=wezterm-$TAG_NAME.$distro$distver
         fi
         fakeroot dpkg-deb --build pkg/debian $debname.deb
+
+        if [[ "$BUILD_REASON" != '' ]] ; then
+          sudo apt-get install ./$debname.deb
+        fi
+
         mv pkg/debian pkg/wezterm
         tar cJf $debname.tar.xz -C pkg wezterm
         rm -rf pkg
