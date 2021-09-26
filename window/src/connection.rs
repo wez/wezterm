@@ -45,4 +45,7 @@ pub trait ConnectionOps {
     /// This actions hides all of the windows of the application and switches
     /// focus away from it.
     fn hide_application(&self) {}
+
+    /// Perform the system beep/notification sound
+    fn beep(&self) {}
 }

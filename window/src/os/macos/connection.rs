@@ -112,4 +112,14 @@ impl ConnectionOps for Connection {
             let () = msg_send![self.ns_app, hide: self.ns_app];
         }
     }
+
+    fn beep(&self) {
+        unsafe {
+            NSBeep();
+        }
+    }
+}
+
+extern "C" {
+    fn NSBeep();
 }

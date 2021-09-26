@@ -50,3 +50,16 @@ pub struct VisualBell {
     pub fade_out_function: EasingFunction,
 }
 impl_lua_conversion!(VisualBell);
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub enum AudibleBell {
+    SystemBeep,
+    Disabled,
+}
+impl_lua_conversion!(AudibleBell);
+
+impl Default for AudibleBell {
+    fn default() -> AudibleBell {
+        Self::SystemBeep
+    }
+}

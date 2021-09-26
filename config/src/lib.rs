@@ -1227,6 +1227,9 @@ pub struct Config {
 
     #[serde(default)]
     pub visual_bell: VisualBell,
+
+    #[serde(default)]
+    pub audible_bell: AudibleBell,
 }
 impl_lua_conversion!(Config);
 

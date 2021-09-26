@@ -22,7 +22,8 @@ use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, SpawnCommand,
 };
 use config::{
-    configuration, ConfigHandle, GradientOrientation, TermConfig, WindowCloseConfirmation,
+    configuration, AudibleBell, ConfigHandle, GradientOrientation, TermConfig,
+    WindowCloseConfirmation,
 };
 use luahelper::impl_lua_conversion;
 use mlua::FromLua;
@@ -808,6 +809,13 @@ impl TermWindow {
                     alert: Alert::Bell,
                     pane_id,
                 } => {
+                    match self.config.audible_bell {
+                        AudibleBell::SystemBeep => {
+                            Connection::get().expect("on main thread").beep();
+                        }
+                        AudibleBell::Disabled => {}
+                    }
+
                     log::info!("Ding! (this is the bell) in pane {}", pane_id);
                     self.emit_window_event("bell", Some(pane_id));
 
