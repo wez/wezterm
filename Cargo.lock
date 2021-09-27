@@ -5382,6 +5382,7 @@ dependencies = [
  "structopt",
  "termwiz",
  "thiserror",
+ "whoami",
 ]
 
 [[package]]
@@ -5483,6 +5484,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f5c9678cd533558e28b416d66947b099742df1939307478db54f867137f1b60"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "whoami"
+version = "1.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cabfe22aa4936611957e0b5ad9ed0472ac52b2bfb9aedac4a3f3a91a03bd1ff0"
+dependencies = [
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

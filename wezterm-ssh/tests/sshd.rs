@@ -1,5 +1,5 @@
 use assert_fs::{prelude::*, TempDir};
-use once_cell::sync::OnceCell;
+use once_cell::sync::{Lazy, OnceCell};
 use rstest::*;
 use std::{
     collections::HashMap,
@@ -20,6 +20,8 @@ const BIN_PATH_STR: &str = "/usr/sbin/sshd";
 
 /// Port range to use when finding a port to bind to (using IANA guidance)
 const PORT_RANGE: (u16, u16) = (49152, 65535);
+
+const USERNAME: Lazy<String> = Lazy::new(|| whoami::username());
 
 pub struct SshKeygen;
 
@@ -92,6 +94,7 @@ impl Default for SshdConfig {
         let mut config = Self::new();
 
         config.set_authentication_methods(vec!["publickey".to_string()]);
+        config.set_use_privilege_separation(false);
         config.set_subsystem(true, true);
         config.set_use_pam(false);
         config.set_x11_forwarding(true);
@@ -400,6 +403,7 @@ pub async fn session(sshd: &'_ Sshd) -> Session {
     // generated identity file, and host file
     let mut config = config.for_host("localhost");
     config.insert("port".to_string(), port.to_string());
+    config.insert("user".to_string(), USERNAME.to_string());
     config.insert("identitiesonly".to_string(), "yes".to_string());
     config.insert(
         "identityfile".to_string(),

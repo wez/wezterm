@@ -162,7 +162,10 @@ class Target(object):
 
     def install_openssh_server(self):
         if self.uses_yum() or (self.uses_apt() and self.container):
-            return self.install_system_package("openssh-server")
+            return (
+                [RunStep("Ensure /run/sshd exists", "mkdir -p /run/sshd")]
+                + self.install_system_package("openssh-server")
+            )
         return []
 
     def install_newer_compiler(self):
