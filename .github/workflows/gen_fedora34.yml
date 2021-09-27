@@ -25,6 +25,9 @@ jobs:
       - name: "Install curl"
         shell: bash
         run: "yum install -y curl"
+      - name: "Install openssh-server"
+        shell: bash
+        run: "yum install -y openssh-server"
       - name: "checkout repo"
         uses: actions/checkout@v2
         with:
