@@ -1,16 +1,8 @@
-use super::{Metadata, SessionRequest, SessionSender, SftpRequest};
-use smol::{
-    channel::{bounded, Sender},
-    future::FutureExt,
-};
-use std::{
-    fmt,
-    future::Future,
-    io,
-    path::PathBuf,
-    pin::Pin,
-    task::{Context, Poll},
-};
+use super::{Metadata, SessionRequest, SessionSender, SftpChannelResult, SftpRequest};
+use smol::channel::{bounded, Sender};
+use smol::future::FutureExt;
+use std::task::{Context, Poll};
+use std::{fmt, future::Future, io, path::PathBuf, pin::Pin};
 
 pub(crate) type FileId = usize;
 
@@ -45,51 +37,51 @@ pub(crate) enum FileRequest {
 pub(crate) struct WriteFile {
     pub file_id: FileId,
     pub data: Vec<u8>,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct ReadFile {
     pub file_id: FileId,
     pub max_bytes: usize,
-    pub reply: Sender<Vec<u8>>,
+    pub reply: Sender<SftpChannelResult<Vec<u8>>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct CloseFile {
     pub file_id: FileId,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct FlushFile {
     pub file_id: FileId,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct SetstatFile {
     pub file_id: FileId,
     pub metadata: Metadata,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct StatFile {
     pub file_id: FileId,
-    pub reply: Sender<Metadata>,
+    pub reply: Sender<SftpChannelResult<Metadata>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct ReaddirFile {
     pub file_id: FileId,
-    pub reply: Sender<(PathBuf, Metadata)>,
+    pub reply: Sender<SftpChannelResult<(PathBuf, Metadata)>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct FsyncFile {
     pub file_id: FileId,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 impl fmt::Debug for File {
@@ -131,7 +123,7 @@ impl File {
     /// Set the metadata for this handle.
     ///
     /// See [`ssh2::File::setstat`] for more information.
-    pub async fn setstat(&self, metadata: Metadata) -> anyhow::Result<()> {
+    pub async fn setstat(&self, metadata: Metadata) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
@@ -144,14 +136,14 @@ impl File {
                 }),
             )))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Get the metadata for this handle.
     ///
     /// See [`ssh2::File::stat`] for more information.
-    pub async fn stat(&self) -> anyhow::Result<Metadata> {
+    pub async fn stat(&self) -> SftpChannelResult<Metadata> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
@@ -163,7 +155,7 @@ impl File {
                 },
             ))))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
@@ -190,7 +182,7 @@ impl File {
                 }),
             )))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
@@ -198,7 +190,7 @@ impl File {
     /// (like fsync(2)).
     ///
     /// See [`ssh2::File::fsync`] for more information.
-    pub async fn fsync(&self) -> anyhow::Result<()> {
+    pub async fn fsync(&self) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
@@ -210,7 +202,7 @@ impl File {
                 },
             ))))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 }
@@ -329,7 +321,7 @@ impl smol::io::AsyncWrite for File {
 }
 
 /// Writes some bytes to the file.
-async fn inner_write(tx: SessionSender, file_id: usize, data: Vec<u8>) -> anyhow::Result<()> {
+async fn inner_write(tx: SessionSender, file_id: usize, data: Vec<u8>) -> SftpChannelResult<()> {
     let (reply, rx) = bounded(1);
     tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Write(
         WriteFile {
@@ -339,7 +331,7 @@ async fn inner_write(tx: SessionSender, file_id: usize, data: Vec<u8>) -> anyhow
         },
     ))))
     .await?;
-    let result = rx.recv().await?;
+    let result = rx.recv().await??;
     Ok(result)
 }
 
@@ -351,7 +343,7 @@ async fn inner_read(
     tx: SessionSender,
     file_id: usize,
     max_bytes: usize,
-) -> anyhow::Result<Vec<u8>> {
+) -> SftpChannelResult<Vec<u8>> {
     let (reply, rx) = bounded(1);
     tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Read(
         ReadFile {
@@ -361,28 +353,28 @@ async fn inner_read(
         },
     ))))
     .await?;
-    let result = rx.recv().await?;
+    let result = rx.recv().await??;
     Ok(result)
 }
 
 /// Flushes the remote file
-async fn inner_flush(tx: SessionSender, file_id: usize) -> anyhow::Result<()> {
+async fn inner_flush(tx: SessionSender, file_id: usize) -> SftpChannelResult<()> {
     let (reply, rx) = bounded(1);
     tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Flush(
         FlushFile { file_id, reply },
     ))))
     .await?;
-    let result = rx.recv().await?;
+    let result = rx.recv().await??;
     Ok(result)
 }
 
 /// Closes the handle to the remote file
-async fn inner_close(tx: SessionSender, file_id: usize) -> anyhow::Result<()> {
+async fn inner_close(tx: SessionSender, file_id: usize) -> SftpChannelResult<()> {
     let (reply, rx) = bounded(1);
     tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Close(
         CloseFile { file_id, reply },
     ))))
     .await?;
-    let result = rx.recv().await?;
+    let result = rx.recv().await??;
     Ok(result)
 }

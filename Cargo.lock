@@ -5381,6 +5381,7 @@ dependencies = [
  "ssh2",
  "structopt",
  "termwiz",
+ "thiserror",
 ]
 
 [[package]]

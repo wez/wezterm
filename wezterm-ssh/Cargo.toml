@@ -24,18 +24,19 @@ portable-pty = { version="0.5", path = "../pty" }
 regex = "1"
 smol = "1.2"
 ssh2 = {version="0.9.3", features=["openssl-on-win32"]}
+thiserror = "1.0"
 
 # Not used directly, but is used to centralize the openssl vendor feature selection
 async_ossl = { path = "../async_ossl" }
 
 [dev-dependencies]
 assert_fs = "1.0.4"
-indoc = "1.0.3"
+indoc = "1.0"
 k9 = "0.11.0"
-once_cell = "1.8.0"
-predicates = "2.0.2"
+once_cell = "1.8"
+predicates = "2.0"
 pretty_env_logger = "0.4"
-rstest = "0.11.0"
+rstest = "0.11"
 shell-words = "1.0"
 smol-potat = "1.1.2"
 structopt = "0.3"

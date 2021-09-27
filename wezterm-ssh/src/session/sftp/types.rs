@@ -23,14 +23,17 @@ pub enum FileType {
 }
 
 impl FileType {
+    /// Returns true if file is a type of directory
     pub fn is_dir(self) -> bool {
         matches!(self, Self::Dir)
     }
 
+    /// Returns true if file is a type of regular file
     pub fn is_file(self) -> bool {
         matches!(self, Self::File)
     }
 
+    /// Returns true if file is a type of symlink
     pub fn is_symlink(self) -> bool {
         matches!(self, Self::Symlink)
     }
@@ -164,16 +167,26 @@ impl Metadata {
         self.size.unwrap_or(0)
     }
 
+    /// Returns true if metadata is for a directory
     pub fn is_dir(self) -> bool {
         self.ty.is_dir()
     }
 
+    /// Returns true if metadata is for a regular file
     pub fn is_file(self) -> bool {
         self.ty.is_file()
     }
 
+    /// Returns true if metadata is for a symlink
     pub fn is_symlink(self) -> bool {
         self.ty.is_symlink()
+    }
+
+    /// Returns true if metadata permissions indicate file is readonly
+    pub fn is_readonly(self) -> bool {
+        self.permissions
+            .map(FilePermissions::is_readonly)
+            .unwrap_or_default()
     }
 }
 

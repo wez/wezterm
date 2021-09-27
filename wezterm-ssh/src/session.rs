@@ -18,7 +18,7 @@ use std::time::Duration;
 mod sftp;
 pub use sftp::{
     File, FilePermissions, FileType, Metadata, OpenFileType, OpenOptions, RenameOptions, Sftp,
-    WriteMode,
+    SftpChannelError, SftpChannelResult, SftpError, SftpResult, WriteMode,
 };
 use sftp::{FileId, FileRequest, SftpRequest};
 
@@ -628,16 +628,19 @@ impl SessionInner {
         let mode = open_mode.opts.mode;
         let open_type: ssh2::OpenType = open_mode.opts.ty.into();
 
-        let ssh_file = self.init_sftp(sess)?.open_mode(
-            open_mode.filename.as_path(),
-            flags,
-            mode,
-            open_type,
-        )?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.open_mode(open_mode.filename.as_path(), flags, mode, open_type)
+                .map_err(SftpChannelError::from)
+        });
 
-        let (file_id, file) = self.make_file();
-        open_mode.reply.try_send(file)?;
-        self.files.insert(file_id, ssh_file);
+        match result {
+            Ok(ssh_file) => {
+                let (file_id, file) = self.make_file();
+                open_mode.reply.try_send(Ok(file))?;
+                self.files.insert(file_id, ssh_file);
+            }
+            Err(x) => open_mode.reply.try_send(Err(x))?,
+        }
 
         Ok(())
     }
@@ -646,11 +649,19 @@ impl SessionInner {
     ///
     /// See [`Sftp::open`] for more information.
     pub fn open(&mut self, sess: &ssh2::Session, open: &sftp::Open) -> anyhow::Result<()> {
-        let ssh_file = self.init_sftp(sess)?.open(open.filename.as_path())?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.open(open.filename.as_path())
+                .map_err(SftpChannelError::from)
+        });
 
-        let (file_id, file) = self.make_file();
-        open.reply.try_send(file)?;
-        self.files.insert(file_id, ssh_file);
+        match result {
+            Ok(ssh_file) => {
+                let (file_id, file) = self.make_file();
+                open.reply.try_send(Ok(file))?;
+                self.files.insert(file_id, ssh_file);
+            }
+            Err(x) => open.reply.try_send(Err(x))?,
+        }
 
         Ok(())
     }
@@ -659,11 +670,19 @@ impl SessionInner {
     ///
     /// See [`Sftp::create`] for more information.
     pub fn create(&mut self, sess: &ssh2::Session, create: &sftp::Create) -> anyhow::Result<()> {
-        let ssh_file = self.init_sftp(sess)?.create(create.filename.as_path())?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.create(create.filename.as_path())
+                .map_err(SftpChannelError::from)
+        });
 
-        let (file_id, file) = self.make_file();
-        create.reply.try_send(file)?;
-        self.files.insert(file_id, ssh_file);
+        match result {
+            Ok(ssh_file) => {
+                let (file_id, file) = self.make_file();
+                create.reply.try_send(Ok(file))?;
+                self.files.insert(file_id, ssh_file);
+            }
+            Err(x) => create.reply.try_send(Err(x))?,
+        }
 
         Ok(())
     }
@@ -672,11 +691,19 @@ impl SessionInner {
     ///
     /// See [`Sftp::opendir`] for more information.
     pub fn opendir(&mut self, sess: &ssh2::Session, opendir: &sftp::Opendir) -> anyhow::Result<()> {
-        let ssh_file = self.init_sftp(sess)?.opendir(opendir.filename.as_path())?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.opendir(opendir.filename.as_path())
+                .map_err(SftpChannelError::from)
+        });
 
-        let (file_id, file) = self.make_file();
-        opendir.reply.try_send(file)?;
-        self.files.insert(file_id, ssh_file);
+        match result {
+            Ok(ssh_file) => {
+                let (file_id, file) = self.make_file();
+                opendir.reply.try_send(Ok(file))?;
+                self.files.insert(file_id, ssh_file);
+            }
+            Err(x) => opendir.reply.try_send(Err(x))?,
+        }
 
         Ok(())
     }
@@ -702,9 +729,9 @@ impl SessionInner {
         } = write_file;
 
         if let Some(file) = self.files.get_mut(file_id) {
-            file.write_all(data)?;
+            let result = file.write_all(data).map_err(SftpChannelError::from);
+            reply.try_send(result)?;
         }
-        reply.try_send(())?;
 
         Ok(())
     }
@@ -724,11 +751,13 @@ impl SessionInner {
         if let Some(file) = self.files.get_mut(file_id) {
             // TODO: Move this somewhere to avoid re-allocating buffer
             let mut buf = vec![0u8; *max_bytes];
-            let n = file.read(&mut buf)?;
-            buf.truncate(n);
-            reply.try_send(buf)?;
-        } else {
-            reply.try_send(Vec::new())?;
+            match file.read(&mut buf).map_err(SftpChannelError::from) {
+                Ok(n) => {
+                    buf.truncate(n);
+                    reply.try_send(Ok(buf))?;
+                }
+                Err(x) => reply.try_send(Err(x))?,
+            }
         }
 
         Ok(())
@@ -741,7 +770,7 @@ impl SessionInner {
         close_file: &sftp::CloseFile,
     ) -> anyhow::Result<()> {
         self.files.remove(&close_file.file_id);
-        close_file.reply.try_send(())?;
+        close_file.reply.try_send(Ok(()))?;
 
         Ok(())
     }
@@ -753,9 +782,9 @@ impl SessionInner {
         flush_file: &sftp::FlushFile,
     ) -> anyhow::Result<()> {
         if let Some(file) = self.files.get_mut(&flush_file.file_id) {
-            file.flush()?;
+            let result = file.flush().map_err(SftpChannelError::from);
+            flush_file.reply.try_send(result)?;
         }
-        flush_file.reply.try_send(())?;
 
         Ok(())
     }
@@ -773,9 +802,11 @@ impl SessionInner {
         } = setstat_file;
 
         if let Some(file) = self.files.get_mut(file_id) {
-            file.setstat((*metadata).into())?;
+            let result = file
+                .setstat((*metadata).into())
+                .map_err(SftpChannelError::from);
+            reply.try_send(result)?;
         }
-        reply.try_send(())?;
 
         Ok(())
     }
@@ -787,8 +818,11 @@ impl SessionInner {
         stat_file: &sftp::StatFile,
     ) -> anyhow::Result<()> {
         if let Some(file) = self.files.get_mut(&stat_file.file_id) {
-            let stat = file.stat()?;
-            stat_file.reply.try_send(Metadata::from(stat))?;
+            let result = file
+                .stat()
+                .map(Metadata::from)
+                .map_err(SftpChannelError::from);
+            stat_file.reply.try_send(result)?;
         }
 
         Ok(())
@@ -801,8 +835,11 @@ impl SessionInner {
         readdir_file: &sftp::ReaddirFile,
     ) -> anyhow::Result<()> {
         if let Some(file) = self.files.get_mut(&readdir_file.file_id) {
-            let (path, stat) = file.readdir()?;
-            readdir_file.reply.try_send((path, Metadata::from(stat)))?;
+            let result = file
+                .readdir()
+                .map(|(path, stat)| (path, Metadata::from(stat)))
+                .map_err(SftpChannelError::from);
+            readdir_file.reply.try_send(result)?;
         }
 
         Ok(())
@@ -815,9 +852,9 @@ impl SessionInner {
         fsync_file: &sftp::FsyncFile,
     ) -> anyhow::Result<()> {
         if let Some(file) = self.files.get_mut(&fsync_file.file_id) {
-            file.fsync()?;
+            let result = file.fsync().map_err(SftpChannelError::from);
+            fsync_file.reply.try_send(result)?;
         }
-        fsync_file.reply.try_send(())?;
 
         Ok(())
     }
@@ -826,12 +863,16 @@ impl SessionInner {
     ///
     /// See [`Sftp::readdir`] for more information.
     pub fn readdir(&mut self, sess: &ssh2::Session, readdir: &sftp::Readdir) -> anyhow::Result<()> {
-        let result = self
-            .init_sftp(sess)?
-            .readdir(readdir.filename.as_path())?
-            .into_iter()
-            .map(|(path, stat)| (path, Metadata::from(stat)))
-            .collect();
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.readdir(readdir.filename.as_path())
+                .map(|entries| {
+                    entries
+                        .into_iter()
+                        .map(|(path, stat)| (path, Metadata::from(stat)))
+                        .collect()
+                })
+                .map_err(SftpChannelError::from)
+        });
         readdir.reply.try_send(result)?;
 
         Ok(())
@@ -841,9 +882,11 @@ impl SessionInner {
     ///
     /// See [`Sftp::rmdir`] for more information.
     pub fn mkdir(&mut self, sess: &ssh2::Session, mkdir: &sftp::Mkdir) -> anyhow::Result<()> {
-        self.init_sftp(sess)?
-            .mkdir(mkdir.filename.as_path(), mkdir.mode)?;
-        mkdir.reply.try_send(())?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.mkdir(mkdir.filename.as_path(), mkdir.mode)
+                .map_err(SftpChannelError::from)
+        });
+        mkdir.reply.try_send(result)?;
 
         Ok(())
     }
@@ -852,8 +895,11 @@ impl SessionInner {
     ///
     /// See [`Sftp::rmdir`] for more information.
     pub fn rmdir(&mut self, sess: &ssh2::Session, rmdir: &sftp::Rmdir) -> anyhow::Result<()> {
-        self.init_sftp(sess)?.rmdir(rmdir.filename.as_path())?;
-        rmdir.reply.try_send(())?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.rmdir(rmdir.filename.as_path())
+                .map_err(SftpChannelError::from)
+        });
+        rmdir.reply.try_send(result)?;
 
         Ok(())
     }
@@ -862,8 +908,12 @@ impl SessionInner {
     ///
     /// See [`Sftp::stat`] for more information.
     pub fn stat(&mut self, sess: &ssh2::Session, stat: &sftp::Stat) -> anyhow::Result<()> {
-        let metadata = Metadata::from(self.init_sftp(sess)?.stat(stat.filename.as_path())?);
-        stat.reply.try_send(metadata)?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.stat(stat.filename.as_path())
+                .map(Metadata::from)
+                .map_err(SftpChannelError::from)
+        });
+        stat.reply.try_send(result)?;
 
         Ok(())
     }
@@ -872,8 +922,12 @@ impl SessionInner {
     ///
     /// See [`Sftp::lstat`] for more information.
     pub fn lstat(&mut self, sess: &ssh2::Session, lstat: &sftp::Lstat) -> anyhow::Result<()> {
-        let metadata = Metadata::from(self.init_sftp(sess)?.lstat(lstat.filename.as_path())?);
-        lstat.reply.try_send(metadata)?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.lstat(lstat.filename.as_path())
+                .map(Metadata::from)
+                .map_err(SftpChannelError::from)
+        });
+        lstat.reply.try_send(result)?;
 
         Ok(())
     }
@@ -882,9 +936,11 @@ impl SessionInner {
     ///
     /// See [`Sftp::setstat`] for more information.
     pub fn setstat(&mut self, sess: &ssh2::Session, setstat: &sftp::Setstat) -> anyhow::Result<()> {
-        self.init_sftp(sess)?
-            .setstat(setstat.filename.as_path(), setstat.metadata.into())?;
-        setstat.reply.try_send(())?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.setstat(setstat.filename.as_path(), setstat.metadata.into())
+                .map_err(SftpChannelError::from)
+        });
+        setstat.reply.try_send(result)?;
 
         Ok(())
     }
@@ -893,9 +949,11 @@ impl SessionInner {
     ///
     /// See [`Sftp::symlink`] for more information.
     pub fn symlink(&mut self, sess: &ssh2::Session, symlink: &sftp::Symlink) -> anyhow::Result<()> {
-        self.init_sftp(sess)?
-            .symlink(symlink.path.as_path(), symlink.target.as_path())?;
-        symlink.reply.try_send(())?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.symlink(symlink.path.as_path(), symlink.target.as_path())
+                .map_err(SftpChannelError::from)
+        });
+        symlink.reply.try_send(result)?;
 
         Ok(())
     }
@@ -908,8 +966,11 @@ impl SessionInner {
         sess: &ssh2::Session,
         readlink: &sftp::Readlink,
     ) -> anyhow::Result<()> {
-        let path = self.init_sftp(sess)?.readlink(readlink.path.as_path())?;
-        readlink.reply.try_send(path)?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.readlink(readlink.path.as_path())
+                .map_err(SftpChannelError::from)
+        });
+        readlink.reply.try_send(result)?;
 
         Ok(())
     }
@@ -922,8 +983,11 @@ impl SessionInner {
         sess: &ssh2::Session,
         realpath: &sftp::Realpath,
     ) -> anyhow::Result<()> {
-        let path = self.init_sftp(sess)?.realpath(realpath.path.as_path())?;
-        realpath.reply.try_send(path)?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.realpath(realpath.path.as_path())
+                .map_err(SftpChannelError::from)
+        });
+        realpath.reply.try_send(result)?;
 
         Ok(())
     }
@@ -932,12 +996,15 @@ impl SessionInner {
     ///
     /// See [`Sftp::rename`] for more information.
     pub fn rename(&mut self, sess: &ssh2::Session, rename: &sftp::Rename) -> anyhow::Result<()> {
-        self.init_sftp(sess)?.rename(
-            rename.src.as_path(),
-            rename.dst.as_path(),
-            Some(rename.opts.into()),
-        )?;
-        rename.reply.try_send(())?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.rename(
+                rename.src.as_path(),
+                rename.dst.as_path(),
+                Some(rename.opts.into()),
+            )
+            .map_err(SftpChannelError::from)
+        });
+        rename.reply.try_send(result)?;
 
         Ok(())
     }
@@ -946,8 +1013,11 @@ impl SessionInner {
     ///
     /// See [`Sftp::unlink`] for more information.
     pub fn unlink(&mut self, sess: &ssh2::Session, unlink: &sftp::Unlink) -> anyhow::Result<()> {
-        self.init_sftp(sess)?.unlink(unlink.file.as_path())?;
-        unlink.reply.try_send(())?;
+        let result = self.init_sftp(sess).and_then(|sftp| {
+            sftp.unlink(unlink.file.as_path())
+                .map_err(SftpChannelError::from)
+        });
+        unlink.reply.try_send(result)?;
 
         Ok(())
     }
@@ -956,27 +1026,18 @@ impl SessionInner {
     fn init_sftp<'a, 'b>(
         &'a mut self,
         sess: &'b ssh2::Session,
-    ) -> anyhow::Result<&'a mut ssh2::Sftp> {
+    ) -> SftpChannelResult<&'a mut ssh2::Sftp> {
         if self.sftp.is_none() {
-            self.do_blocking(sess, |this, sess| {
-                this.sftp = Some(sess.sftp()?);
-                Ok(())
-            })?;
+            let blocking = sess.is_blocking();
+            sess.set_blocking(true);
+
+            self.sftp = Some(sess.sftp()?);
+
+            sess.set_blocking(blocking);
         }
 
         // NOTE: sftp should have been replaced with Some(sftp) from above
         Ok(self.sftp.as_mut().unwrap())
-    }
-
-    fn do_blocking<F, R>(&mut self, sess: &ssh2::Session, mut f: F) -> anyhow::Result<R>
-    where
-        F: FnMut(&mut Self, &ssh2::Session) -> anyhow::Result<R>,
-    {
-        let blocking = sess.is_blocking();
-        sess.set_blocking(true);
-        let result = f(self, sess);
-        sess.set_blocking(blocking);
-        result
     }
 }
 
