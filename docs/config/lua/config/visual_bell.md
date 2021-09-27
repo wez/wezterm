@@ -43,4 +43,4 @@ return {
 }
 ```
 
-See also [audible_bell](audible_bell.md).
+See also [audible_bell](audible_bell.md) and [bell event](../window-events/bell.md).
