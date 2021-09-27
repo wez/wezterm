@@ -160,6 +160,11 @@ class Target(object):
             return self.install_system_package("curl")
         return []
 
+    def install_openssh_server(self):
+        if self.uses_yum() or (self.uses_apt() and self.container):
+            return self.install_system_package("openssh-server")
+        return []
+
     def install_newer_compiler(self):
         steps = []
         if self.name == "centos7":
@@ -493,6 +498,7 @@ cargo build --all --release""",
         steps += self.install_newer_compiler()
         steps += self.install_git()
         steps += self.install_curl()
+        steps += self.install_openssh_server()
         steps += [
             CheckoutStep(),
             # We need tags in order to use git describe for build/packaging

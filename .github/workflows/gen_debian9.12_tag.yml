@@ -36,6 +36,9 @@ jobs:
       - name: "Install curl"
         shell: bash
         run: "apt-get install -y curl"
+      - name: "Install openssh-server"
+        shell: bash
+        run: "apt-get install -y openssh-server"
       - name: "checkout repo"
         uses: actions/checkout@v2
         with:
