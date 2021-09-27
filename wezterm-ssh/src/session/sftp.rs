@@ -1,6 +1,10 @@
 use super::{SessionRequest, SessionSender};
-use smol::channel::{bounded, Sender};
+use smol::channel::{bounded, RecvError, Sender};
 use std::path::PathBuf;
+use thiserror::Error;
+
+mod error;
+pub use error::{SftpError, SftpResult};
 
 mod file;
 pub use file::File;
@@ -13,6 +17,28 @@ mod types;
 pub use types::{
     FilePermissions, FileType, Metadata, OpenFileType, OpenOptions, RenameOptions, WriteMode,
 };
+
+/// Represents the result of some SFTP channel operation
+pub type SftpChannelResult<T> = Result<T, SftpChannelError>;
+
+/// Represents an error that can occur when working with the SFTP channel
+#[derive(Debug, Error)]
+pub enum SftpChannelError {
+    #[error(transparent)]
+    Sftp(#[from] SftpError),
+
+    #[error("File IO failed: {}", .0)]
+    FileIo(#[from] std::io::Error),
+
+    #[error("Failed to send request: {}", .0)]
+    SendFailed(#[from] anyhow::Error),
+
+    #[error("Failed to receive response: {}", .0)]
+    RecvFailed(#[from] RecvError),
+
+    #[error("Library-specific error: {}", .0)]
+    Other(#[source] ssh2::Error),
+}
 
 /// Represents an open sftp channel for performing filesystem operations
 #[derive(Clone, Debug)]
@@ -28,7 +54,7 @@ impl Sftp {
         &self,
         filename: impl Into<PathBuf>,
         opts: OpenOptions,
-    ) -> anyhow::Result<File> {
+    ) -> SftpChannelResult<File> {
         let (reply, rx) = bounded(1);
 
         self.tx
@@ -38,7 +64,7 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let mut result = rx.recv().await?;
+        let mut result = rx.recv().await??;
         result.initialize_sender(self.tx.clone());
         Ok(result)
     }
@@ -46,7 +72,7 @@ impl Sftp {
     /// Helper to open a file in the `Read` mode.
     ///
     /// See [`Sftp::open`] for more information.
-    pub async fn open(&self, filename: impl Into<PathBuf>) -> anyhow::Result<File> {
+    pub async fn open(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<File> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Open(Open {
@@ -54,7 +80,7 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let mut result = rx.recv().await?;
+        let mut result = rx.recv().await??;
         result.initialize_sender(self.tx.clone());
         Ok(result)
     }
@@ -62,7 +88,7 @@ impl Sftp {
     /// Helper to create a file in write-only mode with truncation.
     ///
     /// See [`Sftp::create`] for more information.
-    pub async fn create(&self, filename: impl Into<PathBuf>) -> anyhow::Result<File> {
+    pub async fn create(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<File> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Create(Create {
@@ -70,7 +96,7 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let mut result = rx.recv().await?;
+        let mut result = rx.recv().await??;
         result.initialize_sender(self.tx.clone());
         Ok(result)
     }
@@ -78,7 +104,7 @@ impl Sftp {
     /// Helper to open a directory for reading its contents.
     ///
     /// See [`Sftp::opendir`] for more information.
-    pub async fn opendir(&self, filename: impl Into<PathBuf>) -> anyhow::Result<File> {
+    pub async fn opendir(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<File> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Opendir(Opendir {
@@ -86,7 +112,7 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let mut result = rx.recv().await?;
+        let mut result = rx.recv().await??;
         result.initialize_sender(self.tx.clone());
         Ok(result)
     }
@@ -100,7 +126,7 @@ impl Sftp {
     pub async fn readdir(
         &self,
         filename: impl Into<PathBuf>,
-    ) -> anyhow::Result<Vec<(PathBuf, Metadata)>> {
+    ) -> SftpChannelResult<Vec<(PathBuf, Metadata)>> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Readdir(Readdir {
@@ -108,14 +134,14 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Create a directory on the remote filesystem.
     ///
     /// See [`Sftp::rmdir`] for more information.
-    pub async fn mkdir(&self, filename: impl Into<PathBuf>, mode: i32) -> anyhow::Result<()> {
+    pub async fn mkdir(&self, filename: impl Into<PathBuf>, mode: i32) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Mkdir(Mkdir {
@@ -124,14 +150,14 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Remove a directory from the remote filesystem.
     ///
     /// See [`Sftp::rmdir`] for more information.
-    pub async fn rmdir(&self, filename: impl Into<PathBuf>) -> anyhow::Result<()> {
+    pub async fn rmdir(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Rmdir(Rmdir {
@@ -139,14 +165,14 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Get the metadata for a file, performed by stat(2).
     ///
     /// See [`Sftp::stat`] for more information.
-    pub async fn stat(&self, filename: impl Into<PathBuf>) -> anyhow::Result<Metadata> {
+    pub async fn stat(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<Metadata> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Stat(Stat {
@@ -154,14 +180,14 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Get the metadata for a file, performed by lstat(2).
     ///
     /// See [`Sftp::lstat`] for more information.
-    pub async fn lstat(&self, filename: impl Into<PathBuf>) -> anyhow::Result<Metadata> {
+    pub async fn lstat(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<Metadata> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Lstat(Lstat {
@@ -169,7 +195,7 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
@@ -180,7 +206,7 @@ impl Sftp {
         &self,
         filename: impl Into<PathBuf>,
         metadata: Metadata,
-    ) -> anyhow::Result<()> {
+    ) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Setstat(Setstat {
@@ -189,7 +215,7 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
@@ -200,7 +226,7 @@ impl Sftp {
         &self,
         path: impl Into<PathBuf>,
         target: impl Into<PathBuf>,
-    ) -> anyhow::Result<()> {
+    ) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Symlink(Symlink {
@@ -209,14 +235,14 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Read a symlink at `path`.
     ///
     /// See [`Sftp::readlink`] for more information.
-    pub async fn readlink(&self, path: impl Into<PathBuf>) -> anyhow::Result<PathBuf> {
+    pub async fn readlink(&self, path: impl Into<PathBuf>) -> SftpChannelResult<PathBuf> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Readlink(Readlink {
@@ -224,14 +250,14 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Resolve the real path for `path`.
     ///
     /// See [`Sftp::realpath`] for more information.
-    pub async fn realpath(&self, path: impl Into<PathBuf>) -> anyhow::Result<PathBuf> {
+    pub async fn realpath(&self, path: impl Into<PathBuf>) -> SftpChannelResult<PathBuf> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Realpath(Realpath {
@@ -239,7 +265,7 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
@@ -251,7 +277,7 @@ impl Sftp {
         src: impl Into<PathBuf>,
         dst: impl Into<PathBuf>,
         opts: RenameOptions,
-    ) -> anyhow::Result<()> {
+    ) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Rename(Rename {
@@ -261,14 +287,14 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Remove a file on the remote filesystem.
     ///
     /// See [`Sftp::unlink`] for more information.
-    pub async fn unlink(&self, file: impl Into<PathBuf>) -> anyhow::Result<()> {
+    pub async fn unlink(&self, file: impl Into<PathBuf>) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Unlink(Unlink {
@@ -276,7 +302,7 @@ impl Sftp {
                 reply,
             })))
             .await?;
-        let result = rx.recv().await?;
+        let result = rx.recv().await??;
         Ok(result)
     }
 }
@@ -307,82 +333,82 @@ pub(crate) enum SftpRequest {
 pub(crate) struct OpenMode {
     pub filename: PathBuf,
     pub opts: OpenOptions,
-    pub reply: Sender<File>,
+    pub reply: Sender<SftpChannelResult<File>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Open {
     pub filename: PathBuf,
-    pub reply: Sender<File>,
+    pub reply: Sender<SftpChannelResult<File>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Create {
     pub filename: PathBuf,
-    pub reply: Sender<File>,
+    pub reply: Sender<SftpChannelResult<File>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Opendir {
     pub filename: PathBuf,
-    pub reply: Sender<File>,
+    pub reply: Sender<SftpChannelResult<File>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Readdir {
     pub filename: PathBuf,
-    pub reply: Sender<Vec<(PathBuf, Metadata)>>,
+    pub reply: Sender<SftpChannelResult<Vec<(PathBuf, Metadata)>>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Mkdir {
     pub filename: PathBuf,
     pub mode: i32,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Rmdir {
     pub filename: PathBuf,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Stat {
     pub filename: PathBuf,
-    pub reply: Sender<Metadata>,
+    pub reply: Sender<SftpChannelResult<Metadata>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Lstat {
     pub filename: PathBuf,
-    pub reply: Sender<Metadata>,
+    pub reply: Sender<SftpChannelResult<Metadata>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Setstat {
     pub filename: PathBuf,
     pub metadata: Metadata,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Symlink {
     pub path: PathBuf,
     pub target: PathBuf,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Readlink {
     pub path: PathBuf,
-    pub reply: Sender<PathBuf>,
+    pub reply: Sender<SftpChannelResult<PathBuf>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Realpath {
     pub path: PathBuf,
-    pub reply: Sender<PathBuf>,
+    pub reply: Sender<SftpChannelResult<PathBuf>>,
 }
 
 #[derive(Debug)]
@@ -390,11 +416,25 @@ pub(crate) struct Rename {
     pub src: PathBuf,
     pub dst: PathBuf,
     pub opts: RenameOptions,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Unlink {
     pub file: PathBuf,
-    pub reply: Sender<()>,
+    pub reply: Sender<SftpChannelResult<()>>,
+}
+
+mod ssh2_impl {
+    use super::*;
+    use std::convert::TryFrom;
+
+    impl From<ssh2::Error> for SftpChannelError {
+        fn from(err: ssh2::Error) -> Self {
+            match SftpError::try_from(err) {
+                Ok(x) => Self::Sftp(x),
+                Err(x) => Self::Other(x),
+            }
+        }
+    }
 }
