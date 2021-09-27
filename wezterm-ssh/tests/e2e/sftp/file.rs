@@ -7,6 +7,7 @@ use wezterm_ssh::Session;
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn stat_should_retrieve_file_stat(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -28,6 +29,7 @@ async fn stat_should_retrieve_file_stat(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn readdir_should_retrieve_next_dir_entry(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -76,6 +78,7 @@ async fn readdir_should_retrieve_next_dir_entry(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn should_support_async_reading(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -107,6 +110,7 @@ async fn should_support_async_reading(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn should_support_async_writing(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -136,6 +140,7 @@ async fn should_support_async_writing(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn should_support_async_flush(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -160,6 +165,7 @@ async fn should_support_async_flush(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn should_support_async_close(#[future] session: Session) {
     let session: Session = session.await;
 
