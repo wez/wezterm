@@ -96,7 +96,7 @@ impl Default for SshdConfig {
         config.set_authentication_methods(vec!["publickey".to_string()]);
         config.set_use_privilege_separation(false);
         config.set_subsystem(true, true);
-        config.set_use_pam(false);
+        config.set_use_pam(true);
         config.set_x11_forwarding(true);
         config.set_print_motd(true);
         config.set_permit_tunnel(true);
