@@ -6246,7 +6246,7 @@ that wezterm makes when the bell rings.</p>
 <li><code>&quot;SystemBeep&quot;</code> - perform the system beep or alert sound. This is the default. On Wayland systems, which have no system beep function, it does not produce a sound.</li>
 <li><code>&quot;Disabled&quot;</code> - don't make a sound</li>
 </ul>
-<p>See also <a href="config/lua/config/visual_bell.html">visual_bell</a>.</p>
+<p>See also <a href="config/lua/config/visual_bell.html">visual_bell</a> and <a href="config/lua/config/../window-events/bell.html">bell event</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="automatically_reload_config"><a class="header" href="#automatically_reload_config"><code>automatically_reload_config</code></a></h1>
 <p><em>Since: 20201031-154415-9614e117</em></p>
 <p>When true (the default), watch the config file and reload it
@@ -7279,7 +7279,7 @@ by having the background color of the pane briefly change color.</p>
   },
 }
 </code></pre>
-<p>See also <a href="config/lua/config/audible_bell.html">audible_bell</a>.</p>
+<p>See also <a href="config/lua/config/audible_bell.html">audible_bell</a> and <a href="config/lua/config/../window-events/bell.html">bell event</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="warn_about_missing_glyphs--true"><a class="header" href="#warn_about_missing_glyphs--true">warn_about_missing_glyphs = true</a></h3>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>When set to true, if a glyph cannot be found for a given codepoint, then
@@ -9082,6 +9082,7 @@ end)
 
 return {}
 </code></pre>
+<p>See also <a href="config/lua/window-events/../config/audible_bell.html">audible_bell</a> and <a href="config/lua/window-events/../config/visual_bell.html">visual_bell</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="format-tab-title"><a class="header" href="#format-tab-title"><code>format-tab-title</code></a></h1>
 <p><em>Since: 20210502-130208-bff6815d</em></p>
 <p>The <code>format-tab-title</code> event is emitted when the text for a tab title
