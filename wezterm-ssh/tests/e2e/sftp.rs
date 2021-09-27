@@ -21,6 +21,7 @@ fn file_type_to_str(file_type: FileType) -> &'static str {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn readdir_should_return_list_of_directories_files_and_symlinks(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -69,6 +70,7 @@ async fn readdir_should_return_list_of_directories_files_and_symlinks(#[future] 
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn mkdir_should_create_a_directory_on_the_remote_filesystem(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -86,6 +88,7 @@ async fn mkdir_should_create_a_directory_on_the_remote_filesystem(#[future] sess
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn mkdir_should_return_error_if_unable_to_create_directory(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -111,6 +114,7 @@ async fn mkdir_should_return_error_if_unable_to_create_directory(#[future] sessi
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn rmdir_should_remove_a_remote_directory(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -131,6 +135,7 @@ async fn rmdir_should_remove_a_remote_directory(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -175,6 +180,7 @@ async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] se
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn stat_should_return_metadata_about_a_file(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -194,6 +200,7 @@ async fn stat_should_return_metadata_about_a_file(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn stat_should_return_metadata_about_a_directory(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -213,6 +220,7 @@ async fn stat_should_return_metadata_about_a_directory(#[future] session: Sessio
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn stat_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
     #[future] session: Session,
 ) {
@@ -239,6 +247,7 @@ async fn stat_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn stat_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
     #[future] session: Session,
 ) {
@@ -265,6 +274,7 @@ async fn stat_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn stat_should_fail_if_path_missing(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -276,6 +286,7 @@ async fn stat_should_fail_if_path_missing(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn lstat_should_return_metadata_about_a_file(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -295,6 +306,7 @@ async fn lstat_should_return_metadata_about_a_file(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn lstat_should_return_metadata_about_a_directory(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -314,6 +326,7 @@ async fn lstat_should_return_metadata_about_a_directory(#[future] session: Sessi
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn lstat_should_return_metadata_about_symlink_pointing_to_a_file(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -338,6 +351,7 @@ async fn lstat_should_return_metadata_about_symlink_pointing_to_a_file(#[future]
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn lstat_should_return_metadata_about_symlink_pointing_to_a_directory(
     #[future] session: Session,
 ) {
@@ -364,6 +378,7 @@ async fn lstat_should_return_metadata_about_symlink_pointing_to_a_directory(
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn lstat_should_fail_if_path_missing(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -379,6 +394,7 @@ async fn lstat_should_fail_if_path_missing(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn symlink_should_create_symlink_pointing_to_file(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -409,6 +425,7 @@ async fn symlink_should_create_symlink_pointing_to_file(#[future] session: Sessi
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn symlink_should_create_symlink_pointing_to_directory(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -429,6 +446,7 @@ async fn symlink_should_create_symlink_pointing_to_directory(#[future] session: 
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn symlink_should_succeed_even_if_path_missing(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -448,6 +466,7 @@ async fn symlink_should_succeed_even_if_path_missing(#[future] session: Session)
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn readlink_should_return_the_target_of_the_symlink(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -482,6 +501,7 @@ async fn readlink_should_return_the_target_of_the_symlink(#[future] session: Ses
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn readlink_should_fail_if_path_is_not_a_symlink(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -518,6 +538,7 @@ async fn readlink_should_fail_if_path_is_not_a_symlink(#[future] session: Sessio
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn realpath_should_resolve_absolute_path_for_relative_path(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -539,6 +560,7 @@ async fn realpath_should_resolve_absolute_path_for_relative_path(#[future] sessi
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn realpath_should_return_resolved_path_if_missing(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -556,6 +578,7 @@ async fn realpath_should_return_resolved_path_if_missing(#[future] session: Sess
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn realpath_should_fail_if_resolving_missing_path_with_dots(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -568,6 +591,7 @@ async fn realpath_should_fail_if_resolving_missing_path_with_dots(#[future] sess
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn rename_should_support_singular_file(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -590,6 +614,7 @@ async fn rename_should_support_singular_file(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn rename_should_support_dirtectory(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -621,6 +646,7 @@ async fn rename_should_support_dirtectory(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn rename_should_fail_if_source_path_missing(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -641,6 +667,7 @@ async fn rename_should_fail_if_source_path_missing(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn unlink_should_remove_file(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -659,6 +686,7 @@ async fn unlink_should_remove_file(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn unlink_should_remove_symlink_to_file(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -681,6 +709,7 @@ async fn unlink_should_remove_symlink_to_file(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn unlink_should_remove_symlink_to_directory(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -703,6 +732,7 @@ async fn unlink_should_remove_symlink_to_directory(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn unlink_should_fail_if_path_to_directory(#[future] session: Session) {
     let session: Session = session.await;
 
@@ -723,6 +753,7 @@ async fn unlink_should_fail_if_path_to_directory(#[future] session: Session) {
 
 #[rstest]
 #[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
 async fn unlink_should_fail_if_path_missing(#[future] session: Session) {
     let session: Session = session.await;
 
