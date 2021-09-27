@@ -27,6 +27,7 @@ impl SshKeygen {
     // ssh-keygen -t rsa -f $ROOT/id_rsa -N "" -q
     pub fn generate_rsa(path: impl AsRef<Path>, passphrase: impl AsRef<str>) -> io::Result<bool> {
         let res = Command::new("ssh-keygen")
+            .args(&["-m", "PEM"])
             .args(&["-t", "rsa"])
             .arg("-f")
             .arg(path.as_ref())
