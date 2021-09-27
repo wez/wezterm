@@ -54,6 +54,11 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           apt-get install -y curl
+      - name: "Ensure /run/sshd exists"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          mkdir -p /run/sshd
       - name: "Install openssh-server"
         shell: bash
         run: |
