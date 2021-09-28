@@ -3,7 +3,7 @@ use assert_fs::{prelude::*, TempDir};
 use predicates::prelude::*;
 use rstest::*;
 use std::path::PathBuf;
-use wezterm_ssh::{FileType, Session};
+use wezterm_ssh::{FileType, Session, SftpChannelError, SftpError};
 
 // Sftp file tests
 mod file;
@@ -561,7 +561,9 @@ async fn realpath_should_resolve_absolute_path_for_relative_path(#[future] sessi
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn realpath_should_return_resolved_path_if_missing(#[future] session: Session) {
+async fn realpath_should_either_return_resolved_path_or_error_if_missing(
+    #[future] session: Session,
+) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -572,8 +574,16 @@ async fn realpath_should_return_resolved_path_if_missing(#[future] session: Sess
     //       on mac the /tmp dir is a symlink to /private/tmp; so, we cannot successfully
     //       check the accuracy of the path itself, meaning that we can only validate
     //       that the operation was okay.
+    //
+    //       Additionally, this has divergent behavior. On some platforms, this returns
+    //       the path as is whereas on others this returns a missing path error. We
+    //       have to support both checks.
     let result = session.sftp().realpath(missing.path()).await;
-    assert!(result.is_ok(), "Realpath unexpectedly failed: {:?}", result);
+    match result {
+        Ok(_) => {}
+        Err(SftpChannelError::Sftp(SftpError::NoSuchFile)) => {}
+        x => panic!("Unexpected result from realpath: {:?}", x),
+    }
 }
 
 #[rstest]
