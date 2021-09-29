@@ -48,8 +48,23 @@ pub struct VisualBell {
     pub fade_out_duration_ms: u64,
     #[serde(default)]
     pub fade_out_function: EasingFunction,
+    #[serde(default)]
+    pub target: VisualBellTarget,
 }
 impl_lua_conversion!(VisualBell);
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+pub enum VisualBellTarget {
+    BackgroundColor,
+    CursorColor,
+}
+impl_lua_conversion!(VisualBellTarget);
+
+impl Default for VisualBellTarget {
+    fn default() -> VisualBellTarget {
+        Self::BackgroundColor
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum AudibleBell {

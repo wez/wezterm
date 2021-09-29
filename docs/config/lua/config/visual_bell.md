@@ -13,6 +13,7 @@ There are four fields to the visual_bell config option:
 * `fade_out_duration_ms` - how long it should take for the bell color to fade out, in milliseconds. The default is 0.
 * `fade_in_function` - an easing function, similar to [CSS easing functions](https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function), that affects how the bell color is faded in.
 * `fade_out_function` - an easing function that affects how the bell color is faded out.
+* `target` - can be `"BackgroundColor"` (the default) to have the background color of the terminal change when the bell is rung, or `"CursorColor"` to have the cursor color change when the bell is rung.
 
 If the total fade in and out durations are 0, then there will be no visual bell indication.
 
@@ -39,6 +40,18 @@ return {
   },
   colors = {
     visual_bell = "#202020"
+  },
+}
+```
+
+The follow configuration make the cursor briefly flare when the bell is run:
+
+```lua
+return {
+  visual_bell = {
+    fade_in_duration_ms = 75,
+    fade_out_duration_ms = 75,
+    target = "CursorColor",
   },
 }
 ```

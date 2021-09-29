@@ -15,7 +15,7 @@ use ::window::glium::uniforms::{
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::WindowOps;
 use anyhow::anyhow;
-use config::{ConfigHandle, HsbTransform, TextStyle};
+use config::{ConfigHandle, HsbTransform, TextStyle, VisualBellTarget};
 use mux::pane::Pane;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
@@ -75,6 +75,7 @@ pub struct ComputeCellFgBgParams<'a> {
     pub selection_bg: LinearRgba,
     pub cursor_fg: LinearRgba,
     pub cursor_bg: LinearRgba,
+    pub pane: &'a Rc<dyn Pane>,
 }
 
 pub struct ComputeCellFgBgResult {
@@ -207,6 +208,59 @@ impl super::TermWindow {
                 _ => {}
             }
         }
+    }
+
+    fn get_intensity_if_bell_target_ringing(
+        &self,
+        pane: &Rc<dyn Pane>,
+        config: &ConfigHandle,
+        target: VisualBellTarget,
+    ) -> Option<f32> {
+        let mut per_pane = self.pane_state(pane.pane_id());
+        if let Some(ringing) = per_pane.bell_start {
+            if config.visual_bell.target == target {
+                let elapsed = ringing.elapsed().as_secs_f32();
+
+                let in_duration =
+                    Duration::from_millis(config.visual_bell.fade_in_duration_ms).as_secs_f32();
+                let out_duration =
+                    Duration::from_millis(config.visual_bell.fade_out_duration_ms).as_secs_f32();
+
+                let intensity = if elapsed < in_duration {
+                    Some(
+                        config
+                            .visual_bell
+                            .fade_in_function
+                            .evaluate_at_position(elapsed / in_duration),
+                    )
+                } else {
+                    let completion = (elapsed - in_duration) / out_duration;
+                    if completion >= 1.0 {
+                        None
+                    } else {
+                        Some(
+                            1.0 - config
+                                .visual_bell
+                                .fade_out_function
+                                .evaluate_at_position(completion),
+                        )
+                    }
+                };
+
+                match intensity {
+                    None => {
+                        per_pane.bell_start.take();
+                    }
+                    Some(intensity) => {
+                        self.update_next_frame_time(Some(
+                            Instant::now() + Duration::from_millis(1000 / config.max_fps as u64),
+                        ));
+                        return Some(intensity);
+                    }
+                }
+            }
+        }
+        None
     }
 
     pub fn paint_pane_opengl(
@@ -386,101 +440,65 @@ impl super::TermWindow {
         {
             // If the bell is ringing, we draw another background layer over the
             // top of this in the configured bell color
-            let mut per_pane = self.pane_state(pos.pane.pane_id());
-            if let Some(ringing) = per_pane.bell_start {
-                let elapsed = ringing.elapsed().as_secs_f32();
+            if let Some(intensity) = self.get_intensity_if_bell_target_ringing(
+                &pos.pane,
+                config,
+                VisualBellTarget::BackgroundColor,
+            ) {
+                // target background color
+                let (r, g, b, _) = config
+                    .resolved_palette
+                    .visual_bell
+                    .unwrap_or(palette.foreground)
+                    .to_linear_tuple_rgba();
 
-                let in_duration =
-                    Duration::from_millis(config.visual_bell.fade_in_duration_ms).as_secs_f32();
-                let out_duration =
-                    Duration::from_millis(config.visual_bell.fade_out_duration_ms).as_secs_f32();
-
-                let intensity = if elapsed < in_duration {
-                    Some(
-                        config
-                            .visual_bell
-                            .fade_in_function
-                            .evaluate_at_position(elapsed / in_duration),
-                    )
+                let background = if window_is_transparent {
+                    // for transparent windows, we fade in the target color
+                    // by adjusting its alpha
+                    LinearRgba::with_components(r, g, b, intensity)
                 } else {
-                    let completion = (elapsed - in_duration) / out_duration;
-                    if completion >= 1.0 {
-                        None
-                    } else {
-                        Some(
-                            1.0 - config
-                                .visual_bell
-                                .fade_out_function
-                                .evaluate_at_position(completion),
-                        )
-                    }
+                    // otherwise We'll interpolate between the background color
+                    // and the the target color
+                    let (r1, g1, b1, a) = rgbcolor_alpha_to_window_color(
+                        palette.background,
+                        config.window_background_opacity,
+                    )
+                    .tuple();
+                    LinearRgba::with_components(
+                        r1 + (r - r1) * intensity,
+                        g1 + (g - g1) * intensity,
+                        b1 + (b - b1) * intensity,
+                        a,
+                    )
                 };
+                log::trace!("bell color is {:?}", background);
 
-                match intensity {
-                    None => {
-                        per_pane.bell_start.take();
-                    }
-                    Some(intensity) => {
-                        // target background color
-                        let (r, g, b, _) = config
-                            .resolved_palette
-                            .visual_bell
-                            .unwrap_or(palette.foreground)
-                            .to_linear_tuple_rgba();
+                let mut quad = layers[0].allocate()?;
+                let cell_width = self.render_metrics.cell_size.width as f32;
+                let cell_height = self.render_metrics.cell_size.height as f32;
+                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                    + (pos.left as f32 * cell_width)
+                    + self.config.window_padding.left as f32;
+                let pos_y = (self.dimensions.pixel_height as f32 / -2.)
+                    + ((first_line_offset + pos.top) as f32 * cell_height)
+                    + self.config.window_padding.top as f32;
 
-                        let background = if window_is_transparent {
-                            // for transparent windows, we fade in the target color
-                            // by adjusting its alpha
-                            LinearRgba::with_components(r, g, b, intensity)
-                        } else {
-                            // otherwise We'll interpolate between the background color
-                            // and the the target color
-                            let (r1, g1, b1, a) = rgbcolor_alpha_to_window_color(
-                                palette.background,
-                                config.window_background_opacity,
-                            )
-                            .tuple();
-                            LinearRgba::with_components(
-                                r1 + (r - r1) * intensity,
-                                g1 + (g - g1) * intensity,
-                                b1 + (b - b1) * intensity,
-                                a,
-                            )
-                        };
-                        log::trace!("bell bg is {:?}", background);
+                quad.set_position(
+                    pos_x,
+                    pos_y,
+                    pos_x + pos.width as f32 * cell_width,
+                    pos_y + pos.height as f32 * cell_height,
+                );
 
-                        self.update_next_frame_time(Some(
-                            Instant::now() + Duration::from_millis(1000 / config.max_fps as u64),
-                        ));
-
-                        let mut quad = layers[0].allocate()?;
-                        let cell_width = self.render_metrics.cell_size.width as f32;
-                        let cell_height = self.render_metrics.cell_size.height as f32;
-                        let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                            + (pos.left as f32 * cell_width)
-                            + self.config.window_padding.left as f32;
-                        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-                            + ((first_line_offset + pos.top) as f32 * cell_height)
-                            + self.config.window_padding.top as f32;
-
-                        quad.set_position(
-                            pos_x,
-                            pos_y,
-                            pos_x + pos.width as f32 * cell_width,
-                            pos_y + pos.height as f32 * cell_height,
-                        );
-
-                        quad.set_texture_adjust(0., 0., 0., 0.);
-                        quad.set_texture(white_space);
-                        quad.set_is_background();
-                        quad.set_fg_color(background);
-                        quad.set_hsv(if pos.is_active {
-                            None
-                        } else {
-                            Some(config.inactive_pane_hsb)
-                        });
-                    }
-                }
+                quad.set_texture_adjust(0., 0., 0., 0.);
+                quad.set_texture(white_space);
+                quad.set_is_background();
+                quad.set_fg_color(background);
+                quad.set_hsv(if pos.is_active {
+                    None
+                } else {
+                    Some(config.inactive_pane_hsb)
+                });
             }
         }
         if self.show_tab_bar && pos.index == 0 {
@@ -1137,6 +1155,7 @@ impl super::TermWindow {
                         selection_bg: params.selection_bg,
                         cursor_fg: params.cursor_fg,
                         cursor_bg: params.cursor_bg,
+                        pane: &params.pos.pane,
                     });
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -1370,6 +1389,7 @@ impl super::TermWindow {
                     selection_bg: params.selection_bg,
                     cursor_fg: params.cursor_fg,
                     cursor_bg: params.cursor_bg,
+                    pane: &params.pos.pane,
                 });
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -1542,6 +1562,43 @@ impl super::TermWindow {
         let selected = params.selection.contains(&params.cell_idx);
         let is_cursor =
             params.stable_line_idx == Some(params.cursor.y) && params.cursor.x == params.cell_idx;
+
+        if is_cursor {
+            if let Some(intensity) = self.get_intensity_if_bell_target_ringing(
+                params.pane,
+                params.config,
+                VisualBellTarget::CursorColor,
+            ) {
+                let (fg_color, bg_color) = if self.config.force_reverse_video_cursor {
+                    (params.bg_color, params.fg_color)
+                } else {
+                    (params.cursor_fg, params.cursor_bg)
+                };
+
+                // interpolate between the background color
+                // and the the target color
+                let (r1, g1, b1, a) = bg_color.tuple();
+                let (r, g, b, _) = params
+                    .config
+                    .resolved_palette
+                    .visual_bell
+                    .map(|c| c.to_linear_tuple_rgba())
+                    .unwrap_or_else(|| fg_color.tuple());
+
+                let bg_color = LinearRgba::with_components(
+                    r1 + (r - r1) * intensity,
+                    g1 + (g - g1) * intensity,
+                    b1 + (b - b1) * intensity,
+                    a,
+                );
+
+                return ComputeCellFgBgResult {
+                    fg_color,
+                    bg_color,
+                    cursor_shape: Some(CursorShape::SteadyBlock),
+                };
+            }
+        }
 
         let (cursor_shape, visibility) =
             if is_cursor && params.cursor.visibility == CursorVisibility::Visible {

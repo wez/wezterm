@@ -48,9 +48,8 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: Wayland: panic with most recent wlroots. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1144](https://github.com/wez/wezterm/issues/1144)
 * Fixed: incorrect spacing for IDEOGRAPHIC SPACE. [#1161](https://github.com/wez/wezterm/issues/1161)
 * Fixed: italic fonts weren't always recognized as being italic, resulting in italic variants being used instead of the non-italic variants in some cases! [#1162](https://github.com/wez/wezterm/issues/1162)
-* New: [bell](config/lua/window-events/bell.md) event allows you to trigger lua code when the bell is run. [#3](https://github.com/wez/wezterm/issues/3)
 * Fixed: Ask freetype for cell metrics in bitmap-only fonts, rather than simply taking the bitmap width. [#1165](https://github.com/wez/wezterm/issues/1165)
-* New: [visual_bell](config/lua/config/visual_bell.md) and [audible_bell](config/lua/config/audible_bell.md) configuration options
+* New: [visual_bell](config/lua/config/visual_bell.md) and [audible_bell](config/lua/config/audible_bell.md) configuration options, as well as a [bell](config/lua/window-events/bell.md) event allows you to trigger lua code when the bell is run. [#3](https://github.com/wez/wezterm/issues/3)
 * New: [wezterm.action_callback](config/lua/wezterm/action_callback.md) function to make it easier to use custom events. Thanks to [@bew](https://github.com/bew)! [#1151](https://github.com/wez/wezterm/pull/1151)
 * New: `wezterm connect` now also supports the `--class` parameter to override the window class
 
