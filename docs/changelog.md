@@ -52,6 +52,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: Ask freetype for cell metrics in bitmap-only fonts, rather than simply taking the bitmap width. [#1165](https://github.com/wez/wezterm/issues/1165)
 * New: [visual_bell](config/lua/config/visual_bell.md) and [audible_bell](config/lua/config/audible_bell.md) configuration options
 * New: [wezterm.action_callback](config/lua/wezterm/action_callback.md) function to make it easier to use custom events. Thanks to [@bew](https://github.com/bew)! [#1151](https://github.com/wez/wezterm/pull/1151)
+* New: `wezterm connect` now also supports the `--class` parameter to override the window class
 
 ### 20210814-124438-54e29167
 

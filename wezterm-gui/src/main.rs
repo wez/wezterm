@@ -211,6 +211,10 @@ fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
 }
 
 fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow::Result<()> {
+    if let Some(cls) = opts.class.as_ref() {
+        crate::set_window_class(cls);
+    }
+
     let client_config = client_domains(&config)
         .into_iter()
         .find(|c| c.name() == opts.domain_name)

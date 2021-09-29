@@ -102,6 +102,16 @@ pub struct ConnectCommand {
     /// to which you'd like to connect
     pub domain_name: String,
 
+    /// Override the default windowing system class.
+    /// The default is "org.wezfurlong.wezterm".
+    /// Under X11 and Windows this changes the window class.
+    /// Under Wayland this changes the app_id.
+    /// This changes the class for all windows spawned by this
+    /// instance of wezterm, including error, update and ssh
+    /// authentication dialogs.
+    #[structopt(long = "class")]
+    pub class: Option<String>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
