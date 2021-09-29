@@ -129,7 +129,7 @@ impl TmuxDomainState {
                 active_lock: active_lock.clone(),
                 master_pane: ref_pane,
             };
-            let writer = pane_pty.try_clone_writer().unwrap();
+            let writer = pane_pty.try_clone_writer()?;
             let mux = Mux::get().expect("should be called at main thread");
             let size = PtySize {
                 rows: pane.pane_height as u16,
@@ -278,8 +278,11 @@ impl TmuxCommand for CapturePane {
 
         let pane_map = tmux_domain.inner.remote_panes.borrow();
         if let Some(pane) = pane_map.get(&self.0) {
-            let lock = pane.lock().unwrap();
-            lock.tx.send(result.output.to_owned()).unwrap();
+            let lock = pane.lock().expect("Grant lock of tmux cmd queue failed");
+            return lock
+                .tx
+                .send(result.output.to_owned())
+                .map_err(|err| anyhow!("Send to tmux cmd queue failed {}", err));
         }
 
         Ok(())
