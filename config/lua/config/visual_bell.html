@@ -149,6 +149,7 @@ by having the background color of the pane briefly change color.</p>
 <li><code>fade_out_duration_ms</code> - how long it should take for the bell color to fade out, in milliseconds. The default is 0.</li>
 <li><code>fade_in_function</code> - an easing function, similar to <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function">CSS easing functions</a>, that affects how the bell color is faded in.</li>
 <li><code>fade_out_function</code> - an easing function that affects how the bell color is faded out.</li>
+<li><code>target</code> - can be <code>&quot;BackgroundColor&quot;</code> (the default) to have the background color of the terminal change when the bell is rung, or <code>&quot;CursorColor&quot;</code> to have the cursor color change when the bell is rung.</li>
 </ul>
 <p>If the total fade in and out durations are 0, then there will be no visual bell indication.</p>
 <p>The bell color is itself specified in your color settings; if not specified, the text foreground color will be used.</p>
@@ -171,6 +172,15 @@ by having the background color of the pane briefly change color.</p>
   },
   colors = {
     visual_bell = &quot;#202020&quot;
+  },
+}
+</code></pre>
+<p>The follow configuration make the cursor briefly flare when the bell is run:</p>
+<pre><code class="language-lua">return {
+  visual_bell = {
+    fade_in_duration_ms = 75,
+    fade_out_duration_ms = 75,
+    target = &quot;CursorColor&quot;,
   },
 }
 </code></pre>
