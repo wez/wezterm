@@ -10,16 +10,48 @@ use std::{
 
 pub(crate) struct TmuxReader {
     rx: flume::Receiver<String>,
+    // If a string received from rx is larger then the buffer to write out,
+    // we put that string here and use a cursor to indicate all chars before
+    // that cursor have been written out.
+    // Clear this buffer before receive next string.
+    head_buffer: String,
+    head_cursor: usize, // the first char of next write
 }
 
 impl Read for TmuxReader {
     fn read(&mut self, mut buf: &mut [u8]) -> std::io::Result<usize> {
-        match self.rx.recv() {
-            Ok(str) => {
-                return buf.write(str.as_bytes());
-            }
-            Err(_) => {
-                return Ok(0);
+        if !self.head_buffer.is_empty() {
+            let mut buffer_cleared = false;
+            let bytes = if self.head_cursor + buf.len() >= self.head_buffer.len() {
+                buffer_cleared = true;
+                &self.head_buffer[self.head_cursor..]
+            } else {
+                &self.head_buffer[self.head_cursor..(self.head_cursor + buf.len())]
+            };
+            return buf.write(bytes.as_bytes()).map(|res| {
+                // update buffer if write success
+                if buffer_cleared {
+                    self.head_buffer.clear();
+                    self.head_cursor = 0;
+                } else {
+                    self.head_cursor = self.head_cursor + buf.len();
+                }
+                res
+            });
+        } else {
+            match self.rx.recv() {
+                Ok(str) => {
+                    if str.len() > buf.len() {
+                        self.head_buffer = str;
+                        self.head_cursor = 0;
+                        return self.read(buf);
+                    } else {
+                        return buf.write(str.as_bytes());
+                    }
+                }
+                Err(_) => {
+                    return Ok(0);
+                }
             }
         }
     }
@@ -105,6 +137,8 @@ impl MasterPty for TmuxPty {
     fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, anyhow::Error> {
         Ok(Box::new(TmuxReader {
             rx: self.rx.clone(),
+            head_buffer: String::default(),
+            head_cursor: 0,
         }))
     }
 
