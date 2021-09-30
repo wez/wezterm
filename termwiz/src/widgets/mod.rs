@@ -4,7 +4,7 @@
 use crate::color::ColorAttribute;
 use crate::input::InputEvent;
 use crate::surface::{Change, CursorShape, Position, SequenceNo, Surface};
-use crate::{Error, Result};
+use crate::Result;
 use fnv::FnvHasher;
 use std::collections::{HashMap, VecDeque};
 use std::hash::BuildHasherDefault;
