@@ -75,12 +75,14 @@ pub struct ComputeCellFgBgParams<'a> {
     pub selection_bg: LinearRgba,
     pub cursor_fg: LinearRgba,
     pub cursor_bg: LinearRgba,
+    pub cursor_border_color: LinearRgba,
     pub pane: &'a Rc<dyn Pane>,
 }
 
 pub struct ComputeCellFgBgResult {
     pub fg_color: LinearRgba,
     pub bg_color: LinearRgba,
+    pub cursor_border_color: LinearRgba,
     pub cursor_shape: Option<CursorShape>,
 }
 
@@ -1141,6 +1143,7 @@ impl super::TermWindow {
                         fg_color: glyph_color,
                         bg_color,
                         cursor_shape,
+                        cursor_border_color,
                     } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                         stable_line_idx: params.stable_line_idx,
                         cell_idx,
@@ -1155,6 +1158,7 @@ impl super::TermWindow {
                         selection_bg: params.selection_bg,
                         cursor_fg: params.cursor_fg,
                         cursor_bg: params.cursor_bg,
+                        cursor_border_color: params.cursor_border_color,
                         pane: &params.pos.pane,
                     });
 
@@ -1214,7 +1218,7 @@ impl super::TermWindow {
                                 .texture_coords(),
                         );
 
-                        quad.set_fg_color(params.cursor_border_color);
+                        quad.set_fg_color(cursor_border_color);
                     }
 
                     let images = cluster.attrs.images().unwrap_or_else(|| vec![]);
@@ -1375,6 +1379,7 @@ impl super::TermWindow {
                     fg_color: _glyph_color,
                     bg_color,
                     cursor_shape,
+                    cursor_border_color,
                 } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                     stable_line_idx: params.stable_line_idx,
                     cell_idx: params.cursor.x,
@@ -1389,6 +1394,7 @@ impl super::TermWindow {
                     selection_bg: params.selection_bg,
                     cursor_fg: params.cursor_fg,
                     cursor_bg: params.cursor_bg,
+                    cursor_border_color: params.cursor_border_color,
                     pane: &params.pos.pane,
                 });
 
@@ -1422,7 +1428,7 @@ impl super::TermWindow {
                             .cursor_sprite(cursor_shape)?
                             .texture_coords(),
                     );
-                    quad.set_fg_color(params.cursor_border_color);
+                    quad.set_fg_color(cursor_border_color);
                 }
             }
         }
@@ -1596,6 +1602,7 @@ impl super::TermWindow {
                     fg_color,
                     bg_color,
                     cursor_shape: Some(CursorShape::SteadyBlock),
+                    cursor_border_color: bg_color,
                 };
             }
         }
@@ -1686,6 +1693,7 @@ impl super::TermWindow {
         ComputeCellFgBgResult {
             fg_color,
             bg_color,
+            cursor_border_color: params.cursor_border_color,
             cursor_shape: if visibility == CursorVisibility::Visible {
                 match cursor_shape {
                     CursorShape::BlinkingBlock | CursorShape::SteadyBlock if focused_and_active => {
