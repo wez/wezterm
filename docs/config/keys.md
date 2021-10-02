@@ -264,6 +264,24 @@ Possible Modifier labels are:
 
 You can combine modifiers using the `|` symbol (eg: `"CMD|CTRL"`).
 
+> Note: To specify the shift key in `key` use the capitalization `Shift` but
+>       for use in `mods` use the capitalization `SHIFT`.
+
+A complete example to demonstrate use of `wezterm.action`, use of the shift key
+as a modifier key, and a key assignment which requires an argument:
+
+```lua
+local wezterm = require 'wezterm';
+
+return {
+  keys = {
+    -- Add Control+Shift+Left/Right Arrow tab navigation
+    {key="LeftArrow", mods="SHIFT|CTRL", action=wezterm.action{ActivateTabRelative=-1}},
+    {key="RightArrow", mods="SHIFT|CTRL", action=wezterm.action{ActivateTabRelative=1}},
+  }
+}
+```
+
 ### Leader Key
 
 *Since: 20201031-154415-9614e117*
