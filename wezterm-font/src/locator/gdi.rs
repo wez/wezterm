@@ -18,7 +18,11 @@ use winapi::um::wingdi::{
 /// functions provided by the font-loader crate.
 pub struct GdiFontLocator {}
 
-fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<ParsedFont> {
+fn extract_font_data(
+    font: HFONT,
+    attr: &FontAttributes,
+    pixel_size: u16,
+) -> anyhow::Result<ParsedFont> {
     unsafe {
         let hdc = CreateCompatibleDC(std::ptr::null_mut());
         SelectObject(hdc, font as *mut _);
@@ -64,7 +68,7 @@ fn extract_font_data(font: HFONT, attr: &FontAttributes) -> anyhow::Result<Parse
 
         let mut font_info = vec![];
         parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
-        let matches = ParsedFont::best_match(attr, font_info);
+        let matches = ParsedFont::best_match(attr, pixel_size, font_info);
 
         for m in matches {
             return Ok(m);
@@ -83,7 +87,7 @@ fn wide_string(s: &str) -> Vec<u16> {
         .collect()
 }
 
-fn load_font(font_attr: &FontAttributes) -> anyhow::Result<ParsedFont> {
+fn load_font(font_attr: &FontAttributes, pixel_size: u16) -> anyhow::Result<ParsedFont> {
     let mut log_font = LOGFONTW {
         lfHeight: 0,
         lfWidth: 0,
@@ -114,7 +118,7 @@ fn load_font(font_attr: &FontAttributes) -> anyhow::Result<ParsedFont> {
 
     unsafe {
         let font = CreateFontIndirectW(&log_font);
-        let result = extract_font_data(font, font_attr);
+        let result = extract_font_data(font, font_attr, pixel_size);
         DeleteObject(font as *mut _);
         result
     }
@@ -200,7 +204,7 @@ impl FontLocator for GdiFontLocator {
                 }
             }
 
-            match load_font(font_attr) {
+            match load_font(font_attr, pixel_size) {
                 Ok(handle) => {
                     log::debug!("Got {:?} from gdi", handle);
                     try_handle(font_attr, handle, &mut fonts, loaded);
