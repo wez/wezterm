@@ -137,6 +137,7 @@ fn handle_from_descriptor(
     attr: &FontAttributes,
     collection: &dwrote::FontCollection,
     descriptor: &FontDescriptor,
+    pixel_size: u16,
 ) -> Option<ParsedFont> {
     let font = collection.get_font_from_descriptor(&descriptor)?;
     let face = font.create_font_face();
@@ -146,7 +147,7 @@ fn handle_from_descriptor(
 
             log::debug!("{} -> {}", family_name, path.display());
             let source = FontDataSource::OnDisk(path);
-            match best_matching_font(&source, attr, FontOrigin::DirectWrite) {
+            match best_matching_font(&source, attr, FontOrigin::DirectWrite, pixel_size) {
                 Ok(Some(parsed)) => {
                     return Some(parsed);
                 }
@@ -187,7 +188,7 @@ impl FontLocator for GdiFontLocator {
                 }
             }
 
-            match handle_from_descriptor(font_attr, &collection, &descriptor) {
+            match handle_from_descriptor(font_attr, &collection, &descriptor, pixel_size) {
                 Some(handle) => {
                     log::debug!("Got {:?} from dwrote", handle);
                     if try_handle(font_attr, handle, &mut fonts, loaded) {
@@ -283,9 +284,12 @@ impl FontLocator for GdiFontLocator {
                         resolved.insert(attr.clone());
 
                         let descriptor = attributes_to_descriptor(&attr);
-                        if let Some(handle) =
-                            handle_from_descriptor(&attr, &collection, &descriptor)
-                        {
+                        if let Some(handle) = handle_from_descriptor(
+                            &attr,
+                            &collection,
+                            &descriptor,
+                            16, /* pixel_size: irrelevant really as we kinda want a scalable font for fallback */
+                        ) {
                             handles.push(handle);
                         }
                     }
