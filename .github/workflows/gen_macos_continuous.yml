@@ -19,7 +19,6 @@ on:
 jobs:
   build:
     runs-on: "macos-11"
-    
     steps:
       - name: "checkout repo"
         uses: actions/checkout@v2
@@ -31,14 +30,12 @@ jobs:
           export BUILD_REASON=Schedule
           export MACOSX_DEPLOYMENT_TARGET=10.9
           git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-
       - name: "Fetch tag/branch history"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
           export MACOSX_DEPLOYMENT_TARGET=10.9
           git fetch --prune --unshallow
-
       - name: "Install Rust"
         uses: actions-rs/toolchain@v1
         with:
@@ -54,42 +51,36 @@ jobs:
           export BUILD_REASON=Schedule
           export MACOSX_DEPLOYMENT_TARGET=10.9
           rustup target add aarch64-apple-darwin
-
       - name: "Install System Deps"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
           export MACOSX_DEPLOYMENT_TARGET=10.9
           env PATH=$PATH ./get-deps
-
       - name: "Build (Release mode Intel)"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
           export MACOSX_DEPLOYMENT_TARGET=10.9
           cargo build --target x86_64-apple-darwin --all --release
-
       - name: "Build (Release mode ARM)"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
           export MACOSX_DEPLOYMENT_TARGET=10.9
           cargo build --target aarch64-apple-darwin --all --release
-
       - name: "Test (Release mode)"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
           export MACOSX_DEPLOYMENT_TARGET=10.9
           cargo test --target x86_64-apple-darwin --all --release
-
       - name: "Package"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
           export MACOSX_DEPLOYMENT_TARGET=10.9
           bash ci/deploy.sh
-
       - name: "Upload to Nightly Release"
         uses: wez/upload-release-assets@releases/v1
         if: github.event.repository.fork == false

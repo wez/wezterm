@@ -17,7 +17,6 @@ on:
 jobs:
   build:
     runs-on: "vs2017-win2016"
-    
     steps:
       - name: "checkout repo"
         uses: actions/checkout@v2
@@ -53,7 +52,6 @@ jobs:
       - name: "Build (Release mode)"
         shell: cmd
         run: |
-
           PATH C:\Strawberry\perl\bin;%PATH%
           cargo build --all --release
       - name: "Test (Release mode)"

@@ -3,14 +3,14 @@ name: pages
 on:
   push:
     branches:
-    - main
+      - main
     paths:
-    - 'docs/**'
-    - 'ci/build-docs.sh'
-    - 'ci/generate-docs.py'
-    - 'ci/subst-release-info.py'
-    - '.github/workflows/pages.yml'
-    - '.github/ISSUE_TEMPLATE/*'
+      - "docs/**"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/ISSUE_TEMPLATE/*"
   schedule:
     - cron: "50 * * * *"
 
