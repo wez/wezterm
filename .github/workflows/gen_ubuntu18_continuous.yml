@@ -19,7 +19,6 @@ on:
 jobs:
   build:
     runs-on: "ubuntu-18.04"
-    
     steps:
       - name: "Update APT"
         shell: bash

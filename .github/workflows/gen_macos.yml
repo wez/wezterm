@@ -17,7 +17,6 @@ on:
 jobs:
   build:
     runs-on: "macos-11"
-    
     steps:
       - name: "checkout repo"
         uses: actions/checkout@v2
@@ -83,7 +82,6 @@ jobs:
           export MACOSX_DEPLOYMENT_TARGET=10.9
           mkdir pkg_
           mv *.zip pkg_
-
       - name: "Upload artifact"
         uses: actions/upload-artifact@master
         with:
