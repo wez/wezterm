@@ -8883,7 +8883,7 @@ ligatures in the current window:</p>
 wezterm.on(&quot;toggle-ligature&quot;, function(window, pane)
   local overrides = window:get_config_overrides() or {}
   if not overrides.harfbuzz_features then
-    -- If we haven't overriden it yet, then override with ligatures disabled
+    -- If we haven't overridden it yet, then override with ligatures disabled
     overrides.harfbuzz_features =  {&quot;calt=0&quot;, &quot;clig=0&quot;, &quot;liga=0&quot;}
   else
     -- else we did already, and we should disable out override now
