@@ -421,6 +421,10 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
+        let font_size = config.window_frame.font_size;
+        let dpi = *self.dpi.borrow() as u32;
+        let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
+
         let attributes = config.window_frame.font.font_with_fallback();
         let preferred_attributes = attributes
             .iter()
@@ -438,17 +442,15 @@ impl FontConfigInner {
         for attrs in &[&preferred_attributes, &fallback_attributes] {
             self.font_dirs
                 .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded);
-            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded)?);
+                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
+            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded, pixel_size)?);
             self.built_in
                 .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded);
+                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
         }
 
         let shaper = new_shaper(&*config, &handles)?;
 
-        let font_size = config.window_frame.font_size;
-        let dpi = *self.dpi.borrow() as u32;
         let metrics = shaper.metrics(font_size, dpi).with_context(|| {
             format!(
                 "obtaining metrics for font_size={} @ dpi {}",
@@ -483,6 +485,10 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
+        let font_size = config.font_size * *self.font_scale.borrow();
+        let dpi = *self.dpi.borrow() as u32;
+        let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
+
         let attributes = style.font_with_fallback();
         let preferred_attributes = attributes
             .iter()
@@ -500,11 +506,11 @@ impl FontConfigInner {
         for attrs in &[&preferred_attributes, &fallback_attributes] {
             self.font_dirs
                 .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded);
-            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded)?);
+                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
+            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded, pixel_size)?);
             self.built_in
                 .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded);
+                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
         }
 
         for attr in &attributes {
@@ -557,8 +563,6 @@ impl FontConfigInner {
 
         let shaper = new_shaper(&*config, &handles)?;
 
-        let font_size = config.font_size * *self.font_scale.borrow();
-        let dpi = *self.dpi.borrow() as u32;
         let metrics = shaper.metrics(font_size, dpi).with_context(|| {
             format!(
                 "obtaining metrics for font_size={} @ dpi {}",

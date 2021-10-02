@@ -177,6 +177,7 @@ pub trait FontLocator {
         &self,
         fonts_selection: &[FontAttributes],
         loaded: &mut HashSet<FontAttributes>,
+        pixel_size: u16,
     ) -> anyhow::Result<Vec<ParsedFont>>;
 
     fn enumerate_all_fonts(&self) -> anyhow::Result<Vec<ParsedFont>> {
@@ -222,6 +223,7 @@ impl FontLocator for NopSystemSource {
         &self,
         _fonts_selection: &[FontAttributes],
         _loaded: &mut HashSet<FontAttributes>,
+        _pixel_size: u16,
     ) -> anyhow::Result<Vec<ParsedFont>> {
         Ok(vec![])
     }

@@ -20,6 +20,7 @@ impl FontLocator for FontConfigFontLocator {
         &self,
         fonts_selection: &[FontAttributes],
         loaded: &mut HashSet<FontAttributes>,
+        pixel_size: u16,
     ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut fonts = vec![];
 
@@ -100,7 +101,7 @@ impl FontLocator for FontConfigFontLocator {
             }
 
             // and apply our CSS-style font matching criteria
-            if let Some(parsed) = ParsedFont::best_match(attr, candidates) {
+            if let Some(parsed) = ParsedFont::best_match(attr, pixel_size, candidates) {
                 log::trace!("selected best font-config match {:?}", parsed.names());
                 fonts.push(parsed);
                 loaded.insert(attr.clone());

@@ -163,6 +163,7 @@ impl FontLocator for GdiFontLocator {
         &self,
         fonts_selection: &[FontAttributes],
         loaded: &mut HashSet<FontAttributes>,
+        pixel_size: u16,
     ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut fonts = Vec::new();
         let collection = dwrote::FontCollection::system();

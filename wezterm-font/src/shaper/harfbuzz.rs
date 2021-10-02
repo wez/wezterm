@@ -554,14 +554,17 @@ mod test {
 
         let db = FontDatabase::with_built_in().unwrap();
         let handle = db
-            .resolve(&FontAttributes {
-                family: "JetBrains Mono".into(),
-                stretch: Default::default(),
-                weight: Default::default(),
-                is_fallback: false,
-                is_synthetic: false,
-                italic: false,
-            })
+            .resolve(
+                &FontAttributes {
+                    family: "JetBrains Mono".into(),
+                    stretch: Default::default(),
+                    weight: Default::default(),
+                    is_fallback: false,
+                    is_synthetic: false,
+                    italic: false,
+                },
+                14,
+            )
             .unwrap()
             .clone();
 

@@ -531,7 +531,17 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                     config.font_locator
                 );
                 for font in sys_fonts {
-                    println!("{} -- {}", font.lua_name(), font.handle.diagnostic_string());
+                    let pixel_sizes = if font.pixel_sizes.is_empty() {
+                        "".to_string()
+                    } else {
+                        format!(" pixel_sizes={:?}", font.pixel_sizes)
+                    };
+                    println!(
+                        "{} -- {}{}",
+                        font.lua_name(),
+                        font.handle.diagnostic_string(),
+                        pixel_sizes
+                    );
                 }
             }
             Err(err) => log::error!("Unable to list system fonts: {}", err),

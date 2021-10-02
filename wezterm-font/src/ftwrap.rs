@@ -304,6 +304,24 @@ impl Face {
         coverage
     }
 
+    /// Returns the bitmap strike sizes in this font
+    pub fn pixel_sizes(&self) -> Vec<u16> {
+        let sizes = unsafe {
+            let rec = &(*self.face);
+            std::slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
+        };
+        sizes
+            .iter()
+            .filter_map(|info| {
+                if info.height > 0 {
+                    Some(info.height as u16)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     /// This is a wrapper around set_char_size and select_size
     /// that accounts for some weirdness with eg: color emoji
     pub fn set_font_size(&mut self, point_size: f64, dpi: u32) -> anyhow::Result<SelectedFontSize> {

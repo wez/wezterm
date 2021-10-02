@@ -25,6 +25,7 @@ pub struct ParsedFont {
     pub synthesize_bold: bool,
     pub synthesize_dim: bool,
     pub assume_emoji_presentation: bool,
+    pub pixel_sizes: Vec<u16>,
 }
 
 impl std::fmt::Debug for ParsedFont {
@@ -40,6 +41,7 @@ impl std::fmt::Debug for ParsedFont {
             .field("synthesize_bold", &self.synthesize_bold)
             .field("synthesize_dim", &self.synthesize_dim)
             .field("assume_emoji_presentation", &self.assume_emoji_presentation)
+            .field("pixel_sizes", &self.pixel_sizes)
             .finish()
     }
 }
@@ -58,6 +60,7 @@ impl Clone for ParsedFont {
             handle: self.handle.clone(),
             cap_height: self.cap_height.clone(),
             coverage: Mutex::new(self.coverage.lock().unwrap().clone()),
+            pixel_sizes: self.pixel_sizes.clone(),
         }
     }
 }
@@ -156,6 +159,9 @@ impl ParsedFont {
             if p.assume_emoji_presentation {
                 code.push_str("  -- Assumed to have Emoji Presentation\n");
             }
+            if !p.pixel_sizes.is_empty() {
+                code.push_str(&format!("  -- Pixel sizes: {:?}\n", p.pixel_sizes));
+            }
 
             if p.weight == FontWeight::REGULAR && p.stretch == FontStretch::Normal && !p.italic {
                 code.push_str(&format!("  \"{}\",\n", p.names.family));
@@ -184,6 +190,7 @@ impl ParsedFont {
         let weight = FontWeight::from_opentype_weight(ot_weight);
         let stretch = FontStretch::from_opentype_stretch(width);
         let cap_height = face.cap_height();
+        let pixel_sizes = face.pixel_sizes();
         let has_color = unsafe {
             (((*face.face).face_flags as u32) & (crate::ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
         };
@@ -210,6 +217,7 @@ impl ParsedFont {
             handle,
             coverage: Mutex::new(RangeSet::new()),
             cap_height,
+            pixel_sizes,
         })
     }
 
@@ -278,6 +286,7 @@ impl ParsedFont {
     pub fn best_matching_index<P: std::ops::Deref<Target = Self> + std::fmt::Debug>(
         attr: &FontAttributes,
         fonts: &[P],
+        pixel_size: u16,
     ) -> Option<usize> {
         if fonts.is_empty() {
             return None;
@@ -398,13 +407,34 @@ impl ParsedFont {
         // Reduce to matching weight
         candidates.retain(|&idx| fonts[idx].weight == weight);
 
+        // Check for best matching pixel strike
+        if let Some((_distance, idx)) = candidates
+            .iter()
+            .map(|&idx| {
+                let distance = fonts[idx]
+                    .pixel_sizes
+                    .iter()
+                    .map(|&size| ((pixel_size as i32) - (size as i32)).abs())
+                    .min()
+                    .unwrap_or(i32::MAX);
+                (distance, idx)
+            })
+            .min()
+        {
+            return Some(idx);
+        }
+
         // The first one in this set is our best match
         candidates.into_iter().next()
     }
 
-    pub fn best_match(attr: &FontAttributes, mut fonts: Vec<Self>) -> Option<Self> {
+    pub fn best_match(
+        attr: &FontAttributes,
+        pixel_size: u16,
+        mut fonts: Vec<Self>,
+    ) -> Option<Self> {
         let refs: Vec<&Self> = fonts.iter().collect();
-        let idx = Self::best_matching_index(attr, &refs)?;
+        let idx = Self::best_matching_index(attr, &refs, pixel_size)?;
         fonts.drain(idx..=idx).next().map(|p| p.synthesize(attr))
     }
 
@@ -471,11 +501,12 @@ pub fn best_matching_font(
     source: &FontDataSource,
     font_attr: &FontAttributes,
     origin: FontOrigin,
+    pixel_size: u16,
 ) -> anyhow::Result<Option<ParsedFont>> {
     let mut font_info = vec![];
     parse_and_collect_font_info(source, &mut font_info, origin)?;
     font_info.retain(|font| font.matches_name(font_attr));
-    Ok(ParsedFont::best_match(font_attr, font_info))
+    Ok(ParsedFont::best_match(font_attr, pixel_size, font_info))
 }
 
 pub(crate) fn parse_and_collect_font_info(

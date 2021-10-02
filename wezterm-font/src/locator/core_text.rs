@@ -67,6 +67,7 @@ impl FontLocator for CoreTextFontLocator {
         &self,
         fonts_selection: &[FontAttributes],
         loaded: &mut HashSet<FontAttributes>,
+        pixel_size: u16,
     ) -> anyhow::Result<Vec<ParsedFont>> {
         let mut fonts = vec![];
 
@@ -78,7 +79,7 @@ impl FontLocator for CoreTextFontLocator {
                         handles.append(&mut handles_from_descriptor(&descriptor));
                     }
                     log::trace!("core text matched {:?} to {:#?}", attr, handles);
-                    if let Some(parsed) = ParsedFont::best_match(attr, handles) {
+                    if let Some(parsed) = ParsedFont::best_match(attr, pixel_size, handles) {
                         log::trace!("best match from core text is {:?}", parsed);
                         fonts.push(parsed);
                         loaded.insert(attr.clone());
