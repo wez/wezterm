@@ -564,7 +564,7 @@ impl Face {
     /// `I` is chosen rather than `O` as `O` glyphs are often optically
     /// compensated and overshoot a little.
     fn compute_cap_height(&mut self) -> anyhow::Result<f64> {
-        let glyph_pos = unsafe { FT_Get_Char_Index(self.face, b'I' as u64) };
+        let glyph_pos = unsafe { FT_Get_Char_Index(self.face, b'I' as _) };
         if glyph_pos == 0 {
             anyhow::bail!("no I from which to compute cap height");
         }
