@@ -1603,9 +1603,9 @@ For example, you can disable a default assignment like this:</p>
 
 return {
   keys = {
-    -- Turn off the default CMD-m Hide action on macOS by making it
-    -- send the empty string instead of hiding the window
-    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=&quot;Nop&quot;}
+    -- Turn off the default CMD-m Hide action, allowing CMD-m to
+    -- be potentially recognized and handled by the tab
+    {key=&quot;m&quot;, mods=&quot;CMD&quot;, action=&quot;DisableDefaultAssignment&quot;}
   }
 }
 </code></pre>
