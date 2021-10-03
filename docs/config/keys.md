@@ -206,9 +206,9 @@ local wezterm = require 'wezterm';
 
 return {
   keys = {
-    -- Turn off the default CMD-m Hide action on macOS by making it
-    -- send the empty string instead of hiding the window
-    {key="m", mods="CMD", action="Nop"}
+    -- Turn off the default CMD-m Hide action, allowing CMD-m to
+    -- be potentially recognized and handled by the tab
+    {key="m", mods="CMD", action="DisableDefaultAssignment"}
   }
 }
 ```
