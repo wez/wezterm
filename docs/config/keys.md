@@ -57,25 +57,12 @@ n` will emit `ñ`.
 You may also set `use_dead_keys = false` to skip the hold state; continuing
 the example above, `Right-Opt n` will then immediately produce `~`.
 
-### macOS and the Input Method Editor (IME)
+### Input Method Editor (IME)
 
 WezTerm has support for using the operating system Input Method Editor (IME) on
-macOS.  This is useful in cases where you need to type kanji or are using a
-keyboard layout with dead keys.  However, the input method editor can get in
-the way and has a couple of irritating side effects such as preventing key
-repeat for a subset of keys.
+some operating systems.
 
-You can control whether the IME is enabled on macOS in your configuration file:
-
-```lua
-return {
-  use_ime = false,
-}
-```
-
-*since: 20200620-160318-e00b076c*
-
-The default for `use_ime` is false.  The default in earlier releases was `true`.
+[The `use_ime` docs have more information](lua/config/use_ime.md).
 
 ### Microsoft Windows and Dead Keys
 
