@@ -40,6 +40,7 @@ pub const FT_RASTER_FLAG_DEFAULT: u32 = 0;
 pub const FT_RASTER_FLAG_AA: u32 = 1;
 pub const FT_RASTER_FLAG_DIRECT: u32 = 2;
 pub const FT_RASTER_FLAG_CLIP: u32 = 4;
+pub const FT_RASTER_FLAG_SDF: u32 = 8;
 pub const FT_ERR_BASE: u32 = 0;
 pub const FT_FACE_FLAG_SCALABLE: u32 = 1;
 pub const FT_FACE_FLAG_FIXED_SIZES: u32 = 2;
@@ -275,12 +276,6 @@ pub enum FT_Glyph_Format_ {
 pub use self::FT_Glyph_Format_ as FT_Glyph_Format;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct FT_RasterRec_ {
-    _unused: [u8; 0],
-}
-pub type FT_Raster = *mut FT_RasterRec_;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
 pub struct FT_Span_ {
     pub x: ::std::os::raw::c_short,
     pub len: ::std::os::raw::c_ushort,
@@ -323,6 +318,12 @@ pub struct FT_Raster_Params_ {
     pub clip_box: FT_BBox,
 }
 pub type FT_Raster_Params = FT_Raster_Params_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FT_RasterRec_ {
+    _unused: [u8; 0],
+}
+pub type FT_Raster = *mut FT_RasterRec_;
 pub type FT_Raster_NewFunc = ::std::option::Option<
     unsafe extern "C" fn(
         memory: *mut ::std::os::raw::c_void,
@@ -454,6 +455,7 @@ pub const FT_Mod_Err_Type1: _bindgen_ty_1 = _bindgen_ty_1::FT_Mod_Err_Base;
 pub const FT_Mod_Err_Type42: _bindgen_ty_1 = _bindgen_ty_1::FT_Mod_Err_Base;
 pub const FT_Mod_Err_Winfonts: _bindgen_ty_1 = _bindgen_ty_1::FT_Mod_Err_Base;
 pub const FT_Mod_Err_GXvalid: _bindgen_ty_1 = _bindgen_ty_1::FT_Mod_Err_Base;
+pub const FT_Mod_Err_Sdf: _bindgen_ty_1 = _bindgen_ty_1::FT_Mod_Err_Base;
 pub const FT_Mod_Err_Max: _bindgen_ty_1 = _bindgen_ty_1::FT_Mod_Err_Max;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -993,6 +995,9 @@ extern "C" {
 extern "C" {
     pub fn FT_Set_Transform(face: FT_Face, matrix: *mut FT_Matrix, delta: *mut FT_Vector);
 }
+extern "C" {
+    pub fn FT_Get_Transform(face: FT_Face, matrix: *mut FT_Matrix, delta: *mut FT_Vector);
+}
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum FT_Render_Mode_ {
@@ -1001,7 +1006,8 @@ pub enum FT_Render_Mode_ {
     FT_RENDER_MODE_MONO = 2,
     FT_RENDER_MODE_LCD = 3,
     FT_RENDER_MODE_LCD_V = 4,
-    FT_RENDER_MODE_MAX = 5,
+    FT_RENDER_MODE_SDF = 5,
+    FT_RENDER_MODE_MAX = 6,
 }
 pub use self::FT_Render_Mode_ as FT_Render_Mode;
 extern "C" {
@@ -1081,23 +1087,6 @@ extern "C" {
         p_arg2: *mut FT_Int,
         p_transform: *mut FT_Matrix,
     ) -> FT_Error;
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct FT_LayerIterator_ {
-    pub num_layers: FT_UInt,
-    pub layer: FT_UInt,
-    pub p: *mut FT_Byte,
-}
-pub type FT_LayerIterator = FT_LayerIterator_;
-extern "C" {
-    pub fn FT_Get_Color_Glyph_Layer(
-        face: FT_Face,
-        base_glyph: FT_UInt,
-        aglyph_index: *mut FT_UInt,
-        acolor_index: *mut FT_UInt,
-        iterator: *mut FT_LayerIterator,
-    ) -> FT_Bool;
 }
 extern "C" {
     pub fn FT_Get_FSType_Flags(face: FT_Face) -> FT_UShort;
@@ -1798,4 +1787,91 @@ extern "C" {
 }
 extern "C" {
     pub fn FT_GlyphSlot_Oblique(slot: FT_GlyphSlot);
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FT_Glyph_Class_ {
+    _unused: [u8; 0],
+}
+pub type FT_Glyph_Class = FT_Glyph_Class_;
+pub type FT_Glyph = *mut FT_GlyphRec_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FT_GlyphRec_ {
+    pub library: FT_Library,
+    pub clazz: *const FT_Glyph_Class,
+    pub format: FT_Glyph_Format,
+    pub advance: FT_Vector,
+}
+pub type FT_GlyphRec = FT_GlyphRec_;
+pub type FT_BitmapGlyph = *mut FT_BitmapGlyphRec_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FT_BitmapGlyphRec_ {
+    pub root: FT_GlyphRec,
+    pub left: FT_Int,
+    pub top: FT_Int,
+    pub bitmap: FT_Bitmap,
+}
+pub type FT_BitmapGlyphRec = FT_BitmapGlyphRec_;
+pub type FT_OutlineGlyph = *mut FT_OutlineGlyphRec_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FT_OutlineGlyphRec_ {
+    pub root: FT_GlyphRec,
+    pub outline: FT_Outline,
+}
+pub type FT_OutlineGlyphRec = FT_OutlineGlyphRec_;
+extern "C" {
+    pub fn FT_New_Glyph(
+        library: FT_Library,
+        format: FT_Glyph_Format,
+        aglyph: *mut FT_Glyph,
+    ) -> FT_Error;
+}
+extern "C" {
+    pub fn FT_Get_Glyph(slot: FT_GlyphSlot, aglyph: *mut FT_Glyph) -> FT_Error;
+}
+extern "C" {
+    pub fn FT_Glyph_Copy(source: FT_Glyph, target: *mut FT_Glyph) -> FT_Error;
+}
+extern "C" {
+    pub fn FT_Glyph_Transform(
+        glyph: FT_Glyph,
+        matrix: *mut FT_Matrix,
+        delta: *mut FT_Vector,
+    ) -> FT_Error;
+}
+impl FT_Glyph_BBox_Mode_ {
+    pub const FT_GLYPH_BBOX_SUBPIXELS: FT_Glyph_BBox_Mode_ =
+        FT_Glyph_BBox_Mode_::FT_GLYPH_BBOX_UNSCALED;
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum FT_Glyph_BBox_Mode_ {
+    FT_GLYPH_BBOX_UNSCALED = 0,
+    FT_GLYPH_BBOX_GRIDFIT = 1,
+    FT_GLYPH_BBOX_TRUNCATE = 2,
+    FT_GLYPH_BBOX_PIXELS = 3,
+}
+pub use self::FT_Glyph_BBox_Mode_ as FT_Glyph_BBox_Mode;
+extern "C" {
+    pub fn FT_Glyph_Get_CBox(glyph: FT_Glyph, bbox_mode: FT_UInt, acbox: *mut FT_BBox);
+}
+extern "C" {
+    pub fn FT_Glyph_To_Bitmap(
+        the_glyph: *mut FT_Glyph,
+        render_mode: FT_Render_Mode,
+        origin: *mut FT_Vector,
+        destroy: FT_Bool,
+    ) -> FT_Error;
+}
+extern "C" {
+    pub fn FT_Done_Glyph(glyph: FT_Glyph);
+}
+extern "C" {
+    pub fn FT_Matrix_Multiply(a: *const FT_Matrix, b: *mut FT_Matrix);
+}
+extern "C" {
+    pub fn FT_Matrix_Invert(matrix: *mut FT_Matrix) -> FT_Error;
 }

@@ -474,21 +474,12 @@ impl FontConfigInner {
         Ok(loaded)
     }
 
-    /// Given a text style, load (with caching) the font that best
-    /// matches according to the fontconfig pattern.
-    fn resolve_font(&self, myself: &Rc<Self>, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
-        let config = self.config.borrow();
-
-        let mut fonts = self.fonts.borrow_mut();
-
-        if let Some(entry) = fonts.get(style) {
-            return Ok(Rc::clone(entry));
-        }
-
-        let font_size = config.font_size * *self.font_scale.borrow();
-        let dpi = *self.dpi.borrow() as u32;
-        let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
-
+    fn resolve_font_helper(
+        &self,
+        style: &TextStyle,
+        config: &ConfigHandle,
+        pixel_size: u16,
+    ) -> anyhow::Result<(Box<dyn FontShaper>, Vec<ParsedFont>)> {
         let attributes = style.font_with_fallback();
         let preferred_attributes = attributes
             .iter()
@@ -561,14 +552,76 @@ impl FontConfigInner {
             }
         }
 
-        let shaper = new_shaper(&*config, &handles)?;
+        Ok((new_shaper(&*config, &handles)?, handles))
+    }
 
-        let metrics = shaper.metrics(font_size, dpi).with_context(|| {
+    /// Given a text style, load (with caching) the font that best
+    /// matches according to the fontconfig pattern.
+    fn resolve_font(&self, myself: &Rc<Self>, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
+        let config = self.config.borrow();
+        let is_default = *style == config.font;
+        let def_font = if !is_default && config.use_cap_height_to_scale_fallback_fonts {
+            Some(self.default_font(myself)?)
+        } else {
+            None
+        };
+
+        let mut fonts = self.fonts.borrow_mut();
+
+        if let Some(entry) = fonts.get(style) {
+            return Ok(Rc::clone(entry));
+        }
+
+        let mut font_size = config.font_size * *self.font_scale.borrow();
+        let dpi = *self.dpi.borrow() as u32;
+        let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
+
+        let (mut shaper, mut handles) = self.resolve_font_helper(style, &config, pixel_size)?;
+
+        let mut metrics = shaper.metrics(font_size, dpi).with_context(|| {
             format!(
                 "obtaining metrics for font_size={} @ dpi {}",
                 font_size, dpi
             )
         })?;
+
+        if let Some(def_font) = def_font {
+            let def_metrics = def_font.metrics();
+            match (def_metrics.cap_height, metrics.cap_height) {
+                (Some(d), Some(m)) => {
+                    // Scale by the ratio of the pixel heights of the default
+                    // and this font; this causes the `I` glyphs to appear to
+                    // have the same height.
+                    let scale = d.get() / m.get();
+                    if scale != 1.0 {
+                        let scaled_pixel_size = (pixel_size as f64 * scale) as u16;
+                        let scaled_font_size = font_size * scale;
+                        log::trace!(
+                            "using cap height adjusted: pixel_size {} -> {}, font_size {} -> {}, {:?}",
+                            pixel_size,
+                            scaled_pixel_size,
+                            font_size,
+                            scaled_font_size,
+                            metrics,
+                        );
+                        let (alt_shaper, alt_handles) =
+                            self.resolve_font_helper(style, &config, scaled_pixel_size)?;
+                        shaper = alt_shaper;
+                        handles = alt_handles;
+
+                        metrics = shaper.metrics(scaled_font_size, dpi).with_context(|| {
+                            format!(
+                                "obtaining cap-height adjusted metrics for font_size={} @ dpi {}",
+                                scaled_font_size, dpi
+                            )
+                        })?;
+
+                        font_size = scaled_font_size;
+                    }
+                }
+                _ => {}
+            }
+        }
 
         let loaded = Rc::new(LoadedFont {
             rasterizers: RefCell::new(HashMap::new()),

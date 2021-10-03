@@ -54,6 +54,7 @@ pub struct FontMetrics {
 
     /// Fraction of the EM square occupied by the cap height
     pub cap_height_ratio: Option<f64>,
+    pub cap_height: Option<PixelLength>,
 
     /// True if the font is scalable and this is a scaled metric.
     /// False if the font only has bitmap strikes and what we

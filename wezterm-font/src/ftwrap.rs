@@ -98,13 +98,23 @@ struct FaceSize {
     dpi: u32,
     cell_width: f64,
     cell_height: f64,
+    cap_height: Option<f64>,
+    cap_height_to_height_ratio: Option<f64>,
     is_scaled: bool,
+}
+
+#[derive(Debug)]
+struct ComputedCellMetrics {
+    pub width: f64,
+    pub height: f64,
 }
 
 #[derive(Debug)]
 pub struct SelectedFontSize {
     pub width: f64,
     pub height: f64,
+    pub cap_height: Option<f64>,
+    pub cap_height_to_height_ratio: Option<f64>,
     pub is_scaled: bool,
 }
 
@@ -331,6 +341,8 @@ impl Face {
                     width: face_size.cell_width,
                     height: face_size.cell_height,
                     is_scaled: face_size.is_scaled,
+                    cap_height: face_size.cap_height,
+                    cap_height_to_height_ratio: face_size.cap_height_to_height_ratio,
                 });
             }
         }
@@ -350,10 +362,12 @@ impl Face {
         let selected_size = match self.set_char_size(size, size, dpi, dpi) {
             Ok(_) => {
                 // Compute metrics for the nominal monospace cell
-                let (width, height) = self.cell_metrics();
+                let ComputedCellMetrics { width, height } = self.cell_metrics();
                 SelectedFontSize {
                     width,
                     height,
+                    cap_height: None,
+                    cap_height_to_height_ratio: None,
                     is_scaled: true,
                 }
             }
@@ -408,11 +422,14 @@ impl Face {
                 // 4 pixels is too thin for this font, so we take the max of the
                 // known dimensions to produce the size.
                 // <https://github.com/wez/wezterm/issues/1165>
-                let (m_width, m_height) = self.cell_metrics();
+                let m = self.cell_metrics();
+                let height = f64::from(best.height).max(m.height);
                 SelectedFontSize {
-                    width: f64::from(best.width).max(m_width),
-                    height: f64::from(best.height).max(m_height),
+                    width: f64::from(best.width).max(m.width),
+                    height,
                     is_scaled: false,
+                    cap_height: None,
+                    cap_height_to_height_ratio: None,
                 }
             }
         };
@@ -421,11 +438,34 @@ impl Face {
             size: point_size,
             dpi,
             cell_width: selected_size.width,
+            cap_height: None,
+            cap_height_to_height_ratio: None,
             cell_height: selected_size.height,
             is_scaled: selected_size.is_scaled,
         });
 
-        Ok(selected_size)
+        // Can't compute cap height until after we've assigned self.size
+        if let Ok(cap_height) = self.compute_cap_height() {
+            let cap_height_to_height_ratio = cap_height / selected_size.height;
+
+            self.size.replace(FaceSize {
+                size: point_size,
+                dpi,
+                cell_width: selected_size.width,
+                cap_height: Some(cap_height),
+                cap_height_to_height_ratio: Some(cap_height_to_height_ratio),
+                cell_height: selected_size.height,
+                is_scaled: selected_size.is_scaled,
+            });
+
+            Ok(SelectedFontSize {
+                cap_height: Some(cap_height),
+                cap_height_to_height_ratio: Some(cap_height_to_height_ratio),
+                ..selected_size
+            })
+        } else {
+            Ok(selected_size)
+        }
     }
 
     fn set_char_size(
@@ -516,7 +556,129 @@ impl Face {
         }
     }
 
-    pub fn cell_metrics(&mut self) -> (f64, f64) {
+    /// Compute the cap-height metric in pixels.
+    /// This is pixel-perfect based on the rendered glyph data for `I`,
+    /// which is a technique that works for any font regardless
+    /// of the integrity of its internal cap-height metric or
+    /// whether the font is a bitmap font.
+    /// `I` is chosen rather than `O` as `O` glyphs are often optically
+    /// compensated and overshoot a little.
+    fn compute_cap_height(&mut self) -> anyhow::Result<f64> {
+        let glyph_pos = unsafe { FT_Get_Char_Index(self.face, b'I' as u64) };
+        if glyph_pos == 0 {
+            anyhow::bail!("no I from which to compute cap height");
+        }
+        let (load_flags, render_mode) = compute_load_flags_from_config();
+        let ft_glyph = self.load_and_render_glyph(glyph_pos, load_flags, render_mode, false)?;
+
+        let mode: FT_Pixel_Mode =
+            unsafe { std::mem::transmute(u32::from(ft_glyph.bitmap.pixel_mode)) };
+
+        // pitch is the number of bytes per source row
+        let pitch = ft_glyph.bitmap.pitch.abs() as usize;
+        let data = unsafe {
+            std::slice::from_raw_parts_mut(
+                ft_glyph.bitmap.buffer,
+                ft_glyph.bitmap.rows as usize * pitch,
+            )
+        };
+
+        let mut first_row = None;
+        let mut last_row = None;
+
+        match mode {
+            FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
+                let width = ft_glyph.bitmap.width as usize / 3;
+                let height = ft_glyph.bitmap.rows as usize;
+
+                'next_line_lcd: for y in 0..height {
+                    let src_offset = y * pitch as usize;
+                    for x in 0..width {
+                        if data[src_offset + (x * 3)] != 0
+                            || data[src_offset + (x * 3) + 1] != 0
+                            || data[src_offset + (x * 3) + 2] != 0
+                        {
+                            if first_row.is_none() {
+                                first_row.replace(y);
+                            }
+                            last_row.replace(y);
+                            continue 'next_line_lcd;
+                        }
+                    }
+                }
+            }
+
+            FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                let width = ft_glyph.bitmap.width as usize;
+                let height = ft_glyph.bitmap.rows as usize;
+                'next_line_bgra: for y in 0..height {
+                    let src_offset = y * pitch as usize;
+                    for x in 0..width {
+                        let alpha = data[src_offset + (x * 4) + 3];
+                        if alpha != 0 {
+                            if first_row.is_none() {
+                                first_row.replace(y);
+                            }
+                            last_row.replace(y);
+                            continue 'next_line_bgra;
+                        }
+                    }
+                }
+            }
+            FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
+                let width = ft_glyph.bitmap.width as usize;
+                let height = ft_glyph.bitmap.rows as usize;
+                'next_line_gray: for y in 0..height {
+                    let src_offset = y * pitch;
+                    for x in 0..width {
+                        if data[src_offset + x] != 0 {
+                            if first_row.is_none() {
+                                first_row.replace(y);
+                            }
+                            last_row.replace(y);
+                            continue 'next_line_gray;
+                        }
+                    }
+                }
+            }
+            FT_Pixel_Mode::FT_PIXEL_MODE_MONO => {
+                let width = ft_glyph.bitmap.width as usize;
+                let height = ft_glyph.bitmap.rows as usize;
+                'next_line_mono: for y in 0..height {
+                    let src_offset = y * pitch;
+                    let mut x = 0;
+                    for i in 0..pitch {
+                        if x >= width {
+                            break;
+                        }
+                        let mut b = data[src_offset + i];
+                        for _ in 0..8 {
+                            if x >= width {
+                                break;
+                            }
+                            if b & 0x80 == 0x80 {
+                                if first_row.is_none() {
+                                    first_row.replace(y);
+                                }
+                                last_row.replace(y);
+                                continue 'next_line_mono;
+                            }
+                            b <<= 1;
+                            x += 1;
+                        }
+                    }
+                }
+            }
+            _ => anyhow::bail!("unhandled pixel mode {:?}", mode),
+        }
+
+        match (first_row, last_row) {
+            (Some(first), Some(last)) => Ok((last - first) as f64),
+            _ => anyhow::bail!("didn't find any rasterized rows?"),
+        }
+    }
+
+    fn cell_metrics(&mut self) -> ComputedCellMetrics {
         unsafe {
             let metrics = &(*(*self.face).size).metrics;
             let height = (metrics.y_scale as f64 * f64::from((*self.face).height))
@@ -555,7 +717,11 @@ impl Face {
                     width = height * 64.;
                 }
             }
-            (width / 64.0, height)
+
+            ComputedCellMetrics {
+                width: width / 64.0,
+                height,
+            }
         }
     }
 }

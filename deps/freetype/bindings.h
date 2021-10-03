@@ -6,3 +6,4 @@
 #include <freetype/ftoutln.h>
 #include <freetype/ftmm.h>
 #include <freetype/ftsynth.h>
+#include <freetype/ftglyph.h>

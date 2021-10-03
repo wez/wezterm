@@ -8,3 +8,5 @@ Regular
 
 [5mBlink[0m
 [6mRapid Blink[0m
+
+I [1mI[0m [3mI[0m [1m[3mI[0m [2mI[0m [2m[3mI[0m

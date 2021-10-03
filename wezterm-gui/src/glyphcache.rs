@@ -437,43 +437,24 @@ impl<T: Texture2d> GlyphCache<T> {
             }
         } else {
             // a scalable fallback font
-            let y_scale = match (
-                self.fonts.config().use_cap_height_to_scale_fallback_fonts,
-                base_metrics.cap_height_ratio,
-                idx_metrics.cap_height_ratio,
-            ) {
-                (true, Some(base_cap), Some(cap)) => {
-                    // both fonts have cap-height metrics and we're in
-                    // use_cap_height_to_scale_fallback_fonts mode, so
-                    // scale based on their respective cap heights
-                    base_cap / cap
-                }
-                _ => {
-                    // Assume that the size we requested doesn't need
-                    // any additional scaling
-                    1.0
-                }
-            };
 
-            // How wide the glyph would be using the y_scale we produced
-            let y_scaled_width = y_scale * glyph.width as f64;
+            let f_width = glyph.width as f64;
 
-            if allow_width_overflow || y_scaled_width <= max_pixel_width {
-                scale = y_scale;
+            if allow_width_overflow || f_width <= max_pixel_width {
+                scale = 1.0;
             } else {
-                scale = max_pixel_width / glyph.width as f64;
+                scale = max_pixel_width / f_width;
             }
 
             #[cfg(debug_assertions)]
             {
                 log::debug!(
                     "{} allow_width_overflow={} is_square_or_wide={} aspect={} \
-                       y_scaled_width={} max_pixel_width={} glyph.width={} -> scale={}",
+                       max_pixel_width={} glyph.width={} -> scale={}",
                     info.text,
                     allow_width_overflow,
                     is_square_or_wide,
                     aspect,
-                    y_scaled_width,
                     max_pixel_width,
                     glyph.width,
                     scale

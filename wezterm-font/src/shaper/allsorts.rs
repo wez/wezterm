@@ -227,6 +227,7 @@ impl AllsortsParsedFont {
             underline_thickness,
             underline_position,
             cap_height_ratio: None,
+            cap_height: None,
             is_scaled: true, // FIXME
         };
 
