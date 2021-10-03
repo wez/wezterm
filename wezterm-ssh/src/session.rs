@@ -619,7 +619,7 @@ impl SessionInner {
     /// Open a handle to a file.
     ///
     /// See [`Sftp::open_mode`] for more information.
-    pub fn open_mode(
+    pub fn open_with_mode(
         &mut self,
         sess: &ssh2::Session,
         open_mode: &sftp::OpenMode,

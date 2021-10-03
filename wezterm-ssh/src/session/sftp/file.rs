@@ -123,7 +123,7 @@ impl File {
     /// Set the metadata for this handle.
     ///
     /// See [`ssh2::File::setstat`] for more information.
-    pub async fn setstat(&self, metadata: Metadata) -> SftpChannelResult<()> {
+    pub async fn set_metadata(&self, metadata: Metadata) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
@@ -143,7 +143,7 @@ impl File {
     /// Get the metadata for this handle.
     ///
     /// See [`ssh2::File::stat`] for more information.
-    pub async fn stat(&self) -> SftpChannelResult<Metadata> {
+    pub async fn metadata(&self) -> SftpChannelResult<Metadata> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
@@ -170,7 +170,7 @@ impl File {
     /// files in this directory.
     ///
     /// See [`ssh2::File::readdir`] for more information.
-    pub async fn readdir(&self) -> anyhow::Result<(PathBuf, Metadata)> {
+    pub async fn read_dir(&self) -> anyhow::Result<(PathBuf, Metadata)> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
