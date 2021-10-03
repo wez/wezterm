@@ -34,7 +34,7 @@ impl super::TermWindow {
 
     fn leave_ui_item(&mut self, item: &UIItem) {
         match item.item_type {
-            UIItemType::TabBar => {
+            UIItemType::TabBar(_) => {
                 self.update_title_post_status();
             }
             UIItemType::AboveScrollThumb
@@ -46,7 +46,7 @@ impl super::TermWindow {
 
     fn enter_ui_item(&mut self, item: &UIItem) {
         match item.item_type {
-            UIItemType::TabBar => {}
+            UIItemType::TabBar(_) => {}
             UIItemType::AboveScrollThumb
             | UIItemType::BelowScrollThumb
             | UIItemType::ScrollThumb
@@ -193,7 +193,7 @@ impl super::TermWindow {
         }
 
         if let Some(item) = ui_item {
-            self.mouse_event_ui_item(item, pane, x, term_y, event, context);
+            self.mouse_event_ui_item(item, pane, term_y, event, context);
         } else {
             self.mouse_event_terminal(pane, x, term_y, event, context);
         }
@@ -285,15 +285,14 @@ impl super::TermWindow {
         &mut self,
         item: UIItem,
         pane: Rc<dyn Pane>,
-        x: usize,
         _y: i64,
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
         self.last_ui_item.replace(item.clone());
         match item.item_type {
-            UIItemType::TabBar => {
-                self.mouse_event_tab_bar(x, event, context);
+            UIItemType::TabBar(item) => {
+                self.mouse_event_tab_bar(item, event, context);
             }
             UIItemType::AboveScrollThumb => {
                 self.mouse_event_above_scroll_thumb(item, pane, event, context);
@@ -310,9 +309,14 @@ impl super::TermWindow {
         }
     }
 
-    pub fn mouse_event_tab_bar(&mut self, x: usize, event: MouseEvent, context: &dyn WindowOps) {
+    pub fn mouse_event_tab_bar(
+        &mut self,
+        item: TabBarItem,
+        event: MouseEvent,
+        context: &dyn WindowOps,
+    ) {
         match event.kind {
-            WMEK::Press(MousePress::Left) => match self.tab_bar.hit_test(x) {
+            WMEK::Press(MousePress::Left) => match item {
                 TabBarItem::Tab(tab_idx) => {
                     self.activate_tab(tab_idx as isize).ok();
                 }
@@ -325,13 +329,13 @@ impl super::TermWindow {
                     context.request_drag_move();
                 }
             },
-            WMEK::Press(MousePress::Middle) => match self.tab_bar.hit_test(x) {
+            WMEK::Press(MousePress::Middle) => match item {
                 TabBarItem::Tab(tab_idx) => {
                     self.close_tab_idx(tab_idx).ok();
                 }
                 TabBarItem::NewTabButton | TabBarItem::None => {}
             },
-            WMEK::Press(MousePress::Right) => match self.tab_bar.hit_test(x) {
+            WMEK::Press(MousePress::Right) => match item {
                 TabBarItem::Tab(_) => {
                     self.show_tab_navigator();
                 }

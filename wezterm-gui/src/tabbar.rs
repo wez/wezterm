@@ -1,4 +1,4 @@
-use crate::termwindow::{PaneInformation, TabInformation};
+use crate::termwindow::{PaneInformation, TabInformation, UIItem, UIItemType};
 use config::lua::{format_as_escapes, FormatItem};
 use config::{ConfigHandle, TabBarColors};
 use mlua::FromLua;
@@ -17,7 +17,7 @@ pub struct TabBarState {
     items: Vec<TabEntry>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TabBarItem {
     None,
     Tab(usize),
@@ -320,14 +320,36 @@ impl TabBarState {
         Self { line, items }
     }
 
-    /// Determine which component the mouse is over
-    pub fn hit_test(&self, mouse_x: usize) -> TabBarItem {
+    pub fn compute_ui_items(
+        &self,
+        y: usize,
+        cell_height: usize,
+        cell_width: usize,
+        width: usize,
+    ) -> Vec<UIItem> {
+        let mut items = vec![];
+        let mut last_x = 0;
+
         for entry in self.items.iter() {
-            if mouse_x >= entry.x && mouse_x < entry.x + entry.width {
-                return entry.item;
-            }
+            items.push(UIItem {
+                x: last_x * cell_width,
+                width: entry.width * cell_width,
+                y,
+                height: cell_height,
+                item_type: UIItemType::TabBar(entry.item),
+            });
+            last_x += entry.width;
         }
-        TabBarItem::None
+
+        items.push(UIItem {
+            x: last_x * cell_width,
+            width: width - (last_x * cell_width),
+            y,
+            height: cell_height,
+            item_type: UIItemType::TabBar(TabBarItem::None),
+        });
+
+        items
     }
 }
 

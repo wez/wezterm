@@ -522,17 +522,16 @@ impl super::TermWindow {
             };
 
             // Register the tab bar location
-            self.ui_items.push(UIItem {
-                x: 0,
-                width: self.dimensions.pixel_width,
-                y: if self.config.tab_bar_at_bottom {
+            self.ui_items.append(&mut self.tab_bar.compute_ui_items(
+                if self.config.tab_bar_at_bottom {
                     avail_height - self.render_metrics.cell_size.height as usize
                 } else {
                     0
                 },
-                height: self.render_metrics.cell_size.height as usize,
-                item_type: UIItemType::TabBar,
-            });
+                self.render_metrics.cell_size.height as usize,
+                self.render_metrics.cell_size.width as usize,
+                self.dimensions.pixel_width,
+            ));
 
             self.render_screen_line_opengl(
                 RenderScreenLineOpenGLParams {

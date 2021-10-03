@@ -13,7 +13,7 @@ use crate::scripting::pane::PaneObject;
 use crate::scrollbar::*;
 use crate::selection::Selection;
 use crate::shapecache::*;
-use crate::tabbar::TabBarState;
+use crate::tabbar::{TabBarItem, TabBarState};
 use ::wezterm_term::input::MouseButton as TMB;
 use ::window::*;
 use anyhow::Context;
@@ -109,7 +109,7 @@ pub enum TermWindowNotif {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UIItemType {
-    TabBar,
+    TabBar(TabBarItem),
     AboveScrollThumb,
     ScrollThumb,
     BelowScrollThumb,
