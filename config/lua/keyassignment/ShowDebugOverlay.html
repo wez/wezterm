@@ -150,6 +150,13 @@ of a debug log and a lua <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eva
 <p>The lua context in the REPL is not connected to any global state; you cannot use it
 to dynamically assign event handlers for example.  It is primarily useful for
 prototyping lua snippets before you integrate them fully into your config.</p>
+<pre><code class="language-lua">return {
+  keys = {
+    -- CTRL-SHIFT-l activates the debug overlay
+    {key=&quot;L&quot;, mods=&quot;CTRL&quot;, action=&quot;ShowDebugOverlay&quot;},
+  }
+}
+</code></pre>
 
                     </main>
 

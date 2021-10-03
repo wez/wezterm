@@ -150,6 +150,8 @@
 <li><a href="features.html">a full list of features can be found here</a></li>
 </ul>
 <p>Looking for a <a href="config/files.html">configuration reference?</a></p>
+<p><strong>These docs are searchable: press <code>S</code> or click on the magnifying glass icon
+to activate the search function!</strong></p>
 <img width="100%" height="100%" src="screenshots/two.png" alt="Screenshot">
 <p><em>Screenshot of wezterm on macOS, running vim</em></p>
 <div style="break-before: page; page-break-before: always;"></div><p>WezTerm is available pre-built for the major platforms and, because it is open
@@ -1607,6 +1609,9 @@ return {
   }
 }
 </code></pre>
+<p>The <code>action</code> value can be one of the <a href="config/lua/keyassignment/index.html">available key
+assignments</a>.  Every action has an example that shows
+how to use it.</p>
 <p>The <code>key</code> value can be one of the following keycode identifiers.  Note that not
 all of these are meaningful on all platforms:</p>
 <p><code>Hyper</code>, <code>Super</code>, <code>Meta</code>, <code>Cancel</code>, <code>Backspace</code>, <code>Tab</code>, <code>Clear</code>, <code>Enter</code>,
@@ -7574,6 +7579,12 @@ clear and convenient.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="activatecopymode"><a class="header" href="#activatecopymode">ActivateCopyMode</a></h1>
 <p><em>since: 20200607-144723-74889cd4</em></p>
 <p>Activates copy mode!</p>
+<pre><code class="language-lua">return {
+  keys = {
+    {key=&quot;X&quot;, mods=&quot;CTRL&quot;, action=&quot;ActivateCopyMode&quot;},
+  }
+}
+</code></pre>
 <p><a href="config/lua/keyassignment/../../../copymode.html">Learn more about copy mode</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="activatelasttab"><a class="header" href="#activatelasttab">ActivateLastTab</a></h1>
 <p><em>Since: 20210404-112810-b63a949d</em></p>
@@ -7939,6 +7950,19 @@ the terminal, look at <a href="config/lua/keyassignment/DisableDefaultAssignment
 <div style="break-before: page; page-break-before: always;"></div><h1 id="openlinkatmousecursor"><a class="header" href="#openlinkatmousecursor">OpenLinkAtMouseCursor</a></h1>
 <p>If the current mouse cursor position is over a cell that contains
 a hyperlink, this action causes that link to be opened.</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm';
+
+return {
+  mouse_bindings = {
+    -- Ctrl-click will open the link under the mouse cursor
+    {
+      event={Up={streak=1, button=&quot;Left&quot;}},
+      mods=&quot;CTRL&quot;,
+      action=&quot;OpenLinkAtMouseCursor&quot;,
+    },
+  },
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="paste"><a class="header" href="#paste">Paste</a></h1>
 <p>Paste the clipboard to the current pane.</p>
 <p><em>since: 20210203-095643-70a364eb</em></p>
@@ -8206,6 +8230,13 @@ of a debug log and a lua <a href="https://en.wikipedia.org/wiki/Read%E2%80%93eva
 <p>The lua context in the REPL is not connected to any global state; you cannot use it
 to dynamically assign event handlers for example.  It is primarily useful for
 prototyping lua snippets before you integrate them fully into your config.</p>
+<pre><code class="language-lua">return {
+  keys = {
+    -- CTRL-SHIFT-l activates the debug overlay
+    {key=&quot;L&quot;, mods=&quot;CTRL&quot;, action=&quot;ShowDebugOverlay&quot;},
+  }
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="showlauncher"><a class="header" href="#showlauncher">ShowLauncher</a></h1>
 <p>Activate the <a href="config/lua/keyassignment/../../launch.html#the-launcher-menu">Launcher Menu</a>
 in the current tab.</p>
