@@ -1,17 +1,26 @@
-const OCTAL_FT_DIR: u32 = 0o040000;
-const OCTAL_FT_FILE: u32 = 0o100000;
-const OCTAL_FT_SYMLINK: u32 = 0o120000;
-const OCTAL_FT_OTHER: u32 = 0;
+use bitflags::bitflags;
 
-const OCTAL_PERM_OWNER_READ: u32 = 0o400;
-const OCTAL_PERM_OWNER_WRITE: u32 = 0o200;
-const OCTAL_PERM_OWNER_EXEC: u32 = 0o100;
-const OCTAL_PERM_GROUP_READ: u32 = 0o40;
-const OCTAL_PERM_GROUP_WRITE: u32 = 0o20;
-const OCTAL_PERM_GROUP_EXEC: u32 = 0o10;
-const OCTAL_PERM_OTHER_READ: u32 = 0o4;
-const OCTAL_PERM_OTHER_WRITE: u32 = 0o2;
-const OCTAL_PERM_OTHER_EXEC: u32 = 0o1;
+bitflags! {
+    struct FileTypeFlags: u32 {
+        const DIR = 0o040000;
+        const FILE = 0o100000;
+        const SYMLINK = 0o120000;
+    }
+}
+
+bitflags! {
+    struct FilePermissionFlags: u32 {
+        const OWNER_READ = 0o400;
+        const OWNER_WRITE = 0o200;
+        const OWNER_EXEC = 0o100;
+        const GROUP_READ = 0o40;
+        const GROUP_WRITE = 0o20;
+        const GROUP_EXEC = 0o10;
+        const OTHER_READ = 0o4;
+        const OTHER_WRITE = 0o2;
+        const OTHER_EXEC = 0o1;
+    }
+}
 
 /// Represents the type associated with a remote file
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
@@ -40,11 +49,12 @@ impl FileType {
 
     /// Create from a unix mode bitset
     pub fn from_unix_mode(mode: u32) -> Self {
-        if mode & OCTAL_FT_DIR != 0 {
+        let flags = FileTypeFlags::from_bits_truncate(mode);
+        if flags.contains(FileTypeFlags::DIR) {
             Self::Dir
-        } else if mode & OCTAL_FT_FILE != 0 {
+        } else if flags.contains(FileTypeFlags::FILE) {
             Self::File
-        } else if mode & OCTAL_FT_SYMLINK != 0 {
+        } else if flags.contains(FileTypeFlags::SYMLINK) {
             Self::Symlink
         } else {
             Self::Other
@@ -53,12 +63,14 @@ impl FileType {
 
     /// Convert to a unix mode bitset
     pub fn to_unix_mode(self) -> u32 {
-        match self {
-            FileType::Dir => OCTAL_FT_DIR,
-            FileType::File => OCTAL_FT_FILE,
-            FileType::Symlink => OCTAL_FT_SYMLINK,
-            FileType::Other => OCTAL_FT_OTHER,
-        }
+        let flags = match self {
+            FileType::Dir => FileTypeFlags::DIR,
+            FileType::File => FileTypeFlags::FILE,
+            FileType::Symlink => FileTypeFlags::SYMLINK,
+            FileType::Other => FileTypeFlags::empty(),
+        };
+
+        flags.bits
     }
 }
 
@@ -85,54 +97,55 @@ impl FilePermissions {
 
     /// Create from a unix mode bitset
     pub fn from_unix_mode(mode: u32) -> Self {
+        let flags = FilePermissionFlags::from_bits_truncate(mode);
         Self {
-            owner_read: mode | OCTAL_PERM_OWNER_READ != 0,
-            owner_write: mode | OCTAL_PERM_OWNER_WRITE != 0,
-            owner_exec: mode | OCTAL_PERM_OWNER_EXEC != 0,
-            group_read: mode | OCTAL_PERM_GROUP_READ != 0,
-            group_write: mode | OCTAL_PERM_GROUP_WRITE != 0,
-            group_exec: mode | OCTAL_PERM_GROUP_EXEC != 0,
-            other_read: mode | OCTAL_PERM_OTHER_READ != 0,
-            other_write: mode | OCTAL_PERM_OTHER_WRITE != 0,
-            other_exec: mode | OCTAL_PERM_OTHER_EXEC != 0,
+            owner_read: flags.contains(FilePermissionFlags::OWNER_READ),
+            owner_write: flags.contains(FilePermissionFlags::OWNER_WRITE),
+            owner_exec: flags.contains(FilePermissionFlags::OWNER_EXEC),
+            group_read: flags.contains(FilePermissionFlags::GROUP_READ),
+            group_write: flags.contains(FilePermissionFlags::GROUP_WRITE),
+            group_exec: flags.contains(FilePermissionFlags::GROUP_EXEC),
+            other_read: flags.contains(FilePermissionFlags::OTHER_READ),
+            other_write: flags.contains(FilePermissionFlags::OTHER_WRITE),
+            other_exec: flags.contains(FilePermissionFlags::OTHER_EXEC),
         }
     }
 
     /// Convert to a unix mode bitset
     pub fn to_unix_mode(self) -> u32 {
-        let mut mode: u32 = 0;
+        let mut flags = FilePermissionFlags::empty();
 
         if self.owner_read {
-            mode |= OCTAL_PERM_OWNER_READ;
+            flags.insert(FilePermissionFlags::OWNER_READ);
         }
         if self.owner_write {
-            mode |= OCTAL_PERM_OWNER_WRITE;
+            flags.insert(FilePermissionFlags::OWNER_WRITE);
         }
         if self.owner_exec {
-            mode |= OCTAL_PERM_OWNER_EXEC;
+            flags.insert(FilePermissionFlags::OWNER_EXEC);
         }
 
         if self.group_read {
-            mode |= OCTAL_PERM_GROUP_READ;
+            flags.insert(FilePermissionFlags::GROUP_READ);
         }
         if self.group_write {
-            mode |= OCTAL_PERM_GROUP_WRITE;
+            flags.insert(FilePermissionFlags::GROUP_WRITE);
         }
         if self.group_exec {
-            mode |= OCTAL_PERM_GROUP_EXEC;
+            flags.insert(FilePermissionFlags::GROUP_EXEC);
         }
 
         if self.other_read {
-            mode |= OCTAL_PERM_OTHER_READ;
+            flags.insert(FilePermissionFlags::OTHER_READ);
         }
         if self.other_write {
-            mode |= OCTAL_PERM_OTHER_WRITE;
+            flags.insert(FilePermissionFlags::OTHER_WRITE);
         }
         if self.other_exec {
-            mode |= OCTAL_PERM_OTHER_EXEC;
+            flags.insert(FilePermissionFlags::OTHER_EXEC);
         }
 
-        mode
+        flags.bits
     }
 }
 

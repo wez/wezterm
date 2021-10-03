@@ -5363,6 +5363,7 @@ dependencies = [
  "assert_fs",
  "async_ossl",
  "base64",
+ "bitflags",
  "dirs-next",
  "filedescriptor",
  "filenamegen",
