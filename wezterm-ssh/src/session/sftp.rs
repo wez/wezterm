@@ -9,8 +9,8 @@ pub use error::{SftpError, SftpResult};
 mod file;
 pub use file::File;
 pub(crate) use file::{
-    CloseFile, FileId, FileRequest, FlushFile, FsyncFile, ReadFile, ReaddirFile, SetstatFile,
-    StatFile, WriteFile,
+    CloseFile, FileId, FileRequest, FlushFile, FsyncFile, MetadataFile, ReadDirFile, ReadFile,
+    SetMetadataFile, WriteFile,
 };
 
 mod types;
@@ -48,8 +48,6 @@ pub struct Sftp {
 
 impl Sftp {
     /// Open a handle to a file.
-    ///
-    /// See [`Sftp::open_mode`] for more information.
     pub async fn open_with_mode(
         &self,
         filename: impl Into<PathBuf>,
@@ -58,11 +56,13 @@ impl Sftp {
         let (reply, rx) = bounded(1);
 
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::OpenMode(OpenMode {
-                filename: filename.into(),
-                opts,
-                reply,
-            })))
+            .send(SessionRequest::Sftp(SftpRequest::OpenWithMode(
+                OpenWithMode {
+                    filename: filename.into(),
+                    opts,
+                    reply,
+                },
+            )))
             .await?;
         let mut result = rx.recv().await??;
         result.initialize_sender(self.tx.clone());
@@ -70,8 +70,6 @@ impl Sftp {
     }
 
     /// Helper to open a file in the `Read` mode.
-    ///
-    /// See [`Sftp::open`] for more information.
     pub async fn open(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<File> {
         let (reply, rx) = bounded(1);
         self.tx
@@ -86,8 +84,6 @@ impl Sftp {
     }
 
     /// Helper to create a file in write-only mode with truncation.
-    ///
-    /// See [`Sftp::create`] for more information.
     pub async fn create(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<File> {
         let (reply, rx) = bounded(1);
         self.tx
@@ -102,12 +98,10 @@ impl Sftp {
     }
 
     /// Helper to open a directory for reading its contents.
-    ///
-    /// See [`Sftp::opendir`] for more information.
     pub async fn open_dir(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<File> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Opendir(Opendir {
+            .send(SessionRequest::Sftp(SftpRequest::OpenDir(OpenDir {
                 filename: filename.into(),
                 reply,
             })))
@@ -121,15 +115,13 @@ impl Sftp {
     ///
     /// The returned paths are all joined with dirname when returned, and the paths . and .. are
     /// filtered out of the returned list.
-    ///
-    /// See [`Sftp::readdir`] for more information.
     pub async fn read_dir(
         &self,
         filename: impl Into<PathBuf>,
     ) -> SftpChannelResult<Vec<(PathBuf, Metadata)>> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Readdir(Readdir {
+            .send(SessionRequest::Sftp(SftpRequest::ReadDir(ReadDir {
                 filename: filename.into(),
                 reply,
             })))
@@ -139,12 +131,14 @@ impl Sftp {
     }
 
     /// Create a directory on the remote filesystem.
-    ///
-    /// See [`Sftp::rmdir`] for more information.
-    pub async fn create_dir(&self, filename: impl Into<PathBuf>, mode: i32) -> SftpChannelResult<()> {
+    pub async fn create_dir(
+        &self,
+        filename: impl Into<PathBuf>,
+        mode: i32,
+    ) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Mkdir(Mkdir {
+            .send(SessionRequest::Sftp(SftpRequest::CreateDir(CreateDir {
                 filename: filename.into(),
                 mode,
                 reply,
@@ -155,12 +149,10 @@ impl Sftp {
     }
 
     /// Remove a directory from the remote filesystem.
-    ///
-    /// See [`Sftp::rmdir`] for more information.
     pub async fn remove_dir(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Rmdir(Rmdir {
+            .send(SessionRequest::Sftp(SftpRequest::RemoveDir(RemoveDir {
                 filename: filename.into(),
                 reply,
             })))
@@ -170,12 +162,10 @@ impl Sftp {
     }
 
     /// Get the metadata for a file, performed by stat(2).
-    ///
-    /// See [`Sftp::stat`] for more information.
     pub async fn metadata(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<Metadata> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Stat(Stat {
+            .send(SessionRequest::Sftp(SftpRequest::Metadata(GetMetadata {
                 filename: filename.into(),
                 reply,
             })))
@@ -185,23 +175,24 @@ impl Sftp {
     }
 
     /// Get the metadata for a file, performed by lstat(2).
-    ///
-    /// See [`Sftp::lstat`] for more information.
-    pub async fn symlink_metadata(&self, filename: impl Into<PathBuf>) -> SftpChannelResult<Metadata> {
+    pub async fn symlink_metadata(
+        &self,
+        filename: impl Into<PathBuf>,
+    ) -> SftpChannelResult<Metadata> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Lstat(Lstat {
-                filename: filename.into(),
-                reply,
-            })))
+            .send(SessionRequest::Sftp(SftpRequest::SymlinkMetadata(
+                SymlinkMetadata {
+                    filename: filename.into(),
+                    reply,
+                },
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Set the metadata for a file.
-    ///
-    /// See [`Sftp::setstat`] for more information.
     pub async fn set_metadata(
         &self,
         filename: impl Into<PathBuf>,
@@ -209,19 +200,19 @@ impl Sftp {
     ) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Setstat(Setstat {
-                filename: filename.into(),
-                metadata,
-                reply,
-            })))
+            .send(SessionRequest::Sftp(SftpRequest::SetMetadata(
+                SetMetadata {
+                    filename: filename.into(),
+                    metadata,
+                    reply,
+                },
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Create symlink at `target` pointing at `path`.
-    ///
-    /// See [`Sftp::symlink`] for more information.
     pub async fn symlink(
         &self,
         path: impl Into<PathBuf>,
@@ -240,12 +231,10 @@ impl Sftp {
     }
 
     /// Read a symlink at `path`.
-    ///
-    /// See [`Sftp::readlink`] for more information.
     pub async fn read_link(&self, path: impl Into<PathBuf>) -> SftpChannelResult<PathBuf> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Readlink(Readlink {
+            .send(SessionRequest::Sftp(SftpRequest::ReadLink(ReadLink {
                 path: path.into(),
                 reply,
             })))
@@ -255,23 +244,21 @@ impl Sftp {
     }
 
     /// Resolve the real path for `path`.
-    ///
-    /// See [`Sftp::realpath`] for more information.
     pub async fn canonicalize(&self, path: impl Into<PathBuf>) -> SftpChannelResult<PathBuf> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Realpath(Realpath {
-                path: path.into(),
-                reply,
-            })))
+            .send(SessionRequest::Sftp(SftpRequest::Canonicalize(
+                Canonicalize {
+                    path: path.into(),
+                    reply,
+                },
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
     }
 
     /// Rename the filesystem object on the remote filesystem.
-    ///
-    /// See [`Sftp::rename`] for more information.
     pub async fn rename(
         &self,
         src: impl Into<PathBuf>,
@@ -292,12 +279,10 @@ impl Sftp {
     }
 
     /// Remove a file on the remote filesystem.
-    ///
-    /// See [`Sftp::unlink`] for more information.
     pub async fn remove_file(&self, file: impl Into<PathBuf>) -> SftpChannelResult<()> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Unlink(Unlink {
+            .send(SessionRequest::Sftp(SftpRequest::RemoveFile(RemoveFile {
                 file: file.into(),
                 reply,
             })))
@@ -309,28 +294,28 @@ impl Sftp {
 
 #[derive(Debug)]
 pub(crate) enum SftpRequest {
-    OpenMode(OpenMode),
+    OpenWithMode(OpenWithMode),
     Open(Open),
     Create(Create),
-    Opendir(Opendir),
-    Readdir(Readdir),
-    Mkdir(Mkdir),
-    Rmdir(Rmdir),
-    Stat(Stat),
-    Lstat(Lstat),
-    Setstat(Setstat),
+    OpenDir(OpenDir),
+    ReadDir(ReadDir),
+    CreateDir(CreateDir),
+    RemoveDir(RemoveDir),
+    Metadata(GetMetadata),
+    SymlinkMetadata(SymlinkMetadata),
+    SetMetadata(SetMetadata),
     Symlink(Symlink),
-    Readlink(Readlink),
-    Realpath(Realpath),
+    ReadLink(ReadLink),
+    Canonicalize(Canonicalize),
     Rename(Rename),
-    Unlink(Unlink),
+    RemoveFile(RemoveFile),
 
     /// Specialized type for file-based operations
     File(FileRequest),
 }
 
 #[derive(Debug)]
-pub(crate) struct OpenMode {
+pub(crate) struct OpenWithMode {
     pub filename: PathBuf,
     pub opts: OpenOptions,
     pub reply: Sender<SftpChannelResult<File>>,
@@ -349,44 +334,44 @@ pub(crate) struct Create {
 }
 
 #[derive(Debug)]
-pub(crate) struct Opendir {
+pub(crate) struct OpenDir {
     pub filename: PathBuf,
     pub reply: Sender<SftpChannelResult<File>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct Readdir {
+pub(crate) struct ReadDir {
     pub filename: PathBuf,
     pub reply: Sender<SftpChannelResult<Vec<(PathBuf, Metadata)>>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct Mkdir {
+pub(crate) struct CreateDir {
     pub filename: PathBuf,
     pub mode: i32,
     pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct Rmdir {
+pub(crate) struct RemoveDir {
     pub filename: PathBuf,
     pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct Stat {
+pub(crate) struct GetMetadata {
     pub filename: PathBuf,
     pub reply: Sender<SftpChannelResult<Metadata>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct Lstat {
+pub(crate) struct SymlinkMetadata {
     pub filename: PathBuf,
     pub reply: Sender<SftpChannelResult<Metadata>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct Setstat {
+pub(crate) struct SetMetadata {
     pub filename: PathBuf,
     pub metadata: Metadata,
     pub reply: Sender<SftpChannelResult<()>>,
@@ -400,13 +385,13 @@ pub(crate) struct Symlink {
 }
 
 #[derive(Debug)]
-pub(crate) struct Readlink {
+pub(crate) struct ReadLink {
     pub path: PathBuf,
     pub reply: Sender<SftpChannelResult<PathBuf>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct Realpath {
+pub(crate) struct Canonicalize {
     pub path: PathBuf,
     pub reply: Sender<SftpChannelResult<PathBuf>>,
 }
@@ -420,7 +405,7 @@ pub(crate) struct Rename {
 }
 
 #[derive(Debug)]
-pub(crate) struct Unlink {
+pub(crate) struct RemoveFile {
     pub file: PathBuf,
     pub reply: Sender<SftpChannelResult<()>>,
 }

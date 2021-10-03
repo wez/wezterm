@@ -22,7 +22,7 @@ fn file_type_to_str(file_type: FileType) -> &'static str {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn readdir_should_return_list_of_directories_files_and_symlinks(#[future] session: Session) {
+async fn read_dir_should_return_list_of_directories_files_and_symlinks(#[future] session: Session) {
     let session: Session = session.await;
 
     // $TEMP/dir1/
@@ -47,7 +47,7 @@ async fn readdir_should_return_list_of_directories_files_and_symlinks(#[future] 
 
     let mut contents = session
         .sftp()
-        .readdir(temp.path())
+        .read_dir(temp.path())
         .await
         .expect("Failed to read directory")
         .into_iter()
@@ -71,14 +71,14 @@ async fn readdir_should_return_list_of_directories_files_and_symlinks(#[future] 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn mkdir_should_create_a_directory_on_the_remote_filesystem(#[future] session: Session) {
+async fn create_dir_should_create_a_directory_on_the_remote_filesystem(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
 
     session
         .sftp()
-        .mkdir(temp.child("dir").path(), 0o644)
+        .create_dir(temp.child("dir").path(), 0o644)
         .await
         .expect("Failed to create directory");
 
@@ -89,7 +89,7 @@ async fn mkdir_should_create_a_directory_on_the_remote_filesystem(#[future] sess
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn mkdir_should_return_error_if_unable_to_create_directory(#[future] session: Session) {
+async fn create_dir_should_return_error_if_unable_to_create_directory(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -97,7 +97,7 @@ async fn mkdir_should_return_error_if_unable_to_create_directory(#[future] sessi
     // Attempt to create a nested directory structure, which is not supported
     let result = session
         .sftp()
-        .mkdir(temp.child("dir").child("dir").path(), 0o644)
+        .create_dir(temp.child("dir").child("dir").path(), 0o644)
         .await;
     assert!(
         result.is_err(),
@@ -115,7 +115,7 @@ async fn mkdir_should_return_error_if_unable_to_create_directory(#[future] sessi
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn rmdir_should_remove_a_remote_directory(#[future] session: Session) {
+async fn remove_dir_should_remove_a_remote_directory(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -125,7 +125,7 @@ async fn rmdir_should_remove_a_remote_directory(#[future] session: Session) {
     dir.create_dir_all().unwrap();
     session
         .sftp()
-        .rmdir(dir.path())
+        .remove_dir(dir.path())
         .await
         .expect("Failed to remove directory");
 
@@ -136,13 +136,18 @@ async fn rmdir_should_remove_a_remote_directory(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] session: Session) {
+async fn remove_dir_should_return_an_error_if_failed_to_remove_directory(
+    #[future] session: Session,
+) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
 
     // Attempt to remove a missing path
-    let result = session.sftp().rmdir(temp.child("missing-dir").path()).await;
+    let result = session
+        .sftp()
+        .remove_dir(temp.child("missing-dir").path())
+        .await;
     assert!(
         result.is_err(),
         "Unexpectedly succeeded in removing missing directory: {:?}",
@@ -154,7 +159,7 @@ async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] se
     dir.create_dir_all().unwrap();
     dir.child("file").touch().unwrap();
 
-    let result = session.sftp().rmdir(dir.path()).await;
+    let result = session.sftp().remove_dir(dir.path()).await;
     assert!(
         result.is_err(),
         "Unexpectedly succeeded in removing non-empty directory: {:?}",
@@ -167,7 +172,7 @@ async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] se
     // Attempt to remove a file (not a directory)
     let file = temp.child("file");
     file.touch().unwrap();
-    let result = session.sftp().rmdir(file.path()).await;
+    let result = session.sftp().remove_dir(file.path()).await;
     assert!(
         result.is_err(),
         "Unexpectedly succeeded in removing file: {:?}",
@@ -181,47 +186,47 @@ async fn rmdir_should_return_an_error_if_failed_to_remove_directory(#[future] se
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn stat_should_return_metadata_about_a_file(#[future] session: Session) {
+async fn metadata_should_return_metadata_about_a_file(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
     let file = temp.child("file");
     file.touch().unwrap();
 
-    let stat = session
+    let metadata = session
         .sftp()
-        .stat(file.path())
+        .metadata(file.path())
         .await
-        .expect("Failed to stat file");
+        .expect("Failed to get metadata for file");
 
-    // Verify that file stat makes sense
-    assert!(stat.is_file(), "Invalid file stat returned");
+    // Verify that file metadata makes sense
+    assert!(metadata.is_file(), "Invalid file metadata returned");
 }
 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn stat_should_return_metadata_about_a_directory(#[future] session: Session) {
+async fn metadata_should_return_metadata_about_a_directory(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
     let dir = temp.child("dir");
     dir.create_dir_all().unwrap();
 
-    let stat = session
+    let metadata = session
         .sftp()
-        .stat(dir.path())
+        .metadata(dir.path())
         .await
-        .expect("Failed to stat dir");
+        .expect("Failed to get metadata for dir");
 
-    // Verify that file stat makes sense
-    assert!(stat.is_dir(), "Invalid file stat returned");
+    // Verify that file metadata makes sense
+    assert!(metadata.is_dir(), "Invalid file metadata returned");
 }
 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn stat_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
+async fn metadata_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
     #[future] session: Session,
 ) {
     let session: Session = session.await;
@@ -235,20 +240,20 @@ async fn stat_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
 
     let metadata = session
         .sftp()
-        .stat(link.path())
+        .metadata(link.path())
         .await
-        .expect("Failed to stat symlink");
+        .expect("Failed to get metadata for symlink");
 
-    // Verify that file stat makes sense
-    assert!(metadata.is_file(), "Invalid file stat returned");
-    assert!(metadata.ty.is_file(), "Invalid file stat returned");
-    assert!(!metadata.ty.is_symlink(), "Invalid file stat returned");
+    // Verify that file metadata makes sense
+    assert!(metadata.is_file(), "Invalid file metadata returned");
+    assert!(metadata.ty.is_file(), "Invalid file metadata returned");
+    assert!(!metadata.ty.is_symlink(), "Invalid file metadata returned");
 }
 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn stat_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
+async fn metadata_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
     #[future] session: Session,
 ) {
     let session: Session = session.await;
@@ -262,132 +267,141 @@ async fn stat_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
 
     let metadata = session
         .sftp()
-        .stat(link.path())
+        .metadata(link.path())
         .await
-        .expect("Failed to stat symlink");
+        .expect("Failed to get metadata for symlink");
 
-    // Verify that file stat makes sense
-    assert!(metadata.is_dir(), "Invalid file stat returned");
-    assert!(metadata.ty.is_dir(), "Invalid file stat returned");
-    assert!(!metadata.ty.is_symlink(), "Invalid file stat returned");
+    // Verify that file metadata makes sense
+    assert!(metadata.is_dir(), "Invalid file metadata returned");
+    assert!(metadata.ty.is_dir(), "Invalid file metadata returned");
+    assert!(!metadata.ty.is_symlink(), "Invalid file metadata returned");
 }
 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn stat_should_fail_if_path_missing(#[future] session: Session) {
+async fn metadata_should_fail_if_path_missing(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
 
-    let result = session.sftp().stat(temp.child("missing").path()).await;
-    assert!(result.is_err(), "Stat unexpectedly succeeded: {:?}", result);
-}
-
-#[rstest]
-#[smol_potat::test]
-#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn lstat_should_return_metadata_about_a_file(#[future] session: Session) {
-    let session: Session = session.await;
-
-    let temp = TempDir::new().unwrap();
-    let file = temp.child("file");
-    file.touch().unwrap();
-
-    let lstat = session
-        .sftp()
-        .lstat(file.path())
-        .await
-        .expect("Failed to lstat file");
-
-    // Verify that file lstat makes sense
-    assert!(lstat.is_file(), "Invalid file lstat returned");
-}
-
-#[rstest]
-#[smol_potat::test]
-#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn lstat_should_return_metadata_about_a_directory(#[future] session: Session) {
-    let session: Session = session.await;
-
-    let temp = TempDir::new().unwrap();
-    let dir = temp.child("dir");
-    dir.create_dir_all().unwrap();
-
-    let lstat = session
-        .sftp()
-        .lstat(dir.path())
-        .await
-        .expect("Failed to lstat dir");
-
-    // Verify that file lstat makes sense
-    assert!(lstat.is_dir(), "Invalid file lstat returned");
-}
-
-#[rstest]
-#[smol_potat::test]
-#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn lstat_should_return_metadata_about_symlink_pointing_to_a_file(#[future] session: Session) {
-    let session: Session = session.await;
-
-    let temp = TempDir::new().unwrap();
-
-    let file = temp.child("file");
-    file.touch().unwrap();
-    let link = temp.child("link");
-    link.symlink_to_file(file.path()).unwrap();
-
-    let metadata = session
-        .sftp()
-        .lstat(link.path())
-        .await
-        .expect("Failed to lstat symlink");
-
-    // Verify that file lstat makes sense
-    assert!(!metadata.is_file(), "Invalid file lstat returned");
-    assert!(!metadata.ty.is_file(), "Invalid file lstat returned");
-    assert!(metadata.ty.is_symlink(), "Invalid file lstat returned");
-}
-
-#[rstest]
-#[smol_potat::test]
-#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn lstat_should_return_metadata_about_symlink_pointing_to_a_directory(
-    #[future] session: Session,
-) {
-    let session: Session = session.await;
-
-    let temp = TempDir::new().unwrap();
-
-    let dir = temp.child("dir");
-    dir.create_dir_all().unwrap();
-    let link = temp.child("link");
-    link.symlink_to_dir(dir.path()).unwrap();
-
-    let metadata = session
-        .sftp()
-        .lstat(link.path())
-        .await
-        .expect("Failed to lstat symlink");
-
-    // Verify that file lstat makes sense
-    assert!(!metadata.is_dir(), "Invalid file lstat returned");
-    assert!(!metadata.ty.is_dir(), "Invalid file lstat returned");
-    assert!(metadata.ty.is_symlink(), "Invalid file lstat returned");
-}
-
-#[rstest]
-#[smol_potat::test]
-#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn lstat_should_fail_if_path_missing(#[future] session: Session) {
-    let session: Session = session.await;
-
-    let temp = TempDir::new().unwrap();
-
-    let result = session.sftp().lstat(temp.child("missing").path()).await;
+    let result = session.sftp().metadata(temp.child("missing").path()).await;
     assert!(
         result.is_err(),
-        "lstat unexpectedly succeeded: {:?}",
+        "Metadata unexpectedly succeeded: {:?}",
+        result
+    );
+}
+
+#[rstest]
+#[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
+async fn symlink_metadata_should_return_metadata_about_a_file(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let file = temp.child("file");
+    file.touch().unwrap();
+
+    let symlink_metadata = session
+        .sftp()
+        .symlink_metadata(file.path())
+        .await
+        .expect("Failed to get metadata for file");
+
+    // Verify that file metadata makes sense
+    assert!(symlink_metadata.is_file(), "Invalid file metadata returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
+async fn symlink_metadata_should_return_metadata_about_a_directory(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+
+    let symlink_metadata = session
+        .sftp()
+        .symlink_metadata(dir.path())
+        .await
+        .expect("Failed to metadata for dir");
+
+    // Verify that file metadata makes sense
+    assert!(symlink_metadata.is_dir(), "Invalid file metadata returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
+async fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_file(
+    #[future] session: Session,
+) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let file = temp.child("file");
+    file.touch().unwrap();
+    let link = temp.child("link");
+    link.symlink_to_file(file.path()).unwrap();
+
+    let metadata = session
+        .sftp()
+        .symlink_metadata(link.path())
+        .await
+        .expect("Failed to get metadata for symlink");
+
+    // Verify that file metadata makes sense
+    assert!(!metadata.is_file(), "Invalid file metadata returned");
+    assert!(!metadata.ty.is_file(), "Invalid file metadata returned");
+    assert!(metadata.ty.is_symlink(), "Invalid file metadata returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
+async fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_directory(
+    #[future] session: Session,
+) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let dir = temp.child("dir");
+    dir.create_dir_all().unwrap();
+    let link = temp.child("link");
+    link.symlink_to_dir(dir.path()).unwrap();
+
+    let metadata = session
+        .sftp()
+        .symlink_metadata(link.path())
+        .await
+        .expect("Failed to get metadata for symlink");
+
+    // Verify that file metadata makes sense
+    assert!(!metadata.is_dir(), "Invalid file metadata returned");
+    assert!(!metadata.ty.is_dir(), "Invalid file metadata returned");
+    assert!(metadata.ty.is_symlink(), "Invalid file metadata returned");
+}
+
+#[rstest]
+#[smol_potat::test]
+#[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
+async fn symlink_metadata_should_fail_if_path_missing(#[future] session: Session) {
+    let session: Session = session.await;
+
+    let temp = TempDir::new().unwrap();
+
+    let result = session
+        .sftp()
+        .symlink_metadata(temp.child("missing").path())
+        .await;
+    assert!(
+        result.is_err(),
+        "symlink_metadata unexpectedly succeeded: {:?}",
         result
     );
 }
@@ -467,7 +481,7 @@ async fn symlink_should_succeed_even_if_path_missing(#[future] session: Session)
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn readlink_should_return_the_target_of_the_symlink(#[future] session: Session) {
+async fn read_link_should_return_the_target_of_the_symlink(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -480,7 +494,7 @@ async fn readlink_should_return_the_target_of_the_symlink(#[future] session: Ses
 
     let path = session
         .sftp()
-        .readlink(link.path())
+        .read_link(link.path())
         .await
         .expect("Failed to read symlink");
     assert_eq!(path, dir.path());
@@ -493,7 +507,7 @@ async fn readlink_should_return_the_target_of_the_symlink(#[future] session: Ses
 
     let path = session
         .sftp()
-        .readlink(link.path())
+        .read_link(link.path())
         .await
         .expect("Failed to read symlink");
     assert_eq!(path, file.path());
@@ -502,13 +516,13 @@ async fn readlink_should_return_the_target_of_the_symlink(#[future] session: Ses
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn readlink_should_fail_if_path_is_not_a_symlink(#[future] session: Session) {
+async fn read_link_should_fail_if_path_is_not_a_symlink(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
 
     // Test missing path
-    let result = session.sftp().readlink(temp.child("missing").path()).await;
+    let result = session.sftp().read_link(temp.child("missing").path()).await;
     assert!(
         result.is_err(),
         "Unexpectedly read link for missing path: {:?}",
@@ -518,7 +532,7 @@ async fn readlink_should_fail_if_path_is_not_a_symlink(#[future] session: Sessio
     // Test a directory
     let dir = temp.child("dir");
     dir.create_dir_all().unwrap();
-    let result = session.sftp().readlink(dir.path()).await;
+    let result = session.sftp().read_link(dir.path()).await;
     assert!(
         result.is_err(),
         "Unexpectedly read link for directory: {:?}",
@@ -528,7 +542,7 @@ async fn readlink_should_fail_if_path_is_not_a_symlink(#[future] session: Sessio
     // Test a file
     let file = temp.child("file");
     file.touch().unwrap();
-    let result = session.sftp().readlink(file.path()).await;
+    let result = session.sftp().read_link(file.path()).await;
     assert!(
         result.is_err(),
         "Unexpectedly read link for file: {:?}",
@@ -539,7 +553,7 @@ async fn readlink_should_fail_if_path_is_not_a_symlink(#[future] session: Sessio
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn realpath_should_resolve_absolute_path_for_relative_path(#[future] session: Session) {
+async fn canonicalize_should_resolve_absolute_path_for_relative_path(#[future] session: Session) {
     let session: Session = session.await;
 
     // For resolving parts of a path, all components must exist
@@ -549,19 +563,23 @@ async fn realpath_should_resolve_absolute_path_for_relative_path(#[future] sessi
 
     let rel = temp.child(".").child("hello").child("..").child("world");
 
-    // NOTE: Because realpath can still resolve symlinks within a missing path, there
+    // NOTE: Because sftp realpath can still resolve symlinks within a missing path, there
     //       is no guarantee that the resulting path matches the missing path. In fact,
     //       on mac the /tmp dir is a symlink to /private/tmp; so, we cannot successfully
     //       check the accuracy of the path itself, meaning that we can only validate
     //       that the operation was okay.
-    let result = session.sftp().realpath(rel.path()).await;
-    assert!(result.is_ok(), "Realpath unexpectedly failed: {:?}", result);
+    let result = session.sftp().canonicalize(rel.path()).await;
+    assert!(
+        result.is_ok(),
+        "Canonicalize unexpectedly failed: {:?}",
+        result
+    );
 }
 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn realpath_should_either_return_resolved_path_or_error_if_missing(
+async fn canonicalize_should_either_return_resolved_path_or_error_if_missing(
     #[future] session: Session,
 ) {
     let session: Session = session.await;
@@ -569,7 +587,7 @@ async fn realpath_should_either_return_resolved_path_or_error_if_missing(
     let temp = TempDir::new().unwrap();
     let missing = temp.child("missing");
 
-    // NOTE: Because realpath can still resolve symlinks within a missing path, there
+    // NOTE: Because sftp realpath can still resolve symlinks within a missing path, there
     //       is no guarantee that the resulting path matches the missing path. In fact,
     //       on mac the /tmp dir is a symlink to /private/tmp; so, we cannot successfully
     //       check the accuracy of the path itself, meaning that we can only validate
@@ -578,25 +596,25 @@ async fn realpath_should_either_return_resolved_path_or_error_if_missing(
     //       Additionally, this has divergent behavior. On some platforms, this returns
     //       the path as is whereas on others this returns a missing path error. We
     //       have to support both checks.
-    let result = session.sftp().realpath(missing.path()).await;
+    let result = session.sftp().canonicalize(missing.path()).await;
     match result {
         Ok(_) => {}
         Err(SftpChannelError::Sftp(SftpError::NoSuchFile)) => {}
-        x => panic!("Unexpected result from realpath: {:?}", x),
+        x => panic!("Unexpected result from canonicalize: {:?}", x),
     }
 }
 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn realpath_should_fail_if_resolving_missing_path_with_dots(#[future] session: Session) {
+async fn canonicalize_should_fail_if_resolving_missing_path_with_dots(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
     let missing = temp.child(".").child("hello").child("..").child("world");
 
-    let result = session.sftp().realpath(missing.path()).await;
-    assert!(result.is_err(), "Realpath unexpectedly succeeded");
+    let result = session.sftp().canonicalize(missing.path()).await;
+    assert!(result.is_err(), "Canonicalize unexpectedly succeeded");
 }
 
 #[rstest]
@@ -678,7 +696,7 @@ async fn rename_should_fail_if_source_path_missing(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn unlink_should_remove_file(#[future] session: Session) {
+async fn remove_file_should_remove_file(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -687,9 +705,9 @@ async fn unlink_should_remove_file(#[future] session: Session) {
 
     session
         .sftp()
-        .unlink(file.path())
+        .remove_file(file.path())
         .await
-        .expect("Failed to unlink file");
+        .expect("Failed to remove file");
 
     file.assert(predicate::path::missing());
 }
@@ -697,7 +715,7 @@ async fn unlink_should_remove_file(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn unlink_should_remove_symlink_to_file(#[future] session: Session) {
+async fn remove_file_should_remove_symlink_to_file(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -708,9 +726,9 @@ async fn unlink_should_remove_symlink_to_file(#[future] session: Session) {
 
     session
         .sftp()
-        .unlink(link.path())
+        .remove_file(link.path())
         .await
-        .expect("Failed to unlink symlink");
+        .expect("Failed to remove symlink");
 
     // Verify link removed but file still exists
     link.assert(predicate::path::missing());
@@ -720,7 +738,7 @@ async fn unlink_should_remove_symlink_to_file(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn unlink_should_remove_symlink_to_directory(#[future] session: Session) {
+async fn remove_file_should_remove_symlink_to_directory(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -731,9 +749,9 @@ async fn unlink_should_remove_symlink_to_directory(#[future] session: Session) {
 
     session
         .sftp()
-        .unlink(link.path())
+        .remove_file(link.path())
         .await
-        .expect("Failed to unlink symlink");
+        .expect("Failed to remove symlink");
 
     // Verify link removed but directory still exists
     link.assert(predicate::path::missing());
@@ -743,17 +761,17 @@ async fn unlink_should_remove_symlink_to_directory(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn unlink_should_fail_if_path_to_directory(#[future] session: Session) {
+async fn remove_file_should_fail_if_path_to_directory(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
     let dir = temp.child("dir");
     dir.create_dir_all().unwrap();
 
-    let result = session.sftp().unlink(dir.path()).await;
+    let result = session.sftp().remove_file(dir.path()).await;
     assert!(
         result.is_err(),
-        "Unexpectedly unlinked directory: {:?}",
+        "Unexpectedly removed directory: {:?}",
         result
     );
 
@@ -764,15 +782,18 @@ async fn unlink_should_fail_if_path_to_directory(#[future] session: Session) {
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn unlink_should_fail_if_path_missing(#[future] session: Session) {
+async fn remove_file_should_fail_if_path_missing(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
 
-    let result = session.sftp().unlink(temp.child("missing").path()).await;
+    let result = session
+        .sftp()
+        .remove_file(temp.child("missing").path())
+        .await;
     assert!(
         result.is_err(),
-        "Unexpectedly unlinked missing path: {:?}",
+        "Unexpectedly removed missing path: {:?}",
         result
     );
 }

@@ -27,9 +27,9 @@ pub(crate) enum FileRequest {
     Read(ReadFile),
     Close(CloseFile),
     Flush(FlushFile),
-    Setstat(SetstatFile),
-    Stat(StatFile),
-    Readdir(ReaddirFile),
+    SetMetadata(SetMetadataFile),
+    Metadata(MetadataFile),
+    ReadDir(ReadDirFile),
     Fsync(FsyncFile),
 }
 
@@ -60,20 +60,20 @@ pub(crate) struct FlushFile {
 }
 
 #[derive(Debug)]
-pub(crate) struct SetstatFile {
+pub(crate) struct SetMetadataFile {
     pub file_id: FileId,
     pub metadata: Metadata,
     pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct StatFile {
+pub(crate) struct MetadataFile {
     pub file_id: FileId,
     pub reply: Sender<SftpChannelResult<Metadata>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct ReaddirFile {
+pub(crate) struct ReadDirFile {
     pub file_id: FileId,
     pub reply: Sender<SftpChannelResult<(PathBuf, Metadata)>>,
 }
@@ -129,7 +129,7 @@ impl File {
             .as_ref()
             .unwrap()
             .send(SessionRequest::Sftp(SftpRequest::File(
-                FileRequest::Setstat(SetstatFile {
+                FileRequest::SetMetadata(SetMetadataFile {
                     file_id: self.file_id,
                     metadata,
                     reply,
@@ -148,12 +148,12 @@ impl File {
         self.tx
             .as_ref()
             .unwrap()
-            .send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Stat(
-                StatFile {
+            .send(SessionRequest::Sftp(SftpRequest::File(
+                FileRequest::Metadata(MetadataFile {
                     file_id: self.file_id,
                     reply,
-                },
-            ))))
+                }),
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
@@ -176,7 +176,7 @@ impl File {
             .as_ref()
             .unwrap()
             .send(SessionRequest::Sftp(SftpRequest::File(
-                FileRequest::Readdir(ReaddirFile {
+                FileRequest::ReadDir(ReadDirFile {
                     file_id: self.file_id,
                     reply,
                 }),

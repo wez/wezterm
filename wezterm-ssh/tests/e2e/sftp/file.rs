@@ -8,7 +8,7 @@ use wezterm_ssh::Session;
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn stat_should_retrieve_file_stat(#[future] session: Session) {
+async fn metadata_should_retrieve_file_stat(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -21,16 +21,19 @@ async fn stat_should_retrieve_file_stat(#[future] session: Session) {
         .await
         .expect("Failed to open remote file");
 
-    let stat = remote_file.stat().await.expect("Failed to read file stat");
+    let metadata = remote_file
+        .metadata()
+        .await
+        .expect("Failed to read file metadata");
 
     // Verify that file stat makes sense
-    assert!(stat.is_file(), "Invalid file stat returned");
+    assert!(metadata.is_file(), "Invalid file metadata returned");
 }
 
 #[rstest]
 #[smol_potat::test]
 #[cfg_attr(not(any(target_os = "macos", target_os = "linux")), ignore)]
-async fn readdir_should_retrieve_next_dir_entry(#[future] session: Session) {
+async fn read_dir_should_retrieve_next_dir_entry(#[future] session: Session) {
     let session: Session = session.await;
 
     let temp = TempDir::new().unwrap();
@@ -43,13 +46,13 @@ async fn readdir_should_retrieve_next_dir_entry(#[future] session: Session) {
 
     let remote_dir = session
         .sftp()
-        .opendir(temp.path())
+        .open_dir(temp.path())
         .await
         .expect("Failed to open remote directory");
 
     // Collect all of the directory contents (. and .. are included)
     let mut contents = Vec::new();
-    while let Ok((path, metadata)) = remote_dir.readdir().await {
+    while let Ok((path, metadata)) = remote_dir.read_dir().await {
         let ft = metadata.ty;
         contents.push((
             path,
