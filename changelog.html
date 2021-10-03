@@ -189,7 +189,7 @@ usually the best available version.</p>
 <li>New: <a href="config/lua/wezterm/action_callback.html">wezterm.action_callback</a> function to make it easier to use custom events. Thanks to <a href="https://github.com/bew">@bew</a>! <a href="https://github.com/wez/wezterm/pull/1151">#1151</a></li>
 <li>New: <code>wezterm connect</code> now also supports the <code>--class</code> parameter to override the window class</li>
 <li>Fixed: wezterm can now match bitmap fonts that are spread across multiple font files <a href="https://github.com/wez/wezterm/issues/1189">#1189</a></li>
-<li>Improved: <a href="config/lua/config/use_cap_height_to_scale_fallback_fonts.html">use_cap_height_to_scale_fallback_fonts</a> now computes <em>cap-height</em> based on the rasterized glyph bitmap which means that the data is accurate in more cases, including for bitmap fonts.  Scaling is now also applied to across varying text styles; previously it only applied to a font within an <code>wezterm.font_with_fallback</code> font list.</li>
+<li>Improved: <a href="config/lua/config/use_cap_height_to_scale_fallback_fonts.html">use_cap_height_to_scale_fallback_fonts</a> now computes <em>cap-height</em> based on the rasterized glyph bitmap which means that the data is accurate in more cases, including for bitmap fonts.  Scaling is now also applied across varying text styles; previously it only applied to a font within an <code>wezterm.font_with_fallback</code> font list.</li>
 <li>Fixed: ssh config parser incorrectly split <code>Host</code> patterns with commas instead of whitespace <a href="https://github.com/wez/wezterm/issues/1196">#1196</a></li>
 </ul>
 <h3 id="20210814-124438-54e29167"><a class="header" href="#20210814-124438-54e29167">20210814-124438-54e29167</a></h3>
