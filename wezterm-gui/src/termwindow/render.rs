@@ -43,7 +43,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub palette: &'a ColorPalette,
     pub dims: &'a RenderableDimensions,
     pub config: &'a ConfigHandle,
-    pub pos: &'a PositionedPane,
+    pub pos: Option<&'a PositionedPane>,
 
     pub white_space: TextureRect,
     pub filled_box: TextureRect,
@@ -76,7 +76,7 @@ pub struct ComputeCellFgBgParams<'a> {
     pub cursor_fg: LinearRgba,
     pub cursor_bg: LinearRgba,
     pub cursor_border_color: LinearRgba,
-    pub pane: &'a Rc<dyn Pane>,
+    pub pane: Option<&'a Rc<dyn Pane>>,
 }
 
 pub struct ComputeCellFgBgResult {
@@ -263,6 +263,89 @@ impl super::TermWindow {
             }
         }
         None
+    }
+
+    fn paint_tab_bar(&mut self) -> anyhow::Result<()> {
+        let avail_height = self.dimensions.pixel_height.saturating_sub(
+            (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
+        );
+        let tab_bar_y = if self.config.tab_bar_at_bottom {
+            let num_rows = avail_height as usize / self.render_metrics.cell_size.height as usize;
+
+            num_rows - 1
+        } else {
+            0
+        };
+
+        // Register the tab bar location
+        self.ui_items.append(&mut self.tab_bar.compute_ui_items(
+            if self.config.tab_bar_at_bottom {
+                avail_height - self.render_metrics.cell_size.height as usize
+            } else {
+                0
+            },
+            self.render_metrics.cell_size.height as usize,
+            self.render_metrics.cell_size.width as usize,
+            self.dimensions.pixel_width,
+        ));
+
+        let window_is_transparent =
+            self.window_background.is_some() || self.config.window_background_opacity != 1.0;
+        let palette = self.palette().clone();
+        let gl_state = self.render_state.as_ref().unwrap();
+        let white_space = gl_state.util_sprites.white_space.texture_coords();
+        let filled_box = gl_state.util_sprites.filled_box.texture_coords();
+        let default_bg = rgbcolor_alpha_to_window_color(
+            palette.resolve_bg(ColorAttribute::Default),
+            if window_is_transparent {
+                0.
+            } else {
+                self.config.text_background_opacity
+            },
+        );
+
+        let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
+        let mut vb_mut0 = vb[0].current_vb_mut();
+        let mut vb_mut1 = vb[1].current_vb_mut();
+        let mut vb_mut2 = vb[2].current_vb_mut();
+        let mut layers = [
+            vb[0].map(&mut vb_mut0),
+            vb[1].map(&mut vb_mut1),
+            vb[2].map(&mut vb_mut2),
+        ];
+        self.render_screen_line_opengl(
+            RenderScreenLineOpenGLParams {
+                line_idx: tab_bar_y,
+                stable_line_idx: None,
+                line: self.tab_bar.line(),
+                selection: 0..0,
+                cursor: &Default::default(),
+                palette: &palette,
+                dims: &RenderableDimensions {
+                    cols: self.terminal_size.cols as _,
+                    physical_top: 0,
+                    scrollback_rows: 0,
+                    scrollback_top: 0,
+                    viewport_rows: 1,
+                },
+                config: &self.config,
+                cursor_border_color: LinearRgba::default(),
+                foreground: rgbcolor_to_window_color(palette.foreground),
+                pos: None,
+                is_active: true,
+                selection_fg: LinearRgba::default(),
+                selection_bg: LinearRgba::default(),
+                cursor_fg: LinearRgba::default(),
+                cursor_bg: LinearRgba::default(),
+                white_space,
+                filled_box,
+                window_is_transparent,
+                default_bg,
+            },
+            &mut layers,
+        )?;
+
+        Ok(())
     }
 
     pub fn paint_pane_opengl(
@@ -503,62 +586,6 @@ impl super::TermWindow {
                 });
             }
         }
-        if self.show_tab_bar && pos.index == 0 {
-            let tab_dims = RenderableDimensions {
-                cols: self.terminal_size.cols as _,
-                ..dims
-            };
-
-            let avail_height = self.dimensions.pixel_height.saturating_sub(
-                (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
-            );
-            let tab_bar_y = if self.config.tab_bar_at_bottom {
-                let num_rows =
-                    avail_height as usize / self.render_metrics.cell_size.height as usize;
-
-                num_rows - 1
-            } else {
-                0
-            };
-
-            // Register the tab bar location
-            self.ui_items.append(&mut self.tab_bar.compute_ui_items(
-                if self.config.tab_bar_at_bottom {
-                    avail_height - self.render_metrics.cell_size.height as usize
-                } else {
-                    0
-                },
-                self.render_metrics.cell_size.height as usize,
-                self.render_metrics.cell_size.width as usize,
-                self.dimensions.pixel_width,
-            ));
-
-            self.render_screen_line_opengl(
-                RenderScreenLineOpenGLParams {
-                    line_idx: tab_bar_y,
-                    stable_line_idx: None,
-                    line: self.tab_bar.line(),
-                    selection: 0..0,
-                    cursor: &cursor,
-                    palette: &palette,
-                    dims: &tab_dims,
-                    config: &config,
-                    cursor_border_color,
-                    foreground,
-                    pos,
-                    is_active: true,
-                    selection_fg: LinearRgba::default(),
-                    selection_bg: LinearRgba::default(),
-                    cursor_fg: LinearRgba::default(),
-                    cursor_bg: LinearRgba::default(),
-                    white_space,
-                    filled_box,
-                    window_is_transparent,
-                    default_bg,
-                },
-                &mut layers,
-            )?;
-        }
 
         // TODO: we only have a single scrollbar in a single position.
         // We only update it for the active pane, but we should probably
@@ -641,7 +668,7 @@ impl super::TermWindow {
                     config: &config,
                     cursor_border_color,
                     foreground,
-                    pos,
+                    pos: Some(pos),
                     is_active: pos.is_active,
                     selection_fg,
                     selection_bg,
@@ -870,6 +897,10 @@ impl super::TermWindow {
             self.paint_pane_opengl(&pos, num_panes)?;
         }
 
+        if self.show_tab_bar {
+            self.paint_tab_bar()?;
+        }
+
         if let Some(pane) = self.get_active_pane_or_overlay() {
             let splits = self.get_splits();
             for split in &splits {
@@ -906,7 +937,7 @@ impl super::TermWindow {
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-            + (params.line_idx + params.pos.top) as f32 * cell_height
+            + (params.line_idx + params.pos.map(|p| p.top).unwrap_or(0)) as f32 * cell_height
             + self.config.window_padding.top as f32;
 
         // Break the line into clusters of cells with the same attributes
@@ -966,7 +997,8 @@ impl super::TermWindow {
 
             if !bg_is_default {
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + (cluster.first_cell_idx + params.pos.left) as f32 * cell_width
+                    + (cluster.first_cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32
+                        * cell_width
                     + self.config.window_padding.left as f32;
 
                 let mut quad = layers[0].allocate()?;
@@ -989,7 +1021,8 @@ impl super::TermWindow {
             let mut quad = layers[0].allocate()?;
 
             let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                + (params.selection.start + params.pos.left) as f32 * cell_width
+                + (params.selection.start + params.pos.map(|p| p.left).unwrap_or(0)) as f32
+                    * cell_width
                 + self.config.window_padding.left as f32;
             quad.set_position(
                 pos_x,
@@ -1151,18 +1184,18 @@ impl super::TermWindow {
                         fg_color: style_params.fg_color,
                         bg_color: style_params.bg_color,
                         palette: params.palette,
-                        is_active_pane: params.pos.is_active,
+                        is_active_pane: params.pos.map(|p| p.is_active).unwrap_or(true),
                         config: params.config,
                         selection_fg: params.selection_fg,
                         selection_bg: params.selection_bg,
                         cursor_fg: params.cursor_fg,
                         cursor_bg: params.cursor_bg,
                         cursor_border_color: params.cursor_border_color,
-                        pane: &params.pos.pane,
+                        pane: params.pos.map(|p| &p.pane),
                     });
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                        + (cell_idx + params.pos.left) as f32 * cell_width
+                        + (cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
                         + self.config.window_padding.left as f32;
 
                     // We'd like to render the cursor with the cell width
@@ -1354,7 +1387,7 @@ impl super::TermWindow {
                 let mut quad = layers[0].allocate()?;
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + (last_cell_idx + params.pos.left) as f32 * cell_width
+                    + (last_cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
                     + self.config.window_padding.left as f32;
                 quad.set_position(
                     pos_x,
@@ -1387,18 +1420,19 @@ impl super::TermWindow {
                     fg_color: params.foreground,
                     bg_color: params.default_bg,
                     palette: params.palette,
-                    is_active_pane: params.pos.is_active,
+                    is_active_pane: params.pos.map(|p| p.is_active).unwrap_or(true),
                     config: params.config,
                     selection_fg: params.selection_fg,
                     selection_bg: params.selection_bg,
                     cursor_fg: params.cursor_fg,
                     cursor_bg: params.cursor_bg,
                     cursor_border_color: params.cursor_border_color,
-                    pane: &params.pos.pane,
+                    pane: params.pos.map(|p| &p.pane),
                 });
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + (params.cursor.x + params.pos.left) as f32 * cell_width
+                    + (params.cursor.x + params.pos.map(|p| p.left).unwrap_or(0)) as f32
+                        * cell_width
                     + self.config.window_padding.left as f32;
 
                 if bg_color != LinearRgba::TRANSPARENT {
@@ -1465,10 +1499,10 @@ impl super::TermWindow {
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-            + (params.line_idx + params.pos.top) as f32 * cell_height
+            + (params.line_idx + params.pos.map(|p| p.top).unwrap_or(0)) as f32 * cell_height
             + self.config.window_padding.top as f32;
         let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-            + (cell_idx + params.pos.left) as f32 * cell_width
+            + (cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
             + self.config.window_padding.left as f32;
         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
         quad.set_hsv(hsv);
@@ -1539,11 +1573,11 @@ impl super::TermWindow {
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-            + (params.line_idx + params.pos.top) as f32 * cell_height
+            + (params.line_idx + params.pos.map(|p| p.top).unwrap_or(0)) as f32 * cell_height
             + self.config.window_padding.top as f32;
 
         let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-            + (cell_idx + params.pos.left) as f32 * cell_width
+            + (cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
             + self.config.window_padding.left as f32;
 
         let (offset_x, offset_y) = image.display_offset();
@@ -1565,12 +1599,13 @@ impl super::TermWindow {
 
     pub fn compute_cell_fg_bg(&self, params: ComputeCellFgBgParams) -> ComputeCellFgBgResult {
         let selected = params.selection.contains(&params.cell_idx);
-        let is_cursor =
-            params.stable_line_idx == Some(params.cursor.y) && params.cursor.x == params.cell_idx;
+        let is_cursor = params.pane.is_some()
+            && params.stable_line_idx == Some(params.cursor.y)
+            && params.cursor.x == params.cell_idx;
 
         if is_cursor {
             if let Some(intensity) = self.get_intensity_if_bell_target_ringing(
-                params.pane,
+                params.pane.expect("is_cursor only true is pane present"),
                 params.config,
                 VisualBellTarget::CursorColor,
             ) {
