@@ -13,6 +13,9 @@
 
 Looking for a [configuration reference?](config/files.md)
 
+**These docs are searchable: press `S` or click on the magnifying glass icon
+to activate the search function!**
+
 <img width="100%" height="100%" src="screenshots/two.png" alt="Screenshot">
 
 *Screenshot of wezterm on macOS, running vim*

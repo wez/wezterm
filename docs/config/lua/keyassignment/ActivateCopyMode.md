@@ -4,5 +4,13 @@
 
 Activates copy mode!
 
+```lua
+return {
+  keys = {
+    {key="X", mods="CTRL", action="ActivateCopyMode"},
+  }
+}
+```
+
 [Learn more about copy mode](../../../copymode.html)
 

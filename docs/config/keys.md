@@ -213,6 +213,10 @@ return {
 }
 ```
 
+The `action` value can be one of the [available key
+assignments](lua/keyassignment/index.md).  Every action has an example that shows
+how to use it.
+
 The `key` value can be one of the following keycode identifiers.  Note that not
 all of these are meaningful on all platforms:
 

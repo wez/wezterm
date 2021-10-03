@@ -13,3 +13,12 @@ The REPL has the following globals available:
 The lua context in the REPL is not connected to any global state; you cannot use it
 to dynamically assign event handlers for example.  It is primarily useful for
 prototyping lua snippets before you integrate them fully into your config.
+
+```lua
+return {
+  keys = {
+    -- CTRL-SHIFT-l activates the debug overlay
+    {key="L", mods="CTRL", action="ShowDebugOverlay"},
+  }
+}
+```
