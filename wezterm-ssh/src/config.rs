@@ -236,6 +236,18 @@ impl ParsedConfigFile {
                     }
                     patterns
                 }
+                fn parse_whitespace_pattern_list(v: &str) -> Vec<Pattern> {
+                    let mut patterns = vec![];
+                    for p in v.split_ascii_whitespace() {
+                        let p = p.trim();
+                        if p.starts_with('!') {
+                            patterns.push(Pattern::new(&p[1..], true));
+                        } else {
+                            patterns.push(Pattern::new(p, false));
+                        }
+                    }
+                    patterns
+                }
 
                 if k == "include" {
                     Self::do_include(v, cwd, options, groups);
@@ -243,7 +255,7 @@ impl ParsedConfigFile {
                 }
 
                 if k == "host" {
-                    let patterns = parse_pattern_list(v);
+                    let patterns = parse_whitespace_pattern_list(v);
                     groups.push(MatchGroup {
                         criteria: vec![Criteria::Host(patterns)],
                         options: ConfigMap::new(),
@@ -1026,11 +1038,11 @@ Config {
         Something first
         # the prior Something takes precedence
         Something ignored
-        Host 192.168.1.8,wopr
+        Host 192.168.1.8 wopr
             FowardAgent yes
             IdentityFile "%d/.ssh/id_pub.dsa"
 
-        Host !a.b,*.b
+        Host !a.b *.b
             ForwardAgent no
             IdentityAgent "${HOME}/.ssh/agent"
 
