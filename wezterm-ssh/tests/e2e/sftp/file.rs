@@ -2,6 +2,7 @@ use crate::sshd::session;
 use assert_fs::{prelude::*, TempDir};
 use rstest::*;
 use smol::io::{AsyncReadExt, AsyncWriteExt};
+use std::convert::TryInto;
 use std::path::PathBuf;
 use wezterm_ssh::Session;
 
@@ -17,7 +18,7 @@ async fn metadata_should_retrieve_file_stat(#[future] session: Session) {
 
     let remote_file = session
         .sftp()
-        .open(file.path())
+        .open(file.path().to_path_buf())
         .await
         .expect("Failed to open remote file");
 
@@ -46,7 +47,7 @@ async fn read_dir_should_retrieve_next_dir_entry(#[future] session: Session) {
 
     let remote_dir = session
         .sftp()
-        .open_dir(temp.path())
+        .open_dir(temp.path().to_path_buf())
         .await
         .expect("Failed to open remote directory");
 
@@ -70,11 +71,11 @@ async fn read_dir_should_retrieve_next_dir_entry(#[future] session: Session) {
     assert_eq!(
         contents,
         vec![
-            (PathBuf::from("."), "dir"),
-            (PathBuf::from(".."), "dir"),
-            (PathBuf::from("dir"), "dir"),
-            (PathBuf::from("file"), "file"),
-            (PathBuf::from("link"), "symlink"),
+            (PathBuf::from(".").try_into().unwrap(), "dir"),
+            (PathBuf::from("..").try_into().unwrap(), "dir"),
+            (PathBuf::from("dir").try_into().unwrap(), "dir"),
+            (PathBuf::from("file").try_into().unwrap(), "file"),
+            (PathBuf::from("link").try_into().unwrap(), "symlink"),
         ]
     );
 }
@@ -91,7 +92,7 @@ async fn should_support_async_reading(#[future] session: Session) {
 
     let mut remote_file = session
         .sftp()
-        .open(file.path())
+        .open(file.path().to_path_buf())
         .await
         .expect("Failed to open remote file");
 
@@ -123,7 +124,7 @@ async fn should_support_async_writing(#[future] session: Session) {
 
     let mut remote_file = session
         .sftp()
-        .create(file.path())
+        .create(file.path().to_path_buf())
         .await
         .expect("Failed to open remote file");
 
@@ -153,7 +154,7 @@ async fn should_support_async_flush(#[future] session: Session) {
 
     let mut remote_file = session
         .sftp()
-        .create(file.path())
+        .create(file.path().to_path_buf())
         .await
         .expect("Failed to open remote file");
 
@@ -178,7 +179,7 @@ async fn should_support_async_close(#[future] session: Session) {
 
     let mut remote_file = session
         .sftp()
-        .create(file.path())
+        .create(file.path().to_path_buf())
         .await
         .expect("Failed to open remote file");
 
