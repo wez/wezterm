@@ -2,8 +2,8 @@ use crate::sshd::session;
 use assert_fs::{prelude::*, TempDir};
 use predicates::prelude::*;
 use rstest::*;
-use std::path::PathBuf;
-use wezterm_ssh::{FileType, Session, SftpChannelError, SftpError};
+use std::convert::TryInto;
+use wezterm_ssh::{FileType, Session, SftpChannelError, SftpError, Utf8PathBuf};
 
 // Sftp file tests
 mod file;
@@ -47,23 +47,26 @@ async fn read_dir_should_return_list_of_directories_files_and_symlinks(#[future]
 
     let mut contents = session
         .sftp()
-        .read_dir(temp.path())
+        .read_dir(temp.path().to_path_buf())
         .await
         .expect("Failed to read directory")
         .into_iter()
         .map(|(p, s)| (p, file_type_to_str(s.ty)))
-        .collect::<Vec<(PathBuf, &'static str)>>();
+        .collect::<Vec<(Utf8PathBuf, &'static str)>>();
     contents.sort_unstable_by_key(|(p, _)| p.to_path_buf());
 
     assert_eq!(
         contents,
         vec![
-            (dir1.path().to_path_buf(), "dir"),
-            (dir2.path().to_path_buf(), "dir"),
-            (file1.path().to_path_buf(), "file"),
-            (file2.path().to_path_buf(), "file"),
-            (link_dir.path().to_path_buf(), "symlink"),
-            (link_file.path().to_path_buf(), "symlink"),
+            (dir1.path().to_path_buf().try_into().unwrap(), "dir"),
+            (dir2.path().to_path_buf().try_into().unwrap(), "dir"),
+            (file1.path().to_path_buf().try_into().unwrap(), "file"),
+            (file2.path().to_path_buf().try_into().unwrap(), "file"),
+            (link_dir.path().to_path_buf().try_into().unwrap(), "symlink"),
+            (
+                link_file.path().to_path_buf().try_into().unwrap(),
+                "symlink"
+            ),
         ]
     );
 }
@@ -78,7 +81,7 @@ async fn create_dir_should_create_a_directory_on_the_remote_filesystem(#[future]
 
     session
         .sftp()
-        .create_dir(temp.child("dir").path(), 0o644)
+        .create_dir(temp.child("dir").path().to_path_buf(), 0o644)
         .await
         .expect("Failed to create directory");
 
@@ -97,7 +100,7 @@ async fn create_dir_should_return_error_if_unable_to_create_directory(#[future] 
     // Attempt to create a nested directory structure, which is not supported
     let result = session
         .sftp()
-        .create_dir(temp.child("dir").child("dir").path(), 0o644)
+        .create_dir(temp.child("dir").child("dir").path().to_path_buf(), 0o644)
         .await;
     assert!(
         result.is_err(),
@@ -125,7 +128,7 @@ async fn remove_dir_should_remove_a_remote_directory(#[future] session: Session)
     dir.create_dir_all().unwrap();
     session
         .sftp()
-        .remove_dir(dir.path())
+        .remove_dir(dir.path().to_path_buf())
         .await
         .expect("Failed to remove directory");
 
@@ -146,7 +149,7 @@ async fn remove_dir_should_return_an_error_if_failed_to_remove_directory(
     // Attempt to remove a missing path
     let result = session
         .sftp()
-        .remove_dir(temp.child("missing-dir").path())
+        .remove_dir(temp.child("missing-dir").path().to_path_buf())
         .await;
     assert!(
         result.is_err(),
@@ -159,7 +162,7 @@ async fn remove_dir_should_return_an_error_if_failed_to_remove_directory(
     dir.create_dir_all().unwrap();
     dir.child("file").touch().unwrap();
 
-    let result = session.sftp().remove_dir(dir.path()).await;
+    let result = session.sftp().remove_dir(dir.path().to_path_buf()).await;
     assert!(
         result.is_err(),
         "Unexpectedly succeeded in removing non-empty directory: {:?}",
@@ -172,7 +175,7 @@ async fn remove_dir_should_return_an_error_if_failed_to_remove_directory(
     // Attempt to remove a file (not a directory)
     let file = temp.child("file");
     file.touch().unwrap();
-    let result = session.sftp().remove_dir(file.path()).await;
+    let result = session.sftp().remove_dir(file.path().to_path_buf()).await;
     assert!(
         result.is_err(),
         "Unexpectedly succeeded in removing file: {:?}",
@@ -195,7 +198,7 @@ async fn metadata_should_return_metadata_about_a_file(#[future] session: Session
 
     let metadata = session
         .sftp()
-        .metadata(file.path())
+        .metadata(file.path().to_path_buf())
         .await
         .expect("Failed to get metadata for file");
 
@@ -215,7 +218,7 @@ async fn metadata_should_return_metadata_about_a_directory(#[future] session: Se
 
     let metadata = session
         .sftp()
-        .metadata(dir.path())
+        .metadata(dir.path().to_path_buf())
         .await
         .expect("Failed to get metadata for dir");
 
@@ -240,7 +243,7 @@ async fn metadata_should_return_metadata_about_the_file_pointed_to_by_a_symlink(
 
     let metadata = session
         .sftp()
-        .metadata(link.path())
+        .metadata(link.path().to_path_buf())
         .await
         .expect("Failed to get metadata for symlink");
 
@@ -267,7 +270,7 @@ async fn metadata_should_return_metadata_about_the_dir_pointed_to_by_a_symlink(
 
     let metadata = session
         .sftp()
-        .metadata(link.path())
+        .metadata(link.path().to_path_buf())
         .await
         .expect("Failed to get metadata for symlink");
 
@@ -285,7 +288,10 @@ async fn metadata_should_fail_if_path_missing(#[future] session: Session) {
 
     let temp = TempDir::new().unwrap();
 
-    let result = session.sftp().metadata(temp.child("missing").path()).await;
+    let result = session
+        .sftp()
+        .metadata(temp.child("missing").path().to_path_buf())
+        .await;
     assert!(
         result.is_err(),
         "Metadata unexpectedly succeeded: {:?}",
@@ -305,7 +311,7 @@ async fn symlink_metadata_should_return_metadata_about_a_file(#[future] session:
 
     let symlink_metadata = session
         .sftp()
-        .symlink_metadata(file.path())
+        .symlink_metadata(file.path().to_path_buf())
         .await
         .expect("Failed to get metadata for file");
 
@@ -325,7 +331,7 @@ async fn symlink_metadata_should_return_metadata_about_a_directory(#[future] ses
 
     let symlink_metadata = session
         .sftp()
-        .symlink_metadata(dir.path())
+        .symlink_metadata(dir.path().to_path_buf())
         .await
         .expect("Failed to metadata for dir");
 
@@ -350,7 +356,7 @@ async fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_fil
 
     let metadata = session
         .sftp()
-        .symlink_metadata(link.path())
+        .symlink_metadata(link.path().to_path_buf())
         .await
         .expect("Failed to get metadata for symlink");
 
@@ -377,7 +383,7 @@ async fn symlink_metadata_should_return_metadata_about_symlink_pointing_to_a_dir
 
     let metadata = session
         .sftp()
-        .symlink_metadata(link.path())
+        .symlink_metadata(link.path().to_path_buf())
         .await
         .expect("Failed to get metadata for symlink");
 
@@ -397,7 +403,7 @@ async fn symlink_metadata_should_fail_if_path_missing(#[future] session: Session
 
     let result = session
         .sftp()
-        .symlink_metadata(temp.child("missing").path())
+        .symlink_metadata(temp.child("missing").path().to_path_buf())
         .await;
     assert!(
         result.is_err(),
@@ -420,7 +426,7 @@ async fn symlink_should_create_symlink_pointing_to_file(#[future] session: Sessi
 
     session
         .sftp()
-        .symlink(file.path(), link.path())
+        .symlink(file.path().to_path_buf(), link.path().to_path_buf())
         .await
         .expect("Failed to create symlink");
 
@@ -451,7 +457,7 @@ async fn symlink_should_create_symlink_pointing_to_directory(#[future] session: 
 
     session
         .sftp()
-        .symlink(dir.path(), link.path())
+        .symlink(dir.path().to_path_buf(), link.path().to_path_buf())
         .await
         .expect("Failed to create symlink");
 
@@ -471,7 +477,7 @@ async fn symlink_should_succeed_even_if_path_missing(#[future] session: Session)
 
     session
         .sftp()
-        .symlink(file.path(), link.path())
+        .symlink(file.path().to_path_buf(), link.path().to_path_buf())
         .await
         .expect("Failed to create symlink");
 
@@ -494,7 +500,7 @@ async fn read_link_should_return_the_target_of_the_symlink(#[future] session: Se
 
     let path = session
         .sftp()
-        .read_link(link.path())
+        .read_link(link.path().to_path_buf())
         .await
         .expect("Failed to read symlink");
     assert_eq!(path, dir.path());
@@ -507,7 +513,7 @@ async fn read_link_should_return_the_target_of_the_symlink(#[future] session: Se
 
     let path = session
         .sftp()
-        .read_link(link.path())
+        .read_link(link.path().to_path_buf())
         .await
         .expect("Failed to read symlink");
     assert_eq!(path, file.path());
@@ -522,7 +528,10 @@ async fn read_link_should_fail_if_path_is_not_a_symlink(#[future] session: Sessi
     let temp = TempDir::new().unwrap();
 
     // Test missing path
-    let result = session.sftp().read_link(temp.child("missing").path()).await;
+    let result = session
+        .sftp()
+        .read_link(temp.child("missing").path().to_path_buf())
+        .await;
     assert!(
         result.is_err(),
         "Unexpectedly read link for missing path: {:?}",
@@ -532,7 +541,7 @@ async fn read_link_should_fail_if_path_is_not_a_symlink(#[future] session: Sessi
     // Test a directory
     let dir = temp.child("dir");
     dir.create_dir_all().unwrap();
-    let result = session.sftp().read_link(dir.path()).await;
+    let result = session.sftp().read_link(dir.path().to_path_buf()).await;
     assert!(
         result.is_err(),
         "Unexpectedly read link for directory: {:?}",
@@ -542,7 +551,7 @@ async fn read_link_should_fail_if_path_is_not_a_symlink(#[future] session: Sessi
     // Test a file
     let file = temp.child("file");
     file.touch().unwrap();
-    let result = session.sftp().read_link(file.path()).await;
+    let result = session.sftp().read_link(file.path().to_path_buf()).await;
     assert!(
         result.is_err(),
         "Unexpectedly read link for file: {:?}",
@@ -568,7 +577,7 @@ async fn canonicalize_should_resolve_absolute_path_for_relative_path(#[future] s
     //       on mac the /tmp dir is a symlink to /private/tmp; so, we cannot successfully
     //       check the accuracy of the path itself, meaning that we can only validate
     //       that the operation was okay.
-    let result = session.sftp().canonicalize(rel.path()).await;
+    let result = session.sftp().canonicalize(rel.path().to_path_buf()).await;
     assert!(
         result.is_ok(),
         "Canonicalize unexpectedly failed: {:?}",
@@ -596,7 +605,10 @@ async fn canonicalize_should_either_return_resolved_path_or_error_if_missing(
     //       Additionally, this has divergent behavior. On some platforms, this returns
     //       the path as is whereas on others this returns a missing path error. We
     //       have to support both checks.
-    let result = session.sftp().canonicalize(missing.path()).await;
+    let result = session
+        .sftp()
+        .canonicalize(missing.path().to_path_buf())
+        .await;
     match result {
         Ok(_) => {}
         Err(SftpChannelError::Sftp(SftpError::NoSuchFile)) => {}
@@ -613,7 +625,10 @@ async fn canonicalize_should_fail_if_resolving_missing_path_with_dots(#[future] 
     let temp = TempDir::new().unwrap();
     let missing = temp.child(".").child("hello").child("..").child("world");
 
-    let result = session.sftp().canonicalize(missing.path()).await;
+    let result = session
+        .sftp()
+        .canonicalize(missing.path().to_path_buf())
+        .await;
     assert!(result.is_err(), "Canonicalize unexpectedly succeeded");
 }
 
@@ -631,7 +646,11 @@ async fn rename_should_support_singular_file(#[future] session: Session) {
 
     session
         .sftp()
-        .rename(file.path(), dst.path(), Default::default())
+        .rename(
+            file.path().to_path_buf(),
+            dst.path().to_path_buf(),
+            Default::default(),
+        )
         .await
         .expect("Failed to rename file");
 
@@ -658,7 +677,11 @@ async fn rename_should_support_dirtectory(#[future] session: Session) {
 
     session
         .sftp()
-        .rename(dir.path(), dst.path(), Default::default())
+        .rename(
+            dir.path().to_path_buf(),
+            dst.path().to_path_buf(),
+            Default::default(),
+        )
         .await
         .expect("Failed to rename directory");
 
@@ -684,7 +707,11 @@ async fn rename_should_fail_if_source_path_missing(#[future] session: Session) {
 
     let result = session
         .sftp()
-        .rename(missing.path(), dst.path(), Default::default())
+        .rename(
+            missing.path().to_path_buf(),
+            dst.path().to_path_buf(),
+            Default::default(),
+        )
         .await;
     assert!(
         result.is_err(),
@@ -705,7 +732,7 @@ async fn remove_file_should_remove_file(#[future] session: Session) {
 
     session
         .sftp()
-        .remove_file(file.path())
+        .remove_file(file.path().to_path_buf())
         .await
         .expect("Failed to remove file");
 
@@ -726,7 +753,7 @@ async fn remove_file_should_remove_symlink_to_file(#[future] session: Session) {
 
     session
         .sftp()
-        .remove_file(link.path())
+        .remove_file(link.path().to_path_buf())
         .await
         .expect("Failed to remove symlink");
 
@@ -749,7 +776,7 @@ async fn remove_file_should_remove_symlink_to_directory(#[future] session: Sessi
 
     session
         .sftp()
-        .remove_file(link.path())
+        .remove_file(link.path().to_path_buf())
         .await
         .expect("Failed to remove symlink");
 
@@ -768,7 +795,7 @@ async fn remove_file_should_fail_if_path_to_directory(#[future] session: Session
     let dir = temp.child("dir");
     dir.create_dir_all().unwrap();
 
-    let result = session.sftp().remove_file(dir.path()).await;
+    let result = session.sftp().remove_file(dir.path().to_path_buf()).await;
     assert!(
         result.is_err(),
         "Unexpectedly removed directory: {:?}",
@@ -789,7 +816,7 @@ async fn remove_file_should_fail_if_path_missing(#[future] session: Session) {
 
     let result = session
         .sftp()
-        .remove_file(temp.child("missing").path())
+        .remove_file(temp.child("missing").path().to_path_buf())
         .await;
     assert!(
         result.is_err(),

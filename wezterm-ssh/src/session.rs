@@ -3,6 +3,7 @@ use crate::config::ConfigMap;
 use crate::host::*;
 use crate::pty::*;
 use anyhow::{anyhow, Context};
+use camino::Utf8PathBuf;
 use filedescriptor::{
     poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN, POLLOUT,
 };
@@ -10,7 +11,8 @@ use portable_pty::{ExitStatus, PtySize};
 use smol::channel::{bounded, Receiver, Sender, TryRecvError};
 use ssh2::BlockDirections;
 use std::collections::{HashMap, VecDeque};
-use std::io::{Read, Write};
+use std::convert::TryFrom;
+use std::io::{self, Read, Write};
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -617,8 +619,6 @@ impl SessionInner {
     }
 
     /// Open a handle to a file.
-    ///
-    /// See [`Sftp::open_mode`] for more information.
     pub fn open_with_mode(
         &mut self,
         sess: &ssh2::Session,
@@ -629,7 +629,7 @@ impl SessionInner {
         let open_type: ssh2::OpenType = msg.opts.ty.into();
 
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.open_mode(msg.filename.as_path(), flags, mode, open_type)
+            sftp.open_mode(msg.filename.as_std_path(), flags, mode, open_type)
                 .map_err(SftpChannelError::from)
         });
 
@@ -646,11 +646,9 @@ impl SessionInner {
     }
 
     /// Helper to open a file in the `Read` mode.
-    ///
-    /// See [`Sftp::open`] for more information.
     pub fn open(&mut self, sess: &ssh2::Session, msg: &sftp::Open) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.open(msg.filename.as_path())
+            sftp.open(msg.filename.as_std_path())
                 .map_err(SftpChannelError::from)
         });
 
@@ -667,11 +665,9 @@ impl SessionInner {
     }
 
     /// Helper to create a file in write-only mode with truncation.
-    ///
-    /// See [`Sftp::create`] for more information.
     pub fn create(&mut self, sess: &ssh2::Session, msg: &sftp::Create) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.create(msg.filename.as_path())
+            sftp.create(msg.filename.as_std_path())
                 .map_err(SftpChannelError::from)
         });
 
@@ -688,11 +684,9 @@ impl SessionInner {
     }
 
     /// Helper to open a directory for reading its contents.
-    ///
-    /// See [`Sftp::opendir`] for more information.
     pub fn open_dir(&mut self, sess: &ssh2::Session, msg: &sftp::OpenDir) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.opendir(msg.filename.as_path())
+            sftp.opendir(msg.filename.as_std_path())
                 .map_err(SftpChannelError::from)
         });
 
@@ -821,8 +815,14 @@ impl SessionInner {
         if let Some(file) = self.files.get_mut(&msg.file_id) {
             let result = file
                 .readdir()
-                .map(|(path, stat)| (path, Metadata::from(stat)))
-                .map_err(SftpChannelError::from);
+                .map_err(SftpChannelError::from)
+                .and_then(|(path, stat)| match Utf8PathBuf::try_from(path) {
+                    Ok(path) => Ok((path, Metadata::from(stat))),
+                    Err(x) => Err(SftpChannelError::from(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        x,
+                    ))),
+                });
             msg.reply.try_send(result)?;
         }
 
@@ -844,18 +844,26 @@ impl SessionInner {
     }
 
     /// Convenience function to read the files in a directory.
-    ///
-    /// See [`Sftp::readdir`] for more information.
     pub fn read_dir(&mut self, sess: &ssh2::Session, msg: &sftp::ReadDir) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.readdir(msg.filename.as_path())
-                .map(|entries| {
-                    entries
-                        .into_iter()
-                        .map(|(path, stat)| (path, Metadata::from(stat)))
-                        .collect()
-                })
+            sftp.readdir(msg.filename.as_std_path())
                 .map_err(SftpChannelError::from)
+                .and_then(|entries| {
+                    let mut mapped_entries = Vec::new();
+                    for (path, stat) in entries {
+                        match Utf8PathBuf::try_from(path) {
+                            Ok(path) => mapped_entries.push((path, Metadata::from(stat))),
+                            Err(x) => {
+                                return Err(SftpChannelError::from(io::Error::new(
+                                    io::ErrorKind::InvalidData,
+                                    x,
+                                )));
+                            }
+                        }
+                    }
+
+                    Ok(mapped_entries)
+                })
         });
         msg.reply.try_send(result)?;
 
@@ -863,15 +871,13 @@ impl SessionInner {
     }
 
     /// Create a directory on the remote filesystem.
-    ///
-    /// See [`Sftp::rmdir`] for more information.
     pub fn create_dir(
         &mut self,
         sess: &ssh2::Session,
         msg: &sftp::CreateDir,
     ) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.mkdir(msg.filename.as_path(), msg.mode)
+            sftp.mkdir(msg.filename.as_std_path(), msg.mode)
                 .map_err(SftpChannelError::from)
         });
         msg.reply.try_send(result)?;
@@ -880,15 +886,13 @@ impl SessionInner {
     }
 
     /// Remove a directory from the remote filesystem.
-    ///
-    /// See [`Sftp::rmdir`] for more information.
     pub fn remove_dir(
         &mut self,
         sess: &ssh2::Session,
         msg: &sftp::RemoveDir,
     ) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.rmdir(msg.filename.as_path())
+            sftp.rmdir(msg.filename.as_std_path())
                 .map_err(SftpChannelError::from)
         });
         msg.reply.try_send(result)?;
@@ -897,15 +901,13 @@ impl SessionInner {
     }
 
     /// Get the metadata for a file, performed by stat(2).
-    ///
-    /// See [`Sftp::stat`] for more information.
     pub fn metadata(
         &mut self,
         sess: &ssh2::Session,
         msg: &sftp::GetMetadata,
     ) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.stat(msg.filename.as_path())
+            sftp.stat(msg.filename.as_std_path())
                 .map(Metadata::from)
                 .map_err(SftpChannelError::from)
         });
@@ -915,15 +917,13 @@ impl SessionInner {
     }
 
     /// Get the metadata for a file, performed by lstat(2).
-    ///
-    /// See [`Sftp::lstat`] for more information.
     pub fn symlink_metadata(
         &mut self,
         sess: &ssh2::Session,
         msg: &sftp::SymlinkMetadata,
     ) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.lstat(msg.filename.as_path())
+            sftp.lstat(msg.filename.as_std_path())
                 .map(Metadata::from)
                 .map_err(SftpChannelError::from)
         });
@@ -933,15 +933,13 @@ impl SessionInner {
     }
 
     /// Set the metadata for a file.
-    ///
-    /// See [`Sftp::setstat`] for more information.
     pub fn set_metadata(
         &mut self,
         sess: &ssh2::Session,
         msg: &sftp::SetMetadata,
     ) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.setstat(msg.filename.as_path(), msg.metadata.into())
+            sftp.setstat(msg.filename.as_std_path(), msg.metadata.into())
                 .map_err(SftpChannelError::from)
         });
         msg.reply.try_send(result)?;
@@ -950,11 +948,9 @@ impl SessionInner {
     }
 
     /// Create symlink at `target` pointing at `path`.
-    ///
-    /// See [`Sftp::symlink`] for more information.
     pub fn symlink(&mut self, sess: &ssh2::Session, msg: &sftp::Symlink) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.symlink(msg.path.as_path(), msg.target.as_path())
+            sftp.symlink(msg.path.as_std_path(), msg.target.as_std_path())
                 .map_err(SftpChannelError::from)
         });
         msg.reply.try_send(result)?;
@@ -963,12 +959,15 @@ impl SessionInner {
     }
 
     /// Read a symlink at `path`.
-    ///
-    /// See [`Sftp::readlink`] for more information.
     pub fn read_link(&mut self, sess: &ssh2::Session, msg: &sftp::ReadLink) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.readlink(msg.path.as_path())
+            sftp.readlink(msg.path.as_std_path())
                 .map_err(SftpChannelError::from)
+                .and_then(|path| {
+                    Utf8PathBuf::try_from(path).map_err(|x| {
+                        SftpChannelError::from(io::Error::new(io::ErrorKind::InvalidData, x))
+                    })
+                })
         });
         msg.reply.try_send(result)?;
 
@@ -976,16 +975,19 @@ impl SessionInner {
     }
 
     /// Resolve the real path for `path`.
-    ///
-    /// See [`Sftp::realpath`] for more information.
     pub fn canonicalize(
         &mut self,
         sess: &ssh2::Session,
         msg: &sftp::Canonicalize,
     ) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.realpath(msg.path.as_path())
+            sftp.realpath(msg.path.as_std_path())
                 .map_err(SftpChannelError::from)
+                .and_then(|path| {
+                    Utf8PathBuf::try_from(path).map_err(|x| {
+                        SftpChannelError::from(io::Error::new(io::ErrorKind::InvalidData, x))
+                    })
+                })
         });
         msg.reply.try_send(result)?;
 
@@ -993,12 +995,14 @@ impl SessionInner {
     }
 
     /// Rename the filesystem object on the remote filesystem.
-    ///
-    /// See [`Sftp::rename`] for more information.
     pub fn rename(&mut self, sess: &ssh2::Session, msg: &sftp::Rename) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.rename(msg.src.as_path(), msg.dst.as_path(), Some(msg.opts.into()))
-                .map_err(SftpChannelError::from)
+            sftp.rename(
+                msg.src.as_std_path(),
+                msg.dst.as_std_path(),
+                Some(msg.opts.into()),
+            )
+            .map_err(SftpChannelError::from)
         });
         msg.reply.try_send(result)?;
 
@@ -1006,15 +1010,13 @@ impl SessionInner {
     }
 
     /// Remove a file on the remote filesystem.
-    ///
-    /// See [`Sftp::unlink`] for more information.
     pub fn remove_file(
         &mut self,
         sess: &ssh2::Session,
         msg: &sftp::RemoveFile,
     ) -> anyhow::Result<()> {
         let result = self.init_sftp(sess).and_then(|sftp| {
-            sftp.unlink(msg.file.as_path())
+            sftp.unlink(msg.file.as_std_path())
                 .map_err(SftpChannelError::from)
         });
         msg.reply.try_send(result)?;

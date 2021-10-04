@@ -1,8 +1,9 @@
 use super::{Metadata, SessionRequest, SessionSender, SftpChannelResult, SftpRequest};
+use camino::Utf8PathBuf;
 use smol::channel::{bounded, Sender};
 use smol::future::FutureExt;
 use std::task::{Context, Poll};
-use std::{fmt, future::Future, io, path::PathBuf, pin::Pin};
+use std::{fmt, future::Future, io, pin::Pin};
 
 pub(crate) type FileId = usize;
 
@@ -75,7 +76,7 @@ pub(crate) struct MetadataFile {
 #[derive(Debug)]
 pub(crate) struct ReadDirFile {
     pub file_id: FileId,
-    pub reply: Sender<SftpChannelResult<(PathBuf, Metadata)>>,
+    pub reply: Sender<SftpChannelResult<(Utf8PathBuf, Metadata)>>,
 }
 
 #[derive(Debug)]
@@ -170,7 +171,7 @@ impl File {
     /// files in this directory.
     ///
     /// See [`ssh2::File::readdir`] for more information.
-    pub async fn read_dir(&self) -> anyhow::Result<(PathBuf, Metadata)> {
+    pub async fn read_dir(&self) -> anyhow::Result<(Utf8PathBuf, Metadata)> {
         let (reply, rx) = bounded(1);
         self.tx
             .as_ref()
