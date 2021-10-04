@@ -1276,7 +1276,7 @@ impl TermWindow {
         };
 
         let new_tab_bar = TabBarState::new(
-            self.terminal_size.cols as usize,
+            self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize,
             if self.last_mouse_coords.1 == tab_bar_y {
                 Some(self.last_mouse_coords.0)
             } else {

@@ -39,6 +39,9 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     /// zero-based offset from top of the window viewport to the line that
     /// needs to be rendered, measured in pixels
     pub top_pixel_y: f32,
+    /// zero-based offset from left of the window viewport to the line that
+    /// needs to be rendered, measured in pixels
+    pub left_pixel_x: f32,
     pub stable_line_idx: Option<StableRowIndex>,
     pub line: &'a Line,
     pub selection: Range<usize>,
@@ -46,7 +49,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     pub palette: &'a ColorPalette,
     pub dims: &'a RenderableDimensions,
     pub config: &'a ConfigHandle,
-    pub pos: Option<&'a PositionedPane>,
+    pub pane: Option<&'a Rc<dyn Pane>>,
 
     pub white_space: TextureRect,
     pub filled_box: TextureRect,
@@ -532,7 +535,7 @@ impl super::TermWindow {
                 - self.config.window_padding.bottom as f32
                 - tab_bar_height
         } else {
-            self.config.window_padding.top as f32
+            0.
         };
 
         // Register the tab bar location
@@ -573,6 +576,7 @@ impl super::TermWindow {
         self.render_screen_line_opengl(
             RenderScreenLineOpenGLParams {
                 top_pixel_y: tab_bar_y,
+                left_pixel_x: 0.,
                 stable_line_idx: None,
                 line: self.tab_bar.line(),
                 selection: 0..0,
@@ -588,7 +592,7 @@ impl super::TermWindow {
                 config: &self.config,
                 cursor_border_color: LinearRgba::default(),
                 foreground: rgbcolor_to_window_color(palette.foreground),
-                pos: None,
+                pane: None,
                 is_active: true,
                 selection_fg: LinearRgba::default(),
                 selection_bg: LinearRgba::default(),
@@ -632,11 +636,12 @@ impl super::TermWindow {
         let config = &self.config;
         let palette = pos.pane.palette();
 
-        let top_pixel_y = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+        let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height()?
         } else {
             0.
-        } + self.config.window_padding.top as f32;
+        };
+        let top_pixel_y = tab_bar_height + self.config.window_padding.top as f32;
 
         let cursor = pos.pane.get_cursor_position();
         if pos.is_active {
@@ -853,7 +858,13 @@ impl super::TermWindow {
         // changes to ScrollHit, mouse positioning, PositionedPane
         // and tab size calculation.
         if pos.is_active && self.show_scroll_bar {
-            let info = ScrollHit::thumb(&*pos.pane, current_viewport, &self.dimensions);
+            let info = ScrollHit::thumb(
+                &*pos.pane,
+                current_viewport,
+                &self.dimensions,
+                tab_bar_height,
+                config.tab_bar_at_bottom,
+            );
             let thumb_top = info.top as f32;
             let thumb_size = info.height as f32;
             let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
@@ -874,7 +885,7 @@ impl super::TermWindow {
             self.ui_items.push(UIItem {
                 x: self.dimensions.pixel_width - padding as usize,
                 width: padding as usize,
-                y: 0,
+                y: tab_bar_height as usize,
                 height: thumb_top as usize,
                 item_type: UIItemType::AboveScrollThumb,
             });
@@ -920,6 +931,8 @@ impl super::TermWindow {
                 RenderScreenLineOpenGLParams {
                     top_pixel_y: top_pixel_y
                         + (line_idx + pos.top) as f32 * self.render_metrics.cell_size.height as f32,
+                    left_pixel_x: self.config.window_padding.left as f32
+                        + (pos.left as f32 * self.render_metrics.cell_size.width as f32),
                     stable_line_idx: Some(stable_row),
                     line: &line,
                     selection: selrange,
@@ -929,8 +942,8 @@ impl super::TermWindow {
                     config: &config,
                     cursor_border_color,
                     foreground,
-                    pos: Some(pos),
                     is_active: pos.is_active,
+                    pane: Some(&pos.pane),
                     selection_fg,
                     selection_bg,
                     cursor_fg,
@@ -1256,9 +1269,8 @@ impl super::TermWindow {
 
             if !bg_is_default {
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + (cluster.first_cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32
-                        * cell_width
-                    + self.config.window_padding.left as f32;
+                    + params.left_pixel_x
+                    + (cluster.first_cell_idx as f32 * cell_width);
 
                 let mut quad = layers[0].allocate()?;
                 quad.set_position(
@@ -1280,9 +1292,8 @@ impl super::TermWindow {
             let mut quad = layers[0].allocate()?;
 
             let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                + (params.selection.start + params.pos.map(|p| p.left).unwrap_or(0)) as f32
-                    * cell_width
-                + self.config.window_padding.left as f32;
+                + params.left_pixel_x
+                + (params.selection.start as f32 * cell_width);
             quad.set_position(
                 pos_x,
                 pos_y,
@@ -1453,14 +1464,14 @@ impl super::TermWindow {
                         fg_color: style_params.fg_color,
                         bg_color: style_params.bg_color,
                         palette: params.palette,
-                        is_active_pane: params.pos.map(|p| p.is_active).unwrap_or(true),
+                        is_active_pane: params.is_active,
                         config: params.config,
                         selection_fg: params.selection_fg,
                         selection_bg: params.selection_bg,
                         cursor_fg: params.cursor_fg,
                         cursor_bg: params.cursor_bg,
                         cursor_border_color: params.cursor_border_color,
-                        pane: params.pos.map(|p| &p.pane),
+                        pane: params.pane,
                         probably_a_ligature: glyph
                             .texture
                             .as_ref()
@@ -1480,8 +1491,8 @@ impl super::TermWindow {
                     });
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                        + (cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
-                        + self.config.window_padding.left as f32;
+                        + params.left_pixel_x
+                        + (cell_idx as f32 * cell_width);
 
                     // We'd like to render the cursor with the cell width
                     // so that double-wide cells look more reasonable.
@@ -1672,8 +1683,8 @@ impl super::TermWindow {
                 let mut quad = layers[0].allocate()?;
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + (last_cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
-                    + self.config.window_padding.left as f32;
+                    + params.left_pixel_x
+                    + (last_cell_idx as f32 * cell_width);
                 quad.set_position(
                     pos_x,
                     pos_y,
@@ -1705,21 +1716,20 @@ impl super::TermWindow {
                     fg_color: params.foreground,
                     bg_color: params.default_bg,
                     palette: params.palette,
-                    is_active_pane: params.pos.map(|p| p.is_active).unwrap_or(true),
+                    is_active_pane: params.is_active,
                     config: params.config,
                     selection_fg: params.selection_fg,
                     selection_bg: params.selection_bg,
                     cursor_fg: params.cursor_fg,
                     cursor_bg: params.cursor_bg,
                     cursor_border_color: params.cursor_border_color,
-                    pane: params.pos.map(|p| &p.pane),
+                    pane: params.pane,
                     probably_a_ligature: false,
                 });
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + (params.cursor.x + params.pos.map(|p| p.left).unwrap_or(0)) as f32
-                        * cell_width
-                    + self.config.window_padding.left as f32;
+                    + params.left_pixel_x
+                    + (params.cursor.x as f32 * cell_width);
 
                 if bg_color != LinearRgba::TRANSPARENT {
                     // Avoid poking a transparent hole underneath the cursor
@@ -1786,8 +1796,8 @@ impl super::TermWindow {
         let cell_height = self.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
         let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-            + (cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
-            + self.config.window_padding.left as f32;
+            + params.left_pixel_x
+            + (cell_idx as f32 * cell_width);
         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
@@ -1859,8 +1869,8 @@ impl super::TermWindow {
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
 
         let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-            + (cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
-            + self.config.window_padding.left as f32;
+            + params.left_pixel_x
+            + (cell_idx as f32 * cell_width);
 
         let (offset_x, offset_y) = image.display_offset();
 

@@ -237,6 +237,8 @@ impl super::TermWindow {
             &*pane,
             current_viewport,
             &self.dimensions,
+            self.tab_bar_pixel_height().unwrap_or(0.),
+            self.config.tab_bar_at_bottom,
         );
         self.set_viewport(pane.pane_id(), Some(row), dims);
         context.invalidate();
