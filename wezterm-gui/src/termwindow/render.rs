@@ -952,6 +952,8 @@ impl super::TermWindow {
             let stable_row = stable_top + line_idx as StableRowIndex;
 
             let selrange = selrange.map_or(0..0, |sel| sel.cols_for_row(stable_row));
+            // Constrain to the pane width!
+            let selrange = selrange.start..selrange.end.min(dims.cols);
 
             self.render_screen_line_opengl(
                 RenderScreenLineOpenGLParams {
