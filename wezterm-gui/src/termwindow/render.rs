@@ -317,8 +317,6 @@ impl super::TermWindow {
 
         let top_y = metrics.cell_height.get() as f32 / 4.;
 
-        let pos_y = top_y + metrics.cell_height.get() as f32 + metrics.descender.get() as f32;
-
         let gl_state = self.render_state.as_ref().unwrap();
 
         let white_space = gl_state.util_sprites.white_space.texture_coords();
@@ -371,7 +369,7 @@ impl super::TermWindow {
         let width: f32 = shaped.iter().map(|s| s.pixel_width).sum();
 
         let hover_x_start = pos_x + metrics.cell_width.get() as f32 / 4.;
-        let hover_x_end = hover_x_start + width; //+ metrics.cell_width.get() as f32 /2.;
+        let hover_x_end = hover_x_start + width;
 
         let hover = match &self.current_mouse_event {
             Some(event) => {
@@ -406,7 +404,6 @@ impl super::TermWindow {
             }
             TabBarItem::None => (colors.background, colors.inactive_tab.fg_color, true),
         };
-        let glyph_color = rgbcolor_to_window_color(fg_color);
 
         let bg_start;
         if is_status {
@@ -434,37 +431,19 @@ impl super::TermWindow {
             quad.set_hsv(None);
         }
 
-        for s in &shaped {
-            for info in s.glyph_info.iter() {
-                let glyph = &info.glyph;
-                if let Some(texture) = glyph.texture.as_ref() {
-                    let x = pos_x + (glyph.x_offset.get() + glyph.bearing_x.get()) as f32;
-                    let y = top_y + pos_y - (glyph.y_offset.get() + glyph.bearing_y.get()) as f32;
-
-                    let mut quad = layers[1].allocate()?;
-                    quad.set_position(
-                        x - left_offset,
-                        y - top_offset,
-                        (x - left_offset) + texture.coords.size.width as f32,
-                        (y - top_offset) + texture.coords.size.height as f32,
-                    );
-                    quad.set_fg_color(glyph_color);
-                    quad.set_texture(texture.texture_coords());
-                    quad.set_texture_adjust(0., 0., 0., 0.);
-                    quad.set_hsv(if glyph.brightness_adjust != 1.0 {
-                        let hsv = HsbTransform::default();
-                        Some(HsbTransform {
-                            brightness: hsv.brightness * glyph.brightness_adjust,
-                            ..hsv
-                        })
-                    } else {
-                        None
-                    });
-                    quad.set_has_color(glyph.has_color);
-                }
-                pos_x += glyph.x_advance.get() as f32;
-            }
-        }
+        let glyph_color = rgbcolor_to_window_color(fg_color);
+        self.render_screen_line_opengl(
+            RenderScreenLineOpenGLParams {
+                top_pixel_y: top_y * 2.,
+                left_pixel_x: pos_x,
+                foreground: glyph_color,
+                pre_shaped: Some(&shaped),
+                font: Some(Rc::clone(font)),
+                selection: 0..0,
+                ..params
+            },
+            layers,
+        )?;
 
         Ok((
             bg_start + width,
@@ -1590,7 +1569,7 @@ impl super::TermWindow {
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
                         + params.left_pixel_x
                         + if params.use_pixel_positioning {
-                            cluster_x_pos
+                            cluster_x_pos + (glyph.x_offset + glyph.bearing_x).get() as f32
                         } else {
                             cell_idx as f32 * cell_width
                         };
@@ -1739,8 +1718,9 @@ impl super::TermWindow {
                                     // draw the entire glyph at once.
                                     if glyph_idx == 0 {
                                         let mut quad = layers[1].allocate()?;
-                                        let pos_y =
-                                            self.dimensions.pixel_height as f32 / -2.0 + top;
+                                        let pos_y = params.top_pixel_y
+                                            + self.dimensions.pixel_height as f32 / -2.0
+                                            + top;
                                         quad.set_position(
                                             pos_x,
                                             pos_y,
