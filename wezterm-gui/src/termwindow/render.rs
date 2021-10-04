@@ -73,6 +73,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     /// If true, use the shaper-determined pixel positions,
     /// rather than using monospace cell based positions.
     pub use_pixel_positioning: bool,
+    pub pre_shaped: Option<&'a Vec<ShapedCluster<'a>>>,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -104,7 +105,7 @@ pub struct ComputeCellFgBgResult {
 /// Basic cache of computed data from prior cluster to avoid doing the same
 /// work for space separated clusters with the same style
 #[derive(Clone, Debug)]
-struct ClusterStyleCache<'a> {
+pub struct ClusterStyleCache<'a> {
     attrs: &'a CellAttributes,
     style: &'a TextStyle,
     underline_tex_rect: TextureRect,
@@ -114,7 +115,7 @@ struct ClusterStyleCache<'a> {
 }
 
 #[derive(Clone, Debug)]
-struct ShapedCluster<'a> {
+pub struct ShapedCluster<'a> {
     style: ClusterStyleCache<'a>,
     x_pos: f32,
     pixel_width: f32,
@@ -301,36 +302,12 @@ impl super::TermWindow {
         None
     }
 
-    /// Shape the printable text from a Line; returns the total width
-    /// of the line as well as the shaped info for each of its clusters.
-    /// Ignores colo
-    fn shape_line_text(
-        &self,
-        line: &Line,
-        style: &TextStyle,
-        font: &Rc<LoadedFont>,
-    ) -> anyhow::Result<(f32, Vec<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>)> {
-        let gl_state = self.render_state.as_ref().unwrap();
-        let mut shaped = vec![];
-        let mut width = 0.;
-        let cell_clusters = line.cluster();
-        for cluster in &cell_clusters {
-            let glyph_info =
-                self.cached_cluster_shape(style, &cluster, &gl_state, line, Some(font))?;
-            for info in glyph_info.iter() {
-                width += info.glyph.x_advance.get() as f32;
-            }
-            shaped.push(glyph_info);
-        }
-        Ok((width, shaped))
-    }
-
     fn paint_one_tab(
         &self,
         mut pos_x: f32,
+        palette: &ColorPalette,
         item: &TabEntry,
         colors: &TabBarColors,
-        style: &TextStyle,
         font: &Rc<LoadedFont>,
         metrics: &FontMetrics,
         layers: &mut [MappedQuads; 3],
@@ -343,7 +320,55 @@ impl super::TermWindow {
         let pos_y = top_y + metrics.cell_height.get() as f32 + metrics.descender.get() as f32;
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let (width, shaped) = self.shape_line_text(&item.title, style, font)?;
+
+        let white_space = gl_state.util_sprites.white_space.texture_coords();
+        let filled_box = gl_state.util_sprites.filled_box.texture_coords();
+        let window_is_transparent =
+            self.window_background.is_some() || self.config.window_background_opacity != 1.0;
+        let default_bg = rgbcolor_alpha_to_window_color(
+            palette.resolve_bg(ColorAttribute::Default),
+            if window_is_transparent {
+                0.
+            } else {
+                self.config.text_background_opacity
+            },
+        );
+
+        let params = RenderScreenLineOpenGLParams {
+            top_pixel_y: 0.,
+            left_pixel_x: 0.,
+            stable_line_idx: None,
+            line: &item.title,
+            selection: 0..0,
+            cursor: &Default::default(),
+            palette: &palette,
+            dims: &RenderableDimensions {
+                cols: self.terminal_size.cols as _,
+                physical_top: 0,
+                scrollback_rows: 0,
+                scrollback_top: 0,
+                viewport_rows: 1,
+            },
+            config: &self.config,
+            cursor_border_color: LinearRgba::default(),
+            foreground: rgbcolor_to_window_color(palette.foreground),
+            pane: None,
+            is_active: true,
+            selection_fg: LinearRgba::default(),
+            selection_bg: LinearRgba::default(),
+            cursor_fg: LinearRgba::default(),
+            cursor_bg: LinearRgba::default(),
+            white_space,
+            filled_box,
+            window_is_transparent,
+            default_bg,
+            font: Some(Rc::clone(font)),
+            use_pixel_positioning: true,
+            pre_shaped: None,
+        };
+        let cell_clusters = item.title.cluster();
+        let shaped = self.cluster_and_shape(&cell_clusters, &params)?;
+        let width: f32 = shaped.iter().map(|s| s.pixel_width).sum();
 
         let hover_x_start = pos_x + metrics.cell_width.get() as f32 / 4.;
         let hover_x_end = hover_x_start + width; //+ metrics.cell_width.get() as f32 /2.;
@@ -409,8 +434,8 @@ impl super::TermWindow {
             quad.set_hsv(None);
         }
 
-        for glyph_info in shaped {
-            for info in glyph_info.iter() {
+        for s in &shaped {
+            for info in s.glyph_info.iter() {
                 let glyph = &info.glyph;
                 if let Some(texture) = glyph.texture.as_ref() {
                     let x = pos_x + (glyph.x_offset.get() + glyph.bearing_x.get()) as f32;
@@ -467,7 +492,7 @@ impl super::TermWindow {
         }
     }
 
-    fn paint_fancy_tab_bar(&self) -> anyhow::Result<Vec<UIItem>> {
+    fn paint_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<Vec<UIItem>> {
         let colors = self
             .config
             .colors
@@ -475,7 +500,6 @@ impl super::TermWindow {
             .and_then(|c| c.tab_bar.as_ref())
             .cloned()
             .unwrap_or_else(TabBarColors::default);
-        let style = &self.config.window_frame.font;
         let font = self.fonts.title_font()?;
         let metrics = font.metrics();
 
@@ -533,7 +557,7 @@ impl super::TermWindow {
         let mut x = 0.;
         for item in items.iter() {
             let (new_x, item) =
-                self.paint_one_tab(x, item, &colors, style, &font, &metrics, &mut layers)?;
+                self.paint_one_tab(x, palette, item, &colors, &font, &metrics, &mut layers)?;
             x = new_x;
             match item.item_type {
                 UIItemType::TabBar(TabBarItem::None) => ui_items.insert(0, item),
@@ -545,8 +569,10 @@ impl super::TermWindow {
     }
 
     fn paint_tab_bar(&mut self) -> anyhow::Result<()> {
+        let palette = self.palette().clone();
         if self.config.use_fancy_tab_bar {
-            self.ui_items.append(&mut self.paint_fancy_tab_bar()?);
+            self.ui_items
+                .append(&mut self.paint_fancy_tab_bar(&palette)?);
             return Ok(());
         }
 
@@ -576,7 +602,6 @@ impl super::TermWindow {
 
         let window_is_transparent =
             self.window_background.is_some() || self.config.window_background_opacity != 1.0;
-        let palette = self.palette().clone();
         let gl_state = self.render_state.as_ref().unwrap();
         let white_space = gl_state.util_sprites.white_space.texture_coords();
         let filled_box = gl_state.util_sprites.filled_box.texture_coords();
@@ -629,6 +654,7 @@ impl super::TermWindow {
                 default_bg,
                 font: None,
                 use_pixel_positioning: false,
+                pre_shaped: None,
             },
             &mut layers,
         )?;
@@ -982,6 +1008,7 @@ impl super::TermWindow {
                     default_bg,
                     font: None,
                     use_pixel_positioning: false,
+                    pre_shaped: None,
                 },
                 &mut layers,
             )?;
@@ -1381,25 +1408,33 @@ impl super::TermWindow {
         let cell_height = self.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
 
-        // Break the line into clusters of cells with the same attributes
         let start = Instant::now();
-        let cell_clusters = params.line.cluster();
-        metrics::histogram!("render_screen_line_opengl.line.cluster", start.elapsed());
-        log::trace!(
-            "cluster -> {} clusters, elapsed {:?}",
-            cell_clusters.len(),
-            start.elapsed()
-        );
 
         let mut last_cell_idx = 0;
 
-        let shaped = self.cluster_and_shape(&cell_clusters, &params)?;
+        let local_shaped;
+        let cell_clusters;
+        let shaped = match params.pre_shaped {
+            Some(s) => s,
+            None => {
+                // Break the line into clusters of cells with the same attributes
+                cell_clusters = params.line.cluster();
+                metrics::histogram!("render_screen_line_opengl.line.cluster", start.elapsed());
+                log::trace!(
+                    "cluster -> {} clusters, elapsed {:?}",
+                    cell_clusters.len(),
+                    start.elapsed()
+                );
+                local_shaped = self.cluster_and_shape(&cell_clusters, &params)?;
+                &local_shaped
+            }
+        };
 
         // Make a pass to compute background colors.
         // Need to consider:
         // * background when it is not the default color
         // * Reverse video attribute
-        for item in &shaped {
+        for item in shaped {
             let cluster = &item.cluster;
             let attrs = &cluster.attrs;
             let cluster_width = unicode_column_width(&cluster.text);
@@ -1479,7 +1514,7 @@ impl super::TermWindow {
 
         let mut overlay_images = vec![];
 
-        for item in &shaped {
+        for item in shaped {
             let style_params = &item.style;
             let cluster = &item.cluster;
             let glyph_info = &item.glyph_info;
@@ -1832,7 +1867,7 @@ impl super::TermWindow {
             }
 
             if params.stable_line_idx == Some(params.cursor.y)
-                && ((params.cursor.x > last_cell_idx) || cell_clusters.is_empty())
+                && ((params.cursor.x > last_cell_idx) || shaped.is_empty())
             {
                 // Compute the cursor fg/bg
                 let ComputeCellFgBgResult {
