@@ -69,6 +69,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     /// Override font resolution; useful together with
     /// the resolved title font
     pub font: Option<Rc<LoadedFont>>,
+    pub style: Option<&'a TextStyle>,
 
     /// If true, use the shaper-determined pixel positions,
     /// rather than using monospace cell based positions.
@@ -361,6 +362,7 @@ impl super::TermWindow {
             window_is_transparent,
             default_bg,
             font: Some(Rc::clone(font)),
+            style: Some(&self.config.window_frame.font),
             use_pixel_positioning: true,
             pre_shaped: None,
         };
@@ -631,6 +633,7 @@ impl super::TermWindow {
                 filled_box,
                 window_is_transparent,
                 default_bg,
+                style: None,
                 font: None,
                 use_pixel_positioning: false,
                 pre_shaped: None,
@@ -986,6 +989,7 @@ impl super::TermWindow {
                     window_is_transparent,
                     default_bg,
                     font: None,
+                    style: None,
                     use_pixel_positioning: false,
                     pre_shaped: None,
                 },
@@ -1328,7 +1332,7 @@ impl super::TermWindow {
 
                 last_style.replace(ClusterStyleCache {
                     attrs,
-                    style,
+                    style: params.style.unwrap_or(style),
                     underline_tex_rect: underline_tex_rect.clone(),
                     bg_color,
                     fg_color: glyph_color,
