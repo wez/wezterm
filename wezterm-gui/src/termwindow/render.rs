@@ -1186,10 +1186,6 @@ impl super::TermWindow {
             Some(params.config.inactive_pane_hsb)
         };
 
-        // Hang onto time to see if blinking text should not be seen.
-        let uptime = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        let milli_uptime = uptime.as_secs() as u128 * 1000 + uptime.subsec_millis() as u128;
-
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.)
@@ -1350,6 +1346,11 @@ impl super::TermWindow {
                     };
                     if let Some((blink_rate, mut last_time)) = blink_rate {
                         if blink_rate != 0 {
+                            let milli_uptime = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_millis();
+
                             let ticks = milli_uptime / blink_rate as u128;
                             if (ticks & 1) == 0 {
                                 fg = bg;
