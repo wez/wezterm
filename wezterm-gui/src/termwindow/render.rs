@@ -36,8 +36,9 @@ use window::bitmaps::Texture2d;
 use window::color::LinearRgba;
 
 pub struct RenderScreenLineOpenGLParams<'a> {
-    pub first_line_offset: f32,
-    pub line_idx: usize,
+    /// zero-based offset from top of the window viewport to the line that
+    /// needs to be rendered, measured in pixels
+    pub top_pixel_y: f32,
     pub stable_line_idx: Option<StableRowIndex>,
     pub line: &'a Line,
     pub selection: Range<usize>,
@@ -521,15 +522,17 @@ impl super::TermWindow {
             return Ok(());
         }
 
+        let tab_bar_height = self.tab_bar_pixel_height()?;
+
         let avail_height = self.dimensions.pixel_height.saturating_sub(
             (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
         );
         let tab_bar_y = if self.config.tab_bar_at_bottom {
-            let num_rows = avail_height as usize / self.render_metrics.cell_size.height as usize;
-
-            num_rows - 1
+            self.dimensions.pixel_height as f32
+                - self.config.window_padding.bottom as f32
+                - tab_bar_height
         } else {
-            0
+            self.config.window_padding.top as f32
         };
 
         // Register the tab bar location
@@ -569,8 +572,7 @@ impl super::TermWindow {
         ];
         self.render_screen_line_opengl(
             RenderScreenLineOpenGLParams {
-                first_line_offset: 0.,
-                line_idx: tab_bar_y,
+                top_pixel_y: tab_bar_y,
                 stable_line_idx: None,
                 line: self.tab_bar.line(),
                 selection: 0..0,
@@ -630,11 +632,11 @@ impl super::TermWindow {
         let config = &self.config;
         let palette = pos.pane.palette();
 
-        let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+        let top_pixel_y = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height()?
         } else {
             0.
-        };
+        } + self.config.window_padding.top as f32;
 
         let cursor = pos.pane.get_cursor_position();
         if pos.is_active {
@@ -753,7 +755,7 @@ impl super::TermWindow {
                 + (pos.left as f32 * cell_width)
                 + self.config.window_padding.left as f32;
             let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-                + first_line_offset
+                + top_pixel_y
                 + (pos.top as f32 * cell_height)
                 + self.config.window_padding.top as f32;
 
@@ -822,7 +824,7 @@ impl super::TermWindow {
                     + (pos.left as f32 * cell_width)
                     + self.config.window_padding.left as f32;
                 let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-                    + first_line_offset
+                    + top_pixel_y
                     + (pos.top as f32 * cell_height)
                     + self.config.window_padding.top as f32;
 
@@ -916,8 +918,8 @@ impl super::TermWindow {
 
             self.render_screen_line_opengl(
                 RenderScreenLineOpenGLParams {
-                    first_line_offset,
-                    line_idx: line_idx,
+                    top_pixel_y: top_pixel_y
+                        + (line_idx + pos.top) as f32 * self.render_metrics.cell_size.height as f32,
                     stable_line_idx: Some(stable_row),
                     line: &line,
                     selection: selrange,
@@ -1195,10 +1197,7 @@ impl super::TermWindow {
 
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
-        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-            + params.first_line_offset
-            + (params.line_idx + params.pos.map(|p| p.top).unwrap_or(0)) as f32 * cell_height
-            + self.config.window_padding.top as f32;
+        let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
 
         // Break the line into clusters of cells with the same attributes
         let start = Instant::now();
@@ -1785,9 +1784,7 @@ impl super::TermWindow {
         let mut quad = quads.allocate()?;
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
-        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-            + (params.line_idx + params.pos.map(|p| p.top).unwrap_or(0)) as f32 * cell_height
-            + self.config.window_padding.top as f32;
+        let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
         let pos_x = (self.dimensions.pixel_width as f32 / -2.)
             + (cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
             + self.config.window_padding.left as f32;
@@ -1859,9 +1856,7 @@ impl super::TermWindow {
         let mut quad = quads.allocate()?;
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
-        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-            + (params.line_idx + params.pos.map(|p| p.top).unwrap_or(0)) as f32 * cell_height
-            + self.config.window_padding.top as f32;
+        let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
 
         let pos_x = (self.dimensions.pixel_width as f32 / -2.)
             + (cell_idx + params.pos.map(|p| p.left).unwrap_or(0)) as f32 * cell_width
