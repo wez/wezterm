@@ -125,6 +125,15 @@ pub struct UIItem {
     pub item_type: UIItemType,
 }
 
+impl UIItem {
+    pub fn hit_test(&self, x: isize, y: isize) -> bool {
+        x >= self.x as isize
+            && x <= (self.x + self.width) as isize
+            && y >= self.y as isize
+            && y <= (self.y + self.height) as isize
+    }
+}
+
 #[derive(Clone, Default)]
 pub struct SemanticZoneCache {
     seqno: SequenceNo,
@@ -525,6 +534,15 @@ impl TermWindow {
         let render_metrics = RenderMetrics::new(&fontconfig)?;
         log::trace!("using render_metrics {:#?}", render_metrics);
 
+        // Initially we have only a single tab, so take that into account
+        // for the tab bar state.
+        let show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
+        let tab_bar_height = if show_tab_bar {
+            fontconfig.title_font()?.metrics().cell_height.get() as usize
+        } else {
+            0
+        };
+
         let terminal_size = PtySize {
             rows: physical_rows as u16,
             cols: physical_cols as u16,
@@ -532,20 +550,15 @@ impl TermWindow {
             pixel_height: (render_metrics.cell_size.height as usize * physical_rows) as u16,
         };
 
-        // Initially we have only a single tab, so take that into account
-        // for the tab bar state.
-        let show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
-
-        let rows_with_tab_bar = if show_tab_bar { 1 } else { 0 } + terminal_size.rows;
-
         let dimensions = Dimensions {
             pixel_width: (terminal_size.pixel_width
                 + config.window_padding.left
                 + resize::effective_right_padding(&config, &render_metrics))
                 as usize,
-            pixel_height: ((rows_with_tab_bar * render_metrics.cell_size.height as u16)
+            pixel_height: ((terminal_size.rows * render_metrics.cell_size.height as u16)
                 + config.window_padding.top
-                + config.window_padding.bottom) as usize,
+                + config.window_padding.bottom) as usize
+                + tab_bar_height,
             dpi,
         };
 

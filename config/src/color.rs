@@ -307,7 +307,7 @@ fn default_inactive_titlebar_bg() -> RgbColor {
 }
 
 fn default_active_titlebar_bg() -> RgbColor {
-    RgbColor::new_8bpc(0x2b, 0x20, 0x42)
+    RgbColor::new_8bpc(0x29, 0x29, 0x29)
 }
 
 fn default_inactive_titlebar_fg() -> RgbColor {

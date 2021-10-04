@@ -24,7 +24,7 @@ use termwiz::color::RgbColor;
 use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
 use wezterm_font::units::*;
-use wezterm_font::{FontConfiguration, GlyphInfo};
+use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont};
 use wezterm_term::Underline;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -107,6 +107,7 @@ pub struct CachedGlyph<T: Texture2d> {
     pub brightness_adjust: f32,
     pub x_offset: PixelLength,
     pub y_offset: PixelLength,
+    pub x_advance: PixelLength,
     pub bearing_x: PixelLength,
     pub bearing_y: PixelLength,
     pub texture: Option<Sprite<T>>,
@@ -313,6 +314,7 @@ impl<T: Texture2d> GlyphCache<T> {
         info: &GlyphInfo,
         style: &TextStyle,
         followed_by_space: bool,
+        font: Option<&Rc<LoadedFont>>,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let key = BorrowedGlyphKey {
             font_idx: info.font_idx,
@@ -327,7 +329,7 @@ impl<T: Texture2d> GlyphCache<T> {
         }
         metrics::histogram!("glyph_cache.glyph_cache.miss.rate", 1.);
 
-        let glyph = match self.load_glyph(info, style, followed_by_space) {
+        let glyph = match self.load_glyph(info, style, font, followed_by_space) {
             Ok(g) => g,
             Err(err) => {
                 if err
@@ -353,6 +355,7 @@ impl<T: Texture2d> GlyphCache<T> {
                     brightness_adjust: 1.0,
                     has_color: false,
                     texture: None,
+                    x_advance: PixelLength::zero(),
                     x_offset: PixelLength::zero(),
                     y_offset: PixelLength::zero(),
                     bearing_x: PixelLength::zero(),
@@ -371,6 +374,7 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         info: &GlyphInfo,
         style: &TextStyle,
+        font: Option<&Rc<LoadedFont>>,
         followed_by_space: bool,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let base_metrics;
@@ -379,7 +383,10 @@ impl<T: Texture2d> GlyphCache<T> {
         let glyph;
 
         {
-            let font = self.fonts.resolve_font(style)?;
+            let font = match font {
+                Some(f) => Rc::clone(f),
+                None => self.fonts.resolve_font(style)?,
+            };
             base_metrics = font.metrics();
             glyph = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
 
@@ -472,6 +479,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 texture: None,
                 x_offset: info.x_offset * scale,
                 y_offset: info.y_offset * scale,
+                x_advance: info.x_advance * scale,
                 bearing_x: PixelLength::zero(),
                 bearing_y: PixelLength::zero(),
                 scale,
@@ -488,6 +496,7 @@ impl<T: Texture2d> GlyphCache<T> {
             let bearing_y = glyph.bearing_y * scale;
             let x_offset = info.x_offset * scale;
             let y_offset = info.y_offset * scale;
+            let x_advance = info.x_advance * scale;
 
             let (scale, raw_im) = if scale != 1.0 {
                 log::trace!(
@@ -513,6 +522,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 texture: Some(tex),
                 x_offset,
                 y_offset,
+                x_advance,
                 bearing_x,
                 bearing_y,
                 scale,

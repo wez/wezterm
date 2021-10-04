@@ -71,6 +71,15 @@ impl Line {
         }
     }
 
+    pub fn from_cells(cells: Vec<Cell>) -> Self {
+        let bits = LineBits::NONE;
+        Self {
+            bits,
+            cells,
+            seqno: SEQ_ZERO,
+        }
+    }
+
     pub fn with_width(width: usize) -> Self {
         let mut cells = Vec::with_capacity(width);
         cells.resize_with(width, Cell::blank);
@@ -553,6 +562,17 @@ impl Line {
         self.invalidate_grapheme_at_or_before(x);
         self.cells.remove(x);
         self.cells.push(Cell::default());
+        self.update_last_change_seqno(seqno);
+    }
+
+    pub fn remove_cell(&mut self, x: usize, seqno: SequenceNo) {
+        if x >= self.cells.len() {
+            // Already implicitly removed
+            return;
+        }
+        self.invalidate_implicit_hyperlinks(seqno);
+        self.invalidate_grapheme_at_or_before(x);
+        self.cells.remove(x);
         self.update_last_change_seqno(seqno);
     }
 

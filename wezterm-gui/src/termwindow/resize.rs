@@ -119,6 +119,12 @@ impl super::TermWindow {
 
         let config = &self.config;
 
+        let tab_bar_height = if self.show_tab_bar {
+            self.tab_bar_pixel_height().unwrap_or(0.)
+        } else {
+            0.
+        };
+
         let (size, dims) = if let Some(cell_dims) = scale_changed_cells {
             // Scaling preserves existing terminal dimensions, yielding a new
             // overall set of window dimensions
@@ -129,11 +135,12 @@ impl super::TermWindow {
                 pixel_width: cell_dims.cols as u16 * self.render_metrics.cell_size.width as u16,
             };
 
-            let rows = size.rows + if self.show_tab_bar { 1 } else { 0 };
+            let rows = size.rows;
             let cols = size.cols;
 
             let pixel_height = (rows * self.render_metrics.cell_size.height as u16)
-                + (config.window_padding.top + config.window_padding.bottom);
+                + (config.window_padding.top + config.window_padding.bottom)
+                + tab_bar_height as u16;
 
             let pixel_width = (cols * self.render_metrics.cell_size.width as u16)
                 + (config.window_padding.left + self.effective_right_padding(&config));
@@ -150,12 +157,12 @@ impl super::TermWindow {
             let avail_width = dimensions.pixel_width.saturating_sub(
                 (config.window_padding.left + self.effective_right_padding(&config)) as usize,
             );
-            let avail_height = dimensions.pixel_height.saturating_sub(
-                (config.window_padding.top + config.window_padding.bottom) as usize,
-            );
+            let avail_height = dimensions
+                .pixel_height
+                .saturating_sub((config.window_padding.top + config.window_padding.bottom) as usize)
+                .saturating_sub(tab_bar_height as usize);
 
-            let rows = (avail_height / self.render_metrics.cell_size.height as usize)
-                .saturating_sub(if self.show_tab_bar { 1 } else { 0 });
+            let rows = avail_height / self.render_metrics.cell_size.height as usize;
             let cols = avail_width / self.render_metrics.cell_size.width as usize;
 
             let size = PtySize {
@@ -293,16 +300,21 @@ impl super::TermWindow {
         };
 
         let show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
+        let tab_bar_height = if show_tab_bar {
+            self.tab_bar_pixel_height()? as usize
+        } else {
+            0
+        };
 
-        let rows_with_tab_bar = if show_tab_bar { 1 } else { 0 } + terminal_size.rows;
         let dimensions = Dimensions {
             pixel_width: ((terminal_size.cols * render_metrics.cell_size.width as u16)
                 + config.window_padding.left
                 + effective_right_padding(&config, &render_metrics))
                 as usize,
-            pixel_height: ((rows_with_tab_bar * render_metrics.cell_size.height as u16)
+            pixel_height: ((terminal_size.rows * render_metrics.cell_size.height as u16)
                 + config.window_padding.top
-                + config.window_padding.bottom) as usize,
+                + config.window_padding.bottom) as usize
+                + tab_bar_height,
             dpi: config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
         };
 

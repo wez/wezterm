@@ -23,12 +23,7 @@ impl super::TermWindow {
         self.ui_items
             .iter()
             .rev()
-            .find(|item| {
-                x >= item.x as isize
-                    && x <= (item.x + item.width) as isize
-                    && y >= item.y as isize
-                    && y <= (item.y + item.height) as isize
-            })
+            .find(|item| item.hit_test(x, y))
             .cloned()
     }
 
@@ -64,29 +59,18 @@ impl super::TermWindow {
         self.current_mouse_event.replace(event.clone());
 
         let config = &self.config;
+        let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+            self.tab_bar_pixel_height().unwrap_or(0.) as isize
+        } else {
+            0
+        };
         let y = (event
             .coords
             .y
             .sub(config.window_padding.top as isize)
+            .sub(first_line_offset)
             .max(0)
             / self.render_metrics.cell_size.height) as i64;
-
-        let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
-            1
-        } else {
-            0
-        };
-        let tab_bar_y = if self.config.tab_bar_at_bottom {
-            let num_rows = self
-                .dimensions
-                .pixel_height
-                .sub((config.window_padding.top + config.window_padding.bottom) as usize)
-                / self.render_metrics.cell_size.height as usize;
-            num_rows - 1
-        } else {
-            0
-        } as i64;
-        let in_tab_bar = self.show_tab_bar && y == tab_bar_y && event.coords.y >= 0;
 
         let x = (event
             .coords
@@ -94,7 +78,7 @@ impl super::TermWindow {
             .sub(config.window_padding.left as isize)
             .max(0) as f32)
             / self.render_metrics.cell_size.width as f32;
-        let x = if !in_tab_bar && !pane.is_mouse_grabbed() {
+        let x = if !pane.is_mouse_grabbed() {
             // Round the x coordinate so that we're a bit more forgiving of
             // the horizontal position when selecting cells
             x.round()
@@ -104,9 +88,6 @@ impl super::TermWindow {
         .trunc() as usize;
 
         self.last_mouse_coords = (x, y);
-
-        // y position relative to top of viewport (not including tab bar)
-        let term_y = y.saturating_sub(first_line_offset);
 
         match event.kind {
             WMEK::Release(ref press) => {
@@ -169,7 +150,7 @@ impl super::TermWindow {
                 }
 
                 if let Some((item, start_event)) = self.dragging.take() {
-                    self.drag_ui_item(item, start_event, x, term_y, event, context);
+                    self.drag_ui_item(item, start_event, x, y, event, context);
                     return;
                 }
             }
@@ -182,20 +163,23 @@ impl super::TermWindow {
             (Some(prior), Some(item)) => {
                 self.leave_ui_item(&prior);
                 self.enter_ui_item(item);
+                context.invalidate();
             }
             (Some(prior), None) => {
                 self.leave_ui_item(&prior);
+                context.invalidate();
             }
             (None, Some(item)) => {
                 self.enter_ui_item(item);
+                context.invalidate();
             }
             (None, None) => {}
         }
 
         if let Some(item) = ui_item {
-            self.mouse_event_ui_item(item, pane, term_y, event, context);
+            self.mouse_event_ui_item(item, pane, y, event, context);
         } else {
-            self.mouse_event_terminal(pane, x, term_y, event, context);
+            self.mouse_event_terminal(pane, x, y, event, context);
         }
     }
 
@@ -317,10 +301,10 @@ impl super::TermWindow {
     ) {
         match event.kind {
             WMEK::Press(MousePress::Left) => match item {
-                TabBarItem::Tab(tab_idx) => {
+                TabBarItem::Tab { tab_idx, .. } => {
                     self.activate_tab(tab_idx as isize).ok();
                 }
-                TabBarItem::NewTabButton => {
+                TabBarItem::NewTabButton { .. } => {
                     self.spawn_tab(&SpawnTabDomain::CurrentPaneDomain);
                 }
                 TabBarItem::None => {
@@ -330,16 +314,16 @@ impl super::TermWindow {
                 }
             },
             WMEK::Press(MousePress::Middle) => match item {
-                TabBarItem::Tab(tab_idx) => {
+                TabBarItem::Tab { tab_idx, .. } => {
                     self.close_tab_idx(tab_idx).ok();
                 }
-                TabBarItem::NewTabButton | TabBarItem::None => {}
+                TabBarItem::NewTabButton { .. } | TabBarItem::None => {}
             },
             WMEK::Press(MousePress::Right) => match item {
-                TabBarItem::Tab(_) => {
+                TabBarItem::Tab { .. } => {
                     self.show_tab_navigator();
                 }
-                TabBarItem::NewTabButton => {
+                TabBarItem::NewTabButton { .. } => {
                     self.show_launcher();
                 }
                 TabBarItem::None => {}

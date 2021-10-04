@@ -20,13 +20,14 @@ pub struct TabBarState {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TabBarItem {
     None,
-    Tab(usize),
+    Tab { tab_idx: usize, active: bool },
     NewTabButton,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-struct TabEntry {
-    item: TabBarItem,
+pub struct TabEntry {
+    pub item: TabBarItem,
+    pub title: Line,
     x: usize,
     width: usize,
 }
@@ -70,11 +71,11 @@ fn call_format_tab_title(
                     let items = <Vec<FormatItem>>::from_lua(v, &*lua)?;
 
                     let esc = format_as_escapes(items.clone())?;
-                    let cells = parse_status_text(&esc, CellAttributes::default());
+                    let line = parse_status_text(&esc, CellAttributes::default());
 
                     Ok(Some(TitleText {
                         items,
-                        len: cells.len(),
+                        len: line.cells().len(),
                     }))
                 }
                 _ => {
@@ -162,6 +163,10 @@ impl TabBarState {
         &self.line
     }
 
+    pub fn items(&self) -> &[TabEntry] {
+        &self.items
+    }
+
     /// Build a new tab bar from the current state
     /// mouse_x is some if the mouse is on the same row as the tab bar.
     /// title_width is the total number of cell columns in the window.
@@ -217,7 +222,7 @@ impl TabBarState {
         let number_of_tabs = tab_titles.len();
 
         let available_cells =
-            title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab.len());
+            title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab.cells().len());
         let tab_width_max = if available_cells >= titles_len {
             // We can render each title with its full width
             usize::max_value()
@@ -227,7 +232,7 @@ impl TabBarState {
         }
         .min(config.tab_max_width);
 
-        let mut line = Line::with_width(title_width);
+        let mut line = Line::with_width(0);
 
         let mut x = 0;
         let mut items = vec![];
@@ -259,44 +264,45 @@ impl TabBarState {
             let tab_start_idx = x;
 
             let esc = format_as_escapes(tab_title.items.clone()).expect("already parsed ok above");
-            let cells = parse_status_text(&esc, cell_attrs.clone());
-            let mut n = 0;
-            for cell in cells {
-                let len = cell.width();
-                if n + len > tab_width_max {
-                    break;
-                }
-                line.set_cell(x, cell, SEQ_ZERO);
-                x += len;
-                n += len;
+            let mut tab_line = parse_status_text(&esc, cell_attrs.clone());
+
+            let title = tab_line.clone();
+            if tab_line.cells().len() > tab_width_max {
+                tab_line.resize(tab_width_max, SEQ_ZERO);
             }
 
+            let width = tab_line.cells().len();
+
             items.push(TabEntry {
-                item: TabBarItem::Tab(tab_idx),
+                item: TabBarItem::Tab { tab_idx, active },
+                title,
                 x: tab_start_idx,
-                width: x - tab_start_idx,
+                width,
             });
+
+            line.append_line(tab_line, SEQ_ZERO);
+            x += width;
         }
 
         // New tab button
         {
-            let hover = is_tab_hover(mouse_x, x, new_tab_hover.len());
+            let hover = is_tab_hover(mouse_x, x, new_tab_hover.cells().len());
 
-            let cells = if hover { &new_tab_hover } else { &new_tab };
+            let new_tab_button = if hover { &new_tab_hover } else { &new_tab };
 
             let button_start = x;
+            let width = new_tab_button.cells().len();
 
-            for c in cells {
-                let len = c.width();
-                line.set_cell(x, c.clone(), SEQ_ZERO);
-                x += len;
-            }
+            line.append_line(new_tab_button.clone(), SEQ_ZERO);
 
             items.push(TabEntry {
                 item: TabBarItem::NewTabButton,
+                title: new_tab_button.clone(),
                 x: button_start,
-                width: x - button_start,
+                width,
             });
+
+            x += width;
         }
 
         let black_cell = Cell::blank_with_attrs(
@@ -305,28 +311,28 @@ impl TabBarState {
                 .clone(),
         );
 
-        for idx in x..title_width {
-            line.set_cell(idx, black_cell.clone(), SEQ_ZERO);
+        let status_space_available = title_width.saturating_sub(x);
+        let mut status_line = parse_status_text(right_status, black_cell.attrs().clone());
+        items.push(TabEntry {
+            item: TabBarItem::None,
+            title: status_line.clone(),
+            x,
+            width: status_space_available,
+        });
+
+        while status_line.cells().len() > status_space_available {
+            status_line.remove_cell(0, SEQ_ZERO);
         }
 
-        let rhs_cells = parse_status_text(right_status, black_cell.attrs().clone());
-        let rhs_len = rhs_cells.len().min(title_width.saturating_sub(x));
-        let skip = rhs_cells.len() - rhs_len;
-
-        for (idx, cell) in rhs_cells.into_iter().skip(skip).rev().enumerate() {
-            line.set_cell(title_width - (1 + idx), cell, SEQ_ZERO);
+        line.append_line(status_line, SEQ_ZERO);
+        while line.cells().len() < title_width {
+            line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
         }
 
         Self { line, items }
     }
 
-    pub fn compute_ui_items(
-        &self,
-        y: usize,
-        cell_height: usize,
-        cell_width: usize,
-        width: usize,
-    ) -> Vec<UIItem> {
+    pub fn compute_ui_items(&self, y: usize, cell_height: usize, cell_width: usize) -> Vec<UIItem> {
         let mut items = vec![];
         let mut last_x = 0;
 
@@ -341,19 +347,11 @@ impl TabBarState {
             last_x += entry.width;
         }
 
-        items.push(UIItem {
-            x: last_x * cell_width,
-            width: width - (last_x * cell_width),
-            y,
-            height: cell_height,
-            item_type: UIItemType::TabBar(TabBarItem::None),
-        });
-
         items
     }
 }
 
-fn parse_status_text(text: &str, default_cell: CellAttributes) -> Vec<Cell> {
+fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
     let mut pen = default_cell.clone();
     let mut cells = vec![];
     let mut ignoring = false;
@@ -444,5 +442,5 @@ fn parse_status_text(text: &str, default_cell: CellAttributes) -> Vec<Cell> {
         }
     });
     flush_print(&mut print_buffer, &mut cells, &pen);
-    cells
+    Line::from_cells(cells)
 }

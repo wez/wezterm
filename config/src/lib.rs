@@ -978,6 +978,8 @@ pub struct Config {
     /// active tab.  Clicking on a tab activates it.
     #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
+    #[serde(default)]
+    pub use_fancy_tab_bar: bool,
 
     #[serde(default)]
     pub tab_bar_at_bottom: bool,

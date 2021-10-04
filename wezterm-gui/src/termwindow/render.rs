@@ -2,6 +2,7 @@ use crate::customglyph::BlockKey;
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::shapecache::*;
+use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
     BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
     UIItem, UIItemType,
@@ -15,7 +16,7 @@ use ::window::glium::uniforms::{
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::WindowOps;
 use anyhow::anyhow;
-use config::{ConfigHandle, HsbTransform, TextStyle, VisualBellTarget};
+use config::{ConfigHandle, HsbTransform, TabBarColors, TextStyle, VisualBellTarget};
 use mux::pane::Pane;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
@@ -27,7 +28,7 @@ use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::PixelLength;
-use wezterm_font::{ClearShapeCache, GlyphInfo};
+use wezterm_font::{ClearShapeCache, FontMetrics, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::bitmaps::atlas::SpriteSlice;
@@ -35,6 +36,7 @@ use window::bitmaps::Texture2d;
 use window::color::LinearRgba;
 
 pub struct RenderScreenLineOpenGLParams<'a> {
+    pub first_line_offset: f32,
     pub line_idx: usize,
     pub stable_line_idx: Option<StableRowIndex>,
     pub line: &'a Line,
@@ -265,7 +267,242 @@ impl super::TermWindow {
         None
     }
 
+    fn paint_one_tab(
+        &self,
+        mut pos_x: f32,
+        item: &TabEntry,
+        colors: &TabBarColors,
+        style: &TextStyle,
+        font: &Rc<LoadedFont>,
+        metrics: &FontMetrics,
+        layers: &mut [MappedQuads; 3],
+    ) -> anyhow::Result<(f32, UIItem)> {
+        let left_offset = self.dimensions.pixel_width as f32 / 2.;
+        let top_offset = self.dimensions.pixel_height as f32 / 2.;
+
+        let top_y = metrics.cell_height.get() as f32 / 4.;
+
+        let cell_clusters = item.title.cluster();
+
+        let pos_y = top_y + metrics.cell_height.get() as f32 + metrics.descender.get() as f32;
+
+        let gl_state = self.render_state.as_ref().unwrap();
+        let mut shaped = vec![];
+        let mut width = 0.;
+        for cluster in &cell_clusters {
+            let glyph_info =
+                self.cached_cluster_shape(style, &cluster, &gl_state, &item.title, Some(font))?;
+            for info in glyph_info.iter() {
+                width += info.glyph.x_advance.get() as f32;
+            }
+            shaped.push(glyph_info);
+        }
+
+        let hover_x_start = pos_x + metrics.cell_width.get() as f32 / 4.;
+        let hover_x_end = hover_x_start + width; //+ metrics.cell_width.get() as f32 /2.;
+
+        let hover = match &self.current_mouse_event {
+            Some(event) => {
+                let mouse_x = event.coords.x as f32;
+                let mouse_y = event.coords.y as f32;
+                mouse_x as f32 >= hover_x_start
+                    && mouse_x as f32 <= hover_x_end
+                    && mouse_y as f32 >= top_y
+                    && mouse_y as f32 <= metrics.cell_height.get() as f32 * 1.75
+            }
+            None => false,
+        };
+
+        let (bg_color, fg_color, is_status) = match item.item {
+            TabBarItem::Tab { active, .. } => {
+                let c = if active {
+                    &colors.active_tab
+                } else if hover {
+                    &colors.inactive_tab_hover
+                } else {
+                    &colors.inactive_tab
+                };
+                (c.bg_color, c.fg_color, false)
+            }
+            TabBarItem::NewTabButton => {
+                let c = if hover {
+                    &colors.new_tab_hover
+                } else {
+                    &colors.new_tab
+                };
+                (c.bg_color, c.fg_color, false)
+            }
+            TabBarItem::None => (colors.background, colors.inactive_tab.fg_color, true),
+        };
+        let glyph_color = rgbcolor_to_window_color(fg_color);
+
+        let bg_start;
+        if is_status {
+            bg_start = pos_x;
+            // Right align status glyphs
+            pos_x = 2. * left_offset - width;
+        } else {
+            pos_x += metrics.cell_width.get() as f32 / 4.0;
+            bg_start = pos_x;
+            // width += metrics.cell_width.get() as f32 / 2.0;
+        }
+
+        {
+            let mut quad = layers[0].allocate()?;
+            quad.set_position(
+                bg_start - left_offset,
+                top_y - top_offset,
+                bg_start + width - left_offset,
+                top_y + (metrics.cell_height.get() as f32 * 1.5) - top_offset,
+            );
+            quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
+            quad.set_is_background();
+            quad.set_fg_color(rgbcolor_to_window_color(bg_color));
+            quad.set_hsv(None);
+        }
+
+        for glyph_info in shaped {
+            for info in glyph_info.iter() {
+                let glyph = &info.glyph;
+                if let Some(texture) = glyph.texture.as_ref() {
+                    let x = pos_x + (glyph.x_offset.get() + glyph.bearing_x.get()) as f32;
+                    let y = top_y + pos_y - (glyph.y_offset.get() + glyph.bearing_y.get()) as f32;
+
+                    let mut quad = layers[1].allocate()?;
+                    quad.set_position(
+                        x - left_offset,
+                        y - top_offset,
+                        (x - left_offset) + texture.coords.size.width as f32,
+                        (y - top_offset) + texture.coords.size.height as f32,
+                    );
+                    quad.set_fg_color(glyph_color);
+                    quad.set_texture(texture.texture_coords());
+                    quad.set_texture_adjust(0., 0., 0., 0.);
+                    quad.set_hsv(if glyph.brightness_adjust != 1.0 {
+                        let hsv = HsbTransform::default();
+                        Some(HsbTransform {
+                            brightness: hsv.brightness * glyph.brightness_adjust,
+                            ..hsv
+                        })
+                    } else {
+                        None
+                    });
+                    quad.set_has_color(glyph.has_color);
+                }
+                pos_x += glyph.x_advance.get() as f32;
+            }
+        }
+
+        Ok((
+            bg_start + width,
+            UIItem {
+                x: if is_status { 0 } else { bg_start as usize },
+                width: if is_status {
+                    self.dimensions.pixel_width
+                } else {
+                    width as usize
+                },
+                y: if is_status { 0 } else { top_y as usize },
+                height: (metrics.cell_height.get() as f32 * if is_status { 2. } else { 1.5 })
+                    as usize,
+                item_type: UIItemType::TabBar(item.item.clone()),
+            },
+        ))
+    }
+
+    pub fn tab_bar_pixel_height(&self) -> anyhow::Result<f32> {
+        if self.config.use_fancy_tab_bar {
+            let font = self.fonts.title_font()?;
+            Ok(font.metrics().cell_height.get() as f32 * 2.)
+        } else {
+            Ok(self.render_metrics.cell_size.height as f32)
+        }
+    }
+
+    fn paint_fancy_tab_bar(&self) -> anyhow::Result<Vec<UIItem>> {
+        let colors = self
+            .config
+            .colors
+            .as_ref()
+            .and_then(|c| c.tab_bar.as_ref())
+            .cloned()
+            .unwrap_or_else(TabBarColors::default);
+        let style = &self.config.window_frame.font;
+        let font = self.fonts.title_font()?;
+        let metrics = font.metrics();
+
+        let mut ui_items = vec![];
+
+        let items = self.tab_bar.items();
+
+        let gl_state = self.render_state.as_ref().unwrap();
+        let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
+        let mut vb_mut0 = vb[0].current_vb_mut();
+        let mut vb_mut1 = vb[1].current_vb_mut();
+        let mut vb_mut2 = vb[2].current_vb_mut();
+        let mut layers = [
+            vb[0].map(&mut vb_mut0),
+            vb[1].map(&mut vb_mut1),
+            vb[2].map(&mut vb_mut2),
+        ];
+
+        // Overall window titlebar background
+        {
+            let mut quad = layers[0].allocate()?;
+            quad.set_position(
+                self.dimensions.pixel_width as f32 / -2.,
+                self.dimensions.pixel_height as f32 / -2.,
+                self.dimensions.pixel_width as f32 / 2.,
+                (metrics.cell_height.get() as f32 * 2.) + self.dimensions.pixel_height as f32 / -2.,
+            );
+            quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
+            quad.set_is_background();
+            quad.set_fg_color(rgbcolor_to_window_color(if self.focused.is_some() {
+                self.config.window_frame.active_titlebar_bg
+            } else {
+                self.config.window_frame.inactive_titlebar_bg
+            }));
+            quad.set_hsv(None);
+        }
+        // Dividing line that is logically part of the active tab
+        {
+            let mut quad = layers[0].allocate()?;
+            quad.set_position(
+                self.dimensions.pixel_width as f32 / -2.,
+                (metrics.cell_height.get() as f32 * 1.75)
+                    + self.dimensions.pixel_height as f32 / -2.,
+                self.dimensions.pixel_width as f32 / 2.,
+                (metrics.cell_height.get() as f32 * 2.) + self.dimensions.pixel_height as f32 / -2.,
+            );
+            quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
+            quad.set_is_background();
+            quad.set_fg_color(rgbcolor_to_window_color(colors.active_tab.bg_color));
+            quad.set_hsv(None);
+        }
+
+        let mut x = 0.;
+        for item in items.iter() {
+            let (new_x, item) =
+                self.paint_one_tab(x, item, &colors, style, &font, &metrics, &mut layers)?;
+            x = new_x;
+            match item.item_type {
+                UIItemType::TabBar(TabBarItem::None) => ui_items.insert(0, item),
+                _ => ui_items.push(item),
+            }
+        }
+
+        Ok(ui_items)
+    }
+
     fn paint_tab_bar(&mut self) -> anyhow::Result<()> {
+        if self.config.use_fancy_tab_bar {
+            self.ui_items.append(&mut self.paint_fancy_tab_bar()?);
+            return Ok(());
+        }
+
         let avail_height = self.dimensions.pixel_height.saturating_sub(
             (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
         );
@@ -286,7 +523,6 @@ impl super::TermWindow {
             },
             self.render_metrics.cell_size.height as usize,
             self.render_metrics.cell_size.width as usize,
-            self.dimensions.pixel_width,
         ));
 
         let window_is_transparent =
@@ -315,6 +551,7 @@ impl super::TermWindow {
         ];
         self.render_screen_line_opengl(
             RenderScreenLineOpenGLParams {
+                first_line_offset: 0.,
                 line_idx: tab_bar_y,
                 stable_line_idx: None,
                 line: self.tab_bar.line(),
@@ -375,9 +612,9 @@ impl super::TermWindow {
         let palette = pos.pane.palette();
 
         let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
-            1
+            self.tab_bar_pixel_height()?
         } else {
-            0
+            0.
         };
 
         let cursor = pos.pane.get_cursor_position();
@@ -497,7 +734,8 @@ impl super::TermWindow {
                 + (pos.left as f32 * cell_width)
                 + self.config.window_padding.left as f32;
             let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-                + ((first_line_offset + pos.top) as f32 * cell_height)
+                + first_line_offset
+                + (pos.top as f32 * cell_height)
                 + self.config.window_padding.top as f32;
 
             quad.set_position(
@@ -565,7 +803,8 @@ impl super::TermWindow {
                     + (pos.left as f32 * cell_width)
                     + self.config.window_padding.left as f32;
                 let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-                    + ((first_line_offset + pos.top) as f32 * cell_height)
+                    + first_line_offset
+                    + (pos.top as f32 * cell_height)
                     + self.config.window_padding.top as f32;
 
                 quad.set_position(
@@ -658,7 +897,8 @@ impl super::TermWindow {
 
             self.render_screen_line_opengl(
                 RenderScreenLineOpenGLParams {
-                    line_idx: line_idx + first_line_offset,
+                    first_line_offset,
+                    line_idx: line_idx,
                     stable_line_idx: Some(stable_row),
                     line: &line,
                     selection: selrange,
@@ -809,9 +1049,9 @@ impl super::TermWindow {
         let cell_height = self.render_metrics.cell_size.height as f32;
 
         let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
-            1
+            self.tab_bar_pixel_height()?
         } else {
-            0
+            0.
         };
 
         let block = BlockKey::from_char(if split.direction == SplitDirection::Horizontal {
@@ -835,7 +1075,8 @@ impl super::TermWindow {
         quad.set_has_color(false);
 
         let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-            + (split.top + first_row_offset) as f32 * cell_height
+            + split.top as f32 * cell_height
+            + first_row_offset
             + self.config.window_padding.top as f32;
         let pos_x = (self.dimensions.pixel_width as f32 / -2.)
             + split.left as f32 * cell_width
@@ -852,7 +1093,8 @@ impl super::TermWindow {
                 x: self.config.window_padding.left as usize + (split.left * cell_width as usize),
                 width: cell_width as usize,
                 y: self.config.window_padding.top as usize
-                    + (split.top + first_row_offset) * cell_height as usize,
+                    + first_row_offset as usize
+                    + split.top * cell_height as usize,
                 height: split.size * cell_height as usize,
                 item_type: UIItemType::Split(split.clone()),
             });
@@ -867,7 +1109,8 @@ impl super::TermWindow {
                 x: self.config.window_padding.left as usize + (split.left * cell_width as usize),
                 width: split.size * cell_width as usize,
                 y: self.config.window_padding.top as usize
-                    + (split.top + first_row_offset) * cell_height as usize,
+                    + first_row_offset as usize
+                    + split.top * cell_height as usize,
                 height: cell_height as usize,
                 item_type: UIItemType::Split(split.clone()),
             });
@@ -897,15 +1140,15 @@ impl super::TermWindow {
             self.paint_pane_opengl(&pos, num_panes)?;
         }
 
-        if self.show_tab_bar {
-            self.paint_tab_bar()?;
-        }
-
         if let Some(pane) = self.get_active_pane_or_overlay() {
             let splits = self.get_splits();
             for split in &splits {
                 self.paint_split_opengl(split, &pane)?;
             }
+        }
+
+        if self.show_tab_bar {
+            self.paint_tab_bar()?;
         }
 
         Ok(())
@@ -937,6 +1180,7 @@ impl super::TermWindow {
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.)
+            + params.first_line_offset
             + (params.line_idx + params.pos.map(|p| p.top).unwrap_or(0)) as f32 * cell_height
             + self.config.window_padding.top as f32;
 
@@ -1140,8 +1384,13 @@ impl super::TermWindow {
             let style_params = last_style.as_ref().expect("we literally just assigned it");
 
             // Shape the printable text from this cluster
-            let glyph_info =
-                self.cached_cluster_shape(style_params.style, &cluster, &gl_state, params.line)?;
+            let glyph_info = self.cached_cluster_shape(
+                style_params.style,
+                &cluster,
+                &gl_state,
+                params.line,
+                None,
+            )?;
 
             let mut current_idx = cluster.first_cell_idx;
 
@@ -1748,6 +1997,7 @@ impl super::TermWindow {
         style: &TextStyle,
         glyph_cache: &mut GlyphCache<SrgbTexture2d>,
         infos: &[GlyphInfo],
+        font: Option<&Rc<LoadedFont>>,
     ) -> anyhow::Result<Vec<Rc<CachedGlyph<SrgbTexture2d>>>> {
         let mut glyphs = Vec::with_capacity(infos.len());
         for info in infos {
@@ -1757,7 +2007,7 @@ impl super::TermWindow {
                 None => false,
             };
 
-            glyphs.push(glyph_cache.cached_glyph(info, &style, followed_by_space)?);
+            glyphs.push(glyph_cache.cached_glyph(info, &style, followed_by_space, font)?);
         }
         Ok(glyphs)
     }
@@ -1769,6 +2019,7 @@ impl super::TermWindow {
         cluster: &CellCluster,
         gl_state: &RenderState,
         line: &Line,
+        font: Option<&Rc<LoadedFont>>,
     ) -> anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>> {
         let shape_resolve_start = Instant::now();
         let key = BorrowedShapeCacheKey {
@@ -1779,7 +2030,10 @@ impl super::TermWindow {
             Some(Ok(info)) => info,
             Some(Err(err)) => return Err(err),
             None => {
-                let font = self.fonts.resolve_font(style)?;
+                let font = match font {
+                    Some(f) => Rc::clone(f),
+                    None => self.fonts.resolve_font(style)?,
+                };
                 let window = self.window.as_ref().unwrap().clone();
                 match font.shape(
                     &cluster.text,
@@ -1794,6 +2048,7 @@ impl super::TermWindow {
                             &style,
                             &mut gl_state.glyph_cache.borrow_mut(),
                             &info,
+                            Some(&font),
                         )?;
                         let shaped = Rc::new(ShapedInfo::process(
                             &self.render_metrics,
