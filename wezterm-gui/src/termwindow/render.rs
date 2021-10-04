@@ -267,6 +267,30 @@ impl super::TermWindow {
         None
     }
 
+    /// Shape the printable text from a Line; returns the total width
+    /// of the line as well as the shaped info for each of its clusters.
+    /// Ignores colo
+    fn shape_line_text(
+        &self,
+        line: &Line,
+        style: &TextStyle,
+        font: &Rc<LoadedFont>,
+    ) -> anyhow::Result<(f32, Vec<Rc<Vec<ShapedInfo<SrgbTexture2d>>>>)> {
+        let gl_state = self.render_state.as_ref().unwrap();
+        let mut shaped = vec![];
+        let mut width = 0.;
+        let cell_clusters = line.cluster();
+        for cluster in &cell_clusters {
+            let glyph_info =
+                self.cached_cluster_shape(style, &cluster, &gl_state, line, Some(font))?;
+            for info in glyph_info.iter() {
+                width += info.glyph.x_advance.get() as f32;
+            }
+            shaped.push(glyph_info);
+        }
+        Ok((width, shaped))
+    }
+
     fn paint_one_tab(
         &self,
         mut pos_x: f32,
@@ -282,21 +306,10 @@ impl super::TermWindow {
 
         let top_y = metrics.cell_height.get() as f32 / 4.;
 
-        let cell_clusters = item.title.cluster();
-
         let pos_y = top_y + metrics.cell_height.get() as f32 + metrics.descender.get() as f32;
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let mut shaped = vec![];
-        let mut width = 0.;
-        for cluster in &cell_clusters {
-            let glyph_info =
-                self.cached_cluster_shape(style, &cluster, &gl_state, &item.title, Some(font))?;
-            for info in glyph_info.iter() {
-                width += info.glyph.x_advance.get() as f32;
-            }
-            shaped.push(glyph_info);
-        }
+        let (width, shaped) = self.shape_line_text(&item.title, style, font)?;
 
         let hover_x_start = pos_x + metrics.cell_width.get() as f32 / 4.;
         let hover_x_end = hover_x_start + width; //+ metrics.cell_width.get() as f32 /2.;
