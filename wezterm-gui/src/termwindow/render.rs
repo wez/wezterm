@@ -69,6 +69,10 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     /// Override font resolution; useful together with
     /// the resolved title font
     pub font: Option<Rc<LoadedFont>>,
+
+    /// If true, use the shaper-determined pixel positions,
+    /// rather than using monospace cell based positions.
+    pub use_pixel_positioning: bool,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -112,6 +116,7 @@ struct ClusterStyleCache<'a> {
 #[derive(Clone, Debug)]
 struct ShapedCluster<'a> {
     style: ClusterStyleCache<'a>,
+    x_pos: f32,
     pixel_width: f32,
     cluster: &'a CellCluster,
     glyph_info: Rc<Vec<ShapedInfo<SrgbTexture2d>>>,
@@ -623,6 +628,7 @@ impl super::TermWindow {
                 window_is_transparent,
                 default_bg,
                 font: None,
+                use_pixel_positioning: false,
             },
             &mut layers,
         )?;
@@ -973,6 +979,7 @@ impl super::TermWindow {
                     window_is_transparent,
                     default_bg,
                     font: None,
+                    use_pixel_positioning: false,
                 },
                 &mut layers,
             )?;
@@ -1217,6 +1224,8 @@ impl super::TermWindow {
         let gl_state = self.render_state.as_ref().unwrap();
         let mut shaped = vec![];
         let mut last_style = None;
+        let mut x_pos = 0.;
+
         for cluster in cell_clusters {
             if !matches!(last_style.as_ref(), Some(ClusterStyleCache{attrs,..}) if *attrs == &cluster.attrs)
             {
@@ -1330,7 +1339,7 @@ impl super::TermWindow {
             )?;
             let pixel_width = glyph_info
                 .iter()
-                .map(|info| info.glyph.x_advance.get() as f32 + info.glyph.bearing_x.get() as f32)
+                .map(|info| info.glyph.x_advance.get() as f32)
                 .sum();
 
             shaped.push(ShapedCluster {
@@ -1338,7 +1347,10 @@ impl super::TermWindow {
                 pixel_width,
                 cluster,
                 glyph_info,
-            })
+                x_pos,
+            });
+
+            x_pos += pixel_width;
         }
 
         Ok(shaped)
@@ -1416,13 +1428,22 @@ impl super::TermWindow {
             if !bg_is_default {
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
                     + params.left_pixel_x
-                    + (cluster.first_cell_idx as f32 * cell_width);
+                    + if params.use_pixel_positioning {
+                        item.x_pos
+                    } else {
+                        cluster.first_cell_idx as f32 * cell_width
+                    };
 
                 let mut quad = layers[0].allocate()?;
                 quad.set_position(
                     pos_x,
                     pos_y,
-                    pos_x + cluster_width as f32 * cell_width,
+                    pos_x
+                        + if params.use_pixel_positioning {
+                            item.pixel_width
+                        } else {
+                            cluster_width as f32 * cell_width
+                        },
                     pos_y + cell_height,
                 );
                 quad.set_fg_color(bg_color);
@@ -1462,6 +1483,7 @@ impl super::TermWindow {
             let glyph_info = &item.glyph_info;
 
             let mut current_idx = cluster.first_cell_idx;
+            let mut cluster_x_pos = item.x_pos;
 
             for info in glyph_info.iter() {
                 let glyph = &info.glyph;
@@ -1530,7 +1552,13 @@ impl super::TermWindow {
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
                         + params.left_pixel_x
-                        + (cell_idx as f32 * cell_width);
+                        + if params.use_pixel_positioning {
+                            cluster_x_pos
+                        } else {
+                            cell_idx as f32 * cell_width
+                        };
+
+                    let pixel_width = glyph.x_advance.get() as f32;
 
                     // We'd like to render the cursor with the cell width
                     // so that double-wide cells look more reasonable.
@@ -1548,43 +1576,61 @@ impl super::TermWindow {
                         })
                         .unwrap_or(1) as f32;
 
+                    // Note: in use_pixel_positioning mode, we draw backgrounds
+                    // for glyph_idx == 0 based on the whole glyph advance, rather than
+                    // for each of the cells.
+
                     if bg_color != style_params.bg_color {
                         // Override the background color
-                        let mut quad = layers[0].allocate()?;
-                        quad.set_position(
-                            pos_x,
-                            pos_y,
-                            pos_x + cursor_width * cell_width,
-                            pos_y + cell_height,
-                        );
-                        quad.set_fg_color(bg_color);
-                        quad.set_texture(params.white_space);
-                        quad.set_texture_adjust(0., 0., 0., 0.);
-                        quad.set_hsv(hsv);
-                        quad.set_is_background();
+                        if !params.use_pixel_positioning || glyph_idx == 0 {
+                            let mut quad = layers[0].allocate()?;
+                            quad.set_position(
+                                pos_x,
+                                pos_y,
+                                pos_x
+                                    + if params.use_pixel_positioning {
+                                        pixel_width
+                                    } else {
+                                        cursor_width * cell_width
+                                    },
+                                pos_y + cell_height,
+                            );
+                            quad.set_fg_color(bg_color);
+                            quad.set_texture(params.white_space);
+                            quad.set_texture_adjust(0., 0., 0., 0.);
+                            quad.set_hsv(hsv);
+                            quad.set_is_background();
+                        }
                     }
 
                     if cursor_shape.is_some() {
-                        let mut quad = layers[2].allocate()?;
-                        quad.set_position(
-                            pos_x,
-                            pos_y,
-                            pos_x + cursor_width * cell_width,
-                            pos_y + cell_height,
-                        );
-                        quad.set_texture_adjust(0., 0., 0., 0.);
-                        quad.set_hsv(hsv);
-                        quad.set_has_color(false);
+                        if !params.use_pixel_positioning || glyph_idx == 0 {
+                            let mut quad = layers[2].allocate()?;
+                            quad.set_position(
+                                pos_x,
+                                pos_y,
+                                pos_x
+                                    + if params.use_pixel_positioning {
+                                        pixel_width
+                                    } else {
+                                        cursor_width * cell_width
+                                    },
+                                pos_y + cell_height,
+                            );
+                            quad.set_texture_adjust(0., 0., 0., 0.);
+                            quad.set_hsv(hsv);
+                            quad.set_has_color(false);
 
-                        quad.set_texture(
-                            gl_state
-                                .glyph_cache
-                                .borrow_mut()
-                                .cursor_sprite(cursor_shape)?
-                                .texture_coords(),
-                        );
+                            quad.set_texture(
+                                gl_state
+                                    .glyph_cache
+                                    .borrow_mut()
+                                    .cursor_sprite(cursor_shape)?
+                                    .texture_coords(),
+                            );
 
-                        quad.set_fg_color(cursor_border_color);
+                            quad.set_fg_color(cursor_border_color);
+                        }
                     }
 
                     let images = cluster.attrs.images().unwrap_or_else(|| vec![]);
@@ -1605,14 +1651,26 @@ impl super::TermWindow {
 
                     // Underlines
                     if style_params.underline_tex_rect != params.white_space {
-                        let mut quad = layers[0].allocate()?;
-                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
-                        quad.set_texture_adjust(0., 0., 0., 0.);
-                        quad.set_hsv(hsv);
-                        quad.set_has_color(false);
+                        if !params.use_pixel_positioning || glyph_idx == 0 {
+                            let mut quad = layers[0].allocate()?;
+                            quad.set_position(
+                                pos_x,
+                                pos_y,
+                                pos_x
+                                    + if params.use_pixel_positioning {
+                                        pixel_width
+                                    } else {
+                                        cell_width
+                                    },
+                                pos_y + cell_height,
+                            );
+                            quad.set_texture_adjust(0., 0., 0., 0.);
+                            quad.set_hsv(hsv);
+                            quad.set_has_color(false);
 
-                        quad.set_texture(style_params.underline_tex_rect);
-                        quad.set_fg_color(style_params.underline_color);
+                            quad.set_texture(style_params.underline_tex_rect);
+                            quad.set_fg_color(style_params.underline_color);
+                        }
                     }
 
                     let mut did_custom = false;
@@ -1638,53 +1696,86 @@ impl super::TermWindow {
 
                     if !did_custom {
                         if let Some(texture) = glyph.texture.as_ref() {
-                            let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
-                            let slice = SpriteSlice {
-                                cell_idx: glyph_idx,
-                                num_cells: info.pos.num_cells as usize,
-                                cell_width: self.render_metrics.cell_size.width as usize,
-                                scale: glyph.scale as f32,
-                                left_offset: left,
-                            };
-
-                            let pixel_rect = slice.pixel_rect(texture);
-                            let texture_rect = texture.texture.to_texture_coords(pixel_rect);
-
-                            let left = if glyph_idx == 0 { left } else { slice_left };
-                            let bottom = (pixel_rect.size.height as f32 * glyph.scale as f32) + top
-                                - self.render_metrics.cell_size.height as f32;
-                            let right = pixel_rect.size.width as f32 + left
-                                - self.render_metrics.cell_size.width as f32;
-
-                            // Save the `right` position; we'll use it for the `left` adjust for
-                            // the next slice that comprises this glyph.
-                            // This is important because some glyphs (eg: 현재 브랜치) can have
-                            // fractional advance/offset positions that leave one half slightly
-                            // out of alignment with the other if we were to simply force the
-                            // `left` value to be 0 when glyph_idx > 0.
-                            slice_left = right;
-
                             if glyph_color != bg_color || glyph.has_color {
-                                let mut quad = layers[1].allocate()?;
-                                quad.set_position(
-                                    pos_x,
-                                    pos_y,
-                                    pos_x + cell_width,
-                                    pos_y + cell_height,
-                                );
-                                quad.set_fg_color(glyph_color);
-                                quad.set_texture(texture_rect);
-                                quad.set_texture_adjust(left, top, right, bottom);
-                                quad.set_hsv(if glyph.brightness_adjust != 1.0 {
-                                    let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
-                                    Some(HsbTransform {
-                                        brightness: hsv.brightness * glyph.brightness_adjust,
-                                        ..hsv
-                                    })
+                                if params.use_pixel_positioning {
+                                    // When use_pixel_positioning is in effect, we simply
+                                    // draw the entire glyph at once.
+                                    if glyph_idx == 0 {
+                                        let mut quad = layers[1].allocate()?;
+                                        let pos_y =
+                                            self.dimensions.pixel_height as f32 / -2.0 + top;
+                                        quad.set_position(
+                                            pos_x,
+                                            pos_y,
+                                            pos_x + texture.coords.size.width as f32,
+                                            pos_y + texture.coords.size.height as f32,
+                                        );
+                                        quad.set_fg_color(glyph_color);
+                                        quad.set_texture(texture.texture_coords());
+                                        quad.set_texture_adjust(0., 0., 0., 0.);
+                                        quad.set_hsv(if glyph.brightness_adjust != 1.0 {
+                                            let hsv =
+                                                hsv.unwrap_or_else(|| HsbTransform::default());
+                                            Some(HsbTransform {
+                                                brightness: hsv.brightness
+                                                    * glyph.brightness_adjust,
+                                                ..hsv
+                                            })
+                                        } else {
+                                            hsv
+                                        });
+                                        quad.set_has_color(glyph.has_color);
+                                    }
                                 } else {
-                                    hsv
-                                });
-                                quad.set_has_color(glyph.has_color);
+                                    let left = info.pos.x_offset.get() as f32 + info.pos.bearing_x;
+                                    let slice = SpriteSlice {
+                                        cell_idx: glyph_idx,
+                                        num_cells: info.pos.num_cells as usize,
+                                        cell_width: self.render_metrics.cell_size.width as usize,
+                                        scale: glyph.scale as f32,
+                                        left_offset: left,
+                                    };
+
+                                    let pixel_rect = slice.pixel_rect(texture);
+                                    let texture_rect =
+                                        texture.texture.to_texture_coords(pixel_rect);
+
+                                    let left = if glyph_idx == 0 { left } else { slice_left };
+                                    let bottom =
+                                        (pixel_rect.size.height as f32 * glyph.scale as f32) + top
+                                            - self.render_metrics.cell_size.height as f32;
+                                    let right = pixel_rect.size.width as f32 + left
+                                        - self.render_metrics.cell_size.width as f32;
+
+                                    // Save the `right` position; we'll use it for the `left` adjust for
+                                    // the next slice that comprises this glyph.
+                                    // This is important because some glyphs (eg: 현재 브랜치) can have
+                                    // fractional advance/offset positions that leave one half slightly
+                                    // out of alignment with the other if we were to simply force the
+                                    // `left` value to be 0 when glyph_idx > 0.
+                                    slice_left = right;
+
+                                    let mut quad = layers[1].allocate()?;
+                                    quad.set_position(
+                                        pos_x,
+                                        pos_y,
+                                        pos_x + cell_width,
+                                        pos_y + cell_height,
+                                    );
+                                    quad.set_fg_color(glyph_color);
+                                    quad.set_texture(texture_rect);
+                                    quad.set_texture_adjust(left, top, right, bottom);
+                                    quad.set_hsv(if glyph.brightness_adjust != 1.0 {
+                                        let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
+                                        Some(HsbTransform {
+                                            brightness: hsv.brightness * glyph.brightness_adjust,
+                                            ..hsv
+                                        })
+                                    } else {
+                                        hsv
+                                    });
+                                    quad.set_has_color(glyph.has_color);
+                                }
                             }
                         }
                     }
@@ -1696,6 +1787,7 @@ impl super::TermWindow {
                     }
                 }
                 current_idx += info.pos.num_cells as usize;
+                cluster_x_pos += glyph.x_advance.get() as f32;
             }
         }
 
