@@ -491,9 +491,9 @@ dependencies = [
 
 [[package]]
 name = "bstr"
-version = "0.2.16"
+version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90682c8d613ad3373e66de8c6411e0ae2ab2571e879d2efbf73558cc66f21279"
+checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
 dependencies = [
  "lazy_static",
  "memchr",
@@ -748,7 +748,7 @@ dependencies = [
  "anyhow",
  "battery",
  "bitflags",
- "bstr 0.2.16",
+ "bstr 0.2.17",
  "chrono",
  "colorgrad",
  "dirs-next",
@@ -1623,7 +1623,7 @@ dependencies = [
  "parking_lot 0.11.2",
  "range-alloc",
  "raw-window-handle",
- "smallvec 1.6.1",
+ "smallvec 1.7.0",
  "spirv_cross",
  "thunderdome",
  "winapi 0.3.9",
@@ -1647,7 +1647,7 @@ dependencies = [
  "parking_lot 0.11.2",
  "range-alloc",
  "raw-window-handle",
- "smallvec 1.6.1",
+ "smallvec 1.7.0",
  "spirv_cross",
  "thunderdome",
  "winapi 0.3.9",
@@ -1730,7 +1730,7 @@ dependencies = [
  "objc",
  "parking_lot 0.11.2",
  "raw-window-handle",
- "smallvec 1.6.1",
+ "smallvec 1.7.0",
  "winapi 0.3.9",
 ]
 
@@ -1795,7 +1795,7 @@ dependencies = [
  "gl_generator",
  "lazy_static",
  "memoffset",
- "smallvec 1.6.1",
+ "smallvec 1.7.0",
  "takeable-option",
 ]
 
@@ -2047,9 +2047,9 @@ checksum = "90953f308a79fe6d62a4643e51f848fbfddcd05975a38e69fdf4ab86a7baf7ca"
 
 [[package]]
 name = "instant"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bee0328b1209d157ef001c94dd85b4f8f64139adb0eac2659f4b08382b2f474d"
+checksum = "716d3d89f35ac6a34fd0eed635395f4c3b76fa889338a4632e5231a8684216bd"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -2199,9 +2199,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.102"
+version = "0.2.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2a5ac8f984bfcf3a823267e5fde638acc3325f6496633a5da6bb6eb2171e103"
+checksum = "dd8f7255a17a627354f321ef0055d63b898c6fb27eff628af4d1b66b7331edf6"
 
 [[package]]
 name = "libloading"
@@ -2307,7 +2307,7 @@ dependencies = [
 name = "luahelper"
 version = "0.1.0"
 dependencies = [
- "bstr 0.2.16",
+ "bstr 0.2.17",
  "log",
  "mlua",
  "serde",
@@ -2520,7 +2520,7 @@ version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd448d3e7018f2ff38dd732a374045f5b037eb4ee477d9241d9bb8c209528c1c"
 dependencies = [
- "bstr 0.2.16",
+ "bstr 0.2.17",
  "cc",
  "futures-core",
  "futures-task",
@@ -2944,9 +2944,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.66"
+version = "0.9.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1996d2d305e561b70d1ee0c53f1542833f4e1ac6ce9a6708b6ff2738ca67dc82"
+checksum = "69df2d8dfc6ce3aaf44b40dec6f487d5a886516cf6879c49e98e0710f310a058"
 dependencies = [
  "autocfg",
  "cc",
@@ -3051,15 +3051,15 @@ dependencies = [
  "instant",
  "libc",
  "redox_syscall 0.2.10",
- "smallvec 1.6.1",
+ "smallvec 1.7.0",
  "winapi 0.3.9",
 ]
 
 [[package]]
 name = "pathdiff"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "877630b3de15c0b64cc52f659345724fbf6bdad9bd9566699fc53688f3c34a34"
+checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "pem"
@@ -3219,9 +3219,9 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "pkg-config"
-version = "0.3.19"
+version = "0.3.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
+checksum = "7c9b1041b4387893b91ee6746cddfc28516aff326a3519fb2adf820932c5e6cb"
 
 [[package]]
 name = "png"
@@ -4074,9 +4074,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe0f37c9e8f3c5a4a66ad655a93c74daac4ad00c441533bf5c6e7990bb42604e"
+checksum = "1ecab6c735a6bb4139c0caafd0cc3635748bbb3acf4550e8138122099251f309"
 
 [[package]]
 name = "smawk"
@@ -4249,9 +4249,9 @@ checksum = "8fb1df15f412ee2e9dfc1c504260fa695c1c3f10fe9f4a6ee2d2184d7d6450e2"
 
 [[package]]
 name = "syn"
-version = "1.0.76"
+version = "1.0.78"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6f107db402c2c2055242dbf4d2af0e69197202e9faacbef9571bbe47f5a1b84"
+checksum = "a4eac2e6c19f5c3abc0c229bea31ff0b9b091c7b14990e8924b92902a303a0c0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4488,9 +4488,9 @@ dependencies = [
 
 [[package]]
 name = "tinyvec"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5241dd6f21443a3606b432718b166d3cedc962fd4b8bea54a8bc7f514ebda986"
+checksum = "f83b2a3d4d9091d0abd7eba4dc2710b1718583bd4d8992e2190720ea38f391f7"
 dependencies = [
  "tinyvec_macros",
 ]
@@ -4847,7 +4847,7 @@ checksum = "a21817947c7011bbd0a27e11b17b337bfd022e8544b071a2641232047966fbda"
 dependencies = [
  "nix 0.20.0",
  "once_cell",
- "smallvec 1.6.1",
+ "smallvec 1.7.0",
  "wayland-sys",
 ]
 
@@ -5234,7 +5234,7 @@ dependencies = [
  "naga",
  "parking_lot 0.11.2",
  "raw-window-handle",
- "smallvec 1.6.1",
+ "smallvec 1.7.0",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -5267,7 +5267,7 @@ dependencies = [
  "parking_lot 0.11.2",
  "profiling",
  "raw-window-handle",
- "smallvec 1.6.1",
+ "smallvec 1.7.0",
  "thiserror",
  "wgpu-types",
 ]
@@ -5454,9 +5454,9 @@ checksum = "85e60b0d1b5f99db2556934e21937020776a5d31520bf169e851ac44e6420214"
 
 [[package]]
 name = "x11"
-version = "2.18.2"
+version = "2.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77ecd092546cb16f25783a5451538e73afc8d32e242648d54f4ae5459ba1e773"
+checksum = "6dd0565fa8bfba8c5efe02725b14dff114c866724eff2cfd44d76cea74bcd87a"
 dependencies = [
  "libc",
  "pkg-config",
@@ -5621,12 +5621,13 @@ dependencies = [
 
 [[package]]
 name = "zvariant"
-version = "2.8.0"
+version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa4b785b8b32b0f8433b4474e6bb4ea77b37c1960e84d7598e01dd199b2b23ef"
+checksum = "e1a9373dead84d640ccf5798f2928917e6aa1ab3f130751406bb13e0a9dd9913"
 dependencies = [
  "byteorder",
  "enumflags2",
+ "libc",
  "serde",
  "static_assertions",
  "zvariant_derive",
@@ -5634,9 +5635,9 @@ dependencies = [
 
 [[package]]
 name = "zvariant_derive"
-version = "2.8.0"
+version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b42af4ee88fb928781391216c34be77ec7cdb3546042b2947ce38d86aa5f37dd"
+checksum = "46ee71e0e88747ec582d290dbe98ff7907ff28770c7a35f16da41e5e6f1f4fa3"
 dependencies = [
  "proc-macro-crate 1.1.0",
  "proc-macro2",
