@@ -97,6 +97,26 @@ pub struct ComputeCellFgBgResult {
     pub cursor_shape: Option<CursorShape>,
 }
 
+/// Basic cache of computed data from prior cluster to avoid doing the same
+/// work for space separated clusters with the same style
+#[derive(Clone, Debug)]
+struct ClusterStyleCache<'a> {
+    attrs: &'a CellAttributes,
+    style: &'a TextStyle,
+    underline_tex_rect: TextureRect,
+    fg_color: LinearRgba,
+    bg_color: LinearRgba,
+    underline_color: LinearRgba,
+}
+
+#[derive(Clone, Debug)]
+struct ShapedCluster<'a> {
+    style: ClusterStyleCache<'a>,
+    pixel_width: f32,
+    cluster: &'a CellCluster,
+    glyph_info: Rc<Vec<ShapedInfo<SrgbTexture2d>>>,
+}
+
 impl super::TermWindow {
     pub fn paint_impl(&mut self, frame: &mut glium::Frame) {
         // If nothing on screen needs animating, then we can avoid
@@ -1189,128 +1209,15 @@ impl super::TermWindow {
         Ok(())
     }
 
-    /// "Render" a line of the terminal screen into the vertex buffer.
-    /// This is nominally a matter of setting the fg/bg color and the
-    /// texture coordinates for a given glyph.  There's a little bit
-    /// of extra complexity to deal with multi-cell glyphs.
-    pub fn render_screen_line_opengl(
+    fn cluster_and_shape<'a>(
         &self,
-        params: RenderScreenLineOpenGLParams,
-        layers: &mut [MappedQuads; 3],
-    ) -> anyhow::Result<()> {
+        cell_clusters: &'a [CellCluster],
+        params: &'a RenderScreenLineOpenGLParams,
+    ) -> anyhow::Result<Vec<ShapedCluster<'a>>> {
         let gl_state = self.render_state.as_ref().unwrap();
-
-        let num_cols = params.dims.cols;
-
-        let hsv = if params.is_active {
-            None
-        } else {
-            Some(params.config.inactive_pane_hsb)
-        };
-
-        let cell_width = self.render_metrics.cell_size.width as f32;
-        let cell_height = self.render_metrics.cell_size.height as f32;
-        let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
-
-        // Break the line into clusters of cells with the same attributes
-        let start = Instant::now();
-        let cell_clusters = params.line.cluster();
-        metrics::histogram!("render_screen_line_opengl.line.cluster", start.elapsed());
-        log::trace!(
-            "cluster -> {} clusters, elapsed {:?}",
-            cell_clusters.len(),
-            start.elapsed()
-        );
-
-        let mut last_cell_idx = 0;
-
-        // Basic cache of computed data from prior cluster to avoid doing the same
-        // work for space separated clusters with the same style
-        struct ClusterStyleCache<'a> {
-            attrs: &'a CellAttributes,
-            style: &'a TextStyle,
-            underline_tex_rect: TextureRect,
-            fg_color: LinearRgba,
-            bg_color: LinearRgba,
-            underline_color: LinearRgba,
-        }
+        let mut shaped = vec![];
         let mut last_style = None;
-
-        // Make a pass to compute background colors.
-        // Need to consider:
-        // * background when it is not the default color
-        // * Reverse video attribute
-        for cluster in &cell_clusters {
-            let attrs = &cluster.attrs;
-            let cluster_width = unicode_column_width(&cluster.text);
-
-            let bg_is_default = attrs.background() == ColorAttribute::Default;
-            let bg_color = params.palette.resolve_bg(attrs.background());
-
-            let fg_color =
-                resolve_fg_color_attr(&attrs, attrs.foreground(), &params, &Default::default());
-
-            let (bg_color, bg_is_default) = {
-                let mut fg = fg_color;
-                let mut bg = bg_color;
-                let mut bg_default = bg_is_default;
-
-                // Check the line reverse_video flag and flip.
-                if attrs.reverse() == !params.line.is_reverse() {
-                    std::mem::swap(&mut fg, &mut bg);
-                    bg_default = false;
-                }
-
-                (
-                    rgbcolor_alpha_to_window_color(bg, self.config.text_background_opacity),
-                    bg_default,
-                )
-            };
-
-            if !bg_is_default {
-                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + params.left_pixel_x
-                    + (cluster.first_cell_idx as f32 * cell_width);
-
-                let mut quad = layers[0].allocate()?;
-                quad.set_position(
-                    pos_x,
-                    pos_y,
-                    pos_x + cluster_width as f32 * cell_width,
-                    pos_y + cell_height,
-                );
-                quad.set_fg_color(bg_color);
-                quad.set_texture(params.white_space);
-                quad.set_texture_adjust(0., 0., 0., 0.);
-                quad.set_hsv(hsv);
-                quad.set_is_background();
-            }
-        }
-
-        // Render the selection background color
-        if !params.selection.is_empty() {
-            let mut quad = layers[0].allocate()?;
-
-            let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                + params.left_pixel_x
-                + (params.selection.start as f32 * cell_width);
-            quad.set_position(
-                pos_x,
-                pos_y,
-                pos_x + (params.selection.end - params.selection.start) as f32 * cell_width,
-                pos_y + cell_height,
-            );
-
-            quad.set_fg_color(params.selection_bg);
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_texture(params.white_space);
-            quad.set_is_background();
-            quad.set_hsv(hsv);
-        }
-
-        let mut overlay_images = vec![];
-
-        for cluster in &cell_clusters {
+        for cluster in cell_clusters {
             if !matches!(last_style.as_ref(), Some(ClusterStyleCache{attrs,..}) if *attrs == &cluster.attrs)
             {
                 let attrs = &cluster.attrs;
@@ -1412,9 +1319,8 @@ impl super::TermWindow {
                 });
             }
 
-            let style_params = last_style.as_ref().expect("we literally just assigned it");
+            let style_params = last_style.as_ref().expect("we just set it up").clone();
 
-            // Shape the printable text from this cluster
             let glyph_info = self.cached_cluster_shape(
                 style_params.style,
                 &cluster,
@@ -1422,6 +1328,138 @@ impl super::TermWindow {
                 params.line,
                 params.font.as_ref(),
             )?;
+            let pixel_width = glyph_info
+                .iter()
+                .map(|info| info.glyph.x_advance.get() as f32 + info.glyph.bearing_x.get() as f32)
+                .sum();
+
+            shaped.push(ShapedCluster {
+                style: style_params,
+                pixel_width,
+                cluster,
+                glyph_info,
+            })
+        }
+
+        Ok(shaped)
+    }
+
+    /// "Render" a line of the terminal screen into the vertex buffer.
+    /// This is nominally a matter of setting the fg/bg color and the
+    /// texture coordinates for a given glyph.  There's a little bit
+    /// of extra complexity to deal with multi-cell glyphs.
+    pub fn render_screen_line_opengl(
+        &self,
+        params: RenderScreenLineOpenGLParams,
+        layers: &mut [MappedQuads; 3],
+    ) -> anyhow::Result<()> {
+        let gl_state = self.render_state.as_ref().unwrap();
+
+        let num_cols = params.dims.cols;
+
+        let hsv = if params.is_active {
+            None
+        } else {
+            Some(params.config.inactive_pane_hsb)
+        };
+
+        let cell_width = self.render_metrics.cell_size.width as f32;
+        let cell_height = self.render_metrics.cell_size.height as f32;
+        let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
+
+        // Break the line into clusters of cells with the same attributes
+        let start = Instant::now();
+        let cell_clusters = params.line.cluster();
+        metrics::histogram!("render_screen_line_opengl.line.cluster", start.elapsed());
+        log::trace!(
+            "cluster -> {} clusters, elapsed {:?}",
+            cell_clusters.len(),
+            start.elapsed()
+        );
+
+        let mut last_cell_idx = 0;
+
+        let shaped = self.cluster_and_shape(&cell_clusters, &params)?;
+
+        // Make a pass to compute background colors.
+        // Need to consider:
+        // * background when it is not the default color
+        // * Reverse video attribute
+        for item in &shaped {
+            let cluster = &item.cluster;
+            let attrs = &cluster.attrs;
+            let cluster_width = unicode_column_width(&cluster.text);
+
+            let bg_is_default = attrs.background() == ColorAttribute::Default;
+            let bg_color = params.palette.resolve_bg(attrs.background());
+
+            let fg_color =
+                resolve_fg_color_attr(&attrs, attrs.foreground(), &params, &Default::default());
+
+            let (bg_color, bg_is_default) = {
+                let mut fg = fg_color;
+                let mut bg = bg_color;
+                let mut bg_default = bg_is_default;
+
+                // Check the line reverse_video flag and flip.
+                if attrs.reverse() == !params.line.is_reverse() {
+                    std::mem::swap(&mut fg, &mut bg);
+                    bg_default = false;
+                }
+
+                (
+                    rgbcolor_alpha_to_window_color(bg, self.config.text_background_opacity),
+                    bg_default,
+                )
+            };
+
+            if !bg_is_default {
+                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                    + params.left_pixel_x
+                    + (cluster.first_cell_idx as f32 * cell_width);
+
+                let mut quad = layers[0].allocate()?;
+                quad.set_position(
+                    pos_x,
+                    pos_y,
+                    pos_x + cluster_width as f32 * cell_width,
+                    pos_y + cell_height,
+                );
+                quad.set_fg_color(bg_color);
+                quad.set_texture(params.white_space);
+                quad.set_texture_adjust(0., 0., 0., 0.);
+                quad.set_hsv(hsv);
+                quad.set_is_background();
+            }
+        }
+
+        // Render the selection background color
+        if !params.selection.is_empty() {
+            let mut quad = layers[0].allocate()?;
+
+            let pos_x = (self.dimensions.pixel_width as f32 / -2.)
+                + params.left_pixel_x
+                + (params.selection.start as f32 * cell_width);
+            quad.set_position(
+                pos_x,
+                pos_y,
+                pos_x + (params.selection.end - params.selection.start) as f32 * cell_width,
+                pos_y + cell_height,
+            );
+
+            quad.set_fg_color(params.selection_bg);
+            quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_texture(params.white_space);
+            quad.set_is_background();
+            quad.set_hsv(hsv);
+        }
+
+        let mut overlay_images = vec![];
+
+        for item in &shaped {
+            let style_params = &item.style;
+            let cluster = &item.cluster;
+            let glyph_info = &item.glyph_info;
 
             let mut current_idx = cluster.first_cell_idx;
 
