@@ -61,6 +61,10 @@ pub struct RenderScreenLineOpenGLParams<'a> {
 
     pub window_is_transparent: bool,
     pub default_bg: LinearRgba,
+
+    /// Override font resolution; useful together with
+    /// the resolved title font
+    pub font: Option<Rc<LoadedFont>>,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -79,6 +83,7 @@ pub struct ComputeCellFgBgParams<'a> {
     pub cursor_bg: LinearRgba,
     pub cursor_border_color: LinearRgba,
     pub pane: Option<&'a Rc<dyn Pane>>,
+    pub probably_a_ligature: bool,
 }
 
 pub struct ComputeCellFgBgResult {
@@ -591,6 +596,7 @@ impl super::TermWindow {
                 filled_box,
                 window_is_transparent,
                 default_bg,
+                font: None,
             },
             &mut layers,
         )?;
@@ -931,6 +937,7 @@ impl super::TermWindow {
                     filled_box,
                     window_is_transparent,
                     default_bg,
+                    font: None,
                 },
                 &mut layers,
             )?;
@@ -1403,7 +1410,7 @@ impl super::TermWindow {
                 &cluster,
                 &gl_state,
                 params.line,
-                None,
+                params.font.as_ref(),
             )?;
 
             let mut current_idx = cluster.first_cell_idx;
@@ -1455,6 +1462,22 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                         cursor_border_color: params.cursor_border_color,
                         pane: params.pos.map(|p| &p.pane),
+                        probably_a_ligature: glyph
+                            .texture
+                            .as_ref()
+                            .map(|t| {
+                                let width = self.render_metrics.cell_size.width as f32;
+                                if t.coords.size.width as f32 > width * 1.5 {
+                                    // Glyph is wider than the cell
+                                    true
+                                } else if (glyph.bearing_x.get() as f32) < (width / -4.) {
+                                    // Has excessive negative bearing
+                                    true
+                                } else {
+                                    false
+                                }
+                            })
+                            .unwrap_or(false),
                     });
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -1691,6 +1714,7 @@ impl super::TermWindow {
                     cursor_bg: params.cursor_bg,
                     cursor_border_color: params.cursor_border_color,
                     pane: params.pos.map(|p| &p.pane),
+                    probably_a_ligature: false,
                 });
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -1874,6 +1898,10 @@ impl super::TermWindow {
             ) {
                 let (fg_color, bg_color) = if self.config.force_reverse_video_cursor {
                     (params.bg_color, params.fg_color)
+                } else if params.probably_a_ligature {
+                    // Preserve normal fg color for a multi-cell ligatured glyph,
+                    // in order to avoid the rest of the glyph showing "black"
+                    (params.fg_color, params.cursor_bg)
                 } else {
                     (params.cursor_fg, params.cursor_bg)
                 };
@@ -1979,6 +2007,10 @@ impl super::TermWindow {
             | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => {
                 if self.config.force_reverse_video_cursor {
                     (params.bg_color, params.fg_color)
+                } else if params.probably_a_ligature {
+                    // Preserve normal fg color for a multi-cell ligatured glyph,
+                    // in order to avoid the rest of the glyph showing "black"
+                    (params.fg_color, params.cursor_bg)
                 } else {
                     (params.cursor_fg, params.cursor_bg)
                 }

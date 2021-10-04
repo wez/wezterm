@@ -288,7 +288,7 @@ mod test {
                 };
 
                 glyph_cache
-                    .cached_glyph(info, &style, followed_by_space)
+                    .cached_glyph(info, &style, followed_by_space, None)
                     .unwrap()
             })
             .collect::<Vec<_>>();

@@ -118,6 +118,7 @@ impl<T: Texture2d> std::fmt::Debug for CachedGlyph<T> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
         fmt.debug_struct("CachedGlyph")
             .field("has_color", &self.has_color)
+            .field("x_advance", &self.x_advance)
             .field("x_offset", &self.x_offset)
             .field("y_offset", &self.y_offset)
             .field("bearing_x", &self.bearing_x)
