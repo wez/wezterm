@@ -1,4 +1,5 @@
 use crate::customglyph::BlockKey;
+use crate::customglyph::*;
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::quad::Quad;
@@ -28,6 +29,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
+use wezterm_font::units::IntPixelLength;
 use wezterm_font::{ClearShapeCache, FontMetrics, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
@@ -327,6 +329,111 @@ impl super::TermWindow {
         Ok(quad)
     }
 
+    fn poly_quad<'a>(
+        &self,
+        layer: &'a mut MappedQuads,
+        point: Point,
+        polys: &'static [Poly],
+        underline_height: IntPixelLength,
+        cell_size: Size,
+        color: LinearRgba,
+    ) -> anyhow::Result<Quad<'a>> {
+        let left_offset = self.dimensions.pixel_width as f32 / 2.;
+        let top_offset = self.dimensions.pixel_height as f32 / 2.;
+        let gl_state = self.render_state.as_ref().unwrap();
+        let sprite = gl_state
+            .glyph_cache
+            .borrow_mut()
+            .cached_block(BlockKey::PolyWithCustomMetrics {
+                polys,
+                underline_height,
+                cell_size,
+            })?
+            .texture_coords();
+
+        let mut quad = layer.allocate()?;
+
+        quad.set_position(
+            point.x as f32 - left_offset,
+            point.y as f32 - top_offset,
+            (point.x + cell_size.width) as f32 - left_offset,
+            (point.y + cell_size.height) as f32 - top_offset,
+        );
+        quad.set_texture_adjust(0., 0., 0., 0.);
+        quad.set_texture(sprite);
+        quad.set_fg_color(color);
+        quad.set_hsv(None);
+        quad.set_has_color(false);
+        Ok(quad)
+    }
+
+    fn tab_background<'a>(
+        &self,
+        layer: &'a mut MappedQuads,
+        padding_width: isize,
+        padding_height: isize,
+        rect: Rect,
+        color: LinearRgba,
+    ) -> anyhow::Result<()> {
+        // Top rectangle that joins the top left and top right rounded corners
+        self.filled_rectangle(layer, rect.inflate(-padding_width, 0), color)?;
+
+        // Main body rectangle that sits under the other three to flesh out
+        // the rest of the tab background area
+        self.filled_rectangle(
+            layer,
+            rect.inflate(0, -padding_height / 2)
+                .translate(euclid::vec2(0, padding_height / 2)),
+            color,
+        )?;
+
+        // Top left rounded corner
+        self.poly_quad(
+            layer,
+            rect.origin,
+            &[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Zero, BlockCoord::Zero),
+                        to: (BlockCoord::Zero, BlockCoord::One),
+                    },
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }],
+            1,
+            euclid::size2(padding_width, padding_height),
+            color,
+        )?;
+
+        // Top right rounded corner
+        self.poly_quad(
+            layer,
+            rect.origin + euclid::vec2(rect.width() - padding_width, 0),
+            &[Poly {
+                path: &[
+                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::One, BlockCoord::Zero),
+                        to: (BlockCoord::One, BlockCoord::One),
+                    },
+                    PolyCommand::Close,
+                ],
+                intensity: BlockAlpha::Full,
+                style: PolyStyle::Fill,
+            }],
+            1,
+            euclid::size2(padding_width, padding_height),
+            color,
+        )?;
+
+        Ok(())
+    }
+
     fn paint_one_tab(
         &self,
         mut pos_x: f32,
@@ -408,6 +515,7 @@ impl super::TermWindow {
             None => false,
         };
 
+        let is_tab;
         let (bg_color, fg_color, is_status) = match item.item {
             TabBarItem::Tab { active, .. } => {
                 let c = if active {
@@ -417,6 +525,7 @@ impl super::TermWindow {
                 } else {
                     &colors.inactive_tab
                 };
+                is_tab = true;
                 (c.bg_color, c.fg_color, false)
             }
             TabBarItem::NewTabButton => {
@@ -425,9 +534,13 @@ impl super::TermWindow {
                 } else {
                     &colors.new_tab
                 };
+                is_tab = false;
                 (c.bg_color, c.fg_color, false)
             }
-            TabBarItem::None => (colors.background, colors.inactive_tab.fg_color, true),
+            TabBarItem::None => {
+                is_tab = false;
+                (colors.background, colors.inactive_tab.fg_color, true)
+            }
         };
 
         let bg_start;
@@ -448,17 +561,26 @@ impl super::TermWindow {
         };
 
         if !is_empty {
-            self.filled_rectangle(
-                &mut layers[0],
-                Rect::new(
-                    Point::new(bg_start as isize, top_y as isize),
-                    Size::new(
-                        width as isize,
-                        (metrics.cell_height.get() as f32 * 1.5).ceil() as isize,
-                    ),
+            let rect = Rect::new(
+                Point::new(bg_start as isize, top_y as isize),
+                Size::new(
+                    width as isize,
+                    (metrics.cell_height.get() as f32 * 1.5).ceil() as isize,
                 ),
-                rgbcolor_to_window_color(bg_color),
-            )?;
+            );
+            let color = rgbcolor_to_window_color(bg_color);
+
+            if is_tab {
+                self.tab_background(
+                    &mut layers[0],
+                    metrics.cell_width.get() as isize / 3,
+                    metrics.cell_height.get() as isize / 3,
+                    rect,
+                    color,
+                )?;
+            } else {
+                self.filled_rectangle(&mut layers[0], rect, color)?;
+            }
 
             let glyph_color = rgbcolor_to_window_color(fg_color);
             self.render_screen_line_opengl(
@@ -544,6 +666,17 @@ impl super::TermWindow {
             }),
         )?;
 
+        let mut x = 0.;
+        for item in items.iter() {
+            let (new_x, item) =
+                self.paint_one_tab(x, palette, item, &colors, &font, &metrics, &mut layers)?;
+            x = new_x;
+            match item.item_type {
+                UIItemType::TabBar(TabBarItem::None) => ui_items.insert(0, item),
+                _ => ui_items.push(item),
+            }
+        }
+
         // Dividing line that is logically part of the active tab
         self.filled_rectangle(
             &mut layers[0],
@@ -559,17 +692,6 @@ impl super::TermWindow {
             ),
             rgbcolor_to_window_color(colors.active_tab.bg_color),
         )?;
-
-        let mut x = 0.;
-        for item in items.iter() {
-            let (new_x, item) =
-                self.paint_one_tab(x, palette, item, &colors, &font, &metrics, &mut layers)?;
-            x = new_x;
-            match item.item_type {
-                UIItemType::TabBar(TabBarItem::None) => ui_items.insert(0, item),
-                _ => ui_items.push(item),
-            }
-        }
 
         Ok(ui_items)
     }

@@ -1,11 +1,13 @@
 use crate::glyphcache::GlyphCache;
+use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::Sprite;
 use ::window::color::{LinearRgba, SrgbaPixel};
 use std::ops::Range;
 use termwiz::surface::CursorShape;
 use tiny_skia::{FillRule, Paint, Path, PathBuilder, PixmapMut, Stroke, Transform};
+use wezterm_font::units::{IntPixelLength, PixelLength};
 use window::bitmaps::Texture2d;
-use window::{BitmapImage, Image, Point, Rect};
+use window::{BitmapImage, Image, Point, Rect, Size};
 
 bitflags::bitflags! {
     pub struct Quadrant: u8{
@@ -145,15 +147,21 @@ pub enum BlockKey {
     Braille(u8),
 
     Poly(&'static [Poly]),
+
+    PolyWithCustomMetrics {
+        polys: &'static [Poly],
+        underline_height: IntPixelLength,
+        cell_size: Size,
+    },
 }
 
 /// Filled polygon used to describe the more complex shapes in
 /// <https://unicode.org/charts/PDF/U1FB00.pdf>
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Poly {
-    path: &'static [PolyCommand],
-    intensity: BlockAlpha,
-    style: PolyStyle,
+    pub path: &'static [PolyCommand],
+    pub intensity: BlockAlpha,
+    pub style: PolyStyle,
 }
 
 pub type BlockPoint = (BlockCoord, BlockCoord);
@@ -3627,7 +3635,7 @@ impl BlockKey {
 }
 
 impl<T: Texture2d> GlyphCache<T> {
-    fn draw_polys(&mut self, polys: &[Poly], buffer: &mut Image) {
+    fn draw_polys(&mut self, metrics: &RenderMetrics, polys: &[Poly], buffer: &mut Image) {
         let (width, height) = buffer.image_dimensions();
         let mut pixmap =
             PixmapMut::from_bytes(buffer.pixel_data_slice_mut(), width as u32, height as u32)
@@ -3646,15 +3654,10 @@ impl<T: Texture2d> GlyphCache<T> {
             paint.force_hq_pipeline = true;
             let mut pb = PathBuilder::new();
             for item in path.iter() {
-                item.to_skia(width, height, self.metrics.underline_height as f32, &mut pb);
+                item.to_skia(width, height, metrics.underline_height as f32, &mut pb);
             }
             let path = pb.finish().expect("poly path to be valid");
-            style.apply(
-                self.metrics.underline_height as f32,
-                &paint,
-                &path,
-                &mut pixmap,
-            );
+            style.apply(metrics.underline_height as f32, &paint, &path, &mut pixmap);
         }
     }
 
@@ -3677,7 +3680,9 @@ impl<T: Texture2d> GlyphCache<T> {
                 buffer.clear_rect(cell_rect, SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff));
             }
             Some(CursorShape::BlinkingBlock | CursorShape::SteadyBlock) => {
+                let metrics = self.metrics.clone();
                 self.draw_polys(
+                    &metrics,
                     &[Poly {
                         path: &[
                             PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3693,7 +3698,9 @@ impl<T: Texture2d> GlyphCache<T> {
                 );
             }
             Some(CursorShape::BlinkingBar | CursorShape::SteadyBar) => {
+                let metrics = self.metrics.clone();
                 self.draw_polys(
+                    &metrics,
                     &[Poly {
                         path: &[
                             PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
@@ -3706,7 +3713,9 @@ impl<T: Texture2d> GlyphCache<T> {
                 );
             }
             Some(CursorShape::BlinkingUnderline | CursorShape::SteadyUnderline) => {
+                let metrics = self.metrics.clone();
                 self.draw_polys(
+                    &metrics,
                     &[Poly {
                         path: &[
                             PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
@@ -3726,37 +3735,53 @@ impl<T: Texture2d> GlyphCache<T> {
     }
 
     pub fn block_sprite(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {
+        let metrics = match &block {
+            BlockKey::PolyWithCustomMetrics {
+                underline_height,
+                cell_size,
+                ..
+            } => RenderMetrics {
+                descender: PixelLength::new(0.),
+                descender_row: 0,
+                descender_plus_two: 0,
+                underline_height: *underline_height,
+                strike_row: 0,
+                cell_size: cell_size.clone(),
+            },
+            _ => self.metrics.clone(),
+        };
+
         let mut buffer = Image::new(
-            self.metrics.cell_size.width as usize,
-            self.metrics.cell_size.height as usize,
+            metrics.cell_size.width as usize,
+            metrics.cell_size.height as usize,
         );
         let black = SrgbaPixel::rgba(0, 0, 0, 0);
 
-        let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
+        let cell_rect = Rect::new(Point::new(0, 0), metrics.cell_size);
 
         buffer.clear_rect(cell_rect, black);
 
         match block {
             BlockKey::Upper(num) => {
-                let lower = self.metrics.cell_size.height as f32 * (num as f32) / 8.;
-                let width = self.metrics.cell_size.width as usize;
+                let lower = metrics.cell_size.height as f32 * (num as f32) / 8.;
+                let width = metrics.cell_size.width as usize;
                 fill_rect(&mut buffer, 0..width, 0..scale(lower));
             }
             BlockKey::Lower(num) => {
-                let upper = self.metrics.cell_size.height as f32 * ((8 - num) as f32) / 8.;
-                let width = self.metrics.cell_size.width as usize;
-                let height = self.metrics.cell_size.height as usize;
+                let upper = metrics.cell_size.height as f32 * ((8 - num) as f32) / 8.;
+                let width = metrics.cell_size.width as usize;
+                let height = metrics.cell_size.height as usize;
                 fill_rect(&mut buffer, 0..width, scale(upper)..height);
             }
             BlockKey::Left(num) => {
-                let width = self.metrics.cell_size.width as f32 * (num as f32) / 8.;
-                let height = self.metrics.cell_size.height as usize;
+                let width = metrics.cell_size.width as f32 * (num as f32) / 8.;
+                let height = metrics.cell_size.height as usize;
                 fill_rect(&mut buffer, 0..scale(width), 0..height);
             }
             BlockKey::Right(num) => {
-                let left = self.metrics.cell_size.width as f32 * ((8 - num) as f32) / 8.;
-                let width = self.metrics.cell_size.width as usize;
-                let height = self.metrics.cell_size.height as usize;
+                let left = metrics.cell_size.width as f32 * ((8 - num) as f32) / 8.;
+                let width = metrics.cell_size.width as usize;
+                let height = metrics.cell_size.height as usize;
                 fill_rect(&mut buffer, scale(left)..width, 0..height);
             }
             BlockKey::Full(alpha) => {
@@ -3766,10 +3791,10 @@ impl<T: Texture2d> GlyphCache<T> {
                 buffer.clear_rect(cell_rect, fill.srgba_pixel());
             }
             BlockKey::Quadrants(quads) => {
-                let y_half = self.metrics.cell_size.height as f32 / 2.;
-                let x_half = self.metrics.cell_size.width as f32 / 2.;
-                let width = self.metrics.cell_size.width as usize;
-                let height = self.metrics.cell_size.height as usize;
+                let y_half = metrics.cell_size.height as f32 / 2.;
+                let x_half = metrics.cell_size.width as f32 / 2.;
+                let width = metrics.cell_size.width as usize;
+                let height = metrics.cell_size.height as usize;
                 if quads.contains(Quadrant::UPPER_LEFT) {
                     fill_rect(&mut buffer, 0..scale(x_half), 0..scale(y_half));
                 }
@@ -3784,10 +3809,10 @@ impl<T: Texture2d> GlyphCache<T> {
                 }
             }
             BlockKey::Sextants(s) => {
-                let y_third = self.metrics.cell_size.height as f32 / 3.;
-                let x_half = self.metrics.cell_size.width as f32 / 2.;
-                let width = self.metrics.cell_size.width as usize;
-                let height = self.metrics.cell_size.height as usize;
+                let y_third = metrics.cell_size.height as f32 / 3.;
+                let x_half = metrics.cell_size.width as f32 / 2.;
+                let width = metrics.cell_size.width as usize;
+                let height = metrics.cell_size.height as usize;
 
                 if s.contains(Sextant::ONE) {
                     fill_rect(&mut buffer, 0..scale(x_half), 0..scale(y_third));
@@ -3831,8 +3856,8 @@ impl<T: Texture2d> GlyphCache<T> {
                 //
                 // NOTE: for simplicity & performance reasons, a dot is a square not a circle.
 
-                let dot_area_width = self.metrics.cell_size.width as f32 / 2.;
-                let dot_area_height = self.metrics.cell_size.height as f32 / 4.;
+                let dot_area_width = metrics.cell_size.width as f32 / 2.;
+                let dot_area_height = metrics.cell_size.height as f32 / 4.;
                 let square_length = dot_area_width / 2.;
                 let topleft_offset_x = dot_area_width / 2. - square_length / 2.;
                 let topleft_offset_y = dot_area_height / 2. - square_length / 2.;
@@ -3880,8 +3905,8 @@ impl<T: Texture2d> GlyphCache<T> {
                     pixmap.fill_path(&path, &paint, FillRule::Winding, identity, None);
                 }
             }
-            BlockKey::Poly(polys) => {
-                self.draw_polys(polys, &mut buffer);
+            BlockKey::Poly(polys) | BlockKey::PolyWithCustomMetrics { polys, .. } => {
+                self.draw_polys(&metrics, polys, &mut buffer);
             }
         }
 
