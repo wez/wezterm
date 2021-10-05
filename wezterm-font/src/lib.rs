@@ -648,6 +648,7 @@ impl FontConfigInner {
         self.fonts.borrow_mut().clear();
         self.metrics.borrow_mut().take();
         self.no_glyphs.borrow_mut().clear();
+        self.title_font.borrow_mut().take();
 
         (prior_font, prior_dpi)
     }
