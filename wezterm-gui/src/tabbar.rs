@@ -113,24 +113,29 @@ fn compute_tab_title(
         None => {
             let title = if let Some(pane) = &tab.active_pane {
                 let mut title = pane.title.clone();
+                let classic_spacing = if config.use_fancy_tab_bar { "" } else { " " };
                 if config.show_tab_index_in_tab_bar {
                     title = format!(
-                        " {}: {} ",
+                        "{}{}: {}{}",
+                        classic_spacing,
                         tab.tab_index
                             + if config.tab_and_split_indices_are_zero_based {
                                 0
                             } else {
                                 1
                             },
-                        pane.title
+                        pane.title,
+                        classic_spacing,
                     );
                 }
                 // We have a preferred soft minimum on tab width to make it
                 // easier to click on tab titles, but we'll still go below
                 // this if there are too many tabs to fit the window at
                 // this width.
-                while unicode_column_width(&title) < 5 {
-                    title.push(' ');
+                if !config.use_fancy_tab_bar {
+                    while unicode_column_width(&title) < 5 {
+                        title.push(' ');
+                    }
                 }
                 title
             } else {
@@ -223,7 +228,7 @@ impl TabBarState {
 
         let available_cells =
             title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab.cells().len());
-        let tab_width_max = if available_cells >= titles_len {
+        let tab_width_max = if config.use_fancy_tab_bar || available_cells >= titles_len {
             // We can render each title with its full width
             usize::max_value()
         } else {
@@ -264,7 +269,14 @@ impl TabBarState {
             let tab_start_idx = x;
 
             let esc = format_as_escapes(tab_title.items.clone()).expect("already parsed ok above");
-            let mut tab_line = parse_status_text(&esc, cell_attrs.clone());
+            let mut tab_line = parse_status_text(
+                &esc,
+                if config.use_fancy_tab_bar {
+                    CellAttributes::default()
+                } else {
+                    cell_attrs.clone()
+                },
+            );
 
             let title = tab_line.clone();
             if tab_line.cells().len() > tab_width_max {

@@ -368,7 +368,7 @@ impl super::TermWindow {
         };
         let cell_clusters = item.title.cluster();
         let shaped = self.cluster_and_shape(&cell_clusters, &params)?;
-        let width: f32 = shaped.iter().map(|s| s.pixel_width).sum();
+        let width = shaped.iter().map(|s| s.pixel_width).sum::<f32>();
 
         let hover_x_start = pos_x + metrics.cell_width.get() as f32 / 4.;
         let hover_x_end = hover_x_start + width;
@@ -418,34 +418,42 @@ impl super::TermWindow {
             // width += metrics.cell_width.get() as f32 / 2.0;
         }
 
-        {
-            let mut quad = layers[0].allocate()?;
-            quad.set_position(
-                bg_start - left_offset,
-                top_y - top_offset,
-                bg_start + width - left_offset,
-                top_y + (metrics.cell_height.get() as f32 * 1.5) - top_offset,
-            );
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
-            quad.set_is_background();
-            quad.set_fg_color(rgbcolor_to_window_color(bg_color));
-            quad.set_hsv(None);
-        }
+        let (is_empty, width) = if is_status && width == 0. {
+            (true, 0.)
+        } else {
+            (false, width + metrics.cell_width.get() as f32 / 2.)
+        };
 
-        let glyph_color = rgbcolor_to_window_color(fg_color);
-        self.render_screen_line_opengl(
-            RenderScreenLineOpenGLParams {
-                top_pixel_y: top_y * 2.,
-                left_pixel_x: pos_x,
-                foreground: glyph_color,
-                pre_shaped: Some(&shaped),
-                font: Some(Rc::clone(font)),
-                selection: 0..0,
-                ..params
-            },
-            layers,
-        )?;
+        if !is_empty {
+            {
+                let mut quad = layers[0].allocate()?;
+                quad.set_position(
+                    bg_start - left_offset,
+                    top_y - top_offset,
+                    bg_start + width - left_offset,
+                    top_y + (metrics.cell_height.get() as f32 * 1.5) - top_offset,
+                );
+                quad.set_texture_adjust(0., 0., 0., 0.);
+                quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
+                quad.set_is_background();
+                quad.set_fg_color(rgbcolor_to_window_color(bg_color));
+                quad.set_hsv(None);
+            }
+
+            let glyph_color = rgbcolor_to_window_color(fg_color);
+            self.render_screen_line_opengl(
+                RenderScreenLineOpenGLParams {
+                    top_pixel_y: top_y * 2.,
+                    left_pixel_x: pos_x + metrics.cell_width.get() as f32 / 4.,
+                    foreground: glyph_color,
+                    pre_shaped: Some(&shaped),
+                    font: Some(Rc::clone(font)),
+                    selection: 0..0,
+                    ..params
+                },
+                layers,
+            )?;
+        }
 
         Ok((
             bg_start + width,
@@ -558,25 +566,15 @@ impl super::TermWindow {
         }
 
         let tab_bar_height = self.tab_bar_pixel_height()?;
-
-        let avail_height = self.dimensions.pixel_height.saturating_sub(
-            (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
-        );
         let tab_bar_y = if self.config.tab_bar_at_bottom {
-            self.dimensions.pixel_height as f32
-                - self.config.window_padding.bottom as f32
-                - tab_bar_height
+            ((self.dimensions.pixel_height as f32) - tab_bar_height).max(0.)
         } else {
             0.
         };
 
         // Register the tab bar location
         self.ui_items.append(&mut self.tab_bar.compute_ui_items(
-            if self.config.tab_bar_at_bottom {
-                avail_height - self.render_metrics.cell_size.height as usize
-            } else {
-                0
-            },
+            tab_bar_y as usize,
             self.render_metrics.cell_size.height as usize,
             self.render_metrics.cell_size.width as usize,
         ));
