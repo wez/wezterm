@@ -28,7 +28,6 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
-use wezterm_font::units::PixelLength;
 use wezterm_font::{ClearShapeCache, FontMetrics, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
@@ -455,7 +454,7 @@ impl super::TermWindow {
                     Point::new(bg_start as isize, top_y as isize),
                     Size::new(
                         width as isize,
-                        (metrics.cell_height.get() as f32 * 1.5) as isize,
+                        (metrics.cell_height.get() as f32 * 1.5).ceil() as isize,
                     ),
                 ),
                 rgbcolor_to_window_color(bg_color),
@@ -549,7 +548,10 @@ impl super::TermWindow {
         self.filled_rectangle(
             &mut layers[0],
             Rect::new(
-                Point::new(0, (metrics.cell_height.get() as f32 * 1.75) as isize),
+                Point::new(
+                    0,
+                    (metrics.cell_height.get() as f32 * 1.75).floor() as isize,
+                ),
                 Size::new(
                     self.dimensions.pixel_width as isize,
                     (metrics.cell_height.get() as f32 * 0.25) as isize,
@@ -1400,8 +1402,14 @@ impl super::TermWindow {
             Some(params.config.inactive_pane_hsb)
         };
 
-        let cell_width = self.render_metrics.cell_size.width as f32;
-        let cell_height = self.render_metrics.cell_size.height as f32;
+        let metrics = params.font.as_ref().map(|f| f.metrics());
+
+        let cell_width = metrics
+            .map(|m| m.cell_width.get() as isize)
+            .unwrap_or(self.render_metrics.cell_size.width) as f32;
+        let cell_height = metrics
+            .map(|m| m.cell_height.get() as isize)
+            .unwrap_or(self.render_metrics.cell_size.height) as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
 
         let start = Instant::now();
@@ -1522,10 +1530,12 @@ impl super::TermWindow {
             for info in glyph_info.iter() {
                 let glyph = &info.glyph;
 
-                let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)
-                    + self.render_metrics.descender)
-                    - (glyph.y_offset + glyph.bearing_y))
-                    .get() as f32;
+                let top = cell_height
+                    + (metrics
+                        .map(|m| m.descender)
+                        .unwrap_or(self.render_metrics.descender)
+                        .get() as f32)
+                    - (glyph.y_offset + glyph.bearing_y).get() as f32;
 
                 // We use this to remember the `left` offset value to use for glyph_idx > 0
                 let mut slice_left = 0.;
@@ -1861,7 +1871,10 @@ impl super::TermWindow {
                             (params.left_pixel_x + (last_cell_idx as f32 * cell_width)) as isize,
                             params.top_pixel_y as isize,
                         ),
-                        Size::new(((num_cols - last_cell_idx) as f32 * cell_width) as isize, cell_height as isize),
+                        Size::new(
+                            ((num_cols - last_cell_idx) as f32 * cell_width) as isize,
+                            cell_height as isize,
+                        ),
                     ),
                     params.foreground,
                 )?;

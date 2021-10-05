@@ -279,7 +279,13 @@ fn default_title_font_size() -> f64 {
 fn default_title_font() -> TextStyle {
     TextStyle {
         foreground: None,
-        font: vec![FontAttributes::new("DejaVu Sans")],
+        font: vec![FontAttributes::new(if cfg!(target_os = "macos") {
+            "Helvetica Neue"
+        } else if !cfg!(windows) {
+            "Segoe UI"
+        } else {
+            "DejaVu Sans"
+        })],
     }
 }
 
