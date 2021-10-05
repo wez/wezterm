@@ -1,6 +1,7 @@
 use crate::customglyph::BlockKey;
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
+use crate::quad::Quad;
 use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
@@ -14,7 +15,7 @@ use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
-use ::window::WindowOps;
+use ::window::{Point, Rect, Size, WindowOps};
 use anyhow::anyhow;
 use config::{ConfigHandle, HsbTransform, TabBarColors, TextStyle, VisualBellTarget};
 use mux::pane::Pane;
@@ -303,6 +304,30 @@ impl super::TermWindow {
         None
     }
 
+    fn filled_rectangle<'a>(
+        &self,
+        layer: &'a mut MappedQuads,
+        rect: Rect,
+        color: LinearRgba,
+    ) -> anyhow::Result<Quad<'a>> {
+        let mut quad = layer.allocate()?;
+        let left_offset = self.dimensions.pixel_width as f32 / 2.;
+        let top_offset = self.dimensions.pixel_height as f32 / 2.;
+        let gl_state = self.render_state.as_ref().unwrap();
+        quad.set_position(
+            rect.min_x() as f32 - left_offset,
+            rect.min_y() as f32 - top_offset,
+            rect.max_x() as f32 - left_offset,
+            rect.max_y() as f32 - top_offset,
+        );
+        quad.set_texture_adjust(0., 0., 0., 0.);
+        quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
+        quad.set_is_background();
+        quad.set_fg_color(color);
+        quad.set_hsv(None);
+        Ok(quad)
+    }
+
     fn paint_one_tab(
         &self,
         mut pos_x: f32,
@@ -314,7 +339,6 @@ impl super::TermWindow {
         layers: &mut [MappedQuads; 3],
     ) -> anyhow::Result<(f32, UIItem)> {
         let left_offset = self.dimensions.pixel_width as f32 / 2.;
-        let top_offset = self.dimensions.pixel_height as f32 / 2.;
 
         let top_y = metrics.cell_height.get() as f32 / 4.;
 
@@ -425,20 +449,17 @@ impl super::TermWindow {
         };
 
         if !is_empty {
-            {
-                let mut quad = layers[0].allocate()?;
-                quad.set_position(
-                    bg_start - left_offset,
-                    top_y - top_offset,
-                    bg_start + width - left_offset,
-                    top_y + (metrics.cell_height.get() as f32 * 1.5) - top_offset,
-                );
-                quad.set_texture_adjust(0., 0., 0., 0.);
-                quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
-                quad.set_is_background();
-                quad.set_fg_color(rgbcolor_to_window_color(bg_color));
-                quad.set_hsv(None);
-            }
+            self.filled_rectangle(
+                &mut layers[0],
+                Rect::new(
+                    Point::new(bg_start as isize, top_y as isize),
+                    Size::new(
+                        width as isize,
+                        (metrics.cell_height.get() as f32 * 1.5) as isize,
+                    ),
+                ),
+                rgbcolor_to_window_color(bg_color),
+            )?;
 
             let glyph_color = rgbcolor_to_window_color(fg_color);
             self.render_screen_line_opengl(
@@ -508,40 +529,34 @@ impl super::TermWindow {
         ];
 
         // Overall window titlebar background
-        {
-            let mut quad = layers[0].allocate()?;
-            quad.set_position(
-                self.dimensions.pixel_width as f32 / -2.,
-                self.dimensions.pixel_height as f32 / -2.,
-                self.dimensions.pixel_width as f32 / 2.,
-                (metrics.cell_height.get() as f32 * 2.) + self.dimensions.pixel_height as f32 / -2.,
-            );
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
-            quad.set_is_background();
-            quad.set_fg_color(rgbcolor_to_window_color(if self.focused.is_some() {
+        self.filled_rectangle(
+            &mut layers[0],
+            Rect::new(
+                Point::new(0, 0),
+                Size::new(
+                    self.dimensions.pixel_width as isize,
+                    metrics.cell_height.get() as isize * 2,
+                ),
+            ),
+            rgbcolor_to_window_color(if self.focused.is_some() {
                 self.config.window_frame.active_titlebar_bg
             } else {
                 self.config.window_frame.inactive_titlebar_bg
-            }));
-            quad.set_hsv(None);
-        }
+            }),
+        )?;
+
         // Dividing line that is logically part of the active tab
-        {
-            let mut quad = layers[0].allocate()?;
-            quad.set_position(
-                self.dimensions.pixel_width as f32 / -2.,
-                (metrics.cell_height.get() as f32 * 1.75)
-                    + self.dimensions.pixel_height as f32 / -2.,
-                self.dimensions.pixel_width as f32 / 2.,
-                (metrics.cell_height.get() as f32 * 2.) + self.dimensions.pixel_height as f32 / -2.,
-            );
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
-            quad.set_is_background();
-            quad.set_fg_color(rgbcolor_to_window_color(colors.active_tab.bg_color));
-            quad.set_hsv(None);
-        }
+        self.filled_rectangle(
+            &mut layers[0],
+            Rect::new(
+                Point::new(0, (metrics.cell_height.get() as f32 * 1.75) as isize),
+                Size::new(
+                    self.dimensions.pixel_width as isize,
+                    (metrics.cell_height.get() as f32 * 0.25) as isize,
+                ),
+            ),
+            rgbcolor_to_window_color(colors.active_tab.bg_color),
+        )?;
 
         let mut x = 0.;
         for item in items.iter() {
@@ -737,15 +752,6 @@ impl super::TermWindow {
 
         // Render the full window background
         if pos.index == 0 {
-            let mut quad = layers[0].allocate()?;
-            quad.set_position(
-                self.dimensions.pixel_width as f32 / -2.,
-                self.dimensions.pixel_height as f32 / -2.,
-                self.dimensions.pixel_width as f32 / 2.,
-                self.dimensions.pixel_height as f32 / 2.,
-            );
-            quad.set_texture_adjust(0., 0., 0., 0.);
-
             match (self.window_background.as_ref(), self.allow_images) {
                 (Some(im), true) => {
                     // Render the window background image
@@ -757,6 +763,14 @@ impl super::TermWindow {
                     let (sprite, next_due) =
                         gl_state.glyph_cache.borrow_mut().cached_image(im, None)?;
                     self.update_next_frame_time(next_due);
+                    let mut quad = layers[0].allocate()?;
+                    quad.set_position(
+                        self.dimensions.pixel_width as f32 / -2.,
+                        self.dimensions.pixel_height as f32 / -2.,
+                        self.dimensions.pixel_width as f32 / 2.,
+                        self.dimensions.pixel_height as f32 / 2.,
+                    );
+                    quad.set_texture_adjust(0., 0., 0., 0.);
                     quad.set_texture(sprite.texture_coords());
                     quad.set_is_background_image();
                     quad.set_hsv(config.window_background_image_hsb);
@@ -774,43 +788,46 @@ impl super::TermWindow {
                         },
                         config.window_background_opacity,
                     );
-
-                    quad.set_texture(white_space);
-                    quad.set_is_background();
-                    quad.set_fg_color(background);
-                    quad.set_hsv(None);
+                    self.filled_rectangle(
+                        &mut layers[0],
+                        Rect::new(
+                            Point::new(0, 0),
+                            Size::new(
+                                self.dimensions.pixel_width as isize,
+                                self.dimensions.pixel_height as isize,
+                            ),
+                        ),
+                        background,
+                    )?;
                 }
             }
         }
 
         if num_panes > 1 && self.window_background.is_none() {
             // Per-pane, palette-specified background
-            let mut quad = layers[0].allocate()?;
             let cell_width = self.render_metrics.cell_size.width as f32;
             let cell_height = self.render_metrics.cell_size.height as f32;
-            let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                + (pos.left as f32 * cell_width)
-                + self.config.window_padding.left as f32;
-            let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-                + top_pixel_y
-                + (pos.top as f32 * cell_height)
-                + self.config.window_padding.top as f32;
-
-            quad.set_position(
-                pos_x,
-                pos_y,
-                pos_x + pos.width as f32 * cell_width,
-                pos_y + pos.height as f32 * cell_height,
-            );
-            quad.set_texture_adjust(0., 0., 0., 0.);
-
-            let background = rgbcolor_alpha_to_window_color(
-                palette.background,
-                config.window_background_opacity,
-            );
-            quad.set_texture(filled_box);
-            quad.set_is_background();
-            quad.set_fg_color(background);
+            let mut quad = self.filled_rectangle(
+                &mut layers[0],
+                Rect::new(
+                    Point::new(
+                        ((pos.left as f32 * cell_width) + self.config.window_padding.left as f32)
+                            as isize,
+                        (top_pixel_y
+                            + (pos.top as f32 * cell_height)
+                            + self.config.window_padding.top as f32)
+                            as isize,
+                    ),
+                    Size::new(
+                        (pos.width as f32 * cell_width) as isize,
+                        (pos.height as f32 * cell_height) as isize,
+                    ),
+                ),
+                rgbcolor_alpha_to_window_color(
+                    palette.background,
+                    config.window_background_opacity,
+                ),
+            )?;
             quad.set_hsv(if pos.is_active {
                 None
             } else {
@@ -854,28 +871,29 @@ impl super::TermWindow {
                 };
                 log::trace!("bell color is {:?}", background);
 
-                let mut quad = layers[0].allocate()?;
                 let cell_width = self.render_metrics.cell_size.width as f32;
                 let cell_height = self.render_metrics.cell_size.height as f32;
-                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + (pos.left as f32 * cell_width)
-                    + self.config.window_padding.left as f32;
-                let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-                    + top_pixel_y
-                    + (pos.top as f32 * cell_height)
-                    + self.config.window_padding.top as f32;
 
-                quad.set_position(
-                    pos_x,
-                    pos_y,
-                    pos_x + pos.width as f32 * cell_width,
-                    pos_y + pos.height as f32 * cell_height,
-                );
+                let mut quad = self.filled_rectangle(
+                    &mut layers[0],
+                    Rect::new(
+                        Point::new(
+                            ((pos.left as f32 * cell_width)
+                                + self.config.window_padding.left as f32)
+                                as isize,
+                            (top_pixel_y
+                                + (pos.top as f32 * cell_height)
+                                + self.config.window_padding.top as f32)
+                                as isize,
+                        ),
+                        Size::new(
+                            (pos.width as f32 * cell_width) as isize,
+                            (pos.height as f32 * cell_height) as isize,
+                        ),
+                    ),
+                    background,
+                )?;
 
-                quad.set_texture_adjust(0., 0., 0., 0.);
-                quad.set_texture(white_space);
-                quad.set_is_background();
-                quad.set_fg_color(background);
                 quad.set_hsv(if pos.is_active {
                     None
                 } else {
@@ -901,17 +919,9 @@ impl super::TermWindow {
             let thumb_size = info.height as f32;
             let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
 
-            let mut quad = layers[2].allocate()?;
-
             // Adjust the scrollbar thumb position
-            let top = (self.dimensions.pixel_height as f32 / -2.0) + thumb_top;
-            let bottom = top + thumb_size;
-
             let config = &self.config;
             let padding = self.effective_right_padding(&config) as f32;
-
-            let right = self.dimensions.pixel_width as f32 / 2.;
-            let left = right - padding;
 
             // Register the scroll bar location
             self.ui_items.push(UIItem {
@@ -939,12 +949,17 @@ impl super::TermWindow {
                 item_type: UIItemType::BelowScrollThumb,
             });
 
-            quad.set_fg_color(color);
-            quad.set_position(left, top, right, bottom);
-            quad.set_texture(white_space);
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_hsv(None);
-            quad.set_is_background();
+            self.filled_rectangle(
+                &mut layers[2],
+                Rect::new(
+                    Point::new(
+                        self.dimensions.pixel_width as isize - padding as isize,
+                        thumb_top as isize,
+                    ),
+                    Size::new(padding as isize, thumb_size as isize),
+                ),
+                color,
+            )?;
         }
 
         let selrange = self.selection(pos.pane.pane_id()).range.clone();
@@ -1444,52 +1459,53 @@ impl super::TermWindow {
             };
 
             if !bg_is_default {
-                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + params.left_pixel_x
-                    + if params.use_pixel_positioning {
-                        item.x_pos
-                    } else {
-                        cluster.first_cell_idx as f32 * cell_width
-                    };
+                let mut quad = self.filled_rectangle(
+                    &mut layers[0],
+                    Rect::new(
+                        Point::new(
+                            (params.left_pixel_x
+                                + if params.use_pixel_positioning {
+                                    item.x_pos
+                                } else {
+                                    cluster.first_cell_idx as f32 * cell_width
+                                }) as isize,
+                            params.top_pixel_y as isize,
+                        ),
+                        Size::new(
+                            if params.use_pixel_positioning {
+                                item.pixel_width as isize
+                            } else {
+                                cluster_width as isize * cell_width as isize
+                            },
+                            cell_height as isize,
+                        ),
+                    ),
+                    bg_color,
+                )?;
 
-                let mut quad = layers[0].allocate()?;
-                quad.set_position(
-                    pos_x,
-                    pos_y,
-                    pos_x
-                        + if params.use_pixel_positioning {
-                            item.pixel_width
-                        } else {
-                            cluster_width as f32 * cell_width
-                        },
-                    pos_y + cell_height,
-                );
-                quad.set_fg_color(bg_color);
-                quad.set_texture(params.white_space);
-                quad.set_texture_adjust(0., 0., 0., 0.);
                 quad.set_hsv(hsv);
-                quad.set_is_background();
             }
         }
 
         // Render the selection background color
         if !params.selection.is_empty() {
-            let mut quad = layers[0].allocate()?;
+            let mut quad = self.filled_rectangle(
+                &mut layers[0],
+                Rect::new(
+                    Point::new(
+                        (params.left_pixel_x + (params.selection.start as f32 * cell_width))
+                            as isize,
+                        params.top_pixel_y as isize,
+                    ),
+                    Size::new(
+                        ((params.selection.end - params.selection.start) as f32 * cell_width)
+                            as isize,
+                        cell_height as isize,
+                    ),
+                ),
+                params.selection_bg,
+            )?;
 
-            let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                + params.left_pixel_x
-                + (params.selection.start as f32 * cell_width);
-            quad.set_position(
-                pos_x,
-                pos_y,
-                pos_x + (params.selection.end - params.selection.start) as f32 * cell_width,
-                pos_y + cell_height,
-            );
-
-            quad.set_fg_color(params.selection_bg);
-            quad.set_texture_adjust(0., 0., 0., 0.);
-            quad.set_texture(params.white_space);
-            quad.set_is_background();
             quad.set_hsv(hsv);
         }
 
@@ -1601,23 +1617,32 @@ impl super::TermWindow {
                     if bg_color != style_params.bg_color {
                         // Override the background color
                         if !params.use_pixel_positioning || glyph_idx == 0 {
-                            let mut quad = layers[0].allocate()?;
-                            quad.set_position(
-                                pos_x,
-                                pos_y,
-                                pos_x
-                                    + if params.use_pixel_positioning {
-                                        pixel_width
-                                    } else {
-                                        cursor_width * cell_width
-                                    },
-                                pos_y + cell_height,
-                            );
-                            quad.set_fg_color(bg_color);
-                            quad.set_texture(params.white_space);
-                            quad.set_texture_adjust(0., 0., 0., 0.);
+                            let mut quad = self.filled_rectangle(
+                                &mut layers[0],
+                                Rect::new(
+                                    Point::new(
+                                        (params.left_pixel_x
+                                            + if params.use_pixel_positioning {
+                                                cluster_x_pos
+                                                    + (glyph.x_offset + glyph.bearing_x).get()
+                                                        as f32
+                                            } else {
+                                                cell_idx as f32 * cell_width
+                                            }) as isize,
+                                        params.top_pixel_y as isize,
+                                    ),
+                                    Size::new(
+                                        (if params.use_pixel_positioning {
+                                            pixel_width
+                                        } else {
+                                            cursor_width * cell_width
+                                        }) as isize,
+                                        cell_height as isize,
+                                    ),
+                                ),
+                                bg_color,
+                            )?;
                             quad.set_hsv(hsv);
-                            quad.set_is_background();
                         }
                     }
 
@@ -1829,22 +1854,17 @@ impl super::TermWindow {
         let right_fill_start = Instant::now();
         if last_cell_idx < num_cols {
             if params.line.is_reverse() {
-                let mut quad = layers[0].allocate()?;
-
-                let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-                    + params.left_pixel_x
-                    + (last_cell_idx as f32 * cell_width);
-                quad.set_position(
-                    pos_x,
-                    pos_y,
-                    pos_x + (num_cols - last_cell_idx) as f32 * cell_width,
-                    pos_y + cell_height,
-                );
-
-                quad.set_fg_color(params.foreground);
-                quad.set_texture_adjust(0., 0., 0., 0.);
-                quad.set_texture(params.white_space);
-                quad.set_is_background();
+                let mut quad = self.filled_rectangle(
+                    &mut layers[0],
+                    Rect::new(
+                        Point::new(
+                            (params.left_pixel_x + (last_cell_idx as f32 * cell_width)) as isize,
+                            params.top_pixel_y as isize,
+                        ),
+                        Size::new(((num_cols - last_cell_idx) as f32 * cell_width) as isize, cell_height as isize),
+                    ),
+                    params.foreground,
+                )?;
                 quad.set_hsv(hsv);
             }
 
@@ -1882,14 +1902,19 @@ impl super::TermWindow {
 
                 if bg_color != LinearRgba::TRANSPARENT {
                     // Avoid poking a transparent hole underneath the cursor
-                    let mut quad = layers[2].allocate()?;
-                    quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
-
-                    quad.set_texture_adjust(0., 0., 0., 0.);
+                    let mut quad = self.filled_rectangle(
+                        &mut layers[2],
+                        Rect::new(
+                            Point::new(
+                                (params.left_pixel_x + (params.cursor.x as f32 * cell_width))
+                                    as isize,
+                                params.top_pixel_y as isize,
+                            ),
+                            Size::new(cell_width as isize, cell_height as isize),
+                        ),
+                        bg_color,
+                    )?;
                     quad.set_hsv(hsv);
-                    quad.set_texture(params.white_space);
-                    quad.set_is_background();
-                    quad.set_fg_color(bg_color);
                 }
                 {
                     let mut quad = layers[2].allocate()?;
