@@ -1652,6 +1652,26 @@ impl super::TermWindow {
             for info in glyph_info.iter() {
                 let glyph = &info.glyph;
 
+                let probably_a_ligature = false;
+                /*
+                glyph
+                .texture
+                .as_ref()
+                .map(|t| {
+                    let width = self.render_metrics.cell_size.width as f32;
+                    if t.coords.size.width as f32 > width * 1.5 {
+                        // Glyph is wider than the cell
+                        true
+                    } else if (glyph.bearing_x.get() as f32) < (width / -4.) {
+                        // Has excessive negative bearing
+                        true
+                    } else {
+                        false
+                    }
+                })
+                .unwrap_or(false);
+                */
+
                 let top = cell_height
                     + (metrics
                         .map(|m| m.descender)
@@ -1698,22 +1718,7 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                         cursor_border_color: params.cursor_border_color,
                         pane: params.pane,
-                        probably_a_ligature: glyph
-                            .texture
-                            .as_ref()
-                            .map(|t| {
-                                let width = self.render_metrics.cell_size.width as f32;
-                                if t.coords.size.width as f32 > width * 1.5 {
-                                    // Glyph is wider than the cell
-                                    true
-                                } else if (glyph.bearing_x.get() as f32) < (width / -4.) {
-                                    // Has excessive negative bearing
-                                    true
-                                } else {
-                                    false
-                                }
-                            })
-                            .unwrap_or(false),
+                        probably_a_ligature,
                     });
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
