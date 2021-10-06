@@ -1,5 +1,6 @@
 use crate::parser::ParsedFont;
 use crate::units::PixelLength;
+use termwiz::cell::Presentation;
 
 pub mod allsorts;
 pub mod harfbuzz;
@@ -60,6 +61,8 @@ pub struct FontMetrics {
     /// False if the font only has bitmap strikes and what we
     /// have here is a best approximation.
     pub is_scaled: bool,
+
+    pub presentation: Presentation,
 }
 
 pub trait FontShaper {

@@ -20,6 +20,7 @@ use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, MutexGuard};
 use std::time::Instant;
+use termwiz::cell::Presentation;
 use termwiz::color::RgbColor;
 use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
@@ -470,6 +471,23 @@ impl<T: Texture2d> GlyphCache<T> {
             }
         };
 
+        let descender_adjust = {
+            if info.font_idx == 0 {
+                PixelLength::new(0.0)
+            } else {
+                let descender = idx_metrics.descender * scale;
+                base_metrics.descender
+                    - descender
+                    - if idx_metrics.presentation == Presentation::Emoji {
+                        // If it's emoji, we'll just shift up to make
+                        // it sit on the baseline
+                        base_metrics.descender
+                    } else {
+                        PixelLength::new(0.0)
+                    }
+            }
+        };
+
         let (cell_width, cell_height) = (base_metrics.cell_width, base_metrics.cell_height);
 
         let glyph = if glyph.width == 0 || glyph.height == 0 {
@@ -482,7 +500,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 y_offset: info.y_offset * scale,
                 x_advance: info.x_advance * scale,
                 bearing_x: PixelLength::zero(),
-                bearing_y: PixelLength::zero(),
+                bearing_y: descender_adjust,
                 scale,
             }
         } else {
@@ -494,7 +512,7 @@ impl<T: Texture2d> GlyphCache<T> {
             );
 
             let bearing_x = glyph.bearing_x * scale;
-            let bearing_y = glyph.bearing_y * scale;
+            let bearing_y = descender_adjust + (glyph.bearing_y * scale);
             let x_offset = info.x_offset * scale;
             let y_offset = info.y_offset * scale;
             let x_advance = info.x_advance * scale;

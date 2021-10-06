@@ -229,6 +229,7 @@ impl AllsortsParsedFont {
             cap_height_ratio: None,
             cap_height: None,
             is_scaled: true, // FIXME
+            presentation: Presentation::Text,
         };
 
         log::trace!("metrics: {:?}", metrics);

@@ -473,6 +473,7 @@ impl FontShaper for HarfbuzzShaper {
             cap_height_ratio: selected_size.cap_height_to_height_ratio,
             cap_height: selected_size.cap_height.map(PixelLength::new),
             is_scaled: selected_size.is_scaled,
+            presentation: pair.presentation,
         };
 
         self.metrics.borrow_mut().insert(key, metrics.clone());
