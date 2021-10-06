@@ -55,6 +55,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: wezterm can now match bitmap fonts that are spread across multiple font files [#1189](https://github.com/wez/wezterm/issues/1189)
 * Improved: [use_cap_height_to_scale_fallback_fonts](config/lua/config/use_cap_height_to_scale_fallback_fonts.md) now computes *cap-height* based on the rasterized glyph bitmap which means that the data is accurate in more cases, including for bitmap fonts.  Scaling is now also applied across varying text styles; previously it only applied to a font within an `wezterm.font_with_fallback` font list.
 * Fixed: ssh config parser incorrectly split `Host` patterns with commas instead of whitespace [#1196](https://github.com/wez/wezterm/issues/1196)
+* Fixed: search now auto-updates when the pane content changes [#1205](https://github.com/wez/wezterm/issues/1205)
 
 ### 20210814-124438-54e29167
 

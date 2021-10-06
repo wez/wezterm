@@ -37,6 +37,7 @@ struct SearchRenderable {
     /// The most recently queried set of matches
     results: Vec<SearchResult>,
     by_line: HashMap<StableRowIndex, Vec<MatchResult>>,
+    last_result_seqno: SequenceNo,
 
     viewport: Option<StableRowIndex>,
     last_bar_pos: Option<StableRowIndex>,
@@ -68,6 +69,7 @@ impl SearchOverlay {
             dirty_results: RangeSet::default(),
             viewport,
             last_bar_pos: None,
+            last_result_seqno: SEQ_ZERO,
             window,
             result_pos: None,
             width: dims.cols,
@@ -292,6 +294,10 @@ impl Pane for SearchOverlay {
 
     fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
         let mut renderer = self.renderer.borrow_mut();
+        if self.delegate.get_current_seqno() > renderer.last_result_seqno {
+            renderer.update_search();
+        }
+
         renderer.check_for_resize();
         let dims = self.get_dimensions();
 
@@ -436,6 +442,7 @@ impl SearchRenderable {
 
         let bar_pos = self.compute_search_row();
         self.dirty_results.add(bar_pos);
+        self.last_result_seqno = self.delegate.get_current_seqno();
 
         if !self.pattern.is_empty() {
             let pane: Rc<dyn Pane> = self.delegate.clone();
