@@ -20,7 +20,6 @@ use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, MutexGuard};
 use std::time::Instant;
-use termwiz::cell::Presentation;
 use termwiz::color::RgbColor;
 use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
@@ -476,15 +475,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 PixelLength::new(0.0)
             } else {
                 let descender = idx_metrics.descender * scale;
-                base_metrics.descender
-                    - descender
-                    - if idx_metrics.presentation == Presentation::Emoji {
-                        // If it's emoji, we'll just shift up to make
-                        // it sit on the baseline
-                        base_metrics.descender
-                    } else {
-                        PixelLength::new(0.0)
-                    }
+                base_metrics.descender - descender
             }
         };
 

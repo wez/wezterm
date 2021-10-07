@@ -29,7 +29,6 @@ impl FontRasterizer for FreeTypeRasterizer {
         let (load_flags, render_mode) = ftwrap::compute_load_flags_from_config();
 
         let mut face = self.face.borrow_mut();
-        let descender = unsafe { (*(*face.face).size).metrics.descender as f64 / 64.0 };
         let ft_glyph =
             face.load_and_render_glyph(glyph_pos, load_flags, render_mode, self.synthesize_bold)?;
 
@@ -47,9 +46,7 @@ impl FontRasterizer for FreeTypeRasterizer {
 
         let glyph = match mode {
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => self.rasterize_lcd(pitch, ft_glyph, data),
-            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
-                self.rasterize_bgra(pitch, descender, ft_glyph, data)
-            }
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => self.rasterize_bgra(pitch, ft_glyph, data),
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => self.rasterize_gray(pitch, ft_glyph, data),
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_MONO => self.rasterize_mono(pitch, ft_glyph, data),
             mode => bail!("unhandled pixel mode: {:?}", mode),
@@ -194,7 +191,6 @@ impl FreeTypeRasterizer {
     fn rasterize_bgra(
         &self,
         pitch: usize,
-        descender: f64,
         ft_glyph: &FT_GlyphSlotRec_,
         data: &[u8],
     ) -> RasterizedGlyph {
@@ -280,19 +276,9 @@ impl FreeTypeRasterizer {
             bearing_x: PixelLength::new(
                 f64::from(ft_glyph.bitmap_left) * (dest_width as f64 / width as f64),
             ),
-
-            // Fudge alert: this is font specific: I've found
-            // that the emoji font on macOS doesn't account for the
-            // descender in its metrics, so we're adding that offset
-            // here to avoid rendering the glyph too high
             bearing_y: PixelLength::new(
-                if cfg!(target_os = "macos") {
-                    descender
-                } else {
-                    0.
-                } + (f64::from(ft_glyph.bitmap_top) * (dest_height as f64 / height as f64)),
+                f64::from(ft_glyph.bitmap_top) * (dest_height as f64 / height as f64),
             ),
-
             has_color: self.has_color,
         }
     }
