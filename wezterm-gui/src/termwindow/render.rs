@@ -448,9 +448,6 @@ impl super::TermWindow {
         metrics: &FontMetrics,
         layers: &mut [MappedQuads; 3],
     ) -> anyhow::Result<(f32, UIItem)> {
-        // let left_offset = self.dimensions.pixel_width as f32 / 2.;
-        // let top_y = metrics.cell_height.get() as f32 / 4.;
-
         let gl_state = self.render_state.as_ref().unwrap();
 
         let white_space = gl_state.util_sprites.white_space.texture_coords();
@@ -473,10 +470,9 @@ impl super::TermWindow {
             (metrics.cell_height.get() * 1.75) as isize,
         );
 
-        let text_bounding_rect = tab_bounding_rect.inflate(
-            metrics.cell_width.get() as isize / -2,
-            metrics.cell_height.get() as isize / -4,
-        );
+        let text_bounding_rect = tab_bounding_rect
+            .inflate(0, metrics.cell_height.get() as isize / -4)
+            .translate(euclid::vec2(metrics.cell_width.get() as isize / 2, 0));
 
         // log::info!("tab bounds {:?}, text bounds {:?}", tab_bounding_rect, text_bounding_rect);
 
@@ -518,7 +514,8 @@ impl super::TermWindow {
         let shaped = self.cluster_and_shape(&cell_clusters, &params)?;
         let width = shaped.iter().map(|s| s.pixel_width).sum::<f32>() as isize;
 
-        let desired_width = width.min(text_bounding_rect.width());
+        let desired_width =
+            (width + metrics.cell_width.get() as isize / 2).min(text_bounding_rect.width());
 
         let text_bounding_rect: Rect = euclid::rect(
             text_bounding_rect.min_x(),
@@ -591,12 +588,14 @@ impl super::TermWindow {
                 ))
             }
             TabBarItem::NewTabButton => {
-                let tab_bounding_rect = tab_bounding_rect
-                    .inflate(
-                        metrics.cell_width.get() as isize / -2,
-                        metrics.cell_height.get() as isize / -4,
-                    )
-                    .translate(euclid::vec2(0, metrics.cell_height.get() as isize / -8));
+                let text_bounding_rect: Rect = euclid::rect(
+                    text_bounding_rect.min_x(),
+                    text_bounding_rect.min_y(),
+                    width,
+                    metrics.cell_height.get() as isize,
+                );
+
+                let tab_bounding_rect = text_bounding_rect;
 
                 let hover_x_start = tab_bounding_rect.min_x();
                 let hover_x_end = tab_bounding_rect.max_x();
@@ -618,6 +617,25 @@ impl super::TermWindow {
                 } else {
                     &colors.new_tab
                 };
+
+                // Repaint the titlebar background in the gaps around the
+                // button, to cover over any right-statusbar text that
+                // renders underneath us
+                self.filled_rectangle(
+                    &mut layers[1],
+                    euclid::rect(
+                        pos_x as isize,
+                        0,
+                        (tab_bounding_rect.max_x() - pos_x as isize)
+                            + metrics.cell_width.get() as isize / 2,
+                        metrics.cell_height.get() as isize * 2,
+                    ),
+                    rgbcolor_to_window_color(if self.focused.is_some() {
+                        self.config.window_frame.active_titlebar_bg
+                    } else {
+                        self.config.window_frame.inactive_titlebar_bg
+                    }),
+                )?;
 
                 self.filled_rectangle(
                     &mut layers[1],
@@ -670,6 +688,13 @@ impl super::TermWindow {
                     text_bounding_rect.height(),
                 );
 
+                let tab_bounding_rect: Rect = euclid::rect(
+                    text_bounding_rect.min_x(),
+                    tab_bounding_rect.min_y(),
+                    self.dimensions.pixel_width as isize - text_bounding_rect.min_x(),
+                    tab_bounding_rect.height(),
+                );
+
                 if width > 0 {
                     self.filled_rectangle(
                         &mut layers[0],
@@ -694,8 +719,8 @@ impl super::TermWindow {
                 Ok((
                     tab_bounding_rect.max_x() as f32,
                     UIItem {
-                        x: tab_bounding_rect.min_x() as usize,
-                        width: tab_bounding_rect.width() as usize,
+                        x: 0,
+                        width: tab_bounding_rect.max_x() as usize,
                         y: tab_bounding_rect.min_y() as usize,
                         height: tab_bounding_rect.height() as usize,
                         item_type: UIItemType::TabBar(item.item.clone()),
@@ -728,7 +753,7 @@ impl super::TermWindow {
         let mut ui_items = vec![];
 
         let items = self.tab_bar.items();
-        let max_tab_width = self.dimensions.pixel_width / items.len().max(1);
+        let max_tab_width = self.dimensions.pixel_width / items.len().saturating_sub(1).max(1);
 
         let gl_state = self.render_state.as_ref().unwrap();
         let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
@@ -797,7 +822,7 @@ impl super::TermWindow {
 
         // Dividing line that is logically part of the active tab
         self.filled_rectangle(
-            &mut layers[0],
+            &mut layers[1],
             Rect::new(
                 Point::new(
                     0,
