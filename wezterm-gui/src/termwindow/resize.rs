@@ -1,6 +1,6 @@
 use crate::utilsprites::RenderMetrics;
 use ::window::{Dimensions, Window, WindowOps, WindowState};
-use config::ConfigHandle;
+use config::{ConfigHandle, DimensionContext};
 use mux::Mux;
 use portable_pty::PtySize;
 use std::rc::Rc;
@@ -138,12 +138,27 @@ impl super::TermWindow {
             let rows = size.rows;
             let cols = size.cols;
 
+            let h_context = DimensionContext {
+                dpi: dimensions.dpi as f32,
+                pixel_max: size.pixel_width as f32,
+                pixel_cell: self.render_metrics.cell_size.width as f32,
+            };
+            let v_context = DimensionContext {
+                dpi: dimensions.dpi as f32,
+                pixel_max: size.pixel_height as f32,
+                pixel_cell: self.render_metrics.cell_size.height as f32,
+            };
+            let padding_left = config.window_padding.left.evaluate_as_pixels(h_context) as u16;
+            let padding_top = config.window_padding.top.evaluate_as_pixels(v_context) as u16;
+            let padding_bottom = config.window_padding.bottom.evaluate_as_pixels(v_context) as u16;
+            let padding_right = effective_right_padding(&config, h_context);
+
             let pixel_height = (rows * self.render_metrics.cell_size.height as u16)
-                + (config.window_padding.top + config.window_padding.bottom)
+                + (padding_top + padding_bottom)
                 + tab_bar_height as u16;
 
             let pixel_width = (cols * self.render_metrics.cell_size.width as u16)
-                + (config.window_padding.left + self.effective_right_padding(&config));
+                + (padding_left + padding_right);
 
             let dims = Dimensions {
                 pixel_width: pixel_width as usize,
@@ -154,12 +169,28 @@ impl super::TermWindow {
             (size, dims)
         } else {
             // Resize of the window dimensions may result in changed terminal dimensions
-            let avail_width = dimensions.pixel_width.saturating_sub(
-                (config.window_padding.left + self.effective_right_padding(&config)) as usize,
-            );
+
+            let h_context = DimensionContext {
+                dpi: dimensions.dpi as f32,
+                pixel_max: self.terminal_size.pixel_width as f32,
+                pixel_cell: self.render_metrics.cell_size.width as f32,
+            };
+            let v_context = DimensionContext {
+                dpi: dimensions.dpi as f32,
+                pixel_max: self.terminal_size.pixel_height as f32,
+                pixel_cell: self.render_metrics.cell_size.height as f32,
+            };
+            let padding_left = config.window_padding.left.evaluate_as_pixels(h_context) as u16;
+            let padding_top = config.window_padding.top.evaluate_as_pixels(v_context) as u16;
+            let padding_bottom = config.window_padding.bottom.evaluate_as_pixels(v_context) as u16;
+            let padding_right = effective_right_padding(&config, h_context);
+
+            let avail_width = dimensions
+                .pixel_width
+                .saturating_sub((padding_left + padding_right) as usize);
             let avail_height = dimensions
                 .pixel_height
-                .saturating_sub((config.window_padding.top + config.window_padding.bottom) as usize)
+                .saturating_sub((padding_top + padding_bottom) as usize)
                 .saturating_sub(tab_bar_height as usize);
 
             let rows = avail_height / self.render_metrics.cell_size.height as usize;
@@ -306,14 +337,27 @@ impl super::TermWindow {
             0
         };
 
+        let h_context = DimensionContext {
+            dpi: self.dimensions.dpi as f32,
+            pixel_max: self.dimensions.pixel_width as f32,
+            pixel_cell: render_metrics.cell_size.width as f32,
+        };
+        let v_context = DimensionContext {
+            dpi: self.dimensions.dpi as f32,
+            pixel_max: self.dimensions.pixel_height as f32,
+            pixel_cell: render_metrics.cell_size.height as f32,
+        };
+        let padding_left = config.window_padding.left.evaluate_as_pixels(h_context) as u16;
+        let padding_top = config.window_padding.top.evaluate_as_pixels(v_context) as u16;
+        let padding_bottom = config.window_padding.bottom.evaluate_as_pixels(v_context) as u16;
+
         let dimensions = Dimensions {
             pixel_width: ((terminal_size.cols * render_metrics.cell_size.width as u16)
-                + config.window_padding.left
-                + effective_right_padding(&config, &render_metrics))
-                as usize,
+                + padding_left
+                + effective_right_padding(&config, h_context)) as usize,
             pixel_height: ((terminal_size.rows * render_metrics.cell_size.height as u16)
-                + config.window_padding.top
-                + config.window_padding.bottom) as usize
+                + padding_top
+                + padding_bottom) as usize
                 + tab_bar_height,
             dpi: config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
         };
@@ -331,7 +375,14 @@ impl super::TermWindow {
     }
 
     pub fn effective_right_padding(&self, config: &ConfigHandle) -> u16 {
-        effective_right_padding(config, &self.render_metrics)
+        effective_right_padding(
+            config,
+            DimensionContext {
+                pixel_cell: self.render_metrics.cell_size.width as f32,
+                dpi: self.dimensions.dpi as f32,
+                pixel_max: self.dimensions.pixel_width as f32,
+            },
+        )
     }
 }
 
@@ -339,10 +390,10 @@ impl super::TermWindow {
 /// This is needed because the default is 0, but if the user has
 /// enabled the scroll bar then they will expect it to have a reasonable
 /// size unless they've specified differently.
-pub fn effective_right_padding(config: &ConfigHandle, render_metrics: &RenderMetrics) -> u16 {
-    if config.enable_scroll_bar && config.window_padding.right == 0 {
-        render_metrics.cell_size.width as u16
+pub fn effective_right_padding(config: &ConfigHandle, context: DimensionContext) -> u16 {
+    if config.enable_scroll_bar && config.window_padding.right.is_zero() {
+        context.pixel_cell as u16
     } else {
-        config.window_padding.right as u16
+        config.window_padding.right.evaluate_as_pixels(context) as u16
     }
 }

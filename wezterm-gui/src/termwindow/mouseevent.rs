@@ -58,25 +58,23 @@ impl super::TermWindow {
 
         self.current_mouse_event.replace(event.clone());
 
-        let config = &self.config;
         let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height().unwrap_or(0.) as isize
         } else {
             0
         };
+
+        let (padding_left, padding_top) = self.padding_left_top();
+
         let y = (event
             .coords
             .y
-            .sub(config.window_padding.top as isize)
+            .sub(padding_top as isize)
             .sub(first_line_offset)
             .max(0)
             / self.render_metrics.cell_size.height) as i64;
 
-        let x = (event
-            .coords
-            .x
-            .sub(config.window_padding.left as isize)
-            .max(0) as f32)
+        let x = (event.coords.x.sub(padding_left as isize).max(0) as f32)
             / self.render_metrics.cell_size.width as f32;
         let x = if !pane.is_mouse_grabbed() {
             // Round the x coordinate so that we're a bit more forgiving of

@@ -227,20 +227,9 @@ return {
 
 ### Window Padding
 
-You may add padding around the edges of the terminal cells:
+You may add padding around the edges of the terminal area.
 
-```lua
-return {
-  window_padding = {
-    left = 2,
-    -- This will become the scrollbar width if you have enabled the scrollbar!
-    right = 2,
-
-    top = 0,
-    bottom = 0,
-  }
-}
-```
+[See the window_padding docs for more info](lua/config/window_padding.md)
 
 ## Styling Inactive Panes
 

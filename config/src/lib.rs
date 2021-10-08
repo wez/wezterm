@@ -39,6 +39,7 @@ pub mod lua;
 mod ssh;
 mod terminal;
 mod tls;
+mod units;
 mod unix;
 mod version;
 
@@ -52,6 +53,7 @@ pub use keys::*;
 pub use ssh::*;
 pub use terminal::*;
 pub use tls::*;
+pub use units::*;
 pub use unix::*;
 pub use version::*;
 
@@ -1339,14 +1341,14 @@ impl DefaultCursorStyle {
 
 #[derive(Default, Deserialize, Serialize, Clone, Copy, Debug)]
 pub struct WindowPadding {
-    #[serde(default)]
-    pub left: u16,
-    #[serde(default)]
-    pub top: u16,
-    #[serde(default)]
-    pub right: u16,
-    #[serde(default)]
-    pub bottom: u16,
+    #[serde(default, deserialize_with = "de_pixels")]
+    pub left: Dimension,
+    #[serde(default, deserialize_with = "de_pixels")]
+    pub top: Dimension,
+    #[serde(default, deserialize_with = "de_pixels")]
+    pub right: Dimension,
+    #[serde(default, deserialize_with = "de_pixels")]
+    pub bottom: Dimension,
 }
 impl_lua_conversion!(WindowPadding);
 

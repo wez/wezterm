@@ -57,6 +57,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: ssh config parser incorrectly split `Host` patterns with commas instead of whitespace [#1196](https://github.com/wez/wezterm/issues/1196)
 * Fixed: search now auto-updates when the pane content changes [#1205](https://github.com/wez/wezterm/issues/1205)
 * Fixed: fonts with emoji presentation are shifted to better align with the primary font baseline [#1203](https://github.com/wez/wezterm/issues/1203)
+* New: [window_padding](config/lua/config/window_padding.md) now accepts values such as `"1cell"` or `"30%"` to compute values based on font or window metrics.
 
 ### 20210814-124438-54e29167
 

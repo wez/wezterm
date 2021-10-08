@@ -18,7 +18,9 @@ use ::window::glium::uniforms::{
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::{Point, Rect, Size, WindowOps};
 use anyhow::anyhow;
-use config::{ConfigHandle, HsbTransform, TabBarColors, TextStyle, VisualBellTarget};
+use config::{
+    ConfigHandle, DimensionContext, HsbTransform, TabBarColors, TextStyle, VisualBellTarget,
+};
 use mux::pane::Pane;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
@@ -807,12 +809,14 @@ impl super::TermWindow {
         let config = &self.config;
         let palette = pos.pane.palette();
 
+        let (padding_left, padding_top) = self.padding_left_top();
+
         let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height()?
         } else {
             0.
         };
-        let top_pixel_y = tab_bar_height + self.config.window_padding.top as f32;
+        let top_pixel_y = tab_bar_height + padding_top;
 
         let cursor = pos.pane.get_cursor_position();
         if pos.is_active {
@@ -935,12 +939,8 @@ impl super::TermWindow {
                 &mut layers[0],
                 Rect::new(
                     Point::new(
-                        ((pos.left as f32 * cell_width) + self.config.window_padding.left as f32)
-                            as isize,
-                        (top_pixel_y
-                            + (pos.top as f32 * cell_height)
-                            + self.config.window_padding.top as f32)
-                            as isize,
+                        ((pos.left as f32 * cell_width) + padding_left) as isize,
+                        (top_pixel_y + (pos.top as f32 * cell_height) + padding_top) as isize,
                     ),
                     Size::new(
                         (pos.width as f32 * cell_width) as isize,
@@ -1002,13 +1002,8 @@ impl super::TermWindow {
                     &mut layers[0],
                     Rect::new(
                         Point::new(
-                            ((pos.left as f32 * cell_width)
-                                + self.config.window_padding.left as f32)
-                                as isize,
-                            (top_pixel_y
-                                + (pos.top as f32 * cell_height)
-                                + self.config.window_padding.top as f32)
-                                as isize,
+                            ((pos.left as f32 * cell_width) + padding_left) as isize,
+                            (top_pixel_y + (pos.top as f32 * cell_height) + padding_top) as isize,
                         ),
                         Size::new(
                             (pos.width as f32 * cell_width) as isize,
@@ -1104,7 +1099,7 @@ impl super::TermWindow {
                 RenderScreenLineOpenGLParams {
                     top_pixel_y: top_pixel_y
                         + (line_idx + pos.top) as f32 * self.render_metrics.cell_size.height as f32,
-                    left_pixel_x: self.config.window_padding.left as f32
+                    left_pixel_x: padding_left
                         + (pos.left as f32 * self.render_metrics.cell_size.width as f32),
                     stable_line_idx: Some(stable_row),
                     line: &line,
@@ -1245,6 +1240,28 @@ impl super::TermWindow {
         Ok(())
     }
 
+    pub fn padding_left_top(&self) -> (f32, f32) {
+        let h_context = DimensionContext {
+            dpi: self.dimensions.dpi as f32,
+            pixel_max: self.terminal_size.pixel_width as f32,
+            pixel_cell: self.render_metrics.cell_size.width as f32,
+        };
+        let v_context = DimensionContext {
+            dpi: self.dimensions.dpi as f32,
+            pixel_max: self.terminal_size.pixel_height as f32,
+            pixel_cell: self.render_metrics.cell_size.height as f32,
+        };
+
+        let padding_left = self
+            .config
+            .window_padding
+            .left
+            .evaluate_as_pixels(h_context);
+        let padding_top = self.config.window_padding.top.evaluate_as_pixels(v_context);
+
+        (padding_left, padding_top)
+    }
+
     pub fn paint_split_opengl(
         &mut self,
         split: &PositionedSplit,
@@ -1285,13 +1302,15 @@ impl super::TermWindow {
         quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_has_color(false);
 
+        let (padding_left, padding_top) = self.padding_left_top();
+
         let pos_y = (self.dimensions.pixel_height as f32 / -2.)
             + split.top as f32 * cell_height
             + first_row_offset
-            + self.config.window_padding.top as f32;
+            + padding_top;
         let pos_x = (self.dimensions.pixel_width as f32 / -2.)
             + split.left as f32 * cell_width
-            + self.config.window_padding.left as f32;
+            + padding_left;
 
         if split.direction == SplitDirection::Horizontal {
             quad.set_position(
@@ -1301,9 +1320,9 @@ impl super::TermWindow {
                 pos_y + split.size as f32 * cell_height,
             );
             self.ui_items.push(UIItem {
-                x: self.config.window_padding.left as usize + (split.left * cell_width as usize),
+                x: padding_left as usize + (split.left * cell_width as usize),
                 width: cell_width as usize,
-                y: self.config.window_padding.top as usize
+                y: padding_top as usize
                     + first_row_offset as usize
                     + split.top * cell_height as usize,
                 height: split.size * cell_height as usize,
@@ -1317,9 +1336,9 @@ impl super::TermWindow {
                 pos_y + cell_height,
             );
             self.ui_items.push(UIItem {
-                x: self.config.window_padding.left as usize + (split.left * cell_width as usize),
+                x: padding_left as usize + (split.left * cell_width as usize),
                 width: split.size * cell_width as usize,
-                y: self.config.window_padding.top as usize
+                y: padding_top as usize
                     + first_row_offset as usize
                     + split.top * cell_height as usize,
                 height: cell_height as usize,

@@ -22,7 +22,7 @@ use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, SpawnCommand,
 };
 use config::{
-    configuration, AudibleBell, ConfigHandle, GradientOrientation, TermConfig,
+    configuration, AudibleBell, ConfigHandle, DimensionContext, GradientOrientation, TermConfig,
     WindowCloseConfirmation,
 };
 use luahelper::impl_lua_conversion;
@@ -550,14 +550,26 @@ impl TermWindow {
             pixel_height: (render_metrics.cell_size.height as usize * physical_rows) as u16,
         };
 
+        let h_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: terminal_size.pixel_width as f32,
+            pixel_cell: render_metrics.cell_size.width as f32,
+        };
+        let padding_left = config.window_padding.left.evaluate_as_pixels(h_context) as u16;
+        let padding_right = resize::effective_right_padding(&config, h_context);
+        let v_context = DimensionContext {
+            dpi: dpi as f32,
+            pixel_max: terminal_size.pixel_height as f32,
+            pixel_cell: render_metrics.cell_size.height as f32,
+        };
+        let padding_top = config.window_padding.top.evaluate_as_pixels(v_context) as u16;
+        let padding_bottom = config.window_padding.bottom.evaluate_as_pixels(v_context) as u16;
+
         let dimensions = Dimensions {
-            pixel_width: (terminal_size.pixel_width
-                + config.window_padding.left
-                + resize::effective_right_padding(&config, &render_metrics))
-                as usize,
+            pixel_width: (terminal_size.pixel_width + padding_left + padding_right) as usize,
             pixel_height: ((terminal_size.rows * render_metrics.cell_size.height as u16)
-                + config.window_padding.top
-                + config.window_padding.bottom) as usize
+                + padding_top
+                + padding_bottom) as usize
                 + tab_bar_height,
             dpi,
         };
@@ -1263,10 +1275,23 @@ impl TermWindow {
         let active_tab = tabs.iter().find(|t| t.is_active).cloned();
         let active_pane = panes.iter().find(|p| p.is_active).cloned();
 
+        let v_context = DimensionContext {
+            dpi: self.dimensions.dpi as f32,
+            pixel_max: self.terminal_size.pixel_height as f32,
+            pixel_cell: self.render_metrics.cell_size.height as f32,
+        };
+        let padding_top = self.config.window_padding.top.evaluate_as_pixels(v_context) as u16;
+        let padding_bottom = self
+            .config
+            .window_padding
+            .bottom
+            .evaluate_as_pixels(v_context) as u16;
+
         let tab_bar_y = if self.config.tab_bar_at_bottom {
-            let avail_height = self.dimensions.pixel_height.saturating_sub(
-                (self.config.window_padding.top + self.config.window_padding.bottom) as usize,
-            );
+            let avail_height = self
+                .dimensions
+                .pixel_height
+                .saturating_sub((padding_top + padding_bottom) as usize);
 
             let num_rows = avail_height as usize / self.render_metrics.cell_size.height as usize;
 
@@ -1396,14 +1421,16 @@ impl TermWindow {
     fn update_text_cursor(&mut self, pane: &Rc<dyn Pane>) {
         let cursor = pane.get_cursor_position();
         if let Some(win) = self.window.as_ref() {
-            let config = &self.config;
             let top = pane.get_dimensions().physical_top + if self.show_tab_bar { -1 } else { 0 };
+
+            let (padding_left, padding_top) = self.padding_left_top();
+
             let r = Rect::new(
                 Point::new(
                     (cursor.x.max(0) as isize * self.render_metrics.cell_size.width)
-                        .add(config.window_padding.left as isize),
+                        .add(padding_left as isize),
                     ((cursor.y - top).max(0) as isize * self.render_metrics.cell_size.height)
-                        .add(config.window_padding.top as isize),
+                        .add(padding_top as isize),
                 ),
                 self.render_metrics.cell_size,
             );
