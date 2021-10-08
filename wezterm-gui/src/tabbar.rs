@@ -193,10 +193,21 @@ impl TabBarState {
         let new_tab_hover_attrs = colors.new_tab_hover.as_cell_attributes();
         let new_tab_attrs = colors.new_tab.as_cell_attributes();
 
-        let new_tab = parse_status_text(&config.tab_bar_style.new_tab, new_tab_attrs.clone());
+        let new_tab = parse_status_text(
+            &config.tab_bar_style.new_tab,
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                new_tab_attrs.clone()
+            },
+        );
         let new_tab_hover = parse_status_text(
             &config.tab_bar_style.new_tab_hover,
-            new_tab_hover_attrs.clone(),
+            if config.use_fancy_tab_bar {
+                CellAttributes::default()
+            } else {
+                new_tab_hover_attrs.clone()
+            },
         );
 
         // We ultimately want to produce a line looking like this:

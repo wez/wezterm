@@ -46,6 +46,7 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     /// zero-based offset from left of the window viewport to the line that
     /// needs to be rendered, measured in pixels
     pub left_pixel_x: f32,
+    pub pixel_width: f32,
     pub stable_line_idx: Option<StableRowIndex>,
     pub line: &'a Line,
     pub selection: Range<usize>,
@@ -438,7 +439,8 @@ impl super::TermWindow {
 
     fn paint_one_tab(
         &self,
-        mut pos_x: f32,
+        pos_x: f32,
+        max_tab_width: usize,
         palette: &ColorPalette,
         item: &TabEntry,
         colors: &TabBarColors,
@@ -446,9 +448,8 @@ impl super::TermWindow {
         metrics: &FontMetrics,
         layers: &mut [MappedQuads; 3],
     ) -> anyhow::Result<(f32, UIItem)> {
-        let left_offset = self.dimensions.pixel_width as f32 / 2.;
-
-        let top_y = metrics.cell_height.get() as f32 / 4.;
+        // let left_offset = self.dimensions.pixel_width as f32 / 2.;
+        // let top_y = metrics.cell_height.get() as f32 / 4.;
 
         let gl_state = self.render_state.as_ref().unwrap();
 
@@ -465,9 +466,24 @@ impl super::TermWindow {
             },
         );
 
+        let tab_bounding_rect: Rect = euclid::rect(
+            pos_x as isize,
+            metrics.cell_height.get() as isize / 4,
+            max_tab_width as isize,
+            (metrics.cell_height.get() * 1.75) as isize,
+        );
+
+        let text_bounding_rect = tab_bounding_rect.inflate(
+            metrics.cell_width.get() as isize / -2,
+            metrics.cell_height.get() as isize / -4,
+        );
+
+        // log::info!("tab bounds {:?}, text bounds {:?}", tab_bounding_rect, text_bounding_rect);
+
         let params = RenderScreenLineOpenGLParams {
             top_pixel_y: 0.,
             left_pixel_x: 0.,
+            pixel_width: text_bounding_rect.width() as f32,
             stable_line_idx: None,
             line: &item.title,
             selection: 0..0,
@@ -500,26 +516,40 @@ impl super::TermWindow {
         };
         let cell_clusters = item.title.cluster();
         let shaped = self.cluster_and_shape(&cell_clusters, &params)?;
-        let width = shaped.iter().map(|s| s.pixel_width).sum::<f32>();
+        let width = shaped.iter().map(|s| s.pixel_width).sum::<f32>() as isize;
 
-        let hover_x_start = pos_x + metrics.cell_width.get() as f32 / 4.;
-        let hover_x_end = hover_x_start + width;
+        let desired_width = width.min(text_bounding_rect.width());
 
-        let hover = match &self.current_mouse_event {
-            Some(event) => {
-                let mouse_x = event.coords.x as f32;
-                let mouse_y = event.coords.y as f32;
-                mouse_x as f32 >= hover_x_start
-                    && mouse_x as f32 <= hover_x_end
-                    && mouse_y as f32 >= top_y
-                    && mouse_y as f32 <= metrics.cell_height.get() as f32 * 1.75
-            }
-            None => false,
-        };
+        let text_bounding_rect: Rect = euclid::rect(
+            text_bounding_rect.min_x(),
+            text_bounding_rect.min_y(),
+            desired_width,
+            text_bounding_rect.height(),
+        );
 
-        let is_tab;
-        let (bg_color, fg_color, is_status) = match item.item {
+        let tab_bounding_rect = text_bounding_rect.inflate(
+            metrics.cell_width.get() as isize / 2,
+            metrics.cell_height.get() as isize / 4,
+        );
+        // log::info!("shaped tab bounds {:?}, text bounds {:?}", tab_bounding_rect, text_bounding_rect);
+
+        match item.item {
             TabBarItem::Tab { active, .. } => {
+                let hover_x_start = tab_bounding_rect.min_x();
+                let hover_x_end = tab_bounding_rect.max_x();
+
+                let hover = match &self.current_mouse_event {
+                    Some(event) => {
+                        let mouse_x = event.coords.x as isize;
+                        let mouse_y = event.coords.y as isize;
+                        mouse_x >= hover_x_start
+                            && mouse_x <= hover_x_end
+                            && mouse_y >= tab_bounding_rect.min_y()
+                            && mouse_y <= tab_bounding_rect.max_y()
+                    }
+                    None => false,
+                };
+
                 let c = if active {
                     &colors.active_tab
                 } else if hover {
@@ -527,93 +557,152 @@ impl super::TermWindow {
                 } else {
                     &colors.inactive_tab
                 };
-                is_tab = true;
-                (c.bg_color, c.fg_color, false)
+
+                self.tab_background(
+                    &mut layers[1],
+                    metrics.cell_width.get() as isize / 3,
+                    metrics.cell_height.get() as isize / 3,
+                    tab_bounding_rect,
+                    rgbcolor_to_window_color(c.bg_color),
+                )?;
+
+                self.render_screen_line_opengl(
+                    RenderScreenLineOpenGLParams {
+                        top_pixel_y: text_bounding_rect.min_y() as f32,
+                        left_pixel_x: text_bounding_rect.min_x() as f32,
+                        pixel_width: text_bounding_rect.width() as f32,
+                        foreground: rgbcolor_to_window_color(c.fg_color),
+                        pre_shaped: Some(&shaped),
+                        font: Some(Rc::clone(font)),
+                        selection: 0..0,
+                        ..params
+                    },
+                    layers,
+                )?;
+                Ok((
+                    tab_bounding_rect.max_x() as f32,
+                    UIItem {
+                        x: tab_bounding_rect.min_x() as usize,
+                        width: tab_bounding_rect.width() as usize,
+                        y: tab_bounding_rect.min_y() as usize,
+                        height: tab_bounding_rect.height() as usize,
+                        item_type: UIItemType::TabBar(item.item.clone()),
+                    },
+                ))
             }
             TabBarItem::NewTabButton => {
+                let tab_bounding_rect = tab_bounding_rect
+                    .inflate(
+                        metrics.cell_width.get() as isize / -2,
+                        metrics.cell_height.get() as isize / -4,
+                    )
+                    .translate(euclid::vec2(0, metrics.cell_height.get() as isize / -8));
+
+                let hover_x_start = tab_bounding_rect.min_x();
+                let hover_x_end = tab_bounding_rect.max_x();
+
+                let hover = match &self.current_mouse_event {
+                    Some(event) => {
+                        let mouse_x = event.coords.x as isize;
+                        let mouse_y = event.coords.y as isize;
+                        mouse_x >= hover_x_start
+                            && mouse_x <= hover_x_end
+                            && mouse_y >= tab_bounding_rect.min_y()
+                            && mouse_y <= tab_bounding_rect.max_y()
+                    }
+                    None => false,
+                };
+
                 let c = if hover {
                     &colors.new_tab_hover
                 } else {
                     &colors.new_tab
                 };
-                is_tab = false;
-                (c.bg_color, c.fg_color, false)
+
+                self.filled_rectangle(
+                    &mut layers[1],
+                    tab_bounding_rect,
+                    rgbcolor_to_window_color(c.bg_color),
+                )?;
+                self.render_screen_line_opengl(
+                    RenderScreenLineOpenGLParams {
+                        top_pixel_y: text_bounding_rect.min_y() as f32,
+                        left_pixel_x: text_bounding_rect.min_x() as f32,
+                        pixel_width: text_bounding_rect.width() as f32,
+                        foreground: rgbcolor_to_window_color(c.fg_color),
+                        pre_shaped: Some(&shaped),
+                        font: Some(Rc::clone(font)),
+                        selection: 0..0,
+                        ..params
+                    },
+                    layers,
+                )?;
+                Ok((
+                    tab_bounding_rect.max_x() as f32 + metrics.cell_width.get() as f32 / 2.,
+                    UIItem {
+                        x: tab_bounding_rect.min_x() as usize,
+                        width: tab_bounding_rect.width() as usize,
+                        y: tab_bounding_rect.min_y() as usize,
+                        height: tab_bounding_rect.height() as usize,
+                        item_type: UIItemType::TabBar(item.item.clone()),
+                    },
+                ))
             }
             TabBarItem::None => {
-                is_tab = false;
-                (colors.background, colors.inactive_tab.fg_color, true)
+                // Right align to window width
+                let tab_bounding_rect: Rect = euclid::rect(
+                    tab_bounding_rect.min_x(),
+                    tab_bounding_rect.min_y(),
+                    self.dimensions.pixel_width as isize - tab_bounding_rect.min_x(),
+                    tab_bounding_rect.height(),
+                );
+
+                let text_bounding_rect = tab_bounding_rect.inflate(
+                    metrics.cell_width.get() as isize / -4,
+                    metrics.cell_height.get() as isize / -4,
+                );
+
+                let desired_width = width.min(text_bounding_rect.width());
+                let text_bounding_rect: Rect = euclid::rect(
+                    text_bounding_rect.max_x() - desired_width,
+                    text_bounding_rect.min_y(),
+                    desired_width,
+                    text_bounding_rect.height(),
+                );
+
+                if width > 0 {
+                    self.filled_rectangle(
+                        &mut layers[0],
+                        tab_bounding_rect,
+                        rgbcolor_to_window_color(colors.background),
+                    )?;
+                    self.render_screen_line_opengl(
+                        RenderScreenLineOpenGLParams {
+                            top_pixel_y: text_bounding_rect.min_y() as f32,
+                            left_pixel_x: text_bounding_rect.min_x() as f32,
+                            pixel_width: text_bounding_rect.width() as f32,
+                            foreground: rgbcolor_to_window_color(colors.inactive_tab.fg_color),
+                            pre_shaped: Some(&shaped),
+                            font: Some(Rc::clone(font)),
+                            selection: 0..0,
+                            ..params
+                        },
+                        layers,
+                    )?;
+                }
+
+                Ok((
+                    tab_bounding_rect.max_x() as f32,
+                    UIItem {
+                        x: tab_bounding_rect.min_x() as usize,
+                        width: tab_bounding_rect.width() as usize,
+                        y: tab_bounding_rect.min_y() as usize,
+                        height: tab_bounding_rect.height() as usize,
+                        item_type: UIItemType::TabBar(item.item.clone()),
+                    },
+                ))
             }
-        };
-
-        let bg_start;
-        if is_status {
-            bg_start = pos_x;
-            // Right align status glyphs
-            pos_x = 2. * left_offset - width;
-        } else {
-            pos_x += metrics.cell_width.get() as f32 / 4.0;
-            bg_start = pos_x;
-            // width += metrics.cell_width.get() as f32 / 2.0;
         }
-
-        let (is_empty, width) = if is_status && width == 0. {
-            (true, 0.)
-        } else {
-            (false, width + metrics.cell_width.get() as f32 / 2.)
-        };
-
-        if !is_empty {
-            let rect = Rect::new(
-                Point::new(bg_start as isize, top_y as isize),
-                Size::new(
-                    width as isize,
-                    (metrics.cell_height.get() as f32 * 1.5).ceil() as isize,
-                ),
-            );
-            let color = rgbcolor_to_window_color(bg_color);
-
-            if is_tab {
-                self.tab_background(
-                    &mut layers[0],
-                    metrics.cell_width.get() as isize / 3,
-                    metrics.cell_height.get() as isize / 3,
-                    rect,
-                    color,
-                )?;
-            } else {
-                self.filled_rectangle(&mut layers[0], rect, color)?;
-            }
-
-            let glyph_color = rgbcolor_to_window_color(fg_color);
-            self.render_screen_line_opengl(
-                RenderScreenLineOpenGLParams {
-                    top_pixel_y: top_y * 2.,
-                    left_pixel_x: pos_x + metrics.cell_width.get() as f32 / 4.,
-                    foreground: glyph_color,
-                    pre_shaped: Some(&shaped),
-                    font: Some(Rc::clone(font)),
-                    selection: 0..0,
-                    ..params
-                },
-                layers,
-            )?;
-        }
-
-        Ok((
-            bg_start + width,
-            UIItem {
-                x: if is_status { 0 } else { bg_start as usize },
-                width: if is_status {
-                    self.dimensions.pixel_width
-                } else {
-                    width as usize
-                },
-                y: if is_status { 0 } else { top_y as usize },
-                height: (metrics.cell_height.get() as f32 * if is_status { 2. } else { 1.5 })
-                    as usize,
-                item_type: UIItemType::TabBar(item.item.clone()),
-            },
-        ))
     }
 
     pub fn tab_bar_pixel_height(&self) -> anyhow::Result<f32> {
@@ -639,6 +728,7 @@ impl super::TermWindow {
         let mut ui_items = vec![];
 
         let items = self.tab_bar.items();
+        let max_tab_width = self.dimensions.pixel_width / items.len().max(1);
 
         let gl_state = self.render_state.as_ref().unwrap();
         let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
@@ -668,15 +758,41 @@ impl super::TermWindow {
             }),
         )?;
 
+        if let Some(status_item) = items
+            .iter()
+            .find(|item| matches!(item.item, TabBarItem::None))
+        {
+            let (_x, item) = self.paint_one_tab(
+                0.,
+                self.dimensions.pixel_width,
+                palette,
+                status_item,
+                &colors,
+                &font,
+                &metrics,
+                &mut layers,
+            )?;
+            ui_items.push(item);
+        }
+
         let mut x = 0.;
         for item in items.iter() {
-            let (new_x, item) =
-                self.paint_one_tab(x, palette, item, &colors, &font, &metrics, &mut layers)?;
-            x = new_x;
-            match item.item_type {
-                UIItemType::TabBar(TabBarItem::None) => ui_items.insert(0, item),
-                _ => ui_items.push(item),
+            if matches!(item.item, TabBarItem::None) {
+                // Already handled this one
+                continue;
             }
+            let (new_x, item) = self.paint_one_tab(
+                x,
+                max_tab_width,
+                palette,
+                item,
+                &colors,
+                &font,
+                &metrics,
+                &mut layers,
+            )?;
+            x = new_x;
+            ui_items.push(item);
         }
 
         // Dividing line that is logically part of the active tab
@@ -747,6 +863,7 @@ impl super::TermWindow {
             RenderScreenLineOpenGLParams {
                 top_pixel_y: tab_bar_y,
                 left_pixel_x: 0.,
+                pixel_width: self.dimensions.pixel_width as f32,
                 stable_line_idx: None,
                 line: self.tab_bar.line(),
                 selection: 0..0,
@@ -1101,6 +1218,7 @@ impl super::TermWindow {
                         + (line_idx + pos.top) as f32 * self.render_metrics.cell_size.height as f32,
                     left_pixel_x: padding_left
                         + (pos.left as f32 * self.render_metrics.cell_size.width as f32),
+                    pixel_width: dims.cols as f32 * self.render_metrics.cell_size.width as f32,
                     stable_line_idx: Some(stable_row),
                     line: &line,
                     selection: selrange,
@@ -1575,6 +1693,13 @@ impl super::TermWindow {
             }
         };
 
+        let bounding_rect = euclid::rect(
+            params.left_pixel_x as isize,
+            params.top_pixel_y as isize,
+            params.pixel_width as isize,
+            cell_height as isize,
+        );
+
         // Make a pass to compute background colors.
         // Need to consider:
         // * background when it is not the default color
@@ -1608,31 +1733,29 @@ impl super::TermWindow {
             };
 
             if !bg_is_default {
-                let mut quad = self.filled_rectangle(
-                    &mut layers[0],
-                    Rect::new(
-                        Point::new(
-                            (params.left_pixel_x
-                                + if params.use_pixel_positioning {
-                                    item.x_pos
-                                } else {
-                                    cluster.first_cell_idx as f32 * cell_width
-                                }) as isize,
-                            params.top_pixel_y as isize,
-                        ),
-                        Size::new(
-                            if params.use_pixel_positioning {
-                                item.pixel_width as isize
+                let rect = Rect::new(
+                    Point::new(
+                        (params.left_pixel_x
+                            + if params.use_pixel_positioning {
+                                item.x_pos
                             } else {
-                                cluster_width as isize * cell_width as isize
-                            },
-                            cell_height as isize,
-                        ),
+                                cluster.first_cell_idx as f32 * cell_width
+                            }) as isize,
+                        params.top_pixel_y as isize,
                     ),
-                    bg_color,
-                )?;
-
-                quad.set_hsv(hsv);
+                    Size::new(
+                        if params.use_pixel_positioning {
+                            item.pixel_width as isize
+                        } else {
+                            cluster_width as isize * cell_width as isize
+                        },
+                        cell_height as isize,
+                    ),
+                );
+                if let Some(rect) = rect.intersection(&bounding_rect) {
+                    let mut quad = self.filled_rectangle(&mut layers[0], rect, bg_color)?;
+                    quad.set_hsv(hsv);
+                }
             }
         }
 
@@ -1670,6 +1793,13 @@ impl super::TermWindow {
 
             for info in glyph_info.iter() {
                 let glyph = &info.glyph;
+
+                if params.use_pixel_positioning
+                    && params.left_pixel_x + cluster_x_pos + glyph.x_advance.get() as f32
+                        >= params.left_pixel_x + params.pixel_width
+                {
+                    break;
+                }
 
                 let probably_a_ligature = false;
                 /*
@@ -1747,6 +1877,16 @@ impl super::TermWindow {
                         } else {
                             cell_idx as f32 * cell_width
                         };
+
+                    if pos_x > params.left_pixel_x + params.pixel_width {
+                        log::info!(
+                            "breaking on overflow {} > {} + {}",
+                            pos_x,
+                            params.left_pixel_x,
+                            params.pixel_width
+                        );
+                        break;
+                    }
 
                     let pixel_width = glyph.x_advance.get() as f32;
 
@@ -2059,38 +2199,49 @@ impl super::TermWindow {
                     + params.left_pixel_x
                     + (params.cursor.x as f32 * cell_width);
 
-                if bg_color != LinearRgba::TRANSPARENT {
-                    // Avoid poking a transparent hole underneath the cursor
-                    let mut quad = self.filled_rectangle(
-                        &mut layers[2],
-                        Rect::new(
-                            Point::new(
-                                (params.left_pixel_x + (params.cursor.x as f32 * cell_width))
-                                    as isize,
-                                params.top_pixel_y as isize,
-                            ),
-                            Size::new(cell_width as isize, cell_height as isize),
-                        ),
-                        bg_color,
-                    )?;
-                    quad.set_hsv(hsv);
-                }
-                {
-                    let mut quad = layers[2].allocate()?;
-                    quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+                let overflow = pos_x > params.left_pixel_x + params.pixel_width;
 
-                    quad.set_texture_adjust(0., 0., 0., 0.);
-                    quad.set_has_color(false);
-                    quad.set_hsv(hsv);
-
-                    quad.set_texture(
-                        gl_state
-                            .glyph_cache
-                            .borrow_mut()
-                            .cursor_sprite(cursor_shape)?
-                            .texture_coords(),
+                if overflow {
+                    log::info!(
+                        "breaking on overflow {} > {} + {}",
+                        pos_x,
+                        params.left_pixel_x,
+                        params.pixel_width
                     );
-                    quad.set_fg_color(cursor_border_color);
+                } else {
+                    if bg_color != LinearRgba::TRANSPARENT {
+                        // Avoid poking a transparent hole underneath the cursor
+                        let mut quad = self.filled_rectangle(
+                            &mut layers[2],
+                            Rect::new(
+                                Point::new(
+                                    (params.left_pixel_x + (params.cursor.x as f32 * cell_width))
+                                        as isize,
+                                    params.top_pixel_y as isize,
+                                ),
+                                Size::new(cell_width as isize, cell_height as isize),
+                            ),
+                            bg_color,
+                        )?;
+                        quad.set_hsv(hsv);
+                    }
+                    {
+                        let mut quad = layers[2].allocate()?;
+                        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
+
+                        quad.set_texture_adjust(0., 0., 0., 0.);
+                        quad.set_has_color(false);
+                        quad.set_hsv(hsv);
+
+                        quad.set_texture(
+                            gl_state
+                                .glyph_cache
+                                .borrow_mut()
+                                .cursor_sprite(cursor_shape)?
+                                .texture_coords(),
+                        );
+                        quad.set_fg_color(cursor_border_color);
+                    }
                 }
             }
         }
