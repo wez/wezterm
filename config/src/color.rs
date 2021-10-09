@@ -273,19 +273,31 @@ pub struct WindowFrameConfig {
 }
 
 fn default_title_font_size() -> f64 {
-    10.
+    12.
 }
 
 fn default_title_font() -> TextStyle {
     TextStyle {
         foreground: None,
-        font: vec![FontAttributes::new(if cfg!(target_os = "macos") {
-            "Helvetica Neue"
-        } else if !cfg!(windows) {
-            "Segoe UI"
-        } else {
-            "DejaVu Sans"
-        })],
+        font: vec![FontAttributes {
+            family: if cfg!(target_os = "macos") {
+                // "SF Pro" or one of the San Francisco font variants
+                // are the official fonts for the macOS UI, but those
+                // are not directly accessible to non-Apple applications,
+                // and have a restricted license.
+                // Wikipedia says that `Galvji` looks very similar,
+                // but has slightly different spacing.
+                // It's close enough for me!
+                "Galvji"
+            } else if !cfg!(windows) {
+                "Segoe UI"
+            } else {
+                "DejaVu Sans"
+            }
+            .to_string(),
+            weight: FontWeight::BOLD,
+            ..Default::default()
+        }],
     }
 }
 
