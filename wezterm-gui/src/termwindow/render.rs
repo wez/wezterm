@@ -576,6 +576,28 @@ impl super::TermWindow {
                     },
                     layers,
                 )?;
+
+                if !active {
+                    // Draw a partial dividing line on the edge of the tab.
+                    // This gives a bit more definition on runs of inactive
+                    // tabs without making everything feel like it is filled
+                    // with lots of full lines
+                    self.filled_rectangle(
+                        &mut layers[1],
+                        euclid::rect(
+                            tab_bounding_rect.max_x().saturating_sub(1),
+                            text_bounding_rect.min_y() + metrics.cell_height.get() as isize / 3,
+                            1,
+                            (metrics.cell_height.get() * 0.75) as isize,
+                        ),
+                        rgbcolor_to_window_color(if self.focused.is_some() {
+                            self.config.window_frame.active_titlebar_bg
+                        } else {
+                            self.config.window_frame.inactive_titlebar_bg
+                        }),
+                    )?;
+                }
+
                 Ok((
                     tab_bounding_rect.max_x() as f32,
                     UIItem {
