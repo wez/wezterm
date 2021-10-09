@@ -165,6 +165,7 @@ a string value with a unit suffix:</p>
 <li><code>&quot;1%&quot;</code> - the <code>%</code> suffix indicates the size of the terminal portion of the display, which is computed based on the number of rows/columns and the size of the cell.  While it is possible to specify percentage, there are some resize scenarios where the percentage value may not be 100% stable/deterministic, as the size of the padding is used to compute the number of rows/columns.</li>
 </ul>
 <p>You may use a fractional number such as <code>&quot;0.5cell&quot;</code> or numbers large than one such as <code>&quot;72pt&quot;</code>.</p>
+<p>The default padding is shown below.  In earlier releases, the default padding was 0 for each of the possible edges.</p>
 <pre><code class="language-lua">return {
   window_padding = {
     left = &quot;1cell&quot;,
