@@ -277,27 +277,36 @@ fn default_title_font_size() -> f64 {
 }
 
 fn default_title_font() -> TextStyle {
-    TextStyle {
-        foreground: None,
-        font: vec![FontAttributes {
-            family: if cfg!(target_os = "macos") {
-                // "SF Pro" or one of the San Francisco font variants
-                // are the official fonts for the macOS UI, but those
-                // are not directly accessible to non-Apple applications,
-                // and have a restricted license.
-                // Wikipedia says that `Galvji` looks very similar,
-                // but has slightly different spacing.
-                // It's close enough for me!
-                "Galvji"
-            } else if !cfg!(windows) {
-                "Segoe UI"
-            } else {
-                "DejaVu Sans"
-            }
-            .to_string(),
+    fn bold(family: &str) -> FontAttributes {
+        FontAttributes {
+            family: family.to_string(),
             weight: FontWeight::BOLD,
             ..Default::default()
-        }],
+        }
+    }
+
+    let mut fonts = vec![if cfg!(target_os = "macos") {
+        // "SF Pro" or one of the San Francisco font variants
+        // are the official fonts for the macOS UI, but those
+        // are not directly accessible to non-Apple applications,
+        // and have a restricted license.
+        // Wikipedia says that `Galvji` looks very similar,
+        // but has slightly different spacing.
+        // It's close enough for me!
+        bold("Galvji")
+    } else if cfg!(windows) {
+        bold("Segoe UI")
+    } else {
+        bold("Cantarell")
+    }];
+
+    if !cfg!(windows) && !cfg!(target_os = "macos") {
+        fonts.push(bold("DejaVu Sans"));
+    }
+
+    TextStyle {
+        foreground: None,
+        font: fonts,
     }
 }
 
