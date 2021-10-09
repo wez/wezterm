@@ -895,7 +895,8 @@ impl super::TermWindow {
                 cursor: &Default::default(),
                 palette: &palette,
                 dims: &RenderableDimensions {
-                    cols: self.terminal_size.cols as _,
+                    cols: self.dimensions.pixel_width
+                        / self.render_metrics.cell_size.width as usize,
                     physical_top: 0,
                     scrollback_rows: 0,
                     scrollback_top: 0,
