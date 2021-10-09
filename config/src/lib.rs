@@ -1339,18 +1339,37 @@ impl DefaultCursorStyle {
     }
 }
 
-#[derive(Default, Deserialize, Serialize, Clone, Copy, Debug)]
+const fn default_one_cell() -> Dimension {
+    Dimension::Cells(1.)
+}
+
+const fn default_half_cell() -> Dimension {
+    Dimension::Cells(0.5)
+}
+
+#[derive(Deserialize, Serialize, Clone, Copy, Debug)]
 pub struct WindowPadding {
-    #[serde(default, deserialize_with = "de_pixels")]
+    #[serde(deserialize_with = "de_pixels", default = "default_one_cell")]
     pub left: Dimension,
-    #[serde(default, deserialize_with = "de_pixels")]
+    #[serde(deserialize_with = "de_pixels", default = "default_half_cell")]
     pub top: Dimension,
-    #[serde(default, deserialize_with = "de_pixels")]
+    #[serde(deserialize_with = "de_pixels", default = "default_one_cell")]
     pub right: Dimension,
-    #[serde(default, deserialize_with = "de_pixels")]
+    #[serde(deserialize_with = "de_pixels", default = "default_half_cell")]
     pub bottom: Dimension,
 }
 impl_lua_conversion!(WindowPadding);
+
+impl Default for WindowPadding {
+    fn default() -> Self {
+        Self {
+            left: default_one_cell(),
+            right: default_one_cell(),
+            top: default_half_cell(),
+            bottom: default_half_cell(),
+        }
+    }
+}
 
 #[derive(Deserialize, Serialize, Clone, Copy, Debug)]
 pub enum WindowCloseConfirmation {

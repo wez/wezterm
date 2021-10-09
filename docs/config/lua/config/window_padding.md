@@ -33,6 +33,8 @@ a string value with a unit suffix:
 
 You may use a fractional number such as `"0.5cell"` or numbers large than one such as `"72pt"`.
 
+The default padding is shown below.  In earlier releases, the default padding was 0 for each of the possible edges.
+
 ```lua
 return {
   window_padding = {
