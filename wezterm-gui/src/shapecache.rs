@@ -288,7 +288,7 @@ mod test {
                 };
 
                 glyph_cache
-                    .cached_glyph(info, &style, followed_by_space, None)
+                    .cached_glyph(info, &style, followed_by_space, font, render_metrics)
                     .unwrap()
             })
             .collect::<Vec<_>>();
@@ -331,7 +331,7 @@ mod test {
             .unwrap(),
         );
         let render_metrics = RenderMetrics::new(&fonts).unwrap();
-        let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128, &render_metrics).unwrap();
+        let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128).unwrap();
 
         let style = TextStyle::default();
         let font = fonts.resolve_font(&style).unwrap();
@@ -416,7 +416,7 @@ mod test {
             .unwrap(),
         );
         let render_metrics = RenderMetrics::new(&fonts).unwrap();
-        let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128, &render_metrics).unwrap();
+        let mut glyph_cache = GlyphCache::new_in_memory(&fonts, 128).unwrap();
 
         let style = TextStyle::default();
         let font = fonts.resolve_font(&style).unwrap();

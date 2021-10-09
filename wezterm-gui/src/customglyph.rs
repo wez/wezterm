@@ -1,4 +1,4 @@
-use crate::glyphcache::GlyphCache;
+use crate::glyphcache::{GlyphCache, SizedBlockKey};
 use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::Sprite;
 use ::window::color::{LinearRgba, SrgbaPixel};
@@ -3661,17 +3661,21 @@ impl<T: Texture2d> GlyphCache<T> {
         }
     }
 
-    pub fn cursor_sprite(&mut self, shape: Option<CursorShape>) -> anyhow::Result<Sprite<T>> {
+    pub fn cursor_sprite(
+        &mut self,
+        shape: Option<CursorShape>,
+        metrics: &RenderMetrics,
+    ) -> anyhow::Result<Sprite<T>> {
         if let Some(sprite) = self.cursor_glyphs.get(&shape) {
             return Ok(sprite.clone());
         }
 
         let mut buffer = Image::new(
-            self.metrics.cell_size.width as usize,
-            self.metrics.cell_size.height as usize,
+            metrics.cell_size.width as usize,
+            metrics.cell_size.height as usize,
         );
         let black = SrgbaPixel::rgba(0, 0, 0, 0);
-        let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
+        let cell_rect = Rect::new(Point::new(0, 0), metrics.cell_size);
         buffer.clear_rect(cell_rect, black);
 
         match shape {
@@ -3680,7 +3684,6 @@ impl<T: Texture2d> GlyphCache<T> {
                 buffer.clear_rect(cell_rect, SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff));
             }
             Some(CursorShape::BlinkingBlock | CursorShape::SteadyBlock) => {
-                let metrics = self.metrics.clone();
                 self.draw_polys(
                     &metrics,
                     &[Poly {
@@ -3698,7 +3701,6 @@ impl<T: Texture2d> GlyphCache<T> {
                 );
             }
             Some(CursorShape::BlinkingBar | CursorShape::SteadyBar) => {
-                let metrics = self.metrics.clone();
                 self.draw_polys(
                     &metrics,
                     &[Poly {
@@ -3713,7 +3715,6 @@ impl<T: Texture2d> GlyphCache<T> {
                 );
             }
             Some(CursorShape::BlinkingUnderline | CursorShape::SteadyUnderline) => {
-                let metrics = self.metrics.clone();
                 self.draw_polys(
                     &metrics,
                     &[Poly {
@@ -3734,8 +3735,12 @@ impl<T: Texture2d> GlyphCache<T> {
         Ok(sprite)
     }
 
-    pub fn block_sprite(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {
-        let metrics = match &block {
+    pub fn block_sprite(
+        &mut self,
+        render_metrics: &RenderMetrics,
+        key: SizedBlockKey,
+    ) -> anyhow::Result<Sprite<T>> {
+        let metrics = match &key.block {
             BlockKey::PolyWithCustomMetrics {
                 underline_height,
                 cell_size,
@@ -3748,7 +3753,7 @@ impl<T: Texture2d> GlyphCache<T> {
                 strike_row: 0,
                 cell_size: cell_size.clone(),
             },
-            _ => self.metrics.clone(),
+            _ => render_metrics.clone(),
         };
 
         let mut buffer = Image::new(
@@ -3761,7 +3766,7 @@ impl<T: Texture2d> GlyphCache<T> {
 
         buffer.clear_rect(cell_rect, black);
 
-        match block {
+        match key.block {
             BlockKey::Upper(num) => {
                 let lower = metrics.cell_size.height as f32 * (num as f32) / 8.;
                 let width = metrics.cell_size.width as usize;
@@ -3916,7 +3921,7 @@ impl<T: Texture2d> GlyphCache<T> {
         */
 
         let sprite = self.atlas.allocate(&buffer)?;
-        self.block_glyphs.insert(block, sprite.clone());
+        self.block_glyphs.insert(key, sprite.clone());
         Ok(sprite)
     }
 }

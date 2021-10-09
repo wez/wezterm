@@ -6,7 +6,7 @@ use ::window::{Point, Rect, Size};
 use anyhow::Context;
 use std::rc::Rc;
 use wezterm_font::units::*;
-use wezterm_font::FontConfiguration;
+use wezterm_font::{FontConfiguration, FontMetrics};
 
 #[derive(Copy, Clone, Debug)]
 pub struct RenderMetrics {
@@ -19,6 +19,30 @@ pub struct RenderMetrics {
 }
 
 impl RenderMetrics {
+    pub fn with_font_metrics(metrics: &FontMetrics) -> Self {
+        let (cell_height, cell_width) = (
+            metrics.cell_height.get().ceil() as usize,
+            metrics.cell_width.get().ceil() as usize,
+        );
+
+        let underline_height = metrics.underline_thickness.get().round().max(1.) as isize;
+
+        let descender_row =
+            (cell_height as f64 + (metrics.descender - metrics.underline_position).get()) as isize;
+        let descender_plus_two =
+            (2 * underline_height + descender_row).min(cell_height as isize - underline_height);
+        let strike_row = descender_row / 2;
+
+        Self {
+            descender: metrics.descender,
+            descender_row,
+            descender_plus_two,
+            strike_row,
+            cell_size: Size::new(cell_width as isize, cell_height as isize),
+            underline_height,
+        }
+    }
+
     pub fn new(fonts: &Rc<FontConfiguration>) -> anyhow::Result<Self> {
         let metrics = fonts
             .default_font_metrics()

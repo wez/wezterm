@@ -9,6 +9,7 @@ use crate::termwindow::{
     BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
     UIItem, UIItemType,
 };
+use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
 use ::window::glium;
@@ -21,6 +22,7 @@ use anyhow::anyhow;
 use config::{
     ConfigHandle, DimensionContext, HsbTransform, TabBarColors, TextStyle, VisualBellTarget,
 };
+use euclid::num::Zero;
 use mux::pane::Pane;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection};
@@ -31,7 +33,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
-use wezterm_font::units::IntPixelLength;
+use wezterm_font::units::{IntPixelLength, PixelLength};
 use wezterm_font::{ClearShapeCache, FontMetrics, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
@@ -80,6 +82,8 @@ pub struct RenderScreenLineOpenGLParams<'a> {
     /// rather than using monospace cell based positions.
     pub use_pixel_positioning: bool,
     pub pre_shaped: Option<&'a Vec<ShapedCluster<'a>>>,
+
+    pub render_metrics: RenderMetrics,
 }
 
 pub struct ComputeCellFgBgParams<'a> {
@@ -347,11 +351,14 @@ impl super::TermWindow {
         let sprite = gl_state
             .glyph_cache
             .borrow_mut()
-            .cached_block(BlockKey::PolyWithCustomMetrics {
-                polys,
-                underline_height,
-                cell_size,
-            })?
+            .cached_block(
+                BlockKey::PolyWithCustomMetrics {
+                    polys,
+                    underline_height,
+                    cell_size,
+                },
+                &self.render_metrics,
+            )?
             .texture_coords();
 
         let mut quad = layer.allocate()?;
@@ -509,6 +516,7 @@ impl super::TermWindow {
             style: Some(&self.config.window_frame.font),
             use_pixel_positioning: true,
             pre_shaped: None,
+            render_metrics: RenderMetrics::with_font_metrics(metrics),
         };
         let cell_clusters = item.title.cluster();
         let shaped = self.cluster_and_shape(&cell_clusters, &params)?;
@@ -689,6 +697,7 @@ impl super::TermWindow {
                 ))
             }
             TabBarItem::None => {
+                // log::info!("{:#?}", shaped);
                 // Right align to window width
                 let tab_bounding_rect: Rect = euclid::rect(
                     tab_bounding_rect.min_x(),
@@ -941,6 +950,7 @@ impl super::TermWindow {
                 font: None,
                 use_pixel_positioning: false,
                 pre_shaped: None,
+                render_metrics: self.render_metrics,
             },
             &mut layers,
         )?;
@@ -1290,6 +1300,7 @@ impl super::TermWindow {
                     style: None,
                     use_pixel_positioning: false,
                     pre_shaped: None,
+                    render_metrics: self.render_metrics,
                 },
                 &mut layers,
             )?;
@@ -1458,7 +1469,7 @@ impl super::TermWindow {
         let sprite = gl_state
             .glyph_cache
             .borrow_mut()
-            .cached_block(block)?
+            .cached_block(block, &self.render_metrics)?
             .texture_coords();
 
         let mut quad = quads.allocate()?;
@@ -1578,6 +1589,7 @@ impl super::TermWindow {
                         attrs.strikethrough(),
                         attrs.underline(),
                         attrs.overline(),
+                        &params.render_metrics,
                     )?
                     .texture_coords();
                 let bg_is_default = attrs.background() == ColorAttribute::Default;
@@ -1670,6 +1682,7 @@ impl super::TermWindow {
                 &gl_state,
                 params.line,
                 params.font.as_ref(),
+                &params.render_metrics,
             )?;
             let pixel_width = glyph_info
                 .iter()
@@ -1709,14 +1722,8 @@ impl super::TermWindow {
             Some(params.config.inactive_pane_hsb)
         };
 
-        let metrics = params.font.as_ref().map(|f| f.metrics());
-
-        let cell_width = metrics
-            .map(|m| m.cell_width.get() as isize)
-            .unwrap_or(self.render_metrics.cell_size.width) as f32;
-        let cell_height = metrics
-            .map(|m| m.cell_height.get() as isize)
-            .unwrap_or(self.render_metrics.cell_size.height) as f32;
+        let cell_width = params.render_metrics.cell_size.width as f32;
+        let cell_height = params.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
 
         let start = Instant::now();
@@ -1855,7 +1862,7 @@ impl super::TermWindow {
                 .texture
                 .as_ref()
                 .map(|t| {
-                    let width = self.render_metrics.cell_size.width as f32;
+                    let width = params.render_metrics.cell_size.width as f32;
                     if t.coords.size.width as f32 > width * 1.5 {
                         // Glyph is wider than the cell
                         true
@@ -1869,11 +1876,7 @@ impl super::TermWindow {
                 .unwrap_or(false);
                 */
 
-                let top = cell_height
-                    + (metrics
-                        .map(|m| m.descender)
-                        .unwrap_or(self.render_metrics.descender)
-                        .get() as f32)
+                let top = cell_height + params.render_metrics.descender.get() as f32
                     - (glyph.y_offset + glyph.bearing_y).get() as f32;
 
                 // We use this to remember the `left` offset value to use for glyph_idx > 0
@@ -2012,7 +2015,7 @@ impl super::TermWindow {
                                 gl_state
                                     .glyph_cache
                                     .borrow_mut()
-                                    .cursor_sprite(cursor_shape)?
+                                    .cursor_sprite(cursor_shape, &params.render_metrics)?
                                     .texture_coords(),
                             );
 
@@ -2070,7 +2073,7 @@ impl super::TermWindow {
                                         block,
                                         gl_state,
                                         &mut layers[0],
-                                        cell_idx,
+                                        pos_x,
                                         &params,
                                         hsv,
                                         glyph_color,
@@ -2119,7 +2122,7 @@ impl super::TermWindow {
                                     let slice = SpriteSlice {
                                         cell_idx: glyph_idx,
                                         num_cells: info.pos.num_cells as usize,
-                                        cell_width: self.render_metrics.cell_size.width as usize,
+                                        cell_width: params.render_metrics.cell_size.width as usize,
                                         scale: glyph.scale as f32,
                                         left_offset: left,
                                     };
@@ -2131,9 +2134,9 @@ impl super::TermWindow {
                                     let left = if glyph_idx == 0 { left } else { slice_left };
                                     let bottom =
                                         (pixel_rect.size.height as f32 * glyph.scale as f32) + top
-                                            - self.render_metrics.cell_size.height as f32;
+                                            - params.render_metrics.cell_size.height as f32;
                                     let right = pixel_rect.size.width as f32 + left
-                                        - self.render_metrics.cell_size.width as f32;
+                                        - params.render_metrics.cell_size.width as f32;
 
                                     // Save the `right` position; we'll use it for the `left` adjust for
                                     // the next slice that comprises this glyph.
@@ -2285,7 +2288,7 @@ impl super::TermWindow {
                             gl_state
                                 .glyph_cache
                                 .borrow_mut()
-                                .cursor_sprite(cursor_shape)?
+                                .cursor_sprite(cursor_shape, &params.render_metrics)?
                                 .texture_coords(),
                         );
                         quad.set_fg_color(cursor_border_color);
@@ -2312,7 +2315,7 @@ impl super::TermWindow {
         block: BlockKey,
         gl_state: &RenderState,
         quads: &mut MappedQuads,
-        cell_idx: usize,
+        pos_x: f32,
         params: &RenderScreenLineOpenGLParams,
         hsv: Option<config::HsbTransform>,
         glyph_color: LinearRgba,
@@ -2320,16 +2323,13 @@ impl super::TermWindow {
         let sprite = gl_state
             .glyph_cache
             .borrow_mut()
-            .cached_block(block)?
+            .cached_block(block, &params.render_metrics)?
             .texture_coords();
 
         let mut quad = quads.allocate()?;
-        let cell_width = self.render_metrics.cell_size.width as f32;
-        let cell_height = self.render_metrics.cell_size.height as f32;
+        let cell_width = params.render_metrics.cell_size.width as f32;
+        let cell_height = params.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
-        let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-            + params.left_pixel_x
-            + (cell_idx as f32 * cell_width);
         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
@@ -2358,7 +2358,7 @@ impl super::TermWindow {
             .render_metrics
             .cell_size
             .height
-            .max(self.render_metrics.cell_size.width) as usize;
+            .max(params.render_metrics.cell_size.width) as usize;
         let padding = if padding.is_power_of_two() {
             padding
         } else {
@@ -2396,8 +2396,8 @@ impl super::TermWindow {
         let texture_rect = TextureRect::new(origin, size);
 
         let mut quad = quads.allocate()?;
-        let cell_width = self.render_metrics.cell_size.width as f32;
-        let cell_height = self.render_metrics.cell_size.height as f32;
+        let cell_width = params.render_metrics.cell_size.width as f32;
+        let cell_height = params.render_metrics.cell_size.height as f32;
         let pos_y = (self.dimensions.pixel_height as f32 / -2.) + params.top_pixel_y;
 
         let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -2580,17 +2580,47 @@ impl super::TermWindow {
         style: &TextStyle,
         glyph_cache: &mut GlyphCache<SrgbTexture2d>,
         infos: &[GlyphInfo],
-        font: Option<&Rc<LoadedFont>>,
+        font: &Rc<LoadedFont>,
+        metrics: &RenderMetrics,
     ) -> anyhow::Result<Vec<Rc<CachedGlyph<SrgbTexture2d>>>> {
         let mut glyphs = Vec::with_capacity(infos.len());
         for info in infos {
             let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
+
+            if self.config.custom_block_glyphs {
+                if let Some(cell) = line.cells().get(cell_idx) {
+                    if BlockKey::from_cell(cell).is_some() {
+                        // Don't bother rendering the glyph from the font, as it can
+                        // have incorrect advance metrics.
+                        // Instead, just use our pixel-perfect cell metrics
+                        glyphs.push(Rc::new(CachedGlyph {
+                            brightness_adjust: 1.0,
+                            has_color: false,
+                            texture: None,
+                            x_advance: PixelLength::new(metrics.cell_size.width as f64),
+                            x_offset: PixelLength::zero(),
+                            y_offset: PixelLength::zero(),
+                            bearing_x: PixelLength::zero(),
+                            bearing_y: PixelLength::zero(),
+                            scale: 1.0,
+                        }));
+                        continue;
+                    }
+                }
+            }
+
             let followed_by_space = match line.cells().get(cell_idx + 1) {
                 Some(cell) => cell.str() == " ",
                 None => false,
             };
 
-            glyphs.push(glyph_cache.cached_glyph(info, &style, followed_by_space, font)?);
+            glyphs.push(glyph_cache.cached_glyph(
+                info,
+                &style,
+                followed_by_space,
+                font,
+                metrics,
+            )?);
         }
         Ok(glyphs)
     }
@@ -2603,6 +2633,7 @@ impl super::TermWindow {
         gl_state: &RenderState,
         line: &Line,
         font: Option<&Rc<LoadedFont>>,
+        metrics: &RenderMetrics,
     ) -> anyhow::Result<Rc<Vec<ShapedInfo<SrgbTexture2d>>>> {
         let shape_resolve_start = Instant::now();
         let key = BorrowedShapeCacheKey {
@@ -2631,14 +2662,10 @@ impl super::TermWindow {
                             &style,
                             &mut gl_state.glyph_cache.borrow_mut(),
                             &info,
-                            Some(&font),
+                            &font,
+                            metrics,
                         )?;
-                        let shaped = Rc::new(ShapedInfo::process(
-                            &self.render_metrics,
-                            cluster,
-                            &info,
-                            &glyphs,
-                        ));
+                        let shaped = Rc::new(ShapedInfo::process(metrics, cluster, &info, &glyphs));
 
                         self.shape_cache
                             .borrow_mut()

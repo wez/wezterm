@@ -118,8 +118,7 @@ impl RenderState {
         mut atlas_size: usize,
     ) -> anyhow::Result<Self> {
         loop {
-            let glyph_cache =
-                RefCell::new(GlyphCache::new_gl(&context, fonts, atlas_size, metrics)?);
+            let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, atlas_size)?);
             let result = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics);
             match result {
                 Ok(util_sprites) => {
@@ -291,7 +290,7 @@ impl RenderState {
         size: Option<usize>,
     ) -> anyhow::Result<()> {
         let size = size.unwrap_or_else(|| self.glyph_cache.borrow().atlas.size());
-        let mut new_glyph_cache = GlyphCache::new_gl(&self.context, fonts, size, metrics)?;
+        let mut new_glyph_cache = GlyphCache::new_gl(&self.context, fonts, size)?;
         self.util_sprites = UtilSprites::new(&mut new_glyph_cache, metrics)?;
 
         let mut glyph_cache = self.glyph_cache.borrow_mut();

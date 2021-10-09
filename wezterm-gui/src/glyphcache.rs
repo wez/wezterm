@@ -27,12 +27,40 @@ use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont};
 use wezterm_term::Underline;
 
+pub fn rc_to_usize<T>(rc: &Rc<T>) -> usize {
+    Rc::as_ptr(rc) as usize
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CellMetricKey {
+    pub pixel_width: u16,
+    pub pixel_height: u16,
+}
+
+impl From<&RenderMetrics> for CellMetricKey {
+    fn from(metrics: &RenderMetrics) -> CellMetricKey {
+        CellMetricKey {
+            pixel_width: metrics.cell_size.width as u16,
+            pixel_height: metrics.cell_size.height as u16,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SizedBlockKey {
+    pub block: BlockKey,
+    pub size: CellMetricKey,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GlyphKey {
     pub font_idx: usize,
     pub glyph_pos: u32,
     pub style: TextStyle,
     pub followed_by_space: bool,
+    pub metric: CellMetricKey,
+    /// as produced by rc_to_usize
+    pub font_ptr: usize,
 }
 
 /// We'd like to avoid allocating when resolving from the cache
@@ -46,6 +74,9 @@ pub struct BorrowedGlyphKey<'a> {
     pub glyph_pos: u32,
     pub style: &'a TextStyle,
     pub followed_by_space: bool,
+    pub metric: CellMetricKey,
+    /// as produced by rc_to_usize
+    pub font_ptr: usize,
 }
 
 impl<'a> BorrowedGlyphKey<'a> {
@@ -55,6 +86,8 @@ impl<'a> BorrowedGlyphKey<'a> {
             glyph_pos: self.glyph_pos,
             style: self.style.clone(),
             followed_by_space: self.followed_by_space,
+            metric: self.metric,
+            font_ptr: self.font_ptr,
         }
     }
 }
@@ -70,6 +103,8 @@ impl GlyphKeyTrait for GlyphKey {
             glyph_pos: self.glyph_pos,
             style: &self.style,
             followed_by_space: self.followed_by_space,
+            metric: self.metric,
+            font_ptr: self.font_ptr,
         }
     }
 }
@@ -134,6 +169,7 @@ struct LineKey {
     strike_through: bool,
     underline: Underline,
     overline: bool,
+    size: CellMetricKey,
 }
 
 /// A helper struct to implement BitmapImage for ImageDataType while
@@ -219,19 +255,14 @@ pub struct GlyphCache<T: Texture2d> {
     pub image_cache: LruCache<usize, DecodedImage>,
     frame_cache: HashMap<[u8; 32], Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
-    pub block_glyphs: HashMap<BlockKey, Sprite<T>>,
+    pub block_glyphs: HashMap<SizedBlockKey, Sprite<T>>,
     pub cursor_glyphs: HashMap<Option<CursorShape>, Sprite<T>>,
     pub color: HashMap<(RgbColor, NotNan<f32>), Sprite<T>>,
-    pub metrics: RenderMetrics,
 }
 
 #[cfg(test)]
 impl GlyphCache<ImageTexture> {
-    pub fn new_in_memory(
-        fonts: &Rc<FontConfiguration>,
-        size: usize,
-        metrics: &RenderMetrics,
-    ) -> anyhow::Result<Self> {
+    pub fn new_in_memory(fonts: &Rc<FontConfiguration>, size: usize) -> anyhow::Result<Self> {
         let surface = Rc::new(ImageTexture::new(size, size));
         let atlas = Atlas::new(&surface).expect("failed to create new texture atlas");
 
@@ -245,7 +276,6 @@ impl GlyphCache<ImageTexture> {
             ),
             frame_cache: HashMap::new(),
             atlas,
-            metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
             block_glyphs: HashMap::new(),
             cursor_glyphs: HashMap::new(),
@@ -259,7 +289,6 @@ impl GlyphCache<SrgbTexture2d> {
         backend: &Rc<GliumContext>,
         fonts: &Rc<FontConfiguration>,
         size: usize,
-        metrics: &RenderMetrics,
     ) -> anyhow::Result<Self> {
         let caps = backend.get_capabilities();
         // You'd hope that allocating a texture would automatically
@@ -298,7 +327,6 @@ impl GlyphCache<SrgbTexture2d> {
             ),
             frame_cache: HashMap::new(),
             atlas,
-            metrics: metrics.clone(),
             line_glyphs: HashMap::new(),
             block_glyphs: HashMap::new(),
             cursor_glyphs: HashMap::new(),
@@ -315,13 +343,16 @@ impl<T: Texture2d> GlyphCache<T> {
         info: &GlyphInfo,
         style: &TextStyle,
         followed_by_space: bool,
-        font: Option<&Rc<LoadedFont>>,
+        font: &Rc<LoadedFont>,
+        metrics: &RenderMetrics,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let key = BorrowedGlyphKey {
             font_idx: info.font_idx,
             glyph_pos: info.glyph_pos,
             style,
             followed_by_space,
+            metric: metrics.into(),
+            font_ptr: rc_to_usize(font),
         };
 
         if let Some(entry) = self.glyph_cache.get(&key as &dyn GlyphKeyTrait) {
@@ -330,7 +361,7 @@ impl<T: Texture2d> GlyphCache<T> {
         }
         metrics::histogram!("glyph_cache.glyph_cache.miss.rate", 1.);
 
-        let glyph = match self.load_glyph(info, style, font, followed_by_space) {
+        let glyph = match self.load_glyph(info, font, followed_by_space) {
             Ok(g) => g,
             Err(err) => {
                 if err
@@ -374,8 +405,7 @@ impl<T: Texture2d> GlyphCache<T> {
     fn load_glyph(
         &mut self,
         info: &GlyphInfo,
-        style: &TextStyle,
-        font: Option<&Rc<LoadedFont>>,
+        font: &Rc<LoadedFont>,
         followed_by_space: bool,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let base_metrics;
@@ -384,10 +414,6 @@ impl<T: Texture2d> GlyphCache<T> {
         let glyph;
 
         {
-            let font = match font {
-                Some(f) => Rc::clone(f),
-                None => self.fonts.resolve_font(style)?,
-            };
             base_metrics = font.metrics();
             glyph = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
 
@@ -660,33 +686,41 @@ impl<T: Texture2d> GlyphCache<T> {
         Ok(sprite)
     }
 
-    pub fn cached_block(&mut self, block: BlockKey) -> anyhow::Result<Sprite<T>> {
-        if let Some(s) = self.block_glyphs.get(&block) {
+    pub fn cached_block(
+        &mut self,
+        block: BlockKey,
+        metrics: &RenderMetrics,
+    ) -> anyhow::Result<Sprite<T>> {
+        let key = SizedBlockKey {
+            block,
+            size: metrics.into(),
+        };
+        if let Some(s) = self.block_glyphs.get(&key) {
             return Ok(s.clone());
         }
-        self.block_sprite(block)
+        self.block_sprite(metrics, key)
     }
 
-    fn line_sprite(&mut self, key: LineKey) -> anyhow::Result<Sprite<T>> {
+    fn line_sprite(&mut self, key: LineKey, metrics: &RenderMetrics) -> anyhow::Result<Sprite<T>> {
         let mut buffer = Image::new(
-            self.metrics.cell_size.width as usize,
-            self.metrics.cell_size.height as usize,
+            metrics.cell_size.width as usize,
+            metrics.cell_size.height as usize,
         );
         let black = SrgbaPixel::rgba(0, 0, 0, 0);
         let white = SrgbaPixel::rgba(0xff, 0xff, 0xff, 0xff);
 
-        let cell_rect = Rect::new(Point::new(0, 0), self.metrics.cell_size);
+        let cell_rect = Rect::new(Point::new(0, 0), metrics.cell_size);
 
         let draw_single = |buffer: &mut Image| {
-            for row in 0..self.metrics.underline_height {
+            for row in 0..metrics.underline_height {
                 buffer.draw_line(
                     Point::new(
                         cell_rect.origin.x,
-                        cell_rect.origin.y + self.metrics.descender_row + row,
+                        cell_rect.origin.y + metrics.descender_row + row,
                     ),
                     Point::new(
-                        cell_rect.origin.x + self.metrics.cell_size.width,
-                        cell_rect.origin.y + self.metrics.descender_row + row,
+                        cell_rect.origin.x + metrics.cell_size.width,
+                        cell_rect.origin.y + metrics.descender_row + row,
                     ),
                     white,
                 );
@@ -694,17 +728,17 @@ impl<T: Texture2d> GlyphCache<T> {
         };
 
         let draw_dotted = |buffer: &mut Image| {
-            for row in 0..self.metrics.underline_height {
-                let y = (cell_rect.origin.y + self.metrics.descender_row + row) as usize;
-                if y >= self.metrics.cell_size.height as usize {
+            for row in 0..metrics.underline_height {
+                let y = (cell_rect.origin.y + metrics.descender_row + row) as usize;
+                if y >= metrics.cell_size.height as usize {
                     break;
                 }
 
                 let mut color = white;
-                let segment_length = (self.metrics.cell_size.width / 4) as usize;
+                let segment_length = (metrics.cell_size.width / 4) as usize;
                 let mut count = segment_length;
                 let range =
-                    buffer.horizontal_pixel_range_mut(0, self.metrics.cell_size.width as usize, y);
+                    buffer.horizontal_pixel_range_mut(0, metrics.cell_size.width as usize, y);
                 for c in range.iter_mut() {
                     *c = color.as_srgba32();
                     count -= 1;
@@ -717,16 +751,16 @@ impl<T: Texture2d> GlyphCache<T> {
         };
 
         let draw_dashed = |buffer: &mut Image| {
-            for row in 0..self.metrics.underline_height {
-                let y = (cell_rect.origin.y + self.metrics.descender_row + row) as usize;
-                if y >= self.metrics.cell_size.height as usize {
+            for row in 0..metrics.underline_height {
+                let y = (cell_rect.origin.y + metrics.descender_row + row) as usize;
+                if y >= metrics.cell_size.height as usize {
                     break;
                 }
                 let mut color = white;
-                let third = (self.metrics.cell_size.width / 3) as usize + 1;
+                let third = (metrics.cell_size.width / 3) as usize + 1;
                 let mut count = third;
                 let range =
-                    buffer.horizontal_pixel_range_mut(0, self.metrics.cell_size.width as usize, y);
+                    buffer.horizontal_pixel_range_mut(0, metrics.cell_size.width as usize, y);
                 for c in range.iter_mut() {
                     *c = color.as_srgba32();
                     count -= 1;
@@ -739,16 +773,15 @@ impl<T: Texture2d> GlyphCache<T> {
         };
 
         let draw_curly = |buffer: &mut Image| {
-            let max_y = self.metrics.cell_size.height as usize - 1;
-            let x_factor = (2. * std::f32::consts::PI) / self.metrics.cell_size.width as f32;
+            let max_y = metrics.cell_size.height as usize - 1;
+            let x_factor = (2. * std::f32::consts::PI) / metrics.cell_size.width as f32;
 
             // Have the wave go from the descender to the bottom of the cell
             let wave_height =
-                self.metrics.cell_size.height - (cell_rect.origin.y + self.metrics.descender_row);
+                metrics.cell_size.height - (cell_rect.origin.y + metrics.descender_row);
 
             let half_height = (wave_height as f32 / 4.).max(1.);
-            let y =
-                (cell_rect.origin.y + self.metrics.descender_row) as usize - half_height as usize;
+            let y = (cell_rect.origin.y + metrics.descender_row) as usize - half_height as usize;
 
             fn add(x: usize, y: usize, val: u8, max_y: usize, buffer: &mut Image) {
                 let y = y.min(max_y);
@@ -758,12 +791,12 @@ impl<T: Texture2d> GlyphCache<T> {
                 *pixel = SrgbaPixel::rgba(value, value, value, value).as_srgba32();
             }
 
-            for x in 0..self.metrics.cell_size.width as usize {
+            for x in 0..metrics.cell_size.width as usize {
                 let vertical = -half_height * (x as f32 * x_factor).sin() + half_height;
                 let v1 = vertical.floor();
                 let v2 = vertical.ceil();
 
-                for row in 0..self.metrics.underline_height as usize {
+                for row in 0..metrics.underline_height as usize {
                     let value = (255. * (vertical - v1).abs()) as u8;
                     add(x, row + y + v1 as usize, 255 - value, max_y, buffer);
                     add(x, row + y + v2 as usize, value, max_y, buffer);
@@ -772,16 +805,15 @@ impl<T: Texture2d> GlyphCache<T> {
         };
 
         let draw_double = |buffer: &mut Image| {
-            let first_line = self
-                .metrics
+            let first_line = metrics
                 .descender_row
-                .min(self.metrics.descender_plus_two - 2 * self.metrics.underline_height);
+                .min(metrics.descender_plus_two - 2 * metrics.underline_height);
 
-            for row in 0..self.metrics.underline_height {
+            for row in 0..metrics.underline_height {
                 buffer.draw_line(
                     Point::new(cell_rect.origin.x, cell_rect.origin.y + first_line + row),
                     Point::new(
-                        cell_rect.origin.x + self.metrics.cell_size.width,
+                        cell_rect.origin.x + metrics.cell_size.width,
                         cell_rect.origin.y + first_line + row,
                     ),
                     white,
@@ -789,11 +821,11 @@ impl<T: Texture2d> GlyphCache<T> {
                 buffer.draw_line(
                     Point::new(
                         cell_rect.origin.x,
-                        cell_rect.origin.y + self.metrics.descender_plus_two + row,
+                        cell_rect.origin.y + metrics.descender_plus_two + row,
                     ),
                     Point::new(
-                        cell_rect.origin.x + self.metrics.cell_size.width,
-                        cell_rect.origin.y + self.metrics.descender_plus_two + row,
+                        cell_rect.origin.x + metrics.cell_size.width,
+                        cell_rect.origin.y + metrics.descender_plus_two + row,
                     ),
                     white,
                 );
@@ -801,15 +833,15 @@ impl<T: Texture2d> GlyphCache<T> {
         };
 
         let draw_strike = |buffer: &mut Image| {
-            for row in 0..self.metrics.underline_height {
+            for row in 0..metrics.underline_height {
                 buffer.draw_line(
                     Point::new(
                         cell_rect.origin.x,
-                        cell_rect.origin.y + self.metrics.strike_row + row,
+                        cell_rect.origin.y + metrics.strike_row + row,
                     ),
                     Point::new(
-                        cell_rect.origin.x + self.metrics.cell_size.width,
-                        cell_rect.origin.y + self.metrics.strike_row + row,
+                        cell_rect.origin.x + metrics.cell_size.width,
+                        cell_rect.origin.y + metrics.strike_row + row,
                     ),
                     white,
                 );
@@ -817,11 +849,11 @@ impl<T: Texture2d> GlyphCache<T> {
         };
 
         let draw_overline = |buffer: &mut Image| {
-            for row in 0..self.metrics.underline_height {
+            for row in 0..metrics.underline_height {
                 buffer.draw_line(
                     Point::new(cell_rect.origin.x, cell_rect.origin.y + row),
                     Point::new(
-                        cell_rect.origin.x + self.metrics.cell_size.width,
+                        cell_rect.origin.x + metrics.cell_size.width,
                         cell_rect.origin.y + row,
                     ),
                     white,
@@ -858,6 +890,7 @@ impl<T: Texture2d> GlyphCache<T> {
         is_strike_through: bool,
         underline: Underline,
         overline: bool,
+        metrics: &RenderMetrics,
     ) -> anyhow::Result<Sprite<T>> {
         let effective_underline = match (is_highlited_hyperlink, underline) {
             (true, Underline::None) => Underline::Single,
@@ -870,12 +903,13 @@ impl<T: Texture2d> GlyphCache<T> {
             strike_through: is_strike_through,
             overline,
             underline: effective_underline,
+            size: metrics.into(),
         };
 
         if let Some(s) = self.line_glyphs.get(&key) {
             return Ok(s.clone());
         }
 
-        self.line_sprite(key)
+        self.line_sprite(key, metrics)
     }
 }
