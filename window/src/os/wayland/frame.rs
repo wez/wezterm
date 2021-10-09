@@ -21,6 +21,7 @@ use wayland_client::protocol::{
 };
 use wayland_client::{Attached, DispatchData, Main};
 use wezterm_font::{FontConfiguration, FontMetrics, GlyphInfo, RasterizedGlyph};
+use wezterm_input_types::WindowDecorations;
 
 fn color_to_paint(c: RgbColor) -> Paint<'static> {
     let mut paint = Paint::default();
@@ -507,6 +508,18 @@ impl ConceptFrame {
 
         Some(())
     }
+
+    fn showing_title_bar(&self, inner: &Inner) -> bool {
+        if self.hidden || inner.fullscreened {
+            false
+        } else {
+            self.config
+                .config
+                .as_ref()
+                .map(|cfg| cfg.window_decorations.contains(WindowDecorations::TITLE))
+                .unwrap_or(true)
+        }
+    }
 }
 
 impl Frame for ConceptFrame {
@@ -778,6 +791,8 @@ impl Frame for ConceptFrame {
         let scaled_header_height = HEADER_SIZE * header_scale;
         let scaled_header_width = width * header_scale;
 
+        let showing_title_bar = self.showing_title_bar(&*inner);
+
         {
             // grab the current pool
             let pool = match self.pools.pool() {
@@ -797,8 +812,8 @@ impl Frame for ConceptFrame {
             pool.resize(4 * pxcount as usize)
                 .expect("I/O Error while redrawing the borders");
 
-            // draw the header bar
-            {
+            if showing_title_bar {
+                // draw the header bar
                 let mmap = pool.mmap();
                 {
                     let colors = self.config.colors();
@@ -900,36 +915,36 @@ impl Frame for ConceptFrame {
                 if let Err(err) = mmap.flush() {
                     log::error!("Failed to flush frame memory map: {}", err);
                 }
-            }
 
-            // Create the buffers
-            // -> head-subsurface
-            let buffer = pool.buffer(
-                0,
-                scaled_header_width as i32,
-                scaled_header_height as i32,
-                4 * scaled_header_width as i32,
-                wl_shm::Format::Argb8888,
-            );
-            parts[HEAD]
-                .subsurface
-                .set_position(0, -(HEADER_SIZE as i32));
-            parts[HEAD].surface.attach(Some(&buffer), 0, 0);
-            if self.surface_version >= 4 {
-                parts[HEAD].surface.damage_buffer(
-                    0,
+                // Create the buffers
+                // -> head-subsurface
+                let buffer = pool.buffer(
                     0,
                     scaled_header_width as i32,
                     scaled_header_height as i32,
+                    4 * scaled_header_width as i32,
+                    wl_shm::Format::Argb8888,
                 );
-            } else {
-                // surface is old and does not support damage_buffer, so we damage
-                // in surface coordinates and hope it is not rescaled
                 parts[HEAD]
-                    .surface
-                    .damage(0, 0, width as i32, HEADER_SIZE as i32);
+                    .subsurface
+                    .set_position(0, -(HEADER_SIZE as i32));
+                parts[HEAD].surface.attach(Some(&buffer), 0, 0);
+                if self.surface_version >= 4 {
+                    parts[HEAD].surface.damage_buffer(
+                        0,
+                        0,
+                        scaled_header_width as i32,
+                        scaled_header_height as i32,
+                    );
+                } else {
+                    // surface is old and does not support damage_buffer, so we damage
+                    // in surface coordinates and hope it is not rescaled
+                    parts[HEAD]
+                        .surface
+                        .damage(0, 0, width as i32, HEADER_SIZE as i32);
+                }
+                parts[HEAD].surface.commit();
             }
-            parts[HEAD].surface.commit();
 
             // -> top-subsurface
             let buffer = pool.buffer(
@@ -941,7 +956,11 @@ impl Frame for ConceptFrame {
             );
             parts[TOP].subsurface.set_position(
                 -(BORDER_SIZE as i32),
-                -(HEADER_SIZE as i32 + BORDER_SIZE as i32),
+                -(if showing_title_bar {
+                    HEADER_SIZE as i32
+                } else {
+                    0
+                } + BORDER_SIZE as i32),
             );
             parts[TOP].surface.attach(Some(&buffer), 0, 0);
             if self.surface_version >= 4 {
@@ -1056,7 +1075,7 @@ impl Frame for ConceptFrame {
     }
 
     fn subtract_borders(&self, width: i32, height: i32) -> (i32, i32) {
-        if self.hidden || self.inner.borrow().fullscreened {
+        if !self.showing_title_bar(&*self.inner.borrow()) {
             (width, height)
         } else {
             (width, height - HEADER_SIZE as i32)
@@ -1064,7 +1083,7 @@ impl Frame for ConceptFrame {
     }
 
     fn add_borders(&self, width: i32, height: i32) -> (i32, i32) {
-        if self.hidden || self.inner.borrow().fullscreened {
+        if !self.showing_title_bar(&*self.inner.borrow()) {
             (width, height)
         } else {
             (width, height + HEADER_SIZE as i32)
@@ -1072,7 +1091,7 @@ impl Frame for ConceptFrame {
     }
 
     fn location(&self) -> (i32, i32) {
-        if self.hidden || self.inner.borrow().fullscreened {
+        if !self.showing_title_bar(&*self.inner.borrow()) {
             (0, 0)
         } else {
             (0, -(HEADER_SIZE as i32))
@@ -1081,6 +1100,10 @@ impl Frame for ConceptFrame {
 
     fn set_config(&mut self, config: ConceptConfig) {
         self.config = config;
+        // Refresh parts to reflect window_decorations
+        self.inner.borrow_mut().parts.clear();
+        self.set_hidden(self.hidden);
+        self.redraw();
     }
 
     fn set_title(&mut self, title: String) {

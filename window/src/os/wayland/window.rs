@@ -29,7 +29,7 @@ use toolkit::get_surface_scale_factor;
 use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_pointer::ButtonState;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
-use toolkit::window::{Event as SCTKWindowEvent, State};
+use toolkit::window::{Decorations, Event as SCTKWindowEvent, State};
 use wayland_client::protocol::wl_callback::WlCallback;
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_client::protocol::wl_keyboard::{Event as WlKeyboardEvent, KeyState};
@@ -125,6 +125,8 @@ pub struct WaylandWindowInner {
     pending_first_configure: Option<async_channel::Sender<()>>,
     frame_callback: Option<Main<WlCallback>>,
     invalidated: bool,
+    font_config: Rc<FontConfiguration>,
+    config: Option<ConfigHandle>,
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
     // libraries will segfault on shutdown
@@ -289,8 +291,24 @@ impl WaylandWindow {
         window.set_app_id(class_name.to_string());
         window.set_resizable(true);
         window.set_title(name.to_string());
+        let decorations = config
+            .as_ref()
+            .map(|c| c.window_decorations)
+            .unwrap_or(WindowDecorations::default());
+
+        window.set_decorate(if decorations == WindowDecorations::NONE {
+            Decorations::None
+        } else if decorations == WindowDecorations::default() {
+            Decorations::FollowServer
+        } else {
+            // SCTK/Wayland don't allow more nuance than "decorations are hidden",
+            // so if we have a mixture of things, then we need to force our
+            // client side decoration rendering.
+            Decorations::ClientSide
+        });
+
         window.set_frame_config(ConceptConfig {
-            font_config: Some(font_config),
+            font_config: Some(Rc::clone(&font_config)),
             config: config.cloned(),
             ..Default::default()
         });
@@ -304,6 +322,8 @@ impl WaylandWindow {
 
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             window_id,
+            font_config,
+            config: config.cloned(),
             key_repeat: None,
             copy_and_paste,
             events: WindowEventSender::new(event_handler),
@@ -769,6 +789,14 @@ impl WindowOps for WaylandWindow {
         });
     }
 
+    fn config_did_change(&self, config: &ConfigHandle) {
+        let config = config.clone();
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            inner.config_did_change(&config);
+            Ok(())
+        });
+    }
+
     fn show(&self) {
         WaylandConnection::with_window_inner(self.0, |inner| {
             inner.show();
@@ -1035,5 +1063,20 @@ impl WaylandWindowInner {
 
     fn set_resize_increments(&mut self, x: u16, y: u16) {
         self.resize_increments = Some((x, y));
+    }
+
+    fn config_did_change(&mut self, config: &ConfigHandle) {
+        self.config.replace(config.clone());
+        if let Some(window) = self.window.as_mut() {
+            window.set_frame_config(ConceptConfig {
+                font_config: Some(Rc::clone(&self.font_config)),
+                config: Some(config.clone()),
+                ..Default::default()
+            });
+            // I tried re-applying the config to window.set_decorate
+            // here, but it crashed weston.  I figure that users
+            // would prefer to manually close wezterm to change
+            // this setting!
+        }
     }
 }
