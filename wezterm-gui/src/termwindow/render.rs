@@ -557,8 +557,8 @@ impl super::TermWindow {
 
                 self.tab_background(
                     &mut layers[1],
-                    metrics.cell_width.get() as isize / 3,
-                    metrics.cell_height.get() as isize / 3,
+                    metrics.cell_width.get() as isize / 2,
+                    metrics.cell_height.get() as isize / 2,
                     tab_bounding_rect,
                     rgbcolor_to_window_color(c.bg_color),
                 )?;
