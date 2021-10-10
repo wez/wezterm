@@ -175,11 +175,6 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    /// Returns the size of the file, in bytes (or zero if unknown)
-    pub fn len(self) -> u64 {
-        self.size.unwrap_or(0)
-    }
-
     /// Returns true if metadata is for a directory
     pub fn is_dir(self) -> bool {
         self.ty.is_dir()
@@ -193,13 +188,6 @@ impl Metadata {
     /// Returns true if metadata is for a symlink
     pub fn is_symlink(self) -> bool {
         self.ty.is_symlink()
-    }
-
-    /// Returns true if metadata permissions indicate file is readonly
-    pub fn is_readonly(self) -> bool {
-        self.permissions
-            .map(FilePermissions::is_readonly)
-            .unwrap_or_default()
     }
 }
 
