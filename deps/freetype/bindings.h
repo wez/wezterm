@@ -8,3 +8,4 @@
 #include <freetype/ftsynth.h>
 #include <freetype/ftglyph.h>
 #include <freetype/ftsnames.h>
+#include <freetype/ttnameid.h>
