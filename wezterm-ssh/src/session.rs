@@ -1038,8 +1038,7 @@ impl SessionInner {
             sess.set_blocking(blocking);
         }
 
-        // NOTE: sftp should have been replaced with Some(sftp) from above
-        Ok(self.sftp.as_mut().unwrap())
+        Ok(self.sftp.as_mut().expect("sftp should have been set above"))
     }
 }
 
