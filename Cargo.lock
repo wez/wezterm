@@ -5367,6 +5367,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "assert_fs",
+ "async_ossl",
  "base64",
  "bitflags",
  "camino",
