@@ -106,6 +106,7 @@ pub struct Names {
     pub family: String,
     pub sub_family: Option<String>,
     pub postscript_name: Option<String>,
+    pub aliases: Vec<String>,
 }
 
 impl Names {
@@ -120,11 +121,14 @@ impl Names {
             format!("{} {}", family, sub_family)
         };
 
+        let aliases = face.get_sfnt_names();
+
         Names {
             full_name,
             family,
             sub_family: Some(sub_family),
             postscript_name: Some(postscript_name),
+            aliases,
         }
     }
 }
@@ -263,7 +267,16 @@ impl ParsedFont {
         if attr.family == self.names.family {
             return true;
         }
-        self.matches_full_or_ps_name(attr)
+        self.matches_full_or_ps_name(attr) || self.matches_alias(attr)
+    }
+
+    pub fn matches_alias(&self, attr: &FontAttributes) -> bool {
+        for a in &self.names.aliases {
+            if *a == attr.family {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn matches_full_or_ps_name(&self, attr: &FontAttributes) -> bool {

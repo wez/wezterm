@@ -182,6 +182,68 @@ impl Face {
         }
     }
 
+    pub fn get_sfnt_names(&self) -> Vec<String> {
+        let num_names = unsafe { FT_Get_Sfnt_Name_Count(self.face) };
+
+        let mut names = vec![];
+
+        let mut sfnt_name = FT_SfntName {
+            platform_id: 0,
+            encoding_id: 0,
+            language_id: 0,
+            name_id: 0,
+            string: std::ptr::null_mut(),
+            string_len: 0,
+        };
+
+        for i in 0..num_names {
+            if unsafe { FT_Get_Sfnt_Name(self.face, i, &mut sfnt_name) } != 0 {
+                continue;
+            }
+
+            if sfnt_name.string.is_null() {
+                continue;
+            }
+
+            if sfnt_name.name_id != TT_NAME_ID_FONT_FAMILY as u16
+                && sfnt_name.name_id != TT_NAME_ID_FULL_NAME as u16
+            {
+                continue;
+            }
+
+            let is_unicode = sfnt_name.platform_id == TT_PLATFORM_APPLE_UNICODE as u16
+                || sfnt_name.encoding_id == TT_MS_ID_SYMBOL_CS as u16
+                || sfnt_name.encoding_id == TT_MS_ID_UNICODE_CS as u16;
+
+            if !is_unicode {
+                continue;
+            }
+            let utf16 = unsafe {
+                std::slice::from_raw_parts(
+                    sfnt_name.string as *const u16,
+                    sfnt_name.string_len as usize / 2,
+                )
+            };
+
+            match String::from_utf16(utf16) {
+                Ok(name) => names.push(name),
+                Err(err) => {
+                    log::trace!(
+                        "Failed to convert: {:#}, string_len={} (bytes), {:x?} -> {}",
+                        err,
+                        sfnt_name.string_len,
+                        utf16,
+                        String::from_utf16_lossy(utf16)
+                    );
+                }
+            }
+        }
+
+        names.sort();
+        names.dedup();
+        names
+    }
+
     pub fn get_os2_table(&self) -> Option<&TT_OS2> {
         unsafe {
             let os2: *const TT_OS2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as _;
