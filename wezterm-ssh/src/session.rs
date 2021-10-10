@@ -125,7 +125,11 @@ impl SessionInner {
             .get("user")
             .ok_or_else(|| anyhow!("username not present in config"))?
             .to_string();
-        let port = self.config.get("port").unwrap().parse::<u16>()?;
+        let port = self
+            .config
+            .get("port")
+            .ok_or_else(|| anyhow!("port is always set in config loader"))?
+            .parse::<u16>()?;
         let remote_address = format!("{}:{}", hostname, port);
 
         let tcp: TcpStream = if let Some(proxy_command) =
