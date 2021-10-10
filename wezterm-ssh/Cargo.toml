@@ -20,8 +20,7 @@ log = "0.4"
 portable-pty = { version="0.5", path = "../pty" }
 regex = "1"
 smol = "1.2"
-ssh2 = {version="0.9", features=["openssl-on-win32"]}
-#ssh2 = {version="0.9"}
+ssh2 = {version="0.9.3", features=["openssl-on-win32"]}
 
 # Not used directly, but is used to centralize the openssl vendor feature selection
 async_ossl = { path = "../async_ossl" }

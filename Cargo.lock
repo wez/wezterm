@@ -2225,8 +2225,9 @@ dependencies = [
 
 [[package]]
 name = "libssh2-sys"
-version = "0.2.21"
-source = "git+https://github.com/wez/ssh2-rs.git?branch=win32ssl#c65067040c97a0cf7f96c69d6fc87764a32c34ae"
+version = "0.2.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b094a36eb4b8b8c8a7b4b8ae43b2944502be3e59cd87687595cf6b0a71b3f4ca"
 dependencies = [
  "cc",
  "libc",
@@ -4167,8 +4168,9 @@ dependencies = [
 
 [[package]]
 name = "ssh2"
-version = "0.9.1"
-source = "git+https://github.com/wez/ssh2-rs.git?branch=win32ssl#c65067040c97a0cf7f96c69d6fc87764a32c34ae"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "269343e64430067a14937ae0e3c4ec604c178fb896dde0964b1acd22b3e2eeb1"
 dependencies = [
  "bitflags",
  "libc",
