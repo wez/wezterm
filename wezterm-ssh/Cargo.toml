@@ -29,7 +29,7 @@ ssh2 = {version="0.9.3", features=["openssl-on-win32"]}
 thiserror = "1.0"
 
 # Not used directly, but is used to centralize the openssl vendor feature selection
-async_ossl = { path = "../async_ossl" }
+# async_ossl = { path = "../async_ossl" }
 
 [dev-dependencies]
 assert_fs = "1.0.4"
@@ -42,5 +42,5 @@ rstest = "0.11"
 shell-words = "1.0"
 smol-potat = "1.1.2"
 structopt = "0.3"
-termwiz = { path = "../termwiz" }
+termwiz = { version = "0.13", path = "../termwiz" }
 whoami = "1.1"
