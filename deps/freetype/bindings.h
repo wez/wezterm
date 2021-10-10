@@ -7,3 +7,4 @@
 #include <freetype/ftmm.h>
 #include <freetype/ftsynth.h>
 #include <freetype/ftglyph.h>
+#include <freetype/ftsnames.h>

@@ -1875,3 +1875,34 @@ extern "C" {
 extern "C" {
     pub fn FT_Matrix_Invert(matrix: *mut FT_Matrix) -> FT_Error;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FT_SfntName_ {
+    pub platform_id: FT_UShort,
+    pub encoding_id: FT_UShort,
+    pub language_id: FT_UShort,
+    pub name_id: FT_UShort,
+    pub string: *mut FT_Byte,
+    pub string_len: FT_UInt,
+}
+pub type FT_SfntName = FT_SfntName_;
+extern "C" {
+    pub fn FT_Get_Sfnt_Name_Count(face: FT_Face) -> FT_UInt;
+}
+extern "C" {
+    pub fn FT_Get_Sfnt_Name(face: FT_Face, idx: FT_UInt, aname: *mut FT_SfntName) -> FT_Error;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct FT_SfntLangTag_ {
+    pub string: *mut FT_Byte,
+    pub string_len: FT_UInt,
+}
+pub type FT_SfntLangTag = FT_SfntLangTag_;
+extern "C" {
+    pub fn FT_Get_Sfnt_LangTag(
+        face: FT_Face,
+        langID: FT_UInt,
+        alangTag: *mut FT_SfntLangTag,
+    ) -> FT_Error;
+}
