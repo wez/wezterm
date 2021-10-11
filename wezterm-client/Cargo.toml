@@ -15,7 +15,7 @@ config = { path = "../config" }
 filedescriptor = { version="0.8", path = "../filedescriptor" }
 futures = "0.3"
 log = "0.4"
-lru = "0.6"
+lru = "0.7"
 metrics = { version="0.17", features=["std"]}
 mux = { path = "../mux" }
 openssl = "0.10"
