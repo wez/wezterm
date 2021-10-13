@@ -1,4 +1,6 @@
-use crate::session::{ChannelId, ChannelInfo, DescriptorState, SessionRequest, SessionSender};
+use crate::session::{
+    ChannelId, ChannelInfo, DescriptorState, SessionRequest, SessionSender, SessionWrap,
+};
 use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::{ExitStatus, PtySize};
 use smol::channel::{bounded, Receiver, Sender, TryRecvError};
@@ -158,12 +160,10 @@ impl portable_pty::Child for SshChildProcess {
 }
 
 impl crate::session::SessionInner {
-    pub fn new_pty(&mut self, sess: &ssh2::Session, newpty: &NewPty) -> anyhow::Result<()> {
+    pub fn new_pty(&mut self, sess: &mut SessionWrap, newpty: &NewPty) -> anyhow::Result<()> {
         sess.set_blocking(true);
 
-        let mut channel = sess.channel_session()?;
-
-        channel.handle_extended_data(ssh2::ExtendedData::Merge)?;
+        let mut channel = sess.open_session()?;
 
         /* libssh2 doesn't properly support agent forwarding
          * at this time:
@@ -177,20 +177,11 @@ impl crate::session::SessionInner {
         }
         */
 
-        channel.request_pty(
-            &newpty.term,
-            None,
-            Some((
-                newpty.size.cols.into(),
-                newpty.size.rows.into(),
-                newpty.size.pixel_width.into(),
-                newpty.size.pixel_height.into(),
-            )),
-        )?;
+        channel.request_pty(newpty)?;
 
         if let Some(env) = &newpty.env {
             for (key, val) in env {
-                if let Err(err) = channel.setenv(key, val) {
+                if let Err(err) = channel.request_env(key, val) {
                     // Depending on the server configuration, a given
                     // setenv request may not succeed, but that doesn't
                     // prevent the connection from being set up.
@@ -200,9 +191,9 @@ impl crate::session::SessionInner {
         }
 
         if let Some(cmd) = &newpty.command_line {
-            channel.exec(cmd)?;
+            channel.request_exec(cmd)?;
         } else {
-            channel.shell()?;
+            channel.request_shell()?;
         }
 
         let channel_id = self.next_channel_id;
@@ -257,19 +248,12 @@ impl crate::session::SessionInner {
         Ok(())
     }
 
-    pub fn resize_pty(&mut self, sess: &ssh2::Session, resize: &ResizePty) -> anyhow::Result<()> {
-        sess.set_blocking(true);
-
+    pub fn resize_pty(&mut self, resize: &ResizePty) -> anyhow::Result<()> {
         let info = self
             .channels
             .get_mut(&resize.channel)
             .ok_or_else(|| anyhow::anyhow!("invalid channel id {}", resize.channel))?;
-        info.channel.request_pty_size(
-            resize.size.cols.into(),
-            resize.size.rows.into(),
-            Some(resize.size.pixel_width.into()),
-            Some(resize.size.pixel_height.into()),
-        )?;
+        info.channel.resize_pty(resize)?;
         if let Some(reply) = resize.reply.as_ref() {
             reply.try_send(())?;
         }

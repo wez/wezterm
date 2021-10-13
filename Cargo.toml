@@ -12,6 +12,10 @@ resolver = "2"
 opt-level = 3
 # debug = 1
 
+[patch.crates-io]
+# We can remove my fork once openssl-sys points at openssl-src 300+
+openssl-sys = { git="https://github.com/wez/rust-openssl.git", branch="openssl-src-300" }
+
 [profile.dev]
 # https://jakedeichert.com/blog/reducing-rust-incremental-compilation-times-on-macos-by-70-percent/
 split-debuginfo = "unpacked"
