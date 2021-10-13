@@ -11,9 +11,8 @@
 * [Hyperlinks](hyperlinks.html)
 * <a href="features.html">a full list of features can be found here</a>
 
-Looking for a [configuration reference?](config/files.html)
+Looking for a [configuration reference](config/files.html) or [recipes](recipes.html) to achieve most common tasks?
 
 <img width="100%" height="100%" src="screenshots/two.png" alt="Screenshot">
 
 *Screenshot of wezterm on macOS, running vim*
-
