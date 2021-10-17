@@ -399,6 +399,8 @@ impl Domain for ClientDomain {
         ));
         let tab = Rc::new(Tab::new(&size));
         tab.assign_pane(&pane);
+        inner.remove_old_tab_mapping(result.tab_id);
+        inner.record_remote_to_local_tab_mapping(result.tab_id, tab.tab_id());
 
         let mux = Mux::get().unwrap();
         mux.add_tab_and_active_pane(&tab)?;
