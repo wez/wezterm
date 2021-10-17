@@ -60,6 +60,9 @@ As features stabilize some brief notes about them will accumulate here.
 * New: [window_padding](config/lua/config/window_padding.md) now accepts values such as `"1cell"` or `"30%"` to compute values based on font or window metrics.
 * New: BSDish systems now support [toast notifications](https://github.com/wez/wezterm/issues/489)
 * Fixed: the whole tab was closed when only the zoomed pane exited. [#1235](https://github.com/wez/wezterm/issues/1235)
+* Fixed: multiplexer: wrong `WEZTERM_UNIX_SOCKET` environment passed to children when using unix domain sockets and `connect_automatically=true` [#1222](https://github.com/wez/wezterm/issues/1222)
+* Fixed: multiplexer: spawning remote tabs didn't correctly record local tab mapping, resulting in phantom additional tabs showing in the client. [#1222](https://github.com/wez/wezterm/issues/1222)
+
 
 ### 20210814-124438-54e29167
 
