@@ -12,4 +12,4 @@ local wezterm = require 'wezterm';
 local success, stdout, stderr = wezterm.run_child_process({"ls", "-l"})
 ```
 
-
+See also [background_child_process](background_child_process.md)

@@ -23,6 +23,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `wezterm connect` now also supports the `--class` parameter to override the window class
 * [window_padding](config/lua/config/window_padding.md) now accepts values such as `"1cell"` or `"30%"` to compute values based on font or window metrics.
 * BSDish systems now support [toast notifications](https://github.com/wez/wezterm/issues/489)
+* [wezterm.background_child_process](config/lua/wezterm/background_child_process.md) function to spawn a process without waiting.
 
 #### Changed
 
