@@ -136,13 +136,13 @@ fn run() -> anyhow::Result<()> {
         "OLDPWD",
         "PWD",
         "SHLVL",
-        "SSH_AUTH_SOCK",
-        "SSH_CLIENT",
-        "SSH_CONNECTION",
         "WEZTERM_PANE",
         "WEZTERM_UNIX_SOCKET",
         "_",
     ] {
+        std::env::remove_var(name);
+    }
+    for name in &config::configuration().mux_env_remove {
         std::env::remove_var(name);
     }
 

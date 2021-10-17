@@ -922,6 +922,9 @@ pub struct Config {
     #[serde(default = "default_mux_output_parser_buffer_size")]
     pub mux_output_parser_buffer_size: usize,
 
+    #[serde(default = "default_mux_env_remove")]
+    pub mux_env_remove: Vec<String>,
+
     #[serde(default)]
     pub keys: Vec<Key>,
     #[serde(
@@ -1236,6 +1239,14 @@ pub struct Config {
     pub audible_bell: AudibleBell,
 }
 impl_lua_conversion!(Config);
+
+fn default_mux_env_remove() -> Vec<String> {
+    vec![
+        "SSH_AUTH_SOCK".to_string(),
+        "SSH_CLIENT".to_string(),
+        "SSH_CONNECTION".to_string(),
+    ]
+}
 
 fn default_max_fps() -> u8 {
     60

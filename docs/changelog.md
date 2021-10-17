@@ -24,6 +24,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [window_padding](config/lua/config/window_padding.md) now accepts values such as `"1cell"` or `"30%"` to compute values based on font or window metrics.
 * BSDish systems now support [toast notifications](https://github.com/wez/wezterm/issues/489)
 * [wezterm.background_child_process](config/lua/wezterm/background_child_process.md) function to spawn a process without waiting.
+* [mux_env_remove](config/lua/config/mux_env_remove.md) setting to control which environment variables should be cleared prior to spawning processes in the multiplexer server [#1225](https://github.com/wez/wezterm/issues/1225)
 
 #### Changed
 

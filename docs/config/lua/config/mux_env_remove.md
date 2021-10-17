@@ -1,0 +1,22 @@
+# mux_env_remove
+
+*Since: nightly builds only*
+
+Specifies a list of environment variables that should be removed
+from the environment in the multiplexer server.
+
+The intent is to clean up environment variables that might give the wrong
+impression of their operating environment to the various terminal sessions
+spawned by the multiplexer server.
+
+The default value for this is:
+
+```lua
+return {
+  mux_env_remove = {
+    "SSH_AUTH_SOCK",
+    "SSH_CLIENT",
+    "SSH_CONNECTION",
+  }
+}
+```
