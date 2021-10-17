@@ -560,23 +560,35 @@ impl Tab {
     /// Walks the pane tree to produce the topologically ordered flattened
     /// list of PositionedPane instances along with their positioning information.
     pub fn iter_panes(&self) -> Vec<PositionedPane> {
+        self.iter_panes_impl(true)
+    }
+
+    /// Like iter_panes, except that it will include all panes, regardless of
+    /// whether one of them is currently zoomed.
+    pub fn iter_panes_ignoring_zoom(&self) -> Vec<PositionedPane> {
+        self.iter_panes_impl(false)
+    }
+
+    fn iter_panes_impl(&self, respect_zoom_state: bool) -> Vec<PositionedPane> {
         let mut panes = vec![];
 
-        if let Some(zoomed) = self.zoomed.borrow().as_ref() {
-            let size = *self.size.borrow();
-            panes.push(PositionedPane {
-                index: 0,
-                is_active: true,
-                is_zoomed: true,
-                left: 0,
-                top: 0,
-                width: size.cols.into(),
-                pixel_width: size.pixel_width.into(),
-                height: size.rows.into(),
-                pixel_height: size.pixel_height.into(),
-                pane: Rc::clone(zoomed),
-            });
-            return panes;
+        if respect_zoom_state {
+            if let Some(zoomed) = self.zoomed.borrow().as_ref() {
+                let size = *self.size.borrow();
+                panes.push(PositionedPane {
+                    index: 0,
+                    is_active: true,
+                    is_zoomed: true,
+                    left: 0,
+                    top: 0,
+                    width: size.cols.into(),
+                    pixel_width: size.pixel_width.into(),
+                    height: size.rows.into(),
+                    pixel_height: size.pixel_height.into(),
+                    pane: Rc::clone(zoomed),
+                });
+                return panes;
+            }
         }
 
         let active_idx = *self.active.borrow();
@@ -1119,6 +1131,7 @@ impl Tab {
         F: Fn(usize, &Rc<dyn Pane>) -> bool,
     {
         let mut dead_panes = vec![];
+        let zoomed_pane = self.zoomed.borrow().as_ref().map(|p| p.pane_id());
 
         {
             let root_size = *self.size.borrow();
@@ -1146,6 +1159,10 @@ impl Tab {
                     if f(pane_index, &pane) {
                         if pane_index == active_idx {
                             active_idx = pane_index.saturating_sub(1);
+                        }
+                        if Some(pane.pane_id()) == zoomed_pane {
+                            // If we removed the zoomed pane, un-zoom our state!
+                            self.zoomed.borrow_mut().take();
                         }
                         let parent;
                         match cursor.unsplit_leaf() {
@@ -1225,7 +1242,9 @@ impl Tab {
     }
 
     pub fn is_dead(&self) -> bool {
-        let panes = self.iter_panes();
+        // Make sure we account for all panes, so that we don't
+        // kill the whole tab if the zoomed pane is dead!
+        let panes = self.iter_panes_ignoring_zoom();
         let mut dead_count = 0;
         for pos in &panes {
             if pos.pane.is_dead() {

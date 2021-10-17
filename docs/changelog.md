@@ -59,6 +59,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Fixed: fonts with emoji presentation are shifted to better align with the primary font baseline [#1203](https://github.com/wez/wezterm/issues/1203)
 * New: [window_padding](config/lua/config/window_padding.md) now accepts values such as `"1cell"` or `"30%"` to compute values based on font or window metrics.
 * New: BSDish systems now support [toast notifications](https://github.com/wez/wezterm/issues/489)
+* Fixed: the whole tab was closed when only the zoomed pane exited. [#1235](https://github.com/wez/wezterm/issues/1235)
 
 ### 20210814-124438-54e29167
 
