@@ -644,7 +644,7 @@ impl TerminalState {
 
         // This is a bit horrible; in general we try to stick with unix line
         // endings as the one-true representation because using canonical
-        // CRLF can result is excess blank lines during a paste operation.
+        // CRLF can result in excess blank lines during a paste operation.
         // On Windows we're in a bit of a frustrating situation: pasting into
         // Windows console programs requires CRLF otherwise there is no newline
         // at all, but when in WSL, pasting with CRLF gives excess blank lines.
@@ -657,7 +657,8 @@ impl TerminalState {
         // In practice this means that unix shells and vim will get the
         // unix newlines in their pastes (which is the UX I want) and
         // cmd.exe will get CRLF.
-        let canonicalize_line_endings = cfg!(windows) && !self.bracketed_paste;
+        let canonicalize_line_endings =
+            self.config.canonicalize_pasted_newlines() && !self.bracketed_paste;
 
         if canonicalize_line_endings {
             // Convert (\r|\n) -> \r\n, but not if it is \r\n anyway.

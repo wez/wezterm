@@ -69,6 +69,10 @@ pub trait TerminalConfiguration: std::fmt::Debug {
         cfg!(windows)
     }
 
+    fn canonicalize_pasted_newlines(&self) -> bool {
+        cfg!(windows)
+    }
+
     fn alternate_buffer_wheel_scroll_speed(&self) -> u8 {
         3
     }

@@ -1237,8 +1237,15 @@ pub struct Config {
 
     #[serde(default)]
     pub audible_bell: AudibleBell,
+
+    #[serde(default = "default_canonicalize_pasted_newlines")]
+    pub canonicalize_pasted_newlines: bool,
 }
 impl_lua_conversion!(Config);
+
+fn default_canonicalize_pasted_newlines() -> bool {
+    cfg!(windows)
+}
 
 fn default_mux_env_remove() -> Vec<String> {
     vec![

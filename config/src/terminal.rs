@@ -70,4 +70,8 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
     fn enable_kitty_graphics(&self) -> bool {
         self.configuration().enable_kitty_graphics
     }
+
+    fn canonicalize_pasted_newlines(&self) -> bool {
+        self.configuration().canonicalize_pasted_newlines
+    }
 }
