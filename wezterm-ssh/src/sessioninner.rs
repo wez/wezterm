@@ -63,10 +63,17 @@ impl SessionInner {
     }
 
     fn run_impl(&mut self) -> anyhow::Result<()> {
-        if true {
-            self.run_impl_libssh()
-        } else {
-            self.run_impl_ssh2()
+        let backend = self
+            .config
+            .get("wezterm_ssh_backend")
+            .map(|s| s.as_str())
+            .unwrap_or("ssh2");
+        match backend {
+            "ssh2" => self.run_impl_ssh2(),
+            "libssh" => self.run_impl_libssh(),
+            _ => anyhow::bail!(
+                "invalid wezterm_ssh_backend value: {}, expected either `ssh2` or `libssh`"
+            ),
         }
     }
 
