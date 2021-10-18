@@ -29,7 +29,7 @@ impl AuthenticationEvent {
     }
 }
 
-impl crate::session::SessionInner {
+impl crate::sessioninner::SessionInner {
     fn agent_auth(&mut self, sess: &ssh2::Session, user: &str) -> anyhow::Result<bool> {
         if let Some(only) = self.config.get("identitiesonly") {
             if only == "yes" {

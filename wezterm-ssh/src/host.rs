@@ -21,7 +21,7 @@ impl HostVerificationEvent {
     }
 }
 
-impl crate::session::SessionInner {
+impl crate::sessioninner::SessionInner {
     pub fn host_verification_libssh(
         &mut self,
         sess: &libssh::Session,

@@ -1,6 +1,5 @@
-use crate::session::{
-    ChannelId, ChannelInfo, DescriptorState, SessionRequest, SessionSender, SignalChannel,
-};
+use crate::session::{SessionRequest, SessionSender, SignalChannel};
+use crate::sessioninner::{ChannelId, ChannelInfo, DescriptorState};
 use crate::sessionwrap::SessionWrap;
 use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::{ExitStatus, PtySize};
@@ -165,7 +164,7 @@ impl portable_pty::Child for SshChildProcess {
     }
 }
 
-impl crate::session::SessionInner {
+impl crate::sessioninner::SessionInner {
     pub fn new_pty(&mut self, sess: &mut SessionWrap, newpty: &NewPty) -> anyhow::Result<()> {
         sess.set_blocking(true);
 
