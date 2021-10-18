@@ -1,5 +1,6 @@
 use crate::session::{
     ChannelId, ChannelInfo, DescriptorState, SessionRequest, SessionSender, SessionWrap,
+    SignalChannel,
 };
 use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::{ExitStatus, PtySize};
@@ -127,8 +128,13 @@ impl portable_pty::Child for SshChildProcess {
     }
 
     fn kill(&mut self) -> std::io::Result<()> {
-        // There is no way to send a signal via libssh2.
-        // Just pretend that we did. :-/
+        if let Some(tx) = self.tx.as_ref() {
+            tx.try_send(SessionRequest::SignalChannel(SignalChannel {
+                channel: self.channel,
+                signame: "HUP",
+            }))
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        }
         Ok(())
     }
 

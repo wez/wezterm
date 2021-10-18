@@ -46,7 +46,10 @@ pub enum SftpChannelError {
     RecvFailed(#[from] RecvError),
 
     #[error("Library-specific error: {}", .0)]
-    Other(#[source] ssh2::Error),
+    Ssh2(#[source] ssh2::Error),
+
+    #[error("Not Implemented")]
+    NotImplemented,
 }
 
 /// Represents an open sftp channel for performing filesystem operations
@@ -476,7 +479,7 @@ mod ssh2_impl {
         fn from(err: ssh2::Error) -> Self {
             match SftpError::try_from(err) {
                 Ok(x) => Self::Sftp(x),
-                Err(x) => Self::Other(x),
+                Err(x) => Self::Ssh2(x),
             }
         }
     }
