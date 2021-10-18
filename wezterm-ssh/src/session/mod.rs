@@ -406,6 +406,13 @@ impl SessionInner {
             .ok_or_else(|| anyhow!("port is always set in config loader"))?
             .parse::<u16>()?;
 
+        self.tx_event
+            .try_send(SessionEvent::Banner(Some(format!(
+                "Using libssh-rs to connect to {}@{}:{}",
+                user, hostname, port
+            ))))
+            .context("notifying user of banner")?;
+
         let sess = libssh::Session::new()?;
         // sess.set_option(libssh::SshOption::LogLevel(libssh::LogLevel::Packet))?;
         sess.set_option(libssh::SshOption::Hostname(hostname.clone()))?;
@@ -454,6 +461,13 @@ impl SessionInner {
             .ok_or_else(|| anyhow!("port is always set in config loader"))?
             .parse::<u16>()?;
         let remote_address = format!("{}:{}", hostname, port);
+
+        self.tx_event
+            .try_send(SessionEvent::Banner(Some(format!(
+                "Using ssh2 to connect to {}@{}:{}",
+                user, hostname, port
+            ))))
+            .context("notifying user of banner")?;
 
         let tcp: TcpStream = if let Some(proxy_command) =
             self.config.get("proxycommand").and_then(|c| {
@@ -658,7 +672,11 @@ impl SessionInner {
                             );
                             out.fd.take();
                         } else {
-                            log::trace!("Failed to read data from channel: {:#}, but still have some buffer to drain", err);
+                            log::trace!(
+                                "Failed to read data from channel: {:#}, but \
+                                         still have some buffer to drain",
+                                err
+                            );
                         }
                     }
                 }
