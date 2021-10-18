@@ -1,6 +1,7 @@
 mod auth;
 mod channelwrap;
 mod config;
+mod filewrap;
 mod host;
 mod pty;
 mod session;

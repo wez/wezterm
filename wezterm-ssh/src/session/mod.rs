@@ -4,8 +4,7 @@ use crate::config::ConfigMap;
 use crate::host::*;
 use crate::pty::*;
 pub(crate) use crate::session::inner::*;
-use crate::sftp::{Metadata, Sftp, SftpChannelError, SftpChannelResult, SftpRequest};
-use camino::Utf8PathBuf;
+use crate::sftp::{Sftp, SftpRequest};
 use filedescriptor::{
     socketpair, AsRawSocketDescriptor, FileDescriptor, SocketDescriptor, POLLIN, POLLOUT,
 };
@@ -14,7 +13,6 @@ use portable_pty::PtySize;
 use smol::channel::{bounded, Receiver, Sender};
 use ssh2::BlockDirections;
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
@@ -74,63 +72,6 @@ pub(crate) struct Exec {
     pub command_line: String,
     pub env: Option<HashMap<String, String>>,
     pub reply: Sender<ExecResult>,
-}
-
-pub(crate) enum FileWrap {
-    Ssh2(ssh2::File),
-}
-
-impl FileWrap {
-    pub fn reader(&mut self) -> impl std::io::Read + '_ {
-        match self {
-            Self::Ssh2(file) => file,
-        }
-    }
-
-    pub fn writer(&mut self) -> impl std::io::Write + '_ {
-        match self {
-            Self::Ssh2(file) => file,
-        }
-    }
-
-    pub fn set_metadata(&mut self, metadata: Metadata) -> SftpChannelResult<()> {
-        match self {
-            Self::Ssh2(file) => file
-                .setstat(metadata.into())
-                .map_err(SftpChannelError::from),
-        }
-    }
-
-    pub fn metadata(&mut self) -> SftpChannelResult<Metadata> {
-        match self {
-            Self::Ssh2(file) => file
-                .stat()
-                .map(Metadata::from)
-                .map_err(SftpChannelError::from),
-        }
-    }
-
-    pub fn read_dir(&mut self) -> SftpChannelResult<(Utf8PathBuf, Metadata)> {
-        match self {
-            Self::Ssh2(file) => {
-                file.readdir()
-                    .map_err(SftpChannelError::from)
-                    .and_then(|(path, stat)| match Utf8PathBuf::try_from(path) {
-                        Ok(path) => Ok((path, Metadata::from(stat))),
-                        Err(x) => Err(SftpChannelError::from(std::io::Error::new(
-                            std::io::ErrorKind::InvalidData,
-                            x,
-                        ))),
-                    })
-            }
-        }
-    }
-
-    pub fn fsync(&mut self) -> SftpChannelResult<()> {
-        match self {
-            Self::Ssh2(file) => file.fsync().map_err(SftpChannelError::from),
-        }
-    }
 }
 
 pub(crate) struct Ssh2Session {
