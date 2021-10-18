@@ -8,6 +8,7 @@ use filedescriptor::{
     poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, SocketDescriptor, POLLIN,
     POLLOUT,
 };
+use libssh_rs as libssh;
 use portable_pty::{ExitStatus, PtySize};
 use smol::channel::{bounded, Receiver, Sender, TryRecvError};
 use ssh2::BlockDirections;
@@ -65,6 +66,13 @@ pub(crate) enum SessionRequest {
     ResizePty(ResizePty),
     Exec(Exec),
     Sftp(SftpRequest),
+    SignalChannel(SignalChannel),
+}
+
+#[derive(Debug)]
+pub(crate) struct SignalChannel {
+    pub channel: ChannelId,
+    pub signame: &'static str,
 }
 
 #[derive(Debug)]
@@ -143,6 +151,7 @@ pub(crate) struct Ssh2Session {
 
 pub(crate) enum SessionWrap {
     Ssh2(Ssh2Session),
+    LibSsh(libssh::Session),
 }
 
 impl SessionWrap {
@@ -150,15 +159,21 @@ impl SessionWrap {
         Self::Ssh2(Ssh2Session { sess, sftp: None })
     }
 
+    pub fn with_libssh(sess: libssh::Session) -> Self {
+        Self::LibSsh(sess)
+    }
+
     pub fn set_blocking(&mut self, blocking: bool) {
         match self {
             Self::Ssh2(sess) => sess.sess.set_blocking(blocking),
+            Self::LibSsh(sess) => sess.set_blocking(blocking),
         }
     }
 
     pub fn is_blocking(&mut self) -> bool {
         match self {
             Self::Ssh2(sess) => sess.sess.is_blocking(),
+            Self::LibSsh(sess) => sess.is_blocking(),
         }
     }
 
@@ -170,12 +185,22 @@ impl SessionWrap {
                 BlockDirections::Outbound => POLLOUT,
                 BlockDirections::Both => POLLIN | POLLOUT,
             },
+            Self::LibSsh(sess) => {
+                let (read, write) = sess.get_poll_state();
+                match (read, write) {
+                    (false, false) => 0,
+                    (true, false) => POLLIN,
+                    (false, true) => POLLOUT,
+                    (true, true) => POLLIN | POLLOUT,
+                }
+            }
         }
     }
 
     pub fn as_socket_descriptor(&self) -> SocketDescriptor {
         match self {
             Self::Ssh2(sess) => sess.sess.as_socket_descriptor(),
+            Self::LibSsh(sess) => sess.as_socket_descriptor(),
         }
     }
 
@@ -187,12 +212,18 @@ impl SessionWrap {
                 // channel.handle_extended_data(ssh2::ExtendedData::Merge)?;
                 Ok(ChannelWrap::Ssh2(channel))
             }
+            Self::LibSsh(sess) => {
+                let channel = sess.new_channel()?;
+                channel.open_session()?;
+                Ok(ChannelWrap::LibSsh(channel))
+            }
         }
     }
 }
 
 pub(crate) enum ChannelWrap {
     Ssh2(ssh2::Channel),
+    LibSsh(libssh::Channel),
 }
 
 fn has_signal(chan: &ssh2::Channel) -> Option<ssh2::ExitSignal> {
@@ -220,24 +251,41 @@ impl ChannelWrap {
                     None
                 }
             }
+            Self::LibSsh(chan) => {
+                if chan.is_eof() {
+                    if let Some(status) = chan.get_exit_status() {
+                        return Some(ExitStatus::with_exit_code(status as u32));
+                    }
+                }
+                None
+            }
         }
     }
 
-    pub fn reader(&mut self, idx: usize) -> impl std::io::Read + '_ {
+    pub fn reader(&mut self, idx: usize) -> Box<dyn std::io::Read + '_> {
         match self {
-            Self::Ssh2(chan) => chan.stream(idx as i32),
+            Self::Ssh2(chan) => Box::new(chan.stream(idx as i32)),
+            Self::LibSsh(chan) => match idx {
+                1 => Box::new(chan.stdout()),
+                2 => Box::new(chan.stderr()),
+                _ => unreachable!(),
+            },
         }
     }
 
-    pub fn writer(&mut self) -> impl std::io::Write + '_ {
+    pub fn writer(&mut self) -> Box<dyn std::io::Write + '_> {
         match self {
-            Self::Ssh2(chan) => chan,
+            Self::Ssh2(chan) => Box::new(chan),
+            Self::LibSsh(chan) => Box::new(chan.stdin()),
         }
     }
 
     pub fn close(&mut self) {
         match self {
             Self::Ssh2(chan) => {
+                let _ = chan.close();
+            }
+            Self::LibSsh(chan) => {
                 let _ = chan.close();
             }
         }
@@ -255,24 +303,32 @@ impl ChannelWrap {
                     newpty.size.pixel_height.into(),
                 )),
             )?),
+            Self::LibSsh(chan) => Ok(chan.request_pty(
+                &newpty.term,
+                newpty.size.cols.into(),
+                newpty.size.rows.into(),
+            )?),
         }
     }
 
     pub fn request_env(&mut self, name: &str, value: &str) -> anyhow::Result<()> {
         match self {
             Self::Ssh2(chan) => Ok(chan.setenv(name, value)?),
+            Self::LibSsh(chan) => Ok(chan.request_env(name, value)?),
         }
     }
 
     pub fn request_exec(&mut self, command_line: &str) -> anyhow::Result<()> {
         match self {
             Self::Ssh2(chan) => Ok(chan.exec(command_line)?),
+            Self::LibSsh(chan) => Ok(chan.request_exec(command_line)?),
         }
     }
 
     pub fn request_shell(&mut self) -> anyhow::Result<()> {
         match self {
             Self::Ssh2(chan) => Ok(chan.shell()?),
+            Self::LibSsh(chan) => Ok(chan.request_shell()?),
         }
     }
 
@@ -284,6 +340,16 @@ impl ChannelWrap {
                 Some(resize.size.pixel_width.into()),
                 Some(resize.size.pixel_height.into()),
             )?),
+            Self::LibSsh(chan) => {
+                Ok(chan.change_pty_size(resize.size.cols.into(), resize.size.rows.into())?)
+            }
+        }
+    }
+
+    pub fn send_signal(&mut self, signame: &str) -> anyhow::Result<()> {
+        match self {
+            Self::Ssh2(_) => Ok(()),
+            Self::LibSsh(chan) => Ok(chan.request_send_signal(signame)?),
         }
     }
 }
@@ -324,6 +390,10 @@ impl SessionInner {
     }
 
     fn run_impl(&mut self) -> anyhow::Result<()> {
+        self.run_impl_ssh2()
+    }
+
+    fn run_impl_ssh2(&mut self) -> anyhow::Result<()> {
         let hostname = self
             .config
             .get("hostname")
@@ -586,6 +656,12 @@ impl SessionInner {
                         }
                         Ok(true)
                     }
+                    SessionRequest::SignalChannel(info) => {
+                        if let Err(err) = self.signal_channel(&info) {
+                            log::error!("{:?} -> error: {:#}", info, err);
+                        }
+                        Ok(true)
+                    }
                     SessionRequest::Sftp(SftpRequest::OpenWithMode(msg)) => {
                         if let Err(err) = self.open_with_mode(sess, &msg) {
                             log::error!("{:?} -> error: {:#}", msg, err);
@@ -729,6 +805,15 @@ impl SessionInner {
                 res
             }
         }
+    }
+
+    pub fn signal_channel(&mut self, info: &SignalChannel) -> anyhow::Result<()> {
+        let chan_info = self
+            .channels
+            .get_mut(&info.channel)
+            .ok_or_else(|| anyhow::anyhow!("invalid channel id {}", info.channel))?;
+        chan_info.channel.send_signal(info.signame)?;
+        Ok(())
     }
 
     pub fn exec(&mut self, sess: &mut SessionWrap, exec: &Exec) -> anyhow::Result<()> {
@@ -1223,6 +1308,7 @@ impl SessionInner {
                 }
                 Ok(sess.sftp.as_mut().expect("sftp should have been set above"))
             }
+            SessionWrap::LibSsh(_) => Err(SftpChannelError::NotImplemented),
         }
     }
 }
