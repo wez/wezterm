@@ -5,6 +5,7 @@ mod filewrap;
 mod host;
 mod pty;
 mod session;
+mod sessioninner;
 mod sessionwrap;
 mod sftp;
 

@@ -1,9 +1,8 @@
 use crate::auth::*;
-use crate::channelwrap::ChannelWrap;
 use crate::config::ConfigMap;
 use crate::host::*;
 use crate::pty::*;
-pub(crate) use crate::session::inner::*;
+use crate::sessioninner::*;
 use crate::sftp::{Sftp, SftpRequest};
 use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::PtySize;
@@ -11,8 +10,6 @@ use smol::channel::{bounded, Receiver, Sender};
 use std::collections::HashMap;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
-
-mod inner;
 
 #[derive(Debug)]
 pub enum SessionEvent {
