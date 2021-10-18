@@ -3,12 +3,14 @@ mod config;
 mod host;
 mod pty;
 mod session;
+mod sftp;
 
 pub use auth::*;
 pub use config::*;
 pub use host::*;
 pub use pty::*;
 pub use session::*;
+pub use sftp::*;
 
 // NOTE: Re-exported as is exposed in a public API of this crate
 pub use camino::{Utf8Path, Utf8PathBuf};
