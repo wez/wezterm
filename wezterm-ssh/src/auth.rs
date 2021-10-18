@@ -1,5 +1,6 @@
 use crate::session::SessionEvent;
 use anyhow::Context;
+use libssh_rs as libssh;
 use smol::channel::{bounded, Sender};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -124,6 +125,118 @@ impl crate::session::SessionInner {
             }
         }
         Ok(false)
+    }
+
+    pub fn authenticate_libssh(&mut self, sess: &libssh::Session) -> anyhow::Result<()> {
+        let tx = self.tx_event.clone();
+
+        // Set the callback for pubkey auth
+        sess.set_auth_callback(move |prompt, echo, _verify, identity| {
+            let (reply, answers) = bounded(1);
+            tx.try_send(SessionEvent::Authenticate(AuthenticationEvent {
+                username: "".to_string(),
+                instructions: "".to_string(),
+                prompts: vec![AuthenticationPrompt {
+                    prompt: match identity {
+                        Some(ident) => format!("{} ({}): ", prompt, ident),
+                        None => prompt.to_string(),
+                    },
+                    echo,
+                }],
+                reply,
+            }))
+            .unwrap();
+
+            let mut answers = smol::block_on(answers.recv())
+                .context("waiting for authentication answers from user")
+                .unwrap();
+            Ok(answers.remove(0))
+        });
+
+        use libssh::{AuthMethods, AuthStatus};
+        match sess.userauth_none(None)? {
+            AuthStatus::Success => return Ok(()),
+            _ => {}
+        }
+
+        loop {
+            let auth_methods = sess.userauth_list(None)?;
+
+            if auth_methods.contains(AuthMethods::PUBLIC_KEY) {
+                match sess.userauth_public_key_auto(None, None)? {
+                    AuthStatus::Success => return Ok(()),
+                    _ => {}
+                }
+            }
+
+            if auth_methods.contains(AuthMethods::INTERACTIVE) {
+                loop {
+                    match sess.userauth_keyboard_interactive(None, None)? {
+                        AuthStatus::Success => return Ok(()),
+                        AuthStatus::Info => {
+                            let info = sess.userauth_keyboard_interactive_info()?;
+
+                            let (reply, answers) = bounded(1);
+                            self.tx_event
+                                .try_send(SessionEvent::Authenticate(AuthenticationEvent {
+                                    username: sess.get_user_name()?,
+                                    instructions: info.instruction,
+                                    prompts: info
+                                        .prompts
+                                        .into_iter()
+                                        .map(|p| AuthenticationPrompt {
+                                            prompt: p.prompt,
+                                            echo: p.echo,
+                                        })
+                                        .collect(),
+                                    reply,
+                                }))
+                                .context("sending Authenticate request to user")?;
+
+                            let answers = smol::block_on(answers.recv())
+                                .context("waiting for authentication answers from user")?;
+
+                            sess.userauth_keyboard_interactive_set_answers(&answers)?;
+
+                            continue;
+                        }
+                        AuthStatus::Denied => {
+                            break;
+                        }
+                        status => {
+                            anyhow::bail!("interactive auth status: {:?}", status);
+                        }
+                    }
+                }
+            }
+
+            if auth_methods.contains(AuthMethods::PASSWORD) {
+                let (reply, answers) = bounded(1);
+                self.tx_event
+                    .try_send(SessionEvent::Authenticate(AuthenticationEvent {
+                        username: "".to_string(),
+                        instructions: "".to_string(),
+                        prompts: vec![AuthenticationPrompt {
+                            prompt: "Password: ".to_string(),
+                            echo: false,
+                        }],
+                        reply,
+                    }))
+                    .unwrap();
+
+                let mut answers = smol::block_on(answers.recv())
+                    .context("waiting for authentication answers from user")
+                    .unwrap();
+                let pw = answers.remove(0);
+
+                match sess.userauth_password(None, Some(&pw))? {
+                    AuthStatus::Success => return Ok(()),
+                    status => anyhow::bail!("password auth status: {:?}", status),
+                }
+            }
+
+            anyhow::bail!("unhandled auth case");
+        }
     }
 
     pub fn authenticate(

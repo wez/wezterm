@@ -207,6 +207,7 @@ impl crate::session::SessionInner {
 
         let (write_to_stdin, mut read_from_stdin) = socketpair()?;
         let (mut write_to_stdout, read_from_stdout) = socketpair()?;
+        let write_to_stderr = write_to_stdout.try_clone()?;
 
         read_from_stdin.set_non_blocking(true)?;
         write_to_stdout.set_non_blocking(true)?;
@@ -242,8 +243,8 @@ impl crate::session::SessionInner {
                     buf: VecDeque::with_capacity(8192),
                 },
                 DescriptorState {
-                    fd: None,
-                    buf: VecDeque::new(),
+                    fd: Some(write_to_stderr),
+                    buf: VecDeque::with_capacity(8192),
                 },
             ],
         };

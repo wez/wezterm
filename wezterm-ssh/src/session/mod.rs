@@ -82,6 +82,7 @@ pub(crate) struct Exec {
     pub reply: Sender<ExecResult>,
 }
 
+#[derive(Debug)]
 pub(crate) struct DescriptorState {
     pub fd: Option<FileDescriptor>,
     pub buf: VecDeque<u8>,
@@ -170,13 +171,6 @@ impl SessionWrap {
         }
     }
 
-    pub fn is_blocking(&mut self) -> bool {
-        match self {
-            Self::Ssh2(sess) => sess.sess.is_blocking(),
-            Self::LibSsh(sess) => sess.is_blocking(),
-        }
-    }
-
     pub fn get_poll_flags(&self) -> i16 {
         match self {
             Self::Ssh2(sess) => match sess.sess.block_directions() {
@@ -208,8 +202,6 @@ impl SessionWrap {
         match self {
             Self::Ssh2(sess) => {
                 let channel = sess.sess.channel_session()?;
-                // FIXME: remove this concept
-                // channel.handle_extended_data(ssh2::ExtendedData::Merge)?;
                 Ok(ChannelWrap::Ssh2(channel))
             }
             Self::LibSsh(sess) => {
@@ -266,9 +258,9 @@ impl ChannelWrap {
         match self {
             Self::Ssh2(chan) => Box::new(chan.stream(idx as i32)),
             Self::LibSsh(chan) => match idx {
-                1 => Box::new(chan.stdout()),
-                2 => Box::new(chan.stderr()),
-                _ => unreachable!(),
+                0 => Box::new(chan.stdout()),
+                1 => Box::new(chan.stderr()),
+                _ => panic!("wanted reader for idx={}", idx),
             },
         }
     }
@@ -390,7 +382,59 @@ impl SessionInner {
     }
 
     fn run_impl(&mut self) -> anyhow::Result<()> {
-        self.run_impl_ssh2()
+        if true {
+            self.run_impl_libssh()
+        } else {
+            self.run_impl_ssh2()
+        }
+    }
+
+    fn run_impl_libssh(&mut self) -> anyhow::Result<()> {
+        let hostname = self
+            .config
+            .get("hostname")
+            .ok_or_else(|| anyhow!("hostname not present in config"))?
+            .to_string();
+        let user = self
+            .config
+            .get("user")
+            .ok_or_else(|| anyhow!("username not present in config"))?
+            .to_string();
+        let port = self
+            .config
+            .get("port")
+            .ok_or_else(|| anyhow!("port is always set in config loader"))?
+            .parse::<u16>()?;
+
+        let sess = libssh::Session::new()?;
+        // sess.set_option(libssh::SshOption::LogLevel(libssh::LogLevel::Packet))?;
+        sess.set_option(libssh::SshOption::Hostname(hostname.clone()))?;
+        sess.set_option(libssh::SshOption::User(Some(user)))?;
+        sess.set_option(libssh::SshOption::Port(port))?;
+        sess.options_parse_config(None)?; // FIXME: overridden config path?
+        sess.connect()?;
+
+        let banner = sess.get_server_banner()?;
+        self.tx_event
+            .try_send(SessionEvent::Banner(Some(banner)))
+            .context("notifying user of banner")?;
+
+        self.host_verification_libssh(&sess, &hostname, port)?;
+        self.authenticate_libssh(&sess)?;
+
+        if let Ok(banner) = sess.get_issue_banner() {
+            self.tx_event
+                .try_send(SessionEvent::Banner(Some(banner)))
+                .context("notifying user of banner")?;
+        }
+
+        self.tx_event
+            .try_send(SessionEvent::Authenticated)
+            .context("notifying user that session is authenticated")?;
+
+        sess.set_blocking(false);
+        let mut sess = SessionWrap::with_libssh(sess);
+        self.request_loop(&mut sess)
     }
 
     fn run_impl_ssh2(&mut self) -> anyhow::Result<()> {
@@ -479,16 +523,18 @@ impl SessionInner {
             .context("notifying user that session is authenticated")?;
 
         sess.set_blocking(false);
-        self.request_loop(SessionWrap::with_ssh2(sess))
+
+        let mut sess = SessionWrap::with_ssh2(sess);
+        self.request_loop(&mut sess)
     }
 
-    fn request_loop(&mut self, mut sess: SessionWrap) -> anyhow::Result<()> {
+    fn request_loop(&mut self, sess: &mut SessionWrap) -> anyhow::Result<()> {
         let mut sleep_delay = Duration::from_millis(100);
 
         loop {
             self.tick_io()?;
             self.drain_request_pipe();
-            self.dispatch_pending_requests(&mut sess)?;
+            self.dispatch_pending_requests(sess)?;
 
             let mut poll_array = vec![
                 pollfd {

@@ -1,5 +1,6 @@
 use crate::session::SessionEvent;
 use anyhow::{anyhow, Context};
+use libssh_rs as libssh;
 use smol::channel::{bounded, Sender};
 use ssh2::CheckResult;
 use std::io::Write;
@@ -8,7 +9,7 @@ use std::path::Path;
 #[derive(Debug)]
 pub struct HostVerificationEvent {
     pub message: String,
-    reply: Sender<bool>,
+    pub(crate) reply: Sender<bool>,
 }
 
 impl HostVerificationEvent {
@@ -21,6 +22,62 @@ impl HostVerificationEvent {
 }
 
 impl crate::session::SessionInner {
+    pub fn host_verification_libssh(
+        &mut self,
+        sess: &libssh::Session,
+        hostname: &str,
+        port: u16,
+    ) -> anyhow::Result<()> {
+        let key = sess
+            .get_server_public_key()?
+            .get_public_key_hash_hexa(libssh::PublicKeyHashType::Sha256)?;
+
+        match sess.is_known_server()? {
+            libssh::KnownHosts::Ok => Ok(()),
+            libssh::KnownHosts::NotFound | libssh::KnownHosts::Unknown => {
+                let (reply, confirm) = bounded(1);
+                self.tx_event
+                    .try_send(SessionEvent::HostVerify(HostVerificationEvent {
+                        message: format!(
+                            "SSH host {}:{} is not yet trusted.\n\
+                                    Fingerprint: {}.\n\
+                                    Trust and continue connecting?",
+                            hostname, port, key
+                        ),
+                        reply,
+                    }))
+                    .context("sending HostVerify request to user")?;
+
+                let trusted = smol::block_on(confirm.recv())
+                    .context("waiting for host verification confirmation from user")?;
+
+                if !trusted {
+                    anyhow::bail!("user declined to trust host");
+                }
+
+                Ok(sess.update_known_hosts_file()?)
+            }
+            libssh::KnownHosts::Changed => {
+                anyhow::bail!(
+                    "host key mismatch for ssh server {}:{}.\n\
+                         Got fingerprint {} instead of expected value from known_hosts\n\
+                         file.\n\
+                         Refusing to connect.",
+                    hostname,
+                    port,
+                    key,
+                );
+            }
+            libssh::KnownHosts::Other => {
+                anyhow::bail!(
+                    "The host key for this server was not found, but another\n\
+            type of key exists. An attacker might change the default\n\
+            server key to confuse your client into thinking the key\n\
+            does not exist"
+                );
+            }
+        }
+    }
     pub fn host_verification(
         &mut self,
         sess: &ssh2::Session,
