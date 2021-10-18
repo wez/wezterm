@@ -1,4 +1,5 @@
 mod auth;
+mod channelwrap;
 mod config;
 mod host;
 mod pty;
