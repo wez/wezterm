@@ -15,15 +15,9 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
+use crate::sftp::{Metadata, Sftp, SftpChannelError, SftpChannelResult, SftpRequest};
 
 mod inner;
-mod sftp;
-
-use sftp::SftpRequest;
-pub use sftp::{
-    File, FilePermissions, FileType, Metadata, OpenFileType, OpenOptions, RenameOptions, Sftp,
-    SftpChannelError, SftpChannelResult, SftpError, SftpResult, WriteMode,
-};
 
 #[derive(Debug)]
 pub enum SessionEvent {

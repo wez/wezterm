@@ -1,11 +1,11 @@
 use crate::config::ConfigMap;
 use crate::pty::*;
-use crate::session::sftp::{
-    self, File, FileId, FileRequest, Metadata, SftpChannelError, SftpChannelResult, SftpRequest,
-};
 use crate::session::{
     ChannelWrap, Exec, ExecResult, FileWrap, SessionEvent, SessionRequest, SessionWrap,
     SignalChannel,
+};
+use crate::sftp::{
+    self, File, FileId, FileRequest, Metadata, SftpChannelError, SftpChannelResult, SftpRequest,
 };
 use anyhow::{anyhow, Context};
 use camino::Utf8PathBuf;
