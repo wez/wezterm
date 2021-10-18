@@ -1,9 +1,8 @@
 use crate::config::ConfigMap;
 use crate::filewrap::FileWrap;
 use crate::pty::*;
-use crate::session::{
-    ChannelWrap, Exec, ExecResult, SessionEvent, SessionRequest, SessionWrap, SignalChannel,
-};
+use crate::session::{ChannelWrap, Exec, ExecResult, SessionEvent, SessionRequest, SignalChannel};
+use crate::sessionwrap::SessionWrap;
 use crate::sftp::{
     self, File, FileId, FileRequest, Metadata, SftpChannelError, SftpChannelResult, SftpRequest,
 };
