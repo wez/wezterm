@@ -5,6 +5,7 @@ mod filewrap;
 mod host;
 mod pty;
 mod session;
+mod sessionwrap;
 mod sftp;
 
 pub use auth::*;

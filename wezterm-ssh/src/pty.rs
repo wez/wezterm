@@ -1,7 +1,7 @@
 use crate::session::{
-    ChannelId, ChannelInfo, DescriptorState, SessionRequest, SessionSender, SessionWrap,
-    SignalChannel,
+    ChannelId, ChannelInfo, DescriptorState, SessionRequest, SessionSender, SignalChannel,
 };
+use crate::sessionwrap::SessionWrap;
 use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::{ExitStatus, PtySize};
 use smol::channel::{bounded, Receiver, Sender, TryRecvError};
