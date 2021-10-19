@@ -120,7 +120,10 @@ impl SessionInner {
             }
         }
         if let Some(kh) = self.config.get("userknownhostsfile") {
-            sess.set_option(libssh::SshOption::KnownHosts(Some(kh.to_string())))?;
+            for file in kh.split_whitespace() {
+                sess.set_option(libssh::SshOption::KnownHosts(Some(file.to_string())))?;
+                break;
+            }
         }
 
         sess.options_parse_config(None)?; // FIXME: overridden config path?
