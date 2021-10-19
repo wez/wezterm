@@ -235,7 +235,7 @@ impl crate::sessioninner::SessionInner {
                 }
             }
 
-            anyhow::bail!("unhandled auth case");
+            anyhow::bail!("unhandled auth case; methods={:?}", auth_methods);
         }
     }
 

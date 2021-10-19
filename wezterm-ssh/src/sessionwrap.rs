@@ -9,9 +9,14 @@ pub(crate) struct Ssh2Session {
     pub sftp: Option<SftpWrap>,
 }
 
+pub(crate) struct LibSshSession {
+    pub sess: libssh::Session,
+    pub sftp: Option<SftpWrap>,
+}
+
 pub(crate) enum SessionWrap {
     Ssh2(Ssh2Session),
-    LibSsh(libssh::Session),
+    LibSsh(LibSshSession),
 }
 
 impl SessionWrap {
@@ -20,13 +25,13 @@ impl SessionWrap {
     }
 
     pub fn with_libssh(sess: libssh::Session) -> Self {
-        Self::LibSsh(sess)
+        Self::LibSsh(LibSshSession { sess, sftp: None })
     }
 
     pub fn set_blocking(&mut self, blocking: bool) {
         match self {
             Self::Ssh2(sess) => sess.sess.set_blocking(blocking),
-            Self::LibSsh(sess) => sess.set_blocking(blocking),
+            Self::LibSsh(sess) => sess.sess.set_blocking(blocking),
         }
     }
 
@@ -39,7 +44,7 @@ impl SessionWrap {
                 BlockDirections::Both => POLLIN | POLLOUT,
             },
             Self::LibSsh(sess) => {
-                let (read, write) = sess.get_poll_state();
+                let (read, write) = sess.sess.get_poll_state();
                 match (read, write) {
                     (false, false) => 0,
                     (true, false) => POLLIN,
@@ -53,7 +58,7 @@ impl SessionWrap {
     pub fn as_socket_descriptor(&self) -> SocketDescriptor {
         match self {
             Self::Ssh2(sess) => sess.sess.as_socket_descriptor(),
-            Self::LibSsh(sess) => sess.as_socket_descriptor(),
+            Self::LibSsh(sess) => sess.sess.as_socket_descriptor(),
         }
     }
 
@@ -64,7 +69,7 @@ impl SessionWrap {
                 Ok(ChannelWrap::Ssh2(channel))
             }
             Self::LibSsh(sess) => {
-                let channel = sess.new_channel()?;
+                let channel = sess.sess.new_channel()?;
                 channel.open_session()?;
                 Ok(ChannelWrap::LibSsh(channel))
             }

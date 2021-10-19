@@ -362,6 +362,16 @@ impl From<libssh::FileType> for FileType {
     }
 }
 
+fn sys_time_to_unix(t: SystemTime) -> u64 {
+    t.duration_since(SystemTime::UNIX_EPOCH)
+        .expect("UNIX_EPOCH < SystemTime")
+        .as_secs()
+}
+
+fn unix_to_sys(u: u64) -> SystemTime {
+    SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(u)
+}
+
 impl From<libssh::Metadata> for Metadata {
     fn from(stat: libssh::Metadata) -> Self {
         Self {
@@ -373,16 +383,33 @@ impl From<libssh::Metadata> for Metadata {
             size: stat.len(),
             uid: stat.uid(),
             gid: stat.gid(),
-            accessed: stat.accessed().map(|t| {
-                t.duration_since(SystemTime::UNIX_EPOCH)
-                    .expect("UNIX_EPOCH < SystemTime")
-                    .as_secs()
-            }),
-            modified: stat.modified().map(|t| {
-                t.duration_since(SystemTime::UNIX_EPOCH)
-                    .expect("UNIX_EPOCH < SystemTime")
-                    .as_secs()
-            }),
+            accessed: stat.accessed().map(sys_time_to_unix),
+            modified: stat.modified().map(sys_time_to_unix),
+        }
+    }
+}
+
+impl Into<libssh::SetAttributes> for Metadata {
+    fn into(self) -> libssh::SetAttributes {
+        let size = self.size;
+        let uid_gid = match (self.uid, self.gid) {
+            (Some(uid), Some(gid)) => Some((uid, gid)),
+            _ => None,
+        };
+        let permissions = self.permissions.map(FilePermissions::to_unix_mode);
+        let atime_mtime = match (self.accessed, self.modified) {
+            (Some(a), Some(m)) => {
+                let a = unix_to_sys(a);
+                let m = unix_to_sys(m);
+                Some((a, m))
+            }
+            _ => None,
+        };
+        libssh::SetAttributes {
+            size,
+            uid_gid,
+            permissions,
+            atime_mtime,
         }
     }
 }
