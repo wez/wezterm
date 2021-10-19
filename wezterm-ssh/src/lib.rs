@@ -8,6 +8,7 @@ mod session;
 mod sessioninner;
 mod sessionwrap;
 mod sftp;
+mod sftpwrap;
 
 pub use auth::*;
 pub use config::*;
