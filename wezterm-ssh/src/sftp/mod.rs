@@ -91,16 +91,16 @@ impl Sftp {
         T: TryInto<Utf8PathBuf, Error = E>,
         E: Into<Box<dyn std::error::Error + Send + Sync>>,
     {
-        let (reply, rx) = bounded(1);
-        self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Open(Open {
-                filename: filename.try_into().map_err(into_invalid_data)?,
-                reply,
-            })))
-            .await?;
-        let mut result = rx.recv().await??;
-        result.initialize_sender(self.tx.clone());
-        Ok(result)
+        self.open_with_mode(
+            filename,
+            OpenOptions {
+                read: true,
+                write: None,
+                mode: 0,
+                ty: OpenFileType::File,
+            },
+        )
+        .await
     }
 
     /// Helper to create a file in write-only mode with truncation.
@@ -109,16 +109,16 @@ impl Sftp {
         T: TryInto<Utf8PathBuf, Error = E>,
         E: Into<Box<dyn std::error::Error + Send + Sync>>,
     {
-        let (reply, rx) = bounded(1);
-        self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Create(Create {
-                filename: filename.try_into().map_err(into_invalid_data)?,
-                reply,
-            })))
-            .await?;
-        let mut result = rx.recv().await??;
-        result.initialize_sender(self.tx.clone());
-        Ok(result)
+        self.open_with_mode(
+            filename,
+            OpenOptions {
+                read: false,
+                write: Some(WriteMode::Write),
+                mode: 0o666,
+                ty: OpenFileType::File,
+            },
+        )
+        .await
     }
 
     /// Helper to open a directory for reading its contents.
@@ -356,8 +356,6 @@ impl Sftp {
 #[derive(Debug)]
 pub(crate) enum SftpRequest {
     OpenWithMode(OpenWithMode),
-    Open(Open),
-    Create(Create),
     OpenDir(OpenDir),
     ReadDir(ReadDir),
     CreateDir(CreateDir),

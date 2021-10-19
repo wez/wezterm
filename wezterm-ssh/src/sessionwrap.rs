@@ -1,11 +1,12 @@
 use crate::channelwrap::ChannelWrap;
+use crate::sftpwrap::SftpWrap;
 use filedescriptor::{AsRawSocketDescriptor, SocketDescriptor, POLLIN, POLLOUT};
 use libssh_rs as libssh;
 use ssh2::BlockDirections;
 
 pub(crate) struct Ssh2Session {
     pub sess: ssh2::Session,
-    pub sftp: Option<ssh2::Sftp>,
+    pub sftp: Option<SftpWrap>,
 }
 
 pub(crate) enum SessionWrap {
