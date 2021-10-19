@@ -114,6 +114,15 @@ impl SessionInner {
         sess.set_option(libssh::SshOption::Hostname(hostname.clone()))?;
         sess.set_option(libssh::SshOption::User(Some(user)))?;
         sess.set_option(libssh::SshOption::Port(port))?;
+        if let Some(files) = self.config.get("identityfile") {
+            for file in files.split_whitespace() {
+                sess.set_option(libssh::SshOption::AddIdentity(file.to_string()))?;
+            }
+        }
+        if let Some(kh) = self.config.get("userknownhostsfile") {
+            sess.set_option(libssh::SshOption::KnownHosts(Some(kh.to_string())))?;
+        }
+
         sess.options_parse_config(None)?; // FIXME: overridden config path?
         sess.connect()?;
 
@@ -948,7 +957,12 @@ impl SessionInner {
                 }
                 Ok(sess.sftp.as_mut().expect("sftp should have been set above"))
             }
-            SessionWrap::LibSsh(_) => Err(SftpChannelError::NotImplemented),
+            SessionWrap::LibSsh(sess) => {
+                if sess.sftp.is_none() {
+                    sess.sftp = Some(SftpWrap::LibSsh(sess.sess.sftp()?));
+                }
+                Ok(sess.sftp.as_mut().expect("sftp should have been set above"))
+            }
         }
     }
 }
