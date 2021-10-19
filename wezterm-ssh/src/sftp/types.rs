@@ -1,4 +1,6 @@
 use bitflags::bitflags;
+use libssh_rs as libssh;
+use std::time::SystemTime;
 
 bitflags! {
     struct FileTypeFlags: u32 {
@@ -345,6 +347,42 @@ mod ssh2_impl {
                 atime: metadata.accessed,
                 mtime: metadata.modified,
             }
+        }
+    }
+}
+
+impl From<libssh::FileType> for FileType {
+    fn from(ft: libssh::FileType) -> Self {
+        match ft {
+            libssh::FileType::Directory => Self::Dir,
+            libssh::FileType::Regular => Self::File,
+            libssh::FileType::Symlink => Self::Symlink,
+            _ => Self::Other,
+        }
+    }
+}
+
+impl From<libssh::Metadata> for Metadata {
+    fn from(stat: libssh::Metadata) -> Self {
+        Self {
+            ty: stat
+                .file_type()
+                .map(FileType::from)
+                .unwrap_or(FileType::Other),
+            permissions: stat.permissions().map(FilePermissions::from_unix_mode),
+            size: stat.len(),
+            uid: stat.uid(),
+            gid: stat.gid(),
+            accessed: stat.accessed().map(|t| {
+                t.duration_since(SystemTime::UNIX_EPOCH)
+                    .expect("UNIX_EPOCH < SystemTime")
+                    .as_secs()
+            }),
+            modified: stat.modified().map(|t| {
+                t.duration_since(SystemTime::UNIX_EPOCH)
+                    .expect("UNIX_EPOCH < SystemTime")
+                    .as_secs()
+            }),
         }
     }
 }

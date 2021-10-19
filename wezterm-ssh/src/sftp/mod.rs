@@ -4,7 +4,9 @@ use crate::sftp::file::{File, FileRequest};
 use crate::sftp::types::{Metadata, OpenFileType, OpenOptions, RenameOptions, WriteMode};
 use camino::Utf8PathBuf;
 use error::SftpError;
+use libssh_rs as libssh;
 use smol::channel::{bounded, RecvError, Sender};
+use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::io;
 use thiserror::Error;
@@ -41,6 +43,9 @@ pub enum SftpChannelError {
 
     #[error("Library-specific error: {}", .0)]
     Ssh2(#[source] ssh2::Error),
+
+    #[error("Library-specific error: {}", .0)]
+    LibSsh(#[source] libssh::Error),
 
     #[error("Not Implemented")]
     NotImplemented,
@@ -464,16 +469,17 @@ pub(crate) struct RemoveFile {
     pub reply: Sender<SftpChannelResult<()>>,
 }
 
-mod ssh2_impl {
-    use super::*;
-    use std::convert::TryFrom;
-
-    impl From<ssh2::Error> for SftpChannelError {
-        fn from(err: ssh2::Error) -> Self {
-            match SftpError::try_from(err) {
-                Ok(x) => Self::Sftp(x),
-                Err(x) => Self::Ssh2(x),
-            }
+impl From<ssh2::Error> for SftpChannelError {
+    fn from(err: ssh2::Error) -> Self {
+        match SftpError::try_from(err) {
+            Ok(x) => Self::Sftp(x),
+            Err(x) => Self::Ssh2(x),
         }
+    }
+}
+
+impl From<libssh::Error> for SftpChannelError {
+    fn from(err: libssh::Error) -> Self {
+        Self::LibSsh(err)
     }
 }

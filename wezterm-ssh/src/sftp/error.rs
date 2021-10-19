@@ -105,34 +105,30 @@ impl TryFrom<i32> for SftpError {
     }
 }
 
-mod ssh2_impl {
-    use super::*;
+impl TryFrom<ssh2::Error> for SftpError {
+    type Error = ssh2::Error;
 
-    impl TryFrom<ssh2::Error> for SftpError {
-        type Error = ssh2::Error;
-
-        fn try_from(err: ssh2::Error) -> Result<Self, Self::Error> {
-            match err.code() {
-                ssh2::ErrorCode::SFTP(x) => match Self::from_error_code(x) {
-                    Some(err) => Ok(err),
-                    None => Err(err),
-                },
-                _ => Err(err),
-            }
+    fn try_from(err: ssh2::Error) -> Result<Self, Self::Error> {
+        match err.code() {
+            ssh2::ErrorCode::SFTP(x) => match Self::from_error_code(x) {
+                Some(err) => Ok(err),
+                None => Err(err),
+            },
+            _ => Err(err),
         }
     }
+}
 
-    impl TryFrom<ssh2::ErrorCode> for SftpError {
-        type Error = ssh2::ErrorCode;
+impl TryFrom<ssh2::ErrorCode> for SftpError {
+    type Error = ssh2::ErrorCode;
 
-        fn try_from(code: ssh2::ErrorCode) -> Result<Self, Self::Error> {
-            match code {
-                ssh2::ErrorCode::SFTP(x) => match Self::from_error_code(x) {
-                    Some(err) => Ok(err),
-                    None => Err(code),
-                },
-                x => Err(x),
-            }
+    fn try_from(code: ssh2::ErrorCode) -> Result<Self, Self::Error> {
+        match code {
+            ssh2::ErrorCode::SFTP(x) => match Self::from_error_code(x) {
+                Some(err) => Ok(err),
+                None => Err(code),
+            },
+            x => Err(x),
         }
     }
 }
