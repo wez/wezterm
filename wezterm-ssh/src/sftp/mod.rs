@@ -1,24 +1,18 @@
 use super::{SessionRequest, SessionSender};
+use crate::sftp::dir::{Dir, DirRequest};
+use crate::sftp::file::{File, FileRequest};
+use crate::sftp::types::{Metadata, OpenFileType, OpenOptions, RenameOptions, WriteMode};
 use camino::Utf8PathBuf;
+use error::SftpError;
 use smol::channel::{bounded, RecvError, Sender};
 use std::convert::TryInto;
 use std::io;
 use thiserror::Error;
 
-mod error;
-pub use error::{SftpError, SftpResult};
-
-mod file;
-pub use file::File;
-pub(crate) use file::{
-    CloseFile, FileId, FileRequest, FlushFile, FsyncFile, MetadataFile, ReadDirFile, ReadFile,
-    SetMetadataFile, WriteFile,
-};
-
-mod types;
-pub use types::{
-    FilePermissions, FileType, Metadata, OpenFileType, OpenOptions, RenameOptions, WriteMode,
-};
+pub(crate) mod dir;
+pub(crate) mod error;
+pub(crate) mod file;
+pub(crate) mod types;
 
 fn into_invalid_data<E>(err: E) -> io::Error
 where
@@ -122,7 +116,7 @@ impl Sftp {
     }
 
     /// Helper to open a directory for reading its contents.
-    pub async fn open_dir<T, E>(&self, filename: T) -> SftpChannelResult<File>
+    pub async fn open_dir<T, E>(&self, filename: T) -> SftpChannelResult<Dir>
     where
         T: TryInto<Utf8PathBuf, Error = E>,
         E: Into<Box<dyn std::error::Error + Send + Sync>>,
@@ -371,6 +365,7 @@ pub(crate) enum SftpRequest {
 
     /// Specialized type for file-based operations
     File(FileRequest),
+    Dir(DirRequest),
 }
 
 #[derive(Debug)]
@@ -395,7 +390,7 @@ pub(crate) struct Create {
 #[derive(Debug)]
 pub(crate) struct OpenDir {
     pub filename: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<File>>,
+    pub reply: Sender<SftpChannelResult<Dir>>,
 }
 
 #[derive(Debug)]

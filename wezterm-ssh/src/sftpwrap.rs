@@ -1,5 +1,7 @@
+use crate::dirwrap::DirWrap;
 use crate::filewrap::FileWrap;
-use crate::sftp::{Metadata, OpenOptions, RenameOptions, SftpChannelError, SftpChannelResult};
+use crate::sftp::types::{Metadata, OpenOptions, RenameOptions};
+use crate::sftp::{SftpChannelError, SftpChannelResult};
 use camino::{Utf8Path, Utf8PathBuf};
 use std::convert::TryFrom;
 
@@ -126,13 +128,12 @@ impl SftpWrap {
         }
     }
 
-    // FIXME: need a DirWrap
-    pub fn open_dir(&self, filename: &Utf8Path) -> SftpChannelResult<FileWrap> {
+    pub fn open_dir(&self, filename: &Utf8Path) -> SftpChannelResult<DirWrap> {
         match self {
             Self::Ssh2(sftp) => sftp
                 .opendir(filename.as_std_path())
                 .map_err(SftpChannelError::from)
-                .map(FileWrap::Ssh2),
+                .map(DirWrap::Ssh2),
         }
     }
 
