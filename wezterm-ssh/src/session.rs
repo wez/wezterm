@@ -97,6 +97,7 @@ impl Session {
             rx_req,
             channels: HashMap::new(),
             files: HashMap::new(),
+            dirs: HashMap::new(),
             next_channel_id: 1,
             next_file_id: 1,
             sender_read,

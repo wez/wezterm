@@ -1,9 +1,11 @@
 use super::{Metadata, SessionRequest, SessionSender, SftpChannelResult, SftpRequest};
-use camino::Utf8PathBuf;
 use smol::channel::{bounded, Sender};
 use smol::future::FutureExt;
+use std::fmt;
+use std::future::Future;
+use std::io;
+use std::pin::Pin;
 use std::task::{Context, Poll};
-use std::{fmt, future::Future, io, pin::Pin};
 
 pub(crate) type FileId = usize;
 
@@ -30,7 +32,6 @@ pub(crate) enum FileRequest {
     Flush(FlushFile),
     SetMetadata(SetMetadataFile),
     Metadata(MetadataFile),
-    ReadDir(ReadDirFile),
     Fsync(FsyncFile),
 }
 
@@ -71,12 +72,6 @@ pub(crate) struct SetMetadataFile {
 pub(crate) struct MetadataFile {
     pub file_id: FileId,
     pub reply: Sender<SftpChannelResult<Metadata>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct ReadDirFile {
-    pub file_id: FileId,
-    pub reply: Sender<SftpChannelResult<(Utf8PathBuf, Metadata)>>,
 }
 
 #[derive(Debug)]
@@ -151,33 +146,6 @@ impl File {
             .unwrap()
             .send(SessionRequest::Sftp(SftpRequest::File(
                 FileRequest::Metadata(MetadataFile {
-                    file_id: self.file_id,
-                    reply,
-                }),
-            )))
-            .await?;
-        let result = rx.recv().await??;
-        Ok(result)
-    }
-
-    /// Reads a block of data from a handle and returns file entry information for the next entry,
-    /// if any.
-    ///
-    /// Note that this provides raw access to the readdir function from libssh2. This will return
-    /// an error when there are no more files to read, and files such as . and .. will be included
-    /// in the return values.
-    ///
-    /// Also note that the return paths will not be absolute paths, they are the filenames of the
-    /// files in this directory.
-    ///
-    /// See [`ssh2::File::readdir`] for more information.
-    pub async fn read_dir(&self) -> anyhow::Result<(Utf8PathBuf, Metadata)> {
-        let (reply, rx) = bounded(1);
-        self.tx
-            .as_ref()
-            .unwrap()
-            .send(SessionRequest::Sftp(SftpRequest::File(
-                FileRequest::ReadDir(ReadDirFile {
                     file_id: self.file_id,
                     reply,
                 }),

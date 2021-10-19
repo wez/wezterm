@@ -1,6 +1,7 @@
 mod auth;
 mod channelwrap;
 mod config;
+mod dirwrap;
 mod filewrap;
 mod host;
 mod pty;
@@ -15,6 +16,8 @@ pub use config::*;
 pub use host::*;
 pub use pty::*;
 pub use session::*;
+pub use sftp::error::*;
+pub use sftp::types::*;
 pub use sftp::*;
 
 // NOTE: Re-exported as is exposed in a public API of this crate
