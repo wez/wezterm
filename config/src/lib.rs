@@ -898,6 +898,9 @@ pub struct Config {
     #[serde(default)]
     pub ssh_domains: Vec<SshDomain>,
 
+    #[serde(default)]
+    pub ssh_backend: SshBackend,
+
     /// When running in server mode, defines configuration for
     /// each of the endpoints that we'll listen for connections
     #[serde(default)]

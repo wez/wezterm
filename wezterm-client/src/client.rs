@@ -5,7 +5,7 @@ use anyhow::{anyhow, bail, Context};
 use async_ossl::AsyncSslStream;
 use async_trait::async_trait;
 use codec::*;
-use config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
+use config::{configuration, SshBackend, SshDomain, TlsDomainClient, UnixDomain};
 use filedescriptor::FileDescriptor;
 use futures::FutureExt;
 use mux::connui::ConnectionUI;
@@ -446,6 +446,18 @@ impl Reconnectable {
         };
 
         let mut ssh_config = ssh_config.for_host(&remote_host_name);
+        ssh_config.insert(
+            "wezterm_ssh_backend".to_string(),
+            match ssh_dom
+                .ssh_backend
+                .unwrap_or_else(|| configuration().ssh_backend)
+            {
+                SshBackend::Ssh2 => "ssh2",
+                SshBackend::LibSsh => "libssh",
+            }
+            .to_string(),
+        );
+
         if let Some(username) = &ssh_dom.username {
             ssh_config.insert("user".to_string(), username.to_string());
         }

@@ -4,6 +4,7 @@
 use crate::frontend::front_end;
 use ::window::*;
 use anyhow::anyhow;
+use config::SshBackend;
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::Mux;
@@ -94,6 +95,8 @@ enum SubCommand {
 }
 
 async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
+    let config = config::configuration();
+
     let mut ssh_config = Config::new();
     ssh_config.add_default_config_files();
 
@@ -104,6 +107,15 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     let port = fields.next();
 
     let mut ssh_config = ssh_config.for_host(host);
+    ssh_config.insert(
+        "wezterm_ssh_backend".to_string(),
+        match config.ssh_backend {
+            SshBackend::Ssh2 => "ssh2",
+            SshBackend::LibSsh => "libssh",
+        }
+        .to_string(),
+    );
+
     if let Some(username) = &opts.user_at_host_and_port.username {
         ssh_config.insert("user".to_string(), username.to_string());
     }
@@ -123,7 +135,6 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         None
     };
 
-    let config = config::configuration();
     let domain: Arc<dyn Domain> = Arc::new(mux::ssh::RemoteSshDomain::with_ssh_config(
         &opts.user_at_host_and_port.to_string(),
         ssh_config,

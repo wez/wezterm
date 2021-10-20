@@ -2,6 +2,19 @@ use crate::*;
 use std::fmt::Display;
 use std::str::FromStr;
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub enum SshBackend {
+    Ssh2,
+    LibSsh,
+}
+impl_lua_conversion!(SshBackend);
+
+impl Default for SshBackend {
+    fn default() -> Self {
+        Self::LibSsh
+    }
+}
+
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct SshDomain {
     /// The name of this specific domain.  Must be unique amongst
@@ -27,6 +40,8 @@ pub struct SshDomain {
 
     /// The path to the wezterm binary on the remote host
     pub remote_wezterm_path: Option<String>,
+
+    pub ssh_backend: Option<SshBackend>,
 }
 impl_lua_conversion!(SshDomain);
 
