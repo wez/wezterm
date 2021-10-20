@@ -75,8 +75,8 @@ impl Sftp {
                 OpenWithMode {
                     filename: filename.try_into().map_err(into_invalid_data)?,
                     opts,
-                    reply,
                 },
+                reply,
             )))
             .await?;
         let mut result = rx.recv().await??;
@@ -128,10 +128,10 @@ impl Sftp {
     {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::OpenDir(OpenDir {
-                filename: filename.try_into().map_err(into_invalid_data)?,
+            .send(SessionRequest::Sftp(SftpRequest::OpenDir(
+                filename.try_into().map_err(into_invalid_data)?,
                 reply,
-            })))
+            )))
             .await?;
         let mut result = rx.recv().await??;
         result.initialize_sender(self.tx.clone());
@@ -152,10 +152,10 @@ impl Sftp {
     {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::ReadDir(ReadDir {
-                filename: filename.try_into().map_err(into_invalid_data)?,
+            .send(SessionRequest::Sftp(SftpRequest::ReadDir(
+                filename.try_into().map_err(into_invalid_data)?,
                 reply,
-            })))
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
@@ -169,11 +169,13 @@ impl Sftp {
     {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::CreateDir(CreateDir {
-                filename: filename.try_into().map_err(into_invalid_data)?,
-                mode,
+            .send(SessionRequest::Sftp(SftpRequest::CreateDir(
+                CreateDir {
+                    filename: filename.try_into().map_err(into_invalid_data)?,
+                    mode,
+                },
                 reply,
-            })))
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
@@ -187,10 +189,10 @@ impl Sftp {
     {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::RemoveDir(RemoveDir {
-                filename: filename.try_into().map_err(into_invalid_data)?,
+            .send(SessionRequest::Sftp(SftpRequest::RemoveDir(
+                filename.try_into().map_err(into_invalid_data)?,
                 reply,
-            })))
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
@@ -204,10 +206,10 @@ impl Sftp {
     {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Metadata(GetMetadata {
-                filename: filename.try_into().map_err(into_invalid_data)?,
+            .send(SessionRequest::Sftp(SftpRequest::Metadata(
+                filename.try_into().map_err(into_invalid_data)?,
                 reply,
-            })))
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
@@ -222,10 +224,8 @@ impl Sftp {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::SymlinkMetadata(
-                SymlinkMetadata {
-                    filename: filename.try_into().map_err(into_invalid_data)?,
-                    reply,
-                },
+                filename.try_into().map_err(into_invalid_data)?,
+                reply,
             )))
             .await?;
         let result = rx.recv().await??;
@@ -244,8 +244,8 @@ impl Sftp {
                 SetMetadata {
                     filename: filename.try_into().map_err(into_invalid_data)?,
                     metadata,
-                    reply,
                 },
+                reply,
             )))
             .await?;
         let result = rx.recv().await??;
@@ -262,11 +262,13 @@ impl Sftp {
     {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Symlink(Symlink {
-                path: path.try_into().map_err(into_invalid_data)?,
-                target: target.try_into().map_err(into_invalid_data)?,
+            .send(SessionRequest::Sftp(SftpRequest::Symlink(
+                Symlink {
+                    path: path.try_into().map_err(into_invalid_data)?,
+                    target: target.try_into().map_err(into_invalid_data)?,
+                },
                 reply,
-            })))
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
@@ -280,10 +282,10 @@ impl Sftp {
     {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::ReadLink(ReadLink {
-                path: path.try_into().map_err(into_invalid_data)?,
+            .send(SessionRequest::Sftp(SftpRequest::ReadLink(
+                path.try_into().map_err(into_invalid_data)?,
                 reply,
-            })))
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
@@ -298,10 +300,8 @@ impl Sftp {
         let (reply, rx) = bounded(1);
         self.tx
             .send(SessionRequest::Sftp(SftpRequest::Canonicalize(
-                Canonicalize {
-                    path: path.try_into().map_err(into_invalid_data)?,
-                    reply,
-                },
+                path.try_into().map_err(into_invalid_data)?,
+                reply,
             )))
             .await?;
         let result = rx.recv().await??;
@@ -323,12 +323,14 @@ impl Sftp {
     {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::Rename(Rename {
-                src: src.try_into().map_err(into_invalid_data)?,
-                dst: dst.try_into().map_err(into_invalid_data)?,
-                opts,
+            .send(SessionRequest::Sftp(SftpRequest::Rename(
+                Rename {
+                    src: src.try_into().map_err(into_invalid_data)?,
+                    dst: dst.try_into().map_err(into_invalid_data)?,
+                    opts,
+                },
                 reply,
-            })))
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
@@ -342,10 +344,10 @@ impl Sftp {
     {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Sftp(SftpRequest::RemoveFile(RemoveFile {
-                file: file.try_into().map_err(into_invalid_data)?,
+            .send(SessionRequest::Sftp(SftpRequest::RemoveFile(
+                file.try_into().map_err(into_invalid_data)?,
                 reply,
-            })))
+            )))
             .await?;
         let result = rx.recv().await??;
         Ok(result)
@@ -354,19 +356,22 @@ impl Sftp {
 
 #[derive(Debug)]
 pub(crate) enum SftpRequest {
-    OpenWithMode(OpenWithMode),
-    OpenDir(OpenDir),
-    ReadDir(ReadDir),
-    CreateDir(CreateDir),
-    RemoveDir(RemoveDir),
-    Metadata(GetMetadata),
-    SymlinkMetadata(SymlinkMetadata),
-    SetMetadata(SetMetadata),
-    Symlink(Symlink),
-    ReadLink(ReadLink),
-    Canonicalize(Canonicalize),
-    Rename(Rename),
-    RemoveFile(RemoveFile),
+    OpenWithMode(OpenWithMode, Sender<SftpChannelResult<File>>),
+    OpenDir(Utf8PathBuf, Sender<SftpChannelResult<Dir>>),
+    ReadDir(
+        Utf8PathBuf,
+        Sender<SftpChannelResult<Vec<(Utf8PathBuf, Metadata)>>>,
+    ),
+    CreateDir(CreateDir, Sender<SftpChannelResult<()>>),
+    RemoveDir(Utf8PathBuf, Sender<SftpChannelResult<()>>),
+    Metadata(Utf8PathBuf, Sender<SftpChannelResult<Metadata>>),
+    SymlinkMetadata(Utf8PathBuf, Sender<SftpChannelResult<Metadata>>),
+    SetMetadata(SetMetadata, Sender<SftpChannelResult<()>>),
+    Symlink(Symlink, Sender<SftpChannelResult<()>>),
+    ReadLink(Utf8PathBuf, Sender<SftpChannelResult<Utf8PathBuf>>),
+    Canonicalize(Utf8PathBuf, Sender<SftpChannelResult<Utf8PathBuf>>),
+    Rename(Rename, Sender<SftpChannelResult<()>>),
+    RemoveFile(Utf8PathBuf, Sender<SftpChannelResult<()>>),
 
     /// Specialized type for file-based operations
     File(FileRequest),
@@ -377,82 +382,24 @@ pub(crate) enum SftpRequest {
 pub(crate) struct OpenWithMode {
     pub filename: Utf8PathBuf,
     pub opts: OpenOptions,
-    pub reply: Sender<SftpChannelResult<File>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct Open {
-    pub filename: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<File>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct Create {
-    pub filename: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<File>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct OpenDir {
-    pub filename: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<Dir>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct ReadDir {
-    pub filename: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<Vec<(Utf8PathBuf, Metadata)>>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct CreateDir {
     pub filename: Utf8PathBuf,
     pub mode: i32,
-    pub reply: Sender<SftpChannelResult<()>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct RemoveDir {
-    pub filename: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<()>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct GetMetadata {
-    pub filename: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<Metadata>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct SymlinkMetadata {
-    pub filename: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<Metadata>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct SetMetadata {
     pub filename: Utf8PathBuf,
     pub metadata: Metadata,
-    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Symlink {
     pub path: Utf8PathBuf,
     pub target: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<()>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct ReadLink {
-    pub path: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<Utf8PathBuf>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct Canonicalize {
-    pub path: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<Utf8PathBuf>>,
 }
 
 #[derive(Debug)]
@@ -460,13 +407,6 @@ pub(crate) struct Rename {
     pub src: Utf8PathBuf,
     pub dst: Utf8PathBuf,
     pub opts: RenameOptions,
-    pub reply: Sender<SftpChannelResult<()>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct RemoveFile {
-    pub file: Utf8PathBuf,
-    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 impl From<ssh2::Error> for SftpChannelError {
