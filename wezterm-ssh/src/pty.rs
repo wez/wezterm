@@ -3,7 +3,7 @@ use crate::sessioninner::{ChannelId, ChannelInfo, DescriptorState};
 use crate::sessionwrap::SessionWrap;
 use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::{ExitStatus, PtySize};
-use smol::channel::{bounded, Receiver, Sender, TryRecvError};
+use smol::channel::{bounded, Receiver, TryRecvError};
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::io::{Read, Write};
@@ -15,14 +15,12 @@ pub(crate) struct NewPty {
     pub size: PtySize,
     pub command_line: Option<String>,
     pub env: Option<HashMap<String, String>>,
-    pub reply: Sender<(SshPty, SshChildProcess)>,
 }
 
 #[derive(Debug)]
 pub(crate) struct ResizePty {
     pub channel: ChannelId,
     pub size: PtySize,
-    pub reply: Option<Sender<()>>,
 }
 
 #[derive(Debug)]
@@ -49,11 +47,13 @@ impl portable_pty::MasterPty for SshPty {
         self.tx
             .as_ref()
             .unwrap()
-            .try_send(SessionRequest::ResizePty(ResizePty {
-                channel: self.channel,
-                size,
-                reply: None,
-            }))?;
+            .try_send(SessionRequest::ResizePty(
+                ResizePty {
+                    channel: self.channel,
+                    size,
+                },
+                None,
+            ))?;
 
         *self.size.lock().unwrap() = size;
         Ok(())
@@ -165,7 +165,11 @@ impl portable_pty::Child for SshChildProcess {
 }
 
 impl crate::sessioninner::SessionInner {
-    pub fn new_pty(&mut self, sess: &mut SessionWrap, newpty: &NewPty) -> anyhow::Result<()> {
+    pub fn new_pty(
+        &mut self,
+        sess: &mut SessionWrap,
+        newpty: NewPty,
+    ) -> anyhow::Result<(SshPty, SshChildProcess)> {
         sess.set_blocking(true);
 
         let mut channel = sess.open_session()?;
@@ -182,7 +186,7 @@ impl crate::sessioninner::SessionInner {
         }
         */
 
-        channel.request_pty(newpty)?;
+        channel.request_pty(&newpty)?;
 
         if let Some(env) = &newpty.env {
             for (key, val) in env {
@@ -254,21 +258,17 @@ impl crate::sessioninner::SessionInner {
             ],
         };
 
-        newpty.reply.try_send((ssh_pty, child))?;
         self.channels.insert(channel_id, info);
 
-        Ok(())
+        Ok((ssh_pty, child))
     }
 
-    pub fn resize_pty(&mut self, resize: &ResizePty) -> anyhow::Result<()> {
+    pub fn resize_pty(&mut self, resize: ResizePty) -> anyhow::Result<()> {
         let info = self
             .channels
             .get_mut(&resize.channel)
             .ok_or_else(|| anyhow::anyhow!("invalid channel id {}", resize.channel))?;
-        info.channel.resize_pty(resize)?;
-        if let Some(reply) = resize.reply.as_ref() {
-            reply.try_send(())?;
-        }
+        info.channel.resize_pty(&resize)?;
         Ok(())
     }
 }

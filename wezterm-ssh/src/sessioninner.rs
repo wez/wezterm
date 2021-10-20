@@ -404,23 +404,20 @@ impl SessionInner {
             Ok(req) => {
                 sess.set_blocking(true);
                 let res = match req {
-                    SessionRequest::NewPty(newpty) => {
-                        if let Err(err) = self.new_pty(sess, &newpty) {
-                            log::error!("{:?} -> error: {:#}", newpty, err);
+                    SessionRequest::NewPty(newpty, reply) => {
+                        dispatch(reply, || self.new_pty(sess, newpty), "NewPty")
+                    }
+                    SessionRequest::ResizePty(resize, Some(reply)) => {
+                        dispatch(reply, || self.resize_pty(resize), "resize_pty")
+                    }
+                    SessionRequest::ResizePty(resize, None) => {
+                        if let Err(err) = self.resize_pty(resize) {
+                            log::error!("error in resize_pty: {:#}", err);
                         }
                         Ok(true)
                     }
-                    SessionRequest::ResizePty(resize) => {
-                        if let Err(err) = self.resize_pty(&resize) {
-                            log::error!("{:?} -> error: {:#}", resize, err);
-                        }
-                        Ok(true)
-                    }
-                    SessionRequest::Exec(exec) => {
-                        if let Err(err) = self.exec(sess, &exec) {
-                            log::error!("{:?} -> error: {:#}", exec, err);
-                        }
-                        Ok(true)
+                    SessionRequest::Exec(exec, reply) => {
+                        dispatch(reply, || self.exec(sess, exec), "exec")
                     }
                     SessionRequest::SignalChannel(info) => {
                         if let Err(err) = self.signal_channel(&info) {
@@ -625,7 +622,7 @@ impl SessionInner {
         Ok(())
     }
 
-    pub fn exec(&mut self, sess: &mut SessionWrap, exec: &Exec) -> anyhow::Result<()> {
+    pub fn exec(&mut self, sess: &mut SessionWrap, exec: Exec) -> anyhow::Result<ExecResult> {
         let mut channel = sess.open_session()?;
 
         if let Some(env) = &exec.env {
@@ -694,10 +691,9 @@ impl SessionInner {
             ],
         };
 
-        exec.reply.try_send(result)?;
         self.channels.insert(channel_id, info);
 
-        Ok(())
+        Ok(result)
     }
 
     /// Open a handle to a file.

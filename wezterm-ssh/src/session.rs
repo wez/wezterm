@@ -47,9 +47,9 @@ impl SessionSender {
 
 #[derive(Debug)]
 pub(crate) enum SessionRequest {
-    NewPty(NewPty),
-    ResizePty(ResizePty),
-    Exec(Exec),
+    NewPty(NewPty, Sender<anyhow::Result<(SshPty, SshChildProcess)>>),
+    ResizePty(ResizePty, Option<Sender<anyhow::Result<()>>>),
+    Exec(Exec, Sender<anyhow::Result<ExecResult>>),
     Sftp(SftpRequest),
     SignalChannel(SignalChannel),
 }
@@ -64,7 +64,6 @@ pub(crate) struct SignalChannel {
 pub(crate) struct Exec {
     pub command_line: String,
     pub env: Option<HashMap<String, String>>,
-    pub reply: Sender<ExecResult>,
 }
 
 #[derive(Clone)]
@@ -115,15 +114,17 @@ impl Session {
     ) -> anyhow::Result<(SshPty, SshChildProcess)> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::NewPty(NewPty {
-                term: term.to_string(),
-                size,
-                command_line: command_line.map(|s| s.to_string()),
-                env,
+            .send(SessionRequest::NewPty(
+                NewPty {
+                    term: term.to_string(),
+                    size,
+                    command_line: command_line.map(|s| s.to_string()),
+                    env,
+                },
                 reply,
-            }))
+            ))
             .await?;
-        let (mut ssh_pty, mut child) = rx.recv().await?;
+        let (mut ssh_pty, mut child) = rx.recv().await??;
         ssh_pty.tx.replace(self.tx.clone());
         child.tx.replace(self.tx.clone());
         Ok((ssh_pty, child))
@@ -136,13 +137,15 @@ impl Session {
     ) -> anyhow::Result<ExecResult> {
         let (reply, rx) = bounded(1);
         self.tx
-            .send(SessionRequest::Exec(Exec {
-                command_line: command_line.to_string(),
-                env,
+            .send(SessionRequest::Exec(
+                Exec {
+                    command_line: command_line.to_string(),
+                    env,
+                },
                 reply,
-            }))
+            ))
             .await?;
-        let mut exec = rx.recv().await?;
+        let mut exec = rx.recv().await??;
         exec.child.tx.replace(self.tx.clone());
         Ok(exec)
     }
