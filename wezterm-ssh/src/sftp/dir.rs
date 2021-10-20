@@ -18,21 +18,9 @@ impl fmt::Debug for Dir {
 }
 
 #[derive(Debug)]
-pub(crate) struct CloseDir {
-    pub dir_id: DirId,
-    pub reply: Sender<SftpChannelResult<()>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct ReadDirHandle {
-    pub dir_id: DirId,
-    pub reply: Sender<SftpChannelResult<(Utf8PathBuf, Metadata)>>,
-}
-
-#[derive(Debug)]
 pub(crate) enum DirRequest {
-    Close(CloseDir),
-    ReadDir(ReadDirHandle),
+    Close(DirId, Sender<SftpChannelResult<()>>),
+    ReadDir(DirId, Sender<SftpChannelResult<(Utf8PathBuf, Metadata)>>),
 }
 
 impl Drop for Dir {
@@ -41,10 +29,8 @@ impl Drop for Dir {
         if let Some(tx) = self.tx.take() {
             let (reply, _) = bounded(1);
             let _ = tx.try_send(SessionRequest::Sftp(SftpRequest::Dir(DirRequest::Close(
-                CloseDir {
-                    dir_id: self.dir_id,
-                    reply,
-                },
+                self.dir_id,
+                reply,
             ))));
         }
     }
@@ -76,10 +62,8 @@ impl Dir {
             .as_ref()
             .unwrap()
             .send(SessionRequest::Sftp(SftpRequest::Dir(DirRequest::ReadDir(
-                ReadDirHandle {
-                    dir_id: self.dir_id,
-                    reply,
-                },
+                self.dir_id,
+                reply,
             ))))
             .await?;
         let result = rx.recv().await??;

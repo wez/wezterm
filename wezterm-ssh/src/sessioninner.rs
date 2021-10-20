@@ -5,12 +5,9 @@ use crate::filewrap::FileWrap;
 use crate::pty::*;
 use crate::session::{Exec, ExecResult, SessionEvent, SessionRequest, SignalChannel};
 use crate::sessionwrap::SessionWrap;
-use crate::sftp::dir::{CloseDir, Dir, DirId, DirRequest, ReadDirHandle};
-use crate::sftp::file::{
-    CloseFile, File, FileId, FileRequest, FlushFile, FsyncFile, MetadataFile, ReadFile,
-    SetMetadataFile, WriteFile,
-};
-use crate::sftp::{OpenWithMode, SftpChannelError, SftpChannelResult, SftpRequest};
+use crate::sftp::dir::{Dir, DirId, DirRequest};
+use crate::sftp::file::{File, FileId, FileRequest};
+use crate::sftp::{OpenWithMode, SftpChannelResult, SftpRequest};
 use crate::sftpwrap::SftpWrap;
 use anyhow::{anyhow, Context};
 use camino::Utf8PathBuf;
@@ -437,60 +434,129 @@ impl SessionInner {
                     SessionRequest::Sftp(SftpRequest::OpenDir(path, reply)) => {
                         dispatch(reply, || self.open_dir(sess, path), "OpenDir")
                     }
-                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Write(msg))) => {
-                        if let Err(err) = self.write_file(sess, &msg) {
-                            log::error!("{:?} -> error: {:#}", msg, err);
-                        }
-                        Ok(true)
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Write(msg, reply))) => {
+                        dispatch(
+                            reply,
+                            || {
+                                let file = self
+                                    .files
+                                    .get_mut(&msg.file_id)
+                                    .ok_or_else(|| anyhow!("invalid file_id"))?;
+                                file.writer().write_all(&msg.data)?;
+                                Ok(())
+                            },
+                            "write_file",
+                        )
                     }
-                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Read(msg))) => {
-                        if let Err(err) = self.read_file(sess, &msg) {
-                            log::error!("{:?} -> error: {:#}", msg, err);
-                        }
-                        Ok(true)
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Read(msg, reply))) => {
+                        dispatch(
+                            reply,
+                            || {
+                                let file = self
+                                    .files
+                                    .get_mut(&msg.file_id)
+                                    .ok_or_else(|| anyhow!("invalid file_id"))?;
+
+                                // TODO: Move this somewhere to avoid re-allocating buffer
+                                let mut buf = vec![0u8; msg.max_bytes];
+                                let n = file.reader().read(&mut buf)?;
+                                buf.truncate(n);
+                                Ok(buf)
+                            },
+                            "read_file",
+                        )
                     }
-                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Close(msg))) => {
-                        if let Err(err) = self.close_file(sess, &msg) {
-                            log::error!("{:?} -> error: {:#}", msg, err);
-                        }
-                        Ok(true)
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Close(file_id, reply))) => {
+                        dispatch(
+                            reply,
+                            || {
+                                self.files.remove(&file_id);
+                                Ok(())
+                            },
+                            "close_file",
+                        )
                     }
-                    SessionRequest::Sftp(SftpRequest::Dir(DirRequest::Close(msg))) => {
-                        if let Err(err) = self.close_dir(sess, &msg) {
-                            log::error!("{:?} -> error: {:#}", msg, err);
-                        }
-                        Ok(true)
+                    SessionRequest::Sftp(SftpRequest::Dir(DirRequest::Close(dir_id, reply))) => {
+                        dispatch(
+                            reply,
+                            || {
+                                self.dirs
+                                    .remove(&dir_id)
+                                    .ok_or_else(|| anyhow!("invalid dir_id"))?;
+                                Ok(())
+                            },
+                            "close_dir",
+                        )
                     }
-                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Flush(msg))) => {
-                        if let Err(err) = self.flush_file(sess, &msg) {
-                            log::error!("{:?} -> error: {:#}", msg, err);
-                        }
-                        Ok(true)
+                    SessionRequest::Sftp(SftpRequest::Dir(DirRequest::ReadDir(dir_id, reply))) => {
+                        dispatch(
+                            reply,
+                            || {
+                                let dir = self
+                                    .dirs
+                                    .get_mut(&dir_id)
+                                    .ok_or_else(|| anyhow!("invalid dir_id"))?;
+                                dir.read_dir()
+                            },
+                            "read_dir",
+                        )
                     }
-                    SessionRequest::Sftp(SftpRequest::File(FileRequest::SetMetadata(msg))) => {
-                        if let Err(err) = self.set_metadata_file(sess, &msg) {
-                            log::error!("{:?} -> error: {:#}", msg, err);
-                        }
-                        Ok(true)
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Flush(file_id, reply))) => {
+                        dispatch(
+                            reply,
+                            || {
+                                let file = self
+                                    .files
+                                    .get_mut(&file_id)
+                                    .ok_or_else(|| anyhow!("invalid file_id"))?;
+                                file.writer().flush()?;
+                                Ok(())
+                            },
+                            "flush_file",
+                        )
                     }
-                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Metadata(msg))) => {
-                        if let Err(err) = self.metadata_file(sess, &msg) {
-                            log::error!("{:?} -> error: {:#}", msg, err);
-                        }
-                        Ok(true)
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::SetMetadata(
+                        msg,
+                        reply,
+                    ))) => dispatch(
+                        reply,
+                        || {
+                            let file = self
+                                .files
+                                .get_mut(&msg.file_id)
+                                .ok_or_else(|| anyhow!("invalid file_id"))?;
+                            file.set_metadata(msg.metadata)
+                        },
+                        "set_metadata_file",
+                    ),
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Metadata(
+                        file_id,
+                        reply,
+                    ))) => dispatch(
+                        reply,
+                        || {
+                            let file = self
+                                .files
+                                .get_mut(&file_id)
+                                .ok_or_else(|| anyhow!("invalid file_id"))?;
+                            file.metadata()
+                        },
+                        "metadata_file",
+                    ),
+                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Fsync(file_id, reply))) => {
+                        dispatch(
+                            reply,
+                            || {
+                                let file = self
+                                    .files
+                                    .get_mut(&file_id)
+                                    .ok_or_else(|| anyhow!("invalid file_id"))?;
+                                file.fsync()
+                            },
+                            "fsync",
+                        )
                     }
-                    SessionRequest::Sftp(SftpRequest::Dir(DirRequest::ReadDir(msg))) => {
-                        if let Err(err) = self.read_dir_handle(sess, &msg) {
-                            log::error!("{:?} -> error: {:#}", msg, err);
-                        }
-                        Ok(true)
-                    }
-                    SessionRequest::Sftp(SftpRequest::File(FileRequest::Fsync(msg))) => {
-                        if let Err(err) = self.fsync_file(sess, &msg) {
-                            log::error!("{:?} -> error: {:#}", msg, err);
-                        }
-                        Ok(true)
-                    }
+
                     SessionRequest::Sftp(SftpRequest::ReadDir(path, reply)) => {
                         dispatch(reply, || self.init_sftp(sess)?.read_dir(&path), "read_dir")
                     }
@@ -666,131 +732,6 @@ impl SessionInner {
 
         self.dirs.insert(dir_id, ssh_dir);
         Ok(dir)
-    }
-
-    /// Writes to a loaded file.
-    fn write_file(&mut self, _sess: &mut SessionWrap, msg: &WriteFile) -> anyhow::Result<()> {
-        let WriteFile {
-            file_id,
-            data,
-            reply,
-        } = msg;
-
-        if let Some(file) = self.files.get_mut(file_id) {
-            let result = file
-                .writer()
-                .write_all(data)
-                .map_err(SftpChannelError::from);
-            reply.try_send(result)?;
-        }
-
-        Ok(())
-    }
-
-    /// Reads from a loaded file.
-    fn read_file(&mut self, _sess: &mut SessionWrap, msg: &ReadFile) -> anyhow::Result<()> {
-        let ReadFile {
-            file_id,
-            max_bytes,
-            reply,
-        } = msg;
-
-        if let Some(file) = self.files.get_mut(file_id) {
-            // TODO: Move this somewhere to avoid re-allocating buffer
-            let mut buf = vec![0u8; *max_bytes];
-            match file.reader().read(&mut buf).map_err(SftpChannelError::from) {
-                Ok(n) => {
-                    buf.truncate(n);
-                    reply.try_send(Ok(buf))?;
-                }
-                Err(x) => reply.try_send(Err(x))?,
-            }
-        }
-
-        Ok(())
-    }
-
-    fn close_dir(&mut self, _sess: &mut SessionWrap, msg: &CloseDir) -> anyhow::Result<()> {
-        self.dirs.remove(&msg.dir_id);
-        msg.reply.try_send(Ok(()))?;
-
-        Ok(())
-    }
-
-    /// Closes a file and removes it from the internal memory.
-    fn close_file(&mut self, _sess: &mut SessionWrap, msg: &CloseFile) -> anyhow::Result<()> {
-        self.files.remove(&msg.file_id);
-        msg.reply.try_send(Ok(()))?;
-
-        Ok(())
-    }
-
-    /// Flushes a file.
-    fn flush_file(&mut self, _sess: &mut SessionWrap, msg: &FlushFile) -> anyhow::Result<()> {
-        if let Some(file) = self.files.get_mut(&msg.file_id) {
-            let result = file.writer().flush().map_err(SftpChannelError::from);
-            msg.reply.try_send(result)?;
-        }
-
-        Ok(())
-    }
-
-    /// Sets file metadata.
-    fn set_metadata_file(
-        &mut self,
-        _sess: &mut SessionWrap,
-        msg: &SetMetadataFile,
-    ) -> anyhow::Result<()> {
-        let SetMetadataFile {
-            file_id,
-            metadata,
-            reply,
-        } = msg;
-
-        if let Some(file) = self.files.get_mut(file_id) {
-            let result = file.set_metadata(*metadata).map_err(SftpChannelError::from);
-            reply.try_send(result)?;
-        }
-
-        Ok(())
-    }
-
-    /// Gets file stat.
-    fn metadata_file(&mut self, _sess: &mut SessionWrap, msg: &MetadataFile) -> anyhow::Result<()> {
-        if let Some(file) = self.files.get_mut(&msg.file_id) {
-            let result = file.metadata();
-            msg.reply.try_send(result)?;
-        }
-
-        Ok(())
-    }
-
-    /// Performs readdir for file.
-    fn read_dir_handle(
-        &mut self,
-        _sess: &mut SessionWrap,
-        msg: &ReadDirHandle,
-    ) -> anyhow::Result<()> {
-        if let Some(dir) = self.dirs.get_mut(&msg.dir_id) {
-            let result = dir.read_dir();
-            msg.reply.try_send(result)?;
-        }
-
-        Ok(())
-    }
-
-    /// Fsync file.
-    fn fsync_file(
-        &mut self,
-        _sess: &mut SessionWrap,
-        fsync_file: &FsyncFile,
-    ) -> anyhow::Result<()> {
-        if let Some(file) = self.files.get_mut(&fsync_file.file_id) {
-            let result = file.fsync();
-            fsync_file.reply.try_send(result)?;
-        }
-
-        Ok(())
     }
 
     /// Initialize the sftp channel if not already created, returning a mutable reference to it

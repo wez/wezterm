@@ -26,58 +26,31 @@ struct FileState {
 
 #[derive(Debug)]
 pub(crate) enum FileRequest {
-    Write(WriteFile),
-    Read(ReadFile),
-    Close(CloseFile),
-    Flush(FlushFile),
-    SetMetadata(SetMetadataFile),
-    Metadata(MetadataFile),
-    Fsync(FsyncFile),
+    Write(WriteFile, Sender<SftpChannelResult<()>>),
+    Read(ReadFile, Sender<SftpChannelResult<Vec<u8>>>),
+    Close(FileId, Sender<SftpChannelResult<()>>),
+    Flush(FileId, Sender<SftpChannelResult<()>>),
+    SetMetadata(SetMetadataFile, Sender<SftpChannelResult<()>>),
+    Metadata(FileId, Sender<SftpChannelResult<Metadata>>),
+    Fsync(FileId, Sender<SftpChannelResult<()>>),
 }
 
 #[derive(Debug)]
 pub(crate) struct WriteFile {
     pub file_id: FileId,
     pub data: Vec<u8>,
-    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct ReadFile {
     pub file_id: FileId,
     pub max_bytes: usize,
-    pub reply: Sender<SftpChannelResult<Vec<u8>>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct CloseFile {
-    pub file_id: FileId,
-    pub reply: Sender<SftpChannelResult<()>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct FlushFile {
-    pub file_id: FileId,
-    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct SetMetadataFile {
     pub file_id: FileId,
     pub metadata: Metadata,
-    pub reply: Sender<SftpChannelResult<()>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct MetadataFile {
-    pub file_id: FileId,
-    pub reply: Sender<SftpChannelResult<Metadata>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct FsyncFile {
-    pub file_id: FileId,
-    pub reply: Sender<SftpChannelResult<()>>,
 }
 
 impl fmt::Debug for File {
@@ -94,10 +67,8 @@ impl Drop for File {
         if let Some(tx) = self.tx.take() {
             let (reply, _) = bounded(1);
             let _ = tx.try_send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Close(
-                CloseFile {
-                    file_id: self.file_id,
-                    reply,
-                },
+                self.file_id,
+                reply,
             ))));
         }
     }
@@ -125,11 +96,13 @@ impl File {
             .as_ref()
             .unwrap()
             .send(SessionRequest::Sftp(SftpRequest::File(
-                FileRequest::SetMetadata(SetMetadataFile {
-                    file_id: self.file_id,
-                    metadata,
+                FileRequest::SetMetadata(
+                    SetMetadataFile {
+                        file_id: self.file_id,
+                        metadata,
+                    },
                     reply,
-                }),
+                ),
             )))
             .await?;
         let result = rx.recv().await??;
@@ -145,10 +118,7 @@ impl File {
             .as_ref()
             .unwrap()
             .send(SessionRequest::Sftp(SftpRequest::File(
-                FileRequest::Metadata(MetadataFile {
-                    file_id: self.file_id,
-                    reply,
-                }),
+                FileRequest::Metadata(self.file_id, reply),
             )))
             .await?;
         let result = rx.recv().await??;
@@ -165,10 +135,8 @@ impl File {
             .as_ref()
             .unwrap()
             .send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Fsync(
-                FsyncFile {
-                    file_id: self.file_id,
-                    reply,
-                },
+                self.file_id,
+                reply,
             ))))
             .await?;
         let result = rx.recv().await??;
@@ -293,11 +261,8 @@ impl smol::io::AsyncWrite for File {
 async fn inner_write(tx: SessionSender, file_id: usize, data: Vec<u8>) -> SftpChannelResult<()> {
     let (reply, rx) = bounded(1);
     tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Write(
-        WriteFile {
-            file_id,
-            data,
-            reply,
-        },
+        WriteFile { file_id, data },
+        reply,
     ))))
     .await?;
     let result = rx.recv().await??;
@@ -315,11 +280,8 @@ async fn inner_read(
 ) -> SftpChannelResult<Vec<u8>> {
     let (reply, rx) = bounded(1);
     tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Read(
-        ReadFile {
-            file_id,
-            max_bytes,
-            reply,
-        },
+        ReadFile { file_id, max_bytes },
+        reply,
     ))))
     .await?;
     let result = rx.recv().await??;
@@ -330,7 +292,7 @@ async fn inner_read(
 async fn inner_flush(tx: SessionSender, file_id: usize) -> SftpChannelResult<()> {
     let (reply, rx) = bounded(1);
     tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Flush(
-        FlushFile { file_id, reply },
+        file_id, reply,
     ))))
     .await?;
     let result = rx.recv().await??;
@@ -341,7 +303,7 @@ async fn inner_flush(tx: SessionSender, file_id: usize) -> SftpChannelResult<()>
 async fn inner_close(tx: SessionSender, file_id: usize) -> SftpChannelResult<()> {
     let (reply, rx) = bounded(1);
     tx.send(SessionRequest::Sftp(SftpRequest::File(FileRequest::Close(
-        CloseFile { file_id, reply },
+        file_id, reply,
     ))))
     .await?;
     let result = rx.recv().await??;
