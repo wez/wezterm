@@ -119,6 +119,9 @@ impl SessionInner {
                 break;
             }
         }
+        if let Some(cmd) = self.config.get("proxycommand") {
+            sess.set_option(libssh::SshOption::ProxyCommand(Some(cmd.to_string())))?;
+        }
 
         sess.options_parse_config(None)?; // FIXME: overridden config path?
         sess.connect()?;
