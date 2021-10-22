@@ -127,6 +127,9 @@ pub struct WaylandWindowInner {
     invalidated: bool,
     font_config: Rc<FontConfiguration>,
     config: Option<ConfigHandle>,
+    // cache the title for comparison to avoid spamming
+    // the compositor with updates that don't actually change it
+    title: Option<String>,
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
     // libraries will segfault on shutdown
@@ -340,6 +343,7 @@ impl WaylandWindow {
             pending_mouse,
             pending_first_configure: Some(pending_first_configure),
             frame_callback: None,
+            title: None,
             gl_state: None,
             wegl_surface: None,
         }));
@@ -821,7 +825,7 @@ impl WindowOps for WaylandWindow {
     fn set_title(&self, title: &str) {
         let title = title.to_owned();
         WaylandConnection::with_window_inner(self.0, move |inner| {
-            inner.set_title(&title);
+            inner.set_title(title);
             Ok(())
         });
     }
@@ -1054,11 +1058,17 @@ impl WaylandWindowInner {
     }
 
     /// Change the title for the window manager
-    fn set_title(&mut self, title: &str) {
+    fn set_title(&mut self, title: String) {
+        if let Some(last_title) = self.title.as_ref() {
+            if last_title == &title {
+                return;
+            }
+        }
         if let Some(window) = self.window.as_ref() {
-            window.set_title(title.to_string());
+            window.set_title(title.clone());
         }
         self.refresh_frame();
+        self.title = Some(title);
     }
 
     fn set_resize_increments(&mut self, x: u16, y: u16) {
