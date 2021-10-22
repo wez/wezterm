@@ -862,7 +862,7 @@ impl Frame for ConceptFrame {
                                 pixmap.draw_pixmap(
                                     (x + item.info.x_offset.get() + item.glyph.bearing_x.get())
                                         as i32,
-                                    (HEADER_SIZE * 3 / 4) as i32
+                                    (scaled_header_height * 3 / 4) as i32
                                         + (shaped.metrics.descender
                                             - (item.info.y_offset + item.glyph.bearing_y))
                                             .get() as i32,
