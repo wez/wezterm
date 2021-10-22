@@ -144,10 +144,10 @@ pub struct DimensionContext {
 impl Dimension {
     pub fn evaluate_as_pixels(&self, context: DimensionContext) -> f32 {
         match self {
-            Self::Pixels(n) => *n,
-            Self::Points(pt) => pt * context.dpi / 72.0,
-            Self::Percent(p) => p * context.pixel_max,
-            Self::Cells(c) => c * context.pixel_cell,
+            Self::Pixels(n) => n.floor(),
+            Self::Points(pt) => (pt * context.dpi / 72.0).floor(),
+            Self::Percent(p) => (p * context.pixel_max).floor(),
+            Self::Cells(c) => (c * context.pixel_cell).floor(),
         }
     }
 }
