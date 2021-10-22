@@ -761,7 +761,12 @@ impl Frame for ConceptFrame {
     }
 
     fn redraw(&mut self) {
-        self.reshape_title();
+        let showing_title_bar = self.showing_title_bar(&*self.inner.borrow());
+
+        if showing_title_bar {
+            self.reshape_title();
+        }
+
         let inner = self.inner.borrow_mut();
 
         // Don't draw borders if the frame explicitly hidden or fullscreened.
@@ -790,8 +795,6 @@ impl Frame for ConceptFrame {
 
         let scaled_header_height = HEADER_SIZE * header_scale;
         let scaled_header_width = width * header_scale;
-
-        let showing_title_bar = self.showing_title_bar(&*inner);
 
         {
             // grab the current pool
