@@ -423,6 +423,7 @@ struct ShapedTitle {
     glyphs: Vec<ShapedGlyph>,
     metrics: FontMetrics,
     state: WindowState,
+    dpi: usize,
 }
 
 struct ShapedGlyph {
@@ -441,7 +442,10 @@ impl ConceptFrame {
         }
 
         if let Some(existing) = self.shaped_title.as_ref() {
-            if existing.title == title && existing.state == self.active {
+            if existing.title == title
+                && existing.state == self.active
+                && existing.dpi == font_config.get_dpi()
+            {
                 return Some(());
             }
         }
@@ -504,6 +508,7 @@ impl ConceptFrame {
             glyphs,
             metrics,
             state: self.active,
+            dpi: font_config.get_dpi(),
         });
 
         Some(())

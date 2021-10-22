@@ -662,6 +662,10 @@ impl FontConfigInner {
         *self.font_scale.borrow()
     }
 
+    pub fn get_dpi(&self) -> usize {
+        *self.dpi.borrow()
+    }
+
     pub fn default_font_metrics(&self, myself: &Rc<Self>) -> Result<FontMetrics, Error> {
         {
             let metrics = self.metrics.borrow();
@@ -755,6 +759,10 @@ impl FontConfiguration {
 
     pub fn get_font_scale(&self) -> f64 {
         self.inner.get_font_scale()
+    }
+
+    pub fn get_dpi(&self) -> usize {
+        self.inner.get_dpi()
     }
 
     pub fn default_font_metrics(&self) -> Result<FontMetrics, Error> {
