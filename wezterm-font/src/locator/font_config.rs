@@ -2,7 +2,7 @@ use crate::fcwrap;
 use crate::locator::{FontDataHandle, FontDataSource, FontLocator, FontOrigin};
 use crate::parser::ParsedFont;
 use anyhow::Context;
-use config::FontAttributes;
+use config::{FontAttributes, FontWeight};
 use fcwrap::{CharSet, FontSet, Pattern as FontPattern, FC_DUAL, FC_MONO};
 use std::collections::HashSet;
 use std::convert::TryInto;
@@ -65,6 +65,20 @@ impl FontLocator for FontConfigFontLocator {
             Ok(matches)
         }
 
+        fn to_handle(pat: FontPattern) -> anyhow::Result<FontDataHandle> {
+            let file = pat.get_file()?;
+            let index = pat.get_integer("index")? as u32;
+            let variation = index >> 16;
+            let index = index & 0xffff;
+            Ok(FontDataHandle {
+                source: FontDataSource::OnDisk(file.into()),
+                index,
+                variation,
+                origin: FontOrigin::FontConfig,
+                coverage: pat.get_charset().ok().map(|c| c.to_range_set()),
+            })
+        }
+
         for attr in fonts_selection {
             let mut candidates = vec![];
 
@@ -73,17 +87,7 @@ impl FontLocator for FontConfigFontLocator {
                 match resolver(attr) {
                     Ok(matches) => {
                         for pat in matches {
-                            let file = pat.get_file()?;
-                            let index = pat.get_integer("index")? as u32;
-                            let variation = index >> 16;
-                            let index = index & 0xffff;
-                            let handle = FontDataHandle {
-                                source: FontDataSource::OnDisk(file.into()),
-                                index,
-                                variation,
-                                origin: FontOrigin::FontConfig,
-                                coverage: pat.get_charset().ok().map(|c| c.to_range_set()),
-                            };
+                            let handle = to_handle(pat)?;
 
                             // fontconfig will give us a boatload of random fallbacks.
                             // so we need to parse the returned font
@@ -100,7 +104,45 @@ impl FontLocator for FontConfigFontLocator {
                 }
             }
 
-            // and apply our CSS-style font matching criteria
+            // Aliases like 'monospace' that users might have customized
+            // can only be resolved via get_best_match, do it here
+            if candidates.is_empty() {
+                let mut pattern = FontPattern::new()?;
+                let start = std::time::Instant::now();
+                pattern.family(&attr.family)?;
+                pattern.add_integer("weight", to_fc_weight(attr.weight))?;
+                pattern.add_integer(
+                    "slant",
+                    if attr.italic {
+                        fcwrap::FC_SLANT_ITALIC
+                    } else {
+                        fcwrap::FC_SLANT_ROMAN
+                    },
+                )?;
+                pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
+                let best_match = pattern.get_best_match()?;
+                log::trace!(
+                    "matching by family '{}' took {:?} to compute and is {:?}",
+                    attr.family,
+                    start.elapsed(),
+                    best_match
+                );
+                // For the fallback, be very careful, only select known monospace
+                if let Ok(spacing) = best_match.get_integer("spacing") {
+                    if spacing == FC_MONO || spacing == FC_DUAL {
+                        let handle = to_handle(best_match)?;
+                        if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
+                            log::trace!(
+                                "found font-config fallback match for {:?}",
+                                parsed.names()
+                            );
+                            candidates.push(parsed);
+                        }
+                    }
+                }
+            }
+
+            // Apply our CSS-style font matching criteria
             if let Some(parsed) = ParsedFont::best_match(attr, pixel_size, candidates) {
                 log::trace!("selected best font-config match {:?}", parsed.names());
                 fonts.push(parsed);
@@ -197,5 +239,31 @@ impl FontLocator for FontConfigFontLocator {
         fonts.sort();
 
         Ok(fonts)
+    }
+}
+
+fn to_fc_weight(w: FontWeight) -> std::os::raw::c_int {
+    if w <= FontWeight::THIN {
+        fcwrap::FC_WEIGHT_THIN
+    } else if w <= FontWeight::EXTRALIGHT {
+        fcwrap::FC_WEIGHT_EXTRALIGHT
+    } else if w <= FontWeight::LIGHT {
+        fcwrap::FC_WEIGHT_LIGHT
+    } else if w <= FontWeight::BOOK {
+        fcwrap::FC_WEIGHT_BOOK
+    } else if w <= FontWeight::REGULAR {
+        fcwrap::FC_WEIGHT_REGULAR
+    } else if w <= FontWeight::MEDIUM {
+        fcwrap::FC_WEIGHT_MEDIUM
+    } else if w <= FontWeight::DEMIBOLD {
+        fcwrap::FC_WEIGHT_DEMIBOLD
+    } else if w <= FontWeight::BOLD {
+        fcwrap::FC_WEIGHT_BOLD
+    } else if w <= FontWeight::EXTRABOLD {
+        fcwrap::FC_WEIGHT_EXTRABOLD
+    } else if w <= FontWeight::BLACK {
+        fcwrap::FC_WEIGHT_BLACK
+    } else {
+        fcwrap::FC_WEIGHT_EXTRABLACK
     }
 }
