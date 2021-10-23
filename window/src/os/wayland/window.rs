@@ -566,8 +566,8 @@ impl WaylandWindowInner {
             if let Some(scale) = pending.dpi {
                 // Synthesize a pending configure event for the dpi change
                 pending.configure.replace((
-                    self.pixels_to_surface(self.dimensions.pixel_width as i32 * scale) as u32,
-                    self.pixels_to_surface(self.dimensions.pixel_height as i32 * scale) as u32,
+                    self.pixels_to_surface(self.dimensions.pixel_width as i32) as u32,
+                    self.pixels_to_surface(self.dimensions.pixel_height as i32) as u32,
                 ));
                 log::debug!("synthesize configure with {:?}", pending.configure);
             }
@@ -576,6 +576,9 @@ impl WaylandWindowInner {
         if let Some((mut w, mut h)) = pending.configure.take() {
             if self.window.is_some() {
                 let factor = get_surface_scale_factor(&self.surface);
+
+                // Do this early because this affects surface_to_pixels/pixels_to_surface below!
+                self.dimensions.dpi = factor as usize * crate::DEFAULT_DPI as usize;
 
                 let mut pixel_width = self.surface_to_pixels(w.try_into().unwrap());
                 let mut pixel_height = self.surface_to_pixels(h.try_into().unwrap());
