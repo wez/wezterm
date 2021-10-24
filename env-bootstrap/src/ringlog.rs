@@ -4,7 +4,7 @@
 //! This allows other code to collect the ring buffer and display it
 //! within the application.
 use chrono::prelude::*;
-use log::{Level, Record};
+use log::{Level, LevelFilter, Record};
 use std::collections::HashMap;
 use std::sync::Mutex;
 
@@ -126,27 +126,38 @@ impl Rings {
 }
 
 struct Logger {
-    pretty: Box<dyn log::Log>,
+    pretty: Option<Box<dyn log::Log>>,
 }
 
 impl Logger {
-    fn new(pretty: Box<dyn log::Log>) -> Self {
+    fn new(pretty: Option<Box<dyn log::Log>>) -> Self {
         Self { pretty }
     }
 }
 
 impl log::Log for Logger {
     fn enabled(&self, metadata: &log::Metadata) -> bool {
-        self.pretty.enabled(metadata)
+        if let Some(pretty) = self.pretty.as_ref() {
+            pretty.enabled(metadata)
+        } else {
+            match metadata.level() {
+                Level::Error | Level::Warn | Level::Info => true,
+                _ => false,
+            }
+        }
     }
 
     fn flush(&self) {
-        self.pretty.flush()
+        if let Some(pretty) = self.pretty.as_ref() {
+            pretty.flush()
+        }
     }
 
     fn log(&self, record: &Record) {
         RINGS.lock().unwrap().log(record);
-        self.pretty.log(record)
+        if let Some(pretty) = self.pretty.as_ref() {
+            pretty.log(record);
+        }
     }
 }
 
@@ -157,20 +168,37 @@ pub fn get_entries() -> Vec<Entry> {
     entries
 }
 
-pub fn setup_logger() {
+fn setup_pretty() -> (LevelFilter, Option<Box<dyn log::Log>>) {
+    #[cfg(windows)]
+    {
+        use winapi::um::winbase::STD_ERROR_HANDLE;
+        // Working around <https://github.com/rust-lang/rust/issues/88576>
+        // wherein Rust 1.56 panics in the case that stderr is NULL.
+        // That can legitimately occur in a Windows subsystem executable.
+        // We detect that here and avoid initializing the pretty env logger.
+        if unsafe { winapi::um::processenv::GetStdHandle(STD_ERROR_HANDLE).is_null() } {
+            return (LevelFilter::Info, None);
+        }
+    }
+
     let mut builder = pretty_env_logger::formatted_timed_builder();
-    builder.filter(Some("wgpu_core"), log::LevelFilter::Error);
-    builder.filter(Some("gfx_backend_metal"), log::LevelFilter::Error);
+    builder.filter(Some("wgpu_core"), LevelFilter::Error);
+    builder.filter(Some("gfx_backend_metal"), LevelFilter::Error);
     if let Ok(s) = std::env::var("WEZTERM_LOG") {
         builder.parse_filters(&s);
     } else {
-        builder.filter(None, log::LevelFilter::Info);
+        builder.filter(None, LevelFilter::Info);
     }
 
     let pretty = builder.build();
     let max_level = pretty.filter();
 
     let pretty = Box::new(pretty);
+    (max_level, Some(pretty))
+}
+
+pub fn setup_logger() {
+    let (max_level, pretty) = setup_pretty();
     let logger = Logger::new(pretty);
 
     if log::set_boxed_logger(Box::new(logger)).is_ok() {

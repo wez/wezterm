@@ -1321,6 +1321,7 @@ dependencies = [
  "log",
  "objc",
  "pretty_env_logger",
+ "winapi 0.3.9",
 ]
 
 [[package]]
