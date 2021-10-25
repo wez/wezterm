@@ -3147,6 +3147,14 @@ were to emit that same emoji from a script, wezterm would render it correctly.</
 <p>If you're seeing this sort of issue, then you may be able to upgrade the
 affected application on that system to see if a newer version resolves that
 issue.</p>
+<h3 id="multiple-characters-being-renderedcombined-as-one-character"><a class="header" href="#multiple-characters-being-renderedcombined-as-one-character">Multiple characters being rendered/combined as one character?</a></h3>
+<p><code>wezterm</code> supports <a href="config/font-shaping.html">advanced font shaping</a>, which,
+amongst other things, allows for multiple characters/glyphs to be combined into
+one <a href="https://en.wikipedia.org/wiki/Ligature_(writing)">ligature</a>. You may be
+experiencing this if, e.g., <code>!=</code> becomes rendered as <code>≠</code> in <code>wezterm</code>.</p>
+<p>If you are seeing this kind of &quot;font combining&quot; and wish to disable it, then
+this is documented in <a href="config/font-shaping.html">advanced font shaping options</a>
+page.</p>
 <h2 id="how-to-troubleshoot-keys-that-dont-work-or-produce-weird-characters"><a class="header" href="#how-to-troubleshoot-keys-that-dont-work-or-produce-weird-characters">How to troubleshoot keys that don't work or produce weird characters!?</a></h2>
 <p>There are a number of layers in input processing that can influence this.</p>
 <p>The first thing to note is that <code>wezterm</code> will always and only output <code>UTF-8</code>
