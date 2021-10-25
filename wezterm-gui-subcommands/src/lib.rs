@@ -76,6 +76,12 @@ pub struct SshCommand {
         number_of_values = 1)]
     pub config_override: Vec<(String, String)>,
 
+    /// Enable verbose ssh protocol tracing.
+    /// The trace information is printed to the stderr stream of
+    /// the process.
+    #[structopt(short = "v")]
+    pub verbose: bool,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
     /// as if it were a login shell.

@@ -104,7 +104,15 @@ impl SessionInner {
             .context("notifying user of banner")?;
 
         let sess = libssh::Session::new()?;
-        // sess.set_option(libssh::SshOption::LogLevel(libssh::LogLevel::Packet))?;
+        if self
+            .config
+            .get("wezterm_ssh_verbose")
+            .map(|s| s.as_str())
+            .unwrap_or("false")
+            == "true"
+        {
+            sess.set_option(libssh::SshOption::LogLevel(libssh::LogLevel::Packet))?;
+        }
         sess.set_option(libssh::SshOption::Hostname(hostname.clone()))?;
         sess.set_option(libssh::SshOption::User(Some(user)))?;
         sess.set_option(libssh::SshOption::Port(port))?;
@@ -221,7 +229,15 @@ impl SessionInner {
         };
 
         let mut sess = ssh2::Session::new()?;
-        // sess.trace(ssh2::TraceFlags::all());
+        if self
+            .config
+            .get("wezterm_ssh_verbose")
+            .map(|s| s.as_str())
+            .unwrap_or("false")
+            == "true"
+        {
+            sess.trace(ssh2::TraceFlags::all());
+        }
         sess.set_blocking(true);
         sess.set_tcp_stream(tcp);
         sess.handshake()

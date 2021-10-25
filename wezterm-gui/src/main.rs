@@ -115,6 +115,9 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         }
         .to_string(),
     );
+    if opts.verbose {
+        ssh_config.insert("wezterm_ssh_verbose".to_string(), "true".to_string());
+    }
 
     if let Some(username) = &opts.user_at_host_and_port.username {
         ssh_config.insert("user".to_string(), username.to_string());
