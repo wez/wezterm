@@ -119,6 +119,17 @@ If you're seeing this sort of issue, then you may be able to upgrade the
 affected application on that system to see if a newer version resolves that
 issue.
 
+### Multiple characters being rendered/combined as one character?
+
+`wezterm` supports [advanced font shaping](config/font-shaping.html), which,
+amongst other things, allows for multiple characters/glyphs to be combined into
+one [ligature](https://en.wikipedia.org/wiki/Ligature_(writing)). You may be
+experiencing this if, e.g., `!=` becomes rendered as `≠` in `wezterm`.
+
+If you are seeing this kind of "font combining" and wish to disable it, then
+this is documented in [advanced font shaping options](config/font-shaping.html)
+page.
+
 ## How to troubleshoot keys that don't work or produce weird characters!?
 
 There are a number of layers in input processing that can influence this.
