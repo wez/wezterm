@@ -51,8 +51,12 @@ impl KeyRepeatState {
             let gap;
             {
                 let conn = WaylandConnection::get().unwrap().wayland();
+                let rate = *conn.key_repeat_rate.borrow() as u64;
+                if rate == 0 {
+                    return;
+                }
                 delay = Duration::from_millis(*conn.key_repeat_delay.borrow() as u64);
-                gap = Duration::from_millis(1000 / *conn.key_repeat_rate.borrow() as u64);
+                gap = Duration::from_millis(1000 / rate);
             }
 
             let mut initial = true;
