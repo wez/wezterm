@@ -453,7 +453,7 @@ impl Domain for RemoteSshDomain {
             Some(cmd.as_unix_command_line()?)
         };
         let mut env: HashMap<String, String> = cmd
-            .iter_env_as_str()
+            .iter_extra_env_as_str()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
         env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
@@ -613,7 +613,7 @@ impl Domain for RemoteSshDomain {
             Some(cmd.as_unix_command_line()?)
         };
         let mut env: HashMap<String, String> = cmd
-            .iter_env_as_str()
+            .iter_extra_env_as_str()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
         env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
