@@ -412,22 +412,22 @@ fn unvis(s: &str) -> anyhow::Result<String> {
                 if b == b'-' {
                     *state = State::Meta1;
                 } else if b == b'^' {
-                    *state = State::Ctrl(0200);
+                    *state = State::Ctrl(0o200);
                 } else {
                     anyhow::bail!("invalid \\M escape: {}", b);
                 }
             }
 
             State::Meta1 => {
-                result.push(b | 0200);
+                result.push(b | 0o200);
                 *state = State::Ground;
             }
 
             State::Ctrl(c) => {
                 if b == b'?' {
-                    result.push(*c | 0177);
+                    result.push(*c | 0o177);
                 } else {
-                    result.push((b & 037) | *c);
+                    result.push((b & 0o37) | *c);
                 }
                 *state = State::Ground;
             }
