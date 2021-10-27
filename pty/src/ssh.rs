@@ -197,7 +197,7 @@ struct SshSlave {
 impl SlavePty for SshSlave {
     fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send + Sync>> {
         self.pty.with_channel(|channel| {
-            for (key, val) in cmd.iter_env_as_str() {
+            for (key, val) in cmd.iter_extra_env_as_str() {
                 if let Err(err) = channel.setenv(key, val) {
                     // Depending on the server configuration, a given
                     // setenv request may not succeed, but that doesn't
