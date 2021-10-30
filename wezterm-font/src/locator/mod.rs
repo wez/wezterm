@@ -13,14 +13,23 @@ pub mod core_text;
 pub mod font_config;
 pub mod gdi;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Display)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
 pub enum FontOrigin {
     FontConfig,
+    FontConfigMatch(String),
     CoreText,
     DirectWrite,
     Gdi,
     FontDirs,
     BuiltIn,
+}
+
+// derived impl would just use the inner string instead of
+// 'FontConfigMatch("..")', so use Debug
+impl Display for FontOrigin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Clone)]

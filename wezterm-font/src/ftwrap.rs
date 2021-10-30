@@ -167,7 +167,7 @@ impl Face {
                     source: self.source.source.clone(),
                     index: self.source.index,
                     variation: i,
-                    origin: self.source.origin,
+                    origin: self.source.origin.clone(),
                     coverage: self.source.coverage.clone(),
                 };
                 res.push(ParsedFont::from_face(&self, source)?);
