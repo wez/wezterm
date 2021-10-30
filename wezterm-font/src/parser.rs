@@ -535,13 +535,13 @@ pub(crate) fn parse_and_collect_font_info(
         source: &FontDataSource,
         index: u32,
         font_info: &mut Vec<ParsedFont>,
-        origin: FontOrigin,
+        origin: &FontOrigin,
     ) -> anyhow::Result<()> {
         let locator = FontDataHandle {
             source: source.clone(),
             index,
             variation: 0,
-            origin,
+            origin: origin.clone(),
             coverage: None,
         };
 
@@ -558,7 +558,7 @@ pub(crate) fn parse_and_collect_font_info(
     }
 
     for index in 0..num_faces {
-        if let Err(err) = load_one(&lib, &source, index, font_info, origin) {
+        if let Err(err) = load_one(&lib, &source, index, font_info, &origin) {
             log::trace!("error while parsing {:?} index {}: {}", source, index, err);
         }
     }

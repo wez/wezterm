@@ -65,7 +65,10 @@ impl FontLocator for FontConfigFontLocator {
             Ok(matches)
         }
 
-        fn to_handle(pat: FontPattern) -> anyhow::Result<FontDataHandle> {
+        fn to_handle(
+            pat: FontPattern,
+            match_name: Option<String>,
+        ) -> anyhow::Result<FontDataHandle> {
             let file = pat.get_file()?;
             let index = pat.get_integer("index")? as u32;
             let variation = index >> 16;
@@ -74,7 +77,9 @@ impl FontLocator for FontConfigFontLocator {
                 source: FontDataSource::OnDisk(file.into()),
                 index,
                 variation,
-                origin: FontOrigin::FontConfig,
+                origin: match_name
+                    .map(FontOrigin::FontConfigMatch)
+                    .unwrap_or(FontOrigin::FontConfig),
                 coverage: pat.get_charset().ok().map(|c| c.to_range_set()),
             })
         }
@@ -87,7 +92,7 @@ impl FontLocator for FontConfigFontLocator {
                 match resolver(attr) {
                     Ok(matches) => {
                         for pat in matches {
-                            let handle = to_handle(pat)?;
+                            let handle = to_handle(pat, None)?;
 
                             // fontconfig will give us a boatload of random fallbacks.
                             // so we need to parse the returned font
@@ -130,7 +135,7 @@ impl FontLocator for FontConfigFontLocator {
                 // For the fallback, be very careful, only select known monospace
                 if let Ok(spacing) = best_match.get_integer("spacing") {
                     if spacing == FC_MONO || spacing == FC_DUAL {
-                        let handle = to_handle(best_match)?;
+                        let handle = to_handle(best_match, Some(attr.family.clone()))?;
                         if let Ok(parsed) = crate::parser::ParsedFont::from_locator(&handle) {
                             log::trace!(
                                 "found font-config fallback match for {:?}",
