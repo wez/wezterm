@@ -567,7 +567,7 @@ impl WaylandWindowInner {
         }
 
         if pending.configure.is_none() {
-            if let Some(scale) = pending.dpi {
+            if pending.dpi.is_some() {
                 // Synthesize a pending configure event for the dpi change
                 pending.configure.replace((
                     self.pixels_to_surface(self.dimensions.pixel_width as i32) as u32,
