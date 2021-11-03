@@ -2383,7 +2383,7 @@ dependencies = [
 [[package]]
 name = "libssh-rs"
 version = "0.1.0"
-source = "git+https://github.com/wez/libssh-rs.git?rev=ca6472c16ca3ff5b271d64543d0461b39bae4c66#ca6472c16ca3ff5b271d64543d0461b39bae4c66"
+source = "git+https://github.com/wez/libssh-rs.git?rev=daf2151db6081490649241b0118c3c0b81b65964#daf2151db6081490649241b0118c3c0b81b65964"
 dependencies = [
  "bitflags",
  "libssh-rs-sys",
@@ -2393,7 +2393,7 @@ dependencies = [
 [[package]]
 name = "libssh-rs-sys"
 version = "0.1.0"
-source = "git+https://github.com/wez/libssh-rs.git?rev=ca6472c16ca3ff5b271d64543d0461b39bae4c66#ca6472c16ca3ff5b271d64543d0461b39bae4c66"
+source = "git+https://github.com/wez/libssh-rs.git?rev=daf2151db6081490649241b0118c3c0b81b65964#daf2151db6081490649241b0118c3c0b81b65964"
 dependencies = [
  "cc",
  "libz-sys",
@@ -3106,8 +3106,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.67"
-source = "git+https://github.com/wez/rust-openssl.git?branch=openssl-src-300#173970ddebf98bdaf8c28481a84092c85a3a9376"
+version = "0.9.70"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6517987b3f8226b5da3661dad65ff7f300cc59fb5ea8333ca191fc65fde3edf"
 dependencies = [
  "autocfg",
  "cc",
