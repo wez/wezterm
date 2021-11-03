@@ -1,6 +1,5 @@
 use crate::parser::ParsedFont;
 use config::FontAttributes;
-use enum_display_derive::Display;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::HashSet;
