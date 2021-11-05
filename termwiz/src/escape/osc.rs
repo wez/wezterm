@@ -884,6 +884,11 @@ impl ITermFileData {
                 param
             };
 
+            // eg: `File=;size=1234` case. <https://github.com/wez/wezterm/issues/1291>
+            if param.is_empty() {
+                continue;
+            }
+
             // look for k=v in param
             if let Some(equal) = param.iter().position(|c| *c == b'=') {
                 let key = &param[..equal];

@@ -1023,4 +1023,29 @@ mod test {
             ]
         );
     }
+
+    #[test]
+    fn issue_1291() {
+        use crate::escape::osc::{ITermDimension, ITermFileData, ITermProprietary};
+
+        let mut p = Parser::new();
+        // Note the empty k=v pair immediately following `File=`
+        let actions = p.parse_as_vec(b"\x1b]1337;File=;size=234:aGVsbG8=\x07");
+        assert_eq!(
+            vec![Action::OperatingSystemCommand(Box::new(
+                OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
+                    ITermFileData {
+                        name: None,
+                        size: Some(234),
+                        width: ITermDimension::Automatic,
+                        height: ITermDimension::Automatic,
+                        preserve_aspect_ratio: true,
+                        inline: false,
+                        data: b"hello".to_vec(),
+                    }
+                )))
+            ))],
+            actions
+        );
+    }
 }
