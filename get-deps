@@ -96,6 +96,11 @@ fi
 
 if test -e /etc/arch-release ; then
   PACMAN="$SUDO pacman"
+  
+  if test -e /etc/manjaro-release ; then
+    $PACMAN -S --noconfirm --needed base-devel
+  fi
+  
   $PACMAN -S --noconfirm --needed \
     'cargo' \
     'cmake' \
