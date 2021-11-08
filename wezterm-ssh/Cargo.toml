@@ -46,4 +46,4 @@ shell-words = "1.0"
 smol-potat = "1.1.2"
 structopt = "0.3"
 termwiz = { version = "0.13", path = "../termwiz" }
-whoami = "1.1"
+whoami = "1.2"
