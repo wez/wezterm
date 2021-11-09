@@ -69,6 +69,8 @@ As features stabilize some brief notes about them will accumulate here.
 * the whole tab was closed when only the zoomed pane exited. [#1235](https://github.com/wez/wezterm/issues/1235)
 * multiplexer: wrong `WEZTERM_UNIX_SOCKET` environment passed to children when using unix domain sockets and `connect_automatically=true` [#1222](https://github.com/wez/wezterm/issues/1222)
 * multiplexer: spawning remote tabs didn't correctly record local tab mapping, resulting in phantom additional tabs showing in the client. [#1222](https://github.com/wez/wezterm/issues/1222)
+* `wezterm ls-fonts --text "✘"` didn't account for the system fallback list. [#849](https://github.com/wez/wezterm/issues/849)
+* macOS: The `Menlo` font is now implicitly included in the system fallback list, as it is the only font that contains U+2718 ✘
 
 #### Updated and Improved
 

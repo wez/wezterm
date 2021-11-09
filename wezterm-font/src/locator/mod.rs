@@ -12,7 +12,7 @@ pub mod core_text;
 pub mod font_config;
 pub mod gdi;
 
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub enum FontOrigin {
     FontConfig,
     FontConfigMatch(String),
@@ -31,7 +31,7 @@ impl Display for FontOrigin {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub enum FontDataSource {
     OnDisk(PathBuf),
     BuiltIn {
@@ -123,6 +123,15 @@ pub struct FontDataHandle {
     pub variation: u32,
     pub origin: FontOrigin,
     pub coverage: Option<rangeset::RangeSet<u32>>,
+}
+
+impl std::hash::Hash for FontDataHandle {
+    fn hash<H>(&self, hasher: &mut H)
+    where
+        H: std::hash::Hasher,
+    {
+        (&self.source, self.index, self.variation, &self.origin).hash(hasher)
+    }
 }
 
 impl PartialOrd for FontDataHandle {

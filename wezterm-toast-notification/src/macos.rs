@@ -94,6 +94,13 @@ struct SendId(id);
 unsafe impl Send for SendId {}
 
 pub fn show_notif(toast: ToastNotification) -> Result<(), Box<dyn std::error::Error>> {
+    if Protocol::get("NSUserNotificationCenterDelegate").is_none() {
+        // Just pretend that we did it.
+        // This case occurs eg: when we're running `wezterm ls-fonts` and we haven't
+        // fully set ourselves up as a gui app yet
+        return Ok(());
+    }
+
     unsafe {
         let center: id = msg_send![
             class!(NSUserNotificationCenter),

@@ -148,14 +148,18 @@ fn build_fallback_list() -> Vec<ParsedFont> {
 }
 
 fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
-    let font =
+    let menlo =
         new_from_name("Menlo", 0.0).map_err(|_| anyhow::anyhow!("failed to get Menlo font"))?;
     let lang = "en"
         .parse::<CFString>()
         .map_err(|_| anyhow::anyhow!("failed to parse lang name en as CFString"))?;
     let langs = CFArray::from_CFTypes(&[lang]);
-    let cascade = cascade_list_for_languages(&font, &langs);
+    let cascade = cascade_list_for_languages(&menlo, &langs);
     let mut fonts = vec![];
+    // Explicitly include Menlo itself, as it appears to be the only
+    // font on macOS that contains U+2718.
+    // <https://github.com/wez/wezterm/issues/849>
+    fonts.append(&mut handles_from_descriptor(&menlo.copy_descriptor()));
     for descriptor in &cascade {
         fonts.append(&mut handles_from_descriptor(&descriptor));
     }
@@ -182,6 +186,19 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
     fonts.retain(|f| {
         f.weight() == FontWeight::REGULAR && f.stretch() == FontStretch::Normal && !f.italic()
     });
+
+    let mut seen = HashSet::new();
+    let fonts: Vec<ParsedFont> = fonts
+        .into_iter()
+        .filter_map(|f| {
+            if seen.contains(&f.handle) {
+                None
+            } else {
+                seen.insert(f.handle.clone());
+                Some(f)
+            }
+        })
+        .collect();
 
     // Pre-compute coverage
     let empty = RangeSet::new();

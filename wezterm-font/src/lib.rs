@@ -68,7 +68,7 @@ impl LoadedFont {
                 }
             }
             if loaded {
-                log::trace!("revised fallback: {:?}", handles);
+                log::trace!("revised fallback: {:#?}", handles);
             }
         }
         if loaded {
@@ -80,13 +80,57 @@ impl LoadedFont {
         Ok(loaded)
     }
 
-    pub fn shape<F: FnOnce() + Send + Sync + 'static, FS: FnOnce(&mut Vec<char>)>(
+    pub fn blocking_shape(
+        &self,
+        text: &str,
+        presentation: Option<Presentation>,
+    ) -> anyhow::Result<Vec<GlyphInfo>> {
+        loop {
+            let (tx, rx) = channel();
+
+            let (async_resolve, res) = match self.shape_impl(
+                text,
+                move || {
+                    let _ = tx.send(());
+                },
+                |_| {},
+                presentation,
+            ) {
+                Ok(tuple) => tuple,
+                Err(err) if err.downcast_ref::<ClearShapeCache>().is_some() => {
+                    continue;
+                }
+                Err(err) => return Err(err),
+            };
+
+            if !async_resolve {
+                return Ok(res);
+            }
+            if rx.recv().is_err() {
+                return Ok(res);
+            }
+        }
+    }
+
+    pub fn shape<F: FnOnce() + Send + 'static, FS: FnOnce(&mut Vec<char>)>(
         &self,
         text: &str,
         completion: F,
         filter_out_synthetic: FS,
         presentation: Option<Presentation>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
+        let (_async_resolve, res) =
+            self.shape_impl(text, completion, filter_out_synthetic, presentation)?;
+        Ok(res)
+    }
+
+    fn shape_impl<F: FnOnce() + Send + 'static, FS: FnOnce(&mut Vec<char>)>(
+        &self,
+        text: &str,
+        completion: F,
+        filter_out_synthetic: FS,
+        presentation: Option<Presentation>,
+    ) -> anyhow::Result<(bool, Vec<GlyphInfo>)> {
         let mut no_glyphs = vec![];
 
         {
@@ -113,6 +157,8 @@ impl LoadedFont {
         no_glyphs.retain(|&c| c != '\u{FE0F}' && c != '\u{FE0E}');
         filter_out_synthetic(&mut no_glyphs);
 
+        let mut async_resolve = false;
+
         if !no_glyphs.is_empty() {
             if let Some(font_config) = self.font_config.upgrade() {
                 font_config.schedule_fallback_resolve(
@@ -120,10 +166,11 @@ impl LoadedFont {
                     &self.pending_fallback,
                     completion,
                 );
+                async_resolve = true;
             }
         }
 
-        result
+        result.map(|r| (async_resolve, r))
     }
 
     pub fn metrics_for_idx(&self, font_idx: usize) -> anyhow::Result<FontMetrics> {
@@ -176,7 +223,7 @@ impl LoadedFont {
 struct FallbackResolveInfo {
     no_glyphs: Vec<char>,
     pending: Arc<Mutex<Vec<ParsedFont>>>,
-    completion: Box<dyn FnOnce() + Send + Sync>,
+    completion: Box<dyn FnOnce() + Send>,
     font_dirs: Arc<FontDatabase>,
     built_in: Arc<FontDatabase>,
     locator: Arc<dyn FontLocator + Send + Sync>,
@@ -368,7 +415,7 @@ impl FontConfigInner {
         Ok(())
     }
 
-    fn schedule_fallback_resolve<F: FnOnce() + Send + Sync + 'static>(
+    fn schedule_fallback_resolve<F: FnOnce() + Send + 'static>(
         &self,
         mut no_glyphs: Vec<char>,
         pending: &Arc<Mutex<Vec<ParsedFont>>>,

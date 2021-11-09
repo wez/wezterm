@@ -455,10 +455,13 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
         for cluster in cell_clusters {
             let style = font_config.match_style(&config, &cluster.attrs);
             let font = font_config.resolve_font(style)?;
-            let handles = font.clone_handles();
             let infos = font
-                .shape(&cluster.text, || {}, |_| {}, Some(cluster.presentation))
+                .blocking_shape(&cluster.text, Some(cluster.presentation))
                 .unwrap();
+
+            // We must grab the handles after shaping, so that we get the
+            // revised list that includes system fallbacks!
+            let handles = font.clone_handles();
 
             for info in infos {
                 let parsed = &handles[info.font_idx];
