@@ -468,6 +468,8 @@ usually the best available version.</p>
 <li>the whole tab was closed when only the zoomed pane exited. <a href="https://github.com/wez/wezterm/issues/1235">#1235</a></li>
 <li>multiplexer: wrong <code>WEZTERM_UNIX_SOCKET</code> environment passed to children when using unix domain sockets and <code>connect_automatically=true</code> <a href="https://github.com/wez/wezterm/issues/1222">#1222</a></li>
 <li>multiplexer: spawning remote tabs didn't correctly record local tab mapping, resulting in phantom additional tabs showing in the client. <a href="https://github.com/wez/wezterm/issues/1222">#1222</a></li>
+<li><code>wezterm ls-fonts --text &quot;✘&quot;</code> didn't account for the system fallback list. <a href="https://github.com/wez/wezterm/issues/849">#849</a></li>
+<li>macOS: The <code>Menlo</code> font is now implicitly included in the system fallback list, as it is the only font that contains U+2718 ✘</li>
 </ul>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
 <ul>
