@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 echo -e "\u270c  Victory hand, text presentation by default"
 echo -e "\u270c\ufe0e  Victory hand, explicit text presentation"
