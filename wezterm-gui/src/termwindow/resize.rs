@@ -76,8 +76,16 @@ impl super::TermWindow {
         }
 
         window.set_resize_increments(
-            self.render_metrics.cell_size.width as u16,
-            self.render_metrics.cell_size.height as u16,
+            if self.config.use_resize_increments {
+                self.render_metrics.cell_size.width as u16
+            } else {
+                1
+            },
+            if self.config.use_resize_increments {
+                self.render_metrics.cell_size.height as u16
+            } else {
+                1
+            },
         );
 
         if let Err(err) = self.recreate_texture_atlas(None) {

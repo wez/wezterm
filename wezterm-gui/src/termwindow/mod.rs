@@ -675,10 +675,12 @@ impl TermWindow {
             let mut myself = tw.borrow_mut();
             myself.config_subscription.replace(config_subscription);
             myself.gl.replace(Rc::clone(&gl));
-            window.set_resize_increments(
-                myself.render_metrics.cell_size.width as u16,
-                myself.render_metrics.cell_size.height as u16,
-            );
+            if config.use_resize_increments {
+                window.set_resize_increments(
+                    myself.render_metrics.cell_size.width as u16,
+                    myself.render_metrics.cell_size.height as u16,
+                );
+            }
 
             myself.created(&window, Rc::clone(&gl))?;
             myself.subscribe_to_pane_updates();

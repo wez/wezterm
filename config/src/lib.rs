@@ -1202,6 +1202,9 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub adjust_window_size_when_changing_font_size: bool,
 
+    #[serde(default)]
+    pub use_resize_increments: bool,
+
     #[serde(default = "default_alternate_buffer_wheel_scroll_speed")]
     pub alternate_buffer_wheel_scroll_speed: u8,
 
