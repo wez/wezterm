@@ -88,13 +88,17 @@ pub enum BlockCoord {
     /// numerator, the second is the denominator.
     Frac(i8, i8),
 
-    /// Like Frac() above, but also specifies a scale to use
-    /// together with the underline height to adjust the position.
+    /// Like Zero, but also specifies a scale to use together with the underline height to adjust
+    /// the position. See `FracWithOffset` for more information.
+    ZeroWithOffset(LineScale),
+    /// Like One, but also specifies a scale to use together with the underline height to adjust
+    /// the position. See `FracWithOffset` for more information.
+    OneWithOffset(LineScale),
+    /// Like Frac(..), but also specifies a scale to use together with the underline height to
+    /// adjust the position.
     /// This is helpful because the line drawing routines stroke
     /// along the center of the line in the direction of the line,
     /// but don't pad the end of the line out by the width automatically.
-    /// zeno has Cap::Square to specify that, but we can't use it
-    /// directly and it isn't necessarily the adjustment that we want.
     /// This is most useful when joining lines that have different
     /// stroke widths; if the widths were all the same then you'd
     /// just specify the points in the path and not worry about it.
@@ -117,6 +121,9 @@ impl BlockCoord {
             Self::Zero => 0.,
             Self::One => max as f32,
             Self::Frac(num, den) => hint(max as f32 * num as f32 / den as f32),
+            // *WithOffset variants
+            Self::ZeroWithOffset(under) => underline_height * under.to_scale(),
+            Self::OneWithOffset(under) => (max as f32) + (underline_height * under.to_scale()),
             Self::FracWithOffset(num, den, under) => {
                 hint((max as f32 * num as f32 / den as f32) + (underline_height * under.to_scale()))
             }
@@ -3493,7 +3500,11 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Frac(6, 3), BlockCoord::Frac(1, 2)),
+                        control: (BlockCoord::One, BlockCoord::Zero),
+                        to: (BlockCoord::One, BlockCoord::Frac(1, 2)),
+                    },
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::One, BlockCoord::One),
                         to: (BlockCoord::Zero, BlockCoord::One),
                     },
                     PolyCommand::Close,
@@ -3504,10 +3515,29 @@ impl BlockKey {
             // [] Powerline outline left semicircle
             0xe0b5 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::MoveTo(
+                        BlockCoord::ZeroWithOffset(LineScale::Mul(1)),
+                        BlockCoord::ZeroWithOffset(LineScale::Mul(-1)), // start outside
+                    ),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Frac(6, 3), BlockCoord::Frac(1, 2)),
-                        to: (BlockCoord::Zero, BlockCoord::One),
+                        control: (
+                            BlockCoord::OneWithOffset(LineScale::Mul(-1)),
+                            BlockCoord::ZeroWithOffset(LineScale::Mul(-1)), // start outside
+                        ),
+                        to: (
+                            BlockCoord::OneWithOffset(LineScale::Mul(-1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                    },
+                    PolyCommand::QuadTo {
+                        control: (
+                            BlockCoord::OneWithOffset(LineScale::Mul(-1)),
+                            BlockCoord::OneWithOffset(LineScale::Mul(1)), // end outside
+                        ),
+                        to: (
+                            BlockCoord::ZeroWithOffset(LineScale::Mul(-1)),
+                            BlockCoord::OneWithOffset(LineScale::Mul(1)), // end outside
+                        ),
                     },
                 ],
                 intensity: BlockAlpha::Full,
@@ -3518,7 +3548,11 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Frac(-3, 3), BlockCoord::Frac(1, 2)),
+                        control: (BlockCoord::Zero, BlockCoord::Zero),
+                        to: (BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                    },
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Zero, BlockCoord::One),
                         to: (BlockCoord::One, BlockCoord::One),
                     },
                     PolyCommand::Close,
@@ -3529,10 +3563,29 @@ impl BlockKey {
             // [] Powerline outline right semicircle
             0xe0b7 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::MoveTo(
+                        BlockCoord::OneWithOffset(LineScale::Mul(-1)),
+                        BlockCoord::ZeroWithOffset(LineScale::Mul(-1)), // start outside
+                    ),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Frac(-3, 3), BlockCoord::Frac(1, 2)),
-                        to: (BlockCoord::One, BlockCoord::One),
+                        control: (
+                            BlockCoord::ZeroWithOffset(LineScale::Mul(1)),
+                            BlockCoord::ZeroWithOffset(LineScale::Mul(-1)), // start outside
+                        ),
+                        to: (
+                            BlockCoord::ZeroWithOffset(LineScale::Mul(1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                    },
+                    PolyCommand::QuadTo {
+                        control: (
+                            BlockCoord::ZeroWithOffset(LineScale::Mul(1)),
+                            BlockCoord::OneWithOffset(LineScale::Mul(1)), // end outside
+                        ),
+                        to: (
+                            BlockCoord::OneWithOffset(LineScale::Mul(-1)),
+                            BlockCoord::OneWithOffset(LineScale::Mul(1)), // end outside
+                        ),
                     },
                 ],
                 intensity: BlockAlpha::Full,
