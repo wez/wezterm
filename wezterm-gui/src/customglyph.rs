@@ -3508,10 +3508,16 @@ impl BlockKey {
             // [] Powerline outline left semicircle
             0xe0b5 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+                    PolyCommand::MoveTo(
+                        BlockCoord::Zero,
+                        BlockCoord::FracWithOffset(-1, 3, LineScale::Mul(1)),
+                    ),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Frac(6, 3), BlockCoord::Frac(1, 2)),
-                        to: (BlockCoord::Zero, BlockCoord::One),
+                        control: (
+                            BlockCoord::FracWithOffset(2, 1, LineScale::Mul(-1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        to: (BlockCoord::Zero, BlockCoord::Frac(4, 3)),
                     },
                 ],
                 intensity: BlockAlpha::Full,
@@ -3537,10 +3543,19 @@ impl BlockKey {
             // [] Powerline outline right semicircle
             0xe0b7 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+                    PolyCommand::MoveTo(
+                        BlockCoord::FracWithOffset(1, 1, LineScale::Mul(1)),
+                        BlockCoord::FracWithOffset(-1, 3, LineScale::Mul(1)),
+                    ),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Frac(-3, 3), BlockCoord::Frac(1, 2)),
-                        to: (BlockCoord::One, BlockCoord::One),
+                        control: (
+                            BlockCoord::FracWithOffset(-1, 1, LineScale::Mul(1)),
+                            BlockCoord::Frac(1, 2),
+                        ),
+                        to: (
+                            BlockCoord::FracWithOffset(1, 1, LineScale::Mul(1)),
+                            BlockCoord::Frac(4, 3),
+                        ),
                     },
                 ],
                 intensity: BlockAlpha::Full,
