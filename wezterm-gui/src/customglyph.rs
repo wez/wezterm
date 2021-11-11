@@ -3493,7 +3493,11 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Frac(6, 3), BlockCoord::Frac(1, 2)),
+                        control: (BlockCoord::One, BlockCoord::Zero),
+                        to: (BlockCoord::One, BlockCoord::Frac(1, 2)),
+                    },
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::One, BlockCoord::One),
                         to: (BlockCoord::Zero, BlockCoord::One),
                     },
                     PolyCommand::Close,
@@ -3518,7 +3522,11 @@ impl BlockKey {
                 path: &[
                     PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
                     PolyCommand::QuadTo {
-                        control: (BlockCoord::Frac(-3, 3), BlockCoord::Frac(1, 2)),
+                        control: (BlockCoord::Zero, BlockCoord::Zero),
+                        to: (BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+                    },
+                    PolyCommand::QuadTo {
+                        control: (BlockCoord::Zero, BlockCoord::One),
                         to: (BlockCoord::One, BlockCoord::One),
                     },
                     PolyCommand::Close,
