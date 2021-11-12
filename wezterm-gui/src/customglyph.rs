@@ -3508,15 +3508,9 @@ impl BlockKey {
             // [] Powerline outline left semicircle
             0xe0b5 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(
-                        BlockCoord::Frac(-1, 4),
-                        BlockCoord::FracWithOffset(-1, 3, LineScale::Mul(1)),
-                    ),
+                    PolyCommand::MoveTo(BlockCoord::Frac(-1, 4), BlockCoord::Frac(-1, 3)),
                     PolyCommand::QuadTo {
-                        control: (
-                            BlockCoord::FracWithOffset(7, 4, LineScale::Mul(-1)),
-                            BlockCoord::Frac(1, 2),
-                        ),
+                        control: (BlockCoord::Frac(7, 4), BlockCoord::Frac(1, 2)),
                         to: (BlockCoord::Frac(-1, 4), BlockCoord::Frac(4, 3)),
                     },
                 ],
@@ -3543,19 +3537,10 @@ impl BlockKey {
             // [] Powerline outline right semicircle
             0xe0b7 => Self::Poly(&[Poly {
                 path: &[
-                    PolyCommand::MoveTo(
-                        BlockCoord::FracWithOffset(5, 4, LineScale::Mul(1)),
-                        BlockCoord::FracWithOffset(-1, 3, LineScale::Mul(1)),
-                    ),
+                    PolyCommand::MoveTo(BlockCoord::Frac(5, 4), BlockCoord::Frac(-1, 3)),
                     PolyCommand::QuadTo {
-                        control: (
-                            BlockCoord::FracWithOffset(-3, 4, LineScale::Mul(1)),
-                            BlockCoord::Frac(1, 2),
-                        ),
-                        to: (
-                            BlockCoord::FracWithOffset(5, 4, LineScale::Mul(1)),
-                            BlockCoord::Frac(4, 3),
-                        ),
+                        control: (BlockCoord::Frac(-3, 4), BlockCoord::Frac(1, 2)),
+                        to: (BlockCoord::Frac(5, 4), BlockCoord::Frac(4, 3)),
                     },
                 ],
                 intensity: BlockAlpha::Full,
