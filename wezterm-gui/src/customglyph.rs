@@ -3509,15 +3509,15 @@ impl BlockKey {
             0xe0b5 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(
-                        BlockCoord::Zero,
+                        BlockCoord::Frac(-1, 4),
                         BlockCoord::FracWithOffset(-1, 3, LineScale::Mul(1)),
                     ),
                     PolyCommand::QuadTo {
                         control: (
-                            BlockCoord::FracWithOffset(2, 1, LineScale::Mul(-1)),
+                            BlockCoord::FracWithOffset(7, 4, LineScale::Mul(-1)),
                             BlockCoord::Frac(1, 2),
                         ),
-                        to: (BlockCoord::Zero, BlockCoord::Frac(4, 3)),
+                        to: (BlockCoord::Frac(-1, 4), BlockCoord::Frac(4, 3)),
                     },
                 ],
                 intensity: BlockAlpha::Full,
@@ -3544,16 +3544,16 @@ impl BlockKey {
             0xe0b7 => Self::Poly(&[Poly {
                 path: &[
                     PolyCommand::MoveTo(
-                        BlockCoord::FracWithOffset(1, 1, LineScale::Mul(1)),
+                        BlockCoord::FracWithOffset(5, 4, LineScale::Mul(1)),
                         BlockCoord::FracWithOffset(-1, 3, LineScale::Mul(1)),
                     ),
                     PolyCommand::QuadTo {
                         control: (
-                            BlockCoord::FracWithOffset(-1, 1, LineScale::Mul(1)),
+                            BlockCoord::FracWithOffset(-3, 4, LineScale::Mul(1)),
                             BlockCoord::Frac(1, 2),
                         ),
                         to: (
-                            BlockCoord::FracWithOffset(1, 1, LineScale::Mul(1)),
+                            BlockCoord::FracWithOffset(5, 4, LineScale::Mul(1)),
                             BlockCoord::Frac(4, 3),
                         ),
                     },
