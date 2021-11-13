@@ -27,6 +27,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [mux_env_remove](config/lua/config/mux_env_remove.md) setting to control which environment variables should be cleared prior to spawning processes in the multiplexer server [#1225](https://github.com/wez/wezterm/issues/1225)
 * [canonicalize_pasted_newlines](config/lua/config/canonicalize_pasted_newlines.md) option to help Windows users manage newlines in pastes [#1213](https://github.com/wez/wezterm/issues/1213)
 * SSH client now uses `libssh` by default. [ssh_backend](config/lua/config/ssh_backend.md) can be used to change this.
+* [unzoom_on_switch_pane](config/lua/config/unzoom_on_switch_pane.md) option. Thanks to [@yyogo](https://github.com/yyogo) [#1301](https://github.com/wez/wezterm/issues/1301)
 
 #### Changed
 
