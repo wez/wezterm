@@ -1039,11 +1039,10 @@ impl Tab {
     /// edge intersection.
     pub fn activate_pane_direction(&self, direction: PaneDirection) {
         if self.zoomed.borrow().is_some() {
-            if configuration().unzoom_on_switch_pane {
-                self.toggle_zoom();
-            } else {
+            if !configuration().unzoom_on_switch_pane {
                 return;
             }
+            self.toggle_zoom();
         }
         let panes = self.iter_panes();
 
