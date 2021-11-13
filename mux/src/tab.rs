@@ -2,6 +2,7 @@ use crate::domain::DomainId;
 use crate::pane::*;
 use crate::{Mux, WindowId};
 use bintree::PathBranch;
+use config::configuration;
 use config::keyassignment::PaneDirection;
 use portable_pty::PtySize;
 use rangeset::range_intersection;
@@ -1038,7 +1039,10 @@ impl Tab {
     /// edge intersection.
     pub fn activate_pane_direction(&self, direction: PaneDirection) {
         if self.zoomed.borrow().is_some() {
-            return;
+            if !configuration().unzoom_on_switch_pane {
+                return;
+            }
+            self.toggle_zoom();
         }
         let panes = self.iter_panes();
 

@@ -1235,6 +1235,9 @@ pub struct Config {
     #[serde(default)]
     pub pane_focus_follows_mouse: bool,
 
+    #[serde(default = "default_true")]
+    pub unzoom_on_switch_pane: bool,
+
     #[serde(default = "default_max_fps")]
     pub max_fps: u8,
 

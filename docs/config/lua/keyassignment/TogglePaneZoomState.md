@@ -13,3 +13,5 @@ return {
   }
 }
 ```
+
+See also: [`unzoom_on_switch_pane`](../config/unzoom_on_switch_pane.md)
