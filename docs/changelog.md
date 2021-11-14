@@ -72,6 +72,7 @@ As features stabilize some brief notes about them will accumulate here.
 * multiplexer: spawning remote tabs didn't correctly record local tab mapping, resulting in phantom additional tabs showing in the client. [#1222](https://github.com/wez/wezterm/issues/1222)
 * `wezterm ls-fonts --text "✘"` didn't account for the system fallback list. [#849](https://github.com/wez/wezterm/issues/849)
 * macOS: The `Menlo` font is now implicitly included in the system fallback list, as it is the only font that contains U+2718 ✘
+* `wezterm cli spawn --cwd ..` and `wezterm cli split-pane --cwd ..` now resolve relative paths [#1243](https://github.com/wez/wezterm/issues/1243)
 
 #### Updated and Improved
 

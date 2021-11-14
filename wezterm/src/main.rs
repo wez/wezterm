@@ -262,6 +262,18 @@ impl SetCwdCommand {
     }
 }
 
+fn canon_cwd(cwd: Option<OsString>) -> anyhow::Result<Option<String>> {
+    match cwd {
+        None => Ok(None),
+        Some(cwd) => Ok(Some(
+            std::fs::canonicalize(cwd)?
+                .to_str()
+                .ok_or_else(|| anyhow!("path is not representable as String"))?
+                .to_string(),
+        )),
+    }
+}
+
 fn terminate_with_error_message(err: &str) -> ! {
     log::error!("{}; terminating", err);
     std::process::exit(1);
@@ -448,7 +460,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                         let builder = CommandBuilder::from_argv(prog);
                         Some(builder)
                     },
-                    command_dir: cwd.and_then(|c| c.to_str().map(|s| s.to_string())),
+                    command_dir: canon_cwd(cwd)?,
                 })
                 .await?;
 
@@ -516,7 +528,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                         let builder = CommandBuilder::from_argv(prog);
                         Some(builder)
                     },
-                    command_dir: cwd.and_then(|c| c.to_str().map(|s| s.to_string())),
+                    command_dir: canon_cwd(cwd)?,
                     size: config::configuration().initial_size(),
                 })
                 .await?;
