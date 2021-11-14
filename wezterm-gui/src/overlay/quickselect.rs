@@ -258,6 +258,7 @@ impl QuickSelectOverlay {
                 render.dirty_results.add(*pos);
             }
             render.viewport = viewport;
+            render.update_search();
         }
     }
 }
@@ -517,10 +518,14 @@ impl Pane for QuickSelectOverlay {
 
 impl QuickSelectRenderable {
     fn compute_search_row(&self) -> StableRowIndex {
+        self.compute_range().end
+    }
+
+    fn compute_range(&self) -> Range<StableRowIndex> {
         let dims = self.delegate.get_dimensions();
-        let top = self.viewport.unwrap_or_else(|| dims.physical_top);
+        let top = self.viewport.unwrap_or(dims.physical_top);
         let bottom = (top + dims.viewport_rows as StableRowIndex).saturating_sub(1);
-        bottom
+        top..bottom
     }
 
     fn close(&self) {
@@ -647,8 +652,9 @@ impl QuickSelectRenderable {
             let pane: Rc<dyn Pane> = self.delegate.clone();
             let window = self.window.clone();
             let pattern = self.pattern.clone();
+            let range = self.compute_range();
             promise::spawn::spawn(async move {
-                let mut results = pane.search(pattern).await?;
+                let mut results = pane.search_range(pattern, range).await?;
                 results.sort();
 
                 let pane_id = pane.pane_id();
@@ -660,14 +666,6 @@ impl QuickSelectRenderable {
                             let mut r = search_overlay.renderer.borrow_mut();
                             r.results = results.take().unwrap();
                             r.recompute_results();
-                            let num_results = r.results.len();
-
-                            if !r.results.is_empty() {
-                                r.activate_match_number(num_results - 1);
-                            } else {
-                                r.set_viewport(None);
-                                r.clear_selection();
-                            }
                         }
                     }
                 })));
