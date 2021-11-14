@@ -321,6 +321,21 @@ impl Pane for ClientPane {
         }
     }
 
+    // TODO: implement range search for remote panes
+    async fn search_range(
+        &self,
+        pattern: Pattern,
+        range: Range<StableRowIndex>,
+    ) -> anyhow::Result<Vec<SearchResult>> {
+        let result = self.search(pattern).await;
+        result.map(|results| {
+            results
+                .into_iter()
+                .filter(|res| range.start <= res.start_y && range.end >= res.end_y)
+                .collect()
+        })
+    }
+
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
         let input_serial;
         {

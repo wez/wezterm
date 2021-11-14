@@ -432,6 +432,14 @@ impl Screen {
     }
 
     #[inline]
+    pub fn stable_range_to_phys(&self, range: &Range<StableRowIndex>) -> Range<PhysRowIndex> {
+        self.stable_row_to_phys(range.start).unwrap_or(0)
+            ..self
+                .stable_row_to_phys(range.end)
+                .unwrap_or(self.lines.len())
+    }
+
+    #[inline]
     pub fn stable_row_to_phys(&self, stable: StableRowIndex) -> Option<PhysRowIndex> {
         let idx = stable - self.stable_row_index_offset as isize;
         if idx < 0 || idx >= self.lines.len() as isize {

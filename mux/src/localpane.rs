@@ -447,7 +447,11 @@ impl Pane for LocalPane {
         term.get_semantic_zones()
     }
 
-    async fn search(&self, mut pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
+    async fn search_range(
+        &self,
+        mut pattern: Pattern,
+        range: Range<StableRowIndex>,
+    ) -> anyhow::Result<Vec<SearchResult>> {
         let term = self.terminal.borrow();
         let screen = term.screen();
 
@@ -550,9 +554,9 @@ impl Pane for LocalPane {
             }
         }
 
-        for (idx, line) in screen.lines.iter().enumerate() {
-            let stable_row = screen.phys_to_stable_row_index(idx);
+        let phys_range = screen.stable_range_to_phys(&range);
 
+        for (stable_row, line) in range.zip(screen.lines.range(phys_range)) {
             let mut wrapped = false;
             for (grapheme_idx, cell) in line.visible_cells() {
                 coords.push(Coord {

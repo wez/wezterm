@@ -355,7 +355,26 @@ pub trait Pane: Downcast {
     /// Performs a search.
     /// If the result is empty then there are no matches.
     /// Otherwise, the result shall contain all possible matches.
-    async fn search(&self, _pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
+    async fn search(&self, pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
+        let dim = self.get_dimensions();
+        self.search_range(
+            pattern,
+            dim.physical_top
+                ..dim
+                    .physical_top
+                    .saturating_add(dim.scrollback_rows as isize),
+        )
+        .await
+    }
+
+    /// Performs a search in the specified line range.
+    /// If the result is empty then there are no matches.
+    /// Otherwise, the result shall contain all possible matches.
+    async fn search_range(
+        &self,
+        _pattern: Pattern,
+        _range: Range<StableRowIndex>,
+    ) -> anyhow::Result<Vec<SearchResult>> {
         Ok(vec![])
     }
 
