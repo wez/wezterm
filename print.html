@@ -471,6 +471,7 @@ usually the best available version.</p>
 <li>multiplexer: spawning remote tabs didn't correctly record local tab mapping, resulting in phantom additional tabs showing in the client. <a href="https://github.com/wez/wezterm/issues/1222">#1222</a></li>
 <li><code>wezterm ls-fonts --text &quot;✘&quot;</code> didn't account for the system fallback list. <a href="https://github.com/wez/wezterm/issues/849">#849</a></li>
 <li>macOS: The <code>Menlo</code> font is now implicitly included in the system fallback list, as it is the only font that contains U+2718 ✘</li>
+<li><code>wezterm cli spawn --cwd ..</code> and <code>wezterm cli split-pane --cwd ..</code> now resolve relative paths <a href="https://github.com/wez/wezterm/issues/1243">#1243</a></li>
 </ul>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
 <ul>
