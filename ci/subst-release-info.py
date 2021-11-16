@@ -16,6 +16,8 @@ CATEGORIZE = {
     r".fedora33.rpm$": "fedora33_rpm",
     r".fc34.x86_64.rpm$": "fedora34_rpm",
     r".fedora34.rpm$": "fedora34_rpm",
+    r".fc35.x86_64.rpm$": "fedora35_rpm",
+    r".fedora35.rpm$": "fedora35_rpm",
     r"Debian9.12.deb$": "debian9_deb",
     r"Debian10.deb$": "debian10_deb",
     r"Debian11.deb$": "debian11_deb",
