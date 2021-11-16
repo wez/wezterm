@@ -554,7 +554,7 @@ impl Pane for LocalPane {
             }
         }
 
-        let phys_range = screen.stable_range_to_phys(&range);
+        let phys_range = screen.stable_range(&range);
 
         for (stable_row, line) in range.zip(screen.lines.range(phys_range)) {
             let mut wrapped = false;

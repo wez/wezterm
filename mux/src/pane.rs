@@ -359,9 +359,9 @@ pub trait Pane: Downcast {
         let dim = self.get_dimensions();
         self.search_range(
             pattern,
-            dim.physical_top
+            dim.scrollback_top
                 ..dim
-                    .physical_top
+                    .scrollback_top
                     .saturating_add(dim.scrollback_rows as isize),
         )
         .await
