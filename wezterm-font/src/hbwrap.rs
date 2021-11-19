@@ -15,7 +15,7 @@ extern "C" {
 pub fn language_from_string(s: &str) -> Result<hb_language_t, Error> {
     unsafe {
         let lang = hb_language_from_string(s.as_ptr() as *const c_char, s.len() as i32);
-        ensure!(!lang.is_null(), "failed to convert {} to language");
+        ensure!(!lang.is_null(), "failed to convert {} to language", s);
         Ok(lang)
     }
 }
