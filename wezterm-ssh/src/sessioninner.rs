@@ -74,7 +74,8 @@ impl SessionInner {
             "ssh2" => self.run_impl_ssh2(),
             "libssh" => self.run_impl_libssh(),
             _ => anyhow::bail!(
-                "invalid wezterm_ssh_backend value: {}, expected either `ssh2` or `libssh`"
+                "invalid wezterm_ssh_backend value: {}, expected either `ssh2` or `libssh`",
+                backend
             ),
         }
     }
