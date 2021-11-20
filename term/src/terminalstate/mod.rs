@@ -1049,7 +1049,7 @@ impl TerminalState {
                 self.writer.flush().ok();
             }
             Device::RequestTertiaryDeviceAttributes => {
-                self.writer.write(b"\x1b[=00000000").ok();
+                self.writer.write(b"\x1bP!|00000000").ok();
                 self.writer.write(ST.as_bytes()).ok();
                 self.writer.flush().ok();
             }
