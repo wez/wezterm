@@ -72,6 +72,11 @@ struct Opt {
         number_of_values = 1)]
     config_override: Vec<(String, String)>,
 
+    /// On Windows, whether to attempt to attach to the parent
+    /// process console to display logging output
+    #[structopt(long = "attach-parent-console")]
+    attach_parent_console: bool,
+
     #[structopt(subcommand)]
     cmd: Option<SubCommand>,
 }
@@ -585,6 +590,8 @@ fn run() -> anyhow::Result<()> {
         }
     }
 
+    let opts = Opt::from_args();
+
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this
@@ -598,7 +605,9 @@ fn run() -> anyhow::Result<()> {
     // input but didn't know to re-draw the prompt.
     #[cfg(windows)]
     unsafe {
-        winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS);
+        if opts.attach_parent_console {
+            winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS);
+        }
     };
 
     env_bootstrap::bootstrap();
@@ -606,7 +615,6 @@ fn run() -> anyhow::Result<()> {
     stats::Stats::init()?;
     let _saver = umask::UmaskSaver::new();
 
-    let opts = Opt::from_args();
     config::common_init(
         opts.config_file.as_ref(),
         &opts.config_override,

@@ -342,6 +342,10 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
     let mut cmd = Command::new(exe);
     cmd.args(std::env::args_os().skip(1));
 
+    if cfg!(windows) {
+        cmd.arg("--attach-parent-console");
+    }
+
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
