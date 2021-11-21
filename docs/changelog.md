@@ -73,6 +73,7 @@ As features stabilize some brief notes about them will accumulate here.
 * `wezterm ls-fonts --text "✘"` didn't account for the system fallback list. [#849](https://github.com/wez/wezterm/issues/849)
 * macOS: The `Menlo` font is now implicitly included in the system fallback list, as it is the only font that contains U+2718 ✘
 * `wezterm cli spawn --cwd ..` and `wezterm cli split-pane --cwd ..` now resolve relative paths [#1243](https://github.com/wez/wezterm/issues/1243)
+* Incorrect DECRPTUI response to DA3. Thanks to [@ninjalj](https://github.com/ninjalj)! [#1330](https://github.com/wez/wezterm/pull/1330)
 
 #### Updated and Improved
 
