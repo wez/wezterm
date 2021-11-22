@@ -48,7 +48,7 @@ case $OSTYPE in
 
     set +x
     if [ -n "$MACOS_CERT" ] ; then
-      echo $MACOS_CERT | base64 —decode > certificate.p12
+      echo $MACOS_CERT | base64 -—decode > certificate.p12
       security create-keychain -p "$MACOS_PW" build.keychain
       security default-keychain -s build.keychain
       security unlock-keychain -p "$MACOS_PW" build.keychain
