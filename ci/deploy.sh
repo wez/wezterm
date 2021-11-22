@@ -49,11 +49,11 @@ case $OSTYPE in
     set +x
     if [ -n "$MACOS_CERT" ] ; then
       echo $MACOS_CERT | base64 --decode > certificate.p12
-      security create-keychain -p "$MACOS_PW" build.keychain
+      security create-keychain -p "$MACOS_CERT_PW" build.keychain
       security default-keychain -s build.keychain
-      security unlock-keychain -p "$MACOS_PW" build.keychain
-      security import certificate.p12 -k build.keychain -P "$MACOS_PW" -T /usr/bin/codesign
-      security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_PW" build.keychain
+      security unlock-keychain -p "$MACOS_CERT_PW" build.keychain
+      security import certificate.p12 -k build.keychain -P "$MACOS_CERT_PW" -T /usr/bin/codesign
+      security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CERT_PW" build.keychain
       /usr/bin/codesign --force --options runtime --deep --sign "$MACOS_TEAM_ID" $zipdir/WezTerm.app/
     fi
 
