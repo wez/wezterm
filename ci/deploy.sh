@@ -45,7 +45,25 @@ case $OSTYPE in
         lipo target/*/release/$bin -output $zipdir/WezTerm.app/Contents/MacOS/$bin -create
       fi
     done
+
+    set +x
+    if [ -n "$MACOS_CERT" ] ; then
+      security create-keychain -p "$MACOS_PW" build.keychain
+      security default-keychain -s build.keychain
+      security unlock-keychain -p "$MACOS_PW" build.keychain
+      security import certificate.p12 -k build.keychain -P "$MACOS_PW" -T /usr/bin/codesign
+      security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_PW" build.keychain
+      /usr/bin/codesign --force --options runtime --deep --sign "$MACOS_TEAM_ID" $zipdir/WezTerm.app/
+    fi
+
+    set -x
     zip -r $zipname $zipdir
+    set +x
+
+    if [ -n "$MACOS_CERT" ] ; then
+      xcrun notarytool submit $zipname --wait --team-id "$MACOS_TEAM_ID" --apple-id "$MACOS_APPLEID" --password "$MACOS_APP_PW"
+    fi
+    set -x
 
     SHA256=$(shasum -a 256 $zipname | cut -d' ' -f1)
     sed -e "s/@TAG@/$TAG_NAME/g" -e "s/@SHA256@/$SHA256/g" < ci/wezterm-homebrew-macos.rb.template > wezterm.rb

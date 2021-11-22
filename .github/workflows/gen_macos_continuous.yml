@@ -84,6 +84,12 @@ jobs:
           cargo test --target x86_64-apple-darwin --all --release
 
       - name: "Package"
+        env:
+          MACOS_CERT: ${{ secrets.MACOS_CERT }}
+          MACOS_PW: ${{ secrets.MACOS_PW }}
+          MACOS_TEAM_ID: ${{ secrets.MACOS_TEAM_ID }}
+          MACOS_APPLEID: ${{ secrets.MACOS_APPLEID }}
+          MACOS_APP_PW: ${{ secrets.MACOS_APP_PW }}
         shell: bash
         run: |
           export BUILD_REASON=Schedule

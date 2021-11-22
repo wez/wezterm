@@ -58,5 +58,7 @@
 	<string>An application launched via WezTerm would like to access your Documents folder.</string>
 	<key>NSDownloadsFolderUsageDescription</key>
 	<string>An application launched via WezTerm would like to access your Downloads folder.</string>
+	<key>NSSystemAdministrationUsageDescription</key>
+	<string>An application launched via WezTerm requires elevated permission.</string>
 </dict>
 </plist>

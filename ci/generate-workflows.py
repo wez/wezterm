@@ -29,14 +29,19 @@ class Step(object):
 
 
 class RunStep(Step):
-    def __init__(self, name, run, shell="bash"):
+    def __init__(self, name, run, shell="bash", env=None):
         self.name = name
         self.run = run
         self.shell = shell
+        self.env = env
 
     def render(self, f, env, depth=0):
         indent = "  " * depth
         f.write(f"{indent}- name: {yv(self.name)}\n")
+        if self.env:
+            f.write(f"{indent}  env:\n")
+            for k, v in self.env.items():
+                f.write(f"{indent}    {k}: {v}\n")
         if self.shell:
             f.write(f"{indent}  shell: {self.shell}\n")
 
@@ -322,8 +327,18 @@ cargo build --all --release""",
             )
         ]
 
-    def package(self):
-        steps = [RunStep("Package", "bash ci/deploy.sh")]
+    def package(self, trusted=False):
+        steps = []
+        deploy_env = None
+        if trusted and ("mac" in self.name):
+            deploy_env = {
+                "MACOS_CERT": "${{ secrets.MACOS_CERT }}",
+                "MACOS_PW": "${{ secrets.MACOS_PW }}",
+                "MACOS_TEAM_ID": "${{ secrets.MACOS_TEAM_ID }}",
+                "MACOS_APPLEID": "${{ secrets.MACOS_APPLEID }}",
+                "MACOS_APP_PW": "${{ secrets.MACOS_APP_PW }}",
+            }
+        steps = [RunStep("Package", "bash ci/deploy.sh", env=deploy_env)]
         if self.app_image:
             steps.append(RunStep("Source Tarball", "bash ci/source-archive.sh"))
             steps.append(RunStep("Build AppImage", "bash ci/appimage.sh"))
@@ -532,7 +547,7 @@ cargo build --all --release""",
         steps = self.prep_environment()
         steps += self.build_all_release()
         steps += self.test_all_release()
-        steps += self.package()
+        steps += self.package(trusted=True)
         steps += self.upload_asset_nightly()
 
         env = self.global_env()
@@ -549,7 +564,7 @@ cargo build --all --release""",
         steps = self.prep_environment()
         steps += self.build_all_release()
         steps += self.test_all_release()
-        steps += self.package()
+        steps += self.package(trusted=True)
         steps += self.upload_asset_tag()
         steps += self.update_homebrew_tap()
 
