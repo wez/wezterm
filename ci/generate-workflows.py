@@ -592,7 +592,7 @@ TARGETS = [
     Target(container="fedora:35"),
     Target(container="centos:7", bootstrap_git=True),
     Target(container="centos:8"),
-    Target(name="windows", os="vs2017-win2016", rust_target="x86_64-pc-windows-msvc"),
+    Target(name="windows", os="windows-latest", rust_target="x86_64-pc-windows-msvc"),
 ]
 
 

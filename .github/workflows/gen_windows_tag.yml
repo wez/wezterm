@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: "vs2017-win2016"
+    runs-on: "windows-latest"
     
     steps:
       - name: "checkout repo"
