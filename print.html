@@ -433,6 +433,7 @@ usually the best available version.</p>
 <ul>
 <li>new default key assignments: CTRL+PageUp and CTRL+Tab activate next tab, CTRL+PageDown and CTRL+SHIFT+Tab activate previous tab. ALT+{1..8} directly select the first through 8th tabs. Thanks to <a href="https://github.com/friederbluemle">@friederbluemle</a>! <a href="https://github.com/wez/wezterm/pull/1132">#1132</a></li>
 <li>X11: we now allow matching visuals with &gt;= 8 bits per rgb value. Previously, we only matched exactly 8 bits. This improve compatibility with systems that have the COMPOSITE extension disabled. Thanks to <a href="https://github.com/shizeeg">@shizeeg</a>! <a href="https://github.com/wez/wezterm/pull/1083">#1083</a></li>
+<li>The incomplete <code>Allsorts</code> shaper was removed.</li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
@@ -6903,6 +6904,8 @@ The shaper is responsible for handling kerning, ligatures and emoji
 composition.  The default is <code>Harfbuzz</code> and we have very preliminary support
 for <code>Allsorts</code>.</p>
 <p>It is strongly recommended that you use the default <code>Harfbuzz</code> shaper.</p>
+<p><em>Since: nightly builds only</em></p>
+<p>The incomplete <code>Allsorts</code> shaper was removed.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="font_size--100"><a class="header" href="#font_size--100"><code>font_size = 10.0</code></a></h1>
 <p>Specifies the size of the font, measured in points.</p>
 <p>You may use fractional point sizes, such as <code>13.3</code>, to fine tune the size.</p>
