@@ -1,15 +1,11 @@
 use assert_fs::{prelude::*, TempDir};
 use once_cell::sync::{Lazy, OnceCell};
 use rstest::*;
-use std::{
-    collections::HashMap,
-    fmt, io,
-    path::Path,
-    process::{Child, Command},
-    sync::atomic::{AtomicU16, Ordering},
-    thread,
-    time::Duration,
-};
+use std::collections::HashMap;
+use std::path::Path;
+use std::process::{Child, Command};
+use std::time::Duration;
+use std::{fmt, io, thread};
 use wezterm_ssh::{Config, Session, SessionEvent};
 
 #[cfg(unix)]
@@ -18,8 +14,14 @@ use std::os::unix::fs::PermissionsExt;
 /// NOTE: OpenSSH's sshd requires absolute path
 const BIN_PATH_STR: &str = "/usr/sbin/sshd";
 
-/// Port range to use when finding a port to bind to (using IANA guidance)
-const PORT_RANGE: (u16, u16) = (49152, 65535);
+/// Ask the kernel to assign a free port.
+/// We pass this to sshd and tell it to listen on that port.
+/// This is racy, as releasing the socket technically makes
+/// that port available to others using the same technique.
+fn allocate_port() -> u16 {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind 127.0.0.1:0 failed");
+    listener.local_addr().unwrap().port()
+}
 
 const USERNAME: Lazy<String> = Lazy::new(|| whoami::username());
 
@@ -306,43 +308,29 @@ impl Sshd {
         config_path: impl AsRef<Path>,
         log_path: impl AsRef<Path>,
     ) -> io::Result<(Child, u16)> {
-        static PORT: AtomicU16 = AtomicU16::new(PORT_RANGE.0);
+        let mut err = None;
 
-        loop {
-            let port = PORT.fetch_add(1, Ordering::Relaxed);
+        for _ in 0..100 {
+            let port = allocate_port();
 
             match Self::try_spawn(port, config_path.as_ref(), log_path.as_ref()) {
                 // If successful, return our spawned server child process
-                Ok(Ok(child)) => break Ok((child, port)),
+                Ok(child) => return Ok((child, port)),
 
-                // If the server died when spawned and we reached the final port, we want to exit
-                Ok(Err((code, msg))) if port == PORT_RANGE.1 => {
-                    break Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        format!(
-                            "{} failed [{}]: {}",
-                            BIN_PATH_STR,
-                            code.map(|x| x.to_string())
-                                .unwrap_or_else(|| String::from("???")),
-                            msg
-                        ),
-                    ))
+                Err(x) => {
+                    err.replace(x);
                 }
-
-                // If we've reached the final port in our range to try, we want to exit
-                Err(x) if port == PORT_RANGE.1 => break Err(x),
-
-                // Otherwise, try next port
-                Err(_) | Ok(Err(_)) => continue,
             }
         }
+
+        Err(err.unwrap())
     }
 
     fn try_spawn(
         port: u16,
         config_path: impl AsRef<Path>,
         log_path: impl AsRef<Path>,
-    ) -> io::Result<Result<Child, (Option<i32>, String)>> {
+    ) -> io::Result<Child> {
         let mut child = Command::new(BIN_PATH_STR)
             .arg("-D")
             .arg("-p")
@@ -351,24 +339,50 @@ impl Sshd {
             .arg(config_path.as_ref())
             .arg("-E")
             .arg(log_path.as_ref())
-            .spawn()?;
+            .spawn()
+            .map_err(|e| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("spawning {} failed {:#}", BIN_PATH_STR, e),
+                )
+            })?;
 
-        // Pause to make sure that the server didn't die due to an error
-        thread::sleep(Duration::from_millis(100));
+        for _ in 0..10 {
+            // Wait until the port is up
+            thread::sleep(Duration::from_millis(100));
 
-        if let Some(exit_status) = child.try_wait()? {
-            let output = child.wait_with_output()?;
-            Ok(Err((
-                exit_status.code(),
-                format!(
+            // If the server exited already, then we know something is wrong!
+            if let Some(exit_status) = child.try_wait()? {
+                let output = child.wait_with_output()?;
+                let code = exit_status.code();
+                let msg = format!(
                     "{}\n{}",
                     String::from_utf8(output.stdout).unwrap(),
                     String::from_utf8(output.stderr).unwrap(),
-                ),
-            )))
-        } else {
-            Ok(Ok(child))
+                );
+
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!(
+                        "{} failed [{}]: {}",
+                        BIN_PATH_STR,
+                        code.map(|x| x.to_string())
+                            .unwrap_or_else(|| String::from("???")),
+                        msg
+                    ),
+                ));
+            }
+
+            // If the port is up, then we're good!
+            if std::net::TcpStream::connect(("127.0.0.1", port)).is_ok() {
+                return Ok(child);
+            }
         }
+
+        Err(io::Error::new(
+            io::ErrorKind::Other,
+            "ran out of ports when spawning sshd",
+        ))
     }
 }
 
