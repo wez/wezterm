@@ -61,6 +61,10 @@ case $OSTYPE in
       security unlock-keychain -p "$MACOS_CERT_PW" build.keychain
       echo "Import .p12 data"
       echo $MACOS_CERT | base64 --decode > /tmp/certificate.p12
+      echo "decoded sha"
+      shasum /tmp/certificate.p12
+      echo "pw sha"
+      echo $MACOS_CERT_PW | shasum
       security import /tmp/certificate.p12 -k build.keychain -P "$MACOS_CERT_PW" -T /usr/bin/codesign
       rm /tmp/certificate.p12
       echo "Grant apple tools access to build.keychain"
