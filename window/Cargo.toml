@@ -10,7 +10,6 @@ build = "build.rs"
 
 [dev-dependencies]
 pretty_env_logger = "0.4"
-wgpu = "0.9"
 k9 = "0.11.0"
 
 [build-dependencies]
