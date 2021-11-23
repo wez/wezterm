@@ -32,7 +32,7 @@ libssh-rs = {version="0.1.1", features=["vendored"]}
 thiserror = "1.0"
 
 # Not used directly, but is used to centralize the openssl vendor feature selection
-#async_ossl = { path = "../async_ossl" }
+async_ossl = { path = "../async_ossl" }
 
 [dev-dependencies]
 assert_fs = "1.0.4"
