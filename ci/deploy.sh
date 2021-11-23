@@ -47,21 +47,38 @@ case $OSTYPE in
     done
 
     set +x
-    if [ -n "$MACOS_CERT" ] ; then
-      echo $MACOS_CERT | base64 --decode > certificate.p12
+    if [ -n "$MACOS_TEAM_ID" ] ; then
+      # Remove pesky additional quotes from default-keychain output
+      def_keychain=$(eval echo $(security default-keychain -d user))
+      echo "Default keychain is $def_keychain"
+      echo "Speculative delete of build.keychain"
+      security delete-keychain build.keychain || true
+      echo "Create build.keychain"
       security create-keychain -p "$MACOS_CERT_PW" build.keychain
-      security default-keychain -s build.keychain
+      echo "Make build.keychain the default"
+      security default-keychain -d user -s build.keychain
+      echo "Unlock build.keychain"
       security unlock-keychain -p "$MACOS_CERT_PW" build.keychain
-      security import certificate.p12 -k build.keychain -P "$MACOS_CERT_PW" -T /usr/bin/codesign
+      echo "Import .p12 data"
+      echo $MACOS_CERT | base64 --decode > /tmp/certificate.p12
+      security import /tmp/certificate.p12 -k build.keychain -P "$MACOS_CERT_PW" -T /usr/bin/codesign
+      rm /tmp/certificate.p12
+      echo "Grant apple tools access to build.keychain"
       security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CERT_PW" build.keychain
-      /usr/bin/codesign --force --options runtime --deep --sign "$MACOS_TEAM_ID" $zipdir/WezTerm.app/
+      echo "Codesign"
+      /usr/bin/codesign --keychain build.keychain --force --options runtime --deep --sign "$MACOS_TEAM_ID" $zipdir/WezTerm.app/
+      echo "Restore default keychain"
+      security default-keychain -d user -s $def_keychain
+      echo "Remove build.keychain"
+      security delete-keychain build.keychain || true
     fi
 
     set -x
     zip -r $zipname $zipdir
     set +x
 
-    if [ -n "$MACOS_CERT" ] ; then
+    if [ -n "$MACOS_TEAM_ID" ] ; then
+      echo "Notarize"
       xcrun notarytool submit $zipname --wait --team-id "$MACOS_TEAM_ID" --apple-id "$MACOS_APPLEID" --password "$MACOS_APP_PW"
     fi
     set -x
