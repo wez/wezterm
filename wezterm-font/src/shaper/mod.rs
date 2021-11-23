@@ -2,7 +2,6 @@ use crate::parser::ParsedFont;
 use crate::units::PixelLength;
 use termwiz::cell::Presentation;
 
-pub mod allsorts;
 pub mod harfbuzz;
 
 /// Holds information about a shaped glyph
@@ -95,7 +94,7 @@ pub fn new_shaper(
             Ok(Box::new(harfbuzz::HarfbuzzShaper::new(config, handles)?))
         }
         FontShaperSelection::Allsorts => {
-            Ok(Box::new(allsorts::AllsortsShaper::new(config, handles)?))
+            anyhow::bail!("The incomplete Allsorts shaper has been removed");
         }
     }
 }

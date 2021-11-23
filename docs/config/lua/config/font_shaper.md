@@ -7,3 +7,6 @@ for `Allsorts`.
 
 It is strongly recommended that you use the default `Harfbuzz` shaper.
 
+*Since: nightly builds only*
+
+The incomplete `Allsorts` shaper was removed.

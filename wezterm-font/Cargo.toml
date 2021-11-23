@@ -7,7 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-allsorts = { git = "https://github.com/yeslogic/allsorts.git", rev="3947164a201ab5e15d5f23204faaaaaad52531aa" }
 anyhow = "1.0"
 config = { path = "../config" }
 color-types = { path = "../color-types" }
@@ -24,7 +23,6 @@ ordered-float = "2.8"
 rangeset = { path = "../rangeset" }
 termwiz = { path = "../termwiz" }
 thiserror = "1.0"
-tinyvec = "1.1" # Note: constrained by the allsorts crate
 unicode-segmentation = "1.8"
 unicode-general-category = "0.3"
 walkdir = "2"

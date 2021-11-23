@@ -33,6 +33,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 * new default key assignments: CTRL+PageUp and CTRL+Tab activate next tab, CTRL+PageDown and CTRL+SHIFT+Tab activate previous tab. ALT+{1..8} directly select the first through 8th tabs. Thanks to [@friederbluemle](https://github.com/friederbluemle)! [#1132](https://github.com/wez/wezterm/pull/1132)
 * X11: we now allow matching visuals with >= 8 bits per rgb value. Previously, we only matched exactly 8 bits. This improve compatibility with systems that have the COMPOSITE extension disabled. Thanks to [@shizeeg](https://github.com/shizeeg)! [#1083](https://github.com/wez/wezterm/pull/1083)
+* The incomplete `Allsorts` shaper was removed.
 
 #### Fixed
 
