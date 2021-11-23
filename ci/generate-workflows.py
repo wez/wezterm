@@ -333,7 +333,7 @@ cargo build --all --release""",
         if trusted and ("mac" in self.name):
             deploy_env = {
                 "MACOS_CERT": "${{ secrets.MACOS_CERT }}",
-                "MACOS_PW": "${{ secrets.MACOS_PW }}",
+                "MACOS_CERT_PW": "${{ secrets.MACOS_CERT_PW }}",
                 "MACOS_TEAM_ID": "${{ secrets.MACOS_TEAM_ID }}",
                 "MACOS_APPLEID": "${{ secrets.MACOS_APPLEID }}",
                 "MACOS_APP_PW": "${{ secrets.MACOS_APP_PW }}",
