@@ -33,9 +33,7 @@ sha2 = "0.9"
 terminfo = "0.7"
 thiserror = "1.0"
 unicode-segmentation = "1.8"
-unicode-width = "0.1"
 ucd-trie = "0.1"
-xi-unicode = "0.3"
 vtparse = { version="0.5", path="../vtparse" }
 
 [features]

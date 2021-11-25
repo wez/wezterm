@@ -4052,11 +4052,9 @@ dependencies = [
  "thiserror",
  "ucd-trie",
  "unicode-segmentation",
- "unicode-width",
  "varbincode",
  "vtparse",
  "winapi 0.3.9",
- "xi-unicode",
 ]
 
 [[package]]
@@ -5124,12 +5122,6 @@ checksum = "463705a63313cd4301184381c5e8042f0a7e9b4bb63653f216311d4ae74690b7"
 dependencies = [
  "nom 7.1.0",
 ]
-
-[[package]]
-name = "xi-unicode"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a67300977d3dc3f8034dae89778f502b6ba20b269527b3223ba59c0cf393bb8a"
 
 [[package]]
 name = "xkbcommon"

@@ -3,11 +3,11 @@ use crate::color::{ColorAttribute, PaletteIndex};
 pub use crate::emoji::Presentation;
 pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
+use crate::widechar_width::WcWidth;
 #[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::mem;
 use std::sync::Arc;
-use unicode_width::UnicodeWidthStr;
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -829,11 +829,16 @@ pub fn unicode_column_width(s: &str) -> usize {
 /// Returns the number of cells visually occupied by a grapheme.
 /// The input string must be a single grapheme.
 pub fn grapheme_column_width(s: &str) -> usize {
+    let width = s
+        .chars()
+        .map(|c| WcWidth::from_char(c).width_unicode_9_or_later())
+        .max()
+        .unwrap_or(0);
     match Presentation::for_grapheme(s) {
         (_, Some(Presentation::Emoji)) => 2,
         (_, Some(Presentation::Text)) => 1,
         (Presentation::Emoji, None) => 2,
-        (Presentation::Text, None) => UnicodeWidthStr::width(s).min(2),
+        (Presentation::Text, None) => width.into(),
     }
 }
 
@@ -905,10 +910,6 @@ mod test {
         eprintln!("foot chars");
         for c in foot.chars() {
             eprintln!("char: {:?}", c);
-            use xi_unicode::EmojiExt;
-            eprintln!("xi emoji: {}", c.is_emoji());
-            eprintln!("xi emoji_mod: {}", c.is_emoji_modifier());
-            eprintln!("xi emoji_mod_base: {}", c.is_emoji_modifier_base());
         }
         assert_eq!(unicode_column_width(foot), 2, "{} should be 2", foot);
 
@@ -936,10 +937,6 @@ mod test {
         eprintln!("deaf_man chars");
         for c in deaf_man.chars() {
             eprintln!("char: {:?}", c);
-            use xi_unicode::EmojiExt;
-            eprintln!("xi emoji: {}", c.is_emoji());
-            eprintln!("xi emoji_mod: {}", c.is_emoji_modifier());
-            eprintln!("xi emoji_mod_base: {}", c.is_emoji_modifier_base());
         }
         assert_eq!(unicode_column_width(deaf_man), 2);
 
