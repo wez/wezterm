@@ -1077,6 +1077,7 @@ mod test {
         assert_eq!(unicode_column_width(copyright_text_presentation, None), 1);
 
         let raised_fist = "\u{270a}";
+        // Not valid to have explicit Text presentation for raised fist
         let raised_fist_text = "\u{270a}\u{fe0e}";
         assert_eq!(
             Presentation::for_grapheme(raised_fist),
@@ -1085,9 +1086,9 @@ mod test {
         assert_eq!(unicode_column_width(raised_fist, None), 2);
         assert_eq!(
             Presentation::for_grapheme(raised_fist_text),
-            (Presentation::Emoji, Some(Presentation::Text))
+            (Presentation::Emoji, None)
         );
-        assert_eq!(unicode_column_width(raised_fist_text, None), 1);
+        assert_eq!(unicode_column_width(raised_fist_text, None), 2);
 
         assert_eq!(
             raised_fist_text.graphemes(true).collect::<Vec<_>>(),
