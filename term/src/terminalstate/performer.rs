@@ -6,11 +6,11 @@ use log::{debug, error};
 use num_traits::FromPrimitive;
 use std::fmt::Write;
 use std::ops::{Deref, DerefMut};
-use termwiz::cell::{grapheme_column_width, Cell, CellAttributes, SemanticType,UnicodeVersion};
+use termwiz::cell::{grapheme_column_width, Cell, CellAttributes, SemanticType, UnicodeVersion};
 use termwiz::escape::csi::EraseInDisplay;
 use termwiz::escape::osc::{
-    ChangeColorPair, ColorOrQuery, FinalTermSemanticPrompt, ITermProprietary, Selection,
-    ITermUnicodeVersionOp,
+    ChangeColorPair, ColorOrQuery, FinalTermSemanticPrompt, ITermProprietary,
+    ITermUnicodeVersionOp, Selection,
 };
 use termwiz::escape::{
     Action, ControlCode, DeviceControlMode, Esc, EscCode, OperatingSystemCommand, CSI,
@@ -581,10 +581,8 @@ impl<'a> Performer<'a> {
                 }
                 ITermProprietary::UnicodeVersion(ITermUnicodeVersionOp::Push(label)) => {
                     let vers = self.unicode_version;
-                    self.unicode_version_stack.push(UnicodeVersionStackEntry {
-                        vers,
-                        label
-                    });
+                    self.unicode_version_stack
+                        .push(UnicodeVersionStackEntry { vers, label });
                 }
                 ITermProprietary::UnicodeVersion(ITermUnicodeVersionOp::Pop(None)) => {
                     if let Some(entry) = self.unicode_version_stack.pop() {
