@@ -345,6 +345,13 @@ pub struct TerminalState {
 
     /// The unicode version that is in effect
     unicode_version: UnicodeVersion,
+    unicode_version_stack: Vec<UnicodeVersionStackEntry>,
+}
+
+#[derive(Debug)]
+struct UnicodeVersionStackEntry {
+    vers: UnicodeVersion,
+    label: Option<String>,
 }
 
 fn default_color_map() -> HashMap<u16, RgbColor> {
@@ -474,6 +481,7 @@ impl TerminalState {
             kitty_img: Default::default(),
             seqno: 0,
             unicode_version,
+            unicode_version_stack: vec![],
         }
     }
 

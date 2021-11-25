@@ -826,6 +826,16 @@ pub enum ITermProprietary {
     SetBadgeFormat(String),
     /// Download file data from the application.
     File(Box<ITermFileData>),
+
+    /// Configure unicode version
+    UnicodeVersion(ITermUnicodeVersionOp),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ITermUnicodeVersionOp {
+    Set(u8),
+    Push(Option<String>),
+    Pop(Option<String>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1136,6 +1146,31 @@ impl ITermProprietary {
             }
         }
 
+        if osc.len() == 2 && keyword == "UnicodeVersion" {
+            if let Some(p1) = p1 {
+                let mut iter = p1.splitn(2, ' ');
+                let keyword = iter.next();
+                let label = iter.next();
+
+                if let Some("push") = keyword {
+                    return Ok(ITermProprietary::UnicodeVersion(
+                        ITermUnicodeVersionOp::Push(label.map(|s| s.to_string())),
+                    ));
+                }
+                if let Some("pop") = keyword {
+                    return Ok(ITermProprietary::UnicodeVersion(
+                        ITermUnicodeVersionOp::Pop(label.map(|s| s.to_string())),
+                    ));
+                }
+
+                if let Ok(n) = p1.parse::<u8>() {
+                    return Ok(ITermProprietary::UnicodeVersion(
+                        ITermUnicodeVersionOp::Set(n),
+                    ));
+                }
+            }
+        }
+
         if keyword == "File" {
             return Ok(ITermProprietary::File(Box::new(ITermFileData::parse(osc)?)));
         }
@@ -1171,6 +1206,15 @@ impl Display for ITermProprietary {
             }
             SetBadgeFormat(s) => write!(f, "SetBadgeFormat={}", base64::encode(s))?,
             File(file) => file.fmt(f)?,
+            UnicodeVersion(ITermUnicodeVersionOp::Set(n)) => write!(f, "UnicodeVersion={}", n)?,
+            UnicodeVersion(ITermUnicodeVersionOp::Push(Some(label))) => {
+                write!(f, "UnicodeVersion=push {}", label)?
+            }
+            UnicodeVersion(ITermUnicodeVersionOp::Push(None)) => write!(f, "UnicodeVersion=push")?,
+            UnicodeVersion(ITermUnicodeVersionOp::Pop(Some(label))) => {
+                write!(f, "UnicodeVersion=pop {}", label)?
+            }
+            UnicodeVersion(ITermUnicodeVersionOp::Pop(None)) => write!(f, "UnicodeVersion=pop")?,
         }
         Ok(())
     }

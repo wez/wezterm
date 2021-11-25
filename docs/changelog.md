@@ -28,6 +28,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [canonicalize_pasted_newlines](config/lua/config/canonicalize_pasted_newlines.md) option to help Windows users manage newlines in pastes [#1213](https://github.com/wez/wezterm/issues/1213)
 * SSH client now uses `libssh` by default. [ssh_backend](config/lua/config/ssh_backend.md) can be used to change this.
 * [unzoom_on_switch_pane](config/lua/config/unzoom_on_switch_pane.md) option. Thanks to [@yyogo](https://github.com/yyogo) [#1301](https://github.com/wez/wezterm/issues/1301)
+* [unicode_version](config/lua/config/unicode_version.md) option and corresponding OSC escape sequences that affects how the width of certain unicode sequences are interpreted.
 
 #### Changed
 

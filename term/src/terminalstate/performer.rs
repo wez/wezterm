@@ -1,15 +1,16 @@
 use crate::terminal::Alert;
-use crate::terminalstate::{default_color_map, CharSet, TabStop};
+use crate::terminalstate::{default_color_map, CharSet, TabStop, UnicodeVersionStackEntry};
 use crate::{ClipboardSelection, Position, TerminalState, VisibleRowIndex};
 use crate::{DCS, ST};
 use log::{debug, error};
 use num_traits::FromPrimitive;
 use std::fmt::Write;
 use std::ops::{Deref, DerefMut};
-use termwiz::cell::{grapheme_column_width, Cell, CellAttributes, SemanticType};
+use termwiz::cell::{grapheme_column_width, Cell, CellAttributes, SemanticType,UnicodeVersion};
 use termwiz::escape::csi::EraseInDisplay;
 use termwiz::escape::osc::{
     ChangeColorPair, ColorOrQuery, FinalTermSemanticPrompt, ITermProprietary, Selection,
+    ITermUnicodeVersionOp,
 };
 use termwiz::escape::{
     Action, ControlCode, DeviceControlMode, Esc, EscCode, OperatingSystemCommand, CSI,
@@ -499,6 +500,8 @@ impl<'a> Performer<'a> {
                 self.palette.take();
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as VisibleRowIndex;
                 self.left_and_right_margins = 0..self.screen().physical_cols;
+                self.unicode_version = UnicodeVersion(self.config.unicode_version());
+                self.unicode_version_stack.clear();
 
                 self.screen.activate_primary_screen(seqno);
                 self.erase_in_display(EraseInDisplay::EraseScrollback);
@@ -571,6 +574,29 @@ impl<'a> Performer<'a> {
                     self.user_vars.insert(name, value);
                     if let Some(handler) = self.alert_handler.as_mut() {
                         handler.alert(Alert::TitleMaybeChanged);
+                    }
+                }
+                ITermProprietary::UnicodeVersion(ITermUnicodeVersionOp::Set(n)) => {
+                    self.unicode_version = UnicodeVersion(n);
+                }
+                ITermProprietary::UnicodeVersion(ITermUnicodeVersionOp::Push(label)) => {
+                    let vers = self.unicode_version;
+                    self.unicode_version_stack.push(UnicodeVersionStackEntry {
+                        vers,
+                        label
+                    });
+                }
+                ITermProprietary::UnicodeVersion(ITermUnicodeVersionOp::Pop(None)) => {
+                    if let Some(entry) = self.unicode_version_stack.pop() {
+                        self.unicode_version = entry.vers;
+                    }
+                }
+                ITermProprietary::UnicodeVersion(ITermUnicodeVersionOp::Pop(Some(label))) => {
+                    while let Some(entry) = self.unicode_version_stack.pop() {
+                        self.unicode_version = entry.vers;
+                        if entry.label.as_deref() == Some(&label) {
+                            break;
+                        }
                     }
                 }
                 _ => log::warn!("unhandled iterm2: {:?}", iterm),
