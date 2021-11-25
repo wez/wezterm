@@ -45,7 +45,7 @@ where
     /// This function's goal is to handle those two cases.
     pub fn process(
         render_metrics: &RenderMetrics,
-        _cluster: &CellCluster,
+        cluster: &CellCluster,
         infos: &[GlyphInfo],
         glyphs: &[Rc<CachedGlyph<T>>],
     ) -> Vec<ShapedInfo<T>> {
@@ -57,6 +57,7 @@ where
         let simple_mode = !config::configuration().experimental_shape_post_processing;
 
         for (info, glyph) in infos.iter().zip(glyphs.iter()) {
+            let info_num_cells = cluster.byte_to_cell_width(info.cluster as usize);
             if simple_mode {
                 pos.push(Some(ShapedInfo {
                     pos: GlyphPosition {
@@ -65,7 +66,7 @@ where
                             .texture
                             .as_ref()
                             .map_or(0, |t| t.coords.width() as u32),
-                        num_cells: info.num_cells,
+                        num_cells: info_num_cells,
                         x_offset: info.x_offset,
                         bearing_x: glyph.bearing_x.get() as f32,
                     },
@@ -131,16 +132,16 @@ where
                     .texture
                     .as_ref()
                     .map_or(0, |t| t.coords.width() as u32);
-                let num_cells = if info.num_cells == 1
+                let num_cells = if info_num_cells == 1
                     // Only adjust the cell count if this glyph is wide enough
                     && glyph_width > (1.5 * render_metrics.cell_size.width as f64)
                 {
                     (glyph_width / render_metrics.cell_size.width as f64).ceil() as u8
                 } else {
-                    info.num_cells
+                    info_num_cells
                 };
-                let bearing_x = if num_cells > info.num_cells && glyph.bearing_x.get() < 0. {
-                    ((num_cells - info.num_cells) as f64 * render_metrics.cell_size.width as f64)
+                let bearing_x = if num_cells > info_num_cells && glyph.bearing_x.get() < 0. {
+                    ((num_cells - info_num_cells) as f64 * render_metrics.cell_size.width as f64)
                         + glyph.bearing_x.get()
                 } else {
                     glyph.bearing_x.get()
@@ -163,7 +164,7 @@ where
                             .texture
                             .as_ref()
                             .map_or(0, |t| t.coords.width() as u32),
-                        num_cells: info.num_cells,
+                        num_cells: info_num_cells,
                         x_offset: info.x_offset,
                         bearing_x: glyph.bearing_x.get() as f32,
                     },
@@ -281,6 +282,7 @@ mod test {
             .iter()
             .map(|info| {
                 let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
+                let num_cells = cluster.byte_to_cell_width(info.cluster as usize);
 
                 let followed_by_space = match line.cells().get(cell_idx + 1) {
                     Some(cell) => cell.str() == " ",
@@ -288,7 +290,14 @@ mod test {
                 };
 
                 glyph_cache
-                    .cached_glyph(info, &style, followed_by_space, font, render_metrics)
+                    .cached_glyph(
+                        info,
+                        &style,
+                        followed_by_space,
+                        font,
+                        render_metrics,
+                        num_cells,
+                    )
                     .unwrap()
             })
             .collect::<Vec<_>>();

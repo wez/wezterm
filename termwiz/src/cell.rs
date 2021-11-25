@@ -517,6 +517,11 @@ where
 /// has length 2, otherwise, it has length 1 (we don't allow zero-length
 /// strings).
 struct TeenyString(usize);
+struct TeenyStringHeap {
+    bytes: Vec<u8>,
+    width: usize,
+}
+
 impl TeenyString {
     const fn marker_mask() -> usize {
         if cfg!(target_endian = "little") {
@@ -591,9 +596,9 @@ impl TeenyString {
 
         let bytes = s.as_bytes();
         let len = bytes.len();
+        let width = width.unwrap_or_else(|| grapheme_column_width(s, None));
 
         if len < std::mem::size_of::<usize>() {
-            let width = width.unwrap_or_else(|| grapheme_column_width(s));
             debug_assert!(width < 3);
 
             let mut word = 0usize;
@@ -607,7 +612,10 @@ impl TeenyString {
             let word = Self::set_marker_bit(word, width);
             Self(word)
         } else {
-            let vec = Box::new(bytes.to_vec());
+            let vec = Box::new(TeenyStringHeap {
+                bytes: bytes.to_vec(),
+                width,
+            });
             let ptr = Box::into_raw(vec);
             Self(ptr as usize)
         }
@@ -654,7 +662,8 @@ impl TeenyString {
                 1
             }
         } else {
-            grapheme_column_width(self.str())
+            let heap = self.0 as *const usize as *const TeenyStringHeap;
+            unsafe { (*heap).width }
         }
     }
 
@@ -676,8 +685,8 @@ impl TeenyString {
 
             &bytes[0..len]
         } else {
-            let vec = self.0 as *const usize as *const Vec<u8>;
-            unsafe { (*vec).as_slice() }
+            let heap = self.0 as *const usize as *const TeenyStringHeap;
+            unsafe { (*heap).bytes.as_slice() }
         }
     }
 }
@@ -819,26 +828,77 @@ impl Cell {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UnicodeVersion(pub u8);
+
+pub const LATEST_UNICODE_VERSION: UnicodeVersion = UnicodeVersion(14);
+
 /// Returns the number of cells visually occupied by a sequence
-/// of graphemes
-pub fn unicode_column_width(s: &str) -> usize {
+/// of graphemes.
+/// Calls through to `grapheme_column_width` for each grapheme
+/// and sums up the length.
+pub fn unicode_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
     use unicode_segmentation::UnicodeSegmentation;
-    s.graphemes(true).map(grapheme_column_width).sum()
+    s.graphemes(true)
+        .map(|g| grapheme_column_width(g, version))
+        .sum()
 }
 
 /// Returns the number of cells visually occupied by a grapheme.
 /// The input string must be a single grapheme.
-pub fn grapheme_column_width(s: &str) -> usize {
-    let width = s
+///
+/// There are some frustrating dragons in the realm of terminal cell widths:
+///
+/// a) wcwidth and wcswidth are widely used by applications and may be
+///    several versions of unicode behind the current version
+/// b) The width of characters has and will change in the future.
+///    Unicode Version 8 -> 9 made some characters wider.
+///    Unicode 14 defines Emoji variation selectors that change the
+///    width depending on trailing context in the unicode sequence.
+///
+/// Differing opinions about the width leads to visual artifacts in
+/// text and and line editors, especially with respect to cursor placement.
+///
+/// There aren't any really great solutions to this problem, as a given
+/// terminal emulator may be fine locally but essentially breaks when
+/// ssh'ing into a remote system with a divergent wcwidth implementation.
+///
+/// This means that a global understanding of the unicode version that
+/// is in use isn't a good solution.
+///
+/// The approach that wezterm wants to take here is to define a
+/// configuration value that sets the starting level of unicode conformance,
+/// and to define an escape sequence that can push/pop a desired confirmance
+/// level onto a stack maintained by the terminal emulator.
+///
+/// The terminal emulator can then pass the unicode version through to
+/// the Cell that is used to hold a grapheme, and that per-Cell version
+/// can then be used to calculate width.
+pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize {
+    let version = version.unwrap_or(LATEST_UNICODE_VERSION).0;
+
+    let width: usize = s
         .chars()
-        .map(|c| WcWidth::from_char(c).width_unicode_9_or_later())
-        .max()
-        .unwrap_or(0);
-    match Presentation::for_grapheme(s) {
-        (_, Some(Presentation::Emoji)) => 2,
-        (_, Some(Presentation::Text)) => 1,
-        (Presentation::Emoji, None) => 2,
-        (Presentation::Text, None) => width.into(),
+        .map(|c| {
+            let c = WcWidth::from_char(c);
+            if version >= 9 {
+                c.width_unicode_9_or_later()
+            } else {
+                c.width_unicode_8_or_earlier()
+            }
+        })
+        .sum::<u8>()
+        .into();
+
+    if version >= 14 {
+        match Presentation::for_grapheme(s) {
+            (_, Some(Presentation::Emoji)) => 2,
+            (_, Some(Presentation::Text)) => 1,
+            (Presentation::Emoji, None) => 2,
+            (Presentation::Text, None) => width,
+        }
+    } else {
+        width
     }
 }
 
@@ -911,7 +971,7 @@ mod test {
         for c in foot.chars() {
             eprintln!("char: {:?}", c);
         }
-        assert_eq!(unicode_column_width(foot), 2, "{} should be 2", foot);
+        assert_eq!(unicode_column_width(foot, None), 2, "{} should be 2", foot);
 
         let women_holding_hands_dark_skin_tone_medium_light_skin_tone =
             "\u{1F469}\u{1F3FF}\u{200D}\u{1F91D}\u{200D}\u{1F469}\u{1F3FC}";
@@ -938,18 +998,31 @@ mod test {
         for c in deaf_man.chars() {
             eprintln!("char: {:?}", c);
         }
-        assert_eq!(unicode_column_width(deaf_man), 2);
+        assert_eq!(unicode_column_width(deaf_man, None), 2);
+
+        let man_dancing = "\u{1F57A}";
+        assert_eq!(
+            unicode_column_width(man_dancing, Some(UnicodeVersion(9))),
+            2
+        );
+        assert_eq!(
+            unicode_column_width(man_dancing, Some(UnicodeVersion(8))),
+            1
+        );
 
         // This is a codepoint in the private use area
         let font_awesome_star = "\u{f005}";
         eprintln!("font_awesome_star {}", font_awesome_star.escape_debug());
-        assert_eq!(unicode_column_width(font_awesome_star), 1);
+        assert_eq!(unicode_column_width(font_awesome_star, None), 1);
+
+        let england_flag = "\u{1f3f4}\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}";
+        assert_eq!(unicode_column_width(england_flag, None), 2);
     }
 
     #[test]
     fn issue_1161() {
         let x_ideographic_space_x = "x\u{3000}x";
-        assert_eq!(unicode_column_width(x_ideographic_space_x), 4);
+        assert_eq!(unicode_column_width(x_ideographic_space_x, None), 4);
         assert_eq!(
             x_ideographic_space_x.graphemes(true).collect::<Vec<_>>(),
             vec!["x".to_string(), "\u{3000}".to_string(), "x".to_string()],
@@ -964,8 +1037,11 @@ mod test {
         let victory_hand = "\u{270c}";
         let victory_hand_text_presentation = "\u{270c}\u{fe0e}";
 
-        assert_eq!(unicode_column_width(victory_hand_text_presentation), 1);
-        assert_eq!(unicode_column_width(victory_hand), 1);
+        assert_eq!(
+            unicode_column_width(victory_hand_text_presentation, None),
+            1
+        );
+        assert_eq!(unicode_column_width(victory_hand, None), 1);
 
         assert_eq!(
             victory_hand_text_presentation
@@ -985,7 +1061,11 @@ mod test {
                 .collect::<Vec<_>>(),
             vec![copyright_emoji_presentation.to_string()]
         );
-        assert_eq!(unicode_column_width(copyright_emoji_presentation), 2);
+        assert_eq!(unicode_column_width(copyright_emoji_presentation, None), 2);
+        assert_eq!(
+            unicode_column_width(copyright_emoji_presentation, Some(UnicodeVersion(9))),
+            1
+        );
 
         let copyright_text_presentation = "\u{00A9}";
         assert_eq!(
@@ -994,7 +1074,7 @@ mod test {
                 .collect::<Vec<_>>(),
             vec![copyright_text_presentation.to_string()]
         );
-        assert_eq!(unicode_column_width(copyright_text_presentation), 1);
+        assert_eq!(unicode_column_width(copyright_text_presentation, None), 1);
 
         let raised_fist = "\u{270a}";
         let raised_fist_text = "\u{270a}\u{fe0e}";
@@ -1002,12 +1082,12 @@ mod test {
             Presentation::for_grapheme(raised_fist),
             (Presentation::Emoji, None)
         );
-        assert_eq!(unicode_column_width(raised_fist), 2);
+        assert_eq!(unicode_column_width(raised_fist, None), 2);
         assert_eq!(
             Presentation::for_grapheme(raised_fist_text),
             (Presentation::Emoji, Some(Presentation::Text))
         );
-        assert_eq!(unicode_column_width(raised_fist_text), 1);
+        assert_eq!(unicode_column_width(raised_fist_text, None), 1);
 
         assert_eq!(
             raised_fist_text.graphemes(true).collect::<Vec<_>>(),

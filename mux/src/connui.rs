@@ -25,12 +25,15 @@ impl LineEditorHost for PasswordPromptHost {
     // characters when output to the terminal widget
     fn highlight_line(&self, line: &str, cursor_position: usize) -> (Vec<OutputElement>, usize) {
         let placeholder = "🔑";
-        let grapheme_count = unicode_column_width(line);
+        let grapheme_count = unicode_column_width(line, None);
         let mut output = vec![];
         for _ in 0..grapheme_count {
             output.push(OutputElement::Text(placeholder.to_string()));
         }
-        (output, unicode_column_width(placeholder) * cursor_position)
+        (
+            output,
+            unicode_column_width(placeholder, None) * cursor_position,
+        )
     }
 }
 

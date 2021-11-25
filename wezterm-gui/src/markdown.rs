@@ -54,7 +54,7 @@ impl RenderState {
 
     fn wrap_text(&mut self, text: &str) {
         for word in text.split_word_bounds() {
-            let len = unicode_column_width(word);
+            let len = unicode_column_width(word, None);
             if self.x_pos + len < self.wrap_width {
                 if !(self.x_pos == 0 && is_whitespace_word(word)) {
                     self.changes.push(word.into());
@@ -110,7 +110,7 @@ impl RenderState {
                 } else {
                     "  * ".to_owned()
                 };
-                let indent_width = unicode_column_width(&list_item_prefix);
+                let indent_width = unicode_column_width(&list_item_prefix, None);
                 self.current_indent.replace(indent_width);
                 self.changes.push(list_item_prefix.into());
                 self.x_pos += indent_width;

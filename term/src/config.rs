@@ -84,4 +84,15 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     fn enable_kitty_graphics(&self) -> bool {
         false
     }
+
+    /// The default unicode version to assume.
+    /// This affects how the width of certain sequences is interpreted.
+    /// At the time of writing, we default to 9 even though the current
+    /// version of unicode is 14.  14 introduced emoji presentation selectors
+    /// that also alter the width of certain sequences, and that is too
+    /// new for most deployed applications.
+    // Coupled with config/src/lib.rs:default_unicode_version
+    fn unicode_version(&self) -> u8 {
+        9
+    }
 }

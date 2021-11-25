@@ -1249,8 +1249,16 @@ pub struct Config {
 
     #[serde(default = "default_canonicalize_pasted_newlines")]
     pub canonicalize_pasted_newlines: bool,
+
+    #[serde(default = "default_unicode_version")]
+    pub unicode_version: u8,
 }
 impl_lua_conversion!(Config);
+
+// Coupled with term/src/config.rs:TerminalConfiguration::unicode_version
+fn default_unicode_version() -> u8 {
+    9
+}
 
 fn default_canonicalize_pasted_newlines() -> bool {
     cfg!(windows)

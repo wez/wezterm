@@ -271,7 +271,7 @@ impl Pane for SearchOverlay {
         // move to the search box
         let renderer = self.renderer.borrow();
         StableCursorPosition {
-            x: 8 + wezterm_term::unicode_column_width(&renderer.pattern),
+            x: 8 + wezterm_term::unicode_column_width(&renderer.pattern, None),
             y: renderer.compute_search_row(),
             shape: termwiz::surface::CursorShape::SteadyBlock,
             visibility: termwiz::surface::CursorVisibility::Visible,

@@ -28,7 +28,7 @@ fn emit_column<W: std::io::Write>(
     alignment: Alignment,
     output: &mut W,
 ) -> Result<(), std::io::Error> {
-    let text_width = unicode_column_width(text);
+    let text_width = unicode_column_width(text, None);
     let (left_pad, right_pad) = match alignment {
         Alignment::Left => (0, max_width - text_width),
         Alignment::Center => {
@@ -66,14 +66,14 @@ pub fn tabulate_output<S: std::string::ToString, W: std::io::Write>(
 ) -> Result<(), std::io::Error> {
     let mut col_widths: Vec<usize> = columns
         .iter()
-        .map(|c| unicode_column_width(&c.name))
+        .map(|c| unicode_column_width(&c.name, None))
         .collect();
 
     let mut display_rows: Vec<Vec<String>> = vec![];
     for src_row in rows {
         let dest_row: Vec<String> = src_row.iter().map(|col| col.to_string()).collect();
         for (idx, col) in dest_row.iter().enumerate() {
-            let col_width = unicode_column_width(col);
+            let col_width = unicode_column_width(col, None);
             if let Some(width) = col_widths.get_mut(idx) {
                 *width = (*width).max(col_width);
             } else {
@@ -116,7 +116,7 @@ pub fn unicode_column_width_of_change_slice(s: &[Change]) -> usize {
     s.iter()
         .map(|c| {
             if c.is_text() {
-                unicode_column_width(c.text())
+                unicode_column_width(c.text(), None)
             } else {
                 0
             }
@@ -170,7 +170,7 @@ pub fn tabulate_for_terminal(
 ) {
     let mut col_widths: Vec<usize> = columns
         .iter()
-        .map(|c| unicode_column_width(&c.name))
+        .map(|c| unicode_column_width(&c.name, None))
         .collect();
 
     for row in rows {

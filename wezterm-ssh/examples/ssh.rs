@@ -26,12 +26,15 @@ impl LineEditorHost for PasswordPromptHost {
             // Rewrite the input so that we can obscure the password
             // characters when output to the terminal widget
             let placeholder = "🔑";
-            let grapheme_count = unicode_column_width(line);
+            let grapheme_count = unicode_column_width(line, None);
             let mut output = vec![];
             for _ in 0..grapheme_count {
                 output.push(OutputElement::Text(placeholder.to_string()));
             }
-            (output, unicode_column_width(placeholder) * cursor_position)
+            (
+                output,
+                unicode_column_width(placeholder, None) * cursor_position,
+            )
         }
     }
 }

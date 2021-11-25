@@ -296,7 +296,7 @@ impl CopyRenderable {
             let mut last_was_whitespace = false;
 
             for (idx, word) in s.split_word_bounds().rev().enumerate() {
-                let width = unicode_column_width(word);
+                let width = unicode_column_width(word, None);
 
                 if is_whitespace_word(word) {
                     self.cursor.x = self.cursor.x.saturating_sub(width);
@@ -335,13 +335,13 @@ impl CopyRenderable {
             let mut words = s.split_word_bounds();
 
             if let Some(word) = words.next() {
-                self.cursor.x += unicode_column_width(word);
+                self.cursor.x += unicode_column_width(word, None);
                 if !is_whitespace_word(word) {
                     // We were part-way through a word, so look
                     // at the next word
                     if let Some(word) = words.next() {
                         if is_whitespace_word(word) {
-                            self.cursor.x += unicode_column_width(word);
+                            self.cursor.x += unicode_column_width(word, None);
                             // If we advance off the RHS, move to the start of the word on the
                             // next line, if any!
                             if self.cursor.x >= width {

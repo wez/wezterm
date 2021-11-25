@@ -203,7 +203,7 @@ impl ChangeSequence {
                         self.cursor_y += 1;
                         self.cursor_x = 0;
                     } else {
-                        let len = unicode_column_width(g);
+                        let len = unicode_column_width(g, None);
                         self.cursor_x += len;
                     }
                 }

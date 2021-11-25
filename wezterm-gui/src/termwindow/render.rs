@@ -30,7 +30,7 @@ use smol::Timer;
 use std::ops::Range;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use termwiz::cell::{unicode_column_width, Blink};
+use termwiz::cell::Blink;
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::{IntPixelLength, PixelLength};
@@ -1762,7 +1762,7 @@ impl super::TermWindow {
         for item in shaped {
             let cluster = &item.cluster;
             let attrs = &cluster.attrs;
-            let cluster_width = unicode_column_width(&cluster.text);
+            let cluster_width = cluster.width;
 
             let bg_is_default = attrs.background() == ColorAttribute::Default;
             let bg_color = params.palette.resolve_bg(attrs.background());
@@ -2586,6 +2586,7 @@ impl super::TermWindow {
         let mut glyphs = Vec::with_capacity(infos.len());
         for info in infos {
             let cell_idx = cluster.byte_to_cell_idx(info.cluster as usize);
+            let num_cells = cluster.byte_to_cell_width(info.cluster as usize);
 
             if self.config.custom_block_glyphs {
                 if let Some(cell) = line.cells().get(cell_idx) {
@@ -2620,6 +2621,7 @@ impl super::TermWindow {
                 followed_by_space,
                 font,
                 metrics,
+                num_cells,
             )?);
         }
         Ok(glyphs)

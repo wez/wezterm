@@ -134,7 +134,7 @@ impl<'a> Performer<'a> {
             // they occupy a cell so that we can re-emit them when we output them.
             // If we didn't do this, then we'd effectively filter them out from
             // the model, which seems like a lossy design choice.
-            let print_width = grapheme_column_width(g).max(1);
+            let print_width = grapheme_column_width(g, Some(self.unicode_version)).max(1);
             let wrappable = x + print_width >= width;
 
             let cell = Cell::new_grapheme_with_width(g, print_width, pen);

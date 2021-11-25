@@ -13,8 +13,6 @@ pub struct GlyphInfo {
     pub is_space: bool,
     /// Offset within text
     pub cluster: u32,
-    /// How many cells/columns this glyph occupies horizontally
-    pub num_cells: u8,
     /// Which font alternative to use; index into Font.fonts
     pub font_idx: FallbackIdx,
     /// Which freetype glyph to load

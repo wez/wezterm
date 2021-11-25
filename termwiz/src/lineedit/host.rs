@@ -67,7 +67,7 @@ pub trait LineEditorHost {
     /// as well as textual output.
     /// The default implementation returns the line as-is with no coloring.
     fn highlight_line(&self, line: &str, cursor_position: usize) -> (Vec<OutputElement>, usize) {
-        let cursor_x_pos = crate::cell::unicode_column_width(&line[0..cursor_position]);
+        let cursor_x_pos = crate::cell::unicode_column_width(&line[0..cursor_position], None);
         (vec![OutputElement::Text(line.to_owned())], cursor_x_pos)
     }
 

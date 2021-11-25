@@ -81,7 +81,7 @@ fn call_format_tab_title(
                 _ => {
                     let s = String::from_lua(v, &*lua)?;
                     Ok(Some(TitleText {
-                        len: unicode_column_width(&s),
+                        len: unicode_column_width(&s, None),
                         items: vec![FormatItem::Text(s)],
                     }))
                 }
@@ -133,7 +133,7 @@ fn compute_tab_title(
                 // this if there are too many tabs to fit the window at
                 // this width.
                 if !config.use_fancy_tab_bar {
-                    while unicode_column_width(&title) < 5 {
+                    while unicode_column_width(&title, None) < 5 {
                         title.push(' ');
                     }
                 }
@@ -143,7 +143,7 @@ fn compute_tab_title(
             };
 
             TitleText {
-                len: unicode_column_width(&title),
+                len: unicode_column_width(&title, None),
                 items: vec![FormatItem::Text(title)],
             }
         }

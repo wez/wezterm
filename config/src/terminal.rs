@@ -74,4 +74,8 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
     fn canonicalize_pasted_newlines(&self) -> bool {
         self.configuration().canonicalize_pasted_newlines
     }
+
+    fn unicode_version(&self) -> u8 {
+        self.configuration().unicode_version
+    }
 }

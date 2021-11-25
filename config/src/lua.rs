@@ -164,13 +164,13 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 
         wezterm_mod.set(
             "column_width",
-            lua.create_function(|_, s: String| Ok(unicode_column_width(&s)))?,
+            lua.create_function(|_, s: String| Ok(unicode_column_width(&s, None)))?,
         )?;
 
         wezterm_mod.set(
             "pad_right",
             lua.create_function(|_, (mut result, width): (String, usize)| {
-                let mut len = unicode_column_width(&result);
+                let mut len = unicode_column_width(&result, None);
                 while len < width {
                     result.push(' ');
                     len += 1;
@@ -183,7 +183,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set(
             "pad_left",
             lua.create_function(|_, (mut result, width): (String, usize)| {
-                let mut len = unicode_column_width(&result);
+                let mut len = unicode_column_width(&result, None);
                 while len < width {
                     result.insert(0, ' ');
                     len += 1;
@@ -199,7 +199,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
                 let mut result = String::new();
                 let mut len = 0;
                 for g in s.graphemes(true) {
-                    let g_len = grapheme_column_width(g);
+                    let g_len = grapheme_column_width(g, None);
                     if g_len + len > max_width {
                         break;
                     }
@@ -217,7 +217,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
                 let mut result = vec![];
                 let mut len = 0;
                 for g in s.graphemes(true).rev() {
-                    let g_len = grapheme_column_width(g);
+                    let g_len = grapheme_column_width(g, None);
                     if g_len + len > max_width {
                         break;
                     }

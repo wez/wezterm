@@ -11,8 +11,10 @@ use std::borrow::Cow;
 pub struct CellCluster {
     pub attrs: CellAttributes,
     pub text: String,
+    pub width: usize,
     pub presentation: Presentation,
     byte_to_cell_idx: Vec<usize>,
+    byte_to_cell_width: Vec<u8>,
     pub first_cell_idx: usize,
 }
 
@@ -24,6 +26,14 @@ impl CellCluster {
             self.first_cell_idx + byte_idx
         } else {
             self.byte_to_cell_idx[byte_idx]
+        }
+    }
+
+    pub fn byte_to_cell_width(&self, byte_idx: usize) -> u8 {
+        if self.byte_to_cell_width.is_empty() {
+            1
+        } else {
+            self.byte_to_cell_width[byte_idx]
         }
     }
 
@@ -60,6 +70,7 @@ impl CellCluster {
                         normalized_attr.into_owned(),
                         cell_str,
                         cell_idx,
+                        c.width(),
                     ))
                 }
                 Some(mut last) => {
@@ -75,6 +86,7 @@ impl CellCluster {
                             normalized_attr.into_owned(),
                             cell_str,
                             cell_idx,
+                            c.width(),
                         ))
                     } else {
                         // Add to current cluster.
@@ -102,9 +114,10 @@ impl CellCluster {
                                 normalized_attr.into_owned(),
                                 cell_str,
                                 cell_idx,
+                                c.width(),
                             ))
                         } else {
-                            last.add(cell_str, cell_idx);
+                            last.add(cell_str, cell_idx, c.width());
                             Some(last)
                         }
                     }
@@ -127,6 +140,7 @@ impl CellCluster {
         attrs: CellAttributes,
         text: &str,
         cell_idx: usize,
+        width: usize,
     ) -> CellCluster {
         let mut idx = Vec::new();
         if text.len() > 1 {
@@ -137,20 +151,30 @@ impl CellCluster {
                 idx.push(cell_idx);
             }
         }
+
+        let mut byte_to_cell_width = Vec::new();
+        if width > 1 {
+            for _ in 0..text.len() {
+                byte_to_cell_width.push(width as u8);
+            }
+        }
         let mut storage = String::with_capacity(hint);
         storage.push_str(text);
 
         CellCluster {
             attrs,
+            width,
             text: storage,
             presentation,
             byte_to_cell_idx: idx,
+            byte_to_cell_width,
             first_cell_idx: cell_idx,
         }
     }
 
     /// Add to this cluster
-    fn add(&mut self, text: &str, cell_idx: usize) {
+    fn add(&mut self, text: &str, cell_idx: usize, width: usize) {
+        self.width += width;
         if !self.byte_to_cell_idx.is_empty() {
             // We had at least one multi-byte cell in the past
             for _ in 0..text.len() {
@@ -164,6 +188,22 @@ impl CellCluster {
             // Now add this new multi-byte cell text
             for _ in 0..text.len() {
                 self.byte_to_cell_idx.push(cell_idx);
+            }
+        }
+
+        if !self.byte_to_cell_width.is_empty() {
+            // We had at least one double-wide cell in the past
+            for _ in 0..text.len() {
+                self.byte_to_cell_width.push(width as u8);
+            }
+        } else if width > 1 {
+            // Extrapolate the widths so far; they must all be single width
+            for _ in 0..self.text.len() {
+                self.byte_to_cell_width.push(1);
+            }
+            // and add the current double width cell
+            for _ in 0..text.len() {
+                self.byte_to_cell_width.push(width as u8);
             }
         }
         self.text.push_str(text);

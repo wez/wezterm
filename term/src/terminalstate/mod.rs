@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Arc;
 use terminfo::{Database, Value};
+use termwiz::cell::UnicodeVersion;
 use termwiz::escape::csi::{
     Cursor, CursorStyle, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay,
     EraseInLine, Mode, Sgr, TabulationClear, TerminalMode, TerminalModeCode, Window, XtSmGraphics,
@@ -341,6 +342,9 @@ pub struct TerminalState {
 
     kitty_img: KittyImageState,
     seqno: SequenceNo,
+
+    /// The unicode version that is in effect
+    unicode_version: UnicodeVersion,
 }
 
 fn default_color_map() -> HashMap<u16, RgbColor> {
@@ -414,6 +418,8 @@ impl TerminalState {
 
         let color_map = default_color_map();
 
+        let unicode_version = UnicodeVersion(config.unicode_version());
+
         TerminalState {
             config,
             screen,
@@ -467,6 +473,7 @@ impl TerminalState {
             user_vars: HashMap::new(),
             kitty_img: Default::default(),
             seqno: 0,
+            unicode_version,
         }
     }
 

@@ -9,7 +9,7 @@ use log::error;
 use ordered_float::NotNan;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
-use termwiz::cell::{unicode_column_width, Presentation};
+use termwiz::cell::Presentation;
 use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -25,13 +25,11 @@ struct Info {
 }
 
 fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
-    let num_cells = unicode_column_width(text) as u8;
     let is_space = text == " ";
     GlyphInfo {
         #[cfg(debug_assertions)]
         text: text.into(),
         is_space,
-        num_cells,
         font_idx,
         glyph_pos: info.codepoint,
         cluster: info.cluster as u32,
@@ -585,7 +583,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 180,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "a".into(),
                         x_advance: PixelLength::new(6.),
@@ -598,7 +595,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 205,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "b".into(),
                         x_advance: PixelLength::new(6.),
@@ -611,7 +607,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 206,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "c".into(),
                         x_advance: PixelLength::new(6.),
@@ -633,7 +628,6 @@ mod test {
                     is_space: false,
                     font_idx: 0,
                     glyph_pos: 726,
-                    num_cells: 1,
                     #[cfg(debug_assertions)]
                     text: "<".into(),
                     x_advance: PixelLength::new(6.),
@@ -657,7 +651,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 1212,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "<".into(),
                         x_advance: PixelLength::new(6.),
@@ -670,7 +663,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 1065,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "-".into(),
                         x_advance: PixelLength::new(6.),
@@ -693,7 +685,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 726,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "<".into(),
                         x_advance: PixelLength::new(6.),
@@ -706,7 +697,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 1212,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "-".into(),
                         x_advance: PixelLength::new(6.),
@@ -719,7 +709,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 623,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "-".into(),
                         x_advance: PixelLength::new(6.),
@@ -743,7 +732,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 350,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "x".into(),
                         x_advance: PixelLength::new(6.),
@@ -756,7 +744,6 @@ mod test {
                         text: " ".into(),
                         is_space: true,
                         cluster: 1,
-                        num_cells: 1,
                         font_idx: 0,
                         glyph_pos: 686,
                         x_advance: PixelLength::new(6.),
@@ -769,7 +756,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 350,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "x".into(),
                         x_advance: PixelLength::new(6.),
@@ -795,7 +781,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 350,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "x".into(),
                         x_advance: PixelLength::new(6.),
@@ -808,7 +793,6 @@ mod test {
                         text: "\u{3000}".into(),
                         is_space: false,
                         cluster: 1,
-                        num_cells: 2,
                         font_idx: 0,
                         glyph_pos: 686,
                         x_advance: PixelLength::new(10.),
@@ -821,7 +805,6 @@ mod test {
                         is_space: false,
                         font_idx: 0,
                         glyph_pos: 350,
-                        num_cells: 1,
                         #[cfg(debug_assertions)]
                         text: "x".into(),
                         x_advance: PixelLength::new(6.),

@@ -56,6 +56,7 @@ pub struct SizedBlockKey {
 pub struct GlyphKey {
     pub font_idx: usize,
     pub glyph_pos: u32,
+    pub num_cells: u8,
     pub style: TextStyle,
     pub followed_by_space: bool,
     pub metric: CellMetricKey,
@@ -72,6 +73,7 @@ pub struct GlyphKey {
 pub struct BorrowedGlyphKey<'a> {
     pub font_idx: usize,
     pub glyph_pos: u32,
+    pub num_cells: u8,
     pub style: &'a TextStyle,
     pub followed_by_space: bool,
     pub metric: CellMetricKey,
@@ -84,6 +86,7 @@ impl<'a> BorrowedGlyphKey<'a> {
         GlyphKey {
             font_idx: self.font_idx,
             glyph_pos: self.glyph_pos,
+            num_cells: self.num_cells,
             style: self.style.clone(),
             followed_by_space: self.followed_by_space,
             metric: self.metric,
@@ -101,6 +104,7 @@ impl GlyphKeyTrait for GlyphKey {
         BorrowedGlyphKey {
             font_idx: self.font_idx,
             glyph_pos: self.glyph_pos,
+            num_cells: self.num_cells,
             style: &self.style,
             followed_by_space: self.followed_by_space,
             metric: self.metric,
@@ -345,10 +349,12 @@ impl<T: Texture2d> GlyphCache<T> {
         followed_by_space: bool,
         font: &Rc<LoadedFont>,
         metrics: &RenderMetrics,
+        num_cells: u8,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let key = BorrowedGlyphKey {
             font_idx: info.font_idx,
             glyph_pos: info.glyph_pos,
+            num_cells: num_cells,
             style,
             followed_by_space,
             metric: metrics.into(),
@@ -361,7 +367,7 @@ impl<T: Texture2d> GlyphCache<T> {
         }
         metrics::histogram!("glyph_cache.glyph_cache.miss.rate", 1.);
 
-        let glyph = match self.load_glyph(info, font, followed_by_space) {
+        let glyph = match self.load_glyph(info, font, followed_by_space, num_cells) {
             Ok(g) => g,
             Err(err) => {
                 if err
@@ -407,6 +413,7 @@ impl<T: Texture2d> GlyphCache<T> {
         info: &GlyphInfo,
         font: &Rc<LoadedFont>,
         followed_by_space: bool,
+        num_cells: u8,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let base_metrics;
         let idx_metrics;
@@ -442,7 +449,7 @@ impl<T: Texture2d> GlyphCache<T> {
         // can happen somehow; see <https://github.com/wez/wezterm/issues/1042>
         // so let's treat 0 cells as 1 cell so that we don't try to divide by
         // zero below.
-        let num_cells = info.num_cells.max(1) as f64;
+        let num_cells = num_cells.max(1) as f64;
 
         // Maximum width allowed for this glyph based on its unicode width and
         // the dimensions of a cell
