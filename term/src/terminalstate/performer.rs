@@ -322,7 +322,8 @@ impl<'a> Performer<'a> {
                 {
                     // If the cursor is in the last column and a character was
                     // just output and reverse-wraparound is on then backspace
-                    // by 1 has no effect.
+                    // by 1 cancels the pending wrap.
+                    self.wrap_next = false;
                 } else if self.cursor.x == self.left_and_right_margins.start {
                     // Respect the left margin and don't BS outside it
                 } else {
