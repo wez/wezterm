@@ -1839,6 +1839,17 @@ impl Config {
         // across the win32/wsl boundary
         let mut wsl_env = std::env::var("WSLENV").ok();
 
+        // Since we are running inside the appimage, we have "$APPIMAGE"
+        // and "$APPDIR" set inside the wezterm appimage. This gets
+        // propagated to the child processes. Since some apps (including
+        // wezterm) use these variables to detect if they are running in
+        // an appimage, the child processes get misconfigured
+        // We should just unset them too.
+        // https://docs.appimage.org/packaging-guide/environment-variables.html#id2
+        cmd.env_remove("APPIMAGE");
+        cmd.env_remove("APPDIR");
+        cmd.env_remove("OWD");
+
         for (k, v) in &self.set_environment_variables {
             if k == "WSLENV" {
                 wsl_env.replace(v.clone());
