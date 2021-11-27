@@ -2502,12 +2502,13 @@ and defining a function like this:</p>
     &quot;${osc7}PS $p$('&gt;' * ($nestedPromptLevel + 1)) &quot;;
 }
 </code></pre>
-<h2 id="using-clink-on-windows-systems"><a class="header" href="#using-clink-on-windows-systems">Using clink on Windows Systems</a></h2>
-<p><a href="https://github.com/mridgers/clink">Clink</a> brings bash style line editing to
-your Windows cmd.exe experience.  If you haven't installed clink to be the
-global default on your system, you can configure wezterm to launch clink by
-setting the <code>default_prog</code> configuration in your <code>.wezterm.lua</code>; for example,
-if you have extracted clink to <code>c:\clink_0.4.9</code> you might configure this:</p>
+<h2 id="using-clink-on-windows-systems"><a class="header" href="#using-clink-on-windows-systems">Using Clink on Windows Systems</a></h2>
+<p><a href="https://github.com/chrisant996/clink">Clink</a> brings bash style line editing,
+completions and autosuggestions to your Windows cmd.exe experience. If you
+haven't installed clink to be the global default on your system, you can
+configure wezterm to launch clink by setting the <code>default_prog</code> configuration
+in your <code>.wezterm.lua</code>; for example, if you have extracted clink to <code>c:\clink</code>
+you might configure this:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm';
 
 local default_prog;
@@ -2519,7 +2520,7 @@ if wezterm.target_triple == &quot;x86_64-pc-windows-msvc&quot; then
   -- use a more ls-like output format for dir
   set_environment_variables[&quot;DIRCMD&quot;] = &quot;/d&quot;
   -- And inject clink into the command prompt
-  default_prog = {&quot;cmd.exe&quot;, &quot;/s&quot;, &quot;/k&quot;, &quot;c:/clink_0.4.9/clink_x64.exe&quot;, &quot;inject&quot;, &quot;-q&quot;}
+  default_prog = {&quot;cmd.exe&quot;, &quot;/s&quot;, &quot;/k&quot;, &quot;c:/clink/clink_x64.exe&quot;, &quot;inject&quot;, &quot;-q&quot;}
 end
 
 return {
