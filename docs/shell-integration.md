@@ -87,13 +87,14 @@ function prompt {
 }
 ```
 
-## Using clink on Windows Systems
+## Using Clink on Windows Systems
 
-[Clink](https://github.com/mridgers/clink) brings bash style line editing to
-your Windows cmd.exe experience.  If you haven't installed clink to be the
-global default on your system, you can configure wezterm to launch clink by
-setting the `default_prog` configuration in your `.wezterm.lua`; for example,
-if you have extracted clink to `c:\clink_0.4.9` you might configure this:
+[Clink](https://github.com/chrisant996/clink) brings bash style line editing,
+completions and autosuggestions to your Windows cmd.exe experience. If you
+haven't installed clink to be the global default on your system, you can
+configure wezterm to launch clink by setting the `default_prog` configuration
+in your `.wezterm.lua`; for example, if you have extracted clink to `c:\clink`
+you might configure this:
 
 ```lua
 local wezterm = require 'wezterm';
@@ -107,7 +108,7 @@ if wezterm.target_triple == "x86_64-pc-windows-msvc" then
   -- use a more ls-like output format for dir
   set_environment_variables["DIRCMD"] = "/d"
   -- And inject clink into the command prompt
-  default_prog = {"cmd.exe", "/s", "/k", "c:/clink_0.4.9/clink_x64.exe", "inject", "-q"}
+  default_prog = {"cmd.exe", "/s", "/k", "c:/clink/clink_x64.exe", "inject", "-q"}
 end
 
 return {
