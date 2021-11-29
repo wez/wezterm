@@ -17,7 +17,7 @@ jobs:
         shell: bash
         run: "yum install -y devtoolset-9-gcc devtoolset-9-gcc-c++"
       - name: "Cache Git installation"
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: "/usr/local/git"
           key: "centos7-git-2.26.2"
@@ -62,7 +62,7 @@ jobs:
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - name: "Cache cargo"
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: |
             ~/.cargo/registry
