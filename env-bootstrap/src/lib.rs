@@ -23,6 +23,19 @@ pub fn fixup_appimage() {
         // Let's just unset that from the environment!
         std::env::remove_var("ARGV0");
 
+        // Since our AppImage includes multiple utilities, we want to
+        // be able to use them, so add that location to the PATH!
+        // WEZTERM_EXECUTABLE_DIR is set by `set_wezterm_executable`
+        // which is called before `fixup_appimage`
+        if let Some(dir) = std::env::var_os("WEZTERM_EXECUTABLE_DIR") {
+            if let Some(path) = std::env::var_os("PATH") {
+                let mut paths = std::env::split_paths(&path).collect::<Vec<_>>();
+                paths.insert(0, PathBuf::from(dir));
+                let new_path = std::env::join_paths(paths).expect("unable to update PATH");
+                std::env::set_var("PATH", &new_path);
+            }
+        }
+
         // This AppImage feature allows redirecting HOME and XDG_CONFIG_HOME
         // to live alongside the executable for portable use:
         // https://github.com/AppImage/AppImageKit/issues/368
