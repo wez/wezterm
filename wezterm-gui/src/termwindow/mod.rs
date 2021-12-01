@@ -810,8 +810,10 @@ impl TermWindow {
                     .context("send GetConfigOverrides response")?;
             }
             TermWindowNotif::SetConfigOverrides(value) => {
-                self.config_overrides = value;
-                self.config_was_reloaded();
+                if value != self.config_overrides {
+                    self.config_overrides = value;
+                    self.config_was_reloaded();
+                }
             }
             TermWindowNotif::CancelOverlayForPane(pane_id) => {
                 self.cancel_overlay_for_pane(pane_id);
