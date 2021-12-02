@@ -761,13 +761,21 @@ impl super::TermWindow {
         }
     }
 
-    pub fn tab_bar_pixel_height(&self) -> anyhow::Result<f32> {
-        if self.config.use_fancy_tab_bar {
-            let font = self.fonts.title_font()?;
+    pub fn tab_bar_pixel_height_impl(
+        config: &ConfigHandle,
+        fontconfig: &wezterm_font::FontConfiguration,
+        render_metrics: &RenderMetrics,
+    ) -> anyhow::Result<f32> {
+        if config.use_fancy_tab_bar {
+            let font = fontconfig.title_font()?;
             Ok(font.metrics().cell_height.get() as f32 * 2.)
         } else {
-            Ok(self.render_metrics.cell_size.height as f32)
+            Ok(render_metrics.cell_size.height as f32)
         }
+    }
+
+    pub fn tab_bar_pixel_height(&self) -> anyhow::Result<f32> {
+        Self::tab_bar_pixel_height_impl(&self.config, &self.fonts, &self.render_metrics)
     }
 
     fn paint_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<Vec<UIItem>> {
