@@ -1123,7 +1123,7 @@ impl super::TermWindow {
                 Rect::new(
                     Point::new(
                         ((pos.left as f32 * cell_width) + padding_left) as isize,
-                        (top_pixel_y + (pos.top as f32 * cell_height) + padding_top) as isize,
+                        (top_pixel_y + (pos.top as f32 * cell_height)) as isize,
                     ),
                     Size::new(
                         (pos.width as f32 * cell_width) as isize,
