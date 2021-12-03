@@ -29,6 +29,7 @@ As features stabilize some brief notes about them will accumulate here.
 * SSH client now uses `libssh` by default. [ssh_backend](config/lua/config/ssh_backend.md) can be used to change this.
 * [unzoom_on_switch_pane](config/lua/config/unzoom_on_switch_pane.md) option. Thanks to [@yyogo](https://github.com/yyogo) [#1301](https://github.com/wez/wezterm/issues/1301)
 * [unicode_version](config/lua/config/unicode_version.md) option and corresponding OSC escape sequences that affects how the width of certain unicode sequences are interpreted.
+* macOS: binaries produced by wezterm's CI are now codesigned, which resolves some spurious permission dialogs that affected some users [#482](https://github.com/wez/wezterm/issues/482)
 
 #### Changed
 
