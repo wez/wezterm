@@ -1467,43 +1467,26 @@ impl super::TermWindow {
             0.
         };
 
-        let block = BlockKey::from_char(if split.direction == SplitDirection::Horizontal {
-            '\u{2502}'
-        } else {
-            '\u{2500}'
-        })
-        .expect("to have box drawing glyph");
-
-        let sprite = gl_state
-            .glyph_cache
-            .borrow_mut()
-            .cached_block(block, &self.render_metrics)?
-            .texture_coords();
-
-        let mut quad = quads.allocate()?;
-        quad.set_fg_color(foreground);
-        quad.set_hsv(None);
-        quad.set_texture(sprite);
-        quad.set_texture_adjust(0., 0., 0., 0.);
-        quad.set_has_color(false);
-
         let (padding_left, padding_top) = self.padding_left_top();
 
-        let pos_y = (self.dimensions.pixel_height as f32 / -2.)
-            + split.top as f32 * cell_height
-            + first_row_offset
-            + padding_top;
-        let pos_x = (self.dimensions.pixel_width as f32 / -2.)
-            + split.left as f32 * cell_width
-            + padding_left;
+        let pos_y = split.top as f32 * cell_height + first_row_offset + padding_top;
+        let pos_x = split.left as f32 * cell_width + padding_left;
 
         if split.direction == SplitDirection::Horizontal {
-            quad.set_position(
-                pos_x,
-                pos_y,
-                pos_x + cell_width,
-                pos_y + split.size as f32 * cell_height,
-            );
+            self.filled_rectangle(
+                &mut quads,
+                Rect::new(
+                    Point::new(
+                        pos_x as isize + (cell_width / 2.0) as isize,
+                        pos_y as isize - (cell_height / 2.0) as isize,
+                    ),
+                    Size::new(
+                        self.render_metrics.underline_height,
+                        (1 + split.size as isize) * cell_height as isize,
+                    ),
+                ),
+                foreground,
+            )?;
             self.ui_items.push(UIItem {
                 x: padding_left as usize + (split.left * cell_width as usize),
                 width: cell_width as usize,
@@ -1514,12 +1497,20 @@ impl super::TermWindow {
                 item_type: UIItemType::Split(split.clone()),
             });
         } else {
-            quad.set_position(
-                pos_x,
-                pos_y,
-                pos_x + split.size as f32 * cell_width,
-                pos_y + cell_height,
-            );
+            self.filled_rectangle(
+                &mut quads,
+                Rect::new(
+                    Point::new(
+                        pos_x as isize - (cell_width / 2.0) as isize,
+                        pos_y as isize + (cell_height / 2.0) as isize,
+                    ),
+                    Size::new(
+                        (1 + split.size as isize) * cell_width as isize,
+                        self.render_metrics.underline_height,
+                    ),
+                ),
+                foreground,
+            )?;
             self.ui_items.push(UIItem {
                 x: padding_left as usize + (split.left * cell_width as usize),
                 width: split.size * cell_width as usize,
