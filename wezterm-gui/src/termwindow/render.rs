@@ -1118,16 +1118,65 @@ impl super::TermWindow {
             // Per-pane, palette-specified background
             let cell_width = self.render_metrics.cell_size.width as f32;
             let cell_height = self.render_metrics.cell_size.height as f32;
+
+            // We want to fill out to the edges of the splits
+            let (x, width_delta) = if pos.left == 0 {
+                (0, padding_left as isize + (cell_width / 2.0) as isize)
+            } else {
+                (
+                    padding_left as isize - (cell_width / 2.0) as isize
+                        + (pos.left as f32 * cell_width) as isize,
+                    cell_width as isize,
+                )
+            };
+
+            let (y, height_delta) = if pos.top == 0 {
+                (
+                    (top_pixel_y - padding_top) as isize,
+                    padding_top as isize + (cell_height / 2.0) as isize,
+                )
+            } else {
+                (
+                    top_pixel_y as isize + (pos.top as f32 * cell_height) as isize
+                        - (cell_height / 2.0) as isize,
+                    cell_height as isize,
+                )
+            };
+
             let mut quad = self.filled_rectangle(
                 &mut layers[0],
                 Rect::new(
-                    Point::new(
-                        ((pos.left as f32 * cell_width) + padding_left) as isize,
-                        (top_pixel_y + (pos.top as f32 * cell_height)) as isize,
-                    ),
+                    Point::new(x, y),
                     Size::new(
-                        (pos.width as f32 * cell_width) as isize,
-                        (pos.height as f32 * cell_height) as isize,
+                        (pos.width as f32 * cell_width) as isize
+                            + width_delta
+                            + if pos.left + pos.width >= self.terminal_size.cols as usize {
+                                // And all the way to the right edge if we're right-most
+                                crate::termwindow::resize::effective_right_padding(
+                                    &self.config,
+                                    DimensionContext {
+                                        dpi: self.dimensions.dpi as f32,
+                                        pixel_max: self.terminal_size.pixel_width as f32,
+                                        pixel_cell: cell_width,
+                                    },
+                                ) as isize
+                            } else {
+                                0
+                            },
+                        (pos.height as f32 * cell_height) as isize
+                            + height_delta
+                            + if pos.top + pos.height >= self.terminal_size.rows as usize {
+                                // And all the way to the bottom if we're bottom-most
+                                self.config.window_padding.bottom.evaluate_as_pixels(
+                                    DimensionContext {
+                                        dpi: self.dimensions.dpi as f32,
+                                        pixel_max: self.terminal_size.pixel_height as f32,
+                                        pixel_cell: cell_height,
+                                    },
+                                ) as isize
+                            } else {
+                                0
+                            },
                     ),
                 ),
                 rgbcolor_alpha_to_window_color(
