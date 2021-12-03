@@ -36,6 +36,7 @@ As features stabilize some brief notes about them will accumulate here.
 * X11: we now allow matching visuals with >= 8 bits per rgb value. Previously, we only matched exactly 8 bits. This improve compatibility with systems that have the COMPOSITE extension disabled. Thanks to [@shizeeg](https://github.com/shizeeg)! [#1083](https://github.com/wez/wezterm/pull/1083)
 * The incomplete `Allsorts` shaper was removed.
 * Windows: `wezterm-gui.exe` now only grabs the parent process' console handle when spawned from `wezterm.exe`, which prevents some frustrating interactions when launching `wezterm-gui.exe` via `start` in cmd/powershell. [#1278](https://github.com/wez/wezterm/issues/1278)
+* AppImage: take care to remove APPIMAGE related environment when spawning child processes. Thanks to [@srevinsaju](https://github.com/srevinsaju)! [#1338](https://github.com/wez/wezterm/pull/1338)
 
 #### Fixed
 
