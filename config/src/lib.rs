@@ -1159,9 +1159,6 @@ pub struct Config {
     pub use_dead_keys: bool,
 
     #[serde(default)]
-    pub use_local_build_for_proxy: bool,
-
-    #[serde(default)]
     pub launch_menu: Vec<SpawnCommand>,
 
     /// When true, watch the config file and reload it automatically

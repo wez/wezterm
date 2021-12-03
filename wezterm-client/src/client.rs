@@ -411,17 +411,30 @@ impl Reconnectable {
     }
 
     /// If debugging on wez's machine, use a path specific to that machine.
-    fn wezterm_bin_path(path: &Option<String>) -> &str {
+    fn wezterm_bin_path(path: &Option<String>) -> String {
         match path.as_ref() {
-            Some(p) => p,
+            Some(p) => p.clone(),
             None => {
-                if !configuration().use_local_build_for_proxy {
-                    "wezterm"
-                } else if cfg!(debug_assertions) {
-                    "/home/wez/wez-personal/wezterm/target/debug/wezterm"
-                } else {
-                    "/home/wez/wez-personal/wezterm/target/release/wezterm"
+                if let Ok(exe) = std::env::current_exe() {
+                    if let Some(exe) = exe
+                        .with_file_name(if cfg!(windows) {
+                            "wezterm.exe"
+                        } else {
+                            "wezterm"
+                        })
+                        .to_str()
+                    {
+                        return exe.to_string();
+                    }
                 }
+
+                // Catch-all: ask kernel to resolve via PATH
+                if cfg!(windows) {
+                    "wezterm.exe"
+                } else {
+                    "wezterm"
+                }
+                .to_string()
             }
         }
     }
