@@ -372,6 +372,14 @@ impl<'a> Performer<'a> {
         self.flush_print();
         match csi {
             CSI::Sgr(sgr) => self.state.perform_csi_sgr(sgr),
+            CSI::Cursor(termwiz::escape::csi::Cursor::Left(n)) => {
+                // We treat CUB (Cursor::Left) the same as Backspace as
+                // that is what xterm does.
+                // <https://github.com/wez/wezterm/issues/1273>
+                for _ in 0..n {
+                    self.control(ControlCode::Backspace);
+                }
+            }
             CSI::Cursor(cursor) => self.state.perform_csi_cursor(cursor),
             CSI::Edit(edit) => self.state.perform_csi_edit(edit),
             CSI::Mode(mode) => self.state.perform_csi_mode(mode),

@@ -1951,32 +1951,9 @@ impl TerminalState {
             Cursor::TabulationControl(_) => {}
             Cursor::LineTabulation(_) => {}
 
-            Cursor::Left(n) => {
+            Cursor::Left(_n) => {
                 // https://vt100.net/docs/vt510-rm/CUB.html
-
-                let candidate = self.cursor.x as i64 - n as i64;
-                let new_x = if self.cursor.x < self.left_and_right_margins.start {
-                    // outside the margin, so allow movement to the border
-                    candidate
-                } else {
-                    // Else constrain to margin
-                    if candidate < self.left_and_right_margins.start as i64 {
-                        if self.reverse_wraparound_mode && self.dec_auto_wrap {
-                            self.left_and_right_margins.end as i64
-                                - (self.left_and_right_margins.start as i64 - candidate)
-                        } else {
-                            self.left_and_right_margins.start as i64
-                        }
-                    } else {
-                        candidate
-                    }
-                };
-
-                let new_x = new_x.max(0) as usize;
-
-                self.cursor.x = new_x;
-                self.cursor.seqno = seqno;
-                self.wrap_next = false;
+                unreachable!("Actually handled in Performer::csi_dispatch by rewriting as ControlCode::Backspace");
             }
 
             Cursor::Right(n) => {
