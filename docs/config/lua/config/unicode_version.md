@@ -1,6 +1,6 @@
 # `unicode_version = 9`
 
-*Since nightly builds only*
+*Since: 20211204-082213-a66c61ee9*
 
 Specifies the version of unicode that will be used when interpreting the
 width/presentation of text.

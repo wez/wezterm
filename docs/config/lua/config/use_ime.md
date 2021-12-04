@@ -10,7 +10,7 @@ IME support is a platform dependent feature
 |----------|---------------|-------|
 |Windows   |Forever        |Always enabled, cannot be disabled|
 |macOS     |20200113-214446-bb6251f|Causes some issues with [key repeat](https://github.com/wez/wezterm/issues/1131), defaults to disabled|
-|X11       |nightly builds only|[XIM](https://en.wikipedia.org/wiki/X_Input_Method) based. Your system needs to have a running input method engine (such as ibus or fcitx) that support the XIM protocol in order for wezterm to use it.|
+|X11       |20211204-082213-a66c61ee9|[XIM](https://en.wikipedia.org/wiki/X_Input_Method) based. Your system needs to have a running input method engine (such as ibus or fcitx) that support the XIM protocol in order for wezterm to use it.|
 
 You can control whether the IME is enabled in your configuration file:
 

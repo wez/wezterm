@@ -1,6 +1,6 @@
 # canonicalize_pasted_newlines
 
-*Since: nightly builds only*
+*Since: 20211204-082213-a66c61ee9*
 
 Controls whether pasted text will have newlines normalized to CRLF form.
 
