@@ -39,6 +39,17 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: `wezterm-gui.exe` now only grabs the parent process' console handle when spawned from `wezterm.exe`, which prevents some frustrating interactions when launching `wezterm-gui.exe` via `start` in cmd/powershell. [#1278](https://github.com/wez/wezterm/issues/1278)
 * AppImage: take care to remove APPIMAGE related environment when spawning child processes. Thanks to [@srevinsaju](https://github.com/srevinsaju)! [#1338](https://github.com/wez/wezterm/pull/1338)
 
+#### Updated and Improved
+
+* bundled harfbuzz updated to version 3.0.0, bundled freetype updated to 2.11
+* window close confirmations now accept both uppercase and lowercase Y/N key presses. Thanks to [@SpyrosRoum](https://github.com/SpyrosRoum)! [#1119](https://github.com/wez/wezterm/pull/1119)
+* multi-click-streaks are now interrupted by the cursor moving to a different cell. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1126](https://github.com/wez/wezterm/issues/1126)
+* `.deb` packages now `Provides: x-terminal-emulator`. [#1139](https://github.com/wez/wezterm/issues/1139)
+* [use_cap_height_to_scale_fallback_fonts](config/lua/config/use_cap_height_to_scale_fallback_fonts.md) now computes *cap-height* based on the rasterized glyph bitmap which means that the data is accurate in more cases, including for bitmap fonts.  Scaling is now also applied across varying text styles; previously it only applied to a font within an `wezterm.font_with_fallback` font list.
+* Can now match fontconfig aliases, such as `monospace`, on systems that use fontconfig. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1149](https://github.com/wez/wezterm/issues/1149)
+* Powerline semicircle glyphs now look much better. Thanks to [@bew](https://github.com/bew) and [@sdrik](https://github.com/sdrik)! [#1311](https://github.com/wez/wezterm/issues/1311)
+* Splits now look better, especially when using escape sequences to change the default background color [#1256](https://github.com/wez/wezterm/issues/1256)
+
 #### Fixed
 
 * `wezterm cli spawn` would use the initial terminal size for a new tab, rather than using the current tab size [#920](https://github.com/wez/wezterm/issues/920)
@@ -79,17 +90,6 @@ As features stabilize some brief notes about them will accumulate here.
 * macOS: The `Menlo` font is now implicitly included in the system fallback list, as it is the only font that contains U+2718 ✘
 * `wezterm cli spawn --cwd ..` and `wezterm cli split-pane --cwd ..` now resolve relative paths [#1243](https://github.com/wez/wezterm/issues/1243)
 * Incorrect DECRPTUI response to DA3. Thanks to [@ninjalj](https://github.com/ninjalj)! [#1330](https://github.com/wez/wezterm/pull/1330)
-
-#### Updated and Improved
-
-* bundled harfbuzz updated to version 3.0.0, bundled freetype updated to 2.11
-* window close confirmations now accept both uppercase and lowercase Y/N key presses. Thanks to [@SpyrosRoum](https://github.com/SpyrosRoum)! [#1119](https://github.com/wez/wezterm/pull/1119)
-* multi-click-streaks are now interrupted by the cursor moving to a different cell. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1126](https://github.com/wez/wezterm/issues/1126)
-* `.deb` packages now `Provides: x-terminal-emulator`. [#1139](https://github.com/wez/wezterm/issues/1139)
-* [use_cap_height_to_scale_fallback_fonts](config/lua/config/use_cap_height_to_scale_fallback_fonts.md) now computes *cap-height* based on the rasterized glyph bitmap which means that the data is accurate in more cases, including for bitmap fonts.  Scaling is now also applied across varying text styles; previously it only applied to a font within an `wezterm.font_with_fallback` font list.
-* Can now match fontconfig aliases, such as `monospace`, on systems that use fontconfig. Thanks to [@unrelentingtech](https://github.com/unrelentingtech)! [#1149](https://github.com/wez/wezterm/issues/1149)
-* Powerline semicircle glyphs now look much better. Thanks to [@bew](https://github.com/bew) and [@sdrik](https://github.com/sdrik)! [#1311](https://github.com/wez/wezterm/issues/1311)
-
 
 ### 20210814-124438-54e29167
 
