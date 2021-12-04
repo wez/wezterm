@@ -182,6 +182,17 @@ usually the best available version.</p>
 <li>Windows: <code>wezterm-gui.exe</code> now only grabs the parent process' console handle when spawned from <code>wezterm.exe</code>, which prevents some frustrating interactions when launching <code>wezterm-gui.exe</code> via <code>start</code> in cmd/powershell. <a href="https://github.com/wez/wezterm/issues/1278">#1278</a></li>
 <li>AppImage: take care to remove APPIMAGE related environment when spawning child processes. Thanks to <a href="https://github.com/srevinsaju">@srevinsaju</a>! <a href="https://github.com/wez/wezterm/pull/1338">#1338</a></li>
 </ul>
+<h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
+<ul>
+<li>bundled harfbuzz updated to version 3.0.0, bundled freetype updated to 2.11</li>
+<li>window close confirmations now accept both uppercase and lowercase Y/N key presses. Thanks to <a href="https://github.com/SpyrosRoum">@SpyrosRoum</a>! <a href="https://github.com/wez/wezterm/pull/1119">#1119</a></li>
+<li>multi-click-streaks are now interrupted by the cursor moving to a different cell. Thanks to <a href="https://github.com/unrelentingtech">@unrelentingtech</a>! <a href="https://github.com/wez/wezterm/issues/1126">#1126</a></li>
+<li><code>.deb</code> packages now <code>Provides: x-terminal-emulator</code>. <a href="https://github.com/wez/wezterm/issues/1139">#1139</a></li>
+<li><a href="config/lua/config/use_cap_height_to_scale_fallback_fonts.html">use_cap_height_to_scale_fallback_fonts</a> now computes <em>cap-height</em> based on the rasterized glyph bitmap which means that the data is accurate in more cases, including for bitmap fonts.  Scaling is now also applied across varying text styles; previously it only applied to a font within an <code>wezterm.font_with_fallback</code> font list.</li>
+<li>Can now match fontconfig aliases, such as <code>monospace</code>, on systems that use fontconfig. Thanks to <a href="https://github.com/unrelentingtech">@unrelentingtech</a>! <a href="https://github.com/wez/wezterm/issues/1149">#1149</a></li>
+<li>Powerline semicircle glyphs now look much better. Thanks to <a href="https://github.com/bew">@bew</a> and <a href="https://github.com/sdrik">@sdrik</a>! <a href="https://github.com/wez/wezterm/issues/1311">#1311</a></li>
+<li>Splits now look better, especially when using escape sequences to change the default background color <a href="https://github.com/wez/wezterm/issues/1256">#1256</a></li>
+</ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
 <li><code>wezterm cli spawn</code> would use the initial terminal size for a new tab, rather than using the current tab size <a href="https://github.com/wez/wezterm/issues/920">#920</a></li>
@@ -222,16 +233,7 @@ usually the best available version.</p>
 <li>macOS: The <code>Menlo</code> font is now implicitly included in the system fallback list, as it is the only font that contains U+2718 ✘</li>
 <li><code>wezterm cli spawn --cwd ..</code> and <code>wezterm cli split-pane --cwd ..</code> now resolve relative paths <a href="https://github.com/wez/wezterm/issues/1243">#1243</a></li>
 <li>Incorrect DECRPTUI response to DA3. Thanks to <a href="https://github.com/ninjalj">@ninjalj</a>! <a href="https://github.com/wez/wezterm/pull/1330">#1330</a></li>
-</ul>
-<h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
-<ul>
-<li>bundled harfbuzz updated to version 3.0.0, bundled freetype updated to 2.11</li>
-<li>window close confirmations now accept both uppercase and lowercase Y/N key presses. Thanks to <a href="https://github.com/SpyrosRoum">@SpyrosRoum</a>! <a href="https://github.com/wez/wezterm/pull/1119">#1119</a></li>
-<li>multi-click-streaks are now interrupted by the cursor moving to a different cell. Thanks to <a href="https://github.com/unrelentingtech">@unrelentingtech</a>! <a href="https://github.com/wez/wezterm/issues/1126">#1126</a></li>
-<li><code>.deb</code> packages now <code>Provides: x-terminal-emulator</code>. <a href="https://github.com/wez/wezterm/issues/1139">#1139</a></li>
-<li><a href="config/lua/config/use_cap_height_to_scale_fallback_fonts.html">use_cap_height_to_scale_fallback_fonts</a> now computes <em>cap-height</em> based on the rasterized glyph bitmap which means that the data is accurate in more cases, including for bitmap fonts.  Scaling is now also applied across varying text styles; previously it only applied to a font within an <code>wezterm.font_with_fallback</code> font list.</li>
-<li>Can now match fontconfig aliases, such as <code>monospace</code>, on systems that use fontconfig. Thanks to <a href="https://github.com/unrelentingtech">@unrelentingtech</a>! <a href="https://github.com/wez/wezterm/issues/1149">#1149</a></li>
-<li>Powerline semicircle glyphs now look much better. Thanks to <a href="https://github.com/bew">@bew</a> and <a href="https://github.com/sdrik">@sdrik</a>! <a href="https://github.com/wez/wezterm/issues/1311">#1311</a></li>
+<li>Reloading config now loads newly defined multiplexer domains, however, existing domains are not updated. <a href="https://github.com/wez/wezterm/issues/1279">#1279</a></li>
 </ul>
 <h3 id="20210814-124438-54e29167"><a class="header" href="#20210814-124438-54e29167">20210814-124438-54e29167</a></h3>
 <ul>
