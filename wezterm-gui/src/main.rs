@@ -4,7 +4,7 @@
 use crate::frontend::front_end;
 use ::window::*;
 use anyhow::anyhow;
-use config::SshBackend;
+use config::{ConfigHandle, SshBackend};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::Mux;
@@ -302,29 +302,35 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
     Ok(())
 }
 
+async fn update_mux_domains(config: &ConfigHandle, do_auto_connect: bool) -> anyhow::Result<()> {
+    let mux = Mux::get().unwrap();
+
+    fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> anyhow::Result<Arc<dyn Domain>> {
+        if let Some(domain) = mux.get_domain_by_name(client.domain_name()) {
+            Ok(domain)
+        } else {
+            let domain: Arc<dyn Domain> = Arc::new(client);
+            mux.add_domain(&domain);
+            Ok(domain)
+        }
+    }
+
+    for client_config in client_domains(&config) {
+        let connect_automatically = client_config.connect_automatically();
+        let dom = record_domain(&mux, ClientDomain::new(client_config))?;
+        if do_auto_connect && connect_automatically {
+            dom.attach().await?;
+        }
+    }
+
+    Ok(())
+}
+
 async fn async_run_terminal_gui(
     cmd: Option<CommandBuilder>,
     do_auto_connect: bool,
 ) -> anyhow::Result<()> {
-    let mux = Mux::get().unwrap();
-
-    fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> anyhow::Result<Arc<dyn Domain>> {
-        let domain: Arc<dyn Domain> = Arc::new(client);
-        mux.add_domain(&domain);
-        Ok(domain)
-    }
-
-    if do_auto_connect {
-        let config = config::configuration();
-        for client_config in client_domains(&config) {
-            let connect_automatically = client_config.connect_automatically();
-            let dom = record_domain(&mux, ClientDomain::new(client_config))?;
-            if connect_automatically {
-                dom.attach().await?;
-            }
-        }
-    }
-
+    update_mux_domains(&config::configuration(), do_auto_connect).await?;
     spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
 }
 
@@ -379,6 +385,26 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
             drop(activity);
         })
         .detach();
+
+        // Arrange to update the list of domains in the mux when the config is reloaded
+        fn do_update_mux_domains() {
+            promise::spawn::spawn(async move {
+                if let Err(err) = update_mux_domains(&config::configuration(), false).await {
+                    log::error!("Error updating mux domains: {:#}", err);
+                }
+            })
+            .detach();
+        }
+
+        let _config_subscription = config::subscribe_to_config_reload(move || {
+            promise::spawn::spawn_into_main_thread(async move {
+                // We can't inline the call to update_mux_domains here because
+                // the compiler would then want its body to be Send
+                do_update_mux_domains();
+            })
+            .detach();
+            true
+        });
 
         maybe_show_configuration_error_window();
         gui.run_forever()
