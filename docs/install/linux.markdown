@@ -11,22 +11,22 @@ Download and make the file executable and you're ready to run!
 <a href="{{ ubuntu18_AppImage_nightly }}" class="btn">Nightly AppImage</a>
 
 ```bash
-curl -LO {{ ubuntu16_AppImage_stable }}
-chmod +x {{ ubuntu16_AppImage_stable_asset }}
+curl -LO {{ ubuntu18_AppImage_stable }}
+chmod +x {{ ubuntu18_AppImage_stable_asset }}
 ```
 
 You may then execute the appimage directly to launch wezterm, with no
 specific installation steps required:
 
 ```bash
-./{{ ubuntu16_AppImage_stable_asset }}
+./{{ ubuntu18_AppImage_stable_asset }}
 ```
 
 That said, you may wish to make it a bit more convenient:
 
 ```bash
 mkdir ~/bin
-mv ./{{ ubuntu16_AppImage_stable_asset }} ~/bin/wezterm
+mv ./{{ ubuntu18_AppImage_stable_asset }} ~/bin/wezterm
 ~/bin/wezterm
 ```
 
