@@ -7,7 +7,7 @@ range of Linux distributions.
 
 Download and make the file executable and you're ready to run!
 
-<a href="{{ ubuntu16_AppImage_stable }}" class="btn">AppImage</a>
+<a href="{{ ubuntu18_AppImage_stable }}" class="btn">AppImage</a>
 <a href="{{ ubuntu18_AppImage_nightly }}" class="btn">Nightly AppImage</a>
 
 ```bash
