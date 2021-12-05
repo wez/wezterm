@@ -19,6 +19,8 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Fixed
 
+* Windows: `wezterm <something>` would fail silently when spawning `wezterm-gui` under the covers. Regression introduced by [#1278](https://github.com/wez/wezterm/issues/1278). Workaround is to directly spawn `wezterm-gui`.
+
 ### 20211204-082213-a66c61ee9
 
 #### New
