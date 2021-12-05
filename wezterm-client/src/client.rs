@@ -15,6 +15,7 @@ use mux::ssh::ssh_connect_with_ui;
 use mux::Mux;
 use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
 use openssl::x509::X509;
+use portable_pty::Child;
 use smol::channel::{bounded, unbounded, Receiver, Sender};
 use smol::prelude::*;
 use smol::{block_on, Async};
@@ -317,7 +318,6 @@ struct Reconnectable {
 struct SshStream {
     stdin: FileDescriptor,
     stdout: FileDescriptor,
-    _child: wezterm_ssh::SshChildProcess,
 }
 
 impl std::fmt::Debug for SshStream {
@@ -507,10 +507,19 @@ impl Reconnectable {
             }
         });
 
+        // This is a bit gross, but it helps to surface errors in running
+        // the proxy, and prevents us from hanging forever after the process
+        // has died
+        let mut child = exec.child;
+        std::thread::spawn(move || match child.wait() {
+            Err(err) => log::error!("waiting on {} failed: {:#}", cmd, err),
+            Ok(status) if !status.success() => log::error!("{} failed", cmd),
+            _ => {}
+        });
+
         let stream: Box<dyn AsyncReadAndWrite> = Box::new(Async::new(SshStream {
             stdin: exec.stdin,
             stdout: exec.stdout,
-            _child: exec.child,
         })?);
         self.stream.replace(stream);
         Ok(())
