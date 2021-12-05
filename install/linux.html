@@ -154,16 +154,16 @@ range of Linux distributions.</p>
 <p>Download and make the file executable and you're ready to run!</p>
 <p><a href="https://github.com/wez/wezterm/releases/download/20211204-082213-a66c61ee9/WezTerm-20211204-082213-a66c61ee-Ubuntu18.04.AppImage" class="btn">AppImage</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly-Ubuntu18.04.AppImage" class="btn">Nightly AppImage</a></p>
-<pre><code class="language-bash">curl -LO {{ ubuntu16_AppImage_stable }}
-chmod +x {{ ubuntu16_AppImage_stable_asset }}
+<pre><code class="language-bash">curl -LO https://github.com/wez/wezterm/releases/download/20211204-082213-a66c61ee9/WezTerm-20211204-082213-a66c61ee-Ubuntu18.04.AppImage
+chmod +x WezTerm-20211204-082213-a66c61ee-Ubuntu18.04.AppImage
 </code></pre>
 <p>You may then execute the appimage directly to launch wezterm, with no
 specific installation steps required:</p>
-<pre><code class="language-bash">./{{ ubuntu16_AppImage_stable_asset }}
+<pre><code class="language-bash">./WezTerm-20211204-082213-a66c61ee-Ubuntu18.04.AppImage
 </code></pre>
 <p>That said, you may wish to make it a bit more convenient:</p>
 <pre><code class="language-bash">mkdir ~/bin
-mv ./{{ ubuntu16_AppImage_stable_asset }} ~/bin/wezterm
+mv ./WezTerm-20211204-082213-a66c61ee-Ubuntu18.04.AppImage ~/bin/wezterm
 ~/bin/wezterm
 </code></pre>
 <ul>
