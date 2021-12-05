@@ -247,10 +247,10 @@ async fn client_thread_async(
                             return Err(NotReconnectableError::ClientWasDestroyed.into());
                         }
                     } else {
-                        log::error!(
-                            "got serial {} without a corresponding promise",
-                            decoded.serial
-                        );
+                        let reason =
+                            format!("got serial {:?} without a corresponding promise", decoded);
+                        promises.fail_all(&reason);
+                        anyhow::bail!("{}", reason);
                     }
                 }
                 Err(err) => {
