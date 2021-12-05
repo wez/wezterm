@@ -537,6 +537,10 @@ impl Reconnectable {
 
                 let mut cmd = std::process::Command::new(&argv[0]);
                 cmd.args(&argv[1..]);
+
+                log::warn!("Running: {:?}", cmd);
+                ui.output_str(&format!("Running: {:?}\n", cmd));
+
                 let child = cmd
                     .spawn()
                     .with_context(|| format!("while spawning {:?}", cmd))?;
