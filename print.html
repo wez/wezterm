@@ -274,7 +274,6 @@ that exactly matches your system you can try installing one from an older versio
 of your distribution, or use one of the Debian packages linked below.  Failing that,
 you can try the AppImage download which should work on most Linux systems.</p>
 <table><thead><tr><th>Distro</th><th>Stable</th><th>Nightly</th></tr></thead><tbody>
-<tr><td>Ubuntu16</td><td>[{{ ubuntu16_deb_stable_asset }}]({{ ubuntu16_deb_stable }})</td><td>Ubuntu16 LTS is End of Life</td></tr>
 <tr><td>Ubuntu18</td><td><a href="https://github.com/wez/wezterm/releases/download/20211204-082213-a66c61ee9/wezterm-20211204-082213-a66c61ee.Ubuntu18.04.deb">wezterm-20211204-082213-a66c61ee.Ubuntu18.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu18.04.deb">wezterm-nightly.Ubuntu18.04.deb</a></td></tr>
 <tr><td>Ubuntu20</td><td><a href="https://github.com/wez/wezterm/releases/download/20211204-082213-a66c61ee9/wezterm-20211204-082213-a66c61ee.Ubuntu20.04.deb">wezterm-20211204-082213-a66c61ee.Ubuntu20.04.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Ubuntu20.04.deb">wezterm-nightly.Ubuntu20.04.deb</a></td></tr>
 <tr><td>Debian9</td><td><a href="https://github.com/wez/wezterm/releases/download/20211204-082213-a66c61ee9/wezterm-20211204-082213-a66c61ee.Debian9.12.deb">wezterm-20211204-082213-a66c61ee.Debian9.12.deb</a></td><td><a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.Debian9.12.deb">wezterm-nightly.Debian9.12.deb</a></td></tr>
@@ -283,8 +282,8 @@ you can try the AppImage download which should work on most Linux systems.</p>
 </tbody></table>
 <p>To download and install from the CLI, you can use something like this, which
 shows how to install the Ubuntu 16 package:</p>
-<pre><code class="language-bash">curl -LO {{ ubuntu16_deb_stable }}
-sudo apt install -y ./{{ ubuntu16_deb_stable_asset }}
+<pre><code class="language-bash">curl -LO https://github.com/wez/wezterm/releases/download/20211204-082213-a66c61ee9/wezterm-20211204-082213-a66c61ee.Ubuntu20.04.deb
+sudo apt install -y ./wezterm-20211204-082213-a66c61ee.Ubuntu20.04.deb
 </code></pre>
 <ul>
 <li>The package installs <code>/usr/bin/wezterm</code> and <code>/usr/share/applications/org.wezfurlong.wezterm.desktop</code></li>
