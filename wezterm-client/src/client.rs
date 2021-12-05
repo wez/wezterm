@@ -410,33 +410,18 @@ impl Reconnectable {
         }
     }
 
-    /// If debugging on wez's machine, use a path specific to that machine.
+    /// Resolve the path to wezterm for the remote system.
+    /// We can't simply derive this from the current executable because
+    /// we are being asked to produce a path for the remote system and
+    /// we don't really know anything about it.
+    /// `path` comes from the SshDoman::remote_wezterm_path option; if set
+    /// then the user has told us where to look.
+    /// Otherwise, we have to rely on the `PATH` environment for the remote
+    /// system, and we don't know if it is even running unix, or whether
+    /// any given shell syntax will help us provide a more meaningful
+    /// message to the user.
     fn wezterm_bin_path(path: &Option<String>) -> String {
-        match path.as_ref() {
-            Some(p) => p.clone(),
-            None => {
-                if let Ok(exe) = std::env::current_exe() {
-                    if let Some(exe) = exe
-                        .with_file_name(if cfg!(windows) {
-                            "wezterm.exe"
-                        } else {
-                            "wezterm"
-                        })
-                        .to_str()
-                    {
-                        return exe.to_string();
-                    }
-                }
-
-                // Catch-all: ask kernel to resolve via PATH
-                if cfg!(windows) {
-                    "wezterm.exe"
-                } else {
-                    "wezterm"
-                }
-                .to_string()
-            }
-        }
+        path.as_deref().unwrap_or("wezterm").to_string()
     }
 
     fn ssh_connect(
