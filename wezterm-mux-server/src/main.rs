@@ -78,9 +78,9 @@ fn run() -> anyhow::Result<()> {
         opts.skip_config,
     );
 
+    let config = config::configuration();
     #[cfg(unix)]
     {
-        let config = config::configuration();
         if opts.daemonize {
             daemonize::daemonize(&config)?;
             // When we reach this line, we are in a forked child process,
@@ -114,6 +114,9 @@ fn run() -> anyhow::Result<()> {
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
+            cmd.stdout(config.daemon_options.open_stdout()?);
+            cmd.stderr(config.daemon_options.open_stderr()?);
+
             cmd.creation_flags(winapi::um::winbase::DETACHED_PROCESS);
             let child = cmd.spawn();
             drop(child);

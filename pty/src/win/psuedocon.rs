@@ -19,7 +19,7 @@ use winapi::shared::winerror::{HRESULT, S_OK};
 use winapi::um::handleapi::*;
 use winapi::um::processthreadsapi::*;
 use winapi::um::winbase::{
-    CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, STARTUPINFOEXW,
+    CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, STARTF_USESTDHANDLES, STARTUPINFOEXW,
 };
 use winapi::um::wincon::COORD;
 
@@ -109,6 +109,16 @@ impl PsuedoCon {
     pub fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<WinChild> {
         let mut si: STARTUPINFOEXW = unsafe { mem::zeroed() };
         si.StartupInfo.cb = mem::size_of::<STARTUPINFOEXW>() as u32;
+        // Explicitly set the stdio handles as invalid handles otherwise
+        // we can end up with a weird state where the spawned process can
+        // inherit the explicitly redirected output handles from its parent.
+        // For example, when daemonizing wezterm-mux-server, the stdio handles
+        // are redirected to a log file and the spawned process would end up
+        // writing its output there instead of to the pty we just created.
+        si.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+        si.StartupInfo.hStdInput = INVALID_HANDLE_VALUE;
+        si.StartupInfo.hStdOutput = INVALID_HANDLE_VALUE;
+        si.StartupInfo.hStdError = INVALID_HANDLE_VALUE;
 
         let mut attrs = ProcThreadAttributeList::with_capacity(1)?;
         attrs.set_pty(self.con)?;
