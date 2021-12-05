@@ -158,6 +158,9 @@ usually the best available version.</p>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
+<ul>
+<li>Windows: <code>wezterm &lt;something&gt;</code> would fail silently when spawning <code>wezterm-gui</code> under the covers. Regression introduced by <a href="https://github.com/wez/wezterm/issues/1278">#1278</a>. Workaround is to directly spawn <code>wezterm-gui</code>.</li>
+</ul>
 <h3 id="20211204-082213-a66c61ee9"><a class="header" href="#20211204-082213-a66c61ee9">20211204-082213-a66c61ee9</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
 <ul>
