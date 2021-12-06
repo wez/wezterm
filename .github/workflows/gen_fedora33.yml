@@ -30,7 +30,7 @@ jobs:
         run: "dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo"
       - name: "Install GH CLI"
         shell: bash
-        run: "dnf install gh"
+        run: "dnf install -y gh"
       - name: "Install git"
         shell: bash
         run: "yum install -y git"

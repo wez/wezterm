@@ -514,7 +514,7 @@ cargo build --all --release""",
                     ),
                     RunStep(
                         "Install GH CLI",
-                        "dnf install gh",
+                        "dnf install -y gh",
                     ),
                 ]
         steps += self.install_newer_compiler()

@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           export BUILD_REASON=Schedule
-          dnf install gh
+          dnf install -y gh
       - name: "Install git"
         shell: bash
         run: |
