@@ -158,10 +158,13 @@ usually the best available version.</p>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
+<h3 id="20211205-192649-672c1cc1"><a class="header" href="#20211205-192649-672c1cc1">20211205-192649-672c1cc1</a></h3>
+<h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
 <ul>
 <li>Windows: <code>wezterm &lt;something&gt;</code> would fail silently when spawning <code>wezterm-gui</code> under the covers. Regression introduced by <a href="https://github.com/wez/wezterm/issues/1278">#1278</a>. Workaround is to directly spawn <code>wezterm-gui</code>.</li>
 <li>Windows: the PTY handles were ignored in favor of the redirected stdio handles of the parent of the wezterm mux process <a href="https://github.com/wez/wezterm/issues/1358">#1358</a></li>
 <li>Windows: Failure to spawn <code>wezterm</code> when launching an ssh mux domain session no longer waits forever</li>
+<li>&quot;Update available&quot; message kept showing even though already running the latest version <a href="https://github.com/wez/wezterm/issues/1365">#1365</a></li>
 </ul>
 <h3 id="20211204-082213-a66c61ee9"><a class="header" href="#20211204-082213-a66c61ee9">20211204-082213-a66c61ee9</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
@@ -203,7 +206,7 @@ usually the best available version.</p>
 <li>Powerline semicircle glyphs now look much better. Thanks to <a href="https://github.com/bew">@bew</a> and <a href="https://github.com/sdrik">@sdrik</a>! <a href="https://github.com/wez/wezterm/issues/1311">#1311</a></li>
 <li>Splits now look better, especially when using escape sequences to change the default background color <a href="https://github.com/wez/wezterm/issues/1256">#1256</a></li>
 </ul>
-<h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
+<h4 id="fixed-2"><a class="header" href="#fixed-2">Fixed</a></h4>
 <ul>
 <li><code>wezterm cli spawn</code> would use the initial terminal size for a new tab, rather than using the current tab size <a href="https://github.com/wez/wezterm/issues/920">#920</a></li>
 <li><code>text_background_opacity</code> opacity was not respected</li>
