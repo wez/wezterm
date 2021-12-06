@@ -22,9 +22,6 @@ jobs:
       - name: "Install config manager"
         shell: bash
         run: "dnf install -y 'dnf-command(config-manager)'"
-      - name: "Enable PowerTools"
-        shell: bash
-        run: "dnf config-manager --set-enabled powertools"
       - name: "Enable GH CLI repo"
         shell: bash
         run: "dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo"

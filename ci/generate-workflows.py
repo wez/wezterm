@@ -504,10 +504,16 @@ cargo build --all --release""",
                         "Install config manager",
                         "dnf install -y 'dnf-command(config-manager)'",
                     ),
+                ]
+            if "centos" in self.container:
+                steps += [
                     RunStep(
                         "Enable PowerTools",
                         "dnf config-manager --set-enabled powertools",
                     ),
+                ]
+            if ("fedora" in self.container) or ("centos" in self.container):
+                steps += [
                     RunStep(
                         "Enable GH CLI repo",
                         "dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo",
