@@ -12,6 +12,7 @@ arch=('i686' 'x86_64')
 url='https://wezfurlong.org/wezterm'
 license=('MIT')
 provides=('wezterm')
+conflicts=('wezterm')
 # Don't strip: it will break the binary and it only saves ~10% anyway
 options=('!strip')
 makedepends=('fuse')
