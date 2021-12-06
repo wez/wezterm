@@ -7,15 +7,42 @@ on:
 
 jobs:
   build:
-    runs-on: "ubuntu-20.04"
-    
+    runs-on: "ubuntu-latest"
+    container: "ubuntu:20.04"
     steps:
+      - name: "set APT to non-interactive"
+        shell: bash
+        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
       - name: "Update APT"
         shell: bash
-        run: "sudo -n apt update"
+        run: "apt update"
       - name: "Install git"
         shell: bash
-        run: "sudo -n apt-get install -y git"
+        run: "apt-get install -y git"
+      - name: "Install curl"
+        shell: bash
+        run: "apt-get install -y curl"
+      - name: "Install GitHub keyring"
+        shell: bash
+        run: "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg"
+      - name: "Add GitHub package list"
+        shell: bash
+        run: 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |  tee /etc/apt/sources.list.d/github-cli.list > /dev/null'
+      - name: "Show GitHub package list"
+        shell: bash
+        run: "cat /etc/apt/sources.list.d/*"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Install GH CLI"
+        shell: bash
+        run: " apt install gh"
+      - name: "Ensure /run/sshd exists"
+        shell: bash
+        run: "mkdir -p /run/sshd"
+      - name: "Install openssh-server"
+        shell: bash
+        run: "apt-get install -y openssh-server"
       - name: "checkout repo"
         uses: actions/checkout@v2
         with:
@@ -45,7 +72,7 @@ jobs:
           key: "ubuntu20.04-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
-        run: "sudo -n env PATH=$PATH ./get-deps"
+        run: "env PATH=$PATH ./get-deps"
       - name: "Build (Release mode)"
         shell: bash
         run: "cargo build --all --release"
