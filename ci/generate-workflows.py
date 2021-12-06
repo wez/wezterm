@@ -533,6 +533,11 @@ cargo build --all --release""",
         if self.uses_apt():
             if self.container:
                 steps += [
+                    RunStep("Update APT", f"{sudo}apt update"),
+                    RunStep(
+                        "Install https support for apt",
+                        f"{sudo}apt-get install apt-transport-https ca-certificates",
+                    ),
                     RunStep(
                         "Install GitHub keyring",
                         f"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | {sudo} dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg",
@@ -545,7 +550,7 @@ cargo build --all --release""",
                         "Show GitHub package list",
                         "cat /etc/apt/sources.list.d/*",
                     ),
-                    RunStep("Update APT", f"{sudo}apt update"),
+                    RunStep("Update APT again", f"{sudo}apt update"),
                     RunStep("Install GH CLI", f"{sudo} apt install gh"),
                 ]
 

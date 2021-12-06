@@ -45,6 +45,12 @@ jobs:
       - name: "Install curl"
         shell: bash
         run: "apt-get install -y curl"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Install https support for apt"
+        shell: bash
+        run: "apt-get install apt-transport-https ca-certificates"
       - name: "Install GitHub keyring"
         shell: bash
         run: "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg"
@@ -54,7 +60,7 @@ jobs:
       - name: "Show GitHub package list"
         shell: bash
         run: "cat /etc/apt/sources.list.d/*"
-      - name: "Update APT"
+      - name: "Update APT again"
         shell: bash
         run: "apt update"
       - name: "Install GH CLI"
