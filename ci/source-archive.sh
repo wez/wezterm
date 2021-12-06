@@ -3,7 +3,7 @@
 
 set -x
 
-TAG_NAME=${TAG_NAME:-$(git show -s "--format=%cd-%h" "--date=format:%Y%m%d-%H%M%S")}
+TAG_NAME=${TAG_NAME:-$(git -c "core.abbrev=8" show -s "--format=%cd-%h" "--date=format:%Y%m%d-%H%M%S")}
 
 if [[ "$BUILD_REASON" == "Schedule" ]] ; then
   TAR_NAME=wezterm-nightly-src.tar
