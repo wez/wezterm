@@ -530,7 +530,7 @@ cargo build --all --release""",
                     ),
                     RunStep(
                         "Add GitHub package list",
-                        'echo \\"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\\" | {sudo} tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
+                        f'echo \\"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\\" | {sudo} tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
                     ),
                     RunStep("Update APT", f"{sudo}apt update"),
                     RunStep("Install GH CLI", f"{sudo} apt install gh"),
