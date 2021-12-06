@@ -508,7 +508,7 @@ cargo build --all --release""",
                 steps += [RunStep("Install GH CLI", f"{sudo} apt install gh")]
 
         if self.container:
-            if self.container == "centos:8":
+            if ("fedora" in self.container) or ("centos" in self.container):
                 steps += [
                     RunStep(
                         "Install config manager",
@@ -518,9 +518,6 @@ cargo build --all --release""",
                         "Enable PowerTools",
                         "dnf config-manager --set-enabled powertools",
                     ),
-                ]
-            if ("fedora" in self.container) or ("centos" in self.container):
-                steps += [
                     RunStep(
                         "Enable GH CLI repo",
                         "dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo",

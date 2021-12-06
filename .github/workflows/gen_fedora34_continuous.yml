@@ -21,6 +21,16 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "fedora:34"
     steps:
+      - name: "Install config manager"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          dnf install -y 'dnf-command(config-manager)'
+      - name: "Enable PowerTools"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          dnf config-manager --set-enabled powertools
       - name: "Enable GH CLI repo"
         shell: bash
         run: |
