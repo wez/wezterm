@@ -19,9 +19,14 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Fixed
 
+### 20211205-192649-672c1cc1
+
+#### Fixed
+
 * Windows: `wezterm <something>` would fail silently when spawning `wezterm-gui` under the covers. Regression introduced by [#1278](https://github.com/wez/wezterm/issues/1278). Workaround is to directly spawn `wezterm-gui`.
 * Windows: the PTY handles were ignored in favor of the redirected stdio handles of the parent of the wezterm mux process [#1358](https://github.com/wez/wezterm/issues/1358)
 * Windows: Failure to spawn `wezterm` when launching an ssh mux domain session no longer waits forever
+* "Update available" message kept showing even though already running the latest version [#1365](https://github.com/wez/wezterm/issues/1365)
 
 ### 20211204-082213-a66c61ee9
 
