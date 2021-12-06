@@ -22,6 +22,15 @@ jobs:
       - name: "set APT to non-interactive"
         shell: bash
         run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Install git"
+        shell: bash
+        run: "apt-get install -y git"
+      - name: "Install curl"
+        shell: bash
+        run: "apt-get install -y curl"
       - name: "Install GitHub keyring"
         shell: bash
         run: "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg"
@@ -34,12 +43,6 @@ jobs:
       - name: "Install GH CLI"
         shell: bash
         run: " apt install gh"
-      - name: "Install git"
-        shell: bash
-        run: "apt-get install -y git"
-      - name: "Install curl"
-        shell: bash
-        run: "apt-get install -y curl"
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: "mkdir -p /run/sshd"

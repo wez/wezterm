@@ -13,18 +13,9 @@ jobs:
       - name: "set APT to non-interactive"
         shell: bash
         run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
-      - name: "Install GitHub keyring"
-        shell: bash
-        run: "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg"
-      - name: "Add GitHub package list"
-        shell: bash
-        run: "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | {sudo} tee /etc/apt/sources.list.d/github-cli.list > /dev/null"
       - name: "Update APT"
         shell: bash
         run: "apt update"
-      - name: "Install GH CLI"
-        shell: bash
-        run: " apt install gh"
       - name: "Cache Git installation"
         uses: actions/cache@v2.1.7
         with:
@@ -45,6 +36,18 @@ jobs:
       - name: "Install curl"
         shell: bash
         run: "apt-get install -y curl"
+      - name: "Install GitHub keyring"
+        shell: bash
+        run: "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg"
+      - name: "Add GitHub package list"
+        shell: bash
+        run: "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | {sudo} tee /etc/apt/sources.list.d/github-cli.list > /dev/null"
+      - name: "Update APT"
+        shell: bash
+        run: "apt update"
+      - name: "Install GH CLI"
+        shell: bash
+        run: " apt install gh"
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: "mkdir -p /run/sshd"

@@ -26,6 +26,21 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+      - name: "Update APT"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          apt update
+      - name: "Install git"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          apt-get install -y git
+      - name: "Install curl"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          apt-get install -y curl
       - name: "Install GitHub keyring"
         shell: bash
         run: |
@@ -46,16 +61,6 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
            apt install gh
-      - name: "Install git"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          apt-get install -y git
-      - name: "Install curl"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          apt-get install -y curl
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: |

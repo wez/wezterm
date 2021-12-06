@@ -484,28 +484,18 @@ cargo build --all --release""",
 
     def prep_environment(self, cache=True):
         steps = []
+        sudo = "sudo -n " if self.needs_sudo() else ""
         if self.uses_apt():
-            sudo = "sudo -n " if self.needs_sudo() else ""
             if self.container:
                 steps += [
                     RunStep(
                         "set APT to non-interactive",
                         "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections",
                     ),
-                    RunStep(
-                        "Install GitHub keyring",
-                        f"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | {sudo} dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg",
-                    ),
-                    RunStep(
-                        "Add GitHub package list",
-                        'echo \\"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\\" | {sudo} tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
-                    ),
                 ]
             steps += [
                 RunStep("Update APT", f"{sudo}apt update"),
             ]
-            if self.container:
-                steps += [RunStep("Install GH CLI", f"{sudo} apt install gh")]
 
         if self.container:
             if ("fedora" in self.container) or ("centos" in self.container):
@@ -530,6 +520,22 @@ cargo build --all --release""",
         steps += self.install_newer_compiler()
         steps += self.install_git()
         steps += self.install_curl()
+
+        if self.uses_apt():
+            if self.container:
+                steps += [
+                    RunStep(
+                        "Install GitHub keyring",
+                        f"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | {sudo} dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg",
+                    ),
+                    RunStep(
+                        "Add GitHub package list",
+                        'echo \\"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\\" | {sudo} tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
+                    ),
+                    RunStep("Update APT", f"{sudo}apt update"),
+                    RunStep("Install GH CLI", f"{sudo} apt install gh"),
+                ]
+
         steps += self.install_openssh_server()
         steps += [
             CheckoutStep(),
