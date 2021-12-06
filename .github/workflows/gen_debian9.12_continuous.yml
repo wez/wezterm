@@ -26,11 +26,26 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+      - name: "Install GitHub keyring"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+      - name: "Add GitHub package list"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | {sudo} tee /etc/apt/sources.list.d/github-cli.list > /dev/null
       - name: "Update APT"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
           apt update
+      - name: "Install GH CLI"
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+           apt install gh
       - name: "Cache Git installation"
         uses: actions/cache@v2.1.7
         with:

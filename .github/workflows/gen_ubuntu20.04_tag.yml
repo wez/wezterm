@@ -7,27 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: "ubuntu-latest"
-    container: "ubuntu:20.04"
+    runs-on: "ubuntu-20.04"
+    
     steps:
-      - name: "set APT to non-interactive"
-        shell: bash
-        run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
       - name: "Update APT"
         shell: bash
-        run: "apt update"
+        run: "sudo -n apt update"
       - name: "Install git"
         shell: bash
-        run: "apt-get install -y git"
-      - name: "Install curl"
-        shell: bash
-        run: "apt-get install -y curl"
-      - name: "Ensure /run/sshd exists"
-        shell: bash
-        run: "mkdir -p /run/sshd"
-      - name: "Install openssh-server"
-        shell: bash
-        run: "apt-get install -y openssh-server"
+        run: "sudo -n apt-get install -y git"
       - name: "checkout repo"
         uses: actions/checkout@v2
         with:
@@ -57,7 +45,7 @@ jobs:
           key: "ubuntu20.04-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
       - name: "Install System Deps"
         shell: bash
-        run: "env PATH=$PATH ./get-deps"
+        run: "sudo -n env PATH=$PATH ./get-deps"
       - name: "Build (Release mode)"
         shell: bash
         run: "cargo build --all --release"

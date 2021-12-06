@@ -485,17 +485,28 @@ cargo build --all --release""",
     def prep_environment(self, cache=True):
         steps = []
         if self.uses_apt():
+            sudo = "sudo -n " if self.needs_sudo() else ""
             if self.container:
                 steps += [
                     RunStep(
                         "set APT to non-interactive",
                         "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections",
                     ),
+                    RunStep(
+                        "Install GitHub keyring",
+                        f"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | {sudo} dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg",
+                    ),
+                    RunStep(
+                        "Add GitHub package list",
+                        'echo \\"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\\" | {sudo} tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
+                    ),
                 ]
-            sudo = "sudo -n " if self.needs_sudo() else ""
             steps += [
                 RunStep("Update APT", f"{sudo}apt update"),
             ]
+            if self.container:
+                steps += [RunStep("Install GH CLI", f"{sudo} apt install gh")]
+
         if self.container:
             if self.container == "centos:8":
                 steps += [
@@ -506,6 +517,17 @@ cargo build --all --release""",
                     RunStep(
                         "Enable PowerTools",
                         "dnf config-manager --set-enabled powertools",
+                    ),
+                ]
+            if ("fedora" in self.container) or ("centos" in self.container):
+                steps += [
+                    RunStep(
+                        "Enable GH CLI repo",
+                        "dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo",
+                    ),
+                    RunStep(
+                        "Install GH CLI",
+                        "dnf install gh",
                     ),
                 ]
         steps += self.install_newer_compiler()
@@ -574,7 +596,7 @@ cargo build --all --release""",
 
 TARGETS = [
     Target(name="ubuntu:18", os="ubuntu-18.04", app_image=True),
-    Target(container="ubuntu:20.04", continuous_only=True),
+    Target(name="ubuntu:20.04", os="ubuntu-20.04", continuous_only=True),
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
     Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
@@ -585,7 +607,6 @@ TARGETS = [
     Target(container="fedora:33"),
     Target(container="fedora:34"),
     Target(container="fedora:35"),
-    Target(container="centos:7", bootstrap_git=True),
     Target(container="centos:8"),
     Target(name="windows", os="windows-latest", rust_target="x86_64-pc-windows-msvc"),
 ]
