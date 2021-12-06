@@ -416,6 +416,8 @@ usually the best available version.</p>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
 <li>Windows: <code>wezterm &lt;something&gt;</code> would fail silently when spawning <code>wezterm-gui</code> under the covers. Regression introduced by <a href="https://github.com/wez/wezterm/issues/1278">#1278</a>. Workaround is to directly spawn <code>wezterm-gui</code>.</li>
+<li>Windows: the PTY handles were ignored in favor of the redirected stdio handles of the parent of the wezterm mux process <a href="https://github.com/wez/wezterm/issues/1358">#1358</a></li>
+<li>Windows: Failure to spawn <code>wezterm</code> when launching an ssh mux domain session no longer waits forever</li>
 </ul>
 <h3 id="20211204-082213-a66c61ee9"><a class="header" href="#20211204-082213-a66c61ee9">20211204-082213-a66c61ee9</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
