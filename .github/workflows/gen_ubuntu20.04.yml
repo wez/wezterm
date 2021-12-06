@@ -36,13 +36,13 @@ jobs:
         run: "apt update"
       - name: "Install https support for apt"
         shell: bash
-        run: "apt-get install apt-transport-https ca-certificates"
+        run: "apt-get install -y apt-transport-https ca-certificates"
       - name: "Install GitHub keyring"
         shell: bash
-        run: "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg"
+        run: "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg"
       - name: "Add GitHub package list"
         shell: bash
-        run: 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |  tee /etc/apt/sources.list.d/github-cli.list > /dev/null'
+        run: 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null'
       - name: "Show GitHub package list"
         shell: bash
         run: "cat /etc/apt/sources.list.d/*"
@@ -51,7 +51,7 @@ jobs:
         run: "apt update"
       - name: "Install GH CLI"
         shell: bash
-        run: " apt install gh"
+        run: "apt install -y gh"
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: "mkdir -p /run/sshd"

@@ -536,22 +536,22 @@ cargo build --all --release""",
                     RunStep("Update APT", f"{sudo}apt update"),
                     RunStep(
                         "Install https support for apt",
-                        f"{sudo}apt-get install apt-transport-https ca-certificates",
+                        f"{sudo}apt-get install -y apt-transport-https ca-certificates",
                     ),
                     RunStep(
                         "Install GitHub keyring",
-                        f"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | {sudo} dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg",
+                        f"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | {sudo}dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg",
                     ),
                     RunStep(
                         "Add GitHub package list",
-                        f'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | {sudo} tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
+                        f'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | {sudo}tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
                     ),
                     RunStep(
                         "Show GitHub package list",
                         "cat /etc/apt/sources.list.d/*",
                     ),
                     RunStep("Update APT again", f"{sudo}apt update"),
-                    RunStep("Install GH CLI", f"{sudo} apt install gh"),
+                    RunStep("Install GH CLI", f"{sudo}apt install -y gh"),
                 ]
 
         steps += self.install_openssh_server()

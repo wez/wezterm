@@ -50,17 +50,17 @@ jobs:
         shell: bash
         run: |
           export BUILD_REASON=Schedule
-          apt-get install apt-transport-https ca-certificates
+          apt-get install -y apt-transport-https ca-certificates
       - name: "Install GitHub keyring"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |  dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
       - name: "Add GitHub package list"
         shell: bash
         run: |
           export BUILD_REASON=Schedule
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |  tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
       - name: "Show GitHub package list"
         shell: bash
         run: |
@@ -75,7 +75,7 @@ jobs:
         shell: bash
         run: |
           export BUILD_REASON=Schedule
-           apt install gh
+          apt install -y gh
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: |
