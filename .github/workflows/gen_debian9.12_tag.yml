@@ -81,14 +81,13 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
-      - name: "Upload to Tagged Release"
-        uses: softprops/action-gh-release@v1
-        if: github.event.repository.fork == false
-        with:
-          files: |
-            wezterm-*.deb
-            wezterm-*.xz
-            wezterm-*.tar.gz
-          prerelease: true
+      - name: "Create pre-release"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: "bash ci/retry.sh bash ci/create-release.sh ${{ github.event.release.tag_name }}"
+      - name: "Upload to Tagged Release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: "bash ci/retry.sh gh release upload --clobber ${ github.event.release.tag_name } wezterm-*.deb wezterm-*.xz wezterm-*.tar.gz"

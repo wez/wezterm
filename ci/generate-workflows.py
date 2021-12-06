@@ -167,10 +167,9 @@ class Target(object):
 
     def install_openssh_server(self):
         if self.uses_yum() or (self.uses_apt() and self.container):
-            return (
-                [RunStep("Ensure /run/sshd exists", "mkdir -p /run/sshd")]
-                + self.install_system_package("openssh-server")
-            )
+            return [
+                RunStep("Ensure /run/sshd exists", "mkdir -p /run/sshd")
+            ] + self.install_system_package("openssh-server")
         return []
 
     def install_newer_compiler(self):
@@ -393,18 +392,13 @@ cargo build --all --release""",
                 )
             )
 
-        patterns = self.asset_patterns()
+        patterns = " ".join(self.asset_patterns())
 
         return steps + [
-            ActionStep(
+            RunStep(
                 "Upload to Nightly Release",
-                action="wez/upload-release-assets@releases/v1",
-                condition="github.event.repository.fork == false",
-                params={
-                    "files": ";".join(patterns),
-                    "release-tag": "nightly",
-                    "repo-token": "${{ secrets.GITHUB_TOKEN }}",
-                },
+                f"bash ci/retry.sh gh release upload --clobber nightly {patterns}",
+                env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
             )
         ]
 
@@ -414,18 +408,19 @@ cargo build --all --release""",
         if self.uses_yum():
             steps.append(RunStep("Move RPM", "mv ~/rpmbuild/RPMS/*/*.rpm ."))
 
-        patterns = self.asset_patterns()
+        patterns = " ".join(self.asset_patterns())
 
         return steps + [
-            ActionStep(
+            RunStep(
+                "Create pre-release",
+                "bash ci/retry.sh bash ci/create-release.sh ${{ github.event.release.tag_name }}",
+                env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
+            ),
+            RunStep(
                 "Upload to Tagged Release",
-                action="softprops/action-gh-release@v1",
-                condition="github.event.repository.fork == false",
-                params={"files": "\n".join(patterns), "prerelease": True},
-                env={
-                    "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
-                },
-            )
+                f"bash ci/retry.sh gh release upload --clobber ${{ github.event.release.tag_name }} {patterns}",
+                env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
+            ),
         ]
 
     def update_homebrew_tap(self):

@@ -69,14 +69,20 @@ jobs:
         run: |
           export MACOSX_DEPLOYMENT_TARGET=10.9
           bash ci/deploy.sh
-      - name: "Upload to Tagged Release"
-        uses: softprops/action-gh-release@v1
-        if: github.event.repository.fork == false
-        with:
-          files: "WezTerm-*.zip"
-          prerelease: true
+      - name: "Create pre-release"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          bash ci/retry.sh bash ci/create-release.sh ${{ github.event.release.tag_name }}
+      - name: "Upload to Tagged Release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          export MACOSX_DEPLOYMENT_TARGET=10.9
+          bash ci/retry.sh gh release upload --clobber ${ github.event.release.tag_name } WezTerm-*.zip
       - name: "Checkout homebrew tap"
         uses: actions/checkout@v2
         with:

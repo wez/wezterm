@@ -84,11 +84,13 @@ jobs:
       - name: "Move RPM"
         shell: bash
         run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
-      - name: "Upload to Tagged Release"
-        uses: softprops/action-gh-release@v1
-        if: github.event.repository.fork == false
-        with:
-          files: "wezterm-*.rpm"
-          prerelease: true
+      - name: "Create pre-release"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: "bash ci/retry.sh bash ci/create-release.sh ${{ github.event.release.tag_name }}"
+      - name: "Upload to Tagged Release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: "bash ci/retry.sh gh release upload --clobber ${ github.event.release.tag_name } wezterm-*.rpm"

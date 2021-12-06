@@ -70,9 +70,9 @@ jobs:
           export BUILD_REASON=Schedule
           bash ci/deploy.sh
       - name: "Upload to Nightly Release"
-        uses: wez/upload-release-assets@releases/v1
-        if: github.event.repository.fork == false
-        with:
-          files: "WezTerm-*.zip;WezTerm-*.exe"
-          release-tag: "nightly"
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          export BUILD_REASON=Schedule
+          bash ci/retry.sh gh release upload --clobber nightly WezTerm-*.zip WezTerm-*.exe
