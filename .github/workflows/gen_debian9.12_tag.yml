@@ -111,4 +111,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber ${ github.event.release.tag_name } wezterm-*.deb wezterm-*.xz wezterm-*.tar.gz"
+        run: "bash ci/retry.sh gh release upload --clobber ${ github.event.release.tag_name } wezterm-*.deb wezterm-*.xz"

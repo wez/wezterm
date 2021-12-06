@@ -156,4 +156,4 @@ jobs:
         shell: bash
         run: |
           export BUILD_REASON=Schedule
-          bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz wezterm-*.tar.gz
+          bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz

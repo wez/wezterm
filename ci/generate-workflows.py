@@ -377,9 +377,10 @@ cargo build --all --release""",
         elif "mac" in self.name:
             patterns += ["WezTerm-*.zip"]
         elif ("ubuntu" in self.name) or ("debian" in self.name):
-            patterns += ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]
+            patterns += ["wezterm-*.deb", "wezterm-*.xz"]
 
         if self.app_image:
+            patterns.append("*src.tar.gz")
             patterns.append("*.AppImage")
             patterns.append("*.zsync")
         return patterns
