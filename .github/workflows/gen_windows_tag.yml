@@ -50,6 +50,13 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "windows"
+          path: |
+            WezTerm-*.zip
+            WezTerm-*.exe
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

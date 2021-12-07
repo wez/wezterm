@@ -73,6 +73,11 @@ jobs:
       - name: "Move RPM"
         shell: bash
         run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "fedora34"
+          path: "wezterm-*.rpm"
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

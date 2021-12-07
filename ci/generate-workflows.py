@@ -419,9 +419,16 @@ cargo build --all --release""",
         if self.uses_yum():
             steps.append(RunStep("Move RPM", "mv ~/rpmbuild/RPMS/*/*.rpm ."))
 
-        patterns = " ".join(self.asset_patterns())
+        patterns = self.asset_patterns()
+        glob = " ".join(patterns)
+        paths = "\n".join(patterns)
 
         return steps + [
+            ActionStep(
+                "Upload artifact",
+                action="actions/upload-artifact@v2",
+                params={"name": self.name, "path": paths},
+            ),
             RunStep(
                 "Create pre-release",
                 "bash ci/retry.sh bash ci/create-release.sh ${{ github.event.release.tag_name }}",
@@ -429,7 +436,7 @@ cargo build --all --release""",
             ),
             RunStep(
                 "Upload to Tagged Release",
-                f"bash ci/retry.sh gh release upload --clobber ${{ github.event.release.tag_name }} {patterns}",
+                f"bash ci/retry.sh gh release upload --clobber ${{ github.event.release.tag_name }} {glob}",
                 env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
             ),
         ]

@@ -88,6 +88,13 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "debian11"
+          path: |
+            wezterm-*.deb
+            wezterm-*.xz
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
