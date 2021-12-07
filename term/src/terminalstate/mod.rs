@@ -1039,6 +1039,7 @@ impl TerminalState {
                 self.application_keypad = false;
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
                 self.left_and_right_margins = 0..self.screen().physical_cols;
+                self.left_and_right_margin_mode = false;
                 self.screen.activate_alt_screen(self.seqno);
                 self.screen.saved_cursor().take();
                 self.screen.activate_primary_screen(self.seqno);
