@@ -96,6 +96,11 @@ jobs:
           export MACOSX_DEPLOYMENT_TARGET=10.9
           bash ci/deploy.sh
 
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "macos"
+          path: "WezTerm-*.zip"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

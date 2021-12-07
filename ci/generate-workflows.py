@@ -363,7 +363,7 @@ cargo build --all --release""",
             RunStep("Move Package for artifact upload", run),
             ActionStep(
                 "Upload artifact",
-                action="actions/upload-artifact@master",
+                action="actions/upload-artifact@v2",
                 params={"name": self.name, "path": "pkg_"},
             ),
         ]
@@ -396,14 +396,21 @@ cargo build --all --release""",
                 )
             )
 
-        patterns = " ".join(self.asset_patterns())
+        patterns = self.asset_patterns()
+        glob = " ".join(patterns)
+        paths = "\n".join(patterns)
 
         return steps + [
+            ActionStep(
+                "Upload artifact",
+                action="actions/upload-artifact@v2",
+                params={"name": self.name, "path": paths},
+            ),
             RunStep(
                 "Upload to Nightly Release",
-                f"bash ci/retry.sh gh release upload --clobber nightly {patterns}",
+                f"bash ci/retry.sh gh release upload --clobber nightly {glob}",
                 env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
-            )
+            ),
         ]
 
     def upload_asset_tag(self):

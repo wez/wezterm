@@ -112,6 +112,11 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora34.rpm
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "fedora34"
+          path: "wezterm-*.rpm"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

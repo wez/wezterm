@@ -150,6 +150,13 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           bash ci/deploy.sh
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "debian9.12"
+          path: |
+            wezterm-*.deb
+            wezterm-*.xz
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

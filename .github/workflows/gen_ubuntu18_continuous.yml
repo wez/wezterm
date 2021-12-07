@@ -92,6 +92,16 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           bash ci/appimage.sh
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "ubuntu18"
+          path: |
+            wezterm-*.deb
+            wezterm-*.xz
+            *src.tar.gz
+            *.AppImage
+            *.zsync
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
