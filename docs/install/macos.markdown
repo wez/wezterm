@@ -22,7 +22,7 @@ WezTerm is available for [brew](https://brew.sh/) users in a tap:
 
 ```bash
 $ brew tap wez/wezterm
-$ brew install --cask wezterm --no-quarantine
+$ brew install --cask wez/wezterm/wezterm --no-quarantine
 ```
 
 If you'd like to use a nightly build:
