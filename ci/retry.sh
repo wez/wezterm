@@ -2,7 +2,7 @@
 set -x
 set -e
 
-max_attempts=10
+max_attempts=4
 attempt=1
 
 until "$@"
