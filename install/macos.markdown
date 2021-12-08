@@ -22,21 +22,21 @@ WezTerm is available for [brew](https://brew.sh/) users in a tap:
 
 ```bash
 $ brew tap wez/wezterm
-$ brew install --cask wez/wezterm/wezterm --no-quarantine
+$ brew install --cask wez/wezterm/wezterm
 ```
 
 If you'd like to use a nightly build:
 
 ```bash
-$ brew install --cask wezterm-nightly --no-quarantine
+$ brew install --cask wez/wezterm/wezterm-nightly
 ```
 
 to upgrade to a newer nightly, it is simplest to remove then
 install:
 
 ```bash
-$ brew rm --cask wezterm-nightly
-$ brew upgrade --cask wezterm-nightly
+$ brew rm --cask wez/wezterm/wezterm-nightly
+$ brew upgrade --cask wez/wezterm/wezterm-nightly
 ```
 
 ## MacPorts
