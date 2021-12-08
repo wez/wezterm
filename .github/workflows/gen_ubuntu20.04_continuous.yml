@@ -144,10 +144,17 @@ jobs:
           path: |
             wezterm-*.deb
             wezterm-*.xz
+          retention-days: 5
+
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Download artifact"
+        uses: actions/download-artifact@v2
+        with:
+          name: "ubuntu20.04"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz"

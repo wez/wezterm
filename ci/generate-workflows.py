@@ -385,7 +385,7 @@ cargo build --all --release""",
             patterns.append("*.zsync")
         return patterns
 
-    def upload_asset_nightly(self):
+    def upload_artifact_nightly(self):
         steps = []
 
         if self.uses_yum():
@@ -404,7 +404,21 @@ cargo build --all --release""",
             ActionStep(
                 "Upload artifact",
                 action="actions/upload-artifact@v2",
-                params={"name": self.name, "path": paths},
+                params={"name": self.name, "path": paths, "retention-days": 5},
+            ),
+        ]
+
+    def upload_asset_nightly(self):
+        steps = []
+
+        patterns = self.asset_patterns()
+        glob = " ".join(patterns)
+
+        return steps + [
+            ActionStep(
+                "Download artifact",
+                action="actions/download-artifact@v2",
+                params={"name": self.name},
             ),
             RunStep(
                 "Upload to Nightly Release",
@@ -589,11 +603,14 @@ cargo build --all --release""",
         steps += self.test_all_release()
         steps += self.package()
         steps += self.upload_artifact()
-        return Job(
-            runs_on=self.os,
-            container=self.container,
-            steps=steps,
-            env=self.global_env(),
+        return (
+            Job(
+                runs_on=self.os,
+                container=self.container,
+                steps=steps,
+                env=self.global_env(),
+            ),
+            None,
         )
 
     def continuous(self):
@@ -601,16 +618,21 @@ cargo build --all --release""",
         steps += self.build_all_release()
         steps += self.test_all_release()
         steps += self.package(trusted=True)
-        steps += self.upload_asset_nightly()
+        steps += self.upload_artifact_nightly()
 
         env = self.global_env()
         env["BUILD_REASON"] = "Schedule"
 
-        return Job(
-            runs_on=self.os,
-            container=self.container,
-            steps=steps,
-            env=env,
+        uploader = Job(runs_on="ubuntu-latest", steps=self.upload_asset_nightly())
+
+        return (
+            Job(
+                runs_on=self.os,
+                container=self.container,
+                steps=steps,
+                env=env,
+            ),
+            uploader,
         )
 
     def tag(self):
@@ -622,11 +644,14 @@ cargo build --all --release""",
         steps += self.update_homebrew_tap()
 
         env = self.global_env()
-        return Job(
-            runs_on=self.os,
-            container=self.container,
-            steps=steps,
-            env=env,
+        return (
+            Job(
+                runs_on=self.os,
+                container=self.container,
+                steps=steps,
+                env=env,
+            ),
+            None,
         )
 
 
@@ -654,7 +679,7 @@ def generate_actions(namer, jobber, trigger, is_continuous):
         #    continue
         name = namer(t).replace(":", "")
         print(name)
-        job = jobber(t)
+        job, uploader = jobber(t)
 
         file_name = f".github/workflows/gen_{name}.yml"
         if job.container:
@@ -675,6 +700,16 @@ jobs:
             )
 
             job.render(f, 3)
+
+            if uploader:
+                f.write(
+                    """
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+"""
+                )
+                uploader.render(f, 3)
 
         # Sanity check the yaml, if pyyaml is available
         try:

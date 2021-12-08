@@ -122,10 +122,17 @@ jobs:
         with:
           name: "centos8"
           path: "wezterm-*.rpm"
+          retention-days: 5
+
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Download artifact"
+        uses: actions/download-artifact@v2
+        with:
+          name: "centos8"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          bash ci/retry.sh gh release upload --clobber nightly wezterm-*.rpm
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.rpm"

@@ -102,10 +102,17 @@ jobs:
             *src.tar.gz
             *.AppImage
             *.zsync
+          retention-days: 5
+
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Download artifact"
+        uses: actions/download-artifact@v2
+        with:
+          name: "ubuntu18"
       - name: "Upload to Nightly Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.zsync
+        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.zsync"
