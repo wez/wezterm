@@ -1114,6 +1114,7 @@ impl ParseParams for (OneBased, OneBased) {
             [a, CsiParam::P(b';'), b] => {
                 Ok((OneBased::from_esc_param(a)?, OneBased::from_esc_param(b)?))
             }
+            [CsiParam::P(b';'), b] => Ok((OneBased::new(1), OneBased::from_esc_param(b)?)),
             _ => Err(()),
         }
     }
@@ -1714,6 +1715,14 @@ impl<'a> CSIParser<'a> {
                     bottom: OneBased::from_esc_param_with_big_default(b)?,
                 }),
             )),
+            [CsiParam::P(b';'), b] => Ok(self.advance_by(
+                2,
+                params,
+                CSI::Cursor(Cursor::SetTopAndBottomMargins {
+                    top: OneBased::new(1),
+                    bottom: OneBased::from_esc_param_with_big_default(b)?,
+                }),
+            )),
             _ => Err(()),
         }
     }
@@ -1771,6 +1780,14 @@ impl<'a> CSIParser<'a> {
                 params,
                 CSI::Cursor(Cursor::SetLeftAndRightMargins {
                     left: OneBased::from_esc_param(a)?,
+                    right: OneBased::from_esc_param(b)?,
+                }),
+            )),
+            [CsiParam::P(b';'), b] => Ok(self.advance_by(
+                2,
+                params,
+                CSI::Cursor(Cursor::SetLeftAndRightMargins {
+                    left: OneBased::new(1),
                     right: OneBased::from_esc_param(b)?,
                 }),
             )),
