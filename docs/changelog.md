@@ -19,6 +19,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Fixed
 
+* DECSTR (terminal soft reset) now turns off DECLRMM (left and right margin mode). Thanks to [@ninjalj](https://github.com/ninjalj)! [#1376](https://github.com/wez/wezterm/pull/1376)
 * Improved conformance of CUP, HVP, SLRM, STBM escape sequences by support empty first parameter. Thanks to [@ninjalj](https://github.com/ninjalj)! [#1377](https://github.com/wez/wezterm/pull/1377)
 
 ### 20211205-192649-672c1cc1
