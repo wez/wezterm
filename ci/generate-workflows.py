@@ -90,10 +90,11 @@ class CacheStep(ActionStep):
 
 
 class CheckoutStep(ActionStep):
-    def __init__(self, name="checkout repo"):
-        super().__init__(
-            name, action="actions/checkout@v2", params={"submodules": "recursive"}
-        )
+    def __init__(self, name="checkout repo", submodules=True):
+        params = {}
+        if submodules:
+            params["submodules"] = "recursive"
+        super().__init__(name, action="actions/checkout@v2", params=params)
 
 
 class Job(object):
@@ -422,25 +423,7 @@ cargo build --all --release""",
             ),
             RunStep(
                 "Upload to Nightly Release",
-                f"""
-set -x
-set -e
-
-max_attempts=4
-attempt=1
-
-until gh release upload --clobber nightly {glob}
-do
-  if (( attempt == max_attempts ))
-  then
-    echo "Failed after $max_attempts attempts"
-    exit 1
-  fi
-
-  sleep 5
-  : $(( attempt++ ))
-done
-""",
+                f"bash ci/retry.sh gh release upload --clobber nightly {glob}",
                 env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
             ),
         ]
@@ -641,7 +624,10 @@ done
         env = self.global_env()
         env["BUILD_REASON"] = "Schedule"
 
-        uploader = Job(runs_on="ubuntu-latest", steps=self.upload_asset_nightly())
+        uploader = Job(
+            runs_on="ubuntu-latest",
+            steps=[CheckoutStep(submodules=False)] + self.upload_asset_nightly(),
+        )
 
         return (
             Job(
