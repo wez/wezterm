@@ -158,4 +158,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz"
+        run: |
+
+          set -x
+          set -e
+
+          max_attempts=4
+          attempt=1
+
+          until gh release upload --clobber nightly wezterm-*.deb wezterm-*.xz
+          do
+            if (( attempt == max_attempts ))
+            then
+              echo "Failed after $max_attempts attempts"
+              exit 1
+            fi
+
+            sleep 5
+            : $(( attempt++ ))
+          done

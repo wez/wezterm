@@ -422,7 +422,25 @@ cargo build --all --release""",
             ),
             RunStep(
                 "Upload to Nightly Release",
-                f"bash ci/retry.sh gh release upload --clobber nightly {glob}",
+                f"""
+set -x
+set -e
+
+max_attempts=4
+attempt=1
+
+until gh release upload --clobber nightly {glob}
+do
+  if (( attempt == max_attempts ))
+  then
+    echo "Failed after $max_attempts attempts"
+    exit 1
+  fi
+
+  sleep 5
+  : $(( attempt++ ))
+done
+""",
                 env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
             ),
         ]
