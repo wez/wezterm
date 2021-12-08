@@ -706,6 +706,7 @@ jobs:
                     """
   upload:
     runs-on: ubuntu-latest
+    needs: build
     steps:
 """
                 )

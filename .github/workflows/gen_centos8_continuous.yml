@@ -126,6 +126,7 @@ jobs:
 
   upload:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - name: "Download artifact"
         uses: actions/download-artifact@v2
