@@ -348,24 +348,25 @@ cargo build --all --release""",
         return steps
 
     def upload_artifact(self):
-        run = "mkdir pkg_\n"
-        if self.uses_yum():
-            run += "mv ~/rpmbuild/RPMS/*/*.rpm pkg_\n"
-        if "win" in self.name:
-            run += "mv *.zip *.exe pkg_\n"
-        if "mac" in self.name:
-            run += "mv *.zip pkg_\n"
-        if ("ubuntu" in self.name) or ("debian" in self.name):
-            run += "mv *.deb *.xz pkg_\n"
-        if self.app_image:
-            run += "mv *.AppImage *.zsync pkg_\n"
+        steps = []
 
-        return [
-            RunStep("Move Package for artifact upload", run),
+        if self.uses_yum():
+            steps.append(
+                RunStep(
+                    "Move RPM",
+                    f"mv ~/rpmbuild/RPMS/*/*.rpm .",
+                )
+            )
+
+        patterns = self.asset_patterns()
+        glob = " ".join(patterns)
+        paths = "\n".join(patterns)
+
+        return steps + [
             ActionStep(
                 "Upload artifact",
                 action="actions/upload-artifact@v2",
-                params={"name": self.name, "path": "pkg_"},
+                params={"name": self.name, "path": paths},
             ),
         ]
 
@@ -431,18 +432,14 @@ cargo build --all --release""",
     def upload_asset_tag(self):
         steps = []
 
-        if self.uses_yum():
-            steps.append(RunStep("Move RPM", "mv ~/rpmbuild/RPMS/*/*.rpm ."))
-
         patterns = self.asset_patterns()
         glob = " ".join(patterns)
-        paths = "\n".join(patterns)
 
         return steps + [
             ActionStep(
-                "Upload artifact",
-                action="actions/upload-artifact@v2",
-                params={"name": self.name, "path": paths},
+                "Download artifact",
+                action="actions/download-artifact@v2",
+                params={"name": self.name},
             ),
             RunStep(
                 "Create pre-release",
@@ -545,17 +542,6 @@ cargo build --all --release""",
                         "dnf config-manager --set-enabled powertools",
                     ),
                 ]
-            if ("fedora" in self.container) or ("centos" in self.container):
-                steps += [
-                    RunStep(
-                        "Enable GH CLI repo",
-                        "dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo",
-                    ),
-                    RunStep(
-                        "Install GH CLI",
-                        "dnf install -y gh",
-                    ),
-                ]
         steps += self.install_newer_compiler()
         steps += self.install_git()
         steps += self.install_curl()
@@ -564,34 +550,11 @@ cargo build --all --release""",
             if self.container:
                 steps += [
                     RunStep("Update APT", f"{sudo}apt update"),
-                    RunStep(
-                        "Install https support for apt",
-                        f"{sudo}apt-get install -y apt-transport-https ca-certificates",
-                    ),
-                    RunStep(
-                        "Install GitHub keyring",
-                        f"curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | {sudo}dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg",
-                    ),
-                    RunStep(
-                        "Add GitHub package list",
-                        f'echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | {sudo}tee /etc/apt/sources.list.d/github-cli.list > /dev/null',
-                    ),
-                    RunStep(
-                        "Show GitHub package list",
-                        "cat /etc/apt/sources.list.d/*",
-                    ),
-                    RunStep("Update APT again", f"{sudo}apt update"),
-                    RunStep("Install GH CLI", f"{sudo}apt install -y gh"),
                 ]
 
         steps += self.install_openssh_server()
         steps += [
             CheckoutStep(),
-            # We need tags in order to use git describe for build/packaging
-            RunStep(
-                "Fetch tags", "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
-            ),
-            RunStep("Fetch tag/branch history", "git fetch --prune --unshallow"),
         ]
         steps += self.install_rust(cache="mac" not in self.name)
         steps += self.install_system_deps()
@@ -644,8 +607,13 @@ cargo build --all --release""",
         steps += self.build_all_release()
         steps += self.test_all_release()
         steps += self.package(trusted=True)
-        steps += self.upload_asset_tag()
+        steps += self.upload_artifact()
         steps += self.update_homebrew_tap()
+
+        uploader = Job(
+            runs_on="ubuntu-latest",
+            steps=[CheckoutStep(submodules=False)] + self.upload_asset_tag(),
+        )
 
         env = self.global_env()
         return (
@@ -655,7 +623,7 @@ cargo build --all --release""",
                 steps=steps,
                 env=env,
             ),
-            None,
+            uploader,
         )
 
 
@@ -705,6 +673,10 @@ jobs:
 
             job.render(f, 3)
 
+            # We upload using a native runner as github API access
+            # inside a container is really unreliable and can result
+            # in broken releases that can't automatically be repaired
+            # <https://github.com/cli/cli/issues/4863>
             if uploader:
                 f.write(
                     """

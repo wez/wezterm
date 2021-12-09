@@ -26,16 +26,6 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           dnf install -y 'dnf-command(config-manager)'
-      - name: "Enable GH CLI repo"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
-      - name: "Install GH CLI"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          dnf install -y gh
       - name: "Install git"
         shell: bash
         run: |
@@ -60,16 +50,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: "recursive"
-      - name: "Fetch tags"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-      - name: "Fetch tag/branch history"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          git fetch --prune --unshallow
       - name: "Install Rust"
         uses: actions-rs/toolchain@v1
         with:

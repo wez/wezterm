@@ -59,36 +59,6 @@ jobs:
         run: |
           export BUILD_REASON=Schedule
           apt update
-      - name: "Install https support for apt"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          apt-get install -y apt-transport-https ca-certificates
-      - name: "Install GitHub keyring"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-      - name: "Add GitHub package list"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-      - name: "Show GitHub package list"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          cat /etc/apt/sources.list.d/*
-      - name: "Update APT again"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          apt update
-      - name: "Install GH CLI"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          apt install -y gh
       - name: "Ensure /run/sshd exists"
         shell: bash
         run: |
@@ -103,16 +73,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: "recursive"
-      - name: "Fetch tags"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-      - name: "Fetch tag/branch history"
-        shell: bash
-        run: |
-          export BUILD_REASON=Schedule
-          git fetch --prune --unshallow
       - name: "Install Rust"
         uses: actions-rs/toolchain@v1
         with:

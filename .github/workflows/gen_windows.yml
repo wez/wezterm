@@ -23,12 +23,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: "recursive"
-      - name: "Fetch tags"
-        shell: bash
-        run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
-      - name: "Fetch tag/branch history"
-        shell: bash
-        run: "git fetch --prune --unshallow"
       - name: "Install Rust"
         uses: actions-rs/toolchain@v1
         with:
@@ -62,13 +56,10 @@ jobs:
       - name: "Package"
         shell: bash
         run: "bash ci/deploy.sh"
-      - name: "Move Package for artifact upload"
-        shell: bash
-        run: |
-          mkdir pkg_
-          mv *.zip *.exe pkg_
       - name: "Upload artifact"
         uses: actions/upload-artifact@v2
         with:
           name: "windows"
-          path: "pkg_"
+          path: |
+            WezTerm-*.zip
+            WezTerm-*.exe
