@@ -382,7 +382,14 @@ fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
 
     fn flush_print(buf: &mut String, cells: &mut Vec<Cell>, pen: &CellAttributes) {
         for g in unicode_segmentation::UnicodeSegmentation::graphemes(buf.as_str(), true) {
-            cells.push(Cell::new_grapheme(g, pen.clone()));
+            let cell = Cell::new_grapheme(g, pen.clone());
+            let width = cell.width();
+            cells.push(cell);
+            for _ in 1..width {
+                // Line/Screen expect double wide graphemes to be followed by a blank in
+                // the next column position, otherwise we'll render incorrectly
+                cells.push(Cell::blank_with_attrs(pen.clone()));
+            }
         }
         buf.clear();
     }
