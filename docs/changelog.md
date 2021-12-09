@@ -15,6 +15,8 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
 
+* quickselect: we now de-duplicate labels for results with the same textual content. [#1271](https://github.com/wez/wezterm/issues/1271)
+
 #### Updated and Improved
 
 * macos: removing the titlebar from `window_decorations` now preserves rounded window corners [#1034](https://github.com/wez/wezterm/issues/1034)

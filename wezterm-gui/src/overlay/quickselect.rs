@@ -520,18 +520,38 @@ impl QuickSelectRenderable {
     }
 
     fn recompute_results(&mut self) {
-        let num_results = self.results.len();
-        let labels = compute_labels_for_alphabet(&self.config.quick_select_alphabet, num_results);
+        /// Produce the sorted seq of unique match_ids from the results
+        fn compute_uniq_results(results: &[SearchResult]) -> Vec<usize> {
+            let mut ids: Vec<usize> = results.iter().map(|sr| sr.match_id).collect();
+            ids.sort();
+            ids.dedup();
+            ids
+        }
+
+        let uniq_results = compute_uniq_results(&self.results);
+
+        // Label each unique result
+        let labels =
+            compute_labels_for_alphabet(&self.config.quick_select_alphabet, uniq_results.len());
         self.by_label.clear();
 
-        for ((result_index, res), label) in self
-            .results
-            .iter()
-            .enumerate()
-            .rev()
-            .take(labels.len())
-            .zip(labels.into_iter())
-        {
+        // Keep track of match_id -> label
+        let mut assigned_labels: HashMap<usize, usize> = HashMap::new();
+
+        // Work through the results in reverse order, so that we assign eg: `a` to the
+        // bottom-right-most result first and so on
+        for (result_index, res) in self.results.iter().enumerate().rev() {
+            // Figure out which label to use based on the match_id
+            let label_index = match assigned_labels.get(&res.match_id).copied() {
+                Some(idx) => idx,
+                None => {
+                    let idx = assigned_labels.len();
+                    assigned_labels.insert(res.match_id, idx);
+                    idx
+                }
+            };
+            let label = &labels[label_index];
+
             self.by_label.insert(label.clone(), result_index);
             for idx in res.start_y..=res.end_y {
                 let range = if idx == res.start_y && idx == res.end_y {

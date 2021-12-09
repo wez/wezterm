@@ -35,6 +35,9 @@ pub struct SearchResult {
     pub end_y: StableRowIndex,
     /// The cell index into the line of the end of the match
     pub end_x: usize,
+    /// An identifier that can be used to group results that have
+    /// the same textual content
+    pub match_id: usize,
 }
 
 pub use config::keyassignment::Pattern;

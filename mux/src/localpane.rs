@@ -367,6 +367,7 @@ impl Pane for LocalPane {
         let mut results = vec![];
         let mut haystack = String::new();
         let mut coords = vec![];
+        let mut uniq_matches: HashMap<String, usize> = HashMap::new();
 
         #[derive(Copy, Clone)]
         struct Coord {
@@ -389,6 +390,7 @@ impl Pane for LocalPane {
             pattern: &Pattern,
             haystack: &str,
             coords: &[Coord],
+            uniq_matches: &mut HashMap<String, usize>,
         ) {
             if haystack.is_empty() {
                 return;
@@ -399,6 +401,14 @@ impl Pane for LocalPane {
                 // haystack strings
                 Pattern::CaseInSensitiveString(s) | Pattern::CaseSensitiveString(s) => {
                     for (idx, s) in haystack.match_indices(s) {
+                        let match_id = match uniq_matches.get(s).copied() {
+                            Some(id) => id,
+                            None => {
+                                let id = uniq_matches.len();
+                                uniq_matches.insert(s.to_owned(), id);
+                                id
+                            }
+                        };
                         let (start_x, start_y) = haystack_idx_to_coord(idx, coords);
                         let (end_x, end_y) = haystack_idx_to_coord(idx + s.len(), coords);
                         results.push(SearchResult {
@@ -406,6 +416,7 @@ impl Pane for LocalPane {
                             start_y,
                             end_x,
                             end_y,
+                            match_id,
                         });
                     }
                 }
@@ -418,6 +429,16 @@ impl Pane for LocalPane {
                             // `c.iter().rev()` as the capture iterator isn't double-ended.
                             for idx in (0..c.len()).rev() {
                                 if let Some(m) = c.get(idx) {
+                                    let s = m.as_str();
+                                    let match_id = match uniq_matches.get(s).copied() {
+                                        Some(id) => id,
+                                        None => {
+                                            let id = uniq_matches.len();
+                                            uniq_matches.insert(s.to_owned(), id);
+                                            id
+                                        }
+                                    };
+
                                     let (start_x, start_y) =
                                         haystack_idx_to_coord(m.start(), coords);
                                     let (end_x, end_y) = haystack_idx_to_coord(m.end(), coords);
@@ -426,6 +447,7 @@ impl Pane for LocalPane {
                                         start_y,
                                         end_x,
                                         end_y,
+                                        match_id,
                                     });
                                     break;
                                 }
@@ -468,14 +490,26 @@ impl Pane for LocalPane {
                         haystack.push('\n');
                     }
                 } else {
-                    collect_matches(&mut results, &pattern, &haystack, &coords);
+                    collect_matches(
+                        &mut results,
+                        &pattern,
+                        &haystack,
+                        &coords,
+                        &mut uniq_matches,
+                    );
                     haystack.clear();
                     coords.clear();
                 }
             }
         }
 
-        collect_matches(&mut results, &pattern, &haystack, &coords);
+        collect_matches(
+            &mut results,
+            &pattern,
+            &haystack,
+            &coords,
+            &mut uniq_matches,
+        );
         Ok(results)
     }
 }
