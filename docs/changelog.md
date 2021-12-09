@@ -17,6 +17,8 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Updated and Improved
 
+* macos: removing the titlebar from `window_decorations` now preserves rounded window corners [#1034](https://github.com/wez/wezterm/issues/1034)
+
 #### Fixed
 
 * DECSTR (terminal soft reset) now turns off DECLRMM (left and right margin mode). Thanks to [@ninjalj](https://github.com/ninjalj)! [#1376](https://github.com/wez/wezterm/pull/1376)

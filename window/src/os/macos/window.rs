@@ -422,6 +422,8 @@ impl Window {
                 NO,
             ));
 
+            apply_decorations_to_window(&window, config.window_decorations);
+
             // Prevent Cocoa native tabs from being used
             let _: () = msg_send![*window, setTabbingMode:2 /* NSWindowTabbingModeDisallowed */];
             let _: () = msg_send![*window, setRestorable: NO];
@@ -712,20 +714,7 @@ impl WindowInner {
 
     fn apply_decorations(&mut self) {
         if !self.is_fullscreen() {
-            let mask = decoration_to_mask(self.config.window_decorations);
-            unsafe {
-                self.window.setStyleMask_(mask);
-                /*
-                NSWindow::setMovableByWindowBackground_(
-                    *self.window,
-                    if mask == NSWindowStyleMask::NSResizableWindowMask {
-                        YES
-                    } else {
-                        NO
-                    },
-                );
-                */
-            }
+            apply_decorations_to_window(&self.window, self.config.window_decorations);
         }
     }
 
@@ -774,8 +763,7 @@ impl WindowInner {
                 Some(saved_rect) => unsafe {
                     // Restore prior dimensions
                     self.window.orderOut_(nil);
-                    self.window
-                        .setStyleMask_(decoration_to_mask(self.config.window_decorations));
+                    apply_decorations_to_window(&self.window, self.config.window_decorations);
                     self.window.setFrame_display_(saved_rect, YES);
                     self.window.makeKeyAndOrderFront_(nil);
                     self.window.setOpaque_(NO);
@@ -970,6 +958,36 @@ impl WindowInner {
     }
 }
 
+fn apply_decorations_to_window(window: &StrongPtr, decorations: WindowDecorations) {
+    let mask = decoration_to_mask(decorations);
+    unsafe {
+        window.setStyleMask_(mask);
+
+        let hidden = if decorations.contains(WindowDecorations::TITLE) {
+            NO
+        } else {
+            YES
+        };
+
+        for titlebar_button in &[
+            appkit::NSWindowButton::NSWindowFullScreenButton,
+            appkit::NSWindowButton::NSWindowMiniaturizeButton,
+            appkit::NSWindowButton::NSWindowCloseButton,
+            appkit::NSWindowButton::NSWindowZoomButton,
+        ] {
+            let button = window.standardWindowButton_(*titlebar_button);
+            let _: () = msg_send![button, setHidden: hidden];
+        }
+
+        window.setTitleVisibility_(if decorations.contains(WindowDecorations::TITLE) {
+            appkit::NSWindowTitleVisibility::NSWindowTitleVisible
+        } else {
+            appkit::NSWindowTitleVisibility::NSWindowTitleHidden
+        });
+        window.setTitlebarAppearsTransparent_(hidden);
+    }
+}
+
 fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
     if decorations == WindowDecorations::TITLE | WindowDecorations::RESIZE {
         NSWindowStyleMask::NSTitledWindowMask
@@ -977,9 +995,16 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
             | NSWindowStyleMask::NSMiniaturizableWindowMask
             | NSWindowStyleMask::NSResizableWindowMask
     } else if decorations == WindowDecorations::RESIZE {
-        NSWindowStyleMask::NSResizableWindowMask | NSWindowStyleMask::NSMiniaturizableWindowMask
+        NSWindowStyleMask::NSTitledWindowMask
+            | NSWindowStyleMask::NSClosableWindowMask
+            | NSWindowStyleMask::NSMiniaturizableWindowMask
+            | NSWindowStyleMask::NSResizableWindowMask
+            | NSWindowStyleMask::NSFullSizeContentViewWindowMask
     } else if decorations == WindowDecorations::NONE {
-        NSWindowStyleMask::NSBorderlessWindowMask | NSWindowStyleMask::NSMiniaturizableWindowMask
+        NSWindowStyleMask::NSTitledWindowMask
+            | NSWindowStyleMask::NSClosableWindowMask
+            | NSWindowStyleMask::NSMiniaturizableWindowMask
+            | NSWindowStyleMask::NSFullSizeContentViewWindowMask
     } else if decorations == WindowDecorations::TITLE {
         NSWindowStyleMask::NSTitledWindowMask
             | NSWindowStyleMask::NSClosableWindowMask
