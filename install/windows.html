@@ -172,17 +172,29 @@ installation.</p>
 <li>Extract the zipfile and double-click <code>wezterm.exe</code> to run the UI</li>
 <li>Configuration instructions can be <a href="../config/files.html">found here</a></li>
 </ol>
-<h3 id="for-scoop-users"><a class="header" href="#for-scoop-users">For <code>Scoop</code> users</a></h3>
+<h3 id="for-winget-users"><a class="header" href="#for-winget-users">For <code>winget</code> users</a></h3>
 <p>If you prefer to use the command line to manage installing software,
-then you may wish to try <a href="https://scoop.sh/">Scoop</a>.</p>
+then you may wish to try <a href="https://github.com/microsoft/winget-cli#installing-the-client">winget</a>.
+<code>winget</code> is installed as part of the <a href="https://www.microsoft.com/en-us/p/app-installer/9nblggh4nns1">App Installer</a>
+that is available from the Microsoft Store.</p>
+<p>Once you have <code>winget</code>, you can install wezterm like so:</p>
+<pre><code class="language-bash">winget install wez.wezterm
+</code></pre>
+<p>and to later upgrade it:</p>
+<pre><code class="language-bash">winget upgrade wez.wezterm
+</code></pre>
+<h3 id="for-scoop-users"><a class="header" href="#for-scoop-users">For <code>Scoop</code> users</a></h3>
+<p>Another option if you prefer to use the command line to manage installing
+software, is <a href="https://scoop.sh/">Scoop</a>.</p>
 <p>Wezterm is available from the &quot;Extras&quot; bucket and once you have installed
 scoop itself can be installed like so:</p>
 <pre><code class="language-bash">scoop bucket add extras
 scoop install wezterm
 </code></pre>
 <h3 id="for-chocolatey-users"><a class="header" href="#for-chocolatey-users">For <code>Chocolatey</code> users</a></h3>
-<p>If you prefer to use <a href="https://chocolatey.org">Chocolatey</a> to manage software, wezterm is availabe from the Community Repository.
-It can be installed like so:</p>
+<p>If you prefer to use <a href="https://chocolatey.org">Chocolatey</a> to manage software,
+wezterm is availabe from the Community Repository.  It can be installed like
+so:</p>
 <pre><code class="language-bash">choco install wezterm -y
 </code></pre>
 
