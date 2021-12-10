@@ -183,6 +183,8 @@ __bp_precmd_invoke_cmd() {
             "$precmd_function"
         fi
     done
+
+    return $__bp_last_ret_value
 }
 
 # Sets a return value in $?. We may want to get access to the $? variable in our
