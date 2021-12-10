@@ -402,9 +402,16 @@ impl Reconnectable {
         }
     }
 
-    fn connect(&mut self, initial: bool, ui: &mut ConnectionUI) -> anyhow::Result<()> {
+    fn connect(
+        &mut self,
+        initial: bool,
+        ui: &mut ConnectionUI,
+        no_auto_start: bool,
+    ) -> anyhow::Result<()> {
         match self.config.clone() {
-            ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom, initial, ui),
+            ClientDomainConfig::Unix(unix_dom) => {
+                self.unix_connect(unix_dom, initial, ui, no_auto_start)
+            }
             ClientDomainConfig::Tls(tls) => self.tls_connect(tls, initial, ui),
             ClientDomainConfig::Ssh(ssh) => self.ssh_connect(ssh, initial, ui),
         }
@@ -515,6 +522,7 @@ impl Reconnectable {
         unix_dom: UnixDomain,
         initial: bool,
         ui: &mut ConnectionUI,
+        no_auto_start: bool,
     ) -> anyhow::Result<()> {
         let sock_path = unix_dom.socket_path();
         ui.output_str(&format!("Connect to {}\n", sock_path.display()));
@@ -523,7 +531,7 @@ impl Reconnectable {
         let stream = match unix_connect_with_retry(&sock_path, false) {
             Ok(stream) => stream,
             Err(e) => {
-                if unix_dom.no_serve_automatically || !initial {
+                if no_auto_start || unix_dom.no_serve_automatically || !initial {
                     bail!("failed to connect to {}: {}", sock_path.display(), e);
                 }
                 log::warn!(
@@ -849,7 +857,9 @@ impl Client {
                             backoff,
                         )
                         .ok();
-                        match reconnectable.connect(false, &mut ui) {
+                        let initial = false;
+                        let no_auto_start = true; // Don't auto-start on a reconnect
+                        match reconnectable.connect(initial, &mut ui, no_auto_start) {
                             Ok(_) => {
                                 backoff = BASE_INTERVAL;
                                 log::error!("Reconnected!");
@@ -942,7 +952,11 @@ impl Client {
         self.local_domain_id
     }
 
-    pub fn new_default_unix_domain(initial: bool, ui: &mut ConnectionUI) -> anyhow::Result<Self> {
+    pub fn new_default_unix_domain(
+        initial: bool,
+        ui: &mut ConnectionUI,
+        no_auto_start: bool,
+    ) -> anyhow::Result<Self> {
         let config = configuration();
 
         let unix_dom = match std::env::var_os("WEZTERM_UNIX_SOCKET") {
@@ -962,7 +976,7 @@ impl Client {
                 .clone(),
         };
 
-        Self::new_unix_domain(alloc_domain_id(), &unix_dom, initial, ui)
+        Self::new_unix_domain(alloc_domain_id(), &unix_dom, initial, ui, no_auto_start)
     }
 
     pub fn new_unix_domain(
@@ -970,10 +984,11 @@ impl Client {
         unix_dom: &UnixDomain,
         initial: bool,
         ui: &mut ConnectionUI,
+        no_auto_start: bool,
     ) -> anyhow::Result<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Unix(unix_dom.clone()), None);
-        reconnectable.connect(initial, ui)?;
+        reconnectable.connect(initial, ui, no_auto_start)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
@@ -984,7 +999,8 @@ impl Client {
     ) -> anyhow::Result<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Tls(tls_client.clone()), None);
-        reconnectable.connect(true, ui)?;
+        let no_auto_start = true;
+        reconnectable.connect(true, ui, no_auto_start)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
@@ -994,7 +1010,8 @@ impl Client {
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<Self> {
         let mut reconnectable = Reconnectable::new(ClientDomainConfig::Ssh(ssh_dom.clone()), None);
-        reconnectable.connect(true, ui)?;
+        let no_auto_start = true;
+        reconnectable.connect(true, ui, no_auto_start)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 

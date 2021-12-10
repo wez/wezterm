@@ -484,7 +484,14 @@ impl Domain for ClientDomain {
                 let client = spawn_into_new_thread(move || match &config {
                     ClientDomainConfig::Unix(unix) => {
                         let initial = true;
-                        Client::new_unix_domain(domain_id, unix, initial, &mut cloned_ui)
+                        let no_auto_start = false;
+                        Client::new_unix_domain(
+                            domain_id,
+                            unix,
+                            initial,
+                            &mut cloned_ui,
+                            no_auto_start,
+                        )
                     }
                     ClientDomainConfig::Tls(tls) => Client::new_tls(domain_id, tls, &mut cloned_ui),
                     ClientDomainConfig::Ssh(ssh) => Client::new_ssh(domain_id, ssh, &mut cloned_ui),

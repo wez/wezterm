@@ -371,7 +371,7 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
 async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
     let initial = true;
     let mut ui = mux::connui::ConnectionUI::new_headless();
-    let client = Client::new_default_unix_domain(initial, &mut ui)?;
+    let client = Client::new_default_unix_domain(initial, &mut ui, cli.no_auto_start)?;
     match cli.sub {
         CliSubCommand::List => {
             let cols = vec![
