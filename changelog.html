@@ -168,6 +168,8 @@ usually the best available version.</p>
 <li>DECSTR (terminal soft reset) now turns off DECLRMM (left and right margin mode). Thanks to <a href="https://github.com/ninjalj">@ninjalj</a>! <a href="https://github.com/wez/wezterm/pull/1376">#1376</a></li>
 <li>Improved conformance of CUP, HVP, SLRM, STBM escape sequences by support empty first parameter. Thanks to <a href="https://github.com/ninjalj">@ninjalj</a>! <a href="https://github.com/wez/wezterm/pull/1377">#1377</a></li>
 <li>tab bar didn't correctly handle double-wide cells and could truncate at edges when using <code>format-tab-title</code> <a href="https://github.com/wez/wezterm/issues/1371">#1371</a></li>
+<li><code>wezterm cli --no-auto-start</code> was not respected</li>
+<li>Pixel geometry configured on the PTY in new windows could be incorrect on HiDPI displays until the window was resized <a href="https://github.com/wez/wezterm/issues/1387">#1387</a></li>
 </ul>
 <h3 id="20211205-192649-672c1cc1"><a class="header" href="#20211205-192649-672c1cc1">20211205-192649-672c1cc1</a></h3>
 <h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
