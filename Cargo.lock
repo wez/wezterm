@@ -1949,9 +1949,9 @@ dependencies = [
 
 [[package]]
 name = "libssh-rs"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c30db256b1dcf331124ad4ec8f638c2a5898224e1fb8294929de818aebe93ac0"
+checksum = "c5ca687cb078f24216be3c269a1a7b9279f9d33adcd17b4b0747bfc8902472e7"
 dependencies = [
  "bitflags",
  "libssh-rs-sys",
@@ -1960,9 +1960,9 @@ dependencies = [
 
 [[package]]
 name = "libssh-rs-sys"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "901d7c98aeec74f9484187c4f8467baaa4543f11fcb6ea9cd293c666f5c19f43"
+checksum = "1ac4307688493d1f2cf3f026b683cea3d30b4b65f365d4c8b6c464471c18dca2"
 dependencies = [
  "cc",
  "libz-sys",
@@ -4815,7 +4815,7 @@ dependencies = [
 
 [[package]]
 name = "wezterm-ssh"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "assert_fs",
