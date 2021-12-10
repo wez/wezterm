@@ -27,6 +27,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Improved conformance of CUP, HVP, SLRM, STBM escape sequences by support empty first parameter. Thanks to [@ninjalj](https://github.com/ninjalj)! [#1377](https://github.com/wez/wezterm/pull/1377)
 * tab bar didn't correctly handle double-wide cells and could truncate at edges when using `format-tab-title` [#1371](https://github.com/wez/wezterm/issues/1371)
 * `wezterm cli --no-auto-start` was not respected
+* Pixel geometry configured on the PTY in new windows could be incorrect on HiDPI displays until the window was resized [#1387](https://github.com/wez/wezterm/issues/1387)
 
 ### 20211205-192649-672c1cc1
 

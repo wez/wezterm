@@ -470,6 +470,7 @@ impl XConnection {
         log::trace!("xsettings are {:?}", xsettings);
 
         let default_dpi = RefCell::new(compute_default_dpi(&xrm, &xsettings));
+        log::trace!("computed initial dpi: {:?}", default_dpi);
 
         xcb_imdkit::ImeClient::set_logger(|msg| log::debug!("Ime: {}", msg));
         let ime = unsafe {

@@ -550,6 +550,23 @@ impl TermWindow {
             pixel_height: (render_metrics.cell_size.height as usize * physical_rows) as u16,
         };
 
+        if terminal_size != size {
+            // DPI is different from the default assumed DPI when the mux
+            // created the pty. We need to inform the kernel of the revised
+            // pixel geometry now
+            log::trace!(
+                "Initial geometry was {:?} but dpi-adjusted geometry \
+                        is {:?}; update the kernel pixel geometry for the ptys!",
+                terminal_size,
+                size
+            );
+            if let Some(window) = mux.get_window(mux_window_id) {
+                for tab in window.iter() {
+                    tab.resize(size);
+                }
+            };
+        }
+
         let h_context = DimensionContext {
             dpi: dpi as f32,
             pixel_max: terminal_size.pixel_width as f32,
