@@ -424,6 +424,14 @@ impl super::TermWindow {
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
+        if self.focused.is_none() {
+            // Ignore the mouse event if the window doesn't have focus.
+            // Some Window managers can send events in a strange order
+            // <https://github.com/wez/wezterm/issues/1140#issuecomment-921031466>
+            // and that can confuse neovim for example.
+            return;
+        }
+
         let mut is_click_to_focus = false;
 
         for pos in self.get_panes_to_render() {
