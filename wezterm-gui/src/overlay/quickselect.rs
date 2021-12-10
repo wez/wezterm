@@ -144,7 +144,6 @@ pub struct QuickSelectOverlay {
 #[derive(Debug)]
 struct MatchResult {
     range: Range<usize>,
-    result_index: usize,
     label: String,
 }
 
@@ -570,7 +569,6 @@ impl QuickSelectRenderable {
 
                 let result = MatchResult {
                     range,
-                    result_index,
                     label: label.clone(),
                 };
 

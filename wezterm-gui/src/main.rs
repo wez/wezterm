@@ -75,6 +75,7 @@ struct Opt {
     /// On Windows, whether to attempt to attach to the parent
     /// process console to display logging output
     #[structopt(long = "attach-parent-console")]
+    #[allow(dead_code)]
     attach_parent_console: bool,
 
     #[structopt(subcommand)]

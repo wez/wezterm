@@ -35,6 +35,7 @@ impl TmuxCommand for ListAllPanes {
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
         #[derive(Debug)]
+        #[allow(dead_code)]
         struct Item {
             session_id: TmuxSessionId,
             window_id: TmuxWindowId,

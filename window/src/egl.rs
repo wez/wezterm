@@ -194,6 +194,7 @@ impl EglWrapper {
 
     fn log_config_info(&self, display: ffi::types::EGLDisplay, config: ffi::types::EGLConfig) {
         #[derive(Debug)]
+        #[allow(dead_code)]
         struct ConfigInfo {
             config: ffi::types::EGLConfig,
             alpha_size: Option<ffi::EGLint>,

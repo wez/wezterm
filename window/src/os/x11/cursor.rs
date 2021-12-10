@@ -365,8 +365,8 @@ impl CursorInfo {
         #[derive(Debug)]
         struct FileHeader {
             magic: u32,
-            header: u32,
-            version: u32,
+            _header: u32,
+            _version: u32,
             ntoc: u32,
         }
         const MAGIC: u32 = 0x72756358;
@@ -389,8 +389,8 @@ impl CursorInfo {
 
         let header = FileHeader {
             magic: read_u32(&mut file)?,
-            header: read_u32(&mut file)?,
-            version: read_u32(&mut file)?,
+            _header: read_u32(&mut file)?,
+            _version: read_u32(&mut file)?,
             ntoc: read_u32(&mut file)?,
         };
         ensure!(
