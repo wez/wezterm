@@ -50,15 +50,43 @@ impl WinChild {
     }
 }
 
+impl ChildKiller for WinChild {
+    fn kill(&mut self) -> IoResult<()> {
+        self.do_kill().ok();
+        Ok(())
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        let proc = self.proc.lock().unwrap().try_clone().unwrap();
+        Box::new(WinChildKiller { proc })
+    }
+}
+
+#[derive(Debug)]
+pub struct WinChildKiller {
+    proc: OwnedHandle,
+}
+
+impl ChildKiller for WinChildKiller {
+    fn kill(&mut self) -> IoResult<()> {
+        let res = unsafe { TerminateProcess(self.proc.as_raw_handle(), 1) };
+        let err = IoError::last_os_error();
+        if res != 0 {
+            Err(err)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        let proc = self.proc.try_clone().unwrap();
+        Box::new(WinChildKiller { proc })
+    }
+}
+
 impl Child for WinChild {
     fn try_wait(&mut self) -> IoResult<Option<ExitStatus>> {
         self.is_complete()
-    }
-
-    fn kill(&mut self) -> IoResult<()> {
-        self.do_kill().ok();
-        self.wait()?;
-        Ok(())
     }
 
     fn wait(&mut self) -> IoResult<ExitStatus> {

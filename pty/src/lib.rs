@@ -223,7 +223,7 @@ struct ProcessSignaller {
     pid: Option<u32>,
 
     #[cfg(windows)]
-    handle: Option<OwnedHandle>,
+    handle: Option<filedescriptor::OwnedHandle>,
 }
 
 #[cfg(windows)]
@@ -301,6 +301,7 @@ impl ChildKiller for std::process::Child {
 
     #[cfg(windows)]
     fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        use std::os::windows::prelude::AsRawHandle;
         struct RawDup(RawHandle);
         impl AsRawHandle for RawDup {
             fn as_raw_handle(&self) -> RawHandle {
@@ -313,7 +314,7 @@ impl ChildKiller for std::process::Child {
             handle: self
                 .as_raw_handle()
                 .as_ref()
-                .and_then(|h| OwnedHandle::dup(&RawDup(*h)).ok()),
+                .and_then(|h| filedescriptor::OwnedHandle::dup(&RawDup(*h)).ok()),
         })
     }
 
