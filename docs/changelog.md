@@ -30,6 +30,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Pixel geometry configured on the PTY in new windows could be incorrect on HiDPI displays until the window was resized [#1387](https://github.com/wez/wezterm/issues/1387)
 * Image attachment geometry for imgcat and sixels could stretch the image across the rounded up number of cells that contained the image. [#1300](https://github.com/wez/wezterm/issues/1300), [#1270](https://github.com/wez/wezterm/issues/1270)
 * Closing a split pane created inside a `wezterm ssh` session wouldn't actually close the pane [#1197](https://github.com/wez/wezterm/issues/1197)
+* Clicking when unfocused could lead to unwanted text selection [#1140](https://github.com/wez/wezterm/issues/1140) [#1310](https://github.com/wez/wezterm/issues/1310)
 
 ### 20211205-192649-672c1cc1
 
