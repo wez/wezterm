@@ -327,7 +327,7 @@ impl super::TermWindow {
         let size = config.initial_size();
         let fontconfig = Rc::new(FontConfiguration::new(
             Some(config.clone()),
-            config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+            self.dimensions.dpi,
         )?);
         let render_metrics = RenderMetrics::new(&fontconfig)?;
 
@@ -367,7 +367,7 @@ impl super::TermWindow {
                 + padding_top
                 + padding_bottom) as usize
                 + tab_bar_height,
-            dpi: config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize,
+            dpi: self.dimensions.dpi,
         };
 
         self.apply_scale_change(&dimensions, 1.0, window);
