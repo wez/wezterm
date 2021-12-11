@@ -49,6 +49,8 @@ use libc;
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::io::Result as IoResult;
+#[cfg(windows)]
+use std::os::windows::prelude::{AsRawHandle, RawHandle};
 
 pub mod cmdbuilder;
 pub use cmdbuilder::CommandBuilder;
@@ -242,7 +244,7 @@ impl ChildKiller for ProcessSignaller {
     fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
         Box::new(Self {
             pid: self.pid,
-            handle: self.handle.as_ref().map(|h| h.try_clone().ok()),
+            handle: self.handle.as_ref().and_then(|h| h.try_clone().ok()),
         })
     }
 }
@@ -301,7 +303,6 @@ impl ChildKiller for std::process::Child {
 
     #[cfg(windows)]
     fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
-        use std::os::windows::prelude::AsRawHandle;
         struct RawDup(RawHandle);
         impl AsRawHandle for RawDup {
             fn as_raw_handle(&self) -> RawHandle {
@@ -311,8 +312,7 @@ impl ChildKiller for std::process::Child {
 
         Box::new(ProcessSignaller {
             pid: self.process_id(),
-            handle: self
-                .as_raw_handle()
+            handle: Child::as_raw_handle(self)
                 .as_ref()
                 .and_then(|h| filedescriptor::OwnedHandle::dup(&RawDup(*h)).ok()),
         })

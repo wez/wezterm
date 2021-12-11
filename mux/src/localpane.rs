@@ -7,8 +7,6 @@ use anyhow::Error;
 use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
-#[cfg(windows)]
-use filedescriptor::OwnedHandle;
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
 use rangeset::RangeSet;
 use smol::channel::{bounded, Receiver, TryRecvError};
@@ -16,8 +14,6 @@ use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
 use std::io::Result as IoResult;
 use std::ops::Range;
-#[cfg(windows)]
-use std::os::windows::io::{AsRawHandle, RawHandle};
 use std::sync::Arc;
 use termwiz::escape::DeviceControlMode;
 use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
