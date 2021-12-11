@@ -91,15 +91,11 @@ impl TerminalState {
             .context("computing xpos")?;
 
         let cursor_x = self.cursor.x;
-        let x_delta = (source_width as f32 / params.image_width as f32) / width_in_cells as f32;
-        let y_delta = (source_height as f32 / params.image_height as f32) / height_in_cells as f32;
         log::debug!(
-            "image is {}x{} cells, {:?}, x_delta:{} y_delta:{} ({}x{}@{}x{})",
+            "image is {}x{} cells, {:?}, ({}x{}@{}x{})",
             width_in_cells,
             height_in_cells,
             params,
-            x_delta,
-            y_delta,
             physical_cols,
             physical_rows,
             self.pixel_width,
@@ -112,7 +108,11 @@ impl TerminalState {
             height_in_cells
         };
 
+        let mut remain_y = source_height as usize;
         for y in 0..height_in_cells {
+            let y_delta = (remain_y.min(cell_pixel_height) as f32) / (source_height as f32);
+            remain_y = remain_y.saturating_sub(cell_pixel_height);
+
             let mut xpos = start_xpos;
             let cursor_y = if params.do_not_move_cursor {
                 self.cursor.y + y as i64
@@ -125,7 +125,11 @@ impl TerminalState {
                 cursor_x,
                 cursor_x + width_in_cells
             );
+            let mut remain_x = source_width as usize;
             for x in 0..width_in_cells {
+                let x_delta = (remain_x.min(cell_pixel_width) as f32) / (source_width as f32);
+                log::debug!("x_delta {}, y_delta {}", x_delta, y_delta);
+                remain_x = remain_x.saturating_sub(cell_pixel_width);
                 let mut cell = self
                     .screen()
                     .get_cell(cursor_x + x, cursor_y)
