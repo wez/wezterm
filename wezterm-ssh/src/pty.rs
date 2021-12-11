@@ -126,17 +126,6 @@ impl portable_pty::Child for SshChildProcess {
         }
     }
 
-    fn kill(&mut self) -> std::io::Result<()> {
-        if let Some(tx) = self.tx.as_ref() {
-            tx.try_send(SessionRequest::SignalChannel(SignalChannel {
-                channel: self.channel,
-                signame: "HUP",
-            }))
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-        }
-        Ok(())
-    }
-
     fn wait(&mut self) -> std::io::Result<portable_pty::ExitStatus> {
         if let Some(status) = self.exited.as_ref() {
             return Ok(status.clone());
@@ -161,6 +150,52 @@ impl portable_pty::Child for SshChildProcess {
     #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
         None
+    }
+}
+
+impl portable_pty::ChildKiller for SshChildProcess {
+    fn kill(&mut self) -> std::io::Result<()> {
+        if let Some(tx) = self.tx.as_ref() {
+            tx.try_send(SessionRequest::SignalChannel(SignalChannel {
+                channel: self.channel,
+                signame: "HUP",
+            }))
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        }
+        Ok(())
+    }
+
+    fn clone_killer(&self) -> Box<dyn portable_pty::ChildKiller + Send + Sync> {
+        Box::new(SshChildKiller {
+            tx: self.tx.clone(),
+            channel: self.channel,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+struct SshChildKiller {
+    pub(crate) tx: Option<SessionSender>,
+    pub(crate) channel: ChannelId,
+}
+
+impl portable_pty::ChildKiller for SshChildKiller {
+    fn kill(&mut self) -> std::io::Result<()> {
+        if let Some(tx) = self.tx.as_ref() {
+            tx.try_send(SessionRequest::SignalChannel(SignalChannel {
+                channel: self.channel,
+                signame: "HUP",
+            }))
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        }
+        Ok(())
+    }
+
+    fn clone_killer(&self) -> Box<dyn portable_pty::ChildKiller + Send + Sync> {
+        Box::new(SshChildKiller {
+            tx: self.tx.clone(),
+            channel: self.channel,
+        })
     }
 }
 

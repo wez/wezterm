@@ -5,7 +5,10 @@
 //! `openpty` method.
 //! On most (all?) systems, attempting to open multiple instances of
 //! the same serial port will fail.
-use crate::{Child, CommandBuilder, ExitStatus, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
+use crate::{
+    Child, ChildKiller, CommandBuilder, ExitStatus, MasterPty, PtyPair, PtySize, PtySystem,
+    SlavePty,
+};
 use anyhow::{ensure, Context};
 use filedescriptor::FileDescriptor;
 use serial::{
@@ -128,10 +131,6 @@ impl Child for SerialChild {
         Ok(None)
     }
 
-    fn kill(&mut self) -> IoResult<()> {
-        Ok(())
-    }
-
     fn wait(&mut self) -> IoResult<ExitStatus> {
         Err(std::io::Error::new(
             std::io::ErrorKind::WouldBlock,
@@ -146,6 +145,29 @@ impl Child for SerialChild {
     #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
         None
+    }
+}
+
+impl ChildKiller for SerialChild {
+    fn kill(&mut self) -> IoResult<()> {
+        Ok(())
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(SerialChildKiller)
+    }
+}
+
+#[derive(Debug)]
+struct SerialChildKiller;
+
+impl ChildKiller for SerialChildKiller {
+    fn kill(&mut self) -> IoResult<()> {
+        Ok(())
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(SerialChildKiller)
     }
 }
 

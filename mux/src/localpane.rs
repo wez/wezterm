@@ -9,7 +9,7 @@ use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
 #[cfg(windows)]
 use filedescriptor::OwnedHandle;
-use portable_pty::{Child, ExitStatus, MasterPty, PtySize};
+use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
 use rangeset::RangeSet;
 use smol::channel::{bounded, Receiver, TryRecvError};
 use std::cell::{RefCell, RefMut};
@@ -32,7 +32,8 @@ use wezterm_term::{
 enum ProcessState {
     Running {
         child_waiter: Receiver<IoResult<ExitStatus>>,
-        signaller: ProcessSignaller,
+        pid: Option<u32>,
+        signaller: Box<dyn ChildKiller>,
         // Whether we've explicitly killed the child
         killed: bool,
     },
@@ -597,40 +598,6 @@ impl AlertHandler for LocalPaneNotifHandler {
     }
 }
 
-#[derive(Debug)]
-struct ProcessSignaller {
-    pid: Option<u32>,
-
-    #[cfg(windows)]
-    handle: Option<OwnedHandle>,
-}
-
-impl ProcessSignaller {
-    #[cfg(windows)]
-    fn kill(&self) -> IoResult<()> {
-        if let Some(handle) = &self.handle {
-            unsafe {
-                if winapi::um::processthreadsapi::TerminateProcess(handle.as_raw_handle(), 127) == 0
-                {
-                    return Err(std::io::Error::last_os_error());
-                }
-            }
-        }
-        Ok(())
-    }
-
-    #[cfg(unix)]
-    fn kill(&self) -> IoResult<()> {
-        if let Some(pid) = self.pid {
-            let result = unsafe { libc::kill(pid as i32, libc::SIGHUP) };
-            if result != 0 {
-                return Err(std::io::Error::last_os_error());
-            }
-        }
-        Ok(())
-    }
-}
-
 /// This is a little gross; on some systems, our pipe reader will continue
 /// to be blocked in read even after the child process has died.
 /// We need to wake up and notice that the child terminated in order
@@ -641,33 +608,13 @@ impl ProcessSignaller {
 /// until something else triggered the mux to prune dead processes.
 fn split_child(
     mut process: Box<dyn Child + Send>,
-) -> (Receiver<IoResult<ExitStatus>>, ProcessSignaller) {
-    let signaller;
-
-    #[cfg(windows)]
-    {
-        struct RawDup(RawHandle);
-        impl AsRawHandle for RawDup {
-            fn as_raw_handle(&self) -> RawHandle {
-                self.0
-            }
-        }
-
-        signaller = ProcessSignaller {
-            pid: process.process_id(),
-            handle: process
-                .as_raw_handle()
-                .as_ref()
-                .and_then(|h| OwnedHandle::dup(&RawDup(*h)).ok()),
-        };
-    }
-
-    #[cfg(unix)]
-    {
-        signaller = ProcessSignaller {
-            pid: process.process_id(),
-        };
-    }
+) -> (
+    Receiver<IoResult<ExitStatus>>,
+    Box<dyn ChildKiller>,
+    Option<u32>,
+) {
+    let pid = process.process_id();
+    let signaller = process.clone_killer();
 
     let (tx, rx) = bounded(1);
 
@@ -681,7 +628,7 @@ fn split_child(
         .detach();
     });
 
-    (rx, signaller)
+    (rx, signaller, pid)
 }
 
 impl LocalPane {
@@ -692,7 +639,7 @@ impl LocalPane {
         pty: Box<dyn MasterPty>,
         domain_id: DomainId,
     ) -> Self {
-        let (process, signaller) = split_child(process);
+        let (process, signaller, pid) = split_child(process);
 
         terminal.set_device_control_handler(Box::new(LocalPaneDCSHandler {
             pane_id,
@@ -704,6 +651,7 @@ impl LocalPane {
             terminal: RefCell::new(terminal),
             process: RefCell::new(ProcessState::Running {
                 child_waiter: process,
+                pid,
                 signaller,
                 killed: false,
             }),
@@ -815,12 +763,12 @@ impl LocalPane {
         let mut proc_names = vec![];
 
         #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
-        if let ProcessState::Running { signaller, .. } = &*self.process.borrow() {
-            if let Some(pid) = signaller.pid {
+        if let ProcessState::Running { pid, .. } = &*self.process.borrow() {
+            if let Some(pid) = pid {
                 use sysinfo::{Pid, ProcessExt, RefreshKind, System, SystemExt};
                 let system = System::new_with_specifics(RefreshKind::new().with_processes());
                 let procs = system.get_processes();
-                let mut pids_to_do = vec![pid as Pid];
+                let mut pids_to_do = vec![*pid as Pid];
 
                 while let Some(pid) = pids_to_do.pop() {
                     if let Some(proc) = procs.get(&pid) {

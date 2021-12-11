@@ -114,14 +114,12 @@ pub trait MasterPty: std::io::Write {
 
 /// Represents a child process spawned into the pty.
 /// This handle can be used to wait for or terminate that child process.
-pub trait Child: std::fmt::Debug {
+pub trait Child: std::fmt::Debug + ChildKiller {
     /// Poll the child to see if it has completed.
     /// Does not block.
     /// Returns None if the child has not yet terminated,
     /// else returns its exit status.
     fn try_wait(&mut self) -> IoResult<Option<ExitStatus>>;
-    /// Terminate the child process
-    fn kill(&mut self) -> IoResult<()>;
     /// Blocks execution until the child process has completed,
     /// yielding its exit status.
     fn wait(&mut self) -> IoResult<ExitStatus>;
@@ -132,6 +130,17 @@ pub trait Child: std::fmt::Debug {
     /// Only available on Windows.
     #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle>;
+}
+
+/// Represents the ability to signal a Child to terminate
+pub trait ChildKiller: std::fmt::Debug {
+    /// Terminate the child process
+    fn kill(&mut self) -> IoResult<()>;
+
+    /// Clone an object that can be split out from the Child in order
+    /// to send it signals independently from a thread that may be
+    /// blocked in `.wait`.
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync>;
 }
 
 /// Represents the slave side of a pty.
@@ -195,6 +204,67 @@ impl Child for std::process::Child {
         })
     }
 
+    fn wait(&mut self) -> IoResult<ExitStatus> {
+        std::process::Child::wait(self).map(Into::into)
+    }
+
+    fn process_id(&self) -> Option<u32> {
+        Some(self.id())
+    }
+
+    #[cfg(windows)]
+    fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
+        Some(std::os::windows::io::AsRawHandle::as_raw_handle(self))
+    }
+}
+
+#[derive(Debug)]
+struct ProcessSignaller {
+    pid: Option<u32>,
+
+    #[cfg(windows)]
+    handle: Option<OwnedHandle>,
+}
+
+#[cfg(windows)]
+impl ChildKiller for ProcessSignaller {
+    fn kill(&mut self) -> IoResult<()> {
+        if let Some(handle) = &self.handle {
+            unsafe {
+                if winapi::um::processthreadsapi::TerminateProcess(handle.as_raw_handle(), 127) == 0
+                {
+                    return Err(std::io::Error::last_os_error());
+                }
+            }
+        }
+        Ok(())
+    }
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(Self {
+            pid: self.pid,
+            handle: self.handle.as_ref().map(|h| h.try_clone().ok()),
+        })
+    }
+}
+
+#[cfg(unix)]
+impl ChildKiller for ProcessSignaller {
+    fn kill(&mut self) -> IoResult<()> {
+        if let Some(pid) = self.pid {
+            let result = unsafe { libc::kill(pid as i32, libc::SIGHUP) };
+            if result != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+        }
+        Ok(())
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(Self { pid: self.pid })
+    }
+}
+
+impl ChildKiller for std::process::Child {
     fn kill(&mut self) -> IoResult<()> {
         #[cfg(unix)]
         {
@@ -229,17 +299,29 @@ impl Child for std::process::Child {
         std::process::Child::kill(self)
     }
 
-    fn wait(&mut self) -> IoResult<ExitStatus> {
-        std::process::Child::wait(self).map(Into::into)
-    }
-
-    fn process_id(&self) -> Option<u32> {
-        Some(self.id())
-    }
-
     #[cfg(windows)]
-    fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
-        Some(std::os::windows::io::AsRawHandle::as_raw_handle(self))
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        struct RawDup(RawHandle);
+        impl AsRawHandle for RawDup {
+            fn as_raw_handle(&self) -> RawHandle {
+                self.0
+            }
+        }
+
+        Box::new(ProcessSignaller {
+            pid: self.process_id(),
+            handle: self
+                .as_raw_handle()
+                .as_ref()
+                .and_then(|h| OwnedHandle::dup(&RawDup(*h)).ok()),
+        })
+    }
+
+    #[cfg(unix)]
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(ProcessSignaller {
+            pid: self.process_id(),
+        })
     }
 }
 

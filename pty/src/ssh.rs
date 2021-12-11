@@ -4,7 +4,10 @@
 //! there is a non-trivial amount of setup that is required to
 //! initiate a connection somewhere and to authenticate that session
 //! before we can get to a point where `openpty` will be able to run.
-use crate::{Child, CommandBuilder, ExitStatus, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
+use crate::{
+    Child, ChildKiller, CommandBuilder, ExitStatus, MasterPty, PtyPair, PtySize, PtySystem,
+    SlavePty,
+};
 use filedescriptor::{AsRawSocketDescriptor, POLLIN};
 use ssh2::{Channel, Session};
 use std::collections::HashMap;
@@ -244,11 +247,6 @@ impl Child for SshChild {
         }
     }
 
-    fn kill(&mut self) -> IoResult<()> {
-        self.pty.with_channel(|channel| channel.send_eof())?;
-        Ok(())
-    }
-
     fn wait(&mut self) -> IoResult<ExitStatus> {
         self.pty.with_channel(|channel| {
             channel.close()?;
@@ -264,6 +262,37 @@ impl Child for SshChild {
     #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
         None
+    }
+}
+
+impl ChildKiller for SshChild {
+    fn kill(&mut self) -> IoResult<()> {
+        self.pty.with_channel(|channel| channel.send_eof())?;
+        Ok(())
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(SshChildKiller {
+            pty: self.pty.clone(),
+        })
+    }
+}
+
+#[derive(Debug)]
+struct SshChildKiller {
+    pty: PtyHandle,
+}
+
+impl ChildKiller for SshChildKiller {
+    fn kill(&mut self) -> IoResult<()> {
+        self.pty.with_channel(|channel| channel.send_eof())?;
+        Ok(())
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(SshChildKiller {
+            pty: self.pty.clone(),
+        })
     }
 }
 

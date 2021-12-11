@@ -9,7 +9,7 @@ use anyhow::{anyhow, bail, Context, Error};
 use async_trait::async_trait;
 use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 use portable_pty::cmdbuilder::CommandBuilder;
-use portable_pty::{ExitStatus, MasterPty, PtySize};
+use portable_pty::{ChildKiller, ExitStatus, MasterPty, PtySize};
 use smol::channel::{bounded, Receiver as AsyncReceiver};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
@@ -495,6 +495,12 @@ impl Domain for RemoteSshDomain {
                 status: None,
                 rx: child_rx,
                 exited: None,
+                killer: WrappedSshChildKiller {
+                    inner: Arc::new(Mutex::new(KillerInner {
+                        killer: None,
+                        pending_kill: false,
+                    })),
+                },
             });
 
             let (pty_tx, pty_rx) = channel();
@@ -678,27 +684,33 @@ impl Domain for RemoteSshDomain {
 }
 
 #[derive(Debug)]
+struct KillerInner {
+    killer: Option<Box<dyn ChildKiller + Send + Sync>>,
+    /// If we haven't populated `killer` by the time someone has called
+    /// `kill`, then we use this to remember to kill as soon as we recv
+    /// the child process.
+    pending_kill: bool,
+}
+
+#[derive(Debug, Clone)]
+struct WrappedSshChildKiller {
+    inner: Arc<Mutex<KillerInner>>,
+}
+
+#[derive(Debug)]
 struct WrappedSshChild {
     status: Option<AsyncReceiver<ExitStatus>>,
     rx: Receiver<SshChildProcess>,
     exited: Option<ExitStatus>,
+    killer: WrappedSshChildKiller,
 }
 
 impl WrappedSshChild {
     fn check_connected(&mut self) {
         if self.status.is_none() {
             match self.rx.try_recv() {
-                Ok(mut c) => {
-                    let (tx, rx) = bounded(1);
-                    promise::spawn::spawn_into_main_thread(async move {
-                        if let Ok(status) = c.async_wait().await {
-                            tx.send(status).await.ok();
-                            let mux = Mux::get().unwrap();
-                            mux.prune_dead_windows();
-                        }
-                    })
-                    .detach();
-                    self.status.replace(rx);
+                Ok(c) => {
+                    self.got_child(c);
                 }
                 Err(TryRecvError::Empty) => {}
                 Err(err) => {
@@ -707,6 +719,27 @@ impl WrappedSshChild {
                 }
             }
         }
+    }
+
+    fn got_child(&mut self, mut child: SshChildProcess) {
+        {
+            let mut killer = self.killer.inner.lock().unwrap();
+            killer.killer.replace(child.clone_killer());
+            if killer.pending_kill {
+                let _ = child.kill().ok();
+            }
+        }
+
+        let (tx, rx) = bounded(1);
+        promise::spawn::spawn_into_main_thread(async move {
+            if let Ok(status) = child.async_wait().await {
+                tx.send(status).await.ok();
+                let mux = Mux::get().unwrap();
+                mux.prune_dead_windows();
+            }
+        })
+        .detach();
+        self.status.replace(rx);
     }
 }
 
@@ -737,12 +770,6 @@ impl portable_pty::Child for WrappedSshChild {
         }
     }
 
-    fn kill(&mut self) -> std::io::Result<()> {
-        // There is no way to send a signal via libssh2.
-        // Just pretend that we did. :-/
-        Ok(())
-    }
-
     fn wait(&mut self) -> std::io::Result<portable_pty::ExitStatus> {
         if let Some(status) = self.exited.as_ref() {
             return Ok(status.clone());
@@ -750,17 +777,8 @@ impl portable_pty::Child for WrappedSshChild {
 
         if self.status.is_none() {
             match smol::block_on(async { self.rx.recv() }) {
-                Ok(mut c) => {
-                    let (tx, rx) = bounded(1);
-                    promise::spawn::spawn_into_main_thread(async move {
-                        if let Ok(status) = c.async_wait().await {
-                            tx.send(status).await.ok();
-                            let mux = Mux::get().unwrap();
-                            mux.prune_dead_windows();
-                        }
-                    })
-                    .detach();
-                    self.status.replace(rx);
+                Ok(c) => {
+                    self.got_child(c);
                 }
                 Err(err) => {
                     log::error!("WrappedSshChild err: {:#?}", err);
@@ -793,6 +811,38 @@ impl portable_pty::Child for WrappedSshChild {
     #[cfg(windows)]
     fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
         None
+    }
+}
+
+impl ChildKiller for WrappedSshChild {
+    fn kill(&mut self) -> std::io::Result<()> {
+        let mut killer = self.killer.inner.lock().unwrap();
+        if let Some(killer) = killer.killer.as_mut() {
+            killer.kill()
+        } else {
+            killer.pending_kill = true;
+            Ok(())
+        }
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(self.killer.clone())
+    }
+}
+
+impl ChildKiller for WrappedSshChildKiller {
+    fn kill(&mut self) -> std::io::Result<()> {
+        let mut killer = self.inner.lock().unwrap();
+        if let Some(killer) = killer.killer.as_mut() {
+            killer.kill()
+        } else {
+            killer.pending_kill = true;
+            Ok(())
+        }
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(self.clone())
     }
 }
 
