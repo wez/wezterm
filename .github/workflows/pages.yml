@@ -13,6 +13,16 @@ on:
       - ".github/ISSUE_TEMPLATE/*"
   schedule:
     - cron: "50 * * * *"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/ISSUE_TEMPLATE/*"
 
 jobs:
   publish:
@@ -41,7 +51,7 @@ jobs:
           PATH="$HOME/mdbook-bin:$PATH"
           ./ci/build-docs.sh
       - name: Deploy
-        if: success()
+        if: success() && ${{ github.event_name != 'pull_request' }}
         uses: crazy-max/ghaction-github-pages@v2
         with:
           target_branch: gh-pages
