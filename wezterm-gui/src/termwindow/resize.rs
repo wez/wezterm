@@ -247,6 +247,17 @@ impl super::TermWindow {
                     dims,
                     cell_dims
                 );
+                // Stash this size pre-emptively. Without this, on Windows,
+                // when the font scaling is changed we can end up not seeing
+                // these dimensions and the scaling_changed logic ends up
+                // comparing two dimensions that have the same DPI and recomputing
+                // an adjusted terminal size.
+                // eg: rather than a simple old-dpi -> new dpi transition, we'd
+                // see old-dpi -> new dpi, call set_inner_size, then see a
+                // new-dpi -> new-dpi adjustment with a slightly different
+                // pixel geometry which is considered to be a user-driven resize.
+                // Stashing the dimensions here avoids that misconception.
+                self.dimensions = dims;
                 window.set_inner_size(dims.pixel_width, dims.pixel_height);
             }
         }
@@ -265,19 +276,44 @@ impl super::TermWindow {
             n as f32 / dpi as f32
         }
 
+        /// On Windows, scaling changes may adjust the pixel geometry by a few pixels,
+        /// so this function checks if we're in a close-enough ballpark.
+        fn close_enough(a: f32, b: f32) -> bool {
+            let diff = (a - b).abs();
+            diff < 10.
+        }
+
         // Distinguish between eg: dpi being detected as double the initial dpi (where
         // the pixel dimensions don't change), and the dpi change being detected, but
         // where the window manager also decides to tile/resize the window.
         // In the latter case, we don't want to preserve the terminal rows/cols.
         let simple_dpi_change = dimensions.dpi != self.dimensions.dpi
-            && dpi_adjusted(dimensions.pixel_height, dimensions.dpi)
-                == dpi_adjusted(self.dimensions.pixel_height, self.dimensions.dpi)
-            && dpi_adjusted(dimensions.pixel_width, dimensions.dpi)
-                == dpi_adjusted(self.dimensions.pixel_width, self.dimensions.dpi);
+            && (close_enough(
+                dpi_adjusted(dimensions.pixel_height, dimensions.dpi),
+                dpi_adjusted(self.dimensions.pixel_height, self.dimensions.dpi),
+            ) && close_enough(
+                dpi_adjusted(dimensions.pixel_width, dimensions.dpi),
+                dpi_adjusted(self.dimensions.pixel_width, self.dimensions.dpi),
+            ))
+            || (close_enough(
+                dimensions.pixel_width as f32,
+                self.dimensions.pixel_width as f32,
+            ) && close_enough(
+                dimensions.pixel_height as f32,
+                self.dimensions.pixel_height as f32,
+            ));
 
         let dpi_changed = dimensions.dpi != self.dimensions.dpi;
         let font_scale_changed = font_scale != self.fonts.get_font_scale();
         let scale_changed = dpi_changed || font_scale_changed;
+
+        log::trace!(
+            "dpi_changed={}, font_scale_changed={} scale_changed={} simple_dpi_change={}",
+            dpi_changed,
+            font_scale_changed,
+            scale_changed,
+            simple_dpi_change
+        );
 
         let cell_dims = self.current_cell_dimensions();
 
@@ -291,6 +327,10 @@ impl super::TermWindow {
             None
         };
 
+        log::trace!(
+            "scaling_changed, follow with applying dimensions. scale_changed_cells={:?}",
+            scale_changed_cells
+        );
         self.apply_dimensions(&dimensions, scale_changed_cells, window);
     }
 
