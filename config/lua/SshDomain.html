@@ -179,6 +179,20 @@
     -- remote_wezterm_path = &quot;/home/yourusername/bin/wezterm&quot;
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You may now specify a table with ssh config overrides:</p>
+<pre><code class="language-lua">return {
+  ssh_domains = {
+    {
+      name = &quot;my.server&quot;,
+      remote_address = &quot;192.168.1.1&quot;,
+      ssh_option = {
+        identityfile = &quot;/path/to/id_rsa.pub&quot;,
+      }
+    }
+  }
+}
+</code></pre>
 
                     </main>
 

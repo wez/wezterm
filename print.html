@@ -426,6 +426,7 @@ usually the best available version.</p>
 <ul>
 <li>unix domains now support an optional <code>proxy_command</code> to use in place of a direct unix socket connection. <a href="multiplexing.html#unix-domains">Read more about multiplexing unix domains</a></li>
 <li><a href="config/lua/keyassignment/ScrollToTop.html">ScrollToTop</a> and <a href="config/lua/keyassignment/ScrollToBottom.html">ScrollToBottom</a> key assignments <a href="https://github.com/wez/wezterm/issues/1360">#1360</a></li>
+<li><a href="config/lua/SshDomain.html">SSH Domains</a> now support specifying <code>ssh_config</code> overrides. <a href="https://github.com/wez/wezterm/issues/1149">#1149</a></li>
 </ul>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
@@ -8805,6 +8806,20 @@ and tab title bars.</p>
     -- Primarily useful if it isn't installed in the $PATH
     -- that is configure for ssh.
     -- remote_wezterm_path = &quot;/home/yourusername/bin/wezterm&quot;
+}
+</code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You may now specify a table with ssh config overrides:</p>
+<pre><code class="language-lua">return {
+  ssh_domains = {
+    {
+      name = &quot;my.server&quot;,
+      remote_address = &quot;192.168.1.1&quot;,
+      ssh_option = {
+        identityfile = &quot;/path/to/id_rsa.pub&quot;,
+      }
+    }
+  }
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="spawncommand"><a class="header" href="#spawncommand">SpawnCommand</a></h1>
