@@ -423,6 +423,9 @@ and the feature set may change, but since @wez uses this as a daily driver, its
 usually the best available version.</p>
 <p>As features stabilize some brief notes about them will accumulate here.</p>
 <h4 id="new"><a class="header" href="#new">New</a></h4>
+<ul>
+<li>unix domains now support an optional <code>proxy_command</code> to use in place of a direct unix socket connection. <a href="multiplexing.html#unix-domains">Read more about multiplexing unix domains</a></li>
+</ul>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
 <li>quickselect: we now de-duplicate labels for results with the same textual content. <a href="https://github.com/wez/wezterm/issues/1271">#1271</a></li>
@@ -2744,6 +2747,23 @@ when wezterm is launched:</p>
 
       -- skip_permissions_check = false,
 
+    }
+  }
+}
+</code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>It is now possible to specify a <code>proxy_command</code> that will be used
+in place of making a direct unix connection.  When <code>proxy_command</code>
+is specified, it will be used instead of the optional <code>socket_path</code>.</p>
+<p>This example shows a redundant use of <code>nc</code> (netcat) to connect to
+the unix socket path on my mac.  This isn't useful on its own,
+but may help with the WSL 2 issue mentioned below when translated
+to an appropriate invocation of netcat/socat on Windows:</p>
+<pre><code class="language-lua">return {
+  unix_domains = {
+    {
+      name = &quot;unix&quot;,
+      proxy_command = {&quot;nc&quot;, &quot;-U&quot;, &quot;/Users/wez/.local/share/wezterm/sock&quot;},
     }
   }
 }

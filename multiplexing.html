@@ -247,6 +247,23 @@ when wezterm is launched:</p>
   }
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>It is now possible to specify a <code>proxy_command</code> that will be used
+in place of making a direct unix connection.  When <code>proxy_command</code>
+is specified, it will be used instead of the optional <code>socket_path</code>.</p>
+<p>This example shows a redundant use of <code>nc</code> (netcat) to connect to
+the unix socket path on my mac.  This isn't useful on its own,
+but may help with the WSL 2 issue mentioned below when translated
+to an appropriate invocation of netcat/socat on Windows:</p>
+<pre><code class="language-lua">return {
+  unix_domains = {
+    {
+      name = &quot;unix&quot;,
+      proxy_command = {&quot;nc&quot;, &quot;-U&quot;, &quot;/Users/wez/.local/share/wezterm/sock&quot;},
+    }
+  }
+}
+</code></pre>
 <h3 id="connecting-into-windows-subsystem-for-linux"><a class="header" href="#connecting-into-windows-subsystem-for-linux">Connecting into Windows Subsystem for Linux</a></h3>
 <p><em>Note: this only works with WSL 1. <a href="https://github.com/microsoft/WSL/issues/5961">WSL 2 doesn't support AF_UNIX interop</a></em></p>
 <p>Inside your WSL instance, configure <code>.wezterm.lua</code> with this snippet:</p>
