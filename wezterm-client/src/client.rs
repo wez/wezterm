@@ -5,7 +5,7 @@ use anyhow::{anyhow, bail, Context};
 use async_ossl::AsyncSslStream;
 use async_trait::async_trait;
 use codec::*;
-use config::{configuration, SshBackend, SshDomain, TlsDomainClient, UnixDomain};
+use config::{configuration, SshBackend, SshDomain, TlsDomainClient, UnixDomain, UnixTarget};
 use filedescriptor::FileDescriptor;
 use futures::FutureExt;
 use mux::connui::ConnectionUI;
@@ -268,10 +268,10 @@ async fn client_thread_async(
 }
 
 pub fn unix_connect_with_retry(
-    path: &Path,
+    target: &UnixTarget,
     just_spawned: bool,
-) -> Result<UnixStream, std::io::Error> {
-    let mut error = std::io::Error::last_os_error();
+) -> anyhow::Result<UnixStream> {
+    let mut error = None;
 
     if just_spawned {
         std::thread::sleep(std::time::Duration::from_millis(200));
@@ -281,13 +281,69 @@ pub fn unix_connect_with_retry(
         if iter > 0 {
             std::thread::sleep(std::time::Duration::from_millis(iter * 10));
         }
-        match UnixStream::connect(path) {
-            Ok(stream) => return Ok(stream),
-            Err(err) => error = err,
+        match target {
+            UnixTarget::Socket(path) => match UnixStream::connect(path) {
+                Ok(stream) => return Ok(stream),
+                Err(err) => {
+                    error =
+                        Some(Err(err).with_context(|| format!("connecting to {}", path.display())))
+                }
+            },
+            UnixTarget::Proxy(argv) => {
+                let mut cmd = std::process::Command::new(&argv[0]);
+                cmd.args(&argv[1..]);
+
+                let (a, b) = filedescriptor::socketpair()?;
+
+                cmd.stdin(b.as_stdio()?);
+                cmd.stdout(b.as_stdio()?);
+                cmd.stderr(std::process::Stdio::inherit());
+                let mut child = cmd
+                    .spawn()
+                    .with_context(|| format!("spawning proxy command {:?}", cmd))?;
+
+                error.take();
+
+                // Grace period to detect whether connection failed
+                for _ in 0..5 {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    match child.try_wait() {
+                        Ok(Some(status)) => {
+                            error = Some(Err(anyhow!(
+                                "{:?} exited already with status {:?}",
+                                cmd,
+                                status
+                            )));
+                            continue;
+                        }
+                        Ok(None) => {
+                            error.take();
+                        }
+                        Err(err) => {
+                            error =
+                                Some(Err(err).context(format!("spawning proxy command {:?}", cmd)));
+                            continue;
+                        }
+                    }
+                }
+
+                if error.is_none() {
+                    #[cfg(unix)]
+                    unsafe {
+                        use std::os::unix::io::{FromRawFd, IntoRawFd};
+                        return Ok(UnixStream::from_raw_fd(a.into_raw_fd()));
+                    }
+                    #[cfg(windows)]
+                    unsafe {
+                        use std::os::windows::io::{FromRawSocket, IntoRawSocket};
+                        return Ok(UnixStream::from_raw_socket(a.into_raw_socket()));
+                    }
+                }
+            }
         }
     }
 
-    Err(error)
+    error.expect("only get here after at least one unix fail")
 }
 
 #[async_trait(?Send)]
@@ -524,19 +580,19 @@ impl Reconnectable {
         ui: &mut ConnectionUI,
         no_auto_start: bool,
     ) -> anyhow::Result<()> {
-        let sock_path = unix_dom.socket_path();
-        ui.output_str(&format!("Connect to {}\n", sock_path.display()));
-        log::trace!("connect to {}", sock_path.display());
+        let target = unix_dom.target();
+        ui.output_str(&format!("Connect to {:?}\n", target));
+        log::trace!("connect to {:?}", target);
 
-        let stream = match unix_connect_with_retry(&sock_path, false) {
+        let stream = match unix_connect_with_retry(&target, false) {
             Ok(stream) => stream,
             Err(e) => {
                 if no_auto_start || unix_dom.no_serve_automatically || !initial {
-                    bail!("failed to connect to {}: {}", sock_path.display(), e);
+                    bail!("failed to connect to {:?}: {}", target, e);
                 }
                 log::warn!(
-                    "While connecting to {}: {}.  Will try spawning the server.",
-                    sock_path.display(),
+                    "While connecting to {:?}: {}.  Will try spawning the server.",
+                    target,
                     e
                 );
                 ui.output_str(&format!("Error: {}.  Will try spawning server.\n", e));
@@ -570,11 +626,8 @@ impl Reconnectable {
                     }
                 });
 
-                unix_connect_with_retry(&sock_path, true).with_context(|| {
-                    format!(
-                        "(after spawning server) failed to connect to {}",
-                        sock_path.display()
-                    )
+                unix_connect_with_retry(&target, true).with_context(|| {
+                    format!("(after spawning server) failed to connect to {:?}", target)
                 })?
             }
         };

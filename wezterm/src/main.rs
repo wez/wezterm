@@ -549,8 +549,8 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             let mux = Rc::new(mux::Mux::new(None));
             Mux::set_mux(&mux);
             let unix_dom = config.unix_domains.first().unwrap();
-            let sock_path = unix_dom.socket_path();
-            let stream = unix_connect_with_retry(&sock_path, false)?;
+            let target = unix_dom.target();
+            let stream = unix_connect_with_retry(&target, false)?;
 
             // Spawn a thread to pull data from the socket and write
             // it to stdout

@@ -127,6 +127,28 @@ return {
 }
 ```
 
+*Since: nightly builds only*
+
+It is now possible to specify a `proxy_command` that will be used
+in place of making a direct unix connection.  When `proxy_command`
+is specified, it will be used instead of the optional `socket_path`.
+
+This example shows a redundant use of `nc` (netcat) to connect to
+the unix socket path on my mac.  This isn't useful on its own,
+but may help with the WSL 2 issue mentioned below when translated
+to an appropriate invocation of netcat/socat on Windows:
+
+```lua
+return {
+  unix_domains = {
+    {
+      name = "unix",
+      proxy_command = {"nc", "-U", "/Users/wez/.local/share/wezterm/sock"},
+    }
+  }
+}
+```
+
 ### Connecting into Windows Subsystem for Linux
 
 *Note: this only works with WSL 1. [WSL 2 doesn't support AF_UNIX interop](https://github.com/microsoft/WSL/issues/5961)*

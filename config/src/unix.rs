@@ -30,6 +30,11 @@ pub struct UnixDomain {
     /// a unix domain inside a wsl container.
     pub serve_command: Option<Vec<String>>,
 
+    /// Instead of directly connecting to `socket_path`,
+    /// spawn this command and use its stdin/stdout in place of
+    /// the socket.
+    pub proxy_command: Option<Vec<String>>,
+
     /// If true, bypass checking for secure ownership of the
     /// socket_path.  This is not recommended on a multi-user
     /// system, but is useful for example when running the
@@ -57,8 +62,15 @@ impl Default for UnixDomain {
             skip_permissions_check: false,
             read_timeout: default_read_timeout(),
             write_timeout: default_write_timeout(),
+            proxy_command: None,
         }
     }
+}
+
+#[derive(Debug)]
+pub enum UnixTarget {
+    Socket(PathBuf),
+    Proxy(Vec<String>),
 }
 
 impl UnixDomain {
@@ -67,6 +79,14 @@ impl UnixDomain {
             .as_ref()
             .cloned()
             .unwrap_or_else(|| RUNTIME_DIR.join("sock"))
+    }
+
+    pub fn target(&self) -> UnixTarget {
+        if let Some(proxy) = &self.proxy_command {
+            UnixTarget::Proxy(proxy.clone())
+        } else {
+            UnixTarget::Socket(self.socket_path())
+        }
     }
 
     pub fn default_unix_domains() -> Vec<Self> {

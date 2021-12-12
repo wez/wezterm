@@ -13,6 +13,8 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### New
 
+* unix domains now support an optional `proxy_command` to use in place of a direct unix socket connection. [Read more about multiplexing unix domains](multiplexing.html#unix-domains)
+
 #### Changed
 
 * quickselect: we now de-duplicate labels for results with the same textual content. [#1271](https://github.com/wez/wezterm/issues/1271)
