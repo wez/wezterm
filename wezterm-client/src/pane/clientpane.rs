@@ -159,7 +159,7 @@ impl ClientPane {
 
 #[async_trait(?Send)]
 impl Pane for ClientPane {
-    fn pane_id(&self) -> TabId {
+    fn pane_id(&self) -> PaneId {
         self.local_pane_id
     }
 
