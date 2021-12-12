@@ -42,6 +42,10 @@ pub struct SshDomain {
     pub remote_wezterm_path: Option<String>,
 
     pub ssh_backend: Option<SshBackend>,
+
+    /// ssh_config option values
+    #[serde(default)]
+    pub ssh_option: HashMap<String, String>,
 }
 impl_lua_conversion!(SshDomain);
 

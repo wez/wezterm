@@ -518,6 +518,9 @@ impl Reconnectable {
             }
             .to_string(),
         );
+        for (k, v) in &ssh_dom.ssh_option {
+            ssh_config.insert(k.to_string(), v.to_string());
+        }
 
         if let Some(username) = &ssh_dom.username {
             ssh_config.insert("user".to_string(), username.to_string());

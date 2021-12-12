@@ -35,3 +35,22 @@ It is a lua object with the following fields:
     -- remote_wezterm_path = "/home/yourusername/bin/wezterm"
 }
 ```
+
+*Since: nightly builds only*
+
+You may now specify a table with ssh config overrides:
+
+```lua
+return {
+  ssh_domains = {
+    {
+      name = "my.server",
+      remote_address = "192.168.1.1",
+      ssh_option = {
+        identityfile = "/path/to/id_rsa.pub",
+      }
+    }
+  }
+}
+```
+
