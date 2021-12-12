@@ -1258,8 +1258,8 @@ struct KeyboardLayoutInfo {
 #[derive(Debug)]
 struct DeadKey {
     dead_char: char,
-    vk: u8,
-    mods: Modifiers,
+    _vk: u8,
+    _mods: Modifiers,
     map: HashMap<(Modifiers, u8), char>,
 }
 
@@ -1456,8 +1456,8 @@ impl KeyboardLayoutInfo {
                     (mods, vk as u8),
                     DeadKey {
                         dead_char,
-                        mods,
-                        vk: vk as u8,
+                        _mods: mods,
+                        _vk: vk as u8,
                         map,
                     },
                 );
