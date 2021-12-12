@@ -1,7 +1,7 @@
 name: pages
 
 on:
-  push:
+  pull_request:
     branches:
       - main
     paths:
@@ -9,13 +9,11 @@ on:
       - "ci/build-docs.sh"
       - "ci/generate-docs.py"
       - "ci/subst-release-info.py"
-      - ".github/workflows/pages.yml"
+      - ".github/workflows/verify-pages.yml"
       - ".github/ISSUE_TEMPLATE/*"
-  schedule:
-    - cron: "50 * * * *"
 
 jobs:
-  publish:
+  build-docs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -40,13 +38,4 @@ jobs:
           source $HOME/.cargo/env
           PATH="$HOME/mdbook-bin:$PATH"
           ./ci/build-docs.sh
-      - name: Deploy
-        if: success()
-        uses: crazy-max/ghaction-github-pages@v2
-        with:
-          target_branch: gh-pages
-          build_dir: gh_pages/html
-          keep_history: true
-          allow_empty_commit: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
