@@ -179,6 +179,8 @@ pub enum KeyAssignment {
     ScrollByPage(isize),
     ScrollByLine(isize),
     ScrollToPrompt(isize),
+    ScrollToTop,
+    ScrollToBottom,
     ShowTabNavigator,
     ShowDebugOverlay,
     HideApplication,

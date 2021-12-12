@@ -1876,6 +1876,8 @@ impl TermWindow {
             ScrollByPage(n) => self.scroll_by_page(*n)?,
             ScrollByLine(n) => self.scroll_by_line(*n)?,
             ScrollToPrompt(n) => self.scroll_to_prompt(*n)?,
+            ScrollToTop => self.scroll_to_top(pane),
+            ScrollToBottom => self.scroll_to_bottom(pane),
             ShowTabNavigator => self.show_tab_navigator(),
             ShowDebugOverlay => self.show_debug_overlay(),
             ShowLauncher => self.show_launcher(),
@@ -2160,6 +2162,11 @@ impl TermWindow {
         if self.config.scroll_to_bottom_on_input {
             self.scroll_to_bottom(pane);
         }
+    }
+
+    fn scroll_to_top(&mut self, pane: &Rc<dyn Pane>) {
+        let dims = pane.get_dimensions();
+        self.set_viewport(pane.pane_id(), Some(dims.scrollback_top), dims);
     }
 
     fn scroll_to_bottom(&mut self, pane: &Rc<dyn Pane>) {
