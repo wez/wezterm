@@ -10,7 +10,6 @@ use std::io::Error as IoError;
 use std::mem;
 use std::os::windows::ffi::OsStringExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle};
-use std::os::windows::raw::HANDLE;
 use std::path::Path;
 use std::ptr;
 use std::sync::Mutex;
@@ -22,6 +21,7 @@ use winapi::um::winbase::{
     CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT, STARTF_USESTDHANDLES, STARTUPINFOEXW,
 };
 use winapi::um::wincon::COORD;
+use winapi::um::winnt::HANDLE;
 
 pub type HPCON = HANDLE;
 
@@ -80,8 +80,8 @@ impl PsuedoCon {
         let result = unsafe {
             (CONPTY.CreatePseudoConsole)(
                 size,
-                input.as_raw_handle(),
-                output.as_raw_handle(),
+                input.as_raw_handle() as _,
+                output.as_raw_handle() as _,
                 PSEUDOCONSOLE_RESIZE_QUIRK | PSEUDOCONSOLE_WIN32_INPUT_MODE,
                 &mut con,
             )
@@ -161,8 +161,8 @@ impl PsuedoCon {
 
         // Make sure we close out the thread handle so we don't leak it;
         // we do this simply by making it owned
-        let _main_thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread) };
-        let proc = unsafe { OwnedHandle::from_raw_handle(pi.hProcess) };
+        let _main_thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread as _) };
+        let proc = unsafe { OwnedHandle::from_raw_handle(pi.hProcess as _) };
 
         Ok(WinChild {
             proc: Mutex::new(proc),

@@ -26,7 +26,7 @@ impl WinChild {
     fn is_complete(&mut self) -> IoResult<Option<ExitStatus>> {
         let mut status: DWORD = 0;
         let proc = self.proc.lock().unwrap().try_clone().unwrap();
-        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle(), &mut status) };
+        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle() as _, &mut status) };
         if res != 0 {
             if status == STILL_ACTIVE {
                 Ok(None)
@@ -40,7 +40,7 @@ impl WinChild {
 
     fn do_kill(&mut self) -> IoResult<()> {
         let proc = self.proc.lock().unwrap().try_clone().unwrap();
-        let res = unsafe { TerminateProcess(proc.as_raw_handle(), 1) };
+        let res = unsafe { TerminateProcess(proc.as_raw_handle() as _, 1) };
         let err = IoError::last_os_error();
         if res != 0 {
             Err(err)
@@ -69,7 +69,7 @@ pub struct WinChildKiller {
 
 impl ChildKiller for WinChildKiller {
     fn kill(&mut self) -> IoResult<()> {
-        let res = unsafe { TerminateProcess(self.proc.as_raw_handle(), 1) };
+        let res = unsafe { TerminateProcess(self.proc.as_raw_handle() as _, 1) };
         let err = IoError::last_os_error();
         if res != 0 {
             Err(err)
@@ -95,10 +95,10 @@ impl Child for WinChild {
         }
         let proc = self.proc.lock().unwrap().try_clone().unwrap();
         unsafe {
-            WaitForSingleObject(proc.as_raw_handle(), INFINITE);
+            WaitForSingleObject(proc.as_raw_handle() as _, INFINITE);
         }
         let mut status: DWORD = 0;
-        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle(), &mut status) };
+        let res = unsafe { GetExitCodeProcess(proc.as_raw_handle() as _, &mut status) };
         if res != 0 {
             Ok(ExitStatus::with_exit_code(status))
         } else {
@@ -107,7 +107,7 @@ impl Child for WinChild {
     }
 
     fn process_id(&self) -> Option<u32> {
-        let res = unsafe { GetProcessId(self.proc.lock().unwrap().as_raw_handle()) };
+        let res = unsafe { GetProcessId(self.proc.lock().unwrap().as_raw_handle() as _) };
         if res == 0 {
             None
         } else {
@@ -138,7 +138,7 @@ impl std::future::Future for WinChild {
                 let waker = cx.waker().clone();
                 std::thread::spawn(move || {
                     unsafe {
-                        WaitForSingleObject(handle.0, INFINITE);
+                        WaitForSingleObject(handle.0 as _, INFINITE);
                     }
                     waker.wake();
                 });
