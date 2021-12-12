@@ -7,5 +7,6 @@ python3 ci/subst-release-info.py || exit 1
 python3 ci/generate-docs.py || exit 1
 mdbook build docs
 
+rm gh_pages/html/README.markdown
 cp assets/icon/terminal.png gh_pages/html/favicon.png
 cp assets/icon/wezterm-icon.svg gh_pages/html/favicon.svg
