@@ -799,6 +799,9 @@ pub struct Config {
     /// as the positional arguments to that command.
     pub default_prog: Option<Vec<String>>,
 
+    #[serde(default = "default_gui_startup_args")]
+    pub default_gui_startup_args: Vec<String>,
+
     /// Specifies the default current working directory if none is specified
     /// through configuration or OSC 7 (see docs for `default_cwd` for more
     /// info!)
@@ -1965,4 +1968,8 @@ fn default_write_timeout() -> Duration {
 
 fn default_bypass_mouse_reporting_modifiers() -> Modifiers {
     Modifiers::SHIFT
+}
+
+fn default_gui_startup_args() -> Vec<String> {
+    vec!["start".to_string()]
 }

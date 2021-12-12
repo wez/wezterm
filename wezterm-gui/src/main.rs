@@ -3,7 +3,7 @@
 
 use crate::frontend::front_end;
 use ::window::*;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use config::{ConfigHandle, SshBackend};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
@@ -649,12 +649,24 @@ fn run() -> anyhow::Result<()> {
     );
     let config = config::configuration();
 
-    match opts
-        .cmd
-        .as_ref()
-        .cloned()
-        .unwrap_or_else(|| SubCommand::Start(StartCommand::default()))
-    {
+    let sub = match opts.cmd.as_ref().cloned() {
+        Some(sub) => sub,
+        None => {
+            // Need to fake an argv0
+            let mut argv = vec!["wezterm-gui".to_string()];
+            for a in &config.default_gui_startup_args {
+                argv.push(a.clone());
+            }
+            SubCommand::from_iter_safe(&argv).with_context(|| {
+                format!(
+                    "parsing the default_gui_startup_args config: {:?}",
+                    config.default_gui_startup_args
+                )
+            })?
+        }
+    };
+
+    match sub {
         SubCommand::Start(start) => {
             log::trace!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
             run_terminal_gui(start)
