@@ -229,6 +229,9 @@ pub struct TermWindow {
     tab_bar: TabBarState,
     pub right_status: String,
     last_ui_item: Option<UIItem>,
+    /// Tracks whether the current mouse-down event is part of click-focus.
+    /// If so, we ignore mouse events until released
+    is_click_to_focus: bool,
     last_mouse_coords: (usize, i64),
     last_mouse_terminal_coords: (usize, StableRowIndex),
     window_drag_position: Option<MouseEvent>,
@@ -323,6 +326,7 @@ impl TermWindow {
         if self.focused.is_none() {
             self.last_mouse_click = None;
             self.current_mouse_buttons.clear();
+            self.is_click_to_focus = false;
         }
 
         // Reset the cursor blink phase
@@ -652,6 +656,7 @@ impl TermWindow {
             ui_items: vec![],
             dragging: None,
             last_ui_item: None,
+            is_click_to_focus: false,
         };
 
         let tw = Rc::new(RefCell::new(myself));

@@ -12,7 +12,6 @@ use std::convert::TryInto;
 use std::ops::Sub;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Duration;
 use wezterm_term::input::MouseEventKind as TMEK;
 use wezterm_term::{LastMouseClick, StableRowIndex};
 
@@ -471,10 +470,18 @@ impl super::TermWindow {
                 break;
             }
         }
-        if let Some(focused) = self.focused.as_ref() {
-            if focused.elapsed() <= Duration::from_millis(200) {
-                if is_click_to_focus {
-                    context.invalidate();
+        if self.focused.is_some() {
+            // Entering click-to-focus state
+            if is_click_to_focus {
+                context.invalidate();
+                self.is_click_to_focus = true;
+                return;
+            }
+
+            // Check to see if we can leave click-to-focus state
+            if self.is_click_to_focus {
+                if matches!(event.kind, WMEK::Release(_)) {
+                    self.is_click_to_focus = false;
                 }
                 return;
             }
