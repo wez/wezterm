@@ -11,7 +11,7 @@
 * Configuration via a <a href="config/files.html">configuration file</a> with hot reloading
 * Multiple Windows (Hotkey: `Super-N`)
 * Splits/Panes
-* Tabs (Hotkey: `Super-T`, next/prev: `Super-[` and `Super-]`, go-to: `Super-[1-9]`)
+* Tabs (Hotkey: `Super-T`, next/prev: `Super-Shift-[` and `Super-Shift-]`, go-to: `Super-[1-9]`)
   <video width="80%" controls src="screenshots/wezterm-tabs.mp4" loop></video>
 * [SSH client with native tabs](ssh.html)
 * [Connect to serial ports for embedded/Arduino work](serial.html)
