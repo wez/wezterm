@@ -18,6 +18,7 @@ use libssh_rs as libssh;
 use portable_pty::ExitStatus;
 use smol::channel::{bounded, Receiver, Sender, TryRecvError};
 use std::collections::{HashMap, VecDeque};
+use std::ffi::CStr;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::time::Duration;
@@ -113,10 +114,49 @@ impl SessionInner {
             == "true"
         {
             sess.set_option(libssh::SshOption::LogLevel(libssh::LogLevel::Packet))?;
+
+            /// libssh logs to stderr, but on Windows in the GUI there isn't a valid
+            /// stderr for it to log to.
+            /// So, we redirect logging via our own log callback and pipe it via
+            /// the `log` crate.
+            unsafe extern "C" fn log_callback(
+                _priority: std::os::raw::c_int,
+                function: *const std::os::raw::c_char,
+                message: *const std::os::raw::c_char,
+                _userdata: *mut std::os::raw::c_void,
+            ) {
+                let function = CStr::from_ptr(function).to_string_lossy().to_string();
+                let message = CStr::from_ptr(message).to_string_lossy().to_string();
+
+                /// The message typically has "function: message" prefixed, which
+                /// looks redundant when logged with the function prefix by the
+                /// logging crate.
+                /// Strip that off!
+                let message = match message.strip_prefix(&format!("{}: ", function)) {
+                    Some(m) => m,
+                    None => &message,
+                };
+
+                log::logger().log(
+                    &log::Record::builder()
+                        .args(format_args!("{}", message))
+                        .level(log::Level::Info)
+                        .module_path(Some(&function))
+                        .target(&format!("libssh::{}", function))
+                        .build(),
+                );
+            }
+            unsafe {
+                libssh::sys::ssh_set_log_callback(Some(log_callback));
+            }
         }
         sess.set_option(libssh::SshOption::Hostname(hostname.clone()))?;
         sess.set_option(libssh::SshOption::User(Some(user)))?;
         sess.set_option(libssh::SshOption::Port(port))?;
+        sess.options_parse_config(None)?; // FIXME: overridden config path?
+        if let Some(agent) = self.config.get("identityagent") {
+            sess.set_option(libssh::SshOption::IdentityAgent(Some(agent.clone())))?;
+        }
         if let Some(files) = self.config.get("identityfile") {
             for file in files.split_whitespace() {
                 sess.set_option(libssh::SshOption::AddIdentity(file.to_string()))?;
@@ -132,7 +172,6 @@ impl SessionInner {
             sess.set_option(libssh::SshOption::ProxyCommand(Some(cmd.to_string())))?;
         }
 
-        sess.options_parse_config(None)?; // FIXME: overridden config path?
         sess.connect()?;
 
         let banner = sess.get_server_banner()?;
