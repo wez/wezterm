@@ -70,7 +70,7 @@ impl SessionInner {
             .config
             .get("wezterm_ssh_backend")
             .map(|s| s.as_str())
-            .unwrap_or("ssh2");
+            .unwrap_or("libssh");
         match backend {
             "ssh2" => self.run_impl_ssh2(),
             "libssh" => self.run_impl_libssh(),
@@ -128,10 +128,10 @@ impl SessionInner {
                 let function = CStr::from_ptr(function).to_string_lossy().to_string();
                 let message = CStr::from_ptr(message).to_string_lossy().to_string();
 
-                /// The message typically has "function: message" prefixed, which
-                /// looks redundant when logged with the function prefix by the
-                /// logging crate.
-                /// Strip that off!
+                // The message typically has "function: message" prefixed, which
+                // looks redundant when logged with the function prefix by the
+                // logging crate.
+                // Strip that off!
                 let message = match message.strip_prefix(&format!("{}: ", function)) {
                     Some(m) => m,
                     None => &message,

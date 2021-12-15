@@ -727,24 +727,25 @@ impl Reconnectable {
                     let mut exec = smol::block_on(sess.exec(&cmd, None))
                         .with_context(|| format!("executing `{}` on remote host", cmd))?;
 
-                    // stdout holds an encoded pdu
-                    let mut buf = Vec::new();
-                    exec.stdout
-                        .read_to_end(&mut buf)
-                        .context("reading tlscreds response to buffer")?;
+                    log::debug!("waiting for command to finish");
+                    let status = exec.child.wait()?;
+                    if !status.success() {
+                        anyhow::bail!("{} failed", cmd);
+                    }
 
                     drop(exec.stdin);
 
-                    // stderr is ideally empty
-                    let mut err = String::new();
-                    exec.stderr
-                        .read_to_string(&mut err)
-                        .context("reading tlscreds stderr")?;
-                    if !err.is_empty() {
-                        log::error!("remote: `{}` stderr -> `{}`", cmd, err);
-                    }
+                    let mut stderr = exec.stderr;
+                    thread::spawn(move || {
+                        // stderr is ideally empty
+                        let mut err = String::new();
+                        let _ = stderr.read_to_string(&mut err);
+                        if !err.is_empty() {
+                            log::error!("remote: `{}` stderr -> `{}`", cmd, err);
+                        }
+                    });
 
-                    let creds = match Pdu::decode(buf.as_slice())
+                    let creds = match Pdu::decode(exec.stdout)
                         .context("reading tlscreds response")?
                         .pdu
                     {
