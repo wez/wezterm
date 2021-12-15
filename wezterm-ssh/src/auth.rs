@@ -165,6 +165,7 @@ impl crate::sessioninner::SessionInner {
             if auth_methods.contains(AuthMethods::PUBLIC_KEY) {
                 match sess.userauth_public_key_auto(None, None)? {
                     AuthStatus::Success => return Ok(()),
+                    AuthStatus::Partial => continue,
                     _ => {}
                 }
             }
@@ -203,6 +204,7 @@ impl crate::sessioninner::SessionInner {
                         AuthStatus::Denied => {
                             break;
                         }
+                        AuthStatus::Partial => continue,
                         status => {
                             anyhow::bail!("interactive auth status: {:?}", status);
                         }
@@ -231,6 +233,7 @@ impl crate::sessioninner::SessionInner {
 
                 match sess.userauth_password(None, Some(&pw))? {
                     AuthStatus::Success => return Ok(()),
+                    AuthStatus::Partial => continue,
                     status => anyhow::bail!("password auth status: {:?}", status),
                 }
             }
