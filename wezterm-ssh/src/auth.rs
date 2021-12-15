@@ -2,7 +2,7 @@ use crate::session::SessionEvent;
 use anyhow::Context;
 use libssh_rs as libssh;
 use smol::channel::{bounded, Sender};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -161,12 +161,15 @@ impl crate::sessioninner::SessionInner {
 
         loop {
             let auth_methods = sess.userauth_list(None)?;
+            let mut status_by_method = HashMap::new();
 
             if auth_methods.contains(AuthMethods::PUBLIC_KEY) {
                 match sess.userauth_public_key_auto(None, None)? {
                     AuthStatus::Success => return Ok(()),
                     AuthStatus::Partial => continue,
-                    _ => {}
+                    status => {
+                        status_by_method.insert(AuthMethods::PUBLIC_KEY, status);
+                    }
                 }
             }
 
@@ -238,7 +241,11 @@ impl crate::sessioninner::SessionInner {
                 }
             }
 
-            anyhow::bail!("unhandled auth case; methods={:?}", auth_methods);
+            anyhow::bail!(
+                "unhandled auth case; methods={:?}, status={:?}",
+                auth_methods,
+                status_by_method
+            );
         }
     }
 
