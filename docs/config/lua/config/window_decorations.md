@@ -26,5 +26,5 @@ mouse reporting you will need to hold down the `SHIFT` modifier in order for
 
 When the resizable border is disabled you will need to use features of your
 desktop environment to resize the window.  Windows users may wish to consider
-[AltDrag](https://stefansundin.github.io/altdrag/).
+[AltSnap](https://github.com/RamonUnch/AltSnap).
 
