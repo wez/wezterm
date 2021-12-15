@@ -611,8 +611,13 @@ async fn canonicalize_should_either_return_resolved_path_or_error_if_missing(
         .await;
     match result {
         Ok(_) => {}
-        Err(SftpChannelError::Sftp(SftpError::NoSuchFile)) => {}
-        x => panic!("Unexpected result from canonicalize: {:?}", x),
+        Err(SftpChannelError::Sftp(SftpError::NoSuchFile))
+        | Err(SftpChannelError::LibSsh(libssh_rs::Error::Sftp(_))) => {}
+        x => panic!(
+            "Unexpected result from canonicalize({}: {:?}",
+            missing.path().display(),
+            x
+        ),
     }
 }
 
