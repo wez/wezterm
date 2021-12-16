@@ -171,6 +171,9 @@ impl SessionInner {
         if let Some(cmd) = self.config.get("proxycommand") {
             sess.set_option(libssh::SshOption::ProxyCommand(Some(cmd.to_string())))?;
         }
+        if let Some(types) = self.config.get("pubkeyacceptedtypes") {
+            sess.set_option(libssh::SshOption::PublicKeyAcceptedTypes(types.to_string()))?;
+        }
 
         sess.connect()?;
 

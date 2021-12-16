@@ -428,6 +428,15 @@ pub async fn session(sshd: &'_ Sshd) -> Session {
     config.insert("user".to_string(), USERNAME.to_string());
     config.insert("identitiesonly".to_string(), "yes".to_string());
     config.insert(
+        "pubkeyacceptedtypes".to_string(),
+        // Ensure that we have ssh-rsa in the list, as debian9
+        // seems unhappy without it
+        "ssh-rsa,ssh-ed25519,\
+                  rsa-sha2-512,rsa-sha2-256,ecdsa-sha2-nistp521,\
+                  ecdsa-sha2-nistp384,ecdsa-sha2-nistp256"
+            .to_string(),
+    );
+    config.insert(
         "identityfile".to_string(),
         sshd.tmp
             .child("id_rsa")
