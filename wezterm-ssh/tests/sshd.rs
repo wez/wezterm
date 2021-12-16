@@ -295,10 +295,12 @@ impl Sshd {
         // Generate $ROOT/sshd_config based on config
         let sshd_config_file = tmp.child("sshd_config");
         sshd_config_file.write_str(&config.to_string())?;
+        std::fs::write("/dev/stderr", &config.to_string())?;
 
         let sshd_log_file = tmp.child("sshd.log");
 
-        let (child, port) = Self::try_spawn_next(sshd_config_file.path(), sshd_log_file.path())
+        let (child, port) = Self::try_spawn_next(sshd_config_file.path(), "/dev/stderr")
+            //sshd_log_file.path())
             .expect("No open port available for sshd");
 
         Ok(Self { child, port, tmp })
