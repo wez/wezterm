@@ -1955,7 +1955,7 @@ dependencies = [
 [[package]]
 name = "libssh-rs"
 version = "0.1.2"
-source = "git+https://github.com/wez/libssh-rs.git#320535b1acbd307ca7136d2f63533796a35287e5"
+source = "git+https://github.com/wez/libssh-rs.git#28afdf195c720bfae9111dc03928bd9b523da3cf"
 dependencies = [
  "bitflags",
  "libssh-rs-sys",
@@ -1965,7 +1965,7 @@ dependencies = [
 [[package]]
 name = "libssh-rs-sys"
 version = "0.1.2"
-source = "git+https://github.com/wez/libssh-rs.git#320535b1acbd307ca7136d2f63533796a35287e5"
+source = "git+https://github.com/wez/libssh-rs.git#28afdf195c720bfae9111dc03928bd9b523da3cf"
 dependencies = [
  "cc",
  "libz-sys",
