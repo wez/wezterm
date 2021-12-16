@@ -260,6 +260,11 @@ pub struct Sshd {
 
 impl Sshd {
     pub fn spawn(mut config: SshdConfig) -> Result<Self, Box<dyn std::error::Error>> {
+        let _ = pretty_env_logger::formatted_builder()
+            .is_test(true)
+            .filter_level(log::LevelFilter::Trace)
+            .try_init();
+
         let tmp = TempDir::new()?;
 
         // Ensure that everything needed for interacting with ssh-agent is set
@@ -419,6 +424,7 @@ pub async fn session(sshd: &'_ Sshd) -> Session {
     // generated identity file, and host file
     let mut config = config.for_host("localhost");
     config.insert("port".to_string(), port.to_string());
+    config.insert("wezterm_ssh_verbose".to_string(), "true".to_string());
     config.insert("user".to_string(), USERNAME.to_string());
     config.insert("identitiesonly".to_string(), "yes".to_string());
     config.insert(
