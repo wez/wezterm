@@ -821,7 +821,7 @@ pub struct Config {
     pub initial_rows: u16,
 
     /// Disabled by default until the implementation is complete enough
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub enable_kitty_graphics: bool,
 
     /// Specifies the width of a new window, expressed in character cells
