@@ -820,7 +820,6 @@ pub struct Config {
     #[serde(default = "default_initial_rows")]
     pub initial_rows: u16,
 
-    /// Disabled by default until the implementation is complete enough
     #[serde(default = "default_true")]
     pub enable_kitty_graphics: bool,
 
