@@ -205,7 +205,23 @@ fn normalize_shift(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
             _ => (key, modifiers),
         }
     } else {
-        (key, modifiers)
+        match key {
+            // when use_ime=true, destructuring composed key to get the string and return the first character when
+            // it's one character long for searching in key map.
+            KeyCode::Composed(s) => {
+                let mut char_iter = s.chars();
+                if let Some(first_char) = char_iter.next() {
+                    if char_iter.next().is_none() {
+                        (KeyCode::Char(first_char), modifiers - Modifiers::SHIFT)
+                    } else {
+                        (KeyCode::Composed(s.clone()), modifiers)
+                    }
+                } else {
+                    (KeyCode::Composed(s.clone()), modifiers)
+                }
+            }
+            _ => (key, modifiers),
+        }
     }
 }
 

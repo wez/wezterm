@@ -1791,7 +1791,8 @@ impl WindowView {
                 "\x08"
             } else if virtual_key == super::keycodes::kVK_Tab {
                 "\t"
-            } else if !use_ime && virtual_key == super::keycodes::kVK_Delete {
+            } else if virtual_key == super::keycodes::kVK_Delete {
+                // When using IME in macOS, delete applied in candidate window.
                 "\x08"
             } else if virtual_key == super::keycodes::kVK_ANSI_KeypadEnter {
                 // https://github.com/wez/wezterm/issues/739
