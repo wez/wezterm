@@ -14,13 +14,10 @@ use camino::Utf8PathBuf;
 use filedescriptor::{
     poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN, POLLOUT,
 };
-use libssh_rs as libssh;
 use portable_pty::ExitStatus;
 use smol::channel::{bounded, Receiver, Sender, TryRecvError};
 use std::collections::{HashMap, VecDeque};
-use std::ffi::CStr;
 use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -70,10 +67,31 @@ impl SessionInner {
             .config
             .get("wezterm_ssh_backend")
             .map(|s| s.as_str())
-            .unwrap_or("libssh");
+            .unwrap_or(
+                #[cfg(feature = "libssh-rs")]
+                "libssh",
+                #[cfg(not(feature = "libssh-rs"))]
+                "ssh2",
+            );
         match backend {
+            #[cfg(feature = "ssh2")]
             "ssh2" => self.run_impl_ssh2(),
+
+            #[cfg(not(feature = "ssh2"))]
+            "ssh2" => anyhow::bail!(
+                "invalid wezterm_ssh_backend value: {}, not compiled with `ssh2`",
+                backend
+            ),
+
+            #[cfg(feature = "libssh-rs")]
             "libssh" => self.run_impl_libssh(),
+
+            #[cfg(not(feature = "libssh-rs"))]
+            "libssh" => anyhow::bail!(
+                "invalid wezterm_ssh_backend value: {}, not compiled with `libssh`",
+                backend
+            ),
+
             _ => anyhow::bail!(
                 "invalid wezterm_ssh_backend value: {}, expected either `ssh2` or `libssh`",
                 backend
@@ -81,6 +99,7 @@ impl SessionInner {
         }
     }
 
+    #[cfg(feature = "libssh-rs")]
     fn run_impl_libssh(&mut self) -> anyhow::Result<()> {
         let hostname = self
             .config
@@ -105,7 +124,7 @@ impl SessionInner {
             ))))
             .context("notifying user of banner")?;
 
-        let sess = libssh::Session::new()?;
+        let sess = libssh_rs::Session::new()?;
         if self
             .config
             .get("wezterm_ssh_verbose")
@@ -113,7 +132,7 @@ impl SessionInner {
             .unwrap_or("false")
             == "true"
         {
-            sess.set_option(libssh::SshOption::LogLevel(libssh::LogLevel::Packet))?;
+            sess.set_option(libssh_rs::SshOption::LogLevel(libssh_rs::LogLevel::Packet))?;
 
             /// libssh logs to stderr, but on Windows in the GUI there isn't a valid
             /// stderr for it to log to.
@@ -125,6 +144,7 @@ impl SessionInner {
                 message: *const std::os::raw::c_char,
                 _userdata: *mut std::os::raw::c_void,
             ) {
+                use std::ffi::CStr;
                 let function = CStr::from_ptr(function).to_string_lossy().to_string();
                 let message = CStr::from_ptr(message).to_string_lossy().to_string();
 
@@ -147,32 +167,34 @@ impl SessionInner {
                 );
             }
             unsafe {
-                libssh::sys::ssh_set_log_callback(Some(log_callback));
+                libssh_rs::sys::ssh_set_log_callback(Some(log_callback));
             }
         }
-        sess.set_option(libssh::SshOption::Hostname(hostname.clone()))?;
-        sess.set_option(libssh::SshOption::User(Some(user)))?;
-        sess.set_option(libssh::SshOption::Port(port))?;
+        sess.set_option(libssh_rs::SshOption::Hostname(hostname.clone()))?;
+        sess.set_option(libssh_rs::SshOption::User(Some(user)))?;
+        sess.set_option(libssh_rs::SshOption::Port(port))?;
         sess.options_parse_config(None)?; // FIXME: overridden config path?
         if let Some(agent) = self.config.get("identityagent") {
-            sess.set_option(libssh::SshOption::IdentityAgent(Some(agent.clone())))?;
+            sess.set_option(libssh_rs::SshOption::IdentityAgent(Some(agent.clone())))?;
         }
         if let Some(files) = self.config.get("identityfile") {
             for file in files.split_whitespace() {
-                sess.set_option(libssh::SshOption::AddIdentity(file.to_string()))?;
+                sess.set_option(libssh_rs::SshOption::AddIdentity(file.to_string()))?;
             }
         }
         if let Some(kh) = self.config.get("userknownhostsfile") {
             for file in kh.split_whitespace() {
-                sess.set_option(libssh::SshOption::KnownHosts(Some(file.to_string())))?;
+                sess.set_option(libssh_rs::SshOption::KnownHosts(Some(file.to_string())))?;
                 break;
             }
         }
         if let Some(cmd) = self.config.get("proxycommand") {
-            sess.set_option(libssh::SshOption::ProxyCommand(Some(cmd.to_string())))?;
+            sess.set_option(libssh_rs::SshOption::ProxyCommand(Some(cmd.to_string())))?;
         }
         if let Some(types) = self.config.get("pubkeyacceptedtypes") {
-            sess.set_option(libssh::SshOption::PublicKeyAcceptedTypes(types.to_string()))?;
+            sess.set_option(libssh_rs::SshOption::PublicKeyAcceptedTypes(
+                types.to_string(),
+            ))?;
         }
 
         sess.connect()?;
@@ -200,7 +222,9 @@ impl SessionInner {
         self.request_loop(&mut sess)
     }
 
+    #[cfg(feature = "ssh2")]
     fn run_impl_ssh2(&mut self) -> anyhow::Result<()> {
+        use std::net::TcpStream;
         let hostname = self
             .config
             .get("hostname")
@@ -795,12 +819,15 @@ impl SessionInner {
     /// Initialize the sftp channel if not already created, returning a mutable reference to it
     fn init_sftp<'a>(&mut self, sess: &'a mut SessionWrap) -> SftpChannelResult<&'a mut SftpWrap> {
         match sess {
+            #[cfg(feature = "ssh2")]
             SessionWrap::Ssh2(sess) => {
                 if sess.sftp.is_none() {
                     sess.sftp = Some(SftpWrap::Ssh2(sess.sess.sftp()?));
                 }
                 Ok(sess.sftp.as_mut().expect("sftp should have been set above"))
             }
+
+            #[cfg(feature = "libssh-rs")]
             SessionWrap::LibSsh(sess) => {
                 if sess.sftp.is_none() {
                     sess.sftp = Some(SftpWrap::LibSsh(sess.sess.sftp()?));

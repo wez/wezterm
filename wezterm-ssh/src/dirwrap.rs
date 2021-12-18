@@ -1,18 +1,21 @@
 use crate::sftp::types::Metadata;
 use crate::sftp::{SftpChannelError, SftpChannelResult};
 use camino::Utf8PathBuf;
-use libssh_rs as libssh;
-use std::convert::TryFrom;
 
 pub(crate) enum DirWrap {
+    #[cfg(feature = "ssh2")]
     Ssh2(ssh2::File),
-    LibSsh(libssh::SftpDir),
+
+    #[cfg(feature = "libssh-rs")]
+    LibSsh(libssh_rs::SftpDir),
 }
 
 impl DirWrap {
     pub fn read_dir(&mut self) -> SftpChannelResult<(Utf8PathBuf, Metadata)> {
         match self {
+            #[cfg(feature = "ssh2")]
             Self::Ssh2(file) => {
+                use std::convert::TryFrom;
                 file.readdir()
                     .map_err(SftpChannelError::from)
                     .and_then(|(path, stat)| match Utf8PathBuf::try_from(path) {
@@ -23,6 +26,8 @@ impl DirWrap {
                         ))),
                     })
             }
+
+            #[cfg(feature = "libssh-rs")]
             Self::LibSsh(dir) => match dir.read_dir() {
                 None => Err(SftpChannelError::from(std::io::Error::new(
                     std::io::ErrorKind::UnexpectedEof,

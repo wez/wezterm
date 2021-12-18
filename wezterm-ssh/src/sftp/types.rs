@@ -1,6 +1,4 @@
 use bitflags::bitflags;
-use libssh_rs as libssh;
-use std::time::SystemTime;
 
 bitflags! {
     struct FileTypeFlags: u32 {
@@ -251,6 +249,7 @@ impl Default for RenameOptions {
 }
 
 /// Contains libssh2-specific implementations
+#[cfg(feature = "ssh2")]
 mod ssh2_impl {
     use super::*;
     use ::ssh2::{
@@ -351,65 +350,71 @@ mod ssh2_impl {
     }
 }
 
-impl From<libssh::FileType> for FileType {
-    fn from(ft: libssh::FileType) -> Self {
-        match ft {
-            libssh::FileType::Directory => Self::Dir,
-            libssh::FileType::Regular => Self::File,
-            libssh::FileType::Symlink => Self::Symlink,
-            _ => Self::Other,
-        }
-    }
-}
+#[cfg(feature = "libssh-rs")]
+mod libssh_impl {
+    use super::*;
+    use std::time::SystemTime;
 
-fn sys_time_to_unix(t: SystemTime) -> u64 {
-    t.duration_since(SystemTime::UNIX_EPOCH)
-        .expect("UNIX_EPOCH < SystemTime")
-        .as_secs()
-}
-
-fn unix_to_sys(u: u64) -> SystemTime {
-    SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(u)
-}
-
-impl From<libssh::Metadata> for Metadata {
-    fn from(stat: libssh::Metadata) -> Self {
-        Self {
-            ty: stat
-                .file_type()
-                .map(FileType::from)
-                .unwrap_or(FileType::Other),
-            permissions: stat.permissions().map(FilePermissions::from_unix_mode),
-            size: stat.len(),
-            uid: stat.uid(),
-            gid: stat.gid(),
-            accessed: stat.accessed().map(sys_time_to_unix),
-            modified: stat.modified().map(sys_time_to_unix),
-        }
-    }
-}
-
-impl Into<libssh::SetAttributes> for Metadata {
-    fn into(self) -> libssh::SetAttributes {
-        let size = self.size;
-        let uid_gid = match (self.uid, self.gid) {
-            (Some(uid), Some(gid)) => Some((uid, gid)),
-            _ => None,
-        };
-        let permissions = self.permissions.map(FilePermissions::to_unix_mode);
-        let atime_mtime = match (self.accessed, self.modified) {
-            (Some(a), Some(m)) => {
-                let a = unix_to_sys(a);
-                let m = unix_to_sys(m);
-                Some((a, m))
+    impl From<libssh_rs::FileType> for FileType {
+        fn from(ft: libssh_rs::FileType) -> Self {
+            match ft {
+                libssh_rs::FileType::Directory => Self::Dir,
+                libssh_rs::FileType::Regular => Self::File,
+                libssh_rs::FileType::Symlink => Self::Symlink,
+                _ => Self::Other,
             }
-            _ => None,
-        };
-        libssh::SetAttributes {
-            size,
-            uid_gid,
-            permissions,
-            atime_mtime,
+        }
+    }
+
+    fn sys_time_to_unix(t: SystemTime) -> u64 {
+        t.duration_since(SystemTime::UNIX_EPOCH)
+            .expect("UNIX_EPOCH < SystemTime")
+            .as_secs()
+    }
+
+    fn unix_to_sys(u: u64) -> SystemTime {
+        SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(u)
+    }
+
+    impl From<libssh_rs::Metadata> for Metadata {
+        fn from(stat: libssh_rs::Metadata) -> Self {
+            Self {
+                ty: stat
+                    .file_type()
+                    .map(FileType::from)
+                    .unwrap_or(FileType::Other),
+                permissions: stat.permissions().map(FilePermissions::from_unix_mode),
+                size: stat.len(),
+                uid: stat.uid(),
+                gid: stat.gid(),
+                accessed: stat.accessed().map(sys_time_to_unix),
+                modified: stat.modified().map(sys_time_to_unix),
+            }
+        }
+    }
+
+    impl Into<libssh_rs::SetAttributes> for Metadata {
+        fn into(self) -> libssh_rs::SetAttributes {
+            let size = self.size;
+            let uid_gid = match (self.uid, self.gid) {
+                (Some(uid), Some(gid)) => Some((uid, gid)),
+                _ => None,
+            };
+            let permissions = self.permissions.map(FilePermissions::to_unix_mode);
+            let atime_mtime = match (self.accessed, self.modified) {
+                (Some(a), Some(m)) => {
+                    let a = unix_to_sys(a);
+                    let m = unix_to_sys(m);
+                    Some((a, m))
+                }
+                _ => None,
+            };
+            libssh_rs::SetAttributes {
+                size,
+                uid_gid,
+                permissions,
+                atime_mtime,
+            }
         }
     }
 }
