@@ -396,9 +396,8 @@ fn update_checker() {
     // if we've never checked, give it a few seconds after the first
     // launch, otherwise compute the interval based on the time of
     // the last check.
-    let config = configuration();
-    let update_interval = Duration::new(config.check_for_updates_interval_seconds, 0);
-    let initial_interval = Duration::new(10, 0);
+    let update_interval = Duration::from_secs(configuration().check_for_updates_interval_seconds);
+    let initial_interval = Duration::from_secs(10);
 
     let force_ui = std::env::var_os("WEZTERM_ALWAYS_SHOW_UPDATE_UI").is_some();
 
@@ -418,67 +417,69 @@ fn update_checker() {
     let my_sock = config::RUNTIME_DIR.join(format!("gui-sock-{}", unsafe { libc::getpid() }));
 
     loop {
-        if let Ok(latest) = get_latest_release_info() {
-            schedule_set_banner_from_release_info(&latest);
-            let current = wezterm_version();
-            if latest.tag_name.as_str() > current || force_ui {
-                log::info!(
-                    "latest release {} is newer than current build {}",
-                    latest.tag_name,
-                    current
-                );
-
-                let url = format!(
-                    "https://wezfurlong.org/wezterm/changelog.html#{}",
-                    latest.tag_name
-                );
-
-                // Figure out which other wezterm-guis are running.
-                // We have a little "consensus protocol" to decide which
-                // of us will show the toast notification or show the update
-                // window: the one of us that sorts first in the list will
-                // own doing that, so that if there are a dozen gui processes
-                // running, we don't spam the user with a lot of notifications.
-                let socks = discover_gui_socks();
-
-                if force_ui || socks.is_empty() || socks[0] == my_sock {
-                    persistent_toast_notification_with_click_to_open_url(
-                        "WezTerm Update Available",
-                        "Click to see what's new",
-                        &url,
+        if configuration().check_for_updates {
+            if let Ok(latest) = get_latest_release_info() {
+                schedule_set_banner_from_release_info(&latest);
+                let current = wezterm_version();
+                if latest.tag_name.as_str() > current || force_ui {
+                    log::info!(
+                        "latest release {} is newer than current build {}",
+                        latest.tag_name,
+                        current
                     );
-                    show_update_available(latest.clone());
+
+                    let url = format!(
+                        "https://wezfurlong.org/wezterm/changelog.html#{}",
+                        latest.tag_name
+                    );
+
+                    // Figure out which other wezterm-guis are running.
+                    // We have a little "consensus protocol" to decide which
+                    // of us will show the toast notification or show the update
+                    // window: the one of us that sorts first in the list will
+                    // own doing that, so that if there are a dozen gui processes
+                    // running, we don't spam the user with a lot of notifications.
+                    let socks = discover_gui_socks();
+
+                    if force_ui || socks.is_empty() || socks[0] == my_sock {
+                        persistent_toast_notification_with_click_to_open_url(
+                            "WezTerm Update Available",
+                            "Click to see what's new",
+                            &url,
+                        );
+                        show_update_available(latest.clone());
+                    }
                 }
-            }
 
-            config::create_user_owned_dirs(update_file_name.parent().unwrap()).ok();
+                config::create_user_owned_dirs(update_file_name.parent().unwrap()).ok();
 
-            // Record the time of this check
-            if let Ok(f) = std::fs::OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&update_file_name)
-            {
-                serde_json::to_writer_pretty(f, &latest).ok();
+                // Record the time of this check
+                if let Ok(f) = std::fs::OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .open(&update_file_name)
+                {
+                    serde_json::to_writer_pretty(f, &latest).ok();
+                }
             }
         }
 
-        std::thread::sleep(update_interval);
+        std::thread::sleep(Duration::from_secs(
+            configuration().check_for_updates_interval_seconds,
+        ));
     }
 }
 
 pub fn start_update_checker() {
     static CHECKER_STARTED: AtomicBool = AtomicBool::new(false);
-    if configuration().check_for_updates {
-        if let Ok(false) =
-            CHECKER_STARTED.compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
-        {
-            std::thread::Builder::new()
-                .name("update_checker".into())
-                .spawn(update_checker)
-                .expect("failed to spawn update checker thread");
-        }
+    if let Ok(false) =
+        CHECKER_STARTED.compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+    {
+        std::thread::Builder::new()
+            .name("update_checker".into())
+            .spawn(update_checker)
+            .expect("failed to spawn update checker thread");
     }
 }
 
