@@ -13,6 +13,8 @@ documentation = "https://docs.rs/wezterm-ssh"
 [features]
 default = ["libssh-rs", "ssh2"]
 vendored-openssl = ["ssh2/vendored-openssl", "libssh-rs/vendored-openssl"]
+vendored-openssl-ssh2 = ["ssh2/vendored-openssl"]
+vendored-openssl-libssh-rs = ["libssh-rs/vendored-openssl"]
 
 [dependencies]
 anyhow = "1.0"
