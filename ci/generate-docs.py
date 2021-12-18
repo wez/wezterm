@@ -256,6 +256,15 @@ TermWindow running in the wezterm process.
 """,
                     ),
                     Gen(
+                        "events: Multiplexer",
+                        "config/lua/mux-events",
+                        index="""
+# Events emitted by the Multiplexer
+
+The following events can be handled using [wezterm.on](../wezterm/on.md):
+""",
+                    ),
+                    Gen(
                         "events: Window",
                         "config/lua/window-events",
                         index="""

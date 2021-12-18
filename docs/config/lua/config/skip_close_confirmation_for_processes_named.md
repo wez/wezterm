@@ -26,8 +26,8 @@ return {
 
 *Since: 20210814-124438-54e29167*:
 
-The default value for this setting now includes some
-windows shell processes:
+This option now also works on Windows, and the default value for this setting
+now includes some windows shell processes:
 
 ```
 return {
@@ -44,3 +44,9 @@ return {
   }
 }
 ```
+
+*Since: nightly builds only*
+
+More advanced control over this behavior can be achieved by defining a
+[mux-is-process-stateful](../mux-events/mux-is-process-stateful.md) event handler.
+

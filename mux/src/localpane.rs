@@ -9,11 +9,13 @@ use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
 use rangeset::RangeSet;
+use serde::{Deserialize, Serialize};
 use smol::channel::{bounded, Receiver, TryRecvError};
 use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
 use std::io::Result as IoResult;
 use std::ops::Range;
+use std::path::PathBuf;
 use std::sync::Arc;
 use termwiz::escape::DeviceControlMode;
 use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
@@ -315,23 +317,59 @@ impl Pane for LocalPane {
     }
 
     fn can_close_without_prompting(&self) -> bool {
-        let proc_list = self.divine_process_list();
-        if !proc_list.is_empty() {
-            log::trace!("can_close_without_prompting? procs in pane {:?}", proc_list);
+        if let Some(proc_list) = self.divine_process_list() {
+            log::trace!(
+                "can_close_without_prompting? procs in pane {:#?}",
+                proc_list
+            );
 
-            let skip = configuration()
-                .skip_close_confirmation_for_processes_named
-                .iter()
-                .cloned()
-                .collect::<HashSet<_>>();
-
-            for proc in &proc_list {
-                if !skip.contains(proc) {
-                    return false;
+            let hook_result = config::run_immediate_with_lua_config(|lua| {
+                let lua = match lua {
+                    Some(lua) => lua,
+                    None => return Ok(None),
+                };
+                let v = config::lua::emit_sync_callback(
+                    &*lua,
+                    ("mux-is-process-stateful".to_string(), (proc_list.clone())),
+                )?;
+                match v {
+                    mlua::Value::Nil => Ok(None),
+                    mlua::Value::Boolean(v) => Ok(Some(v)),
+                    _ => Ok(None),
                 }
+            });
+
+            fn default_stateful_check(proc_list: &LocalProcessInfo) -> bool {
+                let names = proc_list.flatten_to_exe_names();
+
+                let skip = configuration()
+                    .skip_close_confirmation_for_processes_named
+                    .iter()
+                    .cloned()
+                    .collect::<HashSet<_>>();
+
+                if !names.is_subset(&skip) {
+                    // There are other processes running than are listed,
+                    // so we consider this to be stateful
+                    return true;
+                }
+                false
             }
 
-            return true;
+            let is_stateful = match hook_result {
+                Ok(None) => default_stateful_check(&proc_list),
+                Ok(Some(s)) => s,
+                Err(err) => {
+                    log::error!(
+                        "Error while running mux-is-process-stateful \
+                         hook: {:#}, falling back to default behavior",
+                        err
+                    );
+                    default_stateful_check(&proc_list)
+                }
+            };
+
+            !is_stateful
         } else {
             #[cfg(unix)]
             {
@@ -754,37 +792,121 @@ impl LocalPane {
         None
     }
 
-    fn divine_process_list(&self) -> Vec<String> {
-        #[allow(unused_mut)]
-        let mut proc_names = vec![];
-
+    fn divine_process_list(&self) -> Option<LocalProcessInfo> {
         #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
-        if let ProcessState::Running { pid, .. } = &*self.process.borrow() {
-            if let Some(pid) = pid {
-                use sysinfo::{Pid, ProcessExt, RefreshKind, System, SystemExt};
-                let system = System::new_with_specifics(RefreshKind::new().with_processes());
-                let procs = system.get_processes();
-                let mut pids_to_do = vec![*pid as Pid];
+        if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
+            return LocalProcessInfo::with_root_pid(*pid);
+        }
 
-                while let Some(pid) = pids_to_do.pop() {
-                    if let Some(proc) = procs.get(&pid) {
-                        if let Some(exe) = proc.exe().file_name() {
-                            proc_names.push(exe.to_string_lossy().into_owned());
-                        }
-                    }
+        None
+    }
+}
 
-                    for (child_pid, proc) in procs {
-                        if let Some(parent) = proc.parent() {
-                            if parent == pid {
-                                pids_to_do.push(*child_pid);
-                            }
-                        }
-                    }
-                }
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+pub enum LocalProcessStatus {
+    Idle,
+    Run,
+    Sleep,
+    Stop,
+    Zombie,
+    Tracing,
+    Dead,
+    Wakekill,
+    Waking,
+    Parked,
+    LockBlocked,
+    Unknown,
+}
+
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+impl LocalProcessStatus {
+    fn from_process_status(status: sysinfo::ProcessStatus) -> Self {
+        match status {
+            sysinfo::ProcessStatus::Idle => Self::Idle,
+            sysinfo::ProcessStatus::Run => Self::Run,
+            sysinfo::ProcessStatus::Sleep => Self::Sleep,
+            sysinfo::ProcessStatus::Stop => Self::Stop,
+            sysinfo::ProcessStatus::Zombie => Self::Zombie,
+            sysinfo::ProcessStatus::Tracing => Self::Tracing,
+            sysinfo::ProcessStatus::Dead => Self::Dead,
+            sysinfo::ProcessStatus::Wakekill => Self::Wakekill,
+            sysinfo::ProcessStatus::Waking => Self::Waking,
+            sysinfo::ProcessStatus::Parked => Self::Parked,
+            sysinfo::ProcessStatus::LockBlocked => Self::LockBlocked,
+            sysinfo::ProcessStatus::Unknown(_) => Self::Unknown,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LocalProcessInfo {
+    pub pid: u32,
+    pub ppid: u32,
+    pub name: String,
+    pub executable: PathBuf,
+    pub argv: Vec<String>,
+    pub cwd: PathBuf,
+    pub status: LocalProcessStatus,
+    pub children: HashMap<u32, LocalProcessInfo>,
+}
+luahelper::impl_lua_conversion!(LocalProcessInfo);
+
+impl LocalProcessInfo {
+    fn flatten_to_exe_names(&self) -> HashSet<String> {
+        let mut names = HashSet::new();
+
+        fn flatten(item: &LocalProcessInfo, names: &mut HashSet<String>) {
+            if let Some(exe) = item.executable.file_name() {
+                names.insert(exe.to_string_lossy().into_owned());
+            }
+            for proc in item.children.values() {
+                flatten(proc, names);
             }
         }
 
-        proc_names
+        flatten(self, &mut names);
+        names
+    }
+}
+
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+impl LocalProcessInfo {
+    fn with_root_pid(pid: u32) -> Option<Self> {
+        use sysinfo::{
+            AsU32, Pid, Process, ProcessExt, ProcessRefreshKind, RefreshKind, System, SystemExt,
+        };
+        let system = System::new_with_specifics(
+            RefreshKind::new().with_processes(ProcessRefreshKind::new()),
+        );
+
+        fn build_proc(proc: &Process, processes: &HashMap<Pid, Process>) -> LocalProcessInfo {
+            // Process has a `tasks` field but it does not correspond to child processes,
+            // so we need to repeatedly walk the full process list and establish that
+            // linkage for ourselves here
+            let mut children = HashMap::new();
+            let pid = proc.pid();
+            for (child_pid, child_proc) in processes {
+                if child_proc.parent() == Some(pid) {
+                    children.insert(child_pid.as_u32(), build_proc(child_proc, processes));
+                }
+            }
+
+            LocalProcessInfo {
+                pid: proc.pid().as_u32(),
+                ppid: proc.parent().map(|pid| pid.as_u32()).unwrap_or(1),
+                name: proc.name().to_string(),
+                executable: proc.exe().to_path_buf(),
+                cwd: proc.cwd().to_path_buf(),
+                argv: proc.cmd().to_vec(),
+                status: LocalProcessStatus::from_process_status(proc.status()),
+                children,
+            }
+        }
+
+        let proc = system.process(pid as Pid)?;
+        let procs = system.processes();
+
+        Some(build_proc(&proc, &procs))
     }
 }
 

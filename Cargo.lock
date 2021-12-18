@@ -2287,6 +2287,7 @@ dependencies = [
  "log",
  "luahelper",
  "metrics",
+ "mlua",
  "portable-pty",
  "promise",
  "rangeset",
@@ -3937,13 +3938,12 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.16.5"
+version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "567e910ef0207be81a4e1bb0491e9a8d9866cf45b20fe1a52c03d347da9ea51b"
+checksum = "7c8591205e26661d45f9b31300599b133328c7e0f57e552a7be8d3b3c5748470"
 dependencies = [
  "cfg-if 1.0.0",
  "core-foundation-sys 0.8.3",
- "doc-comment",
  "libc",
  "ntapi",
  "once_cell",
