@@ -4740,6 +4740,7 @@ dependencies = [
  "textwrap 0.14.2",
  "thiserror",
  "tiny-skia",
+ "uds_windows",
  "umask",
  "unicode-normalization",
  "unicode-segmentation",
