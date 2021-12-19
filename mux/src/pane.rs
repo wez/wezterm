@@ -42,6 +42,17 @@ pub struct SearchResult {
 
 pub use config::keyassignment::Pattern;
 
+/// Why a close request is being made
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum CloseReason {
+    /// The containing window is being closed
+    Window,
+    /// The containing tab is being close
+    Tab,
+    /// Just this tab is being closed
+    Pane,
+}
+
 const PASTE_CHUNK_SIZE: usize = 1024;
 
 struct Paste {
@@ -328,7 +339,7 @@ pub trait Pane: Downcast {
     fn focus_changed(&self, _focused: bool) {}
 
     /// Certain panes are OK to be closed with impunity (no prompts)
-    fn can_close_without_prompting(&self) -> bool {
+    fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
         false
     }
 

@@ -1235,10 +1235,10 @@ impl Tab {
         }
     }
 
-    pub fn can_close_without_prompting(&self) -> bool {
+    pub fn can_close_without_prompting(&self, reason: CloseReason) -> bool {
         let panes = self.iter_panes();
         for pos in &panes {
-            if !pos.pane.can_close_without_prompting() {
+            if !pos.pane.can_close_without_prompting(reason) {
                 return false;
             }
         }

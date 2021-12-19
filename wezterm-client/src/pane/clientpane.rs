@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use codec::*;
 use config::configuration;
 use mux::domain::DomainId;
-use mux::pane::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult};
+use mux::pane::{alloc_pane_id, CloseReason, Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
 use mux::{Mux, MuxNotification};
@@ -35,6 +35,7 @@ pub struct ClientPane {
     mouse: Rc<RefCell<MouseState>>,
     clipboard: RefCell<Option<Arc<dyn Clipboard>>>,
     mouse_grabbed: RefCell<bool>,
+    ignore_next_kill: RefCell<bool>,
 }
 
 impl ClientPane {
@@ -90,6 +91,7 @@ impl ClientPane {
             palette: RefCell::new(palette),
             clipboard: RefCell::new(None),
             mouse_grabbed: RefCell::new(false),
+            ignore_next_kill: RefCell::new(false),
         }
     }
 
@@ -150,6 +152,17 @@ impl ClientPane {
 
     pub fn remote_pane_id(&self) -> TabId {
         self.remote_pane_id
+    }
+
+    /// Arrange to suppress the next Pane::kill call.
+    /// This is a bit of a hack that we use when closing a window;
+    /// our Domain::local_window_is_closing impl calls this for each
+    /// ClientPane in the window so that closing a window effectively
+    /// "detaches" the window so that reconnecting later will resume
+    /// from where they left off.
+    /// It isn't perfect.
+    pub fn ignore_next_kill(&self) {
+        *self.ignore_next_kill.borrow_mut() = true;
     }
 }
 
@@ -332,6 +345,11 @@ impl Pane for ClientPane {
     }
 
     fn kill(&self) {
+        let mut ignore = self.ignore_next_kill.borrow_mut();
+        if *ignore {
+            *ignore = false;
+            return;
+        }
         let client = Arc::clone(&self.client);
         let remote_pane_id = self.remote_pane_id;
         promise::spawn::spawn(async move {
@@ -386,6 +404,14 @@ impl Pane for ClientPane {
 
     fn get_current_working_dir(&self) -> Option<Url> {
         self.renderable.borrow().inner.borrow().working_dir.clone()
+    }
+
+    fn can_close_without_prompting(&self, reason: CloseReason) -> bool {
+        match reason {
+            CloseReason::Window => true,
+            CloseReason::Tab => false,
+            CloseReason::Pane => false,
+        }
     }
 }
 

@@ -28,7 +28,7 @@ use config::{
 use luahelper::impl_lua_conversion;
 use mlua::FromLua;
 use mux::domain::{DomainId, DomainState};
-use mux::pane::{Pane, PaneId};
+use mux::pane::{CloseReason, Pane, PaneId};
 use mux::renderable::RenderableDimensions;
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
 use mux::window::WindowId as MuxWindowId;
@@ -2064,7 +2064,7 @@ impl TermWindow {
         };
 
         let pane_id = pane.pane_id();
-        if confirm && !pane.can_close_without_prompting() {
+        if confirm && !pane.can_close_without_prompting(CloseReason::Pane) {
             let window = self.window.clone().unwrap();
             let (overlay, future) = start_overlay_pane(self, &pane, move |pane_id, term| {
                 confirm_close_pane(pane_id, term, mux_window_id, window)
@@ -2084,7 +2084,7 @@ impl TermWindow {
         };
         let tab_id = tab.tab_id();
         let mux_window_id = self.mux_window_id;
-        if confirm && !tab.can_close_without_prompting() {
+        if confirm && !tab.can_close_without_prompting(CloseReason::Tab) {
             let window = self.window.clone().unwrap();
             let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
                 confirm_close_tab(tab_id, term, mux_window_id, window)

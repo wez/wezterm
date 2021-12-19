@@ -522,6 +522,24 @@ impl Domain for ClientDomain {
         Ok(())
     }
 
+    fn local_window_is_closing(&self, window_id: WindowId) {
+        let mux = Mux::get().expect("to be called by mux on mux thread");
+        let window = match mux.get_window(window_id) {
+            Some(w) => w,
+            None => return,
+        };
+
+        for tab in window.iter() {
+            for pos in tab.iter_panes_ignoring_zoom() {
+                if pos.pane.domain_id() == self.local_domain_id {
+                    if let Some(client_pane) = pos.pane.downcast_ref::<ClientPane>() {
+                        client_pane.ignore_next_kill();
+                    }
+                }
+            }
+        }
+    }
+
     fn detach(&self) -> anyhow::Result<()> {
         bail!("detach not implemented");
     }

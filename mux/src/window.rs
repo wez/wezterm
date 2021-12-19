@@ -1,3 +1,4 @@
+use crate::pane::CloseReason;
 use crate::{Mux, MuxNotification, Tab, TabId};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -80,7 +81,7 @@ impl Window {
 
     pub fn can_close_without_prompting(&self) -> bool {
         for tab in &self.tabs {
-            if !tab.can_close_without_prompting() {
+            if !tab.can_close_without_prompting(CloseReason::Window) {
                 return false;
             }
         }

@@ -41,6 +41,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Changing font scaling on Windows no longer causes the initial terminal rows/cols to be under-sized [#1381](https://github.com/wez/wezterm/issues/1381)
 * New version update notifications are now more coordinated between multiple wezterm GUI instances, and update related configuration now respects configuration reloading. [#1402](https://github.com/wez/wezterm/issues/1402)
 * [TLS domains](multiplexing.md) bootstrapping via SSH now use the `libssh` backend by default and work more reliably on Windows
+* Closing a window will no longer recursively terminate contained multiplexer client panes; the window will instead be restored when you next connect to that multiplexer server. Killing/closing individual tabs/panes *will* kill the panes; this change only affects closing the window. [#848](https://github.com/wez/wezterm/issues/848) [#917](https://github.com/wez/wezterm/issues/917) [#1224](https://github.com/wez/wezterm/issues/1224)
 
 ### 20211205-192649-672c1cc1
 

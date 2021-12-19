@@ -1,5 +1,5 @@
 use crate::domain::DomainId;
-use crate::pane::{Pane, PaneId, Pattern, SearchResult};
+use crate::pane::{CloseReason, Pane, PaneId, Pattern, SearchResult};
 use crate::renderable::*;
 use crate::tmux::{TmuxDomain, TmuxDomainState};
 use crate::{Domain, Mux, MuxNotification};
@@ -316,7 +316,7 @@ impl Pane for LocalPane {
             .or_else(|| self.divine_current_working_dir())
     }
 
-    fn can_close_without_prompting(&self) -> bool {
+    fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
         if let Some(proc_list) = self.divine_process_list() {
             log::trace!(
                 "can_close_without_prompting? procs in pane {:#?}",

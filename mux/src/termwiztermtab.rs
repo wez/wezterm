@@ -4,7 +4,7 @@
 //! session.
 
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::pane::{alloc_pane_id, Pane, PaneId};
+use crate::pane::{alloc_pane_id, CloseReason, Pane, PaneId};
 use crate::renderable::*;
 use crate::tab::{SplitDirection, Tab, TabId};
 use crate::window::WindowId;
@@ -162,7 +162,7 @@ impl Pane for TermWizTerminalPane {
         self.terminal.borrow_mut().get_title().to_string()
     }
 
-    fn can_close_without_prompting(&self) -> bool {
+    fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
         true
     }
 

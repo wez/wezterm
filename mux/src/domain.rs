@@ -79,6 +79,11 @@ pub trait Domain: Downcast {
 
     /// Indicates the state of the domain
     fn state(&self) -> DomainState;
+
+    /// Called to advise the domain that a local window is closing.
+    /// This allows the domain the opportunity to eg: detach/hide
+    /// its tabs/panes rather than actually killing them off
+    fn local_window_is_closing(&self, _window_id: WindowId) {}
 }
 impl_downcast!(Domain);
 

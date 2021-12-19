@@ -453,6 +453,10 @@ impl Mux {
 
     fn remove_window_internal(&self, window_id: WindowId) {
         log::debug!("remove_window_internal {}", window_id);
+        let domains: Vec<Arc<dyn Domain>> = self.domains.borrow().values().cloned().collect();
+        for dom in domains {
+            dom.local_window_is_closing(window_id);
+        }
         let window = self.windows.borrow_mut().remove(&window_id);
         if let Some(window) = window {
             for tab in window.iter() {
@@ -475,6 +479,7 @@ impl Mux {
 
     pub fn prune_dead_windows(&self) {
         if Activity::count() > 0 {
+            log::trace!("prune_dead_windows: Activity::count={}", Activity::count());
             return;
         }
         let live_tab_ids: Vec<TabId> = self.tabs.borrow().keys().cloned().collect();
@@ -486,13 +491,14 @@ impl Mux {
                 Ok(w) => w,
                 Err(_) => {
                     // It's ok if our caller already locked it; we can prune later.
+                    log::trace!("prune_dead_windows: self.windows already borrowed");
                     return;
                 }
             };
             for (window_id, win) in windows.iter_mut() {
                 win.prune_dead_tabs(&live_tab_ids);
                 if win.is_empty() {
-                    log::debug!("prune_dead_windows: window is now empty");
+                    log::trace!("prune_dead_windows: window is now empty");
                     dead_windows.push(*window_id);
                 }
             }
@@ -516,12 +522,16 @@ impl Mux {
         }
 
         if self.is_empty() {
+            log::trace!("prune_dead_windows: is_empty, send MuxNotification::Empty");
             self.notify(MuxNotification::Empty);
+        } else {
+            log::trace!("prune_dead_windows: not empty");
         }
     }
 
     pub fn kill_window(&self, window_id: WindowId) {
         self.remove_window_internal(window_id);
+        self.prune_dead_windows();
     }
 
     pub fn get_window(&self, window_id: WindowId) -> Option<Ref<Window>> {
