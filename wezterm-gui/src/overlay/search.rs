@@ -117,8 +117,8 @@ impl Pane for SearchOverlay {
         Ok(())
     }
 
-    fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
-        panic!("do not call reader on SearchOverlay bar tab instance");
+    fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
+        Ok(None)
     }
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {

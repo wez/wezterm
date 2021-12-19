@@ -399,10 +399,11 @@ impl Mux {
         self.panes
             .borrow_mut()
             .insert(pane.pane_id(), Rc::clone(pane));
-        let reader = pane.reader()?;
         let pane_id = pane.pane_id();
-        let banner = self.banner.borrow().clone();
-        thread::spawn(move || read_from_pane_pty(pane_id, banner, reader));
+        if let Some(reader) = pane.reader()? {
+            let banner = self.banner.borrow().clone();
+            thread::spawn(move || read_from_pane_pty(pane_id, banner, reader));
+        }
         self.notify(MuxNotification::PaneAdded(pane_id));
         Ok(())
     }

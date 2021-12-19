@@ -5,7 +5,6 @@ use anyhow::bail;
 use async_trait::async_trait;
 use codec::*;
 use config::configuration;
-use filedescriptor::Pipe;
 use mux::domain::DomainId;
 use mux::pane::{alloc_pane_id, Pane, PaneId, Pattern, SearchResult};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
@@ -33,7 +32,6 @@ pub struct ClientPane {
     pub renderable: RefCell<RenderableState>,
     palette: RefCell<ColorPalette>,
     writer: RefCell<PaneWriter>,
-    reader: Pipe,
     mouse: Rc<RefCell<MouseState>>,
     clipboard: RefCell<Option<Arc<dyn Clipboard>>>,
     mouse_grabbed: RefCell<bool>,
@@ -78,7 +76,6 @@ impl ClientPane {
             )),
         };
 
-        let reader = Pipe::new().expect("Pipe::new failed");
         let config = configuration();
         let palette: ColorPalette = config.resolved_palette.clone().into();
 
@@ -91,7 +88,6 @@ impl ClientPane {
             renderable: RefCell::new(render),
             writer: RefCell::new(writer),
             palette: RefCell::new(palette),
-            reader,
             clipboard: RefCell::new(None),
             mouse_grabbed: RefCell::new(false),
         }
@@ -224,9 +220,8 @@ impl Pane for ClientPane {
         Ok(())
     }
 
-    fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
-        log::trace!("made reader for ClientPane");
-        Ok(Box::new(self.reader.read.try_clone()?))
+    fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
+        Ok(None)
     }
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {

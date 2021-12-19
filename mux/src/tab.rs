@@ -1611,8 +1611,8 @@ mod test {
         fn send_paste(&self, _text: &str) -> anyhow::Result<()> {
             unimplemented!()
         }
-        fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
-            unimplemented!()
+        fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
+            Ok(None)
         }
         fn writer(&self) -> RefMut<dyn std::io::Write> {
             unimplemented!()

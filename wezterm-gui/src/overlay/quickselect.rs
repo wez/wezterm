@@ -253,8 +253,8 @@ impl Pane for QuickSelectOverlay {
         Ok(())
     }
 
-    fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
-        panic!("do not call reader on QuickSelectOverlay bar tab instance");
+    fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
+        Ok(None)
     }
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {

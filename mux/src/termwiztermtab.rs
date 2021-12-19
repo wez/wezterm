@@ -172,8 +172,8 @@ impl Pane for TermWizTerminalPane {
         Ok(())
     }
 
-    fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
-        Ok(Box::new(self.render_rx.try_clone()?))
+    fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
+        Ok(Some(Box::new(self.render_rx.try_clone()?)))
     }
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {

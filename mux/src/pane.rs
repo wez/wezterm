@@ -304,7 +304,7 @@ pub trait Pane: Downcast {
 
     fn get_title(&self) -> String;
     fn send_paste(&self, text: &str) -> anyhow::Result<()>;
-    fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>>;
+    fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>>;
     fn writer(&self) -> RefMut<dyn std::io::Write>;
     fn resize(&self, size: PtySize) -> anyhow::Result<()>;
     /// Called as a hint that the pane is being resized as part of
@@ -427,8 +427,8 @@ mod test {
         fn send_paste(&self, _: &str) -> anyhow::Result<()> {
             unimplemented!()
         }
-        fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
-            unimplemented!()
+        fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
+            Ok(None)
         }
         fn writer(&self) -> RefMut<dyn std::io::Write> {
             unimplemented!()

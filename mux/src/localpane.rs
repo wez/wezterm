@@ -253,8 +253,8 @@ impl Pane for LocalPane {
         self.pty.borrow_mut()
     }
 
-    fn reader(&self) -> Result<Box<dyn std::io::Read + Send>, Error> {
-        self.pty.borrow_mut().try_clone_reader()
+    fn reader(&self) -> anyhow::Result<Option<Box<dyn std::io::Read + Send>>> {
+        Ok(Some(self.pty.borrow_mut().try_clone_reader()?))
     }
 
     fn send_paste(&self, text: &str) -> Result<(), Error> {
