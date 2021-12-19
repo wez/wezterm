@@ -184,6 +184,7 @@ usually the best available version.</p>
 <li>Changing font scaling on Windows no longer causes the initial terminal rows/cols to be under-sized <a href="https://github.com/wez/wezterm/issues/1381">#1381</a></li>
 <li>New version update notifications are now more coordinated between multiple wezterm GUI instances, and update related configuration now respects configuration reloading. <a href="https://github.com/wez/wezterm/issues/1402">#1402</a></li>
 <li><a href="multiplexing.html">TLS domains</a> bootstrapping via SSH now use the <code>libssh</code> backend by default and work more reliably on Windows</li>
+<li>Closing a window will no longer recursively terminate contained multiplexer client panes; the window will instead be restored when you next connect to that multiplexer server. Killing/closing individual tabs/panes <em>will</em> kill the panes; this change only affects closing the window. <a href="https://github.com/wez/wezterm/issues/848">#848</a> <a href="https://github.com/wez/wezterm/issues/917">#917</a> <a href="https://github.com/wez/wezterm/issues/1224">#1224</a></li>
 </ul>
 <h3 id="20211205-192649-672c1cc1"><a class="header" href="#20211205-192649-672c1cc1">20211205-192649-672c1cc1</a></h3>
 <h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
