@@ -39,6 +39,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Closing a split pane created inside a `wezterm ssh` session wouldn't actually close the pane [#1197](https://github.com/wez/wezterm/issues/1197)
 * Clicking when unfocused could lead to unwanted text selection [#1140](https://github.com/wez/wezterm/issues/1140) [#1310](https://github.com/wez/wezterm/issues/1310)
 * Changing font scaling on Windows no longer causes the initial terminal rows/cols to be under-sized [#1381](https://github.com/wez/wezterm/issues/1381)
+* New version update notifications are now more coordinated between multiple wezterm GUI instances, and update related configuration now respects configuration reloading. [#1402](https://github.com/wez/wezterm/issues/1402)
 
 ### 20211205-192649-672c1cc1
 
