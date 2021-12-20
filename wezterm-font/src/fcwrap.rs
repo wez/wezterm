@@ -125,7 +125,7 @@ impl<'a> CharSetRef<'a> {
                 for j in 0..32 {
                     if mask & (1 << j) != 0 {
                         let new_code_point = base_code_point + (j + i * 32) as u32;
-                        if new_code_point - 1 > code_point {
+                        if new_code_point > 0 && new_code_point - 1 > code_point {
                             coverage.add_range_unchecked(range_start..code_point + 1);
                             range_start = new_code_point;
                         }

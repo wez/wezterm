@@ -298,6 +298,7 @@ fn set_banner_from_release_info(latest: &Release) {
         height: ITermDimension::Cells(2),
         preserve_aspect_ratio: true,
         inline: true,
+        do_not_move_cursor: false,
         data: ICON_DATA.to_vec(),
     };
     let icon = OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(icon)));

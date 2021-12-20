@@ -151,7 +151,7 @@ impl TerminalState {
             style: ImageAttachStyle::Iterm,
             image_id: None,
             placement_id: None,
-            do_not_move_cursor: false,
+            do_not_move_cursor: image.do_not_move_cursor,
         }) {
             log::error!("set iterm2 image: {:#}", err);
         }
