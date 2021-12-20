@@ -1041,6 +1041,7 @@ mod test {
                         height: ITermDimension::Automatic,
                         preserve_aspect_ratio: true,
                         inline: false,
+                        do_not_move_cursor: false,
                         data: b"hello".to_vec(),
                     }
                 )))

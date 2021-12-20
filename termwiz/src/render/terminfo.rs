@@ -586,6 +586,7 @@ impl TerminfoRenderer {
                             height: ITermDimension::Cells(image.height as i64),
                             preserve_aspect_ratio: true,
                             inline: true,
+                            do_not_move_cursor: false,
                             data,
                         };
 

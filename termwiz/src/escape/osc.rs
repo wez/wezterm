@@ -854,6 +854,8 @@ pub struct ITermFileData {
     /// if true, attempt to display in the terminal rather than downloading to
     /// the users download directory
     pub inline: bool,
+    /// if true, do not move the cursor
+    pub do_not_move_cursor: bool,
     /// The data to transfer
     pub data: Vec<u8>,
 }
@@ -927,6 +929,10 @@ impl ITermFileData {
             .map(|s| *s != "0")
             .unwrap_or(true);
         let inline = params.get("inline").map(|s| *s != "0").unwrap_or(false);
+        let do_not_move_cursor = params
+            .get("doNotMoveCursor")
+            .map(|s| *s != "0")
+            .unwrap_or(false);
         let data = data.ok_or_else(|| format!("didn't set data"))?;
         Ok(Self {
             name,
@@ -935,6 +941,7 @@ impl ITermFileData {
             height,
             preserve_aspect_ratio,
             inline,
+            do_not_move_cursor,
             data,
         })
     }
@@ -971,6 +978,10 @@ impl Display for ITermFileData {
         if self.inline {
             sep = emit_sep(sep, f)?;
             write!(f, "inline=1")?;
+        }
+        if self.do_not_move_cursor {
+            sep = emit_sep(sep, f)?;
+            write!(f, "doNotMoveCursor=1")?;
         }
         // Ensure that we emit a sep if we didn't already.
         // It will still be set to '=' in that case.
@@ -1614,6 +1625,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
+                    do_not_move_cursor: false,
                     data: b"hello".to_vec(),
                 }
             )))
@@ -1632,6 +1644,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
+                    do_not_move_cursor: false,
                     data: b"hello".to_vec(),
                 }
             )))
@@ -1650,6 +1663,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
+                    do_not_move_cursor: false,
                     data: b"hello".to_vec(),
                 }
             )))
@@ -1668,6 +1682,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
+                    do_not_move_cursor: false,
                     data: b"hello".to_vec(),
                 }
             )))
@@ -1691,6 +1706,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
+                    do_not_move_cursor: false,
                     data: b"hello".to_vec(),
                 }
             )))
@@ -1709,6 +1725,7 @@ mod test {
                     height: ITermDimension::Automatic,
                     preserve_aspect_ratio: true,
                     inline: false,
+                    do_not_move_cursor: false,
                     data: b"hello".to_vec(),
                 }
             )))
@@ -1733,6 +1750,7 @@ mod test {
                     height: ITermDimension::Percent(10),
                     preserve_aspect_ratio: true,
                     inline: false,
+                    do_not_move_cursor: false,
                     data: b"hello".to_vec(),
                 }
             )))
@@ -1751,6 +1769,26 @@ mod test {
                     height: ITermDimension::Pixels(10),
                     preserve_aspect_ratio: false,
                     inline: true,
+                    do_not_move_cursor: false,
+                    data: b"hello".to_vec(),
+                }
+            )))
+        );
+
+        assert_eq!(
+            parse(
+                &["1337", "File=name=bXluYW1l", "preserveAspectRatio=0", "width=5", "inline=1", "doNotMoveCursor=1", "height=10px","size=234:aGVsbG8="],
+                "\x1b]1337;File=size=234;name=bXluYW1l;width=5;height=10px;preserveAspectRatio=0;inline=1;doNotMoveCursor=1:aGVsbG8=\x1b\\"
+            ),
+            OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
+                ITermFileData {
+                    name: Some("myname".into()),
+                    size: Some(234),
+                    width: ITermDimension::Cells(5),
+                    height: ITermDimension::Pixels(10),
+                    preserve_aspect_ratio: false,
+                    inline: true,
+                    do_not_move_cursor: true,
                     data: b"hello".to_vec(),
                 }
             )))

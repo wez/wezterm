@@ -218,6 +218,7 @@ impl ImgCatCommand {
                 height: self.height.unwrap_or_else(Default::default),
                 preserve_aspect_ratio: !self.no_preserve_aspect_ratio,
                 inline: true,
+                do_not_move_cursor: false,
                 data,
             },
         )));
