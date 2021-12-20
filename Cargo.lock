@@ -4223,6 +4223,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "uds_windows"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "486992108df0fe0160680af1941fe856c521be931d5a5ecccefe0de86dc47e4a"
+dependencies = [
+ "tempdir",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "umask"
 version = "0.1.0"
 dependencies = [
@@ -4646,7 +4656,7 @@ dependencies = [
  "termwiz",
  "textwrap 0.14.2",
  "thiserror",
- "uds_windows",
+ "uds_windows 0.1.6",
  "url",
  "wezterm-ssh",
  "wezterm-term",
@@ -4740,7 +4750,7 @@ dependencies = [
  "textwrap 0.14.2",
  "thiserror",
  "tiny-skia",
- "uds_windows",
+ "uds_windows 1.0.1",
  "umask",
  "unicode-normalization",
  "unicode-segmentation",
@@ -4817,7 +4827,7 @@ dependencies = [
  "rcgen",
  "smol",
  "termwiz",
- "uds_windows",
+ "uds_windows 0.1.6",
  "url",
  "wezterm-term",
  "winapi 0.3.9",
