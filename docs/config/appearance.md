@@ -40,7 +40,7 @@ return {
       -- Overrides the text color when the current cell is occupied by the cursor
       cursor_fg = "black",
       -- Specifies the border color of the cursor when the cursor style is set to Block,
-      -- of the color of the vertical or horizontal bar when the cursor style is set to
+      -- or the color of the vertical or horizontal bar when the cursor style is set to
       -- Bar or Underline.
       cursor_border = "#52ad70",
 
