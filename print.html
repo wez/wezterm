@@ -439,6 +439,7 @@ usually the best available version.</p>
 <li>Bundled harfbuzz to 3.2.0</li>
 <li>Bundled freetype to 2.11.1</li>
 <li>macos: removing the titlebar from <code>window_decorations</code> now preserves rounded window corners <a href="https://github.com/wez/wezterm/issues/1034">#1034</a></li>
+<li>Colors can now be specified in the HSL colorspace using syntax like <code>&quot;hsl:235 100 50&quot;</code> <a href="https://github.com/wez/wezterm/issues/1436">#1436</a></li>
 </ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
@@ -2023,6 +2024,20 @@ usual hex notation; eg: <code>#000000</code> is equivalent to <code>black</code>
 
       -- Arbitrary colors of the palette in the range from 16 to 255
       indexed = {[136] = &quot;#af8700&quot;},
+  }
+}
+</code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You may specify colors in the HSL color space, if you prefer that over RGB, by using:</p>
+<pre><code class="language-lua">return {
+  colors = {
+      -- the first number is the hue measured in degrees with a range
+      -- of 0-360.
+      -- The second number is the saturation measured in percentage with
+      -- a range of 0-100.
+      -- The third number is the lightness measured in percentage with
+      -- a range of 0-100.
+      foreground = &quot;hsl:235 100 50&quot;,
   }
 }
 </code></pre>

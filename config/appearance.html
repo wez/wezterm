@@ -201,6 +201,20 @@ usual hex notation; eg: <code>#000000</code> is equivalent to <code>black</code>
   }
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You may specify colors in the HSL color space, if you prefer that over RGB, by using:</p>
+<pre><code class="language-lua">return {
+  colors = {
+      -- the first number is the hue measured in degrees with a range
+      -- of 0-360.
+      -- The second number is the saturation measured in percentage with
+      -- a range of 0-100.
+      -- The third number is the lightness measured in percentage with
+      -- a range of 0-100.
+      foreground = &quot;hsl:235 100 50&quot;,
+  }
+}
+</code></pre>
 <h3 id="defining-a-color-scheme-in-your-weztermlua"><a class="header" href="#defining-a-color-scheme-in-your-weztermlua">Defining a Color Scheme in your <code>.wezterm.lua</code></a></h3>
 <p>If you'd like to keep a couple of color schemes handy in your configuration
 file, rather than filling out the <code>colors</code> section, place it in a
