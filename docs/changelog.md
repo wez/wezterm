@@ -28,6 +28,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Bundled harfbuzz to 3.2.0
 * Bundled freetype to 2.11.1
 * macos: removing the titlebar from `window_decorations` now preserves rounded window corners [#1034](https://github.com/wez/wezterm/issues/1034)
+* Colors can now be specified in the HSL colorspace using syntax like `"hsl:235 100 50"` [#1436](https://github.com/wez/wezterm/issues/1436)
 
 #### Fixed
 

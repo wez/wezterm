@@ -96,7 +96,7 @@ const TEN_BITS: u16 = 0b11_1111_1111;
 const MAX_TEN: f32 = 1023.;
 
 fn ten_to_eight(bits: u32) -> u8 {
-    ((bits as u16 & TEN_BITS) as f32 * MAX_TEN / 255.0) as u8
+    ((bits as u16 & TEN_BITS) as f32 / MAX_TEN * 255.0) as u8
 }
 
 impl RgbColor {
@@ -212,6 +212,10 @@ impl RgbColor {
 
     /// Construct a color from a string of the form `#RRGGBB` where
     /// R, G and B are all hex digits.
+    /// `hsl:hue sat light` is also accepted, and allows specifying a color
+    /// in the HSL color space, where `hue` is measure in degrees and has
+    /// a range of 0-360, and both `sat` and `light` are specified in percentage
+    /// in the range 0-100.
     pub fn from_rgb_str(s: &str) -> Option<RgbColor> {
         if s.len() > 0 && s.as_bytes()[0] == b'#' {
             // Probably `#RGB`
@@ -311,6 +315,34 @@ impl RgbColor {
             let blue = digit!();
 
             Some(Self::new_8bpc(red, green, blue))
+        } else if s.starts_with("hsl:") {
+            let fields: Vec<_> = s[4..].split(' ').collect();
+            if fields.len() == 3 {
+                // Expected to be degrees in range 0-360, but we allow for negative and wrapping
+                let h: i32 = fields[0].parse().ok()?;
+                // Expected to be percentage in range 0-100
+                let s: i32 = fields[1].parse().ok()?;
+                // Expected to be percentage in range 0-100
+                let l: i32 = fields[2].parse().ok()?;
+
+                fn hsl_to_rgb(hue: i32, sat: i32, light: i32) -> (f32, f32, f32) {
+                    let hue = hue % 360;
+                    let hue = if hue < 0 { hue + 360 } else { hue } as f32;
+                    let sat = sat as f32 / 100.;
+                    let light = light as f32 / 100.;
+                    let a = sat * light.min(1. - light);
+                    let f = |n: f32| -> f32 {
+                        let k = (n + hue / 30.) % 12.;
+                        light - a * (k - 3.).min(9. - k).min(1.).max(-1.)
+                    };
+                    (f(0.), f(8.), f(4.))
+                }
+
+                let (r, g, b) = hsl_to_rgb(h, s, l);
+                Some(Self::new_f32(r, g, b))
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -319,6 +351,10 @@ impl RgbColor {
     /// Construct a color from an SVG/CSS3 color name.
     /// or from a string of the form `#RRGGBB` where
     /// R, G and B are all hex digits.
+    /// `hsl:hue sat light` is also accepted, and allows specifying a color
+    /// in the HSL color space, where `hue` is measure in degrees and has
+    /// a range of 0-360, and both `sat` and `light` are specified in percentage
+    /// in the range 0-100.
     /// Returns None if the supplied name is not recognized.
     /// The list of names can be found here:
     /// <https://ogeon.github.io/docs/palette/master/palette/named/index.html>
@@ -437,6 +473,12 @@ mod tests {
     fn named_rgb() {
         let dark_green = RgbColor::from_named("DarkGreen").unwrap();
         assert_eq!(dark_green.bits, 0x006400);
+    }
+
+    #[test]
+    fn from_hsl() {
+        let foo = RgbColor::from_rgb_str("hsl:235 100 50").unwrap();
+        assert_eq!(foo.to_rgb_string(), "#0015ff");
     }
 
     #[test]

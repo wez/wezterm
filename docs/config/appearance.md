@@ -64,6 +64,24 @@ return {
 }
 ```
 
+*Since: nightly builds only*
+
+You may specify colors in the HSL color space, if you prefer that over RGB, by using:
+
+```lua
+return {
+  colors = {
+      -- the first number is the hue measured in degrees with a range
+      -- of 0-360.
+      -- The second number is the saturation measured in percentage with
+      -- a range of 0-100.
+      -- The third number is the lightness measured in percentage with
+      -- a range of 0-100.
+      foreground = "hsl:235 100 50",
+  }
+}
+```
+
 ### Defining a Color Scheme in your `.wezterm.lua`
 
 If you'd like to keep a couple of color schemes handy in your configuration
