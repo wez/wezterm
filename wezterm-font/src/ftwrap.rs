@@ -555,12 +555,6 @@ impl Face {
             if (*self.face).height == 0 {
                 anyhow::bail!("font has 0 height, fallback to bitmaps");
             }
-            if (*self.face).num_fixed_sizes > 0 {
-                anyhow::bail!(
-                    "font has bitmaps but also allowed FT_Set_Char_Size to succeed... \
-                    not trusting it and falling back to bitmaps"
-                );
-            }
         }
 
         Ok(())
@@ -618,12 +612,8 @@ impl Face {
                 }
             }
 
-            ft_result(FT_Render_Glyph(slot, render_mode), ()).with_context(|| {
-                format!(
-                    "load_and_render_glyph: FT_Render_Glyph render_mode={:?}",
-                    render_mode
-                )
-            })?;
+            ft_result(FT_Render_Glyph(slot, render_mode), ())
+                .context("load_and_render_glyph: FT_Render_Glyph")?;
             Ok(slot)
         }
     }
