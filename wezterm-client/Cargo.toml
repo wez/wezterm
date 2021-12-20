@@ -32,4 +32,4 @@ wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
 [target."cfg(windows)".dependencies]
-uds_windows = "0.1"
+uds_windows = "1.0"
