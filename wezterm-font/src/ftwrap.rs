@@ -600,18 +600,6 @@ impl Face {
                 FT_GlyphSlot_Embolden(slot as *mut _);
             }
 
-            if let Some(size) = self.size.as_ref() {
-                if !size.is_scaled {
-                    // Non-scaled == bitmap, which doesn't need to be rendered.
-                    // We check specially for this because freetype 2.11
-                    // started to return an error in this case.
-                    // <https://gitlab.freedesktop.org/freetype/freetype/-/issues/1076>
-                    // This workaround can be removed when freetype 2.11.1
-                    // is released and we upgrade to it.
-                    return Ok(slot);
-                }
-            }
-
             ft_result(FT_Render_Glyph(slot, render_mode), ())
                 .context("load_and_render_glyph: FT_Render_Glyph")?;
             Ok(slot)

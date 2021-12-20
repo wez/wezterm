@@ -26,6 +26,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Updated and Improved
 
 * Bundled harfbuzz to 3.2.0
+* Bundled freetype to 2.11.1
 * macos: removing the titlebar from `window_decorations` now preserves rounded window corners [#1034](https://github.com/wez/wezterm/issues/1034)
 
 #### Fixed
