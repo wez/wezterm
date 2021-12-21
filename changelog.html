@@ -161,7 +161,6 @@ usually the best available version.</p>
 <li><a href="config/lua/SshDomain.html">SSH Domains</a> now support specifying <code>ssh_config</code> overrides. <a href="https://github.com/wez/wezterm/issues/1149">#1149</a></li>
 <li><a href="config/lua/config/default_gui_startup_args.html">default_gui_startup_args</a> allows defaulting to starting the ssh client (for example). <a href="https://github.com/wez/wezterm/issues/1030">#1030</a></li>
 <li><a href="config/lua/mux-events/mux-is-process-stateful.html">mux-is-process-stateful</a> event for finer control over prompting when closing panes. <a href="https://github.com/wez/wezterm/issues/1412">#1412</a></li>
-<li><a href="config/font-shaping.html">harfbuzz_features</a>, <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a>, <a href="config/lua/config/freetype_render_target.html">freetype_render_target</a> and <a href="config/lua/config/freetype_load_flags.html">freetype_load_flags</a> can now be overridden on a per-font basis as described in <a href="config/lua/wezterm/font.html">wezterm.font</a> and <a href="config/lua/wezterm/font_with_fallback.html">wezterm.font_with_fallback</a>.</li>
 </ul>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
@@ -892,7 +891,7 @@ font_hinting = &quot;Full&quot; # None, Vertical, VerticalSubpixel, Full
 <li>Early startup errors now generate a &quot;toast&quot; notification, giving you more of a clue about what went wrong</li>
 <li>We now use the default configuration if the config file had errors, rather than refusing to start</li>
 <li>Wayland compositors: Improved detection of display scaling on startup</li>
-<li>Added <code>harfbuzz_features</code> option to specify stylistic sets for fonts such as Fira Code, and to control various typographical options</li>
+<li>Added <code>harfuzz_features</code> option to specify stylistic sets for fonts such as Fira Code, and to control various typographical options</li>
 <li>Added a <code>window_padding</code> config section to add padding to the window display</li>
 <li>We now respect <a href="https://github.com/wez/wezterm/issues/7">DECSCUSR and DECTCEM</a> escape sequence to select between hidden, block, underline and bar cursor types, as well as blinking cursors.  New configuration options have been added to control the appearance and blink rate.</li>
 <li>We now support an optional basic scroll bar.  The scroll bar occupies the right window padding and has a configurable color.  Scroll bars are not yet supported for multiplexer connections and remain disabled by default for the moment.</li>

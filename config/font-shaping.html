@@ -178,32 +178,6 @@ it lists available stylistic sets here:
   harfbuzz_features = {&quot;zero&quot;}
 }
 </code></pre>
-<p><em>Since: nightly builds only</em></p>
-<p>You can specify <code>harfbuzz_features</code> on a per-font basis, rather than
-globally for all fonts:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm'
-return {
-  font = wezterm.font({
-    family=&quot;JetBrains Mono&quot;,
-    harfbuzz_features={&quot;calt=0&quot;, &quot;clig=0&quot;, &quot;liga=0&quot;}
-  })
-}
-</code></pre>
-<p>and this example disables ligatures for JetBrains Mono,
-but keeps the default for the other fonts in the fallback:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
-
-return {
-  font = wezterm.font_with_fallback({
-    {
-       family=&quot;JetBrains Mono&quot;,
-       weight=&quot;Medium&quot;
-       harfbuzz_features={&quot;calt=0&quot;, &quot;clig=0&quot;, &quot;liga=0&quot;}
-    },
-    {family=&quot;Terminus&quot;, weight=&quot;Bold&quot;},
-    &quot;Noto Color Emoji&quot;),
-}
-</code></pre>
 
                     </main>
 

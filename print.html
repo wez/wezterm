@@ -429,7 +429,6 @@ usually the best available version.</p>
 <li><a href="config/lua/SshDomain.html">SSH Domains</a> now support specifying <code>ssh_config</code> overrides. <a href="https://github.com/wez/wezterm/issues/1149">#1149</a></li>
 <li><a href="config/lua/config/default_gui_startup_args.html">default_gui_startup_args</a> allows defaulting to starting the ssh client (for example). <a href="https://github.com/wez/wezterm/issues/1030">#1030</a></li>
 <li><a href="config/lua/mux-events/mux-is-process-stateful.html">mux-is-process-stateful</a> event for finer control over prompting when closing panes. <a href="https://github.com/wez/wezterm/issues/1412">#1412</a></li>
-<li><a href="config/font-shaping.html">harfbuzz_features</a>, <a href="config/lua/config/freetype_load_target.html">freetype_load_target</a>, <a href="config/lua/config/freetype_render_target.html">freetype_render_target</a> and <a href="config/lua/config/freetype_load_flags.html">freetype_load_flags</a> can now be overridden on a per-font basis as described in <a href="config/lua/wezterm/font.html">wezterm.font</a> and <a href="config/lua/wezterm/font_with_fallback.html">wezterm.font_with_fallback</a>.</li>
 </ul>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
@@ -1160,7 +1159,7 @@ font_hinting = &quot;Full&quot; # None, Vertical, VerticalSubpixel, Full
 <li>Early startup errors now generate a &quot;toast&quot; notification, giving you more of a clue about what went wrong</li>
 <li>We now use the default configuration if the config file had errors, rather than refusing to start</li>
 <li>Wayland compositors: Improved detection of display scaling on startup</li>
-<li>Added <code>harfbuzz_features</code> option to specify stylistic sets for fonts such as Fira Code, and to control various typographical options</li>
+<li>Added <code>harfuzz_features</code> option to specify stylistic sets for fonts such as Fira Code, and to control various typographical options</li>
 <li>Added a <code>window_padding</code> config section to add padding to the window display</li>
 <li>We now respect <a href="https://github.com/wez/wezterm/issues/7">DECSCUSR and DECTCEM</a> escape sequence to select between hidden, block, underline and bar cursor types, as well as blinking cursors.  New configuration options have been added to control the appearance and blink rate.</li>
 <li>We now support an optional basic scroll bar.  The scroll bar occupies the right window padding and has a configurable color.  Scroll bars are not yet supported for multiplexer connections and remain disabled by default for the moment.</li>
@@ -1537,32 +1536,6 @@ it lists available stylistic sets here:
   -- Use this for a zero with a dot rather than a line through it
   -- when using the Fira Code font
   harfbuzz_features = {&quot;zero&quot;}
-}
-</code></pre>
-<p><em>Since: nightly builds only</em></p>
-<p>You can specify <code>harfbuzz_features</code> on a per-font basis, rather than
-globally for all fonts:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm'
-return {
-  font = wezterm.font({
-    family=&quot;JetBrains Mono&quot;,
-    harfbuzz_features={&quot;calt=0&quot;, &quot;clig=0&quot;, &quot;liga=0&quot;}
-  })
-}
-</code></pre>
-<p>and this example disables ligatures for JetBrains Mono,
-but keeps the default for the other fonts in the fallback:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
-
-return {
-  font = wezterm.font_with_fallback({
-    {
-       family=&quot;JetBrains Mono&quot;,
-       weight=&quot;Medium&quot;
-       harfbuzz_features={&quot;calt=0&quot;, &quot;clig=0&quot;, &quot;liga=0&quot;}
-    },
-    {family=&quot;Terminus&quot;, weight=&quot;Bold&quot;},
-    &quot;Noto Color Emoji&quot;),
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><p>Keyboard bindings are configurable.</p>
@@ -5564,25 +5537,6 @@ return {
   font = wezterm.font({family='Iosevka Term', stretch=&quot;Expanded&quot;, weight=&quot;Regular&quot;}),
 }
 </code></pre>
-<p><em>Since: nightly builds only</em></p>
-<p>You can use the expanded form mentioned above to override freetype and harfbuzz
-settings just for the specified font; this examples shows how to disable the
-default ligature feature just for this particular font:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm'
-return {
-  font = wezterm.font({
-    family=&quot;JetBrains Mono&quot;,
-    harfbuzz_features={&quot;calt=0&quot;, &quot;clig=0&quot;, &quot;liga=0&quot;},
-  })
-}
-</code></pre>
-<p>The following options can be specified in the same way:</p>
-<ul>
-<li><a href="config/lua/wezterm/../../font-shaping.html">harfbuzz_features</a></li>
-<li><a href="config/lua/wezterm/../config/freetype_load_target.html">freetype_load_target</a></li>
-<li><a href="config/lua/wezterm/../config/freetype_render_target.html">freetype_render_target</a></li>
-<li><a href="config/lua/wezterm/../config/freetype_load_flags.html">freetype_load_flags</a></li>
-</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermfont_with_fallbackfamilies--attributes"><a class="header" href="#weztermfont_with_fallbackfamilies--attributes"><code>wezterm.font_with_fallback(families [, attributes])</code></a></h1>
 <p>This function constructs a lua table that configures a font with fallback processing.
 Glyphs are looked up in the first font in the list but if missing the next font is
@@ -5610,30 +5564,6 @@ return {
     &quot;Noto Color Emoji&quot;),
 }
 </code></pre>
-<p><em>Since: nightly builds only</em></p>
-<p>You can use the expanded form mentioned above to override freetype and harfbuzz
-settings just for the specified font; this examples shows how to disable the
-default ligature feature just for JetBrains Mono, but leave it on for the
-other fonts in the fallback:</p>
-<pre><code class="language-lua">local wezterm = require 'wezterm';
-
-return {
-  font = wezterm.font_with_fallback({
-    {
-      family=&quot;JetBrains Mono&quot;,
-      harfbuzz_features={&quot;calt=0&quot;, &quot;clig=0&quot;, &quot;liga=0&quot;},
-    },
-    {family=&quot;Terminus&quot;, weight=&quot;Bold&quot;},
-    &quot;Noto Color Emoji&quot;),
-}
-</code></pre>
-<p>The following options can be specified in the same way:</p>
-<ul>
-<li><a href="config/lua/wezterm/../../font-shaping.html">harfbuzz_features</a></li>
-<li><a href="config/lua/wezterm/../config/freetype_load_target.html">freetype_load_target</a></li>
-<li><a href="config/lua/wezterm/../config/freetype_render_target.html">freetype_render_target</a></li>
-<li><a href="config/lua/wezterm/../config/freetype_load_flags.html">freetype_load_flags</a></li>
-</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="weztermformat"><a class="header" href="#weztermformat"><code>wezterm.format({})</code></a></h1>
 <p><em>Since: 20210314-114017-04b7cedd</em></p>
 <p><code>wezterm.format</code> can be used to produce a formatted string
