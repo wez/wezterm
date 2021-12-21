@@ -58,7 +58,7 @@ return {
 and this example disables ligatures for JetBrains Mono,
 but keeps the default for the other fonts in the fallback:
 
-```
+```lua
 local wezterm = require 'wezterm';
 
 return {
