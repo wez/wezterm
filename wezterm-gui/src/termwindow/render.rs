@@ -2613,6 +2613,9 @@ impl super::TermWindow {
                     CursorShape::BlinkingBlock | CursorShape::SteadyBlock if focused_and_active => {
                         None
                     }
+                    // When not focused, convert bar to block to make it more visually
+                    // distinct from the focused bar in another pane
+                    _shape if !focused_and_active => Some(CursorShape::SteadyBlock),
                     shape => Some(shape),
                 }
             } else {
