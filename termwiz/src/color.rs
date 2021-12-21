@@ -316,7 +316,7 @@ impl RgbColor {
 
             Some(Self::new_8bpc(red, green, blue))
         } else if s.starts_with("hsl:") {
-            let fields: Vec<_> = s[4..].split(' ').collect();
+            let fields: Vec<_> = s[4..].split_ascii_whitespace().collect();
             if fields.len() == 3 {
                 // Expected to be degrees in range 0-360, but we allow for negative and wrapping
                 let h: i32 = fields[0].parse().ok()?;
@@ -477,7 +477,7 @@ mod tests {
 
     #[test]
     fn from_hsl() {
-        let foo = RgbColor::from_rgb_str("hsl:235 100 50").unwrap();
+        let foo = RgbColor::from_rgb_str("hsl:235 100  50").unwrap();
         assert_eq!(foo.to_rgb_string(), "#0015ff");
     }
 
