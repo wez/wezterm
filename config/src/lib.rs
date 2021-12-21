@@ -845,7 +845,7 @@ pub struct Config {
     pub freetype_load_target: FreeTypeLoadTarget,
     #[serde(default)]
     pub freetype_render_target: Option<FreeTypeLoadTarget>,
-    #[serde(default, deserialize_with = "FreeTypeLoadFlags::de_string")]
+    #[serde(default)]
     pub freetype_load_flags: FreeTypeLoadFlags,
 
     /// Selects the freetype interpret version to use.

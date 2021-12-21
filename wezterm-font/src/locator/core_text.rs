@@ -175,6 +175,10 @@ fn build_fallback_list_impl() -> anyhow::Result<Vec<ParsedFont>> {
         italic: false,
         is_fallback: true,
         is_synthetic: true,
+        harfbuzz_features: None,
+        freetype_load_target: None,
+        freetype_render_target: None,
+        freetype_load_flags: None,
     };
     if let Ok(descriptors) = descriptor_from_attr(&symbols) {
         for descriptor in descriptors.iter() {

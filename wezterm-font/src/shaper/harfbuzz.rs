@@ -42,9 +42,10 @@ fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
 
 struct FontPair {
     face: ftwrap::Face,
-    font: harfbuzz::Font,
+    font: RefCell<harfbuzz::Font>,
     shaped_any: bool,
     presentation: Presentation,
+    features: Vec<harfbuzz::hb_feature_t>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -136,17 +137,31 @@ impl HarfbuzzShaper {
                     log::trace!("shaper wants {} {:?}", font_idx, handle);
                     let face = self.lib.face_from_locator(&handle.handle)?;
                     let mut font = harfbuzz::Font::new(face.face);
-                    let (load_flags, _) = ftwrap::compute_load_flags_from_config();
+                    let (load_flags, _) = ftwrap::compute_load_flags_from_config(
+                        handle.freetype_load_flags,
+                        handle.freetype_load_target,
+                        handle.freetype_render_target,
+                    );
                     font.set_load_flags(load_flags);
+
+                    let features = match &handle.harfbuzz_features {
+                        Some(features) => features
+                            .iter()
+                            .filter_map(|s| harfbuzz::feature_from_string(s).ok())
+                            .collect(),
+                        None => self.features.clone(),
+                    };
+
                     *opt_pair = Some(FontPair {
                         face,
-                        font,
+                        font: RefCell::new(font),
                         shaped_any: false,
                         presentation: if handle.assume_emoji_presentation {
                             Presentation::Emoji
                         } else {
                             Presentation::Text
                         },
+                        features,
                     });
                 }
 
@@ -194,10 +209,11 @@ impl HarfbuzzShaper {
                     }
                     let size = pair.face.set_font_size(font_size, dpi)?;
                     // Tell harfbuzz to recompute important font metrics!
-                    pair.font.font_changed();
+                    let mut font = pair.font.borrow_mut();
+                    font.font_changed();
                     cell_width = size.width;
                     shaped_any = pair.shaped_any;
-                    pair.font.shape(&mut buf, self.features.as_slice());
+                    font.shape(&mut buf, pair.features.as_slice());
                     /*
                     log::info!(
                         "shaped font_idx={} as: {}",
@@ -562,6 +578,10 @@ mod test {
                     is_fallback: false,
                     is_synthetic: false,
                     italic: false,
+                    freetype_load_flags: None,
+                    freetype_load_target: None,
+                    freetype_render_target: None,
+                    harfbuzz_features: None,
                 },
                 14,
             )

@@ -1,11 +1,12 @@
 use crate::Gradient;
-use crate::{FontAttributes, FontStretch, FontWeight, TextStyle};
+use crate::{FontAttributes, FontStretch, FontWeight, FreeTypeLoadTarget, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;
 use mlua::{FromLua, Lua, Table, ToLua, ToLuaMulti, Value, Variadic};
 use serde::*;
 use smol::prelude::*;
+use std::convert::TryFrom;
 use std::path::Path;
 use termwiz::cell::{grapheme_column_width, unicode_column_width, AttributeChange, CellAttributes};
 use termwiz::color::{AnsiColor, ColorAttribute, ColorSpec, RgbColor};
@@ -487,6 +488,15 @@ struct LuaFontAttributes {
     /// Whether the font should be an italic variant
     #[serde(default)]
     pub italic: bool,
+
+    #[serde(default)]
+    pub harfbuzz_features: Option<Vec<String>>,
+    #[serde(default)]
+    pub freetype_load_target: Option<FreeTypeLoadTarget>,
+    #[serde(default)]
+    pub freetype_render_target: Option<FreeTypeLoadTarget>,
+    #[serde(default)]
+    pub freetype_load_flags: Option<String>,
 }
 impl<'lua> FromLua<'lua> for LuaFontAttributes {
     fn from_lua(value: Value<'lua>, _lua: &'lua Lua) -> Result<Self, mlua::Error> {
@@ -535,6 +545,13 @@ fn font<'lua>(
         italic: attrs.italic,
         is_fallback: false,
         is_synthetic: false,
+        harfbuzz_features: attrs.harfbuzz_features,
+        freetype_load_target: attrs.freetype_load_target,
+        freetype_render_target: attrs.freetype_render_target,
+        freetype_load_flags: match attrs.freetype_load_flags {
+            Some(flags) => Some(TryFrom::try_from(flags).map_err(|e| mlua::Error::external(e))?),
+            None => None,
+        },
     });
 
     Ok(text_style)
@@ -573,6 +590,15 @@ fn font_with_fallback<'lua>(
             italic: attrs.italic,
             is_fallback: idx != 0,
             is_synthetic: false,
+            harfbuzz_features: attrs.harfbuzz_features,
+            freetype_load_target: attrs.freetype_load_target,
+            freetype_render_target: attrs.freetype_render_target,
+            freetype_load_flags: match attrs.freetype_load_flags {
+                Some(flags) => {
+                    Some(TryFrom::try_from(flags).map_err(|e| mlua::Error::external(e))?)
+                }
+                None => None,
+            },
         });
     }
 

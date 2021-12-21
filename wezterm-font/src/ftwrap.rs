@@ -3,7 +3,7 @@
 use crate::locator::{FontDataHandle, FontDataSource};
 use crate::parser::ParsedFont;
 use anyhow::{anyhow, Context};
-use config::{configuration, FreeTypeLoadTarget};
+use config::{configuration, FreeTypeLoadFlags, FreeTypeLoadTarget};
 pub use freetype::*;
 use memmap2::{Mmap, MmapOptions};
 use rangeset::RangeSet;
@@ -51,10 +51,17 @@ fn render_mode_to_load_target(render_mode: FT_Render_Mode) -> u32 {
     (render_mode as u32) & 15 << 16
 }
 
-pub fn compute_load_flags_from_config() -> (i32, FT_Render_Mode) {
+pub fn compute_load_flags_from_config(
+    freetype_load_flags: Option<FreeTypeLoadFlags>,
+    freetype_load_target: Option<FreeTypeLoadTarget>,
+    freetype_render_target: Option<FreeTypeLoadTarget>,
+) -> (i32, FT_Render_Mode) {
     let config = configuration();
 
-    let load_flags = config.freetype_load_flags.bits() | FT_LOAD_COLOR;
+    let load_flags = freetype_load_flags
+        .unwrap_or(config.freetype_load_flags)
+        .bits()
+        | FT_LOAD_COLOR;
 
     fn target_to_render(t: FreeTypeLoadTarget) -> FT_Render_Mode {
         match t {
@@ -66,11 +73,13 @@ pub fn compute_load_flags_from_config() -> (i32, FT_Render_Mode) {
         }
     }
 
-    let load_target = target_to_render(config.freetype_load_target);
+    let load_target = target_to_render(freetype_load_target.unwrap_or(config.freetype_load_target));
     let render = target_to_render(
-        config
-            .freetype_render_target
-            .unwrap_or(config.freetype_load_target),
+        freetype_render_target.unwrap_or(
+            config
+                .freetype_render_target
+                .unwrap_or(config.freetype_load_target),
+        ),
     );
 
     let load_flags = load_flags | render_mode_to_load_target(load_target);
@@ -618,7 +627,7 @@ impl Face {
         if glyph_pos == 0 {
             anyhow::bail!("no I from which to compute cap height");
         }
-        let (load_flags, render_mode) = compute_load_flags_from_config();
+        let (load_flags, render_mode) = compute_load_flags_from_config(None, None, None);
         let ft_glyph = self.load_and_render_glyph(glyph_pos, load_flags, render_mode, false)?;
 
         let mode: FT_Pixel_Mode =

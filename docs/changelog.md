@@ -18,6 +18,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [SSH Domains](config/lua/SshDomain.md) now support specifying `ssh_config` overrides. [#1149](https://github.com/wez/wezterm/issues/1149)
 * [default_gui_startup_args](config/lua/config/default_gui_startup_args.md) allows defaulting to starting the ssh client (for example). [#1030](https://github.com/wez/wezterm/issues/1030)
 * [mux-is-process-stateful](config/lua/mux-events/mux-is-process-stateful.md) event for finer control over prompting when closing panes. [#1412](https://github.com/wez/wezterm/issues/1412)
+* [harfbuzz_features](config/font-shaping.md), [freetype_load_target](config/lua/config/freetype_load_target.md), [freetype_render_target](config/lua/config/freetype_render_target.md) and [freetype_load_flags](config/lua/config/freetype_load_flags.md) can now be overridden on a per-font basis as described in [wezterm.font](config/lua/wezterm/font.md) and [wezterm.font_with_fallback](config/lua/wezterm/font_with_fallback.md).
 
 #### Changed
 
@@ -755,7 +756,7 @@ font_hinting = "Full" # None, Vertical, VerticalSubpixel, Full
 * Early startup errors now generate a "toast" notification, giving you more of a clue about what went wrong
 * We now use the default configuration if the config file had errors, rather than refusing to start
 * Wayland compositors: Improved detection of display scaling on startup
-* Added `harfuzz_features` option to specify stylistic sets for fonts such as Fira Code, and to control various typographical options
+* Added `harfbuzz_features` option to specify stylistic sets for fonts such as Fira Code, and to control various typographical options
 * Added a `window_padding` config section to add padding to the window display
 * We now respect [DECSCUSR and DECTCEM](https://github.com/wez/wezterm/issues/7) escape sequence to select between hidden, block, underline and bar cursor types, as well as blinking cursors.  New configuration options have been added to control the appearance and blink rate.
 * We now support an optional basic scroll bar.  The scroll bar occupies the right window padding and has a configurable color.  Scroll bars are not yet supported for multiplexer connections and remain disabled by default for the moment.

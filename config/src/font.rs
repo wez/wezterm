@@ -3,6 +3,7 @@ use bitflags::*;
 use enum_display_derive::Display;
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::convert::TryFrom;
 use std::fmt::Display;
 use termwiz::color::RgbColor;
 
@@ -250,6 +251,7 @@ bitflags! {
     // but we can't directly reference that from here without making config
     // depend on freetype.
     #[derive(Default, Deserialize, Serialize)]
+    #[serde(try_from="String", into="String")]
     pub struct FreeTypeLoadFlags: u32 {
         /// FT_LOAD_DEFAULT
         const DEFAULT = 0;
@@ -267,12 +269,40 @@ bitflags! {
     }
 }
 
-impl FreeTypeLoadFlags {
-    pub fn de_string<'de, D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
+impl Into<String> for FreeTypeLoadFlags {
+    fn into(self) -> String {
+        self.to_string()
+    }
+}
+
+impl ToString for FreeTypeLoadFlags {
+    fn to_string(&self) -> String {
+        let mut s = vec![];
+        if *self == Self::DEFAULT {
+            s.push("DEFAULT");
+        }
+        if self.contains(Self::NO_HINTING) {
+            s.push("NO_HINTING");
+        }
+        if self.contains(Self::NO_BITMAP) {
+            s.push("NO_BITMAP");
+        }
+        if self.contains(Self::FORCE_AUTOHINT) {
+            s.push("FORCE_AUTOHINT");
+        }
+        if self.contains(Self::MONOCHROME) {
+            s.push("MONOCHROME");
+        }
+        if self.contains(Self::NO_AUTOHINT) {
+            s.push("NO_AUTOHINT");
+        }
+        s.join("|")
+    }
+}
+
+impl TryFrom<String> for FreeTypeLoadFlags {
+    type Error = String;
+    fn try_from(s: String) -> Result<Self, String> {
         let mut flags = FreeTypeLoadFlags::default();
 
         for ele in s.split('|') {
@@ -285,10 +315,7 @@ impl FreeTypeLoadFlags {
                 "MONOCHROME" => flags |= Self::MONOCHROME,
                 "NO_AUTOHINT" => flags |= Self::NO_AUTOHINT,
                 _ => {
-                    return Err(serde::de::Error::custom(format!(
-                        "invalid FreeTypeLoadFlags {} in {}",
-                        ele, s
-                    )));
+                    return Err(format!("invalid FreeTypeLoadFlags `{}` in `{}`", ele, s));
                 }
             }
         }
@@ -311,6 +338,15 @@ pub struct FontAttributes {
     pub italic: bool,
     pub is_fallback: bool,
     pub is_synthetic: bool,
+
+    #[serde(default)]
+    pub harfbuzz_features: Option<Vec<String>>,
+    #[serde(default)]
+    pub freetype_load_target: Option<FreeTypeLoadTarget>,
+    #[serde(default)]
+    pub freetype_render_target: Option<FreeTypeLoadTarget>,
+    #[serde(default)]
+    pub freetype_load_flags: Option<FreeTypeLoadFlags>,
 }
 impl_lua_conversion!(FontAttributes);
 
@@ -333,6 +369,10 @@ impl FontAttributes {
             italic: false,
             is_fallback: false,
             is_synthetic: false,
+            harfbuzz_features: None,
+            freetype_load_target: None,
+            freetype_render_target: None,
+            freetype_load_flags: None,
         }
     }
 
@@ -344,6 +384,10 @@ impl FontAttributes {
             italic: false,
             is_fallback: true,
             is_synthetic: false,
+            harfbuzz_features: None,
+            freetype_load_target: None,
+            freetype_render_target: None,
+            freetype_load_flags: None,
         }
     }
 }
@@ -357,6 +401,10 @@ impl Default for FontAttributes {
             italic: false,
             is_fallback: false,
             is_synthetic: false,
+            harfbuzz_features: None,
+            freetype_load_target: None,
+            freetype_render_target: None,
+            freetype_load_flags: None,
         }
     }
 }

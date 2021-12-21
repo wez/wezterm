@@ -5,6 +5,7 @@ use crate::{ftwrap, RasterizedGlyph};
 use ::freetype::{FT_GlyphSlotRec_, FT_Glyph_Format, FT_Matrix};
 use anyhow::bail;
 use color_types::linear_u8_to_srgb8;
+use config::{FreeTypeLoadFlags, FreeTypeLoadTarget};
 use std::cell::RefCell;
 use std::mem;
 use std::slice;
@@ -15,6 +16,9 @@ pub struct FreeTypeRasterizer {
     _lib: ftwrap::Library,
     synthesize_bold: bool,
     synthesize_italic: bool,
+    freetype_load_target: Option<FreeTypeLoadTarget>,
+    freetype_render_target: Option<FreeTypeLoadTarget>,
+    freetype_load_flags: Option<FreeTypeLoadFlags>,
 }
 
 impl FontRasterizer for FreeTypeRasterizer {
@@ -26,7 +30,11 @@ impl FontRasterizer for FreeTypeRasterizer {
     ) -> anyhow::Result<RasterizedGlyph> {
         self.face.borrow_mut().set_font_size(size, dpi)?;
 
-        let (load_flags, render_mode) = ftwrap::compute_load_flags_from_config();
+        let (load_flags, render_mode) = ftwrap::compute_load_flags_from_config(
+            self.freetype_load_flags,
+            self.freetype_load_target,
+            self.freetype_render_target,
+        );
 
         let mut face = self.face.borrow_mut();
         let ft_glyph =
@@ -306,6 +314,9 @@ impl FreeTypeRasterizer {
             has_color,
             synthesize_bold: parsed.synthesize_bold,
             synthesize_italic: parsed.synthesize_italic,
+            freetype_load_flags: parsed.freetype_load_flags,
+            freetype_load_target: parsed.freetype_load_target,
+            freetype_render_target: parsed.freetype_render_target,
         })
     }
 }

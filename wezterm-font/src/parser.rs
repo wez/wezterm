@@ -1,6 +1,6 @@
 use crate::locator::{FontDataHandle, FontDataSource, FontOrigin};
 use crate::shaper::GlyphInfo;
-use config::FontAttributes;
+use config::{FontAttributes, FreeTypeLoadFlags, FreeTypeLoadTarget};
 pub use config::{FontStretch, FontWeight};
 use rangeset::RangeSet;
 use std::cmp::Ordering;
@@ -26,6 +26,11 @@ pub struct ParsedFont {
     pub synthesize_dim: bool,
     pub assume_emoji_presentation: bool,
     pub pixel_sizes: Vec<u16>,
+
+    pub harfbuzz_features: Option<Vec<String>>,
+    pub freetype_load_target: Option<FreeTypeLoadTarget>,
+    pub freetype_render_target: Option<FreeTypeLoadTarget>,
+    pub freetype_load_flags: Option<FreeTypeLoadFlags>,
 }
 
 impl std::fmt::Debug for ParsedFont {
@@ -61,6 +66,10 @@ impl Clone for ParsedFont {
             cap_height: self.cap_height.clone(),
             coverage: Mutex::new(self.coverage.lock().unwrap().clone()),
             pixel_sizes: self.pixel_sizes.clone(),
+            harfbuzz_features: self.harfbuzz_features.clone(),
+            freetype_load_target: self.freetype_load_target,
+            freetype_render_target: self.freetype_render_target,
+            freetype_load_flags: self.freetype_load_flags,
         }
     }
 }
@@ -167,7 +176,14 @@ impl ParsedFont {
                 code.push_str(&format!("  -- Pixel sizes: {:?}\n", p.pixel_sizes));
             }
 
-            if p.weight == FontWeight::REGULAR && p.stretch == FontStretch::Normal && !p.italic {
+            if p.weight == FontWeight::REGULAR
+                && p.stretch == FontStretch::Normal
+                && !p.italic
+                && p.freetype_render_target.is_none()
+                && p.freetype_load_target.is_none()
+                && p.freetype_load_flags.is_none()
+                && p.harfbuzz_features.is_none()
+            {
                 code.push_str(&format!("  \"{}\",\n", p.names.family));
             } else {
                 code.push_str(&format!("  {{family=\"{}\"", p.names.family));
@@ -179,6 +195,27 @@ impl ParsedFont {
                 }
                 if p.italic {
                     code.push_str(", italic=true");
+                }
+                if let Some(item) = p.freetype_load_flags {
+                    code.push_str(&format!(", freetype_load_flags=\"{}\"", item.to_string()));
+                }
+                if let Some(item) = p.freetype_load_target {
+                    code.push_str(&format!(", freetype_load_target=\"{:?}\"", item));
+                }
+                if let Some(item) = p.freetype_render_target {
+                    code.push_str(&format!(", freetype_render_target=\"{:?}\"", item));
+                }
+                if let Some(feat) = &p.harfbuzz_features {
+                    code.push_str(", harfbuzz_features={");
+                    for (idx, f) in feat.iter().enumerate() {
+                        if idx > 0 {
+                            code.push_str(", ");
+                        }
+                        code.push('"');
+                        code.push_str(f);
+                        code.push('"');
+                    }
+                    code.push('}');
                 }
                 code.push_str("},\n")
             }
@@ -222,6 +259,10 @@ impl ParsedFont {
             coverage: Mutex::new(RangeSet::new()),
             cap_height,
             pixel_sizes,
+            harfbuzz_features: None,
+            freetype_render_target: None,
+            freetype_load_target: None,
+            freetype_load_flags: None,
         })
     }
 
@@ -454,6 +495,11 @@ impl ParsedFont {
     /// Update self to reflect whether the rasterizer might need to synthesize
     /// italic for this font.
     pub fn synthesize(mut self, attr: &FontAttributes) -> Self {
+        self.harfbuzz_features = attr.harfbuzz_features.clone();
+        self.freetype_render_target = attr.freetype_render_target;
+        self.freetype_load_target = attr.freetype_load_target;
+        self.freetype_load_flags = attr.freetype_load_flags;
+
         self.synthesize_italic = !self.italic && attr.italic;
         self.synthesize_bold = attr.weight >= FontWeight::BOLD
             && attr.weight > self.weight

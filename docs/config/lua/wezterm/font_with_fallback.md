@@ -36,3 +36,32 @@ return {
 }
 ```
 
+*Since: nightly builds only*
+
+You can use the expanded form mentioned above to override freetype and harfbuzz
+settings just for the specified font; this examples shows how to disable the
+default ligature feature just for JetBrains Mono, but leave it on for the
+other fonts in the fallback:
+
+```lua
+local wezterm = require 'wezterm';
+
+return {
+  font = wezterm.font_with_fallback({
+    {
+      family="JetBrains Mono",
+      harfbuzz_features={"calt=0", "clig=0", "liga=0"},
+    },
+    {family="Terminus", weight="Bold"},
+    "Noto Color Emoji"),
+}
+```
+
+The following options can be specified in the same way:
+
+* [harfbuzz_features](../../font-shaping.md)
+* [freetype_load_target](../config/freetype_load_target.md)
+* [freetype_render_target](../config/freetype_render_target.md)
+* [freetype_load_flags](../config/freetype_load_flags.md)
+
+
