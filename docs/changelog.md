@@ -28,6 +28,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 * Bundled harfbuzz to 3.2.0
 * Bundled freetype to 2.11.1
+* Bundled NotoColorEmoji to 2.034 (with Unicode 14 support) Thanks to [@4cm4k1](https://github.com/4cm4k1)! [#1440](https://github.com/wez/wezterm/pull/1440)
 * macos: removing the titlebar from `window_decorations` now preserves rounded window corners [#1034](https://github.com/wez/wezterm/issues/1034)
 * Colors can now be specified in the HSL colorspace using syntax like `"hsl:235 100 50"` [#1436](https://github.com/wez/wezterm/issues/1436)
 
