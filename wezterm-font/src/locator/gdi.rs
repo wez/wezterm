@@ -282,6 +282,10 @@ impl FontLocator for GdiFontLocator {
                         family: font.family_name(),
                         is_fallback: true,
                         is_synthetic: true,
+                        harbuzz_features: None,
+                        freetype_load_target: None,
+                        freetype_render_target: None,
+                        freetype_load_flags: None,
                     };
 
                     if !resolved.contains(&attr) {
