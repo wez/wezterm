@@ -52,14 +52,14 @@ impl<'a> Widget for MainScreen<'a> {
     fn render(&mut self, args: &mut RenderArgs) {
         args.surface.add_change(Change::ClearScreen(
             ColorAttribute::TrueColorWithPaletteFallback(
-                RgbColor::new(0x31, 0x1B, 0x92),
+                RgbColor::new_8bpc(0x31, 0x1B, 0x92),
                 AnsiColor::Black.into(),
             ),
         ));
         args.surface
             .add_change(Change::Attribute(AttributeChange::Foreground(
                 ColorAttribute::TrueColorWithPaletteFallback(
-                    RgbColor::new(0xB3, 0x88, 0xFF),
+                    RgbColor::new_8bpc(0xB3, 0x88, 0xFF),
                     AnsiColor::Purple.into(),
                 ),
             )));
@@ -94,6 +94,7 @@ fn main() -> Result<(), Error> {
         let caps = Capabilities::new_from_env()?;
         let mut buf = BufferedTerminal::new(new_terminal(caps)?)?;
         buf.terminal().set_raw_mode()?;
+        buf.terminal().enter_alternate_screen()?;
 
         // Set up the UI
         let mut ui = Ui::new();

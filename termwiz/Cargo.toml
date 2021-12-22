@@ -57,6 +57,7 @@ termios = "0.3"
 features = [
     "winbase",
     "winerror",
+    "winnls",
     "winuser",
     "consoleapi",
     "handleapi",

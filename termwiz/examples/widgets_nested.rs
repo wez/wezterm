@@ -71,14 +71,14 @@ mod inner {
         fn render(&mut self, args: &mut RenderArgs) {
             args.surface.add_change(Change::ClearScreen(
                 ColorAttribute::TrueColorWithPaletteFallback(
-                    RgbColor::new(0x31, 0x1B, 0x92),
+                    RgbColor::new_8bpc(0x31, 0x1B, 0x92),
                     AnsiColor::Black.into(),
                 ),
             ));
             args.surface
                 .add_change(Change::Attribute(AttributeChange::Foreground(
                     ColorAttribute::TrueColorWithPaletteFallback(
-                        RgbColor::new(0xB3, 0x88, 0xFF),
+                        RgbColor::new_8bpc(0xB3, 0x88, 0xFF),
                         AnsiColor::Purple.into(),
                     ),
                 )));

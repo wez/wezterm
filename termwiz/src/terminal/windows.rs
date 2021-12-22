@@ -1,3 +1,4 @@
+use crate::escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, CSI};
 use crate::istty::IsTty;
 use crate::{bail, ensure, format_err, Result};
 use filedescriptor::{FileDescriptor, OwnedHandle};
@@ -15,12 +16,14 @@ use winapi::um::synchapi::{CreateEventW, SetEvent, WaitForMultipleObjects};
 use winapi::um::winbase::{INFINITE, WAIT_FAILED, WAIT_OBJECT_0};
 use winapi::um::wincon::{
     FillConsoleOutputAttribute, FillConsoleOutputCharacterW, GetConsoleScreenBufferInfo,
-    ReadConsoleOutputW, ScrollConsoleScreenBufferW, SetConsoleCursorPosition,
-    SetConsoleScreenBufferSize, SetConsoleTextAttribute, SetConsoleWindowInfo, WriteConsoleOutputW,
-    CHAR_INFO, CONSOLE_SCREEN_BUFFER_INFO, COORD, DISABLE_NEWLINE_AUTO_RETURN, ENABLE_ECHO_INPUT,
-    ENABLE_LINE_INPUT, ENABLE_MOUSE_INPUT, ENABLE_PROCESSED_INPUT, ENABLE_VIRTUAL_TERMINAL_INPUT,
-    ENABLE_VIRTUAL_TERMINAL_PROCESSING, ENABLE_WINDOW_INPUT, INPUT_RECORD, SMALL_RECT,
+    ReadConsoleOutputW, ScrollConsoleScreenBufferW, SetConsoleCP, SetConsoleCursorPosition,
+    SetConsoleOutputCP, SetConsoleScreenBufferSize, SetConsoleTextAttribute, SetConsoleWindowInfo,
+    WriteConsoleOutputW, CHAR_INFO, CONSOLE_SCREEN_BUFFER_INFO, COORD, DISABLE_NEWLINE_AUTO_RETURN,
+    ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_MOUSE_INPUT, ENABLE_PROCESSED_INPUT,
+    ENABLE_VIRTUAL_TERMINAL_INPUT, ENABLE_VIRTUAL_TERMINAL_PROCESSING, ENABLE_WINDOW_INPUT,
+    INPUT_RECORD, SMALL_RECT,
 };
+use winapi::um::winnls::CP_UTF8;
 
 use crate::caps::Capabilities;
 use crate::input::{InputEvent, InputParser};
@@ -40,6 +43,8 @@ enum Renderer {
 pub trait ConsoleInputHandle {
     fn set_input_mode(&mut self, mode: u32) -> Result<()>;
     fn get_input_mode(&mut self) -> Result<u32>;
+    fn set_input_cp(&mut self, cp: u32) -> Result<()>;
+    fn get_input_cp(&mut self) -> u32;
     fn get_number_of_input_events(&mut self) -> Result<usize>;
     fn read_console_input(&mut self, num_events: usize) -> Result<Vec<INPUT_RECORD>>;
 }
@@ -47,6 +52,8 @@ pub trait ConsoleInputHandle {
 pub trait ConsoleOutputHandle {
     fn set_output_mode(&mut self, mode: u32) -> Result<()>;
     fn get_output_mode(&mut self) -> Result<u32>;
+    fn set_output_cp(&mut self, cp: u32) -> Result<()>;
+    fn get_output_cp(&mut self) -> u32;
     fn fill_char(&mut self, text: char, x: i16, y: i16, len: u32) -> Result<u32>;
     fn fill_attr(&mut self, attr: u16, x: i16, y: i16, len: u32) -> Result<u32>;
     fn set_attr(&mut self, attr: u16) -> Result<()>;
@@ -93,6 +100,17 @@ impl ConsoleInputHandle for InputHandle {
             bail!("GetConsoleMode failed: {}", IoError::last_os_error());
         }
         Ok(mode)
+    }
+
+    fn set_input_cp(&mut self, cp: u32) -> Result<()> {
+        if unsafe { SetConsoleCP(cp) } == 0 {
+            bail!("SetConsoleCP failed: {}", IoError::last_os_error());
+        }
+        Ok(())
+    }
+
+    fn get_input_cp(&mut self) -> u32 {
+        unsafe { consoleapi::GetConsoleCP() }
     }
 
     fn get_number_of_input_events(&mut self) -> Result<usize> {
@@ -231,6 +249,17 @@ impl ConsoleOutputHandle for OutputHandle {
             bail!("GetConsoleMode failed: {}", IoError::last_os_error());
         }
         Ok(mode)
+    }
+
+    fn set_output_cp(&mut self, cp: u32) -> Result<()> {
+        if unsafe { SetConsoleOutputCP(cp) } == 0 {
+            bail!("SetConsoleOutputCP failed: {}", IoError::last_os_error());
+        }
+        Ok(())
+    }
+
+    fn get_output_cp(&mut self) -> u32 {
+        unsafe { consoleapi::GetConsoleOutputCP() }
     }
 
     fn fill_char(&mut self, text: char, x: i16, y: i16, len: u32) -> Result<u32> {
@@ -458,16 +487,49 @@ pub struct WindowsTerminal {
     renderer: Renderer,
     input_parser: InputParser,
     input_queue: VecDeque<InputEvent>,
+    saved_input_cp: u32,
+    saved_output_cp: u32,
+    in_alternate_screen: bool,
 }
 
 impl Drop for WindowsTerminal {
     fn drop(&mut self) {
+        if matches!(&self.renderer, Renderer::Terminfo(_)) {
+            macro_rules! decreset {
+                ($variant:ident) => {
+                    write!(
+                        self.output_handle,
+                        "{}",
+                        CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                            DecPrivateModeCode::$variant
+                        )))
+                    )
+                    .unwrap();
+                };
+            }
+            self.render(&[Change::CursorVisibility(
+                crate::surface::CursorVisibility::Visible,
+            )])
+            .ok();
+            decreset!(BracketedPaste);
+            decreset!(SGRMouse);
+            decreset!(AnyEventMouse);
+        }
+
+        self.exit_alternate_screen().unwrap();
+        self.output_handle.flush().unwrap();
         self.input_handle
             .set_input_mode(self.saved_input_mode)
             .expect("failed to restore console input mode");
+        self.input_handle
+            .set_input_cp(self.saved_input_cp)
+            .expect("failed to restore console input codepage");
         self.output_handle
             .set_output_mode(self.saved_output_mode)
             .expect("failed to restore console output mode");
+        self.output_handle
+            .set_output_cp(self.saved_output_cp)
+            .expect("failed to restore console output codepage");
     }
 }
 
@@ -501,6 +563,8 @@ impl WindowsTerminal {
 
         let saved_input_mode = input_handle.get_input_mode()?;
         let saved_output_mode = output_handle.get_output_mode()?;
+        let saved_input_cp = input_handle.get_input_cp();
+        let saved_output_cp = output_handle.get_output_cp();
 
         // Test whether we have a virtual terminal capable
         // console device by attempting to set the appropriate flags.
@@ -536,10 +600,16 @@ impl WindowsTerminal {
             waker_handle,
             saved_input_mode,
             saved_output_mode,
+            saved_input_cp,
+            saved_output_cp,
             renderer,
             input_parser,
             input_queue: VecDeque::new(),
+            in_alternate_screen: false,
         };
+
+        terminal.input_handle.set_input_cp(CP_UTF8)?;
+        terminal.output_handle.set_output_cp(CP_UTF8)?;
 
         // We already enabled this for output, but let's also turn it
         // on for input here now.
@@ -622,13 +692,41 @@ impl Terminal for WindowsTerminal {
     }
 
     fn enter_alternate_screen(&mut self) -> Result<()> {
-        // TODO: Implement using CreateConsoleScreenBuffer and
-        // SetConsoleActiveScreenBuffer.
+        if matches!(&self.renderer, Renderer::Terminfo(_)) {
+            if !self.in_alternate_screen {
+                write!(
+                    self.output_handle,
+                    "{}",
+                    CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                        DecPrivateModeCode::ClearAndEnableAlternateScreen
+                    )))
+                )?;
+                self.in_alternate_screen = true;
+            }
+        } else {
+            // TODO: Implement using CreateConsoleScreenBuffer and
+            // SetConsoleActiveScreenBuffer.
+        }
         Ok(())
     }
 
     fn exit_alternate_screen(&mut self) -> Result<()> {
         // TODO: Implement using SetConsoleActiveScreenBuffer.
+        if matches!(&self.renderer, Renderer::Terminfo(_)) {
+            if self.in_alternate_screen {
+                write!(
+                    self.output_handle,
+                    "{}",
+                    CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                        DecPrivateModeCode::ClearAndEnableAlternateScreen
+                    )))
+                )?;
+                self.in_alternate_screen = false;
+            }
+        } else {
+            // TODO: Implement using CreateConsoleScreenBuffer and
+            // SetConsoleActiveScreenBuffer.
+        }
         Ok(())
     }
 
