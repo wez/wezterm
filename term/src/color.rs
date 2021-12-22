@@ -165,7 +165,7 @@ impl ColorPalette {
             RgbColor::new_8bpc(0xff, 0xff, 0x55),
             // Blue
             RgbColor::new_8bpc(0x55, 0x55, 0xff),
-            // Fuschia
+            // Fuchsia
             RgbColor::new_8bpc(0xff, 0x55, 0xff),
             // Aqua
             RgbColor::new_8bpc(0x55, 0xff, 0xff),

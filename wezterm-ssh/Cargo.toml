@@ -45,5 +45,5 @@ rstest = "0.12"
 shell-words = "1.0"
 smol-potat = "1.1.2"
 structopt = "0.3"
-termwiz = { version = "0.14", path = "../termwiz" }
+termwiz = { version = "0.15", path = "../termwiz" }
 whoami = "1.1"

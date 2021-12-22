@@ -106,7 +106,7 @@ pub fn show_debug_overlay(mut term: TermWizTerminal, gui_win: GuiWin) -> anyhow:
                     Level::Warn => AnsiColor::Red.into(),
                     Level::Info => AnsiColor::Green.into(),
                     Level::Debug => AnsiColor::Blue.into(),
-                    Level::Trace => AnsiColor::Fuschia.into(),
+                    Level::Trace => AnsiColor::Fuchsia.into(),
                 })
                 .into(),
             );

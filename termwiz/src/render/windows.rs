@@ -62,7 +62,7 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
                 (Lime, $bright | $green),
                 (Yellow, $bright | $red | $green),
                 (Blue, $bright | $blue),
-                (Fuschia, $bright | $red | $blue),
+                (Fuchsia, $bright | $red | $blue),
                 (Aqua, $bright | $green | $blue),
                 (White, $bright | $red | $green | $blue)
             )

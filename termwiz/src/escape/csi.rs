@@ -1302,7 +1302,7 @@ impl Display for Sgr {
                 (Lime, ForegroundBrightGreen),
                 (Yellow, ForegroundBrightYellow),
                 (Blue, ForegroundBrightBlue),
-                (Fuschia, ForegroundBrightMagenta),
+                (Fuchsia, ForegroundBrightMagenta),
                 (Aqua, ForegroundBrightCyan),
                 (White, ForegroundBrightWhite)
             ),
@@ -1336,7 +1336,7 @@ impl Display for Sgr {
                 (Lime, BackgroundBrightGreen),
                 (Yellow, BackgroundBrightYellow),
                 (Blue, BackgroundBrightBlue),
-                (Fuschia, BackgroundBrightMagenta),
+                (Fuchsia, BackgroundBrightMagenta),
                 (Aqua, BackgroundBrightCyan),
                 (White, BackgroundBrightWhite)
             ),
@@ -2202,7 +2202,7 @@ impl<'a> CSIParser<'a> {
                             one!(Sgr::Foreground(AnsiColor::Blue.into()))
                         }
                         SgrCode::ForegroundBrightMagenta => {
-                            one!(Sgr::Foreground(AnsiColor::Fuschia.into()))
+                            one!(Sgr::Foreground(AnsiColor::Fuchsia.into()))
                         }
                         SgrCode::ForegroundBrightCyan => {
                             one!(Sgr::Foreground(AnsiColor::Aqua.into()))
@@ -2241,7 +2241,7 @@ impl<'a> CSIParser<'a> {
                             one!(Sgr::Background(AnsiColor::Blue.into()))
                         }
                         SgrCode::BackgroundBrightMagenta => {
-                            one!(Sgr::Background(AnsiColor::Fuschia.into()))
+                            one!(Sgr::Background(AnsiColor::Fuchsia.into()))
                         }
                         SgrCode::BackgroundBrightCyan => {
                             one!(Sgr::Background(AnsiColor::Aqua.into()))

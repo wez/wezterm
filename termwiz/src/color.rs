@@ -40,7 +40,7 @@ pub enum AnsiColor {
     /// Bright blue
     Blue,
     /// Bright purple
-    Fuschia,
+    Fuchsia,
     /// Bright Cyan/Aqua
     Aqua,
     /// Bright white

@@ -345,7 +345,7 @@ impl Pane for SearchOverlay {
                                     .set_reverse(false);
                             } else {
                                 cell.attrs_mut()
-                                    .set_background(AnsiColor::Fuschia)
+                                    .set_background(AnsiColor::Fuchsia)
                                     .set_foreground(AnsiColor::Black)
                                     .set_reverse(false);
                             }

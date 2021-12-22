@@ -235,7 +235,7 @@ impl RenderState {
 
             Event::Code(s) => {
                 self.changes
-                    .push(AttributeChange::Foreground(AnsiColor::Fuschia.into()).into());
+                    .push(AttributeChange::Foreground(AnsiColor::Fuchsia.into()).into());
                 self.wrap_text(&s);
                 self.changes
                     .push(AttributeChange::Foreground(Default::default()).into());

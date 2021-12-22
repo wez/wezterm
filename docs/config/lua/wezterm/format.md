@@ -20,7 +20,7 @@ local success, date, stderr = wezterm.run_child_process({"date"});
 
 wezterm.log_info(wezterm.format({
   {Attribute={Underline="Single"}},
-  {Foreground={AnsiColor="Fuschia"}},
+  {Foreground={AnsiColor="Fuchsia"}},
   {Background={Color="blue"}},
   {Text="Hello " .. date},
 }))
@@ -40,7 +40,7 @@ Possible values for the `FormatItem` elements are:
 * `{Attribute={Intensity="Half"}}` - set half intensity
 * `{Attribute={Italic=true}}` - enable italics
 * `{Attribute={Italic=false}}` - disable italics
-* `{Foreground={AnsiColor="Black"}}` - set foreground color to one of the ansi color palette values (index 0-15) using one of the names `Black`, `Maroon`, `Green`, `Olive`, `Navy`, `Purple`, `Teal`, `Silver`, `Grey`, `Red`, `Lime`, `Yellow`, `Blue`, `Fuschia`, `Aqua` or `White`.
+* `{Foreground={AnsiColor="Black"}}` - set foreground color to one of the ansi color palette values (index 0-15) using one of the names `Black`, `Maroon`, `Green`, `Olive`, `Navy`, `Purple`, `Teal`, `Silver`, `Grey`, `Red`, `Lime`, `Yellow`, `Blue`, `Fuchsia`, `Aqua` or `White`.
 * `{Foreground={Color="yellow"}}` - set foreground color to a named color or rgb value like `#ffffff`.
 * `{Background={AnsiColor="Black"}}` - set the background color to an ansi color as per `Foreground` above.
 * `{Background={Color="blue"}}` - set the background color to a named color or rgb value as per `Foreground` above.
