@@ -423,15 +423,8 @@ impl super::TermWindow {
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
-        if self.focused.is_none() {
-            // Ignore the mouse event if the window doesn't have focus.
-            // Some Window managers can send events in a strange order
-            // <https://github.com/wez/wezterm/issues/1140#issuecomment-921031466>
-            // and that can confuse neovim for example.
-            return;
-        }
-
         let mut is_click_to_focus = false;
+        let mut ignore_unless_focused = false;
 
         for pos in self.get_panes_to_render() {
             if y >= pos.top as i64
@@ -449,6 +442,7 @@ impl super::TermWindow {
 
                             pane = Rc::clone(&pos.pane);
                             is_click_to_focus = true;
+                            ignore_unless_focused = true;
                         }
                         WMEK::Move => {
                             if self.config.pane_focus_follows_mouse {
@@ -459,8 +453,11 @@ impl super::TermWindow {
                                 pane = Rc::clone(&pos.pane);
                                 context.invalidate();
                             }
+                            ignore_unless_focused = true;
                         }
-                        WMEK::Release(_) => {}
+                        WMEK::Release(_) => {
+                            ignore_unless_focused = true;
+                        }
                         WMEK::VertWheel(_) => {}
                         WMEK::HorzWheel(_) => {}
                     }
@@ -485,6 +482,12 @@ impl super::TermWindow {
                 }
                 return;
             }
+        } else if ignore_unless_focused {
+            // Ignore the mouse event if the window doesn't have focus.
+            // Some Window managers can send events in a strange order
+            // <https://github.com/wez/wezterm/issues/1140#issuecomment-921031466>
+            // and that can confuse neovim for example.
+            return;
         }
 
         let dims = pane.get_dimensions();
