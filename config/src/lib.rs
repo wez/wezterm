@@ -1512,7 +1512,10 @@ impl Config {
 
             let lua = make_lua_context(p)?;
             let config: mlua::Value = smol::block_on(
-                lua.load(&s)
+                // Skip a potential BOM that Windows software may have placed in the
+                // file. Note that we can't catch this happening for files that are
+                // imported via the lua require function.
+                lua.load(s.trim_start_matches('\u{FEFF}'))
                     .set_name(p.to_string_lossy().as_bytes())?
                     .eval_async(),
             )?;
