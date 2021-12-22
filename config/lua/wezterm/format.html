@@ -162,7 +162,7 @@ local success, date, stderr = wezterm.run_child_process({&quot;date&quot;});
 
 wezterm.log_info(wezterm.format({
   {Attribute={Underline=&quot;Single&quot;}},
-  {Foreground={AnsiColor=&quot;Fuschia&quot;}},
+  {Foreground={AnsiColor=&quot;Fuchsia&quot;}},
   {Background={Color=&quot;blue&quot;}},
   {Text=&quot;Hello &quot; .. date},
 }))
@@ -181,7 +181,7 @@ wezterm.log_info(wezterm.format({
 <li><code>{Attribute={Intensity=&quot;Half&quot;}}</code> - set half intensity</li>
 <li><code>{Attribute={Italic=true}}</code> - enable italics</li>
 <li><code>{Attribute={Italic=false}}</code> - disable italics</li>
-<li><code>{Foreground={AnsiColor=&quot;Black&quot;}}</code> - set foreground color to one of the ansi color palette values (index 0-15) using one of the names <code>Black</code>, <code>Maroon</code>, <code>Green</code>, <code>Olive</code>, <code>Navy</code>, <code>Purple</code>, <code>Teal</code>, <code>Silver</code>, <code>Grey</code>, <code>Red</code>, <code>Lime</code>, <code>Yellow</code>, <code>Blue</code>, <code>Fuschia</code>, <code>Aqua</code> or <code>White</code>.</li>
+<li><code>{Foreground={AnsiColor=&quot;Black&quot;}}</code> - set foreground color to one of the ansi color palette values (index 0-15) using one of the names <code>Black</code>, <code>Maroon</code>, <code>Green</code>, <code>Olive</code>, <code>Navy</code>, <code>Purple</code>, <code>Teal</code>, <code>Silver</code>, <code>Grey</code>, <code>Red</code>, <code>Lime</code>, <code>Yellow</code>, <code>Blue</code>, <code>Fuchsia</code>, <code>Aqua</code> or <code>White</code>.</li>
 <li><code>{Foreground={Color=&quot;yellow&quot;}}</code> - set foreground color to a named color or rgb value like <code>#ffffff</code>.</li>
 <li><code>{Background={AnsiColor=&quot;Black&quot;}}</code> - set the background color to an ansi color as per <code>Foreground</code> above.</li>
 <li><code>{Background={Color=&quot;blue&quot;}}</code> - set the background color to a named color or rgb value as per <code>Foreground</code> above.</li>
