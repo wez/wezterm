@@ -993,6 +993,11 @@ impl TermWindow {
                                         window: window.clone(),
                                     });
                                 pos.pane.set_clipboard(&clipboard);
+
+                                let downloader: Arc<dyn wezterm_term::DownloadHandler> =
+                                    Arc::new(crate::download::Downloader::new());
+                                pos.pane.set_download_handler(&downloader);
+
                                 break;
                             }
                         }

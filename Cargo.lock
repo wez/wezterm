@@ -4686,6 +4686,7 @@ dependencies = [
  "codec",
  "colorgrad",
  "config",
+ "dirs-next",
  "downcast-rs",
  "embed-resource",
  "env-bootstrap",

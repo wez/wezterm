@@ -22,8 +22,8 @@ use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Alert, AlertHandler, CellAttributes, Clipboard, KeyCode, KeyModifiers, MouseEvent,
-    SemanticZone, StableRowIndex, Terminal, TerminalConfiguration,
+    Alert, AlertHandler, CellAttributes, Clipboard, DownloadHandler, KeyCode, KeyModifiers,
+    MouseEvent, SemanticZone, StableRowIndex, Terminal, TerminalConfiguration,
 };
 
 #[derive(Debug)]
@@ -208,6 +208,10 @@ impl Pane for LocalPane {
 
     fn set_clipboard(&self, clipboard: &Arc<dyn Clipboard>) {
         self.terminal.borrow_mut().set_clipboard(clipboard);
+    }
+
+    fn set_download_handler(&self, handler: &Arc<dyn DownloadHandler>) {
+        self.terminal.borrow_mut().set_download_handler(handler);
     }
 
     fn set_config(&self, config: Arc<dyn TerminalConfiguration>) {

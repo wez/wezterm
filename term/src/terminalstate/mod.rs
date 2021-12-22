@@ -327,6 +327,7 @@ pub struct TerminalState {
     clipboard: Option<Arc<dyn Clipboard>>,
     device_control_handler: Option<Box<dyn DeviceControlHandler>>,
     alert_handler: Option<Box<dyn AlertHandler>>,
+    download_handler: Option<Arc<dyn DownloadHandler>>,
 
     current_dir: Option<Url>,
 
@@ -472,6 +473,7 @@ impl TerminalState {
             clipboard: None,
             device_control_handler: None,
             alert_handler: None,
+            download_handler: None,
             current_dir: None,
             term_program: term_program.to_string(),
             term_version: term_version.to_string(),
@@ -511,6 +513,10 @@ impl TerminalState {
 
     pub fn set_notification_handler(&mut self, handler: Box<dyn AlertHandler>) {
         self.alert_handler.replace(handler);
+    }
+
+    pub fn set_download_handler(&mut self, handler: &Arc<dyn DownloadHandler>) {
+        self.download_handler.replace(handler.clone());
     }
 
     /// Returns the title text associated with the terminal session.

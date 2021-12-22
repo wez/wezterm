@@ -1251,6 +1251,9 @@ pub struct Config {
 
     #[serde(default = "default_unicode_version")]
     pub unicode_version: u8,
+
+    #[serde(default = "default_true")]
+    pub allow_download_protocols: bool,
 }
 impl_lua_conversion!(Config);
 

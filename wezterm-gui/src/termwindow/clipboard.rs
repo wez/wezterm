@@ -38,6 +38,8 @@ impl TermWindow {
         let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(ClipboardHelper {
             window: window.clone(),
         });
+        let downloader: Arc<dyn wezterm_term::DownloadHandler> =
+            Arc::new(crate::download::Downloader::new());
         let mux = Mux::get().unwrap();
 
         let mut mux_window = mux.get_window_mut(mux_window_id).unwrap();
@@ -46,6 +48,7 @@ impl TermWindow {
         for tab in mux_window.iter() {
             for pos in tab.iter_panes() {
                 pos.pane.set_clipboard(&clipboard);
+                pos.pane.set_download_handler(&downloader);
             }
         }
     }

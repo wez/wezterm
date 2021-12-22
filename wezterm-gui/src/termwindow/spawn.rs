@@ -172,6 +172,8 @@ impl super::TermWindow {
         };
 
         let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
+        let downloader: Arc<dyn wezterm_term::DownloadHandler> =
+            Arc::new(crate::download::Downloader::new());
 
         match spawn_where {
             SpawnWhere::SplitPane(direction) => {
@@ -187,6 +189,7 @@ impl super::TermWindow {
                         .await?;
                     pane.set_config(term_config);
                     pane.set_clipboard(&clipboard);
+                    pane.set_download_handler(&downloader);
                 } else {
                     bail!("there is no active tab while splitting pane!?");
                 }
@@ -203,6 +206,7 @@ impl super::TermWindow {
 
                 if spawn_where != SpawnWhere::NewWindow {
                     pane.set_clipboard(&clipboard);
+                    pane.set_download_handler(&downloader);
                     let mut window = mux
                         .get_window_mut(target_window_id)
                         .ok_or_else(|| anyhow!("no such window!?"))?;

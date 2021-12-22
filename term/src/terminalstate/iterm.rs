@@ -9,11 +9,15 @@ use termwiz::image::ImageDataType;
 impl TerminalState {
     pub(crate) fn set_image(&mut self, image: ITermFileData) {
         if !image.inline {
-            error!(
-                "Ignoring file download request name={:?} size={}",
-                image.name,
-                image.data.len()
-            );
+            if let Some(handler) = &self.download_handler {
+                handler.save_to_downloads(image.name, image.data);
+            } else {
+                error!(
+                    "Ignoring file download request name={:?} size={}",
+                    image.name,
+                    image.data.len()
+                );
+            }
             return;
         }
 

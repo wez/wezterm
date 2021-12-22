@@ -16,7 +16,7 @@ use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
-    Clipboard, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
+    Clipboard, DownloadHandler, KeyCode, KeyModifiers, MouseEvent, SemanticZone, StableRowIndex,
     TerminalConfiguration,
 };
 
@@ -363,6 +363,7 @@ pub trait Pane: Downcast {
     fn is_alt_screen_active(&self) -> bool;
 
     fn set_clipboard(&self, _clipboard: &Arc<dyn Clipboard>) {}
+    fn set_download_handler(&self, _handler: &Arc<dyn DownloadHandler>) {}
     fn set_config(&self, _config: Arc<dyn TerminalConfiguration>) {}
     fn get_config(&self) -> Option<Arc<dyn TerminalConfiguration>> {
         None

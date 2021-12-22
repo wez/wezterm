@@ -23,6 +23,7 @@ use wezterm_toast_notification::*;
 
 mod cache;
 mod customglyph;
+mod download;
 mod frontend;
 mod glyphcache;
 mod markdown;
