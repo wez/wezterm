@@ -2009,41 +2009,9 @@ impl super::TermWindow {
                     // for glyph_idx == 0 based on the whole glyph advance, rather than
                     // for each of the cells.
 
-                    if bg_color != style_params.bg_color {
-                        // Override the background color
-                        if !params.use_pixel_positioning || glyph_idx == 0 {
-                            let mut quad = self.filled_rectangle(
-                                &mut layers[0],
-                                Rect::new(
-                                    Point::new(
-                                        (params.left_pixel_x
-                                            + if params.use_pixel_positioning {
-                                                cluster_x_pos
-                                                    + (glyph.x_offset + glyph.bearing_x).get()
-                                                        as f32
-                                            } else {
-                                                cell_idx as f32 * cell_width
-                                            }) as isize,
-                                        params.top_pixel_y as isize,
-                                    ),
-                                    Size::new(
-                                        (if params.use_pixel_positioning {
-                                            pixel_width
-                                        } else {
-                                            cursor_width * cell_width
-                                        }) as isize,
-                                        cell_height as isize,
-                                    ),
-                                ),
-                                bg_color,
-                            )?;
-                            quad.set_hsv(hsv);
-                        }
-                    }
-
                     if cursor_shape.is_some() {
                         if !params.use_pixel_positioning || glyph_idx == 0 {
-                            let mut quad = layers[2].allocate()?;
+                            let mut quad = layers[0].allocate()?;
                             quad.set_position(
                                 pos_x,
                                 pos_y,
@@ -2483,10 +2451,6 @@ impl super::TermWindow {
             ) {
                 let (fg_color, bg_color) = if self.config.force_reverse_video_cursor {
                     (params.bg_color, params.fg_color)
-                } else if params.probably_a_ligature {
-                    // Preserve normal fg color for a multi-cell ligatured glyph,
-                    // in order to avoid the rest of the glyph showing "black"
-                    (params.fg_color, params.cursor_bg)
                 } else {
                     (params.cursor_fg, params.cursor_bg)
                 };
@@ -2584,34 +2548,52 @@ impl super::TermWindow {
 
         let focused_and_active = self.focused.is_some() && params.is_active_pane;
 
-        let (fg_color, bg_color) = match (selected, focused_and_active, cursor_shape, visibility) {
-            // Selected text overrides colors
-            (true, _, _, CursorVisibility::Hidden) => (params.selection_fg, params.selection_bg),
-            // Cursor cell overrides colors
-            (_, true, CursorShape::BlinkingBlock, CursorVisibility::Visible)
-            | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => {
-                if self.config.force_reverse_video_cursor {
-                    (params.bg_color, params.fg_color)
-                } else if params.probably_a_ligature {
-                    // Preserve normal fg color for a multi-cell ligatured glyph,
-                    // in order to avoid the rest of the glyph showing "black"
-                    (params.fg_color, params.cursor_bg)
-                } else {
-                    (params.cursor_fg, params.cursor_bg)
+        let (fg_color, bg_color, cursor_bg) =
+            match (selected, focused_and_active, cursor_shape, visibility) {
+                // Selected text overrides colors
+                (true, _, _, CursorVisibility::Hidden) => {
+                    (params.selection_fg, params.selection_bg, params.cursor_bg)
                 }
-            }
-            // Normally, render the cell as configured (or if the window is unfocused)
-            _ => (params.fg_color, params.bg_color),
-        };
+                // block Cursor cell overrides colors
+                (
+                    _,
+                    true,
+                    CursorShape::BlinkingBlock | CursorShape::SteadyBlock,
+                    CursorVisibility::Visible,
+                ) => {
+                    if self.config.force_reverse_video_cursor {
+                        (params.bg_color, params.fg_color, params.fg_color)
+                    } else {
+                        (params.cursor_fg, params.cursor_bg, params.cursor_bg)
+                    }
+                }
+                (
+                    _,
+                    true,
+                    CursorShape::BlinkingUnderline
+                    | CursorShape::SteadyUnderline
+                    | CursorShape::BlinkingBar
+                    | CursorShape::SteadyBar,
+                    CursorVisibility::Visible,
+                ) => {
+                    if self.config.force_reverse_video_cursor {
+                        (params.fg_color, params.bg_color, params.fg_color)
+                    } else {
+                        (params.fg_color, params.bg_color, params.cursor_bg)
+                    }
+                }
+                // Normally, render the cell as configured (or if the window is unfocused)
+                _ => (params.fg_color, params.bg_color, params.cursor_border_color),
+            };
 
         ComputeCellFgBgResult {
             fg_color,
             bg_color,
-            cursor_border_color: params.cursor_border_color,
+            cursor_border_color: cursor_bg,
             cursor_shape: if visibility == CursorVisibility::Visible {
                 match cursor_shape {
                     CursorShape::BlinkingBlock | CursorShape::SteadyBlock if focused_and_active => {
-                        None
+                        Some(CursorShape::Default)
                     }
                     // When not focused, convert bar to block to make it more visually
                     // distinct from the focused bar in another pane

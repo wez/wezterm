@@ -31,6 +31,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Bundled NotoColorEmoji to 2.034 (with Unicode 14 support) Thanks to [@4cm4k1](https://github.com/4cm4k1)! [#1440](https://github.com/wez/wezterm/pull/1440)
 * macos: removing the titlebar from `window_decorations` now preserves rounded window corners [#1034](https://github.com/wez/wezterm/issues/1034)
 * Colors can now be specified in the HSL colorspace using syntax like `"hsl:235 100 50"` [#1436](https://github.com/wez/wezterm/issues/1436)
+* Line/Bar cursors in [force_reverse_video_cursor](config/lua/config/force_reverse_video_cursor.md) mode now use the text foreground color rather than the cursor border color. [#1076](https://github.com/wez/wezterm/issues/1076)
 
 #### Fixed
 
