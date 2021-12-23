@@ -50,7 +50,7 @@ vec4 apply_hsv(vec4 c, vec3 transform)
 
 /*
 float to_srgb(float x) {
-  if (x <= 0.00031308) {
+  if (x <= 0.0031308) {
     return 12.92 * x;
   }
   return 1.055 * pow(x, (1.0 / 2.4)) - 0.055;
