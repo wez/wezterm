@@ -213,10 +213,8 @@ impl GlState {
             1,
             PIXEL_TYPE_ARB as i32,
             TYPE_RGBA_ARB as i32,
-            ACCELERATION_ARB as i32,
-            FULL_ACCELERATION_ARB as i32,
             COLOR_BITS_ARB as i32,
-            32,
+            24,
             ALPHA_BITS_ARB as i32,
             8,
             DEPTH_BITS_ARB as i32,
@@ -230,9 +228,11 @@ impl GlState {
         ];
 
         if has_extension(&extensions, "WGL_ARB_framebuffer_sRGB") {
+            log::trace!("will request FRAMEBUFFER_SRGB_CAPABLE_ARB");
             attribs.push(FRAMEBUFFER_SRGB_CAPABLE_ARB as i32);
             attribs.push(1);
         } else if has_extension(&extensions, "WGL_EXT_framebuffer_sRGB") {
+            log::trace!("will request FRAMEBUFFER_SRGB_CAPABLE_EXT");
             attribs.push(FRAMEBUFFER_SRGB_CAPABLE_EXT as i32);
             attribs.push(1);
         }
@@ -295,6 +295,7 @@ impl GlState {
         ];
 
         if has_extension(&extensions, "WGL_ARB_create_context_robustness") {
+            log::trace!("requesting robustness features");
             attribs.push(CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB as i32);
             attribs.push(LOSE_CONTEXT_ON_RESET_ARB as i32);
             attribs.push(CONTEXT_FLAGS_ARB as i32);
@@ -310,7 +311,12 @@ impl GlState {
         };
 
         if rc.is_null() {
-            anyhow::bail!("CreateContextAttribsARB failed");
+            let err = unsafe { winapi::um::errhandlingapi::GetLastError() };
+            anyhow::bail!(
+                "CreateContextAttribsARB failed, GetLastError={} {:x}",
+                err,
+                err
+            );
         }
 
         unsafe {

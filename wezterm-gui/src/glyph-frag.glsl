@@ -48,6 +48,22 @@ vec4 apply_hsv(vec4 c, vec3 transform)
   return vec4(hsv2rgb(hsv).rgb, c.a);
 }
 
+vec3 to_linear(vec3 v) {
+  return pow(v, vec3(2.2));
+}
+
+vec4 to_linear(vec4 v) {
+  return vec4(to_linear(v.rgb), v.a);
+}
+
+vec3 to_srgb(vec3 v) {
+  return pow(v, vec3(1.0 / 2.2));
+}
+
+vec4 to_srgb(vec4 v) {
+  return vec4(to_srgb(v.rgb), v.a);
+}
+
 void main() {
   if (o_has_color == 3.0) {
     // Solid color block
@@ -79,4 +95,8 @@ void main() {
   }
 
   color = apply_hsv(color, o_hsv);
+
+  // We MUST output SRGB and tell glium that we do that (outputs_srgb),
+  // otherwise something in glium over-gamma-corrects depending on the gl setup.
+  color = to_srgb(color);
 }
