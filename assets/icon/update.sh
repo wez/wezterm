@@ -14,7 +14,7 @@ convert $conv_opts -resize "!128x128" "$src" ../icon/terminal.png
 
 for dim in 16 32 128 256 512 1024 ; do
   # convert is the imagemagick convert utility
-  convert $conv_opts -border '10%' -bordercolor 'rgba(0,0,0,0)' -resize "!${dim}x${dim}" "$src" "icon_${dim}px.png"
+  convert $conv_opts -resize "!${dim}x${dim}" "$src" "icon_${dim}px.png"
 done
 # png2icns is part of the libicns-utils on Fedora systems.
 # It glues together the various png files into a macOS .icns file
