@@ -48,20 +48,30 @@ vec4 apply_hsv(vec4 c, vec3 transform)
   return vec4(hsv2rgb(hsv).rgb, c.a);
 }
 
-vec3 to_linear(vec3 v) {
-  return pow(v, vec3(2.2));
+/*
+float to_srgb(float x) {
+  if (x <= 0.00031308) {
+    return 12.92 * x;
+  }
+  return 1.055 * pow(x, (1.0 / 2.4)) - 0.055;
 }
 
-vec4 to_linear(vec4 v) {
-  return vec4(to_linear(v.rgb), v.a);
-}
-
-vec3 to_srgb(vec3 v) {
-  return pow(v, vec3(1.0 / 2.2));
+vec3 to_srgb(vec3 c) {
+  return vec3(to_srgb(c.r), to_srgb(c.g), to_srgb(c.b));
 }
 
 vec4 to_srgb(vec4 v) {
   return vec4(to_srgb(v.rgb), v.a);
+}
+*/
+
+vec4 to_srgb(vec4 linearRGB)
+{
+  bvec3 cutoff = lessThan(linearRGB.rgb, vec3(0.0031308));
+  vec3 higher = vec3(1.055)*pow(linearRGB.rgb, vec3(1.0/2.4)) - vec3(0.055);
+  vec3 lower = linearRGB.rgb * vec3(12.92);
+
+  return vec4(mix(higher, lower, cutoff), linearRGB.a);
 }
 
 void main() {
