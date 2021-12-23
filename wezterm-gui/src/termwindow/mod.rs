@@ -561,12 +561,12 @@ impl TermWindow {
             log::trace!(
                 "Initial geometry was {:?} but dpi-adjusted geometry \
                         is {:?}; update the kernel pixel geometry for the ptys!",
+                size,
                 terminal_size,
-                size
             );
             if let Some(window) = mux.get_window(mux_window_id) {
                 for tab in window.iter() {
-                    tab.resize(size);
+                    tab.resize(terminal_size);
                 }
             };
         }
