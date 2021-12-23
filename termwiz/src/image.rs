@@ -87,8 +87,10 @@ pub struct ImageCell {
     z_index: i32,
     /// When rendering in the cell, use this offset from the top left
     /// of the cell
-    display_offset_x: u32,
-    display_offset_y: u32,
+    padding_left: u16,
+    padding_top: u16,
+    padding_right: u16,
+    padding_bottom: u16,
 
     image_id: Option<u32>,
     placement_id: Option<u32>,
@@ -100,7 +102,7 @@ impl ImageCell {
         bottom_right: TextureCoordinate,
         data: Arc<ImageData>,
     ) -> Self {
-        Self::with_z_index(top_left, bottom_right, data, 0, 0, 0, None, None)
+        Self::with_z_index(top_left, bottom_right, data, 0, 0, 0, 0, 0, None, None)
     }
 
     pub fn with_z_index(
@@ -108,8 +110,10 @@ impl ImageCell {
         bottom_right: TextureCoordinate,
         data: Arc<ImageData>,
         z_index: i32,
-        display_offset_x: u32,
-        display_offset_y: u32,
+        padding_left: u16,
+        padding_top: u16,
+        padding_right: u16,
+        padding_bottom: u16,
         image_id: Option<u32>,
         placement_id: Option<u32>,
     ) -> Self {
@@ -118,8 +122,10 @@ impl ImageCell {
             bottom_right,
             data,
             z_index,
-            display_offset_x,
-            display_offset_y,
+            padding_left,
+            padding_top,
+            padding_right,
+            padding_bottom,
             image_id,
             placement_id,
         }
@@ -153,8 +159,14 @@ impl ImageCell {
         self.z_index
     }
 
-    pub fn display_offset(&self) -> (u32, u32) {
-        (self.display_offset_x, self.display_offset_y)
+    /// Returns padding (left, top, right, bottom)
+    pub fn padding(&self) -> (u16, u16, u16, u16) {
+        (
+            self.padding_left,
+            self.padding_top,
+            self.padding_right,
+            self.padding_bottom,
+        )
     }
 }
 

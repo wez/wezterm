@@ -2420,14 +2420,14 @@ impl super::TermWindow {
             + params.left_pixel_x
             + (cell_idx as f32 * cell_width);
 
-        let (offset_x, offset_y) = image.display_offset();
+        let (padding_left, padding_top, padding_right, padding_bottom) = image.padding();
 
         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
         quad.set_texture_adjust(
-            offset_x as f32,
-            offset_y as f32,
-            offset_x as f32,
-            offset_y as f32,
+            padding_left as f32,
+            padding_top as f32,
+            padding_left as f32 - padding_right as f32,
+            padding_top as f32 - padding_bottom as f32,
         );
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);

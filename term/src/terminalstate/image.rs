@@ -30,8 +30,8 @@ pub struct ImageAttachParams {
 
     /// When rendering in the cell, use this offset from the top left
     /// of the cell
-    pub display_offset_x: u32,
-    pub display_offset_y: u32,
+    pub padding_left: u16,
+    pub padding_top: u16,
 
     /// Plane on which to display the image
     pub z_index: i32,
@@ -110,6 +110,7 @@ impl TerminalState {
 
         let mut remain_y = source_height as usize;
         for y in 0..height_in_cells {
+            let padding_bottom = cell_pixel_height.saturating_sub(remain_y) as u16;
             let y_delta = (remain_y.min(cell_pixel_height) as f32) / (source_height as f32);
             remain_y = remain_y.saturating_sub(cell_pixel_height);
 
@@ -127,8 +128,15 @@ impl TerminalState {
             );
             let mut remain_x = source_width as usize;
             for x in 0..width_in_cells {
+                let padding_right = cell_pixel_width.saturating_sub(remain_x) as u16;
                 let x_delta = (remain_x.min(cell_pixel_width) as f32) / (source_width as f32);
-                log::debug!("x_delta {}, y_delta {}", x_delta, y_delta);
+                log::debug!(
+                    "x_delta {}, y_delta {}, padding_right={}, padding_bottom={}",
+                    x_delta,
+                    y_delta,
+                    padding_right,
+                    padding_bottom
+                );
                 remain_x = remain_x.saturating_sub(cell_pixel_width);
                 let mut cell = self
                     .screen()
@@ -140,8 +148,10 @@ impl TerminalState {
                     TextureCoordinate::new(xpos + x_delta, ypos + y_delta),
                     params.data.clone(),
                     params.z_index,
-                    params.display_offset_x,
-                    params.display_offset_y,
+                    params.padding_left,
+                    params.padding_top,
+                    padding_right,
+                    padding_bottom,
                     params.image_id,
                     params.placement_id,
                 ));
