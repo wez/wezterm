@@ -92,9 +92,11 @@ impl TerminalState {
 
         let cursor_x = self.cursor.x;
         log::debug!(
-            "image is {}x{} cells, {:?}, ({}x{}@{}x{})",
+            "image is {}x{} cells (cell is {}x{}), {:?}, ({}x{}@{}x{})",
             width_in_cells,
             height_in_cells,
+            cell_pixel_width,
+            cell_pixel_height,
             params,
             physical_cols,
             physical_rows,
@@ -131,9 +133,11 @@ impl TerminalState {
                 let padding_right = cell_pixel_width.saturating_sub(remain_x) as u16;
                 let x_delta = (remain_x.min(cell_pixel_width) as f32) / (source_width as f32);
                 log::debug!(
-                    "x_delta {}, y_delta {}, padding_right={}, padding_bottom={}",
+                    "x_delta {} ({} px), y_delta {} ({} px), padding_right={}, padding_bottom={}",
                     x_delta,
+                    x_delta * source_width as f32,
                     y_delta,
+                    y_delta * source_width as f32,
                     padding_right,
                     padding_bottom
                 );
