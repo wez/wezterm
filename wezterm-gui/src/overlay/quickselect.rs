@@ -464,8 +464,13 @@ impl Pane for QuickSelectOverlay {
                 line.overlay_text_with_attribute(
                     0,
                     &format!(
-                        "Select: {}  (type highlighted prefix to copy, uppercase pastes, ESC to cancel)",
+                        "Select: {}  (type highlighted prefix to {}, uppercase pastes, ESC to cancel)",
                         renderer.selection,
+                        if renderer.args.label.is_empty() {
+                            "copy"
+                        } else {
+                            &renderer.args.label
+                        },
                     ),
                     rev,
                     SEQ_ZERO,

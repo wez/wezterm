@@ -31,6 +31,7 @@ The `QuickSelectArgs` struct allows for the following fields:
 * `patterns` - if present, completely overrides the normal set of patterns and uses only the patterns specified
 * `alphabet` - if present, this alphabet is used instead of [quick_select_alphabet](../config/quick_select_alphabet.md)
 * `action` - if present, this key assignment action is performed as if by [window:perform_action](../window/perform_action.md) when an item is selected.  The normal clipboard action is NOT performed in this case.
+* `label` - if present, replaces the string `"copy"` that is shown at the bottom of the overlay; you can use this to indicate which action will happen if you are using `action`.
 
 Here's an example that shows how to trigger some lua code to operate on the
 quick-selected text, instead of copying it to the clipboard.  Here, we open
@@ -43,6 +44,7 @@ return {
   keys = {
     {key="P", mods="CTRL",
      action=wezterm.action{QuickSelectArgs={
+       label = "open url",
        patterns={
           "https?://\\S+"
        },

@@ -159,6 +159,9 @@ pub struct QuickSelectArguments {
     pub patterns: Vec<String>,
     #[serde(default)]
     pub action: Option<Box<KeyAssignment>>,
+    /// Label to use in place of "copy" when `action` is set
+    #[serde(default)]
+    pub label: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
