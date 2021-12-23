@@ -549,7 +549,21 @@ impl QuickSelectRenderable {
                     idx
                 }
             };
-            let label = &labels[label_index];
+            let label = match labels.get(label_index) {
+                Some(l) => l,
+                None => {
+                    log::error!("match_id {} has label_index {} which is out of \
+                                bounds of the number of labels {} produced for {} \
+                                unique results",
+                                res.match_id, label_index,
+                                labels.len(),
+                                uniq_results.len());
+                    log::error!("labels = {:?}", labels);
+                    log::error!("uniq_results = {:?}", uniq_results);
+                    log::error!("res = {:?}", res);
+                    continue;
+                }
+            };
 
             self.by_label.insert(label.clone(), result_index);
             for idx in res.start_y..=res.end_y {
