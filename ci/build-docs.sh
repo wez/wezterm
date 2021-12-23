@@ -9,4 +9,4 @@ mdbook build docs
 
 rm gh_pages/html/README.markdown
 cp assets/icon/terminal.png gh_pages/html/favicon.png
-cp assets/icon/wezterm-icon.svg gh_pages/html/favicon.svg
+cp "assets/icon/WezTerm Alt.svg" gh_pages/html/favicon.svg
