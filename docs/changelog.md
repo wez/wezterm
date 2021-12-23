@@ -26,6 +26,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 
 * quickselect: we now de-duplicate labels for results with the same textual content. [#1271](https://github.com/wez/wezterm/issues/1271)
+* The default `CompleteSelectionOrOpenLinkAtMouseCursor` left button release assignment now also accepts SHIFT being held in order to make SHIFT-click `ExtendSelectionToMouseCursor` feel more ergonomic if the mouse button is released before the SHIFT key. [#1204](https://github.com/wez/wezterm/issues/1204)
 
 #### Updated and Improved
 

@@ -32,6 +32,7 @@ that order.
 | Double Left Down | `NONE`   | `SelectTextAtMouseCursor="Word"`  |
 | Single Left Down | `NONE`   | `SelectTextAtMouseCursor="Cell"`  |
 | Single Left Down | `SHIFT`   | `ExtendSelectionToMouseCursor={}`  |
+| Single Left Up | `SHIFT`   | `CompleteSelectionOrOpenLinkAtMouseCursor="PrimarySelection"`  |
 | Single Left Up | `NONE`   | `CompleteSelectionOrOpenLinkAtMouseCursor="PrimarySelection"`  |
 | Double Left Up | `NONE`   | `CompleteSelection="PrimarySelection"`  |
 | Triple Left Up | `NONE`   | `CompleteSelection="PrimarySelection"`  |
