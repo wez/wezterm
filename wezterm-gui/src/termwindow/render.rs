@@ -2475,7 +2475,7 @@ impl super::TermWindow {
                 return ComputeCellFgBgResult {
                     fg_color,
                     bg_color,
-                    cursor_shape: Some(CursorShape::SteadyBlock),
+                    cursor_shape: Some(CursorShape::Default),
                     cursor_border_color: bg_color,
                 };
             }
