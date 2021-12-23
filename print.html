@@ -437,6 +437,7 @@ usually the best available version.</p>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
 <li>quickselect: we now de-duplicate labels for results with the same textual content. <a href="https://github.com/wez/wezterm/issues/1271">#1271</a></li>
+<li>The default <code>CompleteSelectionOrOpenLinkAtMouseCursor</code> left button release assignment now also accepts SHIFT being held in order to make SHIFT-click <code>ExtendSelectionToMouseCursor</code> feel more ergonomic if the mouse button is released before the SHIFT key. <a href="https://github.com/wez/wezterm/issues/1204">#1204</a></li>
 </ul>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
 <ul>
@@ -1909,6 +1910,7 @@ that order.</p>
 <tr><td>Double Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Word&quot;</code></td></tr>
 <tr><td>Single Left Down</td><td><code>NONE</code></td><td><code>SelectTextAtMouseCursor=&quot;Cell&quot;</code></td></tr>
 <tr><td>Single Left Down</td><td><code>SHIFT</code></td><td><code>ExtendSelectionToMouseCursor={}</code></td></tr>
+<tr><td>Single Left Up</td><td><code>SHIFT</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td>Single Left Up</td><td><code>NONE</code></td><td><code>CompleteSelectionOrOpenLinkAtMouseCursor=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td>Double Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
 <tr><td>Triple Left Up</td><td><code>NONE</code></td><td><code>CompleteSelection=&quot;PrimarySelection&quot;</code></td></tr>
