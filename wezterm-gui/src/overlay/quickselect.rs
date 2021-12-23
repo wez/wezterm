@@ -110,6 +110,14 @@ mod alphabet_test {
     }
 
     #[test]
+    fn more_matches_than_alphabet_can_represent() {
+        assert_eq!(
+            compute_labels_for_alphabet("asdfqwerzxcvjklmiuopghtybn", 792).len(),
+            676
+        );
+    }
+
+    #[test]
     fn composed_single() {
         assert_eq!(
             compute_labels_for_alphabet("abcd", 6),
@@ -573,18 +581,11 @@ impl QuickSelectRenderable {
             let label = match labels.get(label_index) {
                 Some(l) => l,
                 None => {
-                    log::error!(
-                        "match_id {} has label_index {} which is out of \
-                                bounds of the number of labels {} produced for {} \
-                                unique results",
-                        res.match_id,
-                        label_index,
-                        labels.len(),
-                        uniq_results.len()
-                    );
-                    log::error!("labels = {:?}", labels);
-                    log::error!("uniq_results = {:?}", uniq_results);
-                    log::error!("res = {:?}", res);
+                    // There are more result candidates than the alphabet
+                    // can support, so we skip this one and keep looking:
+                    // we may still have matches that have an assigned
+                    // label, so we keep going rather than breaking
+                    // out of the loop.
                     continue;
                 }
             };
