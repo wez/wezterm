@@ -32,6 +32,7 @@ As features stabilize some brief notes about them will accumulate here.
 * macos: removing the titlebar from `window_decorations` now preserves rounded window corners [#1034](https://github.com/wez/wezterm/issues/1034)
 * Colors can now be specified in the HSL colorspace using syntax like `"hsl:235 100 50"` [#1436](https://github.com/wez/wezterm/issues/1436)
 * Line/Bar cursors in [force_reverse_video_cursor](config/lua/config/force_reverse_video_cursor.md) mode now use the text foreground color rather than the cursor border color. [#1076](https://github.com/wez/wezterm/issues/1076)
+* Improved logo appearance. Thanks to [@ghifarit53](https://github.com/ghifarit53)! [#1454](https://github.com/wez/wezterm/pull/1454)
 
 #### Fixed
 

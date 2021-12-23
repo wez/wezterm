@@ -4,7 +4,8 @@
 set -x
 cd $(git rev-parse --show-toplevel)/assets/icon
 
-src=wezterm-icon.svg
+#src=wezterm-icon.svg
+src="WezTerm Alt.svg"
 
 conv_opts="-colors 256 -background none -density 300"
 
@@ -23,5 +24,5 @@ png2icns ../macos/WezTerm.app/Contents/Resources/terminal.icns icon_*px.png
 rm -f icon_*px.png
 
 # The Windows icon
-convert $conv_opts -define icon:auto-resize=256,128,96,64,48,32,16 $src ../windows/terminal.ico
+convert $conv_opts -define icon:auto-resize=256,128,96,64,48,32,16 "$src" ../windows/terminal.ico
 
