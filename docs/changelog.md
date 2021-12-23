@@ -48,6 +48,8 @@ As features stabilize some brief notes about them will accumulate here.
 * New version update notifications are now more coordinated between multiple wezterm GUI instances, and update related configuration now respects configuration reloading. [#1402](https://github.com/wez/wezterm/issues/1402)
 * [TLS domains](multiplexing.md) bootstrapping via SSH now use the `libssh` backend by default and work more reliably on Windows
 * Closing a window will no longer recursively terminate contained multiplexer client panes; the window will instead be restored when you next connect to that multiplexer server. Killing/closing individual tabs/panes *will* kill the panes; this change only affects closing the window. [#848](https://github.com/wez/wezterm/issues/848) [#917](https://github.com/wez/wezterm/issues/917) [#1224](https://github.com/wez/wezterm/issues/1224)
+* Colors were too intense due to over gamma correction [#1025](https://github.com/wez/wezterm/issues/1025)
+* Mesa and EGL colors were too dim due to under gamma correction [#1373](https://github.com/wez/wezterm/issues/1373)
 
 ### 20211205-192649-672c1cc1
 
