@@ -83,7 +83,12 @@ impl TerminalState {
                     &image_number
                         .ok_or_else(|| anyhow::anyhow!("no image_id or image_number specified!"))?,
                 )
-                .ok_or_else(|| anyhow::anyhow!("image_number has no matching image id"))?,
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "image_number has no matching image id {:?} in number_to_id",
+                        image_number
+                    )
+                })?,
         };
 
         log::trace!(
@@ -94,12 +99,13 @@ impl TerminalState {
             verbosity
         );
         self.kitty_remove_placement(image_id, placement.placement_id);
-        let img = Arc::clone(
-            self.kitty_img
-                .id_to_data
-                .get(&image_id)
-                .ok_or_else(|| anyhow::anyhow!("no matching image id"))?,
-        );
+        let img = Arc::clone(self.kitty_img.id_to_data.get(&image_id).ok_or_else(|| {
+            anyhow::anyhow!(
+                "no matching image id {} in id_to_data for image_number {:?}",
+                image_id,
+                image_number
+            )
+        })?);
 
         let (image_width, image_height) = match &*img.data() {
             ImageDataType::EncodedFile(data) => {
@@ -580,7 +586,11 @@ impl TerminalState {
                     image_number,
                     "ENOENT".to_string(),
                 );
-                anyhow::bail!("no matching image id")
+                anyhow::bail!(
+                    "no matching image id {} in id_to_data for image_number {:?}",
+                    image_id,
+                    image_number
+                )
             }
         };
 
