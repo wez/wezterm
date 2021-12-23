@@ -109,6 +109,16 @@ impl<'a> Performer<'a> {
                 g
             };
 
+            let print_width = grapheme_column_width(g, Some(self.unicode_version));
+            if print_width == 0 {
+                // We got a zero-width grapheme.
+                // We used to force them into a cell to guarantee that we
+                // preserved them in the model, but it introduces presentation
+                // problems, such as <https://github.com/wez/wezterm/issues/1422>
+                log::trace!("Eliding zero-width grapheme {:?}", g);
+                continue;
+            }
+
             if self.wrap_next {
                 // Since we're implicitly moving the cursor to the next
                 // line, we need to tag the current position as wrapped
@@ -130,12 +140,7 @@ impl<'a> Performer<'a> {
             let width = self.left_and_right_margins.end;
 
             let pen = self.pen.clone();
-            // the max(1) here is to ensure that we advance to the next cell
-            // position for zero-width graphemes.  We want to make sure that
-            // they occupy a cell so that we can re-emit them when we output them.
-            // If we didn't do this, then we'd effectively filter them out from
-            // the model, which seems like a lossy design choice.
-            let print_width = grapheme_column_width(g, Some(self.unicode_version)).max(1);
+
             let wrappable = x + print_width >= width;
 
             let cell = Cell::new_grapheme_with_width(g, print_width, pen);
