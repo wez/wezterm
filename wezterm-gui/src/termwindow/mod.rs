@@ -1502,7 +1502,7 @@ impl TermWindow {
         Ok(())
     }
 
-    fn activate_tab_relative(&mut self, delta: isize) -> anyhow::Result<()> {
+    fn activate_tab_relative(&mut self, delta: isize, wrap: bool) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let window = mux
             .get_window(self.mux_window_id)
@@ -1513,9 +1513,20 @@ impl TermWindow {
 
         let active = window.get_active_idx() as isize;
         let tab = active + delta;
-        let tab = if tab < 0 { max as isize + tab } else { tab };
+        let tab = if wrap {
+            let tab = if tab < 0 { max as isize + tab } else { tab };
+            (tab as usize % max) as isize
+        } else {
+            if tab < 0 {
+                0
+            } else if tab >= max as isize {
+                max as isize - 1
+            } else {
+                tab
+            }
+        };
         drop(window);
-        self.activate_tab((tab as usize % max) as isize)
+        self.activate_tab(tab)
     }
 
     fn activate_last_tab(&mut self) -> anyhow::Result<()> {
@@ -1833,7 +1844,10 @@ impl TermWindow {
                 self.paste_from_clipboard(pane, *source);
             }
             ActivateTabRelative(n) => {
-                self.activate_tab_relative(*n)?;
+                self.activate_tab_relative(*n, true)?;
+            }
+            ActivateTabRelativeNoWrap(n) => {
+                self.activate_tab_relative(*n, false)?;
             }
             ActivateLastTab => self.activate_last_tab()?,
             DecreaseFontSize => {
@@ -2108,7 +2122,7 @@ impl TermWindow {
             drop(win);
             mux.remove_tab(tab.tab_id());
         }
-        self.activate_tab_relative(0)
+        self.activate_tab_relative(0, true)
     }
 
     pub fn pane_state(&self, pane_id: PaneId) -> RefMut<PaneState> {

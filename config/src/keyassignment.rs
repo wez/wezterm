@@ -160,6 +160,7 @@ pub enum KeyAssignment {
     PastePrimarySelection,
     PasteFrom(ClipboardPasteSource),
     ActivateTabRelative(isize),
+    ActivateTabRelativeNoWrap(isize),
     IncreaseFontSize,
     DecreaseFontSize,
     ResetFontSize,
