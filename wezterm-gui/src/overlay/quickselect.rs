@@ -1,6 +1,6 @@
 use crate::selection::{SelectionCoordinate, SelectionRange};
 use crate::termwindow::{TermWindow, TermWindowNotif};
-use config::keyassignment::{ClipboardCopyDestination, ScrollbackEraseMode};
+use config::keyassignment::{ClipboardCopyDestination, QuickSelectArguments, ScrollbackEraseMode};
 use config::ConfigHandle;
 use mux::domain::DomainId;
 use mux::pane::{Pane, PaneId, Pattern, SearchResult};
@@ -169,29 +169,43 @@ struct QuickSelectRenderable {
     window: ::window::Window,
 
     config: ConfigHandle,
+    args: QuickSelectArguments,
 }
 
 impl QuickSelectOverlay {
-    pub fn with_pane(term_window: &TermWindow, pane: &Rc<dyn Pane>) -> Rc<dyn Pane> {
+    pub fn with_pane(
+        term_window: &TermWindow,
+        pane: &Rc<dyn Pane>,
+        args: &QuickSelectArguments,
+    ) -> Rc<dyn Pane> {
         let viewport = term_window.get_viewport(pane.pane_id());
         let dims = pane.get_dimensions();
 
         let config = term_window.config.clone();
 
         let mut pattern = "(".to_string();
-        if !config.disable_default_quick_select_patterns {
-            for p in &PATTERNS {
+        if !args.patterns.is_empty() {
+            for p in &args.patterns {
                 if pattern.len() > 1 {
                     pattern.push('|');
                 }
                 pattern.push_str(p);
             }
-        }
-        for p in &config.quick_select_patterns {
-            if pattern.len() > 1 {
-                pattern.push('|');
+        } else {
+            if !config.disable_default_quick_select_patterns {
+                for p in &PATTERNS {
+                    if pattern.len() > 1 {
+                        pattern.push('|');
+                    }
+                    pattern.push_str(p);
+                }
             }
-            pattern.push_str(p);
+            for p in &config.quick_select_patterns {
+                if pattern.len() > 1 {
+                    pattern.push('|');
+                }
+                pattern.push_str(p);
+            }
         }
         pattern.push(')');
 
@@ -213,6 +227,7 @@ impl QuickSelectOverlay {
             width: dims.cols,
             height: dims.viewport_rows,
             config,
+            args: args.clone(),
         };
 
         let search_row = renderer.compute_search_row();
@@ -530,8 +545,14 @@ impl QuickSelectRenderable {
         let uniq_results = compute_uniq_results(&self.results);
 
         // Label each unique result
-        let labels =
-            compute_labels_for_alphabet(&self.config.quick_select_alphabet, uniq_results.len());
+        let labels = compute_labels_for_alphabet(
+            if !self.args.alphabet.is_empty() {
+                &self.args.alphabet
+            } else {
+                &self.config.quick_select_alphabet
+            },
+            uniq_results.len(),
+        );
         self.by_label.clear();
 
         // Keep track of match_id -> label
@@ -663,37 +684,45 @@ impl QuickSelectRenderable {
         let result = self.results[n].clone();
 
         let pane_id = self.delegate.pane_id();
+        let action = self.args.action.clone();
         self.window
             .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
-                {
-                    let mut selection = term_window.selection(pane_id);
-                    let start = SelectionCoordinate {
-                        x: result.start_x,
-                        y: result.start_y,
-                    };
-                    selection.start = Some(start);
-                    selection.range = Some(SelectionRange {
-                        start,
-                        end: SelectionCoordinate {
-                            // inclusive range for selection, but the result
-                            // range is exclusive
-                            x: result.end_x.saturating_sub(1),
-                            y: result.end_y,
-                        },
-                    });
-                }
-
                 let mux = mux::Mux::get().unwrap();
                 if let Some(pane) = mux.get_pane(pane_id) {
+                    {
+                        let mut selection = term_window.selection(pane_id);
+                        let start = SelectionCoordinate {
+                            x: result.start_x,
+                            y: result.start_y,
+                        };
+                        selection.start = Some(start);
+                        selection.range = Some(SelectionRange {
+                            start,
+                            end: SelectionCoordinate {
+                                // inclusive range for selection, but the result
+                                // range is exclusive
+                                x: result.end_x.saturating_sub(1),
+                                y: result.end_y,
+                            },
+                        });
+                        // Ensure that selection doesn't get invalidated when
+                        // the overlay is closed
+                        selection.seqno = pane.get_current_seqno();
+                    }
+
                     let text = term_window.selection_text(&pane);
                     if !text.is_empty() {
                         if paste {
                             let _ = pane.send_paste(&text);
                         }
-                        term_window.copy_to_clipboard(
-                            ClipboardCopyDestination::ClipboardAndPrimarySelection,
-                            text,
-                        );
+                        if let Some(action) = action {
+                            let _ = term_window.perform_key_assignment(&pane, &action);
+                        } else {
+                            term_window.copy_to_clipboard(
+                                ClipboardCopyDestination::ClipboardAndPrimarySelection,
+                                text,
+                            );
+                        }
                     }
                 }
             })));

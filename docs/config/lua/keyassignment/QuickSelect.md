@@ -5,7 +5,6 @@
 Activates [Quick Select Mode](../../../quickselect.md).
 
 ```lua
-```lua
 local wezterm = require 'wezterm';
 return {
   keys = {
@@ -13,3 +12,5 @@ return {
   }
 }
 ```
+
+See also [QuickSelectArgs](QuickSelectArgs.md)

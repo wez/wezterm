@@ -681,6 +681,7 @@ dependencies = [
  "luahelper",
  "mlua",
  "notify",
+ "open",
  "portable-pty",
  "pretty_env_logger",
  "promise",

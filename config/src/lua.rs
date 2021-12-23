@@ -259,6 +259,9 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             "background_child_process",
             lua.create_async_function(background_child_process)?,
         )?;
+        wezterm_mod.set(
+            "open_with",
+            lua.create_function(open_with)?)?;
         wezterm_mod.set("on", lua.create_function(register_event)?)?;
         wezterm_mod.set("emit", lua.create_async_function(emit_event)?)?;
         wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
@@ -442,6 +445,15 @@ fn battery_info<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<Vec<BatteryInfo>> {
 async fn sleep_ms<'lua>(_: &'lua Lua, milliseconds: u64) -> mlua::Result<()> {
     let duration = std::time::Duration::from_millis(milliseconds);
     smol::Timer::after(duration).await;
+    Ok(())
+}
+
+fn open_with<'lua>(_:&'lua Lua, (url, app): (String, Option<String>)) -> mlua::Result<()> {
+    if let Some(app) = app {
+        open::with_in_background(url, app);
+    } else {
+        open::that_in_background(url);
+    }
     Ok(())
 }
 

@@ -28,6 +28,7 @@ luahelper = { path = "../luahelper" }
 mlua = {version="0.5", features=["vendored", "lua54", "async", "send"]}
 # file change notification
 notify = "4.0"
+open = "2.0"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 promise = { path = "../promise" }
 serde = {version="1.0", features = ["rc", "derive"]}

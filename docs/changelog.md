@@ -20,6 +20,8 @@ As features stabilize some brief notes about them will accumulate here.
 * [mux-is-process-stateful](config/lua/mux-events/mux-is-process-stateful.md) event for finer control over prompting when closing panes. [#1412](https://github.com/wez/wezterm/issues/1412)
 * [harfbuzz_features](config/font-shaping.md), [freetype_load_target](config/lua/config/freetype_load_target.md), [freetype_render_target](config/lua/config/freetype_render_target.md) and [freetype_load_flags](config/lua/config/freetype_load_flags.md) can now be overridden on a per-font basis as described in [wezterm.font](config/lua/wezterm/font.md) and [wezterm.font_with_fallback](config/lua/wezterm/font_with_fallback.md).
 * [ActivateTabRelativeNoWrap](config/lua/keyassignment/ActivateTabRelativeNoWrap.md) key assignment [#1414](https://github.com/wez/wezterm/issues/1414)
+* [QuickSelectArgs](config/lua/keyassignment/QuickSelectArgs.md) key assignment [#846](https://github.com/wez/wezterm/issues/846) [#1362](https://github.com/wez/wezterm/issues/1362)
+* [wezterm.open_wth](config/lua/wezterm/open_with.md) function for opening URLs/documents with the default or a specific application [#1362](https://github.com/wez/wezterm/issues/1362)
 
 #### Changed
 

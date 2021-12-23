@@ -19,7 +19,8 @@ use ::window::*;
 use anyhow::Context;
 use anyhow::{anyhow, ensure};
 use config::keyassignment::{
-    ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, SpawnCommand,
+    ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, QuickSelectArguments,
+    SpawnCommand,
 };
 use config::{
     configuration, AudibleBell, ConfigHandle, DimensionContext, GradientOrientation, TermConfig,
@@ -1108,7 +1109,7 @@ impl TermWindow {
         }
     }
 
-    fn emit_window_event(&mut self, name: &str, pane_id: Option<PaneId>) {
+    pub fn emit_window_event(&mut self, name: &str, pane_id: Option<PaneId>) {
         if self.get_active_pane_or_overlay().is_none() || self.window.is_none() {
             return;
         }
@@ -1977,7 +1978,17 @@ impl TermWindow {
             }
             QuickSelect => {
                 if let Some(pane) = self.get_active_pane_no_overlay() {
-                    let qa = QuickSelectOverlay::with_pane(self, &pane);
+                    let qa = QuickSelectOverlay::with_pane(
+                        self,
+                        &pane,
+                        &QuickSelectArguments::default(),
+                    );
+                    self.assign_overlay_for_pane(pane.pane_id(), qa);
+                }
+            }
+            QuickSelectArgs(args) => {
+                if let Some(pane) = self.get_active_pane_no_overlay() {
+                    let qa = QuickSelectOverlay::with_pane(self, &pane, args);
                     self.assign_overlay_for_pane(pane.pane_id(), qa);
                 }
             }

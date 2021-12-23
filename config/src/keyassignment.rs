@@ -149,6 +149,18 @@ impl Default for ClipboardPasteSource {
     }
 }
 
+#[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct QuickSelectArguments {
+    /// Overrides the main quick_select_alphabet config
+    #[serde(default)]
+    pub alphabet: String,
+    /// Overrides the main quick_select_patterns config
+    #[serde(default)]
+    pub patterns: Vec<String>,
+    #[serde(default)]
+    pub action: Option<Box<KeyAssignment>>,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
@@ -208,6 +220,7 @@ pub enum KeyAssignment {
     CloseCurrentPane { confirm: bool },
     EmitEvent(String),
     QuickSelect,
+    QuickSelectArgs(QuickSelectArguments),
 
     Multiple(Vec<KeyAssignment>),
 }
