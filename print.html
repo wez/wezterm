@@ -9005,9 +9005,16 @@ pay the cost of computing them.</p>
 <p>This example places the executable name in the tab titles:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
 
+-- Equivalent to POSIX basename(3)
+-- Given &quot;/foo/bar&quot; returns &quot;bar&quot;
+-- Given &quot;c:\\foo\\bar&quot; returns &quot;bar&quot;
+function basename(s)
+  return string.gsub(s, &quot;(.*[/\\])(.*)&quot;, &quot;%2&quot;)
+end
+
 wezterm.on(&quot;format-tab-title&quot;, function(tab, tabs, panes, config, hover, max_width)
   local pane = tab.active_pane
-  local title = pane.foreground_process_name .. &quot; &quot; .. pane.pane_id
+  local title = basename(pane.foreground_process_name) .. &quot; &quot; .. pane.pane_id
   local color = &quot;navy&quot;
   if tab.is_active then
     color = &quot;blue&quot;
@@ -9302,8 +9309,15 @@ by wezterm.</li>
 <p>This example sets the right status are to the executable path:</p>
 <pre><code class="language-lua">local wezterm = require 'wezterm'
 
+-- Equivalent to POSIX basename(3)
+-- Given &quot;/foo/bar&quot; returns &quot;bar&quot;
+-- Given &quot;c:\\foo\\bar&quot; returns &quot;bar&quot;
+function basename(s)
+  return string.gsub(s, &quot;(.*[/\\])(.*)&quot;, &quot;%2&quot;)
+end
+
 wezterm.on(&quot;update-right-status&quot;, function(window, pane)
-  window:set_right_status(pane:get_foreground_process_name())
+  window:set_right_status(basename(pane:get_foreground_process_name()))
 end)
 
 return {
