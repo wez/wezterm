@@ -60,15 +60,11 @@ pub enum DoubleClickRange {
 }
 
 impl Line {
-    pub fn with_width_and_cell(width: usize, cell: Cell) -> Self {
+    pub fn with_width_and_cell(width: usize, cell: Cell, seqno: SequenceNo) -> Self {
         let mut cells = Vec::with_capacity(width);
         cells.resize(width, cell.clone());
         let bits = LineBits::NONE;
-        Self {
-            bits,
-            cells,
-            seqno: SEQ_ZERO,
-        }
+        Self { bits, cells, seqno }
     }
 
     pub fn from_cells(cells: Vec<Cell>) -> Self {

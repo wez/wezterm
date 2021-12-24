@@ -630,6 +630,7 @@ impl Screen {
                 self.lines.push_back(Line::with_width_and_cell(
                     self.physical_cols,
                     Cell::blank_with_attrs(blank_attr.clone()),
+                    seqno,
                 ));
             }
         } else {
@@ -639,6 +640,7 @@ impl Screen {
                     Line::with_width_and_cell(
                         self.physical_cols,
                         Cell::blank_with_attrs(blank_attr.clone()),
+                        seqno,
                     ),
                 );
             }
@@ -694,6 +696,7 @@ impl Screen {
                 Line::with_width_and_cell(
                     self.physical_cols,
                     Cell::blank_with_attrs(blank_attr.clone()),
+                    seqno,
                 ),
             );
         }
