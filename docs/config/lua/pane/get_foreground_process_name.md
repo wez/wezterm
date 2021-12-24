@@ -19,8 +19,15 @@ This example sets the right status are to the executable path:
 ```lua
 local wezterm = require 'wezterm'
 
+-- Equivalent to POSIX basename(3)
+-- Given "/foo/bar" returns "bar"
+-- Given "c:\\foo\\bar" returns "bar"
+function basename(s)
+  return string.gsub(s, "(.*[/\\])(.*)", "%2")
+end
+
 wezterm.on("update-right-status", function(window, pane)
-  window:set_right_status(pane:get_foreground_process_name())
+  window:set_right_status(basename(pane:get_foreground_process_name()))
 end)
 
 return {
