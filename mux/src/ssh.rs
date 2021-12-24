@@ -7,7 +7,6 @@ use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{anyhow, bail, Context, Error};
 use async_trait::async_trait;
-use config::ProgDomain;
 use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{ChildKiller, ExitStatus, MasterPty, PtySize};
@@ -610,10 +609,10 @@ impl Domain for RemoteSshDomain {
         let config = config::configuration();
         let cmd = match command {
             Some(mut cmd) => {
-                config.apply_cmd_defaults(&mut cmd, ProgDomain::Remote);
+                config.apply_cmd_defaults(&mut cmd, None);
                 cmd
             }
-            None => config.build_prog(None, ProgDomain::Remote)?,
+            None => config.build_prog(None, None, None)?,
         };
         let pane_id = alloc_pane_id();
 

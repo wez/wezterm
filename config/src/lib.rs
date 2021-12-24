@@ -148,12 +148,6 @@ pub fn designate_this_as_the_main_thread() {
     });
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProgDomain {
-    Local,
-    Remote,
-}
-
 #[must_use = "Cancels the subscription when dropped"]
 pub struct ConfigSubscription(usize);
 
@@ -1817,17 +1811,18 @@ impl Config {
     pub fn build_prog(
         &self,
         prog: Option<Vec<&OsStr>>,
-        prog_domain: ProgDomain,
+        default_prog: Option<&Vec<String>>,
+        default_cwd: Option<&PathBuf>,
     ) -> Result<CommandBuilder, Error> {
-        let mut cmd = match (prog, prog_domain) {
-            (Some(args), _) => {
+        let mut cmd = match prog {
+            Some(args) => {
                 let mut args = args.iter();
                 let mut cmd = CommandBuilder::new(args.next().expect("executable name"));
                 cmd.args(args);
                 cmd
             }
-            (None, ProgDomain::Local) => {
-                if let Some(prog) = self.default_prog.as_ref() {
+            None => {
+                if let Some(prog) = default_prog {
                     let mut args = prog.iter();
                     let mut cmd = CommandBuilder::new(args.next().expect("executable name"));
                     cmd.args(args);
@@ -1836,21 +1831,18 @@ impl Config {
                     CommandBuilder::new_default_prog()
                 }
             }
-            (None, ProgDomain::Remote) => CommandBuilder::new_default_prog(),
         };
 
-        self.apply_cmd_defaults(&mut cmd, prog_domain);
+        self.apply_cmd_defaults(&mut cmd, default_cwd);
 
         Ok(cmd)
     }
 
-    pub fn apply_cmd_defaults(&self, cmd: &mut CommandBuilder, prog_domain: ProgDomain) {
+    pub fn apply_cmd_defaults(&self, cmd: &mut CommandBuilder, default_cwd: Option<&PathBuf>) {
         // Apply `default_cwd` only if `cwd` is not already set, allows `--cwd`
         // option to take precedence
-        if prog_domain == ProgDomain::Local {
-            if let (None, Some(cwd)) = (cmd.get_cwd(), &self.default_cwd) {
-                cmd.cwd(cwd);
-            }
+        if let (None, Some(cwd)) = (cmd.get_cwd(), default_cwd) {
+            cmd.cwd(cwd);
         }
 
         // Augment WSLENV so that TERM related environment propagates
