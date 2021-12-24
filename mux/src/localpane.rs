@@ -327,27 +327,46 @@ impl Pane for LocalPane {
 
     #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
     fn get_foreground_process_name(&self) -> Option<String> {
-        use sysinfo::{Pid, ProcessExt, ProcessRefreshKind, RefreshKind, System, SystemExt};
-        let leader;
-
         #[cfg(unix)]
         {
-            leader = self.pty.borrow().process_group_leader()?;
-        }
-        #[cfg(windows)]
-        {
-            if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-                leader = *pid;
-            } else {
-                return None;
-            }
+            use sysinfo::{Pid, ProcessExt, ProcessRefreshKind, RefreshKind, System, SystemExt};
+            let leader = self.pty.borrow().process_group_leader()?;
+            let system = System::new_with_specifics(
+                RefreshKind::new().with_processes(ProcessRefreshKind::new()),
+            );
+            let proc = system.process(leader as Pid)?;
+            Some(proc.exe().to_string_lossy().to_string())
         }
 
-        let system = System::new_with_specifics(
-            RefreshKind::new().with_processes(ProcessRefreshKind::new()),
-        );
-        let proc = system.process(leader as Pid)?;
-        Some(proc.exe().to_string_lossy().to_string())
+        #[cfg(windows)]
+        {
+            // Windows doesn't have any job control or session concept,
+            // so we infer that the equivalent to the process group
+            // leader is the most recently spawned program running
+            // in the console
+            if let Some(root_proc) = self.divine_process_list() {
+                let mut youngest = &root_proc;
+
+                fn find_youngest<'a>(
+                    proc: &'a LocalProcessInfo,
+                    youngest: &mut &'a LocalProcessInfo,
+                ) {
+                    if proc.start_time > youngest.start_time {
+                        *youngest = proc;
+                    }
+
+                    for child in proc.children.values() {
+                        find_youngest(child, youngest);
+                    }
+                }
+
+                find_youngest(&root_proc, &mut youngest);
+
+                Some(youngest.executable.to_string_lossy().to_string())
+            } else {
+                None
+            }
+        }
     }
 
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
@@ -882,6 +901,7 @@ pub struct LocalProcessInfo {
     pub cwd: PathBuf,
     pub status: LocalProcessStatus,
     pub children: HashMap<u32, LocalProcessInfo>,
+    pub start_time: u64,
 }
 luahelper::impl_lua_conversion!(LocalProcessInfo);
 
@@ -932,6 +952,7 @@ impl LocalProcessInfo {
                 executable: proc.exe().to_path_buf(),
                 cwd: proc.cwd().to_path_buf(),
                 argv: proc.cmd().to_vec(),
+                start_time: proc.start_time(),
                 status: LocalProcessStatus::from_process_status(proc.status()),
                 children,
             }
