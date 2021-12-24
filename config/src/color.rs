@@ -179,23 +179,37 @@ pub struct TabBarColors {
     /// Styling for the new tab button with a mouse hovering
     #[serde(default = "default_inactive_tab_hover")]
     pub new_tab_hover: TabBarColor,
+
+    #[serde(default = "default_inactive_tab_edge")]
+    pub inactive_tab_edge: RgbColor,
+
+    #[serde(default = "default_inactive_tab_edge_hover")]
+    pub inactive_tab_edge_hover: RgbColor,
 }
 impl_lua_conversion!(TabBarColors);
 
 fn default_background() -> RgbColor {
-    RgbColor::new_8bpc(0x0b, 0x00, 0x22)
+    RgbColor::new_8bpc(0x33, 0x33, 0x33)
+}
+
+fn default_inactive_tab_edge() -> RgbColor {
+    RgbColor::new_8bpc(0x57, 0x57, 0x57)
+}
+
+fn default_inactive_tab_edge_hover() -> RgbColor {
+    RgbColor::new_8bpc(0x36, 0x36, 0x36)
 }
 
 fn default_inactive_tab() -> TabBarColor {
     TabBarColor {
-        bg_color: RgbColor::new_8bpc(0x1b, 0x10, 0x32),
+        bg_color: RgbColor::new_8bpc(0x33, 0x33, 0x33),
         fg_color: RgbColor::new_8bpc(0x80, 0x80, 0x80),
         ..TabBarColor::default()
     }
 }
 fn default_inactive_tab_hover() -> TabBarColor {
     TabBarColor {
-        bg_color: RgbColor::new_8bpc(0x3b, 0x30, 0x52),
+        bg_color: RgbColor::new_8bpc(0x1f, 0x1f, 0x1f),
         fg_color: RgbColor::new_8bpc(0x90, 0x90, 0x90),
         italic: true,
         ..TabBarColor::default()
@@ -203,7 +217,7 @@ fn default_inactive_tab_hover() -> TabBarColor {
 }
 fn default_active_tab() -> TabBarColor {
     TabBarColor {
-        bg_color: RgbColor::new_8bpc(0x2b, 0x20, 0x42),
+        bg_color: RgbColor::new_8bpc(0x00, 0x00, 0x00),
         fg_color: RgbColor::new_8bpc(0xc0, 0xc0, 0xc0),
         ..TabBarColor::default()
     }
@@ -218,6 +232,8 @@ impl Default for TabBarColors {
             active_tab: default_active_tab(),
             new_tab: default_inactive_tab(),
             new_tab_hover: default_inactive_tab_hover(),
+            inactive_tab_edge: default_inactive_tab_edge(),
+            inactive_tab_edge_hover: default_inactive_tab_edge_hover(),
         }
     }
 }
@@ -273,7 +289,7 @@ pub struct WindowFrameConfig {
 }
 
 fn default_title_font_size() -> f64 {
-    12.
+    9.
 }
 
 fn default_title_font() -> TextStyle {
@@ -295,7 +311,7 @@ fn default_title_font() -> TextStyle {
         // It's close enough for me!
         bold("Galvji")
     } else if cfg!(windows) {
-        bold("Segoe UI")
+        FontAttributes::new("Segoe UI")
     } else {
         bold("Cantarell")
     }];
@@ -330,11 +346,11 @@ impl Default for WindowFrameConfig {
 }
 
 fn default_inactive_titlebar_bg() -> RgbColor {
-    RgbColor::new_8bpc(0x35, 0x35, 0x35)
+    RgbColor::new_8bpc(0x33, 0x33, 0x33)
 }
 
 fn default_active_titlebar_bg() -> RgbColor {
-    RgbColor::new_8bpc(0x29, 0x29, 0x29)
+    RgbColor::new_8bpc(0x33, 0x33, 0x33)
 }
 
 fn default_inactive_titlebar_fg() -> RgbColor {
@@ -362,11 +378,11 @@ fn default_button_fg() -> RgbColor {
 }
 
 fn default_button_hover_bg() -> RgbColor {
-    RgbColor::new_8bpc(0x3b, 0x30, 0x52)
+    RgbColor::new_8bpc(0x1f, 0x1f, 0x1f)
 }
 
 fn default_button_bg() -> RgbColor {
-    RgbColor::new_8bpc(0x2b, 0x20, 0x42)
+    RgbColor::new_8bpc(0x33, 0x33, 0x33)
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

@@ -1371,7 +1371,7 @@ impl TermWindow {
             .bottom
             .evaluate_as_pixels(v_context) as u16;
 
-        let tab_bar_y = if self.config.tab_bar_at_bottom {
+        let tab_bar_y = if self.config.tab_bar_at_bottom() {
             let avail_height = self
                 .dimensions
                 .pixel_height

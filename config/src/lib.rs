@@ -988,7 +988,7 @@ pub struct Config {
     /// active tab.  Clicking on a tab activates it.
     #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub use_fancy_tab_bar: bool,
 
     #[serde(default)]
@@ -1596,6 +1596,13 @@ impl Config {
 
     pub fn default_config() -> Self {
         Self::default().compute_extra_defaults(None)
+    }
+
+    /// Compute effective value of tab_bar_at_bottom.
+    /// If use_fancy_tab_bar is enabled, we cannot put the tab bar at
+    /// the bottom.
+    pub fn tab_bar_at_bottom(&self) -> bool {
+        self.tab_bar_at_bottom && !self.use_fancy_tab_bar
     }
 
     pub fn key_bindings(&self) -> HashMap<(KeyCode, Modifiers), KeyAssignment> {

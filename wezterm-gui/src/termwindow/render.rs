@@ -536,7 +536,15 @@ impl super::TermWindow {
             metrics.cell_width.get() as isize / 2,
             metrics.cell_height.get() as isize / 4,
         );
-        // log::info!("shaped tab bounds {:?}, text bounds {:?}", tab_bounding_rect, text_bounding_rect);
+        let tab_bounding_rect = euclid::rect(
+            tab_bounding_rect.min_x(),
+            tab_bounding_rect.min_y(),
+            tab_bounding_rect.width(),
+            tab_bounding_rect
+                .max_y()
+                .min(metrics.cell_height.get() as isize * 2)
+                - tab_bounding_rect.min_y(),
+        );
 
         match item.item {
             TabBarItem::Tab { active, .. } => {
@@ -598,11 +606,25 @@ impl super::TermWindow {
                             1,
                             (metrics.cell_height.get() * 0.75) as isize,
                         ),
-                        rgbcolor_to_window_color(if self.focused.is_some() {
-                            self.config.window_frame.active_titlebar_bg
+                        rgbcolor_to_window_color(if hover {
+                            colors.inactive_tab_edge_hover
                         } else {
-                            self.config.window_frame.inactive_titlebar_bg
+                            colors.inactive_tab_edge
                         }),
+                    )?;
+                }
+
+                if hover || active {
+                    // Overwrite any prior dividing line with the hover color
+                    self.filled_rectangle(
+                        &mut layers[1],
+                        euclid::rect(
+                            tab_bounding_rect.min_x().saturating_sub(1),
+                            text_bounding_rect.min_y() + metrics.cell_height.get() as isize / 3,
+                            1,
+                            (metrics.cell_height.get() * 0.75) as isize,
+                        ),
+                        rgbcolor_to_window_color(colors.inactive_tab_edge_hover),
                     )?;
                 }
 
@@ -622,7 +644,7 @@ impl super::TermWindow {
                     text_bounding_rect.min_x(),
                     text_bounding_rect.min_y(),
                     width,
-                    metrics.cell_height.get() as isize,
+                    tab_bounding_rect.max_y() - text_bounding_rect.min_y(),
                 );
 
                 let tab_bounding_rect = text_bounding_rect;
@@ -839,7 +861,7 @@ impl super::TermWindow {
             ui_items.push(item);
         }
 
-        let mut x = 0.;
+        let mut x = metrics.cell_width.get() as f32 * 0.25;
         for item in items.iter() {
             if matches!(item.item, TabBarItem::None) {
                 // Already handled this one
@@ -859,22 +881,6 @@ impl super::TermWindow {
             ui_items.push(item);
         }
 
-        // Dividing line that is logically part of the active tab
-        self.filled_rectangle(
-            &mut layers[1],
-            Rect::new(
-                Point::new(
-                    0,
-                    (metrics.cell_height.get() as f32 * 1.75).floor() as isize,
-                ),
-                Size::new(
-                    self.dimensions.pixel_width as isize,
-                    (metrics.cell_height.get() as f32 * 0.25) as isize,
-                ),
-            ),
-            rgbcolor_to_window_color(colors.active_tab.bg_color),
-        )?;
-
         Ok(ui_items)
     }
 
@@ -887,7 +893,7 @@ impl super::TermWindow {
         }
 
         let tab_bar_height = self.tab_bar_pixel_height()?;
-        let tab_bar_y = if self.config.tab_bar_at_bottom {
+        let tab_bar_y = if self.config.tab_bar_at_bottom() {
             ((self.dimensions.pixel_height as f32) - tab_bar_height).max(0.)
         } else {
             0.
@@ -994,7 +1000,7 @@ impl super::TermWindow {
 
         let (padding_left, padding_top) = self.padding_left_top();
 
-        let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+        let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom() {
             self.tab_bar_pixel_height()?
         } else {
             0.
@@ -1264,7 +1270,7 @@ impl super::TermWindow {
                 current_viewport,
                 &self.dimensions,
                 tab_bar_height,
-                config.tab_bar_at_bottom,
+                config.tab_bar_at_bottom(),
             );
             let thumb_top = info.top as f32;
             let thumb_size = info.height as f32;
@@ -1510,7 +1516,7 @@ impl super::TermWindow {
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
 
-        let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
+        let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom() {
             self.tab_bar_pixel_height()?
         } else {
             0.
