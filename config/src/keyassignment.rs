@@ -110,6 +110,8 @@ pub enum PaneDirection {
     Down,
     Left,
     Right,
+    Next,
+    Prev,
 }
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize, PartialEq, Eq)]

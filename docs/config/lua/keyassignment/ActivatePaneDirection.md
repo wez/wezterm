@@ -25,3 +25,14 @@ return {
   }
 }
 ```
+
+*Since: nightly builds only*
+
+You may now use `"Next"` and `"Prev"` as directions.  These cycle
+through the panes according to their position in the pane tree.
+
+`"Next"` moves to the next highest pane index, wrapping around to 0
+if the active pane is already the highest pane index.
+
+`"Prev"` moves to the next lowest pane index, wrapping around to
+the highest of the active pane is already the lowest pane index.

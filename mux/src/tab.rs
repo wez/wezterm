@@ -1006,10 +1006,12 @@ impl Tab {
         let split_direction = match direction {
             PaneDirection::Left | PaneDirection::Right => SplitDirection::Horizontal,
             PaneDirection::Up | PaneDirection::Down => SplitDirection::Vertical,
+            PaneDirection::Next | PaneDirection::Prev => unreachable!(),
         };
         let delta = match direction {
             PaneDirection::Down | PaneDirection::Right => amount as isize,
             PaneDirection::Up | PaneDirection::Left => -(amount as isize),
+            PaneDirection::Next | PaneDirection::Prev => unreachable!(),
         };
         loop {
             match cursor.go_up() {
@@ -1054,6 +1056,25 @@ impl Tab {
                 return;
             }
         };
+
+        if matches!(direction, PaneDirection::Next | PaneDirection::Prev) {
+            let max_pane_id = panes.iter().map(|p| p.index).max().unwrap_or(active.index);
+
+            if direction == PaneDirection::Next {
+                self.set_active_idx(if active.index == max_pane_id {
+                    0
+                } else {
+                    active.index + 1
+                });
+            } else {
+                self.set_active_idx(if active.index == 0 {
+                    max_pane_id
+                } else {
+                    active.index - 1
+                });
+            }
+            return;
+        }
 
         let mut best = None;
 
@@ -1102,6 +1123,7 @@ impl Tab {
                         0
                     }
                 }
+                PaneDirection::Next | PaneDirection::Prev => unreachable!(),
             };
 
             if score > 0 {
