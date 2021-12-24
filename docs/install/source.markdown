@@ -41,3 +41,15 @@ cargo run --release --bin wezterm -- start
 
 **If you get an error about zlib then you most likely didn't initialize the submodules;
 take a closer look at the instructions!**
+
+### Building without Wayland support on Unix systems
+
+By default, support for both X11 and Wayland is included on Unix systems.
+If your distribution has X11 but not Wayland, then you can build WezTerm without
+Wayland support by changing the `build` invocation:
+
+```bash
+cargo build --release --no-default-features
+```
+
+Building without X11 is not supported.
