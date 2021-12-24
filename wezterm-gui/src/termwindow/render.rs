@@ -540,10 +540,7 @@ impl super::TermWindow {
             tab_bounding_rect.min_x(),
             tab_bounding_rect.min_y(),
             tab_bounding_rect.width(),
-            tab_bounding_rect
-                .max_y()
-                .min(metrics.cell_height.get() as isize * 2)
-                - tab_bounding_rect.min_y(),
+            (metrics.cell_height.get() as isize * 2) - tab_bounding_rect.min_y(),
         );
 
         match item.item {
