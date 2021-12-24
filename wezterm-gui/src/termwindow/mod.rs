@@ -26,8 +26,7 @@ use config::{
     configuration, AudibleBell, ConfigHandle, DimensionContext, GradientOrientation, TermConfig,
     WindowCloseConfirmation,
 };
-use luahelper::impl_lua_conversion;
-use mlua::FromLua;
+use mlua::{FromLua, UserData, UserDataFields};
 use mux::domain::{DomainId, DomainState};
 use mux::pane::{CloseReason, Pane, PaneId};
 use mux::renderable::RenderableDimensions;
@@ -35,7 +34,6 @@ use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
 use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use portable_pty::PtySize;
-use serde::*;
 use smol::channel::Sender;
 use smol::Timer;
 use std::cell::{RefCell, RefMut};
@@ -157,17 +155,31 @@ pub struct PaneState {
 }
 
 /// Data used when synchronously formatting pane and window titles
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct TabInformation {
     pub tab_id: TabId,
     pub tab_index: usize,
     pub is_active: bool,
     pub active_pane: Option<PaneInformation>,
 }
-impl_lua_conversion!(TabInformation);
+
+impl UserData for TabInformation {
+    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("tab_id", |_, this| Ok(this.tab_id));
+        fields.add_field_method_get("tab_index", |_, this| Ok(this.tab_index));
+        fields.add_field_method_get("is_active", |_, this| Ok(this.is_active));
+        fields.add_field_method_get("active_pane", |_, this| {
+            if let Some(pane) = &this.active_pane {
+                Ok(Some(pane.clone()))
+            } else {
+                Ok(None)
+            }
+        });
+    }
+}
 
 /// Data used when synchronously formatting pane and window titles
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct PaneInformation {
     pub pane_id: PaneId,
     pub pane_index: usize,
@@ -182,7 +194,47 @@ pub struct PaneInformation {
     pub title: String,
     pub user_vars: HashMap<String, String>,
 }
-impl_lua_conversion!(PaneInformation);
+
+impl UserData for PaneInformation {
+    fn add_fields<'lua, F: UserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("pane_id", |_, this| Ok(this.pane_id));
+        fields.add_field_method_get("pane_index", |_, this| Ok(this.pane_index));
+        fields.add_field_method_get("is_active", |_, this| Ok(this.is_active));
+        fields.add_field_method_get("is_zoomed", |_, this| Ok(this.is_zoomed));
+        fields.add_field_method_get("left", |_, this| Ok(this.left));
+        fields.add_field_method_get("top", |_, this| Ok(this.top));
+        fields.add_field_method_get("width", |_, this| Ok(this.width));
+        fields.add_field_method_get("height", |_, this| Ok(this.height));
+        fields.add_field_method_get("pixel_width", |_, this| Ok(this.pixel_width));
+        fields.add_field_method_get("pixel_height", |_, this| Ok(this.pixel_width));
+        fields.add_field_method_get("title", |_, this| Ok(this.title.clone()));
+        fields.add_field_method_get("user_vars", |_, this| Ok(this.user_vars.clone()));
+        fields.add_field_method_get("foreground_process_name", |_, this| {
+            let mut name = None;
+            if let Some(mux) = Mux::get() {
+                if let Some(pane) = mux.get_pane(this.pane_id) {
+                    name = pane.get_foreground_process_name();
+                }
+            }
+            match name {
+                Some(name) => Ok(name),
+                None => Ok("".to_string()),
+            }
+        });
+        fields.add_field_method_get("current_working_dir", |_, this| {
+            let mut name = None;
+            if let Some(mux) = Mux::get() {
+                if let Some(pane) = mux.get_pane(this.pane_id) {
+                    name = pane.get_current_working_dir().map(|u| u.to_string());
+                }
+            }
+            match name {
+                Some(name) => Ok(name),
+                None => Ok("".to_string()),
+            }
+        });
+    }
+}
 
 #[derive(Default, Clone)]
 pub struct TabState {

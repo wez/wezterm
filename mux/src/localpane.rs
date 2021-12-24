@@ -320,6 +320,36 @@ impl Pane for LocalPane {
             .or_else(|| self.divine_current_working_dir())
     }
 
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
+    fn get_foreground_process_name(&self) -> Option<String> {
+        None
+    }
+
+    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    fn get_foreground_process_name(&self) -> Option<String> {
+        use sysinfo::{Pid, ProcessExt, ProcessRefreshKind, RefreshKind, System, SystemExt};
+        let leader;
+
+        #[cfg(unix)]
+        {
+            leader = self.pty.borrow().process_group_leader()?;
+        }
+        #[cfg(windows)]
+        {
+            if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
+                leader = *pid;
+            } else {
+                return None;
+            }
+        }
+
+        let system = System::new_with_specifics(
+            RefreshKind::new().with_processes(ProcessRefreshKind::new()),
+        );
+        let proc = system.process(leader as Pid)?;
+        Some(proc.exe().to_string_lossy().to_string())
+    }
+
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
         if let Some(proc_list) = self.divine_process_list() {
             log::trace!(

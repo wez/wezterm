@@ -38,6 +38,9 @@ impl UserData for PaneObject {
                 .get_current_working_dir()
                 .map(|u| u.to_string()))
         });
+        methods.add_method("get_foreground_process_name", |_, this, _: ()| {
+            Ok(this.pane()?.get_foreground_process_name())
+        });
         methods.add_method("paste", |_, this, text: String| {
             this.pane()?.send_paste(&text).map_err(luaerr)?;
             Ok(())

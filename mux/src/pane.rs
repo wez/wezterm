@@ -370,6 +370,9 @@ pub trait Pane: Downcast {
     }
 
     fn get_current_working_dir(&self) -> Option<Url>;
+    fn get_foreground_process_name(&self) -> Option<String> {
+        None
+    }
 
     fn trickle_paste(&self, text: String) -> anyhow::Result<()> {
         if text.len() <= PASTE_CHUNK_SIZE {

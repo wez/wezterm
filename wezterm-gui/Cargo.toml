@@ -42,7 +42,7 @@ log = "0.4"
 lru = "0.7"
 luahelper = { path = "../luahelper" }
 metrics = { version="0.17", features=["std"]}
-mlua = "0.5"
+mlua = "0.7"
 mux = { path = "../mux" }
 open = "2.0"
 ordered-float = "2.8"

@@ -1,7 +1,7 @@
 # PaneInformation
 
 The `PaneInformation` struct describes a pane.  Unlike [the Pane
-object](pane/index.md), `PaneInformation` is purely a snapshot of some of
+object](pane/index.md), `PaneInformation` is a snapshot of some of
 the key characteristics of the pane, intended for use in synchronous, fast,
 event callbacks that format GUI elements such as the window and tab title bars.
 
@@ -20,3 +20,34 @@ The `PaneInformation` struct contains the following fields:
 * `title` - the title of the pane, per [pane:get_title()](pane/get_title.md) at the time the pane information was captured
 * `user_vars` - the user variables defined for the pane, per [pane:get_user_vars()](pane/get_user_vars.md) at the time the pane information was captured.
 
+*Since: nightly builds only*
+
+Additional fields are available; note that accessing these may not be cheap to
+compute and may slow down wezterm.  Unlike the fields listed above, these are
+not pre-computed snapshots of information, so if you don't use them, you won't
+pay the cost of computing them.
+
+* `foreground_process_name` - the path to the executable image per [pane:get_foreground_process_name()](pane/get_foreground_process_name.md), or an empty string if unavailable.
+* `current_working_dir` - the current working directory, per [pane:get_current_working_dir()](pane/get_current_working_dir.md). 
+
+This example places the executable name in the tab titles:
+
+```lua
+local wezterm = require 'wezterm'
+
+wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
+  local pane = tab.active_pane
+  local title = pane.foreground_process_name .. " " .. pane.pane_id
+  local color = "navy"
+  if tab.is_active then
+    color = "blue"
+  end
+  return {
+    {Background={Color=color}},
+    {Text=" " .. title .. " "},
+  }
+end)
+
+return {
+}
+```

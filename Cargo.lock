@@ -2247,20 +2247,21 @@ dependencies = [
 
 [[package]]
 name = "mlua"
-version = "0.5.4"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd448d3e7018f2ff38dd732a374045f5b037eb4ee477d9241d9bb8c209528c1c"
+checksum = "871831bd7c53c48b85db47a03e5974915679a91ddd5f897dece6ce030e5191d2"
 dependencies = [
  "bstr 0.2.17",
  "cc",
  "futures-core",
  "futures-task",
  "futures-util",
- "lazy_static",
  "lua-src",
  "luajit-src",
  "num-traits",
+ "once_cell",
  "pkg-config",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -3429,6 +3430,12 @@ name = "rustc-demangle"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ef03e0a2b150c7a90d01faf6254c9c48a41e95fb2a8c2ac1c6f0d2b9aefc342"
+
+[[package]]
+name = "rustc-hash"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc_version"
