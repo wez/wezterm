@@ -148,6 +148,12 @@ pub fn designate_this_as_the_main_thread() {
     });
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProgDomain {
+    Local,
+    Remote,
+}
+
 #[must_use = "Cancels the subscription when dropped"]
 pub struct ConfigSubscription(usize);
 
@@ -1808,15 +1814,19 @@ impl Config {
         }
     }
 
-    pub fn build_prog(&self, prog: Option<Vec<&OsStr>>) -> Result<CommandBuilder, Error> {
-        let mut cmd = match prog {
-            Some(args) => {
+    pub fn build_prog(
+        &self,
+        prog: Option<Vec<&OsStr>>,
+        prog_domain: ProgDomain,
+    ) -> Result<CommandBuilder, Error> {
+        let mut cmd = match (prog, prog_domain) {
+            (Some(args), _) => {
                 let mut args = args.iter();
                 let mut cmd = CommandBuilder::new(args.next().expect("executable name"));
                 cmd.args(args);
                 cmd
             }
-            None => {
+            (None, ProgDomain::Local) => {
                 if let Some(prog) = self.default_prog.as_ref() {
                     let mut args = prog.iter();
                     let mut cmd = CommandBuilder::new(args.next().expect("executable name"));
@@ -1826,18 +1836,21 @@ impl Config {
                     CommandBuilder::new_default_prog()
                 }
             }
+            (None, ProgDomain::Remote) => CommandBuilder::new_default_prog(),
         };
 
-        self.apply_cmd_defaults(&mut cmd);
+        self.apply_cmd_defaults(&mut cmd, prog_domain);
 
         Ok(cmd)
     }
 
-    pub fn apply_cmd_defaults(&self, cmd: &mut CommandBuilder) {
+    pub fn apply_cmd_defaults(&self, cmd: &mut CommandBuilder, prog_domain: ProgDomain) {
         // Apply `default_cwd` only if `cwd` is not already set, allows `--cwd`
         // option to take precedence
-        if let (None, Some(cwd)) = (cmd.get_cwd(), &self.default_cwd) {
-            cmd.cwd(cwd);
+        if prog_domain == ProgDomain::Local {
+            if let (None, Some(cwd)) = (cmd.get_cwd(), &self.default_cwd) {
+                cmd.cwd(cwd);
+            }
         }
 
         // Augment WSLENV so that TERM related environment propagates

@@ -4,7 +4,7 @@
 use crate::frontend::front_end;
 use ::window::*;
 use anyhow::{anyhow, Context};
-use config::{ConfigHandle, SshBackend};
+use config::{ConfigHandle, ProgDomain, SshBackend};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::Mux;
@@ -362,7 +362,10 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
         let cmd = if need_builder {
             let config = config::configuration();
             let prog = opts.prog.iter().map(|s| s.as_os_str()).collect::<Vec<_>>();
-            let mut builder = config.build_prog(if prog.is_empty() { None } else { Some(prog) })?;
+            let mut builder = config.build_prog(
+                if prog.is_empty() { None } else { Some(prog) },
+                ProgDomain::Local,
+            )?;
             if let Some(cwd) = opts.cwd {
                 builder.cwd(cwd);
             }

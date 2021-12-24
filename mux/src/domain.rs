@@ -12,7 +12,7 @@ use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{bail, Error};
 use async_trait::async_trait;
-use config::configuration;
+use config::{configuration, ProgDomain};
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize, PtySystem};
 use std::rc::Rc;
@@ -120,10 +120,10 @@ impl Domain for LocalDomain {
         let config = configuration();
         let mut cmd = match command {
             Some(mut cmd) => {
-                config.apply_cmd_defaults(&mut cmd);
+                config.apply_cmd_defaults(&mut cmd, ProgDomain::Local);
                 cmd
             }
-            None => config.build_prog(None)?,
+            None => config.build_prog(None, ProgDomain::Local)?,
         };
         if let Some(dir) = command_dir {
             // I'm not normally a fan of existence checking, but not checking here
@@ -200,10 +200,10 @@ impl Domain for LocalDomain {
         let config = configuration();
         let mut cmd = match command {
             Some(mut cmd) => {
-                config.apply_cmd_defaults(&mut cmd);
+                config.apply_cmd_defaults(&mut cmd, ProgDomain::Local);
                 cmd
             }
-            None => config.build_prog(None)?,
+            None => config.build_prog(None, ProgDomain::Local)?,
         };
         if let Some(dir) = command_dir {
             // I'm not normally a fan of existence checking, but not checking here

@@ -58,6 +58,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Closing a window will no longer recursively terminate contained multiplexer client panes; the window will instead be restored when you next connect to that multiplexer server. Killing/closing individual tabs/panes *will* kill the panes; this change only affects closing the window. [#848](https://github.com/wez/wezterm/issues/848) [#917](https://github.com/wez/wezterm/issues/917) [#1224](https://github.com/wez/wezterm/issues/1224)
 * Colors were too intense due to over gamma correction [#1025](https://github.com/wez/wezterm/issues/1025)
 * Mesa and EGL colors were too dim due to under gamma correction [#1373](https://github.com/wez/wezterm/issues/1373)
+* `wezterm ssh` no longer tries to use `default_prog` or `default_cwd` when spawning additional panes on the remote host [#1456](https://github.com/wez/wezterm/issues/1456)
 
 ### 20211205-192649-672c1cc1
 
