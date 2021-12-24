@@ -139,7 +139,7 @@ impl FreeTypeRasterizer {
                 rgba[dest_offset + (x * 4)] = gray;
                 rgba[dest_offset + (x * 4) + 1] = gray;
                 rgba[dest_offset + (x * 4) + 2] = gray;
-                rgba[dest_offset + (x * 4) + 3] = if gray == 0 { 0 } else { 0xff };
+                rgba[dest_offset + (x * 4) + 3] = linear_gray;
             }
         }
         RasterizedGlyph {
@@ -170,6 +170,8 @@ impl FreeTypeRasterizer {
                 let green = data[src_offset + (x * 3) + 1];
                 let blue = data[src_offset + (x * 3) + 2];
 
+                let linear_alpha = red.max(green).max(blue);
+
                 // Texture is SRGBA, which in OpenGL means
                 // that the RGB values are gamma adjusted
                 // non-linear values, but the A value is
@@ -182,7 +184,7 @@ impl FreeTypeRasterizer {
                 rgba[dest_offset + (x * 4)] = red;
                 rgba[dest_offset + (x * 4) + 1] = green;
                 rgba[dest_offset + (x * 4) + 2] = blue;
-                rgba[dest_offset + (x * 4) + 3] = if red | green | blue == 0 { 0 } else { 0xff };
+                rgba[dest_offset + (x * 4) + 3] = linear_alpha;
             }
         }
 
