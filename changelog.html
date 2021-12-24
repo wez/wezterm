@@ -201,6 +201,7 @@ usually the best available version.</p>
 <li>Closing a window will no longer recursively terminate contained multiplexer client panes; the window will instead be restored when you next connect to that multiplexer server. Killing/closing individual tabs/panes <em>will</em> kill the panes; this change only affects closing the window. <a href="https://github.com/wez/wezterm/issues/848">#848</a> <a href="https://github.com/wez/wezterm/issues/917">#917</a> <a href="https://github.com/wez/wezterm/issues/1224">#1224</a></li>
 <li>Colors were too intense due to over gamma correction <a href="https://github.com/wez/wezterm/issues/1025">#1025</a></li>
 <li>Mesa and EGL colors were too dim due to under gamma correction <a href="https://github.com/wez/wezterm/issues/1373">#1373</a></li>
+<li><code>wezterm ssh</code> no longer tries to use <code>default_prog</code> or <code>default_cwd</code> when spawning additional panes on the remote host <a href="https://github.com/wez/wezterm/issues/1456">#1456</a></li>
 </ul>
 <h3 id="20211205-192649-672c1cc1"><a class="header" href="#20211205-192649-672c1cc1">20211205-192649-672c1cc1</a></h3>
 <h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
