@@ -735,11 +735,11 @@ impl super::TermWindow {
                 );
 
                 let text_bounding_rect = tab_bounding_rect.inflate(
-                    metrics.cell_width.get() as isize / -4,
+                    metrics.cell_width.get() as isize / -2,
                     metrics.cell_height.get() as isize / -4,
                 );
 
-                let desired_width = width.min(text_bounding_rect.width());
+                let desired_width = desired_width.min(text_bounding_rect.width());
                 let text_bounding_rect: Rect = euclid::rect(
                     text_bounding_rect.max_x() - desired_width,
                     text_bounding_rect.min_y(),
