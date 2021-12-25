@@ -1108,6 +1108,11 @@ impl super::TermWindow {
                     quad.set_hsv(config.window_background_image_hsb);
                     quad.set_fg_color(color);
                 }
+                _ if window_is_transparent && num_panes > 1 => {
+                    // Avoid doubling up the background color: the panes
+                    // will render out through the padding so there
+                    // should be no gaps that need filling in
+                },
                 _ => {
                     // Regular window background color
                     let background = rgbcolor_alpha_to_window_color(
