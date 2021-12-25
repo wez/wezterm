@@ -7,22 +7,19 @@ use dwrote::{FontDescriptor, FontStretch, FontStyle, FontWeight};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::sync::Arc;
-use winapi::shared::windef::HFONT;
+use winapi::shared::windef::{HDC, HFONT};
 use winapi::um::dwrite::*;
+use winapi::um::winbase::MulDiv;
 use winapi::um::wingdi::{
-    CreateCompatibleDC, CreateFontIndirectW, DeleteDC, DeleteObject, GetFontData, SelectObject,
-    FIXED_PITCH, GDI_ERROR, LF_FACESIZE, LOGFONTW, OUT_TT_ONLY_PRECIS,
+    CreateCompatibleDC, CreateFontIndirectW, DeleteDC, DeleteObject, GetDeviceCaps, GetFontData,
+    SelectObject, FIXED_PITCH, GDI_ERROR, LF_FACESIZE, LOGFONTW, LOGPIXELSY, OUT_TT_ONLY_PRECIS,
 };
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by the font-loader crate.
 pub struct GdiFontLocator {}
 
-fn extract_font_data(
-    font: HFONT,
-    attr: &FontAttributes,
-    pixel_size: u16,
-) -> anyhow::Result<ParsedFont> {
+fn extract_raw_font_data(font: HFONT, name: &str) -> anyhow::Result<FontDataSource> {
     unsafe {
         let hdc = CreateCompatibleDC(std::ptr::null_mut());
         SelectObject(hdc, font as *mut _);
@@ -61,21 +58,29 @@ fn extract_font_data(
         DeleteDC(hdc);
         let data = data?;
 
-        let source = FontDataSource::Memory {
+        Ok(FontDataSource::Memory {
             data: Arc::new(data.into_boxed_slice()),
-            name: attr.family.clone(),
-        };
-
-        let mut font_info = vec![];
-        parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
-        let matches = ParsedFont::best_match(attr, pixel_size, font_info);
-
-        for m in matches {
-            return Ok(m);
-        }
-
-        anyhow::bail!("No font matching {:?} in {:?}", attr, source);
+            name: name.to_string(),
+        })
     }
+}
+
+fn extract_font_data(
+    font: HFONT,
+    attr: &FontAttributes,
+    pixel_size: u16,
+) -> anyhow::Result<ParsedFont> {
+    let source = extract_raw_font_data(font, &attr.family)?;
+
+    let mut font_info = vec![];
+    parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
+    let matches = ParsedFont::best_match(attr, pixel_size, font_info);
+
+    for m in matches {
+        return Ok(m);
+    }
+
+    anyhow::bail!("No font matching {:?} in {:?}", attr, source);
 }
 
 /// Convert a rust string to a windows wide string
@@ -121,6 +126,35 @@ fn load_font(font_attr: &FontAttributes, pixel_size: u16) -> anyhow::Result<Pars
         let result = extract_font_data(font, font_attr, pixel_size);
         DeleteObject(font as *mut _);
         result
+    }
+}
+
+pub fn parse_log_font(log_font: &LOGFONTW, hdc: HDC) -> anyhow::Result<(ParsedFont, f64)> {
+    let name = String::from_utf16(&log_font.lfFaceName)?;
+    unsafe {
+        let font = CreateFontIndirectW(log_font);
+        let source = extract_raw_font_data(font, &name);
+        DeleteObject(font as *mut _);
+        let source = source?;
+
+        let point_size = MulDiv(-log_font.lfHeight, 72, GetDeviceCaps(hdc, LOGPIXELSY)) as f64;
+        let pixel_size = log_font.lfHeight.abs() as u16;
+
+        let mut attr = FontAttributes::new(&name);
+        attr.weight = config::FontWeight::from_opentype_weight(log_font.lfWeight as u16);
+        if log_font.lfItalic == 1 {
+            attr.italic = true;
+        }
+
+        let mut font_info = vec![];
+        parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
+        let matches = ParsedFont::best_match(&attr, pixel_size, font_info);
+
+        for m in matches {
+            return Ok((m, point_size));
+        }
+
+        anyhow::bail!("No font matching {:?} in {:?}", attr, source);
     }
 }
 

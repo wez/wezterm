@@ -382,6 +382,7 @@ struct FontConfigInner {
     no_glyphs: RefCell<HashSet<char>>,
     title_font: RefCell<Option<Rc<LoadedFont>>>,
     fallback_channel: RefCell<Option<Sender<FallbackResolveInfo>>>,
+    system_title_font: RefCell<Option<(ParsedFont, f64)>>,
 }
 
 /// Matches and loads fonts for a given input style
@@ -406,6 +407,7 @@ impl FontConfigInner {
             built_in: RefCell::new(Arc::new(FontDatabase::with_built_in()?)),
             no_glyphs: RefCell::new(HashSet::new()),
             fallback_channel: RefCell::new(None),
+            system_title_font: RefCell::new(None),
         })
     }
 
@@ -504,6 +506,11 @@ impl FontConfigInner {
         )
     }
 
+    fn advise_title_font(&self, info: Option<(ParsedFont, f64)>) {
+        self.title_font.borrow_mut().take();
+        *self.system_title_font.borrow_mut() = info;
+    }
+
     fn title_font(&self, myself: &Rc<Self>) -> anyhow::Result<Rc<LoadedFont>> {
         let config = self.config.borrow();
 
@@ -513,17 +520,27 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
-        let (sys_font, sys_size) = Self::last_ditch_title_font();
+        let (sys_font, mut sys_size) = Self::last_ditch_title_font();
+
+        let mut handles = vec![];
+
+        if config.window_frame.font.is_none() {
+            if let Some((font, size)) = self.system_title_font.borrow().as_ref() {
+                handles.push(font.clone());
+                sys_size = *size;
+            }
+        }
 
         let font_size = config.window_frame.font_size.unwrap_or(sys_size);
-        let dpi = *self.dpi.borrow() as u32;
-        let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
 
         let text_style = config
             .window_frame
             .font
             .as_ref()
             .unwrap_or_else(|| &sys_font);
+
+        let dpi = *self.dpi.borrow() as u32;
+        let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
 
         let attributes = text_style.font_with_fallback();
         let preferred_attributes = attributes
@@ -538,7 +555,6 @@ impl FontConfigInner {
             .collect::<Vec<_>>();
         let mut loaded = HashSet::new();
 
-        let mut handles = vec![];
         for attrs in &[&preferred_attributes, &fallback_attributes] {
             self.font_dirs
                 .borrow()
@@ -848,6 +864,10 @@ impl FontConfiguration {
     /// matches according to the fontconfig pattern.
     pub fn resolve_font(&self, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
         self.inner.resolve_font(&self.inner, style)
+    }
+
+    pub fn advise_title_font(&self, info: Option<(ParsedFont, f64)>) {
+        self.inner.advise_title_font(info);
     }
 
     pub fn change_scaling(&self, font_scale: f64, dpi: usize) -> (f64, usize) {

@@ -27,8 +27,13 @@ use wezterm_font::FontConfiguration;
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
+use winapi::shared::winerror::S_OK;
 use winapi::um::imm::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
+use winapi::um::uxtheme::{
+    CloseThemeData, GetThemeFont, GetThemeSysFont, OpenThemeData, SetWindowTheme,
+};
+use winapi::um::wingdi::LOGFONTW;
 use winapi::um::winuser::*;
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
@@ -706,6 +711,73 @@ impl WindowOps for Window {
     fn set_clipboard(&self, _clipboard: Clipboard, text: String) {
         clipboard_win::set_clipboard_string(&text).ok();
     }
+
+    fn get_title_font_and_point_size(&self) -> Option<(wezterm_font::parser::ParsedFont, f64)> {
+        const TMT_CAPTIONFONT: i32 = 801;
+        const HP_HEADERITEM: i32 = 1;
+        const HIS_NORMAL: i32 = 1;
+
+        unsafe fn populate_log_font(hwnd: HWND, hdc: HDC) -> Option<LOGFONTW> {
+            let mut log_font = LOGFONTW {
+                lfHeight: 0,
+                lfWidth: 0,
+                lfEscapement: 0,
+                lfOrientation: 0,
+                lfWeight: 0,
+                lfItalic: 0,
+                lfUnderline: 0,
+                lfStrikeOut: 0,
+                lfCharSet: 0,
+                lfOutPrecision: 0,
+                lfClipPrecision: 0,
+                lfQuality: 0,
+                lfPitchAndFamily: 0,
+                lfFaceName: [0u16; 32],
+            };
+            let theme = OpenThemeData(
+                hwnd,
+                [
+                    'H' as u16, 'E' as u16, 'A' as u16, 'D' as u16, 'E' as u16, 'R' as u16, 0u16,
+                ]
+                .as_ptr(),
+            );
+            if !theme.is_null() {
+                let res = GetThemeFont(
+                    theme,
+                    hdc,
+                    HP_HEADERITEM,
+                    HIS_NORMAL,
+                    TMT_CAPTIONFONT,
+                    &mut log_font,
+                );
+                if res == S_OK {
+                    CloseThemeData(theme);
+                    return Some(log_font);
+                }
+            }
+
+            let res = GetThemeSysFont(theme, TMT_CAPTIONFONT, &mut log_font);
+            if !theme.is_null() {
+                CloseThemeData(theme);
+            }
+
+            if res == S_OK {
+                Some(log_font)
+            } else {
+                None
+            }
+        }
+        unsafe {
+            let hwnd = self.0 .0;
+            let hdc = GetDC(hwnd);
+            let result = match populate_log_font(hwnd, hdc) {
+                Some(lf) => wezterm_font::locator::gdi::parse_log_font(&lf, hdc).ok(),
+                None => None,
+            };
+            ReleaseDC(hwnd, hdc);
+            result
+        }
+    }
 }
 
 /// Set up bidirectional pointers:
@@ -772,7 +844,6 @@ fn apply_theme(hwnd: HWND) -> Option<LRESULT> {
     // Note that the MS terminal app uses the logic found here for this stuff:
     // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
     use winapi::um::dwmapi::DwmSetWindowAttribute;
-    use winapi::um::uxtheme::SetWindowTheme;
 
     #[allow(non_snake_case)]
     type WINDOWCOMPOSITIONATTRIB = u32;
