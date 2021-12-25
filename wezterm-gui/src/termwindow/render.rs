@@ -513,7 +513,7 @@ impl super::TermWindow {
             window_is_transparent,
             default_bg,
             font: Some(Rc::clone(font)),
-            style: Some(&self.config.window_frame.font),
+            style: Some(font.style()),
             use_pixel_positioning: true,
             pre_shaped: None,
             render_metrics: RenderMetrics::with_font_metrics(metrics),

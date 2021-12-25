@@ -5,7 +5,8 @@ use crate::rasterizer::{new_rasterizer, FontRasterizer};
 use crate::shaper::{new_shaper, FontShaper};
 use anyhow::{Context, Error};
 use config::{
-    configuration, ConfigHandle, FontRasterizerSelection, FontStretch, FontWeight, TextStyle,
+    configuration, ConfigHandle, FontAttributes, FontRasterizerSelection, FontStretch, FontWeight,
+    TextStyle,
 };
 use rangeset::RangeSet;
 use std::cell::RefCell;
@@ -48,11 +49,16 @@ pub struct LoadedFont {
     dpi: u32,
     font_config: Weak<FontConfigInner>,
     pending_fallback: Arc<Mutex<Vec<ParsedFont>>>,
+    text_style: TextStyle,
 }
 
 impl LoadedFont {
     pub fn metrics(&self) -> FontMetrics {
         self.metrics
+    }
+
+    pub fn style(&self) -> &TextStyle {
+        &self.text_style
     }
 
     fn insert_fallback_handles(&self, extra_handles: Vec<ParsedFont>) -> anyhow::Result<bool> {
@@ -459,6 +465,45 @@ impl FontConfigInner {
         }
     }
 
+    fn last_ditch_title_font() -> (TextStyle, f64) {
+        fn bold(family: &str) -> FontAttributes {
+            FontAttributes {
+                family: family.to_string(),
+                weight: FontWeight::BOLD,
+                ..Default::default()
+            }
+        }
+
+        let mut fonts = vec![if cfg!(target_os = "macos") {
+            // "SF Pro" or one of the San Francisco font variants
+            // are the official fonts for the macOS UI, but those
+            // are not directly accessible to non-Apple applications,
+            // and have a restricted license.
+            // Wikipedia says that `Galvji` looks very similar,
+            // but has slightly different spacing.
+            // It's close enough for me!
+            bold("Galvji")
+        } else if cfg!(windows) {
+            FontAttributes::new("Segoe UI")
+        } else {
+            bold("Cantarell")
+        }];
+
+        if !cfg!(windows) && !cfg!(target_os = "macos") {
+            fonts.push(bold("DejaVu Sans"));
+        }
+
+        let font_size = if cfg!(windows) { 10. } else { 12. };
+
+        (
+            TextStyle {
+                foreground: None,
+                font: fonts,
+            },
+            font_size,
+        )
+    }
+
     fn title_font(&self, myself: &Rc<Self>) -> anyhow::Result<Rc<LoadedFont>> {
         let config = self.config.borrow();
 
@@ -468,11 +513,19 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
-        let font_size = config.window_frame.font_size;
+        let (sys_font, sys_size) = Self::last_ditch_title_font();
+
+        let font_size = config.window_frame.font_size.unwrap_or(sys_size);
         let dpi = *self.dpi.borrow() as u32;
         let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
 
-        let attributes = config.window_frame.font.font_with_fallback();
+        let text_style = config
+            .window_frame
+            .font
+            .as_ref()
+            .unwrap_or_else(|| &sys_font);
+
+        let attributes = text_style.font_with_fallback();
         let preferred_attributes = attributes
             .iter()
             .filter(|a| !a.is_fallback)
@@ -514,6 +567,7 @@ impl FontConfigInner {
             dpi,
             font_config: Rc::downgrade(myself),
             pending_fallback: Arc::new(Mutex::new(vec![])),
+            text_style: text_style.clone(),
         });
 
         title_font.replace(Rc::clone(&loaded));
@@ -679,6 +733,7 @@ impl FontConfigInner {
             dpi,
             font_config: Rc::downgrade(myself),
             pending_fallback: Arc::new(Mutex::new(vec![])),
+            text_style: style.clone(),
         });
 
         fonts.insert(style.clone(), Rc::clone(&loaded));

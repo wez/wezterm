@@ -282,52 +282,10 @@ pub struct WindowFrameConfig {
     #[serde(default = "default_button_hover_bg")]
     pub button_hover_bg: RgbColor,
 
-    #[serde(default = "default_title_font")]
-    pub font: TextStyle,
-    #[serde(default = "default_title_font_size", deserialize_with = "de_number")]
-    pub font_size: f64,
-}
-
-fn default_title_font_size() -> f64 {
-    if cfg!(windows) {
-        9.
-    } else {
-        12.
-    }
-}
-
-fn default_title_font() -> TextStyle {
-    fn bold(family: &str) -> FontAttributes {
-        FontAttributes {
-            family: family.to_string(),
-            weight: FontWeight::BOLD,
-            ..Default::default()
-        }
-    }
-
-    let mut fonts = vec![if cfg!(target_os = "macos") {
-        // "SF Pro" or one of the San Francisco font variants
-        // are the official fonts for the macOS UI, but those
-        // are not directly accessible to non-Apple applications,
-        // and have a restricted license.
-        // Wikipedia says that `Galvji` looks very similar,
-        // but has slightly different spacing.
-        // It's close enough for me!
-        bold("Galvji")
-    } else if cfg!(windows) {
-        FontAttributes::new("Segoe UI")
-    } else {
-        bold("Cantarell")
-    }];
-
-    if !cfg!(windows) && !cfg!(target_os = "macos") {
-        fonts.push(bold("DejaVu Sans"));
-    }
-
-    TextStyle {
-        foreground: None,
-        font: fonts,
-    }
+    #[serde(default)]
+    pub font: Option<TextStyle>,
+    #[serde(default)]
+    pub font_size: Option<f64>,
 }
 
 impl Default for WindowFrameConfig {
@@ -343,8 +301,8 @@ impl Default for WindowFrameConfig {
             button_bg: default_button_bg(),
             button_hover_fg: default_button_hover_fg(),
             button_hover_bg: default_button_hover_bg(),
-            font: default_title_font(),
-            font_size: default_title_font_size(),
+            font: None,
+            font_size: None,
         }
     }
 }
