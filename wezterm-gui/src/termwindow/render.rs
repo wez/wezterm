@@ -568,12 +568,21 @@ impl super::TermWindow {
                     &colors.inactive_tab
                 };
 
+                let bg_color = match item.title.cells()[0].attrs().background() {
+                    ColorAttribute::Default => c.bg_color,
+                    color => palette.resolve_bg(color),
+                };
+                let fg_color = match item.title.cells()[0].attrs().foreground() {
+                    ColorAttribute::Default => c.fg_color,
+                    color => palette.resolve_bg(color),
+                };
+
                 self.tab_background(
                     &mut layers[1],
                     metrics.cell_width.get() as isize / 2,
                     metrics.cell_height.get() as isize / 2,
                     tab_bounding_rect,
-                    rgbcolor_to_window_color(c.bg_color),
+                    rgbcolor_to_window_color(bg_color),
                 )?;
 
                 self.render_screen_line_opengl(
@@ -581,7 +590,7 @@ impl super::TermWindow {
                         top_pixel_y: text_bounding_rect.min_y() as f32,
                         left_pixel_x: text_bounding_rect.min_x() as f32,
                         pixel_width: text_bounding_rect.width() as f32,
-                        foreground: rgbcolor_to_window_color(c.fg_color),
+                        foreground: rgbcolor_to_window_color(fg_color),
                         pre_shaped: Some(&shaped),
                         font: Some(Rc::clone(font)),
                         selection: 0..0,
@@ -746,17 +755,26 @@ impl super::TermWindow {
                 );
 
                 if width > 0 {
+                    let bg_color = match item.title.cells()[0].attrs().background() {
+                        ColorAttribute::Default => colors.background,
+                        color => palette.resolve_bg(color),
+                    };
+                    let fg_color = match item.title.cells()[0].attrs().foreground() {
+                        ColorAttribute::Default => colors.inactive_tab.fg_color,
+                        color => palette.resolve_bg(color),
+                    };
+
                     self.filled_rectangle(
                         &mut layers[0],
                         tab_bounding_rect,
-                        rgbcolor_to_window_color(colors.background),
+                        rgbcolor_to_window_color(bg_color),
                     )?;
                     self.render_screen_line_opengl(
                         RenderScreenLineOpenGLParams {
                             top_pixel_y: text_bounding_rect.min_y() as f32,
                             left_pixel_x: text_bounding_rect.min_x() as f32,
                             pixel_width: text_bounding_rect.width() as f32,
-                            foreground: rgbcolor_to_window_color(colors.inactive_tab.fg_color),
+                            foreground: rgbcolor_to_window_color(fg_color),
                             pre_shaped: Some(&shaped),
                             font: Some(Rc::clone(font)),
                             selection: 0..0,
