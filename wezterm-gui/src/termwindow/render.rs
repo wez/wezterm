@@ -1112,7 +1112,7 @@ impl super::TermWindow {
                     // Avoid doubling up the background color: the panes
                     // will render out through the padding so there
                     // should be no gaps that need filling in
-                },
+                }
                 _ => {
                     // Regular window background color
                     let background = rgbcolor_alpha_to_window_color(
