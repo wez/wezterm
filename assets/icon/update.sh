@@ -9,8 +9,11 @@ src="WezTerm Alt.svg"
 
 conv_opts="-colors 256 -background none -density 300"
 
+# Remove padding for the linux and mac versions of the icon
+crop="-crop 2580x2580+310+310"
+
 # the linux icon
-convert $conv_opts -resize "!128x128" "$src" ../icon/terminal.png
+convert $conv_opts $crop -resize "!128x128" "$src" ../icon/terminal.png
 
 for dim in 16 32 128 256 512 1024 ; do
   # convert is the imagemagick convert utility
@@ -24,5 +27,5 @@ png2icns ../macos/WezTerm.app/Contents/Resources/terminal.icns icon_*px.png
 rm -f icon_*px.png
 
 # The Windows icon
-convert $conv_opts -define icon:auto-resize=256,128,96,64,48,32,16 "$src" ../windows/terminal.ico
+convert $conv_opts $crop -define icon:auto-resize=256,128,96,64,48,32,16 "$src" ../windows/terminal.ico
 
