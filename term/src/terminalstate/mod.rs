@@ -347,6 +347,12 @@ pub struct TerminalState {
     /// The unicode version that is in effect
     unicode_version: UnicodeVersion,
     unicode_version_stack: Vec<UnicodeVersionStackEntry>,
+
+    /// On Windows, the ConPTY layer emits an OSC sequence to
+    /// set the title shortly after it starts up.
+    /// We don't want that, so we use this flag to remember
+    /// whether we want to skip it or not.
+    suppress_initial_title_change: bool,
 }
 
 #[derive(Debug)]
@@ -484,7 +490,12 @@ impl TerminalState {
             seqno: 0,
             unicode_version,
             unicode_version_stack: vec![],
+            suppress_initial_title_change: false,
         }
+    }
+
+    pub fn set_supress_initial_title_change(&mut self) {
+        self.suppress_initial_title_change = true;
     }
 
     pub fn current_seqno(&self) -> SequenceNo {

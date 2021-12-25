@@ -44,6 +44,7 @@
 //! session with an implementation of `PtySystem`, allowing
 //! you to use the same pty interface with remote ptys.
 use anyhow::Error;
+use downcast_rs::{impl_downcast, Downcast};
 #[cfg(unix)]
 use libc;
 #[cfg(feature = "serde_support")]
@@ -191,12 +192,13 @@ pub struct PtyPair {
 /// The `PtySystem` trait allows an application to work with multiple
 /// possible Pty implementations at runtime.  This is important on
 /// Windows systems which have a variety of implementations.
-pub trait PtySystem {
+pub trait PtySystem: Downcast {
     /// Create a new Pty instance with the window size set to the specified
     /// dimensions.  Returns a (master, slave) Pty pair.  The master side
     /// is used to drive the slave side.
     fn openpty(&self, size: PtySize) -> anyhow::Result<PtyPair>;
 }
+impl_downcast!(PtySystem);
 
 impl Child for std::process::Child {
     fn try_wait(&mut self) -> IoResult<Option<ExitStatus>> {

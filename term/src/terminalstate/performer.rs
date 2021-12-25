@@ -178,6 +178,19 @@ impl<'a> Performer<'a> {
 
     pub fn perform(&mut self, action: Action) {
         debug!("perform {:?}", action);
+        if self.suppress_initial_title_change {
+            match &action {
+                Action::OperatingSystemCommand(osc) => match **osc {
+                    OperatingSystemCommand::SetIconNameAndWindowTitle(_) => {
+                        debug!("suppressed {:?}", osc);
+                        self.suppress_initial_title_change = false;
+                        return;
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
         match action {
             Action::Print(c) => self.print(c),
             Action::Control(code) => self.control(code),
@@ -516,6 +529,7 @@ impl<'a> Performer<'a> {
                 self.left_and_right_margins = 0..self.screen().physical_cols;
                 self.unicode_version = UnicodeVersion(self.config.unicode_version());
                 self.unicode_version_stack.clear();
+                self.suppress_initial_title_change = false;
 
                 self.screen.activate_primary_screen(seqno);
                 self.erase_in_display(EraseInDisplay::EraseScrollback);

@@ -106,6 +106,18 @@ impl LocalDomain {
             name: name.to_string(),
         }
     }
+
+    #[cfg(unix)]
+    fn is_conpty(&self) -> bool {
+        false
+    }
+
+    #[cfg(windows)]
+    fn is_conpty(&self) -> bool {
+        self.pty_system
+            .downcast_ref::<portable_pty::win::conpty::ConPtySystem>()
+            .is_some()
+    }
 }
 
 #[async_trait(?Send)]
@@ -148,13 +160,16 @@ impl Domain for LocalDomain {
         let writer = pair.master.try_clone_writer()?;
         let mux = Mux::get().unwrap();
 
-        let terminal = wezterm_term::Terminal::new(
+        let mut terminal = wezterm_term::Terminal::new(
             crate::pty_size_to_terminal_size(size),
             std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
             Box::new(writer),
         );
+        if self.is_conpty() {
+            terminal.set_supress_initial_title_change();
+        }
 
         let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
             pane_id,
@@ -230,13 +245,16 @@ impl Domain for LocalDomain {
 
         let writer = pair.master.try_clone_writer()?;
 
-        let terminal = wezterm_term::Terminal::new(
+        let mut terminal = wezterm_term::Terminal::new(
             crate::pty_size_to_terminal_size(split_size.second),
             std::sync::Arc::new(config::TermConfig::new()),
             "WezTerm",
             config::wezterm_version(),
             Box::new(writer),
         );
+        if self.is_conpty() {
+            terminal.set_supress_initial_title_change();
+        }
 
         let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
             pane_id,

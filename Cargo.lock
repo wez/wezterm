@@ -2945,6 +2945,7 @@ version = "0.7.0"
 dependencies = [
  "anyhow",
  "bitflags",
+ "downcast-rs",
  "filedescriptor",
  "futures",
  "lazy_static",
