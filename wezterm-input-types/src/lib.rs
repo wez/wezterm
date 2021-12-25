@@ -119,6 +119,19 @@ impl KeyCode {
     }
 }
 
+impl ToString for KeyCode {
+    fn to_string(&self) -> String {
+        match self {
+            Self::RawCode(n) => format!("raw:{}", n),
+            Self::Char(c) => c.to_string(),
+            Self::Composed(s) => s.to_string(),
+            Self::Numpad(n) => format!("Numpad{}", n),
+            Self::Function(n) => format!("F{}", n),
+            other => format!("{:?}", other),
+        }
+    }
+}
+
 bitflags! {
     #[derive(Default, Deserialize, Serialize)]
     pub struct Modifiers: u8 {
@@ -132,6 +145,36 @@ bitflags! {
         const LEADER = 1<<7;
     }
 }
+
+impl ToString for Modifiers {
+    fn to_string(&self) -> String {
+        let mut s = String::new();
+        if *self == Self::NONE {
+            s.push_str("NONE");
+        }
+
+        for (value, label) in [
+            (Self::SHIFT, "SHIFT"),
+            (Self::ALT, "ALT"),
+            (Self::CTRL, "CTRL"),
+            (Self::SUPER, "SUPER"),
+            (Self::LEFT_ALT, "LEFT_ALT"),
+            (Self::RIGHT_ALT, "RIGHT_ALT"),
+            (Self::LEADER, "LEADER"),
+        ] {
+            if !self.contains(value) {
+                continue;
+            }
+            if !s.is_empty() {
+                s.push('|');
+            }
+            s.push_str(label);
+        }
+
+        s
+    }
+}
+
 bitflags! {
     #[derive(Default)]
     pub struct MouseButtons: u8 {

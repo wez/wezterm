@@ -1,23 +1,31 @@
 use crate::{KeyAssignment, MouseEventTrigger};
 use luahelper::impl_lua_conversion;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use wezterm_input_types::{KeyCode, Modifiers};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct KeyNoAction {
-    #[serde(deserialize_with = "de_keycode")]
+    #[serde(deserialize_with = "de_keycode", serialize_with = "ser_keycode")]
     pub key: KeyCode,
-    #[serde(deserialize_with = "de_modifiers", default)]
+    #[serde(
+        deserialize_with = "de_modifiers",
+        serialize_with = "ser_modifiers",
+        default
+    )]
     pub mods: Modifiers,
 }
 impl_lua_conversion!(KeyNoAction);
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Key {
-    #[serde(deserialize_with = "de_keycode")]
+    #[serde(deserialize_with = "de_keycode", serialize_with = "ser_keycode")]
     pub key: KeyCode,
-    #[serde(deserialize_with = "de_modifiers", default)]
+    #[serde(
+        deserialize_with = "de_modifiers",
+        serialize_with = "ser_modifiers",
+        default
+    )]
     pub mods: Modifiers,
     pub action: KeyAssignment,
 }
@@ -25,9 +33,13 @@ impl_lua_conversion!(Key);
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LeaderKey {
-    #[serde(deserialize_with = "de_keycode")]
+    #[serde(deserialize_with = "de_keycode", serialize_with = "ser_keycode")]
     pub key: KeyCode,
-    #[serde(deserialize_with = "de_modifiers", default)]
+    #[serde(
+        deserialize_with = "de_modifiers",
+        serialize_with = "ser_modifiers",
+        default
+    )]
     pub mods: Modifiers,
     #[serde(default = "default_leader_timeout")]
     pub timeout_milliseconds: u64,
@@ -41,7 +53,11 @@ fn default_leader_timeout() -> u64 {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Mouse {
     pub event: MouseEventTrigger,
-    #[serde(deserialize_with = "de_modifiers", default)]
+    #[serde(
+        deserialize_with = "de_modifiers",
+        serialize_with = "ser_modifiers",
+        default
+    )]
     pub mods: Modifiers,
     pub action: KeyAssignment,
 }
@@ -139,8 +155,29 @@ fn make_map() -> HashMap<String, KeyCode> {
     map
 }
 
+fn make_inv_map() -> HashMap<KeyCode, String> {
+    let mut map = HashMap::new();
+    for (k, v) in KEYCODE_MAP.iter() {
+        map.insert(v.clone(), k.clone());
+    }
+    map
+}
+
 lazy_static::lazy_static! {
     static ref KEYCODE_MAP: HashMap<String, KeyCode> = make_map();
+    static ref INV_KEYCODE_MAP: HashMap<KeyCode, String> = make_inv_map();
+}
+
+pub(crate) fn ser_keycode<S>(key: &KeyCode, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    if let Some(s) = INV_KEYCODE_MAP.get(key) {
+        serializer.serialize_str(s)
+    } else {
+        let s = key.to_string();
+        serializer.serialize_str(&s)
+    }
 }
 
 fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
@@ -172,6 +209,14 @@ where
             s
         )))
     }
+}
+
+pub(crate) fn ser_modifiers<S>(mods: &Modifiers, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let s = mods.to_string();
+    serializer.serialize_str(&s)
 }
 
 pub(crate) fn de_modifiers<'de, D>(deserializer: D) -> Result<Modifiers, D::Error>
