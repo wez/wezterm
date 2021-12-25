@@ -289,7 +289,11 @@ pub struct WindowFrameConfig {
 }
 
 fn default_title_font_size() -> f64 {
-    9.
+    if cfg!(windows) {
+        9.
+    } else {
+        12.
+    }
 }
 
 fn default_title_font() -> TextStyle {
@@ -340,7 +344,7 @@ impl Default for WindowFrameConfig {
             button_hover_fg: default_button_hover_fg(),
             button_hover_bg: default_button_hover_bg(),
             font: default_title_font(),
-            font_size: default_font_size(),
+            font_size: default_title_font_size(),
         }
     }
 }
