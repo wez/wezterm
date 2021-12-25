@@ -12,6 +12,7 @@ use std::convert::TryInto;
 use std::ops::Sub;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::Duration;
 use wezterm_term::input::MouseEventKind as TMEK;
 use wezterm_term::{LastMouseClick, StableRowIndex};
 
@@ -424,7 +425,6 @@ impl super::TermWindow {
         context: &dyn WindowOps,
     ) {
         let mut is_click_to_focus = false;
-        let mut ignore_unless_focused = false;
 
         for pos in self.get_panes_to_render() {
             if y >= pos.top as i64
@@ -442,7 +442,6 @@ impl super::TermWindow {
 
                             pane = Rc::clone(&pos.pane);
                             is_click_to_focus = true;
-                            ignore_unless_focused = true;
                         }
                         WMEK::Move => {
                             if self.config.pane_focus_follows_mouse {
@@ -453,11 +452,8 @@ impl super::TermWindow {
                                 pane = Rc::clone(&pos.pane);
                                 context.invalidate();
                             }
-                            ignore_unless_focused = true;
                         }
-                        WMEK::Release(_) => {
-                            ignore_unless_focused = true;
-                        }
+                        WMEK::Release(_) => {}
                         WMEK::VertWheel(_) => {}
                         WMEK::HorzWheel(_) => {}
                     }
@@ -467,28 +463,42 @@ impl super::TermWindow {
                 break;
             }
         }
-        if self.focused.is_some() {
-            // Entering click-to-focus state
-            if is_click_to_focus {
-                context.invalidate();
-                self.is_click_to_focus = true;
-                return;
-            }
 
-            // Check to see if we can leave click-to-focus state
-            if self.is_click_to_focus {
-                if matches!(event.kind, WMEK::Release(_)) {
-                    self.is_click_to_focus = false;
-                }
+        let is_focused = if let Some(focused) = self.focused.as_ref() {
+            focused.elapsed() > Duration::from_millis(200)
+        } else {
+            false
+        };
+
+        if self.focused.is_some() && !is_focused {
+            if matches!(&event.kind, WMEK::Press(_)) {
+                // Entering click to focus state
+                self.is_click_to_focus = true;
+                context.invalidate();
+                log::trace!("enter click to focus");
                 return;
             }
-        } else if ignore_unless_focused {
-            // Ignore the mouse event if the window doesn't have focus.
-            // Some Window managers can send events in a strange order
-            // <https://github.com/wez/wezterm/issues/1140#issuecomment-921031466>
-            // and that can confuse neovim for example.
+        }
+        if self.is_click_to_focus && matches!(&event.kind, WMEK::Release(_)) {
+            // Exiting click to focus state
+            self.is_click_to_focus = false;
+            context.invalidate();
+            log::trace!("exit click to focus");
             return;
         }
+
+        let allow_action = if self.is_click_to_focus || !is_focused {
+            matches!(&event.kind, WMEK::VertWheel(_) | WMEK::HorzWheel(_))
+        } else {
+            true
+        };
+
+        log::trace!(
+            "is_focused={} allow_action={} event={:?}",
+            is_focused,
+            allow_action,
+            event
+        );
 
         let dims = pane.get_dimensions();
         let stable_row = self
@@ -598,10 +608,11 @@ impl super::TermWindow {
             WMEK::VertWheel(_) | WMEK::HorzWheel(_) => None,
         };
 
-        if !pane.is_mouse_grabbed()
-            || event
-                .modifiers
-                .contains(self.config.bypass_mouse_reporting_modifiers)
+        if allow_action
+            && (!pane.is_mouse_grabbed()
+                || event
+                    .modifiers
+                    .contains(self.config.bypass_mouse_reporting_modifiers))
         {
             if let Some(event_trigger_type) = event_trigger_type {
                 let mut modifiers = event.modifiers;
@@ -657,7 +668,7 @@ impl super::TermWindow {
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
 
-        if !(self.config.swallow_mouse_click_on_pane_focus && is_click_to_focus) {
+        if allow_action && !(self.config.swallow_mouse_click_on_pane_focus && is_click_to_focus) {
             pane.mouse_event(mouse_event).ok();
         }
 
