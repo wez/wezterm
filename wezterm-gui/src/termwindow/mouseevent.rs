@@ -113,18 +113,6 @@ impl super::TermWindow {
                 self.current_mouse_buttons.push(*press);
             }
 
-            WMEK::VertWheel(amount) if !pane.is_mouse_grabbed() && !pane.is_alt_screen_active() => {
-                // adjust viewport
-                let dims = pane.get_dimensions();
-                let position = self
-                    .get_viewport(pane.pane_id())
-                    .unwrap_or(dims.physical_top)
-                    .saturating_sub(amount.into());
-                self.set_viewport(pane.pane_id(), Some(position), dims);
-                context.invalidate();
-                return;
-            }
-
             WMEK::Move => {
                 if let Some(start) = self.window_drag_position.as_ref() {
                     // Dragging the window
@@ -453,9 +441,13 @@ impl super::TermWindow {
                                 context.invalidate();
                             }
                         }
-                        WMEK::Release(_) => {}
-                        WMEK::VertWheel(_) => {}
-                        WMEK::HorzWheel(_) => {}
+                        WMEK::Release(_) | WMEK::HorzWheel(_) => {}
+                        WMEK::VertWheel(_) => {
+                            // Let wheel events route to the hovered pane,
+                            // even if it doesn't have focus
+                            pane = Rc::clone(&pos.pane);
+                            context.invalidate();
+                        }
                     }
                 }
                 x = x.saturating_sub(pos.left);
@@ -604,6 +596,17 @@ impl super::TermWindow {
                 } else {
                     None
                 }
+            }
+            WMEK::VertWheel(amount) if !pane.is_mouse_grabbed() && !pane.is_alt_screen_active() => {
+                // adjust viewport
+                let dims = pane.get_dimensions();
+                let position = self
+                    .get_viewport(pane.pane_id())
+                    .unwrap_or(dims.physical_top)
+                    .saturating_sub((*amount).into());
+                self.set_viewport(pane.pane_id(), Some(position), dims);
+                context.invalidate();
+                return;
             }
             WMEK::VertWheel(_) | WMEK::HorzWheel(_) => None,
         };

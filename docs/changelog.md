@@ -43,6 +43,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Line/Bar cursors in [force_reverse_video_cursor](config/lua/config/force_reverse_video_cursor.md) mode now use the text foreground color rather than the cursor border color. [#1076](https://github.com/wez/wezterm/issues/1076)
 * Improved logo appearance. Thanks to [@ghifarit53](https://github.com/ghifarit53)! [#1454](https://github.com/wez/wezterm/pull/1454)
 * You can now pass [SendKey](config/lua/keyassignment/SendKey.md) to [wezterm.action](config/lua/wezterm/action.md) and make your `keys` config look more consistent
+* Mouse wheel events are now routed to the hovered pane, rather than sent to the focused pane [#798](https://github.com/wez/wezterm/issues/798)
 
 #### Fixed
 
