@@ -17,6 +17,7 @@ use mux::termwiztermtab::TermWizTerminal;
 use mux::window::WindowId;
 use mux::Mux;
 use portable_pty::PtySize;
+use std::collections::HashMap;
 use std::sync::Arc;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
@@ -46,11 +47,116 @@ impl Entry {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WslDistro {
+    name: String,
+    state: String,
+    version: String,
+    is_default: bool,
+}
+
+/// This function parses the `wsl -l -v` output.
+/// It tries to be robust in the face of future changes
+/// by looking at the tabulated output headers, determining
+/// where the columns are and then collecting the information
+/// into a hashmap and then grokking from there.
+fn parse_wsl_distro_list(output: &str) -> Vec<WslDistro> {
+    let lines = output.lines().collect::<Vec<_>>();
+
+    // Determine where the field columns start
+    let mut field_starts = vec![];
+    {
+        let mut last_char = ' ';
+        for (idx, c) in lines[0].char_indices() {
+            if last_char == ' ' && c != ' ' {
+                field_starts.push(idx);
+            }
+            last_char = c;
+        }
+    }
+
+    fn field_slice(s: &str, start: usize, end: Option<usize>) -> &str {
+        if let Some(end) = end {
+            &s[start..end]
+        } else {
+            &s[start..]
+        }
+    }
+
+    fn opt_field_slice(s: &str, start: usize, end: Option<usize>) -> Option<&str> {
+        if let Some(end) = end {
+            s.get(start..end)
+        } else {
+            s.get(start..)
+        }
+    }
+
+    // Now build up a name -> column position map
+    let mut field_map = HashMap::new();
+    {
+        let mut iter = field_starts.into_iter().peekable();
+
+        while let Some(start_idx) = iter.next() {
+            let end_idx = iter.peek().copied();
+            let label = field_slice(&lines[0], start_idx, end_idx).trim();
+            field_map.insert(label, (start_idx, end_idx));
+        }
+    }
+
+    let mut result = vec![];
+
+    // and now process the output rows
+    for line in lines.iter().skip(1) {
+        if line.is_empty() {
+            continue;
+        }
+
+        let is_default = line.starts_with("*");
+
+        let mut fields = HashMap::new();
+        for (label, (start_idx, end_idx)) in field_map.iter() {
+            if let Some(value) = opt_field_slice(line, *start_idx, *end_idx) {
+                fields.insert(*label, value.trim().to_string());
+            } else {
+                return result;
+            }
+        }
+
+        result.push(WslDistro {
+            name: fields.get("NAME").cloned().unwrap_or_default(),
+            state: fields.get("STATE").cloned().unwrap_or_default(),
+            version: fields.get("VERSION").cloned().unwrap_or_default(),
+            is_default,
+        });
+    }
+
+    result
+}
+
+#[cfg(test)]
+#[test]
+fn test_parse_wsl_distro_list() {
+    let data = "  NAME            STATE           VERSION\n\
+* Ubuntu-18.04    Running         1\n
+";
+
+    assert_eq!(
+        parse_wsl_distro_list(data),
+        vec![WslDistro {
+            name: "Ubuntu-18.04".to_string(),
+            state: "Running".to_string(),
+            version: "1".to_string(),
+            is_default: true
+        }]
+    );
+}
+
 #[cfg(windows)]
 fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
     use std::os::windows::process::CommandExt;
     let mut cmd = std::process::Command::new("wsl.exe");
     cmd.arg("-l");
+    cmd.arg("-v");
     cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
     let output = cmd.output()?;
 
@@ -72,15 +178,13 @@ fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
         let wide: &[u16] =
             unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u16, bytes.len() / 2) };
 
-        String::from_utf16(wide).map_err(|_| anyhow!("wsl -l output is not valid utf16"))
+        String::from_utf16(wide).map_err(|_| anyhow!("wsl -l -v output is not valid utf16"))
     }
 
     let wsl_list = utf16_to_utf8(&output.stdout)?.replace("\r\n", "\n");
-    for line in wsl_list.lines().skip(1) {
-        // Remove the "(Default)" marker, if present, to leave just the distro name
-        let distro = line.replace(" (Default)", "");
-        let label = format!("{} (WSL)", distro);
 
+    for distro in parse_wsl_distro_list(&wsl_list) {
+        let label = format!("{} (WSL)", distro.name);
         entries.push(Entry::Spawn {
             label: label.clone(),
             command: SpawnCommand {
@@ -88,7 +192,7 @@ fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
                 args: Some(vec![
                     "wsl.exe".to_owned(),
                     "--distribution".to_owned(),
-                    distro.to_owned(),
+                    distro.name,
                 ]),
                 ..Default::default()
             },
