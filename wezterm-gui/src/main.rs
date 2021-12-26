@@ -1,5 +1,5 @@
 // Don't create a new standard console window when launched from the windows GUI.
-#![windows_subsystem = "windows"]
+#![cfg_attr(not(test), windows_subsystem = "windows")]
 
 use crate::frontend::front_end;
 use ::window::*;
