@@ -646,14 +646,18 @@ impl super::TermWindow {
                 ))
             }
             TabBarItem::NewTabButton => {
-                let text_bounding_rect: Rect = euclid::rect(
-                    text_bounding_rect.min_x(),
-                    text_bounding_rect.min_y(),
-                    width,
-                    tab_bounding_rect.max_y() - text_bounding_rect.min_y(),
-                );
+                let cross_height = (metrics.cell_width.get() * 0.75) as isize;
+                let line_thickness = self.render_metrics.underline_height * 2;
+                let tab_bar_height = metrics.cell_height.get() as isize * 2;
+                let cross_top = (tab_bar_height - cross_height) / 2;
+                let padding = (metrics.cell_width.get() / 3.) as isize;
 
-                let tab_bounding_rect = text_bounding_rect;
+                let tab_bounding_rect: Rect = euclid::rect(
+                    text_bounding_rect.min_x(),
+                    cross_top - padding,
+                    2 * padding + cross_height,
+                    2 * padding + cross_height,
+                );
 
                 let hover_x_start = tab_bounding_rect.min_x();
                 let hover_x_end = tab_bounding_rect.max_x();
@@ -695,24 +699,37 @@ impl super::TermWindow {
                     }),
                 )?;
 
+                // Background color for hover
                 self.filled_rectangle(
                     &mut layers[1],
                     tab_bounding_rect,
                     rgbcolor_to_window_color(c.bg_color),
                 )?;
-                self.render_screen_line_opengl(
-                    RenderScreenLineOpenGLParams {
-                        top_pixel_y: text_bounding_rect.min_y() as f32,
-                        left_pixel_x: text_bounding_rect.min_x() as f32,
-                        pixel_width: text_bounding_rect.width() as f32,
-                        foreground: rgbcolor_to_window_color(c.fg_color),
-                        pre_shaped: Some(&shaped),
-                        font: Some(Rc::clone(font)),
-                        selection: 0..0,
-                        ..params
-                    },
-                    layers,
+
+                // Horizontal line
+                self.filled_rectangle(
+                    &mut layers[1],
+                    euclid::rect(
+                        padding + tab_bounding_rect.min_x(),
+                        cross_top + cross_height / 2 - line_thickness / 2,
+                        cross_height,
+                        line_thickness,
+                    ),
+                    rgbcolor_to_window_color(c.fg_color),
                 )?;
+
+                // Vertical line
+                self.filled_rectangle(
+                    &mut layers[1],
+                    euclid::rect(
+                        padding + tab_bounding_rect.min_x() + cross_height / 2 - line_thickness / 2,
+                        cross_top,
+                        line_thickness,
+                        cross_height,
+                    ),
+                    rgbcolor_to_window_color(c.fg_color),
+                )?;
+
                 Ok((
                     tab_bounding_rect.max_x() as f32 + metrics.cell_width.get() as f32 / 2.,
                     UIItem {
