@@ -31,6 +31,7 @@ pub mod localpane;
 pub mod pane;
 pub mod renderable;
 pub mod ssh;
+mod sysinfo;
 pub mod tab;
 pub mod termwiztermtab;
 pub mod tmux;

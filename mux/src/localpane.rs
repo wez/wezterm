@@ -341,11 +341,9 @@ impl Pane for LocalPane {
     fn get_foreground_process_name(&self) -> Option<String> {
         #[cfg(unix)]
         {
-            use sysinfo::{Pid, ProcessExt, ProcessRefreshKind, RefreshKind, System, SystemExt};
+            use sysinfo::{Pid, ProcessExt, SystemExt};
             let leader = self.pty.borrow().process_group_leader()?;
-            let system = System::new_with_specifics(
-                RefreshKind::new().with_processes(ProcessRefreshKind::new()),
-            );
+            let system = crate::sysinfo::get();
             let proc = system.process(leader as Pid)?;
             Some(proc.exe().to_string_lossy().to_string())
         }
@@ -356,7 +354,7 @@ impl Pane for LocalPane {
             // so we infer that the equivalent to the process group
             // leader is the most recently spawned program running
             // in the console
-            if let Some(root_proc) = self.divine_process_list() {
+            if let Some(root_proc) = self.divine_process_list(false) {
                 let mut youngest = &root_proc;
 
                 fn find_youngest<'a>(
@@ -382,7 +380,7 @@ impl Pane for LocalPane {
     }
 
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
-        if let Some(proc_list) = self.divine_process_list() {
+        if let Some(proc_list) = self.divine_process_list(true) {
             log::trace!(
                 "can_close_without_prompting? procs in pane {:#?}",
                 proc_list
@@ -857,10 +855,17 @@ impl LocalPane {
         None
     }
 
-    fn divine_process_list(&self) -> Option<LocalProcessInfo> {
+    fn divine_process_list(&self, force_refresh: bool) -> Option<LocalProcessInfo> {
         #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
         if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-            return LocalProcessInfo::with_root_pid(*pid);
+            return LocalProcessInfo::with_root_pid(
+                &*if force_refresh {
+                    crate::sysinfo::get_with_forced_refresh()
+                } else {
+                    crate::sysinfo::get()
+                },
+                *pid,
+            );
         }
 
         None
@@ -937,13 +942,8 @@ impl LocalProcessInfo {
 
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 impl LocalProcessInfo {
-    fn with_root_pid(pid: u32) -> Option<Self> {
-        use sysinfo::{
-            AsU32, Pid, Process, ProcessExt, ProcessRefreshKind, RefreshKind, System, SystemExt,
-        };
-        let system = System::new_with_specifics(
-            RefreshKind::new().with_processes(ProcessRefreshKind::new()),
-        );
+    fn with_root_pid(system: &sysinfo::System, pid: u32) -> Option<Self> {
+        use sysinfo::{AsU32, Pid, Process, ProcessExt, SystemExt};
 
         fn build_proc(proc: &Process, processes: &HashMap<Pid, Process>) -> LocalProcessInfo {
             // Process has a `tasks` field but it does not correspond to child processes,
