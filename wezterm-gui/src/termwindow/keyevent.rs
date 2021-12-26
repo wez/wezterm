@@ -165,7 +165,10 @@ impl super::TermWindow {
                             self.maybe_scroll_to_bottom_for_input(&pane);
                         }
                         context.set_cursor(None);
-                        context.invalidate();
+                        if !key.is_modifier() {
+                            context.invalidate();
+                        }
+
                         return true;
                     }
                 }
@@ -214,7 +217,9 @@ impl super::TermWindow {
                             self.maybe_scroll_to_bottom_for_input(&pane);
                         }
                         context.set_cursor(None);
-                        context.invalidate();
+                        if !key.is_modifier() {
+                            context.invalidate();
+                        }
                         true
                     } else {
                         false
