@@ -6,8 +6,7 @@ use futures_util::stream::{abortable, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use zbus::dbus_proxy;
-use zvariant::derive::Type;
-use zvariant::Value;
+use zvariant::{Type, Value};
 
 #[derive(Debug, Type, Serialize, Deserialize)]
 pub struct ServerInformation {

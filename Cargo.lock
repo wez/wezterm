@@ -4896,7 +4896,7 @@ dependencies = [
  "windows",
  "xml-rs",
  "zbus",
- "zvariant 2.10.0",
+ "zvariant",
 ]
 
 [[package]]
@@ -5202,7 +5202,7 @@ dependencies = [
  "static_assertions",
  "zbus_macros",
  "zbus_names",
- "zvariant 3.0.0",
+ "zvariant",
 ]
 
 [[package]]
@@ -5226,7 +5226,7 @@ checksum = "ae1f142d242d6854815a8c5c2aea83d9508f72f5757d0a137c21ef4b07bfee66"
 dependencies = [
  "serde",
  "static_assertions",
- "zvariant 3.0.0",
+ "zvariant",
 ]
 
 [[package]]
@@ -5260,19 +5260,6 @@ dependencies = [
 
 [[package]]
 name = "zvariant"
-version = "2.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a68c7b55f2074489b7e8e07d2d0a6ee6b4f233867a653c664d8020ba53692525"
-dependencies = [
- "byteorder",
- "libc",
- "serde",
- "static_assertions",
- "zvariant_derive 2.10.0",
-]
-
-[[package]]
-name = "zvariant"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a946c049b2eac1a253f98e9267a8ce7a3d93be274ea146e6dd7a0965232a911"
@@ -5282,19 +5269,7 @@ dependencies = [
  "libc",
  "serde",
  "static_assertions",
- "zvariant_derive 3.0.0",
-]
-
-[[package]]
-name = "zvariant_derive"
-version = "2.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4ca5e22593eb4212382d60d26350065bf2a02c34b85bc850474a74b589a3de9"
-dependencies = [
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn",
+ "zvariant_derive",
 ]
 
 [[package]]
