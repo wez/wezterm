@@ -52,6 +52,19 @@ pub struct LoadedFont {
     text_style: TextStyle,
 }
 
+impl std::fmt::Debug for LoadedFont {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fmt.debug_struct("LoadedFont")
+            .field("handles", &self.handles)
+            .field("metrics", &self.metrics)
+            .field("font_size", &self.font_size)
+            .field("dpi", &self.dpi)
+            .field("pending_fallback", &self.pending_fallback)
+            .field("text_style", &self.text_style)
+            .finish()
+    }
+}
+
 impl LoadedFont {
     pub fn metrics(&self) -> FontMetrics {
         self.metrics

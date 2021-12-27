@@ -4,7 +4,7 @@ use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::quad::Quad;
 use crate::shapecache::*;
-use crate::tabbar::{TabBarItem, TabEntry};
+use crate::tabbar::TabBarItem;
 use crate::termwindow::{
     BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
     UIItem, UIItemType,
@@ -17,7 +17,7 @@ use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
-use ::window::{Point, Rect, Size, WindowOps};
+use ::window::{PointF, RectF, Size, WindowOps};
 use anyhow::anyhow;
 use config::{
     ConfigHandle, DimensionContext, HsbTransform, TabBarColors, TextStyle, VisualBellTarget,
@@ -34,12 +34,40 @@ use termwiz::cell::Blink;
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::{IntPixelLength, PixelLength};
-use wezterm_font::{ClearShapeCache, FontMetrics, GlyphInfo, LoadedFont};
+use wezterm_font::{ClearShapeCache, GlyphInfo, LoadedFont};
 use wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use wezterm_term::{CellAttributes, Line, StableRowIndex};
 use window::bitmaps::atlas::SpriteSlice;
 use window::bitmaps::Texture2d;
 use window::color::LinearRgba;
+
+const TOP_LEFT_ROUNDED_CORNER: &[Poly] = &[Poly {
+    path: &[
+        PolyCommand::MoveTo(BlockCoord::One, BlockCoord::One),
+        PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
+        PolyCommand::QuadTo {
+            control: (BlockCoord::Zero, BlockCoord::Zero),
+            to: (BlockCoord::Zero, BlockCoord::One),
+        },
+        PolyCommand::Close,
+    ],
+    intensity: BlockAlpha::Full,
+    style: PolyStyle::Fill,
+}];
+
+const TOP_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
+    path: &[
+        PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
+        PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
+        PolyCommand::QuadTo {
+            control: (BlockCoord::One, BlockCoord::Zero),
+            to: (BlockCoord::One, BlockCoord::One),
+        },
+        PolyCommand::Close,
+    ],
+    intensity: BlockAlpha::Full,
+    style: PolyStyle::Fill,
+}];
 
 pub struct RenderScreenLineOpenGLParams<'a> {
     /// zero-based offset from top of the window viewport to the line that
@@ -312,10 +340,10 @@ impl super::TermWindow {
         None
     }
 
-    fn filled_rectangle<'a>(
+    pub fn filled_rectangle<'a>(
         &self,
         layer: &'a mut MappedQuads,
-        rect: Rect,
+        rect: RectF,
         color: LinearRgba,
     ) -> anyhow::Result<Quad<'a>> {
         let mut quad = layer.allocate()?;
@@ -336,10 +364,10 @@ impl super::TermWindow {
         Ok(quad)
     }
 
-    fn poly_quad<'a>(
+    pub fn poly_quad<'a>(
         &self,
         layer: &'a mut MappedQuads,
-        point: Point,
+        point: PointF,
         polys: &'static [Poly],
         underline_height: IntPixelLength,
         cell_size: Size,
@@ -364,10 +392,10 @@ impl super::TermWindow {
         let mut quad = layer.allocate()?;
 
         quad.set_position(
-            point.x as f32 - left_offset,
-            point.y as f32 - top_offset,
-            (point.x + cell_size.width) as f32 - left_offset,
-            (point.y + cell_size.height) as f32 - top_offset,
+            point.x - left_offset,
+            point.y - top_offset,
+            (point.x + cell_size.width as f32) - left_offset,
+            (point.y + cell_size.height as f32) - top_offset,
         );
         quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_texture(sprite);
@@ -375,444 +403,6 @@ impl super::TermWindow {
         quad.set_hsv(None);
         quad.set_has_color(false);
         Ok(quad)
-    }
-
-    fn tab_background<'a>(
-        &self,
-        layer: &'a mut MappedQuads,
-        padding_width: isize,
-        padding_height: isize,
-        rect: Rect,
-        color: LinearRgba,
-    ) -> anyhow::Result<()> {
-        // Top rectangle that joins the top left and top right rounded corners
-        self.filled_rectangle(layer, rect.inflate(-padding_width, 0), color)?;
-
-        // Main body rectangle that sits under the other three to flesh out
-        // the rest of the tab background area
-        self.filled_rectangle(
-            layer,
-            rect.inflate(0, -padding_height / 2)
-                .translate(euclid::vec2(0, padding_height / 2)),
-            color,
-        )?;
-
-        // Top left rounded corner
-        self.poly_quad(
-            layer,
-            rect.origin,
-            &[Poly {
-                path: &[
-                    PolyCommand::MoveTo(BlockCoord::One, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::One, BlockCoord::Zero),
-                    PolyCommand::QuadTo {
-                        control: (BlockCoord::Zero, BlockCoord::Zero),
-                        to: (BlockCoord::Zero, BlockCoord::One),
-                    },
-                    PolyCommand::Close,
-                ],
-                intensity: BlockAlpha::Full,
-                style: PolyStyle::Fill,
-            }],
-            1,
-            euclid::size2(padding_width, padding_height),
-            color,
-        )?;
-
-        // Top right rounded corner
-        self.poly_quad(
-            layer,
-            rect.origin + euclid::vec2(rect.width() - padding_width, 0),
-            &[Poly {
-                path: &[
-                    PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::One),
-                    PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::Zero),
-                    PolyCommand::QuadTo {
-                        control: (BlockCoord::One, BlockCoord::Zero),
-                        to: (BlockCoord::One, BlockCoord::One),
-                    },
-                    PolyCommand::Close,
-                ],
-                intensity: BlockAlpha::Full,
-                style: PolyStyle::Fill,
-            }],
-            1,
-            euclid::size2(padding_width, padding_height),
-            color,
-        )?;
-
-        Ok(())
-    }
-
-    fn paint_one_tab(
-        &self,
-        pos_x: f32,
-        max_tab_width: usize,
-        palette: &ColorPalette,
-        item: &TabEntry,
-        colors: &TabBarColors,
-        font: &Rc<LoadedFont>,
-        metrics: &FontMetrics,
-        layers: &mut [MappedQuads; 3],
-    ) -> anyhow::Result<(f32, UIItem)> {
-        let gl_state = self.render_state.as_ref().unwrap();
-
-        let white_space = gl_state.util_sprites.white_space.texture_coords();
-        let filled_box = gl_state.util_sprites.filled_box.texture_coords();
-        let window_is_transparent =
-            self.window_background.is_some() || self.config.window_background_opacity != 1.0;
-        let default_bg = rgbcolor_alpha_to_window_color(
-            palette.resolve_bg(ColorAttribute::Default),
-            if window_is_transparent {
-                0.
-            } else {
-                self.config.text_background_opacity
-            },
-        );
-
-        let tab_bounding_rect: Rect = euclid::rect(
-            pos_x as isize,
-            metrics.cell_height.get() as isize / 4,
-            max_tab_width as isize,
-            (metrics.cell_height.get() * 1.75) as isize,
-        );
-
-        let text_bounding_rect = tab_bounding_rect
-            .inflate(0, metrics.cell_height.get() as isize / -4)
-            .translate(euclid::vec2(metrics.cell_width.get() as isize / 2, 0));
-
-        // log::info!("tab bounds {:?}, text bounds {:?}", tab_bounding_rect, text_bounding_rect);
-
-        let params = RenderScreenLineOpenGLParams {
-            top_pixel_y: 0.,
-            left_pixel_x: 0.,
-            pixel_width: text_bounding_rect.width() as f32,
-            stable_line_idx: None,
-            line: &item.title,
-            selection: 0..0,
-            cursor: &Default::default(),
-            palette: &palette,
-            dims: &RenderableDimensions {
-                cols: self.terminal_size.cols as _,
-                physical_top: 0,
-                scrollback_rows: 0,
-                scrollback_top: 0,
-                viewport_rows: 1,
-            },
-            config: &self.config,
-            cursor_border_color: LinearRgba::default(),
-            foreground: rgbcolor_to_window_color(palette.foreground),
-            pane: None,
-            is_active: true,
-            selection_fg: LinearRgba::default(),
-            selection_bg: LinearRgba::default(),
-            cursor_fg: LinearRgba::default(),
-            cursor_bg: LinearRgba::default(),
-            white_space,
-            filled_box,
-            window_is_transparent,
-            default_bg,
-            font: Some(Rc::clone(font)),
-            style: Some(font.style()),
-            use_pixel_positioning: true,
-            pre_shaped: None,
-            render_metrics: RenderMetrics::with_font_metrics(metrics),
-        };
-        let cell_clusters = item.title.cluster();
-        let shaped = self.cluster_and_shape(&cell_clusters, &params)?;
-        let width = shaped.iter().map(|s| s.pixel_width).sum::<f32>() as isize;
-
-        let desired_width =
-            (width + metrics.cell_width.get() as isize / 2).min(text_bounding_rect.width());
-
-        let text_bounding_rect: Rect = euclid::rect(
-            text_bounding_rect.min_x(),
-            text_bounding_rect.min_y(),
-            desired_width,
-            text_bounding_rect.height(),
-        );
-
-        let tab_bounding_rect = text_bounding_rect.inflate(
-            metrics.cell_width.get() as isize / 2,
-            metrics.cell_height.get() as isize / 4,
-        );
-        let tab_bounding_rect = euclid::rect(
-            tab_bounding_rect.min_x(),
-            tab_bounding_rect.min_y(),
-            tab_bounding_rect.width(),
-            (metrics.cell_height.get() as isize * 2) - tab_bounding_rect.min_y(),
-        );
-
-        match item.item {
-            TabBarItem::Tab { active, .. } => {
-                let hover_x_start = tab_bounding_rect.min_x();
-                let hover_x_end = tab_bounding_rect.max_x();
-
-                let hover = match &self.current_mouse_event {
-                    Some(event) => {
-                        let mouse_x = event.coords.x as isize;
-                        let mouse_y = event.coords.y as isize;
-                        mouse_x >= hover_x_start
-                            && mouse_x <= hover_x_end
-                            && mouse_y >= tab_bounding_rect.min_y()
-                            && mouse_y <= tab_bounding_rect.max_y()
-                    }
-                    None => false,
-                };
-
-                let c = if active {
-                    &colors.active_tab
-                } else if hover {
-                    &colors.inactive_tab_hover
-                } else {
-                    &colors.inactive_tab
-                };
-
-                let bg_color = match item.title.cells()[0].attrs().background() {
-                    ColorAttribute::Default => c.bg_color,
-                    color => palette.resolve_bg(color),
-                };
-                let fg_color = match item.title.cells()[0].attrs().foreground() {
-                    ColorAttribute::Default => c.fg_color,
-                    color => palette.resolve_bg(color),
-                };
-
-                self.tab_background(
-                    &mut layers[1],
-                    metrics.cell_width.get() as isize / 2,
-                    metrics.cell_height.get() as isize / 2,
-                    tab_bounding_rect,
-                    rgbcolor_to_window_color(bg_color),
-                )?;
-
-                self.render_screen_line_opengl(
-                    RenderScreenLineOpenGLParams {
-                        top_pixel_y: text_bounding_rect.min_y() as f32,
-                        left_pixel_x: text_bounding_rect.min_x() as f32,
-                        pixel_width: text_bounding_rect.width() as f32,
-                        foreground: rgbcolor_to_window_color(fg_color),
-                        pre_shaped: Some(&shaped),
-                        font: Some(Rc::clone(font)),
-                        selection: 0..0,
-                        ..params
-                    },
-                    layers,
-                )?;
-
-                if !active {
-                    // Draw a partial dividing line on the edge of the tab.
-                    // This gives a bit more definition on runs of inactive
-                    // tabs without making everything feel like it is filled
-                    // with lots of full lines
-                    self.filled_rectangle(
-                        &mut layers[1],
-                        euclid::rect(
-                            tab_bounding_rect.max_x().saturating_sub(1),
-                            text_bounding_rect.min_y() + metrics.cell_height.get() as isize / 3,
-                            1,
-                            (metrics.cell_height.get() * 0.75) as isize,
-                        ),
-                        rgbcolor_to_window_color(if hover {
-                            colors.inactive_tab_edge_hover
-                        } else {
-                            colors.inactive_tab_edge
-                        }),
-                    )?;
-                }
-
-                if hover || active {
-                    // Overwrite any prior dividing line with the hover color
-                    self.filled_rectangle(
-                        &mut layers[1],
-                        euclid::rect(
-                            tab_bounding_rect.min_x().saturating_sub(1),
-                            text_bounding_rect.min_y() + metrics.cell_height.get() as isize / 3,
-                            1,
-                            (metrics.cell_height.get() * 0.75) as isize,
-                        ),
-                        rgbcolor_to_window_color(colors.inactive_tab_edge_hover),
-                    )?;
-                }
-
-                Ok((
-                    tab_bounding_rect.max_x() as f32,
-                    UIItem {
-                        x: tab_bounding_rect.min_x() as usize,
-                        width: tab_bounding_rect.width() as usize,
-                        y: tab_bounding_rect.min_y() as usize,
-                        height: tab_bounding_rect.height() as usize,
-                        item_type: UIItemType::TabBar(item.item.clone()),
-                    },
-                ))
-            }
-            TabBarItem::NewTabButton => {
-                let cross_height = (metrics.cell_width.get() * 0.75) as isize;
-                let line_thickness = self.render_metrics.underline_height * 2;
-                let tab_bar_height = metrics.cell_height.get() as isize * 2;
-                let cross_top = (tab_bar_height - cross_height) / 2;
-                let padding = (metrics.cell_width.get() / 3.) as isize;
-
-                let tab_bounding_rect: Rect = euclid::rect(
-                    text_bounding_rect.min_x(),
-                    cross_top - padding,
-                    2 * padding + cross_height,
-                    2 * padding + cross_height,
-                );
-
-                let hover_x_start = tab_bounding_rect.min_x();
-                let hover_x_end = tab_bounding_rect.max_x();
-
-                let hover = match &self.current_mouse_event {
-                    Some(event) => {
-                        let mouse_x = event.coords.x as isize;
-                        let mouse_y = event.coords.y as isize;
-                        mouse_x >= hover_x_start
-                            && mouse_x <= hover_x_end
-                            && mouse_y >= tab_bounding_rect.min_y()
-                            && mouse_y <= tab_bounding_rect.max_y()
-                    }
-                    None => false,
-                };
-
-                let c = if hover {
-                    &colors.new_tab_hover
-                } else {
-                    &colors.new_tab
-                };
-
-                // Repaint the titlebar background in the gaps around the
-                // button, to cover over any right-statusbar text that
-                // renders underneath us
-                self.filled_rectangle(
-                    &mut layers[1],
-                    euclid::rect(
-                        pos_x as isize,
-                        0,
-                        (tab_bounding_rect.max_x() - pos_x as isize)
-                            + metrics.cell_width.get() as isize / 2,
-                        metrics.cell_height.get() as isize * 2,
-                    ),
-                    rgbcolor_to_window_color(if self.focused.is_some() {
-                        self.config.window_frame.active_titlebar_bg
-                    } else {
-                        self.config.window_frame.inactive_titlebar_bg
-                    }),
-                )?;
-
-                // Background color for hover
-                self.filled_rectangle(
-                    &mut layers[1],
-                    tab_bounding_rect,
-                    rgbcolor_to_window_color(c.bg_color),
-                )?;
-
-                // Horizontal line
-                self.filled_rectangle(
-                    &mut layers[1],
-                    euclid::rect(
-                        padding + tab_bounding_rect.min_x(),
-                        cross_top + cross_height / 2 - line_thickness / 2,
-                        cross_height,
-                        line_thickness,
-                    ),
-                    rgbcolor_to_window_color(c.fg_color),
-                )?;
-
-                // Vertical line
-                self.filled_rectangle(
-                    &mut layers[1],
-                    euclid::rect(
-                        padding + tab_bounding_rect.min_x() + cross_height / 2 - line_thickness / 2,
-                        cross_top,
-                        line_thickness,
-                        cross_height,
-                    ),
-                    rgbcolor_to_window_color(c.fg_color),
-                )?;
-
-                Ok((
-                    tab_bounding_rect.max_x() as f32 + metrics.cell_width.get() as f32 / 2.,
-                    UIItem {
-                        x: tab_bounding_rect.min_x() as usize,
-                        width: tab_bounding_rect.width() as usize,
-                        y: tab_bounding_rect.min_y() as usize,
-                        height: tab_bounding_rect.height() as usize,
-                        item_type: UIItemType::TabBar(item.item.clone()),
-                    },
-                ))
-            }
-            TabBarItem::None => {
-                // log::info!("{:#?}", shaped);
-                // Right align to window width
-                let tab_bounding_rect: Rect = euclid::rect(
-                    tab_bounding_rect.min_x(),
-                    tab_bounding_rect.min_y(),
-                    self.dimensions.pixel_width as isize - tab_bounding_rect.min_x(),
-                    tab_bounding_rect.height(),
-                );
-
-                let text_bounding_rect = tab_bounding_rect.inflate(
-                    metrics.cell_width.get() as isize / -2,
-                    metrics.cell_height.get() as isize / -4,
-                );
-
-                let desired_width = desired_width.min(text_bounding_rect.width());
-                let text_bounding_rect: Rect = euclid::rect(
-                    text_bounding_rect.max_x() - desired_width,
-                    text_bounding_rect.min_y(),
-                    desired_width,
-                    text_bounding_rect.height(),
-                );
-
-                let tab_bounding_rect: Rect = euclid::rect(
-                    text_bounding_rect.min_x(),
-                    tab_bounding_rect.min_y(),
-                    self.dimensions.pixel_width as isize - text_bounding_rect.min_x(),
-                    tab_bounding_rect.height(),
-                );
-
-                if width > 0 {
-                    let bg_color = match item.title.cells()[0].attrs().background() {
-                        ColorAttribute::Default => colors.background,
-                        color => palette.resolve_bg(color),
-                    };
-                    let fg_color = match item.title.cells()[0].attrs().foreground() {
-                        ColorAttribute::Default => colors.inactive_tab.fg_color,
-                        color => palette.resolve_bg(color),
-                    };
-
-                    self.filled_rectangle(
-                        &mut layers[0],
-                        tab_bounding_rect,
-                        rgbcolor_to_window_color(bg_color),
-                    )?;
-                    self.render_screen_line_opengl(
-                        RenderScreenLineOpenGLParams {
-                            top_pixel_y: text_bounding_rect.min_y() as f32,
-                            left_pixel_x: text_bounding_rect.min_x() as f32,
-                            pixel_width: text_bounding_rect.width() as f32,
-                            foreground: rgbcolor_to_window_color(fg_color),
-                            pre_shaped: Some(&shaped),
-                            font: Some(Rc::clone(font)),
-                            selection: 0..0,
-                            ..params
-                        },
-                        layers,
-                    )?;
-                }
-
-                Ok((
-                    tab_bounding_rect.max_x() as f32,
-                    UIItem {
-                        x: 0,
-                        width: tab_bounding_rect.max_x() as usize,
-                        y: tab_bounding_rect.min_y() as usize,
-                        height: tab_bounding_rect.height() as usize,
-                        item_type: UIItemType::TabBar(item.item.clone()),
-                    },
-                ))
-            }
-        }
     }
 
     pub fn tab_bar_pixel_height_impl(
@@ -833,6 +423,11 @@ impl super::TermWindow {
     }
 
     fn paint_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<Vec<UIItem>> {
+        use super::box_model::*;
+        use config::Dimension;
+
+        let font = self.fonts.title_font()?;
+        let items = self.tab_bar.items();
         let colors = self
             .config
             .colors
@@ -840,13 +435,240 @@ impl super::TermWindow {
             .and_then(|c| c.tab_bar.as_ref())
             .cloned()
             .unwrap_or_else(TabBarColors::default);
-        let font = self.fonts.title_font()?;
-        let metrics = font.metrics();
 
-        let mut ui_items = vec![];
+        let content = ElementContent::Children(
+            items
+                .into_iter()
+                .map(|item| {
+                    let element = Element::with_line(&font, &item.title, palette);
 
-        let items = self.tab_bar.items();
-        let max_tab_width = self.dimensions.pixel_width / items.len().saturating_sub(1).max(1);
+                    match item.item {
+                        TabBarItem::None => element
+                            .item_type(UIItemType::TabBar(TabBarItem::None))
+                            .zindex(-1)
+                            .float(Float::Right)
+                            .line_height(Some(2.0))
+                            .margin(BoxDimension {
+                                left: Dimension::Cells(0.),
+                                right: Dimension::Cells(0.),
+                                top: Dimension::Cells(0.0),
+                                bottom: Dimension::Cells(0.),
+                            })
+                            .padding(BoxDimension {
+                                left: Dimension::Cells(0.5),
+                                right: Dimension::Cells(0.),
+                                top: Dimension::Cells(0.),
+                                bottom: Dimension::Cells(0.),
+                            })
+                            .border(BoxDimension::new(Dimension::Pixels(0.)))
+                            .colors(ElementColors {
+                                border: BorderColor::default(),
+                                bg: rgbcolor_to_window_color(colors.inactive_tab.bg_color).into(),
+                                text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
+                            }),
+                        TabBarItem::NewTabButton => element
+                            .item_type(UIItemType::TabBar(item.item.clone()))
+                            .margin(BoxDimension {
+                                left: Dimension::Cells(0.5),
+                                right: Dimension::Cells(0.),
+                                top: Dimension::Cells(0.25),
+                                bottom: Dimension::Cells(0.),
+                            })
+                            .padding(BoxDimension {
+                                left: Dimension::Cells(0.5),
+                                right: Dimension::Cells(0.5),
+                                top: Dimension::Cells(0.25),
+                                bottom: Dimension::Cells(0.25),
+                            })
+                            .border(BoxDimension::new(Dimension::Pixels(1.)))
+                            .colors(ElementColors {
+                                border: BorderColor::default(),
+                                bg: rgbcolor_to_window_color(colors.new_tab.bg_color).into(),
+                                text: rgbcolor_to_window_color(colors.new_tab.fg_color).into(),
+                            })
+                            .hover_colors(Some(ElementColors {
+                                border: BorderColor::default(),
+                                bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color)
+                                    .into(),
+                                text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color)
+                                    .into(),
+                            })),
+                        TabBarItem::Tab { active, .. } if active => element
+                            .item_type(UIItemType::TabBar(item.item.clone()))
+                            .margin(BoxDimension {
+                                left: Dimension::Cells(0.),
+                                right: Dimension::Cells(0.),
+                                top: Dimension::Cells(0.25),
+                                bottom: Dimension::Cells(0.),
+                            })
+                            .padding(BoxDimension {
+                                left: Dimension::Cells(0.5),
+                                right: Dimension::Cells(0.5),
+                                top: Dimension::Cells(0.25),
+                                bottom: Dimension::Cells(0.5),
+                            })
+                            .border(BoxDimension::new(Dimension::Pixels(1.)))
+                            .border_corners(Some(Corners {
+                                top_left: SizedPoly {
+                                    width: Dimension::Cells(0.5),
+                                    height: Dimension::Cells(0.5),
+                                    poly: TOP_LEFT_ROUNDED_CORNER,
+                                },
+                                top_right: SizedPoly {
+                                    width: Dimension::Cells(0.5),
+                                    height: Dimension::Cells(0.5),
+                                    poly: TOP_RIGHT_ROUNDED_CORNER,
+                                },
+                                bottom_left: SizedPoly::none(),
+                                bottom_right: SizedPoly::none(),
+                            }))
+                            .colors(ElementColors {
+                                border: BorderColor::new(rgbcolor_to_window_color(
+                                    colors.active_tab.bg_color,
+                                )),
+                                bg: rgbcolor_to_window_color(colors.active_tab.bg_color).into(),
+                                text: rgbcolor_to_window_color(colors.active_tab.fg_color).into(),
+                            }),
+                        TabBarItem::Tab { .. } => element
+                            .item_type(UIItemType::TabBar(item.item.clone()))
+                            .margin(BoxDimension {
+                                left: Dimension::Cells(0.),
+                                right: Dimension::Cells(0.),
+                                top: Dimension::Cells(0.25),
+                                bottom: Dimension::Cells(0.),
+                            })
+                            .padding(BoxDimension {
+                                left: Dimension::Cells(0.5),
+                                right: Dimension::Cells(0.5),
+                                top: Dimension::Cells(0.25),
+                                bottom: Dimension::Cells(0.5),
+                            })
+                            .border(BoxDimension::new(Dimension::Pixels(1.)))
+                            .border_corners(Some(Corners {
+                                top_left: SizedPoly {
+                                    width: Dimension::Cells(0.5),
+                                    height: Dimension::Cells(0.5),
+                                    poly: TOP_LEFT_ROUNDED_CORNER,
+                                },
+                                top_right: SizedPoly {
+                                    width: Dimension::Cells(0.5),
+                                    height: Dimension::Cells(0.5),
+                                    poly: TOP_RIGHT_ROUNDED_CORNER,
+                                },
+                                bottom_left: SizedPoly {
+                                    width: Dimension::Cells(0.),
+                                    height: Dimension::Cells(0.33),
+                                    poly: &[],
+                                },
+                                bottom_right: SizedPoly {
+                                    width: Dimension::Cells(0.),
+                                    height: Dimension::Cells(0.33),
+                                    poly: &[],
+                                },
+                            }))
+                            .colors({
+                                let bg = rgbcolor_to_window_color(colors.inactive_tab.bg_color);
+                                let edge = rgbcolor_to_window_color(colors.inactive_tab_edge);
+                                ElementColors {
+                                    border: BorderColor {
+                                        left: bg,
+                                        right: edge,
+                                        top: bg,
+                                        bottom: bg,
+                                    },
+                                    bg: bg.into(),
+                                    text: rgbcolor_to_window_color(colors.inactive_tab.fg_color)
+                                        .into(),
+                                }
+                            })
+                            .hover_colors(Some(ElementColors {
+                                border: BorderColor::new(rgbcolor_to_window_color(
+                                    colors.inactive_tab_hover.bg_color,
+                                )),
+                                bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color)
+                                    .into(),
+                                text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color)
+                                    .into(),
+                            })),
+                    }
+                })
+                .collect(),
+        );
+
+        let tabs = Element::new(&font, content)
+            .display(DisplayType::Block)
+            .item_type(UIItemType::TabBar(TabBarItem::None))
+            .padding(BoxDimension {
+                left: Dimension::Cells(0.5),
+                right: Dimension::Cells(0.),
+                top: Dimension::Cells(0.),
+                bottom: Dimension::Cells(0.),
+            })
+            .colors(ElementColors {
+                border: BorderColor::default(),
+                bg: rgbcolor_to_window_color(if self.focused.is_some() {
+                    self.config.window_frame.active_titlebar_bg
+                } else {
+                    self.config.window_frame.inactive_titlebar_bg
+                })
+                .into(),
+                text: rgbcolor_to_window_color(if self.focused.is_some() {
+                    self.config.window_frame.active_titlebar_fg
+                } else {
+                    self.config.window_frame.inactive_titlebar_fg
+                })
+                .into(),
+            });
+        let metrics = RenderMetrics::with_font_metrics(&font.metrics());
+
+        let computed = self.compute_element(
+            &LayoutContext {
+                height: DimensionContext {
+                    dpi: self.dimensions.dpi as f32,
+                    pixel_max: self.terminal_size.pixel_height as f32,
+                    pixel_cell: metrics.cell_size.height as f32,
+                },
+                width: DimensionContext {
+                    dpi: self.dimensions.dpi as f32,
+                    pixel_max: self.terminal_size.pixel_width as f32,
+                    pixel_cell: metrics.cell_size.width as f32,
+                },
+                bounds: euclid::rect(
+                    0.,
+                    0.,
+                    self.dimensions.pixel_width as f32,
+                    self.dimensions.pixel_height as f32,
+                ),
+                metrics: &metrics,
+                gl_state: self.render_state.as_ref().unwrap(),
+            },
+            &tabs,
+        )?;
+
+        if false {
+            fn summarize(ele: &ComputedElement) {
+                log::info!(
+                    "ele {:?} with bounds={:?} content_rect={:?} padding={:?} border={:?}",
+                    ele.item_type,
+                    ele.bounds,
+                    ele.content_rect,
+                    ele.padding,
+                    ele.border_rect,
+                );
+                match &ele.content {
+                    ComputedElementContent::Text(_) => {}
+                    ComputedElementContent::Children(kids) => {
+                        for kid in kids {
+                            summarize(kid);
+                        }
+                    }
+                }
+            }
+            log::info!("Computed:");
+            summarize(&computed);
+        }
+
+        let ui_items = computed.ui_items();
 
         let gl_state = self.render_state.as_ref().unwrap();
         let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
@@ -858,60 +680,7 @@ impl super::TermWindow {
             vb[1].map(&mut vb_mut1),
             vb[2].map(&mut vb_mut2),
         ];
-
-        // Overall window titlebar background
-        self.filled_rectangle(
-            &mut layers[0],
-            Rect::new(
-                Point::new(0, 0),
-                Size::new(
-                    self.dimensions.pixel_width as isize,
-                    metrics.cell_height.get() as isize * 2,
-                ),
-            ),
-            rgbcolor_to_window_color(if self.focused.is_some() {
-                self.config.window_frame.active_titlebar_bg
-            } else {
-                self.config.window_frame.inactive_titlebar_bg
-            }),
-        )?;
-
-        if let Some(status_item) = items
-            .iter()
-            .find(|item| matches!(item.item, TabBarItem::None))
-        {
-            let (_x, item) = self.paint_one_tab(
-                0.,
-                self.dimensions.pixel_width,
-                palette,
-                status_item,
-                &colors,
-                &font,
-                &metrics,
-                &mut layers,
-            )?;
-            ui_items.push(item);
-        }
-
-        let mut x = metrics.cell_width.get() as f32 * 0.25;
-        for item in items.iter() {
-            if matches!(item.item, TabBarItem::None) {
-                // Already handled this one
-                continue;
-            }
-            let (new_x, item) = self.paint_one_tab(
-                x,
-                max_tab_width,
-                palette,
-                item,
-                &colors,
-                &font,
-                &metrics,
-                &mut layers,
-            )?;
-            x = new_x;
-            ui_items.push(item);
-        }
+        self.render_element(&computed, &mut layers[1], None)?;
 
         Ok(ui_items)
     }
@@ -1144,12 +913,11 @@ impl super::TermWindow {
                     );
                     self.filled_rectangle(
                         &mut layers[0],
-                        Rect::new(
-                            Point::new(0, 0),
-                            Size::new(
-                                self.dimensions.pixel_width as isize,
-                                self.dimensions.pixel_height as isize,
-                            ),
+                        euclid::rect(
+                            0.,
+                            0.,
+                            self.dimensions.pixel_width as f32,
+                            self.dimensions.pixel_height as f32,
                         ),
                         background,
                     )?;
@@ -1164,63 +932,61 @@ impl super::TermWindow {
 
             // We want to fill out to the edges of the splits
             let (x, width_delta) = if pos.left == 0 {
-                (0, padding_left as isize + (cell_width / 2.0) as isize)
+                (0., padding_left + (cell_width / 2.0))
             } else {
                 (
-                    padding_left as isize - (cell_width / 2.0) as isize
-                        + (pos.left as f32 * cell_width) as isize,
-                    cell_width as isize,
+                    padding_left - (cell_width / 2.0) + (pos.left as f32 * cell_width),
+                    cell_width,
                 )
             };
 
             let (y, height_delta) = if pos.top == 0 {
                 (
-                    (top_pixel_y - padding_top) as isize,
-                    padding_top as isize + (cell_height / 2.0) as isize,
+                    (top_pixel_y - padding_top),
+                    padding_top + (cell_height / 2.0),
                 )
             } else {
                 (
-                    top_pixel_y as isize + (pos.top as f32 * cell_height) as isize
-                        - (cell_height / 2.0) as isize,
-                    cell_height as isize,
+                    top_pixel_y + (pos.top as f32 * cell_height) - (cell_height / 2.0),
+                    cell_height,
                 )
             };
 
             let mut quad = self.filled_rectangle(
                 &mut layers[0],
-                Rect::new(
-                    Point::new(x, y),
-                    Size::new(
-                        (pos.width as f32 * cell_width) as isize
-                            + width_delta
-                            + if pos.left + pos.width >= self.terminal_size.cols as usize {
-                                // And all the way to the right edge if we're right-most
-                                crate::termwindow::resize::effective_right_padding(
-                                    &self.config,
-                                    DimensionContext {
-                                        dpi: self.dimensions.dpi as f32,
-                                        pixel_max: self.terminal_size.pixel_width as f32,
-                                        pixel_cell: cell_width,
-                                    },
-                                ) as isize
-                            } else {
-                                0
-                            },
-                        (pos.height as f32 * cell_height) as isize
-                            + height_delta
-                            + if pos.top + pos.height >= self.terminal_size.rows as usize {
-                                // And all the way to the bottom if we're bottom-most
-                                self.config.window_padding.bottom.evaluate_as_pixels(
-                                    DimensionContext {
-                                        dpi: self.dimensions.dpi as f32,
-                                        pixel_max: self.terminal_size.pixel_height as f32,
-                                        pixel_cell: cell_height,
-                                    },
-                                ) as isize
-                            } else {
-                                0
-                            },
-                    ),
+                euclid::rect(
+                    x,
+                    y,
+                    (pos.width as f32 * cell_width)
+                        + width_delta
+                        + if pos.left + pos.width >= self.terminal_size.cols as usize {
+                            // And all the way to the right edge if we're right-most
+                            crate::termwindow::resize::effective_right_padding(
+                                &self.config,
+                                DimensionContext {
+                                    dpi: self.dimensions.dpi as f32,
+                                    pixel_max: self.terminal_size.pixel_width as f32,
+                                    pixel_cell: cell_width,
+                                },
+                            ) as f32
+                        } else {
+                            0.
+                        },
+                    (pos.height as f32 * cell_height)
+                        + height_delta as f32
+                        + if pos.top + pos.height >= self.terminal_size.rows as usize {
+                            // And all the way to the bottom if we're bottom-most
+                            self.config
+                                .window_padding
+                                .bottom
+                                .evaluate_as_pixels(DimensionContext {
+                                    dpi: self.dimensions.dpi as f32,
+                                    pixel_max: self.terminal_size.pixel_height as f32,
+                                    pixel_cell: cell_height,
+                                })
+                        } else {
+                            0.
+                        },
                 ),
                 rgbcolor_alpha_to_window_color(
                     palette.background,
@@ -1275,15 +1041,11 @@ impl super::TermWindow {
 
                 let mut quad = self.filled_rectangle(
                     &mut layers[0],
-                    Rect::new(
-                        Point::new(
-                            ((pos.left as f32 * cell_width) + padding_left) as isize,
-                            (top_pixel_y + (pos.top as f32 * cell_height) + padding_top) as isize,
-                        ),
-                        Size::new(
-                            (pos.width as f32 * cell_width) as isize,
-                            (pos.height as f32 * cell_height) as isize,
-                        ),
+                    euclid::rect(
+                        (pos.left as f32 * cell_width) + padding_left,
+                        top_pixel_y + (pos.top as f32 * cell_height) + padding_top,
+                        pos.width as f32 * cell_width,
+                        pos.height as f32 * cell_height,
                     ),
                     background,
                 )?;
@@ -1345,12 +1107,11 @@ impl super::TermWindow {
 
             self.filled_rectangle(
                 &mut layers[2],
-                Rect::new(
-                    Point::new(
-                        self.dimensions.pixel_width as isize - padding as isize,
-                        thumb_top as isize,
-                    ),
-                    Size::new(padding as isize, thumb_size as isize),
+                euclid::rect(
+                    self.dimensions.pixel_width as f32 - padding,
+                    thumb_top,
+                    padding,
+                    thumb_size,
                 ),
                 color,
             )?;
@@ -1567,15 +1328,11 @@ impl super::TermWindow {
         if split.direction == SplitDirection::Horizontal {
             self.filled_rectangle(
                 &mut quads,
-                Rect::new(
-                    Point::new(
-                        pos_x as isize + (cell_width / 2.0) as isize,
-                        pos_y as isize - (cell_height / 2.0) as isize,
-                    ),
-                    Size::new(
-                        self.render_metrics.underline_height,
-                        (1 + split.size as isize) * cell_height as isize,
-                    ),
+                euclid::rect(
+                    pos_x + (cell_width / 2.0),
+                    pos_y - (cell_height / 2.0),
+                    self.render_metrics.underline_height as f32,
+                    (1. + split.size as f32) * cell_height,
                 ),
                 foreground,
             )?;
@@ -1591,15 +1348,11 @@ impl super::TermWindow {
         } else {
             self.filled_rectangle(
                 &mut quads,
-                Rect::new(
-                    Point::new(
-                        pos_x as isize - (cell_width / 2.0) as isize,
-                        pos_y as isize + (cell_height / 2.0) as isize,
-                    ),
-                    Size::new(
-                        (1 + split.size as isize) * cell_width as isize,
-                        self.render_metrics.underline_height,
-                    ),
+                euclid::rect(
+                    pos_x - (cell_width / 2.0),
+                    pos_y + (cell_height / 2.0),
+                    (1.0 + split.size as f32) * cell_width,
+                    self.render_metrics.underline_height as f32,
                 ),
                 foreground,
             )?;
@@ -1840,10 +1593,10 @@ impl super::TermWindow {
         };
 
         let bounding_rect = euclid::rect(
-            params.left_pixel_x as isize,
-            params.top_pixel_y as isize,
-            params.pixel_width as isize,
-            cell_height as isize,
+            params.left_pixel_x,
+            params.top_pixel_y,
+            params.pixel_width,
+            cell_height,
         );
 
         // Make a pass to compute background colors.
@@ -1879,24 +1632,20 @@ impl super::TermWindow {
             };
 
             if !bg_is_default {
-                let rect = Rect::new(
-                    Point::new(
-                        (params.left_pixel_x
-                            + if params.use_pixel_positioning {
-                                item.x_pos
-                            } else {
-                                cluster.first_cell_idx as f32 * cell_width
-                            }) as isize,
-                        params.top_pixel_y as isize,
-                    ),
-                    Size::new(
-                        if params.use_pixel_positioning {
-                            item.pixel_width as isize
+                let rect = euclid::rect(
+                    params.left_pixel_x
+                        + if params.use_pixel_positioning {
+                            item.x_pos
                         } else {
-                            cluster_width as isize * cell_width as isize
+                            cluster.first_cell_idx as f32 * cell_width
                         },
-                        cell_height as isize,
-                    ),
+                    params.top_pixel_y,
+                    if params.use_pixel_positioning {
+                        item.pixel_width
+                    } else {
+                        cluster_width as f32 * cell_width
+                    },
+                    cell_height,
                 );
                 if let Some(rect) = rect.intersection(&bounding_rect) {
                     let mut quad = self.filled_rectangle(&mut layers[0], rect, bg_color)?;
@@ -1909,17 +1658,11 @@ impl super::TermWindow {
         if !params.selection.is_empty() {
             let mut quad = self.filled_rectangle(
                 &mut layers[0],
-                Rect::new(
-                    Point::new(
-                        (params.left_pixel_x + (params.selection.start as f32 * cell_width))
-                            as isize,
-                        params.top_pixel_y as isize,
-                    ),
-                    Size::new(
-                        ((params.selection.end - params.selection.start) as f32 * cell_width)
-                            as isize,
-                        cell_height as isize,
-                    ),
+                euclid::rect(
+                    params.left_pixel_x + (params.selection.start as f32 * cell_width),
+                    params.top_pixel_y,
+                    (params.selection.end - params.selection.start) as f32 * cell_width,
+                    cell_height,
                 ),
                 params.selection_bg,
             )?;
@@ -2262,15 +2005,11 @@ impl super::TermWindow {
             if params.line.is_reverse() {
                 let mut quad = self.filled_rectangle(
                     &mut layers[0],
-                    Rect::new(
-                        Point::new(
-                            (params.left_pixel_x + (last_cell_idx as f32 * cell_width)) as isize,
-                            params.top_pixel_y as isize,
-                        ),
-                        Size::new(
-                            ((num_cols - last_cell_idx) as f32 * cell_width) as isize,
-                            cell_height as isize,
-                        ),
+                    euclid::rect(
+                        params.left_pixel_x + (last_cell_idx as f32 * cell_width),
+                        params.top_pixel_y,
+                        (num_cols - last_cell_idx) as f32 * cell_width,
+                        cell_height,
                     ),
                     params.foreground,
                 )?;
@@ -2323,13 +2062,11 @@ impl super::TermWindow {
                         // Avoid poking a transparent hole underneath the cursor
                         let mut quad = self.filled_rectangle(
                             &mut layers[2],
-                            Rect::new(
-                                Point::new(
-                                    (params.left_pixel_x + (params.cursor.x as f32 * cell_width))
-                                        as isize,
-                                    params.top_pixel_y as isize,
-                                ),
-                                Size::new(cell_width as isize, cell_height as isize),
+                            euclid::rect(
+                                params.left_pixel_x + (params.cursor.x as f32 * cell_width),
+                                params.top_pixel_y,
+                                cell_width,
+                                cell_height,
                             ),
                             bg_color,
                         )?;
@@ -2791,11 +2528,11 @@ impl super::TermWindow {
     }
 }
 
-fn rgbcolor_to_window_color(color: RgbColor) -> LinearRgba {
+pub fn rgbcolor_to_window_color(color: RgbColor) -> LinearRgba {
     rgbcolor_alpha_to_window_color(color, 1.0)
 }
 
-fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: f32) -> LinearRgba {
+pub fn rgbcolor_alpha_to_window_color(color: RgbColor, alpha: f32) -> LinearRgba {
     let (red, green, blue, _) = color.to_linear_tuple_rgba();
     LinearRgba::with_components(red, green, blue, alpha)
 }

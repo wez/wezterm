@@ -51,7 +51,9 @@ pub struct Dimensions {
 }
 
 pub type Rect = euclid::Rect<isize, PixelUnit>;
+pub type RectF = euclid::Rect<f32, PixelUnit>;
 pub type Size = euclid::Size2D<isize, PixelUnit>;
+pub type SizeF = euclid::Size2D<f32, PixelUnit>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MouseCursor {

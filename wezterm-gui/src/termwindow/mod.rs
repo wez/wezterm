@@ -51,6 +51,7 @@ use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
 use wezterm_term::{Alert, SemanticZone, StableRowIndex, TerminalConfiguration};
 
+pub mod box_model;
 pub mod clipboard;
 mod keyevent;
 mod mouseevent;

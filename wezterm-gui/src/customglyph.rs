@@ -236,11 +236,12 @@ impl BlockKey {
     }
 
     pub fn from_str(s: &str) -> Option<Self> {
-        let chars = s.chars().collect::<Vec<char>>();
-        if chars.len() == 1 {
-            Self::from_char(chars[0])
-        } else {
+        let mut chars = s.chars();
+        let first_char = chars.next()?;
+        if chars.next().is_some() {
             None
+        } else {
+            Self::from_char(first_char)
         }
     }
 
