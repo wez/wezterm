@@ -120,12 +120,12 @@ impl RenderState {
                 self.current_indent.take();
             }
 
-            Event::Start(Tag::Heading(_)) => {
+            Event::Start(Tag::Heading(..)) => {
                 self.newline();
                 self.changes
                     .push(AttributeChange::Intensity(Intensity::Bold).into());
             }
-            Event::End(Tag::Heading(_)) => {
+            Event::End(Tag::Heading(..)) => {
                 self.changes
                     .push(AttributeChange::Intensity(Intensity::Normal).into());
                 self.newline();
