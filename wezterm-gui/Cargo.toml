@@ -50,7 +50,7 @@ palette = "0.5"
 percent-encoding = "2"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
 promise = { path = "../promise" }
-pulldown-cmark = "0.8"
+pulldown-cmark = "0.9"
 rangeset = { path = "../rangeset" }
 ratelim= { path = "../ratelim" }
 regex = "1"
