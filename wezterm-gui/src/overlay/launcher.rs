@@ -137,18 +137,47 @@ fn parse_wsl_distro_list(output: &str) -> Vec<WslDistro> {
 #[cfg(test)]
 #[test]
 fn test_parse_wsl_distro_list() {
-    let data = "  NAME            STATE           VERSION\n\
-* Ubuntu-18.04    Running         1\n
-";
+    let data = "  NAME                   STATE           VERSION
+* Arch                   Running         2
+  docker-desktop-data    Stopped         2
+  docker-desktop         Stopped         2
+  Ubuntu                 Stopped         2
+  nvim                   Stopped         2";
 
     assert_eq!(
         parse_wsl_distro_list(data),
-        vec![WslDistro {
-            name: "Ubuntu-18.04".to_string(),
-            state: "Running".to_string(),
-            version: "1".to_string(),
-            is_default: true
-        }]
+        vec![
+            WslDistro {
+                name: "Arch".to_string(),
+                state: "Running".to_string(),
+                version: "2".to_string(),
+                is_default: true
+            },
+            WslDistro {
+                name: "docker-desktop-data".to_string(),
+                state: "Stopped".to_string(),
+                version: "2".to_string(),
+                is_default: false
+            },
+            WslDistro {
+                name: "docker-desktop".to_string(),
+                state: "Stopped".to_string(),
+                version: "2".to_string(),
+                is_default: false
+            },
+            WslDistro {
+                name: "Ubuntu".to_string(),
+                state: "Stopped".to_string(),
+                version: "2".to_string(),
+                is_default: false
+            },
+            WslDistro {
+                name: "nvim".to_string(),
+                state: "Stopped".to_string(),
+                version: "2".to_string(),
+                is_default: false
+            },
+        ]
     );
 }
 

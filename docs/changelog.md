@@ -62,6 +62,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Colors were too intense due to over gamma correction [#1025](https://github.com/wez/wezterm/issues/1025)
 * Mesa and EGL colors were too dim due to under gamma correction [#1373](https://github.com/wez/wezterm/issues/1373)
 * `wezterm ssh` no longer tries to use `default_prog` or `default_cwd` when spawning additional panes on the remote host [#1456](https://github.com/wez/wezterm/issues/1456)
+* Launcher menu WSL items now launch correctly on non-US versions of Windows [#1462](https://github.com/wez/wezterm/issues/1462)
 
 ### 20211205-192649-672c1cc1
 
