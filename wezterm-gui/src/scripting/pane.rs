@@ -81,25 +81,28 @@ impl UserData for PaneObject {
             Ok(text)
         });
 
-        methods.add_method("get_logical_lines_as_text", |_, this, nlines: Option<usize>| {
-            let pane = this.pane()?;
-            let dims = pane.get_dimensions();
-            let nlines = nlines.unwrap_or(dims.viewport_rows);
-            let bottom_row = dims.physical_top + dims.viewport_rows as isize;
-            let top_row = bottom_row.saturating_sub(nlines as isize);
-            let lines = pane.get_logical_lines(top_row..bottom_row);
-            let mut text = String::new();
-            for line in lines {
-                for (_, cell) in line.logical.visible_cells() {
-                    text.push_str(cell.str());
+        methods.add_method(
+            "get_logical_lines_as_text",
+            |_, this, nlines: Option<usize>| {
+                let pane = this.pane()?;
+                let dims = pane.get_dimensions();
+                let nlines = nlines.unwrap_or(dims.viewport_rows);
+                let bottom_row = dims.physical_top + dims.viewport_rows as isize;
+                let top_row = bottom_row.saturating_sub(nlines as isize);
+                let lines = pane.get_logical_lines(top_row..bottom_row);
+                let mut text = String::new();
+                for line in lines {
+                    for (_, cell) in line.logical.visible_cells() {
+                        text.push_str(cell.str());
+                    }
+                    let trimmed = text.trim_end().len();
+                    text.truncate(trimmed);
+                    text.push('\n');
                 }
                 let trimmed = text.trim_end().len();
                 text.truncate(trimmed);
-                text.push('\n');
-            }
-            let trimmed = text.trim_end().len();
-            text.truncate(trimmed);
-            Ok(text)
-        });
+                Ok(text)
+            },
+        );
     }
 }
