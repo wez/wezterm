@@ -21,6 +21,18 @@ use wezterm_term::color::{ColorAttribute, ColorPalette};
 use window::bitmaps::atlas::Sprite;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VerticalAlign {
+    Top,
+    Bottom,
+}
+
+impl Default for VerticalAlign {
+    fn default() -> VerticalAlign {
+        VerticalAlign::Top
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DisplayType {
     Block,
     Inline,
@@ -202,6 +214,7 @@ impl ElementColors {
 #[derive(Debug, Clone)]
 pub struct Element {
     pub item_type: Option<UIItemType>,
+    pub vertical_align: VerticalAlign,
     pub zindex: i8,
     pub display: DisplayType,
     pub float: Float,
@@ -228,6 +241,7 @@ impl Element {
             margin: BoxDimension::default(),
             border: BoxDimension::default(),
             border_corners: None,
+            vertical_align: VerticalAlign::default(),
             colors: ElementColors::default(),
             hover_colors: None,
             font: Rc::clone(font),
@@ -262,6 +276,11 @@ impl Element {
         }
 
         Self::new(font, ElementContent::Children(content))
+    }
+
+    pub fn vertical_align(mut self, align: VerticalAlign) -> Self {
+        self.vertical_align = align;
+        self
     }
 
     pub fn item_type(mut self, item_type: UIItemType) -> Self {
@@ -589,6 +608,12 @@ impl super::TermWindow {
                     pixel_height = pixel_height.max(kid.bounds.height());
 
                     computed_kids.push(kid);
+                }
+
+                for (kid, child) in computed_kids.iter_mut().zip(kids.iter()) {
+                    if child.vertical_align == VerticalAlign::Bottom {
+                        kid.translate(euclid::vec2(0., pixel_height - kid.bounds.height()));
+                    }
                 }
 
                 computed_kids.sort_by(|a, b| a.zindex.cmp(&b.zindex));

@@ -447,7 +447,7 @@ impl super::TermWindow {
                             .item_type(UIItemType::TabBar(TabBarItem::None))
                             .zindex(-1)
                             .float(Float::Right)
-                            .line_height(Some(2.0))
+                            .line_height(Some(1.75))
                             .margin(BoxDimension {
                                 left: Dimension::Cells(0.),
                                 right: Dimension::Cells(0.),
@@ -468,16 +468,17 @@ impl super::TermWindow {
                             }),
                         TabBarItem::NewTabButton => element
                             .item_type(UIItemType::TabBar(item.item.clone()))
+                            .vertical_align(VerticalAlign::Bottom)
                             .margin(BoxDimension {
                                 left: Dimension::Cells(0.5),
                                 right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.25),
+                                top: Dimension::Cells(0.2),
                                 bottom: Dimension::Cells(0.),
                             })
                             .padding(BoxDimension {
                                 left: Dimension::Cells(0.5),
                                 right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.25),
+                                top: Dimension::Cells(0.2),
                                 bottom: Dimension::Cells(0.25),
                             })
                             .border(BoxDimension::new(Dimension::Pixels(1.)))
@@ -495,17 +496,18 @@ impl super::TermWindow {
                             })),
                         TabBarItem::Tab { active, .. } if active => element
                             .item_type(UIItemType::TabBar(item.item.clone()))
+                            .vertical_align(VerticalAlign::Bottom)
                             .margin(BoxDimension {
                                 left: Dimension::Cells(0.),
                                 right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.25),
+                                top: Dimension::Cells(0.2),
                                 bottom: Dimension::Cells(0.),
                             })
                             .padding(BoxDimension {
                                 left: Dimension::Cells(0.5),
                                 right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.25),
-                                bottom: Dimension::Cells(0.5),
+                                top: Dimension::Cells(0.2),
+                                bottom: Dimension::Cells(0.25),
                             })
                             .border(BoxDimension::new(Dimension::Pixels(1.)))
                             .border_corners(Some(Corners {
@@ -531,17 +533,18 @@ impl super::TermWindow {
                             }),
                         TabBarItem::Tab { .. } => element
                             .item_type(UIItemType::TabBar(item.item.clone()))
+                            .vertical_align(VerticalAlign::Bottom)
                             .margin(BoxDimension {
                                 left: Dimension::Cells(0.),
                                 right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.25),
+                                top: Dimension::Cells(0.2),
                                 bottom: Dimension::Cells(0.),
                             })
                             .padding(BoxDimension {
                                 left: Dimension::Cells(0.5),
                                 right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.25),
-                                bottom: Dimension::Cells(0.5),
+                                top: Dimension::Cells(0.2),
+                                bottom: Dimension::Cells(0.25),
                             })
                             .border(BoxDimension::new(Dimension::Pixels(1.)))
                             .border_corners(Some(Corners {
