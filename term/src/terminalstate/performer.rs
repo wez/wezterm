@@ -1,5 +1,7 @@
 use crate::terminal::Alert;
-use crate::terminalstate::{default_color_map, CharSet, TabStop, UnicodeVersionStackEntry};
+use crate::terminalstate::{
+    default_color_map, CharSet, MouseEncoding, TabStop, UnicodeVersionStackEntry,
+};
 use crate::{ClipboardSelection, Position, TerminalState, VisibleRowIndex};
 use crate::{DCS, ST};
 use log::{debug, error};
@@ -513,7 +515,7 @@ impl<'a> Performer<'a> {
                 self.application_keypad = false;
                 self.bracketed_paste = false;
                 self.focus_tracking = false;
-                self.sgr_mouse = false;
+                self.mouse_encoding = MouseEncoding::X10;
                 self.sixel_scrolls_right = false;
                 self.any_event_mouse = false;
                 self.button_event_mouse = false;

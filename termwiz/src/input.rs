@@ -1267,6 +1267,21 @@ impl InputParser {
                                         modifiers,
                                     }));
                                 }
+                                // AZL - I don't quite understand this
+                                // bit.  Needs to be fixed up.
+                                MouseReport::SGR1016 {
+                                    x_pixels,
+                                    y_pixels,
+                                    button,
+                                    modifiers,
+                                } => {
+                                    callback(InputEvent::Mouse(MouseEvent {
+                                        x: x_pixels,
+                                        y: y_pixels,
+                                        mouse_buttons: button.into(),
+                                        modifiers,
+                                    }));
+                                }
                             }
                             continue;
                         }

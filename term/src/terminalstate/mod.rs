@@ -49,6 +49,13 @@ pub(crate) enum CharSet {
     DecLineDrawing,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MouseEncoding {
+    X10,
+    SGR,
+    SgrPixels,
+}
+
 impl TabStop {
     fn new(screen_width: usize, tab_width: usize) -> Self {
         let mut tabs = Vec::with_capacity(screen_width);
@@ -296,8 +303,9 @@ pub struct TerminalState {
     /// Movement events enabled
     any_event_mouse: bool,
     focus_tracking: bool,
-    /// SGR style mouse tracking and reporting is enabled
-    sgr_mouse: bool,
+    /// X10 (legacy), SGR, and SGR-Pixels style mouse tracking and
+    /// reporting is enabled
+    mouse_encoding: MouseEncoding,
     mouse_tracking: bool,
     /// Button events enabled
     button_event_mouse: bool,
@@ -458,7 +466,7 @@ impl TerminalState {
             application_keypad: false,
             bracketed_paste: false,
             focus_tracking: false,
-            sgr_mouse: false,
+            mouse_encoding: MouseEncoding::X10,
             sixel_scrolls_right: false,
             any_event_mouse: false,
             button_event_mouse: false,
@@ -655,6 +663,8 @@ impl TerminalState {
                     modifiers: KeyModifiers::NONE,
                     x: 0,
                     y: 0,
+                    x_offset: 0,
+                    y_offset: 0,
                 })
                 .ok();
             }
@@ -1512,15 +1522,40 @@ impl TerminalState {
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
-                self.sgr_mouse = true;
+                self.mouse_encoding = MouseEncoding::SGR;
                 self.last_mouse_move.take();
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
-                self.sgr_mouse = false;
+                self.mouse_encoding = MouseEncoding::X10;
                 self.last_mouse_move.take();
             }
             Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
-                self.decqrm_response(mode, true, self.sgr_mouse);
+                self.decqrm_response(
+                    mode,
+                    true,
+                    match self.mouse_encoding {
+                        MouseEncoding::SGR => true,
+                        _ => false,
+                    },
+                );
+            }
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRPixelsMouse)) => {
+                self.mouse_encoding = MouseEncoding::SgrPixels;
+                self.last_mouse_move.take();
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRPixelsMouse)) => {
+                self.mouse_encoding = MouseEncoding::X10;
+                self.last_mouse_move.take();
+            }
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRPixelsMouse)) => {
+                self.decqrm_response(
+                    mode,
+                    true,
+                    match self.mouse_encoding {
+                        MouseEncoding::SgrPixels => true,
+                        _ => false,
+                    },
+                );
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
