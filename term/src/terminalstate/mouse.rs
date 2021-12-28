@@ -63,12 +63,14 @@ impl TerminalState {
         } else if self.mouse_encoding == MouseEncoding::SgrPixels
             && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
         {
+            let height = self.screen.physical_rows as usize;
+            let width = self.screen.physical_cols as usize;
             write!(
                 self.writer,
                 "\x1b[<{};{};{}M",
                 button,
-                (event.x * self.pixel_width) + event.x_offset + 1,
-                (event.y as usize * self.pixel_height) + event.y_offset + 1
+                (event.x * (self.pixel_width / width)) + event.x_offset + 1,
+                (event.y as usize * (self.pixel_height / height)) + event.y_offset + 1
             )?;
             self.writer.flush()?;
         } else if self.mouse_tracking || self.button_event_mouse || self.any_event_mouse {
@@ -115,12 +117,14 @@ impl TerminalState {
             )?;
             self.writer.flush()?;
         } else if self.mouse_encoding == MouseEncoding::SgrPixels {
+            let height = self.screen.physical_rows as usize;
+            let width = self.screen.physical_cols as usize;
             write!(
                 self.writer,
                 "\x1b[<{};{};{}M",
                 button,
-                (event.x * self.pixel_width) + event.x_offset + 1,
-                (event.y as usize * self.pixel_height) + event.y_offset + 1
+                (event.x * (self.pixel_width / width)) + event.x_offset + 1,
+                (event.y as usize * (self.pixel_height / height)) + event.y_offset + 1
             )?;
             self.writer.flush()?;
         } else {
@@ -152,12 +156,14 @@ impl TerminalState {
                     )?;
                     self.writer.flush()?;
                 } else if self.mouse_encoding == MouseEncoding::SgrPixels {
+                    let height = self.screen.physical_rows as usize;
+                    let width = self.screen.physical_cols as usize;
                     write!(
                         self.writer,
                         "\x1b[<{};{};{}m",
                         release_button,
-                        (event.x * self.pixel_width) + event.x_offset + 1,
-                        (event.y as usize * self.pixel_height) + event.y_offset + 1
+                        (event.x * (self.pixel_width / width)) + event.x_offset + 1,
+                        (event.y as usize * (self.pixel_height / height)) + event.y_offset + 1
                     )?;
                     self.writer.flush()?;
                 } else {
@@ -202,12 +208,14 @@ impl TerminalState {
                 )?;
                 self.writer.flush()?;
             } else if self.mouse_encoding == MouseEncoding::SgrPixels {
+                let height = self.screen.physical_rows as usize;
+                let width = self.screen.physical_cols as usize;
                 write!(
                     self.writer,
                     "\x1b[<{};{};{}M",
                     button,
-                    (event.x * self.pixel_width) + event.x_offset + 1,
-                    (event.y as usize * self.pixel_height) + event.y_offset + 1
+                    (event.x * (self.pixel_width / width)) + event.x_offset + 1,
+                    (event.y as usize * (self.pixel_height / height)) + event.y_offset + 1
                 )?;
                 self.writer.flush()?;
             } else {
