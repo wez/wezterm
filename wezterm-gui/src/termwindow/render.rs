@@ -4,7 +4,7 @@ use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::quad::Quad;
 use crate::shapecache::*;
-use crate::tabbar::TabBarItem;
+use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
     BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
     UIItem, UIItemType,
@@ -436,192 +436,201 @@ impl super::TermWindow {
             .cloned()
             .unwrap_or_else(TabBarColors::default);
 
-        let content = ElementContent::Children(
-            items
-                .into_iter()
-                .map(|item| {
-                    let element = Element::with_line(&font, &item.title, palette);
+        let mut left_eles = vec![];
+        let mut right_eles = vec![];
 
-                    match item.item {
-                        TabBarItem::None => element
-                            .item_type(UIItemType::TabBar(TabBarItem::None))
-                            .zindex(-1)
-                            .float(Float::Right)
-                            .line_height(Some(1.75))
-                            .margin(BoxDimension {
-                                left: Dimension::Cells(0.),
-                                right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.0),
-                                bottom: Dimension::Cells(0.),
-                            })
-                            .padding(BoxDimension {
-                                left: Dimension::Cells(0.5),
-                                right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.),
-                                bottom: Dimension::Cells(0.),
-                            })
-                            .border(BoxDimension::new(Dimension::Pixels(0.)))
-                            .colors(ElementColors {
-                                border: BorderColor::default(),
-                                bg: rgbcolor_to_window_color(colors.inactive_tab.bg_color).into(),
-                                text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
-                            }),
-                        TabBarItem::NewTabButton => element
-                            .item_type(UIItemType::TabBar(item.item.clone()))
-                            .vertical_align(VerticalAlign::Bottom)
-                            .margin(BoxDimension {
-                                left: Dimension::Cells(0.5),
-                                right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.2),
-                                bottom: Dimension::Cells(0.),
-                            })
-                            .padding(BoxDimension {
-                                left: Dimension::Cells(0.5),
-                                right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.2),
-                                bottom: Dimension::Cells(0.25),
-                            })
-                            .border(BoxDimension::new(Dimension::Pixels(1.)))
-                            .colors(ElementColors {
-                                border: BorderColor::default(),
-                                bg: rgbcolor_to_window_color(colors.new_tab.bg_color).into(),
-                                text: rgbcolor_to_window_color(colors.new_tab.fg_color).into(),
-                            })
-                            .hover_colors(Some(ElementColors {
-                                border: BorderColor::default(),
-                                bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color)
-                                    .into(),
-                                text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color)
-                                    .into(),
-                            })),
-                        TabBarItem::Tab { active, .. } if active => element
-                            .item_type(UIItemType::TabBar(item.item.clone()))
-                            .vertical_align(VerticalAlign::Bottom)
-                            .margin(BoxDimension {
-                                left: Dimension::Cells(0.),
-                                right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.2),
-                                bottom: Dimension::Cells(0.),
-                            })
-                            .padding(BoxDimension {
-                                left: Dimension::Cells(0.5),
-                                right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.2),
-                                bottom: Dimension::Cells(0.25),
-                            })
-                            .border(BoxDimension::new(Dimension::Pixels(1.)))
-                            .border_corners(Some(Corners {
-                                top_left: SizedPoly {
-                                    width: Dimension::Cells(0.5),
-                                    height: Dimension::Cells(0.5),
-                                    poly: TOP_LEFT_ROUNDED_CORNER,
-                                },
-                                top_right: SizedPoly {
-                                    width: Dimension::Cells(0.5),
-                                    height: Dimension::Cells(0.5),
-                                    poly: TOP_RIGHT_ROUNDED_CORNER,
-                                },
-                                bottom_left: SizedPoly::none(),
-                                bottom_right: SizedPoly::none(),
-                            }))
-                            .colors(ElementColors {
-                                border: BorderColor::new(rgbcolor_to_window_color(
-                                    colors.active_tab.bg_color,
-                                )),
-                                bg: rgbcolor_to_window_color(colors.active_tab.bg_color).into(),
-                                text: rgbcolor_to_window_color(colors.active_tab.fg_color).into(),
-                            }),
-                        TabBarItem::Tab { .. } => element
-                            .item_type(UIItemType::TabBar(item.item.clone()))
-                            .vertical_align(VerticalAlign::Bottom)
-                            .margin(BoxDimension {
-                                left: Dimension::Cells(0.),
-                                right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.2),
-                                bottom: Dimension::Cells(0.),
-                            })
-                            .padding(BoxDimension {
-                                left: Dimension::Cells(0.5),
-                                right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.2),
-                                bottom: Dimension::Cells(0.25),
-                            })
-                            .border(BoxDimension::new(Dimension::Pixels(1.)))
-                            .border_corners(Some(Corners {
-                                top_left: SizedPoly {
-                                    width: Dimension::Cells(0.5),
-                                    height: Dimension::Cells(0.5),
-                                    poly: TOP_LEFT_ROUNDED_CORNER,
-                                },
-                                top_right: SizedPoly {
-                                    width: Dimension::Cells(0.5),
-                                    height: Dimension::Cells(0.5),
-                                    poly: TOP_RIGHT_ROUNDED_CORNER,
-                                },
-                                bottom_left: SizedPoly {
-                                    width: Dimension::Cells(0.),
-                                    height: Dimension::Cells(0.33),
-                                    poly: &[],
-                                },
-                                bottom_right: SizedPoly {
-                                    width: Dimension::Cells(0.),
-                                    height: Dimension::Cells(0.33),
-                                    poly: &[],
-                                },
-                            }))
-                            .colors({
-                                let bg = rgbcolor_to_window_color(colors.inactive_tab.bg_color);
-                                let edge = rgbcolor_to_window_color(colors.inactive_tab_edge);
-                                ElementColors {
-                                    border: BorderColor {
-                                        left: bg,
-                                        right: edge,
-                                        top: bg,
-                                        bottom: bg,
-                                    },
-                                    bg: bg.into(),
-                                    text: rgbcolor_to_window_color(colors.inactive_tab.fg_color)
-                                        .into(),
-                                }
-                            })
-                            .hover_colors(Some(ElementColors {
-                                border: BorderColor::new(rgbcolor_to_window_color(
-                                    colors.inactive_tab_hover.bg_color,
-                                )),
-                                bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color)
-                                    .into(),
-                                text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color)
-                                    .into(),
-                            })),
-                    }
-                })
-                .collect(),
-        );
+        let item_to_elem = |item: &TabEntry| -> Element {
+            let element = Element::with_line(&font, &item.title, palette);
 
-        let tabs = Element::new(&font, content)
-            .display(DisplayType::Block)
-            .item_type(UIItemType::TabBar(TabBarItem::None))
+            match item.item {
+                TabBarItem::None => element
+                    .item_type(UIItemType::TabBar(TabBarItem::None))
+                    .line_height(Some(1.75))
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.0),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.5),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(0.)))
+                    .colors(ElementColors {
+                        border: BorderColor::default(),
+                        bg: rgbcolor_to_window_color(colors.inactive_tab.bg_color).into(),
+                        text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
+                    }),
+                TabBarItem::NewTabButton => element
+                    .item_type(UIItemType::TabBar(item.item.clone()))
+                    .vertical_align(VerticalAlign::Bottom)
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.5),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.5),
+                        right: Dimension::Cells(0.5),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.25),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(1.)))
+                    .colors(ElementColors {
+                        border: BorderColor::default(),
+                        bg: rgbcolor_to_window_color(colors.new_tab.bg_color).into(),
+                        text: rgbcolor_to_window_color(colors.new_tab.fg_color).into(),
+                    })
+                    .hover_colors(Some(ElementColors {
+                        border: BorderColor::default(),
+                        bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color).into(),
+                        text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color).into(),
+                    })),
+                TabBarItem::Tab { active, .. } if active => element
+                    .item_type(UIItemType::TabBar(item.item.clone()))
+                    .vertical_align(VerticalAlign::Bottom)
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.5),
+                        right: Dimension::Cells(0.5),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.25),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(1.)))
+                    .border_corners(Some(Corners {
+                        top_left: SizedPoly {
+                            width: Dimension::Cells(0.5),
+                            height: Dimension::Cells(0.5),
+                            poly: TOP_LEFT_ROUNDED_CORNER,
+                        },
+                        top_right: SizedPoly {
+                            width: Dimension::Cells(0.5),
+                            height: Dimension::Cells(0.5),
+                            poly: TOP_RIGHT_ROUNDED_CORNER,
+                        },
+                        bottom_left: SizedPoly::none(),
+                        bottom_right: SizedPoly::none(),
+                    }))
+                    .colors(ElementColors {
+                        border: BorderColor::new(rgbcolor_to_window_color(
+                            colors.active_tab.bg_color,
+                        )),
+                        bg: rgbcolor_to_window_color(colors.active_tab.bg_color).into(),
+                        text: rgbcolor_to_window_color(colors.active_tab.fg_color).into(),
+                    }),
+                TabBarItem::Tab { .. } => element
+                    .item_type(UIItemType::TabBar(item.item.clone()))
+                    .vertical_align(VerticalAlign::Bottom)
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.5),
+                        right: Dimension::Cells(0.5),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.25),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(1.)))
+                    .border_corners(Some(Corners {
+                        top_left: SizedPoly {
+                            width: Dimension::Cells(0.5),
+                            height: Dimension::Cells(0.5),
+                            poly: TOP_LEFT_ROUNDED_CORNER,
+                        },
+                        top_right: SizedPoly {
+                            width: Dimension::Cells(0.5),
+                            height: Dimension::Cells(0.5),
+                            poly: TOP_RIGHT_ROUNDED_CORNER,
+                        },
+                        bottom_left: SizedPoly {
+                            width: Dimension::Cells(0.),
+                            height: Dimension::Cells(0.33),
+                            poly: &[],
+                        },
+                        bottom_right: SizedPoly {
+                            width: Dimension::Cells(0.),
+                            height: Dimension::Cells(0.33),
+                            poly: &[],
+                        },
+                    }))
+                    .colors({
+                        let bg = rgbcolor_to_window_color(colors.inactive_tab.bg_color);
+                        let edge = rgbcolor_to_window_color(colors.inactive_tab_edge);
+                        ElementColors {
+                            border: BorderColor {
+                                left: bg,
+                                right: edge,
+                                top: bg,
+                                bottom: bg,
+                            },
+                            bg: bg.into(),
+                            text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
+                        }
+                    })
+                    .hover_colors(Some(ElementColors {
+                        border: BorderColor::new(rgbcolor_to_window_color(
+                            colors.inactive_tab_hover.bg_color,
+                        )),
+                        bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color).into(),
+                        text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color).into(),
+                    })),
+            }
+        };
+
+        for item in items {
+            match item.item {
+                TabBarItem::None => right_eles.push(item_to_elem(item)),
+                _ => left_eles.push(item_to_elem(item)),
+            }
+        }
+
+        let bar_colors = ElementColors {
+            border: BorderColor::default(),
+            bg: rgbcolor_to_window_color(if self.focused.is_some() {
+                self.config.window_frame.active_titlebar_bg
+            } else {
+                self.config.window_frame.inactive_titlebar_bg
+            })
+            .into(),
+            text: rgbcolor_to_window_color(if self.focused.is_some() {
+                self.config.window_frame.active_titlebar_fg
+            } else {
+                self.config.window_frame.inactive_titlebar_fg
+            })
+            .into(),
+        };
+
+        let left_ele = Element::new(&font, ElementContent::Children(left_eles))
+            .colors(bar_colors.clone())
             .padding(BoxDimension {
                 left: Dimension::Cells(0.5),
                 right: Dimension::Cells(0.),
                 top: Dimension::Cells(0.),
                 bottom: Dimension::Cells(0.),
-            })
-            .colors(ElementColors {
-                border: BorderColor::default(),
-                bg: rgbcolor_to_window_color(if self.focused.is_some() {
-                    self.config.window_frame.active_titlebar_bg
-                } else {
-                    self.config.window_frame.inactive_titlebar_bg
-                })
-                .into(),
-                text: rgbcolor_to_window_color(if self.focused.is_some() {
-                    self.config.window_frame.active_titlebar_fg
-                } else {
-                    self.config.window_frame.inactive_titlebar_fg
-                })
-                .into(),
             });
+        let right_ele = Element::new(&font, ElementContent::Children(right_eles))
+            .colors(bar_colors.clone())
+            .float(Float::Right)
+            .zindex(-1);
+
+        let content = ElementContent::Children(vec![left_ele, right_ele]);
+
+        let tabs = Element::new(&font, content)
+            .display(DisplayType::Block)
+            .item_type(UIItemType::TabBar(TabBarItem::None))
+            .colors(bar_colors);
         let metrics = RenderMetrics::with_font_metrics(&font.metrics());
 
         let computed = self.compute_element(
