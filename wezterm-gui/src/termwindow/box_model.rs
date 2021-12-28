@@ -375,7 +375,7 @@ pub struct ComputedElement {
 }
 
 impl ComputedElement {
-    fn translate(&mut self, delta: euclid::Vector2D<f32, PixelUnit>) {
+    pub fn translate(&mut self, delta: euclid::Vector2D<f32, PixelUnit>) {
         self.bounds = self.bounds.translate(delta);
         self.border_rect = self.border_rect.translate(delta);
         self.padding = self.padding.translate(delta);

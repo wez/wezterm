@@ -281,6 +281,7 @@ pub struct TermWindow {
     show_tab_bar: bool,
     show_scroll_bar: bool,
     tab_bar: TabBarState,
+    fancy_tab_bar: Option<box_model::ComputedElement>,
     pub right_status: String,
     last_ui_item: Option<UIItem>,
     /// Tracks whether the current mouse-down event is part of click-focus.
@@ -698,6 +699,7 @@ impl TermWindow {
             show_tab_bar,
             show_scroll_bar: config.enable_scroll_bar,
             tab_bar: TabBarState::default(),
+            fancy_tab_bar: None,
             right_status: String::new(),
             last_mouse_coords: (0, -1),
             last_mouse_terminal_coords: (0, 0),
@@ -1302,6 +1304,7 @@ impl TermWindow {
 
         self.show_scroll_bar = config.enable_scroll_bar;
         self.shape_cache.borrow_mut().clear();
+        self.fancy_tab_bar.take();
         self.input_map = InputMap::new(&config);
         self.leader_is_down = None;
         let dimensions = self.dimensions;
@@ -1389,7 +1392,7 @@ impl TermWindow {
             .bottom
             .evaluate_as_pixels(v_context) as u16;
 
-        let tab_bar_y = if self.config.tab_bar_at_bottom() {
+        let tab_bar_y = if self.config.tab_bar_at_bottom {
             let avail_height = self
                 .dimensions
                 .pixel_height
@@ -1417,6 +1420,7 @@ impl TermWindow {
         );
         if new_tab_bar != self.tab_bar {
             self.tab_bar = new_tab_bar;
+            self.invalidate_fancy_tab_bar();
             if let Some(window) = self.window.as_ref() {
                 window.invalidate();
             }

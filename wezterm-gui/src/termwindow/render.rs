@@ -1,3 +1,4 @@
+use super::box_model::*;
 use crate::customglyph::BlockKey;
 use crate::customglyph::*;
 use crate::glium::texture::SrgbTexture2d;
@@ -20,7 +21,8 @@ use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::{PointF, RectF, Size, WindowOps};
 use anyhow::anyhow;
 use config::{
-    ConfigHandle, DimensionContext, HsbTransform, TabBarColors, TextStyle, VisualBellTarget,
+    ConfigHandle, Dimension, DimensionContext, HsbTransform, TabBarColors, TextStyle,
+    VisualBellTarget,
 };
 use euclid::num::Zero;
 use mux::pane::Pane;
@@ -215,6 +217,7 @@ impl super::TermWindow {
                             log::trace!("grow texture atlas to {}", size);
                             self.recreate_texture_atlas(Some(size))
                         };
+                        self.invalidate_fancy_tab_bar();
 
                         if let Err(err) = result {
                             if self.allow_images {
@@ -234,6 +237,7 @@ impl super::TermWindow {
                             }
                         }
                     } else if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
+                        self.invalidate_fancy_tab_bar();
                         self.shape_cache.borrow_mut().clear();
                     } else {
                         log::error!("paint_opengl_pass failed: {:#}", err);
@@ -422,10 +426,11 @@ impl super::TermWindow {
         Self::tab_bar_pixel_height_impl(&self.config, &self.fonts, &self.render_metrics)
     }
 
-    fn paint_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<Vec<UIItem>> {
-        use super::box_model::*;
-        use config::Dimension;
+    pub fn invalidate_fancy_tab_bar(&mut self) {
+        self.fancy_tab_bar.take();
+    }
 
+    pub fn build_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<ComputedElement> {
         let font = self.fonts.title_font()?;
         let items = self.tab_bar.items();
         let colors = self
@@ -665,9 +670,10 @@ impl super::TermWindow {
             .display(DisplayType::Block)
             .item_type(UIItemType::TabBar(TabBarItem::None))
             .colors(bar_colors);
+
         let metrics = RenderMetrics::with_font_metrics(&font.metrics());
 
-        let computed = self.compute_element(
+        let mut computed = self.compute_element(
             &LayoutContext {
                 height: DimensionContext {
                     dpi: self.dimensions.dpi as f32,
@@ -691,56 +697,47 @@ impl super::TermWindow {
             &tabs,
         )?;
 
-        if false {
-            fn summarize(ele: &ComputedElement) {
-                log::info!(
-                    "ele {:?} with bounds={:?} content_rect={:?} padding={:?} border={:?}",
-                    ele.item_type,
-                    ele.bounds,
-                    ele.content_rect,
-                    ele.padding,
-                    ele.border_rect,
-                );
-                match &ele.content {
-                    ComputedElementContent::Text(_) => {}
-                    ComputedElementContent::Children(kids) => {
-                        for kid in kids {
-                            summarize(kid);
-                        }
-                    }
-                }
-            }
-            log::info!("Computed:");
-            summarize(&computed);
+        if self.config.tab_bar_at_bottom {
+            computed.translate(euclid::vec2(
+                0.,
+                self.dimensions.pixel_height as f32 - computed.bounds.height(),
+            ));
         }
 
+        Ok(computed)
+    }
+
+    fn paint_fancy_tab_bar(&self) -> anyhow::Result<Vec<UIItem>> {
+        let computed = self
+            .fancy_tab_bar
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("paint_tab_bar called but fancy_tab_bar is None"))?;
         let ui_items = computed.ui_items();
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
-        let mut vb_mut0 = vb[0].current_vb_mut();
-        let mut vb_mut1 = vb[1].current_vb_mut();
-        let mut vb_mut2 = vb[2].current_vb_mut();
-        let mut layers = [
-            vb[0].map(&mut vb_mut0),
-            vb[1].map(&mut vb_mut1),
-            vb[2].map(&mut vb_mut2),
-        ];
-        self.render_element(&computed, &mut layers[1], None)?;
+        let vb = &gl_state.vb[1];
+        let mut vb_mut = vb.current_vb_mut();
+        let mut layer1 = vb.map(&mut vb_mut);
+        self.render_element(&computed, &mut layer1, None)?;
 
         Ok(ui_items)
     }
 
     fn paint_tab_bar(&mut self) -> anyhow::Result<()> {
-        let palette = self.palette().clone();
         if self.config.use_fancy_tab_bar {
-            self.ui_items
-                .append(&mut self.paint_fancy_tab_bar(&palette)?);
+            if self.fancy_tab_bar.is_none() {
+                let palette = self.palette().clone();
+                self.fancy_tab_bar
+                    .replace(self.build_fancy_tab_bar(&palette)?);
+            }
+
+            self.ui_items.append(&mut self.paint_fancy_tab_bar()?);
             return Ok(());
         }
 
+        let palette = self.palette().clone();
         let tab_bar_height = self.tab_bar_pixel_height()?;
-        let tab_bar_y = if self.config.tab_bar_at_bottom() {
+        let tab_bar_y = if self.config.tab_bar_at_bottom {
             ((self.dimensions.pixel_height as f32) - tab_bar_height).max(0.)
         } else {
             0.
@@ -847,7 +844,7 @@ impl super::TermWindow {
 
         let (padding_left, padding_top) = self.padding_left_top();
 
-        let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom() {
+        let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height()?
         } else {
             0.
@@ -1115,7 +1112,7 @@ impl super::TermWindow {
                 current_viewport,
                 &self.dimensions,
                 tab_bar_height,
-                config.tab_bar_at_bottom(),
+                config.tab_bar_at_bottom,
             );
             let thumb_top = info.top as f32;
             let thumb_size = info.height as f32;
@@ -1360,7 +1357,7 @@ impl super::TermWindow {
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
 
-        let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom() {
+        let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height()?
         } else {
             0.
