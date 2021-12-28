@@ -442,6 +442,23 @@ impl super::TermWindow {
         let item_to_elem = |item: &TabEntry| -> Element {
             let element = Element::with_line(&font, &item.title, palette);
 
+            let bg_color = item
+                .title
+                .cells()
+                .get(0)
+                .and_then(|c| match c.attrs().background() {
+                    ColorAttribute::Default => None,
+                    col => Some(palette.resolve_bg(col)),
+                });
+            let fg_color = item
+                .title
+                .cells()
+                .get(0)
+                .and_then(|c| match c.attrs().foreground() {
+                    ColorAttribute::Default => None,
+                    col => Some(palette.resolve_fg(col)),
+                });
+
             match item.item {
                 TabBarItem::None => element
                     .item_type(UIItemType::TabBar(TabBarItem::None))
@@ -522,10 +539,16 @@ impl super::TermWindow {
                     }))
                     .colors(ElementColors {
                         border: BorderColor::new(rgbcolor_to_window_color(
-                            colors.active_tab.bg_color,
+                            bg_color.unwrap_or(colors.active_tab.bg_color),
                         )),
-                        bg: rgbcolor_to_window_color(colors.active_tab.bg_color).into(),
-                        text: rgbcolor_to_window_color(colors.active_tab.fg_color).into(),
+                        bg: rgbcolor_to_window_color(
+                            bg_color.unwrap_or(colors.active_tab.bg_color),
+                        )
+                        .into(),
+                        text: rgbcolor_to_window_color(
+                            fg_color.unwrap_or(colors.active_tab.fg_color),
+                        )
+                        .into(),
                     }),
                 TabBarItem::Tab { .. } => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
@@ -566,7 +589,9 @@ impl super::TermWindow {
                         },
                     }))
                     .colors({
-                        let bg = rgbcolor_to_window_color(colors.inactive_tab.bg_color);
+                        let bg = rgbcolor_to_window_color(
+                            bg_color.unwrap_or(colors.inactive_tab.bg_color),
+                        );
                         let edge = rgbcolor_to_window_color(colors.inactive_tab_edge);
                         ElementColors {
                             border: BorderColor {
@@ -576,15 +601,24 @@ impl super::TermWindow {
                                 bottom: bg,
                             },
                             bg: bg.into(),
-                            text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
+                            text: rgbcolor_to_window_color(
+                                fg_color.unwrap_or(colors.inactive_tab.fg_color),
+                            )
+                            .into(),
                         }
                     })
                     .hover_colors(Some(ElementColors {
                         border: BorderColor::new(rgbcolor_to_window_color(
-                            colors.inactive_tab_hover.bg_color,
+                            bg_color.unwrap_or(colors.inactive_tab_hover.bg_color),
                         )),
-                        bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color).into(),
-                        text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color).into(),
+                        bg: rgbcolor_to_window_color(
+                            bg_color.unwrap_or(colors.inactive_tab_hover.bg_color),
+                        )
+                        .into(),
+                        text: rgbcolor_to_window_color(
+                            fg_color.unwrap_or(colors.inactive_tab_hover.fg_color),
+                        )
+                        .into(),
                     })),
             }
         };
