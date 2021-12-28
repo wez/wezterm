@@ -80,7 +80,7 @@ impl<'de> serde::de::Visitor<'de> for DefaultUnit {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Dimension {
     /// A value expressed in points, where 72 points == 1 inch.
     Points(f32),

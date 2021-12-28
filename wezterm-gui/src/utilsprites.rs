@@ -43,6 +43,24 @@ impl RenderMetrics {
         }
     }
 
+    pub fn scale_line_height(&self, line_height: f64) -> Self {
+        let size = euclid::size2(
+            self.cell_size.width,
+            (self.cell_size.height as f64 * line_height) as isize,
+        );
+
+        let adjust = (((self.descender_row as f64 * line_height) - self.descender_row as f64) / 2.0)
+            as isize;
+        Self {
+            descender: self.descender - PixelLength::new(adjust as f64),
+            descender_row: self.descender_row - adjust,
+            descender_plus_two: self.descender_plus_two - adjust,
+            underline_height: self.underline_height,
+            strike_row: self.strike_row,
+            cell_size: size,
+        }
+    }
+
     pub fn new(fonts: &Rc<FontConfiguration>) -> anyhow::Result<Self> {
         let metrics = fonts
             .default_font_metrics()
