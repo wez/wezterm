@@ -1,13 +1,18 @@
-# `pane:get_lines_as_text([nlines])`
+# `pane:get_logical_lines_as_text([nlines])`
 
-*Since: 20201031-154415-9614e117*
+*Since: nightly builds only*
 
 Returns the textual representation (not including color or other attributes) of
-the *physical* lines of text in the viewport as a string.
+the *logical* lines of text in the viewport as a string.
 
-A *physical* line is a possibly-wrapped line that composes a row in the terminal
-display matrix.  If you'd rather operate on *logical* lines, see
-[pane:get_logical_lines_as_text](get_logical_lines_as_text.md).
+A *logical* line is an original input line prior to being wrapped into *physical*
+lines to composes rows in the terminal display matrix.  WezTerm doesn't store
+logical lines, but can recompute them from metadata stored in physical lines.
+Excessively long logical lines are force-wrapped to constrain the cost of
+rewrapping on resize and selection operations.
+
+If you'd rather operate on physical lines, see
+[pane:get_lines_as_text](get_lines_as_text.md).
 
 If the optional `nlines` argument is specified then it is used to determine how
 many lines of text should be retrieved.  The default (if `nlines` is not specified)
@@ -18,4 +23,5 @@ joined together in the returned string separated by a `\n` character.
 Trailing blank lines are stripped, which may result in fewer lines being
 returned than you might expect if the pane only had a couple of lines
 of output.
+
 
