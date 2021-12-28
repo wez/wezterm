@@ -488,6 +488,12 @@ pub enum MouseReport {
         button: MouseButton,
         modifiers: Modifiers,
     },
+    SGR1016 {
+        x_pixels: u16,
+        y_pixels: u16,
+        button: MouseButton,
+        modifiers: Modifiers,
+    },
 }
 
 impl Display for MouseReport {
@@ -533,6 +539,47 @@ impl Display for MouseReport {
                     _ => 'm',
                 };
                 write!(f, "<{};{};{}{}", b, x, y, trailer)
+            }
+            MouseReport::SGR1016 {
+                x_pixels,
+                y_pixels,
+                button,
+                modifiers,
+            } => {
+                let mut b = 0;
+                if (*modifiers & Modifiers::SHIFT) != Modifiers::NONE {
+                    b |= 4;
+                }
+                if (*modifiers & Modifiers::ALT) != Modifiers::NONE {
+                    b |= 8;
+                }
+                if (*modifiers & Modifiers::CTRL) != Modifiers::NONE {
+                    b |= 16;
+                }
+                b |= match button {
+                    MouseButton::Button1Press | MouseButton::Button1Release => 0,
+                    MouseButton::Button2Press | MouseButton::Button2Release => 1,
+                    MouseButton::Button3Press | MouseButton::Button3Release => 2,
+                    MouseButton::Button4Press | MouseButton::Button4Release => 64,
+                    MouseButton::Button5Press | MouseButton::Button5Release => 65,
+                    MouseButton::Button1Drag => 32,
+                    MouseButton::Button2Drag => 33,
+                    MouseButton::Button3Drag => 34,
+                    MouseButton::None => 35,
+                };
+                let trailer = match button {
+                    MouseButton::Button1Press
+                    | MouseButton::Button2Press
+                    | MouseButton::Button3Press
+                    | MouseButton::Button4Press
+                    | MouseButton::Button5Press
+                    | MouseButton::Button1Drag
+                    | MouseButton::Button2Drag
+                    | MouseButton::Button3Drag
+                    | MouseButton::None => 'M',
+                    _ => 'm',
+                };
+                write!(f, "<{};{};{}{}", b, x_pixels, y_pixels, trailer)
             }
         }
     }
@@ -692,6 +739,10 @@ pub enum DecPrivateModeCode {
     /// enable mouse reporting itself, it just controls how reports
     /// will be encoded.
     SGRMouse = 1006,
+    /// Use pixels rather than text cells in mouse reporting.  Does
+    /// not enable mouse reporting itself, it just controls how
+    /// reports will be encoded.
+    SGRPixelsMouse = 1016,
     /// Save cursor as in DECSC
     SaveCursor = 1048,
     ClearAndEnableAlternateScreen = 1049,

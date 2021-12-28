@@ -87,6 +87,17 @@ impl super::TermWindow {
         }
         .trunc() as usize;
 
+        let y_offset = (event
+            .coords
+            .y
+            .sub(padding_top as isize)
+            .sub(first_line_offset)
+            .max(0)
+            % self.render_metrics.cell_size.height) as usize;
+
+        let x_offset = (event.coords.x.sub(padding_left as isize).max(0)
+            % self.render_metrics.cell_size.width) as usize;
+
         self.last_mouse_coords = (x, y);
 
         match event.kind {
@@ -107,8 +118,8 @@ impl super::TermWindow {
                 let button = mouse_press_to_tmb(press);
 
                 let click = match self.last_mouse_click.take() {
-                    None => LastMouseClick::new(button, (x, y)),
-                    Some(click) => click.add(button, (x, y)),
+                    None => LastMouseClick::new(button, (x, y, x_offset, y_offset)),
+                    Some(click) => click.add(button, (x, y, x_offset, y_offset)),
                 };
                 self.last_mouse_click = Some(click);
                 self.current_mouse_buttons.retain(|p| p != press);
@@ -167,7 +178,7 @@ impl super::TermWindow {
         if let Some(item) = ui_item {
             self.mouse_event_ui_item(item, pane, y, event, context);
         } else {
-            self.mouse_event_terminal(pane, x, y, event, context);
+            self.mouse_event_terminal(pane, x, y, x_offset, y_offset, event, context);
         }
     }
 
@@ -430,6 +441,8 @@ impl super::TermWindow {
         mut pane: Rc<dyn Pane>,
         mut x: usize,
         mut y: i64,
+        x_offset: usize,
+        y_offset: usize,
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
@@ -689,6 +702,8 @@ impl super::TermWindow {
             },
             x,
             y,
+            x_offset,
+            y_offset,
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
 

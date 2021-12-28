@@ -1,4 +1,5 @@
 use crate::input::*;
+use crate::terminalstate::MouseEncoding;
 use crate::TerminalState;
 use anyhow::bail;
 
@@ -48,7 +49,7 @@ impl TerminalState {
     fn mouse_wheel(&mut self, event: MouseEvent) -> anyhow::Result<()> {
         let (button, _button) = self.mouse_report_button_number(&event);
 
-        if self.sgr_mouse
+        if self.mouse_encoding == MouseEncoding::SGR
             && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
         {
             write!(
@@ -57,6 +58,17 @@ impl TerminalState {
                 button,
                 event.x + 1,
                 event.y + 1
+            )?;
+            self.writer.flush()?;
+        } else if self.mouse_encoding == MouseEncoding::SgrPixels
+            && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
+        {
+            write!(
+                self.writer,
+                "\x1b[<{};{};{}M",
+                button,
+                (event.x * self.pixel_width) + event.x_offset + 1,
+                (event.y as usize * self.pixel_height) + event.y_offset + 1
             )?;
             self.writer.flush()?;
         } else if self.mouse_tracking || self.button_event_mouse || self.any_event_mouse {
@@ -93,13 +105,22 @@ impl TerminalState {
             return Ok(());
         }
 
-        if self.sgr_mouse {
+        if self.mouse_encoding == MouseEncoding::SGR {
             write!(
                 self.writer,
                 "\x1b[<{};{};{}M",
                 button,
                 event.x + 1,
                 event.y + 1
+            )?;
+            self.writer.flush()?;
+        } else if self.mouse_encoding == MouseEncoding::SgrPixels {
+            write!(
+                self.writer,
+                "\x1b[<{};{};{}M",
+                button,
+                (event.x * self.pixel_width) + event.x_offset + 1,
+                (event.y as usize * self.pixel_height) + event.y_offset + 1
             )?;
             self.writer.flush()?;
         } else {
@@ -121,13 +142,22 @@ impl TerminalState {
         if !self.current_mouse_buttons.is_empty() {
             self.current_mouse_buttons.retain(|&b| b != button);
             if self.mouse_tracking || self.button_event_mouse || self.any_event_mouse {
-                if self.sgr_mouse {
+                if self.mouse_encoding == MouseEncoding::SGR {
                     write!(
                         self.writer,
                         "\x1b[<{};{};{}m",
                         release_button,
                         event.x + 1,
                         event.y + 1
+                    )?;
+                    self.writer.flush()?;
+                } else if self.mouse_encoding == MouseEncoding::SgrPixels {
+                    write!(
+                        self.writer,
+                        "\x1b[<{};{};{}m",
+                        release_button,
+                        (event.x * self.pixel_width) + event.x_offset + 1,
+                        (event.y as usize * self.pixel_height) + event.y_offset + 1
                     )?;
                     self.writer.flush()?;
                 } else {
@@ -162,13 +192,22 @@ impl TerminalState {
             let (button, _button) = self.mouse_report_button_number(&event);
             let button = 32 + button;
 
-            if self.sgr_mouse {
+            if self.mouse_encoding == MouseEncoding::SGR {
                 write!(
                     self.writer,
                     "\x1b[<{};{};{}M",
                     button,
                     event.x + 1,
                     event.y + 1
+                )?;
+                self.writer.flush()?;
+            } else if self.mouse_encoding == MouseEncoding::SgrPixels {
+                write!(
+                    self.writer,
+                    "\x1b[<{};{};{}M",
+                    button,
+                    (event.x * self.pixel_width) + event.x_offset + 1,
+                    (event.y as usize * self.pixel_height) + event.y_offset + 1
                 )?;
                 self.writer.flush()?;
             } else {
