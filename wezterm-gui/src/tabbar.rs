@@ -159,7 +159,7 @@ fn is_tab_hover(mouse_x: Option<usize>, x: usize, tab_title_len: usize) -> bool 
 impl TabBarState {
     pub fn default() -> Self {
         Self {
-            line: Line::with_width(1),
+            line: Line::with_width(1, SEQ_ZERO),
             items: vec![],
         }
     }
@@ -248,7 +248,7 @@ impl TabBarState {
         }
         .min(config.tab_max_width);
 
-        let mut line = Line::with_width(0);
+        let mut line = Line::with_width(0, SEQ_ZERO);
 
         let mut x = 0;
         let mut items = vec![];
@@ -472,5 +472,5 @@ fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
         }
     });
     flush_print(&mut print_buffer, &mut cells, &pen);
-    Line::from_cells(cells)
+    Line::from_cells(cells, SEQ_ZERO)
 }

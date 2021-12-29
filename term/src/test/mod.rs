@@ -403,7 +403,7 @@ fn test_semantic() {
     let mut input = CellAttributes::default();
     input.set_semantic_type(SemanticType::Input);
 
-    let mut prompt_line = Line::from_text("> ls -l   ", &output);
+    let mut prompt_line = Line::from_text("> ls -l   ", &output, SEQ_ZERO);
     for i in 0..2 {
         prompt_line.cells_mut()[i]
             .attrs_mut()
@@ -456,11 +456,11 @@ fn test_semantic() {
         line!(),
         &term.screen().visible_lines(),
         &[
-            Line::from_text("hello     ", &output),
-            Line::from_text("there     ", &output),
-            Line::from_text("three     ", &output),
+            Line::from_text("hello     ", &output, SEQ_ZERO),
+            Line::from_text("there     ", &output, SEQ_ZERO),
+            Line::from_text("three     ", &output, SEQ_ZERO),
             prompt_line,
-            Line::from_text("some file ", &output),
+            Line::from_text("some file ", &output, SEQ_ZERO),
         ],
         Compare::TEXT | Compare::ATTRS,
     );
@@ -1050,7 +1050,7 @@ fn test_hyperlinks() {
         line!(),
         &term.screen().visible_lines(),
         &[
-            Line::from_text("hello", &linked),
+            Line::from_text("hello", &linked, SEQ_ZERO),
             "     ".into(),
             "     ".into(),
         ],
@@ -1068,8 +1068,8 @@ fn test_hyperlinks() {
         line!(),
         &term.screen().visible_lines(),
         &[
-            Line::from_text_with_wrapped_last_col("hello", &linked),
-            Line::from_text("hey!!", &linked),
+            Line::from_text_with_wrapped_last_col("hello", &linked, SEQ_ZERO),
+            Line::from_text("hey!!", &linked, SEQ_ZERO),
             "     ".into(),
         ],
         Compare::TEXT | Compare::ATTRS,
@@ -1084,7 +1084,7 @@ fn test_hyperlinks() {
     term.soft_reset();
     term.print("00t");
 
-    let mut partial_line = Line::from_text("wo00t", &CellAttributes::default());
+    let mut partial_line = Line::from_text("wo00t", &CellAttributes::default(), SEQ_ZERO);
     partial_line.set_cell(
         0,
         Cell::new(
@@ -1111,8 +1111,8 @@ fn test_hyperlinks() {
         line!(),
         &term.screen().visible_lines(),
         &[
-            Line::from_text_with_wrapped_last_col("hello", &linked),
-            Line::from_text_with_wrapped_last_col("hey!!", &linked),
+            Line::from_text_with_wrapped_last_col("hello", &linked, SEQ_ZERO),
+            Line::from_text_with_wrapped_last_col("hey!!", &linked, SEQ_ZERO),
             partial_line,
         ],
         Compare::TEXT | Compare::ATTRS,

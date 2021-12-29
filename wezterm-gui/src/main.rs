@@ -15,7 +15,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use structopt::StructOpt;
 use termwiz::cell::CellAttributes;
-use termwiz::surface::Line;
+use termwiz::surface::{Line, SEQ_ZERO};
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
 use wezterm_gui_subcommands::*;
 use wezterm_ssh::*;
@@ -487,7 +487,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
     )?;
 
     if let Some(text) = &cmd.text {
-        let line = Line::from_text(text, &CellAttributes::default());
+        let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO);
         let cell_clusters = line.cluster();
         for cluster in cell_clusters {
             let style = font_config.match_style(&config, &cluster.attrs);

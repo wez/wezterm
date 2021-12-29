@@ -162,9 +162,10 @@ impl ScreenOrAlt {
         physical_rows: usize,
         physical_cols: usize,
         config: &Arc<dyn TerminalConfiguration>,
+        seqno: SequenceNo,
     ) -> Self {
-        let screen = Screen::new(physical_rows, physical_cols, config, true);
-        let alt_screen = Screen::new(physical_rows, physical_cols, config, false);
+        let screen = Screen::new(physical_rows, physical_cols, config, true, seqno);
+        let alt_screen = Screen::new(physical_rows, physical_cols, config, false, seqno);
 
         Self {
             screen,
@@ -428,7 +429,8 @@ impl TerminalState {
         writer: Box<dyn std::io::Write + Send>,
     ) -> TerminalState {
         let writer = Box::new(ThreadedWriter::new(writer));
-        let screen = ScreenOrAlt::new(size.physical_rows, size.physical_cols, &config);
+        let seqno = 1;
+        let screen = ScreenOrAlt::new(size.physical_rows, size.physical_cols, &config, seqno);
 
         let color_map = default_color_map();
 
@@ -487,7 +489,7 @@ impl TerminalState {
             image_cache: lru::LruCache::new(16),
             user_vars: HashMap::new(),
             kitty_img: Default::default(),
-            seqno: 0,
+            seqno,
             unicode_version,
             unicode_version_stack: vec![],
             suppress_initial_title_change: false,
