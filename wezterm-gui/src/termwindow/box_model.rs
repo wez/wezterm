@@ -24,6 +24,7 @@ use window::bitmaps::atlas::Sprite;
 pub enum VerticalAlign {
     Top,
     Bottom,
+    Middle,
 }
 
 impl Default for VerticalAlign {
@@ -343,6 +344,7 @@ impl Element {
 pub enum ElementContent {
     Text(String),
     Children(Vec<Element>),
+    Poly { line_width: isize, poly: SizedPoly },
 }
 
 pub struct LayoutContext<'a> {
@@ -388,6 +390,7 @@ impl ComputedElement {
                 }
             }
             ComputedElementContent::Text(_) => {}
+            ComputedElementContent::Poly { .. } => {}
         }
     }
 
@@ -415,6 +418,7 @@ impl ComputedElement {
                     kid.ui_item_impl(items);
                 }
             }
+            ComputedElementContent::Poly { .. } => {}
         }
     }
 }
@@ -423,12 +427,64 @@ impl ComputedElement {
 pub enum ComputedElementContent {
     Text(Vec<ElementCell>),
     Children(Vec<ComputedElement>),
+    Poly {
+        line_width: isize,
+        poly: PixelSizedPoly,
+    },
 }
 
 #[derive(Debug, Clone)]
 pub enum ElementCell {
     Sprite(Sprite<SrgbTexture2d>),
     Glyph(Rc<CachedGlyph<SrgbTexture2d>>),
+}
+
+struct Rects {
+    padding: RectF,
+    border_rect: RectF,
+    bounds: RectF,
+    content_rect: RectF,
+    translate: euclid::Vector2D<f32, PixelUnit>,
+}
+
+impl Element {
+    fn compute_rects(&self, context: &LayoutContext, content_rect: RectF) -> Rects {
+        let padding = self.padding.to_pixels(context);
+        let margin = self.margin.to_pixels(context);
+        let border = self.border.to_pixels(context);
+
+        let padding = euclid::rect(
+            content_rect.min_x() - padding.left,
+            content_rect.min_y() - padding.top,
+            content_rect.width() + padding.left + padding.right,
+            content_rect.height() + padding.top + padding.bottom,
+        );
+
+        let border_rect = euclid::rect(
+            padding.min_x() - border.left,
+            padding.min_y() - border.top,
+            padding.width() + border.left + border.right,
+            padding.height() + border.top + border.bottom,
+        );
+
+        let bounds = euclid::rect(
+            border_rect.min_x() - margin.left,
+            border_rect.min_y() - margin.top,
+            border_rect.width() + margin.left + margin.right,
+            border_rect.height() + margin.top + margin.bottom,
+        );
+        let translate = euclid::vec2(
+            context.bounds.min_x() - bounds.min_x(),
+            context.bounds.min_y() - bounds.min_y(),
+        );
+        Rects {
+            padding: padding.translate(translate),
+            border_rect: border_rect.translate(translate),
+            bounds: bounds.translate(translate),
+            content_rect: content_rect.translate(translate),
+            translate,
+        }
+    }
 }
 
 impl super::TermWindow {
@@ -456,14 +512,12 @@ impl super::TermWindow {
         } else {
             context
         };
-        let padding = element.padding.to_pixels(context);
-        let margin = element.margin.to_pixels(context);
-        let border = element.border.to_pixels(context);
         let border_corners = element
             .border_corners
             .as_ref()
             .map(|c| c.to_pixels(context));
         let style = element.font.style();
+        let border = element.border.to_pixels(context);
         let baseline = context.height.pixel_cell + context.metrics.descender.get() as f32;
 
         match &element.content {
@@ -513,31 +567,7 @@ impl super::TermWindow {
 
                 let content_rect = euclid::rect(0., 0., pixel_width, context.height.pixel_cell);
 
-                let padding = euclid::rect(
-                    content_rect.min_x() - padding.left,
-                    content_rect.min_y() - padding.top,
-                    content_rect.width() + padding.left + padding.right,
-                    content_rect.height() + padding.top + padding.bottom,
-                );
-
-                let border_rect = euclid::rect(
-                    padding.min_x() - border.left,
-                    padding.min_y() - border.top,
-                    padding.width() + border.left + border.right,
-                    padding.height() + border.top + border.bottom,
-                );
-
-                let bounds = euclid::rect(
-                    border_rect.min_x() - margin.left,
-                    border_rect.min_y() - margin.top,
-                    border_rect.width() + margin.left + margin.right,
-                    border_rect.height() + margin.top + margin.bottom,
-                );
-
-                let translate = euclid::vec2(
-                    context.bounds.min_x() - bounds.min_x(),
-                    context.bounds.min_y() - bounds.min_y(),
-                );
+                let rects = element.compute_rects(context, content_rect);
 
                 Ok(ComputedElement {
                     item_type: element.item_type.clone(),
@@ -547,10 +577,10 @@ impl super::TermWindow {
                     border_corners,
                     colors: element.colors,
                     hover_colors: element.hover_colors,
-                    bounds: bounds.translate(translate),
-                    border_rect: border_rect.translate(translate),
-                    padding: padding.translate(translate),
-                    content_rect: content_rect.translate(translate),
+                    bounds: rects.bounds,
+                    border_rect: rects.border_rect,
+                    padding: rects.padding,
+                    content_rect: rects.content_rect,
                     content: ComputedElementContent::Text(computed_cells),
                 })
             }
@@ -586,6 +616,10 @@ impl super::TermWindow {
                     )?;
                     match child.float {
                         Float::Right => {
+                            let padding = element.padding.to_pixels(context);
+                            let margin = element.margin.to_pixels(context);
+                            let border = element.border.to_pixels(context);
+
                             let padded_max_x = context
                                 .bounds
                                 .max_x()
@@ -611,43 +645,27 @@ impl super::TermWindow {
                 }
 
                 for (kid, child) in computed_kids.iter_mut().zip(kids.iter()) {
-                    if child.vertical_align == VerticalAlign::Bottom {
-                        kid.translate(euclid::vec2(0., pixel_height - kid.bounds.height()));
+                    match child.vertical_align {
+                        VerticalAlign::Bottom => {
+                            kid.translate(euclid::vec2(0., pixel_height - kid.bounds.height()));
+                        }
+                        VerticalAlign::Middle => {
+                            kid.translate(euclid::vec2(
+                                0.,
+                                (pixel_height - kid.bounds.height()) / 2.0,
+                            ));
+                        }
+                        VerticalAlign::Top => {}
                     }
                 }
 
                 computed_kids.sort_by(|a, b| a.zindex.cmp(&b.zindex));
 
                 let content_rect = euclid::rect(0., 0., max_x, pixel_height);
-
-                let padding = euclid::rect(
-                    content_rect.min_x() - padding.left,
-                    content_rect.min_y() - padding.top,
-                    content_rect.width() + padding.left + padding.right,
-                    content_rect.height() + padding.top + padding.bottom,
-                );
-
-                let border_rect = euclid::rect(
-                    padding.min_x() - border.left,
-                    padding.min_y() - border.top,
-                    padding.width() + border.left + border.right,
-                    padding.height() + border.top + border.bottom,
-                );
-
-                let bounds = euclid::rect(
-                    border_rect.min_x() - margin.left,
-                    border_rect.min_y() - margin.top,
-                    border_rect.width() + margin.left + margin.right,
-                    border_rect.height() + margin.top + margin.bottom,
-                );
-
-                let translate = euclid::vec2(
-                    context.bounds.min_x() - bounds.min_x(),
-                    context.bounds.min_y() - bounds.min_y(),
-                );
+                let rects = element.compute_rects(context, content_rect);
 
                 for kid in &mut computed_kids {
-                    kid.translate(translate);
+                    kid.translate(rects.translate);
                 }
 
                 Ok(ComputedElement {
@@ -658,11 +676,34 @@ impl super::TermWindow {
                     border_corners,
                     colors: element.colors,
                     hover_colors: element.hover_colors,
-                    bounds: bounds.translate(translate),
-                    border_rect: border_rect.translate(translate),
-                    padding: padding.translate(translate),
-                    content_rect: content_rect.translate(translate),
+                    bounds: rects.bounds,
+                    border_rect: rects.border_rect,
+                    padding: rects.padding,
+                    content_rect: rects.content_rect,
                     content: ComputedElementContent::Children(computed_kids),
+                })
+            }
+            ElementContent::Poly { poly, line_width } => {
+                let poly = poly.to_pixels(context);
+                let content_rect = euclid::rect(0., 0., poly.width, poly.height);
+                let rects = element.compute_rects(context, content_rect);
+
+                Ok(ComputedElement {
+                    item_type: element.item_type.clone(),
+                    zindex: element.zindex,
+                    baseline,
+                    border,
+                    border_corners,
+                    colors: element.colors,
+                    hover_colors: element.hover_colors,
+                    bounds: rects.bounds,
+                    border_rect: rects.border_rect,
+                    padding: rects.padding,
+                    content_rect: rects.content_rect,
+                    content: ComputedElementContent::Poly {
+                        poly,
+                        line_width: *line_width,
+                    },
                 })
             }
         }
@@ -751,6 +792,16 @@ impl super::TermWindow {
                     self.render_element(kid, layer, Some(colors))?;
                 }
             }
+            ComputedElementContent::Poly { poly, line_width } => {
+                self.poly_quad(
+                    layer,
+                    element.content_rect.origin,
+                    poly.poly,
+                    *line_width,
+                    euclid::size2(poly.width, poly.height),
+                    colors.resolve_text(inherited_colors),
+                )?;
+            }
         }
 
         Ok(())
@@ -763,73 +814,72 @@ impl super::TermWindow {
         layer: &'a mut MappedQuads,
         inherited_colors: Option<&ElementColors>,
     ) -> anyhow::Result<()> {
-        let mut top_left_width = 0;
-        let mut top_left_height = 0;
-        let mut top_right_width = 0;
-        let mut top_right_height = 0;
+        let mut top_left_width = 0.;
+        let mut top_left_height = 0.;
+        let mut top_right_width = 0.;
+        let mut top_right_height = 0.;
 
-        let mut bottom_left_width = 0;
-        let mut bottom_left_height = 0;
-        let mut bottom_right_width = 0;
-        let mut bottom_right_height = 0;
+        let mut bottom_left_width = 0.;
+        let mut bottom_left_height = 0.;
+        let mut bottom_right_width = 0.;
+        let mut bottom_right_height = 0.;
 
         if let Some(c) = &element.border_corners {
-            top_left_width = c.top_left.width as isize;
-            top_left_height = c.top_left.height as isize;
-            top_right_width = c.top_right.width as isize;
-            top_right_height = c.top_right.height as isize;
+            top_left_width = c.top_left.width;
+            top_left_height = c.top_left.height;
+            top_right_width = c.top_right.width;
+            top_right_height = c.top_right.height;
 
-            bottom_left_width = c.bottom_left.width as isize;
-            bottom_left_height = c.bottom_left.height as isize;
-            bottom_right_width = c.bottom_right.width as isize;
-            bottom_right_height = c.bottom_right.height as isize;
+            bottom_left_width = c.bottom_left.width;
+            bottom_left_height = c.bottom_left.height;
+            bottom_right_width = c.bottom_right.width;
+            bottom_right_height = c.bottom_right.height;
 
-            let underline_height = 1;
-            if top_left_width > 0 && top_left_height > 0 {
+            if top_left_width > 0. && top_left_height > 0. {
                 self.poly_quad(
                     layer,
                     element.border_rect.origin,
                     c.top_left.poly,
-                    underline_height,
+                    element.border.top as isize,
                     euclid::size2(top_left_width, top_left_height),
                     colors.border.top,
                 )?;
             }
-            if top_right_width > 0 && top_right_height > 0 {
+            if top_right_width > 0. && top_right_height > 0. {
                 self.poly_quad(
                     layer,
                     euclid::point2(
-                        element.border_rect.max_x() - top_right_width as f32,
+                        element.border_rect.max_x() - top_right_width,
                         element.border_rect.min_y(),
                     ),
                     c.top_right.poly,
-                    underline_height,
+                    element.border.top as isize,
                     euclid::size2(top_right_width, top_right_height),
                     colors.border.top,
                 )?;
             }
-            if bottom_left_width > 0 && bottom_left_height > 0 {
+            if bottom_left_width > 0. && bottom_left_height > 0. {
                 self.poly_quad(
                     layer,
                     euclid::point2(
                         element.border_rect.min_x(),
-                        element.border_rect.max_y() - bottom_left_height as f32,
+                        element.border_rect.max_y() - bottom_left_height,
                     ),
                     c.bottom_left.poly,
-                    underline_height,
+                    element.border.bottom as isize,
                     euclid::size2(bottom_left_width, bottom_left_height),
                     colors.border.bottom,
                 )?;
             }
-            if bottom_right_width > 0 && bottom_right_height > 0 {
+            if bottom_right_width > 0. && bottom_right_height > 0. {
                 self.poly_quad(
                     layer,
                     euclid::point2(
-                        element.border_rect.max_x() - bottom_right_width as f32,
-                        element.border_rect.max_y() - bottom_right_height as f32,
+                        element.border_rect.max_x() - bottom_right_width,
+                        element.border_rect.max_y() - bottom_right_height,
                     ),
                     c.bottom_right.poly,
-                    underline_height,
+                    element.border.bottom as isize,
                     euclid::size2(bottom_right_width, bottom_right_height),
                     colors.border.bottom,
                 )?;
@@ -851,10 +901,10 @@ impl super::TermWindow {
             self.filled_rectangle(
                 layer,
                 euclid::rect(
-                    element.border_rect.min_x() + top_left_width as f32,
+                    element.border_rect.min_x() + top_left_width,
                     element.border_rect.min_y(),
                     element.border_rect.width() - (top_left_width + top_right_width) as f32,
-                    top_left_height.max(top_right_height) as f32,
+                    top_left_height.max(top_right_height),
                 ),
                 colors.resolve_bg(inherited_colors),
             )?;
@@ -863,11 +913,10 @@ impl super::TermWindow {
             self.filled_rectangle(
                 layer,
                 euclid::rect(
-                    element.border_rect.min_x() + bottom_left_width as f32,
-                    element.border_rect.max_y()
-                        - bottom_left_height.max(bottom_right_height) as f32,
-                    element.border_rect.width() - (bottom_left_width + bottom_right_width) as f32,
-                    bottom_left_height.max(bottom_right_height) as f32,
+                    element.border_rect.min_x() + bottom_left_width,
+                    element.border_rect.max_y() - bottom_left_height.max(bottom_right_height),
+                    element.border_rect.width() - (bottom_left_width + bottom_right_width),
+                    bottom_left_height.max(bottom_right_height),
                 ),
                 colors.resolve_bg(inherited_colors),
             )?;
@@ -877,9 +926,9 @@ impl super::TermWindow {
                 layer,
                 euclid::rect(
                     element.border_rect.min_x(),
-                    element.border_rect.min_y() + top_left_height as f32,
-                    top_left_width.max(bottom_left_width) as f32,
-                    element.border_rect.height() - (top_left_height + bottom_left_height) as f32,
+                    element.border_rect.min_y() + top_left_height,
+                    top_left_width.max(bottom_left_width),
+                    element.border_rect.height() - (top_left_height + bottom_left_height),
                 ),
                 colors.resolve_bg(inherited_colors),
             )?;
@@ -888,10 +937,10 @@ impl super::TermWindow {
             self.filled_rectangle(
                 layer,
                 euclid::rect(
-                    element.border_rect.max_x() - top_right_width as f32,
-                    element.border_rect.min_y() + top_right_height as f32,
-                    top_right_width.max(bottom_right_width) as f32,
-                    element.border_rect.height() - (top_right_height + bottom_right_height) as f32,
+                    element.border_rect.max_x() - top_right_width,
+                    element.border_rect.min_y() + top_right_height,
+                    top_right_width.max(bottom_right_width),
+                    element.border_rect.height() - (top_right_height + bottom_right_height),
                 ),
                 colors.resolve_bg(inherited_colors),
             )?;
@@ -900,13 +949,12 @@ impl super::TermWindow {
             self.filled_rectangle(
                 layer,
                 euclid::rect(
-                    element.border_rect.min_x() + top_left_width as f32,
-                    element.border_rect.min_y() + top_right_height.min(top_left_height) as f32,
-                    element.border_rect.width() - (top_left_width + top_right_width) as f32,
+                    element.border_rect.min_x() + top_left_width,
+                    element.border_rect.min_y() + top_right_height.min(top_left_height),
+                    element.border_rect.width() - (top_left_width + top_right_width),
                     element.border_rect.height()
                         - (top_right_height.min(top_left_height)
-                            + bottom_right_height.min(bottom_left_height))
-                            as f32,
+                            + bottom_right_height.min(bottom_left_height)),
                 ),
                 colors.resolve_bg(inherited_colors),
             )?;

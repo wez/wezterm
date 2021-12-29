@@ -18,7 +18,7 @@ use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
-use ::window::{PointF, RectF, Size, WindowOps};
+use ::window::{PointF, RectF, SizeF, WindowOps};
 use anyhow::anyhow;
 use config::{
     ConfigHandle, Dimension, DimensionContext, HsbTransform, TabBarColors, TextStyle,
@@ -70,6 +70,44 @@ const TOP_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
     intensity: BlockAlpha::Full,
     style: PolyStyle::Fill,
 }];
+
+const X_BUTTON: &[Poly] = &[
+    Poly {
+        path: &[
+            PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+            PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+        ],
+        intensity: BlockAlpha::Full,
+        style: PolyStyle::Outline,
+    },
+    Poly {
+        path: &[
+            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+            PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+        ],
+        intensity: BlockAlpha::Full,
+        style: PolyStyle::Outline,
+    },
+];
+
+const PLUS_BUTTON: &[Poly] = &[
+    Poly {
+        path: &[
+            PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+            PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+        ],
+        intensity: BlockAlpha::Full,
+        style: PolyStyle::Outline,
+    },
+    Poly {
+        path: &[
+            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+            PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+        ],
+        intensity: BlockAlpha::Full,
+        style: PolyStyle::Outline,
+    },
+];
 
 pub struct RenderScreenLineOpenGLParams<'a> {
     /// zero-based offset from top of the window viewport to the line that
@@ -374,7 +412,7 @@ impl super::TermWindow {
         point: PointF,
         polys: &'static [Poly],
         underline_height: IntPixelLength,
-        cell_size: Size,
+        cell_size: SizeF,
         color: LinearRgba,
     ) -> anyhow::Result<Quad<'a>> {
         let left_offset = self.dimensions.pixel_width as f32 / 2.;
@@ -387,7 +425,7 @@ impl super::TermWindow {
                 BlockKey::PolyWithCustomMetrics {
                     polys,
                     underline_height,
-                    cell_size,
+                    cell_size: euclid::size2(cell_size.width as isize, cell_size.height as isize),
                 },
                 &self.render_metrics,
             )?
@@ -486,31 +524,42 @@ impl super::TermWindow {
                         bg: rgbcolor_to_window_color(colors.inactive_tab.bg_color).into(),
                         text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
                     }),
-                TabBarItem::NewTabButton => element
-                    .item_type(UIItemType::TabBar(item.item.clone()))
-                    .margin(BoxDimension {
-                        left: Dimension::Cells(0.5),
-                        right: Dimension::Cells(0.),
-                        top: Dimension::Cells(0.2),
-                        bottom: Dimension::Cells(0.),
-                    })
-                    .padding(BoxDimension {
-                        left: Dimension::Cells(0.5),
-                        right: Dimension::Cells(0.5),
-                        top: Dimension::Cells(0.2),
-                        bottom: Dimension::Cells(0.25),
-                    })
-                    .border(BoxDimension::new(Dimension::Pixels(1.)))
-                    .colors(ElementColors {
-                        border: BorderColor::default(),
-                        bg: rgbcolor_to_window_color(colors.new_tab.bg_color).into(),
-                        text: rgbcolor_to_window_color(colors.new_tab.fg_color).into(),
-                    })
-                    .hover_colors(Some(ElementColors {
-                        border: BorderColor::default(),
-                        bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color).into(),
-                        text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color).into(),
-                    })),
+                TabBarItem::NewTabButton => Element::new(
+                    &font,
+                    ElementContent::Poly {
+                        line_width: self.render_metrics.underline_height,
+                        poly: SizedPoly {
+                            poly: PLUS_BUTTON,
+                            width: Dimension::Cells(0.75),
+                            height: Dimension::Cells(0.75),
+                        },
+                    },
+                )
+                .vertical_align(VerticalAlign::Middle)
+                .item_type(UIItemType::TabBar(item.item.clone()))
+                .margin(BoxDimension {
+                    left: Dimension::Cells(0.5),
+                    right: Dimension::Cells(0.),
+                    top: Dimension::Cells(0.2),
+                    bottom: Dimension::Cells(0.),
+                })
+                .padding(BoxDimension {
+                    left: Dimension::Cells(0.5),
+                    right: Dimension::Cells(0.5),
+                    top: Dimension::Cells(0.2),
+                    bottom: Dimension::Cells(0.25),
+                })
+                .border(BoxDimension::new(Dimension::Pixels(1.)))
+                .colors(ElementColors {
+                    border: BorderColor::default(),
+                    bg: rgbcolor_to_window_color(colors.new_tab.bg_color).into(),
+                    text: rgbcolor_to_window_color(colors.new_tab.fg_color).into(),
+                })
+                .hover_colors(Some(ElementColors {
+                    border: BorderColor::default(),
+                    bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color).into(),
+                    text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color).into(),
+                })),
                 TabBarItem::Tab { active, .. } if active => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
                     .margin(BoxDimension {
@@ -632,31 +681,48 @@ impl super::TermWindow {
                     let mut elem = item_to_elem(item);
                     elem.content = match elem.content {
                         ElementContent::Text(_) => unreachable!(),
+                        ElementContent::Poly { .. } => unreachable!(),
                         ElementContent::Children(mut kids) => {
-                            let x_button =
-                                Element::new(&font, ElementContent::Text("\u{2a2f}".to_string()))
-                                    .item_type(UIItemType::CloseTab(tab_idx))
-                                    .hover_colors(Some(ElementColors {
-                                        border: BorderColor::default(),
-                                        bg: rgbcolor_to_window_color(if active {
-                                            colors.inactive_tab_hover.bg_color
-                                        } else {
-                                            colors.active_tab.bg_color
-                                        })
-                                        .into(),
-                                        text: rgbcolor_to_window_color(if active {
-                                            colors.inactive_tab_hover.fg_color
-                                        } else {
-                                            colors.active_tab.fg_color
-                                        })
-                                        .into(),
-                                    }))
-                                    .margin(BoxDimension {
-                                        left: Dimension::Cells(0.5),
-                                        right: Dimension::Cells(0.),
-                                        top: Dimension::Cells(0.),
-                                        bottom: Dimension::Cells(0.),
-                                    });
+                            let x_button = Element::new(
+                                &font,
+                                ElementContent::Poly {
+                                    line_width: self.render_metrics.underline_height,
+                                    poly: SizedPoly {
+                                        poly: X_BUTTON,
+                                        width: Dimension::Cells(0.5),
+                                        height: Dimension::Cells(0.5),
+                                    },
+                                },
+                            )
+                            .vertical_align(VerticalAlign::Middle)
+                            .item_type(UIItemType::CloseTab(tab_idx))
+                            .hover_colors(Some(ElementColors {
+                                border: BorderColor::default(),
+                                bg: rgbcolor_to_window_color(if active {
+                                    colors.inactive_tab_hover.bg_color
+                                } else {
+                                    colors.active_tab.bg_color
+                                })
+                                .into(),
+                                text: rgbcolor_to_window_color(if active {
+                                    colors.inactive_tab_hover.fg_color
+                                } else {
+                                    colors.active_tab.fg_color
+                                })
+                                .into(),
+                            }))
+                            .padding(BoxDimension {
+                                left: Dimension::Cells(0.25),
+                                right: Dimension::Cells(0.25),
+                                top: Dimension::Cells(0.25),
+                                bottom: Dimension::Cells(0.25),
+                            })
+                            .margin(BoxDimension {
+                                left: Dimension::Cells(0.5),
+                                right: Dimension::Cells(0.),
+                                top: Dimension::Cells(0.),
+                                bottom: Dimension::Cells(0.),
+                            });
 
                             kids.push(x_button);
                             ElementContent::Children(kids)
