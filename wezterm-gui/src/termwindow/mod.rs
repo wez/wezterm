@@ -110,6 +110,7 @@ pub enum TermWindowNotif {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UIItemType {
     TabBar(TabBarItem),
+    CloseTab(usize),
     AboveScrollThumb,
     ScrollThumb,
     BelowScrollThumb,
@@ -2177,6 +2178,37 @@ impl TermWindow {
             promise::spawn::spawn(future).detach();
         } else {
             mux.remove_pane(pane_id);
+        }
+    }
+
+    fn close_specific_tab(&mut self, tab_idx: usize, confirm: bool) {
+        let mux = Mux::get().unwrap();
+        let mux_window_id = self.mux_window_id;
+        let mux_window = match mux.get_window(mux_window_id) {
+            Some(w) => w,
+            None => return,
+        };
+
+        let tab = match mux_window.get_by_idx(tab_idx) {
+            Some(tab) => Rc::clone(tab),
+            None => return,
+        };
+        drop(mux_window);
+
+        let tab_id = tab.tab_id();
+        if confirm && !tab.can_close_without_prompting(CloseReason::Tab) {
+            if self.activate_tab(tab_idx as isize).is_err() {
+                return;
+            }
+
+            let window = self.window.clone().unwrap();
+            let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
+                confirm_close_tab(tab_id, term, mux_window_id, window)
+            });
+            self.assign_overlay(tab_id, overlay);
+            promise::spawn::spawn(future).detach();
+        } else {
+            mux.remove_tab(tab_id);
         }
     }
 

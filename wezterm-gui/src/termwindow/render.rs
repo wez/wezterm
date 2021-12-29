@@ -631,6 +631,42 @@ impl super::TermWindow {
         for item in items {
             match item.item {
                 TabBarItem::None => right_eles.push(item_to_elem(item)),
+                TabBarItem::Tab { tab_idx, active } => {
+                    let mut elem = item_to_elem(item);
+                    elem.content = match elem.content {
+                        ElementContent::Text(_) => unreachable!(),
+                        ElementContent::Children(mut kids) => {
+                            let x_button =
+                                Element::new(&font, ElementContent::Text("\u{2a2f}".to_string()))
+                                    .item_type(UIItemType::CloseTab(tab_idx))
+                                    .hover_colors(Some(ElementColors {
+                                        border: BorderColor::default(),
+                                        bg: rgbcolor_to_window_color(if active {
+                                            colors.inactive_tab_hover.bg_color
+                                        } else {
+                                            colors.active_tab.bg_color
+                                        })
+                                        .into(),
+                                        text: rgbcolor_to_window_color(if active {
+                                            colors.inactive_tab_hover.fg_color
+                                        } else {
+                                            colors.active_tab.fg_color
+                                        })
+                                        .into(),
+                                    }))
+                                    .margin(BoxDimension {
+                                        left: Dimension::Cells(0.5),
+                                        right: Dimension::Cells(0.),
+                                        top: Dimension::Cells(0.),
+                                        bottom: Dimension::Cells(0.),
+                                    });
+
+                            kids.push(x_button);
+                            ElementContent::Children(kids)
+                        }
+                    };
+                    left_eles.push(elem);
+                }
                 _ => left_eles.push(item_to_elem(item)),
             }
         }

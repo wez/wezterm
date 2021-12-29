@@ -32,7 +32,8 @@ impl super::TermWindow {
             UIItemType::TabBar(_) => {
                 self.update_title_post_status();
             }
-            UIItemType::AboveScrollThumb
+            UIItemType::CloseTab(_)
+            | UIItemType::AboveScrollThumb
             | UIItemType::BelowScrollThumb
             | UIItemType::ScrollThumb
             | UIItemType::Split(_) => {}
@@ -42,7 +43,8 @@ impl super::TermWindow {
     fn enter_ui_item(&mut self, item: &UIItem) {
         match item.item_type {
             UIItemType::TabBar(_) => {}
-            UIItemType::AboveScrollThumb
+            UIItemType::CloseTab(_)
+            | UIItemType::AboveScrollThumb
             | UIItemType::BelowScrollThumb
             | UIItemType::ScrollThumb
             | UIItemType::Split(_) => {}
@@ -278,7 +280,26 @@ impl super::TermWindow {
             UIItemType::Split(split) => {
                 self.mouse_event_split(item, split, event, context);
             }
+            UIItemType::CloseTab(idx) => {
+                self.mouse_event_close_tab(idx, event, context);
+            }
         }
+    }
+
+    pub fn mouse_event_close_tab(
+        &mut self,
+        idx: usize,
+        event: MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        match event.kind {
+            WMEK::Press(MousePress::Left) => {
+                log::debug!("Should close tab {}", idx);
+                self.close_specific_tab(idx, true);
+            }
+            _ => {}
+        }
+        context.set_cursor(Some(MouseCursor::Arrow));
     }
 
     pub fn mouse_event_tab_bar(
