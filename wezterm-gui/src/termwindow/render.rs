@@ -488,7 +488,6 @@ impl super::TermWindow {
                     }),
                 TabBarItem::NewTabButton => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
-                    .vertical_align(VerticalAlign::Bottom)
                     .margin(BoxDimension {
                         left: Dimension::Cells(0.5),
                         right: Dimension::Cells(0.),
@@ -514,7 +513,6 @@ impl super::TermWindow {
                     })),
                 TabBarItem::Tab { active, .. } if active => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
-                    .vertical_align(VerticalAlign::Bottom)
                     .margin(BoxDimension {
                         left: Dimension::Cells(0.),
                         right: Dimension::Cells(0.),
@@ -557,7 +555,6 @@ impl super::TermWindow {
                     }),
                 TabBarItem::Tab { .. } => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
-                    .vertical_align(VerticalAlign::Bottom)
                     .margin(BoxDimension {
                         left: Dimension::Cells(0.),
                         right: Dimension::Cells(0.),
@@ -688,6 +685,7 @@ impl super::TermWindow {
         };
 
         let left_ele = Element::new(&font, ElementContent::Children(left_eles))
+            .vertical_align(VerticalAlign::Bottom)
             .colors(bar_colors.clone())
             .padding(BoxDimension {
                 left: Dimension::Cells(0.5),
