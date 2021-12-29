@@ -470,6 +470,7 @@ impl super::TermWindow {
 
     pub fn build_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<ComputedElement> {
         let font = self.fonts.title_font()?;
+        let metrics = RenderMetrics::with_font_metrics(&font.metrics());
         let items = self.tab_bar.items();
         let colors = self
             .config
@@ -527,11 +528,11 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton => Element::new(
                     &font,
                     ElementContent::Poly {
-                        line_width: self.render_metrics.underline_height,
+                        line_width: metrics.underline_height.max(2),
                         poly: SizedPoly {
                             poly: PLUS_BUTTON,
-                            width: Dimension::Cells(0.75),
-                            height: Dimension::Cells(0.75),
+                            width: Dimension::Pixels(metrics.cell_size.width as f32 * 0.75),
+                            height: Dimension::Pixels(metrics.cell_size.width as f32 * 0.75),
                         },
                     },
                 )
@@ -686,7 +687,7 @@ impl super::TermWindow {
                             let x_button = Element::new(
                                 &font,
                                 ElementContent::Poly {
-                                    line_width: self.render_metrics.underline_height,
+                                    line_width: metrics.underline_height.max(2),
                                     poly: SizedPoly {
                                         poly: X_BUTTON,
                                         width: Dimension::Cells(0.5),
@@ -770,8 +771,6 @@ impl super::TermWindow {
             .display(DisplayType::Block)
             .item_type(UIItemType::TabBar(TabBarItem::None))
             .colors(bar_colors);
-
-        let metrics = RenderMetrics::with_font_metrics(&font.metrics());
 
         let mut computed = self.compute_element(
             &LayoutContext {
