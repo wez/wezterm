@@ -106,6 +106,11 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             lua.create_function(|_, ()| Ok(crate::running_under_wsl()))?,
         )?;
 
+        wezterm_mod.set(
+            "get_builtin_color_schemes",
+            lua.create_function(|_, ()| Ok(crate::COLOR_SCHEMES.clone()))?,
+        )?;
+
         fn print_helper(args: Variadic<Value>) -> String {
             let mut output = String::new();
             for (idx, item) in args.into_iter().enumerate() {

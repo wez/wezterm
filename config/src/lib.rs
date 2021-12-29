@@ -71,7 +71,7 @@ lazy_static! {
     static ref SHOW_ERROR: Mutex<Option<ErrorCallback>> =
         Mutex::new(Some(|e| log::error!("{}", e)));
     static ref LUA_PIPE: LuaPipe = LuaPipe::new();
-    static ref COLOR_SCHEMES: HashMap<String, Palette> = build_default_schemes();
+    pub static ref COLOR_SCHEMES: HashMap<String, Palette> = build_default_schemes();
 }
 
 thread_local! {
