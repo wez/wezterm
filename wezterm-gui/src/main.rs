@@ -567,6 +567,11 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
         println!();
     }
 
+    println!("Title font:");
+    let title_font = font_config.title_font()?;
+    println!("{}", ParsedFont::lua_fallback(&title_font.clone_handles()));
+    println!();
+
     if cmd.list_system {
         let font_dirs = font_config.list_fonts_in_font_dirs();
         println!(
