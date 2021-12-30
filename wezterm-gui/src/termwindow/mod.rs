@@ -1306,6 +1306,7 @@ impl TermWindow {
         self.show_scroll_bar = config.enable_scroll_bar;
         self.shape_cache.borrow_mut().clear();
         self.fancy_tab_bar.take();
+        self.invalidate_fancy_tab_bar();
         self.input_map = InputMap::new(&config);
         self.leader_is_down = None;
         let dimensions = self.dimensions;
