@@ -5,7 +5,7 @@ set -x
 cd $(git rev-parse --show-toplevel)/assets/icon
 
 #src=wezterm-icon.svg
-src="WezTerm Alt.svg"
+src="wezterm-ghifarit53-2.svg"
 
 conv_opts="-colors 256 -background none -density 300"
 
