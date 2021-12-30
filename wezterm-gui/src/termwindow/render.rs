@@ -675,11 +675,23 @@ impl super::TermWindow {
             }
         };
 
+        let num_tabs: f32 = items
+            .iter()
+            .map(|item| match item.item {
+                TabBarItem::NewTabButton | TabBarItem::Tab { .. } => 1.,
+                _ => 0.,
+            })
+            .sum();
+        let max_tab_width = ((self.dimensions.pixel_width as f32 / num_tabs)
+            - (1.5 * metrics.cell_size.width as f32))
+            .max(0.);
+
         for item in items {
             match item.item {
                 TabBarItem::None => right_eles.push(item_to_elem(item)),
                 TabBarItem::Tab { tab_idx, active } => {
                     let mut elem = item_to_elem(item);
+                    elem.max_width = Some(Dimension::Pixels(max_tab_width));
                     elem.content = match elem.content {
                         ElementContent::Text(_) => unreachable!(),
                         ElementContent::Poly { .. } => unreachable!(),
@@ -696,6 +708,7 @@ impl super::TermWindow {
                                 },
                             )
                             .vertical_align(VerticalAlign::Middle)
+                            .float(Float::Right)
                             .item_type(UIItemType::CloseTab(tab_idx))
                             .hover_colors(Some(ElementColors {
                                 border: BorderColor::default(),
@@ -770,18 +783,19 @@ impl super::TermWindow {
         let tabs = Element::new(&font, content)
             .display(DisplayType::Block)
             .item_type(UIItemType::TabBar(TabBarItem::None))
+            .min_width(Some(Dimension::Pixels(self.dimensions.pixel_width as f32)))
             .colors(bar_colors);
 
         let mut computed = self.compute_element(
             &LayoutContext {
                 height: DimensionContext {
                     dpi: self.dimensions.dpi as f32,
-                    pixel_max: self.terminal_size.pixel_height as f32,
+                    pixel_max: self.dimensions.pixel_height as f32,
                     pixel_cell: metrics.cell_size.height as f32,
                 },
                 width: DimensionContext {
                     dpi: self.dimensions.dpi as f32,
-                    pixel_max: self.terminal_size.pixel_width as f32,
+                    pixel_max: self.dimensions.pixel_width as f32,
                     pixel_cell: metrics.cell_size.width as f32,
                 },
                 bounds: euclid::rect(

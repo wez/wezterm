@@ -10,7 +10,6 @@ use crate::utilsprites::RenderMetrics;
 use ::window::{RectF, WindowOps};
 use anyhow::anyhow;
 use config::{Dimension, DimensionContext};
-use std::ops::Sub;
 use std::rc::Rc;
 use termwiz::cell::{grapheme_column_width, Presentation};
 use termwiz::surface::Line;
@@ -229,6 +228,8 @@ pub struct Element {
     pub content: ElementContent,
     pub presentation: Option<Presentation>,
     pub line_height: Option<f64>,
+    pub max_width: Option<Dimension>,
+    pub min_width: Option<Dimension>,
 }
 
 impl Element {
@@ -249,6 +250,8 @@ impl Element {
             content,
             presentation: None,
             line_height: None,
+            max_width: None,
+            min_width: None,
         }
     }
 
@@ -336,6 +339,16 @@ impl Element {
 
     pub fn margin(mut self, margin: BoxDimension) -> Self {
         self.margin = margin;
+        self
+    }
+
+    pub fn max_width(mut self, width: Option<Dimension>) -> Self {
+        self.max_width = width;
+        self
+    }
+
+    pub fn min_width(mut self, width: Option<Dimension>) -> Self {
+        self.min_width = width;
         self
     }
 }
@@ -519,6 +532,10 @@ impl super::TermWindow {
         let style = element.font.style();
         let border = element.border.to_pixels(context);
         let baseline = context.height.pixel_cell + context.metrics.descender.get() as f32;
+        let min_width = match element.min_width {
+            Some(w) => w.evaluate_as_pixels(context.width),
+            None => 0.0,
+        };
 
         match &element.content {
             ElementContent::Text(s) => {
@@ -565,6 +582,13 @@ impl super::TermWindow {
                     }
                 }
 
+                let pixel_width = match element.max_width {
+                    Some(w) => w.evaluate_as_pixels(context.width).min(pixel_width),
+                    None => pixel_width,
+                }
+                .max(min_width)
+                .min(context.width.pixel_max);
+
                 let content_rect = euclid::rect(0., 0., pixel_width, context.height.pixel_cell);
 
                 let rects = element.compute_rects(context, content_rect);
@@ -589,9 +613,18 @@ impl super::TermWindow {
                 let mut pixel_height: f32 = 0.;
                 let mut computed_kids = vec![];
                 let mut max_x: f32 = 0.;
+                let mut float_width: f32 = 0.;
+
+                let max_width = match element.max_width {
+                    Some(w) => w
+                        .evaluate_as_pixels(context.width)
+                        .min(context.bounds.width()),
+                    None => context.bounds.width(),
+                }
+                .min(context.width.pixel_max);
 
                 for child in kids {
-                    let mut kid = self.compute_element(
+                    let kid = self.compute_element(
                         &LayoutContext {
                             bounds: match child.float {
                                 Float::None => euclid::rect(
@@ -610,29 +643,17 @@ impl super::TermWindow {
                             gl_state: context.gl_state,
                             height: context.height,
                             metrics: context.metrics,
-                            width: context.width,
+                            width: DimensionContext {
+                                dpi: context.width.dpi,
+                                pixel_cell: context.width.pixel_cell,
+                                pixel_max: max_width,
+                            },
                         },
                         child,
                     )?;
                     match child.float {
                         Float::Right => {
-                            let padding = element.padding.to_pixels(context);
-                            let margin = element.margin.to_pixels(context);
-                            let border = element.border.to_pixels(context);
-
-                            let padded_max_x = context
-                                .bounds
-                                .max_x()
-                                .sub(padding.left)
-                                .sub(padding.right)
-                                .sub(margin.left)
-                                .sub(margin.right)
-                                .sub(border.left)
-                                .sub(border.right)
-                                .max(0.);
-
-                            kid.translate(euclid::vec2(padded_max_x - kid.bounds.width(), 0.));
-                            max_x = max_x.max(padded_max_x);
+                            float_width += float_width.max(kid.bounds.width());
                         }
                         Float::None => {
                             pixel_width += kid.bounds.width();
@@ -644,7 +665,21 @@ impl super::TermWindow {
                     computed_kids.push(kid);
                 }
 
+                // Respect min-width
+                max_x = max_x.max(min_width);
+
+                let mut float_max_x = (max_x + float_width).min(max_width);
+
                 for (kid, child) in computed_kids.iter_mut().zip(kids.iter()) {
+                    match child.float {
+                        Float::Right => {
+                            max_x = max_x.max(float_max_x);
+                            let x = float_max_x - kid.bounds.width();
+                            float_max_x -= kid.bounds.width();
+                            kid.translate(euclid::vec2(x, 0.));
+                        }
+                        _ => {}
+                    }
                     match child.vertical_align {
                         VerticalAlign::Bottom => {
                             kid.translate(euclid::vec2(0., pixel_height - kid.bounds.height()));
@@ -661,7 +696,7 @@ impl super::TermWindow {
 
                 computed_kids.sort_by(|a, b| a.zindex.cmp(&b.zindex));
 
-                let content_rect = euclid::rect(0., 0., max_x, pixel_height);
+                let content_rect = euclid::rect(0., 0., max_x.min(max_width), pixel_height);
                 let rects = element.compute_rects(context, content_rect);
 
                 for kid in &mut computed_kids {
@@ -742,14 +777,17 @@ impl super::TermWindow {
         let top = self.dimensions.pixel_height as f32 / -2.0;
         match &element.content {
             ComputedElementContent::Text(cells) => {
-                let mut pos_x = element.content_rect.min_x() as f32;
+                let mut pos_x = element.content_rect.min_x();
                 for cell in cells {
+                    if pos_x >= element.content_rect.max_x() {
+                        break;
+                    }
                     match cell {
                         ElementCell::Sprite(sprite) => {
                             let mut quad = layer.allocate()?;
                             let width = sprite.coords.width();
                             let height = sprite.coords.height();
-                            let pos_y = top + element.content_rect.min_y() as f32;
+                            let pos_y = top + element.content_rect.min_y();
                             quad.set_position(
                                 pos_x + left,
                                 pos_y,
@@ -793,14 +831,16 @@ impl super::TermWindow {
                 }
             }
             ComputedElementContent::Poly { poly, line_width } => {
-                self.poly_quad(
-                    layer,
-                    element.content_rect.origin,
-                    poly.poly,
-                    *line_width,
-                    euclid::size2(poly.width, poly.height),
-                    colors.resolve_text(inherited_colors),
-                )?;
+                if element.content_rect.width() >= poly.width {
+                    self.poly_quad(
+                        layer,
+                        element.content_rect.origin,
+                        poly.poly,
+                        *line_width,
+                        euclid::size2(poly.width, poly.height),
+                        colors.resolve_text(inherited_colors),
+                    )?;
+                }
             }
         }
 
