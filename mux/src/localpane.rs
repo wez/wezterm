@@ -836,10 +836,15 @@ impl LocalPane {
     fn divine_process_list(&self, _force_refresh: bool) -> Option<LocalProcessInfo> {
         #[cfg(target_os = "macos")]
         if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-            return dbg!(LocalProcessInfo::with_root_pid_macos(*pid));
+            return LocalProcessInfo::with_root_pid_macos(*pid);
         }
 
-        #[cfg(any(windows, target_os = "linux"))]
+        #[cfg(target_os = "linux")]
+        if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
+            return LocalProcessInfo::with_root_pid_linux(*pid);
+        }
+
+        #[cfg(windows)]
         if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
             return LocalProcessInfo::with_root_pid(
                 &*if _force_refresh {

@@ -38,10 +38,8 @@ url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
-[target.'cfg(any(windows, target_os="linux"))'.dependencies]
-sysinfo = "0.22"
-
 [target."cfg(windows)".dependencies]
+sysinfo = "0.22"
 winapi = { version = "0.3", features = [
     "handleapi",
     "processthreadsapi"
