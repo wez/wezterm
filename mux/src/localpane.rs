@@ -838,11 +838,16 @@ impl LocalPane {
         None
     }
 
-    fn divine_process_list(&self, force_refresh: bool) -> Option<LocalProcessInfo> {
-        #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    fn divine_process_list(&self, _force_refresh: bool) -> Option<LocalProcessInfo> {
+        #[cfg(target_os = "macos")]
+        if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
+            return dbg!(LocalProcessInfo::with_root_pid_macos(*pid));
+        }
+
+        #[cfg(any(windows, target_os = "linux"))]
         if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
             return LocalProcessInfo::with_root_pid(
-                &*if force_refresh {
+                &*if _force_refresh {
                     crate::sysinfo::get_with_forced_refresh()
                 } else {
                     crate::sysinfo::get()

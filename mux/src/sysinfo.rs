@@ -1,4 +1,4 @@
-#![cfg(any(windows, target_os = "linux", target_os = "macos"))]
+#![cfg(any(windows, target_os = "linux"))]
 use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System, SystemExt};
