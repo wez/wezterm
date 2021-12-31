@@ -860,6 +860,7 @@ impl TermWindow {
                     .ok_or_else(|| anyhow!("pane id {} is not valid", pane_id))?;
                 self.perform_key_assignment(&pane, &assignment)
                     .context("perform_key_assignment")?;
+                window.invalidate();
             }
             TermWindowNotif::SetRightStatus(status) => {
                 if status != self.right_status {
