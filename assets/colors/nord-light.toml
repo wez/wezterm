@@ -1,0 +1,12 @@
+# nord-light
+[colors]
+foreground = "#414858"
+background = "#e5e9f0"
+cursor_bg = "#88c0d0"
+cursor_border = "#88c0d0"
+cursor_fg = "#3b4252"
+selection_bg = "#d8dee9"
+selection_fg = "#4c556a"
+
+ansi = ["#3b4252","#bf616a","#a3be8c","#ebcb8b","#81a1c1","#b48ead","#88c0d0","#d8dee9"]
+brights = ["#4c566a","#bf616a","#a3be8c","#ebcb8b","#81a1c1","#b48ead","#8fbcbb","#eceff4"]
