@@ -1407,8 +1407,22 @@ impl WindowView {
             let mut inner = myself.inner.borrow_mut();
             let key_is_down = inner.key_is_down.take().unwrap_or(true);
 
+            // Prefer to send along a single Char when the string
+            // is just a single char, as the keymapping layer cannot
+            // bind to composed key sequences and we'll get those
+            // for example when use_ime=true and the user presses
+            // `CTRL-A p` - we'd get CTRL-A followed by Composed("p")
+            // here if we didn't normalize it back to Char.
+            let mut iter = s.chars();
+            let first_char = iter.next();
+            let next_char = iter.next();
+            let key = match (first_char, next_char) {
+                (Some(c), None) => KeyCode::Char(c),
+                _ => KeyCode::Composed(s.to_string()),
+            };
+
             let event = KeyEvent {
-                key: KeyCode::Composed(s.to_string()),
+                key,
                 raw_key: None,
                 modifiers: Modifiers::NONE,
                 raw_modifiers: Modifiers::NONE,
