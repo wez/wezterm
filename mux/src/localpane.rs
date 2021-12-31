@@ -361,8 +361,19 @@ impl Pane for LocalPane {
                     proc: &'a LocalProcessInfo,
                     youngest: &mut &'a LocalProcessInfo,
                 ) {
-                    if proc.start_time > youngest.start_time {
-                        *youngest = proc;
+                    if proc.start_time >= youngest.start_time {
+                        // start_time has only 1 second granularity, and spawning
+                        // a child process will typically spawn a console host at
+                        // the same time.
+                        // We might traverse one snapshot of the tree differently
+                        // from another due to random seeds in the hash table,
+                        // so we do a little bit of targeted workaround here
+                        // to suppress the console hosts from candidate child
+                        // processes.
+                        let ignore = proc.name == "OpenConsole.exe" || proc.name == "conhost.exe";
+                        if !ignore {
+                            *youngest = proc;
+                        }
                     }
 
                     for child in proc.children.values() {

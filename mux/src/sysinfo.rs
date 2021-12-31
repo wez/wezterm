@@ -37,7 +37,7 @@ impl CachedSystemInfo {
     }
 
     pub fn check_refresh(&mut self) {
-        if self.last_update.elapsed() < Duration::from_millis(1000) {
+        if self.last_update.elapsed() < Duration::from_millis(300) {
             return;
         }
         self.refresh_now();
