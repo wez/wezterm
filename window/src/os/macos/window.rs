@@ -411,6 +411,7 @@ impl Window {
                 dead_pending: None,
                 fullscreen: None,
                 config: config.clone(),
+                ime_noop: false,
             }));
 
             let window: id = msg_send![get_window_class(), alloc];
@@ -1039,6 +1040,9 @@ struct Inner {
     fullscreen: Option<NSRect>,
 
     config: ConfigHandle,
+
+    /// Used to signal when IME really just swallowed a key
+    ime_noop: bool,
 }
 
 #[repr(C)]
@@ -1339,29 +1343,42 @@ impl WindowView {
     // sequences
     extern "C" fn do_command_by_selector(this: &mut Object, _sel: Sel, a_selector: Sel) {
         let selector = format!("{:?}", a_selector);
-        let mut modifiers = Modifiers::default();
-        let key = match selector.as_ref() {
-            "deleteBackward:" => KeyCode::Char('\x08'),
-            "deleteForward:" => KeyCode::Char('\x7f'),
+
+        let (key, modifiers) = match selector.as_ref() {
             "cancel:" => {
                 // FIXME: this isn't scalable to various keys
-                // and we lose eg: SHIFT if that is also pressed at the same time
-                modifiers = Modifiers::CTRL;
-                KeyCode::Char('\x1b')
+                // and we lose eg: SHIFT if that is also pressed at the same time.
+                // However, CTRL-ESC is processed BEFORE sending any other
+                // key events so we have no choice but to do it this way.
+                (KeyCode::Char('\x1b'), Modifiers::CTRL)
             }
-            "cancelOperation:" => KeyCode::Char('\x1b'),
-            "insertNewline:" => KeyCode::Char('\r'),
-            "insertTab:" => KeyCode::Char('\t'),
-            "moveLeft:" => KeyCode::LeftArrow,
-            "moveRight:" => KeyCode::RightArrow,
-            "moveUp:" => KeyCode::UpArrow,
-            "moveDown:" => KeyCode::DownArrow,
-            "scrollToBeginningOfDocument:" => KeyCode::Home,
-            "scrollToEndOfDocument:" => KeyCode::End,
-            "scrollPageUp:" => KeyCode::PageUp,
-            "scrollPageDown:" => KeyCode::PageDown,
+            "scrollToBeginningOfDocument:"
+            | "scrollToEndOfDocument:"
+            | "scrollPageUp:"
+            | "scrollPageDown:"
+            | "moveLeft:"
+            | "moveRight:"
+            | "moveUp:"
+            | "moveDown:"
+            | "insertTab:"
+            | "insertNewline:"
+            | "cancelOperation:"
+            | "deleteBackward:"
+            | "deleteForward:"
+            | "noop:" => {
+                if let Some(myself) = Self::get_this(this) {
+                    let mut inner = myself.inner.borrow_mut();
+                    inner.ime_noop = true;
+                }
+                return;
+            }
             _ => {
-                eprintln!("UNHANDLED: do_command_by_selector: {:?}", selector);
+                log::warn!("UNHANDLED: IME: do_command_by_selector: {:?}", selector);
+                if let Some(myself) = Self::get_this(this) {
+                    // Speculatively allow passing it through
+                    let mut inner = myself.inner.borrow_mut();
+                    inner.ime_noop = true;
+                }
                 return;
             }
         };
@@ -1805,7 +1822,7 @@ impl WindowView {
                 "\x08"
             } else if virtual_key == super::keycodes::kVK_Tab {
                 "\t"
-            } else if !use_ime && virtual_key == super::keycodes::kVK_Delete {
+            } else if virtual_key == super::keycodes::kVK_Delete {
                 "\x08"
             } else if virtual_key == super::keycodes::kVK_ANSI_KeypadEnter {
                 // https://github.com/wez/wezterm/issues/739
@@ -1855,13 +1872,25 @@ impl WindowView {
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
                 inner.key_is_down.replace(key_is_down);
+                inner.ime_noop = false;
             }
 
             unsafe {
                 let input_context: id = msg_send![this, inputContext];
                 let res: BOOL = msg_send![input_context, handleEvent: nsevent];
                 if res == YES {
-                    return;
+                    if let Some(myself) = Self::get_this(this) {
+                        let mut inner = myself.inner.borrow_mut();
+                        if inner.ime_noop {
+                            // IME handled the event by generating NOOP;
+                            // let's continue with our normal handling
+                            // code below.
+                            inner.ime_noop = false;
+                        } else {
+                            log::debug!("key was handled by IME");
+                            return;
+                        }
+                    }
                 }
             }
         }

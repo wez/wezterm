@@ -67,6 +67,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Launcher menu WSL items now launch correctly on non-US versions of Windows [#1462](https://github.com/wez/wezterm/issues/1462)
 * Korean text in NFD form is now correctly sized and rendered [#1474](https://github.com/wez/wezterm/issues/1474)
 * macOS: `use_ime=true` conflicted with `LEADER` key assignments [#1409](https://github.com/wez/wezterm/issues/1409)
+* macOS: certain keys (eg: `F8` and `F9`) did nothing when `use_ime=true`. [#975](https://github.com/wez/wezterm/issues/975)
 
 ### 20211205-192649-672c1cc1
 
