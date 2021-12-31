@@ -454,7 +454,7 @@ impl super::TermWindow {
     ) -> anyhow::Result<f32> {
         if config.use_fancy_tab_bar {
             let font = fontconfig.title_font()?;
-            Ok(font.metrics().cell_height.get() as f32 * 2.)
+            Ok((font.metrics().cell_height.get() as f32 * 2.).ceil())
         } else {
             Ok(render_metrics.cell_size.height as f32)
         }
