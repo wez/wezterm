@@ -478,7 +478,7 @@ impl FontConfigInner {
         }
     }
 
-    fn last_ditch_title_font() -> (TextStyle, f64) {
+    fn compute_title_font(&self, config: &ConfigHandle) -> (TextStyle, f64) {
         fn bold(family: &str) -> FontAttributes {
             FontAttributes {
                 family: family.to_string(),
@@ -487,7 +487,16 @@ impl FontConfigInner {
             }
         }
 
-        let fonts = vec![bold("Roboto")];
+        let mut fonts = vec![bold("Roboto")];
+        // Fallback to their main font selection, so that we can pick up
+        // any fallback fonts they might have configured in the main
+        // config and so that they don't have to replicate that list for
+        // the title font.
+        for font in &config.font.font {
+            let mut font = font.clone();
+            font.is_fallback = true;
+            fonts.push(font);
+        }
 
         let font_size = if cfg!(windows) { 10. } else { 12. };
 
@@ -509,7 +518,7 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
-        let (sys_font, sys_size) = Self::last_ditch_title_font();
+        let (sys_font, sys_size) = self.compute_title_font(&config);
 
         let mut handles = vec![];
 
