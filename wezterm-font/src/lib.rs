@@ -40,6 +40,12 @@ pub use crate::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 #[error("Font fallback recalculated")]
 pub struct ClearShapeCache {}
 
+static FONT_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
+pub type LoadedFontId = usize;
+pub fn alloc_font_id() -> LoadedFontId {
+    FONT_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
+}
+
 pub struct LoadedFont {
     rasterizers: RefCell<HashMap<FallbackIdx, Box<dyn FontRasterizer>>>,
     handles: RefCell<Vec<ParsedFont>>,
@@ -50,6 +56,7 @@ pub struct LoadedFont {
     font_config: Weak<FontConfigInner>,
     pending_fallback: Arc<Mutex<Vec<ParsedFont>>>,
     text_style: TextStyle,
+    id: LoadedFontId,
 }
 
 impl std::fmt::Debug for LoadedFont {
@@ -72,6 +79,10 @@ impl LoadedFont {
 
     pub fn style(&self) -> &TextStyle {
         &self.text_style
+    }
+
+    pub fn id(&self) -> LoadedFontId {
+        self.id
     }
 
     fn insert_fallback_handles(&self, extra_handles: Vec<ParsedFont>) -> anyhow::Result<bool> {
@@ -575,6 +586,7 @@ impl FontConfigInner {
             font_config: Rc::downgrade(myself),
             pending_fallback: Arc::new(Mutex::new(vec![])),
             text_style: text_style.clone(),
+            id: alloc_font_id(),
         });
 
         title_font.replace(Rc::clone(&loaded));
@@ -741,6 +753,7 @@ impl FontConfigInner {
             font_config: Rc::downgrade(myself),
             pending_fallback: Arc::new(Mutex::new(vec![])),
             text_style: style.clone(),
+            id: alloc_font_id(),
         });
 
         fonts.insert(style.clone(), Rc::clone(&loaded));
