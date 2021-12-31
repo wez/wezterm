@@ -1155,8 +1155,11 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub scroll_to_bottom_on_input: bool,
 
-    #[serde(default)]
+    #[serde(default = "default_use_ime")]
     pub use_ime: bool,
+    #[serde(default)]
+    pub xim_im_name: Option<String>,
+
     #[serde(default = "default_true")]
     pub use_dead_keys: bool,
 
@@ -1894,6 +1897,14 @@ fn default_mux_output_parser_buffer_size() -> usize {
 
 fn default_ratelimit_line_prefetches_per_second() -> u32 {
     10
+}
+
+fn default_use_ime() -> bool {
+    if cfg!(target_os = "macos") {
+        false
+    } else {
+        true
+    }
 }
 
 fn default_true() -> bool {

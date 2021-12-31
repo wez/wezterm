@@ -478,7 +478,7 @@ impl XConnection {
                 &conn,
                 screen_num,
                 xcb_imdkit::InputStyle::DEFAULT,
-                None,
+                config::configuration().xim_im_name.as_deref(),
             )
         };
 
