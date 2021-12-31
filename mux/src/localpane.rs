@@ -356,56 +356,51 @@ impl Pane for LocalPane {
         }
     }
 
-    #[cfg(any(windows, target_os = "linux"))]
+    #[cfg(target_os = "linux")]
     fn get_foreground_process_name(&self) -> Option<String> {
-        #[cfg(unix)]
-        {
-            use sysinfo::{Pid, ProcessExt, SystemExt};
-            let leader = self.pty.borrow().process_group_leader()?;
-            let system = crate::sysinfo::get();
-            let proc = system.process(leader as Pid)?;
-            Some(proc.exe().to_string_lossy().to_string())
+        if let Some(pid) = self.pty.borrow().process_group_leader() {
+            if let Ok(path) = std::fs::read_link(format!("/proc/{}/exe", pid)) {
+                return Some(path.to_string_lossy().to_string());
+            }
         }
+        None
+    }
 
-        #[cfg(windows)]
-        {
-            // Windows doesn't have any job control or session concept,
-            // so we infer that the equivalent to the process group
-            // leader is the most recently spawned program running
-            // in the console
-            if let Some(root_proc) = self.divine_process_list(false) {
-                let mut youngest = &root_proc;
+    #[cfg(windows)]
+    fn get_foreground_process_name(&self) -> Option<String> {
+        // Windows doesn't have any job control or session concept,
+        // so we infer that the equivalent to the process group
+        // leader is the most recently spawned program running
+        // in the console
+        if let Some(root_proc) = self.divine_process_list(false) {
+            let mut youngest = &root_proc;
 
-                fn find_youngest<'a>(
-                    proc: &'a LocalProcessInfo,
-                    youngest: &mut &'a LocalProcessInfo,
-                ) {
-                    if proc.start_time >= youngest.start_time {
-                        // start_time has only 1 second granularity, and spawning
-                        // a child process will typically spawn a console host at
-                        // the same time.
-                        // We might traverse one snapshot of the tree differently
-                        // from another due to random seeds in the hash table,
-                        // so we do a little bit of targeted workaround here
-                        // to suppress the console hosts from candidate child
-                        // processes.
-                        let ignore = proc.name == "OpenConsole.exe" || proc.name == "conhost.exe";
-                        if !ignore {
-                            *youngest = proc;
-                        }
-                    }
-
-                    for child in proc.children.values() {
-                        find_youngest(child, youngest);
+            fn find_youngest<'a>(proc: &'a LocalProcessInfo, youngest: &mut &'a LocalProcessInfo) {
+                if proc.start_time >= youngest.start_time {
+                    // start_time has only 1 second granularity, and spawning
+                    // a child process will typically spawn a console host at
+                    // the same time.
+                    // We might traverse one snapshot of the tree differently
+                    // from another due to random seeds in the hash table,
+                    // so we do a little bit of targeted workaround here
+                    // to suppress the console hosts from candidate child
+                    // processes.
+                    let ignore = proc.name == "OpenConsole.exe" || proc.name == "conhost.exe";
+                    if !ignore {
+                        *youngest = proc;
                     }
                 }
 
-                find_youngest(&root_proc, &mut youngest);
-
-                Some(youngest.executable.to_string_lossy().to_string())
-            } else {
-                None
+                for child in proc.children.values() {
+                    find_youngest(child, youngest);
+                }
             }
+
+            find_youngest(&root_proc, &mut youngest);
+
+            Some(youngest.executable.to_string_lossy().to_string())
+        } else {
+            None
         }
     }
 
