@@ -57,6 +57,20 @@ impl From<&str> for LocalProcessStatus {
     }
 }
 
+#[cfg(target_os = "macos")]
+impl From<u32> for LocalProcessStatus {
+    fn from(s: u32) -> Self {
+        match s {
+            1 => Self::Idle,
+            2 => Self::Run,
+            3 => Self::Sleep,
+            4 => Self::Stop,
+            5 => Self::Zombie,
+            _ => Self::Unknown,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LocalProcessInfo {
     pub pid: u32,
@@ -373,11 +387,8 @@ impl LocalProcessInfo {
             let (executable, argv) = exe_and_args_for_pid_sysctl(info.pbi_pid as _)
                 .unwrap_or_else(|| (exe_for_pid(info.pbi_pid as _), vec![]));
 
-            let name = executable
-                .file_name()
-                .and_then(|e| e.to_str())
-                .unwrap_or("")
-                .to_string();
+            let name = unsafe { std::ffi::CStr::from_ptr(info.pbi_comm.as_ptr() as _) };
+            let name = name.to_str().unwrap_or("").to_string();
 
             LocalProcessInfo {
                 pid: info.pbi_pid,
@@ -387,7 +398,7 @@ impl LocalProcessInfo {
                 cwd: cwd_for_pid(info.pbi_pid as _),
                 argv,
                 start_time: info.pbi_start_tvsec,
-                status: LocalProcessStatus::Idle,
+                status: LocalProcessStatus::from(info.pbi_status),
                 children,
             }
         }
