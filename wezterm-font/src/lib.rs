@@ -487,18 +487,7 @@ impl FontConfigInner {
             }
         }
 
-        let fonts = vec![if cfg!(target_os = "macos") {
-            // "SF Pro" or one of the San Francisco font variants
-            // are the official fonts for the macOS UI, but those
-            // are not directly accessible to non-Apple applications,
-            // and have a restricted license.
-            // Wikipedia says that `Galvji` looks very similar,
-            // but has slightly different spacing.
-            // It's close enough for me!
-            bold("Galvji")
-        } else {
-            bold("Roboto")
-        }];
+        let fonts = vec![bold("Roboto")];
 
         let font_size = if cfg!(windows) { 10. } else { 12. };
 
