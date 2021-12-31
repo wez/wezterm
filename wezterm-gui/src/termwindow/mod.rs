@@ -579,24 +579,6 @@ impl TermWindow {
         let dpi = config.dpi.unwrap_or_else(|| ::window::default_dpi()) as usize;
         let fontconfig = Rc::new(FontConfiguration::new(Some(config.clone()), dpi)?);
 
-        // If we need the title font, it's easier to extract that information
-        // from a cheeky temporary invisible window and use its metrics below.
-        if config.use_fancy_tab_bar {
-            let cheeky_window = Window::new_window(
-                &*WINDOW_CLASS.lock().unwrap(),
-                "wezterm",
-                100,
-                100,
-                Some(&config),
-                Rc::clone(&fontconfig),
-                move |_, _| {},
-            )
-            .await?;
-
-            fontconfig.advise_title_font(cheeky_window.get_title_font_and_point_size());
-            cheeky_window.close();
-        }
-
         let mux = Mux::get().expect("to be main thread with mux running");
         let size = match mux.get_active_tab_for_window(mux_window_id) {
             Some(tab) => tab.get_size(),

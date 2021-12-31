@@ -395,7 +395,6 @@ struct FontConfigInner {
     no_glyphs: RefCell<HashSet<char>>,
     title_font: RefCell<Option<Rc<LoadedFont>>>,
     fallback_channel: RefCell<Option<Sender<FallbackResolveInfo>>>,
-    system_title_font: RefCell<Option<(ParsedFont, f64)>>,
 }
 
 /// Matches and loads fonts for a given input style
@@ -420,7 +419,6 @@ impl FontConfigInner {
             built_in: RefCell::new(Arc::new(FontDatabase::with_built_in()?)),
             no_glyphs: RefCell::new(HashSet::new()),
             fallback_channel: RefCell::new(None),
-            system_title_font: RefCell::new(None),
         })
     }
 
@@ -489,7 +487,7 @@ impl FontConfigInner {
             }
         }
 
-        let mut fonts = vec![if cfg!(target_os = "macos") {
+        let fonts = vec![if cfg!(target_os = "macos") {
             // "SF Pro" or one of the San Francisco font variants
             // are the official fonts for the macOS UI, but those
             // are not directly accessible to non-Apple applications,
@@ -498,15 +496,9 @@ impl FontConfigInner {
             // but has slightly different spacing.
             // It's close enough for me!
             bold("Galvji")
-        } else if cfg!(windows) {
-            FontAttributes::new("Segoe UI")
         } else {
-            bold("Cantarell")
+            bold("Roboto")
         }];
-
-        if !cfg!(windows) && !cfg!(target_os = "macos") {
-            fonts.push(bold("DejaVu Sans"));
-        }
 
         let font_size = if cfg!(windows) { 10. } else { 12. };
 
@@ -519,11 +511,6 @@ impl FontConfigInner {
         )
     }
 
-    fn advise_title_font(&self, info: Option<(ParsedFont, f64)>) {
-        self.title_font.borrow_mut().take();
-        *self.system_title_font.borrow_mut() = info;
-    }
-
     fn title_font(&self, myself: &Rc<Self>) -> anyhow::Result<Rc<LoadedFont>> {
         let config = self.config.borrow();
 
@@ -533,16 +520,9 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
-        let (sys_font, mut sys_size) = Self::last_ditch_title_font();
+        let (sys_font, sys_size) = Self::last_ditch_title_font();
 
         let mut handles = vec![];
-
-        if config.window_frame.font.is_none() {
-            if let Some((font, size)) = self.system_title_font.borrow().as_ref() {
-                handles.push(font.clone());
-                sys_size = *size;
-            }
-        }
 
         let font_size = config.window_frame.font_size.unwrap_or(sys_size);
 
@@ -877,10 +857,6 @@ impl FontConfiguration {
     /// matches according to the fontconfig pattern.
     pub fn resolve_font(&self, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
         self.inner.resolve_font(&self.inner, style)
-    }
-
-    pub fn advise_title_font(&self, info: Option<(ParsedFont, f64)>) {
-        self.inner.advise_title_font(info);
     }
 
     pub fn change_scaling(&self, font_scale: f64, dpi: usize) -> (f64, usize) {
