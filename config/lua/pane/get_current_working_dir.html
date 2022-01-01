@@ -151,9 +151,19 @@
 <p>Returns the current working directory of the pane, if known.
 The current directory can be specified by an application sending
 <a href="../../../shell-integration.html">OSC 7</a>.</p>
-<p>On Linux and macOS, if OSC 7 was never sent to the pane, wezterm will attempt
-to inspect the cwd of the process group leader attached to the pty and use
-that.</p>
+<p>If OSC 7 was never sent to a pane, and the pane represents a locally spawned process,
+then wezterm will:</p>
+<ul>
+<li>On Unix systems, determie the <em>process group leader</em> attached to the PTY</li>
+<li>On Windows systems, use heuristics to infer an equivalent to the foreground process</li>
+</ul>
+<p>With the process identified, wezterm will then try to determine the current
+working directory using operating system dependent code:</p>
+<table><thead><tr><th>OS</th><th>Supported?</th></tr></thead><tbody>
+<tr><td>macOS</td><td>Yes, <em>Since: 20201031-154415-9614e117</em></td></tr>
+<tr><td>Linux</td><td>Yes, <em>Since: 20201031-154415-9614e117</em></td></tr>
+<tr><td>Windows</td><td>Yes, <em>Since: nightly builds only</em></td></tr>
+</tbody></table>
 <p>If the current working directory is not known then this method returns <code>nil</code>.
 Otherwise, it returns the current working directory as a URI string.</p>
 

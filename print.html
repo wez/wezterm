@@ -442,7 +442,7 @@ usually the best available version.</p>
 <li><a href="config/lua/keyassignment/ActivateTabRelativeNoWrap.html">ActivateTabRelativeNoWrap</a> key assignment <a href="https://github.com/wez/wezterm/issues/1414">#1414</a></li>
 <li><a href="config/lua/keyassignment/QuickSelectArgs.html">QuickSelectArgs</a> key assignment <a href="https://github.com/wez/wezterm/issues/846">#846</a> <a href="https://github.com/wez/wezterm/issues/1362">#1362</a></li>
 <li><a href="config/lua/wezterm/open_with.html">wezterm.open_wth</a> function for opening URLs/documents with the default or a specific application <a href="https://github.com/wez/wezterm/issues/1362">#1362</a></li>
-<li><a href="config/lua/pane/get_foreground_process_name.html">pane:get_foreground_process_name()</a> method, <a href="config/lua/PaneInformation.html">PaneInformation</a> now has <code>foreground_process_name</code> and <code>current_working_dir</code> fields. <a href="https://github.com/wez/wezterm/discussions/1421">#1421</a> <a href="https://github.com/wez/wezterm/issues/915">#915</a> <a href="https://github.com/wez/wezterm/issues/876">#876</a></li>
+<li><a href="config/lua/pane/get_foreground_process_name.html">pane:get_foreground_process_name()</a> method, <a href="config/lua/PaneInformation.html">PaneInformation</a> now has <code>foreground_process_name</code> and <code>current_working_dir</code> fields, and <a href="config/lua/pane/get_current_working_dir.html">pane:get_current_working_dir</a> is now supported on Windows for local processes, even without using OSC 7. <a href="https://github.com/wez/wezterm/discussions/1421">#1421</a> <a href="https://github.com/wez/wezterm/issues/915">#915</a> <a href="https://github.com/wez/wezterm/issues/876">#876</a></li>
 <li><a href="config/lua/keyassignment/ActivatePaneDirection.html">ActivatePaneDirection</a> now also supports <code>&quot;Next&quot;</code> and <code>&quot;Prev&quot;</code> to cycle through panes <a href="https://github.com/wez/wezterm/issues/976">#976</a></li>
 <li><a href="config/lua/pane/get_logical_lines_as_text.html">pane:get_logical_lines_as_text</a> to retrieve unwrapped logical lines from a pane <a href="https://github.com/wez/wezterm/issues/1468">#1468</a></li>
 <li><a href="config/lua/wezterm/get_builtin_color_schemes.html">wezterm.get_builtin_color_schemes()</a> function to eg: pick a random scheme per window, or otherwise reason about schemes. See <a href="config/lua/wezterm/get_builtin_color_schemes.html">the docs</a> for examples!</li>
@@ -9381,9 +9381,19 @@ introspect the state of the terminal emulation for that pane.</p>
 <p>Returns the current working directory of the pane, if known.
 The current directory can be specified by an application sending
 <a href="config/lua/pane/../../../shell-integration.html">OSC 7</a>.</p>
-<p>On Linux and macOS, if OSC 7 was never sent to the pane, wezterm will attempt
-to inspect the cwd of the process group leader attached to the pty and use
-that.</p>
+<p>If OSC 7 was never sent to a pane, and the pane represents a locally spawned process,
+then wezterm will:</p>
+<ul>
+<li>On Unix systems, determie the <em>process group leader</em> attached to the PTY</li>
+<li>On Windows systems, use heuristics to infer an equivalent to the foreground process</li>
+</ul>
+<p>With the process identified, wezterm will then try to determine the current
+working directory using operating system dependent code:</p>
+<table><thead><tr><th>OS</th><th>Supported?</th></tr></thead><tbody>
+<tr><td>macOS</td><td>Yes, <em>Since: 20201031-154415-9614e117</em></td></tr>
+<tr><td>Linux</td><td>Yes, <em>Since: 20201031-154415-9614e117</em></td></tr>
+<tr><td>Windows</td><td>Yes, <em>Since: nightly builds only</em></td></tr>
+</tbody></table>
 <p>If the current working directory is not known then this method returns <code>nil</code>.
 Otherwise, it returns the current working directory as a URI string.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="paneget_cursor_position"><a class="header" href="#paneget_cursor_position"><code>pane:get_cursor_position()</code></a></h1>
