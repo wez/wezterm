@@ -784,10 +784,15 @@ impl super::TermWindow {
                     }
                     match cell {
                         ElementCell::Sprite(sprite) => {
-                            let mut quad = layer.allocate()?;
                             let width = sprite.coords.width();
                             let height = sprite.coords.height();
                             let pos_y = top + element.content_rect.min_y();
+
+                            if pos_x + width as f32 > element.content_rect.max_x() {
+                                break;
+                            }
+
+                            let mut quad = layer.allocate()?;
                             quad.set_position(
                                 pos_x + left,
                                 pos_y,
@@ -801,14 +806,17 @@ impl super::TermWindow {
                         }
                         ElementCell::Glyph(glyph) => {
                             if let Some(texture) = glyph.texture.as_ref() {
-                                let mut quad = layer.allocate()?;
                                 let pos_y = element.content_rect.min_y() as f32 + top
                                     - (glyph.y_offset + glyph.bearing_y).get() as f32
                                     + element.baseline;
 
                                 let width = texture.coords.size.width as f32 * glyph.scale as f32;
                                 let height = texture.coords.size.height as f32 * glyph.scale as f32;
+                                if pos_x + width > element.content_rect.max_x() {
+                                    break;
+                                }
 
+                                let mut quad = layer.allocate()?;
                                 quad.set_position(
                                     pos_x + left,
                                     pos_y,
