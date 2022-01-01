@@ -28,7 +28,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [ActivatePaneDirection](config/lua/keyassignment/ActivatePaneDirection.md) now also supports `"Next"` and `"Prev"` to cycle through panes [#976](https://github.com/wez/wezterm/issues/976)
 * [pane:get_logical_lines_as_text](config/lua/pane/get_logical_lines_as_text.md) to retrieve unwrapped logical lines from a pane [#1468](https://github.com/wez/wezterm/issues/1468)
 * [wezterm.get_builtin_color_schemes()](config/lua/wezterm/get_builtin_color_schemes.md) function to eg: pick a random scheme per window, or otherwise reason about schemes. See [the docs](config/lua/wezterm/get_builtin_color_schemes.md) for examples!
-* Added color schemes: [Alabaster](colorschemes/a/index.md#alabaster), [CGA](colorschemes/c/index.md#cgs), [MaterialDesignColors](colorschemes/m/index.md#materialdesigncolors), [darkermatrix](colorschemes/d/index.md#darkermatrix), [nord-light](colorschemes/n/index.md#nord-light)
+* Added color schemes: [Alabaster](colorschemes/a/index.md#alabaster), [CGA](colorschemes/c/index.md#cga), [MaterialDesignColors](colorschemes/m/index.md#materialdesigncolors), [darkermatrix](colorschemes/d/index.md#darkermatrix), [nord-light](colorschemes/n/index.md#nord-light)
 
 #### Changed
 
