@@ -780,7 +780,9 @@ impl LocalPane {
                     }
 
                     for child in proc.children.values() {
-                        find_youngest(child, youngest);
+                        if child.console != 0 {
+                            find_youngest(child, youngest);
+                        }
                     }
                 }
 

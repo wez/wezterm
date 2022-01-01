@@ -31,8 +31,10 @@ pub struct LocalProcessInfo {
     pub argv: Vec<String>,
     pub cwd: PathBuf,
     pub status: LocalProcessStatus,
-    pub children: HashMap<u32, LocalProcessInfo>,
     pub start_time: u64,
+    #[cfg(windows)]
+    pub console: u64,
+    pub children: HashMap<u32, LocalProcessInfo>,
 }
 luahelper::impl_lua_conversion!(LocalProcessInfo);
 

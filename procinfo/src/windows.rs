@@ -86,6 +86,7 @@ fn wstr_to_string(slice: &[u16]) -> String {
 struct ProcParams {
     argv: Vec<String>,
     cwd: PathBuf,
+    console: HANDLE,
 }
 
 struct ProcHandle(HANDLE);
@@ -220,6 +221,7 @@ impl ProcHandle {
         Some(ProcParams {
             argv: cmd_line_to_argv(&cmdline),
             cwd: wstr_to_path(&cwd),
+            console: params.ConsoleHandle,
         })
     }
 
@@ -243,6 +245,7 @@ impl ProcHandle {
         Some(ProcParams {
             argv: cmd_line_to_argv(&cmdline),
             cwd: wstr_to_path(&cwd),
+            console: params.ConsoleHandle as _,
         })
     }
 
@@ -353,6 +356,7 @@ impl LocalProcessInfo {
             let mut start_time = 0;
             let mut cwd = PathBuf::new();
             let mut argv = vec![];
+            let mut console = 0;
 
             if let Some(proc) = ProcHandle::new(info.th32ProcessID) {
                 if let Some(exe) = proc.executable() {
@@ -361,6 +365,7 @@ impl LocalProcessInfo {
                 if let Some(params) = proc.get_params() {
                     cwd = params.cwd;
                     argv = params.argv;
+                    console = params.console as _;
                 }
                 if let Some(start) = proc.start_time() {
                     start_time = start;
@@ -377,6 +382,7 @@ impl LocalProcessInfo {
                 start_time,
                 status: LocalProcessStatus::Run,
                 children,
+                console,
             }
         }
 
