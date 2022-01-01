@@ -20,6 +20,14 @@ impl From<&str> for LocalProcessStatus {
 }
 
 impl LocalProcessInfo {
+    pub fn current_working_dir(pid: u32) -> Option<PathBuf> {
+        std::fs::read_link(format!("/proc/{}/cwd", pid)).ok()
+    }
+
+    fn executable_path(pid: u32) -> Option<PathBuf> {
+        std::fs::read_link(format!("/proc/{}/exe", pid)).ok()
+    }
+
     pub fn with_root_pid(pid: u32) -> Option<Self> {
         use libc::pid_t;
 
@@ -73,7 +81,7 @@ impl LocalProcessInfo {
             std::fs::read_link(format!("/proc/{}/exe", pid)).unwrap_or_else(|_| PathBuf::new())
         }
         fn cwd_for_pid(pid: pid_t) -> PathBuf {
-            std::fs::read_link(format!("/proc/{}/cwd", pid)).unwrap_or_else(|_| PathBuf::new())
+            current_working_dir(pid).unwrap_or_else(|| PathBuf::new())
         }
 
         fn parse_cmdline(pid: pid_t) -> Vec<String> {

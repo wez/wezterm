@@ -15,6 +15,44 @@ impl From<u32> for LocalProcessStatus {
 }
 
 impl LocalProcessInfo {
+    pub fn current_working_dir(pid: libc::pid_t) -> Option<PathBuf> {
+        let mut pathinfo: libc::proc_vnodepathinfo = unsafe { std::mem::zeroed() };
+        let size = std::mem::size_of_val(&pathinfo) as libc::c_int;
+        let ret = unsafe {
+            libc::proc_pidinfo(
+                pid,
+                libc::PROC_PIDVNODEPATHINFO,
+                0,
+                &mut pathinfo as *mut _ as *mut _,
+                size,
+            )
+        };
+        if ret != size {
+            return None;
+        }
+
+        let nul = pathinfo.pvi_cdir.vip_path.iter().position(|&c| c == 0)?;
+
+        Some(OsStr::from_bytes(&pathinfo.pvi_cdir.vip_path[0..nul]).into())
+    }
+
+    fn executable_path(pid: u32) -> Option<PathBuf> {
+        let mut buffer: Vec<u8> = Vec::with_capacity(libc::PROC_PIDPATHINFO_MAXSIZE as _);
+        let x = unsafe {
+            libc::proc_pidpath(
+                pid as _,
+                buffer.as_mut_ptr() as *mut _,
+                libc::PROC_PIDPATHINFO_MAXSIZE as _,
+            )
+        };
+        if x <= 0 {
+            return None;
+        }
+
+        unsafe { buffer.set_len(x as usize) };
+        Some(OsString::from_vec(buffer).into())
+    }
+
     pub fn with_root_pid(pid: u32) -> Option<Self> {
         /// Enumerate all current process identifiers
         fn all_pids() -> Vec<libc::pid_t> {

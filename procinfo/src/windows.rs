@@ -315,6 +315,17 @@ impl Drop for ProcHandle {
 }
 
 impl LocalProcessInfo {
+    pub fn current_working_dir(pid: u32) -> Option<PathBuf> {
+        let proc = ProcHandle::new(pid)?;
+        let params = proc.get_params()?;
+        Some(params.cwd)
+    }
+
+    pub fn executable_path(pid: u32) -> Option<PathBuf> {
+        let proc = ProcHandle::new(pid)?;
+        proc.executable()
+    }
+
     pub fn with_root_pid(pid: u32) -> Option<Self> {
         let snapshot = Snapshot::new()?;
         let procs: Vec<_> = snapshot.iter().collect();

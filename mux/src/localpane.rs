@@ -331,77 +331,20 @@ impl Pane for LocalPane {
             .or_else(|| self.divine_current_working_dir())
     }
 
-    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     fn get_foreground_process_name(&self) -> Option<String> {
-        None
-    }
-
-    #[cfg(target_os = "macos")]
-    fn get_foreground_process_name(&self) -> Option<String> {
-        let leader = self.pty.borrow().process_group_leader()?;
-
-        let mut buffer: Vec<u8> = Vec::with_capacity(libc::PROC_PIDPATHINFO_MAXSIZE as _);
-        let x = unsafe {
-            libc::proc_pidpath(
-                leader,
-                buffer.as_mut_ptr() as *mut _,
-                libc::PROC_PIDPATHINFO_MAXSIZE as _,
-            )
-        };
-        if x > 0 {
-            unsafe { buffer.set_len(x as usize) };
-            String::from_utf8(buffer).ok()
-        } else {
-            None
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    fn get_foreground_process_name(&self) -> Option<String> {
+        #[cfg(unix)]
         if let Some(pid) = self.pty.borrow().process_group_leader() {
-            if let Ok(path) = std::fs::read_link(format!("/proc/{}/exe", pid)) {
+            if let Ok(path) = LocalProcessInfo::executable_path(pid) {
                 return Some(path.to_string_lossy().to_string());
             }
         }
-        None
-    }
 
-    #[cfg(windows)]
-    fn get_foreground_process_name(&self) -> Option<String> {
-        // Windows doesn't have any job control or session concept,
-        // so we infer that the equivalent to the process group
-        // leader is the most recently spawned program running
-        // in the console
-        if let Some(root_proc) = self.divine_process_list(false) {
-            let mut youngest = &root_proc;
-
-            fn find_youngest<'a>(proc: &'a LocalProcessInfo, youngest: &mut &'a LocalProcessInfo) {
-                if proc.start_time >= youngest.start_time {
-                    // start_time has only 1 second granularity, and spawning
-                    // a child process will typically spawn a console host at
-                    // the same time.
-                    // We might traverse one snapshot of the tree differently
-                    // from another due to random seeds in the hash table,
-                    // so we do a little bit of targeted workaround here
-                    // to suppress the console hosts from candidate child
-                    // processes.
-                    let ignore = proc.name == "OpenConsole.exe" || proc.name == "conhost.exe";
-                    if !ignore {
-                        *youngest = proc;
-                    }
-                }
-
-                for child in proc.children.values() {
-                    find_youngest(child, youngest);
-                }
-            }
-
-            find_youngest(&root_proc, &mut youngest);
-
-            Some(youngest.executable.to_string_lossy().to_string())
-        } else {
-            None
+        #[cfg(windows)]
+        if let Some(fg) = self.divine_foreground_process() {
+            return Some(fg.executable.to_string_lossy().to_string());
         }
+
+        None
     }
 
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
@@ -783,50 +726,17 @@ impl LocalPane {
         }
     }
 
-    #[cfg(target_os = "macos")]
-    fn divine_current_working_dir_macos(&self) -> Option<Url> {
+    fn divine_current_working_dir(&self) -> Option<Url> {
+        #[cfg(unix)]
         if let Some(pid) = self.pty.borrow().process_group_leader() {
-            let mut pathinfo: libc::proc_vnodepathinfo = unsafe { std::mem::zeroed() };
-            let size = std::mem::size_of_val(&pathinfo) as libc::c_int;
-            let ret = unsafe {
-                libc::proc_pidinfo(
-                    pid,
-                    libc::PROC_PIDVNODEPATHINFO,
-                    0,
-                    &mut pathinfo as *mut _ as *mut _,
-                    size,
-                )
-            };
-            if ret == size {
-                let path =
-                    unsafe { std::ffi::CStr::from_ptr(pathinfo.pvi_cdir.vip_path.as_ptr() as _) };
-                if let Ok(s) = path.to_str() {
-                    return Url::parse(&format!("file://localhost{}", s)).ok();
-                }
-            }
-        }
-        None
-    }
-
-    #[cfg(target_os = "linux")]
-    fn divine_current_working_dir_linux(&self) -> Option<Url> {
-        if let Some(pid) = self.pty.borrow().process_group_leader() {
-            if let Ok(path) = std::fs::read_link(format!("/proc/{}/cwd", pid)) {
+            if let Some(path) = LocalProcessInfo::current_working_dir(pid) {
                 return Url::parse(&format!("file://localhost{}", path.display())).ok();
             }
         }
-        None
-    }
 
-    fn divine_current_working_dir(&self) -> Option<Url> {
-        #[cfg(target_os = "linux")]
-        {
-            return self.divine_current_working_dir_linux();
-        }
-
-        #[cfg(target_os = "macos")]
-        {
-            return self.divine_current_working_dir_macos();
+        #[cfg(windows)]
+        if let Some(fg) = self.divine_foreground_process() {
+            return Url::parse(&format!("file://localhost{}", fg.cwd.display())).ok();
         }
 
         #[allow(unreachable_code)]
@@ -838,6 +748,43 @@ impl LocalPane {
             return LocalProcessInfo::with_root_pid(*pid);
         }
         None
+    }
+
+    fn divine_foreground_process(&self) -> Option<LocalProcessInfo> {
+        // Windows doesn't have any job control or session concept,
+        // so we infer that the equivalent to the process group
+        // leader is the most recently spawned program running
+        // in the console
+        if let Some(root_proc) = self.divine_process_list(false) {
+            let mut youngest = &root_proc;
+
+            fn find_youngest<'a>(proc: &'a LocalProcessInfo, youngest: &mut &'a LocalProcessInfo) {
+                if proc.start_time >= youngest.start_time {
+                    // start_time has only 1 second granularity, and spawning
+                    // a child process will typically spawn a console host at
+                    // the same time.
+                    // We might traverse one snapshot of the tree differently
+                    // from another due to random seeds in the hash table,
+                    // so we do a little bit of targeted workaround here
+                    // to suppress the console hosts from candidate child
+                    // processes.
+                    let ignore = proc.name == "OpenConsole.exe" || proc.name == "conhost.exe";
+                    if !ignore {
+                        *youngest = proc;
+                    }
+                }
+
+                for child in proc.children.values() {
+                    find_youngest(child, youngest);
+                }
+            }
+
+            find_youngest(&root_proc, &mut youngest);
+
+            Some(youngest.clone())
+        } else {
+            None
+        }
     }
 }
 

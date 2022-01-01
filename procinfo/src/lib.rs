@@ -57,4 +57,9 @@ impl LocalProcessInfo {
     pub fn with_root_pid(_pid: u32) -> Option<Self> {
         None
     }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
+    pub fn current_working_dir(_pid: u32) -> Option<PathBuf> {
+        None
+    }
 }
