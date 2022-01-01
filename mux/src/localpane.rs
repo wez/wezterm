@@ -334,7 +334,7 @@ impl Pane for LocalPane {
     fn get_foreground_process_name(&self) -> Option<String> {
         #[cfg(unix)]
         if let Some(pid) = self.pty.borrow().process_group_leader() {
-            if let Ok(path) = LocalProcessInfo::executable_path(pid) {
+            if let Some(path) = LocalProcessInfo::executable_path(pid as u32) {
                 return Some(path.to_string_lossy().to_string());
             }
         }
@@ -729,7 +729,7 @@ impl LocalPane {
     fn divine_current_working_dir(&self) -> Option<Url> {
         #[cfg(unix)]
         if let Some(pid) = self.pty.borrow().process_group_leader() {
-            if let Some(path) = LocalProcessInfo::current_working_dir(pid) {
+            if let Some(path) = LocalProcessInfo::current_working_dir(pid as u32) {
                 return Url::parse(&format!("file://localhost{}", path.display())).ok();
             }
         }
@@ -750,6 +750,7 @@ impl LocalPane {
         None
     }
 
+    #[allow(dead_code)]
     fn divine_foreground_process(&self) -> Option<LocalProcessInfo> {
         // Windows doesn't have any job control or session concept,
         // so we infer that the equivalent to the process group
