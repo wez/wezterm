@@ -531,8 +531,6 @@ impl FontConfigInner {
 
         let (sys_font, sys_size) = self.compute_title_font(&config);
 
-        let mut handles = vec![];
-
         let font_size = config.window_frame.font_size.unwrap_or(sys_size);
 
         let text_style = config
@@ -545,27 +543,7 @@ impl FontConfigInner {
         let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
 
         let attributes = text_style.font_with_fallback();
-        let preferred_attributes = attributes
-            .iter()
-            .filter(|a| !a.is_fallback)
-            .map(|a| a.clone())
-            .collect::<Vec<_>>();
-        let fallback_attributes = attributes
-            .iter()
-            .filter(|a| a.is_fallback)
-            .map(|a| a.clone())
-            .collect::<Vec<_>>();
-        let mut loaded = HashSet::new();
-
-        for attrs in &[&preferred_attributes, &fallback_attributes] {
-            self.font_dirs
-                .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
-            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded, pixel_size)?);
-            self.built_in
-                .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
-        }
+        let (handles, _loaded) = self.resolve_font_helper_impl(&attributes, pixel_size)?;
 
         let shaper = new_shaper(&*config, &handles)?;
 
@@ -594,13 +572,11 @@ impl FontConfigInner {
         Ok(loaded)
     }
 
-    fn resolve_font_helper(
+    fn resolve_font_helper_impl(
         &self,
-        style: &TextStyle,
-        config: &ConfigHandle,
+        attributes: &[FontAttributes],
         pixel_size: u16,
-    ) -> anyhow::Result<(Box<dyn FontShaper>, Vec<ParsedFont>)> {
-        let attributes = style.font_with_fallback();
+    ) -> anyhow::Result<(Vec<ParsedFont>, HashSet<FontAttributes>)> {
         let preferred_attributes = attributes
             .iter()
             .filter(|a| !a.is_fallback)
@@ -612,17 +588,60 @@ impl FontConfigInner {
             .map(|a| a.clone())
             .collect::<Vec<_>>();
         let mut loaded = HashSet::new();
-
         let mut handles = vec![];
-        for attrs in &[&preferred_attributes, &fallback_attributes] {
-            self.font_dirs
-                .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
-            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded, pixel_size)?);
-            self.built_in
-                .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
+
+        for &attrs in &[&preferred_attributes, &fallback_attributes] {
+            let mut candidates = vec![];
+
+            let font_dirs = self.font_dirs.borrow();
+            for attr in attrs {
+                candidates.append(&mut font_dirs.candidates(attr));
+            }
+
+            let mut loaded_ignored = HashSet::new();
+            let located = self
+                .locator
+                .load_fonts(attrs, &mut loaded_ignored, pixel_size)?;
+            for font in &located {
+                candidates.push(font);
+            }
+
+            let built_in = self.built_in.borrow();
+            for attr in attrs {
+                candidates.append(&mut built_in.candidates(attr));
+            }
+
+            for attr in attrs {
+                if loaded.contains(attr) {
+                    continue;
+                }
+                let named_candidates: Vec<&ParsedFont> = candidates
+                    .iter()
+                    .filter_map(|&p| if p.matches_name(attr) { Some(p) } else { None })
+                    .collect();
+                if let Some(idx) =
+                    ParsedFont::best_matching_index(attr, &named_candidates, pixel_size)
+                {
+                    named_candidates.get(idx).map(|&p| {
+                        loaded.insert(attr.clone());
+                        handles.push(p.clone().synthesize(attr))
+                    });
+                }
+            }
         }
+
+        Ok((handles, loaded))
+    }
+
+    fn resolve_font_helper(
+        &self,
+        style: &TextStyle,
+        config: &ConfigHandle,
+        pixel_size: u16,
+    ) -> anyhow::Result<(Box<dyn FontShaper>, Vec<ParsedFont>)> {
+        let attributes = style.font_with_fallback();
+
+        let (handles, loaded) = self.resolve_font_helper_impl(&attributes, pixel_size)?;
 
         for attr in &attributes {
             if !attr.is_synthetic && !attr.is_fallback && !loaded.contains(attr) {
