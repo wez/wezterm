@@ -12,6 +12,11 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### New
+#### Changed
+#### Updated and Improved
+#### Fixed
+
+### 20220101-133340-7edc5b5a
 
 * Fancy Tab Bars are now the default. The default tab bar colors have changed to accommodate the new more native look.  You can turn them off by setting `use_fancy_tab_bar = false`.
 * Support for the [Kitty Image Protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/) is now enabled by default.  Most of the protocol is supported; animation support is not yet implemented. Try the amazing [notcurses](https://notcurses.com/) if you want to see what modern terminal graphics can do! [#986](https://github.com/wez/wezterm/issues/986)

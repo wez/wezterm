@@ -1,6 +1,6 @@
 # `xim_im_name`
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 Explicitly set the name of the IME server to which wezterm will connect
 via the XIM protocol when using X11 and [use_ime](use_ime.md) is `true`.

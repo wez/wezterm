@@ -27,7 +27,7 @@ Changing `use_ime` usually requires re-launching WezTerm to take full effect.
 The default for `use_ime` is false.  The default in earlier releases was `true`.
 
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 The default for X11 systems is now `true`.  Please ensure that the `XMODIFIERS`
 environment variable or the new [xim_im_name](xim_im_name.md) configuration

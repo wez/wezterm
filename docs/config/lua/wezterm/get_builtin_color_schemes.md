@@ -1,6 +1,6 @@
 # `wezterm.get_builtin_color_schemes()`
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 Returns a lua table keyed by color scheme name and whose values are
 the color scheme definition of the builtin color schemes.

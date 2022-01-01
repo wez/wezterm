@@ -127,7 +127,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 It is now possible to specify a `proxy_command` that will be used
 in place of making a direct unix connection.  When `proxy_command`

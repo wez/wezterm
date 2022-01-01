@@ -36,7 +36,7 @@ It is a lua object with the following fields:
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 You may now specify a table with ssh config overrides:
 

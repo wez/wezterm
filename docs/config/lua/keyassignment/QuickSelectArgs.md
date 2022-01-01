@@ -1,6 +1,6 @@
 # QuickSelectArgs
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 Activates [Quick Select Mode](../../../quickselect.md) but with the option
 to override the global configuration.

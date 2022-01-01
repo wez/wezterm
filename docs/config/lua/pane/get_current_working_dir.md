@@ -19,7 +19,7 @@ working directory using operating system dependent code:
 |-------|--------------------------------------|
 |macOS  |Yes, *Since: 20201031-154415-9614e117*|
 |Linux  |Yes, *Since: 20201031-154415-9614e117*|
-|Windows|Yes, *Since: nightly builds only*     |
+|Windows|Yes, *Since: 20220101-133340-7edc5b5a*|
 
 If the current working directory is not known then this method returns `nil`.
 Otherwise, it returns the current working directory as a URI string.

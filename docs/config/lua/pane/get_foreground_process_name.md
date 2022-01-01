@@ -1,6 +1,6 @@
 # `pane:get_foreground_process_name()`
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 Returns the path to the executable image for the pane.
 

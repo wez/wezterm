@@ -1,6 +1,6 @@
 # ActivateTabRelativeNoWrap
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 Activate a tab relative to the current tab.  The argument value specifies an
 offset. eg: `-1` activates the tab to the left of the current tab, while `1`
