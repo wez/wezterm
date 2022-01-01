@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::time::{Duration, SystemTime};
 
+mod linux;
 mod macos;
 mod windows;
-mod linux;
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum LocalProcessStatus {
@@ -33,7 +32,7 @@ pub struct LocalProcessInfo {
     pub cwd: PathBuf,
     pub status: LocalProcessStatus,
     pub children: HashMap<u32, LocalProcessInfo>,
-    pub start_time: SystemTime,
+    pub start_time: u64,
 }
 luahelper::impl_lua_conversion!(LocalProcessInfo);
 

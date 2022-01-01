@@ -271,7 +271,7 @@ impl LocalProcessInfo {
                 Some(buf)
             }
 
-            fn start_time(&self) -> Option<SystemTime> {
+            fn start_time(&self) -> Option<u64> {
                 let mut start = FILETIME {
                     dwLowDateTime: 0,
                     dwHighDateTime: 0,
@@ -295,14 +295,7 @@ impl LocalProcessInfo {
                     return None;
                 }
 
-                // Units are 100 nanoseconds
-                let start = (start.dwHighDateTime as u64) << 32 | start.dwLowDateTime as u64;
-                let start = Duration::from_nanos(start * 100);
-
-                // Difference between the windows epoch and the unix epoch
-                const WINDOWS_EPOCH: Duration = Duration::from_secs(11_644_473_600);
-
-                Some(SystemTime::UNIX_EPOCH + start - WINDOWS_EPOCH)
+                Some((start.dwHighDateTime as u64) << 32 | start.dwLowDateTime as u64)
             }
         }
 
@@ -346,7 +339,7 @@ impl LocalProcessInfo {
                 None => String::new(),
             };
 
-            let mut start_time = SystemTime::now();
+            let mut start_time = 0;
             let mut cwd = PathBuf::new();
             let mut argv = vec![];
 

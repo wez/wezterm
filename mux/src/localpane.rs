@@ -1,6 +1,5 @@
 use crate::domain::DomainId;
 use crate::pane::{CloseReason, Pane, PaneId, Pattern, SearchResult};
-use procinfo::LocalProcessInfo;
 use crate::renderable::*;
 use crate::tmux::{TmuxDomain, TmuxDomainState};
 use crate::{Domain, Mux, MuxNotification};
@@ -9,6 +8,7 @@ use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
+use procinfo::LocalProcessInfo;
 use rangeset::RangeSet;
 use smol::channel::{bounded, Receiver, TryRecvError};
 use std::cell::{RefCell, RefMut};
