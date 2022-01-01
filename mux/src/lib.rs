@@ -29,7 +29,6 @@ pub mod connui;
 pub mod domain;
 pub mod localpane;
 pub mod pane;
-pub mod procinfo;
 pub mod renderable;
 pub mod ssh;
 pub mod tab;

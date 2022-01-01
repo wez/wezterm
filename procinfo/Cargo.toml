@@ -1,0 +1,22 @@
+[package]
+name = "procinfo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2"
+serde = {version="1.0", features = ["rc", "derive"]}
+luahelper = { path = "../luahelper" }
+
+[target."cfg(windows)".dependencies]
+ntapi = "0.3"
+winapi = { version = "0.3", features = [
+    "handleapi",
+    "memoryapi",
+    "psapi",
+    "processthreadsapi",
+    "tlhelp32",
+]}
+

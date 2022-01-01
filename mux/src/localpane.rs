@@ -1,6 +1,6 @@
 use crate::domain::DomainId;
 use crate::pane::{CloseReason, Pane, PaneId, Pattern, SearchResult};
-use crate::procinfo::LocalProcessInfo;
+use procinfo::LocalProcessInfo;
 use crate::renderable::*;
 use crate::tmux::{TmuxDomain, TmuxDomainState};
 use crate::{Domain, Mux, MuxNotification};
@@ -834,34 +834,10 @@ impl LocalPane {
     }
 
     fn divine_process_list(&self, _force_refresh: bool) -> Option<LocalProcessInfo> {
-        #[cfg(target_os = "macos")]
+        #[cfg(any(target_os = "macos", target_os = "linux", windows))]
         if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-            return LocalProcessInfo::with_root_pid_macos(*pid);
+            return LocalProcessInfo::with_root_pid(*pid);
         }
-
-        #[cfg(target_os = "linux")]
-        if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-            return LocalProcessInfo::with_root_pid_linux(*pid);
-        }
-
-        #[cfg(windows)]
-        if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-            return dbg!(LocalProcessInfo::with_root_pid_windows(*pid));
-        }
-
-        /*
-        #[cfg(windows)]
-        if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-            return LocalProcessInfo::with_root_pid(
-                &*if _force_refresh {
-                    crate::sysinfo::get_with_forced_refresh()
-                } else {
-                    crate::sysinfo::get()
-                },
-                *pid,
-            );
-        }
-        */
 
         None
     }

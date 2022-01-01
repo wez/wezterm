@@ -2294,6 +2294,7 @@ dependencies = [
  "mlua",
  "ntapi",
  "portable-pty",
+ "procinfo",
  "promise",
  "rangeset",
  "ratelim",
@@ -3086,6 +3087,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "392a54546fda6b7cc663379d0e6ce8b324cf88aecc5a499838e1be9781bdce2e"
 dependencies = [
  "unicode-xid",
+]
+
+[[package]]
+name = "procinfo"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "luahelper",
+ "ntapi",
+ "serde",
+ "winapi 0.3.9",
 ]
 
 [[package]]
