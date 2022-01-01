@@ -21,6 +21,7 @@ use winapi::um::tlhelp32::*;
 use winapi::um::winbase::LocalFree;
 use winapi::um::winnt::{HANDLE, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ};
 
+/// Manages a Toolhelp32 snapshot handle
 struct Snapshot(HANDLE);
 
 impl Snapshot {
@@ -79,6 +80,7 @@ fn wstr_to_path(slice: &[u16]) -> PathBuf {
     }
     .into()
 }
+
 fn wstr_to_string(slice: &[u16]) -> String {
     wstr_to_path(slice).to_string_lossy().into_owned()
 }
@@ -89,7 +91,9 @@ struct ProcParams {
     console: HANDLE,
 }
 
+/// A handle to an opened process
 struct ProcHandle(HANDLE);
+
 impl ProcHandle {
     pub fn new(pid: u32) -> Option<Self> {
         let options = PROCESS_QUERY_INFORMATION | PROCESS_VM_READ;
@@ -271,22 +275,18 @@ impl ProcHandle {
 
     /// Retrieves the start time of the process
     fn start_time(&self) -> Option<u64> {
-        let mut start = FILETIME {
-            dwLowDateTime: 0,
-            dwHighDateTime: 0,
-        };
-        let mut exit = FILETIME {
-            dwLowDateTime: 0,
-            dwHighDateTime: 0,
-        };
-        let mut kernel = FILETIME {
-            dwLowDateTime: 0,
-            dwHighDateTime: 0,
-        };
-        let mut user = FILETIME {
-            dwLowDateTime: 0,
-            dwHighDateTime: 0,
-        };
+        const fn empty() -> FILETIME {
+            FILETIME {
+                dwLowDateTime: 0,
+                dwHighDateTime: 0,
+            }
+        }
+
+        let mut start = empty();
+        let mut exit = empty();
+        let mut kernel = empty();
+        let mut user = empty();
+
         let res = unsafe { GetProcessTimes(self.0, &mut start, &mut exit, &mut kernel, &mut user) };
         if res == 0 {
             return None;
@@ -346,13 +346,7 @@ impl LocalProcessInfo {
                 }
             }
 
-            let mut executable = wstr_to_path(&info.szExeFile);
-
-            let name = match executable.file_name() {
-                Some(name) => name.to_string_lossy().into_owned(),
-                None => String::new(),
-            };
-
+            let mut executable = None;
             let mut start_time = 0;
             let mut cwd = PathBuf::new();
             let mut argv = vec![];
@@ -360,7 +354,7 @@ impl LocalProcessInfo {
 
             if let Some(proc) = ProcHandle::new(info.th32ProcessID) {
                 if let Some(exe) = proc.executable() {
-                    executable = exe;
+                    executable.replace(exe);
                 }
                 if let Some(params) = proc.get_params() {
                     cwd = params.cwd;
@@ -371,6 +365,12 @@ impl LocalProcessInfo {
                     start_time = start;
                 }
             }
+
+            let executable = executable.unwrap_or_else(|| wstr_to_path(&info.szExeFile));
+            let name = match executable.file_name() {
+                Some(name) => name.to_string_lossy().into_owned(),
+                None => String::new(),
+            };
 
             LocalProcessInfo {
                 pid: info.th32ProcessID,
