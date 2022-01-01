@@ -85,7 +85,10 @@ struct Opt {
 
 #[derive(Debug, StructOpt, Clone)]
 enum SubCommand {
-    #[structopt(name = "start", about = "Start a front-end")]
+    #[structopt(
+        name = "start",
+        about = "Start the GUI, optionally running an alternative program"
+    )]
     Start(StartCommand),
 
     #[structopt(name = "ssh", about = "Establish an ssh session")]
