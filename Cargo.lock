@@ -2292,6 +2292,7 @@ dependencies = [
  "luahelper",
  "metrics",
  "mlua",
+ "ntapi",
  "portable-pty",
  "promise",
  "rangeset",
@@ -2299,7 +2300,6 @@ dependencies = [
  "regex",
  "serde",
  "smol",
- "sysinfo",
  "terminfo",
  "termwiz",
  "textwrap 0.14.2",
@@ -3942,21 +3942,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
-]
-
-[[package]]
-name = "sysinfo"
-version = "0.22.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b645b59c59114c25d3d554f781b0a1f1f01545d1d02f271bfb1c897bdfdfdcf3"
-dependencies = [
- "cfg-if 1.0.0",
- "core-foundation-sys 0.8.3",
- "libc",
- "ntapi",
- "once_cell",
- "rayon",
- "winapi 0.3.9",
 ]
 
 [[package]]

@@ -846,6 +846,12 @@ impl LocalPane {
 
         #[cfg(windows)]
         if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
+            return dbg!(LocalProcessInfo::with_root_pid_windows(*pid));
+        }
+
+        /*
+        #[cfg(windows)]
+        if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
             return LocalProcessInfo::with_root_pid(
                 &*if _force_refresh {
                     crate::sysinfo::get_with_forced_refresh()
@@ -855,6 +861,7 @@ impl LocalPane {
                 *pid,
             );
         }
+        */
 
         None
     }

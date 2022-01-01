@@ -39,10 +39,13 @@ wezterm-ssh = { path = "../wezterm-ssh" }
 wezterm-term = { path = "../term", features=["use_serde"] }
 
 [target."cfg(windows)".dependencies]
-sysinfo = "0.22"
+ntapi = "0.3"
 winapi = { version = "0.3", features = [
     "handleapi",
-    "processthreadsapi"
+    "memoryapi",
+    "psapi",
+    "processthreadsapi",
+    "tlhelp32",
 ]}
 
 [dev-dependencies]
