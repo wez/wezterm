@@ -1,5 +1,7 @@
 #![cfg(target_os = "macos")]
 use super::*;
+use std::ffi::{OsStr, OsString};
+use std::os::unix::ffi::{OsStrExt, OsStringExt};
 
 impl From<u32> for LocalProcessStatus {
     fn from(s: u32) -> Self {
@@ -15,12 +17,12 @@ impl From<u32> for LocalProcessStatus {
 }
 
 impl LocalProcessInfo {
-    pub fn current_working_dir(pid: libc::pid_t) -> Option<PathBuf> {
+    pub fn current_working_dir(pid: u32) -> Option<PathBuf> {
         let mut pathinfo: libc::proc_vnodepathinfo = unsafe { std::mem::zeroed() };
         let size = std::mem::size_of_val(&pathinfo) as libc::c_int;
         let ret = unsafe {
             libc::proc_pidinfo(
-                pid,
+                pid as _,
                 libc::PROC_PIDVNODEPATHINFO,
                 0,
                 &mut pathinfo as *mut _ as *mut _,
@@ -31,12 +33,22 @@ impl LocalProcessInfo {
             return None;
         }
 
-        let nul = pathinfo.pvi_cdir.vip_path.iter().position(|&c| c == 0)?;
-
-        Some(OsStr::from_bytes(&pathinfo.pvi_cdir.vip_path[0..nul]).into())
+        // Workaround a workaround for an old rustc version supported by libc;
+        // the type of vip_path should just be [c_char; MAXPATHLEN] but it
+        // is defined as a horrible nested array by the libc crate:
+        // `[[c_char; 32]; 32]`.
+        // Urgh.  Let's re-cast it as the correct kind of slice.
+        let vip_path = unsafe {
+            std::slice::from_raw_parts(
+                pathinfo.pvi_cdir.vip_path.as_ptr() as *const u8,
+                libc::MAXPATHLEN as usize,
+            )
+        };
+        let nul = vip_path.iter().position(|&c| c == 0)?;
+        Some(OsStr::from_bytes(&vip_path[0..nul]).into())
     }
 
-    fn executable_path(pid: u32) -> Option<PathBuf> {
+    pub fn executable_path(pid: u32) -> Option<PathBuf> {
         let mut buffer: Vec<u8> = Vec::with_capacity(libc::PROC_PIDPATHINFO_MAXSIZE as _);
         let x = unsafe {
             libc::proc_pidpath(
@@ -114,24 +126,7 @@ impl LocalProcessInfo {
         }
 
         fn cwd_for_pid(pid: libc::pid_t) -> PathBuf {
-            let mut pathinfo: libc::proc_vnodepathinfo = unsafe { std::mem::zeroed() };
-            let size = std::mem::size_of_val(&pathinfo) as libc::c_int;
-            let ret = unsafe {
-                libc::proc_pidinfo(
-                    pid,
-                    libc::PROC_PIDVNODEPATHINFO,
-                    0,
-                    &mut pathinfo as *mut _ as *mut _,
-                    size,
-                )
-            };
-            if ret == size {
-                let path =
-                    unsafe { std::ffi::CStr::from_ptr(pathinfo.pvi_cdir.vip_path.as_ptr() as _) };
-                path.to_str().unwrap_or("").into()
-            } else {
-                PathBuf::new()
-            }
+            LocalProcessInfo::current_working_dir(pid as _).unwrap_or_else(PathBuf::new)
         }
 
         fn exe_and_args_for_pid_sysctl(pid: libc::pid_t) -> Option<(PathBuf, Vec<String>)> {
@@ -192,23 +187,7 @@ impl LocalProcessInfo {
         }
 
         fn exe_for_pid(pid: libc::pid_t) -> PathBuf {
-            let mut buffer: Vec<u8> = Vec::with_capacity(libc::PROC_PIDPATHINFO_MAXSIZE as _);
-            let x = unsafe {
-                libc::proc_pidpath(
-                    pid,
-                    buffer.as_mut_ptr() as *mut _,
-                    libc::PROC_PIDPATHINFO_MAXSIZE as _,
-                )
-            };
-            if x > 0 {
-                unsafe { buffer.set_len(x as usize) };
-                String::from_utf8_lossy(&buffer)
-                    .to_owned()
-                    .to_string()
-                    .into()
-            } else {
-                PathBuf::new()
-            }
+            LocalProcessInfo::executable_path(pid as _).unwrap_or_else(PathBuf::new)
         }
 
         let procs: Vec<_> = all_pids().into_iter().filter_map(info_for_pid).collect();
