@@ -16,6 +16,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::Result as IoResult;
 use std::ops::Range;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use termwiz::escape::DeviceControlMode;
 use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
 use url::Url;
@@ -40,6 +41,12 @@ enum ProcessState {
     Dead,
 }
 
+struct CachedProcInfo {
+    root: LocalProcessInfo,
+    updated: Instant,
+    foreground: LocalProcessInfo,
+}
+
 pub struct LocalPane {
     pane_id: PaneId,
     terminal: RefCell<Terminal>,
@@ -47,6 +54,7 @@ pub struct LocalPane {
     pty: RefCell<Box<dyn MasterPty>>,
     domain_id: DomainId,
     tmux_domain: RefCell<Option<Arc<TmuxDomainState>>>,
+    proc_list: RefCell<Option<CachedProcInfo>>,
 }
 
 #[async_trait(?Send)]
@@ -348,10 +356,10 @@ impl Pane for LocalPane {
     }
 
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
-        if let Some(proc_list) = self.divine_process_list(true) {
+        if let Some(info) = self.divine_process_list(true) {
             log::trace!(
                 "can_close_without_prompting? procs in pane {:#?}",
-                proc_list
+                info.root
             );
 
             let hook_result = config::run_immediate_with_lua_config(|lua| {
@@ -361,7 +369,7 @@ impl Pane for LocalPane {
                 };
                 let v = config::lua::emit_sync_callback(
                     &*lua,
-                    ("mux-is-process-stateful".to_string(), (proc_list.clone())),
+                    ("mux-is-process-stateful".to_string(), (info.root.clone())),
                 )?;
                 match v {
                     mlua::Value::Nil => Ok(None),
@@ -388,7 +396,7 @@ impl Pane for LocalPane {
             }
 
             let is_stateful = match hook_result {
-                Ok(None) => default_stateful_check(&proc_list),
+                Ok(None) => default_stateful_check(&info.root),
                 Ok(Some(s)) => s,
                 Err(err) => {
                     log::error!(
@@ -396,7 +404,7 @@ impl Pane for LocalPane {
                          hook: {:#}, falling back to default behavior",
                         err
                     );
-                    default_stateful_check(&proc_list)
+                    default_stateful_check(&info.root)
                 }
             };
 
@@ -723,6 +731,7 @@ impl LocalPane {
             pty: RefCell::new(pty),
             domain_id,
             tmux_domain: RefCell::new(None),
+            proc_list: RefCell::new(None),
         }
     }
 
@@ -743,46 +752,58 @@ impl LocalPane {
         None
     }
 
-    fn divine_process_list(&self, _force_refresh: bool) -> Option<LocalProcessInfo> {
+    fn divine_process_list(&self, force_refresh: bool) -> Option<RefMut<CachedProcInfo>> {
         if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-            return LocalProcessInfo::with_root_pid(*pid);
+            let mut proc_list = self.proc_list.borrow_mut();
+
+            let expired = force_refresh
+                || proc_list
+                    .as_ref()
+                    .map(|info| info.updated.elapsed() > Duration::from_millis(300))
+                    .unwrap_or(true);
+
+            if expired {
+                let root = LocalProcessInfo::with_root_pid(*pid)?;
+
+                // Windows doesn't have any job control or session concept,
+                // so we infer that the equivalent to the process group
+                // leader is the most recently spawned program running
+                // in the console
+                let mut youngest = &root;
+
+                fn find_youngest<'a>(
+                    proc: &'a LocalProcessInfo,
+                    youngest: &mut &'a LocalProcessInfo,
+                ) {
+                    if proc.start_time >= youngest.start_time {
+                        *youngest = proc;
+                    }
+
+                    for child in proc.children.values() {
+                        find_youngest(child, youngest);
+                    }
+                }
+
+                find_youngest(&root, &mut youngest);
+                let mut foreground = youngest.clone();
+                foreground.children.clear();
+
+                proc_list.replace(CachedProcInfo {
+                    root,
+                    foreground,
+                    updated: Instant::now(),
+                });
+            }
+
+            return Some(RefMut::map(proc_list, |info| info.as_mut().unwrap()));
         }
         None
     }
 
     #[allow(dead_code)]
     fn divine_foreground_process(&self) -> Option<LocalProcessInfo> {
-        // Windows doesn't have any job control or session concept,
-        // so we infer that the equivalent to the process group
-        // leader is the most recently spawned program running
-        // in the console
-        if let Some(root_proc) = self.divine_process_list(false) {
-            let mut youngest = &root_proc;
-
-            fn find_youngest<'a>(proc: &'a LocalProcessInfo, youngest: &mut &'a LocalProcessInfo) {
-                if proc.start_time >= youngest.start_time {
-                    // start_time has only 1 second granularity, and spawning
-                    // a child process will typically spawn a console host at
-                    // the same time.
-                    // We might traverse one snapshot of the tree differently
-                    // from another due to random seeds in the hash table,
-                    // so we do a little bit of targeted workaround here
-                    // to suppress the console hosts from candidate child
-                    // processes.
-                    let ignore = proc.name == "OpenConsole.exe" || proc.name == "conhost.exe";
-                    if !ignore {
-                        *youngest = proc;
-                    }
-                }
-
-                for child in proc.children.values() {
-                    find_youngest(child, youngest);
-                }
-            }
-
-            find_youngest(&root_proc, &mut youngest);
-
-            Some(youngest.clone())
+        if let Some(info) = self.divine_process_list(false) {
+            Some(info.foreground.clone())
         } else {
             None
         }
