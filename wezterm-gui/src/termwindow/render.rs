@@ -398,7 +398,6 @@ impl super::TermWindow {
             rect.max_x() as f32 - left_offset,
             rect.max_y() as f32 - top_offset,
         );
-        quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
         quad.set_is_background();
         quad.set_fg_color(color);
@@ -439,7 +438,6 @@ impl super::TermWindow {
             (point.x + cell_size.width as f32) - left_offset,
             (point.y + cell_size.height as f32) - top_offset,
         );
-        quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_texture(sprite);
         quad.set_fg_color(color);
         quad.set_hsv(None);
@@ -1044,7 +1042,6 @@ impl super::TermWindow {
                         self.dimensions.pixel_width as f32 / 2.,
                         self.dimensions.pixel_height as f32 / 2.,
                     );
-                    quad.set_texture_adjust(0., 0., 0., 0.);
                     quad.set_texture(sprite.texture_coords());
                     quad.set_is_background_image();
                     quad.set_hsv(config.window_background_image_hsb);
@@ -1965,7 +1962,6 @@ impl super::TermWindow {
                                     },
                                 pos_y + cell_height,
                             );
-                            quad.set_texture_adjust(0., 0., 0., 0.);
                             quad.set_hsv(hsv);
                             quad.set_has_color(false);
 
@@ -2012,7 +2008,6 @@ impl super::TermWindow {
                                     },
                                 pos_y + cell_height,
                             );
-                            quad.set_texture_adjust(0., 0., 0., 0.);
                             quad.set_hsv(hsv);
                             quad.set_has_color(false);
 
@@ -2061,7 +2056,6 @@ impl super::TermWindow {
                                         );
                                         quad.set_fg_color(glyph_color);
                                         quad.set_texture(texture.texture_coords());
-                                        quad.set_texture_adjust(0., 0., 0., 0.);
                                         quad.set_hsv(if glyph.brightness_adjust != 1.0 {
                                             let hsv =
                                                 hsv.unwrap_or_else(|| HsbTransform::default());
@@ -2106,14 +2100,13 @@ impl super::TermWindow {
 
                                     let mut quad = layers[1].allocate()?;
                                     quad.set_position(
-                                        pos_x,
-                                        pos_y,
-                                        pos_x + cell_width,
-                                        pos_y + cell_height,
+                                        pos_x + left,
+                                        pos_y + top,
+                                        pos_x + cell_width + right,
+                                        pos_y + cell_height + bottom,
                                     );
                                     quad.set_fg_color(glyph_color);
                                     quad.set_texture(texture_rect);
-                                    quad.set_texture_adjust(left, top, right, bottom);
                                     quad.set_hsv(if glyph.brightness_adjust != 1.0 {
                                         let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
                                         Some(HsbTransform {
@@ -2232,7 +2225,6 @@ impl super::TermWindow {
                         let mut quad = layers[2].allocate()?;
                         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
-                        quad.set_texture_adjust(0., 0., 0., 0.);
                         quad.set_has_color(false);
                         quad.set_hsv(hsv);
 
@@ -2286,7 +2278,6 @@ impl super::TermWindow {
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
         quad.set_texture(sprite);
-        quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_has_color(false);
         Ok(())
     }
@@ -2358,12 +2349,11 @@ impl super::TermWindow {
 
         let (padding_left, padding_top, padding_right, padding_bottom) = image.padding();
 
-        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
-        quad.set_texture_adjust(
-            padding_left as f32,
-            padding_top as f32,
-            padding_left as f32 - padding_right as f32,
-            padding_top as f32 - padding_bottom as f32,
+        quad.set_position(
+            pos_x + padding_left as f32,
+            pos_y + padding_top as f32,
+            pos_x + cell_width + padding_left as f32 - padding_right as f32,
+            pos_y + cell_height + padding_top as f32 - padding_bottom as f32,
         );
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
