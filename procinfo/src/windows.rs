@@ -90,7 +90,7 @@ struct ProcParams {
 
 struct ProcHandle(HANDLE);
 impl ProcHandle {
-    fn new(pid: u32) -> Option<Self> {
+    pub fn new(pid: u32) -> Option<Self> {
         let options = PROCESS_QUERY_INFORMATION | PROCESS_VM_READ;
         let handle = unsafe { OpenProcess(options, FALSE as _, pid) };
         if handle.is_null() {
@@ -99,6 +99,7 @@ impl ProcHandle {
         Some(Self(handle))
     }
 
+    /// Returns the HMODULE for the process
     fn hmodule(&self) -> Option<HMODULE> {
         let mut needed = 0;
         let mut hmod = [0 as HMODULE];
@@ -119,7 +120,8 @@ impl ProcHandle {
         }
     }
 
-    fn executable(&self) -> Option<PathBuf> {
+    /// Returns the executable image for the process
+    pub fn executable(&self) -> Option<PathBuf> {
         let hmod = self.hmodule()?;
         let mut buf = [0u16; MAX_PATH + 1];
         let res = unsafe { GetModuleFileNameExW(self.0, hmod, buf.as_mut_ptr(), buf.len() as _) };
@@ -130,53 +132,26 @@ impl ProcHandle {
         }
     }
 
-    fn get_peb32_addr(&self) -> Option<LPVOID> {
-        let mut peb32_addr = MaybeUninit::<LPVOID>::uninit();
+    /// Wrapper around NtQueryInformationProcess that fetches `what` as `T`
+    fn query_proc<T>(&self, what: u32) -> Option<T> {
+        let mut data = MaybeUninit::<T>::uninit();
         let res = unsafe {
             NtQueryInformationProcess(
                 self.0,
-                ProcessWow64Information,
-                peb32_addr.as_mut_ptr() as _,
-                std::mem::size_of::<LPVOID>() as _,
+                what,
+                data.as_mut_ptr() as _,
+                std::mem::size_of::<T>() as _,
                 std::ptr::null_mut(),
             )
         };
         if !NT_SUCCESS(res) {
             return None;
         }
-        let peb32_addr = unsafe { peb32_addr.assume_init() };
-        if peb32_addr.is_null() {
-            None
-        } else {
-            Some(peb32_addr)
-        }
+        let data = unsafe { data.assume_init() };
+        Some(data)
     }
 
-    fn get_params(&self) -> Option<ProcParams> {
-        match self.get_peb32_addr() {
-            Some(peb32) => self.get_params_32(peb32),
-            None => self.get_params_64(),
-        }
-    }
-
-    fn get_basic_info(&self) -> Option<PROCESS_BASIC_INFORMATION> {
-        let mut info = MaybeUninit::<PROCESS_BASIC_INFORMATION>::uninit();
-        let res = unsafe {
-            NtQueryInformationProcess(
-                self.0,
-                ProcessBasicInformation,
-                info.as_mut_ptr() as _,
-                std::mem::size_of::<PROCESS_BASIC_INFORMATION>() as _,
-                std::ptr::null_mut(),
-            )
-        };
-        if !NT_SUCCESS(res) {
-            return None;
-        }
-        let info = unsafe { info.assume_init() };
-        Some(info)
-    }
-
+    /// Read a `T` from the target process at the specified address
     fn read_struct<T>(&self, addr: LPVOID) -> Option<T> {
         let mut data = MaybeUninit::<T>::uninit();
         let res = unsafe {
@@ -195,6 +170,30 @@ impl ProcHandle {
         Some(data)
     }
 
+    /// If the process is a 32-bit process running on Win64, return the address
+    /// of its process parameters.
+    /// Otherwise, return None to indicate a native win64 process.
+    fn get_peb32_addr(&self) -> Option<LPVOID> {
+        let peb32_addr: LPVOID = self.query_proc(ProcessWow64Information)?;
+        if peb32_addr.is_null() {
+            None
+        } else {
+            Some(peb32_addr)
+        }
+    }
+
+    /// Returns the cwd and args for the process
+    pub fn get_params(&self) -> Option<ProcParams> {
+        match self.get_peb32_addr() {
+            Some(peb32) => self.get_params_32(peb32),
+            None => self.get_params_64(),
+        }
+    }
+
+    fn get_basic_info(&self) -> Option<PROCESS_BASIC_INFORMATION> {
+        self.query_proc(ProcessBasicInformation)
+    }
+
     fn get_peb(&self, info: &PROCESS_BASIC_INFORMATION) -> Option<PEB> {
         self.read_struct(info.PebBaseAddress as _)
     }
@@ -203,6 +202,7 @@ impl ProcHandle {
         self.read_struct(peb.ProcessParameters as _)
     }
 
+    /// Returns the cwd and args for a 64 bit process
     fn get_params_64(&self) -> Option<ProcParams> {
         let info = self.get_basic_info()?;
         let peb = self.get_peb(&info)?;
@@ -227,6 +227,7 @@ impl ProcHandle {
         self.read_struct(peb32)
     }
 
+    /// Returns the cwd and args for a 32 bit process
     fn get_params_32(&self, peb32: LPVOID) -> Option<ProcParams> {
         let params = self.get_proc_params_32(peb32)?;
 
@@ -245,6 +246,7 @@ impl ProcHandle {
         })
     }
 
+    /// Copies a sized WSTR from the address in the process
     fn read_process_wchar(&self, ptr: LPVOID, size: usize) -> Option<Vec<u16>> {
         let mut buf = vec![0u16; size / 2];
 
@@ -264,6 +266,7 @@ impl ProcHandle {
         Some(buf)
     }
 
+    /// Retrieves the start time of the process
     fn start_time(&self) -> Option<u64> {
         let mut start = FILETIME {
             dwLowDateTime: 0,
@@ -290,6 +293,7 @@ impl ProcHandle {
     }
 }
 
+/// Parse a command line string into an argv array
 fn cmd_line_to_argv(buf: &[u16]) -> Vec<String> {
     let mut argc = 0;
     let argvp = unsafe { CommandLineToArgvW(buf.as_ptr(), &mut argc) };
