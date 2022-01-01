@@ -155,6 +155,10 @@ and the feature set may change, but since @wez uses this as a daily driver, its
 usually the best available version.</p>
 <p>As features stabilize some brief notes about them will accumulate here.</p>
 <h4 id="new"><a class="header" href="#new">New</a></h4>
+<h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
+<h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
+<h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
+<h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
 <ul>
 <li>Fancy Tab Bars are now the default. The default tab bar colors have changed to accommodate the new more native look.  You can turn them off by setting <code>use_fancy_tab_bar = false</code>.</li>
 <li>Support for the <a href="https://sw.kovidgoyal.net/kitty/graphics-protocol/">Kitty Image Protocol</a> is now enabled by default.  Most of the protocol is supported; animation support is not yet implemented. Try the amazing <a href="https://notcurses.com/">notcurses</a> if you want to see what modern terminal graphics can do! <a href="https://github.com/wez/wezterm/issues/986">#986</a></li>
@@ -173,14 +177,14 @@ usually the best available version.</p>
 <li><a href="config/lua/wezterm/get_builtin_color_schemes.html">wezterm.get_builtin_color_schemes()</a> function to eg: pick a random scheme per window, or otherwise reason about schemes. See <a href="config/lua/wezterm/get_builtin_color_schemes.html">the docs</a> for examples!</li>
 <li>Added color schemes: <a href="colorschemes/a/index.html#alabaster">Alabaster</a>, <a href="colorschemes/c/index.html#cga">CGA</a>, <a href="colorschemes/m/index.html#materialdesigncolors">MaterialDesignColors</a>, <a href="colorschemes/d/index.html#darkermatrix">darkermatrix</a>, <a href="colorschemes/n/index.html#nord-light">nord-light</a></li>
 </ul>
-<h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
+<h4 id="changed-1"><a class="header" href="#changed-1">Changed</a></h4>
 <ul>
 <li>quickselect: we now de-duplicate labels for results with the same textual content. <a href="https://github.com/wez/wezterm/issues/1271">#1271</a></li>
 <li>The default <code>CompleteSelectionOrOpenLinkAtMouseCursor</code> left button release assignment now also accepts SHIFT being held in order to make SHIFT-click <code>ExtendSelectionToMouseCursor</code> feel more ergonomic if the mouse button is released before the SHIFT key. <a href="https://github.com/wez/wezterm/issues/1204">#1204</a></li>
 <li>Unicode BIDI and other zero-width graphemes are now filtered out from the terminal model. It's not ideal in the sense that that information is essentially lost when copying to the clipboard, but it makes the presentation correct. <a href="https://github.com/wez/wezterm/issues/1422">#1422</a></li>
 <li><a href="config/lua/config/use_ime.html">use_ime</a> now defaults to <code>true</code> on X11 systems</li>
 </ul>
-<h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
+<h4 id="updated-and-improved-1"><a class="header" href="#updated-and-improved-1">Updated and Improved</a></h4>
 <ul>
 <li>Bundled harfbuzz to 3.2.0</li>
 <li>Bundled freetype to 2.11.1</li>
@@ -192,7 +196,7 @@ usually the best available version.</p>
 <li>You can now pass <a href="config/lua/keyassignment/SendKey.html">SendKey</a> to <a href="config/lua/wezterm/action.html">wezterm.action</a> and make your <code>keys</code> config look more consistent</li>
 <li>Mouse wheel events are now routed to the hovered pane, rather than sent to the focused pane <a href="https://github.com/wez/wezterm/issues/798">#798</a></li>
 </ul>
-<h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
+<h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
 <ul>
 <li>DECSTR (terminal soft reset) now turns off DECLRMM (left and right margin mode). Thanks to <a href="https://github.com/ninjalj">@ninjalj</a>! <a href="https://github.com/wez/wezterm/pull/1376">#1376</a></li>
 <li>Improved conformance of CUP, HVP, SLRM, STBM escape sequences by support empty first parameter. Thanks to <a href="https://github.com/ninjalj">@ninjalj</a>! <a href="https://github.com/wez/wezterm/pull/1377">#1377</a></li>
@@ -215,7 +219,7 @@ usually the best available version.</p>
 <li>macOS: certain keys (eg: <code>F8</code> and <code>F9</code>) did nothing when <code>use_ime=true</code>. <a href="https://github.com/wez/wezterm/issues/975">#975</a></li>
 </ul>
 <h3 id="20211205-192649-672c1cc1"><a class="header" href="#20211205-192649-672c1cc1">20211205-192649-672c1cc1</a></h3>
-<h4 id="fixed-1"><a class="header" href="#fixed-1">Fixed</a></h4>
+<h4 id="fixed-2"><a class="header" href="#fixed-2">Fixed</a></h4>
 <ul>
 <li>Windows: <code>wezterm &lt;something&gt;</code> would fail silently when spawning <code>wezterm-gui</code> under the covers. Regression introduced by <a href="https://github.com/wez/wezterm/issues/1278">#1278</a>. Workaround is to directly spawn <code>wezterm-gui</code>.</li>
 <li>Windows: the PTY handles were ignored in favor of the redirected stdio handles of the parent of the wezterm mux process <a href="https://github.com/wez/wezterm/issues/1358">#1358</a></li>
@@ -243,7 +247,7 @@ usually the best available version.</p>
 <li><a href="config/lua/config/unicode_version.html">unicode_version</a> option and corresponding OSC escape sequences that affects how the width of certain unicode sequences are interpreted.</li>
 <li>macOS: binaries produced by wezterm's CI are now codesigned, which resolves some spurious permission dialogs that affected some users <a href="https://github.com/wez/wezterm/issues/482">#482</a></li>
 </ul>
-<h4 id="changed-1"><a class="header" href="#changed-1">Changed</a></h4>
+<h4 id="changed-2"><a class="header" href="#changed-2">Changed</a></h4>
 <ul>
 <li>new default key assignments: CTRL+PageUp and CTRL+Tab activate next tab, CTRL+PageDown and CTRL+SHIFT+Tab activate previous tab. ALT+{1..8} directly select the first through 8th tabs. Thanks to <a href="https://github.com/friederbluemle">@friederbluemle</a>! <a href="https://github.com/wez/wezterm/pull/1132">#1132</a></li>
 <li>X11: we now allow matching visuals with &gt;= 8 bits per rgb value. Previously, we only matched exactly 8 bits. This improve compatibility with systems that have the COMPOSITE extension disabled. Thanks to <a href="https://github.com/shizeeg">@shizeeg</a>! <a href="https://github.com/wez/wezterm/pull/1083">#1083</a></li>
@@ -251,7 +255,7 @@ usually the best available version.</p>
 <li>Windows: <code>wezterm-gui.exe</code> now only grabs the parent process' console handle when spawned from <code>wezterm.exe</code>, which prevents some frustrating interactions when launching <code>wezterm-gui.exe</code> via <code>start</code> in cmd/powershell. <a href="https://github.com/wez/wezterm/issues/1278">#1278</a></li>
 <li>AppImage: take care to remove APPIMAGE related environment when spawning child processes. Thanks to <a href="https://github.com/srevinsaju">@srevinsaju</a>! <a href="https://github.com/wez/wezterm/pull/1338">#1338</a></li>
 </ul>
-<h4 id="updated-and-improved-1"><a class="header" href="#updated-and-improved-1">Updated and Improved</a></h4>
+<h4 id="updated-and-improved-2"><a class="header" href="#updated-and-improved-2">Updated and Improved</a></h4>
 <ul>
 <li>bundled harfbuzz updated to version 3.0.0, bundled freetype updated to 2.11</li>
 <li>window close confirmations now accept both uppercase and lowercase Y/N key presses. Thanks to <a href="https://github.com/SpyrosRoum">@SpyrosRoum</a>! <a href="https://github.com/wez/wezterm/pull/1119">#1119</a></li>
@@ -262,7 +266,7 @@ usually the best available version.</p>
 <li>Powerline semicircle glyphs now look much better. Thanks to <a href="https://github.com/bew">@bew</a> and <a href="https://github.com/sdrik">@sdrik</a>! <a href="https://github.com/wez/wezterm/issues/1311">#1311</a></li>
 <li>Splits now look better, especially when using escape sequences to change the default background color <a href="https://github.com/wez/wezterm/issues/1256">#1256</a></li>
 </ul>
-<h4 id="fixed-2"><a class="header" href="#fixed-2">Fixed</a></h4>
+<h4 id="fixed-3"><a class="header" href="#fixed-3">Fixed</a></h4>
 <ul>
 <li><code>wezterm cli spawn</code> would use the initial terminal size for a new tab, rather than using the current tab size <a href="https://github.com/wez/wezterm/issues/920">#920</a></li>
 <li><code>text_background_opacity</code> opacity was not respected</li>
