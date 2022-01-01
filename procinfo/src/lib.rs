@@ -62,4 +62,9 @@ impl LocalProcessInfo {
     pub fn current_working_dir(_pid: u32) -> Option<PathBuf> {
         None
     }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
+    pub fn executable_path(_pid: u32) -> Option<PathBuf> {
+        None
+    }
 }
