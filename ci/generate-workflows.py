@@ -443,18 +443,16 @@ cargo build --all --release""",
             ),
             RunStep(
                 "Create pre-release",
-                "bash ci/retry.sh bash ci/create-release.sh $TAG_NAME",
+                "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)",
                 env={
                     "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
-                    "TAG_NAME": "${{ github.event.release.tag_name }}",
                 },
             ),
             RunStep(
                 "Upload to Tagged Release",
-                f"bash ci/retry.sh gh release upload --clobber $TAG_NAME {glob}",
+                f"bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) {glob}",
                 env={
                     "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
-                    "TAG_NAME": "${{ github.event.release.tag_name }}",
                 },
             ),
         ]
