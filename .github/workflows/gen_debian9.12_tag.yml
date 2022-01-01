@@ -99,10 +99,12 @@ jobs:
       - name: "Create pre-release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
         shell: bash
-        run: "bash ci/retry.sh bash ci/create-release.sh ${{ github.event.release.tag_name }}"
+        run: "bash ci/retry.sh bash ci/create-release.sh $TAG_NAME"
       - name: "Upload to Tagged Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber ${ github.event.release.tag_name } wezterm-*.deb wezterm-*.xz"
+        run: "bash ci/retry.sh gh release upload --clobber $TAG_NAME wezterm-*.deb wezterm-*.xz"
