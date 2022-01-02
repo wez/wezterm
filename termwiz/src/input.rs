@@ -64,6 +64,7 @@ bitflags! {
 pub enum InputEvent {
     Key(KeyEvent),
     Mouse(MouseEvent),
+    PixelMouse(PixelMouseEvent),
     /// Detected that the user has resized the terminal
     Resized {
         cols: usize,
@@ -81,6 +82,15 @@ pub enum InputEvent {
 pub struct MouseEvent {
     pub x: u16,
     pub y: u16,
+    pub mouse_buttons: MouseButtons,
+    pub modifiers: Modifiers,
+}
+
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PixelMouseEvent {
+    pub x_pixels: u16,
+    pub y_pixels: u16,
     pub mouse_buttons: MouseButtons,
     pub modifiers: Modifiers,
 }
@@ -1267,17 +1277,15 @@ impl InputParser {
                                         modifiers,
                                     }));
                                 }
-                                // AZL - I don't quite understand this
-                                // bit.  Needs to be fixed up.
                                 MouseReport::SGR1016 {
                                     x_pixels,
                                     y_pixels,
                                     button,
                                     modifiers,
                                 } => {
-                                    callback(InputEvent::Mouse(MouseEvent {
-                                        x: x_pixels,
-                                        y: y_pixels,
+                                    callback(InputEvent::PixelMouse(PixelMouseEvent {
+                                        x_pixels: x_pixels,
+                                        y_pixels: y_pixels,
                                         mouse_buttons: button.into(),
                                         modifiers,
                                     }));

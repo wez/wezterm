@@ -37,10 +37,18 @@ pub struct MouseEvent {
     pub kind: MouseEventKind,
     pub x: usize,
     pub y: VisibleRowIndex,
-    pub x_offset: usize,
-    pub y_offset: usize,
+    pub x_pixel_offset: usize,
+    pub y_pixel_offset: usize,
     pub button: MouseButton,
     pub modifiers: KeyModifiers,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ClickPosition {
+    pub column: usize,
+    pub row: i64,
+    pub x_pixel_offset: usize,
+    pub y_pixel_offset: usize,
 }
 
 /// This is a little helper that keeps track of the "click streak",
@@ -52,7 +60,7 @@ pub struct MouseEvent {
 #[derive(Debug, Clone)]
 pub struct LastMouseClick {
     pub button: MouseButton,
-    position: (usize, i64, usize, usize),
+    pub position: ClickPosition,
     time: Instant,
     pub streak: usize,
 }
@@ -61,7 +69,7 @@ pub struct LastMouseClick {
 const CLICK_INTERVAL: u64 = 500;
 
 impl LastMouseClick {
-    pub fn new(button: MouseButton, position: (usize, i64, usize, usize)) -> Self {
+    pub fn new(button: MouseButton, position: ClickPosition) -> Self {
         Self {
             button,
             position,
@@ -70,7 +78,7 @@ impl LastMouseClick {
         }
     }
 
-    pub fn add(&self, button: MouseButton, position: (usize, i64, usize, usize)) -> Self {
+    pub fn add(&self, button: MouseButton, position: ClickPosition) -> Self {
         let now = Instant::now();
         let streak = if button == self.button
             && position == self.position
