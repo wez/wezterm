@@ -140,6 +140,12 @@ pub enum WindowEvent {
     /// Called when the window gains/loses focus
     FocusChanged(bool),
 
+    /// Called to handle a raw key event, prior to any dead key,
+    /// keymap composition or other higher level treatment.
+    /// If you handle this key event, you must call
+    /// event.set_handled() to prevent additional processing.
+    RawKeyEvent(RawKeyEvent),
+
     /// Called to handle a key event.
     /// If you didn't handle this event, then you must call
     /// window.default_key_processing(key) to allow the system to perform

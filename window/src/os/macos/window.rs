@@ -4,9 +4,9 @@
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::{
-    Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
-    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size, WindowDecorations,
-    WindowEvent, WindowEventSender, WindowOps, WindowState,
+    Clipboard, Connection, Dimensions, Handled, KeyCode, KeyEvent, Modifiers, MouseButtons,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect, ScreenPoint,
+    Size, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
@@ -1766,6 +1766,56 @@ impl WindowView {
             key_is_down
         );
 
+        // `Delete` on macos is really Backspace and emits BS.
+        // `Fn-Delete` emits DEL.
+        // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
+        // We want to emit Alt-BS in that situation.
+        let unmod =
+            if virtual_key == super::keycodes::kVK_Delete && modifiers.contains(Modifiers::ALT) {
+                "\x08"
+            } else if virtual_key == super::keycodes::kVK_Tab {
+                "\t"
+            } else if virtual_key == super::keycodes::kVK_Delete {
+                "\x08"
+            } else if virtual_key == super::keycodes::kVK_ANSI_KeypadEnter {
+                // https://github.com/wez/wezterm/issues/739
+                // Keypad enter sends ctrl-c for some reason; explicitly
+                // treat that as enter here.
+                "\r"
+            } else {
+                unmod
+            };
+
+        let phys_code = super::keycodes::vkey_to_phys(virtual_key);
+        let raw_key_handled = Handled::default();
+        let raw_key_event = RawKeyEvent {
+            key: if unmod.is_empty() {
+                match phys_code {
+                    Some(phys) => KeyCode::Physical(phys),
+                    None => KeyCode::RawCode(virtual_key as _),
+                }
+            } else {
+                KeyCode::composed(unmod)
+            },
+            phys_code,
+            raw_code: virtual_key as _,
+            modifiers,
+            repeat_count: 1,
+            key_is_down,
+            handled: raw_key_handled.clone(),
+        };
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            inner
+                .events
+                .dispatch(WindowEvent::RawKeyEvent(raw_key_event));
+        }
+
+        if raw_key_handled.is_handled() {
+            log::trace!("raw key was handled; not processing further");
+            return;
+        }
+
         let chars = if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
 
@@ -1802,26 +1852,6 @@ impl WindowView {
             config_handle.send_composed_key_when_left_alt_is_pressed;
         let send_composed_key_when_right_alt_is_pressed =
             config_handle.send_composed_key_when_right_alt_is_pressed;
-
-        // `Delete` on macos is really Backspace and emits BS.
-        // `Fn-Delete` emits DEL.
-        // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
-        // We want to emit Alt-BS in that situation.
-        let unmod =
-            if virtual_key == super::keycodes::kVK_Delete && modifiers.contains(Modifiers::ALT) {
-                "\x08"
-            } else if virtual_key == super::keycodes::kVK_Tab {
-                "\t"
-            } else if virtual_key == super::keycodes::kVK_Delete {
-                "\x08"
-            } else if virtual_key == super::keycodes::kVK_ANSI_KeypadEnter {
-                // https://github.com/wez/wezterm/issues/739
-                // Keypad enter sends ctrl-c for some reason; explicitly
-                // treat that as enter here.
-                "\r"
-            } else {
-                unmod
-            };
 
         // If unmod is empty it most likely means that the user has selected
         // an alternate keymap that has a chorded representation of eg: an ASCII
@@ -1939,7 +1969,7 @@ impl WindowView {
                 modifiers,
                 raw_modifiers,
                 raw_code: Some(virtual_key as u32),
-                phys_code: super::keycodes::vkey_to_phys(virtual_key),
+                phys_code,
                 repeat_count: 1,
                 key_is_down,
             }

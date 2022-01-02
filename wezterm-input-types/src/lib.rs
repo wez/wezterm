@@ -2,6 +2,8 @@ use bitflags::*;
 use serde::*;
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 pub struct PixelUnit;
 pub struct ScreenPixelUnit;
@@ -511,6 +513,50 @@ pub struct MouseEvent {
     pub screen_coords: crate::ScreenPoint,
     pub mouse_buttons: MouseButtons,
     pub modifiers: Modifiers,
+}
+
+#[derive(Debug, Clone)]
+pub struct Handled(Arc<AtomicBool>);
+
+impl Handled {
+    pub fn default() -> Self {
+        Self(Arc::new(AtomicBool::new(false)))
+    }
+
+    pub fn set_handled(&self) {
+        self.0.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn is_handled(&self) -> bool {
+        self.0.load(std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
+/// A key event prior to any dead key or IME composition
+#[derive(Debug, Clone)]
+pub struct RawKeyEvent {
+    pub key: KeyCode,
+    pub modifiers: Modifiers,
+
+    /// The physical location of the key on an ANSI-Standard US layout
+    pub phys_code: Option<PhysKeyCode>,
+    /// The OS and hardware dependent key code for the key
+    pub raw_code: u32,
+
+    /// How many times this key repeats
+    pub repeat_count: u16,
+
+    /// If true, this is a key down rather than a key up event
+    pub key_is_down: bool,
+    pub handled: Handled,
+}
+
+impl RawKeyEvent {
+    /// Mark the event as handled, in order to prevent additional
+    /// processing.
+    pub fn set_handled(&self) {
+        self.handled.set_handled();
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

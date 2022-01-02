@@ -1,4 +1,4 @@
-use ::window::{KeyCode, KeyEvent, Modifiers, WindowOps};
+use ::window::{KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowOps};
 use mux::pane::Pane;
 use std::rc::Rc;
 
@@ -35,6 +35,12 @@ pub enum Key {
     None,
 }
 
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+enum OnlyKeyBindings {
+    Yes,
+    No,
+}
+
 impl super::TermWindow {
     fn process_key(
         &mut self,
@@ -44,6 +50,7 @@ impl super::TermWindow {
         raw_modifiers: Modifiers,
         leader_active: bool,
         leader_mod: Modifiers,
+        only_key_bindings: OnlyKeyBindings,
     ) -> bool {
         if !leader_active {
             // Check to see if this key-press is the leader activating
@@ -72,7 +79,13 @@ impl super::TermWindow {
 
         // While the leader modifier is active, only registered
         // keybindings are recognized.
-        if !leader_active {
+        let only_key_bindings = match (only_key_bindings, leader_active) {
+            (OnlyKeyBindings::Yes, _) => OnlyKeyBindings::Yes,
+            (_, true) => OnlyKeyBindings::Yes,
+            _ => OnlyKeyBindings::No,
+        };
+
+        if only_key_bindings == OnlyKeyBindings::No {
             let config = &self.config;
 
             // This is a bit ugly.
@@ -117,9 +130,99 @@ impl super::TermWindow {
         false
     }
 
-    pub fn key_event_impl(&mut self, window_key: KeyEvent, context: &dyn WindowOps) -> bool {
+    pub fn raw_key_event_impl(&mut self, key: RawKeyEvent, context: &dyn WindowOps) {
+        if !key.key_is_down {
+            return;
+        }
+
+        if self.config.debug_key_events {
+            log::info!("key_event {:?}", key);
+        } else {
+            log::trace!("key_event {:?}", key);
+        }
+
+        // The leader key is a kind of modal modifier key.
+        // It is allowed to be active for up to the leader timeout duration,
+        // after which it auto-deactivates.
+        let (leader_active, leader_mod) = match self.leader_is_down.as_ref() {
+            Some(expiry) if *expiry > std::time::Instant::now() => {
+                // Currently active
+                (true, Modifiers::LEADER)
+            }
+            Some(_) => {
+                // Expired; clear out the old expiration time
+                self.leader_is_down.take();
+                (false, Modifiers::NONE)
+            }
+            _ => (false, Modifiers::NONE),
+        };
+
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
+            None => return,
+        };
+
+        // First, try to match raw physical key
+        let phys_key = match &key.key {
+            phys @ KeyCode::Physical(_) => Some(phys.clone()),
+            _ => key.phys_code.map(KeyCode::Physical),
+        };
+
+        if let Some(phys_key) = &phys_key {
+            if self.process_key(
+                &pane,
+                context,
+                &phys_key,
+                key.modifiers,
+                leader_active,
+                leader_mod,
+                OnlyKeyBindings::Yes,
+            ) {
+                key.set_handled();
+                return;
+            }
+        }
+
+        // Then try the raw code
+        let raw_key = match &key.key {
+            raw @ KeyCode::RawCode(_) => raw.clone(),
+            _ => KeyCode::RawCode(key.raw_code),
+        };
+        if self.process_key(
+            &pane,
+            context,
+            &raw_key,
+            key.modifiers,
+            leader_active,
+            leader_mod,
+            OnlyKeyBindings::Yes,
+        ) {
+            key.set_handled();
+            return;
+        }
+
+        if phys_key.as_ref() == Some(&key.key) || raw_key == key.key {
+            // We already matched against whatever key.key is, so no need
+            // to do it again below
+            return;
+        }
+
+        if self.process_key(
+            &pane,
+            context,
+            &key.key,
+            key.modifiers,
+            leader_active,
+            leader_mod,
+            OnlyKeyBindings::Yes,
+        ) {
+            key.set_handled();
+        }
+    }
+
+    pub fn key_event_impl(&mut self, window_key: KeyEvent, context: &dyn WindowOps) {
         if !window_key.key_is_down {
-            return false;
+            return;
         }
 
         if self.config.debug_key_events {
@@ -130,7 +233,7 @@ impl super::TermWindow {
 
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
-            None => return false,
+            None => return,
         };
 
         // The leader key is a kind of modal modifier key.
@@ -163,8 +266,9 @@ impl super::TermWindow {
                 window_key.raw_modifiers,
                 leader_active,
                 leader_mod,
+                OnlyKeyBindings::Yes,
             ) {
-                return true;
+                return;
             }
         }
 
@@ -179,8 +283,9 @@ impl super::TermWindow {
                 window_key.raw_modifiers,
                 leader_active,
                 leader_mod,
+                OnlyKeyBindings::Yes,
             ) {
-                return true;
+                return;
             }
         }
 
@@ -194,8 +299,9 @@ impl super::TermWindow {
                 window_key.raw_modifiers,
                 leader_active,
                 leader_mod,
+                OnlyKeyBindings::Yes,
             ) {
-                return true;
+                return;
             }
         }
 
@@ -206,8 +312,9 @@ impl super::TermWindow {
             window_key.modifiers,
             leader_active,
             leader_mod,
+            OnlyKeyBindings::No,
         ) {
-            return true;
+            return;
         }
 
         let key = self.win_key_code_to_termwiz_key_code(&window_key.key);
@@ -221,9 +328,6 @@ impl super::TermWindow {
                     if !key.is_modifier() {
                         context.invalidate();
                     }
-                    true
-                } else {
-                    false
                 }
             }
             Key::Composed(s) => {
@@ -237,9 +341,8 @@ impl super::TermWindow {
                     self.maybe_scroll_to_bottom_for_input(&pane);
                     context.invalidate();
                 }
-                true
             }
-            Key::None => false,
+            Key::None => {}
         }
     }
 

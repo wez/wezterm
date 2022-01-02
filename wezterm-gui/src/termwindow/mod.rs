@@ -801,6 +801,10 @@ impl TermWindow {
                 self.resize(dimensions, window_state, window);
                 Ok(true)
             }
+            WindowEvent::RawKeyEvent(event) => {
+                self.raw_key_event_impl(event, window);
+                Ok(true)
+            }
             WindowEvent::KeyEvent(event) => {
                 self.key_event_impl(event, window);
                 Ok(true)
