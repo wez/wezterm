@@ -14,7 +14,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use wezterm_term::input::MouseEventKind as TMEK;
-use wezterm_term::{LastMouseClick, StableRowIndex};
+use wezterm_term::{ClickPosition, LastMouseClick, StableRowIndex};
 
 impl super::TermWindow {
     fn resolve_ui_item(&self, event: &MouseEvent) -> Option<UIItem> {
@@ -85,7 +85,7 @@ impl super::TermWindow {
         }
         .trunc() as usize;
 
-        let y_offset = (event
+        let y_pixel_offset = (event
             .coords
             .y
             .sub(padding_top as isize)
@@ -93,7 +93,7 @@ impl super::TermWindow {
             .max(0)
             % self.render_metrics.cell_size.height) as usize;
 
-        let x_offset = (event.coords.x.sub(padding_left as isize).max(0)
+        let x_pixel_offset = (event.coords.x.sub(padding_left as isize).max(0)
             % self.render_metrics.cell_size.width) as usize;
 
         self.last_mouse_coords = (x, y);
@@ -116,8 +116,24 @@ impl super::TermWindow {
                 let button = mouse_press_to_tmb(press);
 
                 let click = match self.last_mouse_click.take() {
-                    None => LastMouseClick::new(button, (x, y, x_offset, y_offset)),
-                    Some(click) => click.add(button, (x, y, x_offset, y_offset)),
+                    None => LastMouseClick::new(
+                        button,
+                        ClickPosition {
+                            column: x,
+                            row: y,
+                            x_pixel_offset,
+                            y_pixel_offset,
+                        },
+                    ),
+                    Some(click) => click.add(
+                        button,
+                        ClickPosition {
+                            column: x,
+                            row: y,
+                            x_pixel_offset,
+                            y_pixel_offset,
+                        },
+                    ),
                 };
                 self.last_mouse_click = Some(click);
                 self.current_mouse_buttons.retain(|p| p != press);
@@ -176,7 +192,7 @@ impl super::TermWindow {
         if let Some(item) = ui_item {
             self.mouse_event_ui_item(item, pane, y, event, context);
         } else {
-            self.mouse_event_terminal(pane, x, y, x_offset, y_offset, event, context);
+            self.mouse_event_terminal(pane, x, y, x_pixel_offset, y_pixel_offset, event, context);
         }
     }
 
@@ -420,8 +436,8 @@ impl super::TermWindow {
         mut pane: Rc<dyn Pane>,
         mut x: usize,
         mut y: i64,
-        x_offset: usize,
-        y_offset: usize,
+        x_pixel_offset: usize,
+        y_pixel_offset: usize,
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
@@ -681,8 +697,8 @@ impl super::TermWindow {
             },
             x,
             y,
-            x_offset,
-            y_offset,
+            x_pixel_offset,
+            y_pixel_offset,
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
 

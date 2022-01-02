@@ -663,8 +663,8 @@ impl TerminalState {
                     modifiers: KeyModifiers::NONE,
                     x: 0,
                     y: 0,
-                    x_offset: 0,
-                    y_offset: 0,
+                    x_pixel_offset: 0,
+                    y_pixel_offset: 0,
                 })
                 .ok();
             }
