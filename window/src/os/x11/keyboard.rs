@@ -3,9 +3,12 @@ use crate::{KeyEvent, Modifiers};
 use anyhow::{anyhow, ensure};
 use libc;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ffi::CStr;
+use wezterm_input_types::PhysKeyCode;
 use xkb::compose::Status as ComposeStatus;
 use xkbcommon::xkb;
+use xkbcommon::xkb::Keycode;
 
 pub struct Keyboard {
     context: xkb::Context,
@@ -14,6 +17,7 @@ pub struct Keyboard {
 
     state: RefCell<xkb::State>,
     compose_state: RefCell<xkb::compose::State>,
+    phys_code_map: RefCell<HashMap<Keycode, PhysKeyCode>>,
 }
 
 impl Keyboard {
@@ -38,12 +42,15 @@ impl Keyboard {
         .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
         let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
 
+        let phys_code_map = build_physkeycode_map(&keymap);
+
         Ok(Self {
             context,
             device_id: -1,
             keymap: RefCell::new(keymap),
             state: RefCell::new(state),
             compose_state: RefCell::new(compose_state),
+            phys_code_map: RefCell::new(phys_code_map),
         })
     }
 
@@ -81,6 +88,10 @@ impl Keyboard {
             device_id,
             xkb::KEYMAP_COMPILE_NO_FLAGS,
         );
+
+        let code = keymap.key_by_name("TLDE");
+        log::info!("TLDE -> {:?}", code);
+
         let state = xkb::x11::state_new_from_device(&keymap, connection, device_id);
 
         let locale = query_lc_ctype()?;
@@ -121,12 +132,14 @@ impl Keyboard {
             cookie.request_check()?;
         }
 
+        let phys_code_map = build_physkeycode_map(&keymap);
         let kbd = Keyboard {
             context,
             device_id,
             keymap: RefCell::new(keymap),
             state: RefCell::new(state),
             compose_state: RefCell::new(compose_state),
+            phys_code_map: RefCell::new(phys_code_map),
         };
 
         Ok((kbd, first_ev))
@@ -197,7 +210,7 @@ impl Keyboard {
             raw_key: None,
             raw_modifiers,
             raw_code: Some(xcode),
-            phys_code: None,
+            phys_code: self.phys_code_map.borrow().get(&xcode).copied(),
             repeat_count: 1,
             key_is_down: pressed,
         })
@@ -293,9 +306,11 @@ impl Keyboard {
 
         let new_state = xkb::x11::state_new_from_device(&new_keymap, connection, self.device_id);
         ensure!(!new_state.get_raw_ptr().is_null(), "problem with new state");
+        let phys_code_map = build_physkeycode_map(&new_keymap);
 
         self.state.replace(new_state);
         self.keymap.replace(new_keymap);
+        self.phys_code_map.replace(phys_code_map);
         Ok(())
     }
 
@@ -333,4 +348,126 @@ impl XkbGenericEvent {
     pub fn device_id(&self) -> u8 {
         unsafe { (*self.base.ptr).device_id }
     }
+}
+
+fn build_physkeycode_map(keymap: &xkb::Keymap) -> HashMap<Keycode, PhysKeyCode> {
+    let mut map = HashMap::new();
+
+    // See <https://abaines.me.uk/updates/linux-x11-keys> for info on
+    // these names and how they relate to the ANSI standard US keyboard
+    for (name, phys) in &[
+        ("ESC", PhysKeyCode::Escape),
+        ("FK01", PhysKeyCode::F1),
+        ("FK02", PhysKeyCode::F2),
+        ("FK03", PhysKeyCode::F3),
+        ("FK04", PhysKeyCode::F4),
+        ("FK05", PhysKeyCode::F5),
+        ("FK06", PhysKeyCode::F6),
+        ("FK07", PhysKeyCode::F7),
+        ("FK08", PhysKeyCode::F8),
+        ("FK09", PhysKeyCode::F9),
+        ("FK10", PhysKeyCode::F10),
+        ("FK11", PhysKeyCode::F11),
+        ("FK12", PhysKeyCode::F12),
+        // ("PRSC", Print Screen),
+        // ("SCLK", Scroll Lock),
+        // ("PAUS", Pause),
+        ("TLDE", PhysKeyCode::Grave),
+        ("AE01", PhysKeyCode::K1),
+        ("AE02", PhysKeyCode::K2),
+        ("AE03", PhysKeyCode::K3),
+        ("AE04", PhysKeyCode::K4),
+        ("AE05", PhysKeyCode::K5),
+        ("AE06", PhysKeyCode::K6),
+        ("AE07", PhysKeyCode::K7),
+        ("AE08", PhysKeyCode::K8),
+        ("AE09", PhysKeyCode::K9),
+        ("AE10", PhysKeyCode::K0),
+        ("AE11", PhysKeyCode::Minus),
+        ("AE12", PhysKeyCode::Equal),
+        ("BKSL", PhysKeyCode::Backslash),
+        ("BKSP", PhysKeyCode::Delete),
+        ("INS", PhysKeyCode::Insert),
+        ("HOME", PhysKeyCode::Home),
+        ("PGUP", PhysKeyCode::PageUp),
+        ("NMLK", PhysKeyCode::NumLock),
+        ("KPDV", PhysKeyCode::KeypadDivide),
+        ("KPMU", PhysKeyCode::KeypadMultiply),
+        ("KPSU", PhysKeyCode::KeypadMinus),
+        ("TAB", PhysKeyCode::Tab),
+        ("AD01", PhysKeyCode::Q),
+        ("AD02", PhysKeyCode::W),
+        ("AD03", PhysKeyCode::E),
+        ("AD04", PhysKeyCode::R),
+        ("AD05", PhysKeyCode::T),
+        ("AD06", PhysKeyCode::Y),
+        ("AD07", PhysKeyCode::U),
+        ("AD08", PhysKeyCode::I),
+        ("AD09", PhysKeyCode::O),
+        ("AD10", PhysKeyCode::P),
+        ("AD11", PhysKeyCode::LeftBracket),
+        ("AD12", PhysKeyCode::RightBracket),
+        ("DELE", PhysKeyCode::ForwardDelete),
+        ("END", PhysKeyCode::End),
+        ("PGDN", PhysKeyCode::PageDown),
+        ("KP7", PhysKeyCode::Keypad7),
+        ("KP8", PhysKeyCode::Keypad8),
+        ("KP9", PhysKeyCode::Keypad9),
+        ("KPAD", PhysKeyCode::KeypadPlus),
+        ("CAPS", PhysKeyCode::CapsLock),
+        ("AC01", PhysKeyCode::A),
+        ("AC02", PhysKeyCode::S),
+        ("AC03", PhysKeyCode::D),
+        ("AC04", PhysKeyCode::F),
+        ("AC05", PhysKeyCode::G),
+        ("AC06", PhysKeyCode::H),
+        ("AC07", PhysKeyCode::J),
+        ("AC08", PhysKeyCode::K),
+        ("AC09", PhysKeyCode::L),
+        ("AC10", PhysKeyCode::Semicolon),
+        ("AC11", PhysKeyCode::Quote),
+        ("RTRN", PhysKeyCode::Return),
+        ("KP4", PhysKeyCode::Keypad4),
+        ("KP5", PhysKeyCode::Keypad5),
+        ("KP6", PhysKeyCode::Keypad6),
+        ("LFSH", PhysKeyCode::LeftShift),
+        ("AB01", PhysKeyCode::Z),
+        ("AB02", PhysKeyCode::X),
+        ("AB03", PhysKeyCode::C),
+        ("AB04", PhysKeyCode::V),
+        ("AB05", PhysKeyCode::B),
+        ("AB06", PhysKeyCode::N),
+        ("AB07", PhysKeyCode::M),
+        ("AB08", PhysKeyCode::Comma),
+        ("AB09", PhysKeyCode::Period),
+        ("AB10", PhysKeyCode::Slash),
+        ("RTSH", PhysKeyCode::RightShift),
+        ("UP", PhysKeyCode::UpArrow),
+        ("KP1", PhysKeyCode::Keypad1),
+        ("KP2", PhysKeyCode::Keypad2),
+        ("KP3", PhysKeyCode::Keypad3),
+        ("KPEN", PhysKeyCode::KeypadEnter),
+        ("LCTL", PhysKeyCode::LeftControl),
+        ("LALT", PhysKeyCode::LeftAlt),
+        ("SPCE", PhysKeyCode::Space),
+        ("RALT", PhysKeyCode::RightAlt),
+        ("RCTL", PhysKeyCode::RightControl),
+        ("LEFT", PhysKeyCode::LeftArrow),
+        ("DOWN", PhysKeyCode::DownArrow),
+        ("RGHT", PhysKeyCode::RightArrow),
+        ("KP0", PhysKeyCode::Keypad0),
+        ("KPDL", PhysKeyCode::KeypadDelete),
+        ("LWIN", PhysKeyCode::LeftWindows),
+        ("RWIN", PhysKeyCode::RightWindows),
+        ("MUTE", PhysKeyCode::Mute),
+        ("VOL-", PhysKeyCode::VolumeDown),
+        ("VOL+", PhysKeyCode::VolumeUp),
+        ("HELP", PhysKeyCode::Help),
+    ] {
+        if let Some(code) = keymap.key_by_name(name) {
+            map.insert(code, *phys);
+        }
+    }
+
+    map
 }

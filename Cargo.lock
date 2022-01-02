@@ -5157,7 +5157,7 @@ dependencies = [
 [[package]]
 name = "xkbcommon"
 version = "0.5.0"
-source = "git+https://github.com/wez/xkbcommon-rs.git?rev=01a0a0cd5663405e6e4abb1ad3add9add1496f58#01a0a0cd5663405e6e4abb1ad3add9add1496f58"
+source = "git+https://github.com/wez/xkbcommon-rs.git?rev=5cc8f233ac2b8bfa0d7a26fd981b77e68c3f2219#5cc8f233ac2b8bfa0d7a26fd981b77e68c3f2219"
 dependencies = [
  "libc",
  "memmap",
