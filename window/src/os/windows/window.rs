@@ -1978,15 +1978,33 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
 
         if let Some(key) = key {
             let is_composed = raw != Some(key.clone()) || modifiers != raw_modifiers;
-            let key = KeyEvent {
-                key,
-                raw_key: if is_composed { raw } else { None },
-                raw_modifiers,
-                raw_code: Some(wparam as u32),
-                phys_code,
-                modifiers,
-                repeat_count: repeat,
-                key_is_down: !releasing,
+
+            // Urgh, special case for ctrl and non-latin layouts.
+            // In order to avoid a situation like #678, if CTRL is the only
+            // modifier and we've got composed text, then discard the composed
+            // text.
+            let key = if is_composed && modifiers == Modifiers::CTRL && raw.is_some() {
+                KeyEvent {
+                    key: raw.unwrap(),
+                    raw_key: None,
+                    raw_modifiers,
+                    raw_code: Some(wparam as u32),
+                    phys_code,
+                    modifiers,
+                    repeat_count: repeat,
+                    key_is_down: !releasing,
+                }
+            } else {
+                KeyEvent {
+                    key,
+                    raw_key: if is_composed { raw } else { None },
+                    raw_modifiers,
+                    raw_code: Some(wparam as u32),
+                    phys_code,
+                    modifiers,
+                    repeat_count: repeat,
+                    key_is_down: !releasing,
+                }
             }
             .normalize_shift();
 
