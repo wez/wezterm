@@ -2170,6 +2170,8 @@ whether the tab bar is used at all.</li>
 causes the tab bar to be hidden when there is only a single tab.</li>
 <li><a href="config/lua/config/tab_bar_at_bottom.html">tab_bar_at_bottom</a> places the tab
 bar at the bottom of the window instead of the top</li>
+<li><a href="config/lua/config/tab_max_width.html">tab_max_width</a> sets the maximum width, measured in cells,
+of a given tab when using retro tab mode.</li>
 </ul>
 <h4 id="native-fancy-tab-bar-appearance"><a class="header" href="#native-fancy-tab-bar-appearance">Native (Fancy) Tab Bar appearance</a></h4>
 <p>The following options affect the fancy tab bar:</p>
@@ -2787,7 +2789,7 @@ to those in <a href="https://github.com/tmux/tmux/wiki">tmux</a> or <a href="htt
 <p>Multiplexing in <code>wezterm</code> is based around the concept of <em>multiplexing domains</em>;
 a domain is a distinct set of windows and tabs.  When wezterm starts up it
 creates a default <em>local domain</em> to manage the windows and tabs in the UI, but it
-can also be configured to start or connect to any number of additional domains.</p>
+can also be configured to start or connect to additional domains.</p>
 <p>Once connected to a domain, <code>wezterm</code> can attach its windows and tabs to the
 local native UI, providing a more natural experience for interacting with
 the mouse, clipboard and scrollback features of the terminal.</p>
@@ -2839,22 +2841,29 @@ when wezterm is launched:</p>
   unix_domains = {
     {
       name = &quot;unix&quot;,
-      connect_automatically = true,
     }
-  }
+  },
+
+  -- This causes `wezterm` to act as though it was started as
+  -- `wezterm connect unix` by default, connecting to the unix
+  -- domain on startup.
+  -- If you prefer to connect manually, leave out this line.
+  default_gui_startup_args = {&quot;connect&quot;, &quot;unix&quot;},
 }
 </code></pre>
-<p>If you prefer to connect manually, omit the <code>connect_automatically</code> setting
-(or set it to <code>false</code>) and then run:</p>
+<p>If you prefer to connect manually, omit the <code>default_gui_startup_args</code> setting
+and then run:</p>
 <pre><code class="language-bash">$ wezterm connect unix
 </code></pre>
+<p>Note that in earlier versions of wezterm, a <code>connect_automatically</code> domain
+option was shown as the way to connect on startup.  Using
+<code>default_gui_startup_args</code> is recommended instead as it works more reliably.</p>
 <p>The possible configuration values are:</p>
 <pre><code class="language-lua">return {
   unix_domains = {
     {
+      -- The name; must be unique amongst all domains
       name = &quot;unix&quot;,
-      -- If true, connect to this unix domain when `wezterm` is started
-      connect_automatically = true,
 
       -- The path to the socket.  If unspecified, a resonable default
       -- value will be computed.
@@ -2917,14 +2926,14 @@ to an appropriate invocation of netcat/socat on Windows:</p>
   unix_domains = {
     {
       name = &quot;wsl&quot;,
-      connect_automatically = true,
       serve_command = [&quot;wsl&quot;, &quot;wezterm-mux-server&quot;, &quot;--daemonize&quot;],
     }
-  }
+  },
+  default_gui_startup_args = {&quot;connect&quot;, &quot;wsl&quot;},
 }
 </code></pre>
 <p>Now when you start wezterm you'll be presented with a WSL tab.</p>
-<p>You can also set <code>connect_automatically = false</code> and use:</p>
+<p>You can also omit <code>default_gui_startup_args</code> and use:</p>
 <pre><code class="language-bash">$ wezterm connect wsl
 </code></pre>
 <p>to manually connect into your WSL instance.</p>
@@ -7667,7 +7676,9 @@ return {
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="tab_max_width"><a class="header" href="#tab_max_width"><code>tab_max_width</code></a></h1>
 <p>Specifies the maximum width that a tab can have in the
-tab bar.  Defaults to 16 glyphs in width.</p>
+tab bar when using retro tab mode.  It is ignored when
+using fancy tab mode.</p>
+<p>Defaults to 16 glyphs in width.</p>
 <pre><code class="language-lua">return {
   tab_max_width = 16,
 }
@@ -10093,7 +10104,7 @@ end)
 <li><code>panes</code> - an array containing <a href="config/lua/window-events/../PaneInformation.html">PaneInformation</a> for each of the panes in the active tab</li>
 <li><code>config</code> - the effective configuration for the window</li>
 <li><code>hover</code> - true if the current tab is in the hover state</li>
-<li><code>max_width</code> - the maximum number of cells available to draw this tab</li>
+<li><code>max_width</code> - the maximum number of cells available to draw this tab when using the retro tab bar style.</li>
 </ul>
 <p>The return value of the event can be:</p>
 <ul>
@@ -10137,7 +10148,7 @@ wezterm.on(&quot;format-tab-title&quot;, function(tab, tabs, panes, config, hove
   local edge_foreground = background
 
   -- ensure that the titles fit in the available space,
-  -- and that we have room for the edges
+  -- and that we have room for the edges.
   local title = wezterm.truncate_to_width(tab.active_pane.title, max_width-2)
 
   return {

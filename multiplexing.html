@@ -156,7 +156,7 @@ to those in <a href="https://github.com/tmux/tmux/wiki">tmux</a> or <a href="htt
 <p>Multiplexing in <code>wezterm</code> is based around the concept of <em>multiplexing domains</em>;
 a domain is a distinct set of windows and tabs.  When wezterm starts up it
 creates a default <em>local domain</em> to manage the windows and tabs in the UI, but it
-can also be configured to start or connect to any number of additional domains.</p>
+can also be configured to start or connect to additional domains.</p>
 <p>Once connected to a domain, <code>wezterm</code> can attach its windows and tabs to the
 local native UI, providing a more natural experience for interacting with
 the mouse, clipboard and scrollback features of the terminal.</p>
@@ -208,22 +208,29 @@ when wezterm is launched:</p>
   unix_domains = {
     {
       name = &quot;unix&quot;,
-      connect_automatically = true,
     }
-  }
+  },
+
+  -- This causes `wezterm` to act as though it was started as
+  -- `wezterm connect unix` by default, connecting to the unix
+  -- domain on startup.
+  -- If you prefer to connect manually, leave out this line.
+  default_gui_startup_args = {&quot;connect&quot;, &quot;unix&quot;},
 }
 </code></pre>
-<p>If you prefer to connect manually, omit the <code>connect_automatically</code> setting
-(or set it to <code>false</code>) and then run:</p>
+<p>If you prefer to connect manually, omit the <code>default_gui_startup_args</code> setting
+and then run:</p>
 <pre><code class="language-bash">$ wezterm connect unix
 </code></pre>
+<p>Note that in earlier versions of wezterm, a <code>connect_automatically</code> domain
+option was shown as the way to connect on startup.  Using
+<code>default_gui_startup_args</code> is recommended instead as it works more reliably.</p>
 <p>The possible configuration values are:</p>
 <pre><code class="language-lua">return {
   unix_domains = {
     {
+      -- The name; must be unique amongst all domains
       name = &quot;unix&quot;,
-      -- If true, connect to this unix domain when `wezterm` is started
-      connect_automatically = true,
 
       -- The path to the socket.  If unspecified, a resonable default
       -- value will be computed.
@@ -286,14 +293,14 @@ to an appropriate invocation of netcat/socat on Windows:</p>
   unix_domains = {
     {
       name = &quot;wsl&quot;,
-      connect_automatically = true,
       serve_command = [&quot;wsl&quot;, &quot;wezterm-mux-server&quot;, &quot;--daemonize&quot;],
     }
-  }
+  },
+  default_gui_startup_args = {&quot;connect&quot;, &quot;wsl&quot;},
 }
 </code></pre>
 <p>Now when you start wezterm you'll be presented with a WSL tab.</p>
-<p>You can also set <code>connect_automatically = false</code> and use:</p>
+<p>You can also omit <code>default_gui_startup_args</code> and use:</p>
 <pre><code class="language-bash">$ wezterm connect wsl
 </code></pre>
 <p>to manually connect into your WSL instance.</p>

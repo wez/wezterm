@@ -178,7 +178,7 @@ end)
 <li><code>panes</code> - an array containing <a href="../PaneInformation.html">PaneInformation</a> for each of the panes in the active tab</li>
 <li><code>config</code> - the effective configuration for the window</li>
 <li><code>hover</code> - true if the current tab is in the hover state</li>
-<li><code>max_width</code> - the maximum number of cells available to draw this tab</li>
+<li><code>max_width</code> - the maximum number of cells available to draw this tab when using the retro tab bar style.</li>
 </ul>
 <p>The return value of the event can be:</p>
 <ul>
@@ -222,7 +222,7 @@ wezterm.on(&quot;format-tab-title&quot;, function(tab, tabs, panes, config, hove
   local edge_foreground = background
 
   -- ensure that the titles fit in the available space,
-  -- and that we have room for the edges
+  -- and that we have room for the edges.
   local title = wezterm.truncate_to_width(tab.active_pane.title, max_width-2)
 
   return {
