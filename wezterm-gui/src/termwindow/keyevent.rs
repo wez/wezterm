@@ -1,4 +1,6 @@
 use ::window::{KeyCode, KeyEvent, Modifiers, WindowOps};
+use mux::pane::Pane;
+use std::rc::Rc;
 
 pub fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input::Modifiers {
     let mut result = termwiz::input::Modifiers::NONE;
@@ -34,6 +36,87 @@ pub enum Key {
 }
 
 impl super::TermWindow {
+    fn process_key(
+        &mut self,
+        pane: &Rc<dyn Pane>,
+        context: &dyn WindowOps,
+        keycode: &KeyCode,
+        raw_modifiers: Modifiers,
+        leader_active: bool,
+        leader_mod: Modifiers,
+    ) -> bool {
+        if !leader_active {
+            // Check to see if this key-press is the leader activating
+            if let Some(duration) = self.input_map.is_leader(&keycode, raw_modifiers) {
+                // Yes; record its expiration
+                self.leader_is_down
+                    .replace(std::time::Instant::now() + duration);
+                return true;
+            }
+        }
+
+        if let Some(assignment) = self
+            .input_map
+            .lookup_key(&keycode, raw_modifiers | leader_mod)
+        {
+            self.perform_key_assignment(&pane, &assignment).ok();
+            context.invalidate();
+
+            if leader_active {
+                // A successful leader key-lookup cancels the leader
+                // virtual modifier state
+                self.leader_is_down.take();
+            }
+            return true;
+        }
+
+        // While the leader modifier is active, only registered
+        // keybindings are recognized.
+        if !leader_active {
+            let config = &self.config;
+
+            // This is a bit ugly.
+            // Not all of our platforms report LEFT|RIGHT ALT; most report just ALT.
+            // For those that do distinguish between them we want to respect the left vs.
+            // right settings for the compose behavior.
+            // Otherwise, if the event didn't include left vs. right then we want to
+            // respect the generic compose behavior.
+            let bypass_compose =
+                    // Left ALT and they disabled compose
+                    (raw_modifiers.contains(Modifiers::LEFT_ALT)
+                    && !config.send_composed_key_when_left_alt_is_pressed)
+                    // Right ALT and they disabled compose
+                    || (raw_modifiers.contains(Modifiers::RIGHT_ALT)
+                        && !config.send_composed_key_when_right_alt_is_pressed)
+                    // Generic ALT and they disabled generic compose
+                    || (!raw_modifiers.contains(Modifiers::RIGHT_ALT)
+                        && !raw_modifiers.contains(Modifiers::LEFT_ALT)
+                        && raw_modifiers.contains(Modifiers::ALT)
+                        && !config.send_composed_key_when_alt_is_pressed);
+
+            if bypass_compose {
+                if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(keycode) {
+                    let tw_raw_modifiers = window_mods_to_termwiz_mods(raw_modifiers);
+                    if pane.key_down(term_key, tw_raw_modifiers).is_ok() {
+                        if !keycode.is_modifier()
+                            && self.pane_state(pane.pane_id()).overlay.is_none()
+                        {
+                            self.maybe_scroll_to_bottom_for_input(&pane);
+                        }
+                        context.set_cursor(None);
+                        if !keycode.is_modifier() {
+                            context.invalidate();
+                        }
+
+                        return true;
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
     pub fn key_event_impl(&mut self, window_key: KeyEvent, context: &dyn WindowOps) -> bool {
         if !window_key.key_is_down {
             return false;
@@ -67,42 +150,36 @@ impl super::TermWindow {
         };
 
         let modifiers = window_mods_to_termwiz_mods(window_key.modifiers);
-        let raw_modifiers = window_mods_to_termwiz_mods(window_key.raw_modifiers);
 
         // If we know the underlying raw code, let's first try any mappings
-        // defined for those.  By their nature, we don't know anything useful
-        // about their position or meaning in code here, so we don't have
-        // any built-in mappings defined with raw_codes.
-        // That means that we only need check for user-defined values in
-        // this block.
+        // defined for those.
         if let Some(raw_code) = window_key.raw_code {
             let raw_code_key = KeyCode::RawCode(raw_code);
 
-            if !leader_active {
-                // Check to see if this key-press is the leader activating
-                if let Some(duration) = self
-                    .input_map
-                    .is_leader(&raw_code_key, window_key.raw_modifiers)
-                {
-                    // Yes; record its expiration
-                    self.leader_is_down
-                        .replace(std::time::Instant::now() + duration);
-                    return true;
-                }
+            if self.process_key(
+                &pane,
+                context,
+                &raw_code_key,
+                window_key.raw_modifiers,
+                leader_active,
+                leader_mod,
+            ) {
+                return true;
             }
+        }
 
-            if let Some(assignment) = self
-                .input_map
-                .lookup_key(&raw_code_key, window_key.raw_modifiers | leader_mod)
-            {
-                self.perform_key_assignment(&pane, &assignment).ok();
-                context.invalidate();
+        // Then, check for mappings using physical key location
+        if let Some(phys) = window_key.phys_code {
+            let phys_code_key = KeyCode::Physical(phys);
 
-                if leader_active {
-                    // A successful leader key-lookup cancels the leader
-                    // virtual modifier state
-                    self.leader_is_down.take();
-                }
+            if self.process_key(
+                &pane,
+                context,
+                &phys_code_key,
+                window_key.raw_modifiers,
+                leader_active,
+                leader_mod,
+            ) {
                 return true;
             }
         }
@@ -110,136 +187,59 @@ impl super::TermWindow {
         // We may know the decoded platform key, but prior to any composition
         // defined by the system (eg: prior to dead key expansion).
         if let Some(key) = &window_key.raw_key {
-            if !leader_active {
-                // Check to see if this key-press is the leader activating
-                if let Some(duration) = self.input_map.is_leader(key, window_key.raw_modifiers) {
-                    // Yes; record its expiration
-                    self.leader_is_down
-                        .replace(std::time::Instant::now() + duration);
-                    return true;
-                }
-            }
-
-            if let Some(assignment) = self
-                .input_map
-                .lookup_key(key, window_key.raw_modifiers | leader_mod)
-            {
-                self.perform_key_assignment(&pane, &assignment).ok();
-                context.invalidate();
-
-                if leader_active {
-                    // A successful leader key-lookup cancels the leader
-                    // virtual modifier state
-                    self.leader_is_down.take();
-                }
-                return true;
-            }
-
-            // While the leader modifier is active, only registered
-            // keybindings are recognized.
-            if !leader_active {
-                let config = &self.config;
-
-                // This is a bit ugly.
-                // Not all of our platforms report LEFT|RIGHT ALT; most report just ALT.
-                // For those that do distinguish between them we want to respect the left vs.
-                // right settings for the compose behavior.
-                // Otherwise, if the event didn't include left vs. right then we want to
-                // respect the generic compose behavior.
-                let bypass_compose =
-                    // Left ALT and they disabled compose
-                    (window_key.raw_modifiers.contains(Modifiers::LEFT_ALT)
-                    && !config.send_composed_key_when_left_alt_is_pressed)
-                    // Right ALT and they disabled compose
-                    || (window_key.raw_modifiers.contains(Modifiers::RIGHT_ALT)
-                        && !config.send_composed_key_when_right_alt_is_pressed)
-                    // Generic ALT and they disabled generic compose
-                    || (!window_key.raw_modifiers.contains(Modifiers::RIGHT_ALT)
-                        && !window_key.raw_modifiers.contains(Modifiers::LEFT_ALT)
-                        && window_key.raw_modifiers.contains(Modifiers::ALT)
-                        && !config.send_composed_key_when_alt_is_pressed);
-
-                if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(&key) {
-                    if bypass_compose && pane.key_down(term_key, raw_modifiers).is_ok() {
-                        if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
-                            self.maybe_scroll_to_bottom_for_input(&pane);
-                        }
-                        context.set_cursor(None);
-                        if !key.is_modifier() {
-                            context.invalidate();
-                        }
-
-                        return true;
-                    }
-                }
-            }
-        }
-
-        if !leader_active {
-            // Check to see if this key-press is the leader activating
-            if let Some(duration) = self
-                .input_map
-                .is_leader(&window_key.key, window_key.modifiers)
-            {
-                // Yes; record its expiration
-                self.leader_is_down
-                    .replace(std::time::Instant::now() + duration);
+            if self.process_key(
+                &pane,
+                context,
+                key,
+                window_key.raw_modifiers,
+                leader_active,
+                leader_mod,
+            ) {
                 return true;
             }
         }
 
-        if let Some(assignment) = self
-            .input_map
-            .lookup_key(&window_key.key, window_key.modifiers | leader_mod)
-        {
-            self.perform_key_assignment(&pane, &assignment).ok();
-            context.invalidate();
-            if leader_active {
-                // A successful leader key-lookup cancels the leader
-                // virtual modifier state
-                self.leader_is_down.take();
-            }
-            true
-        } else if leader_active {
-            if !window_key.key.is_modifier() {
-                // Leader was pressed and this non-modifier keypress isn't
-                // a registered key binding; swallow this event and cancel
-                // the leader modifier
-                self.leader_is_down.take();
-            }
-            true
-        } else {
-            let key = self.win_key_code_to_termwiz_key_code(&window_key.key);
-            match key {
-                Key::Code(key) => {
-                    if pane.key_down(key, modifiers).is_ok() {
-                        if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
-                            self.maybe_scroll_to_bottom_for_input(&pane);
-                        }
-                        context.set_cursor(None);
-                        if !key.is_modifier() {
-                            context.invalidate();
-                        }
-                        true
-                    } else {
-                        false
-                    }
-                }
-                Key::Composed(s) => {
-                    if leader_active {
-                        // Leader was pressed and this non-modifier keypress isn't
-                        // a registered key binding; swallow this event and cancel
-                        // the leader modifier.
-                        self.leader_is_down.take();
-                    } else {
-                        pane.writer().write_all(s.as_bytes()).ok();
+        if self.process_key(
+            &pane,
+            context,
+            &window_key.key,
+            window_key.modifiers,
+            leader_active,
+            leader_mod,
+        ) {
+            return true;
+        }
+
+        let key = self.win_key_code_to_termwiz_key_code(&window_key.key);
+        match key {
+            Key::Code(key) => {
+                if pane.key_down(key, modifiers).is_ok() {
+                    if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&pane);
+                    }
+                    context.set_cursor(None);
+                    if !key.is_modifier() {
                         context.invalidate();
                     }
                     true
+                } else {
+                    false
                 }
-                Key::None => false,
             }
+            Key::Composed(s) => {
+                if leader_active {
+                    // Leader was pressed and this non-modifier keypress isn't
+                    // a registered key binding; swallow this event and cancel
+                    // the leader modifier.
+                    self.leader_is_down.take();
+                } else {
+                    pane.writer().write_all(s.as_bytes()).ok();
+                    self.maybe_scroll_to_bottom_for_input(&pane);
+                    context.invalidate();
+                }
+                true
+            }
+            Key::None => false,
         }
     }
 
