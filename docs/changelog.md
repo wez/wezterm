@@ -16,6 +16,8 @@ As features stabilize some brief notes about them will accumulate here.
 #### Updated and Improved
 #### Fixed
 
+* Regression that broke fontconfig aliases such as `"monospace"` [#1250](https://github.com/wez/wezterm/pull/1250)
+
 ### 20220101-133340-7edc5b5a
 
 * Fancy Tab Bars are now the default. The default tab bar colors have changed to accommodate the new more native look.  You can turn them off by setting [use_fancy_tab_bar = false](config/lua/config/use_fancy_tab_bar.md).

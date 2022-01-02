@@ -611,7 +611,13 @@ impl FontConfigInner {
                 candidates.append(&mut built_in.candidates(attr));
             }
 
+            let mut is_fallback = false;
+
             for attr in attrs {
+                if attr.is_fallback {
+                    is_fallback = true;
+                }
+
                 if loaded.contains(attr) {
                     continue;
                 }
@@ -626,6 +632,27 @@ impl FontConfigInner {
                         loaded.insert(attr.clone());
                         handles.push(p.clone().synthesize(attr))
                     });
+                }
+            }
+
+            if !is_fallback && loaded.is_empty() {
+                // We didn't explicitly match any names.
+                // When using fontconfig, the system may have expanded a family name
+                // like "monospace" into the real font, in which case we wouldn't have
+                // found a match in the `named_candidates` vec above, because of the
+                // name mismatch.
+                // So what we do now is make a second pass over all the located candidates,
+                // ignoring their names, and just match based on font attributes.
+                let located_candidates: Vec<_> = located.iter().collect();
+                for attr in attrs {
+                    if let Some(idx) =
+                        ParsedFont::best_matching_index(attr, &located_candidates, pixel_size)
+                    {
+                        located_candidates.get(idx).map(|&p| {
+                            loaded.insert(attr.clone());
+                            handles.push(p.clone().synthesize(attr))
+                        });
+                    }
                 }
             }
         }
