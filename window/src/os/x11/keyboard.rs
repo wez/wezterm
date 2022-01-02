@@ -197,6 +197,7 @@ impl Keyboard {
             raw_key: None,
             raw_modifiers,
             raw_code: Some(xcode),
+            phys_code: None,
             repeat_count: 1,
             key_is_down: pressed,
         })

@@ -509,6 +509,9 @@ pub struct KeyEvent {
     pub raw_modifiers: Modifiers,
     pub raw_code: Option<u32>,
 
+    /// The physical location of the key on an ANSI-Standard US layout
+    pub phys_code: Option<PhysKeyCode>,
+
     /// How many times this key repeats
     pub repeat_count: u16,
 

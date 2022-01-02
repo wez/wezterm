@@ -428,6 +428,7 @@ impl XWindowInner {
             raw_key: None,
             raw_modifiers: Modifiers::NONE,
             raw_code: None,
+            phys_code: None,
             modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,

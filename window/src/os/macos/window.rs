@@ -1389,6 +1389,7 @@ impl WindowView {
             modifiers,
             raw_modifiers: Modifiers::NONE,
             raw_code: None,
+            phys_code: None,
             repeat_count: 1,
             key_is_down: true,
         }
@@ -1444,6 +1445,7 @@ impl WindowView {
                 modifiers: Modifiers::NONE,
                 raw_modifiers: Modifiers::NONE,
                 raw_code: None,
+                phys_code: None,
                 repeat_count: 1,
                 key_is_down,
             }
@@ -1949,6 +1951,7 @@ impl WindowView {
                 modifiers,
                 raw_modifiers,
                 raw_code: Some(virtual_key as u32),
+                phys_code: super::keycodes::vkey_to_phys(virtual_key),
                 repeat_count: 1,
                 key_is_down,
             }
