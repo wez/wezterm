@@ -1787,7 +1787,7 @@ impl WindowView {
             };
 
         let phys_code = super::keycodes::vkey_to_phys(virtual_key);
-        let raw_key_handled = Handled::default();
+        let raw_key_handled = Handled::new();
         let raw_key_event = RawKeyEvent {
             key: if unmod.is_empty() {
                 match phys_code {

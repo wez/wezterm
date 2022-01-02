@@ -1,5 +1,8 @@
 use crate::os::xkeysyms::keysym_to_keycode;
-use crate::{KeyEvent, Modifiers, WindowEvent, WindowEventSender, WindowKeyEvent};
+use crate::{
+    Handled, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowEvent, WindowEventSender,
+    WindowKeyEvent,
+};
 use anyhow::{anyhow, ensure};
 use libc;
 use std::cell::RefCell;
@@ -8,7 +11,6 @@ use std::ffi::CStr;
 use wezterm_input_types::PhysKeyCode;
 use xkb::compose::Status as ComposeStatus;
 use xkbcommon::xkb;
-use xkbcommon::xkb::Keycode;
 
 pub struct Keyboard {
     context: xkb::Context,
@@ -17,7 +19,7 @@ pub struct Keyboard {
 
     state: RefCell<xkb::State>,
     compose_state: RefCell<xkb::compose::State>,
-    phys_code_map: RefCell<HashMap<Keycode, PhysKeyCode>>,
+    phys_code_map: RefCell<HashMap<xkb::Keycode, PhysKeyCode>>,
 }
 
 impl Keyboard {
@@ -170,10 +172,39 @@ impl Keyboard {
         events: &mut WindowEventSender,
         want_repeat: bool,
     ) -> Option<WindowKeyEvent> {
+        let phys_code = self.phys_code_map.borrow().get(&xcode).copied();
+        let raw_modifiers = self.get_key_modifiers();
+
         let xsym = self.state.borrow().key_get_one_sym(xcode);
 
         let mut kc = None;
         let ksym = if pressed {
+            let handled = Handled::new();
+
+            let raw_key_event = RawKeyEvent {
+                key: match phys_code {
+                    Some(phys) => KeyCode::Physical(phys),
+                    None => KeyCode::RawCode(xcode),
+                },
+                phys_code,
+                raw_code: xcode,
+                modifiers: raw_modifiers,
+                repeat_count: 1,
+                key_is_down: pressed,
+                handled: handled.clone(),
+            };
+
+            events.dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
+            if handled.is_handled() {
+                self.compose_state.borrow_mut().reset();
+                log::trace!("raw key was handled; not processing further");
+
+                if want_repeat {
+                    return Some(WindowKeyEvent::RawKeyEvent(raw_key_event));
+                }
+                return None;
+            }
+
             self.compose_state.borrow_mut().feed(xsym);
 
             let cstate = self.compose_state.borrow().status();
@@ -212,33 +243,18 @@ impl Keyboard {
             None => keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym))?,
         };
 
-        let raw_modifiers = self.get_key_modifiers();
-        // X11 keysyms that map to KeyCode::Char already factor in the SHIFT
-        // modifier state.  eg: SHIFT-c in an US layout produces `Char('C')`.
-        // So, if we have `Char`, remove SHIFT from the processed modifier
-        // state.  Not doing so can produce frustration such as that in
-        // https://github.com/wez/wezterm/issues/394, but take care to avoid
-        // eliminating it for eg: Enter (https://github.com/wez/wezterm/issues/516)
-        let modifiers = match (&kc, raw_modifiers) {
-            (crate::KeyCode::Char(c), mods)
-                if !c.is_ascii_whitespace() && !c.is_ascii_control() =>
-            {
-                mods - Modifiers::SHIFT
-            }
-            (_, mods) => mods,
-        };
-
         let event = KeyEvent {
             key: kc,
-            modifiers,
+            modifiers: raw_modifiers,
             raw_key: None,
             raw_modifiers,
             raw_code: Some(xcode),
-            phys_code: self.phys_code_map.borrow().get(&xcode).copied(),
+            phys_code,
             repeat_count: 1,
             key_is_down: pressed,
         }
-        .normalize_ctrl();
+        .normalize_ctrl()
+        .normalize_shift();
 
         if pressed && want_repeat {
             events.dispatch(WindowEvent::KeyEvent(event.clone()));
@@ -384,7 +400,7 @@ impl XkbGenericEvent {
     }
 }
 
-fn build_physkeycode_map(keymap: &xkb::Keymap) -> HashMap<Keycode, PhysKeyCode> {
+fn build_physkeycode_map(keymap: &xkb::Keymap) -> HashMap<xkb::Keycode, PhysKeyCode> {
     let mut map = HashMap::new();
 
     // See <https://abaines.me.uk/updates/linux-x11-keys> for info on

@@ -519,7 +519,7 @@ pub struct MouseEvent {
 pub struct Handled(Arc<AtomicBool>);
 
 impl Handled {
-    pub fn default() -> Self {
+    pub fn new() -> Self {
         Self(Arc::new(AtomicBool::new(false)))
     }
 
