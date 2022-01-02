@@ -352,6 +352,11 @@ fn build_physkeycode_map(keymap: &xkb::Keymap) -> HashMap<Keycode, PhysKeyCode> 
 
     // See <https://abaines.me.uk/updates/linux-x11-keys> for info on
     // these names and how they relate to the ANSI standard US keyboard
+    // See also </usr/share/X11/xkb/keycodes/evdev> on a Linux system
+    // to examine the mapping. FreeBSD and other unixes will use a different
+    // set of keycode values.
+    // We're using the symbolic names here to look up the keycodes that
+    // correspond to the various key locations.
     for (name, phys) in &[
         ("ESC", PhysKeyCode::Escape),
         ("FK01", PhysKeyCode::F1),
