@@ -160,6 +160,7 @@ impl Keyboard {
     fn process_key_event_impl(&self, xcode: xkb::Keycode, pressed: bool) -> Option<KeyEvent> {
         let xsym = self.state.borrow().key_get_one_sym(xcode);
 
+        let mut kc = None;
         let ksym = if pressed {
             self.compose_state.borrow_mut().feed(xsym);
 
@@ -170,11 +171,21 @@ impl Keyboard {
                     return None;
                 }
                 ComposeStatus::Composed => {
-                    let res = self.compose_state.borrow().keysym();
-                    self.compose_state.borrow_mut().reset();
+                    let mut compose_state = self.compose_state.borrow_mut();
+                    let res = compose_state.keysym();
+                    if let Some(utf8) = compose_state.utf8() {
+                        kc.replace(crate::KeyCode::composed(&utf8));
+                    }
+                    compose_state.reset();
                     res.unwrap_or(xsym)
                 }
-                ComposeStatus::Nothing => xsym,
+                ComposeStatus::Nothing => {
+                    let utf8 = self.state.borrow().key_get_utf8(xcode);
+                    if !utf8.is_empty() {
+                        kc.replace(crate::KeyCode::composed(&utf8));
+                    }
+                    xsym
+                }
                 ComposeStatus::Cancelled => {
                     self.compose_state.borrow_mut().reset();
                     return None;
@@ -184,7 +195,11 @@ impl Keyboard {
             xsym
         };
 
-        let kc = keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym))?;
+        let kc = match kc {
+            Some(kc) => kc,
+            None => keysym_to_keycode(ksym).or_else(|| keysym_to_keycode(xsym))?,
+        };
+
         let raw_modifiers = self.get_key_modifiers();
         // X11 keysyms that map to KeyCode::Char already factor in the SHIFT
         // modifier state.  eg: SHIFT-c in an US layout produces `Char('C')`.
@@ -201,16 +216,19 @@ impl Keyboard {
             (_, mods) => mods,
         };
 
-        Some(KeyEvent {
-            key: kc,
-            modifiers,
-            raw_key: None,
-            raw_modifiers,
-            raw_code: Some(xcode),
-            phys_code: self.phys_code_map.borrow().get(&xcode).copied(),
-            repeat_count: 1,
-            key_is_down: pressed,
-        })
+        Some(
+            KeyEvent {
+                key: kc,
+                modifiers,
+                raw_key: None,
+                raw_modifiers,
+                raw_code: Some(xcode),
+                phys_code: self.phys_code_map.borrow().get(&xcode).copied(),
+                repeat_count: 1,
+                key_is_down: pressed,
+            }
+            .normalize_ctrl(),
+        )
     }
 
     fn mod_is_active(&self, modifier: &str) -> bool {

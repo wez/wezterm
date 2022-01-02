@@ -120,6 +120,19 @@ impl KeyCode {
     pub fn normalize_shift(&self, modifiers: Modifiers) -> (KeyCode, Modifiers) {
         normalize_shift(self.clone(), modifiers)
     }
+
+    pub fn composed(s: &str) -> Self {
+        // Prefer to send along a single Char when the string
+        // is just a single char, as the keymapping layer cannot
+        // bind to composed key sequences
+        let mut iter = s.chars();
+        let first_char = iter.next();
+        let next_char = iter.next();
+        match (first_char, next_char) {
+            (Some(c), None) => Self::Char(c),
+            _ => Self::Composed(s.to_string()),
+        }
+    }
 }
 
 impl ToString for KeyCode {

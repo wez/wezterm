@@ -17,6 +17,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Fixed
 
 * Regression that broke fontconfig aliases such as `"monospace"` [#1250](https://github.com/wez/wezterm/pull/1250)
+* X11/Wayland: CTRL+C in non-latin keyboard layouts wouldn't send CTRL-C [#678](https://github.com/wez/wezterm/issues/678)
 
 ### 20220101-133340-7edc5b5a
 
