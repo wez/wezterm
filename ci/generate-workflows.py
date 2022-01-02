@@ -645,6 +645,7 @@ TARGETS = [
     Target(container="fedora:34"),
     Target(container="fedora:35"),
     Target(container="centos:8"),
+    Target(container="centos:9"),
     Target(name="windows", os="windows-latest", rust_target="x86_64-pc-windows-msvc"),
 ]
 
