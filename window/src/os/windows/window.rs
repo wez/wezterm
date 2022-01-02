@@ -2,9 +2,9 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::Appearance;
 use crate::{
-    Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
-    WindowEventSender, WindowOps, WindowState,
+    Clipboard, Dimensions, Handled, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
+    MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect, ScreenPoint,
+    WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
@@ -1622,6 +1622,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
         let ime_active = wparam == VK_PROCESSKEY as WPARAM;
+        let phys_code = super::keycodes::vkey_to_phys(wparam);
 
         let alt_pressed = (lparam & (1 << 29)) != 0;
         let is_extended = (lparam & (1 << 24)) != 0;
@@ -1821,6 +1822,29 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 _ => None,
             };
 
+            let handled_raw = Handled::new();
+            let raw_key_event = RawKeyEvent {
+                key: match phys_code {
+                    Some(phys) => KeyCode::Physical(phys),
+                    None => KeyCode::RawCode(wparam as _),
+                },
+                phys_code,
+                raw_code: wparam as _,
+                modifiers,
+                repeat_count: 1,
+                key_is_down: true,
+                handled: handled_raw.clone(),
+            };
+            inner
+                .events
+                .dispatch(WindowEvent::RawKeyEvent(raw_key_event));
+            if handled_raw.is_handled() {
+                // Cancel any pending dead key
+                inner.dead_pending.take();
+                log::trace!("raw key was handled; not processing further");
+                return Some(0);
+            }
+
             let is_modifier_only = raw.as_ref().map(|r| r.is_modifier()).unwrap_or(false);
             if is_modifier_only {
                 // If this event is only modifiers then don't ask the system
@@ -1856,7 +1880,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                                 raw_key: None,
                                 raw_modifiers: Modifiers::NONE,
                                 raw_code: Some(wparam as u32),
-                                phys_code: super::keycodes::vkey_to_phys(wparam),
+                                phys_code,
                                 modifiers,
                                 repeat_count: 1,
                                 key_is_down: !releasing,
@@ -1959,7 +1983,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 raw_key: if is_composed { raw } else { None },
                 raw_modifiers,
                 raw_code: Some(wparam as u32),
-                phys_code: super::keycodes::vkey_to_phys(wparam),
+                phys_code,
                 modifiers,
                 repeat_count: repeat,
                 key_is_down: !releasing,
