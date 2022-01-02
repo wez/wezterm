@@ -168,6 +168,8 @@ details.
   causes the tab bar to be hidden when there is only a single tab.
 * [tab_bar_at_bottom](lua/config/tab_bar_at_bottom.md) places the tab
   bar at the bottom of the window instead of the top
+* [tab_max_width](lua/config/tab_max_width.md) sets the maximum width, measured in cells,
+  of a given tab when using retro tab mode.
 
 #### Native (Fancy) Tab Bar appearance
 
