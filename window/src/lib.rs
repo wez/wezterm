@@ -116,6 +116,12 @@ impl WindowState {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum WindowKeyEvent {
+    RawKeyEvent(RawKeyEvent),
+    KeyEvent(KeyEvent),
+}
+
 #[derive(Debug)]
 pub enum WindowEvent {
     /// Called when the window close button is clicked.

@@ -1,5 +1,5 @@
 use crate::os::xkeysyms::keysym_to_keycode;
-use crate::{KeyEvent, Modifiers};
+use crate::{KeyEvent, Modifiers, WindowEvent, WindowEventSender, WindowKeyEvent};
 use anyhow::{anyhow, ensure};
 use libc;
 use std::cell::RefCell;
@@ -146,18 +146,30 @@ impl Keyboard {
         self.keymap.borrow().key_repeats(code + 8)
     }
 
-    pub fn process_wayland_key(&self, code: u32, pressed: bool) -> Option<KeyEvent> {
-        self.process_key_event_impl(code + 8, pressed)
+    pub fn process_wayland_key(
+        &self,
+        code: u32,
+        pressed: bool,
+        events: &mut WindowEventSender,
+    ) -> Option<WindowKeyEvent> {
+        let want_repeat = self.wayland_key_repeats(code);
+        self.process_key_event_impl(code + 8, pressed, events, want_repeat)
     }
 
-    pub fn process_key_event(&self, xcb_ev: &xcb::KeyPressEvent) -> Option<KeyEvent> {
+    pub fn process_key_event(&self, xcb_ev: &xcb::KeyPressEvent, events: &mut WindowEventSender) {
         let pressed = (xcb_ev.response_type() & !0x80) == xcb::KEY_PRESS;
 
         let xcode = xkb::Keycode::from(xcb_ev.detail());
-        self.process_key_event_impl(xcode, pressed)
+        self.process_key_event_impl(xcode, pressed, events, false);
     }
 
-    fn process_key_event_impl(&self, xcode: xkb::Keycode, pressed: bool) -> Option<KeyEvent> {
+    fn process_key_event_impl(
+        &self,
+        xcode: xkb::Keycode,
+        pressed: bool,
+        events: &mut WindowEventSender,
+        want_repeat: bool,
+    ) -> Option<WindowKeyEvent> {
         let xsym = self.state.borrow().key_get_one_sym(xcode);
 
         let mut kc = None;
@@ -216,19 +228,26 @@ impl Keyboard {
             (_, mods) => mods,
         };
 
-        Some(
-            KeyEvent {
-                key: kc,
-                modifiers,
-                raw_key: None,
-                raw_modifiers,
-                raw_code: Some(xcode),
-                phys_code: self.phys_code_map.borrow().get(&xcode).copied(),
-                repeat_count: 1,
-                key_is_down: pressed,
-            }
-            .normalize_ctrl(),
-        )
+        let event = KeyEvent {
+            key: kc,
+            modifiers,
+            raw_key: None,
+            raw_modifiers,
+            raw_code: Some(xcode),
+            phys_code: self.phys_code_map.borrow().get(&xcode).copied(),
+            repeat_count: 1,
+            key_is_down: pressed,
+        }
+        .normalize_ctrl();
+
+        if pressed && want_repeat {
+            events.dispatch(WindowEvent::KeyEvent(event.clone()));
+            // Returns the event that should be repeated later
+            Some(WindowKeyEvent::KeyEvent(event))
+        } else {
+            events.dispatch(WindowEvent::KeyEvent(event));
+            None
+        }
     }
 
     fn mod_is_active(&self, modifier: &str) -> bool {

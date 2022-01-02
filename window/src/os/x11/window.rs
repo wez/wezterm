@@ -269,10 +269,7 @@ impl XWindowInner {
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 self.copy_and_paste.time = key_press.time();
-                if let Some(key) = conn.keyboard.process_key_event(key_press) {
-                    let key = key.normalize_shift();
-                    self.events.dispatch(WindowEvent::KeyEvent(key));
-                }
+                conn.keyboard.process_key_event(key_press, &mut self.events);
             }
 
             xcb::MOTION_NOTIFY => {
