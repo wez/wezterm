@@ -89,9 +89,6 @@ impl Keyboard {
             xkb::KEYMAP_COMPILE_NO_FLAGS,
         );
 
-        let code = keymap.key_by_name("TLDE");
-        log::info!("TLDE -> {:?}", code);
-
         let state = xkb::x11::state_new_from_device(&keymap, connection, device_id);
 
         let locale = query_lc_ctype()?;
