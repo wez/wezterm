@@ -51,7 +51,10 @@ impl MyWindow {
             WindowEvent::KeyEvent(key) => {
                 eprintln!("{:?}", key);
                 win.set_cursor(Some(MouseCursor::Text));
-                win.default_key_processing(key);
+            }
+            WindowEvent::RawKeyEvent(key) => {
+                eprintln!("{:?}", key);
+                win.set_cursor(Some(MouseCursor::Text));
             }
             WindowEvent::NeedRepaint => {
                 if let Some(gl) = self.gl.as_mut() {

@@ -153,11 +153,6 @@ pub enum WindowEvent {
     RawKeyEvent(RawKeyEvent),
 
     /// Called to handle a key event.
-    /// If you didn't handle this event, then you must call
-    /// window.default_key_processing(key) to allow the system to perform
-    /// the default key handling.
-    /// This is important on Windows for ALT keys to continue working
-    /// correctly.
     KeyEvent(KeyEvent),
 
     MouseEvent(MouseEvent),
@@ -228,8 +223,6 @@ pub trait WindowOps {
 
     /// Change the titlebar text for the window
     fn set_title(&self, title: &str);
-
-    fn default_key_processing(&self, _key: KeyEvent) {}
 
     /// Resize the inner or client area of the window
     fn set_inner_size(&self, width: usize, height: usize);
