@@ -1,5 +1,6 @@
 use bitflags::*;
 use serde::*;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 
 pub struct PixelUnit;
@@ -17,6 +18,7 @@ pub enum KeyCode {
     Char(char),
     Composed(String),
     RawCode(u32),
+    Physical(PhysKeyCode),
 
     Hyper,
     Super,
@@ -173,6 +175,282 @@ impl ToString for Modifiers {
         }
 
         s
+    }
+}
+
+/// These keycodes identify keys based on their physical
+/// position on an ANSI-standard US keyboard.
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Hash, Copy)]
+pub enum PhysKeyCode {
+    A,
+    B,
+    Backslash,
+    C,
+    CapsLock,
+    Comma,
+    D,
+    Delete,
+    DownArrow,
+    E,
+    End,
+    Equal,
+    Escape,
+    F,
+    F1,
+    F10,
+    F11,
+    F12,
+    F13,
+    F14,
+    F15,
+    F16,
+    F17,
+    F18,
+    F19,
+    F2,
+    F20,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    ForwardDelete,
+    Function,
+    G,
+    Grave,
+    H,
+    Help,
+    Home,
+    I,
+    J,
+    K,
+    K0,
+    K1,
+    K2,
+    K3,
+    K4,
+    K5,
+    K6,
+    K7,
+    K8,
+    K9,
+    Keypad0,
+    Keypad1,
+    Keypad2,
+    Keypad3,
+    Keypad4,
+    Keypad5,
+    Keypad6,
+    Keypad7,
+    Keypad8,
+    Keypad9,
+    KeypadClear,
+    KeypadDecimal,
+    KeypadDivide,
+    KeypadEnter,
+    KeypadEquals,
+    KeypadMinus,
+    KeypadMultiply,
+    KeypadPlus,
+    L,
+    LeftAlt,
+    LeftArrow,
+    LeftBracket,
+    LeftControl,
+    LeftShift,
+    LeftWindows,
+    M,
+    Minus,
+    Mute,
+    N,
+    O,
+    P,
+    PageDown,
+    PageUp,
+    Period,
+    Q,
+    Quote,
+    R,
+    Return,
+    RightAlt,
+    RightArrow,
+    RightBracket,
+    RightControl,
+    RightShift,
+    RightWindows,
+    S,
+    Semicolon,
+    Slash,
+    Space,
+    T,
+    Tab,
+    U,
+    UpArrow,
+    V,
+    VolumeDown,
+    VolumeUp,
+    W,
+    X,
+    Y,
+    Z,
+}
+
+impl PhysKeyCode {
+    fn make_map() -> HashMap<String, Self> {
+        let mut map = HashMap::new();
+
+        macro_rules! m {
+            ($($val:ident),* $(,)?) => {
+                $(
+                    map.insert(stringify!($val).to_string(), PhysKeyCode::$val);
+                )*
+            }
+        }
+
+        m!(
+            A,
+            B,
+            Backslash,
+            C,
+            CapsLock,
+            Comma,
+            D,
+            Delete,
+            DownArrow,
+            E,
+            End,
+            Equal,
+            Escape,
+            F,
+            F1,
+            F10,
+            F11,
+            F12,
+            F13,
+            F14,
+            F15,
+            F16,
+            F17,
+            F18,
+            F19,
+            F2,
+            F20,
+            F3,
+            F4,
+            F5,
+            F6,
+            F7,
+            F8,
+            F9,
+            ForwardDelete,
+            Function,
+            G,
+            Grave,
+            H,
+            Help,
+            Home,
+            I,
+            J,
+            K,
+            Keypad0,
+            Keypad1,
+            Keypad2,
+            Keypad3,
+            Keypad4,
+            Keypad5,
+            Keypad6,
+            Keypad7,
+            Keypad8,
+            Keypad9,
+            KeypadClear,
+            KeypadDecimal,
+            KeypadDivide,
+            KeypadEnter,
+            KeypadEquals,
+            KeypadMinus,
+            KeypadMultiply,
+            KeypadPlus,
+            L,
+            LeftAlt,
+            LeftArrow,
+            LeftBracket,
+            LeftControl,
+            LeftShift,
+            LeftWindows,
+            M,
+            Minus,
+            Mute,
+            N,
+            O,
+            P,
+            PageDown,
+            PageUp,
+            Period,
+            Q,
+            Quote,
+            R,
+            Return,
+            RightAlt,
+            RightArrow,
+            RightBracket,
+            RightControl,
+            RightShift,
+            RightWindows,
+            S,
+            Semicolon,
+            Slash,
+            Space,
+            T,
+            Tab,
+            U,
+            UpArrow,
+            V,
+            VolumeDown,
+            VolumeUp,
+            W,
+            X,
+            Y,
+            Z,
+        );
+
+        map.insert("0".to_string(), PhysKeyCode::K0);
+        map.insert("1".to_string(), PhysKeyCode::K1);
+        map.insert("2".to_string(), PhysKeyCode::K2);
+        map.insert("3".to_string(), PhysKeyCode::K3);
+        map.insert("4".to_string(), PhysKeyCode::K4);
+        map.insert("5".to_string(), PhysKeyCode::K5);
+        map.insert("6".to_string(), PhysKeyCode::K6);
+        map.insert("7".to_string(), PhysKeyCode::K7);
+        map.insert("8".to_string(), PhysKeyCode::K8);
+        map.insert("9".to_string(), PhysKeyCode::K9);
+
+        map
+    }
+
+    fn make_inv_map() -> HashMap<Self, String> {
+        let mut map = HashMap::new();
+        for (k, v) in PHYSKEYCODE_MAP.iter() {
+            map.insert(v.clone(), k.clone());
+        }
+        map
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref PHYSKEYCODE_MAP: HashMap<String, PhysKeyCode> = PhysKeyCode::make_map();
+    static ref INV_PHYSKEYCODE_MAP: HashMap<PhysKeyCode, String> = PhysKeyCode::make_inv_map();
+}
+
+impl TryFrom<&str> for PhysKeyCode {
+    type Error = String;
+    fn try_from(s: &str) -> std::result::Result<PhysKeyCode, String> {
+        if let Some(code) = PHYSKEYCODE_MAP.get(s) {
+            Ok(*code)
+        } else {
+            Err(format!("invalid PhysKeyCode '{}'", s))
+        }
     }
 }
 

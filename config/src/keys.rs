@@ -2,7 +2,8 @@ use crate::{KeyAssignment, MouseEventTrigger};
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
-use wezterm_input_types::{KeyCode, Modifiers};
+use std::convert::TryFrom;
+use wezterm_input_types::{KeyCode, Modifiers, PhysKeyCode};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct KeyNoAction {
@@ -188,6 +189,16 @@ where
 
     if let Some(c) = KEYCODE_MAP.get(&s) {
         return Ok(c.clone());
+    }
+
+    if s.len() > 5 && s.starts_with("phys:") {
+        let phys = PhysKeyCode::try_from(&s[5..]).map_err(|_| {
+            serde::de::Error::custom(format!(
+                "expected phys:CODE physical keycode string, got: {}",
+                s
+            ))
+        })?;
+        return Ok(KeyCode::Physical(phys));
     }
 
     if s.len() > 4 && s.starts_with("raw:") {

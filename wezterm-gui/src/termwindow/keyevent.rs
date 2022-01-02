@@ -267,6 +267,7 @@ impl super::TermWindow {
             }
             WK::Char('\u{1b}') => KC::Escape,
             WK::RawCode(_) => return Key::None,
+            WK::Physical(_) => return Key::None,
 
             WK::Char(c) => KC::Char(*c),
             WK::Composed(ref s) => {
