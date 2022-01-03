@@ -440,7 +440,7 @@ fn build_physkeycode_map(keymap: &xkb::Keymap) -> HashMap<xkb::Keycode, PhysKeyC
         ("AE11", PhysKeyCode::Minus),
         ("AE12", PhysKeyCode::Equal),
         ("BKSL", PhysKeyCode::Backslash),
-        ("BKSP", PhysKeyCode::Delete),
+        ("BKSP", PhysKeyCode::Backspace),
         ("INS", PhysKeyCode::Insert),
         ("HOME", PhysKeyCode::Home),
         ("PGUP", PhysKeyCode::PageUp),
