@@ -77,6 +77,14 @@ impl super::TermWindow {
             .input_map
             .lookup_key(&keycode, raw_modifiers | leader_mod)
         {
+            if self.config.debug_key_events {
+                log::info!(
+                    "{:?} {:?} -> perform {:?}",
+                    keycode,
+                    raw_modifiers | leader_mod,
+                    assignment
+                );
+            }
             self.perform_key_assignment(&pane, &assignment).ok();
             context.invalidate();
 
@@ -121,6 +129,15 @@ impl super::TermWindow {
             if bypass_compose {
                 if let Key::Code(term_key) = self.win_key_code_to_termwiz_key_code(keycode) {
                     let tw_raw_modifiers = window_mods_to_termwiz_mods(raw_modifiers);
+                    if self.config.debug_key_events {
+                        log::info!(
+                            "{:?} {:?} -> send to pane {:?} {:?}",
+                            keycode,
+                            raw_modifiers,
+                            term_key,
+                            tw_raw_modifiers
+                        );
+                    }
                     if pane.key_down(term_key, tw_raw_modifiers).is_ok() {
                         if !keycode.is_modifier()
                             && self.pane_state(pane.pane_id()).overlay.is_none()
@@ -314,6 +331,10 @@ impl super::TermWindow {
                     return;
                 }
 
+                if self.config.debug_key_events {
+                    log::info!("send to pane key={:?} mods={:?}", key, modifiers);
+                }
+
                 if pane.key_down(key, modifiers).is_ok() {
                     if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&pane);
@@ -331,6 +352,9 @@ impl super::TermWindow {
                     // the leader modifier.
                     self.leader_done();
                     return;
+                }
+                if self.config.debug_key_events {
+                    log::info!("send to pane string={:?}", s);
                 }
                 pane.writer().write_all(s.as_bytes()).ok();
                 self.maybe_scroll_to_bottom_for_input(&pane);
