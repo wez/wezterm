@@ -60,6 +60,16 @@ fn round_away_from_zero(value: f64) -> i16 {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum ImeDisposition {
+    /// Nothing happened
+    None,
+    /// IME triggered an action
+    Acted,
+    /// We decided to continue with key dispatch
+    Continue,
+}
+
 #[repr(C)]
 struct NSRange(cocoa::foundation::NSRange);
 
@@ -411,7 +421,8 @@ impl Window {
                 dead_pending: None,
                 fullscreen: None,
                 config: config.clone(),
-                ime_noop: false,
+                ime_state: ImeDisposition::None,
+                ime_last_event: None,
             }));
 
             let window: id = msg_send![get_window_class(), alloc];
@@ -1042,7 +1053,12 @@ struct Inner {
     config: ConfigHandle,
 
     /// Used to signal when IME really just swallowed a key
-    ime_noop: bool,
+    ime_state: ImeDisposition,
+    /// Captures the last event that had ImeDisposition::Acted,
+    /// so that we can use it to generate a repeat in the cases
+    /// where the IME mysteriously swallows repeats but only
+    /// for certain keys.
+    ime_last_event: Option<KeyEvent>,
 }
 
 #[repr(C)]
@@ -1374,7 +1390,8 @@ impl WindowView {
             | "noop:" => {
                 if let Some(myself) = Self::get_this(this) {
                     let mut inner = myself.inner.borrow_mut();
-                    inner.ime_noop = true;
+                    inner.ime_state = ImeDisposition::Continue;
+                    inner.ime_last_event.take();
                 }
                 return;
             }
@@ -1383,7 +1400,8 @@ impl WindowView {
                 if let Some(myself) = Self::get_this(this) {
                     // Speculatively allow passing it through
                     let mut inner = myself.inner.borrow_mut();
-                    inner.ime_noop = true;
+                    inner.ime_state = ImeDisposition::Continue;
+                    inner.ime_last_event.take();
                 }
                 return;
             }
@@ -1403,6 +1421,8 @@ impl WindowView {
 
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
+            inner.ime_state = ImeDisposition::Acted;
+            inner.ime_last_event.replace(event.clone());
             inner.events.dispatch(WindowEvent::KeyEvent(event));
         }
     }
@@ -1445,7 +1465,9 @@ impl WindowView {
             }
             .normalize_shift();
 
+            inner.ime_last_event.replace(event.clone());
             inner.events.dispatch(WindowEvent::KeyEvent(event));
+            inner.ime_state = ImeDisposition::Acted;
         }
     }
 
@@ -1529,7 +1551,10 @@ impl WindowView {
             NSRect::new(
                 NSPoint::new(
                     frame.origin.x + cursor_pos.origin.x,
-                    frame.origin.y + frame.size.height - cursor_pos.origin.y,
+                    // Position below the text so that drop-downs
+                    // don't obscure the text in the terminal
+                    frame.origin.y + frame.size.height
+                        - (cursor_pos.max_y() + cursor_pos.size.height * 2.5),
                 ),
                 NSSize::new(cursor_pos.size.width, cursor_pos.size.height),
             )
@@ -1759,7 +1784,7 @@ impl WindowView {
     }
 
     fn key_common(this: &mut Object, nsevent: id, key_is_down: bool) {
-        // let is_a_repeat = unsafe { nsevent.isARepeat() == YES };
+        let is_a_repeat = unsafe { nsevent.isARepeat() == YES };
         let chars = unsafe { nsstring_to_str(nsevent.characters()) };
         let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifier_flags = unsafe { nsevent.modifierFlags() };
@@ -1909,22 +1934,56 @@ impl WindowView {
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
                 inner.key_is_down.replace(key_is_down);
-                inner.ime_noop = false;
+                inner.ime_state = ImeDisposition::None;
             }
 
             unsafe {
+                let array: id = msg_send![class!(NSArray), arrayWithObject: nsevent];
+                let _: () = msg_send![this, interpretKeyEvents: array];
+
+                /*
                 let input_context: id = msg_send![this, inputContext];
                 let res: BOOL = msg_send![input_context, handleEvent: nsevent];
                 if res == YES {
-                    if let Some(myself) = Self::get_this(this) {
-                        let mut inner = myself.inner.borrow_mut();
-                        if inner.ime_noop {
+                */
+                if let Some(myself) = Self::get_this(this) {
+                    let mut inner = myself.inner.borrow_mut();
+                    log::trace!(
+                        "IME state: {:?}, last_event: {:?}",
+                        inner.ime_state,
+                        inner.ime_last_event
+                    );
+                    match inner.ime_state {
+                        ImeDisposition::Continue => {
                             // IME handled the event by generating NOOP;
                             // let's continue with our normal handling
                             // code below.
-                            inner.ime_noop = false;
-                        } else {
-                            log::debug!("key was handled by IME");
+                            inner.ime_last_event.take();
+                        }
+                        ImeDisposition::Acted => {
+                            // The key caused the IME to call one of our
+                            // callbacks, which generated an event and
+                            // stashed it into ime_last_event.
+                            // We have no further action to take this time.
+                            return;
+                        }
+                        ImeDisposition::None => {
+                            // The IME clocked something in its state,
+                            // but didn't call one of our callbacks.
+                            // In theory, we should stop here, but the IME
+                            // mysteriously swallows key repeats for certain
+                            // keys (eg: `f`) but not others.
+                            // To compensate for that, if the current event
+                            // is a repeat, and the IME previously generated
+                            // `Acted`, we will assume that we're safe to replay
+                            // that last action.
+                            if is_a_repeat {
+                                if let Some(event) =
+                                    inner.ime_last_event.as_ref().map(|e| e.clone())
+                                {
+                                    inner.events.dispatch(WindowEvent::KeyEvent(event));
+                                }
+                            }
                             return;
                         }
                     }
@@ -2013,6 +2072,7 @@ impl WindowView {
 
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
+                inner.ime_last_event.take();
                 inner.events.dispatch(WindowEvent::KeyEvent(event));
             }
         }
