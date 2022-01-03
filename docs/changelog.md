@@ -26,6 +26,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Regression that broke fontconfig aliases such as `"monospace"` [#1250](https://github.com/wez/wezterm/pull/1250)
 * Windows/X11/Wayland: CTRL+C in non-latin keyboard layouts wouldn't send CTRL-C [#678](https://github.com/wez/wezterm/issues/678)
 * The new tab button in the fancy tab didn't respect `new_tab_hover` colors [#1498](https://github.com/wez/wezterm/issues/1498)
+* Font baseline alignment when mixing symbols/emoji with the main text [#1499](https://github.com/wez/wezterm/issues/1499)
 
 ### 20220101-133340-7edc5b5a
 
