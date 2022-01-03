@@ -799,8 +799,9 @@ impl TermWindow {
             WindowEvent::Resized {
                 dimensions,
                 window_state,
+                live_resizing,
             } => {
-                self.resize(dimensions, window_state, window);
+                self.resize(dimensions, window_state, window, live_resizing);
                 Ok(true)
             }
             WindowEvent::RawKeyEvent(event) => {

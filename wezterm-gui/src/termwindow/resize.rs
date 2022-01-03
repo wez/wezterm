@@ -13,9 +13,16 @@ pub struct RowsAndCols {
 }
 
 impl super::TermWindow {
-    pub fn resize(&mut self, dimensions: Dimensions, window_state: WindowState, window: &Window) {
+    pub fn resize(
+        &mut self,
+        dimensions: Dimensions,
+        window_state: WindowState,
+        window: &Window,
+        live_resizing: bool,
+    ) {
         log::trace!(
-            "resize event, current cells: {:?}, current dims: {:?}, new dims: {:?} window_state:{:?}",
+            "resize event, live={} current cells: {:?}, current dims: {:?}, new dims: {:?} window_state:{:?}",
+            live_resizing,
             self.current_cell_dimensions(),
             self.dimensions,
             dimensions,
@@ -33,7 +40,11 @@ impl super::TermWindow {
             return;
         }
         self.window_state = window_state;
-        self.scaling_changed(dimensions, self.fonts.get_font_scale(), window);
+        if live_resizing {
+            self.apply_dimensions(&dimensions, None, window);
+        } else {
+            self.scaling_changed(dimensions, self.fonts.get_font_scale(), window);
+        }
         self.emit_window_event("window-resized", None);
     }
 
@@ -242,10 +253,11 @@ impl super::TermWindow {
             // Wayland is weird!
             if saved_dims != dims {
                 log::trace!(
-                    "scale changed so resize from {:?} to {:?} {:?}",
+                    "scale changed so resize from {:?} to {:?} {:?} (event called with {:?})",
                     saved_dims,
                     dims,
-                    cell_dims
+                    cell_dims,
+                    dimensions
                 );
                 // Stash this size pre-emptively. Without this, on Windows,
                 // when the font scaling is changed we can end up not seeing

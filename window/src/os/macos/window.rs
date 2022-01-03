@@ -423,6 +423,7 @@ impl Window {
                 config: config.clone(),
                 ime_state: ImeDisposition::None,
                 ime_last_event: None,
+                live_resizing: false,
             }));
 
             let window: id = msg_send![get_window_class(), alloc];
@@ -522,6 +523,7 @@ impl Window {
                         as usize,
                 },
                 window_state: WindowState::default(),
+                live_resizing: false,
             });
 
             Ok(window_handle)
@@ -919,6 +921,7 @@ impl WindowInner {
                 cartesian.x as f64 - delta_x,
                 cartesian.y as f64 - delta_y - content_frame.size.height,
             );
+            log::info!("set_window_position {:?}", coords);
             NSWindow::setFrameOrigin_(*self.window, point);
         }
     }
@@ -1059,6 +1062,9 @@ struct Inner {
     /// where the IME mysteriously swallows repeats but only
     /// for certain keys.
     ime_last_event: Option<KeyEvent>,
+
+    /// Whether we're in live resize
+    live_resizing: bool,
 }
 
 #[repr(C)]
@@ -2085,6 +2091,20 @@ impl WindowView {
         }
     }
 
+    extern "C" fn will_start_live_resize(this: &mut Object, _sel: Sel, _notification: id) {
+        if let Some(this) = Self::get_this(this) {
+            let mut inner = this.inner.borrow_mut();
+            inner.live_resizing = true;
+        }
+    }
+
+    extern "C" fn did_end_live_resize(this: &mut Object, _sel: Sel, _notification: id) {
+        if let Some(this) = Self::get_this(this) {
+            let mut inner = this.inner.borrow_mut();
+            inner.live_resizing = false;
+        }
+    }
+
     extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
         if let Some(this) = Self::get_this(this) {
             let inner = this.inner.borrow_mut();
@@ -2114,6 +2134,8 @@ impl WindowView {
                     style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
                 });
 
+            let live_resizing = inner.live_resizing;
+
             inner.events.dispatch(WindowEvent::Resized {
                 dimensions: Dimensions {
                     pixel_width: width as usize,
@@ -2126,6 +2148,7 @@ impl WindowView {
                 } else {
                     WindowState::default()
                 },
+                live_resizing,
             });
         }
     }
@@ -2228,6 +2251,14 @@ impl WindowView {
                 Self::allow_automatic_tabbing as extern "C" fn(&Object, Sel) -> BOOL,
             );
 
+            cls.add_method(
+                sel!(windowWillStartLiveResize:),
+                Self::will_start_live_resize as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(windowDidEndLiveResize:),
+                Self::did_end_live_resize as extern "C" fn(&mut Object, Sel, id),
+            );
             cls.add_method(
                 sel!(windowDidResize:),
                 Self::did_resize as extern "C" fn(&mut Object, Sel, id),

@@ -145,6 +145,7 @@ pub enum WindowEvent {
     Resized {
         dimensions: Dimensions,
         window_state: WindowState,
+        live_resizing: bool,
     },
 
     /// Called when the window has been invalidated and needs to
