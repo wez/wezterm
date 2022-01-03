@@ -4,9 +4,9 @@
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::{
-    Clipboard, Connection, Dimensions, Handled, KeyCode, KeyEvent, Modifiers, MouseButtons,
-    MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect, ScreenPoint,
-    Size, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
+    Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
+    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
+    ScreenPoint, Size, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
@@ -1828,9 +1828,16 @@ impl WindowView {
                 match inner.translate_key_event(virtual_key, modifier_flags) {
                     None => {
                         // Next key press in dead key sequence is pending.
+                        inner
+                            .events
+                            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Holding));
+
                         return;
                     }
                     Some(Ok(s)) => {
+                        inner
+                            .events
+                            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                         translated = s;
                         &translated
                     }
