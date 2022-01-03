@@ -290,57 +290,6 @@ impl super::TermWindow {
 
         let modifiers = window_mods_to_termwiz_mods(window_key.modifiers);
 
-        // If we know the underlying raw code, let's first try any mappings
-        // defined for those.
-        if let Some(raw_code) = window_key.raw_code {
-            let raw_code_key = KeyCode::RawCode(raw_code);
-
-            if self.process_key(
-                &pane,
-                context,
-                &raw_code_key,
-                window_key.raw_modifiers,
-                leader_active,
-                leader_mod,
-                OnlyKeyBindings::Yes,
-            ) {
-                return;
-            }
-        }
-
-        // Then, check for mappings using physical key location
-        if let Some(phys) = window_key.phys_code {
-            let phys_code_key = KeyCode::Physical(phys);
-
-            if self.process_key(
-                &pane,
-                context,
-                &phys_code_key,
-                window_key.raw_modifiers,
-                leader_active,
-                leader_mod,
-                OnlyKeyBindings::Yes,
-            ) {
-                return;
-            }
-        }
-
-        // We may know the decoded platform key, but prior to any composition
-        // defined by the system (eg: prior to dead key expansion).
-        if let Some(key) = &window_key.raw_key {
-            if self.process_key(
-                &pane,
-                context,
-                key,
-                window_key.raw_modifiers,
-                leader_active,
-                leader_mod,
-                OnlyKeyBindings::Yes,
-            ) {
-                return;
-            }
-        }
-
         if self.process_key(
             &pane,
             context,

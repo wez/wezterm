@@ -568,15 +568,6 @@ pub struct KeyEvent {
     /// Which modifiers are down
     pub modifiers: Modifiers,
 
-    /// The raw unprocessed key press if it was different from
-    /// the processed/composed version
-    pub raw_key: Option<KeyCode>,
-    pub raw_modifiers: Modifiers,
-    pub raw_code: Option<u32>,
-
-    /// The physical location of the key on an ANSI-Standard US layout
-    pub phys_code: Option<PhysKeyCode>,
-
     /// How many times this key repeats
     pub repeat_count: u16,
 
@@ -619,12 +610,6 @@ impl KeyEvent {
         self.key = key;
         self.modifiers = modifiers;
 
-        if let Some(raw) = self.raw_key.take() {
-            let (key, modifiers) = normalize_shift(raw, self.raw_modifiers);
-            self.raw_key.replace(key);
-            self.raw_modifiers = modifiers;
-        }
-
         self
     }
 
@@ -635,12 +620,6 @@ impl KeyEvent {
         let (key, modifiers) = normalize_ctrl(self.key, self.modifiers);
         self.key = key;
         self.modifiers = modifiers;
-
-        if let Some(raw) = self.raw_key.take() {
-            let (key, modifiers) = normalize_ctrl(raw, self.raw_modifiers);
-            self.raw_key.replace(key);
-            self.raw_modifiers = modifiers;
-        }
 
         self
     }

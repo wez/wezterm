@@ -249,10 +249,6 @@ impl Keyboard {
         let event = KeyEvent {
             key: kc,
             modifiers: raw_modifiers,
-            raw_key: None,
-            raw_modifiers,
-            raw_code: Some(xcode),
-            phys_code,
             repeat_count: 1,
             key_is_down: pressed,
         }

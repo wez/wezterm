@@ -1298,10 +1298,6 @@ unsafe fn ime_composition(
                 Ok(s) => {
                     let key = KeyEvent {
                         key: KeyCode::Composed(s),
-                        raw_key: None,
-                        raw_modifiers: Modifiers::NONE,
-                        raw_code: None,
-                        phys_code: None,
                         modifiers: Modifiers::NONE,
                         repeat_count: 1,
                         key_is_down: true,
@@ -1885,10 +1881,6 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             // dead key combination
                             let key = KeyEvent {
                                 key: KeyCode::Char(c),
-                                raw_key: None,
-                                raw_modifiers: Modifiers::NONE,
-                                raw_code: Some(wparam as u32),
-                                phys_code,
                                 modifiers,
                                 repeat_count: 1,
                                 key_is_down: !releasing,
@@ -1988,34 +1980,15 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         };
 
         if let Some(key) = key {
-            let is_composed = raw != Some(key.clone()) || modifiers != raw_modifiers;
-
-            // Urgh, special case for ctrl and non-latin layouts.
+            // FIXME: verify this behavior: Urgh, special case for ctrl and non-latin layouts.
             // In order to avoid a situation like #678, if CTRL is the only
             // modifier and we've got composed text, then discard the composed
             // text.
-            let key = if is_composed && modifiers == Modifiers::CTRL && raw.is_some() {
-                KeyEvent {
-                    key: raw.unwrap(),
-                    raw_key: None,
-                    raw_modifiers,
-                    raw_code: Some(wparam as u32),
-                    phys_code,
-                    modifiers,
-                    repeat_count: repeat,
-                    key_is_down: !releasing,
-                }
-            } else {
-                KeyEvent {
-                    key,
-                    raw_key: if is_composed { raw } else { None },
-                    raw_modifiers,
-                    raw_code: Some(wparam as u32),
-                    phys_code,
-                    modifiers,
-                    repeat_count: repeat,
-                    key_is_down: !releasing,
-                }
+            let key = KeyEvent {
+                key,
+                modifiers,
+                repeat_count: repeat,
+                key_is_down: !releasing,
             }
             .normalize_shift();
 

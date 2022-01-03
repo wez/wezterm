@@ -426,10 +426,6 @@ impl XWindowInner {
     pub fn dispatch_ime_text(&mut self, text: &str) {
         let key_event = KeyEvent {
             key: KeyCode::Composed(text.into()),
-            raw_key: None,
-            raw_modifiers: Modifiers::NONE,
-            raw_code: None,
-            phys_code: None,
             modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,

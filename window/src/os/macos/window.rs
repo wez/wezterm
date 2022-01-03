@@ -1415,11 +1415,7 @@ impl WindowView {
 
         let event = KeyEvent {
             key,
-            raw_key: None,
             modifiers,
-            raw_modifiers: Modifiers::NONE,
-            raw_code: None,
-            phys_code: None,
             repeat_count: 1,
             key_is_down: true,
         }
@@ -1461,11 +1457,7 @@ impl WindowView {
 
             let event = KeyEvent {
                 key,
-                raw_key: None,
                 modifiers: Modifiers::NONE,
-                raw_modifiers: Modifiers::NONE,
-                raw_code: None,
-                phys_code: None,
                 repeat_count: 1,
                 key_is_down,
             }
@@ -2034,11 +2026,7 @@ impl WindowView {
 
             let mut event = KeyEvent {
                 key,
-                raw_key,
                 modifiers,
-                raw_modifiers,
-                raw_code: Some(virtual_key as u32),
-                phys_code,
                 repeat_count: 1,
                 key_is_down,
             }
