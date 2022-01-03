@@ -557,8 +557,8 @@ impl super::TermWindow {
                 })
                 .hover_colors(Some(ElementColors {
                     border: BorderColor::default(),
-                    bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color).into(),
-                    text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color).into(),
+                    bg: rgbcolor_to_window_color(colors.new_tab_hover.bg_color).into(),
+                    text: rgbcolor_to_window_color(colors.new_tab_hover.fg_color).into(),
                 })),
                 TabBarItem::Tab { active, .. } if active => element
                     .item_type(UIItemType::TabBar(item.item.clone()))
