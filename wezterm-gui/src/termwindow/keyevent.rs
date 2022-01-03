@@ -1,5 +1,6 @@
-use ::window::{KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowOps};
+use ::window::{DeadKeyStatus, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowOps};
 use mux::pane::Pane;
+use smol::Timer;
 use std::rc::Rc;
 
 pub fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input::Modifiers {
@@ -56,8 +57,18 @@ impl super::TermWindow {
             // Check to see if this key-press is the leader activating
             if let Some(duration) = self.input_map.is_leader(&keycode, raw_modifiers) {
                 // Yes; record its expiration
-                self.leader_is_down
-                    .replace(std::time::Instant::now() + duration);
+                let target = std::time::Instant::now() + duration;
+                self.leader_is_down.replace(target);
+                self.update_title();
+                // schedule an invalidation so that the cursor or status
+                // area will be repainted at the right time
+                if let Some(window) = self.window.clone() {
+                    promise::spawn::spawn(async move {
+                        Timer::at(target).await;
+                        window.invalidate();
+                    })
+                    .detach();
+                }
                 return true;
             }
         }
@@ -72,7 +83,7 @@ impl super::TermWindow {
             if leader_active {
                 // A successful leader key-lookup cancels the leader
                 // virtual modifier state
-                self.leader_is_down.take();
+                self.leader_done();
             }
             return true;
         }
@@ -144,17 +155,11 @@ impl super::TermWindow {
         // The leader key is a kind of modal modifier key.
         // It is allowed to be active for up to the leader timeout duration,
         // after which it auto-deactivates.
-        let (leader_active, leader_mod) = match self.leader_is_down.as_ref() {
-            Some(expiry) if *expiry > std::time::Instant::now() => {
-                // Currently active
-                (true, Modifiers::LEADER)
-            }
-            Some(_) => {
-                // Expired; clear out the old expiration time
-                self.leader_is_down.take();
-                (false, Modifiers::NONE)
-            }
-            _ => (false, Modifiers::NONE),
+        let (leader_active, leader_mod) = if self.leader_is_active_mut() {
+            // Currently active
+            (true, Modifiers::LEADER)
+        } else {
+            (false, Modifiers::NONE)
         };
 
         let pane = match self.get_active_pane_or_overlay() {
@@ -220,6 +225,43 @@ impl super::TermWindow {
         }
     }
 
+    pub fn leader_is_active(&self) -> bool {
+        match self.leader_is_down.as_ref() {
+            Some(expiry) if *expiry > std::time::Instant::now() => {
+                self.update_next_frame_time(Some(*expiry));
+                true
+            }
+            Some(_) => false,
+            None => false,
+        }
+    }
+
+    pub fn leader_is_active_mut(&mut self) -> bool {
+        match self.leader_is_down.as_ref() {
+            Some(expiry) if *expiry > std::time::Instant::now() => {
+                self.update_next_frame_time(Some(*expiry));
+                true
+            }
+            Some(_) => {
+                self.leader_done();
+                false
+            }
+            None => false,
+        }
+    }
+
+    pub fn dead_key_active(&self) -> bool {
+        self.dead_key_status == DeadKeyStatus::Holding
+    }
+
+    fn leader_done(&mut self) {
+        self.leader_is_down.take();
+        self.update_title();
+        if let Some(window) = &self.window {
+            window.invalidate();
+        }
+    }
+
     pub fn key_event_impl(&mut self, window_key: KeyEvent, context: &dyn WindowOps) {
         if !window_key.key_is_down {
             return;
@@ -239,17 +281,11 @@ impl super::TermWindow {
         // The leader key is a kind of modal modifier key.
         // It is allowed to be active for up to the leader timeout duration,
         // after which it auto-deactivates.
-        let (leader_active, leader_mod) = match self.leader_is_down.as_ref() {
-            Some(expiry) if *expiry > std::time::Instant::now() => {
-                // Currently active
-                (true, Modifiers::LEADER)
-            }
-            Some(_) => {
-                // Expired; clear out the old expiration time
-                self.leader_is_down.take();
-                (false, Modifiers::NONE)
-            }
-            _ => (false, Modifiers::NONE),
+        let (leader_active, leader_mod) = if self.leader_is_active_mut() {
+            // Currently active
+            (true, Modifiers::LEADER)
+        } else {
+            (false, Modifiers::NONE)
         };
 
         let modifiers = window_mods_to_termwiz_mods(window_key.modifiers);
@@ -318,8 +354,17 @@ impl super::TermWindow {
         }
 
         let key = self.win_key_code_to_termwiz_key_code(&window_key.key);
+
         match key {
             Key::Code(key) => {
+                if leader_active && !key.is_modifier() {
+                    // Leader was pressed and this non-modifier keypress isn't
+                    // a registered key binding; swallow this event and cancel
+                    // the leader modifier.
+                    self.leader_done();
+                    return;
+                }
+
                 if pane.key_down(key, modifiers).is_ok() {
                     if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&pane);
@@ -335,12 +380,12 @@ impl super::TermWindow {
                     // Leader was pressed and this non-modifier keypress isn't
                     // a registered key binding; swallow this event and cancel
                     // the leader modifier.
-                    self.leader_is_down.take();
-                } else {
-                    pane.writer().write_all(s.as_bytes()).ok();
-                    self.maybe_scroll_to_bottom_for_input(&pane);
-                    context.invalidate();
+                    self.leader_done();
+                    return;
                 }
+                pane.writer().write_all(s.as_bytes()).ok();
+                self.maybe_scroll_to_bottom_for_input(&pane);
+                context.invalidate();
             }
             Key::None => {}
         }

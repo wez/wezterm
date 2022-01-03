@@ -132,5 +132,33 @@ impl UserData for GuiWin {
                 .notify(TermWindowNotif::SetConfigOverrides(value.0));
             Ok(())
         });
+        methods.add_async_method("leader_is_active", |_, this, _: ()| async move {
+            let (tx, rx) = smol::channel::bounded(1);
+            this.window
+                .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                    tx.try_send(term_window.leader_is_active()).ok();
+                })));
+            let result = rx
+                .recv()
+                .await
+                .map_err(|e| anyhow::anyhow!("{:#}", e))
+                .map_err(luaerr)?;
+
+            Ok(result)
+        });
+        methods.add_async_method("dead_key_is_active", |_, this, _: ()| async move {
+            let (tx, rx) = smol::channel::bounded(1);
+            this.window
+                .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
+                    tx.try_send(term_window.dead_key_active()).ok();
+                })));
+            let result = rx
+                .recv()
+                .await
+                .map_err(|e| anyhow::anyhow!("{:#}", e))
+                .map_err(luaerr)?;
+
+            Ok(result)
+        });
     }
 }

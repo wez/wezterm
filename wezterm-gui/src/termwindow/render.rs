@@ -315,7 +315,7 @@ impl super::TermWindow {
         }
     }
 
-    fn update_next_frame_time(&self, next_due: Option<Instant>) {
+    pub fn update_next_frame_time(&self, next_due: Option<Instant>) {
         if let Some(next_due) = next_due {
             let mut has_anim = self.has_animation.borrow_mut();
             match *has_anim {
@@ -2408,7 +2408,7 @@ impl super::TermWindow {
             }
 
             let dead_key_or_leader =
-                self.dead_key_status == DeadKeyStatus::Holding || self.leader_is_down.is_some();
+                self.dead_key_status == DeadKeyStatus::Holding || self.leader_is_active();
 
             if dead_key_or_leader {
                 let (fg_color, bg_color) = if self.config.force_reverse_video_cursor {

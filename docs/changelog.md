@@ -12,6 +12,10 @@ usually the best available version.
 As features stabilize some brief notes about them will accumulate here.
 
 #### New
+
+* [window:dead_key_is_active()](config/lua/window/dead_key_is_active.md) and [window:leader_is_active()](config/lua/window/leader_is_active.md) methods that can help populate [window:set_right_status()](config/lua/window/set_right_status.md) [#686](https://github.com/wez/wezterm/issues/686)
+* You may now use `colors = { dead_key_cursor = "orange" }` to change the cursor color when either a dead key or leader key is active.
+
 #### Changed
 #### Updated and Improved
 #### Fixed

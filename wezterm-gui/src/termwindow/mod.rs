@@ -812,9 +812,9 @@ impl TermWindow {
                 Ok(true)
             }
             WindowEvent::AdviseDeadKeyStatus(status) => {
-                log::warn!("DeadKeyStatus now: {:?}", status);
+                log::trace!("DeadKeyStatus now: {:?}", status);
                 self.dead_key_status = status;
-                window.invalidate();
+                self.update_title();
                 Ok(true)
             }
             WindowEvent::NeedRepaint => Ok(self.do_paint(window)),
