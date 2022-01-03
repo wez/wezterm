@@ -279,6 +279,7 @@ pub struct TermWindow {
     input_map: InputMap,
     /// If is_some, the LEADER modifier is active until the specified instant.
     leader_is_down: Option<std::time::Instant>,
+    dead_key_status: DeadKeyStatus,
     show_tab_bar: bool,
     show_scroll_bar: bool,
     tab_bar: TabBarState,
@@ -679,6 +680,7 @@ impl TermWindow {
             render_state,
             input_map: InputMap::new(&config),
             leader_is_down: None,
+            dead_key_status: DeadKeyStatus::None,
             show_tab_bar,
             show_scroll_bar: config.enable_scroll_bar,
             tab_bar: TabBarState::default(),
@@ -811,6 +813,8 @@ impl TermWindow {
             }
             WindowEvent::AdviseDeadKeyStatus(status) => {
                 log::warn!("DeadKeyStatus now: {:?}", status);
+                self.dead_key_status = status;
+                window.invalidate();
                 Ok(true)
             }
             WindowEvent::NeedRepaint => Ok(self.do_paint(window)),

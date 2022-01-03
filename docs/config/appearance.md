@@ -60,6 +60,11 @@ return {
 
       -- Arbitrary colors of the palette in the range from 16 to 255
       indexed = {[136] = "#af8700"},
+
+      -- Since: nightly builds only
+      -- When a dead key or a leader key are being processed, change the cursor
+      -- to this color to give a visual cue about the hold state
+      dead_key_cursor = "orange",
   }
 }
 ```

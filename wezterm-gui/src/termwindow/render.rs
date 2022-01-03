@@ -18,7 +18,7 @@ use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
-use ::window::{PointF, RectF, SizeF, WindowOps};
+use ::window::{DeadKeyStatus, PointF, RectF, SizeF, WindowOps};
 use anyhow::anyhow;
 use config::{
     ConfigHandle, Dimension, DimensionContext, HsbTransform, TabBarColors, TextStyle,
@@ -173,6 +173,7 @@ pub struct ComputeCellFgBgParams<'a> {
     pub probably_a_ligature: bool,
 }
 
+#[derive(Debug)]
 pub struct ComputeCellFgBgResult {
     pub fg_color: LinearRgba,
     pub bg_color: LinearRgba,
@@ -2403,6 +2404,31 @@ impl super::TermWindow {
                     bg_color,
                     cursor_shape: Some(CursorShape::Default),
                     cursor_border_color: bg_color,
+                };
+            }
+
+            let dead_key_or_leader =
+                self.dead_key_status == DeadKeyStatus::Holding || self.leader_is_down.is_some();
+
+            if dead_key_or_leader {
+                let (fg_color, bg_color) = if self.config.force_reverse_video_cursor {
+                    (params.bg_color, params.fg_color)
+                } else {
+                    (params.cursor_fg, params.cursor_bg)
+                };
+
+                let color = params
+                    .config
+                    .resolved_palette
+                    .dead_key_cursor
+                    .map(rgbcolor_to_window_color)
+                    .unwrap_or(bg_color);
+
+                return ComputeCellFgBgResult {
+                    fg_color,
+                    bg_color,
+                    cursor_shape: Some(CursorShape::Default),
+                    cursor_border_color: color,
                 };
             }
         }
