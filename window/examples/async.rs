@@ -35,8 +35,12 @@ impl MyWindow {
             WindowEvent::Resized {
                 dimensions,
                 window_state,
+                live_resizing,
             } => {
-                eprintln!("resize {:?} state={:?}", dimensions, window_state);
+                eprintln!(
+                    "resize {:?} live={} state={:?}",
+                    dimensions, live_resizing, window_state
+                );
                 self.dims = dimensions;
             }
             WindowEvent::MouseEvent(event) => {
