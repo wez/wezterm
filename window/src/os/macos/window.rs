@@ -1196,10 +1196,16 @@ impl Inner {
             );
         };
 
-        if !use_dead_keys {
-            length = 0;
-            // Ignore dead key sequences; synthesize a SPACE press to
-            // elicit the underlying key code
+        // If length == 0 it means that they double-pressed the dead key.
+        // We treat that the same as the dead key disabled state:
+        // we want to clock through a space keypress so that we clear
+        // the state and output the original keypress.
+        let generate_space = !use_dead_keys || length == 0;
+
+        if generate_space {
+            // synthesize a SPACE press to
+            // elicit the underlying key code and get out
+            // of the dead key state
             unsafe {
                 UCKeyTranslate(
                     layout_data,
@@ -1451,19 +1457,21 @@ impl WindowView {
         replacement_range: NSRange,
     ) {
         let s = unsafe { nsstring_to_str(_astring) };
-        eprintln!(
+        log::trace!(
             "set_marked_text_selected_range_replacement_range {} {:?} {:?}",
-            s, selected_range, replacement_range
+            s,
+            selected_range,
+            replacement_range
         );
     }
 
     extern "C" fn unmark_text(_this: &mut Object, _sel: Sel) {
-        eprintln!("unmarkText");
+        log::trace!("unmarkText");
     }
 
     extern "C" fn valid_attributes_for_marked_text(_this: &mut Object, _sel: Sel) -> id {
         // FIXME: returns NSArray<NSAttributedStringKey> *
-        // eprintln!("valid_attributes_for_marked_text");
+        // log::trace!("valid_attributes_for_marked_text");
         // nil
         unsafe { NSArray::arrayWithObjects(nil, &[]) }
     }
@@ -1474,9 +1482,10 @@ impl WindowView {
         _proposed_range: NSRange,
         _actual_range: NSRangePointer,
     ) -> id {
-        eprintln!(
+        log::trace!(
             "attributedSubstringForProposedRange {:?} {:?}",
-            _proposed_range, _actual_range
+            _proposed_range,
+            _actual_range
         );
         nil
     }
@@ -1497,9 +1506,10 @@ impl WindowView {
     ) -> NSRect {
         // Returns a rect in screen coordinates; this is used to place
         // the input method editor
-        eprintln!(
+        log::trace!(
             "firstRectForCharacterRange: range:{:?} actual:{:?}",
-            range, actual
+            range,
+            actual
         );
         let frame = unsafe {
             let window: id = msg_send![this, window];
