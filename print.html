@@ -442,6 +442,7 @@ usually the best available version.</p>
 <li>Windows/X11/Wayland: CTRL+C in non-latin keyboard layouts wouldn't send CTRL-C <a href="https://github.com/wez/wezterm/issues/678">#678</a></li>
 </ul>
 <h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
+<h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
 <ul>
 <li>Fancy Tab Bars are now the default. The default tab bar colors have changed to accommodate the new more native look.  You can turn them off by setting <a href="config/lua/config/use_fancy_tab_bar.html">use_fancy_tab_bar = false</a>.</li>
 <li>Support for the <a href="https://sw.kovidgoyal.net/kitty/graphics-protocol/">Kitty Image Protocol</a> is now enabled by default.  Most of the protocol is supported; animation support is not yet implemented. Try the amazing <a href="https://notcurses.com/">notcurses</a> if you want to see what modern terminal graphics can do! <a href="https://github.com/wez/wezterm/issues/986">#986</a></li>
@@ -510,7 +511,7 @@ usually the best available version.</p>
 <li>&quot;Update available&quot; message kept showing even though already running the latest version <a href="https://github.com/wez/wezterm/issues/1365">#1365</a></li>
 </ul>
 <h3 id="20211204-082213-a66c61ee9"><a class="header" href="#20211204-082213-a66c61ee9">20211204-082213-a66c61ee9</a></h3>
-<h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
+<h4 id="new-2"><a class="header" href="#new-2">New</a></h4>
 <ul>
 <li>X11 now supports IME. It currently defaults to disabled, but you can set <code>use_ime = true</code> in your config to enable it (you need to restart wezterm for this to take effect). Many thanks to <a href="https://github.com/H-M-H">@H-M-H</a> for bringing xcb-imdkit to Rust and implementing this in wezterm! <a href="https://github.com/wez/wezterm/issues/250">#250</a> <a href="https://github.com/wez/wezterm/pull/1043">#1043</a></li>
 <li>it is now possible to define colors in the range 16-255 in <code>colors</code> and color scheme definitions. Thanks to <a href="https://github.com/potamides">@potamides</a>! <a href="https://github.com/wez/wezterm/issues/841">#841</a> <a href="https://github.com/wez/wezterm/pull/1056">#1056</a></li>
