@@ -2,8 +2,8 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::Appearance;
 use crate::{
-    Clipboard, Dimensions, Handled, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
-    MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect, ScreenPoint,
+    Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers, MouseButtons,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect, ScreenPoint,
     WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{bail, Context};
@@ -1840,7 +1840,11 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 .dispatch(WindowEvent::RawKeyEvent(raw_key_event));
             if handled_raw.is_handled() {
                 // Cancel any pending dead key
-                inner.dead_pending.take();
+                if inner.dead_pending.take().is_some() {
+                    inner
+                        .events
+                        .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+                }
                 log::trace!("raw key was handled; not processing further");
                 return Some(0);
             }
@@ -1861,6 +1865,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
 
                 // If we previously had the start of a dead key...
                 let dead = if let Some(leader) = inner.dead_pending.take() {
+                    inner
+                        .events
+                        .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     // look to see how the current event resolves it
                     match inner
                         .keyboard_info
@@ -1923,6 +1930,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                     // wait for a subsequent keypress.
                     if inner.config.use_dead_keys {
                         inner.dead_pending.replace((modifiers, vk));
+                        inner
+                            .events
+                            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Holding));
                         return Some(0);
                     }
                     // They don't want dead keys; just return the base character

@@ -809,6 +809,10 @@ impl TermWindow {
                 self.key_event_impl(event, window);
                 Ok(true)
             }
+            WindowEvent::AdviseDeadKeyStatus(status) => {
+                log::warn!("DeadKeyStatus now: {:?}", status);
+                Ok(true)
+            }
             WindowEvent::NeedRepaint => Ok(self.do_paint(window)),
             WindowEvent::Notification(item) => {
                 if let Ok(notif) = item.downcast::<TermWindowNotif>() {

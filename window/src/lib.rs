@@ -122,6 +122,14 @@ pub enum WindowKeyEvent {
     KeyEvent(KeyEvent),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeadKeyStatus {
+    /// Not in a dead key processing hold
+    None,
+    /// Holding input until a dead key is recognized
+    Holding,
+}
+
 #[derive(Debug)]
 pub enum WindowEvent {
     /// Called when the window close button is clicked.
@@ -145,6 +153,8 @@ pub enum WindowEvent {
 
     /// Called when the window gains/loses focus
     FocusChanged(bool),
+
+    AdviseDeadKeyStatus(DeadKeyStatus),
 
     /// Called to handle a raw key event, prior to any dead key,
     /// keymap composition or other higher level treatment.
