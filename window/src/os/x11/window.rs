@@ -161,6 +161,7 @@ impl XWindowInner {
                     dpi: self.dpi as usize,
                 },
                 window_state: self.get_window_state().unwrap_or(WindowState::default()),
+                live_resizing: false,
             });
         }
     }
@@ -264,6 +265,9 @@ impl XWindowInner {
                 self.queue_pending(WindowEvent::Resized {
                     dimensions,
                     window_state: self.get_window_state().unwrap_or(WindowState::default()),
+                    // Assume that we're live resizing: we don't know for sure,
+                    // but it seems like a reasonable assumption
+                    live_resizing: true,
                 });
             }
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {

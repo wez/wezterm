@@ -629,6 +629,9 @@ impl WaylandWindowInner {
                     self.events.dispatch(WindowEvent::Resized {
                         dimensions: self.dimensions,
                         window_state: self.window_state,
+                        // We don't know if we're live resizing or not, so
+                        // assume no.
+                        live_resizing: false,
                     });
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
                         wegl_surface.resize(pixel_width, pixel_height, 0, 0);
