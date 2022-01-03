@@ -461,7 +461,7 @@ fn build_physkeycode_map(keymap: &xkb::Keymap) -> HashMap<xkb::Keycode, PhysKeyC
         ("AD10", PhysKeyCode::P),
         ("AD11", PhysKeyCode::LeftBracket),
         ("AD12", PhysKeyCode::RightBracket),
-        ("DELE", PhysKeyCode::ForwardDelete),
+        ("DELE", PhysKeyCode::Delete),
         ("END", PhysKeyCode::End),
         ("PGDN", PhysKeyCode::PageDown),
         ("KP7", PhysKeyCode::Keypad7),
