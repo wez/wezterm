@@ -2004,8 +2004,6 @@ impl WindowView {
         }
 
         if let Some(key) = key_string_to_key_code(chars).or_else(|| key_string_to_key_code(unmod)) {
-            let raw_modifiers = modifiers;
-
             let (key, raw_key) = if chars.is_empty() || chars == unmod {
                 (key, None)
             } else {
