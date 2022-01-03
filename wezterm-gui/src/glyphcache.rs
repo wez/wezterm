@@ -497,14 +497,17 @@ impl<T: Texture2d> GlyphCache<T> {
             }
         };
 
-        let descender_adjust = {
+        let descender_adjust = PixelLength::new(0.0);
+        /* It seems like we don't really need this bit any more.
+         * See #1203 and #1499
             if info.font_idx == 0 {
                 PixelLength::new(0.0)
             } else {
                 let descender = idx_metrics.descender * scale;
-                base_metrics.descender - descender
+                base_metrics.descender - descender;
+                PixelLength::new(0.0)
             }
-        };
+        */
 
         let (cell_width, cell_height) = (base_metrics.cell_width, base_metrics.cell_height);
 
