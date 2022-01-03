@@ -1,7 +1,7 @@
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
-    Handled, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowEvent, WindowEventSender,
-    WindowKeyEvent,
+    DeadKeyStatus, Handled, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowEvent,
+    WindowEventSender, WindowKeyEvent,
 };
 use anyhow::{anyhow, ensure};
 use libc;
@@ -211,6 +211,7 @@ impl Keyboard {
             match cstate {
                 ComposeStatus::Composing => {
                     // eat
+                    events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Holding));
                     return None;
                 }
                 ComposeStatus::Composed => {
@@ -220,6 +221,7 @@ impl Keyboard {
                         kc.replace(crate::KeyCode::composed(&utf8));
                     }
                     compose_state.reset();
+                    events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     res.unwrap_or(xsym)
                 }
                 ComposeStatus::Nothing => {
@@ -231,6 +233,7 @@ impl Keyboard {
                 }
                 ComposeStatus::Cancelled => {
                     self.compose_state.borrow_mut().reset();
+                    events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     return None;
                 }
             }
