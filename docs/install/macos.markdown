@@ -36,7 +36,7 @@ install:
 
 ```bash
 $ brew rm --cask wez/wezterm/wezterm-nightly
-$ brew upgrade --cask wez/wezterm/wezterm-nightly
+$ brew install --cask wez/wezterm/wezterm-nightly
 ```
 
 ## MacPorts
