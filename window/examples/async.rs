@@ -74,6 +74,7 @@ impl MyWindow {
                 }
             }
             WindowEvent::AppearanceChanged(_)
+            | WindowEvent::AdviseDeadKeyStatus(_)
             | WindowEvent::Notification(_)
             | WindowEvent::FocusChanged(_) => {}
         }
