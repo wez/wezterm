@@ -231,6 +231,7 @@ impl WindowInner {
                 } else {
                     WindowState::default()
                 },
+                live_resizing: self.in_size_move,
             });
         }
 
