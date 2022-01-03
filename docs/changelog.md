@@ -17,6 +17,9 @@ As features stabilize some brief notes about them will accumulate here.
 * You may now use `colors = { dead_key_cursor = "orange" }` to change the cursor color when either a dead key or leader key is active.
 
 #### Changed
+
+* **Key Assignments now used Physical Key locations by default!!** follow the work in progress in [#1483](https://github.com/wez/wezterm/issues/1483)
+
 #### Updated and Improved
 #### Fixed
 
