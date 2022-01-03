@@ -249,7 +249,7 @@ $ brew install --cask wez/wezterm/wezterm
 <p>to upgrade to a newer nightly, it is simplest to remove then
 install:</p>
 <pre><code class="language-bash">$ brew rm --cask wez/wezterm/wezterm-nightly
-$ brew upgrade --cask wez/wezterm/wezterm-nightly
+$ brew install --cask wez/wezterm/wezterm-nightly
 </code></pre>
 <h2 id="macports"><a class="header" href="#macports">MacPorts</a></h2>
 <p>WezTerm is also available via <a href="https://ports.macports.org/port/wezterm/summary">MacPorts</a>:</p>
@@ -444,6 +444,7 @@ usually the best available version.</p>
 <li>Regression that broke fontconfig aliases such as <code>&quot;monospace&quot;</code> <a href="https://github.com/wez/wezterm/pull/1250">#1250</a></li>
 <li>Windows/X11/Wayland: CTRL+C in non-latin keyboard layouts wouldn't send CTRL-C <a href="https://github.com/wez/wezterm/issues/678">#678</a></li>
 <li>The new tab button in the fancy tab didn't respect <code>new_tab_hover</code> colors <a href="https://github.com/wez/wezterm/issues/1498">#1498</a></li>
+<li>Font baseline alignment when mixing symbols/emoji with the main text <a href="https://github.com/wez/wezterm/issues/1499">#1499</a></li>
 </ul>
 <h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
