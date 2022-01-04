@@ -12,6 +12,8 @@ use anyhow::anyhow;
 use config::keyassignment::{InputMap, KeyAssignment, SpawnCommand, SpawnTabDomain};
 use config::lua::truncate_right;
 use config::{configuration, TermConfig};
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use mux::domain::{DomainId, DomainState};
 use mux::pane::PaneId;
 use mux::tab::TabId;
@@ -248,9 +250,59 @@ pub fn launcher(
     term_config: Arc<TermConfig>,
     window: ::window::Window,
 ) -> anyhow::Result<()> {
-    let mut active_idx = 0;
-    let mut top_row;
-    let mut entries = vec![];
+    struct LauncherState {
+        active_idx: usize,
+        top_row: usize,
+        entries: Vec<Entry>,
+        filter_term: String,
+        filtered_entries: Vec<Entry>,
+    }
+
+    impl LauncherState {
+        fn update_filter(&mut self) {
+            if self.filter_term.is_empty() {
+                self.filtered_entries = self.entries.clone();
+                return;
+            }
+
+            self.filtered_entries.clear();
+
+            let matcher = SkimMatcherV2::default();
+
+            struct MatchResult {
+                row_idx: usize,
+                score: i64,
+            }
+
+            let mut scores: Vec<MatchResult> = self
+                .entries
+                .iter()
+                .enumerate()
+                .filter_map(|(row_idx, entry)| {
+                    let score = matcher.fuzzy_match(&entry.label, &self.filter_term)?;
+                    Some(MatchResult { row_idx, score })
+                })
+                .collect();
+
+            scores.sort_by(|a, b| a.score.cmp(&b.score).reverse());
+
+            for result in scores {
+                self.filtered_entries
+                    .push(self.entries[result.row_idx].clone());
+            }
+
+            self.active_idx = 0;
+            self.top_row = 0;
+        }
+    }
+
+    let mut state = LauncherState {
+        active_idx: 0,
+        top_row: 0,
+        entries: vec![],
+        filter_term: String::new(),
+        filtered_entries: vec![],
+    };
 
     term.set_raw_mode()?;
 
@@ -259,7 +311,7 @@ pub fn launcher(
     // Pull in the user defined entries from the launch_menu
     // section of the configuration.
     for item in &config.launch_menu {
-        entries.push(Entry {
+        state.entries.push(Entry {
             label: match item.label.as_ref() {
                 Some(label) => label.to_string(),
                 None => match item.args.as_ref() {
@@ -277,7 +329,7 @@ pub fn launcher(
     #[cfg(windows)]
     {
         if config.add_wsl_distributions_to_launch_menu {
-            let _ = enumerate_wsl_entries(&mut entries);
+            let _ = enumerate_wsl_entries(&mut state.entries);
         }
     }
 
@@ -304,9 +356,9 @@ pub fn launcher(
         // at the time that the launcher was set up, so that pressing
         // Enter immediately afterwards spawns a tab in the same domain.
         if *domain_id == domain_id_of_current_tab {
-            active_idx = entries.len();
+            state.active_idx = state.entries.len();
         }
-        entries.push(entry);
+        state.entries.push(entry);
     }
 
     // Grab interestig key assignments and show those as a kind of command palette
@@ -342,13 +394,10 @@ pub fn launcher(
         });
     }
     key_entries.sort_by(|a, b| a.label.cmp(&b.label));
-    entries.append(&mut key_entries);
+    state.entries.append(&mut key_entries);
+    state.update_filter();
 
-    fn render(
-        active_idx: usize,
-        entries: &[Entry],
-        term: &mut TermWizTerminal,
-    ) -> termwiz::Result<usize> {
+    fn render(state: &mut LauncherState, term: &mut TermWizTerminal) -> termwiz::Result<()> {
         let size = term.get_screen_size()?;
         let max_width = size.cols.saturating_sub(6);
 
@@ -370,22 +419,28 @@ pub fn launcher(
         ];
 
         let max_items = size.rows - 3;
-        let num_items = entries.len();
+        let num_items = state.filtered_entries.len();
 
         let skip = if num_items < max_items {
             0
-        } else if num_items - active_idx < max_items {
+        } else if num_items - state.active_idx < max_items {
             // Align to bottom
             (num_items - max_items).saturating_sub(1)
         } else {
-            active_idx.saturating_sub(2)
+            state.active_idx.saturating_sub(2)
         };
 
-        for (row_num, (entry_idx, entry)) in entries.iter().enumerate().skip(skip).enumerate() {
+        for (row_num, (entry_idx, entry)) in state
+            .filtered_entries
+            .iter()
+            .enumerate()
+            .skip(skip)
+            .enumerate()
+        {
             if row_num > max_items {
                 break;
             }
-            if entry_idx == active_idx {
+            if entry_idx == state.active_idx {
                 changes.push(AttributeChange::Reverse(true).into());
             }
 
@@ -396,16 +451,31 @@ pub fn launcher(
                 changes.push(Change::Text(format!("    {} \r\n", label)));
             }
 
-            if entry_idx == active_idx {
+            if entry_idx == state.active_idx {
                 changes.push(AttributeChange::Reverse(false).into());
             }
         }
-        term.render(&changes)?;
-        Ok(skip)
+        state.top_row = skip;
+
+        if !state.filter_term.is_empty() {
+            changes.append(&mut vec![
+                Change::CursorPosition {
+                    x: Position::Absolute(0),
+                    y: Position::Absolute(0),
+                },
+                Change::ClearToEndOfLine(ColorAttribute::Default),
+                Change::Text(truncate_right(
+                    &format!("Fuzzy matching: {}", state.filter_term),
+                    max_width,
+                )),
+            ]);
+        }
+
+        term.render(&changes)
     }
 
     term.render(&[Change::Title("Launcher".to_string())])?;
-    top_row = render(active_idx, &entries, &mut term)?;
+    render(&mut state, &mut term)?;
 
     fn launch(
         active_idx: usize,
@@ -455,24 +525,46 @@ pub fn launcher(
     while let Ok(Some(event)) = term.poll_input(None) {
         match event {
             InputEvent::Key(KeyEvent {
-                key: KeyCode::Char('k'),
+                key: KeyCode::Char(c),
                 ..
-            })
-            | InputEvent::Key(KeyEvent {
+            }) if c >= '1' && c <= '9' => {
+                launch(
+                    state.top_row + (c as u32 - '1' as u32) as usize,
+                    &state.filtered_entries,
+                    size,
+                    mux_window_id,
+                    clipboard,
+                    term_config,
+                    &window,
+                    pane_id,
+                );
+                break;
+            }
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Backspace,
+                ..
+            }) => {
+                state.filter_term.pop();
+                state.update_filter();
+            }
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char(c),
+                ..
+            }) => {
+                state.filter_term.push(c);
+                state.update_filter();
+            }
+            InputEvent::Key(KeyEvent {
                 key: KeyCode::UpArrow,
                 ..
             }) => {
-                active_idx = active_idx.saturating_sub(1);
+                state.active_idx = state.active_idx.saturating_sub(1);
             }
             InputEvent::Key(KeyEvent {
-                key: KeyCode::Char('j'),
-                ..
-            })
-            | InputEvent::Key(KeyEvent {
                 key: KeyCode::DownArrow,
                 ..
             }) => {
-                active_idx = (active_idx + 1).min(entries.len() - 1);
+                state.active_idx = (state.active_idx + 1).min(state.entries.len() - 1);
             }
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Escape,
@@ -483,13 +575,13 @@ pub fn launcher(
             InputEvent::Mouse(MouseEvent {
                 y, mouse_buttons, ..
             }) => {
-                if y > 0 && y as usize <= entries.len() {
-                    active_idx = top_row + y as usize - 1;
+                if y > 0 && y as usize <= state.entries.len() {
+                    state.active_idx = state.top_row + y as usize - 1;
 
                     if mouse_buttons == MouseButtons::LEFT {
                         launch(
-                            active_idx,
-                            &entries,
+                            state.active_idx,
+                            &state.filtered_entries,
                             size,
                             mux_window_id,
                             clipboard,
@@ -506,28 +598,12 @@ pub fn launcher(
                 }
             }
             InputEvent::Key(KeyEvent {
-                key: KeyCode::Char(c),
-                ..
-            }) if c >= '1' && c <= '9' => {
-                launch(
-                    top_row + (c as u32 - '1' as u32) as usize,
-                    &entries,
-                    size,
-                    mux_window_id,
-                    clipboard,
-                    term_config,
-                    &window,
-                    pane_id,
-                );
-                break;
-            }
-            InputEvent::Key(KeyEvent {
                 key: KeyCode::Enter,
                 ..
             }) => {
                 launch(
-                    active_idx,
-                    &entries,
+                    state.active_idx,
+                    &state.filtered_entries,
                     size,
                     mux_window_id,
                     clipboard,
@@ -539,7 +615,7 @@ pub fn launcher(
             }
             _ => {}
         }
-        top_row = render(active_idx, &entries, &mut term)?;
+        render(&mut state, &mut term)?;
     }
 
     Ok(())
