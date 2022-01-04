@@ -328,7 +328,12 @@ pub fn launcher(
             continue;
         }
         key_entries.push(Entry {
-            label: format!("{:?} ({:?} {:?})", assignment, keycode, mods),
+            label: format!(
+                "{:?} ({} {})",
+                assignment,
+                mods.to_string(),
+                keycode.to_string()
+            ),
             kind: EntryKind::KeyAssignment(assignment),
         });
     }

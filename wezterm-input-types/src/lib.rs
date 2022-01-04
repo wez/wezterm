@@ -301,7 +301,8 @@ impl ToString for KeyCode {
     fn to_string(&self) -> String {
         match self {
             Self::RawCode(n) => format!("raw:{}", n),
-            Self::Char(c) => c.to_string(),
+            Self::Char(c) => format!("mapped:{}", c),
+            Self::Physical(phys) => format!("{}", phys.to_string()),
             Self::Composed(s) => s.to_string(),
             Self::Numpad(n) => format!("Numpad{}", n),
             Self::Function(n) => format!("F{}", n),
@@ -763,6 +764,16 @@ impl TryFrom<&str> for PhysKeyCode {
             Ok(*code)
         } else {
             Err(format!("invalid PhysKeyCode '{}'", s))
+        }
+    }
+}
+
+impl ToString for PhysKeyCode {
+    fn to_string(&self) -> String {
+        if let Some(s) = INV_PHYSKEYCODE_MAP.get(self) {
+            s.to_string()
+        } else {
+            format!("{:?}", self)
         }
     }
 }
