@@ -921,7 +921,6 @@ impl WindowInner {
                 cartesian.x as f64 - delta_x,
                 cartesian.y as f64 - delta_y - content_frame.size.height,
             );
-            log::info!("set_window_position {:?}", coords);
             NSWindow::setFrameOrigin_(*self.window, point);
         }
     }
