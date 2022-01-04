@@ -26,25 +26,20 @@ use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
 
 #[derive(Clone)]
-enum Entry {
+enum EntryKind {
     Spawn {
-        label: String,
         command: SpawnCommand,
         spawn_where: SpawnWhere,
     },
     Attach {
-        label: String,
         domain: DomainId,
     },
 }
 
-impl Entry {
-    fn label(&self) -> &str {
-        match self {
-            Entry::Spawn { label, .. } => label,
-            Entry::Attach { label, .. } => label,
-        }
-    }
+#[derive(Clone)]
+struct Entry {
+    pub label: String,
+    pub kind: EntryKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -253,7 +248,7 @@ pub fn launcher(
     // Pull in the user defined entries from the launch_menu
     // section of the configuration.
     for item in &config.launch_menu {
-        entries.push(Entry::Spawn {
+        entries.push(Entry {
             label: match item.label.as_ref() {
                 Some(label) => label.to_string(),
                 None => match item.args.as_ref() {
@@ -261,8 +256,10 @@ pub fn launcher(
                     None => "(default shell)".to_string(),
                 },
             },
-            command: item.clone(),
-            spawn_where: SpawnWhere::NewTab,
+            kind: EntryKind::Spawn {
+                command: item.clone(),
+                spawn_where: SpawnWhere::NewTab,
+            },
         });
     }
 
@@ -275,18 +272,20 @@ pub fn launcher(
 
     for (domain_id, domain_name, domain_state, domain_label) in &domains {
         let entry = if *domain_state == DomainState::Attached {
-            Entry::Spawn {
+            Entry {
                 label: format!("New Tab ({})", domain_label),
-                command: SpawnCommand {
-                    domain: SpawnTabDomain::DomainName(domain_name.to_string()),
-                    ..SpawnCommand::default()
+                kind: EntryKind::Spawn {
+                    command: SpawnCommand {
+                        domain: SpawnTabDomain::DomainName(domain_name.to_string()),
+                        ..SpawnCommand::default()
+                    },
+                    spawn_where: SpawnWhere::NewTab,
                 },
-                spawn_where: SpawnWhere::NewTab,
             }
         } else {
-            Entry::Attach {
+            Entry {
                 label: format!("Attach {}", domain_label),
-                domain: *domain_id,
+                kind: EntryKind::Attach { domain: *domain_id },
             }
         };
 
@@ -323,7 +322,7 @@ pub fn launcher(
                 changes.push(AttributeChange::Reverse(true).into());
             }
 
-            changes.push(Change::Text(format!(" {} \r\n", entry.label())));
+            changes.push(Change::Text(format!(" {} \r\n", entry.label)));
 
             if idx == active_idx {
                 changes.push(AttributeChange::Reverse(false).into());
@@ -343,11 +342,10 @@ pub fn launcher(
         clipboard: ClipboardHelper,
         term_config: Arc<TermConfig>,
     ) {
-        match entries[active_idx].clone() {
-            Entry::Spawn {
+        match entries[active_idx].clone().kind {
+            EntryKind::Spawn {
                 command,
                 spawn_where,
-                ..
             } => {
                 promise::spawn::spawn_into_main_thread(async move {
                     TermWindow::spawn_command_impl(
@@ -361,7 +359,7 @@ pub fn launcher(
                 })
                 .detach();
             }
-            Entry::Attach { domain, .. } => {
+            EntryKind::Attach { domain } => {
                 promise::spawn::spawn_into_main_thread(async move {
                     // We can't inline do_domain_attach here directly
                     // because the compiler would then want its body
