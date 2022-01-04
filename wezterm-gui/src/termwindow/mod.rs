@@ -5,8 +5,8 @@ use crate::cache::LruCache;
 use crate::glium::texture::SrgbTexture2d;
 use crate::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
-    start_overlay, start_overlay_pane, tab_navigator, CopyOverlay, QuickSelectOverlay,
-    SearchOverlay,
+    start_overlay, start_overlay_pane, CopyOverlay, LauncherArgs, LauncherFlags,
+    QuickSelectOverlay, SearchOverlay,
 };
 use crate::scripting::guiwin::GuiWin;
 use crate::scripting::pane::PaneObject;
@@ -27,7 +27,6 @@ use config::{
     WindowCloseConfirmation,
 };
 use mlua::{FromLua, UserData, UserDataFields};
-use mux::domain::{DomainId, DomainState};
 use mux::pane::{CloseReason, Pane, PaneId};
 use mux::renderable::RenderableDimensions;
 use mux::tab::{PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
@@ -1657,42 +1656,23 @@ impl TermWindow {
     }
 
     fn show_tab_navigator(&mut self) {
-        let mux = Mux::get().unwrap();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
-            Some(tab) => tab,
-            None => return,
-        };
-
-        let window = mux
-            .get_window(self.mux_window_id)
-            .expect("to resolve my own window_id");
-
-        // Ideally we'd resolve the tabs on the fly once we've started the
-        // overlay, but since the overlay runs in a different thread, accessing
-        // the mux list is a bit awkward.  To get the ball rolling we capture
-        // the list of tabs up front and live with a static list.
-        let tabs: Vec<(String, TabId, usize)> = window
-            .iter()
-            .map(|tab| {
-                (
-                    tab.get_active_pane()
-                        .expect("tab to have a pane")
-                        .get_title(),
-                    tab.tab_id(),
-                    tab.count_panes(),
-                )
-            })
-            .collect();
-
-        let mux_window_id = self.mux_window_id;
-        let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
-            tab_navigator(tab_id, term, tabs, mux_window_id)
-        });
-        self.assign_overlay(tab.tab_id(), overlay);
-        promise::spawn::spawn(future).detach();
+        self.show_launcher_impl("Tab Navigator", LauncherFlags::TABS);
     }
 
     fn show_launcher(&mut self) {
+        self.show_launcher_impl(
+            "Launcher",
+            if self.config.add_wsl_distributions_to_launch_menu {
+                LauncherFlags::WSL_DISTROS
+            } else {
+                LauncherFlags::ZERO
+            } | LauncherFlags::LAUNCH_MENU_ITEMS
+                | LauncherFlags::DOMAINS
+                | LauncherFlags::KEY_ASSIGNMENTS,
+        );
+    }
+
+    fn show_launcher_impl(&mut self, title: &str, flags: LauncherFlags) {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
@@ -1711,35 +1691,6 @@ impl TermWindow {
             window: window.clone(),
         };
 
-        let mut domains = mux.iter_domains();
-        domains.sort_by(|a, b| {
-            let a_state = a.state();
-            let b_state = b.state();
-            if a_state != b_state {
-                use std::cmp::Ordering;
-                return if a_state == DomainState::Attached {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                };
-            }
-            a.domain_id().cmp(&b.domain_id())
-        });
-        domains.retain(|dom| dom.spawnable());
-        let domains: Vec<(DomainId, String, DomainState, String)> = domains
-            .iter()
-            .map(|dom| {
-                let name = dom.domain_name();
-                let label = dom.domain_label();
-                let label = if name == label || label == "" {
-                    format!("domain `{}`", name)
-                } else {
-                    format!("domain `{}` - {}", name, label)
-                };
-                (dom.domain_id(), name.to_string(), dom.state(), label)
-            })
-            .collect();
-
         let domain_id_of_current_pane = tab
             .get_active_pane()
             .expect("tab has no panes!")
@@ -1748,19 +1699,17 @@ impl TermWindow {
         let term_config = Arc::new(TermConfig::with_config(self.config.clone()));
 
         let pane_id = pane.pane_id();
-        let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
-            launcher(
-                tab_id,
-                pane_id,
-                domain_id_of_current_pane,
-                term,
-                mux_window_id,
-                domains,
-                clipboard,
-                size,
-                term_config,
-                window,
-            )
+
+        let args = LauncherArgs::new(
+            title,
+            flags,
+            mux_window_id,
+            pane_id,
+            domain_id_of_current_pane,
+        );
+
+        let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
+            launcher(args, term, clipboard, size, term_config, window)
         });
         self.assign_overlay(tab.tab_id(), overlay);
         promise::spawn::spawn(future).detach();

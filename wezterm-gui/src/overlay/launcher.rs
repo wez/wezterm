@@ -30,6 +30,17 @@ use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
 use window::WindowOps;
 
+bitflags::bitflags! {
+    pub struct LauncherFlags :u32 {
+        const ZERO = 0;
+        const WSL_DISTROS = 1;
+        const TABS = 2;
+        const LAUNCH_MENU_ITEMS = 4;
+        const DOMAINS = 8;
+        const KEY_ASSIGNMENTS = 16;
+    }
+}
+
 #[derive(Clone)]
 enum EntryKind {
     Spawn {
@@ -238,13 +249,119 @@ fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn launcher(
-    _tab_id: TabId,
+pub struct LauncherTabEntry {
+    pub title: String,
+    pub tab_id: TabId,
+    pub tab_idx: usize,
+    pub pane_count: usize,
+}
+
+pub struct LauncherDomainEntry {
+    pub domain_id: DomainId,
+    pub name: String,
+    pub state: DomainState,
+    pub label: String,
+}
+
+pub struct LauncherArgs {
+    flags: LauncherFlags,
+    domains: Vec<LauncherDomainEntry>,
+    tabs: Vec<LauncherTabEntry>,
     pane_id: PaneId,
     domain_id_of_current_tab: DomainId,
-    mut term: TermWizTerminal,
     mux_window_id: WindowId,
-    domains: Vec<(DomainId, String, DomainState, String)>,
+    title: String,
+}
+
+impl LauncherArgs {
+    /// Must be called on the Mux thread!
+    pub fn new(
+        title: &str,
+        flags: LauncherFlags,
+        mux_window_id: WindowId,
+        pane_id: PaneId,
+        domain_id_of_current_tab: DomainId,
+    ) -> Self {
+        let mux = Mux::get().unwrap();
+
+        let tabs = if flags.contains(LauncherFlags::TABS) {
+            // Ideally we'd resolve the tabs on the fly once we've started the
+            // overlay, but since the overlay runs in a different thread, accessing
+            // the mux list is a bit awkward.  To get the ball rolling we capture
+            // the list of tabs up front and live with a static list.
+            let window = mux
+                .get_window(mux_window_id)
+                .expect("to resolve my own window_id");
+            window
+                .iter()
+                .enumerate()
+                .map(|(tab_idx, tab)| LauncherTabEntry {
+                    title: tab
+                        .get_active_pane()
+                        .expect("tab to have a pane")
+                        .get_title(),
+                    tab_id: tab.tab_id(),
+                    tab_idx,
+                    pane_count: tab.count_panes(),
+                })
+                .collect()
+        } else {
+            vec![]
+        };
+
+        let domains = if flags.contains(LauncherFlags::DOMAINS) {
+            let mut domains = mux.iter_domains();
+            domains.sort_by(|a, b| {
+                let a_state = a.state();
+                let b_state = b.state();
+                if a_state != b_state {
+                    use std::cmp::Ordering;
+                    return if a_state == DomainState::Attached {
+                        Ordering::Less
+                    } else {
+                        Ordering::Greater
+                    };
+                }
+                a.domain_id().cmp(&b.domain_id())
+            });
+            domains.retain(|dom| dom.spawnable());
+            domains
+                .iter()
+                .map(|dom| {
+                    let name = dom.domain_name();
+                    let label = dom.domain_label();
+                    let label = if name == label || label == "" {
+                        format!("domain `{}`", name)
+                    } else {
+                        format!("domain `{}` - {}", name, label)
+                    };
+                    LauncherDomainEntry {
+                        domain_id: dom.domain_id(),
+                        name: name.to_string(),
+                        state: dom.state(),
+                        label,
+                    }
+                })
+                .collect()
+        } else {
+            vec![]
+        };
+
+        Self {
+            flags,
+            mux_window_id,
+            domains,
+            tabs,
+            pane_id,
+            domain_id_of_current_tab,
+            title: title.to_string(),
+        }
+    }
+}
+
+pub fn launcher(
+    args: LauncherArgs,
+    mut term: TermWizTerminal,
     clipboard: ClipboardHelper,
     size: PtySize,
     term_config: Arc<TermConfig>,
@@ -310,36 +427,36 @@ pub fn launcher(
 
     // Pull in the user defined entries from the launch_menu
     // section of the configuration.
-    for item in &config.launch_menu {
-        state.entries.push(Entry {
-            label: match item.label.as_ref() {
-                Some(label) => label.to_string(),
-                None => match item.args.as_ref() {
-                    Some(args) => args.join(" "),
-                    None => "(default shell)".to_string(),
+    if args.flags.contains(LauncherFlags::LAUNCH_MENU_ITEMS) {
+        for item in &config.launch_menu {
+            state.entries.push(Entry {
+                label: match item.label.as_ref() {
+                    Some(label) => label.to_string(),
+                    None => match item.args.as_ref() {
+                        Some(args) => args.join(" "),
+                        None => "(default shell)".to_string(),
+                    },
                 },
-            },
-            kind: EntryKind::Spawn {
-                command: item.clone(),
-                spawn_where: SpawnWhere::NewTab,
-            },
-        });
-    }
-
-    #[cfg(windows)]
-    {
-        if config.add_wsl_distributions_to_launch_menu {
-            let _ = enumerate_wsl_entries(&mut state.entries);
+                kind: EntryKind::Spawn {
+                    command: item.clone(),
+                    spawn_where: SpawnWhere::NewTab,
+                },
+            });
         }
     }
 
-    for (domain_id, domain_name, domain_state, domain_label) in &domains {
-        let entry = if *domain_state == DomainState::Attached {
+    #[cfg(windows)]
+    if args.flags.contains(LauncherFlags::WSL_DISTROS) {
+        let _ = enumerate_wsl_entries(&mut state.entries);
+    }
+
+    for domain in &args.domains {
+        let entry = if domain.state == DomainState::Attached {
             Entry {
-                label: format!("New Tab ({})", domain_label),
+                label: format!("New Tab ({})", domain.label),
                 kind: EntryKind::Spawn {
                     command: SpawnCommand {
-                        domain: SpawnTabDomain::DomainName(domain_name.to_string()),
+                        domain: SpawnTabDomain::DomainName(domain.name.to_string()),
                         ..SpawnCommand::default()
                     },
                     spawn_where: SpawnWhere::NewTab,
@@ -347,54 +464,66 @@ pub fn launcher(
             }
         } else {
             Entry {
-                label: format!("Attach {}", domain_label),
-                kind: EntryKind::Attach { domain: *domain_id },
+                label: format!("Attach {}", domain.label),
+                kind: EntryKind::Attach {
+                    domain: domain.domain_id,
+                },
             }
         };
 
         // Preselect the entry that corresponds to the active tab
         // at the time that the launcher was set up, so that pressing
         // Enter immediately afterwards spawns a tab in the same domain.
-        if *domain_id == domain_id_of_current_tab {
+        if domain.domain_id == args.domain_id_of_current_tab {
             state.active_idx = state.entries.len();
         }
         state.entries.push(entry);
     }
 
-    // Grab interestig key assignments and show those as a kind of command palette
-    let input_map = InputMap::new(&config);
-    let mut key_entries: Vec<Entry> = vec![];
-    for ((keycode, mods), assignment) in input_map.keys {
-        if matches!(
-            &assignment,
-            KeyAssignment::ActivateTabRelative(_) | KeyAssignment::ActivateTab(_)
-        ) {
-            // Filter out some noisy, repetitive entries
-            continue;
-        }
-        if key_entries
-            .iter()
-            .find(|ent| match &ent.kind {
-                EntryKind::KeyAssignment(a) => a == &assignment,
-                _ => false,
-            })
-            .is_some()
-        {
-            // Avoid duplicate entries
-            continue;
-        }
-        key_entries.push(Entry {
-            label: format!(
-                "{:?} ({} {})",
-                assignment,
-                mods.to_string(),
-                keycode.to_string()
-            ),
-            kind: EntryKind::KeyAssignment(assignment),
+    for tab in &args.tabs {
+        state.entries.push(Entry {
+            label: format!("{}. {} panes", tab.title, tab.pane_count),
+            kind: EntryKind::KeyAssignment(KeyAssignment::ActivateTab(tab.tab_idx as isize)),
         });
     }
-    key_entries.sort_by(|a, b| a.label.cmp(&b.label));
-    state.entries.append(&mut key_entries);
+
+    // Grab interestig key assignments and show those as a kind of command palette
+    if args.flags.contains(LauncherFlags::KEY_ASSIGNMENTS) {
+        let input_map = InputMap::new(&config);
+        let mut key_entries: Vec<Entry> = vec![];
+        for ((keycode, mods), assignment) in input_map.keys {
+            if matches!(
+                &assignment,
+                KeyAssignment::ActivateTabRelative(_) | KeyAssignment::ActivateTab(_)
+            ) {
+                // Filter out some noisy, repetitive entries
+                continue;
+            }
+            if key_entries
+                .iter()
+                .find(|ent| match &ent.kind {
+                    EntryKind::KeyAssignment(a) => a == &assignment,
+                    _ => false,
+                })
+                .is_some()
+            {
+                // Avoid duplicate entries
+                continue;
+            }
+            key_entries.push(Entry {
+                label: format!(
+                    "{:?} ({} {})",
+                    assignment,
+                    mods.to_string(),
+                    keycode.to_string()
+                ),
+                kind: EntryKind::KeyAssignment(assignment),
+            });
+        }
+        key_entries.sort_by(|a, b| a.label.cmp(&b.label));
+        state.entries.append(&mut key_entries);
+    }
+
     state.update_filter();
 
     fn render(state: &mut LauncherState, term: &mut TermWizTerminal) -> termwiz::Result<()> {
@@ -474,7 +603,7 @@ pub fn launcher(
         term.render(&changes)
     }
 
-    term.render(&[Change::Title("Launcher".to_string())])?;
+    term.render(&[Change::Title(args.title.to_string())])?;
     render(&mut state, &mut term)?;
 
     fn launch(
@@ -532,11 +661,11 @@ pub fn launcher(
                     state.top_row + (c as u32 - '1' as u32) as usize,
                     &state.filtered_entries,
                     size,
-                    mux_window_id,
+                    args.mux_window_id,
                     clipboard,
                     term_config,
                     &window,
-                    pane_id,
+                    args.pane_id,
                 );
                 break;
             }
@@ -583,11 +712,11 @@ pub fn launcher(
                             state.active_idx,
                             &state.filtered_entries,
                             size,
-                            mux_window_id,
+                            args.mux_window_id,
                             clipboard,
                             term_config,
                             &window,
-                            pane_id,
+                            args.pane_id,
                         );
                         break;
                     }
@@ -605,11 +734,11 @@ pub fn launcher(
                     state.active_idx,
                     &state.filtered_entries,
                     size,
-                    mux_window_id,
+                    args.mux_window_id,
                     clipboard,
                     term_config,
                     &window,
-                    pane_id,
+                    args.pane_id,
                 );
                 break;
             }
