@@ -1687,17 +1687,11 @@ impl TermWindow {
         let mux_window_id = self.mux_window_id;
 
         let window = self.window.as_ref().unwrap().clone();
-        let clipboard = ClipboardHelper {
-            window: window.clone(),
-        };
 
         let domain_id_of_current_pane = tab
             .get_active_pane()
             .expect("tab has no panes!")
             .domain_id();
-        let size = self.terminal_size;
-        let term_config = Arc::new(TermConfig::with_config(self.config.clone()));
-
         let pane_id = pane.pane_id();
 
         let args = LauncherArgs::new(
@@ -1709,7 +1703,7 @@ impl TermWindow {
         );
 
         let (overlay, future) = start_overlay(self, &tab, move |_tab_id, term| {
-            launcher(args, term, clipboard, size, term_config, window)
+            launcher(args, term, window)
         });
         self.assign_overlay(tab.tab_id(), overlay);
         promise::spawn::spawn(future).detach();

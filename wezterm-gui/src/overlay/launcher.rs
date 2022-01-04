@@ -5,13 +5,11 @@
 //! be rendered as a popup/context menu if the system supports it; at the
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
-use crate::termwindow::clipboard::ClipboardHelper;
-use crate::termwindow::spawn::SpawnWhere;
-use crate::termwindow::{TermWindow, TermWindowNotif};
+use crate::termwindow::TermWindowNotif;
 use anyhow::anyhow;
+use config::configuration;
 use config::keyassignment::{InputMap, KeyAssignment, SpawnCommand, SpawnTabDomain};
 use config::lua::truncate_right;
-use config::{configuration, TermConfig};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use mux::domain::{DomainId, DomainState};
@@ -20,9 +18,7 @@ use mux::tab::TabId;
 use mux::termwiztermtab::TermWizTerminal;
 use mux::window::WindowId;
 use mux::Mux;
-use portable_pty::PtySize;
 use std::collections::HashMap;
-use std::sync::Arc;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent, MouseButtons, MouseEvent};
@@ -43,13 +39,7 @@ bitflags::bitflags! {
 
 #[derive(Clone)]
 enum EntryKind {
-    Spawn {
-        command: SpawnCommand,
-        spawn_where: SpawnWhere,
-    },
-    Attach {
-        domain: DomainId,
-    },
+    Attach { domain: DomainId },
     KeyAssignment(KeyAssignment),
 }
 
@@ -231,18 +221,14 @@ fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
         let label = format!("{} (WSL)", distro.name);
         entries.push(Entry {
             label: label.clone(),
-            kind: EntryKind::Spawn {
-                command: SpawnCommand {
-                    label: Some(label),
-                    args: Some(vec![
-                        "wsl.exe".to_owned(),
-                        "--distribution".to_owned(),
-                        distro.name,
-                    ]),
-                    ..Default::default()
-                },
-                spawn_where: SpawnWhere::NewTab,
-            },
+            kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(SpawnCommand {
+                args: Some(vec![
+                    "wsl.exe".to_owned(),
+                    "--distribution".to_owned(),
+                    distro.name,
+                ]),
+                ..Default::default()
+            })),
         });
     }
 
@@ -269,7 +255,6 @@ pub struct LauncherArgs {
     tabs: Vec<LauncherTabEntry>,
     pane_id: PaneId,
     domain_id_of_current_tab: DomainId,
-    mux_window_id: WindowId,
     title: String,
 }
 
@@ -349,7 +334,6 @@ impl LauncherArgs {
 
         Self {
             flags,
-            mux_window_id,
             domains,
             tabs,
             pane_id,
@@ -362,9 +346,6 @@ impl LauncherArgs {
 pub fn launcher(
     args: LauncherArgs,
     mut term: TermWizTerminal,
-    clipboard: ClipboardHelper,
-    size: PtySize,
-    term_config: Arc<TermConfig>,
     window: ::window::Window,
 ) -> anyhow::Result<()> {
     struct LauncherState {
@@ -437,10 +418,7 @@ pub fn launcher(
                         None => "(default shell)".to_string(),
                     },
                 },
-                kind: EntryKind::Spawn {
-                    command: item.clone(),
-                    spawn_where: SpawnWhere::NewTab,
-                },
+                kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(item.clone())),
             });
         }
     }
@@ -454,13 +432,10 @@ pub fn launcher(
         let entry = if domain.state == DomainState::Attached {
             Entry {
                 label: format!("New Tab ({})", domain.label),
-                kind: EntryKind::Spawn {
-                    command: SpawnCommand {
-                        domain: SpawnTabDomain::DomainName(domain.name.to_string()),
-                        ..SpawnCommand::default()
-                    },
-                    spawn_where: SpawnWhere::NewTab,
-                },
+                kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(SpawnCommand {
+                    domain: SpawnTabDomain::DomainName(domain.name.to_string()),
+                    ..SpawnCommand::default()
+                })),
             }
         } else {
             Entry {
@@ -606,33 +581,8 @@ pub fn launcher(
     term.render(&[Change::Title(args.title.to_string())])?;
     render(&mut state, &mut term)?;
 
-    fn launch(
-        active_idx: usize,
-        entries: &[Entry],
-        size: PtySize,
-        mux_window_id: WindowId,
-        clipboard: ClipboardHelper,
-        term_config: Arc<TermConfig>,
-        window: &::window::Window,
-        pane_id: PaneId,
-    ) {
+    fn launch(active_idx: usize, entries: &[Entry], window: &::window::Window, pane_id: PaneId) {
         match entries[active_idx].clone().kind {
-            EntryKind::Spawn {
-                command,
-                spawn_where,
-            } => {
-                promise::spawn::spawn_into_main_thread(async move {
-                    TermWindow::spawn_command_impl(
-                        &command,
-                        spawn_where,
-                        size,
-                        mux_window_id,
-                        clipboard,
-                        term_config,
-                    );
-                })
-                .detach();
-            }
             EntryKind::Attach { domain } => {
                 promise::spawn::spawn_into_main_thread(async move {
                     // We can't inline do_domain_attach here directly
@@ -660,10 +610,6 @@ pub fn launcher(
                 launch(
                     state.top_row + (c as u32 - '1' as u32) as usize,
                     &state.filtered_entries,
-                    size,
-                    args.mux_window_id,
-                    clipboard,
-                    term_config,
                     &window,
                     args.pane_id,
                 );
@@ -711,10 +657,6 @@ pub fn launcher(
                         launch(
                             state.active_idx,
                             &state.filtered_entries,
-                            size,
-                            args.mux_window_id,
-                            clipboard,
-                            term_config,
                             &window,
                             args.pane_id,
                         );
@@ -733,10 +675,6 @@ pub fn launcher(
                 launch(
                     state.active_idx,
                     &state.filtered_entries,
-                    size,
-                    args.mux_window_id,
-                    clipboard,
-                    term_config,
                     &window,
                     args.pane_id,
                 );
