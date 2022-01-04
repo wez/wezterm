@@ -351,6 +351,7 @@ struct LauncherState {
     filtered_entries: Vec<Entry>,
     pane_id: PaneId,
     window: ::window::Window,
+    filtering: bool,
 }
 
 impl LauncherState {
@@ -503,8 +504,8 @@ impl LauncherState {
             Change::Text(format!(
                 "{}\r\n",
                 truncate_right(
-                    "Select an item and press Enter to launch it.  \
-                     Press Escape to cancel",
+                    "Select an item and press Enter=launch  \
+                     Esc=cancel  /=filter",
                     max_width
                 )
             )),
@@ -538,7 +539,7 @@ impl LauncherState {
             }
 
             let label = truncate_right(&entry.label, max_width);
-            if row_num < 9 {
+            if row_num < 9 && !self.filtering {
                 changes.push(Change::Text(format!(" {}. {} \r\n", row_num + 1, label)));
             } else {
                 changes.push(Change::Text(format!("    {} \r\n", label)));
@@ -550,7 +551,7 @@ impl LauncherState {
         }
         self.top_row = skip;
 
-        if !self.filter_term.is_empty() {
+        if self.filtering || !self.filter_term.is_empty() {
             changes.append(&mut vec![
                 Change::CursorPosition {
                     x: Position::Absolute(0),
@@ -587,27 +588,55 @@ impl LauncherState {
         }
     }
 
+    fn move_up(&mut self) {
+        self.active_idx = self.active_idx.saturating_sub(1);
+    }
+
+    fn move_down(&mut self) {
+        self.active_idx = (self.active_idx + 1).min(self.filtered_entries.len() - 1);
+    }
+
     fn run_loop(&mut self, term: &mut TermWizTerminal) -> anyhow::Result<()> {
         while let Ok(Some(event)) = term.poll_input(None) {
             match event {
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char(c),
                     ..
-                }) if c >= '1' && c <= '9' => {
+                }) if !self.filtering && c >= '1' && c <= '9' => {
                     self.launch(self.top_row + (c as u32 - '1' as u32) as usize);
                     break;
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('j'),
+                    ..
+                }) if !self.filtering => {
+                    self.move_down();
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('k'),
+                    ..
+                }) if !self.filtering => {
+                    self.move_up();
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('/'),
+                    ..
+                }) if !self.filtering => {
+                    self.filtering = true;
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Backspace,
                     ..
                 }) => {
-                    self.filter_term.pop();
+                    if self.filter_term.pop().is_none() {
+                        self.filtering = false;
+                    }
                     self.update_filter();
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Char(c),
                     ..
-                }) => {
+                }) if self.filtering => {
                     self.filter_term.push(c);
                     self.update_filter();
                 }
@@ -615,13 +644,13 @@ impl LauncherState {
                     key: KeyCode::UpArrow,
                     ..
                 }) => {
-                    self.active_idx = self.active_idx.saturating_sub(1);
+                    self.move_up();
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::DownArrow,
                     ..
                 }) => {
-                    self.active_idx = (self.active_idx + 1).min(self.filtered_entries.len() - 1);
+                    self.move_down();
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Escape,
@@ -674,6 +703,7 @@ pub fn launcher(
         filter_term: String::new(),
         filtered_entries: vec![],
         window,
+        filtering: false,
     };
 
     term.set_raw_mode()?;
