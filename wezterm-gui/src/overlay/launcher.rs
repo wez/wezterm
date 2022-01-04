@@ -372,9 +372,11 @@ pub fn launcher(
         let max_items = size.rows - 3;
         let num_items = entries.len();
 
-        let skip = if num_items - active_idx < max_items {
+        let skip = if num_items < max_items {
+            0
+        } else if num_items - active_idx < max_items {
             // Align to bottom
-            (num_items - max_items) - 1
+            (num_items - max_items).saturating_sub(1)
         } else {
             active_idx.saturating_sub(2)
         };
