@@ -621,7 +621,7 @@ impl LauncherState {
                     key: KeyCode::DownArrow,
                     ..
                 }) => {
-                    self.active_idx = (self.active_idx + 1).min(self.entries.len() - 1);
+                    self.active_idx = (self.active_idx + 1).min(self.filtered_entries.len() - 1);
                 }
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Escape,
@@ -632,7 +632,7 @@ impl LauncherState {
                 InputEvent::Mouse(MouseEvent {
                     y, mouse_buttons, ..
                 }) => {
-                    if y > 0 && y as usize <= self.entries.len() {
+                    if y > 0 && y as usize <= self.filtered_entries.len() {
                         self.active_idx = self.top_row + y as usize - 1;
 
                         if mouse_buttons == MouseButtons::LEFT {
