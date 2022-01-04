@@ -343,165 +343,154 @@ impl LauncherArgs {
     }
 }
 
-pub fn launcher(
-    args: LauncherArgs,
-    mut term: TermWizTerminal,
+struct LauncherState {
+    active_idx: usize,
+    top_row: usize,
+    entries: Vec<Entry>,
+    filter_term: String,
+    filtered_entries: Vec<Entry>,
+    pane_id: PaneId,
     window: ::window::Window,
-) -> anyhow::Result<()> {
-    struct LauncherState {
-        active_idx: usize,
-        top_row: usize,
-        entries: Vec<Entry>,
-        filter_term: String,
-        filtered_entries: Vec<Entry>,
-    }
+}
 
-    impl LauncherState {
-        fn update_filter(&mut self) {
-            if self.filter_term.is_empty() {
-                self.filtered_entries = self.entries.clone();
-                return;
-            }
-
-            self.filtered_entries.clear();
-
-            let matcher = SkimMatcherV2::default();
-
-            struct MatchResult {
-                row_idx: usize,
-                score: i64,
-            }
-
-            let mut scores: Vec<MatchResult> = self
-                .entries
-                .iter()
-                .enumerate()
-                .filter_map(|(row_idx, entry)| {
-                    let score = matcher.fuzzy_match(&entry.label, &self.filter_term)?;
-                    Some(MatchResult { row_idx, score })
-                })
-                .collect();
-
-            scores.sort_by(|a, b| a.score.cmp(&b.score).reverse());
-
-            for result in scores {
-                self.filtered_entries
-                    .push(self.entries[result.row_idx].clone());
-            }
-
-            self.active_idx = 0;
-            self.top_row = 0;
+impl LauncherState {
+    fn update_filter(&mut self) {
+        if self.filter_term.is_empty() {
+            self.filtered_entries = self.entries.clone();
+            return;
         }
+
+        self.filtered_entries.clear();
+
+        let matcher = SkimMatcherV2::default();
+
+        struct MatchResult {
+            row_idx: usize,
+            score: i64,
+        }
+
+        let mut scores: Vec<MatchResult> = self
+            .entries
+            .iter()
+            .enumerate()
+            .filter_map(|(row_idx, entry)| {
+                let score = matcher.fuzzy_match(&entry.label, &self.filter_term)?;
+                Some(MatchResult { row_idx, score })
+            })
+            .collect();
+
+        scores.sort_by(|a, b| a.score.cmp(&b.score).reverse());
+
+        for result in scores {
+            self.filtered_entries
+                .push(self.entries[result.row_idx].clone());
+        }
+
+        self.active_idx = 0;
+        self.top_row = 0;
     }
 
-    let mut state = LauncherState {
-        active_idx: 0,
-        top_row: 0,
-        entries: vec![],
-        filter_term: String::new(),
-        filtered_entries: vec![],
-    };
-
-    term.set_raw_mode()?;
-
-    let config = configuration();
-
-    // Pull in the user defined entries from the launch_menu
-    // section of the configuration.
-    if args.flags.contains(LauncherFlags::LAUNCH_MENU_ITEMS) {
-        for item in &config.launch_menu {
-            state.entries.push(Entry {
-                label: match item.label.as_ref() {
-                    Some(label) => label.to_string(),
-                    None => match item.args.as_ref() {
-                        Some(args) => args.join(" "),
-                        None => "(default shell)".to_string(),
+    fn build_entries(&mut self, args: LauncherArgs) {
+        let config = configuration();
+        // Pull in the user defined entries from the launch_menu
+        // section of the configuration.
+        if args.flags.contains(LauncherFlags::LAUNCH_MENU_ITEMS) {
+            for item in &config.launch_menu {
+                self.entries.push(Entry {
+                    label: match item.label.as_ref() {
+                        Some(label) => label.to_string(),
+                        None => match item.args.as_ref() {
+                            Some(args) => args.join(" "),
+                            None => "(default shell)".to_string(),
+                        },
                     },
-                },
-                kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(item.clone())),
+                    kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(
+                        item.clone(),
+                    )),
+                });
+            }
+        }
+
+        #[cfg(windows)]
+        if args.flags.contains(LauncherFlags::WSL_DISTROS) {
+            let _ = enumerate_wsl_entries(&mut self.entries);
+        }
+
+        for domain in &args.domains {
+            let entry = if domain.state == DomainState::Attached {
+                Entry {
+                    label: format!("New Tab ({})", domain.label),
+                    kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(
+                        SpawnCommand {
+                            domain: SpawnTabDomain::DomainName(domain.name.to_string()),
+                            ..SpawnCommand::default()
+                        },
+                    )),
+                }
+            } else {
+                Entry {
+                    label: format!("Attach {}", domain.label),
+                    kind: EntryKind::Attach {
+                        domain: domain.domain_id,
+                    },
+                }
+            };
+
+            // Preselect the entry that corresponds to the active tab
+            // at the time that the launcher was set up, so that pressing
+            // Enter immediately afterwards spawns a tab in the same domain.
+            if domain.domain_id == args.domain_id_of_current_tab {
+                self.active_idx = self.entries.len();
+            }
+            self.entries.push(entry);
+        }
+
+        for tab in &args.tabs {
+            self.entries.push(Entry {
+                label: format!("{}. {} panes", tab.title, tab.pane_count),
+                kind: EntryKind::KeyAssignment(KeyAssignment::ActivateTab(tab.tab_idx as isize)),
             });
         }
-    }
 
-    #[cfg(windows)]
-    if args.flags.contains(LauncherFlags::WSL_DISTROS) {
-        let _ = enumerate_wsl_entries(&mut state.entries);
-    }
-
-    for domain in &args.domains {
-        let entry = if domain.state == DomainState::Attached {
-            Entry {
-                label: format!("New Tab ({})", domain.label),
-                kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(SpawnCommand {
-                    domain: SpawnTabDomain::DomainName(domain.name.to_string()),
-                    ..SpawnCommand::default()
-                })),
+        // Grab interestig key assignments and show those as a kind of command palette
+        if args.flags.contains(LauncherFlags::KEY_ASSIGNMENTS) {
+            let input_map = InputMap::new(&config);
+            let mut key_entries: Vec<Entry> = vec![];
+            for ((keycode, mods), assignment) in input_map.keys {
+                if matches!(
+                    &assignment,
+                    KeyAssignment::ActivateTabRelative(_) | KeyAssignment::ActivateTab(_)
+                ) {
+                    // Filter out some noisy, repetitive entries
+                    continue;
+                }
+                if key_entries
+                    .iter()
+                    .find(|ent| match &ent.kind {
+                        EntryKind::KeyAssignment(a) => a == &assignment,
+                        _ => false,
+                    })
+                    .is_some()
+                {
+                    // Avoid duplicate entries
+                    continue;
+                }
+                key_entries.push(Entry {
+                    label: format!(
+                        "{:?} ({} {})",
+                        assignment,
+                        mods.to_string(),
+                        keycode.to_string()
+                    ),
+                    kind: EntryKind::KeyAssignment(assignment),
+                });
             }
-        } else {
-            Entry {
-                label: format!("Attach {}", domain.label),
-                kind: EntryKind::Attach {
-                    domain: domain.domain_id,
-                },
-            }
-        };
-
-        // Preselect the entry that corresponds to the active tab
-        // at the time that the launcher was set up, so that pressing
-        // Enter immediately afterwards spawns a tab in the same domain.
-        if domain.domain_id == args.domain_id_of_current_tab {
-            state.active_idx = state.entries.len();
+            key_entries.sort_by(|a, b| a.label.cmp(&b.label));
+            self.entries.append(&mut key_entries);
         }
-        state.entries.push(entry);
     }
 
-    for tab in &args.tabs {
-        state.entries.push(Entry {
-            label: format!("{}. {} panes", tab.title, tab.pane_count),
-            kind: EntryKind::KeyAssignment(KeyAssignment::ActivateTab(tab.tab_idx as isize)),
-        });
-    }
-
-    // Grab interestig key assignments and show those as a kind of command palette
-    if args.flags.contains(LauncherFlags::KEY_ASSIGNMENTS) {
-        let input_map = InputMap::new(&config);
-        let mut key_entries: Vec<Entry> = vec![];
-        for ((keycode, mods), assignment) in input_map.keys {
-            if matches!(
-                &assignment,
-                KeyAssignment::ActivateTabRelative(_) | KeyAssignment::ActivateTab(_)
-            ) {
-                // Filter out some noisy, repetitive entries
-                continue;
-            }
-            if key_entries
-                .iter()
-                .find(|ent| match &ent.kind {
-                    EntryKind::KeyAssignment(a) => a == &assignment,
-                    _ => false,
-                })
-                .is_some()
-            {
-                // Avoid duplicate entries
-                continue;
-            }
-            key_entries.push(Entry {
-                label: format!(
-                    "{:?} ({} {})",
-                    assignment,
-                    mods.to_string(),
-                    keycode.to_string()
-                ),
-                kind: EntryKind::KeyAssignment(assignment),
-            });
-        }
-        key_entries.sort_by(|a, b| a.label.cmp(&b.label));
-        state.entries.append(&mut key_entries);
-    }
-
-    state.update_filter();
-
-    fn render(state: &mut LauncherState, term: &mut TermWizTerminal) -> termwiz::Result<()> {
+    fn render(&mut self, term: &mut TermWizTerminal) -> termwiz::Result<()> {
         let size = term.get_screen_size()?;
         let max_width = size.cols.saturating_sub(6);
 
@@ -523,18 +512,18 @@ pub fn launcher(
         ];
 
         let max_items = size.rows - 3;
-        let num_items = state.filtered_entries.len();
+        let num_items = self.filtered_entries.len();
 
         let skip = if num_items < max_items {
             0
-        } else if num_items - state.active_idx < max_items {
+        } else if num_items - self.active_idx < max_items {
             // Align to bottom
             (num_items - max_items).saturating_sub(1)
         } else {
-            state.active_idx.saturating_sub(2)
+            self.active_idx.saturating_sub(2)
         };
 
-        for (row_num, (entry_idx, entry)) in state
+        for (row_num, (entry_idx, entry)) in self
             .filtered_entries
             .iter()
             .enumerate()
@@ -544,7 +533,7 @@ pub fn launcher(
             if row_num > max_items {
                 break;
             }
-            if entry_idx == state.active_idx {
+            if entry_idx == self.active_idx {
                 changes.push(AttributeChange::Reverse(true).into());
             }
 
@@ -555,13 +544,13 @@ pub fn launcher(
                 changes.push(Change::Text(format!("    {} \r\n", label)));
             }
 
-            if entry_idx == state.active_idx {
+            if entry_idx == self.active_idx {
                 changes.push(AttributeChange::Reverse(false).into());
             }
         }
-        state.top_row = skip;
+        self.top_row = skip;
 
-        if !state.filter_term.is_empty() {
+        if !self.filter_term.is_empty() {
             changes.append(&mut vec![
                 Change::CursorPosition {
                     x: Position::Absolute(0),
@@ -569,7 +558,7 @@ pub fn launcher(
                 },
                 Change::ClearToEndOfLine(ColorAttribute::Default),
                 Change::Text(truncate_right(
-                    &format!("Fuzzy matching: {}", state.filter_term),
+                    &format!("Fuzzy matching: {}", self.filter_term),
                     max_width,
                 )),
             ]);
@@ -578,11 +567,8 @@ pub fn launcher(
         term.render(&changes)
     }
 
-    term.render(&[Change::Title(args.title.to_string())])?;
-    render(&mut state, &mut term)?;
-
-    fn launch(active_idx: usize, entries: &[Entry], window: &::window::Window, pane_id: PaneId) {
-        match entries[active_idx].clone().kind {
+    fn launch(&self, active_idx: usize) {
+        match self.entries[active_idx].clone().kind {
             EntryKind::Attach { domain } => {
                 promise::spawn::spawn_into_main_thread(async move {
                     // We can't inline do_domain_attach here directly
@@ -593,99 +579,109 @@ pub fn launcher(
                 .detach();
             }
             EntryKind::KeyAssignment(assignment) => {
-                window.notify(TermWindowNotif::PerformAssignment {
-                    pane_id,
+                self.window.notify(TermWindowNotif::PerformAssignment {
+                    pane_id: self.pane_id,
                     assignment,
                 });
             }
         }
     }
 
-    while let Ok(Some(event)) = term.poll_input(None) {
-        match event {
-            InputEvent::Key(KeyEvent {
-                key: KeyCode::Char(c),
-                ..
-            }) if c >= '1' && c <= '9' => {
-                launch(
-                    state.top_row + (c as u32 - '1' as u32) as usize,
-                    &state.filtered_entries,
-                    &window,
-                    args.pane_id,
-                );
-                break;
-            }
-            InputEvent::Key(KeyEvent {
-                key: KeyCode::Backspace,
-                ..
-            }) => {
-                state.filter_term.pop();
-                state.update_filter();
-            }
-            InputEvent::Key(KeyEvent {
-                key: KeyCode::Char(c),
-                ..
-            }) => {
-                state.filter_term.push(c);
-                state.update_filter();
-            }
-            InputEvent::Key(KeyEvent {
-                key: KeyCode::UpArrow,
-                ..
-            }) => {
-                state.active_idx = state.active_idx.saturating_sub(1);
-            }
-            InputEvent::Key(KeyEvent {
-                key: KeyCode::DownArrow,
-                ..
-            }) => {
-                state.active_idx = (state.active_idx + 1).min(state.entries.len() - 1);
-            }
-            InputEvent::Key(KeyEvent {
-                key: KeyCode::Escape,
-                ..
-            }) => {
-                break;
-            }
-            InputEvent::Mouse(MouseEvent {
-                y, mouse_buttons, ..
-            }) => {
-                if y > 0 && y as usize <= state.entries.len() {
-                    state.active_idx = state.top_row + y as usize - 1;
+    fn run_loop(&mut self, term: &mut TermWizTerminal) -> anyhow::Result<()> {
+        while let Ok(Some(event)) = term.poll_input(None) {
+            match event {
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char(c),
+                    ..
+                }) if c >= '1' && c <= '9' => {
+                    self.launch(self.top_row + (c as u32 - '1' as u32) as usize);
+                    break;
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Backspace,
+                    ..
+                }) => {
+                    self.filter_term.pop();
+                    self.update_filter();
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char(c),
+                    ..
+                }) => {
+                    self.filter_term.push(c);
+                    self.update_filter();
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::UpArrow,
+                    ..
+                }) => {
+                    self.active_idx = self.active_idx.saturating_sub(1);
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::DownArrow,
+                    ..
+                }) => {
+                    self.active_idx = (self.active_idx + 1).min(self.entries.len() - 1);
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Escape,
+                    ..
+                }) => {
+                    break;
+                }
+                InputEvent::Mouse(MouseEvent {
+                    y, mouse_buttons, ..
+                }) => {
+                    if y > 0 && y as usize <= self.entries.len() {
+                        self.active_idx = self.top_row + y as usize - 1;
 
-                    if mouse_buttons == MouseButtons::LEFT {
-                        launch(
-                            state.active_idx,
-                            &state.filtered_entries,
-                            &window,
-                            args.pane_id,
-                        );
+                        if mouse_buttons == MouseButtons::LEFT {
+                            self.launch(self.active_idx);
+                            break;
+                        }
+                    }
+                    if mouse_buttons != MouseButtons::NONE {
+                        // Treat any other mouse button as cancel
                         break;
                     }
                 }
-                if mouse_buttons != MouseButtons::NONE {
-                    // Treat any other mouse button as cancel
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Enter,
+                    ..
+                }) => {
+                    self.launch(self.active_idx);
                     break;
                 }
+                _ => {}
             }
-            InputEvent::Key(KeyEvent {
-                key: KeyCode::Enter,
-                ..
-            }) => {
-                launch(
-                    state.active_idx,
-                    &state.filtered_entries,
-                    &window,
-                    args.pane_id,
-                );
-                break;
-            }
-            _ => {}
+            self.render(term)?;
         }
-        render(&mut state, &mut term)?;
-    }
 
-    Ok(())
+        Ok(())
+    }
+}
+
+pub fn launcher(
+    args: LauncherArgs,
+    mut term: TermWizTerminal,
+    window: ::window::Window,
+) -> anyhow::Result<()> {
+    let mut state = LauncherState {
+        active_idx: 0,
+        pane_id: args.pane_id,
+        top_row: 0,
+        entries: vec![],
+        filter_term: String::new(),
+        filtered_entries: vec![],
+        window,
+    };
+
+    term.set_raw_mode()?;
+    term.render(&[Change::Title(args.title.to_string())])?;
+    state.build_entries(args);
+    state.update_filter();
+    state.render(&mut term)?;
+    state.run_loop(&mut term)
 }
 
 fn do_domain_attach(domain: DomainId) {
