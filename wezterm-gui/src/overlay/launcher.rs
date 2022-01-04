@@ -307,6 +307,7 @@ pub fn launcher(
 
     // Grab interestig key assignments and show those as a kind of command palette
     let input_map = InputMap::new(&config);
+    let mut key_entries: Vec<Entry> = vec![];
     for ((keycode, mods), assignment) in input_map.keys {
         if matches!(
             &assignment,
@@ -315,11 +316,24 @@ pub fn launcher(
             // Filter out some noisy, repetitive entries
             continue;
         }
-        entries.push(Entry {
+        if key_entries
+            .iter()
+            .find(|ent| match &ent.kind {
+                EntryKind::KeyAssignment(a) => a == &assignment,
+                _ => false,
+            })
+            .is_some()
+        {
+            // Avoid duplicate entries
+            continue;
+        }
+        key_entries.push(Entry {
             label: format!("{:?} ({:?} {:?})", assignment, keycode, mods),
             kind: EntryKind::KeyAssignment(assignment),
         });
     }
+    key_entries.sort_by(|a, b| a.label.cmp(&b.label));
+    entries.append(&mut key_entries);
 
     fn render(
         active_idx: usize,
