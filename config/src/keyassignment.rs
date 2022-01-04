@@ -76,7 +76,7 @@ impl Default for SpawnTabDomain {
     }
 }
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Default, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct SpawnCommand {
     /// Optional descriptive label
     pub label: Option<String>,
@@ -102,6 +102,32 @@ pub struct SpawnCommand {
 
     #[serde(default)]
     pub domain: SpawnTabDomain,
+}
+
+impl std::fmt::Debug for SpawnCommand {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(fmt, "{}", self)
+    }
+}
+
+impl std::fmt::Display for SpawnCommand {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(fmt, "SpawnCommand")?;
+        if let Some(label) = &self.label {
+            write!(fmt, " label='{}'", label)?;
+        }
+        write!(fmt, " domain={:?}", self.domain)?;
+        if let Some(args) = &self.args {
+            write!(fmt, " args={:?}", args)?;
+        }
+        if let Some(cwd) = &self.cwd {
+            write!(fmt, " cwd={}", cwd.display())?;
+        }
+        for (k, v) in &self.set_environment_variables {
+            write!(fmt, " {}={}", k, v)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
