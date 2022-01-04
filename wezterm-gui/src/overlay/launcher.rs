@@ -180,12 +180,14 @@ fn test_parse_wsl_distro_list() {
     );
 }
 
-#[cfg(windows)]
+#[allow(dead_code)]
 fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
+    #[cfg(windows)]
     use std::os::windows::process::CommandExt;
     let mut cmd = std::process::Command::new("wsl.exe");
     cmd.arg("-l");
     cmd.arg("-v");
+    #[cfg(windows)]
     cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
     let output = cmd.output()?;
 
@@ -214,18 +216,20 @@ fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
 
     for distro in parse_wsl_distro_list(&wsl_list) {
         let label = format!("{} (WSL)", distro.name);
-        entries.push(Entry::Spawn {
+        entries.push(Entry {
             label: label.clone(),
-            command: SpawnCommand {
-                label: Some(label),
-                args: Some(vec![
-                    "wsl.exe".to_owned(),
-                    "--distribution".to_owned(),
-                    distro.name,
-                ]),
-                ..Default::default()
+            kind: EntryKind::Spawn {
+                command: SpawnCommand {
+                    label: Some(label),
+                    args: Some(vec![
+                        "wsl.exe".to_owned(),
+                        "--distribution".to_owned(),
+                        distro.name,
+                    ]),
+                    ..Default::default()
+                },
+                spawn_where: SpawnWhere::NewTab,
             },
-            spawn_where: SpawnWhere::NewTab,
         });
     }
 
