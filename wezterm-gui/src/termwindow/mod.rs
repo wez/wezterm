@@ -1699,10 +1699,16 @@ impl TermWindow {
             None => return,
         };
 
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
+            None => return,
+        };
+
         let mux_window_id = self.mux_window_id;
 
+        let window = self.window.as_ref().unwrap().clone();
         let clipboard = ClipboardHelper {
-            window: self.window.as_ref().unwrap().clone(),
+            window: window.clone(),
         };
 
         let mut domains = mux.iter_domains();
@@ -1741,9 +1747,11 @@ impl TermWindow {
         let size = self.terminal_size;
         let term_config = Arc::new(TermConfig::with_config(self.config.clone()));
 
+        let pane_id = pane.pane_id();
         let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
             launcher(
                 tab_id,
+                pane_id,
                 domain_id_of_current_pane,
                 term,
                 mux_window_id,
@@ -1751,6 +1759,7 @@ impl TermWindow {
                 clipboard,
                 size,
                 term_config,
+                window,
             )
         });
         self.assign_overlay(tab.tab_id(), overlay);

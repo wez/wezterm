@@ -232,8 +232,8 @@ pub enum KeyAssignment {
 impl_lua_conversion!(KeyAssignment);
 
 pub struct InputMap {
-    keys: HashMap<(KeyCode, Modifiers), KeyAssignment>,
-    mouse: HashMap<(MouseEventTrigger, Modifiers), KeyAssignment>,
+    pub keys: HashMap<(KeyCode, Modifiers), KeyAssignment>,
+    pub mouse: HashMap<(MouseEventTrigger, Modifiers), KeyAssignment>,
     leader: Option<LeaderKey>,
 }
 

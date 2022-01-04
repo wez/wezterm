@@ -7,11 +7,13 @@
 //! menus.
 use crate::termwindow::clipboard::ClipboardHelper;
 use crate::termwindow::spawn::SpawnWhere;
-use crate::termwindow::TermWindow;
+use crate::termwindow::{TermWindow, TermWindowNotif};
 use anyhow::anyhow;
-use config::keyassignment::{SpawnCommand, SpawnTabDomain};
+use config::keyassignment::{InputMap, KeyAssignment, SpawnCommand, SpawnTabDomain};
+use config::lua::truncate_right;
 use config::{configuration, TermConfig};
 use mux::domain::{DomainId, DomainState};
+use mux::pane::PaneId;
 use mux::tab::TabId;
 use mux::termwiztermtab::TermWizTerminal;
 use mux::window::WindowId;
@@ -24,6 +26,7 @@ use termwiz::color::ColorAttribute;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent, MouseButtons, MouseEvent};
 use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
+use window::WindowOps;
 
 #[derive(Clone)]
 enum EntryKind {
@@ -34,6 +37,7 @@ enum EntryKind {
     Attach {
         domain: DomainId,
     },
+    KeyAssignment(KeyAssignment),
 }
 
 #[derive(Clone)]
@@ -230,6 +234,7 @@ fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
 
 pub fn launcher(
     _tab_id: TabId,
+    pane_id: PaneId,
     domain_id_of_current_tab: DomainId,
     mut term: TermWizTerminal,
     mux_window_id: WindowId,
@@ -237,8 +242,10 @@ pub fn launcher(
     clipboard: ClipboardHelper,
     size: PtySize,
     term_config: Arc<TermConfig>,
+    window: ::window::Window,
 ) -> anyhow::Result<()> {
     let mut active_idx = 0;
+    let mut top_row;
     let mut entries = vec![];
 
     term.set_raw_mode()?;
@@ -298,41 +305,82 @@ pub fn launcher(
         entries.push(entry);
     }
 
+    // Grab interestig key assignments and show those as a kind of command palette
+    let input_map = InputMap::new(&config);
+    for ((keycode, mods), assignment) in input_map.keys {
+        if matches!(
+            &assignment,
+            KeyAssignment::ActivateTabRelative(_) | KeyAssignment::ActivateTab(_)
+        ) {
+            // Filter out some noisy, repetitive entries
+            continue;
+        }
+        entries.push(Entry {
+            label: format!("{:?} ({:?} {:?})", assignment, keycode, mods),
+            kind: EntryKind::KeyAssignment(assignment),
+        });
+    }
+
     fn render(
         active_idx: usize,
         entries: &[Entry],
         term: &mut TermWizTerminal,
-    ) -> termwiz::Result<()> {
+    ) -> termwiz::Result<usize> {
+        let size = term.get_screen_size()?;
+        let max_width = size.cols.saturating_sub(6);
+
         let mut changes = vec![
             Change::ClearScreen(ColorAttribute::Default),
             Change::CursorPosition {
                 x: Position::Absolute(0),
                 y: Position::Absolute(0),
             },
-            Change::Text(
-                "Select an item and press Enter to launch it.  \
-                Press Escape to cancel\r\n"
-                    .to_string(),
-            ),
+            Change::Text(format!(
+                "{}\r\n",
+                truncate_right(
+                    "Select an item and press Enter to launch it.  \
+                     Press Escape to cancel",
+                    max_width
+                )
+            )),
             Change::AllAttributes(CellAttributes::default()),
         ];
 
-        for (idx, entry) in entries.iter().enumerate() {
-            if idx == active_idx {
+        let max_items = size.rows - 3;
+        let num_items = entries.len();
+
+        let skip = if num_items - active_idx < max_items {
+            // Align to bottom
+            (num_items - max_items) - 1
+        } else {
+            active_idx.saturating_sub(2)
+        };
+
+        for (row_num, (entry_idx, entry)) in entries.iter().enumerate().skip(skip).enumerate() {
+            if row_num > max_items {
+                break;
+            }
+            if entry_idx == active_idx {
                 changes.push(AttributeChange::Reverse(true).into());
             }
 
-            changes.push(Change::Text(format!(" {} \r\n", entry.label)));
+            let label = truncate_right(&entry.label, max_width);
+            if row_num < 9 {
+                changes.push(Change::Text(format!(" {}. {} \r\n", row_num + 1, label)));
+            } else {
+                changes.push(Change::Text(format!("    {} \r\n", label)));
+            }
 
-            if idx == active_idx {
+            if entry_idx == active_idx {
                 changes.push(AttributeChange::Reverse(false).into());
             }
         }
-        term.render(&changes)
+        term.render(&changes)?;
+        Ok(skip)
     }
 
     term.render(&[Change::Title("Launcher".to_string())])?;
-    render(active_idx, &entries, &mut term)?;
+    top_row = render(active_idx, &entries, &mut term)?;
 
     fn launch(
         active_idx: usize,
@@ -341,6 +389,8 @@ pub fn launcher(
         mux_window_id: WindowId,
         clipboard: ClipboardHelper,
         term_config: Arc<TermConfig>,
+        window: &::window::Window,
+        pane_id: PaneId,
     ) {
         match entries[active_idx].clone().kind {
             EntryKind::Spawn {
@@ -367,6 +417,12 @@ pub fn launcher(
                     do_domain_attach(domain);
                 })
                 .detach();
+            }
+            EntryKind::KeyAssignment(assignment) => {
+                window.notify(TermWindowNotif::PerformAssignment {
+                    pane_id,
+                    assignment,
+                });
             }
         }
     }
@@ -403,7 +459,7 @@ pub fn launcher(
                 y, mouse_buttons, ..
             }) => {
                 if y > 0 && y as usize <= entries.len() {
-                    active_idx = y as usize - 1;
+                    active_idx = top_row + y as usize - 1;
 
                     if mouse_buttons == MouseButtons::LEFT {
                         launch(
@@ -413,6 +469,8 @@ pub fn launcher(
                             mux_window_id,
                             clipboard,
                             term_config,
+                            &window,
+                            pane_id,
                         );
                         break;
                     }
@@ -421,6 +479,22 @@ pub fn launcher(
                     // Treat any other mouse button as cancel
                     break;
                 }
+            }
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char(c),
+                ..
+            }) if c >= '1' && c <= '9' => {
+                launch(
+                    top_row + (c as u32 - '1' as u32) as usize,
+                    &entries,
+                    size,
+                    mux_window_id,
+                    clipboard,
+                    term_config,
+                    &window,
+                    pane_id,
+                );
+                break;
             }
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Enter,
@@ -433,12 +507,14 @@ pub fn launcher(
                     mux_window_id,
                     clipboard,
                     term_config,
+                    &window,
+                    pane_id,
                 );
                 break;
             }
             _ => {}
         }
-        render(active_idx, &entries, &mut term)?;
+        top_row = render(active_idx, &entries, &mut term)?;
     }
 
     Ok(())

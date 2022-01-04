@@ -175,64 +175,25 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 
         wezterm_mod.set(
             "pad_right",
-            lua.create_function(|_, (mut result, width): (String, usize)| {
-                let mut len = unicode_column_width(&result, None);
-                while len < width {
-                    result.push(' ');
-                    len += 1;
-                }
-
-                Ok(result)
-            })?,
+            lua.create_function(|_, (s, width): (String, usize)| Ok(pad_right(s, width)))?,
         )?;
 
         wezterm_mod.set(
             "pad_left",
-            lua.create_function(|_, (mut result, width): (String, usize)| {
-                let mut len = unicode_column_width(&result, None);
-                while len < width {
-                    result.insert(0, ' ');
-                    len += 1;
-                }
-
-                Ok(result)
-            })?,
+            lua.create_function(|_, (s, width): (String, usize)| Ok(pad_left(s, width)))?,
         )?;
 
         wezterm_mod.set(
             "truncate_right",
             lua.create_function(|_, (s, max_width): (String, usize)| {
-                let mut result = String::new();
-                let mut len = 0;
-                for g in s.graphemes(true) {
-                    let g_len = grapheme_column_width(g, None);
-                    if g_len + len > max_width {
-                        break;
-                    }
-                    result.push_str(g);
-                    len += g_len;
-                }
-
-                Ok(result)
+                Ok(truncate_right(&s, max_width))
             })?,
         )?;
 
         wezterm_mod.set(
             "truncate_left",
             lua.create_function(|_, (s, max_width): (String, usize)| {
-                let mut result = vec![];
-                let mut len = 0;
-                for g in s.graphemes(true).rev() {
-                    let g_len = grapheme_column_width(g, None);
-                    if g_len + len > max_width {
-                        break;
-                    }
-                    result.push(g);
-                    len += g_len;
-                }
-
-                result.reverse();
-                Ok(result.join(""))
+                Ok(truncate_left(&s, max_width))
             })?,
         )?;
 
@@ -1016,4 +977,54 @@ assert(wezterm.emit('bar', 42, 'woot') == true)
 
         Ok(())
     }
+}
+
+pub fn pad_right(mut result: String, width: usize) -> String {
+    let mut len = unicode_column_width(&result, None);
+    while len < width {
+        result.push(' ');
+        len += 1;
+    }
+
+    result
+}
+
+pub fn pad_left(mut result: String, width: usize) -> String {
+    let mut len = unicode_column_width(&result, None);
+    while len < width {
+        result.insert(0, ' ');
+        len += 1;
+    }
+
+    result
+}
+
+pub fn truncate_left(s: &str, max_width: usize) -> String {
+    let mut result = vec![];
+    let mut len = 0;
+    for g in s.graphemes(true).rev() {
+        let g_len = grapheme_column_width(g, None);
+        if g_len + len > max_width {
+            break;
+        }
+        result.push(g);
+        len += g_len;
+    }
+
+    result.reverse();
+    result.join("")
+}
+
+pub fn truncate_right(s: &str, max_width: usize) -> String {
+    let mut result = String::new();
+    let mut len = 0;
+    for g in s.graphemes(true) {
+        let g_len = grapheme_column_width(g, None);
+        if g_len + len > max_width {
+            break;
+        }
+        result.push_str(g);
+        len += g_len;
+    }
+    result
 }
