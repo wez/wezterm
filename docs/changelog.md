@@ -18,7 +18,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Changed
 
-* **Key Assignments now used Physical Key locations by default!!** follow the work in progress in [#1483](https://github.com/wez/wezterm/issues/1483)
+* **Key Assignments now use Physical Key locations by default!!** follow the work in progress in [#1483](https://github.com/wez/wezterm/issues/1483)
 
 #### Updated and Improved
 #### Fixed
