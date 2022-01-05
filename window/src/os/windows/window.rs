@@ -38,6 +38,7 @@ use winapi::um::winuser::*;
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
 const GCS_RESULTSTR: DWORD = 0x800;
+const GCS_COMPSTR: DWORD = 0x8;
 extern "system" {
     pub fn ImmGetCompositionStringW(himc: HIMC, index: DWORD, buf: LPVOID, buflen: DWORD) -> LONG;
 }
@@ -511,7 +512,7 @@ impl WindowInner {
 
     fn set_text_cursor_position(&mut self, cursor: Rect) {
         let imc = ImmContext::get(self.hwnd.0);
-        imc.set_position(cursor.origin.x.max(0) as i32, cursor.origin.y.max(0) as i32);
+        imc.set_position(cursor.origin.x.max(0) as i32, cursor.max_y().max(0) as i32);
     }
 
     fn config_did_change(&mut self, config: &ConfigHandle) {
@@ -1256,6 +1257,27 @@ impl ImmContext {
             ImmSetCompositionWindow(self.imc, &mut cf);
         }
     }
+
+    pub fn get_str(&self, which: DWORD) -> Result<String, OsString> {
+        // This returns a size in bytes even though it is for a buffer of u16!
+        let byte_size =
+            unsafe { ImmGetCompositionStringW(self.imc, which, std::ptr::null_mut(), 0) };
+        if byte_size > 0 {
+            let word_size = byte_size as usize / 2;
+            let mut wide_buf = vec![0u16; word_size];
+            unsafe {
+                ImmGetCompositionStringW(
+                    self.imc,
+                    which,
+                    wide_buf.as_mut_ptr() as *mut _,
+                    byte_size as u32,
+                )
+            };
+            OsString::from_wide(&wide_buf).into_string()
+        } else {
+            Ok(String::new())
+        }
+    }
 }
 
 impl Drop for ImmContext {
@@ -1274,42 +1296,51 @@ unsafe fn ime_composition(
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let mut inner = inner.borrow_mut();
-
-        if (lparam as DWORD) & GCS_RESULTSTR == 0 {
-            // No finished result; continue with the default
-            // processing
-            return None;
-        }
-
         let imc = ImmContext::get(hwnd);
 
-        // This returns a size in bytes even though it is for a buffer of u16!
-        let byte_size = ImmGetCompositionStringW(imc.imc, GCS_RESULTSTR, std::ptr::null_mut(), 0);
-        if byte_size > 0 {
-            let word_size = byte_size as usize / 2;
-            let mut wide_buf = vec![0u16; word_size];
-            ImmGetCompositionStringW(
-                imc.imc,
-                GCS_RESULTSTR,
-                wide_buf.as_mut_ptr() as *mut _,
-                byte_size as u32,
-            );
-            match OsString::from_wide(&wide_buf).into_string() {
-                Ok(s) => {
-                    let key = KeyEvent {
-                        key: KeyCode::Composed(s),
-                        modifiers: Modifiers::NONE,
-                        repeat_count: 1,
-                        key_is_down: true,
-                    }
-                    .normalize_shift();
-                    inner.events.dispatch(WindowEvent::KeyEvent(key));
+        let lparam = lparam as DWORD;
 
-                    return Some(1);
-                }
-                Err(_) => eprintln!("cannot represent IME as unicode string!?"),
-            };
+        if lparam == 0 {
+            // IME was cancelled
+            inner
+                .events
+                .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+            return Some(1);
         }
+
+        if lparam & GCS_RESULTSTR == 0 {
+            // No finished result; continue with the default
+            // processing
+            if let Ok(composing) = imc.get_str(GCS_COMPSTR) {
+                inner
+                    .events
+                    .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
+                        composing,
+                    )));
+            }
+            // We will show the composing string ourselves.
+            // Suppress the default composition display.
+            return Some(1);
+        }
+
+        match imc.get_str(GCS_RESULTSTR) {
+            Ok(s) if !s.is_empty() => {
+                let key = KeyEvent {
+                    key: KeyCode::Composed(s),
+                    modifiers: Modifiers::NONE,
+                    repeat_count: 1,
+                    key_is_down: true,
+                };
+                inner
+                    .events
+                    .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+                inner.events.dispatch(WindowEvent::KeyEvent(key));
+
+                return Some(1);
+            }
+            Ok(_) => {}
+            Err(_) => eprintln!("cannot represent IME as unicode string!?"),
+        };
     }
     None
 }
