@@ -1879,9 +1879,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                     // wait for a subsequent keypress.
                     if inner.config.use_dead_keys {
                         inner.dead_pending.replace((modifiers, vk));
-                        inner
-                            .events
-                            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Holding));
+                        inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
+                            DeadKeyStatus::Composing(c.to_string()),
+                        ));
                         return Some(0);
                     }
                     // They don't want dead keys; just return the base character
