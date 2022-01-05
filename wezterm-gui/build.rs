@@ -6,12 +6,17 @@ fn main() {
         use anyhow::Context as _;
         use std::io::Write;
         use std::path::Path;
-        let profile = std::env::var("PROFILE").unwrap();
         let repo_dir = std::env::current_dir()
             .ok()
             .and_then(|cwd| cwd.parent().map(|p| p.to_path_buf()))
             .unwrap();
-        let exe_output_dir = repo_dir.join("target").join(profile);
+        let exe_output_dir = std::env::var("OUT_DIR").unwrap();
+        let exe_output_dir = std::path::PathBuf::from(exe_output_dir);
+        let exe_output_dir = exe_output_dir
+            .parent()
+            .and_then(|x| x.parent())
+            .and_then(|x| x.parent())
+            .unwrap();
         let windows_dir = repo_dir.join("assets").join("windows");
 
         let conhost_dir = windows_dir.join("conhost");
