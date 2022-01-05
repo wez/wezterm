@@ -1032,6 +1032,11 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
     }
 }
 
+struct DeadKeyState {
+    /// The private dead key state preserved from UCKeyTranslate
+    dead_state: u32,
+}
+
 struct Inner {
     events: WindowEventSender,
     view_id: Option<WeakPtr>,
@@ -1047,7 +1052,7 @@ struct Inner {
     key_is_down: Option<bool>,
 
     /// First in a dead-key sequence
-    dead_pending: Option<(u16, u32)>,
+    dead_pending: Option<DeadKeyState>,
 
     /// When using simple fullscreen mode, this tracks
     /// the window dimensions that need to be restored
@@ -1121,6 +1126,11 @@ extern "C" {
     fn LMGetKbdType() -> u8;
 }
 
+enum TranslateStatus {
+    Composing(String),
+    Composed(String),
+}
+
 impl Inner {
     fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
         let view = self.view_id.as_ref().unwrap().load();
@@ -1139,7 +1149,7 @@ impl Inner {
         &mut self,
         virtual_key_code: u16,
         modifier_flags: NSEventModifierFlags,
-    ) -> Option<Result<String, std::string::FromUtf16Error>> {
+    ) -> Result<TranslateStatus, std::string::FromUtf16Error> {
         let kbd =
             unsafe { InputSource::wrap_under_create_rule(TISCopyCurrentKeyboardInputSource()) };
 
@@ -1177,13 +1187,18 @@ impl Inner {
             true
         };
 
-        if let Some((code, flags)) = self.dead_pending.take() {
+        #[allow(non_upper_case_globals)]
+        const kUCKeyTranslateNoDeadKeysBit: u32 = 0;
+
+        if let Some(state) = self.dead_pending.take() {
+            dead_state = state.dead_state;
+        } else if use_dead_keys {
             unsafe {
                 UCKeyTranslate(
                     layout_data,
-                    code,
+                    virtual_key_code,
                     kUCKeyActionDown,
-                    flags,
+                    modifier_key_state,
                     kbd_type,
                     0,
                     &mut dead_state,
@@ -1192,10 +1207,33 @@ impl Inner {
                     unicode_buffer.as_mut_ptr(),
                 );
             }
-        } else if use_dead_keys {
-            self.dead_pending
-                .replace((virtual_key_code, modifier_key_state));
-            return None;
+
+            self.dead_pending.replace(DeadKeyState {
+                dead_state,
+            });
+
+            // Get the non-dead-key rendition to show as the composing state
+            dead_state = 0;
+            length = 0;
+            unsafe {
+                UCKeyTranslate(
+                    layout_data,
+                    virtual_key_code,
+                    kUCKeyActionDisplay,
+                    modifier_key_state,
+                    kbd_type,
+                    1 << kUCKeyTranslateNoDeadKeysBit,
+                    &mut dead_state,
+                    unicode_buffer.len() as _,
+                    &mut length,
+                    unicode_buffer.as_mut_ptr(),
+                );
+            };
+
+            let composing = String::from_utf16(unsafe {
+                std::slice::from_raw_parts(unicode_buffer.as_mut_ptr(), length as _)
+            })?;
+            return Ok(TranslateStatus::Composing(composing));
         }
         length = 0;
         unsafe {
@@ -1203,13 +1241,6 @@ impl Inner {
                 layout_data,
                 virtual_key_code,
                 kUCKeyActionDisplay,
-                /*
-                if key_is_down {
-                kUCKeyActionDown
-                } else {
-                    kUCKeyActionUp
-                },
-                */
                 modifier_key_state,
                 kbd_type,
                 0,
@@ -1246,9 +1277,10 @@ impl Inner {
             }
         }
 
-        Some(String::from_utf16(unsafe {
+        let composed = String::from_utf16(unsafe {
             std::slice::from_raw_parts(unicode_buffer.as_mut_ptr(), length as _)
-        }))
+        })?;
+        Ok(TranslateStatus::Composed(composed))
     }
 }
 
@@ -1921,15 +1953,15 @@ impl WindowView {
                 }
 
                 match inner.translate_key_event(virtual_key, modifier_flags) {
-                    None => {
+                    Ok(TranslateStatus::Composing(composing)) => {
                         // Next key press in dead key sequence is pending.
                         inner
                             .events
-                            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Holding));
+                            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(composing)));
 
                         return;
                     }
-                    Some(Ok(translated)) => {
+                    Ok(TranslateStatus::Composed(translated)) => {
                         inner
                             .events
                             .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
@@ -1942,7 +1974,7 @@ impl WindowView {
                         inner.events.dispatch(WindowEvent::KeyEvent(event));
                         return;
                     }
-                    Some(Err(e)) => {
+                    Err(e) => {
                         log::error!("Failed to translate dead key: {}", e);
                         return;
                     }
