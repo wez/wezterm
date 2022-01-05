@@ -117,25 +117,16 @@ impl super::TermWindow {
                 // Perform click counting
                 let button = mouse_press_to_tmb(press);
 
+                let click_position = ClickPosition {
+                    column: x,
+                    row: y,
+                    x_pixel_offset,
+                    y_pixel_offset,
+                };
+
                 let click = match self.last_mouse_click.take() {
-                    None => LastMouseClick::new(
-                        button,
-                        ClickPosition {
-                            column: x,
-                            row: y,
-                            x_pixel_offset,
-                            y_pixel_offset,
-                        },
-                    ),
-                    Some(click) => click.add(
-                        button,
-                        ClickPosition {
-                            column: x,
-                            row: y,
-                            x_pixel_offset,
-                            y_pixel_offset,
-                        },
-                    ),
+                    None => LastMouseClick::new(button, click_position),
+                    Some(click) => click.add(button, click_position),
                 };
                 self.last_mouse_click = Some(click);
                 self.current_mouse_buttons.retain(|p| p != press);
@@ -194,7 +185,17 @@ impl super::TermWindow {
         if let Some(item) = ui_item {
             self.mouse_event_ui_item(item, pane, y, event, context);
         } else {
-            self.mouse_event_terminal(pane, x, y, x_pixel_offset, y_pixel_offset, event, context);
+            self.mouse_event_terminal(
+                pane,
+                ClickPosition {
+                    column: x,
+                    row: y,
+                    x_pixel_offset,
+                    y_pixel_offset,
+                },
+                event,
+                context,
+            );
         }
     }
 
@@ -452,17 +453,17 @@ impl super::TermWindow {
         }
     }
 
-    pub fn mouse_event_terminal(
+    fn mouse_event_terminal(
         &mut self,
         mut pane: Rc<dyn Pane>,
-        mut x: usize,
-        mut y: i64,
-        x_pixel_offset: usize,
-        y_pixel_offset: usize,
+        position: ClickPosition,
         event: MouseEvent,
         context: &dyn WindowOps,
     ) {
         let mut is_click_to_focus = false;
+
+        let mut x = position.column;
+        let mut y = position.row;
 
         for pos in self.get_panes_to_render() {
             if y >= pos.top as i64
@@ -718,8 +719,8 @@ impl super::TermWindow {
             },
             x,
             y,
-            x_pixel_offset,
-            y_pixel_offset,
+            x_pixel_offset: position.x_pixel_offset,
+            y_pixel_offset: position.y_pixel_offset,
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
 
