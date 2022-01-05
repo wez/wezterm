@@ -306,7 +306,8 @@ impl FreeTypeRasterizer {
                 xx: 1 * 65536,            // scale x
                 yy: 1 * 65536,            // scale y
                 xy: (0.2 * 65536.0) as _, // skew x
-                yx: 0 * 65536,            // skey y
+                // yx: 0 * 65536,            // skey y
+                yx: 0,            // skey y
             }));
         }
 

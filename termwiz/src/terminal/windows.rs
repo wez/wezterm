@@ -10,7 +10,6 @@ use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{mem, ptr};
-use winapi::shared::winerror::WAIT_TIMEOUT;
 use winapi::um::consoleapi;
 use winapi::um::synchapi::{CreateEventW, SetEvent, WaitForMultipleObjects};
 use winapi::um::winbase::{INFINITE, WAIT_FAILED, WAIT_OBJECT_0};
@@ -225,8 +224,8 @@ impl Write for OutputHandle {
     }
 
     fn flush(&mut self) -> IoResult<()> {
-        if self.write_buffer.len() > 0 {
-            self.handle.write(&self.write_buffer)?;
+        if !self.write_buffer.is_empty() {
+            self.handle.write_all(&self.write_buffer)?;
             self.write_buffer.clear();
         }
         Ok(())
@@ -684,7 +683,7 @@ impl Terminal for WindowsTerminal {
         let mode = self.input_handle.get_input_mode()?;
 
         self.input_handle.set_input_mode(
-            (mode & !(ENABLE_WINDOW_INPUT | ENABLE_WINDOW_INPUT))
+            (mode & !ENABLE_WINDOW_INPUT)
                 | ENABLE_ECHO_INPUT
                 | ENABLE_LINE_INPUT
                 | ENABLE_PROCESSED_INPUT,
@@ -802,8 +801,8 @@ impl Terminal for WindowsTerminal {
                         "failed to WaitForMultipleObjects: {}",
                         IoError::last_os_error()
                     );
-                } else if result == WAIT_TIMEOUT {
-                    return Ok(None);
+                // } else if result == WAIT_TIMEOUT {
+                //     return Ok(None);
                 } else {
                     return Ok(None);
                 }

@@ -31,7 +31,7 @@ impl Display for FontOrigin {
     }
 }
 
-#[derive(Clone, Hash)]
+#[derive(Clone)]
 pub enum FontDataSource {
     OnDisk(PathBuf),
     BuiltIn {
@@ -42,6 +42,12 @@ pub enum FontDataSource {
         name: String,
         data: Arc<Box<[u8]>>,
     },
+}
+
+impl std::hash::Hash for FontDataSource {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+    }
 }
 
 impl FontDataSource {
@@ -116,13 +122,19 @@ impl std::fmt::Debug for FontDataSource {
 /// The `index` parameter is the index into a font
 /// collection if the data represents a collection of
 /// fonts.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq)]
 pub struct FontDataHandle {
     pub source: FontDataSource,
     pub index: u32,
     pub variation: u32,
     pub origin: FontOrigin,
     pub coverage: Option<rangeset::RangeSet<u32>>,
+}
+
+impl PartialEq for FontDataHandle {
+    fn eq(&self, other: &Self) -> bool {
+        self.source == other.source && self.index == other.index && self.variation == other.variation && self.origin == other.origin && self.coverage == other.coverage
+    }
 }
 
 impl std::hash::Hash for FontDataHandle {

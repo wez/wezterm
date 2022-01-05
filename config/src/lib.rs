@@ -24,7 +24,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use termwiz::hyperlink;
 use termwiz::surface::CursorShape;
-use toml;
 use wezterm_input_types::{KeyCode, Modifiers, WindowDecorations};
 
 mod background;

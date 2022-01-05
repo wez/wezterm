@@ -761,7 +761,7 @@ where
     let tbl: mlua::Value = lua.named_registry_value(&decorated_name)?;
     match tbl {
         mlua::Value::Table(tbl) => {
-            for func in tbl.sequence_values::<mlua::Function>() {
+            if let Some(func) = tbl.sequence_values::<mlua::Function>().next() {
                 let func = func?;
                 return func.call(args);
             }

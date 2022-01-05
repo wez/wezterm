@@ -122,6 +122,8 @@ fn take_rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
 }
 
 fn callback_behavior() -> glium::debug::DebugCallbackBehavior {
+    // until the issue is handled, this show be allowed for now
+    #![allow(clippy::logic_bug)]
     if cfg!(debug_assertions) && false
     /* https://github.com/glium/glium/issues/1885 */
     {
@@ -277,8 +279,8 @@ fn decorations_to_style(decorations: WindowDecorations) -> u32 {
         WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
     } else if decorations == WindowDecorations::NONE {
         WS_POPUP
-    } else if decorations == WindowDecorations::TITLE | WindowDecorations::RESIZE {
-        WS_OVERLAPPEDWINDOW
+    // } else if decorations == WindowDecorations::TITLE | WindowDecorations::RESIZE {
+    //     WS_OVERLAPPEDWINDOW
     } else {
         WS_OVERLAPPEDWINDOW
     }

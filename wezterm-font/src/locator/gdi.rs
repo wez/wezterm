@@ -75,8 +75,7 @@ fn extract_font_data(
     let mut font_info = vec![];
     parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
     let matches = ParsedFont::best_match(attr, pixel_size, font_info);
-
-    for m in matches {
+    if let Some(m) = matches {
         return Ok(m);
     }
 
@@ -150,7 +149,7 @@ pub fn parse_log_font(log_font: &LOGFONTW, hdc: HDC) -> anyhow::Result<(ParsedFo
         parse_and_collect_font_info(&source, &mut font_info, FontOrigin::Gdi)?;
         let matches = ParsedFont::best_match(&attr, pixel_size, font_info);
 
-        for m in matches {
+        if let Some(m) = matches.into_iter().next() {
             return Ok((m, point_size));
         }
 
