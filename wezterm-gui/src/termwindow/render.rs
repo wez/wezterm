@@ -32,7 +32,7 @@ use smol::Timer;
 use std::ops::Range;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use termwiz::cell::Blink;
+use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::{IntPixelLength, PixelLength};
@@ -169,6 +169,7 @@ pub struct ComputeCellFgBgParams<'a> {
     pub cursor_fg: LinearRgba,
     pub cursor_bg: LinearRgba,
     pub cursor_border_color: LinearRgba,
+    pub in_composition: bool,
     pub pane: Option<&'a Rc<dyn Pane>>,
 }
 
@@ -1750,6 +1751,8 @@ impl super::TermWindow {
             None
         };
 
+        let mut composition_width = 0;
+
         // Do we need to shape immediately, or can we use the pre-shaped data?
         let to_shape = if let Some(composing) = composing {
             // Create an updated line with the composition overlaid
@@ -1761,6 +1764,7 @@ impl super::TermWindow {
                 termwiz::surface::SEQ_ZERO,
             );
             cell_clusters = line.cluster(cursor_idx);
+            composition_width = unicode_column_width(composing, None);
             Some(&cell_clusters)
         } else if params.pre_shaped.is_none() {
             cell_clusters = params.line.cluster(cursor_idx);
@@ -1895,6 +1899,10 @@ impl super::TermWindow {
 
                     last_cell_idx = current_idx;
 
+                    let in_composition = composition_width > 0
+                        && cell_idx >= params.cursor.x
+                        && cell_idx <= params.cursor.x + composition_width;
+
                     let ComputeCellFgBgResult {
                         fg_color: glyph_color,
                         bg_color,
@@ -1931,6 +1939,7 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                         cursor_border_color: params.cursor_border_color,
                         pane: params.pane,
+                        in_composition,
                     });
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -2215,6 +2224,7 @@ impl super::TermWindow {
                     cursor_bg: params.cursor_bg,
                     cursor_border_color: params.cursor_border_color,
                     pane: params.pane,
+                    in_composition: false,
                 });
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -2389,9 +2399,10 @@ impl super::TermWindow {
 
     pub fn compute_cell_fg_bg(&self, params: ComputeCellFgBgParams) -> ComputeCellFgBgResult {
         let selected = params.selection.contains(&params.cell_idx);
-        let is_cursor = params.pane.is_some()
-            && params.stable_line_idx == Some(params.cursor.y)
-            && params.cursor.x == params.cell_idx;
+        let is_cursor = params.in_composition
+            || params.pane.is_some()
+                && params.stable_line_idx == Some(params.cursor.y)
+                && params.cursor.x == params.cell_idx;
 
         if is_cursor {
             if let Some(intensity) = self.get_intensity_if_bell_target_ringing(
