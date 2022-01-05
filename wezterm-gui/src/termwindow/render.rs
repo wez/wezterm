@@ -170,7 +170,6 @@ pub struct ComputeCellFgBgParams<'a> {
     pub cursor_bg: LinearRgba,
     pub cursor_border_color: LinearRgba,
     pub pane: Option<&'a Rc<dyn Pane>>,
-    pub probably_a_ligature: bool,
 }
 
 #[derive(Debug)]
@@ -1731,11 +1730,17 @@ impl super::TermWindow {
         let local_shaped;
         let cell_clusters;
 
-        // Referencing the text being composed, but only if it belongs to this pane
-        let composing = if params.pane.is_some()
+        let cursor_idx = if params.pane.is_some()
             && params.is_active
             && params.stable_line_idx == Some(params.cursor.y)
         {
+            Some(params.cursor.x)
+        } else {
+            None
+        };
+
+        // Referencing the text being composed, but only if it belongs to this pane
+        let composing = if cursor_idx.is_some() {
             if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
                 Some(composing)
             } else {
@@ -1755,10 +1760,10 @@ impl super::TermWindow {
                 CellAttributes::blank(),
                 termwiz::surface::SEQ_ZERO,
             );
-            cell_clusters = line.cluster();
+            cell_clusters = line.cluster(cursor_idx);
             Some(&cell_clusters)
         } else if params.pre_shaped.is_none() {
-            cell_clusters = params.line.cluster();
+            cell_clusters = params.line.cluster(cursor_idx);
             Some(&cell_clusters)
         } else {
             None
@@ -1869,26 +1874,6 @@ impl super::TermWindow {
                     break;
                 }
 
-                let probably_a_ligature = false;
-                /*
-                glyph
-                .texture
-                .as_ref()
-                .map(|t| {
-                    let width = params.render_metrics.cell_size.width as f32;
-                    if t.coords.size.width as f32 > width * 1.5 {
-                        // Glyph is wider than the cell
-                        true
-                    } else if (glyph.bearing_x.get() as f32) < (width / -4.) {
-                        // Has excessive negative bearing
-                        true
-                    } else {
-                        false
-                    }
-                })
-                .unwrap_or(false);
-                */
-
                 let top = cell_height + params.render_metrics.descender.get() as f32
                     - (glyph.y_offset + glyph.bearing_y).get() as f32;
 
@@ -1917,7 +1902,22 @@ impl super::TermWindow {
                         cursor_border_color,
                     } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                         stable_line_idx: params.stable_line_idx,
-                        cell_idx,
+                        // We pass the current_idx instead of the cell_idx when
+                        // computing the cursor/background color because we may
+                        // have a series of ligatured glyphs that compose over the
+                        // top of each other to form a double-wide grapheme cell.
+                        // If we use cell_idx here we could render half of that
+                        // in the cursor colors (good) and the other half in
+                        // the text colors, which is bad because we get a half
+                        // reversed, half not glyph and that is hard to read
+                        // against the cursor background.
+                        // When we cluster, we guarantee that the ligatures are
+                        // broken around the cursor boundary, and clustering
+                        // guarantees that different colors are broken out as
+                        // well, so this assumption is probably good in all
+                        // cases!
+                        // <https://github.com/wez/wezterm/issues/478>
+                        cell_idx: current_idx,
                         cursor: params.cursor,
                         selection: &params.selection,
                         fg_color: style_params.fg_color,
@@ -1931,7 +1931,6 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                         cursor_border_color: params.cursor_border_color,
                         pane: params.pane,
-                        probably_a_ligature,
                     });
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -2216,7 +2215,6 @@ impl super::TermWindow {
                     cursor_bg: params.cursor_bg,
                     cursor_border_color: params.cursor_border_color,
                     pane: params.pane,
-                    probably_a_ligature: false,
                 });
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)

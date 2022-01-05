@@ -274,7 +274,7 @@ mod test {
     {
         let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO);
         eprintln!("{:?}", line);
-        let cell_clusters = line.cluster();
+        let cell_clusters = line.cluster(None);
         assert_eq!(cell_clusters.len(), 1);
         let cluster = &cell_clusters[0];
         let infos = font.shape(&cluster.text, || {}, |_| {}, None).unwrap();
@@ -392,7 +392,7 @@ mod test {
                 let style = TextStyle::default();
                 let font = fonts.resolve_font(&style).unwrap();
                 let line = Line::from_text(&text, &CellAttributes::default(), SEQ_ZERO);
-                let cell_clusters = line.cluster();
+                let cell_clusters = line.cluster(None);
                 let cluster = &cell_clusters[0];
 
                 measurer.measure(|| {

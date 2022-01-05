@@ -630,8 +630,8 @@ impl Line {
         })
     }
 
-    pub fn cluster(&self) -> Vec<CellCluster> {
-        CellCluster::make_cluster(self.cells.len(), self.visible_cells())
+    pub fn cluster(&self, cursor_idx: Option<usize>) -> Vec<CellCluster> {
+        CellCluster::make_cluster(self.cells.len(), self.visible_cells(), cursor_idx)
     }
 
     pub fn cells(&self) -> &[Cell] {

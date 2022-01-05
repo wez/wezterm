@@ -491,7 +491,7 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
 
     if let Some(text) = &cmd.text {
         let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO);
-        let cell_clusters = line.cluster();
+        let cell_clusters = line.cluster(None);
         for cluster in cell_clusters {
             let style = font_config.match_style(&config, &cluster.attrs);
             let font = font_config.resolve_font(style)?;

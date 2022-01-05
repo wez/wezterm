@@ -258,7 +258,7 @@ impl Element {
     pub fn with_line(font: &Rc<LoadedFont>, line: &Line, palette: &ColorPalette) -> Self {
         let mut content = vec![];
 
-        for cluster in line.cluster() {
+        for cluster in line.cluster(None) {
             let child =
                 Element::new(font, ElementContent::Text(cluster.text)).colors(ElementColors {
                     border: BorderColor::default(),
