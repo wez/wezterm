@@ -4,7 +4,7 @@ use crate::os::x11::window::XWindowInner;
 use crate::os::x11::xsettings::*;
 use crate::os::Connection;
 use crate::spawn::*;
-use crate::Appearance;
+use crate::{Appearance, DeadKeyStatus};
 use anyhow::{anyhow, bail, Context as _};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
@@ -477,7 +477,7 @@ impl XConnection {
             xcb_imdkit::ImeClient::unsafe_new(
                 &conn,
                 screen_num,
-                xcb_imdkit::InputStyle::DEFAULT,
+                xcb_imdkit::InputStyle::PREEDIT_CALLBACKS,
                 config::configuration().xim_im_name.as_deref(),
             )
         };
@@ -526,6 +526,33 @@ impl XConnection {
                     if let Some(window) = conn.window_by_id(window_id) {
                         let mut inner = window.lock().unwrap();
                         inner.dispatch_ime_text(input);
+                    }
+                });
+        }
+        {
+            let conn = conn.clone();
+            conn.clone()
+                .ime
+                .borrow_mut()
+                .set_preedit_draw_cb(move |window_id, info| {
+                    if let Some(window) = conn.window_by_id(window_id) {
+                        let mut inner = window.lock().unwrap();
+
+                        let text = info.text();
+                        let status = DeadKeyStatus::Composing(text);
+                        inner.dispatch_ime_compose_status(status);
+                    }
+                });
+        }
+        {
+            let conn = conn.clone();
+            conn.clone()
+                .ime
+                .borrow_mut()
+                .set_preedit_done_cb(move |window_id| {
+                    if let Some(window) = conn.window_by_id(window_id) {
+                        let mut inner = window.lock().unwrap();
+                        inner.dispatch_ime_compose_status(DeadKeyStatus::None);
                     }
                 });
         }

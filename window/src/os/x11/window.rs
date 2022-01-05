@@ -4,9 +4,9 @@ use crate::connection::ConnectionOps;
 use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
-    Appearance, Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
-    MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender,
-    WindowOps, WindowState,
+    Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
+    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
+    WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -421,6 +421,11 @@ impl XWindowInner {
         }
 
         Ok(())
+    }
+
+    pub fn dispatch_ime_compose_status(&mut self, status: DeadKeyStatus) {
+        self.events
+            .dispatch(WindowEvent::AdviseDeadKeyStatus(status));
     }
 
     pub fn dispatch_ime_text(&mut self, text: &str) {
@@ -982,7 +987,7 @@ impl XWindowInner {
         self.conn().ime.borrow_mut().update_pos(
             self.window_id,
             self.last_cursor_position.min_x() as i16,
-            self.last_cursor_position.max_y() as i16,
+            (self.last_cursor_position.max_y() + self.last_cursor_position.height()) as i16,
         );
     }
 

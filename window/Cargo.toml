@@ -74,6 +74,7 @@ wayland-protocols = {version="0.29", optional=true}
 wayland-client = {version="0.29", optional=true}
 wayland-egl = {version="0.29", optional=true}
 xcb-imdkit = "0.1"
+#xcb-imdkit = { path = "../../github/xcb-imdkit-rs" }
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"
