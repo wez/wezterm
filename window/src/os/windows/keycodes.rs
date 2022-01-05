@@ -127,6 +127,7 @@ fn build_map() -> HashMap<WPARAM, PhysKeyCode> {
         (VK_OEM_3, PhysKeyCode::Grave),
         (VK_DECIMAL, PhysKeyCode::KeypadDecimal),
         (VK_MULTIPLY, PhysKeyCode::KeypadMultiply),
+        (VK_INSERT, PhysKeyCode::Insert),
         (VK_ADD, PhysKeyCode::KeypadAdd),
         (VK_CLEAR, PhysKeyCode::KeypadClear),
         (VK_DIVIDE, PhysKeyCode::KeypadDivide),
