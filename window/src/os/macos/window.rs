@@ -1208,9 +1208,7 @@ impl Inner {
                 );
             }
 
-            self.dead_pending.replace(DeadKeyState {
-                dead_state,
-            });
+            self.dead_pending.replace(DeadKeyState { dead_state });
 
             // Get the non-dead-key rendition to show as the composing state
             dead_state = 0;
@@ -1955,9 +1953,9 @@ impl WindowView {
                 match inner.translate_key_event(virtual_key, modifier_flags) {
                     Ok(TranslateStatus::Composing(composing)) => {
                         // Next key press in dead key sequence is pending.
-                        inner
-                            .events
-                            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(composing)));
+                        inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
+                            DeadKeyStatus::Composing(composing),
+                        ));
 
                         return;
                     }
