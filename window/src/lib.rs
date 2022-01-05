@@ -122,12 +122,13 @@ pub enum WindowKeyEvent {
     KeyEvent(KeyEvent),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeadKeyStatus {
     /// Not in a dead key processing hold
     None,
     /// Holding input until a dead key is recognized
     Holding,
+    Composing(String),
 }
 
 #[derive(Debug)]

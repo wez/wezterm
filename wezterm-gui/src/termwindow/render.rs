@@ -2408,7 +2408,7 @@ impl super::TermWindow {
             }
 
             let dead_key_or_leader =
-                self.dead_key_status == DeadKeyStatus::Holding || self.leader_is_active();
+                self.dead_key_status != DeadKeyStatus::None || self.leader_is_active();
 
             if dead_key_or_leader {
                 let (fg_color, bg_color) = if self.config.force_reverse_video_cursor {

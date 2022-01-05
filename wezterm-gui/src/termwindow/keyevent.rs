@@ -268,7 +268,7 @@ impl super::TermWindow {
     }
 
     pub fn dead_key_active(&self) -> bool {
-        self.dead_key_status == DeadKeyStatus::Holding
+        self.dead_key_status != DeadKeyStatus::None
     }
 
     fn leader_done(&mut self) {

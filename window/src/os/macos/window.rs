@@ -424,6 +424,7 @@ impl Window {
                 ime_state: ImeDisposition::None,
                 ime_last_event: None,
                 live_resizing: false,
+                ime_text: String::new(),
             }));
 
             let window: id = msg_send![get_window_class(), alloc];
@@ -1064,6 +1065,8 @@ struct Inner {
 
     /// Whether we're in live resize
     live_resizing: bool,
+
+    ime_text: String,
 }
 
 #[repr(C)]
@@ -1370,6 +1373,7 @@ impl WindowView {
     // sequences
     extern "C" fn do_command_by_selector(this: &mut Object, _sel: Sel, a_selector: Sel) {
         let selector = format!("{:?}", a_selector);
+        log::trace!("do_command_by_selector {:?}", selector);
 
         let (key, modifiers) = match selector.as_ref() {
             "cancel:" => {
@@ -1428,12 +1432,31 @@ impl WindowView {
         }
     }
 
-    extern "C" fn has_marked_text(_this: &mut Object, _sel: Sel) -> BOOL {
-        NO
+    extern "C" fn has_marked_text(this: &mut Object, _sel: Sel) -> BOOL {
+        if let Some(myself) = Self::get_this(this) {
+            let inner = myself.inner.borrow();
+            if inner.ime_text.is_empty() {
+                NO
+            } else {
+                YES
+            }
+        } else {
+            NO
+        }
     }
 
-    extern "C" fn marked_range(_this: &mut Object, _sel: Sel) -> NSRange {
-        NSRange::new(NSNotFound as _, 0)
+    extern "C" fn marked_range(this: &mut Object, _sel: Sel) -> NSRange {
+        if let Some(myself) = Self::get_this(this) {
+            let inner = myself.inner.borrow();
+            log::trace!("marked_range {:?}", inner.ime_text);
+            if inner.ime_text.is_empty() {
+                NSRange::new(NSNotFound as _, 0)
+            } else {
+                NSRange::new(0, inner.ime_text.len() as u64)
+            }
+        } else {
+            NSRange::new(NSNotFound as _, 0)
+        }
     }
 
     extern "C" fn selected_range(_this: &mut Object, _sel: Sel) -> NSRange {
@@ -1445,11 +1468,17 @@ impl WindowView {
         this: &mut Object,
         _sel: Sel,
         astring: id,
-        _replacement_range: NSRange,
+        replacement_range: NSRange,
     ) {
         let s = unsafe { nsstring_to_str(astring) };
+        log::trace!(
+            "insert_text_replacement_range {} {:?}",
+            s,
+            replacement_range
+        );
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
+
             let key_is_down = inner.key_is_down.take().unwrap_or(true);
 
             let key = KeyCode::composed(s);
@@ -1464,28 +1493,61 @@ impl WindowView {
 
             inner.ime_last_event.replace(event.clone());
             inner.events.dispatch(WindowEvent::KeyEvent(event));
+            inner.ime_text.clear();
             inner.ime_state = ImeDisposition::Acted;
         }
     }
 
     extern "C" fn set_marked_text_selected_range_replacement_range(
-        _this: &mut Object,
+        this: &mut Object,
         _sel: Sel,
-        _astring: id,
+        astring: id,
         selected_range: NSRange,
         replacement_range: NSRange,
     ) {
-        let s = unsafe { nsstring_to_str(_astring) };
+        let s = unsafe { nsstring_to_str(astring) };
         log::trace!(
             "set_marked_text_selected_range_replacement_range {} {:?} {:?}",
             s,
             selected_range,
             replacement_range
         );
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            inner.ime_text = s.to_string();
+
+            /*
+            let key_is_down = inner.key_is_down.take().unwrap_or(true);
+
+            let key = KeyCode::composed(s);
+
+            let event = KeyEvent {
+                key,
+                modifiers: Modifiers::NONE,
+                repeat_count: 1,
+                key_is_down,
+            }
+            .normalize_shift();
+
+            inner.ime_last_event.replace(event.clone());
+            inner.events.dispatch(WindowEvent::KeyEvent(event));
+            */
+            inner.ime_last_event.take();
+            inner.ime_state = ImeDisposition::Acted;
+        }
     }
 
-    extern "C" fn unmark_text(_this: &mut Object, _sel: Sel) {
+    extern "C" fn unmark_text(this: &mut Object, _sel: Sel) {
         log::trace!("unmarkText");
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            // FIXME: docs say to insert the text here,
+            // but iterm doesn't... and we've never seen
+            // this get called so far?
+            inner.ime_text.clear();
+            inner.ime_last_event.take();
+            inner.ime_state = ImeDisposition::Acted;
+        }
     }
 
     extern "C" fn valid_attributes_for_marked_text(_this: &mut Object, _sel: Sel) -> id {
@@ -1916,7 +1978,7 @@ impl WindowView {
             let only_right_alt =
                 (modifiers & !(Modifiers::RIGHT_ALT | Modifiers::ALT)) == Modifiers::NONE;
 
-            if modifiers.is_empty() {
+            if modifiers.is_empty() || modifiers == Modifiers::SHIFT {
                 true
             } else if only_left_alt && !send_composed_key_when_left_alt_is_pressed {
                 false
@@ -1959,9 +2021,18 @@ impl WindowView {
                         }
                         ImeDisposition::Acted => {
                             // The key caused the IME to call one of our
-                            // callbacks, which generated an event and
+                            // callbacks, which may have generated an event and
                             // stashed it into ime_last_event.
-                            // We have no further action to take this time.
+                            // If it didn't generate an event, then a composition
+                            // is pending.
+                            let status = if inner.ime_last_event.is_none() {
+                                DeadKeyStatus::Composing(inner.ime_text.clone())
+                            } else {
+                                DeadKeyStatus::None
+                            };
+                            inner
+                                .events
+                                .dispatch(WindowEvent::AdviseDeadKeyStatus(status));
                             return;
                         }
                         ImeDisposition::None => {
