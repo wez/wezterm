@@ -1730,20 +1730,45 @@ impl super::TermWindow {
 
         let local_shaped;
         let cell_clusters;
-        let shaped = match params.pre_shaped {
-            Some(s) => s,
-            None => {
-                // Break the line into clusters of cells with the same attributes
-                cell_clusters = params.line.cluster();
-                metrics::histogram!("render_screen_line_opengl.line.cluster", start.elapsed());
-                log::trace!(
-                    "cluster -> {} clusters, elapsed {:?}",
-                    cell_clusters.len(),
-                    start.elapsed()
-                );
-                local_shaped = self.cluster_and_shape(&cell_clusters, &params)?;
-                &local_shaped
+
+        // Referencing the text being composed, but only if it belongs to this pane
+        let composing = if params.pane.is_some()
+            && params.is_active
+            && params.stable_line_idx == Some(params.cursor.y)
+        {
+            if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
+                Some(composing)
+            } else {
+                None
             }
+        } else {
+            None
+        };
+
+        // Do we need to shape immediately, or can we use the pre-shaped data?
+        let to_shape = if let Some(composing) = composing {
+            // Create an updated line with the composition overlaid
+            let mut line = params.line.clone();
+            line.overlay_text_with_attribute(
+                params.cursor.x,
+                composing,
+                CellAttributes::blank(),
+                termwiz::surface::SEQ_ZERO,
+            );
+            cell_clusters = line.cluster();
+            Some(&cell_clusters)
+        } else if params.pre_shaped.is_none() {
+            cell_clusters = params.line.cluster();
+            Some(&cell_clusters)
+        } else {
+            None
+        };
+
+        let shaped = if let Some(cell_clusters) = to_shape {
+            local_shaped = self.cluster_and_shape(&cell_clusters, &params)?;
+            &local_shaped
+        } else {
+            params.pre_shaped.unwrap()
         };
 
         let bounding_rect = euclid::rect(

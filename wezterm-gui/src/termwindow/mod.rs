@@ -815,6 +815,9 @@ impl TermWindow {
                 log::trace!("DeadKeyStatus now: {:?}", status);
                 self.dead_key_status = status;
                 self.update_title();
+                // Ensure that we repaint so that any composing
+                // text is updated
+                window.invalidate();
                 Ok(true)
             }
             WindowEvent::NeedRepaint => Ok(self.do_paint(window)),

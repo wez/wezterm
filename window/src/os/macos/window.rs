@@ -1488,12 +1488,14 @@ impl WindowView {
                 modifiers: Modifiers::NONE,
                 repeat_count: 1,
                 key_is_down,
-            }
-            .normalize_shift();
+            };
 
+            inner.ime_text.clear();
+            inner
+                .events
+                .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
             inner.ime_last_event.replace(event.clone());
             inner.events.dispatch(WindowEvent::KeyEvent(event));
-            inner.ime_text.clear();
             inner.ime_state = ImeDisposition::Acted;
         }
     }
@@ -1849,7 +1851,6 @@ impl WindowView {
         let modifier_flags = unsafe { nsevent.modifierFlags() };
         let modifiers = key_modifiers(modifier_flags);
         let virtual_key = unsafe { nsevent.keyCode() };
-        let translated;
 
         log::debug!(
             "key_common: chars=`{}` unmod=`{}` modifiers=`{:?}` virtual_key={:?} key_is_down:{}",
@@ -1928,12 +1929,18 @@ impl WindowView {
 
                         return;
                     }
-                    Some(Ok(s)) => {
+                    Some(Ok(translated)) => {
                         inner
                             .events
                             .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
-                        translated = s;
-                        &translated
+                        let event = KeyEvent {
+                            key: KeyCode::composed(&translated),
+                            modifiers: Modifiers::NONE,
+                            repeat_count: 1,
+                            key_is_down,
+                        };
+                        inner.events.dispatch(WindowEvent::KeyEvent(event));
+                        return;
                     }
                     Some(Err(e)) => {
                         log::error!("Failed to translate dead key: {}", e);
@@ -1994,6 +2001,7 @@ impl WindowView {
                 let mut inner = myself.inner.borrow_mut();
                 inner.key_is_down.replace(key_is_down);
                 inner.ime_state = ImeDisposition::None;
+                inner.ime_text.clear();
             }
 
             unsafe {
@@ -2050,8 +2058,17 @@ impl WindowView {
                                     inner.ime_last_event.as_ref().map(|e| e.clone())
                                 {
                                     inner.events.dispatch(WindowEvent::KeyEvent(event));
+                                    return;
                                 }
                             }
+                            let status = if inner.ime_text.is_empty() {
+                                DeadKeyStatus::None
+                            } else {
+                                DeadKeyStatus::Composing(inner.ime_text.clone())
+                            };
+                            inner
+                                .events
+                                .dispatch(WindowEvent::AdviseDeadKeyStatus(status));
                             return;
                         }
                     }
