@@ -344,6 +344,11 @@ impl Pane for ClientPane {
         Ok(())
     }
 
+    fn key_up(&self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
+        // TODO: decide how to handle key_up for mux client
+        Ok(())
+    }
+
     fn kill(&self) {
         let mut ignore = self.ignore_next_kill.borrow_mut();
         if *ignore {

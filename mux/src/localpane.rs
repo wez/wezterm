@@ -249,6 +249,10 @@ impl Pane for LocalPane {
         }
     }
 
+    fn key_up(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
+        self.terminal.borrow_mut().key_up(key, mods)
+    }
+
     fn resize(&self, size: PtySize) -> Result<(), Error> {
         self.pty.borrow_mut().resize(size)?;
         self.terminal.borrow_mut().resize(

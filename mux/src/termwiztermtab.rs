@@ -205,6 +205,10 @@ impl Pane for TermWizTerminalPane {
         Ok(())
     }
 
+    fn key_up(&self, _key: KeyCode, _modifiers: KeyModifiers) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()> {
         use termwiz::input::MouseButtons as Buttons;
         use wezterm_term::input::MouseButton;

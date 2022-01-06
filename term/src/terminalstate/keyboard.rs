@@ -36,4 +36,8 @@ impl TerminalState {
 
         Ok(())
     }
+
+    pub fn key_up(&mut self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
+        Ok(())
+    }
 }

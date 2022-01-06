@@ -1647,6 +1647,9 @@ mod test {
         fn key_down(&self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
             unimplemented!()
         }
+        fn key_up(&self, _: KeyCode, _: KeyModifiers) -> anyhow::Result<()> {
+            unimplemented!()
+        }
         fn mouse_event(&self, _event: MouseEvent) -> anyhow::Result<()> {
             unimplemented!()
         }

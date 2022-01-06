@@ -322,6 +322,7 @@ pub trait Pane: Downcast {
     /// a zoom-to-fill-all-the-tab-space operation.
     fn set_zoomed(&self, _zoomed: bool) {}
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
+    fn key_up(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()>;
     fn perform_actions(&self, _actions: Vec<termwiz::escape::Action>) {}
     fn is_dead(&self) -> bool;
@@ -475,6 +476,9 @@ mod test {
             None
         }
         fn key_down(&self, _: KeyCode, _: KeyModifiers) -> anyhow::Result<()> {
+            unimplemented!()
+        }
+        fn key_up(&self, _: KeyCode, _: KeyModifiers) -> anyhow::Result<()> {
             unimplemented!()
         }
     }
