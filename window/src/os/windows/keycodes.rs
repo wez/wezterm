@@ -150,6 +150,7 @@ fn build_map() -> HashMap<WPARAM, PhysKeyCode> {
         (VK_BACK, PhysKeyCode::Backspace),
         (VK_ESCAPE, PhysKeyCode::Escape),
         (VK_LWIN, PhysKeyCode::LeftWindows),
+        (VK_SHIFT, PhysKeyCode::LeftShift),
         (VK_LSHIFT, PhysKeyCode::LeftShift),
         (VK_CAPITAL, PhysKeyCode::CapsLock),
         (VK_MENU, PhysKeyCode::LeftAlt),

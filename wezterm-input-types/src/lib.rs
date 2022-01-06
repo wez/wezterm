@@ -227,13 +227,13 @@ impl KeyCode {
             Self::Function(19) => PhysKeyCode::F19,
             Self::Function(20) => PhysKeyCode::F20,
             Self::Physical(p) => *p,
-            Self::LeftShift => PhysKeyCode::LeftShift,
+            Self::Shift | Self::LeftShift => PhysKeyCode::LeftShift,
             Self::RightShift => PhysKeyCode::RightShift,
             Self::Alt | Self::LeftAlt => PhysKeyCode::LeftAlt,
             Self::RightAlt => PhysKeyCode::RightAlt,
             Self::LeftWindows => PhysKeyCode::LeftWindows,
             Self::RightWindows => PhysKeyCode::RightWindows,
-            Self::LeftControl => PhysKeyCode::LeftControl,
+            Self::Control | Self::LeftControl => PhysKeyCode::LeftControl,
             Self::RightControl => PhysKeyCode::RightControl,
             Self::CapsLock => PhysKeyCode::CapsLock,
             Self::PageUp => PhysKeyCode::PageUp,
@@ -281,9 +281,7 @@ impl KeyCode {
             | Self::Select
             | Self::VoidSymbol
             | Self::Pause
-            | Self::Shift
             | Self::Cancel
-            | Self::Control
             | Self::Hyper
             | Self::Super
             | Self::Meta

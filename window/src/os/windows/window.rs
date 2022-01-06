@@ -1770,11 +1770,6 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // ToUnicode has frustrating statefulness so we take care to
             // call it only when we think it will give consistent results.
 
-            if releasing {
-                // Don't care about key-up events
-                return Some(0);
-            }
-
             let handled_raw = Handled::new();
             let raw_key_event = RawKeyEvent {
                 key: match phys_code {
@@ -1815,6 +1810,11 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 // that are valid end states for dead keys, so we can resolve
                 // these for ourselves in a couple of quick hash lookups.
                 let vk = wparam as u32;
+
+                if releasing && inner.dead_pending.is_some() {
+                    // Don't care about key-up events while processing dead keys
+                    return Some(0);
+                }
 
                 // If we previously had the start of a dead key...
                 let dead = if let Some(leader) = inner.dead_pending.take() {
@@ -1874,6 +1874,11 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         ResolvedDeadKey::InvalidDeadKey => None,
                     }
                 } else if let Some(c) = inner.keyboard_info.is_dead_key_leader(modifiers, vk) {
+                    if releasing {
+                        // Don't care about key-up events while processing dead keys
+                        return Some(0);
+                    }
+
                     // They pressed a dead key.
                     // If they want dead key processing, then record that and
                     // wait for a subsequent keypress.

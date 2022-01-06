@@ -52,8 +52,9 @@ impl super::TermWindow {
         leader_active: bool,
         leader_mod: Modifiers,
         only_key_bindings: OnlyKeyBindings,
+        is_down: bool,
     ) -> bool {
-        if !leader_active {
+        if is_down && !leader_active {
             // Check to see if this key-press is the leader activating
             if let Some(duration) = self.input_map.is_leader(&keycode, raw_modifiers) {
                 // Yes; record its expiration
@@ -73,27 +74,29 @@ impl super::TermWindow {
             }
         }
 
-        if let Some(assignment) = self
-            .input_map
-            .lookup_key(&keycode, raw_modifiers | leader_mod)
-        {
-            if self.config.debug_key_events {
-                log::info!(
-                    "{:?} {:?} -> perform {:?}",
-                    keycode,
-                    raw_modifiers | leader_mod,
-                    assignment
-                );
-            }
-            self.perform_key_assignment(&pane, &assignment).ok();
-            context.invalidate();
+        if is_down {
+            if let Some(assignment) = self
+                .input_map
+                .lookup_key(&keycode, raw_modifiers | leader_mod)
+            {
+                if self.config.debug_key_events {
+                    log::info!(
+                        "{:?} {:?} -> perform {:?}",
+                        keycode,
+                        raw_modifiers | leader_mod,
+                        assignment
+                    );
+                }
+                self.perform_key_assignment(&pane, &assignment).ok();
+                context.invalidate();
 
-            if leader_active {
-                // A successful leader key-lookup cancels the leader
-                // virtual modifier state
-                self.leader_done();
+                if leader_active {
+                    // A successful leader key-lookup cancels the leader
+                    // virtual modifier state
+                    self.leader_done();
+                }
+                return true;
             }
-            return true;
         }
 
         // While the leader modifier is active, only registered
@@ -138,7 +141,14 @@ impl super::TermWindow {
                             tw_raw_modifiers
                         );
                     }
-                    if pane.key_down(term_key, tw_raw_modifiers).is_ok() {
+
+                    let res = if is_down {
+                        pane.key_down(term_key, tw_raw_modifiers)
+                    } else {
+                        pane.key_up(term_key, tw_raw_modifiers)
+                    };
+
+                    if res.is_ok() {
                         if !keycode.is_modifier()
                             && self.pane_state(pane.pane_id()).overlay.is_none()
                         {
@@ -159,10 +169,6 @@ impl super::TermWindow {
     }
 
     pub fn raw_key_event_impl(&mut self, key: RawKeyEvent, context: &dyn WindowOps) {
-        if !key.key_is_down {
-            return;
-        }
-
         if self.config.debug_key_events {
             log::info!("key_event {:?}", key);
         } else {
@@ -199,6 +205,7 @@ impl super::TermWindow {
                 leader_active,
                 leader_mod,
                 OnlyKeyBindings::Yes,
+                key.key_is_down,
             ) {
                 key.set_handled();
                 return;
@@ -218,6 +225,7 @@ impl super::TermWindow {
             leader_active,
             leader_mod,
             OnlyKeyBindings::Yes,
+            key.key_is_down,
         ) {
             key.set_handled();
             return;
@@ -237,6 +245,7 @@ impl super::TermWindow {
             leader_active,
             leader_mod,
             OnlyKeyBindings::Yes,
+            key.key_is_down,
         ) {
             key.set_handled();
         }
@@ -280,10 +289,6 @@ impl super::TermWindow {
     }
 
     pub fn key_event_impl(&mut self, window_key: KeyEvent, context: &dyn WindowOps) {
-        if !window_key.key_is_down {
-            return;
-        }
-
         if self.config.debug_key_events {
             log::info!("key_event {:?}", window_key);
         } else {
@@ -315,6 +320,7 @@ impl super::TermWindow {
             leader_active,
             leader_mod,
             OnlyKeyBindings::No,
+            window_key.key_is_down,
         ) {
             return;
         }
@@ -335,7 +341,13 @@ impl super::TermWindow {
                     log::info!("send to pane key={:?} mods={:?}", key, modifiers);
                 }
 
-                if pane.key_down(key, modifiers).is_ok() {
+                let res = if window_key.key_is_down {
+                    pane.key_down(key, modifiers)
+                } else {
+                    pane.key_up(key, modifiers)
+                };
+
+                if res.is_ok() {
                     if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&pane);
                     }
@@ -346,6 +358,9 @@ impl super::TermWindow {
                 }
             }
             Key::Composed(s) => {
+                if !window_key.key_is_down {
+                    return;
+                }
                 if leader_active {
                     // Leader was pressed and this non-modifier keypress isn't
                     // a registered key binding; swallow this event and cancel
