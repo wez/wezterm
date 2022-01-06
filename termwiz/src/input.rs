@@ -259,8 +259,6 @@ impl KeyCode {
     /// We don't have enough information here to represent all possible
     /// key presses correctly in the win32-input-mode encoding.
     pub fn encode_win32_input_mode(&self, mods: Modifiers, is_down: bool) -> Option<String> {
-        #![allow(dead_code)]
-
         use KeyCode::*;
 
         // <https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes>
@@ -268,37 +266,20 @@ impl KeyCode {
         const VK_RETURN: usize = 0x0d;
         const VK_F1: usize = 0x70;
         const VK_SHIFT: usize = 0x10;
-        const VK_LSHIFT: usize = 0xa0;
-        const VK_RSHIFT: usize = 0xa1;
         const VK_CONTROL: usize = 0x11;
-        const VK_LCONTROL: usize = 0xa2;
-        const VK_RCONTROL: usize = 0xa3;
         const VK_MENU: usize = 0x12;
-        const VK_LMENU: usize = 0xa4;
-        const VK_RMENU: usize = 0xa5;
 
-        // Note that we don't currently generate events for modifier keys:
-        // when I tried that, powershell ended up inserting an @ symbol whenever
-        // I pressed a lone modifier, presumably because we don't have enough
-        // information to completely fill out the fields in the protocol.
-        // I tried routing the scan code down here, but it didn't change
-        // the behavior.
+        // Note that we normalize left/right modifiers to just the main
+        // VK for that key type, so that eg: powershell doesn't get
+        // confused and interpret the record as an `@` key event.
 
         let (vkey, uni) = match self {
             Char(' ') => (VK_SPACE, 0x20),
             Enter => (VK_RETURN, 0x0d),
             Function(n) if *n >= 1 && *n <= 24 => ((*n as usize - 1) + VK_F1, 0x0),
-            /*
-            Shift => (VK_SHIFT, 0x0),
-            LeftShift => (VK_LSHIFT, 0x0),
-            RightShift => (VK_RSHIFT, 0x0),
-            Control => (VK_CONTROL, 0x0),
-            LeftControl => (VK_LCONTROL, 0x0),
-            RightControl => (VK_RCONTROL, 0x0),
-            Alt => (VK_MENU, 0x0),
-            LeftAlt => (VK_LMENU, 0x0),
-            RightAlt => (VK_RMENU, 0x0),
-            */
+            LeftShift | Shift | RightShift => (VK_SHIFT, 0x0),
+            LeftControl | Control | RightControl => (VK_CONTROL, 0x0),
+            LeftAlt | Alt | RightAlt => (VK_MENU, 0x0),
             _ => return None,
         };
 
@@ -308,21 +289,21 @@ impl KeyCode {
         const SHIFT_PRESSED: usize = 0x10;
         const RIGHT_ALT_PRESSED: usize = 0x01;
         const LEFT_ALT_PRESSED: usize = 0x02;
-        const LEFT_CTRL_PRESSED: usize = 0x04;
-        const RIGHT_CTRL_PRESSED: usize = 0x08;
+        const LEFT_CTRL_PRESSED: usize = 0x08;
+        const RIGHT_CTRL_PRESSED: usize = 0x04;
 
         if mods.contains(Modifiers::SHIFT) {
             control_key_state |= SHIFT_PRESSED;
         }
         if mods.contains(Modifiers::ALT) {
-            if vkey == VK_RMENU {
+            if *self == RightAlt {
                 control_key_state |= RIGHT_ALT_PRESSED;
             } else {
                 control_key_state |= LEFT_ALT_PRESSED;
             }
         }
         if mods.contains(Modifiers::CTRL) {
-            if vkey == VK_RCONTROL {
+            if *self == RightControl {
                 control_key_state |= RIGHT_CTRL_PRESSED;
             } else {
                 control_key_state |= LEFT_CTRL_PRESSED;
