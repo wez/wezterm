@@ -17,6 +17,7 @@ use termwiz::escape::csi::{
 };
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::image::ImageData;
+use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
 use url::Url;
 
@@ -314,6 +315,7 @@ pub struct TerminalState {
     last_mouse_move: Option<MouseEvent>,
     cursor_visible: bool,
 
+    keyboard_encoding: KeyboardEncoding,
     /// Support for US, UK, and DEC Special Graphics
     g0_charset: CharSet,
     g1_charset: CharSet,
@@ -469,6 +471,7 @@ impl TerminalState {
             bracketed_paste: false,
             focus_tracking: false,
             mouse_encoding: MouseEncoding::X10,
+            keyboard_encoding: KeyboardEncoding::Xterm,
             sixel_scrolls_right: false,
             any_event_mouse: false,
             button_event_mouse: false,
@@ -1209,6 +1212,22 @@ impl TerminalState {
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat)) => {
                 // We leave key repeat to the GUI layer prefs
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Win32InputMode)) => {
+                self.keyboard_encoding = KeyboardEncoding::Win32;
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Win32InputMode)) => {
+                self.keyboard_encoding = KeyboardEncoding::Xterm;
+            }
+
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Win32InputMode)) => {
+                self.decqrm_response(
+                    mode,
+                    true,
+                    self.keyboard_encoding == KeyboardEncoding::Win32,
+                );
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(

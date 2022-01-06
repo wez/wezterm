@@ -17,6 +17,7 @@ use termwiz::escape::osc::{
 use termwiz::escape::{
     Action, ControlCode, DeviceControlMode, Esc, EscCode, OperatingSystemCommand, CSI,
 };
+use termwiz::input::KeyboardEncoding;
 use url::Url;
 
 /// A helper struct for implementing `vtparse::VTActor` while compartmentalizing
@@ -516,6 +517,7 @@ impl<'a> Performer<'a> {
                 self.bracketed_paste = false;
                 self.focus_tracking = false;
                 self.mouse_encoding = MouseEncoding::X10;
+                self.keyboard_encoding = KeyboardEncoding::Xterm;
                 self.sixel_scrolls_right = false;
                 self.any_event_mouse = false;
                 self.button_event_mouse = false;
