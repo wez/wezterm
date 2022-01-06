@@ -22,6 +22,10 @@ As features stabilize some brief notes about them will accumulate here.
 * **Key Assignments now use Physical Key locations by default!!** follow the work in progress in [#1483](https://github.com/wez/wezterm/issues/1483)
 
 #### Updated and Improved
+
+* IME composition now shows inline in the terminal using the terminal font on all IME supported platforms (Windows, macOS and X11)
+* dead key composition now shows inline in the terminal using the terminal font (Windows, macOS, X11 w/ IME enabled)
+
 #### Fixed
 
 * Regression that broke fontconfig aliases such as `"monospace"` [#1250](https://github.com/wez/wezterm/pull/1250)
@@ -29,6 +33,7 @@ As features stabilize some brief notes about them will accumulate here.
 * The new tab button in the fancy tab didn't respect `new_tab_hover` colors [#1498](https://github.com/wez/wezterm/issues/1498)
 * Font baseline alignment when mixing symbols/emoji with the main text [#1499](https://github.com/wez/wezterm/issues/1499)
 * Glitchy window resize [#1491](https://github.com/wez/wezterm/issues/1491)
+* Ligatured glyphs no longer turn partially black when cursoring through them [#478](https://github.com/wez/wezterm/issues/478)
 
 ### 20220101-133340-7edc5b5a
 
