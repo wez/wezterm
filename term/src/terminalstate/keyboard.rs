@@ -26,7 +26,11 @@ impl TerminalState {
             },
         )?;
 
-        log::trace!("sending {:?}, {:?}", to_send, key);
+        if self.config.debug_key_events() {
+            log::info!("key_down: sending {:?}, {:?} {:?}", to_send, key, mods);
+        } else {
+            log::trace!("key_down: sending {:?}, {:?} {:?}", to_send, key, mods);
+        }
         self.writer.write_all(to_send.as_bytes())?;
         self.writer.flush()?;
 
