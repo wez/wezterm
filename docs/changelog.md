@@ -34,6 +34,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Font baseline alignment when mixing symbols/emoji with the main text [#1499](https://github.com/wez/wezterm/issues/1499)
 * Glitchy window resize [#1491](https://github.com/wez/wezterm/issues/1491)
 * Ligatured glyphs no longer turn partially black when cursoring through them [#478](https://github.com/wez/wezterm/issues/478)
+* Kitty Image Protocol: didn't respect `c` and `r` parameters to scale images
 
 ### 20220101-133340-7edc5b5a
 
