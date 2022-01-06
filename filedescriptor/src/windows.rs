@@ -564,7 +564,7 @@ mod test {
     #[test]
     fn socketpair() {
         let (mut a, mut b) = super::socketpair_impl().unwrap();
-        a.write(b"hello").unwrap();
+        a.write_all(b"hello").unwrap();
         let mut buf = [0u8; 5];
         assert_eq!(b.read(&mut buf).unwrap(), 5);
         assert_eq!(&buf, b"hello");
