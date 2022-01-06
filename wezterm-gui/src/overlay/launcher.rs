@@ -569,7 +569,7 @@ impl LauncherState {
     }
 
     fn launch(&self, active_idx: usize) {
-        match self.entries[active_idx].clone().kind {
+        match self.filtered_entries[active_idx].clone().kind {
             EntryKind::Attach { domain } => {
                 promise::spawn::spawn_into_main_thread(async move {
                     // We can't inline do_domain_attach here directly
