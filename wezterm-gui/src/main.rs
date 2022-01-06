@@ -503,9 +503,17 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
             // revised list that includes system fallbacks!
             let handles = font.clone_handles();
 
-            for info in infos {
+            let mut iter = infos.iter().peekable();
+            while let Some(info) = iter.next() {
+                let idx = cluster.byte_to_cell_idx(info.cluster as usize);
+                let text = if let Some(ahead) = iter.peek() {
+                    line.columns_as_str(idx..cluster.byte_to_cell_idx(ahead.cluster as usize))
+                } else {
+                    line.columns_as_str(idx..line.cells().len())
+                };
+
                 let parsed = &handles[info.font_idx];
-                let escaped = format!("{}", cluster.text.escape_unicode());
+                let escaped = format!("{}", text.escape_unicode());
                 if config.custom_block_glyphs {
                     if let Some(block) = customglyph::BlockKey::from_str(&text) {
                         println!(
@@ -517,9 +525,10 @@ pub fn run_ls_fonts(config: config::ConfigHandle, cmd: &LsFontsCommand) -> anyho
                 }
 
                 println!(
-                    "{:4} {:12} glyph={:<4} {}\n{:29}{}",
-                    cluster.text,
+                    "{:4} {:12} x_adv={:<2} glyph={:<4} {}\n{:38}{}",
+                    text,
                     escaped,
+                    info.x_advance.get(),
                     info.glyph_pos,
                     parsed.lua_name(),
                     "",
