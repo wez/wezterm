@@ -11,7 +11,9 @@ An optional *timeout* parameter can be provided; if so, it specifies how long
 the notification will remain prominently displayed in milliseconds.  To specify
 a timeout without specifying a url, set the url parameter to `nil`.  The timeout
 you specify may not be respected by the system, particularly in X11/Wayland
-environments.
+environments. *Note: On Windows the specified timeout will not be honored. The
+default is a duration of 25s, unless wezterm is built without the duration 
+attribute in the toast tag in which case it will default to 7s.*
 
 The notification will persist on screen until dismissed or clicked, or until its
 timeout duration elapses.
