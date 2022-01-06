@@ -8,7 +8,7 @@
 
 
         <!-- Custom HTML head -->
-        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -91,7 +91,7 @@
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky bordered">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -438,6 +438,10 @@ usually the best available version.</p>
 <li><strong>Key Assignments now use Physical Key locations by default!!</strong> follow the work in progress in <a href="https://github.com/wez/wezterm/issues/1483">#1483</a></li>
 </ul>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
+<ul>
+<li>IME composition now shows inline in the terminal using the terminal font on all IME supported platforms (Windows, macOS and X11)</li>
+<li>dead key composition now shows inline in the terminal using the terminal font (Windows, macOS, X11 w/ IME enabled)</li>
+</ul>
 <h4 id="fixed"><a class="header" href="#fixed">Fixed</a></h4>
 <ul>
 <li>Regression that broke fontconfig aliases such as <code>&quot;monospace&quot;</code> <a href="https://github.com/wez/wezterm/pull/1250">#1250</a></li>
@@ -445,6 +449,7 @@ usually the best available version.</p>
 <li>The new tab button in the fancy tab didn't respect <code>new_tab_hover</code> colors <a href="https://github.com/wez/wezterm/issues/1498">#1498</a></li>
 <li>Font baseline alignment when mixing symbols/emoji with the main text <a href="https://github.com/wez/wezterm/issues/1499">#1499</a></li>
 <li>Glitchy window resize <a href="https://github.com/wez/wezterm/issues/1491">#1491</a></li>
+<li>Ligatured glyphs no longer turn partially black when cursoring through them <a href="https://github.com/wez/wezterm/issues/478">#478</a></li>
 </ul>
 <h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
