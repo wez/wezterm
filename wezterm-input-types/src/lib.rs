@@ -229,7 +229,7 @@ impl KeyCode {
             Self::Physical(p) => *p,
             Self::LeftShift => PhysKeyCode::LeftShift,
             Self::RightShift => PhysKeyCode::RightShift,
-            Self::LeftAlt => PhysKeyCode::LeftAlt,
+            Self::Alt | Self::LeftAlt => PhysKeyCode::LeftAlt,
             Self::RightAlt => PhysKeyCode::RightAlt,
             Self::LeftWindows => PhysKeyCode::LeftWindows,
             Self::RightWindows => PhysKeyCode::RightWindows,
@@ -284,7 +284,6 @@ impl KeyCode {
             | Self::Shift
             | Self::Cancel
             | Self::Control
-            | Self::Alt
             | Self::Hyper
             | Self::Super
             | Self::Meta
