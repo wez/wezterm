@@ -1126,6 +1126,10 @@ pub fn default_write_timeout() -> Duration {
     Duration::from_secs(60)
 }
 
+pub fn default_local_echo_threshold_ms() -> Option<u64> {
+    Some(100)
+}
+
 fn default_bypass_mouse_reporting_modifiers() -> Modifiers {
     Modifiers::SHIFT
 }

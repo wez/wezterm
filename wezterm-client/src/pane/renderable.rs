@@ -133,9 +133,11 @@ impl RenderableInner {
 
     /// Predictive echo can be noisy when the link is working well,
     /// so we only employ it when it looks like the latency is high.
-    /// We pick 100ms as the threshold for this.
     fn should_predict(&self) -> bool {
-        !self.client.is_local() && self.last_input_rtt >= 100
+        self.client
+            .local_echo_threshold_ms
+            .map(|thresh| self.last_input_rtt >= thresh)
+            .unwrap_or(false)
     }
 
     /// Compute a "prediction" and apply it to the line data that we
