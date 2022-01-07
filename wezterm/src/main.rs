@@ -607,18 +607,10 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
 }
 
 fn run_cli(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
-    let executor = promise::spawn::SimpleExecutor::new();
-    promise::spawn::spawn(async move {
-        match run_cli_async(config, cli).await {
-            Ok(_) => std::process::exit(0),
-            Err(err) => {
-                terminate_with_error(err);
-            }
-        }
-    })
-    .detach();
-    loop {
-        executor.tick()?;
+    let executor = promise::spawn::ScopedExecutor::new();
+    match promise::spawn::block_on(executor.run(async move { run_cli_async(config, cli).await })) {
+        Ok(_) => Ok(()),
+        Err(err) => terminate_with_error(err),
     }
 }
 
