@@ -66,7 +66,7 @@ use spawn::SpawnWhere;
 const ATLAS_SIZE: usize = 128;
 
 lazy_static::lazy_static! {
-    static ref WINDOW_CLASS: Mutex<String> = Mutex::new("org.wezfurlong.wezterm".to_owned());
+    static ref WINDOW_CLASS: Mutex<String> = Mutex::new(wezterm_gui_subcommands::DEFAULT_WINDOW_CLASS.to_owned());
 }
 
 pub const ICON_DATA: &'static [u8] = include_bytes!("../../../assets/icon/terminal.png");

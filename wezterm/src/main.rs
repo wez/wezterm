@@ -90,6 +90,19 @@ struct CliCommand {
     #[structopt(long = "no-auto-start")]
     no_auto_start: bool,
 
+    /// Prefer connecting to a background mux server.
+    /// The default is to prefer connecting to a running
+    /// wezterm gui instance
+    #[structopt(long = "prefer-mux")]
+    prefer_mux: bool,
+
+    /// When connecting to a gui instance, if you started the
+    /// gui with `--class SOMETHING`, you should also pass
+    /// that same value here in order for the client to find
+    /// the correct gui instance.
+    #[structopt(long = "class")]
+    class: Option<String>,
+
     #[structopt(subcommand)]
     sub: CliSubCommand,
 }
@@ -373,9 +386,19 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
 }
 
 async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
-    let initial = true;
     let mut ui = mux::connui::ConnectionUI::new_headless();
-    let client = Client::new_default_unix_domain(initial, &mut ui, cli.no_auto_start)?;
+    let initial = true;
+
+    let client = Client::new_default_unix_domain(
+        initial,
+        &mut ui,
+        cli.no_auto_start,
+        cli.prefer_mux,
+        cli.class
+            .as_deref()
+            .unwrap_or(wezterm_gui_subcommands::DEFAULT_WINDOW_CLASS),
+    )?;
+
     match cli.sub {
         CliSubCommand::List => {
             let cols = vec![

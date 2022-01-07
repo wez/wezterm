@@ -2,6 +2,8 @@ use config::SshParameters;
 use std::ffi::OsString;
 use structopt::StructOpt;
 
+pub const DEFAULT_WINDOW_CLASS: &str = "org.wezfurlong.wezterm";
+
 /// Helper for parsing config overrides
 pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
     if let Some(eq) = arg.find('=') {

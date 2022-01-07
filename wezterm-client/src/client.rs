@@ -1009,30 +1009,49 @@ impl Client {
         self.local_domain_id
     }
 
+    fn compute_unix_domain(
+        prefer_mux: bool,
+        class_name: &str,
+    ) -> anyhow::Result<config::UnixDomain> {
+        match std::env::var_os("WEZTERM_UNIX_SOCKET") {
+            Some(path) if !path.is_empty() => Ok(config::UnixDomain {
+                socket_path: Some(path.into()),
+                ..Default::default()
+            }),
+            Some(_) | None => {
+                if !prefer_mux {
+                    if let Ok(gui) = crate::discovery::resolve_gui_sock_path(class_name) {
+                        return Ok(config::UnixDomain {
+                            socket_path: Some(gui),
+                            no_serve_automatically: true,
+                            ..Default::default()
+                        });
+                    }
+                }
+
+                let config = configuration();
+                Ok(config
+                    .unix_domains
+                    .first()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "no default unix domain is configured and WEZTERM_UNIX_SOCKET \
+                             is not set in the environment"
+                        )
+                    })?
+                    .clone())
+            }
+        }
+    }
+
     pub fn new_default_unix_domain(
         initial: bool,
         ui: &mut ConnectionUI,
         no_auto_start: bool,
+        prefer_mux: bool,
+        class_name: &str,
     ) -> anyhow::Result<Self> {
-        let config = configuration();
-
-        let unix_dom = match std::env::var_os("WEZTERM_UNIX_SOCKET") {
-            Some(path) => config::UnixDomain {
-                socket_path: Some(path.into()),
-                ..Default::default()
-            },
-            None => config
-                .unix_domains
-                .first()
-                .ok_or_else(|| {
-                    anyhow!(
-                        "no default unix domain is configured and WEZTERM_UNIX_SOCKET \
-                        is not set in the environment"
-                    )
-                })?
-                .clone(),
-        };
-
+        let unix_dom = Self::compute_unix_domain(prefer_mux, class_name)?;
         Self::new_unix_domain(alloc_domain_id(), &unix_dom, initial, ui, no_auto_start)
     }
 
