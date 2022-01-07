@@ -108,3 +108,21 @@ return {
 }
 ```
 
+You may now specify the round-trip latency threshold for enabling predictive
+local echo using `local_echo_threshold_ms`. If the measured round-trip latency
+between the wezterm client and the server exceeds the specified threshold, the
+client will attempt to predict the server's response to key events and echo the
+result of that prediction locally without waiting, hence hiding latency to the
+user. This option only applies when `multiplexing = "WezTerm"`.
+
+```lua
+return {
+  ssh_domains = {
+    {
+      name = "my.server",
+      remote_address = "192.168.1.1",
+      local_echo_threshold_ms = 10,
+    }
+  },
+}
+```
