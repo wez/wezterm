@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::path::{Path, PathBuf};
 
 /// There's a lot more code in this windows module than I thought I would need
@@ -15,7 +16,6 @@ use std::path::{Path, PathBuf};
 /// the name from the namespace when there are no more references to it.
 #[cfg(windows)]
 mod windows {
-    use anyhow::Context;
     use super::*;
     use std::io::Error as IoError;
     use winapi::um::handleapi::{CloseHandle, INVALID_HANDLE_VALUE};
@@ -246,16 +246,50 @@ mod windows {
 }
 
 #[allow(dead_code)]
-mod fallback {
+mod unix {
     use super::*;
+
     pub struct NameHolder {}
+
     impl NameHolder {
-        pub fn new(_path: &Path, _class_name: &str) -> anyhow::Result<Self> {
-            anyhow::bail!("Sock path publishing not implemented on this system");
+        fn compute_name(class_name: &str) -> String {
+            #[cfg(not(target_os = "macos"))]
+            {
+                let config = configuration();
+                if config.enable_wayland {
+                    if let Ok(wayland) = std::env::var("WAYLAND_DISPLAY") {
+                        return format!("wayland-{}-{}", wayland, class_name);
+                    }
+                    // We don't assume a default WAYLAND_DISPLAY here because
+                    // we don't know if the default should be used or if we
+                    // should fall back to X11 without connecting to wayland.
+                    // We cannot introduce a dep on a wayland client library
+                    // here, but we could potentially try to construct a
+                    // unix domain socket client to see if our assumed default
+                    // is a working unix socket.
+                    // Something to fill in later as/when that question arises!
+                }
+                let x11 = std::env::var("DISPLAY").unwrap_or_else(|| ":0".to_string());
+                return format!("x11-{}-{}", x11, class_name);
+            }
+            format!("default-{}", class_name)
         }
 
-        pub fn resolve(_class_name: &str) -> anyhow::Result<PathBuf> {
-            anyhow::bail!("Sock path publishing not implemented on this system");
+        fn compute_path(class_name: &str) -> PathBuf {
+            config::RUNTIME_DIR.join(Self::compute_name(class_name))
+        }
+
+        pub fn new(path: &Path, class_name: &str) -> anyhow::Result<Self> {
+            let name = Self::compute_path(class_name);
+            std::fs::remove_file(&name).ok();
+            std::os::unix::fs::symlink(path, &name)
+                .with_context(|| format!("pointing {} -> {}", name.display(), path.display()))?;
+            Ok(Self {})
+        }
+
+        pub fn resolve(class_name: &str) -> anyhow::Result<PathBuf> {
+            let name = Self::compute_path(class_name);
+            std::fs::read_link(&name).with_context(|| format!("reading symlink {}", name.display()))
         }
     }
 }
@@ -263,8 +297,8 @@ mod fallback {
 #[cfg(windows)]
 pub use self::windows::NameHolder;
 
-#[cfg(not(windows))]
-pub use self::fallback::NameHolder;
+#[cfg(unix)]
+pub use self::unix::NameHolder;
 
 /// Unconditionally update the published path to match the provided path,
 /// even if there is a running instance with a legitimate published path.
