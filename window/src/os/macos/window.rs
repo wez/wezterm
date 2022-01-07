@@ -1451,6 +1451,7 @@ impl WindowView {
             modifiers,
             repeat_count: 1,
             key_is_down: true,
+            raw: None,
         }
         .normalize_shift();
 
@@ -1518,6 +1519,7 @@ impl WindowView {
                 modifiers: Modifiers::NONE,
                 repeat_count: 1,
                 key_is_down,
+                raw: None,
             };
 
             inner.ime_text.clear();
@@ -1933,7 +1935,7 @@ impl WindowView {
             let mut inner = myself.inner.borrow_mut();
             inner
                 .events
-                .dispatch(WindowEvent::RawKeyEvent(raw_key_event));
+                .dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
         }
 
         if raw_key_handled.is_handled() {
@@ -1968,6 +1970,7 @@ impl WindowView {
                             modifiers: Modifiers::NONE,
                             repeat_count: 1,
                             key_is_down,
+                            raw: None,
                         };
                         inner.events.dispatch(WindowEvent::KeyEvent(event));
                         return;
@@ -2144,6 +2147,7 @@ impl WindowView {
                 modifiers,
                 repeat_count: 1,
                 key_is_down,
+                raw: Some(raw_key_event),
             }
             .normalize_ctrl()
             .normalize_shift();

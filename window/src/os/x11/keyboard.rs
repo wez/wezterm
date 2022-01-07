@@ -176,31 +176,30 @@ impl Keyboard {
         let raw_modifiers = self.get_key_modifiers();
 
         let xsym = self.state.borrow().key_get_one_sym(xcode);
+        let handled = Handled::new();
+
+        let raw_key_event = RawKeyEvent {
+            key: match phys_code {
+                Some(phys) => KeyCode::Physical(phys),
+                None => KeyCode::RawCode(xcode),
+            },
+            phys_code,
+            raw_code: xcode,
+            modifiers: raw_modifiers,
+            repeat_count: 1,
+            key_is_down: pressed,
+            handled: handled.clone(),
+        };
 
         let mut kc = None;
         let ksym = if pressed {
-            let handled = Handled::new();
-
-            let raw_key_event = RawKeyEvent {
-                key: match phys_code {
-                    Some(phys) => KeyCode::Physical(phys),
-                    None => KeyCode::RawCode(xcode),
-                },
-                phys_code,
-                raw_code: xcode,
-                modifiers: raw_modifiers,
-                repeat_count: 1,
-                key_is_down: pressed,
-                handled: handled.clone(),
-            };
-
             events.dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
             if handled.is_handled() {
                 self.compose_state.borrow_mut().reset();
                 log::trace!("raw key was handled; not processing further");
 
                 if want_repeat {
-                    return Some(WindowKeyEvent::RawKeyEvent(raw_key_event));
+                    return Some(WindowKeyEvent::RawKeyEvent(raw_key_event.clone()));
                 }
                 return None;
             }
@@ -251,6 +250,7 @@ impl Keyboard {
             modifiers: raw_modifiers,
             repeat_count: 1,
             key_is_down: pressed,
+            raw: Some(raw_key_event),
         }
         .normalize_ctrl()
         .normalize_shift();

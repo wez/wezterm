@@ -1257,6 +1257,9 @@ pub struct Config {
 
     #[serde(default = "default_true")]
     pub allow_download_protocols: bool,
+
+    #[serde(default = "default_true")]
+    pub allow_win32_input_mode: bool,
 }
 impl_lua_conversion!(Config);
 

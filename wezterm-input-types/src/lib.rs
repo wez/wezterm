@@ -832,8 +832,16 @@ impl Handled {
     }
 }
 
+impl PartialEq for Handled {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for Handled {}
+
 /// A key event prior to any dead key or IME composition
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct RawKeyEvent {
     pub key: KeyCode,
     pub modifiers: Modifiers,
@@ -842,6 +850,10 @@ pub struct RawKeyEvent {
     pub phys_code: Option<PhysKeyCode>,
     /// The OS and hardware dependent key code for the key
     pub raw_code: u32,
+
+    /// The *other* OS and hardware dependent key code for the key
+    #[cfg(windows)]
+    pub scan_code: u32,
 
     /// How many times this key repeats
     pub repeat_count: u16,
@@ -873,6 +885,9 @@ pub struct KeyEvent {
 
     /// If true, this is a key down rather than a key up event
     pub key_is_down: bool,
+
+    /// If triggered from a raw key event, here it is.
+    pub raw: Option<RawKeyEvent>,
 }
 
 fn normalize_shift(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
@@ -922,6 +937,58 @@ impl KeyEvent {
         self.modifiers = modifiers;
 
         self
+    }
+
+    #[cfg(not(windows))]
+    pub fn encode_win32_input_mode(&self) -> Option<String> {
+        None
+    }
+
+    /// <https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md>
+    #[cfg(windows)]
+    pub fn encode_win32_input_mode(&self) -> Option<String> {
+        let phys = self.raw.as_ref()?;
+
+        let vkey = phys.raw_code;
+        let scan_code = phys.scan_code;
+        // <https://docs.microsoft.com/en-us/windows/console/key-event-record-str>
+        // defines the dwControlKeyState values
+        let mut control_key_state = 0;
+        const SHIFT_PRESSED: usize = 0x10;
+        // const RIGHT_ALT_PRESSED: usize = 0x01;
+        const LEFT_ALT_PRESSED: usize = 0x02;
+        const LEFT_CTRL_PRESSED: usize = 0x08;
+        // const RIGHT_CTRL_PRESSED: usize = 0x04;
+
+        if self.modifiers.contains(Modifiers::SHIFT) {
+            control_key_state |= SHIFT_PRESSED;
+        }
+        if self.modifiers.contains(Modifiers::ALT) {
+            control_key_state |= LEFT_ALT_PRESSED;
+        }
+        if self.modifiers.contains(Modifiers::CTRL) {
+            control_key_state |= LEFT_CTRL_PRESSED;
+        }
+
+        let key_down = if self.key_is_down { 1 } else { 0 };
+
+        match &self.key {
+            KeyCode::Composed(_) => None,
+            KeyCode::Char(c) => {
+                let uni = *c as u32;
+                Some(format!(
+                    "\u{1b}[{};{};{};{};{};{}_",
+                    vkey, scan_code, uni, key_down, control_key_state, self.repeat_count
+                ))
+            }
+            _ => {
+                let uni = 0;
+                Some(format!(
+                    "\u{1b}[{};{};{};{};{};{}_",
+                    vkey, scan_code, uni, key_down, control_key_state, self.repeat_count
+                ))
+            }
+        }
     }
 }
 

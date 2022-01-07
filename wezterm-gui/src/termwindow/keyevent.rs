@@ -1,7 +1,9 @@
 use ::window::{DeadKeyStatus, KeyCode, KeyEvent, Modifiers, RawKeyEvent, WindowOps};
+use anyhow::Context;
 use mux::pane::Pane;
 use smol::Timer;
 use std::rc::Rc;
+use termwiz::input::KeyboardEncoding;
 
 pub fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input::Modifiers {
     let mut result = termwiz::input::Modifiers::NONE;
@@ -43,6 +45,15 @@ enum OnlyKeyBindings {
 }
 
 impl super::TermWindow {
+    fn encode_win32_input(&self, pane: &Rc<dyn Pane>, key: &KeyEvent) -> Option<String> {
+        if !self.config.allow_win32_input_mode
+            || pane.get_keyboard_encoding() != KeyboardEncoding::Win32
+        {
+            return None;
+        }
+        key.encode_win32_input_mode()
+    }
+
     fn process_key(
         &mut self,
         pane: &Rc<dyn Pane>,
@@ -341,7 +352,14 @@ impl super::TermWindow {
                     log::info!("send to pane key={:?} mods={:?}", key, modifiers);
                 }
 
-                let res = if window_key.key_is_down {
+                let res = if let Some(encoded) = self.encode_win32_input(&pane, &window_key) {
+                    if self.config.debug_key_events {
+                        log::info!("Encoded input as {:?}", encoded);
+                    }
+                    pane.writer()
+                        .write_all(encoded.as_bytes())
+                        .context("sending win32-input-mode encoded data")
+                } else if window_key.key_is_down {
                     pane.key_down(key, modifiers)
                 } else {
                     pane.key_up(key, modifiers)

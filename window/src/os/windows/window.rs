@@ -1330,6 +1330,7 @@ unsafe fn ime_composition(
                     modifiers: Modifiers::NONE,
                     repeat_count: 1,
                     key_is_down: true,
+                    raw: None,
                 };
                 inner
                     .events
@@ -1760,6 +1761,21 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             keys[VK_RCONTROL as usize] = 0;
         }
 
+        let handled_raw = Handled::new();
+        let raw_key_event = RawKeyEvent {
+            key: match phys_code {
+                Some(phys) => KeyCode::Physical(phys),
+                None => KeyCode::RawCode(wparam as _),
+            },
+            phys_code,
+            raw_code: wparam as _,
+            scan_code: scan_code as _,
+            modifiers,
+            repeat_count: 1,
+            key_is_down: !releasing,
+            handled: handled_raw.clone(),
+        };
+
         let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
             // If we were sent a character by the IME, some other apps,
             // or by ourselves via TranslateMessage, then take that
@@ -1770,22 +1786,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // ToUnicode has frustrating statefulness so we take care to
             // call it only when we think it will give consistent results.
 
-            let handled_raw = Handled::new();
-            let raw_key_event = RawKeyEvent {
-                key: match phys_code {
-                    Some(phys) => KeyCode::Physical(phys),
-                    None => KeyCode::RawCode(wparam as _),
-                },
-                phys_code,
-                raw_code: wparam as _,
-                modifiers,
-                repeat_count: 1,
-                key_is_down: !releasing,
-                handled: handled_raw.clone(),
-            };
             inner
                 .events
-                .dispatch(WindowEvent::RawKeyEvent(raw_key_event));
+                .dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
             if handled_raw.is_handled() {
                 // Cancel any pending dead key
                 if inner.dead_pending.take().is_some() {
@@ -1840,6 +1843,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                                 modifiers,
                                 repeat_count: 1,
                                 key_is_down: !releasing,
+                                raw: None,
                             }
                             .normalize_shift()
                             .normalize_ctrl();
@@ -1957,6 +1961,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 modifiers,
                 repeat_count: repeat,
                 key_is_down: !releasing,
+                raw: Some(raw_key_event),
             }
             .normalize_shift();
 

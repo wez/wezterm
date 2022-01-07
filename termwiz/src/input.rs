@@ -251,87 +251,12 @@ impl KeyCode {
         )
     }
 
-    /// <https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md>
-    /// We only encode a handful of specific keys where we know that we can
-    /// translate between the VK_XXX value and our own representation,
-    /// and where it resolves potential ambiguity, or allows passing through
-    /// key down events for modifier keys themselves.
-    /// We don't have enough information here to represent all possible
-    /// key presses correctly in the win32-input-mode encoding.
-    pub fn encode_win32_input_mode(&self, mods: Modifiers, is_down: bool) -> Option<String> {
-        use KeyCode::*;
-
-        // <https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes>
-        const VK_BACK: usize = 0x08;
-        const VK_SPACE: usize = 0x20;
-        const VK_RETURN: usize = 0x0d;
-        const VK_F1: usize = 0x70;
-        const VK_SHIFT: usize = 0x10;
-        const VK_CONTROL: usize = 0x11;
-        const VK_MENU: usize = 0x12;
-
-        // Note that we normalize left/right modifiers to just the main
-        // VK for that key type, so that eg: powershell doesn't get
-        // confused and interpret the record as an `@` key event.
-
-        let (vkey, uni) = match self {
-            Char(' ') => (VK_SPACE, 0x20),
-            Enter => (VK_RETURN, 0x0d),
-            Backspace => (VK_BACK, 0x0a),
-            Function(n) if *n >= 1 && *n <= 24 => ((*n as usize - 1) + VK_F1, 0x0),
-            LeftShift | Shift | RightShift => (VK_SHIFT, 0x0),
-            LeftControl | Control | RightControl => (VK_CONTROL, 0x0),
-            LeftAlt | Alt | RightAlt => (VK_MENU, 0x0),
-            _ => return None,
-        };
-
-        // <https://docs.microsoft.com/en-us/windows/console/key-event-record-str>
-        // defines the dwControlKeyState values
-        let mut control_key_state = 0;
-        const SHIFT_PRESSED: usize = 0x10;
-        const RIGHT_ALT_PRESSED: usize = 0x01;
-        const LEFT_ALT_PRESSED: usize = 0x02;
-        const LEFT_CTRL_PRESSED: usize = 0x08;
-        const RIGHT_CTRL_PRESSED: usize = 0x04;
-
-        if mods.contains(Modifiers::SHIFT) {
-            control_key_state |= SHIFT_PRESSED;
-        }
-        if mods.contains(Modifiers::ALT) {
-            if *self == RightAlt {
-                control_key_state |= RIGHT_ALT_PRESSED;
-            } else {
-                control_key_state |= LEFT_ALT_PRESSED;
-            }
-        }
-        if mods.contains(Modifiers::CTRL) {
-            if *self == RightControl {
-                control_key_state |= RIGHT_CTRL_PRESSED;
-            } else {
-                control_key_state |= LEFT_CTRL_PRESSED;
-            }
-        }
-
-        let key_down = if is_down { 1 } else { 0 };
-
-        Some(format!(
-            "\u{1b}[{};;{};{};{}_",
-            vkey, uni, key_down, control_key_state
-        ))
-    }
-
     pub fn encode_up_down(
         &self,
         mods: Modifiers,
         modes: KeyCodeEncodeModes,
         is_down: bool,
     ) -> Result<String> {
-        if modes.encoding == KeyboardEncoding::Win32 {
-            if let Some(res) = self.encode_win32_input_mode(mods, is_down) {
-                return Ok(res);
-            }
-        }
-
         if !is_down {
             return Ok(String::new());
         }

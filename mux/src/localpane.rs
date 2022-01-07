@@ -18,6 +18,7 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use termwiz::escape::DeviceControlMode;
+use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -69,6 +70,10 @@ impl Pane for LocalPane {
             cursor.visibility = termwiz::surface::CursorVisibility::Hidden;
         }
         cursor
+    }
+
+    fn get_keyboard_encoding(&self) -> KeyboardEncoding {
+        self.terminal.borrow().get_keyboard_encoding()
     }
 
     fn get_current_seqno(&self) -> SequenceNo {

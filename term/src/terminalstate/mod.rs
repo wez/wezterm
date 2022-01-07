@@ -2393,4 +2393,8 @@ impl TerminalState {
     pub fn get_reverse_video(&self) -> bool {
         self.reverse_video_mode
     }
+
+    pub fn get_keyboard_encoding(&self) -> KeyboardEncoding {
+        self.keyboard_encoding
+    }
 }

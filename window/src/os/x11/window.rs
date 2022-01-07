@@ -434,6 +434,7 @@ impl XWindowInner {
             modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,
+            raw: None,
         }
         .normalize_shift();
         self.events.dispatch(WindowEvent::KeyEvent(key_event));

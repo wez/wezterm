@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
 use termwiz::hyperlink::Rule;
+use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -329,6 +330,10 @@ pub trait Pane: Downcast {
     fn kill(&self) {}
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
+
+    fn get_keyboard_encoding(&self) -> KeyboardEncoding {
+        KeyboardEncoding::Xterm
+    }
 
     fn copy_user_vars(&self) -> HashMap<String, String> {
         HashMap::new()
