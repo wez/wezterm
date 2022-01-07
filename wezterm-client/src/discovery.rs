@@ -272,7 +272,7 @@ mod unix {
         fn compute_name(class_name: &str) -> String {
             #[cfg(not(target_os = "macos"))]
             {
-                let config = configuration();
+                let config = config::configuration();
                 if config.enable_wayland {
                     if let Ok(wayland) = std::env::var("WAYLAND_DISPLAY") {
                         return format!("wayland-{}-{}", wayland, class_name);
@@ -286,10 +286,13 @@ mod unix {
                     // is a working unix socket.
                     // Something to fill in later as/when that question arises!
                 }
-                let x11 = std::env::var("DISPLAY").unwrap_or_else(|| ":0".to_string());
+                let x11 = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
                 return format!("x11-{}-{}", x11, class_name);
             }
-            format!("default-{}", class_name)
+            #[cfg(target_os = "macos")]
+            {
+                format!("default-{}", class_name)
+            }
         }
 
         fn compute_path(class_name: &str) -> PathBuf {
