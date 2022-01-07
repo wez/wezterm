@@ -1780,7 +1780,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 raw_code: wparam as _,
                 modifiers,
                 repeat_count: 1,
-                key_is_down: true,
+                key_is_down: !releasing,
                 handled: handled_raw.clone(),
             };
             inner
