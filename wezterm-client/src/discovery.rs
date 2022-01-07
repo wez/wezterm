@@ -247,7 +247,7 @@ mod windows {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(unix)]
 mod unix {
     use super::*;
 
