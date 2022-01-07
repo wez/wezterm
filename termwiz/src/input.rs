@@ -262,6 +262,7 @@ impl KeyCode {
         use KeyCode::*;
 
         // <https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes>
+        const VK_BACK: usize = 0x08;
         const VK_SPACE: usize = 0x20;
         const VK_RETURN: usize = 0x0d;
         const VK_F1: usize = 0x70;
@@ -276,6 +277,7 @@ impl KeyCode {
         let (vkey, uni) = match self {
             Char(' ') => (VK_SPACE, 0x20),
             Enter => (VK_RETURN, 0x0d),
+            Backspace => (VK_BACK, 0x0a),
             Function(n) if *n >= 1 && *n <= 24 => ((*n as usize - 1) + VK_F1, 0x0),
             LeftShift | Shift | RightShift => (VK_SHIFT, 0x0),
             LeftControl | Control | RightControl => (VK_CONTROL, 0x0),
