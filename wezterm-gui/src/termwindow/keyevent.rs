@@ -340,7 +340,7 @@ impl super::TermWindow {
 
         match key {
             Key::Code(key) => {
-                if leader_active && !key.is_modifier() {
+                if window_key.key_is_down && leader_active && !key.is_modifier() {
                     // Leader was pressed and this non-modifier keypress isn't
                     // a registered key binding; swallow this event and cancel
                     // the leader modifier.
