@@ -251,7 +251,22 @@ mod windows {
 mod unix {
     use super::*;
 
-    pub struct NameHolder {}
+    pub struct NameHolder {
+        published: PathBuf,
+        name: PathBuf,
+    }
+
+    impl Drop for NameHolder {
+        fn drop(&mut self) {
+            // If it still points to us, remove the symlink
+            if let Ok(target) = std::fs::read_link(&self.name) {
+                if target == self.published {
+                    log::trace!("removing {}", self.name.display());
+                    std::fs::remove_file(&self.name).ok();
+                }
+            }
+        }
+    }
 
     impl NameHolder {
         fn compute_name(class_name: &str) -> String {
@@ -286,7 +301,10 @@ mod unix {
             std::fs::remove_file(&name).ok();
             std::os::unix::fs::symlink(path, &name)
                 .with_context(|| format!("pointing {} -> {}", name.display(), path.display()))?;
-            Ok(Self {})
+            Ok(Self {
+                published: path.to_path_buf(),
+                name,
+            })
         }
 
         pub fn resolve(class_name: &str) -> anyhow::Result<PathBuf> {
