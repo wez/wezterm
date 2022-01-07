@@ -1,5 +1,7 @@
+use crate::UnixStream;
 use anyhow::Context;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 
 /// There's a lot more code in this windows module than I thought I would need
 /// to write.  Ostensibly, we could get away with making a symlink by taking
@@ -311,4 +313,53 @@ pub fn publish_gui_sock_path(path: &Path, class_name: &str) -> anyhow::Result<Na
 /// a running instance; it is just the last published path.
 pub fn resolve_gui_sock_path(class_name: &str) -> anyhow::Result<PathBuf> {
     NameHolder::resolve(class_name)
+}
+
+/// This function returns a list of the gui-sock- paths in
+/// the runtime dir.  These represent the locally running
+/// instances of wezterm-gui.
+/// The list is pruned of any entries that are not live
+/// and then sorted with the eldest instance first.
+pub fn discover_gui_socks() -> Vec<PathBuf> {
+    let mut socks = vec![];
+
+    #[derive(Debug)]
+    struct Entry {
+        path: PathBuf,
+        age: Duration,
+    }
+
+    fn meta_age(t: std::io::Result<SystemTime>) -> Duration {
+        t.ok()
+            .and_then(|t| SystemTime::now().duration_since(t).ok())
+            .unwrap_or(Duration::from_millis(300))
+    }
+
+    if let Ok(dir) = std::fs::read_dir(&*config::RUNTIME_DIR) {
+        for entry in dir {
+            if let Ok(entry) = entry {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.starts_with("gui-sock-") {
+                        let path = entry.path();
+                        if let Ok(meta) = entry.metadata() {
+                            let age = meta_age(meta.created());
+                            if is_sock_dead(&path) && age > Duration::from_secs(1) {
+                                let _ = std::fs::remove_file(&path);
+                            } else {
+                                socks.push(Entry { path, age });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    socks.sort_by(|a, b| a.age.cmp(&b.age).reverse());
+    log::trace!("{:?}", socks);
+    socks.into_iter().map(|e| e.path).collect()
+}
+
+fn is_sock_dead(sock: &std::path::Path) -> bool {
+    UnixStream::connect(sock).is_err()
 }
