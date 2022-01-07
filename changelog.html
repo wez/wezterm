@@ -7,7 +7,7 @@
 
 
         <!-- Custom HTML head -->
-        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -90,7 +90,7 @@
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky bordered">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -163,6 +163,7 @@ usually the best available version.</p>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
 <li><strong>Key Assignments now use Physical Key locations by default!!</strong> follow the work in progress in <a href="https://github.com/wez/wezterm/issues/1483">#1483</a></li>
+<li><code>wezterm cli</code>, when run outside of a wezterm pane, now prefers to connect to the main GUI instance rather than background mux server. Use <code>wezterm cli --prefer-mux</code> to ignore the GUI instance and talk only to the mux server. See <code>wezterm cli --help</code> for additional information.</li>
 </ul>
 <h4 id="updated-and-improved"><a class="header" href="#updated-and-improved">Updated and Improved</a></h4>
 <ul>
