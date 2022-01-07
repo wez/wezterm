@@ -48,6 +48,10 @@ pub struct UnixDomain {
 
     #[serde(default = "default_write_timeout")]
     pub write_timeout: Duration,
+
+    /// Don't use default_local_echo_threshold_ms() here to
+    /// disable the predictive echo for Unix domains by default.
+    pub local_echo_threshold_ms: Option<u64>,
 }
 impl_lua_conversion!(UnixDomain);
 
@@ -62,6 +66,7 @@ impl Default for UnixDomain {
             skip_permissions_check: false,
             read_timeout: default_read_timeout(),
             write_timeout: default_write_timeout(),
+            local_echo_threshold_ms: None,
             proxy_command: None,
         }
     }
