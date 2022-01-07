@@ -25,9 +25,16 @@ pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
 #[derive(Debug, StructOpt, Default, Clone)]
 pub struct StartCommand {
     /// If true, do not connect to domains marked as connect_automatically
-    /// in your wezterm.toml configuration file.
+    /// in your wezterm configuration file.
     #[structopt(long = "no-auto-connect")]
     pub no_auto_connect: bool,
+
+    /// If enabled, don't try to ask an existing wezterm GUI instance
+    /// to start the command.  Instead, always start the GUI in this
+    /// invocation of wezterm so that you can wait for the command
+    /// to complete by waiting for this wezterm process to finish.
+    #[structopt(long = "always-new-process")]
+    pub always_new_process: bool,
 
     /// Specify the current working directory for the initially
     /// spawned program

@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use async_executor::Executor;
 use flume::{bounded, unbounded, Receiver, TryRecvError};
 use std::future::Future;
 use std::sync::{Arc, Mutex};
@@ -8,13 +9,14 @@ pub use async_task::{Runnable, Task};
 pub type SpawnFunc = Box<dyn FnOnce() + Send>;
 pub type ScheduleFunc = Box<dyn Fn(Runnable) + Send + Sync + 'static>;
 
-fn no_schedule_configured(_: Runnable) {
+fn no_scheduler_configured(_: Runnable) {
     panic!("no scheduler has been configured");
 }
 
 lazy_static::lazy_static! {
-    static ref ON_MAIN_THREAD: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_schedule_configured));
-    static ref ON_MAIN_THREAD_LOW_PRI: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_schedule_configured));
+    static ref ON_MAIN_THREAD: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_scheduler_configured));
+    static ref ON_MAIN_THREAD_LOW_PRI: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_scheduler_configured));
+    static ref SCOPED_EXECUTOR: Mutex<Option<Arc<Executor<'static>>>> = Mutex::new(None);
 }
 
 fn schedule_runnable(runnable: Runnable, high_pri: bool) {
@@ -104,6 +106,14 @@ where
     spawn_into_main_thread(PendingResult { rx, holder })
 }
 
+fn get_scoped() -> Option<Arc<Executor<'static>>> {
+    SCOPED_EXECUTOR
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|e| Arc::clone(&e))
+}
+
 /// Spawn a future into the main thread; it will be polled in the
 /// main thread.
 /// This function can be called from any thread.
@@ -114,6 +124,9 @@ where
     F: Future<Output = R> + Send + 'static,
     R: Send + 'static,
 {
+    if let Some(executor) = get_scoped() {
+        return executor.spawn(future);
+    }
     let (runnable, task) = async_task::spawn(future, |runnable| schedule_runnable(runnable, true));
     runnable.schedule();
     task
@@ -130,6 +143,9 @@ where
     F: Future<Output = R> + Send + 'static,
     R: Send + 'static,
 {
+    if let Some(executor) = get_scoped() {
+        return executor.spawn(future);
+    }
     let (runnable, task) = async_task::spawn(future, |runnable| schedule_runnable(runnable, false));
     runnable.schedule();
     task
@@ -200,5 +216,31 @@ impl SimpleExecutor {
             Err(err) => anyhow::bail!("while waiting for events: {:?}", err),
         };
         Ok(())
+    }
+}
+
+pub struct ScopedExecutor {}
+
+impl ScopedExecutor {
+    pub fn new() -> Self {
+        SCOPED_EXECUTOR
+            .lock()
+            .unwrap()
+            .replace(Arc::new(Executor::new()));
+
+        Self {}
+    }
+
+    pub async fn run<T>(&self, future: impl Future<Output = T>) -> T {
+        get_scoped()
+            .expect("SCOPED_EXECUTOR to be alive as long as ScopedExecutor")
+            .run(future)
+            .await
+    }
+}
+
+impl Drop for ScopedExecutor {
+    fn drop(&mut self) {
+        SCOPED_EXECUTOR.lock().unwrap().take();
     }
 }

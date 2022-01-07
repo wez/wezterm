@@ -332,6 +332,10 @@ pub fn set_config_overrides(items: &[(String, String)]) {
     *CONFIG_OVERRIDES.lock().unwrap() = items.to_vec();
 }
 
+pub fn is_config_overridden() -> bool {
+    !CONFIG_OVERRIDES.lock().unwrap().is_empty() || CONFIG_FILE_OVERRIDE.lock().unwrap().is_some()
+}
+
 /// Discard the current configuration and replace it with
 /// the default configuration
 pub fn use_default_configuration() {

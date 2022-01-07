@@ -11,6 +11,7 @@ use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use promise::spawn::block_on;
 use std::ffi::OsString;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use structopt::StructOpt;
@@ -339,22 +340,103 @@ async fn async_run_terminal_gui(
     spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
 }
 
+fn resolve_gui_sock_path_if_appropriate(always_new_process: bool) -> Option<PathBuf> {
+    if always_new_process {
+        return None;
+    }
+
+    if config::is_config_overridden() {
+        // They're using a specific config file: assume that it is
+        // different from the running gui
+        log::trace!("skip existing gui: config is different");
+        return None;
+    }
+
+    wezterm_client::discovery::resolve_gui_sock_path(&crate::termwindow::get_window_class()).ok()
+}
+
 fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
     }
 
+    let config = config::configuration();
+    let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();
+
+    let cmd = if need_builder {
+        let prog = opts.prog.iter().map(|s| s.as_os_str()).collect::<Vec<_>>();
+        let mut builder = config.build_prog(
+            if prog.is_empty() { None } else { Some(prog) },
+            config.default_prog.as_ref(),
+            config.default_cwd.as_ref(),
+        )?;
+        if let Some(cwd) = opts.cwd {
+            builder.cwd(cwd);
+        }
+        Some(builder)
+    } else {
+        None
+    };
+
+    // First, let's see if we can ask an already running wezterm to do this
+    if let Some(gui_sock) = resolve_gui_sock_path_if_appropriate(opts.always_new_process) {
+        log::trace!("will try existing gui");
+        let dom = config::UnixDomain {
+            socket_path: Some(gui_sock),
+            no_serve_automatically: true,
+            ..Default::default()
+        };
+        let mut ui = mux::connui::ConnectionUI::new_headless();
+        match wezterm_client::client::Client::new_unix_domain(
+            mux::domain::alloc_domain_id(),
+            &dom,
+            false,
+            &mut ui,
+            true,
+        ) {
+            Ok(client) => {
+                let executor = promise::spawn::ScopedExecutor::new();
+                let command = cmd.clone();
+                let res = block_on(executor.run(async move {
+                    client.verify_version_compat(&mut ui).await?;
+                    client
+                        .spawn_v2(codec::SpawnV2 {
+                            domain: config::keyassignment::SpawnTabDomain::DefaultDomain,
+                            window_id: None,
+                            command,
+                            command_dir: None,
+                            size: config.initial_size(),
+                        })
+                        .await
+                }));
+
+                match res {
+                    Ok(res) => {
+                        log::info!(
+                            "Spawned your command via the existing GUI instance. Result={:?}",
+                            res
+                        );
+                        return Ok(());
+                    }
+                    Err(err) => {
+                        log::warn!(
+                            "while attempting to ask existing instance to spawn: {:#}",
+                            err
+                        );
+                    }
+                }
+            }
+            Err(err) => {
+                // Couldn't connect: it's probably a stale symlink.
+                // That's fine: we can continue with starting a fresh gui below.
+                log::trace!("{:#}", err);
+            }
+        }
+    }
+
     let unix_socket_path =
         config::RUNTIME_DIR.join(format!("gui-sock-{}", unsafe { libc::getpid() }));
     std::env::set_var("WEZTERM_UNIX_SOCKET", unix_socket_path.clone());
-
-    let name_holder = wezterm_client::discovery::publish_gui_sock_path(
-        &unix_socket_path,
-        &crate::termwindow::get_window_class(),
-    );
-    if let Err(err) = &name_holder {
-        log::warn!("{:#}", err);
-    }
 
     if let Ok(mut listener) =
         wezterm_mux_server_impl::local::LocalListener::with_domain(&config::UnixDomain {
@@ -362,76 +444,60 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
             ..Default::default()
         })
     {
+        let unix_socket_path = unix_socket_path.clone();
         std::thread::spawn(move || {
+            let name_holder = wezterm_client::discovery::publish_gui_sock_path(
+                &unix_socket_path,
+                &crate::termwindow::get_window_class(),
+            );
+            if let Err(err) = &name_holder {
+                log::warn!("{:#}", err);
+            }
+
             listener.run();
+            std::fs::remove_file(unix_socket_path).ok(); // FIXME: move into listener itself
         });
     }
 
-    let run = move || -> anyhow::Result<()> {
-        let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
+    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
+    Mux::set_mux(&mux);
+    crate::update::load_last_release_info_and_set_banner();
 
-        let cmd = if need_builder {
-            let config = config::configuration();
-            let prog = opts.prog.iter().map(|s| s.as_os_str()).collect::<Vec<_>>();
-            let mut builder = config.build_prog(
-                if prog.is_empty() { None } else { Some(prog) },
-                config.default_prog.as_ref(),
-                config.default_cwd.as_ref(),
-            )?;
-            if let Some(cwd) = opts.cwd {
-                builder.cwd(cwd);
-            }
-            Some(builder)
-        } else {
-            None
-        };
+    let gui = crate::frontend::try_new()?;
+    let activity = Activity::new();
+    let do_auto_connect = !opts.no_auto_connect;
 
-        let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
-        let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
-        Mux::set_mux(&mux);
-        crate::update::load_last_release_info_and_set_banner();
+    promise::spawn::spawn(async move {
+        if let Err(err) = async_run_terminal_gui(cmd, do_auto_connect).await {
+            terminate_with_error(err);
+        }
+        drop(activity);
+    })
+    .detach();
 
-        let gui = crate::frontend::try_new()?;
-        let activity = Activity::new();
-        let do_auto_connect = !opts.no_auto_connect;
-
+    // Arrange to update the list of domains in the mux when the config is reloaded
+    fn do_update_mux_domains() {
         promise::spawn::spawn(async move {
-            if let Err(err) = async_run_terminal_gui(cmd, do_auto_connect).await {
-                terminate_with_error(err);
+            if let Err(err) = update_mux_domains(&config::configuration(), false).await {
+                log::error!("Error updating mux domains: {:#}", err);
             }
-            drop(activity);
         })
         .detach();
+    }
 
-        // Arrange to update the list of domains in the mux when the config is reloaded
-        fn do_update_mux_domains() {
-            promise::spawn::spawn(async move {
-                if let Err(err) = update_mux_domains(&config::configuration(), false).await {
-                    log::error!("Error updating mux domains: {:#}", err);
-                }
-            })
-            .detach();
-        }
+    let _config_subscription = config::subscribe_to_config_reload(move || {
+        promise::spawn::spawn_into_main_thread(async move {
+            // We can't inline the call to update_mux_domains here because
+            // the compiler would then want its body to be Send
+            do_update_mux_domains();
+        })
+        .detach();
+        true
+    });
 
-        let _config_subscription = config::subscribe_to_config_reload(move || {
-            promise::spawn::spawn_into_main_thread(async move {
-                // We can't inline the call to update_mux_domains here because
-                // the compiler would then want its body to be Send
-                do_update_mux_domains();
-            })
-            .detach();
-            true
-        });
-
-        maybe_show_configuration_error_window();
-        gui.run_forever()
-    };
-
-    let res = run();
-
-    std::fs::remove_file(unix_socket_path).ok();
-
-    res
+    maybe_show_configuration_error_window();
+    gui.run_forever()
 }
 
 fn fatal_toast_notification(title: &str, message: &str) {
