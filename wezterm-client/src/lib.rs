@@ -4,5 +4,6 @@ use std::os::unix::net::UnixStream;
 use uds_windows::UnixStream;
 
 pub mod client;
+pub mod discovery;
 pub mod domain;
 pub mod pane;

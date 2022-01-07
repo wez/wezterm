@@ -4664,6 +4664,7 @@ dependencies = [
  "url",
  "wezterm-ssh",
  "wezterm-term",
+ "winapi 0.3.9",
 ]
 
 [[package]]

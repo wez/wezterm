@@ -348,6 +348,14 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
         config::RUNTIME_DIR.join(format!("gui-sock-{}", unsafe { libc::getpid() }));
     std::env::set_var("WEZTERM_UNIX_SOCKET", unix_socket_path.clone());
 
+    let name_holder = wezterm_client::discovery::publish_gui_sock_path(
+        &unix_socket_path,
+        &crate::termwindow::get_window_class(),
+    );
+    if let Err(err) = &name_holder {
+        log::warn!("{:#}", err);
+    }
+
     if let Ok(mut listener) =
         wezterm_mux_server_impl::local::LocalListener::with_domain(&config::UnixDomain {
             socket_path: Some(unix_socket_path.clone()),

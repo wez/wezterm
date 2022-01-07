@@ -33,3 +33,6 @@ wezterm-term = { path = "../term", features=["use_serde"] }
 
 [target."cfg(windows)".dependencies]
 uds_windows = "1.0"
+winapi = { version = "0.3", features = [
+    "winuser",
+]}

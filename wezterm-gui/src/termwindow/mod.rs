@@ -75,6 +75,10 @@ pub fn set_window_class(cls: &str) {
     *WINDOW_CLASS.lock().unwrap() = cls.to_owned();
 }
 
+pub fn get_window_class() -> String {
+    WINDOW_CLASS.lock().unwrap().clone()
+}
+
 /// Type used together with Window::notify to do something in the
 /// context of the window-specific event loop
 pub enum TermWindowNotif {
@@ -720,7 +724,7 @@ impl TermWindow {
         let tw_event = Rc::clone(&tw);
 
         let window = Window::new_window(
-            &*WINDOW_CLASS.lock().unwrap(),
+            &get_window_class(),
             "wezterm",
             dimensions.pixel_width,
             dimensions.pixel_height,
