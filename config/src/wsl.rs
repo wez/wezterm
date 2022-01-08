@@ -6,7 +6,7 @@ pub struct WslDomain {
     pub name: String,
     pub distribution: Option<String>,
     pub username: Option<String>,
-    pub default_cwd: Option<String>,
+    pub default_cwd: Option<PathBuf>,
     pub default_prog: Option<Vec<String>>,
 }
 impl_lua_conversion!(WslDomain);

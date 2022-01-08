@@ -181,6 +181,36 @@ impl LocalDomain {
             }
         }
     }
+
+    fn build_command(
+        &self,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+    ) -> anyhow::Result<CommandBuilder> {
+        let config = configuration();
+        let mut cmd = match command {
+            Some(mut cmd) => {
+                config.apply_cmd_defaults(&mut cmd, config.default_cwd.as_ref());
+                cmd
+            }
+            None => config.build_prog(
+                None,
+                self.wsl
+                    .as_ref()
+                    .map(|wsl| wsl.default_prog.as_ref())
+                    .unwrap_or(config.default_prog.as_ref()),
+                self.wsl
+                    .as_ref()
+                    .map(|wsl| wsl.default_cwd.as_ref())
+                    .unwrap_or(config.default_cwd.as_ref()),
+            )?,
+        };
+        if let Some(dir) = command_dir {
+            cmd.cwd(dir);
+        }
+        self.fixup_command(&mut cmd);
+        Ok(cmd)
+    }
 }
 
 #[async_trait(?Send)]
@@ -192,26 +222,11 @@ impl Domain for LocalDomain {
         command_dir: Option<String>,
         window: WindowId,
     ) -> Result<Rc<Tab>, Error> {
-        let config = configuration();
-        let mut cmd = match command {
-            Some(mut cmd) => {
-                config.apply_cmd_defaults(&mut cmd, config.default_cwd.as_ref());
-                cmd
-            }
-            None => config.build_prog(
-                None,
-                config.default_prog.as_ref(),
-                config.default_cwd.as_ref(),
-            )?,
-        };
-        if let Some(dir) = command_dir {
-            cmd.cwd(dir);
-        }
+        let mut cmd = self.build_command(command, command_dir)?;
         let pair = self.pty_system.openpty(size)?;
         let pane_id = alloc_pane_id();
         cmd.env("WEZTERM_PANE", pane_id.to_string());
 
-        self.fixup_command(&mut cmd);
         let child = pair.slave.spawn_command(cmd)?;
         log::trace!("spawned: {:?}", child);
 
@@ -274,25 +289,10 @@ impl Domain for LocalDomain {
             None => anyhow::bail!("invalid pane index {}", pane_index),
         };
 
-        let config = configuration();
-        let mut cmd = match command {
-            Some(mut cmd) => {
-                config.apply_cmd_defaults(&mut cmd, config.default_cwd.as_ref());
-                cmd
-            }
-            None => config.build_prog(
-                None,
-                config.default_prog.as_ref(),
-                config.default_cwd.as_ref(),
-            )?,
-        };
-        if let Some(dir) = command_dir {
-            cmd.cwd(dir);
-        }
+        let mut cmd = self.build_command(command, command_dir)?;
         let pair = self.pty_system.openpty(split_size.second)?;
         let pane_id = alloc_pane_id();
         cmd.env("WEZTERM_PANE", pane_id.to_string());
-        self.fixup_command(&mut cmd);
         let child = pair.slave.spawn_command(cmd)?;
         log::trace!("spawned: {:?}", child);
 
