@@ -188,20 +188,17 @@ impl ScreenOrAlt {
         &mut self,
         physical_rows: usize,
         physical_cols: usize,
-        cursor: CursorPosition,
+        cursor_main: CursorPosition,
+        cursor_alt: CursorPosition,
         seqno: SequenceNo,
-    ) -> CursorPosition {
+    ) -> (CursorPosition, CursorPosition) {
         let cursor_main = self
             .screen
-            .resize(physical_rows, physical_cols, cursor, seqno);
+            .resize(physical_rows, physical_cols, cursor_main, seqno);
         let cursor_alt = self
             .alt_screen
-            .resize(physical_rows, physical_cols, cursor, seqno);
-        if self.alt_screen_is_active {
-            cursor_alt
-        } else {
-            cursor_main
-        }
+            .resize(physical_rows, physical_cols, cursor_alt, seqno);
+        (cursor_main, cursor_alt)
     }
 
     pub fn activate_alt_screen(&mut self, seqno: SequenceNo) {
@@ -743,6 +740,8 @@ impl TerminalState {
 
     /// Informs the terminal that the viewport of the window has resized to the
     /// specified dimensions.
+    /// We need to resize both the primary and alt screens, adjusting
+    /// the cursor positions of both accordingly.
     pub fn resize(
         &mut self,
         physical_rows: usize,
@@ -750,18 +749,63 @@ impl TerminalState {
         pixel_width: usize,
         pixel_height: usize,
     ) {
-        let adjusted_cursor =
-            self.screen
-                .resize(physical_rows, physical_cols, self.cursor, self.seqno);
+        let (cursor_main, cursor_alt) = if self.screen.alt_screen_is_active {
+            (
+                self.screen
+                    .saved_cursor
+                    .as_ref()
+                    .map(|s| s.position)
+                    .unwrap_or_else(CursorPosition::default),
+                self.cursor,
+            )
+        } else {
+            (
+                self.cursor,
+                self.screen
+                    .alt_saved_cursor
+                    .as_ref()
+                    .map(|s| s.position)
+                    .unwrap_or_else(CursorPosition::default),
+            )
+        };
+
+        let (adjusted_cursor_main, adjusted_cursor_alt) = self.screen.resize(
+            physical_rows,
+            physical_cols,
+            cursor_main,
+            cursor_alt,
+            self.seqno,
+        );
         self.top_and_bottom_margins = 0..physical_rows as i64;
         self.left_and_right_margins = 0..physical_cols;
         self.pixel_height = pixel_height;
         self.pixel_width = pixel_width;
         self.tabs.resize(physical_cols);
-        self.set_cursor_pos(
-            &Position::Absolute(adjusted_cursor.x as i64),
-            &Position::Absolute(adjusted_cursor.y),
-        );
+
+        if self.screen.alt_screen_is_active {
+            self.set_cursor_pos(
+                &Position::Absolute(adjusted_cursor_alt.x as i64),
+                &Position::Absolute(adjusted_cursor_alt.y),
+            );
+
+            if let Some(saved) = self.screen.saved_cursor.as_mut() {
+                saved.position.x = adjusted_cursor_main.x;
+                saved.position.y = adjusted_cursor_main.y;
+                saved.position.seqno = self.seqno;
+                saved.wrap_next = false;
+            }
+        } else {
+            self.set_cursor_pos(
+                &Position::Absolute(adjusted_cursor_main.x as i64),
+                &Position::Absolute(adjusted_cursor_main.y),
+            );
+            if let Some(saved) = self.screen.alt_saved_cursor.as_mut() {
+                saved.position.x = adjusted_cursor_alt.x;
+                saved.position.y = adjusted_cursor_alt.y;
+                saved.position.seqno = self.seqno;
+                saved.wrap_next = false;
+            }
+        }
     }
 
     /// When dealing with selection, mark a range of lines as dirty

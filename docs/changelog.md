@@ -37,6 +37,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Glitchy window resize [#1491](https://github.com/wez/wezterm/issues/1491)
 * Ligatured glyphs no longer turn partially black when cursoring through them [#478](https://github.com/wez/wezterm/issues/478)
 * Kitty Image Protocol: didn't respect `c` and `r` parameters to scale images
+* Cursor location on the primary screen wasn't updated correctly if the window was resized while the alternate screen was active [#1512](https://github.com/wez/wezterm/issues/1512)
 
 ### 20220101-133340-7edc5b5a
 
