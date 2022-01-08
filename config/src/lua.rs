@@ -107,6 +107,11 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
         )?;
 
         wezterm_mod.set(
+            "default_wsl_domains",
+            lua.create_function(|_, ()| Ok(crate::WslDomain::default_domains()))?,
+        )?;
+
+        wezterm_mod.set(
             "get_builtin_color_schemes",
             lua.create_function(|_, ()| Ok(crate::COLOR_SCHEMES.clone()))?,
         )?;
