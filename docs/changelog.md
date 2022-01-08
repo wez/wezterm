@@ -41,6 +41,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Ligatured glyphs no longer turn partially black when cursoring through them [#478](https://github.com/wez/wezterm/issues/478)
 * Kitty Image Protocol: didn't respect `c` and `r` parameters to scale images
 * Cursor location on the primary screen wasn't updated correctly if the window was resized while the alternate screen was active [#1512](https://github.com/wez/wezterm/issues/1512)
+* Windows: latency issue with AltSnap and other window-managery things [#1013](https://github.com/wez/wezterm/issues/1013) [#1398](https://github.com/wez/wezterm/issues/1398)
 
 ### 20220101-133340-7edc5b5a
 
