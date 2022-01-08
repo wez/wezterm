@@ -1032,6 +1032,7 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
     }
 }
 
+#[derive(Debug)]
 struct DeadKeyState {
     /// The private dead key state preserved from UCKeyTranslate
     dead_state: u32,
@@ -1126,9 +1127,11 @@ extern "C" {
     fn LMGetKbdType() -> u8;
 }
 
+#[derive(Debug)]
 enum TranslateStatus {
     Composing(String),
     Composed(String),
+    NotDead,
 }
 
 impl Inner {
@@ -1232,6 +1235,8 @@ impl Inner {
                 std::slice::from_raw_parts(unicode_buffer.as_mut_ptr(), length as _)
             })?;
             return Ok(TranslateStatus::Composing(composing));
+        } else {
+            return Ok(TranslateStatus::NotDead);
         }
         length = 0;
         unsafe {
@@ -1974,6 +1979,13 @@ impl WindowView {
                         };
                         inner.events.dispatch(WindowEvent::KeyEvent(event));
                         return;
+                    }
+                    Ok(TranslateStatus::NotDead) => {
+                        // Turned out that while it would have been a dead
+                        // key combo, our send_composed_key_when_XXX settings
+                        // said otherwise. Let's continue as if it was not
+                        // a dead key.
+                        unmod
                     }
                     Err(e) => {
                         log::error!("Failed to translate dead key: {}", e);
