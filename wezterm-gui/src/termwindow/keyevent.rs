@@ -160,7 +160,8 @@ impl super::TermWindow {
                     };
 
                     if res.is_ok() {
-                        if !keycode.is_modifier()
+                        if is_down
+                            && !keycode.is_modifier()
                             && self.pane_state(pane.pane_id()).overlay.is_none()
                         {
                             self.maybe_scroll_to_bottom_for_input(&pane);
@@ -366,7 +367,10 @@ impl super::TermWindow {
                 };
 
                 if res.is_ok() {
-                    if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
+                    if window_key.key_is_down
+                        && !key.is_modifier()
+                        && self.pane_state(pane.pane_id()).overlay.is_none()
+                    {
                         self.maybe_scroll_to_bottom_for_input(&pane);
                     }
                     context.set_cursor(None);
