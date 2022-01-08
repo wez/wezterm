@@ -8,7 +8,7 @@
 
 
         <!-- Custom HTML head -->
-        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -91,7 +91,7 @@
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky bordered">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -433,6 +433,7 @@ usually the best available version.</p>
 <li>You may now use <code>colors = { dead_key_cursor = &quot;orange&quot; }</code> to change the cursor color when either a dead key or leader key is active.</li>
 <li>Support for SGR-Pixels mouse reporting. Thanks to <a href="https://gitlab.com/klamonte">Autumn Lamonte</a>! <a href="https://github.com/wez/wezterm/issues/1457">#1457</a></li>
 <li><a href="config/lua/keyassignment/ActivatePaneByIndex.html">ActivatePaneByIndex</a> key assignment action. <a href="https://github.com/wez/wezterm/issues/1517">#1517</a></li>
+<li>Windows: wezterm will now use <a href="https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md">win32-input-mode</a> to send high-fidelity keyboard input to ConPTY. This means that win32 console applications, such as <a href="https://github.com/FarGroup/FarManager">FAR Manager</a> that use the low level <code>INPUT_RECORD</code> API will now receive key-up events as well as events for modifier-only key presses. <a href="https://github.com/wez/wezterm/issues/318">#318</a> <a href="https://github.com/wez/wezterm/issues/1509">#1509</a> <a href="https://github.com/wez/wezterm/issues/1510">#1510</a></li>
 </ul>
 <h4 id="changed"><a class="header" href="#changed">Changed</a></h4>
 <ul>
@@ -453,6 +454,7 @@ usually the best available version.</p>
 <li>Glitchy window resize <a href="https://github.com/wez/wezterm/issues/1491">#1491</a></li>
 <li>Ligatured glyphs no longer turn partially black when cursoring through them <a href="https://github.com/wez/wezterm/issues/478">#478</a></li>
 <li>Kitty Image Protocol: didn't respect <code>c</code> and <code>r</code> parameters to scale images</li>
+<li>Cursor location on the primary screen wasn't updated correctly if the window was resized while the alternate screen was active <a href="https://github.com/wez/wezterm/issues/1512">#1512</a></li>
 </ul>
 <h3 id="20220101-133340-7edc5b5a"><a class="header" href="#20220101-133340-7edc5b5a">20220101-133340-7edc5b5a</a></h3>
 <h4 id="new-1"><a class="header" href="#new-1">New</a></h4>
