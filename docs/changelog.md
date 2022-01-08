@@ -22,6 +22,7 @@ As features stabilize some brief notes about them will accumulate here.
 #### Changed
 
 * **Key Assignments now use Physical Key locations by default!!** follow the work in progress in [#1483](https://github.com/wez/wezterm/issues/1483)
+* Key assignments now match prior to any dead-key or IME composition [#877](https://github.com/wez/wezterm/issues/877)
 * `wezterm cli`, when run outside of a wezterm pane, now prefers to connect to the main GUI instance rather than background mux server. Use `wezterm cli --prefer-mux` to ignore the GUI instance and talk only to the mux server. See `wezterm cli --help` for additional information.
 
 #### Updated and Improved
