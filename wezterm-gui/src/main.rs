@@ -387,13 +387,7 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
             ..Default::default()
         };
         let mut ui = mux::connui::ConnectionUI::new_headless();
-        match wezterm_client::client::Client::new_unix_domain(
-            mux::domain::alloc_domain_id(),
-            &dom,
-            false,
-            &mut ui,
-            true,
-        ) {
+        match wezterm_client::client::Client::new_unix_domain(None, &dom, false, &mut ui, true) {
             Ok(client) => {
                 let executor = promise::spawn::ScopedExecutor::new();
                 let command = cmd.clone();

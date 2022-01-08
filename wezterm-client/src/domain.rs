@@ -486,7 +486,7 @@ impl Domain for ClientDomain {
                         let initial = true;
                         let no_auto_start = false;
                         Client::new_unix_domain(
-                            domain_id,
+                            Some(domain_id),
                             unix,
                             initial,
                             &mut cloned_ui,
