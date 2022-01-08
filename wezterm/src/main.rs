@@ -517,8 +517,9 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                             None => std::env::var("WEZTERM_PANE")
                                 .map_err(|_| {
                                     anyhow!(
-                                        "--pane-id was not specified and $WEZTERM_PANE
-                                    is not set in the environment"
+                                        "--pane-id was not specified and $WEZTERM_PANE \
+                                         is not set in the environment. \
+                                         Consider using --new-window?"
                                     )
                                 })?
                                 .parse()?,
