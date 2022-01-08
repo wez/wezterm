@@ -8,7 +8,7 @@
 
 
         <!-- Custom HTML head -->
-        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -91,7 +91,7 @@
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky bordered">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -3450,7 +3450,8 @@ it into <code>#</code>).</p>
 <p>You should consider disabling that setting when working with a UTF-8
 environment.</p>
 <h2 id="how-do-i-enable-undercurl-curly-underlines"><a class="header" href="#how-do-i-enable-undercurl-curly-underlines">How do I enable undercurl (curly underlines)?</a></h2>
-<p>Starting in version 20210314-114017-04b7cedd, WezTerm has support for colored and curly underlines.</p>
+<p>Starting in version 20210314-114017-04b7cedd, WezTerm has support for colored
+and curly underlines.</p>
 <p>The relevant escape sequences are:</p>
 <pre><code> CSI 24 m   -&gt; No underline
  CSI 4 m    -&gt; Single underline
@@ -3491,6 +3492,11 @@ directory:</p>
 undercurl:</p>
 <pre><code class="language-bash">env TERM=wezterm nvim
 </code></pre>
+<p>Note: on Windows, the ConPTY layer strips out the curly underline escape
+sequences.  If you're missing this feature in your WSL instance, you will need
+to use either <code>wezterm ssh</code> or
+<a href="multiplexing.html#connecting-into-windows-subsystem-for-linux">multiplexing</a>
+to bypass ConPTY.</p>
 <h2 id="i-use-powershell-for-my-shell-and-i-have-problems-with-cursor-keys-in-other-apps"><a class="header" href="#i-use-powershell-for-my-shell-and-i-have-problems-with-cursor-keys-in-other-apps">I use Powershell for my shell, and I have problems with cursor keys in other apps</a></h2>
 <p>Powershell has <a href="https://github.com/PowerShell/PowerShell/issues/12268">an open issue</a> where it
 enables the <a href="https://vt100.net/docs/vt510-rm/DECCKM">DECCKM</a> mode of the terminal and does
