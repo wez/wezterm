@@ -329,6 +329,15 @@ async fn update_mux_domains(config: &ConfigHandle, do_auto_connect: bool) -> any
         }
     }
 
+    for wsl_dom in &config.wsl_domains {
+        if mux.get_domain_by_name(&wsl_dom.name).is_some() {
+            continue;
+        }
+
+        let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new_wsl(wsl_dom.clone())?);
+        mux.add_domain(&domain);
+    }
+
     Ok(())
 }
 

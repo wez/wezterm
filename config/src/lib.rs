@@ -42,6 +42,7 @@ mod tls;
 mod units;
 mod unix;
 mod version;
+mod wsl;
 
 pub use background::*;
 pub use bell::*;
@@ -56,6 +57,7 @@ pub use tls::*;
 pub use units::*;
 pub use unix::*;
 pub use version::*;
+pub use wsl::*;
 
 type LuaFactory = fn(&Path) -> anyhow::Result<Lua>;
 type ErrorCallback = fn(&str);
@@ -896,6 +898,9 @@ pub struct Config {
 
     #[serde(default)]
     pub front_end: FrontEndSelection,
+
+    #[serde(default = "WslDomain::default_domains")]
+    pub wsl_domains: Vec<WslDomain>,
 
     /// The set of unix domains
     #[serde(default = "UnixDomain::default_unix_domains")]

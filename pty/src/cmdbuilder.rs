@@ -124,6 +124,14 @@ impl CommandBuilder {
         }
     }
 
+    pub fn get_argv(&self) -> &Vec<OsString> {
+        &self.args
+    }
+
+    pub fn get_argv_mut(&mut self) -> &mut Vec<OsString> {
+        &mut self.args
+    }
+
     /// Override the value of an environmental variable
     pub fn env<K, V>(&mut self, key: K, value: V)
     where
@@ -173,6 +181,10 @@ impl CommandBuilder {
         D: AsRef<OsStr>,
     {
         self.cwd = Some(dir.as_ref().to_owned());
+    }
+
+    pub fn clear_cwd(&mut self) {
+        self.cwd.take();
     }
 
     pub fn get_cwd(&self) -> Option<&OsString> {
