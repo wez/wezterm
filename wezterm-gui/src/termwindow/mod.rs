@@ -1669,11 +1669,7 @@ impl TermWindow {
     fn show_launcher(&mut self) {
         self.show_launcher_impl(
             "Launcher",
-            if self.config.add_wsl_distributions_to_launch_menu {
-                LauncherFlags::WSL_DISTROS
-            } else {
-                LauncherFlags::ZERO
-            } | LauncherFlags::LAUNCH_MENU_ITEMS
+            LauncherFlags::LAUNCH_MENU_ITEMS
                 | LauncherFlags::DOMAINS
                 | LauncherFlags::KEY_ASSIGNMENTS,
         );

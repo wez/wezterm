@@ -7,9 +7,9 @@
 //! menus.
 use crate::termwindow::TermWindowNotif;
 use anyhow::anyhow;
+use config::configuration;
 use config::keyassignment::{InputMap, KeyAssignment, SpawnCommand, SpawnTabDomain};
 use config::lua::truncate_right;
-use config::{configuration, WslDistro};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use mux::domain::{DomainId, DomainState};
@@ -28,7 +28,6 @@ use window::WindowOps;
 bitflags::bitflags! {
     pub struct LauncherFlags :u32 {
         const ZERO = 0;
-        const WSL_DISTROS = 1;
         const TABS = 2;
         const LAUNCH_MENU_ITEMS = 4;
         const DOMAINS = 8;
@@ -46,27 +45,6 @@ enum EntryKind {
 struct Entry {
     pub label: String,
     pub kind: EntryKind,
-}
-
-#[allow(dead_code)]
-fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
-    let distros = WslDistro::load_distro_list()?;
-    for distro in distros {
-        let label = format!("{} (WSL)", distro.name);
-        entries.push(Entry {
-            label: label.clone(),
-            kind: EntryKind::KeyAssignment(KeyAssignment::SpawnCommandInNewTab(SpawnCommand {
-                args: Some(vec![
-                    "wsl.exe".to_owned(),
-                    "--distribution".to_owned(),
-                    distro.name,
-                ]),
-                ..Default::default()
-            })),
-        });
-    }
-
-    Ok(())
 }
 
 pub struct LauncherTabEntry {
@@ -245,11 +223,6 @@ impl LauncherState {
                     )),
                 });
             }
-        }
-
-        #[cfg(windows)]
-        if args.flags.contains(LauncherFlags::WSL_DISTROS) {
-            let _ = enumerate_wsl_entries(&mut self.entries);
         }
 
         for domain in &args.domains {

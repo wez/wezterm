@@ -1181,9 +1181,6 @@ pub struct Config {
     pub automatically_reload_config: bool,
 
     #[serde(default = "default_true")]
-    pub add_wsl_distributions_to_launch_menu: bool,
-
-    #[serde(default = "default_true")]
     pub check_for_updates: bool,
     #[serde(default)]
     pub show_update_window: bool,
