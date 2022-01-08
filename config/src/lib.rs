@@ -1266,6 +1266,9 @@ pub struct Config {
 
     #[serde(default)]
     pub allow_win32_input_mode: bool,
+
+    #[serde(default)]
+    pub default_domain: Option<String>,
 }
 impl_lua_conversion!(Config);
 

@@ -338,6 +338,12 @@ async fn update_mux_domains(config: &ConfigHandle, do_auto_connect: bool) -> any
         mux.add_domain(&domain);
     }
 
+    if let Some(name) = &config.default_domain {
+        if let Some(dom) = mux.get_domain_by_name(name) {
+            mux.set_default_domain(&dom);
+        }
+    }
+
     Ok(())
 }
 
