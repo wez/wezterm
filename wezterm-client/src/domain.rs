@@ -192,6 +192,10 @@ impl ClientDomain {
         self.inner.borrow().as_ref().map(|i| Arc::clone(i))
     }
 
+    pub fn connect_automatically(&self) -> bool {
+        self.config.connect_automatically()
+    }
+
     pub fn perform_detach(&self) {
         log::error!("detached domain {}", self.local_domain_id);
         self.inner.borrow_mut().take();
