@@ -27,8 +27,7 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### Updated and Improved
 
-* IME composition now shows inline in the terminal using the terminal font on all IME supported platforms (Windows, macOS and X11)
-* dead key composition now shows inline in the terminal using the terminal font (Windows, macOS, X11 w/ IME enabled)
+* IME and dead key composition state now shows inline in the terminal using the terminal font (All platforms, except Wayland where we only support dead key composition)
 * macOS: `use_ime=true` no longer prevents key repeat from working with some keys [#1131](https://github.com/wez/wezterm/issues/1131)
 
 #### Fixed
