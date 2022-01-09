@@ -355,19 +355,40 @@ async fn async_run_terminal_gui(
     spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
 }
 
-fn resolve_gui_sock_path_if_appropriate(always_new_process: bool) -> Option<PathBuf> {
-    if always_new_process {
-        return None;
+#[derive(Debug)]
+enum Publish {
+    TryPathOrPublish(PathBuf),
+    NoConnectNoPublish,
+    NoConnectButPublish,
+}
+
+impl Publish {
+    pub fn resolve(always_new_process: bool) -> Self {
+        if always_new_process {
+            return Self::NoConnectNoPublish;
+        }
+
+        if config::is_config_overridden() {
+            // They're using a specific config file: assume that it is
+            // different from the running gui
+            log::trace!("skip existing gui: config is different");
+            return Self::NoConnectNoPublish;
+        }
+
+        match wezterm_client::discovery::resolve_gui_sock_path(
+            &crate::termwindow::get_window_class(),
+        ) {
+            Ok(path) => Self::TryPathOrPublish(path),
+            Err(_) => Self::NoConnectButPublish,
+        }
     }
 
-    if config::is_config_overridden() {
-        // They're using a specific config file: assume that it is
-        // different from the running gui
-        log::trace!("skip existing gui: config is different");
-        return None;
+    pub fn should_publish(&self) -> bool {
+        match self {
+            Self::TryPathOrPublish(_) | Self::NoConnectButPublish => true,
+            Self::NoConnectNoPublish => false,
+        }
     }
-
-    wezterm_client::discovery::resolve_gui_sock_path(&crate::termwindow::get_window_class()).ok()
 }
 
 fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
@@ -394,10 +415,11 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
     };
 
     // First, let's see if we can ask an already running wezterm to do this
-    if let Some(gui_sock) = resolve_gui_sock_path_if_appropriate(opts.always_new_process) {
-        log::trace!("will try existing gui");
+    let publish = Publish::resolve(opts.always_new_process);
+    log::trace!("{:?}", publish);
+    if let Publish::TryPathOrPublish(gui_sock) = &publish {
         let dom = config::UnixDomain {
-            socket_path: Some(gui_sock),
+            socket_path: Some(gui_sock.clone()),
             no_serve_automatically: true,
             ..Default::default()
         };
@@ -422,7 +444,9 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
                 match res {
                     Ok(res) => {
                         log::info!(
-                            "Spawned your command via the existing GUI instance. Result={:?}",
+                            "Spawned your command via the existing GUI instance. \
+                             Use --always-new-process if you do not want this behavior. \
+                             Result={:?}",
                             res
                         );
                         return Ok(());
@@ -455,12 +479,15 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
     {
         let unix_socket_path = unix_socket_path.clone();
         std::thread::spawn(move || {
-            let name_holder = wezterm_client::discovery::publish_gui_sock_path(
-                &unix_socket_path,
-                &crate::termwindow::get_window_class(),
-            );
-            if let Err(err) = &name_holder {
-                log::warn!("{:#}", err);
+            let name_holder;
+            if publish.should_publish() {
+                name_holder = wezterm_client::discovery::publish_gui_sock_path(
+                    &unix_socket_path,
+                    &crate::termwindow::get_window_class(),
+                );
+                if let Err(err) = &name_holder {
+                    log::warn!("{:#}", err);
+                }
             }
 
             listener.run();
