@@ -255,6 +255,7 @@ TermWindow running in the wezterm process.
 
 """,
                     ),
+                    Page("object: WslDomain", "config/lua/WslDomain.md"),
                     Gen(
                         "events: Multiplexer",
                         "config/lua/mux-events",
