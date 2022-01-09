@@ -40,7 +40,7 @@ mod wsl;
 pub use background::*;
 pub use bell::*;
 pub use color::*;
-pub use config::*;
+pub use crate::config::*;
 pub use daemon::*;
 pub use font::*;
 pub use frontend::*;
