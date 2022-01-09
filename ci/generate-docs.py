@@ -137,6 +137,7 @@ TOC = [
                     Page("Key Binding", "config/keys.md"),
                     Page("Mouse Binding", "config/mouse.md"),
                     Page("Colors & Appearance", "config/appearance.md"),
+                    GenColorScheme("Color Schemes", "colorschemes"),
                 ],
             ),
             Page("Scrollback", "scrollback.md"),
@@ -152,7 +153,6 @@ TOC = [
             Page("F.A.Q.", "faq.md"),
             Page("Getting Help", "help.md"),
             Page("Contributing", "contributing.md"),
-            GenColorScheme("Color Schemes", "colorschemes"),
             Page(
                 "Lua Reference",
                 "config/lua/general.md",
