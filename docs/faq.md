@@ -104,6 +104,8 @@ return {
 }
 ```
 
+See also [Troubleshooting Fonts](config/fonts.md#troubleshooting-fonts).
+
 ### Some (but not all) Emoji don't render properly
 
 To some extent this issue can manifest in a similar way to the LANG and locale
