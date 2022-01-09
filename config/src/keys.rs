@@ -1,4 +1,4 @@
-use crate::{KeyAssignment, MouseEventTrigger};
+use crate::keyassignment::{KeyAssignment, MouseEventTrigger};
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;

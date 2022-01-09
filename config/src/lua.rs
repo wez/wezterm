@@ -1,3 +1,4 @@
+use crate::keyassignment::KeyAssignment;
 use crate::Gradient;
 use crate::{FontAttributes, FontStretch, FontWeight, FreeTypeLoadTarget, TextStyle};
 use anyhow::anyhow;
@@ -598,22 +599,16 @@ fn font_with_fallback<'lua>(
 ///    }
 /// }
 /// ```
-fn action<'lua>(
-    _lua: &'lua Lua,
-    action: Table<'lua>,
-) -> mlua::Result<crate::keyassignment::KeyAssignment> {
+fn action<'lua>(_lua: &'lua Lua, action: Table<'lua>) -> mlua::Result<KeyAssignment> {
     Ok(from_lua_value(Value::Table(action))?)
 }
 
-fn action_callback<'lua>(
-    lua: &'lua Lua,
-    callback: mlua::Function,
-) -> mlua::Result<crate::keyassignment::KeyAssignment> {
+fn action_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Result<KeyAssignment> {
     let callback_count: i32 = lua.named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT)?;
     let user_event_id = format!("user-defined-{}", callback_count);
     lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, callback_count + 1)?;
     register_event(lua, (user_event_id.clone(), callback))?;
-    return Ok(crate::KeyAssignment::EmitEvent(user_event_id));
+    return Ok(KeyAssignment::EmitEvent(user_event_id));
 }
 
 async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>> {
