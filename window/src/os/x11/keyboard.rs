@@ -18,8 +18,103 @@ pub struct Keyboard {
     device_id: i32,
 
     state: RefCell<xkb::State>,
-    compose_state: RefCell<xkb::compose::State>,
+    compose_state: RefCell<Compose>,
     phys_code_map: RefCell<HashMap<xkb::Keycode, PhysKeyCode>>,
+}
+
+struct Compose {
+    state: xkb::compose::State,
+    composition: String,
+}
+
+enum FeedResult {
+    Composing(String),
+    Composed(String, xkb::Keysym),
+    Nothing(String, xkb::Keysym),
+    Cancelled,
+}
+
+impl Compose {
+    fn reset(&mut self) {
+        self.composition.clear();
+        self.state.reset();
+    }
+
+    fn feed(
+        &mut self,
+        xcode: xkb::Keycode,
+        xsym: xkb::Keysym,
+        key_state: &RefCell<xkb::State>,
+    ) -> FeedResult {
+        if matches!(
+            self.state.status(),
+            ComposeStatus::Nothing | ComposeStatus::Cancelled | ComposeStatus::Composed
+        ) {
+            self.composition.clear();
+        }
+
+        let previously_composing = !self.composition.is_empty();
+        self.state.feed(xsym);
+
+        match self.state.status() {
+            ComposeStatus::Composing => {
+                if !previously_composing {
+                    // The common case for dead keys is a single combining sequence,
+                    // and usually pressing the key a second time (or following it
+                    // by a space) will output the key from the keycap.
+                    // During composition we want to show that as the composition
+                    // status, so we clock the state machine forwards to produce it,
+                    // then reset and feed in the symbol again to get it ready
+                    // for the next keypress
+
+                    self.state.feed(xsym);
+                    if self.state.status() == ComposeStatus::Composed {
+                        if let Some(s) = self.state.utf8() {
+                            self.composition = s;
+                        }
+                    }
+
+                    self.state.reset();
+                    self.state.feed(xsym);
+                }
+
+                if self.composition.is_empty() || previously_composing {
+                    // If we didn't manage to resolve a string above,
+                    // or if we're in a multi-key composition sequence,
+                    // we don't have a fantastic way to indicate what is
+                    // currently being composed, so we try to get something
+                    // that might be meaningful by getting the utf8 for that
+                    // key if known, or falling back to the name of the keysym.
+                    // The keysym name is likely much wider than the utf8, but
+                    // it's probably better than nothing.
+                    // An alternative we could use if folks don't like it is
+                    // either a space or an underscore.
+                    let key_state = key_state.borrow();
+                    let utf8 = key_state.key_get_utf8(xcode);
+                    if !utf8.is_empty() {
+                        self.composition.push_str(&utf8);
+                    } else {
+                        self.composition.push_str(&xkb::keysym_get_name(xsym));
+                    }
+                }
+                FeedResult::Composing(self.composition.clone())
+            }
+            ComposeStatus::Composed => {
+                let res = self.state.keysym();
+                let composed = self.state.utf8().unwrap_or_else(String::new);
+                self.state.reset();
+                FeedResult::Composed(composed, res.unwrap_or(xsym))
+            }
+            ComposeStatus::Nothing => {
+                let utf8 = key_state.borrow().key_get_utf8(xcode);
+                FeedResult::Nothing(utf8, xsym)
+            }
+            ComposeStatus::Cancelled => {
+                self.state.reset();
+                FeedResult::Cancelled
+            }
+        }
+    }
 }
 
 impl Keyboard {
@@ -51,7 +146,10 @@ impl Keyboard {
             device_id: -1,
             keymap: RefCell::new(keymap),
             state: RefCell::new(state),
-            compose_state: RefCell::new(compose_state),
+            compose_state: RefCell::new(Compose {
+                state: compose_state,
+                composition: String::new(),
+            }),
             phys_code_map: RefCell::new(phys_code_map),
         })
     }
@@ -137,7 +235,10 @@ impl Keyboard {
             device_id,
             keymap: RefCell::new(keymap),
             state: RefCell::new(state),
-            compose_state: RefCell::new(compose_state),
+            compose_state: RefCell::new(Compose {
+                state: compose_state,
+                composition: String::new(),
+            }),
             phys_code_map: RefCell::new(phys_code_map),
         };
 
@@ -204,34 +305,31 @@ impl Keyboard {
                 return None;
             }
 
-            self.compose_state.borrow_mut().feed(xsym);
-
-            let cstate = self.compose_state.borrow().status();
-            match cstate {
-                ComposeStatus::Composing => {
-                    // eat
-                    events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Holding));
+            match self
+                .compose_state
+                .borrow_mut()
+                .feed(xcode, xsym, &self.state)
+            {
+                FeedResult::Composing(composition) => {
+                    events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
+                        composition,
+                    )));
                     return None;
                 }
-                ComposeStatus::Composed => {
-                    let mut compose_state = self.compose_state.borrow_mut();
-                    let res = compose_state.keysym();
-                    if let Some(utf8) = compose_state.utf8() {
-                        kc.replace(crate::KeyCode::composed(&utf8));
-                    }
-                    compose_state.reset();
-                    events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
-                    res.unwrap_or(xsym)
-                }
-                ComposeStatus::Nothing => {
-                    let utf8 = self.state.borrow().key_get_utf8(xcode);
+                FeedResult::Composed(utf8, sym) => {
                     if !utf8.is_empty() {
                         kc.replace(crate::KeyCode::composed(&utf8));
                     }
-                    xsym
+                    events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+                    sym
                 }
-                ComposeStatus::Cancelled => {
-                    self.compose_state.borrow_mut().reset();
+                FeedResult::Nothing(utf8, sym) => {
+                    if !utf8.is_empty() {
+                        kc.replace(crate::KeyCode::composed(&utf8));
+                    }
+                    sym
+                }
+                FeedResult::Cancelled => {
                     events.dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     return None;
                 }

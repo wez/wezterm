@@ -126,8 +126,8 @@ pub enum WindowKeyEvent {
 pub enum DeadKeyStatus {
     /// Not in a dead key processing hold
     None,
-    /// Holding input until a dead key is recognized
-    Holding,
+    /// Holding until composition is done; the string is the uncommitted
+    /// composition text to show as a placeholder
     Composing(String),
 }
 
