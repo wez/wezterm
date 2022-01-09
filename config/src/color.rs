@@ -77,7 +77,7 @@ pub struct Palette {
     /// color is used instead.
     pub visual_bell: Option<RgbColor>,
     /// The color to use for the cursor when a dead key or leader state is active
-    pub dead_key_cursor: Option<RgbColor>,
+    pub compose_cursor: Option<RgbColor>,
 }
 impl_lua_conversion!(Palette);
 

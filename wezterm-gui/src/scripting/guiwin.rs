@@ -9,7 +9,7 @@ use mlua::{UserData, UserDataMethods};
 use mux::window::WindowId as MuxWindowId;
 use serde::*;
 use wezterm_toast_notification::ToastNotification;
-use window::{Connection, ConnectionOps, WindowOps, WindowState};
+use window::{Connection, ConnectionOps, DeadKeyStatus, WindowOps, WindowState};
 
 #[derive(Clone)]
 pub struct GuiWin {
@@ -146,11 +146,15 @@ impl UserData for GuiWin {
 
             Ok(result)
         });
-        methods.add_async_method("dead_key_is_active", |_, this, _: ()| async move {
+        methods.add_async_method("composition_status", |_, this, _: ()| async move {
             let (tx, rx) = smol::channel::bounded(1);
             this.window
                 .notify(TermWindowNotif::Apply(Box::new(move |term_window| {
-                    tx.try_send(term_window.dead_key_active()).ok();
+                    tx.try_send(match term_window.composition_status() {
+                        DeadKeyStatus::None => None,
+                        DeadKeyStatus::Composing(s) => Some(s.clone()),
+                    })
+                    .ok();
                 })));
             let result = rx
                 .recv()

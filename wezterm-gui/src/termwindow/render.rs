@@ -2454,7 +2454,7 @@ impl super::TermWindow {
                 let color = params
                     .config
                     .resolved_palette
-                    .dead_key_cursor
+                    .compose_cursor
                     .map(rgbcolor_to_window_color)
                     .unwrap_or(bg_color);
 

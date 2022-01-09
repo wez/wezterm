@@ -288,8 +288,8 @@ impl super::TermWindow {
         }
     }
 
-    pub fn dead_key_active(&self) -> bool {
-        self.dead_key_status != DeadKeyStatus::None
+    pub fn composition_status(&self) -> &DeadKeyStatus {
+        &self.dead_key_status
     }
 
     fn leader_done(&mut self) {

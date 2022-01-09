@@ -21,9 +21,9 @@ end);
 return {
   leader = { key="a", mods="CTRL" },
   colors = {
-    dead_key_cursor = "orange",
+    compose_cursor = "orange",
   },
 }
 ```
 
-See also: [window:dead_key_is_active()](dead_key_is_active.md).
+See also: [window:composition_status()](composition_status.md).
