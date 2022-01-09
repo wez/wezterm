@@ -706,3 +706,7 @@ fn default_one_point_oh_f64() -> f64 {
 fn default_one_point_oh() -> f32 {
     1.0
 }
+
+fn default_true() -> bool {
+    true
+}

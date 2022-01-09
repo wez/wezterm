@@ -43,6 +43,13 @@ pub struct SshDomain {
 
     pub ssh_backend: Option<SshBackend>,
 
+    /// If false, then don't use a multiplexer connection,
+    /// just connect directly using ssh. This doesn't require
+    /// that the remote host have wezterm installed, and is equivalent
+    /// to using `wezterm ssh` to connect.
+    #[serde(default = "default_true")]
+    pub use_multiplexer: bool,
+
     /// ssh_config option values
     #[serde(default)]
     pub ssh_option: HashMap<String, String>,

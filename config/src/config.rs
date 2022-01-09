@@ -17,8 +17,8 @@ use crate::unix::UnixDomain;
 use crate::wsl::WslDomain;
 use crate::{
     de_number, default_config_with_overrides_applied, default_one_point_oh,
-    default_one_point_oh_f64, make_lua_context, LoadedConfig, CONFIG_DIR, CONFIG_FILE_OVERRIDE,
-    CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
+    default_one_point_oh_f64, default_true, make_lua_context, LoadedConfig, CONFIG_DIR,
+    CONFIG_FILE_OVERRIDE, CONFIG_OVERRIDES, CONFIG_SKIP, HOME_DIR,
 };
 use anyhow::Context;
 use luahelper::impl_lua_conversion;
@@ -1048,10 +1048,6 @@ fn default_use_ime() -> bool {
     } else {
         true
     }
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_cursor_blink_rate() -> u64 {

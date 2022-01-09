@@ -226,7 +226,9 @@ fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
     }
 
     for ssh_dom in &config.ssh_domains {
-        domains.push(ClientDomainConfig::Ssh(ssh_dom.clone()));
+        if ssh_dom.use_multiplexer {
+            domains.push(ClientDomainConfig::Ssh(ssh_dom.clone()));
+        }
     }
 
     for tls_client in &config.tls_clients {
