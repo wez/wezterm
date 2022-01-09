@@ -19,7 +19,7 @@ use std::io::prelude::*;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use termwiz::hyperlink;
@@ -68,6 +68,7 @@ lazy_static! {
     pub static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
     static ref CONFIG: Configuration = Configuration::new();
     static ref CONFIG_FILE_OVERRIDE: Mutex<Option<PathBuf>> = Mutex::new(None);
+    static ref CONFIG_SKIP: AtomicBool = AtomicBool::new(false);
     static ref CONFIG_OVERRIDES: Mutex<Vec<(String, String)>> = Mutex::new(vec![]);
     static ref MAKE_LUA: Mutex<Option<LuaFactory>> = Mutex::new(Some(lua::make_lua_context));
     static ref SHOW_ERROR: Mutex<Option<ErrorCallback>> =
@@ -270,23 +271,12 @@ pub fn common_init(
 ) {
     if let Some(config_file) = config_file {
         set_config_file_override(Path::new(config_file));
+    } else if skip_config {
+        CONFIG_SKIP.store(true, Ordering::Relaxed);
     }
+
     set_config_overrides(overrides);
-    if !skip_config {
-        reload();
-    } else if !overrides.is_empty() {
-        match default_config_with_overrides_applied() {
-            Ok(cfg) => CONFIG.use_this_config(cfg),
-            Err(err) => {
-                log::error!(
-                    "Error while applying command line \
-                     configuration overrides:\n{:#}",
-                    err
-                );
-                std::process::exit(1);
-            }
-        }
-    }
+    reload();
 }
 
 pub fn assign_error_callback(cb: ErrorCallback) {
@@ -335,7 +325,9 @@ pub fn set_config_overrides(items: &[(String, String)]) {
 }
 
 pub fn is_config_overridden() -> bool {
-    !CONFIG_OVERRIDES.lock().unwrap().is_empty() || CONFIG_FILE_OVERRIDE.lock().unwrap().is_some()
+    CONFIG_SKIP.load(Ordering::Relaxed)
+        || !CONFIG_OVERRIDES.lock().unwrap().is_empty()
+        || CONFIG_FILE_OVERRIDE.lock().unwrap().is_some()
 }
 
 /// Discard the current configuration and replace it with
@@ -1513,6 +1505,10 @@ impl Config {
         }
 
         for path_item in &paths {
+            if CONFIG_SKIP.load(Ordering::Relaxed) {
+                break;
+            }
+
             let p = path_item.path.as_path();
             log::trace!("consider config: {}", p.display());
             let mut file = match fs::File::open(p) {
@@ -1561,8 +1557,16 @@ impl Config {
             });
         }
 
+        // We didn't find (or were asked to skip) a wezterm.lua file, so
+        // update the environment to make it simpler to understand this
+        // state.
+        std::env::remove_var("WEZTERM_CONFIG_FILE");
+        std::env::remove_var("WEZTERM_CONFIG_DIR");
+
+        let config = default_config_with_overrides_applied()?.compute_extra_defaults(None);
+
         Ok(LoadedConfig {
-            config: Self::default().compute_extra_defaults(None),
+            config,
             file_name: None,
             lua: Some(make_lua_context(Path::new(""))?),
         })
