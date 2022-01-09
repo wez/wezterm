@@ -5,7 +5,7 @@ use anyhow::{anyhow, bail, Context};
 use async_ossl::AsyncSslStream;
 use async_trait::async_trait;
 use codec::*;
-use config::{configuration, SshBackend, SshDomain, TlsDomainClient, UnixDomain, UnixTarget};
+use config::{configuration, SshDomain, TlsDomainClient, UnixDomain, UnixTarget};
 use filedescriptor::FileDescriptor;
 use futures::FutureExt;
 use mux::connui::ConnectionUI;
@@ -502,44 +502,7 @@ impl Reconnectable {
         initial: bool,
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<()> {
-        let mut ssh_config = wezterm_ssh::Config::new();
-        ssh_config.add_default_config_files();
-
-        let (remote_host_name, port) = {
-            let parts: Vec<&str> = ssh_dom.remote_address.split(':').collect();
-
-            if parts.len() == 2 {
-                (parts[0], Some(parts[1].parse::<u16>()?))
-            } else {
-                (ssh_dom.remote_address.as_str(), None)
-            }
-        };
-
-        let mut ssh_config = ssh_config.for_host(&remote_host_name);
-        ssh_config.insert(
-            "wezterm_ssh_backend".to_string(),
-            match ssh_dom
-                .ssh_backend
-                .unwrap_or_else(|| configuration().ssh_backend)
-            {
-                SshBackend::Ssh2 => "ssh2",
-                SshBackend::LibSsh => "libssh",
-            }
-            .to_string(),
-        );
-        for (k, v) in &ssh_dom.ssh_option {
-            ssh_config.insert(k.to_string(), v.to_string());
-        }
-
-        if let Some(username) = &ssh_dom.username {
-            ssh_config.insert("user".to_string(), username.to_string());
-        }
-        if let Some(port) = port {
-            ssh_config.insert("port".to_string(), port.to_string());
-        }
-        if ssh_dom.no_agent_auth {
-            ssh_config.insert("identitiesonly".to_string(), "yes".to_string());
-        }
+        let ssh_config = mux::ssh::ssh_domain_to_ssh_config(&ssh_dom)?;
 
         let sess = ssh_connect_with_ui(ssh_config, ui)?;
         let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wezterm_path);

@@ -7,6 +7,7 @@ use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{anyhow, bail, Context, Error};
 use async_trait::async_trait;
+use config::{SshBackend, SshDomain};
 use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{ChildKiller, ExitStatus, MasterPty, PtySize};
@@ -134,9 +135,56 @@ pub fn ssh_connect_with_ui(
 /// interactive setup.  The bulk of that is driven by `connect_ssh_session`.
 pub struct RemoteSshDomain {
     session: RefCell<Option<Session>>,
-    ssh_config: ConfigMap,
+    config: RemoteSshConfig,
     id: DomainId,
     name: String,
+}
+
+enum RemoteSshConfig {
+    AdHoc(ConfigMap),
+    Domain(SshDomain),
+}
+
+pub fn ssh_domain_to_ssh_config(ssh_dom: &SshDomain) -> anyhow::Result<ConfigMap> {
+    let mut ssh_config = wezterm_ssh::Config::new();
+    ssh_config.add_default_config_files();
+
+    let (remote_host_name, port) = {
+        let parts: Vec<&str> = ssh_dom.remote_address.split(':').collect();
+
+        if parts.len() == 2 {
+            (parts[0], Some(parts[1].parse::<u16>()?))
+        } else {
+            (ssh_dom.remote_address.as_str(), None)
+        }
+    };
+
+    let mut ssh_config = ssh_config.for_host(&remote_host_name);
+    ssh_config.insert(
+        "wezterm_ssh_backend".to_string(),
+        match ssh_dom
+            .ssh_backend
+            .unwrap_or_else(|| config::configuration().ssh_backend)
+        {
+            SshBackend::Ssh2 => "ssh2",
+            SshBackend::LibSsh => "libssh",
+        }
+        .to_string(),
+    );
+    for (k, v) in &ssh_dom.ssh_option {
+        ssh_config.insert(k.to_string(), v.to_string());
+    }
+
+    if let Some(username) = &ssh_dom.username {
+        ssh_config.insert("user".to_string(), username.to_string());
+    }
+    if let Some(port) = port {
+        ssh_config.insert("port".to_string(), port.to_string());
+    }
+    if ssh_dom.no_agent_auth {
+        ssh_config.insert("identitiesonly".to_string(), "yes".to_string());
+    }
+    Ok(ssh_config)
 }
 
 impl RemoteSshDomain {
@@ -146,8 +194,25 @@ impl RemoteSshDomain {
             id,
             name: format!("SSH to {}", name),
             session: RefCell::new(None),
-            ssh_config,
+            config: RemoteSshConfig::AdHoc(ssh_config),
         })
+    }
+
+    pub fn with_ssh_domain(dom: &SshDomain) -> anyhow::Result<Self> {
+        let id = alloc_domain_id();
+        Ok(Self {
+            id,
+            name: dom.name.clone(),
+            session: RefCell::new(None),
+            config: RemoteSshConfig::Domain(dom.clone()),
+        })
+    }
+
+    pub fn ssh_config(&self) -> anyhow::Result<ConfigMap> {
+        match &self.config {
+            RemoteSshConfig::AdHoc(config) => Ok(config.clone()),
+            RemoteSshConfig::Domain(dom) => ssh_domain_to_ssh_config(dom),
+        }
     }
 }
 
@@ -475,7 +540,7 @@ impl Domain for RemoteSshDomain {
             writer = Box::new(pty.try_clone_writer()?);
         } else {
             // We're starting the session
-            let (session, events) = Session::connect(self.ssh_config.clone())?;
+            let (session, events) = Session::connect(self.ssh_config()?)?;
             self.session.borrow_mut().replace(session.clone());
 
             // We get to establish the session!
@@ -682,11 +747,10 @@ impl Domain for RemoteSshDomain {
     }
 
     fn state(&self) -> DomainState {
-        if self.session.borrow().is_some() {
-            DomainState::Attached
-        } else {
-            DomainState::Detached
-        }
+        // Just pretend that we are always attached, as we don't
+        // have a defined attach operation that is distinct from
+        // a spawn.
+        DomainState::Attached
     }
 }
 

@@ -6,6 +6,7 @@ use anyhow::{anyhow, Context};
 use config::{ConfigHandle, SshBackend};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
+use mux::ssh::RemoteSshDomain;
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use promise::spawn::block_on;
@@ -240,17 +241,14 @@ async fn async_run_with_domain_as_default(
     spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
 }
 
-async fn async_run_mux_client(
-    config: config::ConfigHandle,
-    opts: ConnectCommand,
-) -> anyhow::Result<()> {
+async fn async_run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
     }
 
-    let client_config = client_domains(&config)
-        .into_iter()
-        .find(|c| c.name() == opts.domain_name)
+    let domain = Mux::get()
+        .unwrap()
+        .get_domain_by_name(&opts.domain_name)
         .ok_or_else(|| {
             anyhow!(
                 "no multiplexer domain with name `{}` was found in the configuration",
@@ -258,7 +256,6 @@ async fn async_run_mux_client(
             )
         })?;
 
-    let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
     let opts = opts.clone();
     let cmd = if !opts.prog.is_empty() {
         let builder = CommandBuilder::from_argv(opts.prog);
@@ -270,12 +267,12 @@ async fn async_run_mux_client(
     async_run_with_domain_as_default(domain, cmd).await
 }
 
-fn run_mux_client(config: config::ConfigHandle, opts: ConnectCommand) -> anyhow::Result<()> {
+fn run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
     let activity = Activity::new();
     build_initial_mux(&config::configuration(), None)?;
     let gui = crate::frontend::try_new()?;
     promise::spawn::spawn(async {
-        if let Err(err) = async_run_mux_client(config, opts).await {
+        if let Err(err) = async_run_mux_client(opts).await {
             terminate_with_error(err);
         }
         drop(activity);
@@ -327,18 +324,26 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
 fn update_mux_domains(config: &ConfigHandle) -> anyhow::Result<()> {
     let mux = Mux::get().unwrap();
 
-    fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> anyhow::Result<Arc<dyn Domain>> {
-        if let Some(domain) = mux.get_domain_by_name(client.domain_name()) {
-            Ok(domain)
-        } else {
-            let domain: Arc<dyn Domain> = Arc::new(client);
-            mux.add_domain(&domain);
-            Ok(domain)
+    for client_config in client_domains(&config) {
+        if mux.get_domain_by_name(client_config.name()).is_some() {
+            continue;
         }
+
+        let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
+        mux.add_domain(&domain);
     }
 
-    for client_config in client_domains(&config) {
-        record_domain(&mux, ClientDomain::new(client_config))?;
+    for ssh_dom in &config.ssh_domains {
+        if ssh_dom.use_multiplexer {
+            continue;
+        }
+
+        if mux.get_domain_by_name(&ssh_dom.name).is_some() {
+            continue;
+        }
+
+        let domain: Arc<dyn Domain> = Arc::new(RemoteSshDomain::with_ssh_domain(&ssh_dom)?);
+        mux.add_domain(&domain);
     }
 
     for wsl_dom in &config.wsl_domains {
@@ -860,7 +865,7 @@ fn run() -> anyhow::Result<()> {
         }
         SubCommand::Ssh(ssh) => run_ssh(ssh),
         SubCommand::Serial(serial) => run_serial(config, &serial),
-        SubCommand::Connect(connect) => run_mux_client(config, connect),
+        SubCommand::Connect(connect) => run_mux_client(connect),
         SubCommand::LsFonts(cmd) => run_ls_fonts(config, &cmd),
     }
 }
