@@ -37,10 +37,10 @@ mod unix;
 mod version;
 mod wsl;
 
+pub use crate::config::*;
 pub use background::*;
 pub use bell::*;
 pub use color::*;
-pub use crate::config::*;
 pub use daemon::*;
 pub use font::*;
 pub use frontend::*;
