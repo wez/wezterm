@@ -172,6 +172,10 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
 }
 
 fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
+    if let Some(cls) = opts.class.as_ref() {
+        crate::set_window_class(cls);
+    }
+
     // Set up the mux with no default domain; there's a good chance that
     // we'll need to show authentication UI and we don't want its domain
     // to become the default domain.
@@ -195,6 +199,10 @@ fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
 }
 
 fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Result<()> {
+    if let Some(cls) = opts.class.as_ref() {
+        crate::set_window_class(cls);
+    }
+
     let mut serial = portable_pty::serial::SerialTty::new(&opts.port);
     if let Some(baud) = opts.baud {
         serial.set_baud_rate(serial::BaudRate::from_speed(baud));

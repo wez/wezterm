@@ -91,6 +91,16 @@ pub struct SshCommand {
     #[structopt(short = "v")]
     pub verbose: bool,
 
+    /// Override the default windowing system class.
+    /// The default is "org.wezfurlong.wezterm".
+    /// Under X11 and Windows this changes the window class.
+    /// Under Wayland this changes the app_id.
+    /// This changes the class for all windows spawned by this
+    /// instance of wezterm, including error, update and ssh
+    /// authentication dialogs.
+    #[structopt(long = "class")]
+    pub class: Option<String>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -103,6 +113,16 @@ pub struct SerialCommand {
     /// Set the baud rate.  The default is 9600 baud.
     #[structopt(long = "baud")]
     pub baud: Option<usize>,
+
+    /// Override the default windowing system class.
+    /// The default is "org.wezfurlong.wezterm".
+    /// Under X11 and Windows this changes the window class.
+    /// Under Wayland this changes the app_id.
+    /// This changes the class for all windows spawned by this
+    /// instance of wezterm, including error, update and ssh
+    /// authentication dialogs.
+    #[structopt(long = "class")]
+    pub class: Option<String>,
 
     /// Specifies the serial device name.
     /// On Windows systems this can be a name like `COM0`.
