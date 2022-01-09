@@ -97,16 +97,6 @@ thread_local! {
     static FRONT_END: RefCell<Option<Rc<GuiFrontEnd>>> = RefCell::new(None);
 }
 
-pub fn front_end() -> Option<Rc<GuiFrontEnd>> {
-    let mut res = None;
-    FRONT_END.with(|f| {
-        if let Some(me) = &*f.borrow() {
-            res = Some(Rc::clone(me));
-        }
-    });
-    res
-}
-
 pub fn shutdown() {
     FRONT_END.with(|f| drop(f.borrow_mut().take()));
 }

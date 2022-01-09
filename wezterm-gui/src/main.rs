@@ -1,7 +1,6 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
-use crate::frontend::front_end;
 use ::window::*;
 use anyhow::{anyhow, Context};
 use config::{ConfigHandle, SshBackend};
@@ -140,8 +139,6 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         ssh_config.insert(k.to_lowercase().to_string(), v);
     }
 
-    let _gui = front_end().unwrap();
-
     let cmd = if !opts.prog.is_empty() {
         let builder = CommandBuilder::from_argv(opts.prog);
         Some(builder)
@@ -154,21 +151,7 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         ssh_config,
     )?);
 
-    let mux = Mux::get().unwrap();
-    mux.add_domain(&domain);
-    mux.set_default_domain(&domain);
-    domain.attach().await?;
-
-    // Allow spawning local commands into new tabs/panes
-    let local_domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
-    mux.add_domain(&local_domain);
-
-    let window_id = mux.new_empty_window();
-    let _tab = domain
-        .spawn(config.initial_size(), cmd, None, *window_id)
-        .await?;
-
-    Ok(())
+    async_run_with_domain_as_default(domain, cmd).await
 }
 
 fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
@@ -176,17 +159,12 @@ fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         crate::set_window_class(cls);
     }
 
-    // Set up the mux with no default domain; there's a good chance that
-    // we'll need to show authentication UI and we don't want its domain
-    // to become the default domain.
     let mux = Rc::new(mux::Mux::new(None));
     Mux::set_mux(&mux);
     crate::update::load_last_release_info_and_set_banner();
 
     let gui = crate::frontend::try_new()?;
 
-    // Initiate an ssh connection; since that is a blocking process with
-    // callbacks, we have to run it in another thread
     promise::spawn::spawn(async {
         if let Err(err) = async_run_ssh(opts).await {
             terminate_with_error(err);
@@ -245,7 +223,23 @@ fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
     domains
 }
 
-fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow::Result<()> {
+async fn async_run_with_domain_as_default(domain: Arc<dyn Domain>, cmd: Option<CommandBuilder>) -> anyhow::Result<()> {
+    let mux = Mux::get().unwrap();
+    crate::update::load_last_release_info_and_set_banner();
+
+    // Allow spawning local commands into new tabs/panes
+    let local_domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
+    mux.add_domain(&local_domain);
+
+    // And configure their desired domain as the default
+    mux.add_domain(&domain);
+    mux.set_default_domain(&domain);
+    domain.attach().await?;
+
+    spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
+}
+
+async fn async_run_mux_client(config: config::ConfigHandle, opts: ConnectCommand) -> anyhow::Result<()> {
     if let Some(cls) = opts.class.as_ref() {
         crate::set_window_class(cls);
     }
@@ -261,16 +255,7 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
         })?;
 
     let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
-    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
-    Mux::set_mux(&mux);
-    crate::update::load_last_release_info_and_set_banner();
-    // Allow spawning local commands into new tabs/panes
-    let local_domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
-    mux.add_domain(&local_domain);
-
-    let gui = crate::frontend::try_new()?;
     let opts = opts.clone();
-
     let cmd = if !opts.prog.is_empty() {
         let builder = CommandBuilder::from_argv(opts.prog);
         Some(builder)
@@ -278,9 +263,16 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
         None
     };
 
+    async_run_with_domain_as_default(domain, cmd).await
+}
+
+fn run_mux_client(config: config::ConfigHandle, opts: ConnectCommand) -> anyhow::Result<()> {
     let activity = Activity::new();
+    let mux = Rc::new(mux::Mux::new(None));
+    Mux::set_mux(&mux);
+    let gui = crate::frontend::try_new()?;
     promise::spawn::spawn(async {
-        if let Err(err) = spawn_tab_in_default_domain_if_mux_is_empty(cmd).await {
+        if let Err(err) = async_run_mux_client(config, opts).await {
             terminate_with_error(err);
         }
         drop(activity);
@@ -815,7 +807,7 @@ fn run() -> anyhow::Result<()> {
         }
         SubCommand::Ssh(ssh) => run_ssh(ssh),
         SubCommand::Serial(serial) => run_serial(config, &serial),
-        SubCommand::Connect(connect) => run_mux_client(config, &connect),
+        SubCommand::Connect(connect) => run_mux_client(config, connect),
         SubCommand::LsFonts(cmd) => run_ls_fonts(config, &cmd),
     }
 }
