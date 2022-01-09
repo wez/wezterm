@@ -133,28 +133,21 @@ pub fn ssh_connect_with_ui(
 /// and the reader and writer instances so that we can inject the
 /// interactive setup.  The bulk of that is driven by `connect_ssh_session`.
 pub struct RemoteSshDomain {
-    session: Session,
+    session: RefCell<Option<Session>>,
+    ssh_config: ConfigMap,
     id: DomainId,
     name: String,
-    events: RefCell<Option<smol::channel::Receiver<SessionEvent>>>,
 }
 
 impl RemoteSshDomain {
     pub fn with_ssh_config(name: &str, ssh_config: ConfigMap) -> anyhow::Result<Self> {
         let id = alloc_domain_id();
-        let (session, events) = Session::connect(ssh_config.clone())?;
         Ok(Self {
             id,
             name: format!("SSH to {}", name),
-            session,
-            events: RefCell::new(Some(events)),
+            session: RefCell::new(None),
+            ssh_config,
         })
-    }
-
-    // This is a method of its own so that we can ensure that the
-    // borrow is released when we return
-    fn take_events(&self) -> Option<smol::channel::Receiver<SessionEvent>> {
-        self.events.borrow_mut().take()
     }
 }
 
@@ -465,7 +458,26 @@ impl Domain for RemoteSshDomain {
         let child: Box<dyn portable_pty::Child + Send>;
         let writer: BoxedWriter;
 
-        if let Some(events) = self.take_events() {
+        let session = self.session.borrow().as_ref().map(|s| s.clone());
+
+        if let Some(session) = session {
+            let (concrete_pty, concrete_child) = session
+                .request_pty(
+                    &config::configuration().term,
+                    size,
+                    command_line.as_ref().map(|s| s.as_str()),
+                    Some(env),
+                )
+                .await?;
+
+            pty = Box::new(concrete_pty);
+            child = Box::new(concrete_child);
+            writer = Box::new(pty.try_clone_writer()?);
+        } else {
+            // We're starting the session
+            let (session, events) = Session::connect(self.ssh_config.clone())?;
+            self.session.borrow_mut().replace(session.clone());
+
             // We get to establish the session!
             //
             // Since we want spawn to return the Pane in which
@@ -518,7 +530,6 @@ impl Domain for RemoteSshDomain {
             // And with those created, we can now spawn a new thread
             // to perform the blocking (from its perspective) terminal
             // UI to carry out any authentication.
-            let session = self.session.clone();
             let mut stdout_write = BufWriter::new(stdout_write);
             std::thread::spawn(move || {
                 if let Err(err) = connect_ssh_session(
@@ -539,20 +550,6 @@ impl Domain for RemoteSshDomain {
                 }
                 let _ = stdout_write.flush();
             });
-        } else {
-            let (concrete_pty, concrete_child) = self
-                .session
-                .request_pty(
-                    &config::configuration().term,
-                    size,
-                    command_line.as_ref().map(|s| s.as_str()),
-                    Some(env),
-                )
-                .await?;
-
-            pty = Box::new(concrete_pty);
-            child = Box::new(concrete_child);
-            writer = Box::new(pty.try_clone_writer()?);
         };
 
         // Wrap up the pty etc. in a LocalPane.  That allows for
@@ -627,8 +624,14 @@ impl Domain for RemoteSshDomain {
             .collect();
         env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
 
-        let (pty, child) = self
+        let session = self
             .session
+            .borrow()
+            .as_ref()
+            .map(|s| s.clone())
+            .ok_or_else(|| anyhow::anyhow!("ssh session not started yet!"))?;
+
+        let (pty, child) = session
             .request_pty(
                 &config::configuration().term,
                 split_size.size(),
@@ -679,7 +682,11 @@ impl Domain for RemoteSshDomain {
     }
 
     fn state(&self) -> DomainState {
-        DomainState::Attached
+        if self.session.borrow().is_some() {
+            DomainState::Attached
+        } else {
+            DomainState::Detached
+        }
     }
 }
 
