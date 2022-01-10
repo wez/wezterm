@@ -7,7 +7,7 @@
 
 
         <!-- Custom HTML head -->
-
+        
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -90,7 +90,7 @@
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                <div id="menu-bar-hover-placeholder"></div>
+                                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky bordered">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -191,30 +191,6 @@
       }
     }
   }
-}
-</code></pre>
-<p><em>Since: nightly builds only</em></p>
-<p>You may now specify the type of <code>multiplexing</code> used by an ssh domain.
-The following values are possible:</p>
-<ul>
-<li><code>&quot;WezTerm&quot;</code> - this is the default; use wezterm's multiplexing client.
-Having wezterm installed on the server is required to use this mode.</li>
-<li><code>&quot;None&quot;</code> - don't use any multiplexing. The connection is an ssh connection
-using the same mechanism as is used by <code>wezterm ssh</code>; losing connectivity
-will lose any panes/tabs.  This mode of operation is convenient when using
-SSH to connect automatically into eg: a locally hosted WSL instance, together
-with the <a href="config/default_domain.html">default_domain</a> option.</li>
-</ul>
-<pre><code class="language-lua">return {
-  ssh_domains = {
-    {
-      name = &quot;my.server&quot;,
-      remote_address = &quot;192.168.1.1&quot;,
-      multiplexing = &quot;None&quot;,
-    }
-  },
-
-  default_domain = &quot;my.server&quot;,
 }
 </code></pre>
 
