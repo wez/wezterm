@@ -67,6 +67,13 @@ The following values are possible:
   SSH to connect automatically into eg: a locally hosted WSL instance, together
   with the [default_domain](config/default_domain.md) option.
 
+A new `assume_unix` option, when coupled with `multiplexing = "None"`, allows
+wezterm to assume that the remote host uses some version of the posix shell
+command language by default, which in turn allows wezterm to respect the
+current working directory as set by [OSC 7 / Shell
+Integration](../../shell-integration.md) on the remote host when spawning new
+panes and tabs.
+
 ```lua
 return {
   ssh_domains = {
@@ -81,10 +88,18 @@ return {
       -- but you could instead change your default_prog to put you
       -- in a specific directory.
       default_prog = {"fish"},
+
+      -- assume that we can use syntax like:
+      -- "cd /some/where ; exec $SHELL"
+      -- using whatever the default command shell is on this
+      -- remote host, so that shell integration will respect
+      -- the current directory on the remote host.
+      assume_unix = true,
     }
   },
 
   default_domain = "my.server",
 }
 ```
+
 

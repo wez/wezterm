@@ -201,6 +201,7 @@ impl RemoteSshDomain {
         &self,
         pane_id: PaneId,
         command: Option<CommandBuilder>,
+        command_dir: Option<String>,
     ) -> anyhow::Result<(Option<String>, HashMap<String, String>)> {
         let config = config::configuration();
         let cmd = match command {
@@ -215,11 +216,17 @@ impl RemoteSshDomain {
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
         env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
-        if cmd.is_default_prog() {
-            Ok((None, env))
-        } else {
-            Ok((Some(cmd.as_unix_command_line()?), env))
-        }
+
+        let command_line = match (cmd.is_default_prog(), self.dom.assume_unix, command_dir) {
+            (true, true, Some(dir)) => Some(format!("cd {} ; exec $SHELL", dir)),
+            (false, true, Some(dir)) => {
+                Some(format!("cd {} ; exec {}", dir, cmd.as_unix_command_line()?))
+            }
+            (true, _, _) => None,
+            (false, _, _) => Some(cmd.as_unix_command_line()?),
+        };
+
+        Ok((command_line, env))
     }
 }
 
@@ -505,12 +512,12 @@ impl Domain for RemoteSshDomain {
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
-        _command_dir: Option<String>,
+        command_dir: Option<String>,
         window: WindowId,
     ) -> Result<Rc<Tab>, Error> {
         let pane_id = alloc_pane_id();
 
-        let (command_line, env) = self.build_command(pane_id, command)?;
+        let (command_line, env) = self.build_command(pane_id, command, command_dir)?;
 
         let pty: Box<dyn portable_pty::MasterPty>;
         let child: Box<dyn portable_pty::Child + Send>;
@@ -636,7 +643,7 @@ impl Domain for RemoteSshDomain {
     async fn split_pane(
         &self,
         command: Option<CommandBuilder>,
-        _command_dir: Option<String>,
+        command_dir: Option<String>,
         tab: TabId,
         pane_id: PaneId,
         direction: SplitDirection,
@@ -662,7 +669,7 @@ impl Domain for RemoteSshDomain {
         };
 
         let pane_id = alloc_pane_id();
-        let (command_line, env) = self.build_command(pane_id, command)?;
+        let (command_line, env) = self.build_command(pane_id, command, command_dir)?;
 
         let session = self
             .session

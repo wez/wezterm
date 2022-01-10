@@ -69,6 +69,9 @@ pub struct SshDomain {
     pub ssh_option: HashMap<String, String>,
 
     pub default_prog: Option<Vec<String>>,
+
+    #[serde(default)]
+    pub assume_unix: bool,
 }
 impl_lua_conversion!(SshDomain);
 
