@@ -222,6 +222,8 @@ impl super::TermWindow {
                         if let Some(need_quads) =
                             self.render_state.as_mut().unwrap().vb[vb_idx].need_more_quads()
                         {
+                            self.invalidate_fancy_tab_bar();
+
                             // Round up to next multiple of 1024 that is >=
                             // the number of needed quads for this frame
                             let num_quads = (need_quads + 1023) & !1023;
@@ -241,7 +243,6 @@ impl super::TermWindow {
                             }
                             log::trace!("Allocated {} quads (needed {})", num_quads, need_quads);
                             allocated = true;
-                            self.invalidate_fancy_tab_bar();
                         }
                     }
                     if !allocated {
