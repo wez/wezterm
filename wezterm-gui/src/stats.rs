@@ -127,7 +127,7 @@ impl Inner {
 
                 data.clear();
                 for (key, histogram) in &inner.histograms {
-                    if key.to_string().ends_with(".size") {
+                    if key.name().ends_with(".size") {
                         let p50 = histogram.value_at_percentile(50.);
                         let p75 = histogram.value_at_percentile(75.);
                         let p95 = histogram.value_at_percentile(95.);
