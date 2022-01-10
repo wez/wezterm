@@ -29,6 +29,24 @@ impl Default for SshMultiplexing {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum Shell {
+    /// Unknown command shell: no assumptions can be made
+    Unknown,
+
+    /// Posix shell compliant, such that `cd DIR ; exec CMD` behaves
+    /// as it does in the bourne shell family of shells
+    Posix,
+    // TODO: Cmd, PowerShell in the future?
+}
+impl_lua_conversion!(Shell);
+
+impl Default for Shell {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct SshDomain {
     /// The name of this specific domain.  Must be unique amongst
@@ -71,7 +89,7 @@ pub struct SshDomain {
     pub default_prog: Option<Vec<String>>,
 
     #[serde(default)]
-    pub assume_unix: bool,
+    pub assume_shell: Shell,
 }
 impl_lua_conversion!(SshDomain);
 

@@ -7,7 +7,7 @@ use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{anyhow, bail, Context, Error};
 use async_trait::async_trait;
-use config::{SshBackend, SshDomain};
+use config::{Shell, SshBackend, SshDomain};
 use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{ChildKiller, ExitStatus, MasterPty, PtySize};
@@ -217,9 +217,9 @@ impl RemoteSshDomain {
             .collect();
         env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
 
-        let command_line = match (cmd.is_default_prog(), self.dom.assume_unix, command_dir) {
-            (true, true, Some(dir)) => Some(format!("cd {} ; exec $SHELL", dir)),
-            (false, true, Some(dir)) => {
+        let command_line = match (cmd.is_default_prog(), self.dom.assume_shell, command_dir) {
+            (true, Shell::Posix, Some(dir)) => Some(format!("cd {} ; exec $SHELL", dir)),
+            (false, Shell::Posix, Some(dir)) => {
                 Some(format!("cd {} ; exec {}", dir, cmd.as_unix_command_line()?))
             }
             (true, _, _) => None,
