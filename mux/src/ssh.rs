@@ -196,6 +196,31 @@ impl RemoteSshDomain {
     pub fn ssh_config(&self) -> anyhow::Result<ConfigMap> {
         ssh_domain_to_ssh_config(&self.dom)
     }
+
+    fn build_command(
+        &self,
+        pane_id: PaneId,
+        command: Option<CommandBuilder>,
+    ) -> anyhow::Result<(Option<String>, HashMap<String, String>)> {
+        let config = config::configuration();
+        let cmd = match command {
+            Some(mut cmd) => {
+                config.apply_cmd_defaults(&mut cmd, None);
+                cmd
+            }
+            None => config.build_prog(None, self.dom.default_prog.as_ref(), None)?,
+        };
+        let mut env: HashMap<String, String> = cmd
+            .iter_extra_env_as_str()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
+        if cmd.is_default_prog() {
+            Ok((None, env))
+        } else {
+            Ok((Some(cmd.as_unix_command_line()?), env))
+        }
+    }
 }
 
 /// Carry out the authentication process and create the initial pty.
@@ -485,21 +510,7 @@ impl Domain for RemoteSshDomain {
     ) -> Result<Rc<Tab>, Error> {
         let pane_id = alloc_pane_id();
 
-        let cmd = match command {
-            Some(c) => c,
-            None => CommandBuilder::new_default_prog(),
-        };
-
-        let command_line = if cmd.is_default_prog() {
-            None
-        } else {
-            Some(cmd.as_unix_command_line()?)
-        };
-        let mut env: HashMap<String, String> = cmd
-            .iter_extra_env_as_str()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
-        env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
+        let (command_line, env) = self.build_command(pane_id, command)?;
 
         let pty: Box<dyn portable_pty::MasterPty>;
         let child: Box<dyn portable_pty::Child + Send>;
@@ -650,26 +661,8 @@ impl Domain for RemoteSshDomain {
             None => anyhow::bail!("invalid pane index {}", pane_index),
         };
 
-        let config = config::configuration();
-        let cmd = match command {
-            Some(mut cmd) => {
-                config.apply_cmd_defaults(&mut cmd, None);
-                cmd
-            }
-            None => config.build_prog(None, None, None)?,
-        };
         let pane_id = alloc_pane_id();
-
-        let command_line = if cmd.is_default_prog() {
-            None
-        } else {
-            Some(cmd.as_unix_command_line()?)
-        };
-        let mut env: HashMap<String, String> = cmd
-            .iter_extra_env_as_str()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
-        env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
+        let (command_line, env) = self.build_command(pane_id, command)?;
 
         let session = self
             .session
