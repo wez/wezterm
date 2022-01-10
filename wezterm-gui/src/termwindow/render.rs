@@ -217,14 +217,20 @@ impl super::TermWindow {
         'pass: for pass in 0.. {
             match self.paint_opengl_pass() {
                 Ok(_) => {
-                    let gl_state = self.render_state.as_mut().unwrap();
                     let mut allocated = false;
                     for vb_idx in 0..3 {
-                        if let Some(need_quads) = gl_state.vb[vb_idx].need_more_quads() {
+                        if let Some(need_quads) =
+                            self.render_state.as_mut().unwrap().vb[vb_idx].need_more_quads()
+                        {
                             // Round up to next multiple of 1024 that is >=
                             // the number of needed quads for this frame
                             let num_quads = (need_quads + 1023) & !1023;
-                            if let Err(err) = gl_state.reallocate_quads(vb_idx, num_quads) {
+                            if let Err(err) = self
+                                .render_state
+                                .as_mut()
+                                .unwrap()
+                                .reallocate_quads(vb_idx, num_quads)
+                            {
                                 log::error!(
                                     "Failed to allocate {} quads (needed {}): {:#}",
                                     num_quads,
@@ -235,6 +241,7 @@ impl super::TermWindow {
                             }
                             log::trace!("Allocated {} quads (needed {})", num_quads, need_quads);
                             allocated = true;
+                            self.invalidate_fancy_tab_bar();
                         }
                     }
                     if !allocated {
