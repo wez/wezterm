@@ -8,7 +8,7 @@
 
 
         <!-- Custom HTML head -->
-        
+
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -91,7 +91,7 @@
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky bordered">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -9509,6 +9509,12 @@ will lose any panes/tabs.  This mode of operation is convenient when using
 SSH to connect automatically into eg: a locally hosted WSL instance, together
 with the <a href="config/lua/config/default_domain.html">default_domain</a> option.</li>
 </ul>
+<p>A new <code>assume_unix</code> option, when coupled with <code>multiplexing = &quot;None&quot;</code>, allows
+wezterm to assume that the remote host uses some version of the posix shell
+command language by default, which in turn allows wezterm to respect the
+current working directory as set by <a href="config/lua/../../shell-integration.html">OSC 7 / Shell
+Integration</a> on the remote host when spawning new
+panes and tabs.</p>
 <pre><code class="language-lua">return {
   ssh_domains = {
     {
@@ -9522,6 +9528,13 @@ with the <a href="config/lua/config/default_domain.html">default_domain</a> opti
       -- but you could instead change your default_prog to put you
       -- in a specific directory.
       default_prog = {&quot;fish&quot;},
+
+      -- assume that we can use syntax like:
+      -- &quot;cd /some/where ; exec $SHELL&quot;
+      -- using whatever the default command shell is on this
+      -- remote host, so that shell integration will respect
+      -- the current directory on the remote host.
+      assume_unix = true,
     }
   },
 
