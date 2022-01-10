@@ -205,12 +205,18 @@ will lose any panes/tabs.  This mode of operation is convenient when using
 SSH to connect automatically into eg: a locally hosted WSL instance, together
 with the <a href="config/default_domain.html">default_domain</a> option.</li>
 </ul>
-<p>A new <code>assume_unix</code> option, when coupled with <code>multiplexing = &quot;None&quot;</code>, allows
-wezterm to assume that the remote host uses some version of the posix shell
-command language by default, which in turn allows wezterm to respect the
+<p>A new <code>assume_shell</code> option, when coupled with <code>multiplexing = &quot;None&quot;</code>, allows
+wezterm to assume that the remote host uses a specific shell command language
+dialect, which in turn allows wezterm to respect the
 current working directory as set by <a href="../../shell-integration.html">OSC 7 / Shell
 Integration</a> on the remote host when spawning new
-panes and tabs.</p>
+panes and tabs.  The following values are recognized for <code>assume_shell</code>:</p>
+<ul>
+<li><code>&quot;Unknown&quot;</code> - this is the default. We can't make any assumptions about the
+remote shell.</li>
+<li><code>&quot;Posix&quot;</code> - the remote host uses a Bourne Shell compatible shell that allows
+the syntax <code>cd DIR ; exec CMD</code> and <code>cd DIR ; exec $SHELL</code>.</li>
+</ul>
 <pre><code class="language-lua">return {
   ssh_domains = {
     {
@@ -230,7 +236,7 @@ panes and tabs.</p>
       -- using whatever the default command shell is on this
       -- remote host, so that shell integration will respect
       -- the current directory on the remote host.
-      assume_unix = true,
+      assume_shell = &quot;Posix&quot;,
     }
   },
 
