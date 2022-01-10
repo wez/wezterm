@@ -3,7 +3,7 @@
 
 use ::window::*;
 use anyhow::{anyhow, Context};
-use config::{ConfigHandle, SshBackend};
+use config::{ConfigHandle, SshBackend, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::ssh::RemoteSshDomain;
@@ -211,7 +211,7 @@ fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
     }
 
     for ssh_dom in &config.ssh_domains {
-        if ssh_dom.use_multiplexer {
+        if ssh_dom.multiplexing == SshMultiplexing::WezTerm {
             domains.push(ClientDomainConfig::Ssh(ssh_dom.clone()));
         }
     }
@@ -334,7 +334,7 @@ fn update_mux_domains(config: &ConfigHandle) -> anyhow::Result<()> {
     }
 
     for ssh_dom in &config.ssh_domains {
-        if ssh_dom.use_multiplexer {
+        if ssh_dom.multiplexing != SshMultiplexing::None {
             continue;
         }
 

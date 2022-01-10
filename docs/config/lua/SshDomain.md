@@ -54,3 +54,29 @@ return {
 }
 ```
 
+*Since: nightly builds only*
+
+You may now specify the type of `multiplexing` used by an ssh domain.
+The following values are possible:
+
+* `"WezTerm"` - this is the default; use wezterm's multiplexing client.
+  Having wezterm installed on the server is required to use this mode.
+* `"None"` - don't use any multiplexing. The connection is an ssh connection
+  using the same mechanism as is used by `wezterm ssh`; losing connectivity
+  will lose any panes/tabs.  This mode of operation is convenient when using
+  SSH to connect automatically into eg: a locally hosted WSL instance, together
+  with the [default_domain](config/default_domain.md) option.
+
+```lua
+return {
+  ssh_domains = {
+    {
+      name = "my.server",
+      remote_address = "192.168.1.1",
+      multiplexing = "None",
+    }
+  },
+
+  default_domain = "my.server",
+}
+```

@@ -15,6 +15,20 @@ impl Default for SshBackend {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum SshMultiplexing {
+    WezTerm,
+    None,
+    // TODO: Tmux-cc in the future?
+}
+impl_lua_conversion!(SshMultiplexing);
+
+impl Default for SshMultiplexing {
+    fn default() -> Self {
+        Self::WezTerm
+    }
+}
+
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct SshDomain {
     /// The name of this specific domain.  Must be unique amongst
@@ -47,8 +61,8 @@ pub struct SshDomain {
     /// just connect directly using ssh. This doesn't require
     /// that the remote host have wezterm installed, and is equivalent
     /// to using `wezterm ssh` to connect.
-    #[serde(default = "default_true")]
-    pub use_multiplexer: bool,
+    #[serde(default)]
+    pub multiplexing: SshMultiplexing,
 
     /// ssh_config option values
     #[serde(default)]
