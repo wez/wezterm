@@ -3,13 +3,14 @@
 
 use ::window::*;
 use anyhow::{anyhow, Context};
-use config::{ConfigHandle, SshBackend, SshMultiplexing};
+use config::{ConfigHandle, SshDomain, SshMultiplexing};
 use mux::activity::Activity;
 use mux::domain::{Domain, LocalDomain};
 use mux::ssh::RemoteSshDomain;
 use mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 use promise::spawn::block_on;
+use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -19,7 +20,6 @@ use termwiz::cell::CellAttributes;
 use termwiz::surface::{Line, SEQ_ZERO};
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
 use wezterm_gui_subcommands::*;
-use wezterm_ssh::*;
 use wezterm_toast_notification::*;
 
 mod cache;
@@ -106,39 +106,22 @@ enum SubCommand {
 }
 
 async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
-    let config = config::configuration();
-
-    let mut ssh_config = Config::new();
-    ssh_config.add_default_config_files();
-
-    let mut fields = opts.user_at_host_and_port.host_and_port.split(':');
-    let host = fields
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("no host component somehow"))?;
-    let port = fields.next();
-
-    let mut ssh_config = ssh_config.for_host(host);
-    ssh_config.insert(
-        "wezterm_ssh_backend".to_string(),
-        match config.ssh_backend {
-            SshBackend::Ssh2 => "ssh2",
-            SshBackend::LibSsh => "libssh",
-        }
-        .to_string(),
-    );
+    let mut ssh_option = HashMap::new();
     if opts.verbose {
-        ssh_config.insert("wezterm_ssh_verbose".to_string(), "true".to_string());
-    }
-
-    if let Some(username) = &opts.user_at_host_and_port.username {
-        ssh_config.insert("user".to_string(), username.to_string());
-    }
-    if let Some(port) = port {
-        ssh_config.insert("port".to_string(), port.to_string());
+        ssh_option.insert("wezterm_ssh_verbose".to_string(), "true".to_string());
     }
     for (k, v) in opts.config_override {
-        ssh_config.insert(k.to_lowercase().to_string(), v);
+        ssh_option.insert(k.to_lowercase().to_string(), v);
     }
+
+    let dom = SshDomain {
+        name: format!("SSH to {}", opts.user_at_host_and_port),
+        remote_address: opts.user_at_host_and_port.host_and_port.clone(),
+        username: opts.user_at_host_and_port.username.clone(),
+        multiplexing: SshMultiplexing::None,
+        ssh_option,
+        ..Default::default()
+    };
 
     let cmd = if !opts.prog.is_empty() {
         let builder = CommandBuilder::from_argv(opts.prog);
@@ -147,10 +130,7 @@ async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         None
     };
 
-    let domain: Arc<dyn Domain> = Arc::new(mux::ssh::RemoteSshDomain::with_ssh_config(
-        &opts.user_at_host_and_port.to_string(),
-        ssh_config,
-    )?);
+    let domain: Arc<dyn Domain> = Arc::new(mux::ssh::RemoteSshDomain::with_ssh_domain(&dom)?);
 
     async_run_with_domain_as_default(domain, cmd).await
 }

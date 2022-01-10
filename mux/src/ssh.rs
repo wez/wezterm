@@ -135,14 +135,9 @@ pub fn ssh_connect_with_ui(
 /// interactive setup.  The bulk of that is driven by `connect_ssh_session`.
 pub struct RemoteSshDomain {
     session: RefCell<Option<Session>>,
-    config: RemoteSshConfig,
+    dom: SshDomain,
     id: DomainId,
     name: String,
-}
-
-enum RemoteSshConfig {
-    AdHoc(ConfigMap),
-    Domain(SshDomain),
 }
 
 pub fn ssh_domain_to_ssh_config(ssh_dom: &SshDomain) -> anyhow::Result<ConfigMap> {
@@ -188,31 +183,18 @@ pub fn ssh_domain_to_ssh_config(ssh_dom: &SshDomain) -> anyhow::Result<ConfigMap
 }
 
 impl RemoteSshDomain {
-    pub fn with_ssh_config(name: &str, ssh_config: ConfigMap) -> anyhow::Result<Self> {
-        let id = alloc_domain_id();
-        Ok(Self {
-            id,
-            name: format!("SSH to {}", name),
-            session: RefCell::new(None),
-            config: RemoteSshConfig::AdHoc(ssh_config),
-        })
-    }
-
     pub fn with_ssh_domain(dom: &SshDomain) -> anyhow::Result<Self> {
         let id = alloc_domain_id();
         Ok(Self {
             id,
             name: dom.name.clone(),
             session: RefCell::new(None),
-            config: RemoteSshConfig::Domain(dom.clone()),
+            dom: dom.clone(),
         })
     }
 
     pub fn ssh_config(&self) -> anyhow::Result<ConfigMap> {
-        match &self.config {
-            RemoteSshConfig::AdHoc(config) => Ok(config.clone()),
-            RemoteSshConfig::Domain(dom) => ssh_domain_to_ssh_config(dom),
-        }
+        ssh_domain_to_ssh_config(&self.dom)
     }
 }
 
