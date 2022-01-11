@@ -45,6 +45,7 @@ pub(crate) struct PerPane {
     mouse_grabbed: bool,
     sent_initial_palette: bool,
     seqno: SequenceNo,
+    config_generation: usize,
     pub(crate) notifications: Vec<Alert>,
 }
 
@@ -151,6 +152,18 @@ fn maybe_push_pane_changes(
             serial: 0,
         })?;
     }
+
+    let config = config::configuration();
+    if per_pane.config_generation != config.generation() {
+        per_pane.config_generation = config.generation();
+        // If the config changed, it may have changed colors
+        // in the palette that we need to push down, so we
+        // synthesize a palette change notification to let
+        // the client know
+        per_pane.notifications.push(Alert::PaletteChanged);
+        per_pane.sent_initial_palette = true;
+    }
+
     if !per_pane.sent_initial_palette {
         per_pane.notifications.push(Alert::PaletteChanged);
         per_pane.sent_initial_palette = true;
