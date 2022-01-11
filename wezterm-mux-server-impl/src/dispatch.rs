@@ -92,7 +92,7 @@ where
                 {
                     let per_pane = handler.per_pane(pane_id);
                     let mut per_pane = per_pane.lock().unwrap();
-                    per_pane.notifications.push(dbg!(alert));
+                    per_pane.notifications.push(alert);
                 }
                 handler.schedule_pane_push(pane_id);
             }
