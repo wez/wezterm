@@ -42,6 +42,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Kitty Image Protocol: didn't respect `c` and `r` parameters to scale images
 * Cursor location on the primary screen wasn't updated correctly if the window was resized while the alternate screen was active [#1512](https://github.com/wez/wezterm/issues/1512)
 * Windows: latency issue with AltSnap and other window-managery things [#1013](https://github.com/wez/wezterm/issues/1013) [#1398](https://github.com/wez/wezterm/issues/1398) [#1075](https://github.com/wez/wezterm/issues/1075) [#1099](https://github.com/wez/wezterm/issues/1099)
+* Multiplexer sessions now propagate user vars [#1528](https://github.com/wez/wezterm/issues/1528)
 
 ### 20220101-133340-7edc5b5a
 

@@ -65,13 +65,9 @@ impl GuiFrontEnd {
                     } => {
                         // Handled via TermWindowNotif; NOP it here.
                     }
-                    MuxNotification::Alert {
-                        pane_id: _,
-                        alert: Alert::PaletteChanged,
-                    }
                     | MuxNotification::Alert {
                         pane_id: _,
-                        alert: Alert::TitleMaybeChanged,
+                        alert: Alert::PaletteChanged | Alert::TitleMaybeChanged | Alert::SetUserVar{..},
                     } => {}
                     MuxNotification::Empty => {
                         if mux::activity::Activity::count() == 0 {

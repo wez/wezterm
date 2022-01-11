@@ -603,9 +603,9 @@ impl<'a> Performer<'a> {
             OperatingSystemCommand::ITermProprietary(iterm) => match iterm {
                 ITermProprietary::File(image) => self.set_image(*image),
                 ITermProprietary::SetUserVar { name, value } => {
-                    self.user_vars.insert(name, value);
+                    self.user_vars.insert(name.clone(), value.clone());
                     if let Some(handler) = self.alert_handler.as_mut() {
-                        handler.alert(Alert::TitleMaybeChanged);
+                        handler.alert(Alert::SetUserVar { name, value });
                     }
                 }
                 ITermProprietary::UnicodeVersion(ITermUnicodeVersionOp::Set(n)) => {

@@ -921,7 +921,7 @@ impl TermWindow {
             }
             TermWindowNotif::MuxNotification(n) => match n {
                 MuxNotification::Alert {
-                    alert: Alert::TitleMaybeChanged,
+                    alert: Alert::TitleMaybeChanged | Alert::SetUserVar { .. },
                     ..
                 } => {
                     self.update_title();
