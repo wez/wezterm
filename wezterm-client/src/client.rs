@@ -946,7 +946,10 @@ impl Client {
         }
     }
 
-    pub async fn verify_version_compat(&self, ui: &ConnectionUI) -> anyhow::Result<()> {
+    pub async fn verify_version_compat(
+        &self,
+        ui: &ConnectionUI,
+    ) -> anyhow::Result<GetCodecVersionResponse> {
         match self.get_codec_version(GetCodecVersion {}).await {
             Ok(info) if info.codec_vers == CODEC_VERSION => {
                 log::trace!(
@@ -954,7 +957,7 @@ impl Client {
                     info.version_string,
                     info.codec_vers
                 );
-                Ok(())
+                Ok(info)
             }
             Ok(info) => {
                 let err = IncompatibleVersionError {

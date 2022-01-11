@@ -534,10 +534,18 @@ impl SessionHandler {
             }
 
             Pdu::GetCodecVersion(_) => {
-                send_response(Ok(Pdu::GetCodecVersionResponse(GetCodecVersionResponse {
-                    codec_vers: CODEC_VERSION,
-                    version_string: config::wezterm_version().to_owned(),
-                })))
+                match std::env::current_exe().context("resolving current_exe") {
+                    Err(err) => send_response(Err(err)),
+                    Ok(executable_path) => {
+                        send_response(Ok(Pdu::GetCodecVersionResponse(GetCodecVersionResponse {
+                            codec_vers: CODEC_VERSION,
+                            version_string: config::wezterm_version().to_owned(),
+                            executable_path,
+                            config_file_path: std::env::var_os("WEZTERM_CONFIG_FILE")
+                                .map(Into::into),
+                        })))
+                    }
+                }
             }
 
             Pdu::GetTlsCreds(_) => {

@@ -26,6 +26,7 @@ use smol::prelude::*;
 use std::convert::TryInto;
 use std::io::Cursor;
 use std::ops::Range;
+use std::path::PathBuf;
 use std::sync::Arc;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::{Line, SequenceNo};
@@ -401,7 +402,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 11;
+pub const CODEC_VERSION: usize = 12;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -536,6 +537,8 @@ pub struct GetCodecVersion {}
 pub struct GetCodecVersionResponse {
     pub codec_vers: usize,
     pub version_string: String,
+    pub executable_path: PathBuf,
+    pub config_file_path: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

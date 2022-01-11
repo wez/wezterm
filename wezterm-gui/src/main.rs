@@ -434,7 +434,19 @@ impl Publish {
                     let executor = promise::spawn::ScopedExecutor::new();
                     let command = cmd.clone();
                     let res = block_on(executor.run(async move {
-                        client.verify_version_compat(&mut ui).await?;
+                        let vers = client.verify_version_compat(&mut ui).await?;
+
+                        if vers.executable_path != std::env::current_exe().context("resolve executable path")? {
+                            anyhow::bail!(
+                                "Running GUI is a different executable from us, will start a new one");
+                        }
+                        if vers.config_file_path
+                            != std::env::var_os("WEZTERM_CONFIG_FILE").map(Into::into)
+                        {
+                            anyhow::bail!(
+                                "Running GUI has different config from us, will start a new one"
+                            );
+                        }
                         client
                             .spawn_v2(codec::SpawnV2 {
                                 domain: config::keyassignment::SpawnTabDomain::DefaultDomain,
