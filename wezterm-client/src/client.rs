@@ -164,12 +164,19 @@ fn process_unilateral(
     local_domain_id: Option<DomainId>,
     decoded: DecodedPdu,
 ) -> anyhow::Result<()> {
-    let local_domain_id = local_domain_id.ok_or_else(|| {
-        anyhow::anyhow!(
-            "client doesn't have a real local domain, \
-             so unilateral message cannot be processed by it"
-        )
-    })?;
+    let local_domain_id = match local_domain_id {
+        Some(id) => id,
+        None => {
+            // FIXME: We currently get a bunch of these; we'll need
+            // to do something to advise the server when we want them.
+            // For now, we just ignore them.
+            log::trace!(
+                "client doesn't have a real local domain, \
+                 so unilateral message cannot be processed by it"
+            );
+            return Ok(());
+        }
+    };
     if let Some(pane_id) = decoded.pdu.pane_id() {
         promise::spawn::spawn_into_main_thread(async move {
             process_unilateral_inner(pane_id, local_domain_id, decoded)
@@ -281,6 +288,7 @@ async fn client_thread_async(
 pub fn unix_connect_with_retry(
     target: &UnixTarget,
     just_spawned: bool,
+    max_attempts: Option<u64>,
 ) -> anyhow::Result<UnixStream> {
     let mut error = None;
 
@@ -288,7 +296,9 @@ pub fn unix_connect_with_retry(
         std::thread::sleep(std::time::Duration::from_millis(200));
     }
 
-    for iter in 0..10 {
+    let max_attempts = max_attempts.unwrap_or(10);
+
+    for iter in 0..max_attempts {
         if iter > 0 {
             std::thread::sleep(std::time::Duration::from_millis(iter * 10));
         }
@@ -561,7 +571,9 @@ impl Reconnectable {
         ui.output_str(&format!("Connect to {:?}\n", target));
         log::trace!("connect to {:?}", target);
 
-        let stream = match unix_connect_with_retry(&target, false) {
+        let max_attempts = if no_auto_start { Some(1) } else { None };
+
+        let stream = match unix_connect_with_retry(&target, false, max_attempts) {
             Ok(stream) => stream,
             Err(e) => {
                 if no_auto_start || unix_dom.no_serve_automatically || !initial {
@@ -603,7 +615,7 @@ impl Reconnectable {
                     }
                 });
 
-                unix_connect_with_retry(&target, true).with_context(|| {
+                unix_connect_with_retry(&target, true, None).with_context(|| {
                     format!("(after spawning server) failed to connect to {:?}", target)
                 })?
             }

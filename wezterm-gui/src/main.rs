@@ -417,7 +417,7 @@ impl Publish {
     }
 
     pub fn try_spawn(
-        &self,
+        &mut self,
         cmd: Option<CommandBuilder>,
         config: &ConfigHandle,
     ) -> anyhow::Result<bool> {
@@ -437,12 +437,14 @@ impl Publish {
                         let vers = client.verify_version_compat(&mut ui).await?;
 
                         if vers.executable_path != std::env::current_exe().context("resolve executable path")? {
+                            *self = Publish::NoConnectNoPublish;
                             anyhow::bail!(
                                 "Running GUI is a different executable from us, will start a new one");
                         }
                         if vers.config_file_path
                             != std::env::var_os("WEZTERM_CONFIG_FILE").map(Into::into)
                         {
+                            *self = Publish::NoConnectNoPublish;
                             anyhow::bail!(
                                 "Running GUI has different config from us, will start a new one"
                             );
@@ -567,7 +569,7 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
     // First, let's see if we can ask an already running wezterm to do this.
     // We must do this before we start the gui frontend as the scheduler
     // requirements are different.
-    let publish = Publish::resolve(&mux, &config, opts.always_new_process);
+    let mut publish = Publish::resolve(&mux, &config, opts.always_new_process);
     log::trace!("{:?}", publish);
     if publish.try_spawn(cmd.clone(), &config)? {
         return Ok(());
