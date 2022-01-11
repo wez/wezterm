@@ -1,5 +1,5 @@
 use crate::PKI;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use codec::*;
 use config::keyassignment::SpawnTabDomain;
 use mux::pane::{Pane, PaneId};
@@ -100,10 +100,14 @@ impl PerPane {
         let mut bonus_lines = lines
             .into_iter()
             .enumerate()
-            .map(|(idx, line)| {
-                let stable_row = first_line + idx as StableRowIndex;
-                all_dirty_lines.remove(stable_row);
-                (stable_row, line)
+            .filter_map(|(idx, line)| {
+                if line.changed_since(self.seqno) {
+                    let stable_row = first_line + idx as StableRowIndex;
+                    all_dirty_lines.remove(stable_row);
+                    Some((stable_row, line))
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>();
 
