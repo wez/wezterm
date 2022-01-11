@@ -328,6 +328,7 @@ macro_rules! pdu {
                             let (data, is_compressed) = serialize(s)?;
                             let encoded_size = encode_raw($vers, serial, &data, is_compressed, w)?;
                             metrics::histogram!("pdu.size", encoded_size as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size.rate", encoded_size as f64, "pdu" => stringify!($name));
                             Ok(())
                         }
                     ,)*
@@ -342,6 +343,7 @@ macro_rules! pdu {
                             let (data, is_compressed) = serialize(s)?;
                             let encoded_size = encode_raw_async($vers, serial, &data, is_compressed, w).await?;
                             metrics::histogram!("pdu.size", encoded_size as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size.rate", encoded_size as f64, "pdu" => stringify!($name));
                             Ok(())
                         }
                     ,)*
@@ -354,6 +356,7 @@ macro_rules! pdu {
                     $(
                         $vers => {
                             metrics::histogram!("pdu.size", decoded.data.len() as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size.rate", decoded.data.len() as f64, "pdu" => stringify!($name));
                             Ok(DecodedPdu {
                                 serial: decoded.serial,
                                 pdu: Pdu::$name(deserialize(decoded.data.as_slice(), decoded.is_compressed)?)
@@ -362,6 +365,7 @@ macro_rules! pdu {
                     ,)*
                     _ => {
                         metrics::histogram!("pdu.size", decoded.data.len() as f64, "pdu" => "??");
+                        metrics::histogram!("pdu.size.rate", decoded.data.len() as f64, "pdu" => "??");
                         Ok(DecodedPdu {
                             serial: decoded.serial,
                             pdu: Pdu::Invalid{ident:decoded.ident}

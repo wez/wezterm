@@ -38,6 +38,18 @@ impl Throughput {
         };
         self.count += value;
     }
+
+    fn current(&mut self) -> u64 {
+        if let Some(ref last) = self.last {
+            let elapsed = last.elapsed();
+            if elapsed > Duration::from_secs(1) {
+                self.hist.record(self.count).ok();
+                self.count = 0;
+                self.last = Some(Instant::now());
+            }
+        }
+        self.count
+    }
 }
 
 fn pctile_latency(histogram: &Histogram<u64>, p: f64) -> Duration {
@@ -47,6 +59,7 @@ fn pctile_latency(histogram: &Histogram<u64>, p: f64) -> Duration {
 struct Inner {
     histograms: HashMap<Key, Histogram<u64>>,
     throughput: HashMap<Key, Throughput>,
+    counters: HashMap<Key, u64>,
 }
 
 impl Inner {
@@ -93,9 +106,20 @@ impl Inner {
                 alignment: Alignment::Left,
             },
         ];
+        let count_cols = vec![
+            Column {
+                name: "STAT".to_string(),
+                alignment: Alignment::Left,
+            },
+            Column {
+                name: "COUNT".to_string(),
+                alignment: Alignment::Left,
+            },
+        ];
 
         loop {
-            std::thread::sleep(Duration::from_secs(10));
+            std::thread::sleep(Duration::from_secs(1));
+
             if !ENABLE_STAT_PRINT.load(Ordering::Acquire) {
                 break;
             }
@@ -107,9 +131,9 @@ impl Inner {
             if last_print.elapsed() >= Duration::from_secs(seconds) {
                 let mut data = vec![];
 
-                let inner = inner.lock().unwrap();
-                for (key, tput) in &inner.throughput {
-                    let current = tput.count;
+                let mut inner = inner.lock().unwrap();
+                for (key, tput) in &mut inner.throughput {
+                    let current = tput.current();
                     let p50 = tput.hist.value_at_percentile(50.);
                     let p75 = tput.hist.value_at_percentile(75.);
                     let p95 = tput.hist.value_at_percentile(95.);
@@ -152,6 +176,15 @@ impl Inner {
                 data.sort_by(|a, b| a[0].cmp(&b[0]));
                 eprintln!();
                 tabulate_output(&cols, &data, &mut std::io::stderr().lock()).ok();
+
+                data.clear();
+                for (key, count) in &inner.counters {
+                    data.push(vec![key.to_string(), count.to_string()]);
+                }
+                data.sort_by(|a, b| a[0].cmp(&b[0]));
+                eprintln!();
+                tabulate_output(&count_cols, &data, &mut std::io::stderr().lock()).ok();
+
                 last_print = Instant::now();
             }
         }
@@ -168,6 +201,7 @@ impl Stats {
             inner: Arc::new(Mutex::new(Inner {
                 histograms: HashMap::new(),
                 throughput: HashMap::new(),
+                counters: HashMap::new(),
             })),
         }
     }
@@ -202,7 +236,9 @@ impl Recorder for Stats {
     }
 
     fn increment_counter(&self, key: &Key, value: u64) {
-        log::trace!("counter '{}' -> {}", key, value);
+        let mut inner = self.inner.lock().unwrap();
+        let counter = inner.counters.entry(key.clone()).or_insert_with(|| 0);
+        *counter = *counter + value;
     }
 
     fn update_gauge(&self, key: &Key, value: GaugeValue) {
