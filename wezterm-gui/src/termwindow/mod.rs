@@ -1756,7 +1756,7 @@ impl TermWindow {
         Ok(())
     }
 
-    fn scroll_by_page(&mut self, amount: isize) -> anyhow::Result<()> {
+    fn scroll_by_page(&mut self, amount: f64) -> anyhow::Result<()> {
         let pane = match self.get_active_pane_or_overlay() {
             Some(pane) => pane,
             None => return Ok(()),
@@ -1764,9 +1764,9 @@ impl TermWindow {
         let dims = pane.get_dimensions();
         let position = self
             .get_viewport(pane.pane_id())
-            .unwrap_or(dims.physical_top)
-            .saturating_add(amount * dims.viewport_rows as isize);
-        self.set_viewport(pane.pane_id(), Some(position), dims);
+            .unwrap_or(dims.physical_top) as f64
+            + (amount * dims.viewport_rows as f64);
+        self.set_viewport(pane.pane_id(), Some(position as isize), dims);
         if let Some(win) = self.window.as_ref() {
             win.invalidate();
         }
@@ -1925,7 +1925,7 @@ impl TermWindow {
             ReloadConfiguration => config::reload(),
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
-            ScrollByPage(n) => self.scroll_by_page(*n)?,
+            ScrollByPage(n) => self.scroll_by_page(**n)?,
             ScrollByLine(n) => self.scroll_by_line(*n)?,
             ScrollToPrompt(n) => self.scroll_to_prompt(*n)?,
             ScrollToTop => self.scroll_to_top(pane),

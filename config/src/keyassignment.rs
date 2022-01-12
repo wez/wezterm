@@ -1,7 +1,9 @@
+use crate::de_notnan;
 use crate::keys::KeyNoAction;
 use crate::ConfigHandle;
 use crate::LeaderKey;
 use luahelper::impl_lua_conversion;
+use ordered_float::NotNan;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -220,7 +222,8 @@ pub enum KeyAssignment {
     ReloadConfiguration,
     MoveTabRelative(isize),
     MoveTab(usize),
-    ScrollByPage(isize),
+    #[serde(deserialize_with = "de_notnan")]
+    ScrollByPage(NotNan<f64>),
     ScrollByLine(isize),
     ScrollToPrompt(isize),
     ScrollToTop,
@@ -554,11 +557,15 @@ impl InputMap {
                     KeyCode::Physical(PhysKeyCode::PageDown),
                     MoveTabRelative(1)
                 ],
-                [Modifiers::SHIFT, KeyCode::PageUp, ScrollByPage(-1)],
+                [
+                    Modifiers::SHIFT,
+                    KeyCode::PageUp,
+                    ScrollByPage(NotNan::new(-1.0).unwrap())
+                ],
                 [
                     Modifiers::SHIFT,
                     KeyCode::Physical(PhysKeyCode::PageDown),
-                    ScrollByPage(1)
+                    ScrollByPage(NotNan::new(1.0).unwrap())
                 ],
                 [
                     Modifiers::ALT,
