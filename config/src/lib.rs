@@ -4,6 +4,7 @@ use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
 use luahelper::impl_lua_conversion;
 use mlua::Lua;
+use ordered_float::NotNan;
 use serde::{Deserialize, Deserializer, Serialize};
 use smol::channel::{Receiver, Sender};
 use smol::prelude::*;
@@ -659,6 +660,14 @@ impl std::ops::Deref for ConfigHandle {
     fn deref(&self) -> &Config {
         &*self.config
     }
+}
+
+pub(crate) fn de_notnan<'de, D>(deserializer: D) -> Result<NotNan<f64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: f64 = de_number(deserializer)?;
+    NotNan::new(value).map_err(|err| serde::de::Error::custom(err.to_string()))
 }
 
 /// Deserialize either an integer or a float as a float
