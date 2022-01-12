@@ -29,7 +29,7 @@ on:
       - "**/*.md"
 
 jobs:
-  build-docs:
+  build-termwiz-all-features:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,4 +46,5 @@ jobs:
         run: |
           source $HOME/.cargo/env
           cargo build -p termwiz --all-features
+          cargo test -p termwiz --all-features
 
