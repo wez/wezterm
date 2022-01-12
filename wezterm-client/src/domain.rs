@@ -474,6 +474,11 @@ impl Domain for ClientDomain {
     }
 
     async fn attach(&self) -> anyhow::Result<()> {
+        if self.state() == DomainState::Attached {
+            // Already attached
+            return Ok(());
+        }
+
         let domain_id = self.local_domain_id;
         let config = self.config.clone();
 

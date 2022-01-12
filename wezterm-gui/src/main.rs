@@ -267,9 +267,6 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
 ) -> anyhow::Result<()> {
     let mux = Mux::get().unwrap();
 
-    if !mux.is_empty() {
-        return Ok(());
-    }
     let domain = mux.default_domain();
     domain.attach().await?;
 
