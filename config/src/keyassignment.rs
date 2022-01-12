@@ -218,7 +218,9 @@ pub enum KeyAssignment {
     DisableDefaultAssignment,
     Hide,
     Show,
-    CloseCurrentTab { confirm: bool },
+    CloseCurrentTab {
+        confirm: bool,
+    },
     ReloadConfiguration,
     MoveTabRelative(isize),
     MoveTab(usize),
@@ -252,7 +254,9 @@ pub enum KeyAssignment {
     ActivatePaneDirection(PaneDirection),
     ActivatePaneByIndex(usize),
     TogglePaneZoomState,
-    CloseCurrentPane { confirm: bool },
+    CloseCurrentPane {
+        confirm: bool,
+    },
     EmitEvent(String),
     QuickSelect,
     QuickSelectArgs(QuickSelectArguments),
