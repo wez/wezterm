@@ -533,6 +533,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "pure-rust-locales",
+ "serde",
  "time",
  "winapi 0.3.9",
 ]
@@ -2290,10 +2291,12 @@ dependencies = [
  "async-trait",
  "base64",
  "bintree",
+ "chrono",
  "config",
  "crossbeam",
  "downcast-rs",
  "filedescriptor",
+ "hostname",
  "k9",
  "lazy_static",
  "libc",
@@ -4614,6 +4617,7 @@ name = "wezterm"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "codec",
  "config",
  "env-bootstrap",

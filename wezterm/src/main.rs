@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Context};
+use chrono::{DateTime, Utc};
 use config::keyassignment::SpawnTabDomain;
 use config::wezterm_version;
 use mux::activity::Activity;
@@ -111,6 +112,9 @@ struct CliCommand {
 enum CliSubCommand {
     #[structopt(name = "list", about = "list windows, tabs and panes")]
     List,
+
+    #[structopt(name = "list-clients", about = "list clients")]
+    ListClients,
 
     #[structopt(name = "proxy", about = "start rpc proxy pipe")]
     Proxy,
@@ -400,6 +404,60 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
     )?;
 
     match cli.sub {
+        CliSubCommand::ListClients => {
+            let cols = vec![
+                Column {
+                    name: "USER".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "HOST".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "PID".to_string(),
+                    alignment: Alignment::Right,
+                },
+                Column {
+                    name: "CONNECTED".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "IDLE".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "WORKSPACE".to_string(),
+                    alignment: Alignment::Left,
+                },
+            ];
+            let mut data = vec![];
+            let clients = client.list_clients(codec::GetClientList).await?;
+            let now: DateTime<Utc> = Utc::now();
+
+            fn duration_string(d: chrono::Duration) -> String {
+                if let Ok(d) = d.to_std() {
+                    format!("{:?}", d)
+                } else {
+                    d.to_string()
+                }
+            }
+
+            for info in clients.clients {
+                let connected = now - info.connected_at;
+                let idle = now - info.last_input;
+                data.push(vec![
+                    info.client_id.username.to_string(),
+                    info.client_id.hostname.to_string(),
+                    info.client_id.pid.to_string(),
+                    duration_string(connected),
+                    duration_string(idle),
+                    info.active_workspace.as_deref().unwrap_or("").to_string(),
+                ]);
+            }
+
+            tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
+        }
         CliSubCommand::List => {
             let cols = vec![
                 Column {

@@ -8,6 +8,7 @@ use codec::*;
 use config::{configuration, SshDomain, TlsDomainClient, UnixDomain, UnixTarget};
 use filedescriptor::FileDescriptor;
 use futures::FutureExt;
+use mux::client::ClientId;
 use mux::connui::ConnectionUI;
 use mux::domain::DomainId;
 use mux::pane::PaneId;
@@ -41,6 +42,7 @@ enum ReaderMessage {
 pub struct Client {
     sender: Sender<ReaderMessage>,
     local_domain_id: Option<DomainId>,
+    client_id: ClientId,
     pub is_reconnectable: bool,
     pub is_local: bool,
 }
@@ -865,6 +867,7 @@ impl Client {
         let is_reconnectable = reconnectable.reconnectable();
         let is_local = reconnectable.is_local();
         let (sender, mut receiver) = unbounded();
+        let client_id = ClientId::new();
 
         thread::spawn(move || {
             const BASE_INTERVAL: Duration = Duration::from_secs(1);
@@ -957,6 +960,7 @@ impl Client {
             local_domain_id,
             is_reconnectable,
             is_local,
+            client_id,
         }
     }
 
@@ -971,6 +975,10 @@ impl Client {
                     info.version_string,
                     info.codec_vers
                 );
+                self.set_client_id(SetClientId {
+                    client_id: self.client_id.clone(),
+                })
+                .await?;
                 Ok(info)
             }
             Ok(info) => {
@@ -1117,4 +1125,6 @@ impl Client {
         SearchScrollbackResponse
     );
     rpc!(kill_pane, KillPane, UnitResponse);
+    rpc!(set_client_id, SetClientId, UnitResponse);
+    rpc!(list_clients, GetClientList, GetClientListResponse);
 }

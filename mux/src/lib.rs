@@ -1,3 +1,4 @@
+use crate::client::{ClientId, ClientInfo};
 use crate::pane::{Pane, PaneId};
 use crate::tab::{Tab, TabId};
 use crate::window::{Window, WindowId};
@@ -25,6 +26,7 @@ use thiserror::*;
 use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
 pub mod activity;
+pub mod client;
 pub mod connui;
 pub mod domain;
 pub mod localpane;
@@ -64,6 +66,7 @@ pub struct Mux {
     domains_by_name: RefCell<HashMap<String, Arc<dyn Domain>>>,
     subscribers: RefCell<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
     banner: RefCell<Option<String>>,
+    clients: RefCell<HashMap<ClientId, ClientInfo>>,
 }
 
 const BUFSIZE: usize = 1024 * 1024;
@@ -317,7 +320,32 @@ impl Mux {
             domains: RefCell::new(domains),
             subscribers: RefCell::new(HashMap::new()),
             banner: RefCell::new(None),
+            clients: RefCell::new(HashMap::new()),
         }
+    }
+
+    pub fn client_had_input(&self, client_id: &ClientId) {
+        if let Some(info) = self.clients.borrow_mut().get_mut(client_id) {
+            info.update_last_input();
+        }
+    }
+
+    pub fn register_client(&self, client_id: &ClientId) {
+        self.clients
+            .borrow_mut()
+            .insert(client_id.clone(), ClientInfo::new(client_id));
+    }
+
+    pub fn iter_clients(&self) -> Vec<ClientInfo> {
+        self.clients
+            .borrow()
+            .values()
+            .map(|info| info.clone())
+            .collect()
+    }
+
+    pub fn unregister_client(&self, client_id: &ClientId) {
+        self.clients.borrow_mut().remove(client_id);
     }
 
     pub fn subscribe<F>(&self, subscriber: F)

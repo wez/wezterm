@@ -12,7 +12,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 
 use anyhow::{bail, Context as _, Error};
-use leb128;
+use mux::client::{ClientId, ClientInfo};
 use mux::domain::DomainId;
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
@@ -406,7 +406,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 13;
+pub const CODEC_VERSION: usize = 14;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -445,6 +445,9 @@ pdu! {
     PaneRemoved: 37,
     SetPalette: 38,
     NotifyAlert: 39,
+    SetClientId: 40,
+    GetClientList: 41,
+    GetClientListResponse: 42,
 }
 
 impl Pdu {
@@ -695,6 +698,19 @@ pub struct SetPalette {
 pub struct NotifyAlert {
     pub pane_id: PaneId,
     pub alert: Alert,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetClientId {
+    pub client_id: ClientId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetClientList;
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetClientListResponse {
+    pub clients: Vec<ClientInfo>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

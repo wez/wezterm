@@ -11,10 +11,12 @@ anyhow = "1.0"
 async-trait = "0.1"
 base64 = "0.13"
 bintree = { path = "../bintree" }
+chrono = { version = "0.4", features = ["serde"] }
 config = { path = "../config" }
 crossbeam = "0.8"
 downcast-rs = "1.0"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
+hostname = "0.3"
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"

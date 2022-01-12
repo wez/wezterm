@@ -2,6 +2,7 @@ use crate::PKI;
 use anyhow::{anyhow, Context};
 use codec::*;
 use config::keyassignment::SpawnTabDomain;
+use mux::client::ClientId;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
@@ -196,6 +197,16 @@ fn maybe_push_pane_changes(
 pub struct SessionHandler {
     to_write_tx: PduSender,
     per_pane: HashMap<TabId, Arc<Mutex<PerPane>>>,
+    client_id: Option<ClientId>,
+}
+
+impl Drop for SessionHandler {
+    fn drop(&mut self) {
+        if let Some(client_id) = self.client_id.take() {
+            let mux = Mux::get().unwrap();
+            mux.unregister_client(&client_id);
+        }
+    }
 }
 
 impl SessionHandler {
@@ -214,6 +225,7 @@ impl SessionHandler {
         Self {
             to_write_tx,
             per_pane: HashMap::new(),
+            client_id: None,
         }
     }
 
@@ -244,6 +256,10 @@ impl SessionHandler {
         let sender = self.to_write_tx.clone();
         let serial = decoded.serial;
 
+        if let Some(client_id) = &self.client_id {
+            Mux::get().unwrap().client_had_input(client_id);
+        }
+
         let send_response = move |result: anyhow::Result<Pdu>| {
             let pdu = match result {
                 Ok(pdu) => pdu,
@@ -265,6 +281,30 @@ impl SessionHandler {
 
         match decoded.pdu {
             Pdu::Ping(Ping {}) => send_response(Ok(Pdu::Pong(Pong {}))),
+            Pdu::SetClientId(SetClientId { client_id }) => {
+                self.client_id.replace(client_id.clone());
+                spawn_into_main_thread(async move {
+                    let mux = Mux::get().unwrap();
+                    mux.register_client(&client_id);
+                })
+                .detach();
+                send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
+            }
+            Pdu::GetClientList(GetClientList) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let clients = mux.iter_clients();
+                            Ok(Pdu::GetClientListResponse(GetClientListResponse {
+                                clients,
+                            }))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
             Pdu::ListPanes(ListPanes {}) => {
                 spawn_into_main_thread(async move {
                     catch(
@@ -593,6 +633,7 @@ impl SessionHandler {
             | Pdu::GetLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }
             | Pdu::GetTlsCredsResponse { .. }
+            | Pdu::GetClientListResponse { .. }
             | Pdu::PaneRemoved { .. }
             | Pdu::ErrorResponse { .. } => {
                 send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))
