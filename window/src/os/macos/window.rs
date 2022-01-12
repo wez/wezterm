@@ -2019,17 +2019,16 @@ impl WindowView {
             modifiers
         };
 
+        let only_alt = (modifiers & !(Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT))
+            == Modifiers::NONE;
+        let only_left_alt =
+            (modifiers & !(Modifiers::LEFT_ALT | Modifiers::ALT)) == Modifiers::NONE;
+        let only_right_alt =
+            (modifiers & !(Modifiers::RIGHT_ALT | Modifiers::ALT)) == Modifiers::NONE;
+
         // Also respect `send_composed_key_when_(left|right)_alt_is_pressed` configs
         // when `use_ime` is true.
         let forward_to_ime = {
-            let only_alt = (modifiers
-                & !(Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT))
-                == Modifiers::NONE;
-            let only_left_alt =
-                (modifiers & !(Modifiers::LEFT_ALT | Modifiers::ALT)) == Modifiers::NONE;
-            let only_right_alt =
-                (modifiers & !(Modifiers::RIGHT_ALT | Modifiers::ALT)) == Modifiers::NONE;
-
             if modifiers.is_empty() || modifiers == Modifiers::SHIFT {
                 true
             } else if only_left_alt && !send_composed_key_when_left_alt_is_pressed {
@@ -2136,7 +2135,15 @@ impl WindowView {
         }
 
         if let Some(key) = key_string_to_key_code(chars).or_else(|| key_string_to_key_code(unmod)) {
-            let (key, raw_key) = if chars.is_empty() || chars == unmod {
+            let (key, raw_key) = if (only_left_alt && !send_composed_key_when_left_alt_is_pressed)
+                || (only_right_alt && !send_composed_key_when_right_alt_is_pressed)
+            {
+                // Take the unmodified key only!
+                match key_string_to_key_code(unmod) {
+                    Some(key) => (key, None),
+                    None => return,
+                }
+            } else if chars.is_empty() || chars == unmod {
                 (key, None)
             } else {
                 let raw = key_string_to_key_code(unmod);
