@@ -179,6 +179,41 @@ fn process_unilateral(
             return Ok(());
         }
     };
+    match &decoded.pdu {
+        Pdu::WindowWorkspaceChanged(WindowWorkspaceChanged {
+            window_id,
+            workspace,
+        }) => {
+            let window_id = *window_id;
+            let workspace = workspace.to_string();
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get().ok_or_else(|| anyhow!("no more mux"))?;
+                let client_domain = mux
+                    .get_domain(local_domain_id)
+                    .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
+                let client_domain =
+                    client_domain
+                        .downcast_ref::<ClientDomain>()
+                        .ok_or_else(|| {
+                            anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
+                        })?;
+
+                let local_window_id = client_domain
+                    .remote_to_local_window_id(window_id)
+                    .ok_or_else(|| anyhow!("no local window for remote window id {}", window_id))?;
+                if let Some(mut window) = mux.get_window_mut(local_window_id) {
+                    window.set_workspace(&workspace);
+                }
+
+                anyhow::Result::<()>::Ok(())
+            })
+            .detach();
+
+            return Ok(());
+        }
+        _ => {}
+    }
+
     if let Some(pane_id) = decoded.pdu.pane_id() {
         promise::spawn::spawn_into_main_thread(async move {
             process_unilateral_inner(pane_id, local_domain_id, decoded)
@@ -1127,4 +1162,5 @@ impl Client {
     rpc!(kill_pane, KillPane, UnitResponse);
     rpc!(set_client_id, SetClientId, UnitResponse);
     rpc!(list_clients, GetClientList, GetClientListResponse);
+    rpc!(set_window_workspace, SetWindowWorkspace, UnitResponse);
 }

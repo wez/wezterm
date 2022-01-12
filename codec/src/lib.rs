@@ -406,7 +406,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 14;
+pub const CODEC_VERSION: usize = 15;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -448,6 +448,8 @@ pdu! {
     SetClientId: 40,
     GetClientList: 41,
     GetClientListResponse: 42,
+    SetWindowWorkspace: 43,
+    WindowWorkspaceChanged: 44,
 }
 
 impl Pdu {
@@ -689,6 +691,12 @@ pub struct SetClipboard {
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetWindowWorkspace {
+    pub window_id: WindowId,
+    pub workspace: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SetPalette {
     pub pane_id: PaneId,
     pub palette: ColorPalette,
@@ -698,6 +706,12 @@ pub struct SetPalette {
 pub struct NotifyAlert {
     pub pane_id: PaneId,
     pub alert: Alert,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct WindowWorkspaceChanged {
+    pub window_id: WindowId,
+    pub workspace: String,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

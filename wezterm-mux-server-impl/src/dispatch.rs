@@ -99,6 +99,22 @@ where
             Ok(Item::Notif(MuxNotification::WindowRemoved(_window_id))) => {}
             Ok(Item::Notif(MuxNotification::WindowCreated(_window_id))) => {}
             Ok(Item::Notif(MuxNotification::WindowInvalidated(_window_id))) => {}
+            Ok(Item::Notif(MuxNotification::WindowWorkspaceChanged(window_id))) => {
+                let workspace = {
+                    let mux = Mux::get().expect("to be running on gui thread");
+                    mux.get_window(window_id)
+                        .map(|w| w.get_workspace().to_string())
+                };
+                if let Some(workspace) = workspace {
+                    Pdu::WindowWorkspaceChanged(codec::WindowWorkspaceChanged {
+                        window_id,
+                        workspace,
+                    })
+                    .encode_async(&mut stream, 0)
+                    .await?;
+                    stream.flush().await.context("flushing PDU to client")?;
+                }
+            }
             Ok(Item::Notif(MuxNotification::Empty)) => {}
             Err(err) => {
                 log::error!("process_async Err {}", err);

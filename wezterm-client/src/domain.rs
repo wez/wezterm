@@ -10,7 +10,7 @@ use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
 use mux::tab::{SplitDirection, Tab, TabId};
 use mux::window::WindowId;
-use mux::Mux;
+use mux::{Mux, MuxNotification};
 use portable_pty::{CommandBuilder, PtySize};
 use promise::spawn::spawn_into_new_thread;
 use std::cell::RefCell;
@@ -176,10 +176,55 @@ pub struct ClientDomain {
     local_domain_id: DomainId,
 }
 
+async fn update_remote_workspace(
+    local_domain_id: DomainId,
+    pdu: codec::SetWindowWorkspace,
+) -> anyhow::Result<()> {
+    let inner = ClientDomain::get_client_inner_for_domain(local_domain_id)?;
+    inner.client.set_window_workspace(pdu).await?;
+    Ok(())
+}
+
+fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -> bool {
+    let mux = Mux::get().expect("called by mux");
+    let domain = match mux.get_domain(local_domain_id) {
+        Some(domain) => domain,
+        None => return false,
+    };
+    let domain = match domain.downcast_ref::<ClientDomain>() {
+        Some(domain) => domain,
+        None => return false,
+    };
+    match notif {
+        MuxNotification::WindowWorkspaceChanged(window_id) => {
+            if let Some(remote_window_id) = domain.local_to_remote_window_id(window_id) {
+                if let Some(workspace) = mux
+                    .get_window(window_id)
+                    .map(|w| w.get_workspace().to_string())
+                {
+                    let request = codec::SetWindowWorkspace {
+                        window_id: remote_window_id,
+                        workspace,
+                    };
+                    promise::spawn::spawn_into_main_thread(async move {
+                        let _ = update_remote_workspace(local_domain_id, request).await;
+                    })
+                    .detach();
+                }
+            }
+        }
+        _ => {}
+    }
+    true
+}
+
 impl ClientDomain {
     pub fn new(config: ClientDomainConfig) -> Self {
         let local_domain_id = alloc_domain_id();
         let label = config.label();
+        Mux::get()
+            .expect("created on main thread")
+            .subscribe(move |notif| mux_notify_client_domain(local_domain_id, notif));
         Self {
             config,
             label,
@@ -206,6 +251,16 @@ impl ClientDomain {
     pub fn remote_to_local_pane_id(&self, remote_pane_id: TabId) -> Option<TabId> {
         let inner = self.inner()?;
         inner.remote_to_local_pane_id(remote_pane_id)
+    }
+
+    pub fn remote_to_local_window_id(&self, remote_window_id: WindowId) -> Option<WindowId> {
+        let inner = self.inner()?;
+        inner.remote_to_local_window(remote_window_id)
+    }
+
+    pub fn local_to_remote_window_id(&self, local_window_id: WindowId) -> Option<WindowId> {
+        let inner = self.inner()?;
+        inner.local_to_remote_window(local_window_id)
     }
 
     pub fn get_client_inner_for_domain(domain_id: DomainId) -> anyhow::Result<Arc<ClientInner>> {

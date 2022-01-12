@@ -473,6 +473,10 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                     alignment: Alignment::Right,
                 },
                 Column {
+                    name: "WORKSPACE".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
                     name: "SIZE".to_string(),
                     alignment: Alignment::Left,
                 },
@@ -497,6 +501,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                             entry.window_id.to_string(),
                             entry.tab_id.to_string(),
                             entry.pane_id.to_string(),
+                            entry.workspace.to_string(),
                             format!("{}x{}", entry.size.cols, entry.size.rows),
                             entry.title.clone(),
                             entry

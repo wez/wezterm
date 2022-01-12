@@ -48,6 +48,7 @@ pub enum MuxNotification {
     WindowCreated(WindowId),
     WindowRemoved(WindowId),
     WindowInvalidated(WindowId),
+    WindowWorkspaceChanged(WindowId),
     Alert {
         pane_id: PaneId,
         alert: wezterm_term::Alert,
@@ -624,6 +625,21 @@ impl Mux {
             .borrow()
             .iter()
             .map(|(_, v)| Rc::clone(v))
+            .collect()
+    }
+
+    pub fn iter_windows_in_workspace(&self, workspace: &str) -> Vec<WindowId> {
+        self.windows
+            .borrow()
+            .iter()
+            .filter_map(|(k, w)| {
+                if w.get_workspace() == workspace {
+                    Some(k)
+                } else {
+                    None
+                }
+            })
+            .cloned()
             .collect()
     }
 
