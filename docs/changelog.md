@@ -26,6 +26,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Key assignments now match prior to any dead-key or IME composition [#877](https://github.com/wez/wezterm/issues/877)
 * `wezterm cli`, when run outside of a wezterm pane, now prefers to connect to the main GUI instance rather than background mux server. Use `wezterm cli --prefer-mux` to ignore the GUI instance and talk only to the mux server. See `wezterm cli --help` for additional information.
 * [ScrollByPage](config/lua/keyassignment/ScrollByPage.md) now accepts fractional numbers like `0.5` to scroll by half a page at time. Thanks to [@hahuang65](https://github.com/hahuang65)! [#1534](https://github.com/wez/wezterm/pull/1534)
+* [use_ime](config/lua/config/use_ime.md) now defaults to `true` on all platforms; previously it was not enabled by default on macOS.
 
 #### Updated and Improved
 
