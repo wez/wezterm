@@ -47,8 +47,8 @@ jobs:
       - name: Build
         run: |
           source $HOME/.cargo/env
-          cargo build -p wezterm-ssh --no-default-features --features libssh-rs vendored-openssl-libssh-rs
-          cargo test -p wezterm-ssh --no-default-features --features libssh-rs vendored-openssl-libssh-rs
+          cargo build -p wezterm-ssh --no-default-features --features "libssh-rs vendored-openssl-libssh-rs"
+          cargo test -p wezterm-ssh --no-default-features --features "libssh-rs vendored-openssl-libssh-rs"
   build-wezterm-ssh-feature-ssh2:
     runs-on: ubuntu-latest
     steps:
@@ -65,6 +65,6 @@ jobs:
       - name: Build
         run: |
           source $HOME/.cargo/env
-          cargo build -p wezterm-ssh --no-default-features --features ssh2 vendored-openssl-ssh2
-          cargo test -p wezterm-ssh --no-default-features --features ssh2 vendored-openssl-ssh2
+          cargo build -p wezterm-ssh --no-default-features --features "ssh2 vendored-openssl-ssh2"
+          cargo test -p wezterm-ssh --no-default-features --features "ssh2 vendored-openssl-ssh2"
 
