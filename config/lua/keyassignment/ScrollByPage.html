@@ -158,6 +158,18 @@ return {
   }
 }
 </code></pre>
+<p><em>Since: nightly builds only</em></p>
+<p>You may now use floating point values to scroll by partial pages.  This example shows
+how to make the <code>PageUp</code>/<code>PageDown</code> scroll by half a page at a time:</p>
+<pre><code class="language-lua">local wezterm = require 'wezterm';
+
+return {
+  keys = {
+    {key=&quot;PageUp&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=-0.5}},
+    {key=&quot;PageDown&quot;, mods=&quot;SHIFT&quot;, action=wezterm.action{ScrollByPage=0.5}},
+  }
+}
+</code></pre>
 
                     </main>
 
