@@ -6,7 +6,7 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{alloc_pane_id, CloseReason, Pane, PaneId};
 use crate::renderable::*;
-use crate::tab::{SplitDirection, Tab, TabId};
+use crate::tab::Tab;
 use crate::window::WindowId;
 use crate::Mux;
 use anyhow::bail;
@@ -46,22 +46,11 @@ impl TermWizTerminalDomain {
 
 #[async_trait(?Send)]
 impl Domain for TermWizTerminalDomain {
-    async fn spawn(
+    async fn spawn_pane(
         &self,
         _size: PtySize,
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
-        _window: WindowId,
-    ) -> anyhow::Result<Rc<Tab>> {
-        bail!("cannot spawn tabs in a TermWizTerminalPane");
-    }
-    async fn split_pane(
-        &self,
-        _command: Option<CommandBuilder>,
-        _command_dir: Option<String>,
-        _tab: TabId,
-        _pane_id: PaneId,
-        _split_direction: SplitDirection,
     ) -> anyhow::Result<Rc<dyn Pane>> {
         bail!("cannot spawn panes in a TermWizTerminalPane");
     }

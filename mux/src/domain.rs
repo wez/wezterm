@@ -40,7 +40,18 @@ pub trait Domain: Downcast {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
-    ) -> Result<Rc<Tab>, Error>;
+    ) -> anyhow::Result<Rc<Tab>> {
+        let pane = self.spawn_pane(size, command, command_dir).await?;
+
+        let tab = Rc::new(Tab::new(&size));
+        tab.assign_pane(&pane);
+
+        let mux = Mux::get().unwrap();
+        mux.add_tab_and_active_pane(&tab)?;
+        mux.add_tab_to_window(&tab, window)?;
+
+        Ok(tab)
+    }
 
     async fn split_pane(
         &self,
@@ -48,7 +59,41 @@ pub trait Domain: Downcast {
         command_dir: Option<String>,
         tab: TabId,
         pane_id: PaneId,
-        split_direction: SplitDirection,
+        direction: SplitDirection,
+    ) -> anyhow::Result<Rc<dyn Pane>> {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_tab(tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let pane_index = match tab
+            .iter_panes()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
+        };
+
+        let split_size = match tab.compute_split_size(pane_index, direction) {
+            Some(s) => s,
+            None => anyhow::bail!("invalid pane index {}", pane_index),
+        };
+
+        let pane = self
+            .spawn_pane(split_size.second, command, command_dir)
+            .await?;
+
+        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
+        Ok(pane)
+    }
+
+    async fn spawn_pane(
+        &self,
+        size: PtySize,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
     ) -> anyhow::Result<Rc<dyn Pane>>;
 
     /// Returns false if the `spawn` method will never succeed.
@@ -215,13 +260,12 @@ impl LocalDomain {
 
 #[async_trait(?Send)]
 impl Domain for LocalDomain {
-    async fn spawn(
+    async fn spawn_pane(
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-        window: WindowId,
-    ) -> Result<Rc<Tab>, Error> {
+    ) -> anyhow::Result<Rc<dyn Pane>> {
         let mut cmd = self.build_command(command, command_dir)?;
         let pair = self.pty_system.openpty(size)?;
         let pane_id = alloc_pane_id();
@@ -231,7 +275,6 @@ impl Domain for LocalDomain {
         log::trace!("spawned: {:?}", child);
 
         let writer = pair.master.try_clone_writer()?;
-        let mux = Mux::get().unwrap();
 
         let mut terminal = wezterm_term::Terminal::new(
             crate::pty_size_to_terminal_size(size),
@@ -252,73 +295,7 @@ impl Domain for LocalDomain {
             self.id,
         ));
 
-        let tab = Rc::new(Tab::new(&size));
-        tab.assign_pane(&pane);
-
-        mux.add_tab_and_active_pane(&tab)?;
-        mux.add_tab_to_window(&tab, window)?;
-
-        Ok(tab)
-    }
-
-    async fn split_pane(
-        &self,
-        command: Option<CommandBuilder>,
-        command_dir: Option<String>,
-        tab: TabId,
-        pane_id: PaneId,
-        direction: SplitDirection,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_tab(tab) {
-            Some(t) => t,
-            None => anyhow::bail!("Invalid tab id {}", tab),
-        };
-
-        let pane_index = match tab
-            .iter_panes()
-            .iter()
-            .find(|p| p.pane.pane_id() == pane_id)
-        {
-            Some(p) => p.index,
-            None => anyhow::bail!("invalid pane id {}", pane_id),
-        };
-
-        let split_size = match tab.compute_split_size(pane_index, direction) {
-            Some(s) => s,
-            None => anyhow::bail!("invalid pane index {}", pane_index),
-        };
-
-        let mut cmd = self.build_command(command, command_dir)?;
-        let pair = self.pty_system.openpty(split_size.second)?;
-        let pane_id = alloc_pane_id();
-        cmd.env("WEZTERM_PANE", pane_id.to_string());
-        let child = pair.slave.spawn_command(cmd)?;
-        log::trace!("spawned: {:?}", child);
-
-        let writer = pair.master.try_clone_writer()?;
-
-        let mut terminal = wezterm_term::Terminal::new(
-            crate::pty_size_to_terminal_size(split_size.second),
-            std::sync::Arc::new(config::TermConfig::new()),
-            "WezTerm",
-            config::wezterm_version(),
-            Box::new(writer),
-        );
-        if self.is_conpty() {
-            terminal.set_supress_initial_title_change();
-        }
-
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
-            pane_id,
-            terminal,
-            child,
-            pair.master,
-            self.id,
-        ));
-
-        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
-
         mux.add_pane(&pane)?;
 
         Ok(pane)

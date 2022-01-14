@@ -426,6 +426,15 @@ impl Domain for ClientDomain {
         &self.label
     }
 
+    async fn spawn_pane(
+        &self,
+        _size: PtySize,
+        _command: Option<CommandBuilder>,
+        _command_dir: Option<String>,
+    ) -> anyhow::Result<Rc<dyn Pane>> {
+        anyhow::bail!("spawn_pane not implemented for ClientDomain")
+    }
+
     async fn spawn(
         &self,
         size: PtySize,

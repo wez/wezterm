@@ -2,10 +2,8 @@ use crate::connui::ConnectionUI;
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, Pane, PaneId};
-use crate::tab::{SplitDirection, Tab, TabId};
-use crate::window::WindowId;
 use crate::Mux;
-use anyhow::{anyhow, bail, Context, Error};
+use anyhow::{anyhow, bail, Context};
 use async_trait::async_trait;
 use config::{Shell, SshBackend, SshDomain};
 use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
@@ -508,13 +506,12 @@ fn connect_ssh_session(
 
 #[async_trait(?Send)]
 impl Domain for RemoteSshDomain {
-    async fn spawn(
+    async fn spawn_pane(
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-        window: WindowId,
-    ) -> Result<Rc<Tab>, Error> {
+    ) -> anyhow::Result<Rc<dyn Pane>> {
         let pane_id = alloc_pane_id();
 
         let (command_line, env) = self.build_command(pane_id, command, command_dir)?;
@@ -629,84 +626,8 @@ impl Domain for RemoteSshDomain {
             writer,
         );
 
-        let mux = Mux::get().unwrap();
         let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(pane_id, terminal, child, pty, self.id));
-        let tab = Rc::new(Tab::new(&size));
-        tab.assign_pane(&pane);
-
-        mux.add_tab_and_active_pane(&tab)?;
-        mux.add_tab_to_window(&tab, window)?;
-
-        Ok(tab)
-    }
-
-    async fn split_pane(
-        &self,
-        command: Option<CommandBuilder>,
-        command_dir: Option<String>,
-        tab: TabId,
-        pane_id: PaneId,
-        direction: SplitDirection,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_tab(tab) {
-            Some(t) => t,
-            None => anyhow::bail!("Invalid tab id {}", tab),
-        };
-
-        let pane_index = match tab
-            .iter_panes()
-            .iter()
-            .find(|p| p.pane.pane_id() == pane_id)
-        {
-            Some(p) => p.index,
-            None => anyhow::bail!("invalid pane id {}", pane_id),
-        };
-
-        let split_size = match tab.compute_split_size(pane_index, direction) {
-            Some(s) => s,
-            None => anyhow::bail!("invalid pane index {}", pane_index),
-        };
-
-        let pane_id = alloc_pane_id();
-        let (command_line, env) = self.build_command(pane_id, command, command_dir)?;
-
-        let session = self
-            .session
-            .borrow()
-            .as_ref()
-            .map(|s| s.clone())
-            .ok_or_else(|| anyhow::anyhow!("ssh session not started yet!"))?;
-
-        let (pty, child) = session
-            .request_pty(
-                &config::configuration().term,
-                split_size.size(),
-                command_line.as_ref().map(|s| s.as_str()),
-                Some(env),
-            )
-            .await?;
-
-        let writer = pty.try_clone_writer()?;
-
-        let terminal = wezterm_term::Terminal::new(
-            crate::pty_size_to_terminal_size(split_size.second),
-            std::sync::Arc::new(config::TermConfig::new()),
-            "WezTerm",
-            config::wezterm_version(),
-            Box::new(writer),
-        );
-
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
-            pane_id,
-            terminal,
-            Box::new(child),
-            Box::new(pty),
-            self.id,
-        ));
-
-        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
-
         mux.add_pane(&pane)?;
 
         Ok(pane)

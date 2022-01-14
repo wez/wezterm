@@ -425,6 +425,10 @@ impl Mux {
     }
 
     pub fn add_pane(&self, pane: &Rc<dyn Pane>) -> Result<(), Error> {
+        if self.panes.borrow().contains_key(&pane.pane_id()) {
+            return Ok(());
+        }
+
         self.panes
             .borrow_mut()
             .insert(pane.pane_id(), Rc::clone(pane));
