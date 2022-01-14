@@ -70,6 +70,8 @@ pub enum SpawnTabDomain {
     CurrentPaneDomain,
     /// Use a specific domain by name
     DomainName(String),
+    /// Use a specific domain by id
+    DomainId(usize),
 }
 
 impl Default for SpawnTabDomain {

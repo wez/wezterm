@@ -3,6 +3,7 @@ use crate::pane::{Pane, PaneId};
 use crate::tab::{Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
+use config::keyassignment::SpawnTabDomain;
 use config::{configuration, ExitBehavior};
 use domain::{Domain, DomainId};
 use filedescriptor::{socketpair, AsRawSocketDescriptor, FileDescriptor};
@@ -10,7 +11,7 @@ use filedescriptor::{socketpair, AsRawSocketDescriptor, FileDescriptor};
 use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 use log::error;
 use metrics::histogram;
-use portable_pty::ExitStatus;
+use portable_pty::{CommandBuilder, ExitStatus, PtySize};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -697,6 +698,64 @@ impl Mux {
 
     pub fn set_banner(&self, banner: Option<String>) {
         *self.banner.borrow_mut() = banner;
+    }
+
+    pub async fn spawn_tab_or_window(
+        &self,
+        window_id: Option<WindowId>,
+        domain: SpawnTabDomain,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+        size: PtySize,
+    ) -> anyhow::Result<(Rc<Tab>, Rc<dyn Pane>, WindowId)> {
+        let domain = match domain {
+            SpawnTabDomain::DefaultDomain => self.default_domain(),
+            SpawnTabDomain::CurrentPaneDomain => anyhow::bail!("must give a domain"),
+            SpawnTabDomain::DomainId(domain_id) => self
+                .get_domain(domain_id)
+                .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,
+            SpawnTabDomain::DomainName(name) => self
+                .get_domain_by_name(&name)
+                .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
+        };
+
+        let window_builder;
+        let term_config;
+
+        let (window_id, size) = if let Some(window_id) = window_id {
+            let window = self
+                .get_window_mut(window_id)
+                .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
+            let tab = window
+                .get_active()
+                .ok_or_else(|| anyhow!("window {} has no tabs", window_id))?;
+            let pane = tab
+                .get_active_pane()
+                .ok_or_else(|| anyhow!("active tab in window {} has no panes", window_id))?;
+            term_config = pane.get_config();
+
+            let size = tab.get_size();
+
+            (window_id, size)
+        } else {
+            term_config = None;
+            window_builder = self.new_empty_window();
+            (*window_builder, size)
+        };
+
+        let tab = domain.spawn(size, command, command_dir, window_id).await?;
+
+        let pane = tab
+            .get_active_pane()
+            .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
+
+        if let Some(config) = term_config {
+            pane.set_config(config);
+        }
+
+        // FIXME: clipboard?
+
+        Ok((tab, pane, window_id))
     }
 }
 

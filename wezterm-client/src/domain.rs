@@ -2,7 +2,7 @@ use crate::client::Client;
 use crate::pane::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
-use codec::{ListPanesResponse, Spawn, SplitPane};
+use codec::{ListPanesResponse, SpawnV2, SplitPane};
 use config::keyassignment::SpawnTabDomain;
 use config::{SshDomain, TlsDomainClient, UnixDomain};
 use mux::connui::ConnectionUI;
@@ -447,8 +447,8 @@ impl Domain for ClientDomain {
             .ok_or_else(|| anyhow!("domain is not attached"))?;
         let result = inner
             .client
-            .spawn(Spawn {
-                domain_id: inner.remote_domain_id,
+            .spawn_v2(SpawnV2 {
+                domain: SpawnTabDomain::DomainId(inner.remote_domain_id),
                 window_id: inner.local_to_remote_window(window),
                 size,
                 command,

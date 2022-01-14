@@ -123,6 +123,12 @@ impl super::TermWindow {
                 })?,
                 None,
             ),
+            SpawnTabDomain::DomainId(domain_id) => (
+                mux.get_domain(domain_id).ok_or_else(|| {
+                    anyhow!("spawn_tab called with unresolvable domain id {}", domain_id)
+                })?,
+                None,
+            ),
         };
 
         if domain.state() == DomainState::Detached {
