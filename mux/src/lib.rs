@@ -701,6 +701,32 @@ impl Mux {
         *self.banner.borrow_mut() = banner;
     }
 
+    fn resolve_spawn_tab_domain(
+        &self,
+        // TODO: disambiguate with TabId
+        pane_id: Option<PaneId>,
+        domain: &config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<Arc<dyn Domain>> {
+        Ok(match domain {
+            SpawnTabDomain::DefaultDomain => self.default_domain(),
+            SpawnTabDomain::CurrentPaneDomain => {
+                let pane_id = pane_id
+                    .ok_or_else(|| anyhow!("CurrentPaneDomain used with no current pane"))?;
+                let (pane_domain_id, _window_id, _tab_id) = self
+                    .resolve_pane_id(pane_id)
+                    .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+                self.get_domain(pane_domain_id)
+                    .expect("resolve_pane_id to give valid domain_id")
+            }
+            SpawnTabDomain::DomainId(domain_id) => self
+                .get_domain(*domain_id)
+                .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,
+            SpawnTabDomain::DomainName(name) => self
+                .get_domain_by_name(&name)
+                .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
+        })
+    }
+
     pub async fn split_pane(
         &self,
         // TODO: disambiguate with TabId
@@ -710,22 +736,11 @@ impl Mux {
         command_dir: Option<String>,
         domain: config::keyassignment::SpawnTabDomain,
     ) -> anyhow::Result<(Rc<dyn Pane>, PtySize)> {
-        let (pane_domain_id, _window_id, tab_id) = self
+        let (_pane_domain_id, _window_id, tab_id) = self
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
 
-        let domain = match domain {
-            SpawnTabDomain::DefaultDomain => self.default_domain(),
-            SpawnTabDomain::CurrentPaneDomain => self
-                .get_domain(pane_domain_id)
-                .expect("resolve_pane_id to give valid domain_id"),
-            SpawnTabDomain::DomainId(domain_id) => self
-                .get_domain(domain_id)
-                .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,
-            SpawnTabDomain::DomainName(name) => self
-                .get_domain_by_name(&name)
-                .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
-        };
+        let domain = self.resolve_spawn_tab_domain(Some(pane_id), &domain)?;
 
         let current_pane = self
             .get_pane(pane_id)
@@ -783,16 +798,7 @@ impl Mux {
         command_dir: Option<String>,
         size: PtySize,
     ) -> anyhow::Result<(Rc<Tab>, Rc<dyn Pane>, WindowId)> {
-        let domain = match domain {
-            SpawnTabDomain::DefaultDomain => self.default_domain(),
-            SpawnTabDomain::CurrentPaneDomain => anyhow::bail!("must give a domain"),
-            SpawnTabDomain::DomainId(domain_id) => self
-                .get_domain(domain_id)
-                .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,
-            SpawnTabDomain::DomainName(name) => self
-                .get_domain_by_name(&name)
-                .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
-        };
+        let domain = self.resolve_spawn_tab_domain(None, &domain)?;
 
         let window_builder;
         let term_config;
