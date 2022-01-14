@@ -3,7 +3,6 @@ use anyhow::{anyhow, bail};
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::TermConfig;
 use mux::activity::Activity;
-use mux::domain::DomainState;
 use mux::tab::SplitDirection;
 use mux::Mux;
 use percent_encoding::percent_decode_str;
@@ -114,10 +113,6 @@ impl super::TermWindow {
                 })?
             }
         };
-
-        if domain.state() == DomainState::Detached {
-            bail!("Cannot spawn a tab into a Detached domain");
-        }
 
         let cwd = if let Some(cwd) = spawn.cwd.as_ref() {
             Some(cwd.to_str().map(|s| s.to_owned()).ok_or_else(|| {

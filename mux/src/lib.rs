@@ -5,7 +5,7 @@ use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;
 use config::{configuration, ExitBehavior};
-use domain::{Domain, DomainId};
+use domain::{Domain, DomainId, DomainState};
 use filedescriptor::{socketpair, AsRawSocketDescriptor, FileDescriptor};
 #[cfg(unix)]
 use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
@@ -707,7 +707,7 @@ impl Mux {
         pane_id: Option<PaneId>,
         domain: &config::keyassignment::SpawnTabDomain,
     ) -> anyhow::Result<Arc<dyn Domain>> {
-        Ok(match domain {
+        let domain = match domain {
             SpawnTabDomain::DefaultDomain => self.default_domain(),
             SpawnTabDomain::CurrentPaneDomain => {
                 let pane_id = pane_id
@@ -724,8 +724,39 @@ impl Mux {
             SpawnTabDomain::DomainName(name) => self
                 .get_domain_by_name(&name)
                 .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
-        })
+        };
+        if domain.state() == DomainState::Detached {
+            anyhow::bail!("Cannot spawn a tab into a Detached domain");
+        }
+        Ok(domain)
     }
+
+    fn resolve_cwd(&self, command_dir: Option<String>, pane: Option<Rc<dyn Pane>>) ->
+        Option<String> {
+        command_dir.or_else(|| {
+            match pane {
+                Some(pane) => pane.get_current_working_dir()
+                .and_then(|url| {
+                    percent_decode_str(url.path())
+                        .decode_utf8()
+                        .ok()
+                        .map(|path| path.into_owned())
+                })
+                .map(|path| {
+                    // On Windows the file URI can produce a path like:
+                    // `/C:\Users` which is valid in a file URI, but the leading slash
+                    // is not liked by the windows file APIs, so we strip it off here.
+                    let bytes = path.as_bytes();
+                    if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
+                        path[1..].to_owned()
+                    } else {
+                        path
+                    }
+                }),
+                None => None,
+            }
+        })
+        }
 
     pub async fn split_pane(
         &self,
@@ -747,27 +778,7 @@ impl Mux {
             .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
         let term_config = current_pane.get_config();
 
-        let cwd = command_dir.or_else(|| {
-            self.get_pane(pane_id)
-                .and_then(|pane| pane.get_current_working_dir())
-                .and_then(|url| {
-                    percent_decode_str(url.path())
-                        .decode_utf8()
-                        .ok()
-                        .map(|path| path.into_owned())
-                })
-                .map(|path| {
-                    // On Windows the file URI can produce a path like:
-                    // `/C:\Users` which is valid in a file URI, but the leading slash
-                    // is not liked by the windows file APIs, so we strip it off here.
-                    let bytes = path.as_bytes();
-                    if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
-                        path[1..].to_owned()
-                    } else {
-                        path
-                    }
-                })
-        });
+        let cwd = self.resolve_cwd(command_dir, Some(Rc::clone(&current_pane)));
 
         let pane = domain
             .split_pane(command, cwd, tab_id, pane_id, direction)
@@ -797,6 +808,7 @@ impl Mux {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         size: PtySize,
+        current_pane_id: Option<PaneId>,
     ) -> anyhow::Result<(Rc<Tab>, Rc<dyn Pane>, WindowId)> {
         let domain = self.resolve_spawn_tab_domain(None, &domain)?;
 
@@ -824,7 +836,12 @@ impl Mux {
             (*window_builder, size)
         };
 
-        let tab = domain.spawn(size, command, command_dir, window_id).await?;
+        let cwd = self.resolve_cwd(command_dir, match current_pane_id {
+            Some(id) => self.get_pane(id),
+            None => None
+        });
+
+        let tab = domain.spawn(size, command, cwd, window_id).await?;
 
         let pane = tab
             .get_active_pane()

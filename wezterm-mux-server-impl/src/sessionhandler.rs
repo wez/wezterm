@@ -733,6 +733,7 @@ async fn domain_spawn_v2(spawn: SpawnV2, sender: PduSender) -> anyhow::Result<Pd
             spawn.command,
             spawn.command_dir,
             spawn.size,
+            None, // optional current pane_id
         )
         .await?;
 
