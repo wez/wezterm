@@ -571,49 +571,54 @@ impl InputMap {
                     KeyCode::Physical(PhysKeyCode::PageDown),
                     ScrollByPage(NotNan::new(1.0).unwrap())
                 ],
+                // Alt-<number> matches on the post-mapped version of the key,
+                // rather than the physical position, as ALT-<number> is widely
+                // meaningful in non-US layouts as important punctuation and
+                // we don't want to get in the way of it.
+                // <https://github.com/wez/wezterm/issues/1542>
                 [
                     Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::K1),
+                    KeyCode::Char('1'),
                     ActivateTab(0)
                 ],
                 [
                     Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::K2),
+                    KeyCode::Char('2'),
                     ActivateTab(1)
                 ],
                 [
                     Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::K3),
+                    KeyCode::Char('3'),
                     ActivateTab(2)
                 ],
                 [
                     Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::K4),
+                    KeyCode::Char('4'),
                     ActivateTab(3)
                 ],
                 [
                     Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::K5),
+                    KeyCode::Char('5'),
                     ActivateTab(4)
                 ],
                 [
                     Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::K6),
+                    KeyCode::Char('6'),
                     ActivateTab(5)
                 ],
                 [
                     Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::K7),
+                    KeyCode::Char('7'),
                     ActivateTab(6)
                 ],
                 [
                     Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::K8),
+                    KeyCode::Char('8'),
                     ActivateTab(7)
                 ],
                 [
                     Modifiers::ALT,
-                    KeyCode::Physical(PhysKeyCode::K9),
+                    KeyCode::Char('9'),
                     ShowTabNavigator
                 ],
                 [
