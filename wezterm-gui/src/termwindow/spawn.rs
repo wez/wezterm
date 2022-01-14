@@ -84,51 +84,35 @@ impl super::TermWindow {
             src_window_id
         };
 
-        let (domain, cwd) = match spawn.domain {
-            SpawnTabDomain::DefaultDomain => {
-                let cwd = mux
-                    .get_active_tab_for_window(src_window_id)
-                    .and_then(|tab| tab.get_active_pane())
-                    .and_then(|pane| pane.get_current_working_dir());
-                (mux.default_domain().clone(), cwd)
+        let domain = match (&spawn.domain, spawn_where) {
+            (SpawnTabDomain::DefaultDomain, _)
+            // CurrentPaneDomain is the default value for the spawn domain.
+            // It doesn't make sense to use it when spawning a new window,
+            // so we treat it as DefaultDomain instead.
+            | (SpawnTabDomain::CurrentPaneDomain, SpawnWhere::NewWindow) => {
+                mux.default_domain().clone()
             }
-            SpawnTabDomain::CurrentPaneDomain => {
-                if spawn_where == SpawnWhere::NewWindow {
-                    // CurrentPaneDomain is the default value for the spawn domain.
-                    // It doesn't make sense to use it when spawning a new window,
-                    // so we treat it as DefaultDomain instead.
-                    let cwd = mux
-                        .get_active_tab_for_window(src_window_id)
-                        .and_then(|tab| tab.get_active_pane())
-                        .and_then(|pane| pane.get_current_working_dir());
-                    (mux.default_domain().clone(), cwd)
-                } else {
-                    let tab = match mux.get_active_tab_for_window(src_window_id) {
-                        Some(tab) => tab,
-                        None => bail!("window has no tabs?"),
-                    };
-                    let pane = tab
-                        .get_active_pane()
-                        .ok_or_else(|| anyhow!("current tab has no pane!?"))?;
-                    (
-                        mux.get_domain(pane.domain_id())
-                            .ok_or_else(|| anyhow!("current tab has unresolvable domain id!?"))?,
-                        pane.get_current_working_dir(),
-                    )
-                }
+            (SpawnTabDomain::CurrentPaneDomain, _) => {
+                let tab = match mux.get_active_tab_for_window(src_window_id) {
+                    Some(tab) => tab,
+                    None => bail!("window has no tabs?"),
+                };
+                let pane = tab
+                    .get_active_pane()
+                    .ok_or_else(|| anyhow!("current tab has no pane!?"))?;
+                mux.get_domain(pane.domain_id())
+                    .ok_or_else(|| anyhow!("current tab has unresolvable domain id!?"))?
             }
-            SpawnTabDomain::DomainName(name) => (
+            (SpawnTabDomain::DomainName(name), _) => {
                 mux.get_domain_by_name(&name).ok_or_else(|| {
                     anyhow!("spawn_tab called with unresolvable domain name {}", name)
-                })?,
-                None,
-            ),
-            SpawnTabDomain::DomainId(domain_id) => (
-                mux.get_domain(domain_id).ok_or_else(|| {
+                })?
+            }
+            (SpawnTabDomain::DomainId(domain_id), _) => {
+                mux.get_domain(*domain_id).ok_or_else(|| {
                     anyhow!("spawn_tab called with unresolvable domain id {}", domain_id)
-                })?,
-                None,
-            ),
+                })?
+            }
         };
 
         if domain.state() == DomainState::Detached {
@@ -143,6 +127,28 @@ impl super::TermWindow {
                 )
             })?)
         } else {
+            let cwd = match (spawn.domain, spawn_where) {
+                (SpawnTabDomain::DefaultDomain, _)
+                // CurrentPaneDomain is the default value for the spawn domain.
+                // It doesn't make sense to use it when spawning a new window,
+                // so we treat it as DefaultDomain instead.
+                | (SpawnTabDomain::CurrentPaneDomain, SpawnWhere::NewWindow) => mux
+                    .get_active_tab_for_window(src_window_id)
+                    .and_then(|tab| tab.get_active_pane())
+                    .and_then(|pane| pane.get_current_working_dir()),
+                (SpawnTabDomain::CurrentPaneDomain, _) => {
+                    let tab = match mux.get_active_tab_for_window(src_window_id) {
+                        Some(tab) => tab,
+                        None => bail!("window has no tabs?"),
+                    };
+                    let pane = tab
+                        .get_active_pane()
+                        .ok_or_else(|| anyhow!("current tab has no pane!?"))?;
+                    pane.get_current_working_dir()
+                }
+                _ => None,
+            };
+
             match cwd {
                 Some(url) if url.scheme() == "file" => {
                     if let Ok(path) = percent_decode_str(url.path()).decode_utf8() {
