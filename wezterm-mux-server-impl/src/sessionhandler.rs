@@ -1,14 +1,11 @@
 use crate::PKI;
 use anyhow::{anyhow, Context};
 use codec::*;
-use config::keyassignment::SpawnTabDomain;
 use mux::client::ClientId;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
 use mux::Mux;
-use percent_encoding::percent_decode_str;
-use portable_pty::PtySize;
 use promise::spawn::spawn_into_main_thread;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -698,70 +695,25 @@ impl Clipboard for RemoteClipboard {
 
 async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
-    let (pane_domain_id, window_id, tab_id) = mux
+    let (_pane_domain_id, window_id, tab_id) = mux
         .resolve_pane_id(split.pane_id)
         .ok_or_else(|| anyhow!("pane_id {} invalid", split.pane_id))?;
 
-    let domain = match split.domain {
-        SpawnTabDomain::DefaultDomain => mux.default_domain(),
-        SpawnTabDomain::CurrentPaneDomain => mux
-            .get_domain(pane_domain_id)
-            .expect("resolve_pane_id to give valid domain_id"),
-        SpawnTabDomain::DomainId(domain_id) => mux
-            .get_domain(domain_id)
-            .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,
-        SpawnTabDomain::DomainName(name) => mux
-            .get_domain_by_name(&name)
-            .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
-    };
-
-    let pane_id = split.pane_id;
-    let current_pane = mux
-        .get_pane(pane_id)
-        .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
-    let term_config = current_pane.get_config();
-
-    let cwd = split.command_dir.or_else(|| {
-        mux.get_pane(pane_id)
-            .and_then(|pane| pane.get_current_working_dir())
-            .and_then(|url| {
-                percent_decode_str(url.path())
-                    .decode_utf8()
-                    .ok()
-                    .map(|path| path.into_owned())
-            })
-            .map(|path| {
-                // On Windows the file URI can produce a path like:
-                // `/C:\Users` which is valid in a file URI, but the leading slash
-                // is not liked by the windows file APIs, so we strip it off here.
-                let bytes = path.as_bytes();
-                if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
-                    path[1..].to_owned()
-                } else {
-                    path
-                }
-            })
-    });
-
-    let pane = domain
-        .split_pane(split.command, cwd, tab_id, split.pane_id, split.direction)
+    let (pane, size) = mux
+        .split_pane(
+            split.pane_id,
+            split.direction,
+            split.command,
+            split.command_dir,
+            split.domain,
+        )
         .await?;
-    let dims = pane.get_dimensions();
-    let size = PtySize {
-        cols: dims.cols as u16,
-        rows: dims.viewport_rows as u16,
-        pixel_height: 0,
-        pixel_width: 0,
-    };
 
     let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
         pane_id: pane.pane_id(),
         sender,
     });
     pane.set_clipboard(&clip);
-    if let Some(config) = term_config {
-        pane.set_config(config);
-    }
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
         pane_id: pane.pane_id(),

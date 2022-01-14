@@ -1,6 +1,6 @@
 use crate::client::{ClientId, ClientInfo};
 use crate::pane::{Pane, PaneId};
-use crate::tab::{Tab, TabId};
+use crate::tab::{SplitDirection, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
 use config::keyassignment::SpawnTabDomain;
@@ -11,6 +11,7 @@ use filedescriptor::{socketpair, AsRawSocketDescriptor, FileDescriptor};
 use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 use log::error;
 use metrics::histogram;
+use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, ExitStatus, PtySize};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
@@ -698,6 +699,80 @@ impl Mux {
 
     pub fn set_banner(&self, banner: Option<String>) {
         *self.banner.borrow_mut() = banner;
+    }
+
+    pub async fn split_pane(
+        &self,
+        // TODO: disambiguate with TabId
+        pane_id: PaneId,
+        direction: SplitDirection,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+        domain: config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<(Rc<dyn Pane>, PtySize)> {
+        let (pane_domain_id, _window_id, tab_id) = self
+            .resolve_pane_id(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+
+        let domain = match domain {
+            SpawnTabDomain::DefaultDomain => self.default_domain(),
+            SpawnTabDomain::CurrentPaneDomain => self
+                .get_domain(pane_domain_id)
+                .expect("resolve_pane_id to give valid domain_id"),
+            SpawnTabDomain::DomainId(domain_id) => self
+                .get_domain(domain_id)
+                .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,
+            SpawnTabDomain::DomainName(name) => self
+                .get_domain_by_name(&name)
+                .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
+        };
+
+        let current_pane = self
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let term_config = current_pane.get_config();
+
+        let cwd = command_dir.or_else(|| {
+            self.get_pane(pane_id)
+                .and_then(|pane| pane.get_current_working_dir())
+                .and_then(|url| {
+                    percent_decode_str(url.path())
+                        .decode_utf8()
+                        .ok()
+                        .map(|path| path.into_owned())
+                })
+                .map(|path| {
+                    // On Windows the file URI can produce a path like:
+                    // `/C:\Users` which is valid in a file URI, but the leading slash
+                    // is not liked by the windows file APIs, so we strip it off here.
+                    let bytes = path.as_bytes();
+                    if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
+                        path[1..].to_owned()
+                    } else {
+                        path
+                    }
+                })
+        });
+
+        let pane = domain
+            .split_pane(command, cwd, tab_id, pane_id, direction)
+            .await?;
+        if let Some(config) = term_config {
+            pane.set_config(config);
+        }
+
+        // FIXME: clipboard
+
+        let dims = pane.get_dimensions();
+
+        let size = PtySize {
+            cols: dims.cols as u16,
+            rows: dims.viewport_rows as u16,
+            pixel_height: 0, // FIXME: split pane pixel dimensions
+            pixel_width: 0,
+        };
+
+        Ok((pane, size))
     }
 
     pub async fn spawn_tab_or_window(

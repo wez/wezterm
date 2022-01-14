@@ -23,6 +23,7 @@ log = "0.4"
 luahelper = { path = "../luahelper" }
 metrics = { version="0.17", features=["std"]}
 mlua = "0.7"
+percent-encoding = "2"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 procinfo = { path = "../procinfo" }
 promise = { path = "../promise" }
