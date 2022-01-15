@@ -239,10 +239,12 @@ impl Pane for LocalPane {
     }
 
     fn mouse_event(&self, event: MouseEvent) -> Result<(), Error> {
+        Mux::get().unwrap().record_input_for_current_identity();
         self.terminal.borrow_mut().mouse_event(event)
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
+        Mux::get().unwrap().record_input_for_current_identity();
         if self.tmux_domain.borrow().is_some() {
             log::error!("key: {:?}", key);
             if key == KeyCode::Char('q') {
@@ -255,6 +257,7 @@ impl Pane for LocalPane {
     }
 
     fn key_up(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
+        Mux::get().unwrap().record_input_for_current_identity();
         self.terminal.borrow_mut().key_up(key, mods)
     }
 
@@ -270,6 +273,7 @@ impl Pane for LocalPane {
     }
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {
+        Mux::get().unwrap().record_input_for_current_identity();
         self.pty.borrow_mut()
     }
 
@@ -278,6 +282,7 @@ impl Pane for LocalPane {
     }
 
     fn send_paste(&self, text: &str) -> Result<(), Error> {
+        Mux::get().unwrap().record_input_for_current_identity();
         if self.tmux_domain.borrow().is_some() {
             Ok(())
         } else {

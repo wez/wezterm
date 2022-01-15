@@ -337,6 +337,12 @@ impl Mux {
         }
     }
 
+    pub fn record_input_for_current_identity(&self) {
+        if let Some(ident) = self.identity.borrow().as_ref() {
+            self.client_had_input(ident);
+        }
+    }
+
     pub fn register_client(&self, client_id: Arc<ClientId>) {
         self.clients
             .borrow_mut()
