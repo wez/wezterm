@@ -186,7 +186,23 @@ impl TerminalState {
     }
 
     fn mouse_move(&mut self, event: MouseEvent) -> anyhow::Result<()> {
-        let reportable = self.any_event_mouse || !self.current_mouse_buttons.is_empty();
+        let check_last_mouse_move = match self.last_mouse_move.as_ref() {
+            Some(last) => *last,
+            _ => MouseEvent {
+                kind: event.kind,
+                x: usize::max_value(),
+                y: i64::max_value(),
+                x_pixel_offset: 0,
+                y_pixel_offset: 0,
+                button: event.button,
+                modifiers: event.modifiers,
+            },
+        };
+        let reportable = (self.any_event_mouse || !self.current_mouse_buttons.is_empty())
+            && (self.mouse_encoding == MouseEncoding::SgrPixels
+                || (self.mouse_encoding != MouseEncoding::SgrPixels
+                    && (event.x != check_last_mouse_move.x)
+                    || (event.y != check_last_mouse_move.y)));
         // Note: self.mouse_tracking on its own is for clicks, not drags!
         if reportable && (self.button_event_mouse || self.any_event_mouse) {
             match self.last_mouse_move.as_ref() {
