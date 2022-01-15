@@ -182,8 +182,8 @@ Outputs the pane-id for the newly created pane on success"
         #[structopt(long = "cwd", parse(from_os_str))]
         cwd: Option<OsString>,
 
-        /// Override the default workspace with the provided name.
-        /// The default is "default".
+        /// When creating a new window, override the default workspace name
+        /// with the provided name.  The default name is "default".
         #[structopt(long = "workspace")]
         workspace: Option<String>,
 
