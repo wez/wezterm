@@ -4743,7 +4743,6 @@ dependencies = [
  "open",
  "ordered-float",
  "palette",
- "percent-encoding",
  "portable-pty",
  "pretty_env_logger",
  "promise",

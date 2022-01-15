@@ -48,7 +48,6 @@ mux = { path = "../mux" }
 open = "2.0"
 ordered-float = "2.10"
 palette = "0.5"
-percent-encoding = "2"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
 promise = { path = "../promise" }
 pulldown-cmark = "0.9"

@@ -731,32 +731,36 @@ impl Mux {
         Ok(domain)
     }
 
-    fn resolve_cwd(&self, command_dir: Option<String>, pane: Option<Rc<dyn Pane>>) ->
-        Option<String> {
+    fn resolve_cwd(
+        &self,
+        command_dir: Option<String>,
+        pane: Option<Rc<dyn Pane>>,
+    ) -> Option<String> {
         command_dir.or_else(|| {
             match pane {
-                Some(pane) => pane.get_current_working_dir()
-                .and_then(|url| {
-                    percent_decode_str(url.path())
-                        .decode_utf8()
-                        .ok()
-                        .map(|path| path.into_owned())
-                })
-                .map(|path| {
-                    // On Windows the file URI can produce a path like:
-                    // `/C:\Users` which is valid in a file URI, but the leading slash
-                    // is not liked by the windows file APIs, so we strip it off here.
-                    let bytes = path.as_bytes();
-                    if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
-                        path[1..].to_owned()
-                    } else {
-                        path
-                    }
-                }),
+                Some(pane) => pane
+                    .get_current_working_dir()
+                    .and_then(|url| {
+                        percent_decode_str(url.path())
+                            .decode_utf8()
+                            .ok()
+                            .map(|path| path.into_owned())
+                    })
+                    .map(|path| {
+                        // On Windows the file URI can produce a path like:
+                        // `/C:\Users` which is valid in a file URI, but the leading slash
+                        // is not liked by the windows file APIs, so we strip it off here.
+                        let bytes = path.as_bytes();
+                        if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
+                            path[1..].to_owned()
+                        } else {
+                            path
+                        }
+                    }),
                 None => None,
             }
         })
-        }
+    }
 
     pub async fn split_pane(
         &self,
@@ -771,7 +775,9 @@ impl Mux {
             .resolve_pane_id(pane_id)
             .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
 
-        let domain = self.resolve_spawn_tab_domain(Some(pane_id), &domain)?;
+        let domain = self
+            .resolve_spawn_tab_domain(Some(pane_id), &domain)
+            .context("resolve_spawn_tab_domain")?;
 
         let current_pane = self
             .get_pane(pane_id)
@@ -810,7 +816,9 @@ impl Mux {
         size: PtySize,
         current_pane_id: Option<PaneId>,
     ) -> anyhow::Result<(Rc<Tab>, Rc<dyn Pane>, WindowId)> {
-        let domain = self.resolve_spawn_tab_domain(None, &domain)?;
+        let domain = self
+            .resolve_spawn_tab_domain(current_pane_id, &domain)
+            .context("resolve_spawn_tab_domain")?;
 
         let window_builder;
         let term_config;
@@ -836,10 +844,13 @@ impl Mux {
             (*window_builder, size)
         };
 
-        let cwd = self.resolve_cwd(command_dir, match current_pane_id {
-            Some(id) => self.get_pane(id),
-            None => None
-        });
+        let cwd = self.resolve_cwd(
+            command_dir,
+            match current_pane_id {
+                Some(id) => self.get_pane(id),
+                None => None,
+            },
+        );
 
         let tab = domain.spawn(size, command, cwd, window_id).await?;
 
@@ -852,6 +863,13 @@ impl Mux {
         }
 
         // FIXME: clipboard?
+
+        let mut window = self
+            .get_window_mut(window_id)
+            .ok_or_else(|| anyhow!("no such window!?"))?;
+        if let Some(idx) = window.idx_by_id(tab.tab_id()) {
+            window.save_and_then_set_active(idx);
+        }
 
         Ok((tab, pane, window_id))
     }
