@@ -15,6 +15,7 @@ use rangeset::RangeSet;
 use ratelim::RateLimiter;
 use std::cell::RefCell;
 use std::cell::RefMut;
+use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -36,6 +37,7 @@ pub struct ClientPane {
     clipboard: RefCell<Option<Arc<dyn Clipboard>>>,
     mouse_grabbed: RefCell<bool>,
     ignore_next_kill: RefCell<bool>,
+    user_vars: RefCell<HashMap<String, String>>,
 }
 
 impl ClientPane {
@@ -92,6 +94,7 @@ impl ClientPane {
             clipboard: RefCell::new(None),
             mouse_grabbed: RefCell::new(false),
             ignore_next_kill: RefCell::new(false),
+            user_vars: RefCell::new(HashMap::new()),
         }
     }
 
@@ -134,6 +137,14 @@ impl ClientPane {
             }
             Pdu::NotifyAlert(NotifyAlert { alert, .. }) => {
                 let mux = Mux::get().unwrap();
+                match &alert {
+                    Alert::SetUserVar { name, value } => {
+                        self.user_vars
+                            .borrow_mut()
+                            .insert(name.clone(), value.clone());
+                    }
+                    _ => {}
+                }
                 mux.notify(MuxNotification::Alert {
                     pane_id: self.local_pane_id,
                     alert,
@@ -344,6 +355,11 @@ impl Pane for ClientPane {
         Ok(())
     }
 
+    fn key_up(&self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
+        // TODO: decide how to handle key_up for mux client
+        Ok(())
+    }
+
     fn kill(&self) {
         let mut ignore = self.ignore_next_kill.borrow_mut();
         if *ignore {
@@ -412,6 +428,10 @@ impl Pane for ClientPane {
             CloseReason::Tab => false,
             CloseReason::Pane => false,
         }
+    }
+
+    fn copy_user_vars(&self) -> HashMap<String, String> {
+        self.user_vars.borrow().clone()
     }
 }
 

@@ -12,9 +12,10 @@ use crate::window::WindowId;
 use crate::Mux;
 use anyhow::{bail, Error};
 use async_trait::async_trait;
-use config::configuration;
+use config::{configuration, WslDomain};
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize, PtySystem};
+use std::ffi::OsString;
 use std::rc::Rc;
 
 static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -39,7 +40,18 @@ pub trait Domain: Downcast {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
-    ) -> Result<Rc<Tab>, Error>;
+    ) -> anyhow::Result<Rc<Tab>> {
+        let pane = self.spawn_pane(size, command, command_dir).await?;
+
+        let tab = Rc::new(Tab::new(&size));
+        tab.assign_pane(&pane);
+
+        let mux = Mux::get().unwrap();
+        mux.add_tab_and_active_pane(&tab)?;
+        mux.add_tab_to_window(&tab, window)?;
+
+        Ok(tab)
+    }
 
     async fn split_pane(
         &self,
@@ -47,7 +59,41 @@ pub trait Domain: Downcast {
         command_dir: Option<String>,
         tab: TabId,
         pane_id: PaneId,
-        split_direction: SplitDirection,
+        direction: SplitDirection,
+    ) -> anyhow::Result<Rc<dyn Pane>> {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_tab(tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let pane_index = match tab
+            .iter_panes()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+        {
+            Some(p) => p.index,
+            None => anyhow::bail!("invalid pane id {}", pane_id),
+        };
+
+        let split_size = match tab.compute_split_size(pane_index, direction) {
+            Some(s) => s,
+            None => anyhow::bail!("invalid pane index {}", pane_index),
+        };
+
+        let pane = self
+            .spawn_pane(split_size.second, command, command_dir)
+            .await?;
+
+        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
+        Ok(pane)
+    }
+
+    async fn spawn_pane(
+        &self,
+        size: PtySize,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
     ) -> anyhow::Result<Rc<dyn Pane>>;
 
     /// Returns false if the `spawn` method will never succeed.
@@ -91,6 +137,7 @@ pub struct LocalDomain {
     pty_system: Box<dyn PtySystem>,
     id: DomainId,
     name: String,
+    wsl: Option<WslDomain>,
 }
 
 impl LocalDomain {
@@ -104,7 +151,14 @@ impl LocalDomain {
             pty_system,
             id,
             name: name.to_string(),
+            wsl: None,
         }
+    }
+
+    pub fn new_wsl(wsl: WslDomain) -> Result<Self, Error> {
+        let mut dom = Self::new(&wsl.name)?;
+        dom.wsl.replace(wsl);
+        Ok(dom)
     }
 
     #[cfg(unix)]
@@ -118,17 +172,66 @@ impl LocalDomain {
             .downcast_ref::<portable_pty::win::conpty::ConPtySystem>()
             .is_some()
     }
-}
 
-#[async_trait(?Send)]
-impl Domain for LocalDomain {
-    async fn spawn(
+    fn fixup_command(&self, cmd: &mut CommandBuilder) {
+        if let Some(wsl) = &self.wsl {
+            let mut args: Vec<OsString> = cmd.get_argv().clone();
+
+            if args.is_empty() {
+                if let Some(def_prog) = &wsl.default_prog {
+                    for arg in def_prog {
+                        args.push(arg.into());
+                    }
+                }
+            }
+
+            let mut argv: Vec<OsString> = vec![
+                "wsl.exe".into(),
+                "--distribution".into(),
+                wsl.distribution
+                    .as_deref()
+                    .unwrap_or(wsl.name.as_str())
+                    .into(),
+            ];
+
+            if let Some(cwd) = cmd.get_cwd() {
+                argv.push("--cd".into());
+                argv.push(cwd.into());
+            }
+
+            if let Some(user) = &wsl.username {
+                argv.push("--user".into());
+                argv.push(user.into());
+            }
+
+            if !args.is_empty() {
+                argv.push("--exec".into());
+                for arg in args {
+                    argv.push(arg);
+                }
+            }
+
+            // TODO: process env list and update WLSENV so that they
+            // get passed through
+
+            cmd.clear_cwd();
+            *cmd.get_argv_mut() = argv;
+        } else if let Some(dir) = cmd.get_cwd() {
+            // I'm not normally a fan of existence checking, but not checking here
+            // can be painful; in the case where a tab is local but has connected
+            // to a remote system and that remote has used OSC 7 to set a path
+            // that doesn't exist on the local system, process spawning can fail.
+            if !std::path::Path::new(&dir).exists() {
+                cmd.clear_cwd();
+            }
+        }
+    }
+
+    fn build_command(
         &self,
-        size: PtySize,
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
-        window: WindowId,
-    ) -> Result<Rc<Tab>, Error> {
+    ) -> anyhow::Result<CommandBuilder> {
         let config = configuration();
         let mut cmd = match command {
             Some(mut cmd) => {
@@ -137,19 +240,33 @@ impl Domain for LocalDomain {
             }
             None => config.build_prog(
                 None,
-                config.default_prog.as_ref(),
-                config.default_cwd.as_ref(),
+                self.wsl
+                    .as_ref()
+                    .map(|wsl| wsl.default_prog.as_ref())
+                    .unwrap_or(config.default_prog.as_ref()),
+                self.wsl
+                    .as_ref()
+                    .map(|wsl| wsl.default_cwd.as_ref())
+                    .unwrap_or(config.default_cwd.as_ref()),
             )?,
         };
         if let Some(dir) = command_dir {
-            // I'm not normally a fan of existence checking, but not checking here
-            // can be painful; in the case where a tab is local but has connected
-            // to a remote system and that remote has used OSC 7 to set a path
-            // that doesn't exist on the local system, process spawning can fail.
-            if std::path::Path::new(&dir).exists() {
-                cmd.cwd(dir);
-            }
+            cmd.cwd(dir);
         }
+        self.fixup_command(&mut cmd);
+        Ok(cmd)
+    }
+}
+
+#[async_trait(?Send)]
+impl Domain for LocalDomain {
+    async fn spawn_pane(
+        &self,
+        size: PtySize,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+    ) -> anyhow::Result<Rc<dyn Pane>> {
+        let mut cmd = self.build_command(command, command_dir)?;
         let pair = self.pty_system.openpty(size)?;
         let pane_id = alloc_pane_id();
         cmd.env("WEZTERM_PANE", pane_id.to_string());
@@ -158,7 +275,6 @@ impl Domain for LocalDomain {
         log::trace!("spawned: {:?}", child);
 
         let writer = pair.master.try_clone_writer()?;
-        let mux = Mux::get().unwrap();
 
         let mut terminal = wezterm_term::Terminal::new(
             crate::pty_size_to_terminal_size(size),
@@ -179,93 +295,7 @@ impl Domain for LocalDomain {
             self.id,
         ));
 
-        let tab = Rc::new(Tab::new(&size));
-        tab.assign_pane(&pane);
-
-        mux.add_tab_and_active_pane(&tab)?;
-        mux.add_tab_to_window(&tab, window)?;
-
-        Ok(tab)
-    }
-
-    async fn split_pane(
-        &self,
-        command: Option<CommandBuilder>,
-        command_dir: Option<String>,
-        tab: TabId,
-        pane_id: PaneId,
-        direction: SplitDirection,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_tab(tab) {
-            Some(t) => t,
-            None => anyhow::bail!("Invalid tab id {}", tab),
-        };
-
-        let pane_index = match tab
-            .iter_panes()
-            .iter()
-            .find(|p| p.pane.pane_id() == pane_id)
-        {
-            Some(p) => p.index,
-            None => anyhow::bail!("invalid pane id {}", pane_id),
-        };
-
-        let split_size = match tab.compute_split_size(pane_index, direction) {
-            Some(s) => s,
-            None => anyhow::bail!("invalid pane index {}", pane_index),
-        };
-
-        let config = configuration();
-        let mut cmd = match command {
-            Some(mut cmd) => {
-                config.apply_cmd_defaults(&mut cmd, config.default_cwd.as_ref());
-                cmd
-            }
-            None => config.build_prog(
-                None,
-                config.default_prog.as_ref(),
-                config.default_cwd.as_ref(),
-            )?,
-        };
-        if let Some(dir) = command_dir {
-            // I'm not normally a fan of existence checking, but not checking here
-            // can be painful; in the case where a tab is local but has connected
-            // to a remote system and that remote has used OSC 7 to set a path
-            // that doesn't exist on the local system, process spawning can fail.
-            if std::path::Path::new(&dir).exists() {
-                cmd.cwd(dir);
-            }
-        }
-        let pair = self.pty_system.openpty(split_size.second)?;
-        let pane_id = alloc_pane_id();
-        cmd.env("WEZTERM_PANE", pane_id.to_string());
-        let child = pair.slave.spawn_command(cmd)?;
-        log::trace!("spawned: {:?}", child);
-
-        let writer = pair.master.try_clone_writer()?;
-
-        let mut terminal = wezterm_term::Terminal::new(
-            crate::pty_size_to_terminal_size(split_size.second),
-            std::sync::Arc::new(config::TermConfig::new()),
-            "WezTerm",
-            config::wezterm_version(),
-            Box::new(writer),
-        );
-        if self.is_conpty() {
-            terminal.set_supress_initial_title_change();
-        }
-
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
-            pane_id,
-            terminal,
-            child,
-            pair.master,
-            self.id,
-        ));
-
-        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
-
         mux.add_pane(&pane)?;
 
         Ok(pane)

@@ -75,9 +75,6 @@ impl FontDatabase {
         pixel_size: u16,
     ) {
         for attr in fonts {
-            if loaded.contains(attr) {
-                continue;
-            }
             if let Some(handle) = self.resolve(attr, pixel_size) {
                 handles.push(handle.clone().synthesize(attr));
                 loaded.insert(attr.clone());
@@ -110,6 +107,19 @@ impl FontDatabase {
         }
 
         Ok(matches)
+    }
+
+    pub fn candidates(&self, font_attr: &FontAttributes) -> Vec<&ParsedFont> {
+        self.by_full_name
+            .values()
+            .filter_map(|parsed| {
+                if parsed.matches_name(font_attr) {
+                    Some(parsed)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     pub fn resolve(&self, font_attr: &FontAttributes, pixel_size: u16) -> Option<&ParsedFont> {

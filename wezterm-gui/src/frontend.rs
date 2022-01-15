@@ -38,6 +38,7 @@ impl GuiFrontEnd {
                         })
                         .detach();
                     }
+                    MuxNotification::WindowWorkspaceChanged(_) => {}
                     MuxNotification::WindowRemoved(_) => {}
                     MuxNotification::PaneRemoved(_) => {}
                     MuxNotification::WindowInvalidated(_) => {}
@@ -65,13 +66,9 @@ impl GuiFrontEnd {
                     } => {
                         // Handled via TermWindowNotif; NOP it here.
                     }
-                    MuxNotification::Alert {
-                        pane_id: _,
-                        alert: Alert::PaletteChanged,
-                    }
                     | MuxNotification::Alert {
                         pane_id: _,
-                        alert: Alert::TitleMaybeChanged,
+                        alert: Alert::PaletteChanged | Alert::TitleMaybeChanged | Alert::SetUserVar{..},
                     } => {}
                     MuxNotification::Empty => {
                         if mux::activity::Activity::count() == 0 {
@@ -95,16 +92,6 @@ impl GuiFrontEnd {
 
 thread_local! {
     static FRONT_END: RefCell<Option<Rc<GuiFrontEnd>>> = RefCell::new(None);
-}
-
-pub fn front_end() -> Option<Rc<GuiFrontEnd>> {
-    let mut res = None;
-    FRONT_END.with(|f| {
-        if let Some(me) = &*f.borrow() {
-            res = Some(Rc::clone(me));
-        }
-    });
-    res
 }
 
 pub fn shutdown() {

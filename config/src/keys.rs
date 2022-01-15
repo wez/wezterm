@@ -1,8 +1,9 @@
-use crate::{KeyAssignment, MouseEventTrigger};
+use crate::keyassignment::{KeyAssignment, MouseEventTrigger};
 use luahelper::impl_lua_conversion;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
-use wezterm_input_types::{KeyCode, Modifiers};
+use std::convert::TryFrom;
+use wezterm_input_types::{KeyCode, Modifiers, PhysKeyCode};
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct KeyNoAction {
@@ -69,7 +70,13 @@ fn make_map() -> HashMap<String, KeyCode> {
     macro_rules! m {
         ($($val:ident),* $(,)?) => {
             $(
-                map.insert(stringify!($val).to_string(), KeyCode::$val);
+                let v = KeyCode::$val;
+                if let Some(phys) = v.to_phys() {
+                    map.insert(stringify!($val).to_string(), KeyCode::Physical(phys));
+                    map.insert(format!("mapped:{}", stringify!($val)), v);
+                } else {
+                    map.insert(stringify!($val).to_string(), v);
+                }
             )*
         }
     }
@@ -138,18 +145,36 @@ fn make_map() -> HashMap<String, KeyCode> {
         ApplicationDownArrow,
     );
 
-    map.insert("Backspace".to_string(), KeyCode::Char('\u{8}'));
-    map.insert("Delete".to_string(), KeyCode::Char('\u{7f}'));
-    map.insert("Enter".to_string(), KeyCode::Char('\r'));
-    map.insert("Escape".to_string(), KeyCode::Char('\u{1b}'));
-    map.insert("Tab".to_string(), KeyCode::Char('\t'));
+    for (label, phys) in &[
+        ("Backspace", PhysKeyCode::Backspace),
+        ("Delete", PhysKeyCode::Delete),
+        ("Enter", PhysKeyCode::Return),
+        ("Escape", PhysKeyCode::Escape),
+        ("Tab", PhysKeyCode::Tab),
+    ] {
+        map.insert(label.to_string(), KeyCode::Physical(*phys));
+        map.insert(format!("mapped:{}", label), phys.to_key_code());
+    }
 
     for i in 0..=9 {
-        map.insert(format!("Numpad{}", i), KeyCode::Numpad(i));
+        let k = KeyCode::Numpad(i);
+        map.insert(
+            format!("Numpad{}", i),
+            KeyCode::Physical(k.to_phys().unwrap()),
+        );
+        // Not sure how likely someone is to remap the numpad, but...
+        map.insert(format!("mapped:Numpad{}", i), k);
     }
 
     for i in 1..=24 {
-        map.insert(format!("F{}", i), KeyCode::Function(i));
+        let k = KeyCode::Function(i);
+        if let Some(phys) = k.to_phys() {
+            map.insert(format!("F{}", i), KeyCode::Physical(phys));
+            map.insert(format!("mapped:F{}", i), k);
+        } else {
+            // 21 and up don't have phys equivalents
+            map.insert(format!("F{}", i), k);
+        }
     }
 
     map
@@ -190,6 +215,16 @@ where
         return Ok(c.clone());
     }
 
+    if s.len() > 5 && s.starts_with("phys:") {
+        let phys = PhysKeyCode::try_from(&s[5..]).map_err(|_| {
+            serde::de::Error::custom(format!(
+                "expected phys:CODE physical keycode string, got: {}",
+                s
+            ))
+        })?;
+        return Ok(KeyCode::Physical(phys));
+    }
+
     if s.len() > 4 && s.starts_with("raw:") {
         let num: u32 = s[4..].parse().map_err(|_| {
             serde::de::Error::custom(format!(
@@ -200,9 +235,26 @@ where
         return Ok(KeyCode::RawCode(num));
     }
 
+    if let Some(mapped) = s.strip_prefix("mapped:") {
+        let chars: Vec<char> = mapped.chars().collect();
+        return if chars.len() == 1 {
+            Ok(KeyCode::Char(chars[0]))
+        } else {
+            Err(serde::de::Error::custom(format!(
+                "invalid KeyCode string {}",
+                s
+            )))
+        };
+    }
+
     let chars: Vec<char> = s.chars().collect();
     if chars.len() == 1 {
-        Ok(KeyCode::Char(chars[0]))
+        let k = KeyCode::Char(chars[0]);
+        if let Some(phys) = k.to_phys() {
+            Ok(KeyCode::Physical(phys))
+        } else {
+            Ok(k)
+        }
     } else {
         Err(serde::de::Error::custom(format!(
             "invalid KeyCode string {}",

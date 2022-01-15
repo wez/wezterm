@@ -12,8 +12,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 
 use anyhow::{bail, Context as _, Error};
-use leb128;
-use mux::domain::DomainId;
+use mux::client::{ClientId, ClientInfo};
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PaneNode, SerdeUrl, SplitDirection, TabId};
@@ -26,6 +25,7 @@ use smol::prelude::*;
 use std::convert::TryInto;
 use std::io::Cursor;
 use std::ops::Range;
+use std::path::PathBuf;
 use std::sync::Arc;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::{Line, SequenceNo};
@@ -327,6 +327,7 @@ macro_rules! pdu {
                             let (data, is_compressed) = serialize(s)?;
                             let encoded_size = encode_raw($vers, serial, &data, is_compressed, w)?;
                             metrics::histogram!("pdu.size", encoded_size as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size.rate", encoded_size as f64, "pdu" => stringify!($name));
                             Ok(())
                         }
                     ,)*
@@ -341,6 +342,7 @@ macro_rules! pdu {
                             let (data, is_compressed) = serialize(s)?;
                             let encoded_size = encode_raw_async($vers, serial, &data, is_compressed, w).await?;
                             metrics::histogram!("pdu.size", encoded_size as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size.rate", encoded_size as f64, "pdu" => stringify!($name));
                             Ok(())
                         }
                     ,)*
@@ -353,6 +355,7 @@ macro_rules! pdu {
                     $(
                         $vers => {
                             metrics::histogram!("pdu.size", decoded.data.len() as f64, "pdu" => stringify!($name));
+                            metrics::histogram!("pdu.size.rate", decoded.data.len() as f64, "pdu" => stringify!($name));
                             Ok(DecodedPdu {
                                 serial: decoded.serial,
                                 pdu: Pdu::$name(deserialize(decoded.data.as_slice(), decoded.is_compressed)?)
@@ -361,6 +364,7 @@ macro_rules! pdu {
                     ,)*
                     _ => {
                         metrics::histogram!("pdu.size", decoded.data.len() as f64, "pdu" => "??");
+                        metrics::histogram!("pdu.size.rate", decoded.data.len() as f64, "pdu" => "??");
                         Ok(DecodedPdu {
                             serial: decoded.serial,
                             pdu: Pdu::Invalid{ident:decoded.ident}
@@ -401,7 +405,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 10;
+pub const CODEC_VERSION: usize = 16;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -413,7 +417,6 @@ pdu! {
     Pong: 2,
     ListPanes: 3,
     ListPanesResponse: 4,
-    Spawn: 7,
     SpawnResponse: 8,
     WriteToPane: 9,
     UnitResponse: 10,
@@ -440,6 +443,11 @@ pdu! {
     PaneRemoved: 37,
     SetPalette: 38,
     NotifyAlert: 39,
+    SetClientId: 40,
+    GetClientList: 41,
+    GetClientListResponse: 42,
+    SetWindowWorkspace: 43,
+    WindowWorkspaceChanged: 44,
 }
 
 impl Pdu {
@@ -536,6 +544,8 @@ pub struct GetCodecVersion {}
 pub struct GetCodecVersionResponse {
     pub codec_vers: usize,
     pub version_string: String,
+    pub executable_path: PathBuf,
+    pub config_file_path: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -563,16 +573,6 @@ pub struct ListPanes {}
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListPanesResponse {
     pub tabs: Vec<PaneNode>,
-}
-
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct Spawn {
-    pub domain_id: DomainId,
-    /// If None, create a new window for this new tab
-    pub window_id: Option<WindowId>,
-    pub command: Option<CommandBuilder>,
-    pub command_dir: Option<String>,
-    pub size: PtySize,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -679,6 +679,12 @@ pub struct SetClipboard {
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetWindowWorkspace {
+    pub window_id: WindowId,
+    pub workspace: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SetPalette {
     pub pane_id: PaneId,
     pub palette: ColorPalette,
@@ -688,6 +694,25 @@ pub struct SetPalette {
 pub struct NotifyAlert {
     pub pane_id: PaneId,
     pub alert: Alert,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct WindowWorkspaceChanged {
+    pub window_id: WindowId,
+    pub workspace: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetClientId {
+    pub client_id: ClientId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetClientList;
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetClientListResponse {
+    pub clients: Vec<ClientInfo>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

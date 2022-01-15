@@ -1,12 +1,10 @@
 use crate::termwindow::{ClipboardHelper, MuxWindowId};
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use config::keyassignment::{SpawnCommand, SpawnTabDomain};
 use config::TermConfig;
 use mux::activity::Activity;
-use mux::domain::DomainState;
 use mux::tab::SplitDirection;
 use mux::Mux;
-use percent_encoding::percent_decode_str;
 use portable_pty::{CommandBuilder, PtySize};
 use std::sync::Arc;
 
@@ -75,59 +73,12 @@ impl super::TermWindow {
     ) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let activity = Activity::new();
-        let mux_builder;
 
-        let target_window_id = if spawn_where == SpawnWhere::NewWindow {
-            mux_builder = mux.new_empty_window();
-            *mux_builder
+        let current_pane_id = if let Some(tab) = mux.get_active_tab_for_window(src_window_id) {
+            tab.get_active_pane().map(|p| p.pane_id())
         } else {
-            src_window_id
+            None
         };
-
-        let (domain, cwd) = match spawn.domain {
-            SpawnTabDomain::DefaultDomain => {
-                let cwd = mux
-                    .get_active_tab_for_window(src_window_id)
-                    .and_then(|tab| tab.get_active_pane())
-                    .and_then(|pane| pane.get_current_working_dir());
-                (mux.default_domain().clone(), cwd)
-            }
-            SpawnTabDomain::CurrentPaneDomain => {
-                if spawn_where == SpawnWhere::NewWindow {
-                    // CurrentPaneDomain is the default value for the spawn domain.
-                    // It doesn't make sense to use it when spawning a new window,
-                    // so we treat it as DefaultDomain instead.
-                    let cwd = mux
-                        .get_active_tab_for_window(src_window_id)
-                        .and_then(|tab| tab.get_active_pane())
-                        .and_then(|pane| pane.get_current_working_dir());
-                    (mux.default_domain().clone(), cwd)
-                } else {
-                    let tab = match mux.get_active_tab_for_window(src_window_id) {
-                        Some(tab) => tab,
-                        None => bail!("window has no tabs?"),
-                    };
-                    let pane = tab
-                        .get_active_pane()
-                        .ok_or_else(|| anyhow!("current tab has no pane!?"))?;
-                    (
-                        mux.get_domain(pane.domain_id())
-                            .ok_or_else(|| anyhow!("current tab has unresolvable domain id!?"))?,
-                        pane.get_current_working_dir(),
-                    )
-                }
-            }
-            SpawnTabDomain::DomainName(name) => (
-                mux.get_domain_by_name(&name).ok_or_else(|| {
-                    anyhow!("spawn_tab called with unresolvable domain name {}", name)
-                })?,
-                None,
-            ),
-        };
-
-        if domain.state() == DomainState::Detached {
-            bail!("Cannot spawn a tab into a Detached domain");
-        }
 
         let cwd = if let Some(cwd) = spawn.cwd.as_ref() {
             Some(cwd.to_str().map(|s| s.to_owned()).ok_or_else(|| {
@@ -137,25 +88,7 @@ impl super::TermWindow {
                 )
             })?)
         } else {
-            match cwd {
-                Some(url) if url.scheme() == "file" => {
-                    if let Ok(path) = percent_decode_str(url.path()).decode_utf8() {
-                        let path = path.into_owned();
-                        // On Windows the file URI can produce a path like:
-                        // `/C:\Users` which is valid in a file URI, but the leading slash
-                        // is not liked by the windows file APIs, so we strip it off here.
-                        let bytes = path.as_bytes();
-                        if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
-                            Some(path[1..].to_owned())
-                        } else {
-                            Some(path)
-                        }
-                    } else {
-                        None
-                    }
-                }
-                Some(_) | None => None,
-            }
+            None
         };
 
         let cmd_builder = if let Some(args) = spawn.args {
@@ -177,16 +110,23 @@ impl super::TermWindow {
 
         match spawn_where {
             SpawnWhere::SplitPane(direction) => {
-                let mux = Mux::get().unwrap();
-                if let Some(tab) = mux.get_active_tab_for_window(target_window_id) {
+                if let Some(tab) = mux.get_active_tab_for_window(src_window_id) {
                     let pane = tab
                         .get_active_pane()
                         .ok_or_else(|| anyhow!("tab to have a pane"))?;
 
                     log::trace!("doing split_pane");
-                    let pane = domain
-                        .split_pane(cmd_builder, cwd, tab.tab_id(), pane.pane_id(), direction)
-                        .await?;
+                    let (pane, _size) = mux
+                        .split_pane(
+                            // tab.tab_id(),
+                            pane.pane_id(),
+                            direction,
+                            cmd_builder,
+                            cwd,
+                            spawn.domain,
+                        )
+                        .await
+                        .context("split_pane")?;
                     pane.set_config(term_config);
                     pane.set_clipboard(&clipboard);
                     pane.set_download_handler(&downloader);
@@ -195,24 +135,28 @@ impl super::TermWindow {
                 }
             }
             _ => {
-                let tab = domain
-                    .spawn(size, cmd_builder, cwd, target_window_id)
-                    .await?;
-                let tab_id = tab.tab_id();
-                let pane = tab
-                    .get_active_pane()
-                    .ok_or_else(|| anyhow!("newly spawned tab to have a pane"))?;
-                pane.set_config(term_config);
+                let (_tab, pane, window_id) = mux
+                    .spawn_tab_or_window(
+                        match spawn_where {
+                            SpawnWhere::NewWindow => None,
+                            _ => Some(src_window_id),
+                        },
+                        spawn.domain,
+                        cmd_builder,
+                        cwd,
+                        size,
+                        current_pane_id,
+                    )
+                    .await
+                    .context("spawn_tab_or_window")?;
 
-                if spawn_where != SpawnWhere::NewWindow {
+                // If it was created in this window, it copies our handlers.
+                // Otherwise, we'll pick them up when we later respond to
+                // the new window being created.
+                if window_id == src_window_id {
+                    pane.set_config(term_config);
                     pane.set_clipboard(&clipboard);
                     pane.set_download_handler(&downloader);
-                    let mut window = mux
-                        .get_window_mut(target_window_id)
-                        .ok_or_else(|| anyhow!("no such window!?"))?;
-                    if let Some(idx) = window.idx_by_id(tab_id) {
-                        window.save_and_then_set_active(idx);
-                    }
                 }
             }
         };

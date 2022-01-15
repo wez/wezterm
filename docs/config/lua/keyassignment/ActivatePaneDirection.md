@@ -26,7 +26,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 You may now use `"Next"` and `"Prev"` as directions.  These cycle
 through the panes according to their position in the pane tree.

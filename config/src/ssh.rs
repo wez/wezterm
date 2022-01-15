@@ -15,6 +15,38 @@ impl Default for SshBackend {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum SshMultiplexing {
+    WezTerm,
+    None,
+    // TODO: Tmux-cc in the future?
+}
+impl_lua_conversion!(SshMultiplexing);
+
+impl Default for SshMultiplexing {
+    fn default() -> Self {
+        Self::WezTerm
+    }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum Shell {
+    /// Unknown command shell: no assumptions can be made
+    Unknown,
+
+    /// Posix shell compliant, such that `cd DIR ; exec CMD` behaves
+    /// as it does in the bourne shell family of shells
+    Posix,
+    // TODO: Cmd, PowerShell in the future?
+}
+impl_lua_conversion!(Shell);
+
+impl Default for Shell {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct SshDomain {
     /// The name of this specific domain.  Must be unique amongst
@@ -43,9 +75,21 @@ pub struct SshDomain {
 
     pub ssh_backend: Option<SshBackend>,
 
+    /// If false, then don't use a multiplexer connection,
+    /// just connect directly using ssh. This doesn't require
+    /// that the remote host have wezterm installed, and is equivalent
+    /// to using `wezterm ssh` to connect.
+    #[serde(default)]
+    pub multiplexing: SshMultiplexing,
+
     /// ssh_config option values
     #[serde(default)]
     pub ssh_option: HashMap<String, String>,
+
+    pub default_prog: Option<Vec<String>>,
+
+    #[serde(default)]
+    pub assume_shell: Shell,
 }
 impl_lua_conversion!(SshDomain);
 

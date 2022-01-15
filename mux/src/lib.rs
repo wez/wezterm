@@ -1,15 +1,18 @@
+use crate::client::{ClientId, ClientInfo};
 use crate::pane::{Pane, PaneId};
-use crate::tab::{Tab, TabId};
+use crate::tab::{SplitDirection, Tab, TabId};
 use crate::window::{Window, WindowId};
 use anyhow::{anyhow, Context, Error};
+use config::keyassignment::SpawnTabDomain;
 use config::{configuration, ExitBehavior};
-use domain::{Domain, DomainId};
+use domain::{Domain, DomainId, DomainState};
 use filedescriptor::{socketpair, AsRawSocketDescriptor, FileDescriptor};
 #[cfg(unix)]
 use libc::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 use log::error;
 use metrics::histogram;
-use portable_pty::ExitStatus;
+use percent_encoding::percent_decode_str;
+use portable_pty::{CommandBuilder, ExitStatus, PtySize};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -25,13 +28,13 @@ use thiserror::*;
 use winapi::um::winsock2::{SOL_SOCKET, SO_RCVBUF, SO_SNDBUF};
 
 pub mod activity;
+pub mod client;
 pub mod connui;
 pub mod domain;
 pub mod localpane;
 pub mod pane;
 pub mod renderable;
 pub mod ssh;
-mod sysinfo;
 pub mod tab;
 pub mod termwiztermtab;
 pub mod tmux;
@@ -47,6 +50,7 @@ pub enum MuxNotification {
     WindowCreated(WindowId),
     WindowRemoved(WindowId),
     WindowInvalidated(WindowId),
+    WindowWorkspaceChanged(WindowId),
     Alert {
         pane_id: PaneId,
         alert: wezterm_term::Alert,
@@ -65,6 +69,7 @@ pub struct Mux {
     domains_by_name: RefCell<HashMap<String, Arc<dyn Domain>>>,
     subscribers: RefCell<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
     banner: RefCell<Option<String>>,
+    clients: RefCell<HashMap<ClientId, ClientInfo>>,
 }
 
 const BUFSIZE: usize = 1024 * 1024;
@@ -318,7 +323,32 @@ impl Mux {
             domains: RefCell::new(domains),
             subscribers: RefCell::new(HashMap::new()),
             banner: RefCell::new(None),
+            clients: RefCell::new(HashMap::new()),
         }
+    }
+
+    pub fn client_had_input(&self, client_id: &ClientId) {
+        if let Some(info) = self.clients.borrow_mut().get_mut(client_id) {
+            info.update_last_input();
+        }
+    }
+
+    pub fn register_client(&self, client_id: &ClientId) {
+        self.clients
+            .borrow_mut()
+            .insert(client_id.clone(), ClientInfo::new(client_id));
+    }
+
+    pub fn iter_clients(&self) -> Vec<ClientInfo> {
+        self.clients
+            .borrow()
+            .values()
+            .map(|info| info.clone())
+            .collect()
+    }
+
+    pub fn unregister_client(&self, client_id: &ClientId) {
+        self.clients.borrow_mut().remove(client_id);
     }
 
     pub fn subscribe<F>(&self, subscriber: F)
@@ -397,6 +427,10 @@ impl Mux {
     }
 
     pub fn add_pane(&self, pane: &Rc<dyn Pane>) -> Result<(), Error> {
+        if self.panes.borrow().contains_key(&pane.pane_id()) {
+            return Ok(());
+        }
+
         self.panes
             .borrow_mut()
             .insert(pane.pane_id(), Rc::clone(pane));
@@ -600,6 +634,21 @@ impl Mux {
             .collect()
     }
 
+    pub fn iter_windows_in_workspace(&self, workspace: &str) -> Vec<WindowId> {
+        self.windows
+            .borrow()
+            .iter()
+            .filter_map(|(k, w)| {
+                if w.get_workspace() == workspace {
+                    Some(k)
+                } else {
+                    None
+                }
+            })
+            .cloned()
+            .collect()
+    }
+
     pub fn iter_windows(&self) -> Vec<WindowId> {
         self.windows.borrow().keys().cloned().collect()
     }
@@ -650,6 +699,179 @@ impl Mux {
 
     pub fn set_banner(&self, banner: Option<String>) {
         *self.banner.borrow_mut() = banner;
+    }
+
+    fn resolve_spawn_tab_domain(
+        &self,
+        // TODO: disambiguate with TabId
+        pane_id: Option<PaneId>,
+        domain: &config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<Arc<dyn Domain>> {
+        let domain = match domain {
+            SpawnTabDomain::DefaultDomain => self.default_domain(),
+            SpawnTabDomain::CurrentPaneDomain => {
+                let pane_id = pane_id
+                    .ok_or_else(|| anyhow!("CurrentPaneDomain used with no current pane"))?;
+                let (pane_domain_id, _window_id, _tab_id) = self
+                    .resolve_pane_id(pane_id)
+                    .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+                self.get_domain(pane_domain_id)
+                    .expect("resolve_pane_id to give valid domain_id")
+            }
+            SpawnTabDomain::DomainId(domain_id) => self
+                .get_domain(*domain_id)
+                .ok_or_else(|| anyhow!("domain id {} is invalid", domain_id))?,
+            SpawnTabDomain::DomainName(name) => self
+                .get_domain_by_name(&name)
+                .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
+        };
+        if domain.state() == DomainState::Detached {
+            anyhow::bail!("Cannot spawn a tab into a Detached domain");
+        }
+        Ok(domain)
+    }
+
+    fn resolve_cwd(
+        &self,
+        command_dir: Option<String>,
+        pane: Option<Rc<dyn Pane>>,
+    ) -> Option<String> {
+        command_dir.or_else(|| {
+            match pane {
+                Some(pane) => pane
+                    .get_current_working_dir()
+                    .and_then(|url| {
+                        percent_decode_str(url.path())
+                            .decode_utf8()
+                            .ok()
+                            .map(|path| path.into_owned())
+                    })
+                    .map(|path| {
+                        // On Windows the file URI can produce a path like:
+                        // `/C:\Users` which is valid in a file URI, but the leading slash
+                        // is not liked by the windows file APIs, so we strip it off here.
+                        let bytes = path.as_bytes();
+                        if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
+                            path[1..].to_owned()
+                        } else {
+                            path
+                        }
+                    }),
+                None => None,
+            }
+        })
+    }
+
+    pub async fn split_pane(
+        &self,
+        // TODO: disambiguate with TabId
+        pane_id: PaneId,
+        direction: SplitDirection,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+        domain: config::keyassignment::SpawnTabDomain,
+    ) -> anyhow::Result<(Rc<dyn Pane>, PtySize)> {
+        let (_pane_domain_id, _window_id, tab_id) = self
+            .resolve_pane_id(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} invalid", pane_id))?;
+
+        let domain = self
+            .resolve_spawn_tab_domain(Some(pane_id), &domain)
+            .context("resolve_spawn_tab_domain")?;
+
+        let current_pane = self
+            .get_pane(pane_id)
+            .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
+        let term_config = current_pane.get_config();
+
+        let cwd = self.resolve_cwd(command_dir, Some(Rc::clone(&current_pane)));
+
+        let pane = domain
+            .split_pane(command, cwd, tab_id, pane_id, direction)
+            .await?;
+        if let Some(config) = term_config {
+            pane.set_config(config);
+        }
+
+        // FIXME: clipboard
+
+        let dims = pane.get_dimensions();
+
+        let size = PtySize {
+            cols: dims.cols as u16,
+            rows: dims.viewport_rows as u16,
+            pixel_height: 0, // FIXME: split pane pixel dimensions
+            pixel_width: 0,
+        };
+
+        Ok((pane, size))
+    }
+
+    pub async fn spawn_tab_or_window(
+        &self,
+        window_id: Option<WindowId>,
+        domain: SpawnTabDomain,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+        size: PtySize,
+        current_pane_id: Option<PaneId>,
+    ) -> anyhow::Result<(Rc<Tab>, Rc<dyn Pane>, WindowId)> {
+        let domain = self
+            .resolve_spawn_tab_domain(current_pane_id, &domain)
+            .context("resolve_spawn_tab_domain")?;
+
+        let window_builder;
+        let term_config;
+
+        let (window_id, size) = if let Some(window_id) = window_id {
+            let window = self
+                .get_window_mut(window_id)
+                .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
+            let tab = window
+                .get_active()
+                .ok_or_else(|| anyhow!("window {} has no tabs", window_id))?;
+            let pane = tab
+                .get_active_pane()
+                .ok_or_else(|| anyhow!("active tab in window {} has no panes", window_id))?;
+            term_config = pane.get_config();
+
+            let size = tab.get_size();
+
+            (window_id, size)
+        } else {
+            term_config = None;
+            window_builder = self.new_empty_window();
+            (*window_builder, size)
+        };
+
+        let cwd = self.resolve_cwd(
+            command_dir,
+            match current_pane_id {
+                Some(id) => self.get_pane(id),
+                None => None,
+            },
+        );
+
+        let tab = domain.spawn(size, command, cwd, window_id).await?;
+
+        let pane = tab
+            .get_active_pane()
+            .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
+
+        if let Some(config) = term_config {
+            pane.set_config(config);
+        }
+
+        // FIXME: clipboard?
+
+        let mut window = self
+            .get_window_mut(window_id)
+            .ok_or_else(|| anyhow!("no such window!?"))?;
+        if let Some(idx) = window.idx_by_id(tab.tab_id()) {
+            window.save_and_then_set_active(idx);
+        }
+
+        Ok((tab, pane, window_id))
     }
 }
 

@@ -856,7 +856,7 @@ impl Frame for ConceptFrame {
 
                     if let Some(shaped) = self.shaped_title.as_ref() {
                         let mut x = 8.;
-                        let limit = (scaled_header_width - 4 * HEADER_SIZE) as f64;
+                        let limit = scaled_header_width.saturating_sub(4 * HEADER_SIZE) as f64;
                         let identity = Transform::identity();
                         let paint = PixmapPaint::default();
                         for item in &shaped.glyphs {

@@ -225,8 +225,8 @@ impl Write for OutputHandle {
     }
 
     fn flush(&mut self) -> IoResult<()> {
-        if self.write_buffer.len() > 0 {
-            self.handle.write(&self.write_buffer)?;
+        if !self.write_buffer.is_empty() {
+            self.handle.write_all(&self.write_buffer)?;
             self.write_buffer.clear();
         }
         Ok(())

@@ -36,20 +36,28 @@ pub enum SftpError {
     NoMedia = 13,
 
     // Below are libssh2-specific errors
+    #[cfg(feature = "ssh2")]
     #[error("No space available on filesystem")]
     NoSpaceOnFilesystem = 14,
+    #[cfg(feature = "ssh2")]
     #[error("Quota exceeded")]
     QuotaExceeded = 15,
+    #[cfg(feature = "ssh2")]
     #[error("Unknown principal")]
     UnknownPrincipal = 16,
+    #[cfg(feature = "ssh2")]
     #[error("Filesystem lock conflict")]
     LockConflict = 17,
+    #[cfg(feature = "ssh2")]
     #[error("Directory is not empty")]
     DirNotEmpty = 18,
+    #[cfg(feature = "ssh2")]
     #[error("Operation attempted against a path that is not a directory")]
     NotADirectory = 19,
+    #[cfg(feature = "ssh2")]
     #[error("Filename invalid")]
     InvalidFilename = 20,
+    #[cfg(feature = "ssh2")]
     #[error("Symlink loop encountered")]
     LinkLoop = 21,
 }
@@ -90,13 +98,23 @@ impl TryFrom<i32> for SftpError {
             11 => Ok(Self::FileAlreadyExists),
             12 => Ok(Self::WriteProtect),
             13 => Ok(Self::NoMedia),
+
+            // Errors only available with ssh2
+            #[cfg(feature = "ssh2")]
             14 => Ok(Self::NoSpaceOnFilesystem),
+            #[cfg(feature = "ssh2")]
             15 => Ok(Self::QuotaExceeded),
+            #[cfg(feature = "ssh2")]
             16 => Ok(Self::UnknownPrincipal),
+            #[cfg(feature = "ssh2")]
             17 => Ok(Self::LockConflict),
+            #[cfg(feature = "ssh2")]
             18 => Ok(Self::DirNotEmpty),
+            #[cfg(feature = "ssh2")]
             19 => Ok(Self::NotADirectory),
+            #[cfg(feature = "ssh2")]
             20 => Ok(Self::InvalidFilename),
+            #[cfg(feature = "ssh2")]
             21 => Ok(Self::LinkLoop),
 
             // Unsupported codes get reflected back
@@ -105,6 +123,7 @@ impl TryFrom<i32> for SftpError {
     }
 }
 
+#[cfg(feature = "ssh2")]
 impl TryFrom<ssh2::Error> for SftpError {
     type Error = ssh2::Error;
 
@@ -119,6 +138,7 @@ impl TryFrom<ssh2::Error> for SftpError {
     }
 }
 
+#[cfg(feature = "ssh2")]
 impl TryFrom<ssh2::ErrorCode> for SftpError {
     type Error = ssh2::ErrorCode;
 

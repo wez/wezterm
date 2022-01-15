@@ -5,7 +5,6 @@
 precision highp float;
 
 in vec2 position;
-in vec2 adjust;
 in vec2 tex;
 in vec4 fg_color;
 in float has_color;
@@ -29,5 +28,5 @@ void main() {
   pass_through_vertex();
 
   // Use the adjusted cell position to render the quad
-  gl_Position = projection * vec4(position + adjust, 0.0, 1.0);
+  gl_Position = projection * vec4(position, 0.0, 1.0);
 }

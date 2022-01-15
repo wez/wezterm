@@ -895,10 +895,10 @@ pub fn grapheme_column_width(s: &str, version: Option<UnicodeVersion>) -> usize 
             (_, Some(Presentation::Emoji)) => 2,
             (_, Some(Presentation::Text)) => 1,
             (Presentation::Emoji, None) => 2,
-            (Presentation::Text, None) => width,
+            (Presentation::Text, None) => width.min(2),
         }
     } else {
-        width
+        width.min(2)
     }
 }
 

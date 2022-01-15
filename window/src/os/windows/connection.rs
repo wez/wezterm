@@ -90,7 +90,13 @@ impl Connection {
 
     fn wait_message(&self) {
         unsafe {
-            MsgWaitForMultipleObjects(1, &self.event_handle, 0, INFINITE, QS_ALLEVENTS);
+            MsgWaitForMultipleObjects(
+                1,
+                &self.event_handle,
+                0,
+                INFINITE,
+                QS_ALLEVENTS | QS_ALLINPUT | QS_ALLPOSTMESSAGE,
+            );
         }
     }
 

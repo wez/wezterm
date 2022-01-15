@@ -60,11 +60,17 @@ return {
 
       -- Arbitrary colors of the palette in the range from 16 to 255
       indexed = {[136] = "#af8700"},
+
+      -- Since: nightly builds only
+      -- When the IME, a dead key or a leader key are being processed and are effectively
+      -- holding input pending the result of input composition, change the cursor
+      -- to this color to give a visual cue about the compose state.
+      compose_cursor = "orange",
   }
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 You may specify colors in the HSL color space, if you prefer that over RGB, by using:
 
@@ -109,6 +115,10 @@ return {
   },
 }
 ```
+
+See also [wezterm.get_builtin_color_schemes()](lua/wezterm/get_builtin_color_schemes.md) for
+some more advanced examples, such as picking a random color scheme, or deriving from a
+builting color scheme.
 
 ### Defining a Color Scheme in a separate file
 
@@ -155,21 +165,67 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
 
 ### Tab Bar Appearance & Colors
 
+The tab bar has two modes; the default is a native looking style, but
+is is also possible to enable a retro aesthetic.  The configuration
+for the two styles is broadly similar, but there are a few different
+details.
+
+* [use_fancy_tab_bar](lua/config/use_fancy_tab_bar.md) option controls
+  which tab bar style is used.
+* [enable_tab_bar](lua/config/enable_tab_bar.md) option control
+  whether the tab bar is used at all.
+* [hide_tab_bar_if_only_one_tab](lua/config/hide_tab_bar_if_only_one_tab.md) option
+  causes the tab bar to be hidden when there is only a single tab.
+* [tab_bar_at_bottom](lua/config/tab_bar_at_bottom.md) places the tab
+  bar at the bottom of the window instead of the top
+* [tab_max_width](lua/config/tab_max_width.md) sets the maximum width, measured in cells,
+  of a given tab when using retro tab mode.
+
+#### Native (Fancy) Tab Bar appearance
+
+The following options affect the fancy tab bar:
+
+```lua
+local wezterm = require 'wezterm'
+
+return {
+  window_frame = {
+    -- The font used in the tab bar.
+    -- Roboto Bold is the default; this font is bundled
+    -- with wezterm.
+    -- Whatever font is selected here, it will have the
+    -- main font setting appended to it to pick up any
+    -- fallback fonts you may have used there.
+    font = wezterm.font({family="Roboto", weight="Bold"}),
+
+    -- The size of the font in the tab bar.
+    -- Default to 10. on Windows but 12.0 on other systems
+    font_size = 12.0,
+
+    -- The overall background color of the tab bar when
+    -- the window is focused
+    active_titlebar_bg = "#333333",
+
+    -- The overall background color of the tab bar when
+    -- the window is not focused
+    inactive_titlebar_bg = "#333333",
+  },
+}
+```
+
+In addition, the tab bar colors mentioned below also apply
+to the items displayed in the tab bar.
+
+#### Retro Tab Bar appearance
+
 The following options control the appearance of the tab bar:
 
 ```lua
 return {
-  -- set to false to disable the tab bar completely
-  enable_tab_bar = true,
-
-  -- set to true to hide the tab bar when there is only
-  -- a single tab in the window
-  hide_tab_bar_if_only_one_tab = false,
-
   colors = {
     tab_bar = {
-
       -- The color of the strip that goes along the top of the window
+      -- (does not apply when fancy tab bar is in use)
       background = "#0b0022",
 
       -- The active tab is the one that has focus in the window
@@ -241,7 +297,6 @@ return {
   }
 }
 ```
-
 
 ### Window Padding
 

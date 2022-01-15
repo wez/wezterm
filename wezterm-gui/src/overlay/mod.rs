@@ -12,7 +12,6 @@ mod debug;
 mod launcher;
 mod quickselect;
 mod search;
-mod tabnavigator;
 
 pub use confirm_close_pane::confirm_close_pane;
 pub use confirm_close_pane::confirm_close_tab;
@@ -20,10 +19,9 @@ pub use confirm_close_pane::confirm_close_window;
 pub use confirm_close_pane::confirm_quit_program;
 pub use copy::CopyOverlay;
 pub use debug::show_debug_overlay;
-pub use launcher::launcher;
+pub use launcher::{launcher, LauncherArgs, LauncherFlags};
 pub use quickselect::QuickSelectOverlay;
 pub use search::SearchOverlay;
-pub use tabnavigator::tab_navigator;
 
 pub fn start_overlay<T, F>(
     term_window: &TermWindow,

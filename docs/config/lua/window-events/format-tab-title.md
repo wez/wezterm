@@ -39,7 +39,7 @@ The parameters to the event are:
 * `panes` - an array containing [PaneInformation](../PaneInformation.md) for each of the panes in the active tab
 * `config` - the effective configuration for the window
 * `hover` - true if the current tab is in the hover state
-* `max_width` - the maximum number of cells available to draw this tab
+* `max_width` - the maximum number of cells available to draw this tab when using the retro tab bar style.
 
 The return value of the event can be:
 
@@ -88,7 +88,7 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_wid
   local edge_foreground = background
 
   -- ensure that the titles fit in the available space,
-  -- and that we have room for the edges
+  -- and that we have room for the edges.
   local title = wezterm.truncate_to_width(tab.active_pane.title, max_width-2)
 
   return {

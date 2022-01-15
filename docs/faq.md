@@ -104,6 +104,8 @@ return {
 }
 ```
 
+See also [Troubleshooting Fonts](config/fonts.md#troubleshooting-fonts).
+
 ### Some (but not all) Emoji don't render properly
 
 To some extent this issue can manifest in a similar way to the LANG and locale
@@ -185,7 +187,8 @@ environment.
 
 ## How do I enable undercurl (curly underlines)?
 
-Starting in version 20210314-114017-04b7cedd, WezTerm has support for colored and curly underlines.
+Starting in version 20210314-114017-04b7cedd, WezTerm has support for colored
+and curly underlines.
 
 The relevant escape sequences are:
 
@@ -242,6 +245,12 @@ undercurl:
 ```bash
 env TERM=wezterm nvim
 ```
+
+Note: on Windows, the ConPTY layer strips out the curly underline escape
+sequences.  If you're missing this feature in your WSL instance, you will need
+to use either `wezterm ssh` or
+[multiplexing](multiplexing.html#connecting-into-windows-subsystem-for-linux)
+to bypass ConPTY.
 
 ## I use Powershell for my shell, and I have problems with cursor keys in other apps
 

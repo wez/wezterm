@@ -25,7 +25,7 @@ libc = "0.2"
 log = "0.4"
 memmem = "0.1"
 num-traits = "0.2"
-ordered-float = "2.8"
+ordered-float = "2.10"
 regex = "1"
 semver = "0.11"
 serde = {version="1.0", features = ["rc", "derive"], optional=true}

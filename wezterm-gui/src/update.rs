@@ -10,20 +10,15 @@ use regex::Regex;
 use serde::*;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-#[cfg(unix)]
-use std::os::unix::net::UnixStream;
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use termwiz::cell::{AttributeChange, Hyperlink, Underline};
 use termwiz::color::AnsiColor;
 use termwiz::escape::csi::{Cursor, Sgr};
 use termwiz::escape::osc::{ITermDimension, ITermFileData, ITermProprietary};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::surface::{Change, CursorVisibility};
-#[cfg(windows)]
-use uds_windows::UnixStream;
 use wezterm_toast_notification::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -342,56 +337,7 @@ fn schedule_set_banner_from_release_info(latest: &Release) {
     .detach();
 }
 
-/// This function returns a list of the gui-sock- paths in
-/// the runtime dir.  These represent the locally running
-/// instances of wezterm-gui.
-/// The list is pruned of any entries that are not live
-/// and then sorted with the eldest instance first.
-fn discover_gui_socks() -> Vec<PathBuf> {
-    let mut socks = vec![];
-
-    #[derive(Debug)]
-    struct Entry {
-        path: PathBuf,
-        age: Duration,
-    }
-
-    fn meta_age(t: std::io::Result<SystemTime>) -> Duration {
-        t.ok()
-            .and_then(|t| SystemTime::now().duration_since(t).ok())
-            .unwrap_or(Duration::from_millis(300))
-    }
-
-    if let Ok(dir) = std::fs::read_dir(&*config::RUNTIME_DIR) {
-        for entry in dir {
-            if let Ok(entry) = entry {
-                if let Some(name) = entry.file_name().to_str() {
-                    if name.starts_with("gui-sock-") {
-                        let path = entry.path();
-                        if let Ok(meta) = entry.metadata() {
-                            let age = meta_age(meta.created());
-                            if is_sock_dead(&path) && age > Duration::from_secs(1) {
-                                let _ = std::fs::remove_file(&path);
-                            } else {
-                                socks.push(Entry { path, age });
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    socks.sort_by(|a, b| a.age.cmp(&b.age).reverse());
-    log::trace!("{:?}", socks);
-    socks.into_iter().map(|e| e.path).collect()
-}
-
 /// Returns true if the provided socket path is dead.
-fn is_sock_dead(sock: &std::path::Path) -> bool {
-    UnixStream::connect(sock).is_err()
-}
-
 fn update_checker() {
     // Compute how long we should sleep for;
     // if we've never checked, give it a few seconds after the first
@@ -440,7 +386,7 @@ fn update_checker() {
                     // window: the one of us that sorts first in the list will
                     // own doing that, so that if there are a dozen gui processes
                     // running, we don't spam the user with a lot of notifications.
-                    let socks = discover_gui_socks();
+                    let socks = wezterm_client::discovery::discover_gui_socks();
 
                     if force_ui || socks.is_empty() || socks[0] == my_sock {
                         persistent_toast_notification_with_click_to_open_url(

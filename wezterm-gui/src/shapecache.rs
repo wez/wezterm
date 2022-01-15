@@ -257,7 +257,7 @@ mod test {
     use k9::assert_equal as assert_eq;
     use std::rc::Rc;
     use termwiz::cell::CellAttributes;
-    use termwiz::surface::Line;
+    use termwiz::surface::{Line, SEQ_ZERO};
     use wezterm_font::FontConfiguration;
     use wezterm_font::LoadedFont;
 
@@ -272,9 +272,9 @@ mod test {
         T: Texture2d,
         T: std::fmt::Debug,
     {
-        let line = Line::from_text(text, &CellAttributes::default());
+        let line = Line::from_text(text, &CellAttributes::default(), SEQ_ZERO);
         eprintln!("{:?}", line);
-        let cell_clusters = line.cluster();
+        let cell_clusters = line.cluster(None);
         assert_eq!(cell_clusters.len(), 1);
         let cluster = &cell_clusters[0];
         let infos = font.shape(&cluster.text, || {}, |_| {}, None).unwrap();
@@ -391,8 +391,8 @@ mod test {
                 );
                 let style = TextStyle::default();
                 let font = fonts.resolve_font(&style).unwrap();
-                let line = Line::from_text(&text, &CellAttributes::default());
-                let cell_clusters = line.cluster();
+                let line = Line::from_text(&text, &CellAttributes::default(), SEQ_ZERO);
+                let cell_clusters = line.cluster(None);
                 let cluster = &cell_clusters[0];
 
                 measurer.measure(|| {

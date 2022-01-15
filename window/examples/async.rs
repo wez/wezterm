@@ -35,8 +35,12 @@ impl MyWindow {
             WindowEvent::Resized {
                 dimensions,
                 window_state,
+                live_resizing,
             } => {
-                eprintln!("resize {:?} state={:?}", dimensions, window_state);
+                eprintln!(
+                    "resize {:?} live={} state={:?}",
+                    dimensions, live_resizing, window_state
+                );
                 self.dims = dimensions;
             }
             WindowEvent::MouseEvent(event) => {
@@ -51,7 +55,10 @@ impl MyWindow {
             WindowEvent::KeyEvent(key) => {
                 eprintln!("{:?}", key);
                 win.set_cursor(Some(MouseCursor::Text));
-                win.default_key_processing(key);
+            }
+            WindowEvent::RawKeyEvent(key) => {
+                eprintln!("{:?}", key);
+                win.set_cursor(Some(MouseCursor::Text));
             }
             WindowEvent::NeedRepaint => {
                 if let Some(gl) = self.gl.as_mut() {
@@ -71,6 +78,7 @@ impl MyWindow {
                 }
             }
             WindowEvent::AppearanceChanged(_)
+            | WindowEvent::AdviseDeadKeyStatus(_)
             | WindowEvent::Notification(_)
             | WindowEvent::FocusChanged(_) => {}
         }

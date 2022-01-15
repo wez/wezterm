@@ -156,12 +156,17 @@ fn pane_tree(
     window_id: WindowId,
     active: Option<&Rc<dyn Pane>>,
     zoomed: Option<&Rc<dyn Pane>>,
+    workspace: &str,
 ) -> PaneNode {
     match tree {
         Tree::Empty => PaneNode::Empty,
         Tree::Node { left, right, data } => PaneNode::Split {
-            left: Box::new(pane_tree(&*left, tab_id, window_id, active, zoomed)),
-            right: Box::new(pane_tree(&*right, tab_id, window_id, active, zoomed)),
+            left: Box::new(pane_tree(
+                &*left, tab_id, window_id, active, zoomed, workspace,
+            )),
+            right: Box::new(pane_tree(
+                &*right, tab_id, window_id, active, zoomed, workspace,
+            )),
             node: data.unwrap(),
         },
         Tree::Leaf(pane) => {
@@ -182,6 +187,7 @@ fn pane_tree(
                     pixel_width: 0,
                 },
                 working_dir: working_dir.map(Into::into),
+                workspace: workspace.to_string(),
             })
         }
     }
@@ -484,10 +490,28 @@ impl Tab {
             }
         };
 
+        let workspace = match mux
+            .get_window(window_id)
+            .map(|w| w.get_workspace().to_string())
+        {
+            Some(ws) => ws,
+            None => {
+                log::error!("window id {} doesn't have a window!?", window_id);
+                return PaneNode::Empty;
+            }
+        };
+
         let zoomed = self.zoomed.borrow();
         let active = self.get_active_pane();
         if let Some(root) = self.pane.borrow().as_ref() {
-            pane_tree(root, tab_id, window_id, active.as_ref(), zoomed.as_ref())
+            pane_tree(
+                root,
+                tab_id,
+                window_id,
+                active.as_ref(),
+                zoomed.as_ref(),
+                &workspace,
+            )
         } else {
             PaneNode::Empty
         }
@@ -1539,6 +1563,7 @@ pub struct PaneEntry {
     pub working_dir: Option<SerdeUrl>,
     pub is_active_pane: bool,
     pub is_zoomed_pane: bool,
+    pub workspace: String,
 }
 
 #[derive(Deserialize, Clone, Serialize, PartialEq, Debug)]
@@ -1645,6 +1670,9 @@ mod test {
         }
 
         fn key_down(&self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
+            unimplemented!()
+        }
+        fn key_up(&self, _: KeyCode, _: KeyModifiers) -> anyhow::Result<()> {
             unimplemented!()
         }
         fn mouse_event(&self, _event: MouseEvent) -> anyhow::Result<()> {

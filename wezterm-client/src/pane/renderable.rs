@@ -250,7 +250,7 @@ impl RenderableInner {
             .set_underline(Underline::Double)
             .clone();
 
-        let text_line = Line::from_text(text, &attrs);
+        let text_line = Line::from_text(text, &attrs, SEQ_ZERO);
 
         if row == 0 {
             for cell in text_line.cells() {
@@ -634,7 +634,7 @@ impl RenderableState {
                     LineEntry::DirtyAndFetching(line, then)
                 }
                 Some(LineEntry::Fetching(then)) => {
-                    result.push(Line::with_width(inner.dimensions.cols));
+                    result.push(Line::with_width(inner.dimensions.cols, SEQ_ZERO));
                     LineEntry::Fetching(then)
                 }
                 Some(LineEntry::Stale(line)) => {
@@ -643,7 +643,7 @@ impl RenderableState {
                     LineEntry::DirtyAndFetching(line, now)
                 }
                 None => {
-                    result.push(Line::with_width(inner.dimensions.cols));
+                    result.push(Line::with_width(inner.dimensions.cols, SEQ_ZERO));
                     to_fetch.add(idx);
                     LineEntry::Fetching(now)
                 }

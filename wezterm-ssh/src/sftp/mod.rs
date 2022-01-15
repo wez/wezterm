@@ -4,9 +4,7 @@ use crate::sftp::file::{File, FileRequest};
 use crate::sftp::types::{Metadata, OpenFileType, OpenOptions, RenameOptions, WriteMode};
 use camino::Utf8PathBuf;
 use error::SftpError;
-use libssh_rs as libssh;
 use smol::channel::{bounded, RecvError, Sender};
-use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::io;
 use thiserror::Error;
@@ -41,11 +39,13 @@ pub enum SftpChannelError {
     #[error("Failed to receive response: {}", .0)]
     RecvFailed(#[from] RecvError),
 
+    #[cfg(feature = "ssh2")]
     #[error("Library-specific error: {}", .0)]
     Ssh2(#[source] ssh2::Error),
 
+    #[cfg(feature = "libssh-rs")]
     #[error("Library-specific error: {}", .0)]
-    LibSsh(#[source] libssh::Error),
+    LibSsh(#[source] libssh_rs::Error),
 
     #[error("Not Implemented")]
     NotImplemented,
@@ -409,8 +409,10 @@ pub(crate) struct Rename {
     pub opts: RenameOptions,
 }
 
+#[cfg(feature = "ssh2")]
 impl From<ssh2::Error> for SftpChannelError {
     fn from(err: ssh2::Error) -> Self {
+        use std::convert::TryFrom;
         match SftpError::try_from(err) {
             Ok(x) => Self::Sftp(x),
             Err(x) => Self::Ssh2(x),
@@ -418,8 +420,9 @@ impl From<ssh2::Error> for SftpChannelError {
     }
 }
 
-impl From<libssh::Error> for SftpChannelError {
-    fn from(err: libssh::Error) -> Self {
+#[cfg(feature = "libssh-rs")]
+impl From<libssh_rs::Error> for SftpChannelError {
+    fn from(err: libssh_rs::Error) -> Self {
         Self::LibSsh(err)
     }
 }

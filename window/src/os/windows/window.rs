@@ -2,9 +2,9 @@ use super::*;
 use crate::connection::ConnectionOps;
 use crate::Appearance;
 use crate::{
-    Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
-    WindowEventSender, WindowOps, WindowState,
+    Clipboard, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers, MouseButtons,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect, ScreenPoint,
+    WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{bail, Context};
 use async_trait::async_trait;
@@ -38,6 +38,7 @@ use winapi::um::winuser::*;
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
 const GCS_RESULTSTR: DWORD = 0x800;
+const GCS_COMPSTR: DWORD = 0x8;
 extern "system" {
     pub fn ImmGetCompositionStringW(himc: HIMC, index: DWORD, buf: LPVOID, buflen: DWORD) -> LONG;
 }
@@ -231,6 +232,7 @@ impl WindowInner {
                 } else {
                     WindowState::default()
                 },
+                live_resizing: self.in_size_move,
             });
         }
 
@@ -510,7 +512,7 @@ impl WindowInner {
 
     fn set_text_cursor_position(&mut self, cursor: Rect) {
         let imc = ImmContext::get(self.hwnd.0);
-        imc.set_position(cursor.origin.x.max(0) as i32, cursor.origin.y.max(0) as i32);
+        imc.set_position(cursor.origin.x.max(0) as i32, cursor.max_y().max(0) as i32);
     }
 
     fn config_did_change(&mut self, config: &ConfigHandle) {
@@ -1255,6 +1257,27 @@ impl ImmContext {
             ImmSetCompositionWindow(self.imc, &mut cf);
         }
     }
+
+    pub fn get_str(&self, which: DWORD) -> Result<String, OsString> {
+        // This returns a size in bytes even though it is for a buffer of u16!
+        let byte_size =
+            unsafe { ImmGetCompositionStringW(self.imc, which, std::ptr::null_mut(), 0) };
+        if byte_size > 0 {
+            let word_size = byte_size as usize / 2;
+            let mut wide_buf = vec![0u16; word_size];
+            unsafe {
+                ImmGetCompositionStringW(
+                    self.imc,
+                    which,
+                    wide_buf.as_mut_ptr() as *mut _,
+                    byte_size as u32,
+                )
+            };
+            OsString::from_wide(&wide_buf).into_string()
+        } else {
+            Ok(String::new())
+        }
+    }
 }
 
 impl Drop for ImmContext {
@@ -1273,45 +1296,52 @@ unsafe fn ime_composition(
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let mut inner = inner.borrow_mut();
-
-        if (lparam as DWORD) & GCS_RESULTSTR == 0 {
-            // No finished result; continue with the default
-            // processing
-            return None;
-        }
-
         let imc = ImmContext::get(hwnd);
 
-        // This returns a size in bytes even though it is for a buffer of u16!
-        let byte_size = ImmGetCompositionStringW(imc.imc, GCS_RESULTSTR, std::ptr::null_mut(), 0);
-        if byte_size > 0 {
-            let word_size = byte_size as usize / 2;
-            let mut wide_buf = vec![0u16; word_size];
-            ImmGetCompositionStringW(
-                imc.imc,
-                GCS_RESULTSTR,
-                wide_buf.as_mut_ptr() as *mut _,
-                byte_size as u32,
-            );
-            match OsString::from_wide(&wide_buf).into_string() {
-                Ok(s) => {
-                    let key = KeyEvent {
-                        key: KeyCode::Composed(s),
-                        raw_key: None,
-                        raw_modifiers: Modifiers::NONE,
-                        raw_code: None,
-                        modifiers: Modifiers::NONE,
-                        repeat_count: 1,
-                        key_is_down: true,
-                    }
-                    .normalize_shift();
-                    inner.events.dispatch(WindowEvent::KeyEvent(key));
+        let lparam = lparam as DWORD;
 
-                    return Some(1);
-                }
-                Err(_) => eprintln!("cannot represent IME as unicode string!?"),
-            };
+        if lparam == 0 {
+            // IME was cancelled
+            inner
+                .events
+                .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+            return Some(1);
         }
+
+        if lparam & GCS_RESULTSTR == 0 {
+            // No finished result; continue with the default
+            // processing
+            if let Ok(composing) = imc.get_str(GCS_COMPSTR) {
+                inner
+                    .events
+                    .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::Composing(
+                        composing,
+                    )));
+            }
+            // We will show the composing string ourselves.
+            // Suppress the default composition display.
+            return Some(1);
+        }
+
+        match imc.get_str(GCS_RESULTSTR) {
+            Ok(s) if !s.is_empty() => {
+                let key = KeyEvent {
+                    key: KeyCode::Composed(s),
+                    modifiers: Modifiers::NONE,
+                    repeat_count: 1,
+                    key_is_down: true,
+                    raw: None,
+                };
+                inner
+                    .events
+                    .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+                inner.events.dispatch(WindowEvent::KeyEvent(key));
+
+                return Some(1);
+            }
+            Ok(_) => {}
+            Err(_) => eprintln!("cannot represent IME as unicode string!?"),
+        };
     }
     None
 }
@@ -1621,6 +1651,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
         let ime_active = wparam == VK_PROCESSKEY as WPARAM;
+        let phys_code = super::keycodes::vkey_to_phys(wparam);
 
         let alt_pressed = (lparam & (1 << 29)) != 0;
         let is_extended = (lparam & (1 << 24)) != 0;
@@ -1730,9 +1761,20 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             keys[VK_RCONTROL as usize] = 0;
         }
 
-        let raw_modifiers = modifiers;
-
-        let mut raw = None;
+        let handled_raw = Handled::new();
+        let raw_key_event = RawKeyEvent {
+            key: match phys_code {
+                Some(phys) => KeyCode::Physical(phys),
+                None => KeyCode::RawCode(wparam as _),
+            },
+            phys_code,
+            raw_code: wparam as _,
+            scan_code: scan_code as _,
+            modifiers,
+            repeat_count: 1,
+            key_is_down: !releasing,
+            handled: handled_raw.clone(),
+        };
 
         let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
             // If we were sent a character by the IME, some other apps,
@@ -1744,88 +1786,26 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // ToUnicode has frustrating statefulness so we take care to
             // call it only when we think it will give consistent results.
 
-            if releasing {
-                // Don't care about key-up events
+            inner
+                .events
+                .dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
+            if handled_raw.is_handled() {
+                // Cancel any pending dead key
+                if inner.dead_pending.take().is_some() {
+                    inner
+                        .events
+                        .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+                }
+                log::trace!("raw key was handled; not processing further");
                 return Some(0);
             }
 
-            // Determine the raw, underlying key event
-            raw = match wparam as i32 {
-                0 => None,
-                VK_CANCEL => Some(KeyCode::Cancel),
-                VK_BACK => Some(KeyCode::Char('\u{8}')),
-                VK_TAB => Some(KeyCode::Char('\t')),
-                VK_CLEAR => Some(KeyCode::Clear),
-                VK_RETURN => Some(KeyCode::Char('\r')),
-                VK_SHIFT => Some(KeyCode::Shift),
-                VK_CONTROL => Some(KeyCode::Control),
-                VK_MENU => Some(KeyCode::Alt),
-                VK_PAUSE => Some(KeyCode::Pause),
-                VK_CAPITAL => Some(KeyCode::CapsLock),
-                VK_ESCAPE => Some(KeyCode::Char('\u{1b}')),
-                VK_SPACE => Some(KeyCode::Char(' ')),
-                VK_PRIOR => Some(KeyCode::PageUp),
-                VK_NEXT => Some(KeyCode::PageDown),
-                VK_END => Some(KeyCode::End),
-                VK_HOME => Some(KeyCode::Home),
-                VK_LEFT => Some(KeyCode::LeftArrow),
-                VK_UP => Some(KeyCode::UpArrow),
-                VK_RIGHT => Some(KeyCode::RightArrow),
-                VK_DOWN => Some(KeyCode::DownArrow),
-                VK_SELECT => Some(KeyCode::Select),
-                VK_PRINT => Some(KeyCode::Print),
-                VK_EXECUTE => Some(KeyCode::Execute),
-                VK_SNAPSHOT => Some(KeyCode::PrintScreen),
-                VK_INSERT => Some(KeyCode::Insert),
-                VK_DELETE => Some(KeyCode::Char('\u{7f}')),
-                VK_HELP => Some(KeyCode::Help),
-                // 0-9 happen to overlap with ascii
-                i @ 0x30..=0x39 => Some(KeyCode::Char(i as u8 as char)),
-                // a-z also overlap with ascii
-                i @ 0x41..=0x5a => Some(KeyCode::Char((i as u8 as char).to_ascii_lowercase())),
-                VK_LWIN => Some(KeyCode::LeftWindows),
-                VK_RWIN => Some(KeyCode::RightWindows),
-                VK_APPS => Some(KeyCode::Applications),
-                VK_SLEEP => Some(KeyCode::Sleep),
-                i @ VK_NUMPAD0..=VK_NUMPAD9 => Some(KeyCode::Numpad((i - VK_NUMPAD0) as u8)),
-                VK_MULTIPLY => Some(KeyCode::Multiply),
-                VK_ADD => Some(KeyCode::Add),
-                VK_SEPARATOR => Some(KeyCode::Separator),
-                VK_SUBTRACT => Some(KeyCode::Subtract),
-                VK_DECIMAL => Some(KeyCode::Decimal),
-                VK_DIVIDE => Some(KeyCode::Divide),
-                i @ VK_F1..=VK_F24 => Some(KeyCode::Function((1 + i - VK_F1) as u8)),
-                VK_NUMLOCK => Some(KeyCode::NumLock),
-                VK_SCROLL => Some(KeyCode::ScrollLock),
-                VK_LSHIFT => Some(KeyCode::LeftShift),
-                VK_RSHIFT => Some(KeyCode::RightShift),
-                VK_LCONTROL => Some(KeyCode::LeftControl),
-                VK_RCONTROL => Some(KeyCode::RightControl),
-                VK_LMENU => Some(KeyCode::LeftAlt),
-                VK_RMENU => Some(KeyCode::RightAlt),
-                VK_BROWSER_BACK => Some(KeyCode::BrowserBack),
-                VK_BROWSER_FORWARD => Some(KeyCode::BrowserForward),
-                VK_BROWSER_REFRESH => Some(KeyCode::BrowserRefresh),
-                VK_BROWSER_STOP => Some(KeyCode::BrowserStop),
-                VK_BROWSER_SEARCH => Some(KeyCode::BrowserSearch),
-                VK_BROWSER_FAVORITES => Some(KeyCode::BrowserFavorites),
-                VK_BROWSER_HOME => Some(KeyCode::BrowserHome),
-                VK_VOLUME_MUTE => Some(KeyCode::VolumeMute),
-                VK_VOLUME_DOWN => Some(KeyCode::VolumeDown),
-                VK_VOLUME_UP => Some(KeyCode::VolumeUp),
-                VK_MEDIA_NEXT_TRACK => Some(KeyCode::MediaNextTrack),
-                VK_MEDIA_PREV_TRACK => Some(KeyCode::MediaPrevTrack),
-                VK_MEDIA_STOP => Some(KeyCode::MediaStop),
-                VK_MEDIA_PLAY_PAUSE => Some(KeyCode::MediaPlayPause),
-                _ => None,
-            };
-
-            let is_modifier_only = raw.as_ref().map(|r| r.is_modifier()).unwrap_or(false);
+            let is_modifier_only = phys_code.map(|p| p.is_modifier()).unwrap_or(false);
             if is_modifier_only {
                 // If this event is only modifiers then don't ask the system
                 // for further resolution, as we don't want ToUnicode to
-                // perturb its inscrutable global state
-                raw.clone()
+                // perturb its inscrutable global state.
+                phys_code.map(|p| p.to_key_code())
             } else {
                 // If we think this might be a dead key, process it for ourselves.
                 // Our KeyboardLayoutInfo struct probed the layout for the key
@@ -1834,8 +1814,16 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 // these for ourselves in a couple of quick hash lookups.
                 let vk = wparam as u32;
 
+                if releasing && inner.dead_pending.is_some() {
+                    // Don't care about key-up events while processing dead keys
+                    return Some(0);
+                }
+
                 // If we previously had the start of a dead key...
                 let dead = if let Some(leader) = inner.dead_pending.take() {
+                    inner
+                        .events
+                        .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
                     // look to see how the current event resolves it
                     match inner
                         .keyboard_info
@@ -1852,12 +1840,10 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             // dead key combination
                             let key = KeyEvent {
                                 key: KeyCode::Char(c),
-                                raw_key: None,
-                                raw_modifiers: Modifiers::NONE,
-                                raw_code: Some(wparam as u32),
                                 modifiers,
                                 repeat_count: 1,
                                 key_is_down: !releasing,
+                                raw: None,
                             }
                             .normalize_shift()
                             .normalize_ctrl();
@@ -1892,11 +1878,19 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         ResolvedDeadKey::InvalidDeadKey => None,
                     }
                 } else if let Some(c) = inner.keyboard_info.is_dead_key_leader(modifiers, vk) {
+                    if releasing {
+                        // Don't care about key-up events while processing dead keys
+                        return Some(0);
+                    }
+
                     // They pressed a dead key.
                     // If they want dead key processing, then record that and
                     // wait for a subsequent keypress.
                     if inner.config.use_dead_keys {
                         inner.dead_pending.replace((modifiers, vk));
+                        inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
+                            DeadKeyStatus::Composing(c.to_string()),
+                        ));
                         return Some(0);
                     }
                     // They don't want dead keys; just return the base character
@@ -1932,7 +1926,14 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                             Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32)))
                         }
                         // No mapping, so use our raw info
-                        0 => raw.clone(),
+                        0 => {
+                            log::trace!(
+                                "ToUnicode had no mapping for {:?} wparam={}",
+                                phys_code,
+                                wparam
+                            );
+                            phys_code.map(|p| p.to_key_code())
+                        }
                         _ => {
                             // dead key: if our dead key mapping in KeyboardLayoutInfo was
                             // correct, we shouldn't be able to get here as we should have
@@ -1951,15 +1952,16 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         };
 
         if let Some(key) = key {
-            let is_composed = raw != Some(key.clone()) || modifiers != raw_modifiers;
+            // FIXME: verify this behavior: Urgh, special case for ctrl and non-latin layouts.
+            // In order to avoid a situation like #678, if CTRL is the only
+            // modifier and we've got composed text, then discard the composed
+            // text.
             let key = KeyEvent {
                 key,
-                raw_key: if is_composed { raw } else { None },
-                raw_modifiers,
-                raw_code: Some(wparam as u32),
                 modifiers,
                 repeat_count: repeat,
                 key_is_down: !releasing,
+                raw: Some(raw_key_event),
             }
             .normalize_shift();
 

@@ -36,7 +36,7 @@ It is a lua object with the following fields:
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 You may now specify a table with ssh config overrides:
 
@@ -51,6 +51,60 @@ return {
       }
     }
   }
+}
+```
+
+*Since: nightly builds only*
+
+You may now specify the type of `multiplexing` used by an ssh domain.
+The following values are possible:
+
+* `"WezTerm"` - this is the default; use wezterm's multiplexing client.
+  Having wezterm installed on the server is required to use this mode.
+* `"None"` - don't use any multiplexing. The connection is an ssh connection
+  using the same mechanism as is used by `wezterm ssh`; losing connectivity
+  will lose any panes/tabs.  This mode of operation is convenient when using
+  SSH to connect automatically into eg: a locally hosted WSL instance, together
+  with the [default_domain](config/default_domain.md) option.
+
+A new `assume_shell` option, when coupled with `multiplexing = "None"`, allows
+wezterm to assume that the remote host uses a specific shell command language
+dialect, which in turn allows wezterm to respect the
+current working directory as set by [OSC 7 / Shell
+Integration](../../shell-integration.md) on the remote host when spawning new
+panes and tabs.  The following values are recognized for `assume_shell`:
+
+* `"Unknown"` - this is the default. We can't make any assumptions about the
+  remote shell.
+* `"Posix"` - the remote host uses a Bourne Shell compatible shell that allows
+  the syntax `cd DIR ; exec CMD` and `cd DIR ; exec $SHELL`.
+
+
+```lua
+return {
+  ssh_domains = {
+    {
+      name = "my.server",
+      remote_address = "192.168.1.1",
+      multiplexing = "None",
+
+      -- When multiplexing == "None", default_prog can be used
+      -- to specify the default program to run in new tabs/panes.
+      -- Due to the way that ssh works, you cannot specify default_cwd,
+      -- but you could instead change your default_prog to put you
+      -- in a specific directory.
+      default_prog = {"fish"},
+
+      -- assume that we can use syntax like:
+      -- "cd /some/where ; exec $SHELL"
+      -- using whatever the default command shell is on this
+      -- remote host, so that shell integration will respect
+      -- the current directory on the remote host.
+      assume_shell = "Posix",
+    }
+  },
+
+  default_domain = "my.server",
 }
 ```
 

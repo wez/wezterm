@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
 use termwiz::hyperlink::Rule;
+use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -153,7 +154,7 @@ impl LogicalLine {
         let num_phys = self.physical_lines.len();
         for (idx, phys) in self.physical_lines.iter_mut().enumerate() {
             let len = phys.cells().len();
-            let remainder = line.split_off(len);
+            let remainder = line.split_off(len, SEQ_ZERO);
             *phys = line;
             line = remainder;
             let wrapped = idx == num_phys - 1;
@@ -322,12 +323,17 @@ pub trait Pane: Downcast {
     /// a zoom-to-fill-all-the-tab-space operation.
     fn set_zoomed(&self, _zoomed: bool) {}
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
+    fn key_up(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()>;
     fn perform_actions(&self, _actions: Vec<termwiz::escape::Action>) {}
     fn is_dead(&self) -> bool;
     fn kill(&self) {}
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
+
+    fn get_keyboard_encoding(&self) -> KeyboardEncoding {
+        KeyboardEncoding::Xterm
+    }
 
     fn copy_user_vars(&self) -> HashMap<String, String> {
         HashMap::new()
@@ -477,6 +483,9 @@ mod test {
         fn key_down(&self, _: KeyCode, _: KeyModifiers) -> anyhow::Result<()> {
             unimplemented!()
         }
+        fn key_up(&self, _: KeyCode, _: KeyModifiers) -> anyhow::Result<()> {
+            unimplemented!()
+        }
     }
 
     #[test]
@@ -493,7 +502,7 @@ mod test {
                 .collect::<Vec<String>>();
             let n_chunks = chunks.len();
             for (idx, chunk) in chunks.into_iter().enumerate() {
-                let mut line = Line::from_text(&chunk, &Default::default());
+                let mut line = Line::from_text(&chunk, &Default::default(), SEQ_ZERO);
                 if idx < n_chunks - 1 {
                     line.set_last_cell_was_wrapped(true, SEQ_ZERO);
                 }
@@ -860,10 +869,10 @@ mod test {
         let attr = Default::default();
         let logical = LogicalLine {
             physical_lines: vec![
-                Line::from_text("hello", &attr),
-                Line::from_text("yo", &attr),
+                Line::from_text("hello", &attr, SEQ_ZERO),
+                Line::from_text("yo", &attr, SEQ_ZERO),
             ],
-            logical: Line::from_text("helloyo", &attr),
+            logical: Line::from_text("helloyo", &attr, SEQ_ZERO),
             first_row: 0,
         };
 

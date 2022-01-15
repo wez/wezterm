@@ -96,6 +96,7 @@ fn main() {
 
         let rcfile_name = Path::new(&std::env::var_os("OUT_DIR").unwrap()).join("resource.rc");
         let mut rcfile = std::fs::File::create(&rcfile_name).unwrap();
+        println!("cargo:rerun-if-changed=../assets/windows/terminal.ico");
         write!(
             rcfile,
             r#"

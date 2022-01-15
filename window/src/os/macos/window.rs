@@ -4,9 +4,9 @@
 use super::{nsstring, nsstring_to_str};
 use crate::connection::ConnectionOps;
 use crate::{
-    Clipboard, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor,
-    MouseEvent, MouseEventKind, MousePress, Point, Rect, ScreenPoint, Size, WindowDecorations,
-    WindowEvent, WindowEventSender, WindowOps, WindowState,
+    Clipboard, Connection, DeadKeyStatus, Dimensions, Handled, KeyCode, KeyEvent, Modifiers,
+    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Point, RawKeyEvent, Rect,
+    ScreenPoint, Size, WindowDecorations, WindowEvent, WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, ensure};
 use async_trait::async_trait;
@@ -58,6 +58,16 @@ fn round_away_from_zero(value: f64) -> i16 {
     } else {
         value.min(-1.).round() as i16
     }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum ImeDisposition {
+    /// Nothing happened
+    None,
+    /// IME triggered an action
+    Acted,
+    /// We decided to continue with key dispatch
+    Continue,
 }
 
 #[repr(C)]
@@ -411,6 +421,10 @@ impl Window {
                 dead_pending: None,
                 fullscreen: None,
                 config: config.clone(),
+                ime_state: ImeDisposition::None,
+                ime_last_event: None,
+                live_resizing: false,
+                ime_text: String::new(),
             }));
 
             let window: id = msg_send![get_window_class(), alloc];
@@ -510,6 +524,7 @@ impl Window {
                         as usize,
                 },
                 window_state: WindowState::default(),
+                live_resizing: false,
             });
 
             Ok(window_handle)
@@ -1017,6 +1032,12 @@ fn decoration_to_mask(decorations: WindowDecorations) -> NSWindowStyleMask {
     }
 }
 
+#[derive(Debug)]
+struct DeadKeyState {
+    /// The private dead key state preserved from UCKeyTranslate
+    dead_state: u32,
+}
+
 struct Inner {
     events: WindowEventSender,
     view_id: Option<WeakPtr>,
@@ -1032,13 +1053,26 @@ struct Inner {
     key_is_down: Option<bool>,
 
     /// First in a dead-key sequence
-    dead_pending: Option<(u16, u32)>,
+    dead_pending: Option<DeadKeyState>,
 
     /// When using simple fullscreen mode, this tracks
     /// the window dimensions that need to be restored
     fullscreen: Option<NSRect>,
 
     config: ConfigHandle,
+
+    /// Used to signal when IME really just swallowed a key
+    ime_state: ImeDisposition,
+    /// Captures the last event that had ImeDisposition::Acted,
+    /// so that we can use it to generate a repeat in the cases
+    /// where the IME mysteriously swallows repeats but only
+    /// for certain keys.
+    ime_last_event: Option<KeyEvent>,
+
+    /// Whether we're in live resize
+    live_resizing: bool,
+
+    ime_text: String,
 }
 
 #[repr(C)]
@@ -1093,6 +1127,13 @@ extern "C" {
     fn LMGetKbdType() -> u8;
 }
 
+#[derive(Debug)]
+enum TranslateStatus {
+    Composing(String),
+    Composed(String),
+    NotDead,
+}
+
 impl Inner {
     fn enable_opengl(&mut self) -> anyhow::Result<Rc<glium::backend::Context>> {
         let view = self.view_id.as_ref().unwrap().load();
@@ -1111,7 +1152,7 @@ impl Inner {
         &mut self,
         virtual_key_code: u16,
         modifier_flags: NSEventModifierFlags,
-    ) -> Option<Result<String, std::string::FromUtf16Error>> {
+    ) -> Result<TranslateStatus, std::string::FromUtf16Error> {
         let kbd =
             unsafe { InputSource::wrap_under_create_rule(TISCopyCurrentKeyboardInputSource()) };
 
@@ -1149,13 +1190,18 @@ impl Inner {
             true
         };
 
-        if let Some((code, flags)) = self.dead_pending.take() {
+        #[allow(non_upper_case_globals)]
+        const kUCKeyTranslateNoDeadKeysBit: u32 = 0;
+
+        if let Some(state) = self.dead_pending.take() {
+            dead_state = state.dead_state;
+        } else if use_dead_keys {
             unsafe {
                 UCKeyTranslate(
                     layout_data,
-                    code,
+                    virtual_key_code,
                     kUCKeyActionDown,
-                    flags,
+                    modifier_key_state,
                     kbd_type,
                     0,
                     &mut dead_state,
@@ -1164,10 +1210,33 @@ impl Inner {
                     unicode_buffer.as_mut_ptr(),
                 );
             }
-        } else if use_dead_keys {
-            self.dead_pending
-                .replace((virtual_key_code, modifier_key_state));
-            return None;
+
+            self.dead_pending.replace(DeadKeyState { dead_state });
+
+            // Get the non-dead-key rendition to show as the composing state
+            dead_state = 0;
+            length = 0;
+            unsafe {
+                UCKeyTranslate(
+                    layout_data,
+                    virtual_key_code,
+                    kUCKeyActionDisplay,
+                    modifier_key_state,
+                    kbd_type,
+                    1 << kUCKeyTranslateNoDeadKeysBit,
+                    &mut dead_state,
+                    unicode_buffer.len() as _,
+                    &mut length,
+                    unicode_buffer.as_mut_ptr(),
+                );
+            };
+
+            let composing = String::from_utf16(unsafe {
+                std::slice::from_raw_parts(unicode_buffer.as_mut_ptr(), length as _)
+            })?;
+            return Ok(TranslateStatus::Composing(composing));
+        } else {
+            return Ok(TranslateStatus::NotDead);
         }
         length = 0;
         unsafe {
@@ -1175,13 +1244,6 @@ impl Inner {
                 layout_data,
                 virtual_key_code,
                 kUCKeyActionDisplay,
-                /*
-                if key_is_down {
-                kUCKeyActionDown
-                } else {
-                    kUCKeyActionUp
-                },
-                */
                 modifier_key_state,
                 kbd_type,
                 0,
@@ -1192,10 +1254,16 @@ impl Inner {
             );
         };
 
-        if !use_dead_keys {
-            length = 0;
-            // Ignore dead key sequences; synthesize a SPACE press to
-            // elicit the underlying key code
+        // If length == 0 it means that they double-pressed the dead key.
+        // We treat that the same as the dead key disabled state:
+        // we want to clock through a space keypress so that we clear
+        // the state and output the original keypress.
+        let generate_space = !use_dead_keys || length == 0;
+
+        if generate_space {
+            // synthesize a SPACE press to
+            // elicit the underlying key code and get out
+            // of the dead key state
             unsafe {
                 UCKeyTranslate(
                     layout_data,
@@ -1212,9 +1280,10 @@ impl Inner {
             }
         }
 
-        Some(String::from_utf16(unsafe {
+        let composed = String::from_utf16(unsafe {
             std::slice::from_raw_parts(unicode_buffer.as_mut_ptr(), length as _)
-        }))
+        })?;
+        Ok(TranslateStatus::Composed(composed))
     }
 }
 
@@ -1339,56 +1408,91 @@ impl WindowView {
     // sequences
     extern "C" fn do_command_by_selector(this: &mut Object, _sel: Sel, a_selector: Sel) {
         let selector = format!("{:?}", a_selector);
-        let mut modifiers = Modifiers::default();
-        let key = match selector.as_ref() {
-            "deleteBackward:" => KeyCode::Char('\x08'),
-            "deleteForward:" => KeyCode::Char('\x7f'),
+        log::trace!("do_command_by_selector {:?}", selector);
+
+        let (key, modifiers) = match selector.as_ref() {
             "cancel:" => {
                 // FIXME: this isn't scalable to various keys
-                // and we lose eg: SHIFT if that is also pressed at the same time
-                modifiers = Modifiers::CTRL;
-                KeyCode::Char('\x1b')
+                // and we lose eg: SHIFT if that is also pressed at the same time.
+                // However, CTRL-ESC is processed BEFORE sending any other
+                // key events so we have no choice but to do it this way.
+                (KeyCode::Char('\x1b'), Modifiers::CTRL)
             }
-            "cancelOperation:" => KeyCode::Char('\x1b'),
-            "insertNewline:" => KeyCode::Char('\r'),
-            "insertTab:" => KeyCode::Char('\t'),
-            "moveLeft:" => KeyCode::LeftArrow,
-            "moveRight:" => KeyCode::RightArrow,
-            "moveUp:" => KeyCode::UpArrow,
-            "moveDown:" => KeyCode::DownArrow,
-            "scrollToBeginningOfDocument:" => KeyCode::Home,
-            "scrollToEndOfDocument:" => KeyCode::End,
-            "scrollPageUp:" => KeyCode::PageUp,
-            "scrollPageDown:" => KeyCode::PageDown,
+            "scrollToBeginningOfDocument:"
+            | "scrollToEndOfDocument:"
+            | "scrollPageUp:"
+            | "scrollPageDown:"
+            | "moveLeft:"
+            | "moveRight:"
+            | "moveUp:"
+            | "moveDown:"
+            | "insertTab:"
+            | "insertNewline:"
+            | "cancelOperation:"
+            | "deleteBackward:"
+            | "deleteForward:"
+            | "noop:" => {
+                if let Some(myself) = Self::get_this(this) {
+                    let mut inner = myself.inner.borrow_mut();
+                    inner.ime_state = ImeDisposition::Continue;
+                    inner.ime_last_event.take();
+                }
+                return;
+            }
             _ => {
-                eprintln!("UNHANDLED: do_command_by_selector: {:?}", selector);
+                log::warn!("UNHANDLED: IME: do_command_by_selector: {:?}", selector);
+                if let Some(myself) = Self::get_this(this) {
+                    // Speculatively allow passing it through
+                    let mut inner = myself.inner.borrow_mut();
+                    inner.ime_state = ImeDisposition::Continue;
+                    inner.ime_last_event.take();
+                }
                 return;
             }
         };
 
         let event = KeyEvent {
             key,
-            raw_key: None,
             modifiers,
-            raw_modifiers: Modifiers::NONE,
-            raw_code: None,
             repeat_count: 1,
             key_is_down: true,
+            raw: None,
         }
         .normalize_shift();
 
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
+            inner.ime_state = ImeDisposition::Acted;
+            inner.ime_last_event.replace(event.clone());
             inner.events.dispatch(WindowEvent::KeyEvent(event));
         }
     }
 
-    extern "C" fn has_marked_text(_this: &mut Object, _sel: Sel) -> BOOL {
-        NO
+    extern "C" fn has_marked_text(this: &mut Object, _sel: Sel) -> BOOL {
+        if let Some(myself) = Self::get_this(this) {
+            let inner = myself.inner.borrow();
+            if inner.ime_text.is_empty() {
+                NO
+            } else {
+                YES
+            }
+        } else {
+            NO
+        }
     }
 
-    extern "C" fn marked_range(_this: &mut Object, _sel: Sel) -> NSRange {
-        NSRange::new(NSNotFound as _, 0)
+    extern "C" fn marked_range(this: &mut Object, _sel: Sel) -> NSRange {
+        if let Some(myself) = Self::get_this(this) {
+            let inner = myself.inner.borrow();
+            log::trace!("marked_range {:?}", inner.ime_text);
+            if inner.ime_text.is_empty() {
+                NSRange::new(NSNotFound as _, 0)
+            } else {
+                NSRange::new(0, inner.ime_text.len() as u64)
+            }
+        } else {
+            NSRange::new(NSNotFound as _, 0)
+        }
     }
 
     extern "C" fn selected_range(_this: &mut Object, _sel: Sel) -> NSRange {
@@ -1400,49 +1504,94 @@ impl WindowView {
         this: &mut Object,
         _sel: Sel,
         astring: id,
-        _replacement_range: NSRange,
+        replacement_range: NSRange,
     ) {
         let s = unsafe { nsstring_to_str(astring) };
+        log::trace!(
+            "insert_text_replacement_range {} {:?}",
+            s,
+            replacement_range
+        );
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
+
             let key_is_down = inner.key_is_down.take().unwrap_or(true);
 
+            let key = KeyCode::composed(s);
+
             let event = KeyEvent {
-                key: KeyCode::Composed(s.to_string()),
-                raw_key: None,
+                key,
                 modifiers: Modifiers::NONE,
-                raw_modifiers: Modifiers::NONE,
-                raw_code: None,
+                repeat_count: 1,
+                key_is_down,
+                raw: None,
+            };
+
+            inner.ime_text.clear();
+            inner
+                .events
+                .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+            inner.ime_last_event.replace(event.clone());
+            inner.events.dispatch(WindowEvent::KeyEvent(event));
+            inner.ime_state = ImeDisposition::Acted;
+        }
+    }
+
+    extern "C" fn set_marked_text_selected_range_replacement_range(
+        this: &mut Object,
+        _sel: Sel,
+        astring: id,
+        selected_range: NSRange,
+        replacement_range: NSRange,
+    ) {
+        let s = unsafe { nsstring_to_str(astring) };
+        log::trace!(
+            "set_marked_text_selected_range_replacement_range {} {:?} {:?}",
+            s,
+            selected_range,
+            replacement_range
+        );
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            inner.ime_text = s.to_string();
+
+            /*
+            let key_is_down = inner.key_is_down.take().unwrap_or(true);
+
+            let key = KeyCode::composed(s);
+
+            let event = KeyEvent {
+                key,
+                modifiers: Modifiers::NONE,
                 repeat_count: 1,
                 key_is_down,
             }
             .normalize_shift();
 
+            inner.ime_last_event.replace(event.clone());
             inner.events.dispatch(WindowEvent::KeyEvent(event));
+            */
+            inner.ime_last_event.take();
+            inner.ime_state = ImeDisposition::Acted;
         }
     }
 
-    extern "C" fn set_marked_text_selected_range_replacement_range(
-        _this: &mut Object,
-        _sel: Sel,
-        _astring: id,
-        selected_range: NSRange,
-        replacement_range: NSRange,
-    ) {
-        let s = unsafe { nsstring_to_str(_astring) };
-        eprintln!(
-            "set_marked_text_selected_range_replacement_range {} {:?} {:?}",
-            s, selected_range, replacement_range
-        );
-    }
-
-    extern "C" fn unmark_text(_this: &mut Object, _sel: Sel) {
-        eprintln!("unmarkText");
+    extern "C" fn unmark_text(this: &mut Object, _sel: Sel) {
+        log::trace!("unmarkText");
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            // FIXME: docs say to insert the text here,
+            // but iterm doesn't... and we've never seen
+            // this get called so far?
+            inner.ime_text.clear();
+            inner.ime_last_event.take();
+            inner.ime_state = ImeDisposition::Acted;
+        }
     }
 
     extern "C" fn valid_attributes_for_marked_text(_this: &mut Object, _sel: Sel) -> id {
         // FIXME: returns NSArray<NSAttributedStringKey> *
-        // eprintln!("valid_attributes_for_marked_text");
+        // log::trace!("valid_attributes_for_marked_text");
         // nil
         unsafe { NSArray::arrayWithObjects(nil, &[]) }
     }
@@ -1453,9 +1602,10 @@ impl WindowView {
         _proposed_range: NSRange,
         _actual_range: NSRangePointer,
     ) -> id {
-        eprintln!(
+        log::trace!(
             "attributedSubstringForProposedRange {:?} {:?}",
-            _proposed_range, _actual_range
+            _proposed_range,
+            _actual_range
         );
         nil
     }
@@ -1476,9 +1626,10 @@ impl WindowView {
     ) -> NSRect {
         // Returns a rect in screen coordinates; this is used to place
         // the input method editor
-        eprintln!(
+        log::trace!(
             "firstRectForCharacterRange: range:{:?} actual:{:?}",
-            range, actual
+            range,
+            actual
         );
         let frame = unsafe {
             let window: id = msg_send![this, window];
@@ -1498,7 +1649,10 @@ impl WindowView {
             NSRect::new(
                 NSPoint::new(
                     frame.origin.x + cursor_pos.origin.x,
-                    frame.origin.y + frame.size.height - cursor_pos.origin.y,
+                    // Position below the text so that drop-downs
+                    // don't obscure the text in the terminal
+                    frame.origin.y + frame.size.height
+                        - (cursor_pos.max_y() + cursor_pos.size.height * 2.5),
                 ),
                 NSSize::new(cursor_pos.size.width, cursor_pos.size.height),
             )
@@ -1728,13 +1882,12 @@ impl WindowView {
     }
 
     fn key_common(this: &mut Object, nsevent: id, key_is_down: bool) {
-        // let is_a_repeat = unsafe { nsevent.isARepeat() == YES };
+        let is_a_repeat = unsafe { nsevent.isARepeat() == YES };
         let chars = unsafe { nsstring_to_str(nsevent.characters()) };
         let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifier_flags = unsafe { nsevent.modifierFlags() };
         let modifiers = key_modifiers(modifier_flags);
         let virtual_key = unsafe { nsevent.keyCode() };
-        let translated;
 
         log::debug!(
             "key_common: chars=`{}` unmod=`{}` modifiers=`{:?}` virtual_key={:?} key_is_down:{}",
@@ -1744,6 +1897,56 @@ impl WindowView {
             virtual_key,
             key_is_down
         );
+
+        // `Delete` on macos is really Backspace and emits BS.
+        // `Fn-Delete` emits DEL.
+        // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
+        // We want to emit Alt-BS in that situation.
+        let unmod =
+            if virtual_key == super::keycodes::kVK_Delete && modifiers.contains(Modifiers::ALT) {
+                "\x08"
+            } else if virtual_key == super::keycodes::kVK_Tab {
+                "\t"
+            } else if virtual_key == super::keycodes::kVK_Delete {
+                "\x08"
+            } else if virtual_key == super::keycodes::kVK_ANSI_KeypadEnter {
+                // https://github.com/wez/wezterm/issues/739
+                // Keypad enter sends ctrl-c for some reason; explicitly
+                // treat that as enter here.
+                "\r"
+            } else {
+                unmod
+            };
+
+        let phys_code = super::keycodes::vkey_to_phys(virtual_key);
+        let raw_key_handled = Handled::new();
+        let raw_key_event = RawKeyEvent {
+            key: if unmod.is_empty() {
+                match phys_code {
+                    Some(phys) => KeyCode::Physical(phys),
+                    None => KeyCode::RawCode(virtual_key as _),
+                }
+            } else {
+                KeyCode::composed(unmod)
+            },
+            phys_code,
+            raw_code: virtual_key as _,
+            modifiers,
+            repeat_count: 1,
+            key_is_down,
+            handled: raw_key_handled.clone(),
+        };
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            inner
+                .events
+                .dispatch(WindowEvent::RawKeyEvent(raw_key_event.clone()));
+        }
+
+        if raw_key_handled.is_handled() {
+            log::trace!("raw key was handled; not processing further");
+            return;
+        }
 
         let chars = if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
@@ -1755,15 +1958,36 @@ impl WindowView {
                 }
 
                 match inner.translate_key_event(virtual_key, modifier_flags) {
-                    None => {
+                    Ok(TranslateStatus::Composing(composing)) => {
                         // Next key press in dead key sequence is pending.
+                        inner.events.dispatch(WindowEvent::AdviseDeadKeyStatus(
+                            DeadKeyStatus::Composing(composing),
+                        ));
+
                         return;
                     }
-                    Some(Ok(s)) => {
-                        translated = s;
-                        &translated
+                    Ok(TranslateStatus::Composed(translated)) => {
+                        inner
+                            .events
+                            .dispatch(WindowEvent::AdviseDeadKeyStatus(DeadKeyStatus::None));
+                        let event = KeyEvent {
+                            key: KeyCode::composed(&translated),
+                            modifiers: Modifiers::NONE,
+                            repeat_count: 1,
+                            key_is_down,
+                            raw: None,
+                        };
+                        inner.events.dispatch(WindowEvent::KeyEvent(event));
+                        return;
                     }
-                    Some(Err(e)) => {
+                    Ok(TranslateStatus::NotDead) => {
+                        // Turned out that while it would have been a dead
+                        // key combo, our send_composed_key_when_XXX settings
+                        // said otherwise. Let's continue as if it was not
+                        // a dead key.
+                        unmod
+                    }
+                    Err(e) => {
                         log::error!("Failed to translate dead key: {}", e);
                         return;
                     }
@@ -1782,26 +2006,6 @@ impl WindowView {
         let send_composed_key_when_right_alt_is_pressed =
             config_handle.send_composed_key_when_right_alt_is_pressed;
 
-        // `Delete` on macos is really Backspace and emits BS.
-        // `Fn-Delete` emits DEL.
-        // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
-        // We want to emit Alt-BS in that situation.
-        let unmod =
-            if virtual_key == super::keycodes::kVK_Delete && modifiers.contains(Modifiers::ALT) {
-                "\x08"
-            } else if virtual_key == super::keycodes::kVK_Tab {
-                "\t"
-            } else if !use_ime && virtual_key == super::keycodes::kVK_Delete {
-                "\x08"
-            } else if virtual_key == super::keycodes::kVK_ANSI_KeypadEnter {
-                // https://github.com/wez/wezterm/issues/739
-                // Keypad enter sends ctrl-c for some reason; explicitly
-                // treat that as enter here.
-                "\r"
-            } else {
-                unmod
-            };
-
         // If unmod is empty it most likely means that the user has selected
         // an alternate keymap that has a chorded representation of eg: an ASCII
         // character.  One example of this is selecting a Norwegian keymap on
@@ -1815,18 +2019,17 @@ impl WindowView {
             modifiers
         };
 
+        let only_alt = (modifiers & !(Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT))
+            == Modifiers::NONE;
+        let only_left_alt =
+            (modifiers & !(Modifiers::LEFT_ALT | Modifiers::ALT)) == Modifiers::NONE;
+        let only_right_alt =
+            (modifiers & !(Modifiers::RIGHT_ALT | Modifiers::ALT)) == Modifiers::NONE;
+
         // Also respect `send_composed_key_when_(left|right)_alt_is_pressed` configs
         // when `use_ime` is true.
         let forward_to_ime = {
-            let only_alt = (modifiers
-                & !(Modifiers::LEFT_ALT | Modifiers::RIGHT_ALT | Modifiers::ALT))
-                == Modifiers::NONE;
-            let only_left_alt =
-                (modifiers & !(Modifiers::LEFT_ALT | Modifiers::ALT)) == Modifiers::NONE;
-            let only_right_alt =
-                (modifiers & !(Modifiers::RIGHT_ALT | Modifiers::ALT)) == Modifiers::NONE;
-
-            if modifiers.is_empty() {
+            if modifiers.is_empty() || modifiers == Modifiers::SHIFT {
                 true
             } else if only_left_alt && !send_composed_key_when_left_alt_is_pressed {
                 false
@@ -1841,13 +2044,78 @@ impl WindowView {
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
                 inner.key_is_down.replace(key_is_down);
+                inner.ime_state = ImeDisposition::None;
+                inner.ime_text.clear();
             }
 
             unsafe {
+                let array: id = msg_send![class!(NSArray), arrayWithObject: nsevent];
+                let _: () = msg_send![this, interpretKeyEvents: array];
+
+                /*
                 let input_context: id = msg_send![this, inputContext];
                 let res: BOOL = msg_send![input_context, handleEvent: nsevent];
                 if res == YES {
-                    return;
+                */
+                if let Some(myself) = Self::get_this(this) {
+                    let mut inner = myself.inner.borrow_mut();
+                    log::trace!(
+                        "IME state: {:?}, last_event: {:?}",
+                        inner.ime_state,
+                        inner.ime_last_event
+                    );
+                    match inner.ime_state {
+                        ImeDisposition::Continue => {
+                            // IME handled the event by generating NOOP;
+                            // let's continue with our normal handling
+                            // code below.
+                            inner.ime_last_event.take();
+                        }
+                        ImeDisposition::Acted => {
+                            // The key caused the IME to call one of our
+                            // callbacks, which may have generated an event and
+                            // stashed it into ime_last_event.
+                            // If it didn't generate an event, then a composition
+                            // is pending.
+                            let status = if inner.ime_last_event.is_none() {
+                                DeadKeyStatus::Composing(inner.ime_text.clone())
+                            } else {
+                                DeadKeyStatus::None
+                            };
+                            inner
+                                .events
+                                .dispatch(WindowEvent::AdviseDeadKeyStatus(status));
+                            return;
+                        }
+                        ImeDisposition::None => {
+                            // The IME clocked something in its state,
+                            // but didn't call one of our callbacks.
+                            // In theory, we should stop here, but the IME
+                            // mysteriously swallows key repeats for certain
+                            // keys (eg: `f`) but not others.
+                            // To compensate for that, if the current event
+                            // is a repeat, and the IME previously generated
+                            // `Acted`, we will assume that we're safe to replay
+                            // that last action.
+                            if is_a_repeat {
+                                if let Some(event) =
+                                    inner.ime_last_event.as_ref().map(|e| e.clone())
+                                {
+                                    inner.events.dispatch(WindowEvent::KeyEvent(event));
+                                    return;
+                                }
+                            }
+                            let status = if inner.ime_text.is_empty() {
+                                DeadKeyStatus::None
+                            } else {
+                                DeadKeyStatus::Composing(inner.ime_text.clone())
+                            };
+                            inner
+                                .events
+                                .dispatch(WindowEvent::AdviseDeadKeyStatus(status));
+                            return;
+                        }
+                    }
                 }
             }
         }
@@ -1867,29 +2135,22 @@ impl WindowView {
         }
 
         if let Some(key) = key_string_to_key_code(chars).or_else(|| key_string_to_key_code(unmod)) {
-            let raw_modifiers = modifiers;
-            let mut modifiers = modifiers;
-
-            let (key, raw_key) = if chars.is_empty() || chars == unmod {
+            let (key, raw_key) = if (only_left_alt && !send_composed_key_when_left_alt_is_pressed)
+                || (only_right_alt && !send_composed_key_when_right_alt_is_pressed)
+            {
+                // Take the unmodified key only!
+                match key_string_to_key_code(unmod) {
+                    Some(key) => (key, None),
+                    None => return,
+                }
+            } else if chars.is_empty() || chars == unmod {
                 (key, None)
             } else {
                 let raw = key_string_to_key_code(unmod);
                 match (&key, &raw) {
-                    // Avoid eg: \x01 when we can use CTRL-A
+                    // Avoid eg: \x01 when we can use CTRL-A.
+                    // This also helps to keep the correct sequence for backspace/delete
                     (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw.clone(), None),
-                    (KeyCode::Char(k), Some(KeyCode::Char(r)))
-                        if k.is_ascii_punctuation() && r.is_ascii_punctuation() =>
-                    {
-                        // Well, `chars` is supposed to represent the processed and modified
-                        // interpretation of the keypress, and `unmod` the same, but ignoring
-                        // any modifier keys.  eg: `ALT-l` has unmod=`l` and chars=`¬`.
-                        // However, SUPER+SHIFT+[ yields chars=`[` and unmod=`{` which is
-                        // the opposite of what we want.
-                        // If both chars and unmod are punctuation then let's take unmod,
-                        // and filter out the SHIFT state if present.
-                        modifiers -= Modifiers::SHIFT;
-                        (KeyCode::Char(*r), None)
-                    }
                     _ => (key, raw),
                 }
             };
@@ -1902,13 +2163,12 @@ impl WindowView {
 
             let mut event = KeyEvent {
                 key,
-                raw_key,
                 modifiers,
-                raw_modifiers,
-                raw_code: Some(virtual_key as u32),
                 repeat_count: 1,
                 key_is_down,
+                raw: Some(raw_key_event),
             }
+            .normalize_ctrl()
             .normalize_shift();
 
             // Ungh, this is a horrible special case.
@@ -1932,6 +2192,7 @@ impl WindowView {
 
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
+                inner.ime_last_event.take();
                 inner.events.dispatch(WindowEvent::KeyEvent(event));
             }
         }
@@ -1953,6 +2214,20 @@ impl WindowView {
             // resize flow may try to re-position the window to
             // the wrong place.
             this.inner.borrow_mut().screen_changed = true;
+        }
+    }
+
+    extern "C" fn will_start_live_resize(this: &mut Object, _sel: Sel, _notification: id) {
+        if let Some(this) = Self::get_this(this) {
+            let mut inner = this.inner.borrow_mut();
+            inner.live_resizing = true;
+        }
+    }
+
+    extern "C" fn did_end_live_resize(this: &mut Object, _sel: Sel, _notification: id) {
+        if let Some(this) = Self::get_this(this) {
+            let mut inner = this.inner.borrow_mut();
+            inner.live_resizing = false;
         }
     }
 
@@ -1985,6 +2260,8 @@ impl WindowView {
                     style_mask.contains(NSWindowStyleMask::NSFullScreenWindowMask)
                 });
 
+            let live_resizing = inner.live_resizing;
+
             inner.events.dispatch(WindowEvent::Resized {
                 dimensions: Dimensions {
                     pixel_width: width as usize,
@@ -1997,6 +2274,7 @@ impl WindowView {
                 } else {
                     WindowState::default()
                 },
+                live_resizing,
             });
         }
     }
@@ -2099,6 +2377,14 @@ impl WindowView {
                 Self::allow_automatic_tabbing as extern "C" fn(&Object, Sel) -> BOOL,
             );
 
+            cls.add_method(
+                sel!(windowWillStartLiveResize:),
+                Self::will_start_live_resize as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(windowDidEndLiveResize:),
+                Self::did_end_live_resize as extern "C" fn(&mut Object, Sel, id),
+            );
             cls.add_method(
                 sel!(windowDidResize:),
                 Self::did_resize as extern "C" fn(&mut Object, Sel, id),

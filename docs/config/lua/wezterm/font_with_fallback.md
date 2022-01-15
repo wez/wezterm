@@ -36,7 +36,7 @@ return {
 }
 ```
 
-*Since: nightly builds only*
+*Since: 20220101-133340-7edc5b5a*
 
 You can use the expanded form mentioned above to override freetype and harfbuzz
 settings just for the specified font; this examples shows how to disable the

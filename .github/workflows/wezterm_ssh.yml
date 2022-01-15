@@ -1,0 +1,70 @@
+name: wezterm-ssh
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - ".cirrus.yml"
+      - "docs/*"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/termwiz.yml"
+      - ".github/workflows/verify-pages.yml"
+      - ".github/ISSUE_TEMPLATE/*"
+      - "**/*.md"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - ".cirrus.yml"
+      - "docs/**"
+      - "ci/build-docs.sh"
+      - "ci/generate-docs.py"
+      - "ci/subst-release-info.py"
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/termwiz.yml"
+      - ".github/workflows/verify-pages.yml"
+      - ".github/ISSUE_TEMPLATE/*"
+      - "**/*.md"
+
+jobs:
+  build-wezterm-ssh-feature-libssh-rs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          toolchain: "stable"
+          override: true
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: Build
+        run: |
+          source $HOME/.cargo/env
+          cargo build -p wezterm-ssh --no-default-features --features "libssh-rs vendored-openssl-libssh-rs"
+          cargo test -p wezterm-ssh --no-default-features --features "libssh-rs vendored-openssl-libssh-rs"
+  build-wezterm-ssh-feature-ssh2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: "Install Rust"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: "minimal"
+          toolchain: "stable"
+          override: true
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      - name: Build
+        run: |
+          source $HOME/.cargo/env
+          cargo build -p wezterm-ssh --no-default-features --features "ssh2 vendored-openssl-ssh2"
+          cargo test -p wezterm-ssh --no-default-features --features "ssh2 vendored-openssl-ssh2"
+

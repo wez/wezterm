@@ -23,7 +23,7 @@ lazy_static = "1.4"
 log = "0.4"
 lru = "0.7"
 num-traits = "0.2"
-ordered-float = "2.8"
+ordered-float = "2.10"
 palette = "0.5"
 serde = {version="1.0", features = ["rc"]}
 terminfo = "0.7"

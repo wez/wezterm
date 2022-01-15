@@ -76,12 +76,35 @@ impl TerminalState {
             .min(params.image_height)
             .min(avail_height);
 
+        let aspect = source_width as f32 / source_height as f32;
+
         let width_in_cells = params
             .columns
             .unwrap_or_else(|| (source_width as f32 / cell_pixel_width as f32).ceil() as usize);
         let height_in_cells = params
             .rows
             .unwrap_or_else(|| (source_height as f32 / cell_pixel_height as f32).ceil() as usize);
+
+        // Figure out the desired pixel dimensions, respecting the original
+        // aspect of the picture if they specific rows/columns as the max size.
+        let target_pixel_width = if params.columns.is_some() {
+            if source_width > source_height {
+                width_in_cells * cell_pixel_width
+            } else {
+                ((height_in_cells * cell_pixel_height) as f32 * aspect).ceil() as usize
+            }
+        } else {
+            source_width as usize
+        };
+        let target_pixel_height = if params.rows.is_some() {
+            if source_height > source_width {
+                height_in_cells * cell_pixel_height
+            } else {
+                ((width_in_cells * cell_pixel_width) as f32 / aspect).ceil() as usize
+            }
+        } else {
+            source_height as usize
+        };
 
         let first_row = self.screen().visible_row_to_stable_row(self.cursor.y);
 
@@ -92,11 +115,13 @@ impl TerminalState {
 
         let cursor_x = self.cursor.x;
         log::debug!(
-            "image is {}x{} cells (cell is {}x{}), {:?}, ({}x{}@{}x{})",
+            "image is {}x{} cells (cell is {}x{}), target pixel dims {}x{}, {:?}, (term is {}x{}@{}x{})",
             width_in_cells,
             height_in_cells,
             cell_pixel_width,
             cell_pixel_height,
+            target_pixel_width,
+            target_pixel_height,
             params,
             physical_cols,
             physical_rows,
@@ -110,10 +135,10 @@ impl TerminalState {
             height_in_cells
         };
 
-        let mut remain_y = source_height as usize;
+        let mut remain_y = target_pixel_height as usize;
         for y in 0..height_in_cells {
             let padding_bottom = cell_pixel_height.saturating_sub(remain_y) as u16;
-            let y_delta = (remain_y.min(cell_pixel_height) as f32) / (source_height as f32);
+            let y_delta = (remain_y.min(cell_pixel_height) as f32) / (target_pixel_height as f32);
             remain_y = remain_y.saturating_sub(cell_pixel_height);
 
             let mut xpos = start_xpos;
@@ -128,10 +153,10 @@ impl TerminalState {
                 cursor_x,
                 cursor_x + width_in_cells
             );
-            let mut remain_x = source_width as usize;
+            let mut remain_x = target_pixel_width as usize;
             for x in 0..width_in_cells {
                 let padding_right = cell_pixel_width.saturating_sub(remain_x) as u16;
-                let x_delta = (remain_x.min(cell_pixel_width) as f32) / (source_width as f32);
+                let x_delta = (remain_x.min(cell_pixel_width) as f32) / (target_pixel_width as f32);
                 log::debug!(
                     "x_delta {} ({} px), y_delta {} ({} px), padding_right={}, padding_bottom={}",
                     x_delta,

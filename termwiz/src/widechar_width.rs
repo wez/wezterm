@@ -1,5 +1,5 @@
 /**
- * widechar_width.rs, generated on 2021-11-24.
+ * widechar_width.rs, generated on 2022-01-01.
  * See https://github.com/ridiculousfish/widecharwidth/
  *
  * SHA1 file hashes:
@@ -368,6 +368,9 @@ const COMBINING_TABLE: &'static [R] = &[
     (0x1E944, 0x1E94A),
     (0xE0100, 0xE01EF),
 ];
+
+/// Width 0 combining letters.
+const COMBININGLETTERS_TABLE: &'static [R] = &[(0x01160, 0x011FF), (0x0D7B0, 0x0D7FF)];
 
 /// Width 2 characters.
 const DOUBLEWIDE_TABLE: &'static [R] = &[
@@ -1463,6 +1466,9 @@ impl WcWidth {
             return Self::NonCharacter;
         }
         if in_table(&COMBINING_TABLE, c) {
+            return Self::Combining;
+        }
+        if in_table(&COMBININGLETTERS_TABLE, c) {
             return Self::Combining;
         }
         if in_table(&DOUBLEWIDE_TABLE, c) {

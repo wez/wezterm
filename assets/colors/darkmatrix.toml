@@ -1,12 +1,12 @@
 # darkmatrix
 [colors]
-foreground = "#81b32c"
-background = "#091013"
-cursor_bg = "#81b32c"
-cursor_border = "#81b32c"
+foreground = "#3e5715"
+background = "#070c0e"
+cursor_bg = "#9fa86e"
+cursor_border = "#9fa86e"
 cursor_fg = "#00ff87"
 selection_bg = "#0f191c"
 selection_fg = "#00ff87"
 
-ansi = ["#091013","#00cd6d","#90d762","#00cd6d","#9ce667","#00cd6d","#0ecc1e","#00cd6d"]
-brights = ["#00cd6d","#00cd6d","#90d762","#00cd6d","#9ce667","#00cd6d","#0ecc1e","#00cd6d"]
+ansi = ["#091013","#006536","#6fa64c","#7e8000","#2c9a84","#452d53","#114d53","#006536"]
+brights = ["#333333","#00733d","#90d762","#e2e500","#46d8b8","#4a3059","#12545a","#006536"]

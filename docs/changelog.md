@@ -13,7 +13,46 @@ As features stabilize some brief notes about them will accumulate here.
 
 #### New
 
-* Fancy Tab Bars are now the default. The default tab bar colors have changed to accommodate the new more native look.  They are not compatible with `tab_bar_at_bottom`. You can turn them off by setting `use_fancy_tab_bar = false`.
+* [window:composition_status()](config/lua/window/composition_status.md) and [window:leader_is_active()](config/lua/window/leader_is_active.md) methods that can help populate [window:set_right_status()](config/lua/window/set_right_status.md) [#686](https://github.com/wez/wezterm/issues/686)
+* You may now use `colors = { compose_cursor = "orange" }` to change the cursor color when IME, dead key or leader key composition states are active.
+* Support for SGR-Pixels mouse reporting. Thanks to [Autumn Lamonte](https://gitlab.com/klamonte)! [#1457](https://github.com/wez/wezterm/issues/1457)
+* [ActivatePaneByIndex](config/lua/keyassignment/ActivatePaneByIndex.md) key assignment action. [#1517](https://github.com/wez/wezterm/issues/1517)
+* Windows: wezterm may now use [win32-input-mode](https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md) to send high-fidelity keyboard input to ConPTY. This means that win32 console applications, such as [FAR Manager](https://github.com/FarGroup/FarManager) that use the low level `INPUT_RECORD` API will now receive key-up events as well as events for modifier-only key presses. Use `allow_win32_input_mode=true` to enable this. [#318](https://github.com/wez/wezterm/issues/318) [#1509](https://github.com/wez/wezterm/issues/1509) [#1510](https://github.com/wez/wezterm/issues/1510)
+* Windows: [default_domain](config/lua/config/default_domain.md), [wsl_domains](config/lua/config/wsl_domains.md) options and [wezterm.default_wsl_domains()](config/lua/wezterm/default_wsl_domains.md) provide more flexibility for WSL users.
+
+#### Changed
+
+* **Key Assignments now use Physical Key locations by default!!** follow the work in progress in [#1483](https://github.com/wez/wezterm/issues/1483) [#601](https://github.com/wez/wezterm/issues/601) [#1080](https://github.com/wez/wezterm/issues/1080) [#1391](https://github.com/wez/wezterm/issues/1391)
+* Key assignments now match prior to any dead-key or IME composition [#877](https://github.com/wez/wezterm/issues/877)
+* Removed the `ALT-[NUMBER]` default key assignments as they are not good for non-US layouts. [#1542](https://github.com/wez/wezterm/issues/1542)
+* `wezterm cli`, when run outside of a wezterm pane, now prefers to connect to the main GUI instance rather than background mux server. Use `wezterm cli --prefer-mux` to ignore the GUI instance and talk only to the mux server. See `wezterm cli --help` for additional information.
+* [ScrollByPage](config/lua/keyassignment/ScrollByPage.md) now accepts fractional numbers like `0.5` to scroll by half a page at time. Thanks to [@hahuang65](https://github.com/hahuang65)! [#1534](https://github.com/wez/wezterm/pull/1534)
+* [use_ime](config/lua/config/use_ime.md) now defaults to `true` on all platforms; previously it was not enabled by default on macOS.
+
+#### Updated and Improved
+
+* IME and dead key composition state now shows inline in the terminal using the terminal font (All platforms, except Wayland where we only support dead key composition)
+* macOS: `use_ime=true` no longer prevents key repeat from working with some keys [#1131](https://github.com/wez/wezterm/issues/1131)
+
+#### Fixed
+
+* Regression that broke fontconfig aliases such as `"monospace"` [#1250](https://github.com/wez/wezterm/pull/1250)
+* Windows/X11/Wayland: CTRL+C in non-latin keyboard layouts wouldn't send CTRL+C [#678](https://github.com/wez/wezterm/issues/678)
+* The new tab button in the fancy tab didn't respect `new_tab_hover` colors [#1498](https://github.com/wez/wezterm/issues/1498)
+* Font baseline alignment when mixing symbols/emoji with the main text [#1499](https://github.com/wez/wezterm/issues/1499)
+* Glitchy window resize [#1491](https://github.com/wez/wezterm/issues/1491)
+* Ligatured glyphs no longer turn partially black when cursoring through them [#478](https://github.com/wez/wezterm/issues/478)
+* Kitty Image Protocol: didn't respect `c` and `r` parameters to scale images
+* Cursor location on the primary screen wasn't updated correctly if the window was resized while the alternate screen was active [#1512](https://github.com/wez/wezterm/issues/1512)
+* Windows: latency issue with AltSnap and other window-managery things [#1013](https://github.com/wez/wezterm/issues/1013) [#1398](https://github.com/wez/wezterm/issues/1398) [#1075](https://github.com/wez/wezterm/issues/1075) [#1099](https://github.com/wez/wezterm/issues/1099)
+* Multiplexer sessions now propagate user vars [#1528](https://github.com/wez/wezterm/issues/1528)
+* Config reloads on the multiplexer server didn't cause the palette to update on the client [#1526](https://github.com/wez/wezterm/issues/1528)
+
+### 20220101-133340-7edc5b5a
+
+#### New
+
+* Fancy Tab Bars are now the default. The default tab bar colors have changed to accommodate the new more native look.  You can turn them off by setting [use_fancy_tab_bar = false](config/lua/config/use_fancy_tab_bar.md).
 * Support for the [Kitty Image Protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/) is now enabled by default.  Most of the protocol is supported; animation support is not yet implemented. Try the amazing [notcurses](https://notcurses.com/) if you want to see what modern terminal graphics can do! [#986](https://github.com/wez/wezterm/issues/986)
 * unix domains now support an optional `proxy_command` to use in place of a direct unix socket connection. [Read more about multiplexing unix domains](multiplexing.html#unix-domains)
 * [ScrollToTop](config/lua/keyassignment/ScrollToTop.md) and [ScrollToBottom](config/lua/keyassignment/ScrollToBottom.md) key assignments [#1360](https://github.com/wez/wezterm/issues/1360)
@@ -24,14 +63,18 @@ As features stabilize some brief notes about them will accumulate here.
 * [ActivateTabRelativeNoWrap](config/lua/keyassignment/ActivateTabRelativeNoWrap.md) key assignment [#1414](https://github.com/wez/wezterm/issues/1414)
 * [QuickSelectArgs](config/lua/keyassignment/QuickSelectArgs.md) key assignment [#846](https://github.com/wez/wezterm/issues/846) [#1362](https://github.com/wez/wezterm/issues/1362)
 * [wezterm.open_wth](config/lua/wezterm/open_with.md) function for opening URLs/documents with the default or a specific application [#1362](https://github.com/wez/wezterm/issues/1362)
-* [pane:get_foreground_process_name()](config/lua/pane/get_foreground_process_name.md) method, [PaneInformation](config/lua/PaneInformation.md) now has `foreground_process_name` and `current_working_dir` fields. [#1421](https://github.com/wez/wezterm/discussions/1421) [#915](https://github.com/wez/wezterm/issues/915) [#876](https://github.com/wez/wezterm/issues/876)
+* [pane:get_foreground_process_name()](config/lua/pane/get_foreground_process_name.md) method, [PaneInformation](config/lua/PaneInformation.md) now has `foreground_process_name` and `current_working_dir` fields, and [pane:get_current_working_dir](config/lua/pane/get_current_working_dir.md) is now supported on Windows for local processes, even without using OSC 7. [#1421](https://github.com/wez/wezterm/discussions/1421) [#915](https://github.com/wez/wezterm/issues/915) [#876](https://github.com/wez/wezterm/issues/876)
 * [ActivatePaneDirection](config/lua/keyassignment/ActivatePaneDirection.md) now also supports `"Next"` and `"Prev"` to cycle through panes [#976](https://github.com/wez/wezterm/issues/976)
+* [pane:get_logical_lines_as_text](config/lua/pane/get_logical_lines_as_text.md) to retrieve unwrapped logical lines from a pane [#1468](https://github.com/wez/wezterm/issues/1468)
+* [wezterm.get_builtin_color_schemes()](config/lua/wezterm/get_builtin_color_schemes.md) function to eg: pick a random scheme per window, or otherwise reason about schemes. See [the docs](config/lua/wezterm/get_builtin_color_schemes.md) for examples!
+* Added color schemes: [Alabaster](colorschemes/a/index.md#alabaster), [CGA](colorschemes/c/index.md#cga), [MaterialDesignColors](colorschemes/m/index.md#materialdesigncolors), [darkermatrix](colorschemes/d/index.md#darkermatrix), [nord-light](colorschemes/n/index.md#nord-light)
 
 #### Changed
 
 * quickselect: we now de-duplicate labels for results with the same textual content. [#1271](https://github.com/wez/wezterm/issues/1271)
 * The default `CompleteSelectionOrOpenLinkAtMouseCursor` left button release assignment now also accepts SHIFT being held in order to make SHIFT-click `ExtendSelectionToMouseCursor` feel more ergonomic if the mouse button is released before the SHIFT key. [#1204](https://github.com/wez/wezterm/issues/1204)
 * Unicode BIDI and other zero-width graphemes are now filtered out from the terminal model. It's not ideal in the sense that that information is essentially lost when copying to the clipboard, but it makes the presentation correct. [#1422](https://github.com/wez/wezterm/issues/1422)
+* [use_ime](config/lua/config/use_ime.md) now defaults to `true` on X11 systems
 
 #### Updated and Improved
 
@@ -63,6 +106,10 @@ As features stabilize some brief notes about them will accumulate here.
 * Mesa and EGL colors were too dim due to under gamma correction [#1373](https://github.com/wez/wezterm/issues/1373)
 * `wezterm ssh` no longer tries to use `default_prog` or `default_cwd` when spawning additional panes on the remote host [#1456](https://github.com/wez/wezterm/issues/1456)
 * Launcher menu WSL items now launch correctly on non-US versions of Windows [#1462](https://github.com/wez/wezterm/issues/1462)
+* Korean text in NFD form is now correctly sized and rendered [#1474](https://github.com/wez/wezterm/issues/1474)
+* macOS: `use_ime=true` conflicted with `LEADER` key assignments [#1409](https://github.com/wez/wezterm/issues/1409)
+* macOS: certain keys (eg: `F8` and `F9`) did nothing when `use_ime=true`. [#975](https://github.com/wez/wezterm/issues/975)
+* Splitting a tab would cause the window to lose its transparency [#1459](https://github.com/wez/wezterm/issues/1459)
 
 ### 20211205-192649-672c1cc1
 
