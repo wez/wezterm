@@ -32,6 +32,7 @@ bitflags::bitflags! {
         const LAUNCH_MENU_ITEMS = 4;
         const DOMAINS = 8;
         const KEY_ASSIGNMENTS = 16;
+        const WORKSPACES = 32;
     }
 }
 
@@ -69,6 +70,8 @@ pub struct LauncherArgs {
     pane_id: PaneId,
     domain_id_of_current_tab: DomainId,
     title: String,
+    active_workspace: String,
+    workspaces: Vec<String>,
 }
 
 impl LauncherArgs {
@@ -81,6 +84,14 @@ impl LauncherArgs {
         domain_id_of_current_tab: DomainId,
     ) -> Self {
         let mux = Mux::get().unwrap();
+
+        let active_workspace = mux.active_workspace();
+
+        let workspaces = if flags.contains(LauncherFlags::WORKSPACES) {
+            mux.iter_workspaces()
+        } else {
+            vec![]
+        };
 
         let tabs = if flags.contains(LauncherFlags::TABS) {
             // Ideally we'd resolve the tabs on the fly once we've started the
@@ -152,6 +163,8 @@ impl LauncherArgs {
             pane_id,
             domain_id_of_current_tab,
             title: title.to_string(),
+            workspaces,
+            active_workspace,
         }
     }
 }
@@ -252,6 +265,27 @@ impl LauncherState {
                 self.active_idx = self.entries.len();
             }
             self.entries.push(entry);
+        }
+
+        if args.flags.contains(LauncherFlags::WORKSPACES) {
+            for ws in &args.workspaces {
+                if *ws != args.active_workspace {
+                    self.entries.push(Entry {
+                        label: format!("Switch to workspace: `{}`", ws),
+                        kind: EntryKind::KeyAssignment(KeyAssignment::SwitchToWorkspace {
+                            name: Some(ws.clone()),
+                            spawn: None,
+                        }),
+                    });
+                }
+            }
+            self.entries.push(Entry {
+                label: "Create new Workspace".to_string(),
+                kind: EntryKind::KeyAssignment(KeyAssignment::SwitchToWorkspace {
+                    name: None,
+                    spawn: None,
+                }),
+            });
         }
 
         for tab in &args.tabs {

@@ -1685,6 +1685,7 @@ impl TermWindow {
         self.show_launcher_impl(
             "Launcher",
             LauncherFlags::LAUNCH_MENU_ITEMS
+                | LauncherFlags::WORKSPACES
                 | LauncherFlags::DOMAINS
                 | LauncherFlags::KEY_ASSIGNMENTS,
         );
@@ -2091,6 +2092,7 @@ impl TermWindow {
                 tab.toggle_zoom();
             }
             SwitchToWorkspace { name, spawn } => {
+                let activity = crate::Activity::new();
                 let mux = Mux::get().unwrap();
                 let name = name
                     .as_ref()
@@ -2122,6 +2124,7 @@ impl TermWindow {
                             log::error!("Failed to spawn: {:#}", err);
                         }
                         switcher.do_switch();
+                        drop(activity);
                     })
                     .detach();
                 } else {
