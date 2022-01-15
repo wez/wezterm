@@ -17,16 +17,18 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new() -> Self {
+    pub fn new(workspace: Option<String>) -> Self {
         Self {
             id: WIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed),
             tabs: vec![],
             active: 0,
             last_active: None,
             clipboard: None,
-            workspace: Mux::get()
-                .expect("Window::new to be called on mux thread")
-                .active_workspace(),
+            workspace: workspace.unwrap_or_else(|| {
+                Mux::get()
+                    .expect("Window::new to be called on mux thread")
+                    .active_workspace()
+            }),
         }
     }
 

@@ -182,6 +182,9 @@ Outputs the pane-id for the newly created pane on success"
         #[structopt(long = "cwd", parse(from_os_str))]
         cwd: Option<OsString>,
 
+        #[structopt(long = "workspace")]
+        workspace: Option<String>,
+
         /// Instead of executing your shell, run PROG.
         /// For example: `wezterm start -- bash -l` will spawn bash
         /// as if it were a login shell.
@@ -568,6 +571,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             domain_name,
             window_id,
             new_window,
+            workspace,
         } => {
             let window_id = if new_window {
                 None
@@ -611,6 +615,8 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 }
             };
 
+            let workspace = workspace.unwrap_or_else(|| Mux::get().unwrap().active_workspace());
+
             let spawned = client
                 .spawn_v2(codec::SpawnV2 {
                     domain: domain_name.map_or(SpawnTabDomain::DefaultDomain, |name| {
@@ -625,6 +631,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                     },
                     command_dir: canon_cwd(cwd)?,
                     size: config::configuration().initial_size(),
+                    workspace,
                 })
                 .await?;
 

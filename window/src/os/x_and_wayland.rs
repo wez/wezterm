@@ -22,7 +22,7 @@ pub enum Connection {
     Wayland(Rc<WaylandConnection>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Window {
     X11(XWindow),
     #[cfg(feature = "wayland")]

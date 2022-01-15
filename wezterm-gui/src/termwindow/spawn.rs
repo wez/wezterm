@@ -16,7 +16,7 @@ pub enum SpawnWhere {
 }
 
 impl super::TermWindow {
-    pub fn spawn_command(&mut self, spawn: &SpawnCommand, spawn_where: SpawnWhere) {
+    pub fn spawn_command(&self, spawn: &SpawnCommand, spawn_where: SpawnWhere) {
         let size = if spawn_where == SpawnWhere::NewWindow {
             self.config.initial_size()
         } else {
@@ -36,7 +36,7 @@ impl super::TermWindow {
         )
     }
 
-    pub fn spawn_command_impl(
+    fn spawn_command_impl(
         spawn: &SpawnCommand,
         spawn_where: SpawnWhere,
         size: PtySize,
@@ -63,7 +63,7 @@ impl super::TermWindow {
         .detach();
     }
 
-    async fn spawn_command_internal(
+    pub async fn spawn_command_internal(
         spawn: SpawnCommand,
         spawn_where: SpawnWhere,
         size: PtySize,
@@ -107,6 +107,7 @@ impl super::TermWindow {
         let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
         let downloader: Arc<dyn wezterm_term::DownloadHandler> =
             Arc::new(crate::download::Downloader::new());
+        let workspace = mux.active_workspace().clone();
 
         match spawn_where {
             SpawnWhere::SplitPane(direction) => {
@@ -146,6 +147,7 @@ impl super::TermWindow {
                         cwd,
                         size,
                         current_pane_id,
+                        workspace,
                     )
                     .await
                     .context("spawn_tab_or_window")?;

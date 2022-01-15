@@ -108,6 +108,7 @@ pub enum TermWindowNotif {
     MuxNotification(MuxNotification),
     EmitStatusUpdate,
     Apply(Box<dyn FnOnce(&mut TermWindow) + Send + Sync>),
+    SwitchToMuxWindow(MuxWindowId),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -772,6 +773,7 @@ impl TermWindow {
         }
 
         crate::update::start_update_checker();
+        crate::frontend::record_known_window(window);
         Ok(())
     }
 
@@ -978,6 +980,19 @@ impl TermWindow {
             }
             TermWindowNotif::Apply(func) => {
                 func(self);
+            }
+            TermWindowNotif::SwitchToMuxWindow(mux_window_id) => {
+                self.mux_window_id = mux_window_id;
+                self.pane_state.borrow_mut().clear();
+                self.tab_state.borrow_mut().clear();
+                self.current_highlight.take();
+                self.invalidate_fancy_tab_bar();
+
+                let mux = Mux::get().expect("to be main thread with mux running");
+                if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
+                    self.set_window_size(tab.get_size(), window)?;
+                }
+                window.invalidate();
             }
         }
 
@@ -2075,6 +2090,44 @@ impl TermWindow {
                 };
                 tab.toggle_zoom();
             }
+            SwitchToWorkspace { name, spawn } => {
+                let mux = Mux::get().unwrap();
+                let name = name
+                    .as_ref()
+                    .map(|name| name.to_string())
+                    .unwrap_or_else(|| mux.generate_workspace_name());
+                let switcher = crate::frontend::WorkspaceSwitcher::new(&name);
+                mux.set_active_workspace(&name);
+
+                if mux.iter_windows_in_workspace(&name).is_empty() {
+                    let spawn = spawn.as_ref().map(|s| s.clone()).unwrap_or_default();
+                    let size = self.config.initial_size();
+                    let term_config = Arc::new(TermConfig::with_config(self.config.clone()));
+                    let src_window_id = self.mux_window_id;
+                    let clipboard = ClipboardHelper {
+                        window: self.window.as_ref().unwrap().clone(),
+                    };
+
+                    promise::spawn::spawn(async move {
+                        if let Err(err) = Self::spawn_command_internal(
+                            spawn,
+                            SpawnWhere::NewWindow,
+                            size,
+                            src_window_id,
+                            clipboard,
+                            term_config,
+                        )
+                        .await
+                        {
+                            log::error!("Failed to spawn: {:#}", err);
+                        }
+                        switcher.do_switch();
+                    })
+                    .detach();
+                } else {
+                    switcher.do_switch();
+                }
+            }
         };
         Ok(())
     }
@@ -2477,5 +2530,13 @@ impl TermWindow {
             }
         }
         self.update_title();
+    }
+}
+
+impl Drop for TermWindow {
+    fn drop(&mut self) {
+        if let Some(window) = self.window.take() {
+            crate::frontend::forget_known_window(window);
+        }
     }
 }

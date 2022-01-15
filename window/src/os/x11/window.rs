@@ -740,7 +740,7 @@ impl XWindowInner {
 }
 
 /// A Window!
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct XWindow(xcb::xproto::Window);
 
 impl XWindow {

@@ -481,7 +481,7 @@ pub async fn run<
         let domain: Arc<dyn Domain> = Arc::new(TermWizTerminalDomain::new());
         mux.add_domain(&domain);
 
-        let window_id = mux.new_empty_window();
+        let window_id = mux.new_empty_window(None);
 
         let pane = TermWizTerminalPane::new(domain.domain_id(), size, input_tx, render_rx);
         let pane: Rc<dyn Pane> = Rc::new(pane);

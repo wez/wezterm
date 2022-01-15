@@ -759,6 +759,7 @@ async fn domain_spawn_v2(
             spawn.command_dir,
             spawn.size,
             None, // optional current pane_id
+            spawn.workspace,
         )
         .await?;
 

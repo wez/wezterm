@@ -374,9 +374,8 @@ impl super::TermWindow {
         self.adjust_font_scale(1.0, window);
     }
 
-    pub fn reset_font_and_window_size(&mut self, window: &Window) -> anyhow::Result<()> {
+    pub fn set_window_size(&mut self, size: PtySize, window: &Window) -> anyhow::Result<()> {
         let config = &self.config;
-        let size = config.initial_size();
         let fontconfig = Rc::new(FontConfiguration::new(
             Some(config.clone()),
             self.dimensions.dpi,
@@ -432,6 +431,11 @@ impl super::TermWindow {
             window,
         );
         Ok(())
+    }
+
+    pub fn reset_font_and_window_size(&mut self, window: &Window) -> anyhow::Result<()> {
+        let size = self.config.initial_size();
+        self.set_window_size(size, window)
     }
 
     pub fn effective_right_padding(&self, config: &ConfigHandle) -> u16 {

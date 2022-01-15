@@ -367,7 +367,7 @@ fn function_key_to_keycode(function_key: char) -> KeyCode {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Window {
     id: usize,
     ns_window: *mut Object,

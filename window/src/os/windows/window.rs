@@ -68,7 +68,7 @@ pub(crate) struct WindowInner {
     config: ConfigHandle,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Window(HWindow);
 
 fn rect_width(r: &RECT) -> i32 {

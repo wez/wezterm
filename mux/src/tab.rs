@@ -197,10 +197,10 @@ fn build_from_pane_tree<F>(
     tree: bintree::Tree<PaneEntry, SplitDirectionAndSize>,
     active: &mut Option<Rc<dyn Pane>>,
     zoomed: &mut Option<Rc<dyn Pane>>,
-    make_pane: &F,
+    make_pane: &mut F,
 ) -> Tree
 where
-    F: Fn(PaneEntry) -> Rc<dyn Pane>,
+    F: FnMut(PaneEntry) -> Rc<dyn Pane>,
 {
     match tree {
         bintree::Tree::Empty => Tree::Empty,
@@ -429,16 +429,16 @@ impl Tab {
     /// PaneEntry, or to create a new Pane from that entry.
     /// make_pane is expected to add the pane to the mux if it creates
     /// a new pane, otherwise the pane won't poll/update in the GUI.
-    pub fn sync_with_pane_tree<F>(&self, size: PtySize, root: PaneNode, make_pane: F)
+    pub fn sync_with_pane_tree<F>(&self, size: PtySize, root: PaneNode, mut make_pane: F)
     where
-        F: Fn(PaneEntry) -> Rc<dyn Pane>,
+        F: FnMut(PaneEntry) -> Rc<dyn Pane>,
     {
         let mut active = None;
         let mut zoomed = None;
 
         log::debug!("sync_with_pane_tree with size {:?}", size);
 
-        let t = build_from_pane_tree(root.into_tree(), &mut active, &mut zoomed, &make_pane);
+        let t = build_from_pane_tree(root.into_tree(), &mut active, &mut zoomed, &mut make_pane);
         let mut cursor = t.cursor();
 
         *self.active.borrow_mut() = 0;

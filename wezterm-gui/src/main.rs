@@ -173,7 +173,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     block_on(domain.attach())?; // FIXME: blocking
 
     {
-        let window_id = mux.new_empty_window();
+        let window_id = mux.new_empty_window(None);
         // FIXME: blocking
         let _tab = block_on(domain.spawn(config.initial_size(), None, None, *window_id))?;
     }
@@ -289,7 +289,7 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
         true
     });
 
-    let window_id = mux.new_empty_window();
+    let window_id = mux.new_empty_window(None);
     let _tab = domain
         .spawn(config.initial_size(), cmd, None, *window_id)
         .await?;
@@ -451,6 +451,7 @@ impl Publish {
                                 command,
                                 command_dir: None,
                                 size: config.initial_size(),
+                                workspace: mux::DEFAULT_WORKSPACE.to_string(), // FIXME: command line option
                             })
                             .await
                     }));
@@ -522,7 +523,7 @@ fn setup_mux(
     let client_id = Arc::new(mux::client::ClientId::new());
     mux.register_client(client_id.clone());
     mux.replace_identity(Some(client_id));
-    mux.set_active_workspace(mux::DEFAULT_WORKSPACE);
+    mux.set_active_workspace(mux::DEFAULT_WORKSPACE); // FIXME: command line option
     crate::update::load_last_release_info_and_set_banner();
     update_mux_domains(config)?;
 

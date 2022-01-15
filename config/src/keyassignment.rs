@@ -264,6 +264,11 @@ pub enum KeyAssignment {
     QuickSelectArgs(QuickSelectArguments),
 
     Multiple(Vec<KeyAssignment>),
+
+    SwitchToWorkspace {
+        name: Option<String>,
+        spawn: Option<SpawnCommand>,
+    },
 }
 impl_lua_conversion!(KeyAssignment);
 

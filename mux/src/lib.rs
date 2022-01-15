@@ -53,6 +53,7 @@ pub enum MuxNotification {
     WindowRemoved(WindowId),
     WindowInvalidated(WindowId),
     WindowWorkspaceChanged(WindowId),
+    ActiveWorkspaceChanged(Arc<ClientId>),
     Alert {
         pane_id: PaneId,
         alert: wezterm_term::Alert,
@@ -73,6 +74,7 @@ pub struct Mux {
     banner: RefCell<Option<String>>,
     clients: RefCell<HashMap<ClientId, ClientInfo>>,
     identity: RefCell<Option<Arc<ClientId>>>,
+    num_panes_by_workspace: RefCell<HashMap<String, usize>>,
 }
 
 const BUFSIZE: usize = 1024 * 1024;
@@ -328,7 +330,19 @@ impl Mux {
             banner: RefCell::new(None),
             clients: RefCell::new(HashMap::new()),
             identity: RefCell::new(None),
+            num_panes_by_workspace: RefCell::new(HashMap::new()),
         }
+    }
+
+    fn recompute_pane_count(&self) {
+        let mut count = HashMap::new();
+        for window in self.windows.borrow().values() {
+            let workspace = window.get_workspace();
+            for tab in window.iter() {
+                *count.entry(workspace.to_string()).or_insert(0) += tab.count_panes();
+            }
+        }
+        *self.num_panes_by_workspace.borrow_mut() = count;
     }
 
     pub fn client_had_input(&self, client_id: &ClientId) {
@@ -396,12 +410,22 @@ impl Mux {
             .unwrap_or_else(|| DEFAULT_WORKSPACE.to_string())
     }
 
+    /// Returns the effective active workspace name for a given client
+    pub fn active_workspace_for_client(&self, ident: &Arc<ClientId>) -> String {
+        self.clients
+            .borrow()
+            .get(&ident)
+            .and_then(|info| info.active_workspace.clone())
+            .unwrap_or_else(|| DEFAULT_WORKSPACE.to_string())
+    }
+
     /// Assigns the active workspace name for the current identity
     pub fn set_active_workspace(&self, workspace: &str) {
         if let Some(ident) = self.identity.borrow().clone() {
             let mut clients = self.clients.borrow_mut();
             if let Some(info) = clients.get_mut(&ident) {
                 info.active_workspace.replace(workspace.to_string());
+                self.notify(MuxNotification::ActiveWorkspaceChanged(ident));
             }
         }
     }
@@ -418,6 +442,11 @@ impl Mux {
     /// Replace the identity, returning the prior identity
     pub fn replace_identity(&self, id: Option<Arc<ClientId>>) -> Option<Arc<ClientId>> {
         std::mem::replace(&mut *self.identity.borrow_mut(), id)
+    }
+
+    /// Returns the active identity
+    pub fn active_identity(&self) -> Option<Arc<ClientId>> {
+        self.identity.borrow().clone()
     }
 
     pub fn unregister_client(&self, client_id: &ClientId) {
@@ -512,12 +541,14 @@ impl Mux {
             let banner = self.banner.borrow().clone();
             thread::spawn(move || read_from_pane_pty(pane_id, banner, reader));
         }
+        self.recompute_pane_count();
         self.notify(MuxNotification::PaneAdded(pane_id));
         Ok(())
     }
 
     pub fn add_tab_no_panes(&self, tab: &Rc<Tab>) {
         self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
+        self.recompute_pane_count();
     }
 
     pub fn add_tab_and_active_pane(&self, tab: &Rc<Tab>) -> Result<(), Error> {
@@ -530,9 +561,10 @@ impl Mux {
 
     fn remove_pane_internal(&self, pane_id: PaneId) {
         log::debug!("removing pane {}", pane_id);
-        if let Some(pane) = self.panes.borrow_mut().remove(&pane_id) {
+        if let Some(pane) = self.panes.borrow_mut().remove(&pane_id).clone() {
             log::debug!("killing pane {}", pane_id);
             pane.kill();
+            self.recompute_pane_count();
             self.notify(MuxNotification::PaneRemoved(pane_id));
         }
     }
@@ -555,6 +587,7 @@ impl Mux {
         for pane_id in pane_ids {
             self.remove_pane_internal(pane_id);
         }
+        self.recompute_pane_count();
 
         Some(tab)
     }
@@ -572,6 +605,7 @@ impl Mux {
             }
             self.notify(MuxNotification::WindowRemoved(window_id));
         }
+        self.recompute_pane_count();
     }
 
     pub fn remove_pane(&self, pane_id: PaneId) {
@@ -665,8 +699,8 @@ impl Mux {
         window.get_active().map(Rc::clone)
     }
 
-    pub fn new_empty_window(&self) -> MuxWindowBuilder {
-        let window = Window::new();
+    pub fn new_empty_window(&self, workspace: Option<String>) -> MuxWindowBuilder {
+        let window = Window::new(workspace);
         let window_id = window.window_id();
         self.windows.borrow_mut().insert(window_id, window);
         MuxWindowBuilder {
@@ -699,6 +733,20 @@ impl Mux {
         self.panes.borrow().is_empty()
     }
 
+    pub fn is_workspace_empty(&self, workspace: &str) -> bool {
+        *self
+            .num_panes_by_workspace
+            .borrow()
+            .get(workspace)
+            .unwrap_or(&0)
+            == 0
+    }
+
+    pub fn is_active_workspace_empty(&self) -> bool {
+        let workspace = self.active_workspace();
+        self.is_workspace_empty(&workspace)
+    }
+
     pub fn iter_panes(&self) -> Vec<Rc<dyn Pane>> {
         self.panes
             .borrow()
@@ -708,7 +756,8 @@ impl Mux {
     }
 
     pub fn iter_windows_in_workspace(&self, workspace: &str) -> Vec<WindowId> {
-        self.windows
+        let mut windows: Vec<WindowId> = self
+            .windows
             .borrow()
             .iter()
             .filter_map(|(k, w)| {
@@ -719,7 +768,9 @@ impl Mux {
                 }
             })
             .cloned()
-            .collect()
+            .collect();
+        windows.sort();
+        windows
     }
 
     pub fn iter_windows(&self) -> Vec<WindowId> {
@@ -888,6 +939,7 @@ impl Mux {
         command_dir: Option<String>,
         size: PtySize,
         current_pane_id: Option<PaneId>,
+        workspace_for_new_window: String,
     ) -> anyhow::Result<(Rc<Tab>, Rc<dyn Pane>, WindowId)> {
         let domain = self
             .resolve_spawn_tab_domain(current_pane_id, &domain)
@@ -913,7 +965,7 @@ impl Mux {
             (window_id, size)
         } else {
             term_config = None;
-            window_builder = self.new_empty_window();
+            window_builder = self.new_empty_window(Some(workspace_for_new_window));
             (*window_builder, size)
         };
 
