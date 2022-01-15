@@ -23,6 +23,7 @@ log = "0.4"
 luahelper = { path = "../luahelper" }
 metrics = { version="0.17", features=["std"]}
 mlua = "0.7"
+names = { version = "0.12", default-features = false }
 percent-encoding = "2"
 portable-pty = { path = "../pty", features = ["serde_support"]}
 procinfo = { path = "../procinfo" }

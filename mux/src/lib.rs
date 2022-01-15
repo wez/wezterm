@@ -357,6 +357,31 @@ impl Mux {
             .collect()
     }
 
+    /// Returns a list of the unique workspace names known to the mux.
+    /// This is taken from all known windows.
+    pub fn iter_workspaces(&self) -> Vec<String> {
+        let mut names: Vec<String> = self
+            .windows
+            .borrow()
+            .values()
+            .map(|w| w.get_workspace().to_string())
+            .collect();
+        names.sort();
+        names.dedup();
+        names
+    }
+
+    /// Generate a new unique workspace name
+    pub fn generate_workspace_name(&self) -> String {
+        let used = self.iter_workspaces();
+        for candidate in names::Generator::default() {
+            if !used.contains(&candidate) {
+                return candidate;
+            }
+        }
+        unreachable!();
+    }
+
     /// Returns the effective active workspace name
     pub fn active_workspace(&self) -> String {
         self.identity
