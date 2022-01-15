@@ -51,6 +51,11 @@ pub struct StartCommand {
     #[structopt(long = "class")]
     pub class: Option<String>,
 
+    /// Override the default workspace with the provided name.
+    /// The default is "default".
+    #[structopt(long = "workspace")]
+    pub workspace: Option<String>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -146,6 +151,11 @@ pub struct ConnectCommand {
     /// authentication dialogs.
     #[structopt(long = "class")]
     pub class: Option<String>,
+
+    /// Override the default workspace with the provided name.
+    /// The default is "default".
+    #[structopt(long = "workspace")]
+    pub workspace: Option<String>,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash

@@ -140,7 +140,7 @@ fn run_ssh(opts: SshCommand) -> anyhow::Result<()> {
         crate::set_window_class(cls);
     }
 
-    build_initial_mux(&config::configuration(), None)?;
+    build_initial_mux(&config::configuration(), None, None)?;
 
     let gui = crate::frontend::try_new()?;
 
@@ -167,7 +167,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
 
     let pty_system = Box::new(serial);
     let domain: Arc<dyn Domain> = Arc::new(LocalDomain::with_pty_system("local", pty_system));
-    let mux = setup_mux(domain.clone(), &config, Some("local"))?;
+    let mux = setup_mux(domain.clone(), &config, Some("local"), None)?;
 
     let gui = crate::frontend::try_new()?;
     block_on(domain.attach())?; // FIXME: blocking
@@ -247,7 +247,7 @@ async fn async_run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
 
 fn run_mux_client(opts: ConnectCommand) -> anyhow::Result<()> {
     let activity = Activity::new();
-    build_initial_mux(&config::configuration(), None)?;
+    build_initial_mux(&config::configuration(), None, opts.workspace.as_deref())?;
     let gui = crate::frontend::try_new()?;
     promise::spawn::spawn(async {
         if let Err(err) = async_run_mux_client(opts).await {
@@ -415,6 +415,7 @@ impl Publish {
         &mut self,
         cmd: Option<CommandBuilder>,
         config: &ConfigHandle,
+        workspace: Option<&str>,
     ) -> anyhow::Result<bool> {
         if let Publish::TryPathOrPublish(gui_sock) = &self {
             let dom = config::UnixDomain {
@@ -451,7 +452,7 @@ impl Publish {
                                 command,
                                 command_dir: None,
                                 size: config.initial_size(),
-                                workspace: mux::DEFAULT_WORKSPACE.to_string(), // FIXME: command line option
+                                workspace: workspace.unwrap_or(mux::DEFAULT_WORKSPACE).to_string(),
                             })
                             .await
                     }));
@@ -517,13 +518,14 @@ fn setup_mux(
     local_domain: Arc<dyn Domain>,
     config: &ConfigHandle,
     default_domain_name: Option<&str>,
+    default_workspace_name: Option<&str>,
 ) -> anyhow::Result<Rc<Mux>> {
     let mux = Rc::new(mux::Mux::new(Some(local_domain.clone())));
     Mux::set_mux(&mux);
     let client_id = Arc::new(mux::client::ClientId::new());
     mux.register_client(client_id.clone());
     mux.replace_identity(Some(client_id));
-    mux.set_active_workspace(mux::DEFAULT_WORKSPACE); // FIXME: command line option
+    mux.set_active_workspace(default_workspace_name.unwrap_or(mux::DEFAULT_WORKSPACE));
     crate::update::load_last_release_info_and_set_banner();
     update_mux_domains(config)?;
 
@@ -544,9 +546,10 @@ fn setup_mux(
 fn build_initial_mux(
     config: &ConfigHandle,
     default_domain_name: Option<&str>,
+    default_workspace_name: Option<&str>,
 ) -> anyhow::Result<Rc<Mux>> {
     let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
-    setup_mux(domain, config, default_domain_name)
+    setup_mux(domain, config, default_domain_name, default_workspace_name)
 }
 
 fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
@@ -572,14 +575,14 @@ fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
         None
     };
 
-    let mux = build_initial_mux(&config, None)?;
+    let mux = build_initial_mux(&config, None, opts.workspace.as_deref())?;
 
     // First, let's see if we can ask an already running wezterm to do this.
     // We must do this before we start the gui frontend as the scheduler
     // requirements are different.
     let mut publish = Publish::resolve(&mux, &config, opts.always_new_process);
     log::trace!("{:?}", publish);
-    if publish.try_spawn(cmd.clone(), &config)? {
+    if publish.try_spawn(cmd.clone(), &config, opts.workspace.as_deref())? {
         return Ok(());
     }
 
