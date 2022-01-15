@@ -350,7 +350,12 @@ impl super::TermWindow {
                 }
 
                 if self.config.debug_key_events {
-                    log::info!("send to pane key={:?} mods={:?}", key, modifiers);
+                    log::info!(
+                        "send to pane {} key={:?} mods={:?}",
+                        if window_key.key_is_down { "DOWN" } else { "UP" },
+                        key,
+                        modifiers
+                    );
                 }
 
                 let res = if let Some(encoded) = self.encode_win32_input(&pane, &window_key) {
