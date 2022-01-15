@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Context};
+use chrono::{DateTime, Utc};
 use config::keyassignment::SpawnTabDomain;
 use config::wezterm_version;
 use mux::activity::Activity;
@@ -52,7 +53,10 @@ struct Opt {
 
 #[derive(Debug, StructOpt, Clone)]
 enum SubCommand {
-    #[structopt(name = "start", about = "Start a front-end")]
+    #[structopt(
+        name = "start",
+        about = "Start the GUI, optionally running an alternative program"
+    )]
     Start(StartCommand),
 
     #[structopt(name = "ssh", about = "Establish an ssh session")]
@@ -87,6 +91,19 @@ struct CliCommand {
     #[structopt(long = "no-auto-start")]
     no_auto_start: bool,
 
+    /// Prefer connecting to a background mux server.
+    /// The default is to prefer connecting to a running
+    /// wezterm gui instance
+    #[structopt(long = "prefer-mux")]
+    prefer_mux: bool,
+
+    /// When connecting to a gui instance, if you started the
+    /// gui with `--class SOMETHING`, you should also pass
+    /// that same value here in order for the client to find
+    /// the correct gui instance.
+    #[structopt(long = "class")]
+    class: Option<String>,
+
     #[structopt(subcommand)]
     sub: CliSubCommand,
 }
@@ -95,6 +112,9 @@ struct CliCommand {
 enum CliSubCommand {
     #[structopt(name = "list", about = "list windows, tabs and panes")]
     List,
+
+    #[structopt(name = "list-clients", about = "list clients")]
+    ListClients,
 
     #[structopt(name = "proxy", about = "start rpc proxy pipe")]
     Proxy,
@@ -370,10 +390,74 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
 }
 
 async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
-    let initial = true;
     let mut ui = mux::connui::ConnectionUI::new_headless();
-    let client = Client::new_default_unix_domain(initial, &mut ui, cli.no_auto_start)?;
+    let initial = true;
+
+    let client = Client::new_default_unix_domain(
+        initial,
+        &mut ui,
+        cli.no_auto_start,
+        cli.prefer_mux,
+        cli.class
+            .as_deref()
+            .unwrap_or(wezterm_gui_subcommands::DEFAULT_WINDOW_CLASS),
+    )?;
+
     match cli.sub {
+        CliSubCommand::ListClients => {
+            let cols = vec![
+                Column {
+                    name: "USER".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "HOST".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "PID".to_string(),
+                    alignment: Alignment::Right,
+                },
+                Column {
+                    name: "CONNECTED".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "IDLE".to_string(),
+                    alignment: Alignment::Left,
+                },
+                Column {
+                    name: "WORKSPACE".to_string(),
+                    alignment: Alignment::Left,
+                },
+            ];
+            let mut data = vec![];
+            let clients = client.list_clients(codec::GetClientList).await?;
+            let now: DateTime<Utc> = Utc::now();
+
+            fn duration_string(d: chrono::Duration) -> String {
+                if let Ok(d) = d.to_std() {
+                    format!("{:?}", d)
+                } else {
+                    d.to_string()
+                }
+            }
+
+            for info in clients.clients {
+                let connected = now - info.connected_at;
+                let idle = now - info.last_input;
+                data.push(vec![
+                    info.client_id.username.to_string(),
+                    info.client_id.hostname.to_string(),
+                    info.client_id.pid.to_string(),
+                    duration_string(connected),
+                    duration_string(idle),
+                    info.active_workspace.as_deref().unwrap_or("").to_string(),
+                ]);
+            }
+
+            tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
+        }
         CliSubCommand::List => {
             let cols = vec![
                 Column {
@@ -387,6 +471,10 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                 Column {
                     name: "PANEID".to_string(),
                     alignment: Alignment::Right,
+                },
+                Column {
+                    name: "WORKSPACE".to_string(),
+                    alignment: Alignment::Left,
                 },
                 Column {
                     name: "SIZE".to_string(),
@@ -413,6 +501,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                             entry.window_id.to_string(),
                             entry.tab_id.to_string(),
                             entry.pane_id.to_string(),
+                            entry.workspace.to_string(),
                             format!("{}x{}", entry.size.cols, entry.size.rows),
                             entry.title.clone(),
                             entry
@@ -491,8 +580,9 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
                             None => std::env::var("WEZTERM_PANE")
                                 .map_err(|_| {
                                     anyhow!(
-                                        "--pane-id was not specified and $WEZTERM_PANE
-                                    is not set in the environment"
+                                        "--pane-id was not specified and $WEZTERM_PANE \
+                                         is not set in the environment. \
+                                         Consider using --new-window?"
                                     )
                                 })?
                                 .parse()?,
@@ -551,7 +641,7 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
             Mux::set_mux(&mux);
             let unix_dom = config.unix_domains.first().unwrap();
             let target = unix_dom.target();
-            let stream = unix_connect_with_retry(&target, false)?;
+            let stream = unix_connect_with_retry(&target, false, None)?;
 
             // Spawn a thread to pull data from the socket and write
             // it to stdout
@@ -581,18 +671,10 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
 }
 
 fn run_cli(config: config::ConfigHandle, cli: CliCommand) -> anyhow::Result<()> {
-    let executor = promise::spawn::SimpleExecutor::new();
-    promise::spawn::spawn(async move {
-        match run_cli_async(config, cli).await {
-            Ok(_) => std::process::exit(0),
-            Err(err) => {
-                terminate_with_error(err);
-            }
-        }
-    })
-    .detach();
-    loop {
-        executor.tick()?;
+    let executor = promise::spawn::ScopedExecutor::new();
+    match promise::spawn::block_on(executor.run(async move { run_cli_async(config, cli).await })) {
+        Ok(_) => Ok(()),
+        Err(err) => terminate_with_error(err),
     }
 }
 

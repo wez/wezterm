@@ -186,7 +186,7 @@ impl GlState {
                 return match Self::create_ext(wgl, extensions, hdc) {
                     Ok(state) => Ok(state),
                     Err(err) => {
-                        log::error!(
+                        log::warn!(
                             "failed to created extended OpenGL context \
                             ({}), fall back to basic",
                             err

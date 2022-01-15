@@ -8,16 +8,17 @@ use async_trait::async_trait;
 use config::keyassignment::ScrollbackEraseMode;
 use config::{configuration, ExitBehavior};
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty, PtySize};
+use procinfo::LocalProcessInfo;
 use rangeset::RangeSet;
-use serde::{Deserialize, Serialize};
 use smol::channel::{bounded, Receiver, TryRecvError};
 use std::cell::{RefCell, RefMut};
 use std::collections::{HashMap, HashSet};
 use std::io::Result as IoResult;
 use std::ops::Range;
-use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use termwiz::escape::DeviceControlMode;
+use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{Line, SequenceNo, SEQ_ZERO};
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -41,6 +42,12 @@ enum ProcessState {
     Dead,
 }
 
+struct CachedProcInfo {
+    root: LocalProcessInfo,
+    updated: Instant,
+    foreground: LocalProcessInfo,
+}
+
 pub struct LocalPane {
     pane_id: PaneId,
     terminal: RefCell<Terminal>,
@@ -48,6 +55,7 @@ pub struct LocalPane {
     pty: RefCell<Box<dyn MasterPty>>,
     domain_id: DomainId,
     tmux_domain: RefCell<Option<Arc<TmuxDomainState>>>,
+    proc_list: RefCell<Option<CachedProcInfo>>,
 }
 
 #[async_trait(?Send)]
@@ -62,6 +70,10 @@ impl Pane for LocalPane {
             cursor.visibility = termwiz::surface::CursorVisibility::Hidden;
         }
         cursor
+    }
+
+    fn get_keyboard_encoding(&self) -> KeyboardEncoding {
+        self.terminal.borrow().get_keyboard_encoding()
     }
 
     fn get_current_seqno(&self) -> SequenceNo {
@@ -242,6 +254,10 @@ impl Pane for LocalPane {
         }
     }
 
+    fn key_up(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
+        self.terminal.borrow_mut().key_up(key, mods)
+    }
+
     fn resize(&self, size: PtySize) -> Result<(), Error> {
         self.pty.borrow_mut().resize(size)?;
         self.terminal.borrow_mut().resize(
@@ -332,58 +348,27 @@ impl Pane for LocalPane {
             .or_else(|| self.divine_current_working_dir())
     }
 
-    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
-    fn get_foreground_process_name(&self) -> Option<String> {
-        None
-    }
-
-    #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
     fn get_foreground_process_name(&self) -> Option<String> {
         #[cfg(unix)]
-        {
-            use sysinfo::{Pid, ProcessExt, SystemExt};
-            let leader = self.pty.borrow().process_group_leader()?;
-            let system = crate::sysinfo::get();
-            let proc = system.process(leader as Pid)?;
-            Some(proc.exe().to_string_lossy().to_string())
+        if let Some(pid) = self.pty.borrow().process_group_leader() {
+            if let Some(path) = LocalProcessInfo::executable_path(pid as u32) {
+                return Some(path.to_string_lossy().to_string());
+            }
         }
 
         #[cfg(windows)]
-        {
-            // Windows doesn't have any job control or session concept,
-            // so we infer that the equivalent to the process group
-            // leader is the most recently spawned program running
-            // in the console
-            if let Some(root_proc) = self.divine_process_list(false) {
-                let mut youngest = &root_proc;
-
-                fn find_youngest<'a>(
-                    proc: &'a LocalProcessInfo,
-                    youngest: &mut &'a LocalProcessInfo,
-                ) {
-                    if proc.start_time > youngest.start_time {
-                        *youngest = proc;
-                    }
-
-                    for child in proc.children.values() {
-                        find_youngest(child, youngest);
-                    }
-                }
-
-                find_youngest(&root_proc, &mut youngest);
-
-                Some(youngest.executable.to_string_lossy().to_string())
-            } else {
-                None
-            }
+        if let Some(fg) = self.divine_foreground_process() {
+            return Some(fg.executable.to_string_lossy().to_string());
         }
+
+        None
     }
 
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
-        if let Some(proc_list) = self.divine_process_list(true) {
+        if let Some(info) = self.divine_process_list(true) {
             log::trace!(
                 "can_close_without_prompting? procs in pane {:#?}",
-                proc_list
+                info.root
             );
 
             let hook_result = config::run_immediate_with_lua_config(|lua| {
@@ -393,7 +378,7 @@ impl Pane for LocalPane {
                 };
                 let v = config::lua::emit_sync_callback(
                     &*lua,
-                    ("mux-is-process-stateful".to_string(), (proc_list.clone())),
+                    ("mux-is-process-stateful".to_string(), (info.root.clone())),
                 )?;
                 match v {
                     mlua::Value::Nil => Ok(None),
@@ -420,7 +405,7 @@ impl Pane for LocalPane {
             }
 
             let is_stateful = match hook_result {
-                Ok(None) => default_stateful_check(&proc_list),
+                Ok(None) => default_stateful_check(&info.root),
                 Ok(Some(s)) => s,
                 Err(err) => {
                     log::error!(
@@ -428,7 +413,7 @@ impl Pane for LocalPane {
                          hook: {:#}, falling back to default behavior",
                         err
                     );
-                    default_stateful_check(&proc_list)
+                    default_stateful_check(&info.root)
                 }
             };
 
@@ -755,225 +740,86 @@ impl LocalPane {
             pty: RefCell::new(pty),
             domain_id,
             tmux_domain: RefCell::new(None),
+            proc_list: RefCell::new(None),
         }
-    }
-
-    #[cfg(target_os = "macos")]
-    fn divine_current_working_dir_macos(&self) -> Option<Url> {
-        if let Some(pid) = self.pty.borrow().process_group_leader() {
-            extern "C" {
-                fn proc_pidinfo(
-                    pid: libc::pid_t,
-                    flavor: libc::c_int,
-                    arg: u64,
-                    buffer: *mut proc_vnodepathinfo,
-                    buffersize: libc::c_int,
-                ) -> libc::c_int;
-            }
-            const PROC_PIDVNODEPATHINFO: libc::c_int = 9;
-            #[repr(C)]
-            struct vinfo_stat {
-                vst_dev: u32,
-                vst_mode: u16,
-                vst_nlink: u16,
-                vst_ino: u64,
-                vst_uid: libc::uid_t,
-                vst_gid: libc::gid_t,
-                vst_atime: i64,
-                vst_atimensec: i64,
-                vst_mtime: i64,
-                vst_mtimensec: i64,
-                vst_ctime: i64,
-                vst_ctimensec: i64,
-                vst_birthtime: i64,
-                vst_birthtimensec: i64,
-                vst_size: libc::off_t,
-                vst_blocks: i64,
-                vst_blksize: i32,
-                vst_flags: u32,
-                vst_gen: u32,
-                vst_rdev: u32,
-                vst_qspare_1: i64,
-                vst_qspare_2: i64,
-            }
-            #[repr(C)]
-            struct vnode_info {
-                vi_stat: vinfo_stat,
-                vi_type: libc::c_int,
-                vi_pad: libc::c_int,
-                vi_fsid: libc::fsid_t,
-            }
-
-            const MAXPATHLEN: usize = 1024;
-            #[repr(C)]
-            struct vnode_info_path {
-                vip_vi: vnode_info,
-                vip_path: [i8; MAXPATHLEN],
-            }
-
-            #[repr(C)]
-            struct proc_vnodepathinfo {
-                pvi_cdir: vnode_info_path,
-                pvi_rdir: vnode_info_path,
-            }
-
-            let mut pathinfo: proc_vnodepathinfo = unsafe { std::mem::zeroed() };
-            let size = std::mem::size_of_val(&pathinfo) as libc::c_int;
-            let ret = unsafe { proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &mut pathinfo, size) };
-            if ret == size {
-                let path = unsafe { std::ffi::CStr::from_ptr(pathinfo.pvi_cdir.vip_path.as_ptr()) };
-                if let Ok(s) = path.to_str() {
-                    return Url::parse(&format!("file://localhost{}", s)).ok();
-                }
-            }
-        }
-        None
-    }
-
-    #[cfg(target_os = "linux")]
-    fn divine_current_working_dir_linux(&self) -> Option<Url> {
-        if let Some(pid) = self.pty.borrow().process_group_leader() {
-            if let Ok(path) = std::fs::read_link(format!("/proc/{}/cwd", pid)) {
-                return Url::parse(&format!("file://localhost{}", path.display())).ok();
-            }
-        }
-        None
     }
 
     fn divine_current_working_dir(&self) -> Option<Url> {
-        #[cfg(target_os = "linux")]
-        {
-            return self.divine_current_working_dir_linux();
+        #[cfg(unix)]
+        if let Some(pid) = self.pty.borrow().process_group_leader() {
+            if let Some(path) = LocalProcessInfo::current_working_dir(pid as u32) {
+                return Url::parse(&format!("file://localhost{}", path.display())).ok();
+            }
         }
 
-        #[cfg(target_os = "macos")]
-        {
-            return self.divine_current_working_dir_macos();
+        #[cfg(windows)]
+        if let Some(fg) = self.divine_foreground_process() {
+            return Url::parse(&format!("file://localhost{}", fg.cwd.display())).ok();
         }
 
         #[allow(unreachable_code)]
         None
     }
 
-    fn divine_process_list(&self, force_refresh: bool) -> Option<LocalProcessInfo> {
-        #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
+    fn divine_process_list(&self, force_refresh: bool) -> Option<RefMut<CachedProcInfo>> {
         if let ProcessState::Running { pid: Some(pid), .. } = &*self.process.borrow() {
-            return LocalProcessInfo::with_root_pid(
-                &*if force_refresh {
-                    crate::sysinfo::get_with_forced_refresh()
-                } else {
-                    crate::sysinfo::get()
-                },
-                *pid,
-            );
-        }
+            let mut proc_list = self.proc_list.borrow_mut();
 
+            let expired = force_refresh
+                || proc_list
+                    .as_ref()
+                    .map(|info| info.updated.elapsed() > Duration::from_millis(300))
+                    .unwrap_or(true);
+
+            if expired {
+                let root = LocalProcessInfo::with_root_pid(*pid)?;
+
+                // Windows doesn't have any job control or session concept,
+                // so we infer that the equivalent to the process group
+                // leader is the most recently spawned program running
+                // in the console
+                let mut youngest = &root;
+
+                fn find_youngest<'a>(
+                    proc: &'a LocalProcessInfo,
+                    youngest: &mut &'a LocalProcessInfo,
+                ) {
+                    if proc.start_time >= youngest.start_time {
+                        *youngest = proc;
+                    }
+
+                    for child in proc.children.values() {
+                        #[cfg(windows)]
+                        if child.console == 0 {
+                            continue;
+                        }
+                        find_youngest(child, youngest);
+                    }
+                }
+
+                find_youngest(&root, &mut youngest);
+                let mut foreground = youngest.clone();
+                foreground.children.clear();
+
+                proc_list.replace(CachedProcInfo {
+                    root,
+                    foreground,
+                    updated: Instant::now(),
+                });
+            }
+
+            return Some(RefMut::map(proc_list, |info| info.as_mut().unwrap()));
+        }
         None
     }
-}
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
-pub enum LocalProcessStatus {
-    Idle,
-    Run,
-    Sleep,
-    Stop,
-    Zombie,
-    Tracing,
-    Dead,
-    Wakekill,
-    Waking,
-    Parked,
-    LockBlocked,
-    Unknown,
-}
-
-#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
-impl LocalProcessStatus {
-    fn from_process_status(status: sysinfo::ProcessStatus) -> Self {
-        match status {
-            sysinfo::ProcessStatus::Idle => Self::Idle,
-            sysinfo::ProcessStatus::Run => Self::Run,
-            sysinfo::ProcessStatus::Sleep => Self::Sleep,
-            sysinfo::ProcessStatus::Stop => Self::Stop,
-            sysinfo::ProcessStatus::Zombie => Self::Zombie,
-            sysinfo::ProcessStatus::Tracing => Self::Tracing,
-            sysinfo::ProcessStatus::Dead => Self::Dead,
-            sysinfo::ProcessStatus::Wakekill => Self::Wakekill,
-            sysinfo::ProcessStatus::Waking => Self::Waking,
-            sysinfo::ProcessStatus::Parked => Self::Parked,
-            sysinfo::ProcessStatus::LockBlocked => Self::LockBlocked,
-            sysinfo::ProcessStatus::Unknown(_) => Self::Unknown,
+    #[allow(dead_code)]
+    fn divine_foreground_process(&self) -> Option<LocalProcessInfo> {
+        if let Some(info) = self.divine_process_list(false) {
+            Some(info.foreground.clone())
+        } else {
+            None
         }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct LocalProcessInfo {
-    pub pid: u32,
-    pub ppid: u32,
-    pub name: String,
-    pub executable: PathBuf,
-    pub argv: Vec<String>,
-    pub cwd: PathBuf,
-    pub status: LocalProcessStatus,
-    pub children: HashMap<u32, LocalProcessInfo>,
-    pub start_time: u64,
-}
-luahelper::impl_lua_conversion!(LocalProcessInfo);
-
-impl LocalProcessInfo {
-    fn flatten_to_exe_names(&self) -> HashSet<String> {
-        let mut names = HashSet::new();
-
-        fn flatten(item: &LocalProcessInfo, names: &mut HashSet<String>) {
-            if let Some(exe) = item.executable.file_name() {
-                names.insert(exe.to_string_lossy().into_owned());
-            }
-            for proc in item.children.values() {
-                flatten(proc, names);
-            }
-        }
-
-        flatten(self, &mut names);
-        names
-    }
-}
-
-#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
-impl LocalProcessInfo {
-    fn with_root_pid(system: &sysinfo::System, pid: u32) -> Option<Self> {
-        use sysinfo::{AsU32, Pid, Process, ProcessExt, SystemExt};
-
-        fn build_proc(proc: &Process, processes: &HashMap<Pid, Process>) -> LocalProcessInfo {
-            // Process has a `tasks` field but it does not correspond to child processes,
-            // so we need to repeatedly walk the full process list and establish that
-            // linkage for ourselves here
-            let mut children = HashMap::new();
-            let pid = proc.pid();
-            for (child_pid, child_proc) in processes {
-                if child_proc.parent() == Some(pid) {
-                    children.insert(child_pid.as_u32(), build_proc(child_proc, processes));
-                }
-            }
-
-            LocalProcessInfo {
-                pid: proc.pid().as_u32(),
-                ppid: proc.parent().map(|pid| pid.as_u32()).unwrap_or(1),
-                name: proc.name().to_string(),
-                executable: proc.exe().to_path_buf(),
-                cwd: proc.cwd().to_path_buf(),
-                argv: proc.cmd().to_vec(),
-                start_time: proc.start_time(),
-                status: LocalProcessStatus::from_process_status(proc.status()),
-                children,
-            }
-        }
-
-        let proc = system.process(pid as Pid)?;
-        let procs = system.processes();
-
-        Some(build_proc(&proc, &procs))
     }
 }
 

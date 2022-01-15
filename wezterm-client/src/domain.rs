@@ -2,7 +2,7 @@ use crate::client::Client;
 use crate::pane::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
-use codec::{ListPanesResponse, Spawn, SplitPane};
+use codec::{ListPanesResponse, SpawnV2, SplitPane};
 use config::keyassignment::SpawnTabDomain;
 use config::{SshDomain, TlsDomainClient, UnixDomain};
 use mux::connui::ConnectionUI;
@@ -10,7 +10,7 @@ use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use mux::pane::{Pane, PaneId};
 use mux::tab::{SplitDirection, Tab, TabId};
 use mux::window::WindowId;
-use mux::Mux;
+use mux::{Mux, MuxNotification};
 use portable_pty::{CommandBuilder, PtySize};
 use promise::spawn::spawn_into_new_thread;
 use std::cell::RefCell;
@@ -176,10 +176,55 @@ pub struct ClientDomain {
     local_domain_id: DomainId,
 }
 
+async fn update_remote_workspace(
+    local_domain_id: DomainId,
+    pdu: codec::SetWindowWorkspace,
+) -> anyhow::Result<()> {
+    let inner = ClientDomain::get_client_inner_for_domain(local_domain_id)?;
+    inner.client.set_window_workspace(pdu).await?;
+    Ok(())
+}
+
+fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -> bool {
+    let mux = Mux::get().expect("called by mux");
+    let domain = match mux.get_domain(local_domain_id) {
+        Some(domain) => domain,
+        None => return false,
+    };
+    let domain = match domain.downcast_ref::<ClientDomain>() {
+        Some(domain) => domain,
+        None => return false,
+    };
+    match notif {
+        MuxNotification::WindowWorkspaceChanged(window_id) => {
+            if let Some(remote_window_id) = domain.local_to_remote_window_id(window_id) {
+                if let Some(workspace) = mux
+                    .get_window(window_id)
+                    .map(|w| w.get_workspace().to_string())
+                {
+                    let request = codec::SetWindowWorkspace {
+                        window_id: remote_window_id,
+                        workspace,
+                    };
+                    promise::spawn::spawn_into_main_thread(async move {
+                        let _ = update_remote_workspace(local_domain_id, request).await;
+                    })
+                    .detach();
+                }
+            }
+        }
+        _ => {}
+    }
+    true
+}
+
 impl ClientDomain {
     pub fn new(config: ClientDomainConfig) -> Self {
         let local_domain_id = alloc_domain_id();
         let label = config.label();
+        Mux::get()
+            .expect("created on main thread")
+            .subscribe(move |notif| mux_notify_client_domain(local_domain_id, notif));
         Self {
             config,
             label,
@@ -192,6 +237,10 @@ impl ClientDomain {
         self.inner.borrow().as_ref().map(|i| Arc::clone(i))
     }
 
+    pub fn connect_automatically(&self) -> bool {
+        self.config.connect_automatically()
+    }
+
     pub fn perform_detach(&self) {
         log::error!("detached domain {}", self.local_domain_id);
         self.inner.borrow_mut().take();
@@ -202,6 +251,16 @@ impl ClientDomain {
     pub fn remote_to_local_pane_id(&self, remote_pane_id: TabId) -> Option<TabId> {
         let inner = self.inner()?;
         inner.remote_to_local_pane_id(remote_pane_id)
+    }
+
+    pub fn remote_to_local_window_id(&self, remote_window_id: WindowId) -> Option<WindowId> {
+        let inner = self.inner()?;
+        inner.remote_to_local_window(remote_window_id)
+    }
+
+    pub fn local_to_remote_window_id(&self, local_window_id: WindowId) -> Option<WindowId> {
+        let inner = self.inner()?;
+        inner.local_to_remote_window(local_window_id)
     }
 
     pub fn get_client_inner_for_domain(domain_id: DomainId) -> anyhow::Result<Arc<ClientInner>> {
@@ -367,6 +426,15 @@ impl Domain for ClientDomain {
         &self.label
     }
 
+    async fn spawn_pane(
+        &self,
+        _size: PtySize,
+        _command: Option<CommandBuilder>,
+        _command_dir: Option<String>,
+    ) -> anyhow::Result<Rc<dyn Pane>> {
+        anyhow::bail!("spawn_pane not implemented for ClientDomain")
+    }
+
     async fn spawn(
         &self,
         size: PtySize,
@@ -379,8 +447,8 @@ impl Domain for ClientDomain {
             .ok_or_else(|| anyhow!("domain is not attached"))?;
         let result = inner
             .client
-            .spawn(Spawn {
-                domain_id: inner.remote_domain_id,
+            .spawn_v2(SpawnV2 {
+                domain: SpawnTabDomain::DomainId(inner.remote_domain_id),
                 window_id: inner.local_to_remote_window(window),
                 size,
                 command,
@@ -470,6 +538,11 @@ impl Domain for ClientDomain {
     }
 
     async fn attach(&self) -> anyhow::Result<()> {
+        if self.state() == DomainState::Attached {
+            // Already attached
+            return Ok(());
+        }
+
         let domain_id = self.local_domain_id;
         let config = self.config.clone();
 
@@ -486,7 +559,7 @@ impl Domain for ClientDomain {
                         let initial = true;
                         let no_auto_start = false;
                         Client::new_unix_domain(
-                            domain_id,
+                            Some(domain_id),
                             unix,
                             initial,
                             &mut cloned_ui,

@@ -94,9 +94,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh bash ci/create-release.sh ${{ github.event.release.tag_name }}"
+        run: "bash ci/retry.sh bash ci/create-release.sh $(ci/tag-name.sh)"
       - name: "Upload to Tagged Release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
-        run: "bash ci/retry.sh gh release upload --clobber ${ github.event.release.tag_name } wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.zsync"
+        run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) wezterm-*.deb wezterm-*.xz *src.tar.gz *.AppImage *.zsync"

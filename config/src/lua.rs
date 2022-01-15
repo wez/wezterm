@@ -1,3 +1,4 @@
+use crate::keyassignment::KeyAssignment;
 use crate::Gradient;
 use crate::{FontAttributes, FontStretch, FontWeight, FreeTypeLoadTarget, TextStyle};
 use anyhow::anyhow;
@@ -106,6 +107,16 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             lua.create_function(|_, ()| Ok(crate::running_under_wsl()))?,
         )?;
 
+        wezterm_mod.set(
+            "default_wsl_domains",
+            lua.create_function(|_, ()| Ok(crate::WslDomain::default_domains()))?,
+        )?;
+
+        wezterm_mod.set(
+            "get_builtin_color_schemes",
+            lua.create_function(|_, ()| Ok(crate::COLOR_SCHEMES.clone()))?,
+        )?;
+
         fn print_helper(args: Variadic<Value>) -> String {
             let mut output = String::new();
             for (idx, item) in args.into_iter().enumerate() {
@@ -170,64 +181,25 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 
         wezterm_mod.set(
             "pad_right",
-            lua.create_function(|_, (mut result, width): (String, usize)| {
-                let mut len = unicode_column_width(&result, None);
-                while len < width {
-                    result.push(' ');
-                    len += 1;
-                }
-
-                Ok(result)
-            })?,
+            lua.create_function(|_, (s, width): (String, usize)| Ok(pad_right(s, width)))?,
         )?;
 
         wezterm_mod.set(
             "pad_left",
-            lua.create_function(|_, (mut result, width): (String, usize)| {
-                let mut len = unicode_column_width(&result, None);
-                while len < width {
-                    result.insert(0, ' ');
-                    len += 1;
-                }
-
-                Ok(result)
-            })?,
+            lua.create_function(|_, (s, width): (String, usize)| Ok(pad_left(s, width)))?,
         )?;
 
         wezterm_mod.set(
             "truncate_right",
             lua.create_function(|_, (s, max_width): (String, usize)| {
-                let mut result = String::new();
-                let mut len = 0;
-                for g in s.graphemes(true) {
-                    let g_len = grapheme_column_width(g, None);
-                    if g_len + len > max_width {
-                        break;
-                    }
-                    result.push_str(g);
-                    len += g_len;
-                }
-
-                Ok(result)
+                Ok(truncate_right(&s, max_width))
             })?,
         )?;
 
         wezterm_mod.set(
             "truncate_left",
             lua.create_function(|_, (s, max_width): (String, usize)| {
-                let mut result = vec![];
-                let mut len = 0;
-                for g in s.graphemes(true).rev() {
-                    let g_len = grapheme_column_width(g, None);
-                    if g_len + len > max_width {
-                        break;
-                    }
-                    result.push(g);
-                    len += g_len;
-                }
-
-                result.reverse();
-                Ok(result.join(""))
+                Ok(truncate_left(&s, max_width))
             })?,
         )?;
 
@@ -627,22 +599,16 @@ fn font_with_fallback<'lua>(
 ///    }
 /// }
 /// ```
-fn action<'lua>(
-    _lua: &'lua Lua,
-    action: Table<'lua>,
-) -> mlua::Result<crate::keyassignment::KeyAssignment> {
+fn action<'lua>(_lua: &'lua Lua, action: Table<'lua>) -> mlua::Result<KeyAssignment> {
     Ok(from_lua_value(Value::Table(action))?)
 }
 
-fn action_callback<'lua>(
-    lua: &'lua Lua,
-    callback: mlua::Function,
-) -> mlua::Result<crate::keyassignment::KeyAssignment> {
+fn action_callback<'lua>(lua: &'lua Lua, callback: mlua::Function) -> mlua::Result<KeyAssignment> {
     let callback_count: i32 = lua.named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT)?;
     let user_event_id = format!("user-defined-{}", callback_count);
     lua.set_named_registry_value(LUA_REGISTRY_USER_CALLBACK_COUNT, callback_count + 1)?;
     register_event(lua, (user_event_id.clone(), callback))?;
-    return Ok(crate::KeyAssignment::EmitEvent(user_event_id));
+    return Ok(KeyAssignment::EmitEvent(user_event_id));
 }
 
 async fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>> {
@@ -1011,4 +977,54 @@ assert(wezterm.emit('bar', 42, 'woot') == true)
 
         Ok(())
     }
+}
+
+pub fn pad_right(mut result: String, width: usize) -> String {
+    let mut len = unicode_column_width(&result, None);
+    while len < width {
+        result.push(' ');
+        len += 1;
+    }
+
+    result
+}
+
+pub fn pad_left(mut result: String, width: usize) -> String {
+    let mut len = unicode_column_width(&result, None);
+    while len < width {
+        result.insert(0, ' ');
+        len += 1;
+    }
+
+    result
+}
+
+pub fn truncate_left(s: &str, max_width: usize) -> String {
+    let mut result = vec![];
+    let mut len = 0;
+    for g in s.graphemes(true).rev() {
+        let g_len = grapheme_column_width(g, None);
+        if g_len + len > max_width {
+            break;
+        }
+        result.push(g);
+        len += g_len;
+    }
+
+    result.reverse();
+    result.join("")
+}
+
+pub fn truncate_right(s: &str, max_width: usize) -> String {
+    let mut result = String::new();
+    let mut len = 0;
+    for g in s.graphemes(true) {
+        let g_len = grapheme_column_width(g, None);
+        if g_len + len > max_width {
+            break;
+        }
+        result.push_str(g);
+        len += g_len;
+    }
+    result
 }

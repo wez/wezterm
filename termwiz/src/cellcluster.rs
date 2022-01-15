@@ -39,14 +39,19 @@ impl CellCluster {
 
     /// Compute the list of CellClusters from a set of visible cells.
     /// The input is typically the result of calling `Line::visible_cells()`.
+    /// The cursor_idx is passed in order to force clusters to break around
+    /// the cursor position, essentially forcing ligatures to be disabled
+    /// around the cursor boundary.
     pub fn make_cluster<'a>(
         hint: usize,
         iter: impl Iterator<Item = (usize, &'a Cell)>,
+        cursor_idx: Option<usize>,
     ) -> Vec<CellCluster> {
         let mut last_cluster = None;
         let mut clusters = Vec::new();
         let mut whitespace_run = 0;
         let mut only_whitespace = false;
+        let mut last_was_cursor = false;
 
         for (cell_idx, c) in iter {
             let presentation = c.presentation();
@@ -58,6 +63,10 @@ impl CellCluster {
             } else {
                 Cow::Borrowed(c.attrs())
             };
+
+            let is_cursor_boundary = Some(cell_idx) == cursor_idx;
+            let was_cursor = last_was_cursor;
+            last_was_cursor = is_cursor_boundary;
 
             last_cluster = match last_cluster.take() {
                 None => {
@@ -74,7 +83,11 @@ impl CellCluster {
                     ))
                 }
                 Some(mut last) => {
-                    if last.attrs != *normalized_attr || last.presentation != presentation {
+                    if is_cursor_boundary
+                        || was_cursor
+                        || last.attrs != *normalized_attr
+                        || last.presentation != presentation
+                    {
                         // Flush pending cluster and start a new one
                         clusters.push(last);
 

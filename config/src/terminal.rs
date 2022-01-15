@@ -78,4 +78,8 @@ impl wezterm_term::TerminalConfiguration for TermConfig {
     fn unicode_version(&self) -> u8 {
         self.configuration().unicode_version
     }
+
+    fn debug_key_events(&self) -> bool {
+        self.configuration().debug_key_events
+    }
 }

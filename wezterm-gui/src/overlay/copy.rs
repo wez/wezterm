@@ -400,6 +400,10 @@ impl Pane for CopyOverlay {
         self.delegate.resize(size)
     }
 
+    fn key_up(&self, _key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
         match (key, mods) {
             (KeyCode::Char('c'), KeyModifiers::CTRL)

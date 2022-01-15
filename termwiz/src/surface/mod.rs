@@ -228,13 +228,6 @@ impl Surface {
     /// If the cursor position would be outside the bounds of the newly resized
     /// screen, it will be moved to be within the new bounds.
     pub fn resize(&mut self, width: usize, height: usize) {
-        self.lines.resize(height, Line::with_width(width));
-        for line in &mut self.lines {
-            line.resize(width, self.seqno);
-        }
-        self.width = width;
-        self.height = height;
-
         // We need to invalidate the change stream prior to this
         // event, so we nominally generate an entry for the resize
         // here.  Since rendering a resize doesn't make sense, we
@@ -247,6 +240,14 @@ impl Surface {
             self.seqno += 1;
             self.changes.clear();
         }
+
+        self.lines
+            .resize(height, Line::with_width(width, self.seqno));
+        for line in &mut self.lines {
+            line.resize(width, self.seqno);
+        }
+        self.width = width;
+        self.height = height;
 
         // Ensure that the cursor position is well-defined
         self.xpos = compute_position_change(self.xpos, &Position::Relative(0), self.width);
@@ -378,13 +379,13 @@ impl Surface {
 
     fn scroll_screen_up(&mut self) {
         self.lines.remove(0);
-        self.lines.push(Line::with_width(self.width));
+        self.lines.push(Line::with_width(self.width, self.seqno));
     }
 
     fn scroll_region_up(&mut self, start: usize, size: usize, count: usize) {
         // Replace the first lines with empty lines
         for index in start..start + min(count, size) {
-            self.lines[index] = Line::with_width(self.width);
+            self.lines[index] = Line::with_width(self.width, self.seqno);
         }
         // Rotate the remaining lines up the surface.
         if 0 < count && count < size {
@@ -395,7 +396,7 @@ impl Surface {
     fn scroll_region_down(&mut self, start: usize, size: usize, count: usize) {
         // Replace the last lines with empty lines
         for index in start + size - min(count, size)..start + size {
-            self.lines[index] = Line::with_width(self.width);
+            self.lines[index] = Line::with_width(self.width, self.seqno);
         }
         // Rotate the remaining lines down the surface.
         if 0 < count && count < size {

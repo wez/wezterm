@@ -95,4 +95,8 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     fn unicode_version(&self) -> u8 {
         9
     }
+
+    fn debug_key_events(&self) -> bool {
+        false
+    }
 }

@@ -56,6 +56,7 @@ impl Screen {
         physical_cols: usize,
         config: &Arc<dyn TerminalConfiguration>,
         allow_scrollback: bool,
+        seqno: SequenceNo,
     ) -> Screen {
         let physical_rows = physical_rows.max(1);
         let physical_cols = physical_cols.max(1);
@@ -63,7 +64,7 @@ impl Screen {
         let mut lines =
             VecDeque::with_capacity(physical_rows + scrollback_size(config, allow_scrollback));
         for _ in 0..physical_rows {
-            lines.push_back(Line::with_width(physical_cols));
+            lines.push_back(Line::with_width(physical_cols, seqno));
         }
 
         Screen {
@@ -215,7 +216,8 @@ impl Screen {
         // lines than the viewport size, or we resized taller,
         // pad us back out to the viewport size
         while self.lines.len() < physical_rows {
-            self.lines.push_back(Line::with_width(self.physical_cols));
+            self.lines
+                .push_back(Line::with_width(self.physical_cols, seqno));
         }
 
         let new_cursor_y;
@@ -236,7 +238,8 @@ impl Screen {
                 physical_rows.saturating_sub(new_cursor_y as usize);
             let actual_num_rows_after_cursor = self.lines.len().saturating_sub(cursor_y);
             for _ in actual_num_rows_after_cursor..required_num_rows_after_cursor {
-                self.lines.push_back(Line::with_width(self.physical_cols));
+                self.lines
+                    .push_back(Line::with_width(self.physical_cols, seqno));
             }
         } else {
             // Compute the new cursor location; this is logically the inverse

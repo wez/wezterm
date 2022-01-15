@@ -17,8 +17,6 @@ pub const V_BOT_RIGHT: usize = 3;
 pub struct Vertex {
     // Physical position of the corner of the character cell
     pub position: (f32, f32),
-    // bearing offset within the cell
-    pub adjust: (f32, f32),
     // glyph texture
     pub tex: (f32, f32),
     pub fg_color: (f32, f32, f32, f32),
@@ -37,7 +35,7 @@ pub struct Vertex {
     //        image, we use the solid bg color
     pub has_color: f32,
 }
-::window::glium::implement_vertex!(Vertex, position, adjust, tex, fg_color, hsv, has_color);
+::window::glium::implement_vertex!(Vertex, position, tex, fg_color, hsv, has_color);
 
 /// A helper for updating the 4 vertices that compose a glyph cell
 pub struct Quad<'a> {
@@ -51,14 +49,6 @@ impl<'a> Quad<'a> {
         self.vert[V_TOP_RIGHT].tex = (coords.max_x(), coords.min_y());
         self.vert[V_BOT_LEFT].tex = (coords.min_x(), coords.max_y());
         self.vert[V_BOT_RIGHT].tex = (coords.max_x(), coords.max_y());
-    }
-
-    /// Apply bearing adjustment for the glyph texture.
-    pub fn set_texture_adjust(&mut self, left: f32, top: f32, right: f32, bottom: f32) {
-        self.vert[V_TOP_LEFT].adjust = (left, top);
-        self.vert[V_TOP_RIGHT].adjust = (right, top);
-        self.vert[V_BOT_LEFT].adjust = (left, bottom);
-        self.vert[V_BOT_RIGHT].adjust = (right, bottom);
     }
 
     /// Set the color glyph "flag"

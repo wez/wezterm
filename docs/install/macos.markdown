@@ -31,12 +31,10 @@ If you'd like to use a nightly build:
 $ brew install --cask wez/wezterm/wezterm-nightly
 ```
 
-to upgrade to a newer nightly, it is simplest to remove then
-install:
+to upgrade to a newer nightly (normal `brew upgrade` will not upgrade it!):
 
 ```bash
-$ brew rm --cask wez/wezterm/wezterm-nightly
-$ brew upgrade --cask wez/wezterm/wezterm-nightly
+$ brew upgrade --cask wezterm-nightly --no-quarantine --greedy-latest
 ```
 
 ## MacPorts

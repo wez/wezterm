@@ -40,6 +40,12 @@ pub use crate::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 #[error("Font fallback recalculated")]
 pub struct ClearShapeCache {}
 
+static FONT_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
+pub type LoadedFontId = usize;
+pub fn alloc_font_id() -> LoadedFontId {
+    FONT_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
+}
+
 pub struct LoadedFont {
     rasterizers: RefCell<HashMap<FallbackIdx, Box<dyn FontRasterizer>>>,
     handles: RefCell<Vec<ParsedFont>>,
@@ -50,6 +56,7 @@ pub struct LoadedFont {
     font_config: Weak<FontConfigInner>,
     pending_fallback: Arc<Mutex<Vec<ParsedFont>>>,
     text_style: TextStyle,
+    id: LoadedFontId,
 }
 
 impl std::fmt::Debug for LoadedFont {
@@ -72,6 +79,10 @@ impl LoadedFont {
 
     pub fn style(&self) -> &TextStyle {
         &self.text_style
+    }
+
+    pub fn id(&self) -> LoadedFontId {
+        self.id
     }
 
     fn insert_fallback_handles(&self, extra_handles: Vec<ParsedFont>) -> anyhow::Result<bool> {
@@ -395,7 +406,6 @@ struct FontConfigInner {
     no_glyphs: RefCell<HashSet<char>>,
     title_font: RefCell<Option<Rc<LoadedFont>>>,
     fallback_channel: RefCell<Option<Sender<FallbackResolveInfo>>>,
-    system_title_font: RefCell<Option<(ParsedFont, f64)>>,
 }
 
 /// Matches and loads fonts for a given input style
@@ -420,7 +430,6 @@ impl FontConfigInner {
             built_in: RefCell::new(Arc::new(FontDatabase::with_built_in()?)),
             no_glyphs: RefCell::new(HashSet::new()),
             fallback_channel: RefCell::new(None),
-            system_title_font: RefCell::new(None),
         })
     }
 
@@ -480,7 +489,7 @@ impl FontConfigInner {
         }
     }
 
-    fn last_ditch_title_font() -> (TextStyle, f64) {
+    fn compute_title_font(&self, config: &ConfigHandle) -> (TextStyle, f64) {
         fn bold(family: &str) -> FontAttributes {
             FontAttributes {
                 family: family.to_string(),
@@ -489,23 +498,15 @@ impl FontConfigInner {
             }
         }
 
-        let mut fonts = vec![if cfg!(target_os = "macos") {
-            // "SF Pro" or one of the San Francisco font variants
-            // are the official fonts for the macOS UI, but those
-            // are not directly accessible to non-Apple applications,
-            // and have a restricted license.
-            // Wikipedia says that `Galvji` looks very similar,
-            // but has slightly different spacing.
-            // It's close enough for me!
-            bold("Galvji")
-        } else if cfg!(windows) {
-            FontAttributes::new("Segoe UI")
-        } else {
-            bold("Cantarell")
-        }];
-
-        if !cfg!(windows) && !cfg!(target_os = "macos") {
-            fonts.push(bold("DejaVu Sans"));
+        let mut fonts = vec![bold("Roboto")];
+        // Fallback to their main font selection, so that we can pick up
+        // any fallback fonts they might have configured in the main
+        // config and so that they don't have to replicate that list for
+        // the title font.
+        for font in &config.font.font {
+            let mut font = font.clone();
+            font.is_fallback = true;
+            fonts.push(font);
         }
 
         let font_size = if cfg!(windows) { 10. } else { 12. };
@@ -519,11 +520,6 @@ impl FontConfigInner {
         )
     }
 
-    fn advise_title_font(&self, info: Option<(ParsedFont, f64)>) {
-        self.title_font.borrow_mut().take();
-        *self.system_title_font.borrow_mut() = info;
-    }
-
     fn title_font(&self, myself: &Rc<Self>) -> anyhow::Result<Rc<LoadedFont>> {
         let config = self.config.borrow();
 
@@ -533,16 +529,7 @@ impl FontConfigInner {
             return Ok(Rc::clone(entry));
         }
 
-        let (sys_font, mut sys_size) = Self::last_ditch_title_font();
-
-        let mut handles = vec![];
-
-        if config.window_frame.font.is_none() {
-            if let Some((font, size)) = self.system_title_font.borrow().as_ref() {
-                handles.push(font.clone());
-                sys_size = *size;
-            }
-        }
+        let (sys_font, sys_size) = self.compute_title_font(&config);
 
         let font_size = config.window_frame.font_size.unwrap_or(sys_size);
 
@@ -556,27 +543,7 @@ impl FontConfigInner {
         let pixel_size = (font_size * dpi as f64 / 72.0) as u16;
 
         let attributes = text_style.font_with_fallback();
-        let preferred_attributes = attributes
-            .iter()
-            .filter(|a| !a.is_fallback)
-            .map(|a| a.clone())
-            .collect::<Vec<_>>();
-        let fallback_attributes = attributes
-            .iter()
-            .filter(|a| a.is_fallback)
-            .map(|a| a.clone())
-            .collect::<Vec<_>>();
-        let mut loaded = HashSet::new();
-
-        for attrs in &[&preferred_attributes, &fallback_attributes] {
-            self.font_dirs
-                .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
-            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded, pixel_size)?);
-            self.built_in
-                .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
-        }
+        let (handles, _loaded) = self.resolve_font_helper_impl(&attributes, pixel_size)?;
 
         let shaper = new_shaper(&*config, &handles)?;
 
@@ -597,6 +564,7 @@ impl FontConfigInner {
             font_config: Rc::downgrade(myself),
             pending_fallback: Arc::new(Mutex::new(vec![])),
             text_style: text_style.clone(),
+            id: alloc_font_id(),
         });
 
         title_font.replace(Rc::clone(&loaded));
@@ -604,13 +572,11 @@ impl FontConfigInner {
         Ok(loaded)
     }
 
-    fn resolve_font_helper(
+    fn resolve_font_helper_impl(
         &self,
-        style: &TextStyle,
-        config: &ConfigHandle,
+        attributes: &[FontAttributes],
         pixel_size: u16,
-    ) -> anyhow::Result<(Box<dyn FontShaper>, Vec<ParsedFont>)> {
-        let attributes = style.font_with_fallback();
+    ) -> anyhow::Result<(Vec<ParsedFont>, HashSet<FontAttributes>)> {
         let preferred_attributes = attributes
             .iter()
             .filter(|a| !a.is_fallback)
@@ -622,17 +588,87 @@ impl FontConfigInner {
             .map(|a| a.clone())
             .collect::<Vec<_>>();
         let mut loaded = HashSet::new();
-
         let mut handles = vec![];
-        for attrs in &[&preferred_attributes, &fallback_attributes] {
-            self.font_dirs
-                .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
-            handles.append(&mut self.locator.load_fonts(attrs, &mut loaded, pixel_size)?);
-            self.built_in
-                .borrow()
-                .resolve_multiple(attrs, &mut handles, &mut loaded, pixel_size);
+
+        for &attrs in &[&preferred_attributes, &fallback_attributes] {
+            let mut candidates = vec![];
+
+            let font_dirs = self.font_dirs.borrow();
+            for attr in attrs {
+                candidates.append(&mut font_dirs.candidates(attr));
+            }
+
+            let mut loaded_ignored = HashSet::new();
+            let located = self
+                .locator
+                .load_fonts(attrs, &mut loaded_ignored, pixel_size)?;
+            for font in &located {
+                candidates.push(font);
+            }
+
+            let built_in = self.built_in.borrow();
+            for attr in attrs {
+                candidates.append(&mut built_in.candidates(attr));
+            }
+
+            let mut is_fallback = false;
+
+            for attr in attrs {
+                if attr.is_fallback {
+                    is_fallback = true;
+                }
+
+                if loaded.contains(attr) {
+                    continue;
+                }
+                let named_candidates: Vec<&ParsedFont> = candidates
+                    .iter()
+                    .filter_map(|&p| if p.matches_name(attr) { Some(p) } else { None })
+                    .collect();
+                if let Some(idx) =
+                    ParsedFont::best_matching_index(attr, &named_candidates, pixel_size)
+                {
+                    named_candidates.get(idx).map(|&p| {
+                        loaded.insert(attr.clone());
+                        handles.push(p.clone().synthesize(attr))
+                    });
+                }
+            }
+
+            if !is_fallback && loaded.is_empty() {
+                // We didn't explicitly match any names.
+                // When using fontconfig, the system may have expanded a family name
+                // like "monospace" into the real font, in which case we wouldn't have
+                // found a match in the `named_candidates` vec above, because of the
+                // name mismatch.
+                // So what we do now is make a second pass over all the located candidates,
+                // ignoring their names, and just match based on font attributes.
+                let located_candidates: Vec<_> = located.iter().collect();
+                for attr in attrs {
+                    if let Some(idx) =
+                        ParsedFont::best_matching_index(attr, &located_candidates, pixel_size)
+                    {
+                        located_candidates.get(idx).map(|&p| {
+                            loaded.insert(attr.clone());
+                            handles.push(p.clone().synthesize(attr))
+                        });
+                    }
+                }
+            }
         }
+
+        Ok((handles, loaded))
+    }
+
+    fn resolve_font_helper(
+        &self,
+        style: &TextStyle,
+        config: &ConfigHandle,
+        pixel_size: u16,
+    ) -> anyhow::Result<(Box<dyn FontShaper>, Vec<ParsedFont>)> {
+        let attributes = style.font_with_fallback();
+
+        let (handles, loaded) = self.resolve_font_helper_impl(&attributes, pixel_size)?;
 
         for attr in &attributes {
             if !attr.is_synthetic && !attr.is_fallback && !loaded.contains(attr) {
@@ -763,6 +799,7 @@ impl FontConfigInner {
             font_config: Rc::downgrade(myself),
             pending_fallback: Arc::new(Mutex::new(vec![])),
             text_style: style.clone(),
+            id: alloc_font_id(),
         });
 
         fonts.insert(style.clone(), Rc::clone(&loaded));
@@ -877,10 +914,6 @@ impl FontConfiguration {
     /// matches according to the fontconfig pattern.
     pub fn resolve_font(&self, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
         self.inner.resolve_font(&self.inner, style)
-    }
-
-    pub fn advise_title_font(&self, info: Option<(ParsedFont, f64)>) {
-        self.inner.advise_title_font(info);
     }
 
     pub fn change_scaling(&self, font_scale: f64, dpi: usize) -> (f64, usize) {

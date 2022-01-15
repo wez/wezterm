@@ -6,7 +6,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::x11::keyboard::Keyboard;
 use crate::{
     Clipboard, Connection, Dimensions, MouseCursor, Point, ScreenPoint, Window, WindowEvent,
-    WindowEventSender, WindowOps, WindowState,
+    WindowEventSender, WindowKeyEvent, WindowOps, WindowState,
 };
 use anyhow::{anyhow, bail, Context};
 use async_io::Timer;
@@ -41,7 +41,7 @@ use wezterm_input_types::*;
 #[derive(Debug)]
 struct KeyRepeatState {
     when: Instant,
-    key: KeyEvent,
+    event: WindowKeyEvent,
 }
 
 impl KeyRepeatState {
@@ -82,9 +82,8 @@ impl KeyRepeatState {
                     }
 
                     let mut st = state.lock().unwrap();
-                    let mut event = st.key.clone();
 
-                    event.repeat_count = 1;
+                    let mut repeat_count = 1;
 
                     let mut elapsed = st.when.elapsed();
                     if initial {
@@ -96,10 +95,22 @@ impl KeyRepeatState {
                     // gap, we need to inflate the repeat count to match
                     // the intended rate
                     while elapsed >= gap {
-                        event.repeat_count += 1;
+                        repeat_count += 1;
                         elapsed -= gap;
                     }
-                    inner.events.dispatch(WindowEvent::KeyEvent(event));
+
+                    let event = match st.event.clone() {
+                        WindowKeyEvent::KeyEvent(mut key) => {
+                            key.repeat_count = repeat_count;
+                            WindowEvent::KeyEvent(key)
+                        }
+                        WindowKeyEvent::RawKeyEvent(mut raw) => {
+                            raw.repeat_count = repeat_count;
+                            WindowEvent::RawKeyEvent(raw)
+                        }
+                    };
+
+                    inner.events.dispatch(event);
 
                     st.when = Instant::now();
                 }
@@ -400,18 +411,15 @@ impl WaylandWindowInner {
                 self.emit_focus(mapper, false);
             }
             WlKeyboardEvent::Key { key, state, .. } => {
-                if let Some(event) = mapper.process_wayland_key(key, state == KeyState::Pressed) {
-                    if event.key_is_down && mapper.wayland_key_repeats(key) {
-                        let rep = Arc::new(Mutex::new(KeyRepeatState {
-                            when: Instant::now(),
-                            key: event.clone(),
-                        }));
-                        self.key_repeat.replace(Arc::clone(&rep));
-                        KeyRepeatState::schedule(rep, self.window_id);
-                    } else {
-                        self.key_repeat.take();
-                    }
-                    self.events.dispatch(WindowEvent::KeyEvent(event));
+                if let Some(event) =
+                    mapper.process_wayland_key(key, state == KeyState::Pressed, &mut self.events)
+                {
+                    let rep = Arc::new(Mutex::new(KeyRepeatState {
+                        when: Instant::now(),
+                        event,
+                    }));
+                    self.key_repeat.replace(Arc::clone(&rep));
+                    KeyRepeatState::schedule(rep, self.window_id);
                 } else {
                     self.key_repeat.take();
                 }
@@ -621,6 +629,9 @@ impl WaylandWindowInner {
                     self.events.dispatch(WindowEvent::Resized {
                         dimensions: self.dimensions,
                         window_state: self.window_state,
+                        // We don't know if we're live resizing or not, so
+                        // assume no.
+                        live_resizing: false,
                     });
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
                         wegl_surface.resize(pixel_width, pixel_height, 0, 0);

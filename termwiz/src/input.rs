@@ -15,11 +15,20 @@ use std::fmt::Write;
 pub const CSI: &str = "\x1b[";
 pub const SS3: &str = "\x1bO";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyboardEncoding {
+    Xterm,
+    /// <http://www.leonerd.org.uk/hacks/fixterms/>
+    CsiU,
+    /// <https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md>
+    Win32,
+}
+
 /// Specifies terminal modes/configuration that can influence how a KeyCode
 /// is encoded when being sent to and application via the pty.
 #[derive(Debug, Clone, Copy)]
 pub struct KeyCodeEncodeModes {
-    pub enable_csi_u_key_encoding: bool,
+    pub encoding: KeyboardEncoding,
     pub application_cursor_keys: bool,
     pub newline_mode: bool,
 }
@@ -242,6 +251,19 @@ impl KeyCode {
         )
     }
 
+    pub fn encode_up_down(
+        &self,
+        mods: Modifiers,
+        modes: KeyCodeEncodeModes,
+        is_down: bool,
+    ) -> Result<String> {
+        if !is_down {
+            return Ok(String::new());
+        }
+
+        self.encode(mods, modes)
+    }
+
     /// Returns the xterm compatible byte sequence that represents this KeyCode
     /// and Modifier combination.
     pub fn encode(&self, mods: Modifiers, modes: KeyCodeEncodeModes) -> Result<String> {
@@ -275,12 +297,12 @@ impl KeyCode {
             Char(c)
                 if is_ambiguous_ascii_ctrl(c)
                     && mods.contains(Modifiers::CTRL)
-                    && modes.enable_csi_u_key_encoding =>
+                    && modes.encoding == KeyboardEncoding::CsiU =>
             {
-                csi_u_encode(&mut buf, c, mods, modes.enable_csi_u_key_encoding)?;
+                csi_u_encode(&mut buf, c, mods, modes.encoding)?;
             }
             Char(c) if c.is_ascii_uppercase() && mods.contains(Modifiers::CTRL) => {
-                csi_u_encode(&mut buf, c, mods, modes.enable_csi_u_key_encoding)?;
+                csi_u_encode(&mut buf, c, mods, modes.encoding)?;
             }
 
             Char(c) if mods.contains(Modifiers::CTRL) && ctrl_mapping(c).is_some() => {
@@ -314,7 +336,7 @@ impl KeyCode {
                     _ => unreachable!(),
                 };
                 if mods.contains(Modifiers::SHIFT) || mods.contains(Modifiers::CTRL) {
-                    csi_u_encode(&mut buf, c, mods, modes.enable_csi_u_key_encoding)?;
+                    csi_u_encode(&mut buf, c, mods, modes.encoding)?;
                 } else {
                     if mods.contains(Modifiers::ALT) {
                         buf.push(0x1b as char);
@@ -346,7 +368,7 @@ impl KeyCode {
                 if mods.is_empty() {
                     buf.push(c);
                 } else {
-                    csi_u_encode(&mut buf, c, mods, modes.enable_csi_u_key_encoding)?;
+                    csi_u_encode(&mut buf, c, mods, modes.encoding)?;
                 }
             }
 
@@ -555,9 +577,9 @@ fn csi_u_encode(
     buf: &mut String,
     c: char,
     mods: Modifiers,
-    enable_csi_u_key_encoding: bool,
+    encoding: KeyboardEncoding,
 ) -> Result<()> {
-    if enable_csi_u_key_encoding {
+    if encoding == KeyboardEncoding::CsiU {
         write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
     } else {
         let c = if mods.contains(Modifiers::CTRL) && ctrl_mapping(c).is_some() {
@@ -1522,7 +1544,7 @@ mod test {
     #[test]
     fn encode_issue_892() {
         let mode = KeyCodeEncodeModes {
-            enable_csi_u_key_encoding: false,
+            encoding: KeyboardEncoding::Xterm,
             newline_mode: false,
             application_cursor_keys: false,
         };

@@ -2,6 +2,8 @@ use config::SshParameters;
 use std::ffi::OsString;
 use structopt::StructOpt;
 
+pub const DEFAULT_WINDOW_CLASS: &str = "org.wezfurlong.wezterm";
+
 /// Helper for parsing config overrides
 pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
     if let Some(eq) = arg.find('=') {
@@ -23,9 +25,16 @@ pub fn name_equals_value(arg: &str) -> Result<(String, String), String> {
 #[derive(Debug, StructOpt, Default, Clone)]
 pub struct StartCommand {
     /// If true, do not connect to domains marked as connect_automatically
-    /// in your wezterm.toml configuration file.
+    /// in your wezterm configuration file.
     #[structopt(long = "no-auto-connect")]
     pub no_auto_connect: bool,
+
+    /// If enabled, don't try to ask an existing wezterm GUI instance
+    /// to start the command.  Instead, always start the GUI in this
+    /// invocation of wezterm so that you can wait for the command
+    /// to complete by waiting for this wezterm process to finish.
+    #[structopt(long = "always-new-process")]
+    pub always_new_process: bool,
 
     /// Specify the current working directory for the initially
     /// spawned program
@@ -82,6 +91,16 @@ pub struct SshCommand {
     #[structopt(short = "v")]
     pub verbose: bool,
 
+    /// Override the default windowing system class.
+    /// The default is "org.wezfurlong.wezterm".
+    /// Under X11 and Windows this changes the window class.
+    /// Under Wayland this changes the app_id.
+    /// This changes the class for all windows spawned by this
+    /// instance of wezterm, including error, update and ssh
+    /// authentication dialogs.
+    #[structopt(long = "class")]
+    pub class: Option<String>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -94,6 +113,16 @@ pub struct SerialCommand {
     /// Set the baud rate.  The default is 9600 baud.
     #[structopt(long = "baud")]
     pub baud: Option<usize>,
+
+    /// Override the default windowing system class.
+    /// The default is "org.wezfurlong.wezterm".
+    /// Under X11 and Windows this changes the window class.
+    /// Under Wayland this changes the app_id.
+    /// This changes the class for all windows spawned by this
+    /// instance of wezterm, including error, update and ssh
+    /// authentication dialogs.
+    #[structopt(long = "class")]
+    pub class: Option<String>,
 
     /// Specifies the serial device name.
     /// On Windows systems this can be a name like `COM0`.

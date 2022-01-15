@@ -17,6 +17,7 @@ use termwiz::escape::csi::{
 };
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::image::ImageData;
+use termwiz::input::KeyboardEncoding;
 use termwiz::surface::{CursorShape, CursorVisibility, SequenceNo};
 use url::Url;
 
@@ -169,9 +170,10 @@ impl ScreenOrAlt {
         physical_rows: usize,
         physical_cols: usize,
         config: &Arc<dyn TerminalConfiguration>,
+        seqno: SequenceNo,
     ) -> Self {
-        let screen = Screen::new(physical_rows, physical_cols, config, true);
-        let alt_screen = Screen::new(physical_rows, physical_cols, config, false);
+        let screen = Screen::new(physical_rows, physical_cols, config, true, seqno);
+        let alt_screen = Screen::new(physical_rows, physical_cols, config, false, seqno);
 
         Self {
             screen,
@@ -186,20 +188,17 @@ impl ScreenOrAlt {
         &mut self,
         physical_rows: usize,
         physical_cols: usize,
-        cursor: CursorPosition,
+        cursor_main: CursorPosition,
+        cursor_alt: CursorPosition,
         seqno: SequenceNo,
-    ) -> CursorPosition {
+    ) -> (CursorPosition, CursorPosition) {
         let cursor_main = self
             .screen
-            .resize(physical_rows, physical_cols, cursor, seqno);
+            .resize(physical_rows, physical_cols, cursor_main, seqno);
         let cursor_alt = self
             .alt_screen
-            .resize(physical_rows, physical_cols, cursor, seqno);
-        if self.alt_screen_is_active {
-            cursor_alt
-        } else {
-            cursor_main
-        }
+            .resize(physical_rows, physical_cols, cursor_alt, seqno);
+        (cursor_main, cursor_alt)
     }
 
     pub fn activate_alt_screen(&mut self, seqno: SequenceNo) {
@@ -313,6 +312,7 @@ pub struct TerminalState {
     last_mouse_move: Option<MouseEvent>,
     cursor_visible: bool,
 
+    keyboard_encoding: KeyboardEncoding,
     /// Support for US, UK, and DEC Special Graphics
     g0_charset: CharSet,
     g1_charset: CharSet,
@@ -436,7 +436,8 @@ impl TerminalState {
         writer: Box<dyn std::io::Write + Send>,
     ) -> TerminalState {
         let writer = Box::new(ThreadedWriter::new(writer));
-        let screen = ScreenOrAlt::new(size.physical_rows, size.physical_cols, &config);
+        let seqno = 1;
+        let screen = ScreenOrAlt::new(size.physical_rows, size.physical_cols, &config, seqno);
 
         let color_map = default_color_map();
 
@@ -467,6 +468,7 @@ impl TerminalState {
             bracketed_paste: false,
             focus_tracking: false,
             mouse_encoding: MouseEncoding::X10,
+            keyboard_encoding: KeyboardEncoding::Xterm,
             sixel_scrolls_right: false,
             any_event_mouse: false,
             button_event_mouse: false,
@@ -495,7 +497,7 @@ impl TerminalState {
             image_cache: lru::LruCache::new(16),
             user_vars: HashMap::new(),
             kitty_img: Default::default(),
-            seqno: 0,
+            seqno,
             unicode_version,
             unicode_version_stack: vec![],
             suppress_initial_title_change: false,
@@ -738,6 +740,8 @@ impl TerminalState {
 
     /// Informs the terminal that the viewport of the window has resized to the
     /// specified dimensions.
+    /// We need to resize both the primary and alt screens, adjusting
+    /// the cursor positions of both accordingly.
     pub fn resize(
         &mut self,
         physical_rows: usize,
@@ -745,18 +749,63 @@ impl TerminalState {
         pixel_width: usize,
         pixel_height: usize,
     ) {
-        let adjusted_cursor =
-            self.screen
-                .resize(physical_rows, physical_cols, self.cursor, self.seqno);
+        let (cursor_main, cursor_alt) = if self.screen.alt_screen_is_active {
+            (
+                self.screen
+                    .saved_cursor
+                    .as_ref()
+                    .map(|s| s.position)
+                    .unwrap_or_else(CursorPosition::default),
+                self.cursor,
+            )
+        } else {
+            (
+                self.cursor,
+                self.screen
+                    .alt_saved_cursor
+                    .as_ref()
+                    .map(|s| s.position)
+                    .unwrap_or_else(CursorPosition::default),
+            )
+        };
+
+        let (adjusted_cursor_main, adjusted_cursor_alt) = self.screen.resize(
+            physical_rows,
+            physical_cols,
+            cursor_main,
+            cursor_alt,
+            self.seqno,
+        );
         self.top_and_bottom_margins = 0..physical_rows as i64;
         self.left_and_right_margins = 0..physical_cols;
         self.pixel_height = pixel_height;
         self.pixel_width = pixel_width;
         self.tabs.resize(physical_cols);
-        self.set_cursor_pos(
-            &Position::Absolute(adjusted_cursor.x as i64),
-            &Position::Absolute(adjusted_cursor.y),
-        );
+
+        if self.screen.alt_screen_is_active {
+            self.set_cursor_pos(
+                &Position::Absolute(adjusted_cursor_alt.x as i64),
+                &Position::Absolute(adjusted_cursor_alt.y),
+            );
+
+            if let Some(saved) = self.screen.saved_cursor.as_mut() {
+                saved.position.x = adjusted_cursor_main.x;
+                saved.position.y = adjusted_cursor_main.y;
+                saved.position.seqno = self.seqno;
+                saved.wrap_next = false;
+            }
+        } else {
+            self.set_cursor_pos(
+                &Position::Absolute(adjusted_cursor_main.x as i64),
+                &Position::Absolute(adjusted_cursor_main.y),
+            );
+            if let Some(saved) = self.screen.alt_saved_cursor.as_mut() {
+                saved.position.x = adjusted_cursor_alt.x;
+                saved.position.y = adjusted_cursor_alt.y;
+                saved.position.seqno = self.seqno;
+                saved.wrap_next = false;
+            }
+        }
     }
 
     /// When dealing with selection, mark a range of lines as dirty
@@ -1207,6 +1256,22 @@ impl TerminalState {
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat)) => {
                 // We leave key repeat to the GUI layer prefs
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Win32InputMode)) => {
+                self.keyboard_encoding = KeyboardEncoding::Win32;
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Win32InputMode)) => {
+                self.keyboard_encoding = KeyboardEncoding::Xterm;
+            }
+
+            Mode::QueryDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Win32InputMode)) => {
+                self.decqrm_response(
+                    mode,
+                    true,
+                    self.keyboard_encoding == KeyboardEncoding::Win32,
+                );
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -2371,5 +2436,9 @@ impl TerminalState {
     #[inline]
     pub fn get_reverse_video(&self) -> bool {
         self.reverse_video_mode
+    }
+
+    pub fn get_keyboard_encoding(&self) -> KeyboardEncoding {
+        self.keyboard_encoding
     }
 }

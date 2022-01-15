@@ -5,11 +5,12 @@ use anyhow::{anyhow, bail, Context};
 use async_ossl::AsyncSslStream;
 use async_trait::async_trait;
 use codec::*;
-use config::{configuration, SshBackend, SshDomain, TlsDomainClient, UnixDomain, UnixTarget};
+use config::{configuration, SshDomain, TlsDomainClient, UnixDomain, UnixTarget};
 use filedescriptor::FileDescriptor;
 use futures::FutureExt;
+use mux::client::ClientId;
 use mux::connui::ConnectionUI;
-use mux::domain::{alloc_domain_id, DomainId};
+use mux::domain::DomainId;
 use mux::pane::PaneId;
 use mux::ssh::ssh_connect_with_ui;
 use mux::Mux;
@@ -40,7 +41,8 @@ enum ReaderMessage {
 #[derive(Clone)]
 pub struct Client {
     sender: Sender<ReaderMessage>,
-    local_domain_id: DomainId,
+    local_domain_id: Option<DomainId>,
+    client_id: ClientId,
     pub is_reconnectable: bool,
     pub is_local: bool,
 }
@@ -68,6 +70,7 @@ macro_rules! rpc {
             let result = self.send_pdu(Pdu::$request_type(pdu)).await;
             let elapsed = start.elapsed();
             metrics::histogram!("rpc", elapsed, "method" => stringify!($method_name));
+            metrics::counter!("rpc.count", 1, "method" => stringify!($method_name));
             match result {
                 Ok(Pdu::$response_type(res)) => Ok(res),
                 Ok(_) => bail!("unexpected response {:?}", result),
@@ -86,6 +89,7 @@ macro_rules! rpc {
             let result = self.send_pdu(Pdu::$request_type($request_type{})).await;
             let elapsed = start.elapsed();
             metrics::histogram!("rpc", elapsed, "method" => stringify!($method_name));
+            metrics::counter!("rpc.count", 1, "method" => stringify!($method_name));
             match result {
                 Ok(Pdu::$response_type(res)) => Ok(res),
                 Ok(_) => bail!("unexpected response {:?}", result),
@@ -158,7 +162,58 @@ async fn process_unilateral_inner_async(
     client_pane.process_unilateral(decoded.pdu)
 }
 
-fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> anyhow::Result<()> {
+fn process_unilateral(
+    local_domain_id: Option<DomainId>,
+    decoded: DecodedPdu,
+) -> anyhow::Result<()> {
+    let local_domain_id = match local_domain_id {
+        Some(id) => id,
+        None => {
+            // FIXME: We currently get a bunch of these; we'll need
+            // to do something to advise the server when we want them.
+            // For now, we just ignore them.
+            log::trace!(
+                "client doesn't have a real local domain, \
+                 so unilateral message cannot be processed by it"
+            );
+            return Ok(());
+        }
+    };
+    match &decoded.pdu {
+        Pdu::WindowWorkspaceChanged(WindowWorkspaceChanged {
+            window_id,
+            workspace,
+        }) => {
+            let window_id = *window_id;
+            let workspace = workspace.to_string();
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get().ok_or_else(|| anyhow!("no more mux"))?;
+                let client_domain = mux
+                    .get_domain(local_domain_id)
+                    .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
+                let client_domain =
+                    client_domain
+                        .downcast_ref::<ClientDomain>()
+                        .ok_or_else(|| {
+                            anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
+                        })?;
+
+                let local_window_id = client_domain
+                    .remote_to_local_window_id(window_id)
+                    .ok_or_else(|| anyhow!("no local window for remote window id {}", window_id))?;
+                if let Some(mut window) = mux.get_window_mut(local_window_id) {
+                    window.set_workspace(&workspace);
+                }
+
+                anyhow::Result::<()>::Ok(())
+            })
+            .detach();
+
+            return Ok(());
+        }
+        _ => {}
+    }
+
     if let Some(pane_id) = decoded.pdu.pane_id() {
         promise::spawn::spawn_into_main_thread(async move {
             process_unilateral_inner(pane_id, local_domain_id, decoded)
@@ -178,7 +233,7 @@ enum NotReconnectableError {
 
 fn client_thread(
     reconnectable: &mut Reconnectable,
-    local_domain_id: DomainId,
+    local_domain_id: Option<DomainId>,
     rx: &mut Receiver<ReaderMessage>,
 ) -> anyhow::Result<()> {
     block_on(client_thread_async(reconnectable, local_domain_id, rx))
@@ -186,7 +241,7 @@ fn client_thread(
 
 async fn client_thread_async(
     reconnectable: &mut Reconnectable,
-    local_domain_id: DomainId,
+    local_domain_id: Option<DomainId>,
     rx: &mut Receiver<ReaderMessage>,
 ) -> anyhow::Result<()> {
     let mut next_serial = 1u64;
@@ -270,6 +325,7 @@ async fn client_thread_async(
 pub fn unix_connect_with_retry(
     target: &UnixTarget,
     just_spawned: bool,
+    max_attempts: Option<u64>,
 ) -> anyhow::Result<UnixStream> {
     let mut error = None;
 
@@ -277,7 +333,9 @@ pub fn unix_connect_with_retry(
         std::thread::sleep(std::time::Duration::from_millis(200));
     }
 
-    for iter in 0..10 {
+    let max_attempts = max_attempts.unwrap_or(10);
+
+    for iter in 0..max_attempts {
         if iter > 0 {
             std::thread::sleep(std::time::Duration::from_millis(iter * 10));
         }
@@ -493,44 +551,7 @@ impl Reconnectable {
         initial: bool,
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<()> {
-        let mut ssh_config = wezterm_ssh::Config::new();
-        ssh_config.add_default_config_files();
-
-        let (remote_host_name, port) = {
-            let parts: Vec<&str> = ssh_dom.remote_address.split(':').collect();
-
-            if parts.len() == 2 {
-                (parts[0], Some(parts[1].parse::<u16>()?))
-            } else {
-                (ssh_dom.remote_address.as_str(), None)
-            }
-        };
-
-        let mut ssh_config = ssh_config.for_host(&remote_host_name);
-        ssh_config.insert(
-            "wezterm_ssh_backend".to_string(),
-            match ssh_dom
-                .ssh_backend
-                .unwrap_or_else(|| configuration().ssh_backend)
-            {
-                SshBackend::Ssh2 => "ssh2",
-                SshBackend::LibSsh => "libssh",
-            }
-            .to_string(),
-        );
-        for (k, v) in &ssh_dom.ssh_option {
-            ssh_config.insert(k.to_string(), v.to_string());
-        }
-
-        if let Some(username) = &ssh_dom.username {
-            ssh_config.insert("user".to_string(), username.to_string());
-        }
-        if let Some(port) = port {
-            ssh_config.insert("port".to_string(), port.to_string());
-        }
-        if ssh_dom.no_agent_auth {
-            ssh_config.insert("identitiesonly".to_string(), "yes".to_string());
-        }
+        let ssh_config = mux::ssh::ssh_domain_to_ssh_config(&ssh_dom)?;
 
         let sess = ssh_connect_with_ui(ssh_config, ui)?;
         let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wezterm_path);
@@ -587,7 +608,9 @@ impl Reconnectable {
         ui.output_str(&format!("Connect to {:?}\n", target));
         log::trace!("connect to {:?}", target);
 
-        let stream = match unix_connect_with_retry(&target, false) {
+        let max_attempts = if no_auto_start { Some(1) } else { None };
+
+        let stream = match unix_connect_with_retry(&target, false, max_attempts) {
             Ok(stream) => stream,
             Err(e) => {
                 if no_auto_start || unix_dom.no_serve_automatically || !initial {
@@ -629,7 +652,7 @@ impl Reconnectable {
                     }
                 });
 
-                unix_connect_with_retry(&target, true).with_context(|| {
+                unix_connect_with_retry(&target, true, None).with_context(|| {
                     format!("(after spawning server) failed to connect to {:?}", target)
                 })?
             }
@@ -875,10 +898,11 @@ impl Reconnectable {
 }
 
 impl Client {
-    fn new(local_domain_id: DomainId, mut reconnectable: Reconnectable) -> Self {
+    fn new(local_domain_id: Option<DomainId>, mut reconnectable: Reconnectable) -> Self {
         let is_reconnectable = reconnectable.reconnectable();
         let is_local = reconnectable.is_local();
         let (sender, mut receiver) = unbounded();
+        let client_id = ClientId::new();
 
         thread::spawn(move || {
             const BASE_INTERVAL: Duration = Duration::from_secs(1);
@@ -887,10 +911,12 @@ impl Client {
             let mut backoff = BASE_INTERVAL;
             loop {
                 if let Err(e) = client_thread(&mut reconnectable, local_domain_id, &mut receiver) {
-                    if !reconnectable.reconnectable() {
+                    if !reconnectable.reconnectable() || local_domain_id.is_none() {
                         log::debug!("client thread ended: {}", e);
                         break;
                     }
+
+                    let local_domain_id = local_domain_id.expect("checked above");
 
                     if let Some(ioerr) = e.root_cause().downcast_ref::<std::io::Error>() {
                         if let std::io::ErrorKind::UnexpectedEof = ioerr.kind() {
@@ -956,10 +982,12 @@ impl Client {
                 }
                 Ok(())
             }
-            promise::spawn::spawn_into_main_thread(async move {
-                detach(local_domain_id).await.ok();
-            })
-            .detach();
+            if let Some(domain_id) = local_domain_id {
+                promise::spawn::spawn_into_main_thread(async move {
+                    detach(domain_id).await.ok();
+                })
+                .detach();
+            }
         });
 
         Self {
@@ -967,10 +995,14 @@ impl Client {
             local_domain_id,
             is_reconnectable,
             is_local,
+            client_id,
         }
     }
 
-    pub async fn verify_version_compat(&self, ui: &ConnectionUI) -> anyhow::Result<()> {
+    pub async fn verify_version_compat(
+        &self,
+        ui: &ConnectionUI,
+    ) -> anyhow::Result<GetCodecVersionResponse> {
         match self.get_codec_version(GetCodecVersion {}).await {
             Ok(info) if info.codec_vers == CODEC_VERSION => {
                 log::trace!(
@@ -978,7 +1010,11 @@ impl Client {
                     info.version_string,
                     info.codec_vers
                 );
-                Ok(())
+                self.set_client_id(SetClientId {
+                    client_id: self.client_id.clone(),
+                })
+                .await?;
+                Ok(info)
             }
             Ok(info) => {
                 let err = IncompatibleVersionError {
@@ -1005,39 +1041,58 @@ impl Client {
     }
 
     #[allow(dead_code)]
-    pub fn local_domain_id(&self) -> DomainId {
+    pub fn local_domain_id(&self) -> Option<DomainId> {
         self.local_domain_id
+    }
+
+    fn compute_unix_domain(
+        prefer_mux: bool,
+        class_name: &str,
+    ) -> anyhow::Result<config::UnixDomain> {
+        match std::env::var_os("WEZTERM_UNIX_SOCKET") {
+            Some(path) if !path.is_empty() => Ok(config::UnixDomain {
+                socket_path: Some(path.into()),
+                ..Default::default()
+            }),
+            Some(_) | None => {
+                if !prefer_mux {
+                    if let Ok(gui) = crate::discovery::resolve_gui_sock_path(class_name) {
+                        return Ok(config::UnixDomain {
+                            socket_path: Some(gui),
+                            no_serve_automatically: true,
+                            ..Default::default()
+                        });
+                    }
+                }
+
+                let config = configuration();
+                Ok(config
+                    .unix_domains
+                    .first()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "no default unix domain is configured and WEZTERM_UNIX_SOCKET \
+                             is not set in the environment"
+                        )
+                    })?
+                    .clone())
+            }
+        }
     }
 
     pub fn new_default_unix_domain(
         initial: bool,
         ui: &mut ConnectionUI,
         no_auto_start: bool,
+        prefer_mux: bool,
+        class_name: &str,
     ) -> anyhow::Result<Self> {
-        let config = configuration();
-
-        let unix_dom = match std::env::var_os("WEZTERM_UNIX_SOCKET") {
-            Some(path) => config::UnixDomain {
-                socket_path: Some(path.into()),
-                ..Default::default()
-            },
-            None => config
-                .unix_domains
-                .first()
-                .ok_or_else(|| {
-                    anyhow!(
-                        "no default unix domain is configured and WEZTERM_UNIX_SOCKET \
-                        is not set in the environment"
-                    )
-                })?
-                .clone(),
-        };
-
-        Self::new_unix_domain(alloc_domain_id(), &unix_dom, initial, ui, no_auto_start)
+        let unix_dom = Self::compute_unix_domain(prefer_mux, class_name)?;
+        Self::new_unix_domain(None, &unix_dom, initial, ui, no_auto_start)
     }
 
     pub fn new_unix_domain(
-        local_domain_id: DomainId,
+        local_domain_id: Option<DomainId>,
         unix_dom: &UnixDomain,
         initial: bool,
         ui: &mut ConnectionUI,
@@ -1058,7 +1113,7 @@ impl Client {
             Reconnectable::new(ClientDomainConfig::Tls(tls_client.clone()), None);
         let no_auto_start = true;
         reconnectable.connect(true, ui, no_auto_start)?;
-        Ok(Self::new(local_domain_id, reconnectable))
+        Ok(Self::new(Some(local_domain_id), reconnectable))
     }
 
     pub fn new_ssh(
@@ -1069,7 +1124,7 @@ impl Client {
         let mut reconnectable = Reconnectable::new(ClientDomainConfig::Ssh(ssh_dom.clone()), None);
         let no_auto_start = true;
         reconnectable.connect(true, ui, no_auto_start)?;
-        Ok(Self::new(local_domain_id, reconnectable))
+        Ok(Self::new(Some(local_domain_id), reconnectable))
     }
 
     pub async fn send_pdu(&self, pdu: Pdu) -> anyhow::Result<Pdu> {
@@ -1082,7 +1137,6 @@ impl Client {
 
     rpc!(ping, Ping = (), Pong);
     rpc!(list_panes, ListPanes = (), ListPanesResponse);
-    rpc!(spawn, Spawn, SpawnResponse);
     rpc!(spawn_v2, SpawnV2, SpawnResponse);
     rpc!(split_pane, SplitPane, SpawnResponse);
     rpc!(write_to_pane, WriteToPane, UnitResponse);
@@ -1105,4 +1159,7 @@ impl Client {
         SearchScrollbackResponse
     );
     rpc!(kill_pane, KillPane, UnitResponse);
+    rpc!(set_client_id, SetClientId, UnitResponse);
+    rpc!(list_clients, GetClientList, GetClientListResponse);
+    rpc!(set_window_workspace, SetWindowWorkspace, UnitResponse);
 }

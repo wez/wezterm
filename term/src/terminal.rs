@@ -50,6 +50,11 @@ pub enum Alert {
     TitleMaybeChanged,
     /// When the color palette has been updated
     PaletteChanged,
+    /// A UserVar has changed value
+    SetUserVar {
+        name: String,
+        value: String,
+    },
 }
 
 pub trait AlertHandler {

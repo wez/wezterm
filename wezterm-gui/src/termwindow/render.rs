@@ -1,10 +1,11 @@
+use super::box_model::*;
 use crate::customglyph::BlockKey;
 use crate::customglyph::*;
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::quad::Quad;
 use crate::shapecache::*;
-use crate::tabbar::TabBarItem;
+use crate::tabbar::{TabBarItem, TabEntry};
 use crate::termwindow::{
     BorrowedShapeCacheKey, MappedQuads, RenderState, ScrollHit, ShapedInfo, TermWindowNotif,
     UIItem, UIItemType,
@@ -17,10 +18,11 @@ use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
-use ::window::{PointF, RectF, Size, WindowOps};
+use ::window::{DeadKeyStatus, PointF, RectF, SizeF, WindowOps};
 use anyhow::anyhow;
 use config::{
-    ConfigHandle, DimensionContext, HsbTransform, TabBarColors, TextStyle, VisualBellTarget,
+    ConfigHandle, Dimension, DimensionContext, HsbTransform, TabBarColors, TextStyle,
+    VisualBellTarget,
 };
 use euclid::num::Zero;
 use mux::pane::Pane;
@@ -30,7 +32,7 @@ use smol::Timer;
 use std::ops::Range;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use termwiz::cell::Blink;
+use termwiz::cell::{unicode_column_width, Blink};
 use termwiz::cellcluster::CellCluster;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_font::units::{IntPixelLength, PixelLength};
@@ -68,6 +70,44 @@ const TOP_RIGHT_ROUNDED_CORNER: &[Poly] = &[Poly {
     intensity: BlockAlpha::Full,
     style: PolyStyle::Fill,
 }];
+
+const X_BUTTON: &[Poly] = &[
+    Poly {
+        path: &[
+            PolyCommand::MoveTo(BlockCoord::One, BlockCoord::Zero),
+            PolyCommand::LineTo(BlockCoord::Zero, BlockCoord::One),
+        ],
+        intensity: BlockAlpha::Full,
+        style: PolyStyle::Outline,
+    },
+    Poly {
+        path: &[
+            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Zero),
+            PolyCommand::LineTo(BlockCoord::One, BlockCoord::One),
+        ],
+        intensity: BlockAlpha::Full,
+        style: PolyStyle::Outline,
+    },
+];
+
+const PLUS_BUTTON: &[Poly] = &[
+    Poly {
+        path: &[
+            PolyCommand::MoveTo(BlockCoord::Frac(1, 2), BlockCoord::Zero),
+            PolyCommand::LineTo(BlockCoord::Frac(1, 2), BlockCoord::One),
+        ],
+        intensity: BlockAlpha::Full,
+        style: PolyStyle::Outline,
+    },
+    Poly {
+        path: &[
+            PolyCommand::MoveTo(BlockCoord::Zero, BlockCoord::Frac(1, 2)),
+            PolyCommand::LineTo(BlockCoord::One, BlockCoord::Frac(1, 2)),
+        ],
+        intensity: BlockAlpha::Full,
+        style: PolyStyle::Outline,
+    },
+];
 
 pub struct RenderScreenLineOpenGLParams<'a> {
     /// zero-based offset from top of the window viewport to the line that
@@ -129,10 +169,11 @@ pub struct ComputeCellFgBgParams<'a> {
     pub cursor_fg: LinearRgba,
     pub cursor_bg: LinearRgba,
     pub cursor_border_color: LinearRgba,
+    pub in_composition: bool,
     pub pane: Option<&'a Rc<dyn Pane>>,
-    pub probably_a_ligature: bool,
 }
 
+#[derive(Debug)]
 pub struct ComputeCellFgBgResult {
     pub fg_color: LinearRgba,
     pub bg_color: LinearRgba,
@@ -176,14 +217,22 @@ impl super::TermWindow {
         'pass: for pass in 0.. {
             match self.paint_opengl_pass() {
                 Ok(_) => {
-                    let gl_state = self.render_state.as_mut().unwrap();
                     let mut allocated = false;
                     for vb_idx in 0..3 {
-                        if let Some(need_quads) = gl_state.vb[vb_idx].need_more_quads() {
+                        if let Some(need_quads) =
+                            self.render_state.as_mut().unwrap().vb[vb_idx].need_more_quads()
+                        {
+                            self.invalidate_fancy_tab_bar();
+
                             // Round up to next multiple of 1024 that is >=
                             // the number of needed quads for this frame
                             let num_quads = (need_quads + 1023) & !1023;
-                            if let Err(err) = gl_state.reallocate_quads(vb_idx, num_quads) {
+                            if let Err(err) = self
+                                .render_state
+                                .as_mut()
+                                .unwrap()
+                                .reallocate_quads(vb_idx, num_quads)
+                            {
                                 log::error!(
                                     "Failed to allocate {} quads (needed {}): {:#}",
                                     num_quads,
@@ -215,6 +264,7 @@ impl super::TermWindow {
                             log::trace!("grow texture atlas to {}", size);
                             self.recreate_texture_atlas(Some(size))
                         };
+                        self.invalidate_fancy_tab_bar();
 
                         if let Err(err) = result {
                             if self.allow_images {
@@ -234,6 +284,7 @@ impl super::TermWindow {
                             }
                         }
                     } else if err.root_cause().downcast_ref::<ClearShapeCache>().is_some() {
+                        self.invalidate_fancy_tab_bar();
                         self.shape_cache.borrow_mut().clear();
                     } else {
                         log::error!("paint_opengl_pass failed: {:#}", err);
@@ -272,7 +323,7 @@ impl super::TermWindow {
         }
     }
 
-    fn update_next_frame_time(&self, next_due: Option<Instant>) {
+    pub fn update_next_frame_time(&self, next_due: Option<Instant>) {
         if let Some(next_due) = next_due {
             let mut has_anim = self.has_animation.borrow_mut();
             match *has_anim {
@@ -356,7 +407,6 @@ impl super::TermWindow {
             rect.max_x() as f32 - left_offset,
             rect.max_y() as f32 - top_offset,
         );
-        quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_texture(gl_state.util_sprites.filled_box.texture_coords());
         quad.set_is_background();
         quad.set_fg_color(color);
@@ -370,7 +420,7 @@ impl super::TermWindow {
         point: PointF,
         polys: &'static [Poly],
         underline_height: IntPixelLength,
-        cell_size: Size,
+        cell_size: SizeF,
         color: LinearRgba,
     ) -> anyhow::Result<Quad<'a>> {
         let left_offset = self.dimensions.pixel_width as f32 / 2.;
@@ -383,7 +433,7 @@ impl super::TermWindow {
                 BlockKey::PolyWithCustomMetrics {
                     polys,
                     underline_height,
-                    cell_size,
+                    cell_size: euclid::size2(cell_size.width as isize, cell_size.height as isize),
                 },
                 &self.render_metrics,
             )?
@@ -397,7 +447,6 @@ impl super::TermWindow {
             (point.x + cell_size.width as f32) - left_offset,
             (point.y + cell_size.height as f32) - top_offset,
         );
-        quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_texture(sprite);
         quad.set_fg_color(color);
         quad.set_hsv(None);
@@ -412,7 +461,7 @@ impl super::TermWindow {
     ) -> anyhow::Result<f32> {
         if config.use_fancy_tab_bar {
             let font = fontconfig.title_font()?;
-            Ok(font.metrics().cell_height.get() as f32 * 2.)
+            Ok((font.metrics().cell_height.get() as f32 * 2.).ceil())
         } else {
             Ok(render_metrics.cell_size.height as f32)
         }
@@ -422,11 +471,13 @@ impl super::TermWindow {
         Self::tab_bar_pixel_height_impl(&self.config, &self.fonts, &self.render_metrics)
     }
 
-    fn paint_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<Vec<UIItem>> {
-        use super::box_model::*;
-        use config::Dimension;
+    pub fn invalidate_fancy_tab_bar(&mut self) {
+        self.fancy_tab_bar.take();
+    }
 
+    pub fn build_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<ComputedElement> {
         let font = self.fonts.title_font()?;
+        let metrics = RenderMetrics::with_font_metrics(&font.metrics());
         let items = self.tab_bar.items();
         let colors = self
             .config
@@ -436,201 +487,322 @@ impl super::TermWindow {
             .cloned()
             .unwrap_or_else(TabBarColors::default);
 
-        let content = ElementContent::Children(
-            items
-                .into_iter()
-                .map(|item| {
-                    let element = Element::with_line(&font, &item.title, palette);
+        let mut left_eles = vec![];
+        let mut right_eles = vec![];
 
-                    match item.item {
-                        TabBarItem::None => element
-                            .item_type(UIItemType::TabBar(TabBarItem::None))
-                            .zindex(-1)
+        let item_to_elem = |item: &TabEntry| -> Element {
+            let element = Element::with_line(&font, &item.title, palette);
+
+            let bg_color = item
+                .title
+                .cells()
+                .get(0)
+                .and_then(|c| match c.attrs().background() {
+                    ColorAttribute::Default => None,
+                    col => Some(palette.resolve_bg(col)),
+                });
+            let fg_color = item
+                .title
+                .cells()
+                .get(0)
+                .and_then(|c| match c.attrs().foreground() {
+                    ColorAttribute::Default => None,
+                    col => Some(palette.resolve_fg(col)),
+                });
+
+            match item.item {
+                TabBarItem::None => element
+                    .item_type(UIItemType::TabBar(TabBarItem::None))
+                    .line_height(Some(1.75))
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.0),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.5),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(0.)))
+                    .colors(ElementColors {
+                        border: BorderColor::default(),
+                        bg: rgbcolor_to_window_color(colors.inactive_tab.bg_color).into(),
+                        text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
+                    }),
+                TabBarItem::NewTabButton => Element::new(
+                    &font,
+                    ElementContent::Poly {
+                        line_width: metrics.underline_height.max(2),
+                        poly: SizedPoly {
+                            poly: PLUS_BUTTON,
+                            width: Dimension::Pixels(metrics.cell_size.width as f32 * 0.75),
+                            height: Dimension::Pixels(metrics.cell_size.width as f32 * 0.75),
+                        },
+                    },
+                )
+                .vertical_align(VerticalAlign::Middle)
+                .item_type(UIItemType::TabBar(item.item.clone()))
+                .margin(BoxDimension {
+                    left: Dimension::Cells(0.5),
+                    right: Dimension::Cells(0.),
+                    top: Dimension::Cells(0.2),
+                    bottom: Dimension::Cells(0.),
+                })
+                .padding(BoxDimension {
+                    left: Dimension::Cells(0.5),
+                    right: Dimension::Cells(0.5),
+                    top: Dimension::Cells(0.2),
+                    bottom: Dimension::Cells(0.25),
+                })
+                .border(BoxDimension::new(Dimension::Pixels(1.)))
+                .colors(ElementColors {
+                    border: BorderColor::default(),
+                    bg: rgbcolor_to_window_color(colors.new_tab.bg_color).into(),
+                    text: rgbcolor_to_window_color(colors.new_tab.fg_color).into(),
+                })
+                .hover_colors(Some(ElementColors {
+                    border: BorderColor::default(),
+                    bg: rgbcolor_to_window_color(colors.new_tab_hover.bg_color).into(),
+                    text: rgbcolor_to_window_color(colors.new_tab_hover.fg_color).into(),
+                })),
+                TabBarItem::Tab { active, .. } if active => element
+                    .item_type(UIItemType::TabBar(item.item.clone()))
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.5),
+                        right: Dimension::Cells(0.5),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.25),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(1.)))
+                    .border_corners(Some(Corners {
+                        top_left: SizedPoly {
+                            width: Dimension::Cells(0.5),
+                            height: Dimension::Cells(0.5),
+                            poly: TOP_LEFT_ROUNDED_CORNER,
+                        },
+                        top_right: SizedPoly {
+                            width: Dimension::Cells(0.5),
+                            height: Dimension::Cells(0.5),
+                            poly: TOP_RIGHT_ROUNDED_CORNER,
+                        },
+                        bottom_left: SizedPoly::none(),
+                        bottom_right: SizedPoly::none(),
+                    }))
+                    .colors(ElementColors {
+                        border: BorderColor::new(rgbcolor_to_window_color(
+                            bg_color.unwrap_or(colors.active_tab.bg_color),
+                        )),
+                        bg: rgbcolor_to_window_color(
+                            bg_color.unwrap_or(colors.active_tab.bg_color),
+                        )
+                        .into(),
+                        text: rgbcolor_to_window_color(
+                            fg_color.unwrap_or(colors.active_tab.fg_color),
+                        )
+                        .into(),
+                    }),
+                TabBarItem::Tab { .. } => element
+                    .item_type(UIItemType::TabBar(item.item.clone()))
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.5),
+                        right: Dimension::Cells(0.5),
+                        top: Dimension::Cells(0.2),
+                        bottom: Dimension::Cells(0.25),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(1.)))
+                    .border_corners(Some(Corners {
+                        top_left: SizedPoly {
+                            width: Dimension::Cells(0.5),
+                            height: Dimension::Cells(0.5),
+                            poly: TOP_LEFT_ROUNDED_CORNER,
+                        },
+                        top_right: SizedPoly {
+                            width: Dimension::Cells(0.5),
+                            height: Dimension::Cells(0.5),
+                            poly: TOP_RIGHT_ROUNDED_CORNER,
+                        },
+                        bottom_left: SizedPoly {
+                            width: Dimension::Cells(0.),
+                            height: Dimension::Cells(0.33),
+                            poly: &[],
+                        },
+                        bottom_right: SizedPoly {
+                            width: Dimension::Cells(0.),
+                            height: Dimension::Cells(0.33),
+                            poly: &[],
+                        },
+                    }))
+                    .colors({
+                        let bg = rgbcolor_to_window_color(
+                            bg_color.unwrap_or(colors.inactive_tab.bg_color),
+                        );
+                        let edge = rgbcolor_to_window_color(colors.inactive_tab_edge);
+                        ElementColors {
+                            border: BorderColor {
+                                left: bg,
+                                right: edge,
+                                top: bg,
+                                bottom: bg,
+                            },
+                            bg: bg.into(),
+                            text: rgbcolor_to_window_color(
+                                fg_color.unwrap_or(colors.inactive_tab.fg_color),
+                            )
+                            .into(),
+                        }
+                    })
+                    .hover_colors(Some(ElementColors {
+                        border: BorderColor::new(rgbcolor_to_window_color(
+                            bg_color.unwrap_or(colors.inactive_tab_hover.bg_color),
+                        )),
+                        bg: rgbcolor_to_window_color(
+                            bg_color.unwrap_or(colors.inactive_tab_hover.bg_color),
+                        )
+                        .into(),
+                        text: rgbcolor_to_window_color(
+                            fg_color.unwrap_or(colors.inactive_tab_hover.fg_color),
+                        )
+                        .into(),
+                    })),
+            }
+        };
+
+        let num_tabs: f32 = items
+            .iter()
+            .map(|item| match item.item {
+                TabBarItem::NewTabButton | TabBarItem::Tab { .. } => 1.,
+                _ => 0.,
+            })
+            .sum();
+        let max_tab_width = ((self.dimensions.pixel_width as f32 / num_tabs)
+            - (1.5 * metrics.cell_size.width as f32))
+            .max(0.);
+
+        for item in items {
+            match item.item {
+                TabBarItem::None => right_eles.push(item_to_elem(item)),
+                TabBarItem::Tab { tab_idx, active } => {
+                    let mut elem = item_to_elem(item);
+                    elem.max_width = Some(Dimension::Pixels(max_tab_width));
+                    elem.content = match elem.content {
+                        ElementContent::Text(_) => unreachable!(),
+                        ElementContent::Poly { .. } => unreachable!(),
+                        ElementContent::Children(mut kids) => {
+                            let x_button = Element::new(
+                                &font,
+                                ElementContent::Poly {
+                                    line_width: metrics.underline_height.max(2),
+                                    poly: SizedPoly {
+                                        poly: X_BUTTON,
+                                        width: Dimension::Cells(0.5),
+                                        height: Dimension::Cells(0.5),
+                                    },
+                                },
+                            )
+                            .vertical_align(VerticalAlign::Middle)
                             .float(Float::Right)
-                            .line_height(Some(2.0))
-                            .margin(BoxDimension {
-                                left: Dimension::Cells(0.),
-                                right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.0),
-                                bottom: Dimension::Cells(0.),
-                            })
+                            .item_type(UIItemType::CloseTab(tab_idx))
+                            .hover_colors(Some(ElementColors {
+                                border: BorderColor::default(),
+                                bg: rgbcolor_to_window_color(if active {
+                                    colors.inactive_tab_hover.bg_color
+                                } else {
+                                    colors.active_tab.bg_color
+                                })
+                                .into(),
+                                text: rgbcolor_to_window_color(if active {
+                                    colors.inactive_tab_hover.fg_color
+                                } else {
+                                    colors.active_tab.fg_color
+                                })
+                                .into(),
+                            }))
                             .padding(BoxDimension {
+                                left: Dimension::Cells(0.25),
+                                right: Dimension::Cells(0.25),
+                                top: Dimension::Cells(0.25),
+                                bottom: Dimension::Cells(0.25),
+                            })
+                            .margin(BoxDimension {
                                 left: Dimension::Cells(0.5),
                                 right: Dimension::Cells(0.),
                                 top: Dimension::Cells(0.),
                                 bottom: Dimension::Cells(0.),
-                            })
-                            .border(BoxDimension::new(Dimension::Pixels(0.)))
-                            .colors(ElementColors {
-                                border: BorderColor::default(),
-                                bg: rgbcolor_to_window_color(colors.inactive_tab.bg_color).into(),
-                                text: rgbcolor_to_window_color(colors.inactive_tab.fg_color).into(),
-                            }),
-                        TabBarItem::NewTabButton => element
-                            .item_type(UIItemType::TabBar(item.item.clone()))
-                            .margin(BoxDimension {
-                                left: Dimension::Cells(0.5),
-                                right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.25),
-                                bottom: Dimension::Cells(0.),
-                            })
-                            .padding(BoxDimension {
-                                left: Dimension::Cells(0.5),
-                                right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.25),
-                                bottom: Dimension::Cells(0.25),
-                            })
-                            .border(BoxDimension::new(Dimension::Pixels(1.)))
-                            .colors(ElementColors {
-                                border: BorderColor::default(),
-                                bg: rgbcolor_to_window_color(colors.new_tab.bg_color).into(),
-                                text: rgbcolor_to_window_color(colors.new_tab.fg_color).into(),
-                            })
-                            .hover_colors(Some(ElementColors {
-                                border: BorderColor::default(),
-                                bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color)
-                                    .into(),
-                                text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color)
-                                    .into(),
-                            })),
-                        TabBarItem::Tab { active, .. } if active => element
-                            .item_type(UIItemType::TabBar(item.item.clone()))
-                            .margin(BoxDimension {
-                                left: Dimension::Cells(0.),
-                                right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.25),
-                                bottom: Dimension::Cells(0.),
-                            })
-                            .padding(BoxDimension {
-                                left: Dimension::Cells(0.5),
-                                right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.25),
-                                bottom: Dimension::Cells(0.5),
-                            })
-                            .border(BoxDimension::new(Dimension::Pixels(1.)))
-                            .border_corners(Some(Corners {
-                                top_left: SizedPoly {
-                                    width: Dimension::Cells(0.5),
-                                    height: Dimension::Cells(0.5),
-                                    poly: TOP_LEFT_ROUNDED_CORNER,
-                                },
-                                top_right: SizedPoly {
-                                    width: Dimension::Cells(0.5),
-                                    height: Dimension::Cells(0.5),
-                                    poly: TOP_RIGHT_ROUNDED_CORNER,
-                                },
-                                bottom_left: SizedPoly::none(),
-                                bottom_right: SizedPoly::none(),
-                            }))
-                            .colors(ElementColors {
-                                border: BorderColor::new(rgbcolor_to_window_color(
-                                    colors.active_tab.bg_color,
-                                )),
-                                bg: rgbcolor_to_window_color(colors.active_tab.bg_color).into(),
-                                text: rgbcolor_to_window_color(colors.active_tab.fg_color).into(),
-                            }),
-                        TabBarItem::Tab { .. } => element
-                            .item_type(UIItemType::TabBar(item.item.clone()))
-                            .margin(BoxDimension {
-                                left: Dimension::Cells(0.),
-                                right: Dimension::Cells(0.),
-                                top: Dimension::Cells(0.25),
-                                bottom: Dimension::Cells(0.),
-                            })
-                            .padding(BoxDimension {
-                                left: Dimension::Cells(0.5),
-                                right: Dimension::Cells(0.5),
-                                top: Dimension::Cells(0.25),
-                                bottom: Dimension::Cells(0.5),
-                            })
-                            .border(BoxDimension::new(Dimension::Pixels(1.)))
-                            .border_corners(Some(Corners {
-                                top_left: SizedPoly {
-                                    width: Dimension::Cells(0.5),
-                                    height: Dimension::Cells(0.5),
-                                    poly: TOP_LEFT_ROUNDED_CORNER,
-                                },
-                                top_right: SizedPoly {
-                                    width: Dimension::Cells(0.5),
-                                    height: Dimension::Cells(0.5),
-                                    poly: TOP_RIGHT_ROUNDED_CORNER,
-                                },
-                                bottom_left: SizedPoly {
-                                    width: Dimension::Cells(0.),
-                                    height: Dimension::Cells(0.33),
-                                    poly: &[],
-                                },
-                                bottom_right: SizedPoly {
-                                    width: Dimension::Cells(0.),
-                                    height: Dimension::Cells(0.33),
-                                    poly: &[],
-                                },
-                            }))
-                            .colors({
-                                let bg = rgbcolor_to_window_color(colors.inactive_tab.bg_color);
-                                let edge = rgbcolor_to_window_color(colors.inactive_tab_edge);
-                                ElementColors {
-                                    border: BorderColor {
-                                        left: bg,
-                                        right: edge,
-                                        top: bg,
-                                        bottom: bg,
-                                    },
-                                    bg: bg.into(),
-                                    text: rgbcolor_to_window_color(colors.inactive_tab.fg_color)
-                                        .into(),
-                                }
-                            })
-                            .hover_colors(Some(ElementColors {
-                                border: BorderColor::new(rgbcolor_to_window_color(
-                                    colors.inactive_tab_hover.bg_color,
-                                )),
-                                bg: rgbcolor_to_window_color(colors.inactive_tab_hover.bg_color)
-                                    .into(),
-                                text: rgbcolor_to_window_color(colors.inactive_tab_hover.fg_color)
-                                    .into(),
-                            })),
-                    }
-                })
-                .collect(),
-        );
+                            });
 
-        let tabs = Element::new(&font, content)
-            .display(DisplayType::Block)
-            .item_type(UIItemType::TabBar(TabBarItem::None))
+                            kids.push(x_button);
+                            ElementContent::Children(kids)
+                        }
+                    };
+                    left_eles.push(elem);
+                }
+                _ => left_eles.push(item_to_elem(item)),
+            }
+        }
+
+        let bar_colors = ElementColors {
+            border: BorderColor::default(),
+            bg: rgbcolor_to_window_color(if self.focused.is_some() {
+                self.config.window_frame.active_titlebar_bg
+            } else {
+                self.config.window_frame.inactive_titlebar_bg
+            })
+            .into(),
+            text: rgbcolor_to_window_color(if self.focused.is_some() {
+                self.config.window_frame.active_titlebar_fg
+            } else {
+                self.config.window_frame.inactive_titlebar_fg
+            })
+            .into(),
+        };
+
+        let left_ele = Element::new(&font, ElementContent::Children(left_eles))
+            .vertical_align(VerticalAlign::Bottom)
+            .colors(bar_colors.clone())
             .padding(BoxDimension {
                 left: Dimension::Cells(0.5),
                 right: Dimension::Cells(0.),
                 top: Dimension::Cells(0.),
                 bottom: Dimension::Cells(0.),
-            })
-            .colors(ElementColors {
-                border: BorderColor::default(),
-                bg: rgbcolor_to_window_color(if self.focused.is_some() {
-                    self.config.window_frame.active_titlebar_bg
-                } else {
-                    self.config.window_frame.inactive_titlebar_bg
-                })
-                .into(),
-                text: rgbcolor_to_window_color(if self.focused.is_some() {
-                    self.config.window_frame.active_titlebar_fg
-                } else {
-                    self.config.window_frame.inactive_titlebar_fg
-                })
-                .into(),
             });
-        let metrics = RenderMetrics::with_font_metrics(&font.metrics());
+        let right_ele = Element::new(&font, ElementContent::Children(right_eles))
+            .colors(bar_colors.clone())
+            .float(Float::Right)
+            .zindex(-1);
 
-        let computed = self.compute_element(
+        let content = ElementContent::Children(vec![left_ele, right_ele]);
+
+        let tabs = Element::new(&font, content)
+            .display(DisplayType::Block)
+            .item_type(UIItemType::TabBar(TabBarItem::None))
+            .min_width(Some(Dimension::Pixels(self.dimensions.pixel_width as f32)))
+            .colors(bar_colors);
+
+        let mut computed = self.compute_element(
             &LayoutContext {
                 height: DimensionContext {
                     dpi: self.dimensions.dpi as f32,
-                    pixel_max: self.terminal_size.pixel_height as f32,
+                    pixel_max: self.dimensions.pixel_height as f32,
                     pixel_cell: metrics.cell_size.height as f32,
                 },
                 width: DimensionContext {
                     dpi: self.dimensions.dpi as f32,
-                    pixel_max: self.terminal_size.pixel_width as f32,
+                    pixel_max: self.dimensions.pixel_width as f32,
                     pixel_cell: metrics.cell_size.width as f32,
                 },
                 bounds: euclid::rect(
@@ -645,56 +817,47 @@ impl super::TermWindow {
             &tabs,
         )?;
 
-        if false {
-            fn summarize(ele: &ComputedElement) {
-                log::info!(
-                    "ele {:?} with bounds={:?} content_rect={:?} padding={:?} border={:?}",
-                    ele.item_type,
-                    ele.bounds,
-                    ele.content_rect,
-                    ele.padding,
-                    ele.border_rect,
-                );
-                match &ele.content {
-                    ComputedElementContent::Text(_) => {}
-                    ComputedElementContent::Children(kids) => {
-                        for kid in kids {
-                            summarize(kid);
-                        }
-                    }
-                }
-            }
-            log::info!("Computed:");
-            summarize(&computed);
+        if self.config.tab_bar_at_bottom {
+            computed.translate(euclid::vec2(
+                0.,
+                self.dimensions.pixel_height as f32 - computed.bounds.height(),
+            ));
         }
 
+        Ok(computed)
+    }
+
+    fn paint_fancy_tab_bar(&self) -> anyhow::Result<Vec<UIItem>> {
+        let computed = self
+            .fancy_tab_bar
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("paint_tab_bar called but fancy_tab_bar is None"))?;
         let ui_items = computed.ui_items();
 
         let gl_state = self.render_state.as_ref().unwrap();
-        let vb = [&gl_state.vb[0], &gl_state.vb[1], &gl_state.vb[2]];
-        let mut vb_mut0 = vb[0].current_vb_mut();
-        let mut vb_mut1 = vb[1].current_vb_mut();
-        let mut vb_mut2 = vb[2].current_vb_mut();
-        let mut layers = [
-            vb[0].map(&mut vb_mut0),
-            vb[1].map(&mut vb_mut1),
-            vb[2].map(&mut vb_mut2),
-        ];
-        self.render_element(&computed, &mut layers[1], None)?;
+        let vb = &gl_state.vb[1];
+        let mut vb_mut = vb.current_vb_mut();
+        let mut layer1 = vb.map(&mut vb_mut);
+        self.render_element(&computed, &mut layer1, None)?;
 
         Ok(ui_items)
     }
 
     fn paint_tab_bar(&mut self) -> anyhow::Result<()> {
-        let palette = self.palette().clone();
         if self.config.use_fancy_tab_bar {
-            self.ui_items
-                .append(&mut self.paint_fancy_tab_bar(&palette)?);
+            if self.fancy_tab_bar.is_none() {
+                let palette = self.palette().clone();
+                self.fancy_tab_bar
+                    .replace(self.build_fancy_tab_bar(&palette)?);
+            }
+
+            self.ui_items.append(&mut self.paint_fancy_tab_bar()?);
             return Ok(());
         }
 
+        let palette = self.palette().clone();
         let tab_bar_height = self.tab_bar_pixel_height()?;
-        let tab_bar_y = if self.config.tab_bar_at_bottom() {
+        let tab_bar_y = if self.config.tab_bar_at_bottom {
             ((self.dimensions.pixel_height as f32) - tab_bar_height).max(0.)
         } else {
             0.
@@ -801,7 +964,7 @@ impl super::TermWindow {
 
         let (padding_left, padding_top) = self.padding_left_top();
 
-        let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom() {
+        let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height()?
         } else {
             0.
@@ -888,7 +1051,6 @@ impl super::TermWindow {
                         self.dimensions.pixel_width as f32 / 2.,
                         self.dimensions.pixel_height as f32 / 2.,
                     );
-                    quad.set_texture_adjust(0., 0., 0., 0.);
                     quad.set_texture(sprite.texture_coords());
                     quad.set_is_background_image();
                     quad.set_hsv(config.window_background_image_hsb);
@@ -1069,7 +1231,7 @@ impl super::TermWindow {
                 current_viewport,
                 &self.dimensions,
                 tab_bar_height,
-                config.tab_bar_at_bottom(),
+                config.tab_bar_at_bottom,
             );
             let thumb_top = info.top as f32;
             let thumb_size = info.height as f32;
@@ -1314,7 +1476,7 @@ impl super::TermWindow {
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
 
-        let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom() {
+        let first_row_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
             self.tab_bar_pixel_height()?
         } else {
             0.
@@ -1576,20 +1738,54 @@ impl super::TermWindow {
 
         let local_shaped;
         let cell_clusters;
-        let shaped = match params.pre_shaped {
-            Some(s) => s,
-            None => {
-                // Break the line into clusters of cells with the same attributes
-                cell_clusters = params.line.cluster();
-                metrics::histogram!("render_screen_line_opengl.line.cluster", start.elapsed());
-                log::trace!(
-                    "cluster -> {} clusters, elapsed {:?}",
-                    cell_clusters.len(),
-                    start.elapsed()
-                );
-                local_shaped = self.cluster_and_shape(&cell_clusters, &params)?;
-                &local_shaped
+
+        let cursor_idx = if params.pane.is_some()
+            && params.is_active
+            && params.stable_line_idx == Some(params.cursor.y)
+        {
+            Some(params.cursor.x)
+        } else {
+            None
+        };
+
+        // Referencing the text being composed, but only if it belongs to this pane
+        let composing = if cursor_idx.is_some() {
+            if let DeadKeyStatus::Composing(composing) = &self.dead_key_status {
+                Some(composing)
+            } else {
+                None
             }
+        } else {
+            None
+        };
+
+        let mut composition_width = 0;
+
+        // Do we need to shape immediately, or can we use the pre-shaped data?
+        let to_shape = if let Some(composing) = composing {
+            // Create an updated line with the composition overlaid
+            let mut line = params.line.clone();
+            line.overlay_text_with_attribute(
+                params.cursor.x,
+                composing,
+                CellAttributes::blank(),
+                termwiz::surface::SEQ_ZERO,
+            );
+            cell_clusters = line.cluster(cursor_idx);
+            composition_width = unicode_column_width(composing, None);
+            Some(&cell_clusters)
+        } else if params.pre_shaped.is_none() {
+            cell_clusters = params.line.cluster(cursor_idx);
+            Some(&cell_clusters)
+        } else {
+            None
+        };
+
+        let shaped = if let Some(cell_clusters) = to_shape {
+            local_shaped = self.cluster_and_shape(&cell_clusters, &params)?;
+            &local_shaped
+        } else {
+            params.pre_shaped.unwrap()
         };
 
         let bounding_rect = euclid::rect(
@@ -1690,26 +1886,6 @@ impl super::TermWindow {
                     break;
                 }
 
-                let probably_a_ligature = false;
-                /*
-                glyph
-                .texture
-                .as_ref()
-                .map(|t| {
-                    let width = params.render_metrics.cell_size.width as f32;
-                    if t.coords.size.width as f32 > width * 1.5 {
-                        // Glyph is wider than the cell
-                        true
-                    } else if (glyph.bearing_x.get() as f32) < (width / -4.) {
-                        // Has excessive negative bearing
-                        true
-                    } else {
-                        false
-                    }
-                })
-                .unwrap_or(false);
-                */
-
                 let top = cell_height + params.render_metrics.descender.get() as f32
                     - (glyph.y_offset + glyph.bearing_y).get() as f32;
 
@@ -1731,6 +1907,10 @@ impl super::TermWindow {
 
                     last_cell_idx = current_idx;
 
+                    let in_composition = composition_width > 0
+                        && cell_idx >= params.cursor.x
+                        && cell_idx <= params.cursor.x + composition_width;
+
                     let ComputeCellFgBgResult {
                         fg_color: glyph_color,
                         bg_color,
@@ -1738,7 +1918,22 @@ impl super::TermWindow {
                         cursor_border_color,
                     } = self.compute_cell_fg_bg(ComputeCellFgBgParams {
                         stable_line_idx: params.stable_line_idx,
-                        cell_idx,
+                        // We pass the current_idx instead of the cell_idx when
+                        // computing the cursor/background color because we may
+                        // have a series of ligatured glyphs that compose over the
+                        // top of each other to form a double-wide grapheme cell.
+                        // If we use cell_idx here we could render half of that
+                        // in the cursor colors (good) and the other half in
+                        // the text colors, which is bad because we get a half
+                        // reversed, half not glyph and that is hard to read
+                        // against the cursor background.
+                        // When we cluster, we guarantee that the ligatures are
+                        // broken around the cursor boundary, and clustering
+                        // guarantees that different colors are broken out as
+                        // well, so this assumption is probably good in all
+                        // cases!
+                        // <https://github.com/wez/wezterm/issues/478>
+                        cell_idx: current_idx,
                         cursor: params.cursor,
                         selection: &params.selection,
                         fg_color: style_params.fg_color,
@@ -1752,7 +1947,7 @@ impl super::TermWindow {
                         cursor_bg: params.cursor_bg,
                         cursor_border_color: params.cursor_border_color,
                         pane: params.pane,
-                        probably_a_ligature,
+                        in_composition,
                     });
 
                     let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -1809,7 +2004,6 @@ impl super::TermWindow {
                                     },
                                 pos_y + cell_height,
                             );
-                            quad.set_texture_adjust(0., 0., 0., 0.);
                             quad.set_hsv(hsv);
                             quad.set_has_color(false);
 
@@ -1856,7 +2050,6 @@ impl super::TermWindow {
                                     },
                                 pos_y + cell_height,
                             );
-                            quad.set_texture_adjust(0., 0., 0., 0.);
                             quad.set_hsv(hsv);
                             quad.set_has_color(false);
 
@@ -1905,7 +2098,6 @@ impl super::TermWindow {
                                         );
                                         quad.set_fg_color(glyph_color);
                                         quad.set_texture(texture.texture_coords());
-                                        quad.set_texture_adjust(0., 0., 0., 0.);
                                         quad.set_hsv(if glyph.brightness_adjust != 1.0 {
                                             let hsv =
                                                 hsv.unwrap_or_else(|| HsbTransform::default());
@@ -1950,14 +2142,13 @@ impl super::TermWindow {
 
                                     let mut quad = layers[1].allocate()?;
                                     quad.set_position(
-                                        pos_x,
-                                        pos_y,
-                                        pos_x + cell_width,
-                                        pos_y + cell_height,
+                                        pos_x + left,
+                                        pos_y + top,
+                                        pos_x + cell_width + right,
+                                        pos_y + cell_height + bottom,
                                     );
                                     quad.set_fg_color(glyph_color);
                                     quad.set_texture(texture_rect);
-                                    quad.set_texture_adjust(left, top, right, bottom);
                                     quad.set_hsv(if glyph.brightness_adjust != 1.0 {
                                         let hsv = hsv.unwrap_or_else(|| HsbTransform::default());
                                         Some(HsbTransform {
@@ -2041,7 +2232,7 @@ impl super::TermWindow {
                     cursor_bg: params.cursor_bg,
                     cursor_border_color: params.cursor_border_color,
                     pane: params.pane,
-                    probably_a_ligature: false,
+                    in_composition: false,
                 });
 
                 let pos_x = (self.dimensions.pixel_width as f32 / -2.)
@@ -2076,7 +2267,6 @@ impl super::TermWindow {
                         let mut quad = layers[2].allocate()?;
                         quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
 
-                        quad.set_texture_adjust(0., 0., 0., 0.);
                         quad.set_has_color(false);
                         quad.set_hsv(hsv);
 
@@ -2130,7 +2320,6 @@ impl super::TermWindow {
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
         quad.set_texture(sprite);
-        quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_has_color(false);
         Ok(())
     }
@@ -2202,12 +2391,11 @@ impl super::TermWindow {
 
         let (padding_left, padding_top, padding_right, padding_bottom) = image.padding();
 
-        quad.set_position(pos_x, pos_y, pos_x + cell_width, pos_y + cell_height);
-        quad.set_texture_adjust(
-            padding_left as f32,
-            padding_top as f32,
-            padding_left as f32 - padding_right as f32,
-            padding_top as f32 - padding_bottom as f32,
+        quad.set_position(
+            pos_x + padding_left as f32,
+            pos_y + padding_top as f32,
+            pos_x + cell_width + padding_left as f32 - padding_right as f32,
+            pos_y + cell_height + padding_top as f32 - padding_bottom as f32,
         );
         quad.set_hsv(hsv);
         quad.set_fg_color(glyph_color);
@@ -2219,9 +2407,10 @@ impl super::TermWindow {
 
     pub fn compute_cell_fg_bg(&self, params: ComputeCellFgBgParams) -> ComputeCellFgBgResult {
         let selected = params.selection.contains(&params.cell_idx);
-        let is_cursor = params.pane.is_some()
-            && params.stable_line_idx == Some(params.cursor.y)
-            && params.cursor.x == params.cell_idx;
+        let is_cursor = params.in_composition
+            || params.pane.is_some()
+                && params.stable_line_idx == Some(params.cursor.y)
+                && params.cursor.x == params.cell_idx;
 
         if is_cursor {
             if let Some(intensity) = self.get_intensity_if_bell_target_ringing(
@@ -2257,6 +2446,31 @@ impl super::TermWindow {
                     bg_color,
                     cursor_shape: Some(CursorShape::Default),
                     cursor_border_color: bg_color,
+                };
+            }
+
+            let dead_key_or_leader =
+                self.dead_key_status != DeadKeyStatus::None || self.leader_is_active();
+
+            if dead_key_or_leader {
+                let (fg_color, bg_color) = if self.config.force_reverse_video_cursor {
+                    (params.bg_color, params.fg_color)
+                } else {
+                    (params.cursor_fg, params.cursor_bg)
+                };
+
+                let color = params
+                    .config
+                    .resolved_palette
+                    .compose_cursor
+                    .map(rgbcolor_to_window_color)
+                    .unwrap_or(bg_color);
+
+                return ComputeCellFgBgResult {
+                    fg_color,
+                    bg_color,
+                    cursor_shape: Some(CursorShape::Default),
+                    cursor_border_color: color,
                 };
             }
         }

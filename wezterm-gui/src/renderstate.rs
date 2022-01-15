@@ -38,7 +38,6 @@ impl<'a> MappedQuads<'a> {
             vert: &mut self.mapping[idx..idx + VERTICES_PER_CELL],
         };
 
-        quad.set_texture_adjust(0., 0., 0., 0.);
         quad.set_has_color(false);
 
         Ok(quad)

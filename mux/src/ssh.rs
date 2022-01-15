@@ -2,11 +2,10 @@ use crate::connui::ConnectionUI;
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::localpane::LocalPane;
 use crate::pane::{alloc_pane_id, Pane, PaneId};
-use crate::tab::{SplitDirection, Tab, TabId};
-use crate::window::WindowId;
 use crate::Mux;
-use anyhow::{anyhow, bail, Context, Error};
+use anyhow::{anyhow, bail, Context};
 use async_trait::async_trait;
+use config::{Shell, SshBackend, SshDomain};
 use filedescriptor::{poll, pollfd, socketpair, AsRawSocketDescriptor, FileDescriptor, POLLIN};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{ChildKiller, ExitStatus, MasterPty, PtySize};
@@ -133,28 +132,99 @@ pub fn ssh_connect_with_ui(
 /// and the reader and writer instances so that we can inject the
 /// interactive setup.  The bulk of that is driven by `connect_ssh_session`.
 pub struct RemoteSshDomain {
-    session: Session,
+    session: RefCell<Option<Session>>,
+    dom: SshDomain,
     id: DomainId,
     name: String,
-    events: RefCell<Option<smol::channel::Receiver<SessionEvent>>>,
+}
+
+pub fn ssh_domain_to_ssh_config(ssh_dom: &SshDomain) -> anyhow::Result<ConfigMap> {
+    let mut ssh_config = wezterm_ssh::Config::new();
+    ssh_config.add_default_config_files();
+
+    let (remote_host_name, port) = {
+        let parts: Vec<&str> = ssh_dom.remote_address.split(':').collect();
+
+        if parts.len() == 2 {
+            (parts[0], Some(parts[1].parse::<u16>()?))
+        } else {
+            (ssh_dom.remote_address.as_str(), None)
+        }
+    };
+
+    let mut ssh_config = ssh_config.for_host(&remote_host_name);
+    ssh_config.insert(
+        "wezterm_ssh_backend".to_string(),
+        match ssh_dom
+            .ssh_backend
+            .unwrap_or_else(|| config::configuration().ssh_backend)
+        {
+            SshBackend::Ssh2 => "ssh2",
+            SshBackend::LibSsh => "libssh",
+        }
+        .to_string(),
+    );
+    for (k, v) in &ssh_dom.ssh_option {
+        ssh_config.insert(k.to_string(), v.to_string());
+    }
+
+    if let Some(username) = &ssh_dom.username {
+        ssh_config.insert("user".to_string(), username.to_string());
+    }
+    if let Some(port) = port {
+        ssh_config.insert("port".to_string(), port.to_string());
+    }
+    if ssh_dom.no_agent_auth {
+        ssh_config.insert("identitiesonly".to_string(), "yes".to_string());
+    }
+    Ok(ssh_config)
 }
 
 impl RemoteSshDomain {
-    pub fn with_ssh_config(name: &str, ssh_config: ConfigMap) -> anyhow::Result<Self> {
+    pub fn with_ssh_domain(dom: &SshDomain) -> anyhow::Result<Self> {
         let id = alloc_domain_id();
-        let (session, events) = Session::connect(ssh_config.clone())?;
         Ok(Self {
             id,
-            name: format!("SSH to {}", name),
-            session,
-            events: RefCell::new(Some(events)),
+            name: dom.name.clone(),
+            session: RefCell::new(None),
+            dom: dom.clone(),
         })
     }
 
-    // This is a method of its own so that we can ensure that the
-    // borrow is released when we return
-    fn take_events(&self) -> Option<smol::channel::Receiver<SessionEvent>> {
-        self.events.borrow_mut().take()
+    pub fn ssh_config(&self) -> anyhow::Result<ConfigMap> {
+        ssh_domain_to_ssh_config(&self.dom)
+    }
+
+    fn build_command(
+        &self,
+        pane_id: PaneId,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+    ) -> anyhow::Result<(Option<String>, HashMap<String, String>)> {
+        let config = config::configuration();
+        let cmd = match command {
+            Some(mut cmd) => {
+                config.apply_cmd_defaults(&mut cmd, None);
+                cmd
+            }
+            None => config.build_prog(None, self.dom.default_prog.as_ref(), None)?,
+        };
+        let mut env: HashMap<String, String> = cmd
+            .iter_extra_env_as_str()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
+
+        let command_line = match (cmd.is_default_prog(), self.dom.assume_shell, command_dir) {
+            (true, Shell::Posix, Some(dir)) => Some(format!("cd {} ; exec $SHELL", dir)),
+            (false, Shell::Posix, Some(dir)) => {
+                Some(format!("cd {} ; exec {}", dir, cmd.as_unix_command_line()?))
+            }
+            (true, _, _) => None,
+            (false, _, _) => Some(cmd.as_unix_command_line()?),
+        };
+
+        Ok((command_line, env))
     }
 }
 
@@ -436,36 +506,40 @@ fn connect_ssh_session(
 
 #[async_trait(?Send)]
 impl Domain for RemoteSshDomain {
-    async fn spawn(
+    async fn spawn_pane(
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
-        _command_dir: Option<String>,
-        window: WindowId,
-    ) -> Result<Rc<Tab>, Error> {
+        command_dir: Option<String>,
+    ) -> anyhow::Result<Rc<dyn Pane>> {
         let pane_id = alloc_pane_id();
 
-        let cmd = match command {
-            Some(c) => c,
-            None => CommandBuilder::new_default_prog(),
-        };
-
-        let command_line = if cmd.is_default_prog() {
-            None
-        } else {
-            Some(cmd.as_unix_command_line()?)
-        };
-        let mut env: HashMap<String, String> = cmd
-            .iter_extra_env_as_str()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
-        env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
+        let (command_line, env) = self.build_command(pane_id, command, command_dir)?;
 
         let pty: Box<dyn portable_pty::MasterPty>;
         let child: Box<dyn portable_pty::Child + Send>;
         let writer: BoxedWriter;
 
-        if let Some(events) = self.take_events() {
+        let session = self.session.borrow().as_ref().map(|s| s.clone());
+
+        if let Some(session) = session {
+            let (concrete_pty, concrete_child) = session
+                .request_pty(
+                    &config::configuration().term,
+                    size,
+                    command_line.as_ref().map(|s| s.as_str()),
+                    Some(env),
+                )
+                .await?;
+
+            pty = Box::new(concrete_pty);
+            child = Box::new(concrete_child);
+            writer = Box::new(pty.try_clone_writer()?);
+        } else {
+            // We're starting the session
+            let (session, events) = Session::connect(self.ssh_config()?)?;
+            self.session.borrow_mut().replace(session.clone());
+
             // We get to establish the session!
             //
             // Since we want spawn to return the Pane in which
@@ -518,7 +592,6 @@ impl Domain for RemoteSshDomain {
             // And with those created, we can now spawn a new thread
             // to perform the blocking (from its perspective) terminal
             // UI to carry out any authentication.
-            let session = self.session.clone();
             let mut stdout_write = BufWriter::new(stdout_write);
             std::thread::spawn(move || {
                 if let Err(err) = connect_ssh_session(
@@ -539,20 +612,6 @@ impl Domain for RemoteSshDomain {
                 }
                 let _ = stdout_write.flush();
             });
-        } else {
-            let (concrete_pty, concrete_child) = self
-                .session
-                .request_pty(
-                    &config::configuration().term,
-                    size,
-                    command_line.as_ref().map(|s| s.as_str()),
-                    Some(env),
-                )
-                .await?;
-
-            pty = Box::new(concrete_pty);
-            child = Box::new(concrete_child);
-            writer = Box::new(pty.try_clone_writer()?);
         };
 
         // Wrap up the pty etc. in a LocalPane.  That allows for
@@ -567,96 +626,8 @@ impl Domain for RemoteSshDomain {
             writer,
         );
 
-        let mux = Mux::get().unwrap();
         let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(pane_id, terminal, child, pty, self.id));
-        let tab = Rc::new(Tab::new(&size));
-        tab.assign_pane(&pane);
-
-        mux.add_tab_and_active_pane(&tab)?;
-        mux.add_tab_to_window(&tab, window)?;
-
-        Ok(tab)
-    }
-
-    async fn split_pane(
-        &self,
-        command: Option<CommandBuilder>,
-        _command_dir: Option<String>,
-        tab: TabId,
-        pane_id: PaneId,
-        direction: SplitDirection,
-    ) -> anyhow::Result<Rc<dyn Pane>> {
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_tab(tab) {
-            Some(t) => t,
-            None => anyhow::bail!("Invalid tab id {}", tab),
-        };
-
-        let pane_index = match tab
-            .iter_panes()
-            .iter()
-            .find(|p| p.pane.pane_id() == pane_id)
-        {
-            Some(p) => p.index,
-            None => anyhow::bail!("invalid pane id {}", pane_id),
-        };
-
-        let split_size = match tab.compute_split_size(pane_index, direction) {
-            Some(s) => s,
-            None => anyhow::bail!("invalid pane index {}", pane_index),
-        };
-
-        let config = config::configuration();
-        let cmd = match command {
-            Some(mut cmd) => {
-                config.apply_cmd_defaults(&mut cmd, None);
-                cmd
-            }
-            None => config.build_prog(None, None, None)?,
-        };
-        let pane_id = alloc_pane_id();
-
-        let command_line = if cmd.is_default_prog() {
-            None
-        } else {
-            Some(cmd.as_unix_command_line()?)
-        };
-        let mut env: HashMap<String, String> = cmd
-            .iter_extra_env_as_str()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
-        env.insert("WEZTERM_PANE".to_string(), pane_id.to_string());
-
-        let (pty, child) = self
-            .session
-            .request_pty(
-                &config::configuration().term,
-                split_size.size(),
-                command_line.as_ref().map(|s| s.as_str()),
-                Some(env),
-            )
-            .await?;
-
-        let writer = pty.try_clone_writer()?;
-
-        let terminal = wezterm_term::Terminal::new(
-            crate::pty_size_to_terminal_size(split_size.second),
-            std::sync::Arc::new(config::TermConfig::new()),
-            "WezTerm",
-            config::wezterm_version(),
-            Box::new(writer),
-        );
-
-        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
-            pane_id,
-            terminal,
-            Box::new(child),
-            Box::new(pty),
-            self.id,
-        ));
-
-        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
-
         mux.add_pane(&pane)?;
 
         Ok(pane)
@@ -679,6 +650,9 @@ impl Domain for RemoteSshDomain {
     }
 
     fn state(&self) -> DomainState {
+        // Just pretend that we are always attached, as we don't
+        // have a defined attach operation that is distinct from
+        // a spawn.
         DomainState::Attached
     }
 }

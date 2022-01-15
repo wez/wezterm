@@ -116,6 +116,21 @@ impl WindowState {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum WindowKeyEvent {
+    RawKeyEvent(RawKeyEvent),
+    KeyEvent(KeyEvent),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DeadKeyStatus {
+    /// Not in a dead key processing hold
+    None,
+    /// Holding until composition is done; the string is the uncommitted
+    /// composition text to show as a placeholder
+    Composing(String),
+}
+
 #[derive(Debug)]
 pub enum WindowEvent {
     /// Called when the window close button is clicked.
@@ -131,6 +146,7 @@ pub enum WindowEvent {
     Resized {
         dimensions: Dimensions,
         window_state: WindowState,
+        live_resizing: bool,
     },
 
     /// Called when the window has been invalidated and needs to
@@ -140,12 +156,15 @@ pub enum WindowEvent {
     /// Called when the window gains/loses focus
     FocusChanged(bool),
 
+    AdviseDeadKeyStatus(DeadKeyStatus),
+
+    /// Called to handle a raw key event, prior to any dead key,
+    /// keymap composition or other higher level treatment.
+    /// If you handle this key event, you must call
+    /// event.set_handled() to prevent additional processing.
+    RawKeyEvent(RawKeyEvent),
+
     /// Called to handle a key event.
-    /// If you didn't handle this event, then you must call
-    /// window.default_key_processing(key) to allow the system to perform
-    /// the default key handling.
-    /// This is important on Windows for ALT keys to continue working
-    /// correctly.
     KeyEvent(KeyEvent),
 
     MouseEvent(MouseEvent),
@@ -216,8 +235,6 @@ pub trait WindowOps {
 
     /// Change the titlebar text for the window
     fn set_title(&self, title: &str);
-
-    fn default_key_processing(&self, _key: KeyEvent) {}
 
     /// Resize the inner or client area of the window
     fn set_inner_size(&self, width: usize, height: usize);

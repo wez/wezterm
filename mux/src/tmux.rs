@@ -1,7 +1,5 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{Pane, PaneId};
-use crate::tab::{SplitDirection, Tab, TabId};
-use crate::window::WindowId;
 use crate::Mux;
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -205,25 +203,13 @@ impl TmuxDomain {
 
 #[async_trait(?Send)]
 impl Domain for TmuxDomain {
-    async fn spawn(
+    async fn spawn_pane(
         &self,
         _size: PtySize,
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
-        _window: WindowId,
-    ) -> anyhow::Result<Rc<Tab>> {
-        anyhow::bail!("Spawn not yet implemented for TmuxDomain");
-    }
-
-    async fn split_pane(
-        &self,
-        _command: Option<CommandBuilder>,
-        _command_dir: Option<String>,
-        _tab: TabId,
-        _pane_id: PaneId,
-        _direction: SplitDirection,
     ) -> anyhow::Result<Rc<dyn Pane>> {
-        anyhow::bail!("split_pane not yet implemented for TmuxDomain");
+        anyhow::bail!("Spawn_pane not yet implemented for TmuxDomain");
     }
 
     fn domain_id(&self) -> DomainId {

@@ -33,6 +33,7 @@ env-bootstrap = { path = "../env-bootstrap" }
 euclid = "0.22"
 fastrand = "1.6"
 filedescriptor = { version="0.8", path = "../filedescriptor" }
+fuzzy-matcher = "0.3"
 hdrhistogram = "7.1"
 http_req = "0.8"
 image = "0.23"
@@ -45,9 +46,8 @@ metrics = { version="0.17", features=["std"]}
 mlua = "0.7"
 mux = { path = "../mux" }
 open = "2.0"
-ordered-float = "2.8"
+ordered-float = "2.10"
 palette = "0.5"
-percent-encoding = "2"
 portable-pty = { path = "../pty", features = ["serde_support", "ssh"]}
 promise = { path = "../promise" }
 pulldown-cmark = "0.9"

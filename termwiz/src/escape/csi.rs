@@ -757,6 +757,10 @@ pub enum DecPrivateModeCode {
 
     /// xterm: adjust cursor positioning after emitting sixel
     SixelScrollsRight = 8452,
+
+    /// Windows Terminal: win32-input-mode
+    /// <https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md>
+    Win32InputMode = 9001,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

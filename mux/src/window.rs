@@ -13,6 +13,7 @@ pub struct Window {
     active: usize,
     last_active: Option<TabId>,
     clipboard: Option<Arc<dyn Clipboard>>,
+    workspace: String,
 }
 
 impl Window {
@@ -23,6 +24,21 @@ impl Window {
             active: 0,
             last_active: None,
             clipboard: None,
+            workspace: "".to_string(),
+        }
+    }
+
+    pub fn get_workspace(&self) -> &str {
+        &self.workspace
+    }
+
+    pub fn set_workspace(&mut self, workspace: &str) {
+        if workspace == self.workspace {
+            return;
+        }
+        self.workspace = workspace.to_string();
+        if let Some(mux) = Mux::get() {
+            mux.notify(MuxNotification::WindowWorkspaceChanged(self.id));
         }
     }
 

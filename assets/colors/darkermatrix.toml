@@ -1,0 +1,12 @@
+# darkermatrix
+[colors]
+foreground = "#28380d"
+background = "#070c0e"
+cursor_bg = "#373a26"
+cursor_border = "#373a26"
+cursor_fg = "#00ff87"
+selection_bg = "#0f191c"
+selection_fg = "#00ff87"
+
+ansi = ["#091013","#002e18","#6fa64c","#595900","#00cb6b","#412a4d","#125459","#002e19"]
+brights = ["#333333","#00381d","#90d762","#e2e500","#00ff87","#412a4d","#176c73","#00381e"]

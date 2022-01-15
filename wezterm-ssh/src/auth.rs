@@ -1,9 +1,6 @@
 use crate::session::SessionEvent;
 use anyhow::Context;
-use libssh_rs as libssh;
 use smol::channel::{bounded, Sender};
-use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub struct AuthenticationPrompt {
@@ -30,6 +27,7 @@ impl AuthenticationEvent {
 }
 
 impl crate::sessioninner::SessionInner {
+    #[cfg(feature = "ssh2")]
     fn agent_auth(&mut self, sess: &ssh2::Session, user: &str) -> anyhow::Result<bool> {
         if let Some(only) = self.config.get("identitiesonly") {
             if only == "yes" {
@@ -55,12 +53,15 @@ impl crate::sessioninner::SessionInner {
         Ok(false)
     }
 
+    #[cfg(feature = "ssh2")]
     fn pubkey_auth(
         &mut self,
         sess: &ssh2::Session,
         user: &str,
         host: &str,
     ) -> anyhow::Result<bool> {
+        use std::path::{Path, PathBuf};
+
         if let Some(files) = self.config.get("identityfile") {
             for file in files.split_whitespace() {
                 let pubkey: PathBuf = format!("{}.pub", file).into();
@@ -127,7 +128,9 @@ impl crate::sessioninner::SessionInner {
         Ok(false)
     }
 
-    pub fn authenticate_libssh(&mut self, sess: &libssh::Session) -> anyhow::Result<()> {
+    #[cfg(feature = "libssh-rs")]
+    pub fn authenticate_libssh(&mut self, sess: &libssh_rs::Session) -> anyhow::Result<()> {
+        use std::collections::HashMap;
         let tx = self.tx_event.clone();
 
         // Set the callback for pubkey auth
@@ -153,7 +156,7 @@ impl crate::sessioninner::SessionInner {
             Ok(answers.remove(0))
         });
 
-        use libssh::{AuthMethods, AuthStatus};
+        use libssh_rs::{AuthMethods, AuthStatus};
         match sess.userauth_none(None)? {
             AuthStatus::Success => return Ok(()),
             _ => {}
@@ -249,12 +252,15 @@ impl crate::sessioninner::SessionInner {
         }
     }
 
+    #[cfg(feature = "ssh2")]
     pub fn authenticate(
         &mut self,
         sess: &ssh2::Session,
         user: &str,
         host: &str,
     ) -> anyhow::Result<()> {
+        use std::collections::HashSet;
+
         loop {
             if sess.authenticated() {
                 return Ok(());

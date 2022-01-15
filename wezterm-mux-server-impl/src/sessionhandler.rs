@@ -1,13 +1,11 @@
 use crate::PKI;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use codec::*;
-use config::keyassignment::SpawnTabDomain;
+use mux::client::ClientId;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::TabId;
 use mux::Mux;
-use percent_encoding::percent_decode_str;
-use portable_pty::PtySize;
 use promise::spawn::spawn_into_main_thread;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -45,6 +43,7 @@ pub(crate) struct PerPane {
     mouse_grabbed: bool,
     sent_initial_palette: bool,
     seqno: SequenceNo,
+    config_generation: usize,
     pub(crate) notifications: Vec<Alert>,
 }
 
@@ -100,10 +99,14 @@ impl PerPane {
         let mut bonus_lines = lines
             .into_iter()
             .enumerate()
-            .map(|(idx, line)| {
-                let stable_row = first_line + idx as StableRowIndex;
-                all_dirty_lines.remove(stable_row);
-                (stable_row, line)
+            .filter_map(|(idx, line)| {
+                if line.changed_since(self.seqno) {
+                    let stable_row = first_line + idx as StableRowIndex;
+                    all_dirty_lines.remove(stable_row);
+                    Some((stable_row, line))
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>();
 
@@ -147,6 +150,18 @@ fn maybe_push_pane_changes(
             serial: 0,
         })?;
     }
+
+    let config = config::configuration();
+    if per_pane.config_generation != config.generation() {
+        per_pane.config_generation = config.generation();
+        // If the config changed, it may have changed colors
+        // in the palette that we need to push down, so we
+        // synthesize a palette change notification to let
+        // the client know
+        per_pane.notifications.push(Alert::PaletteChanged);
+        per_pane.sent_initial_palette = true;
+    }
+
     if !per_pane.sent_initial_palette {
         per_pane.notifications.push(Alert::PaletteChanged);
         per_pane.sent_initial_palette = true;
@@ -179,6 +194,16 @@ fn maybe_push_pane_changes(
 pub struct SessionHandler {
     to_write_tx: PduSender,
     per_pane: HashMap<TabId, Arc<Mutex<PerPane>>>,
+    client_id: Option<ClientId>,
+}
+
+impl Drop for SessionHandler {
+    fn drop(&mut self) {
+        if let Some(client_id) = self.client_id.take() {
+            let mux = Mux::get().unwrap();
+            mux.unregister_client(&client_id);
+        }
+    }
 }
 
 impl SessionHandler {
@@ -197,6 +222,7 @@ impl SessionHandler {
         Self {
             to_write_tx,
             per_pane: HashMap::new(),
+            client_id: None,
         }
     }
 
@@ -227,6 +253,10 @@ impl SessionHandler {
         let sender = self.to_write_tx.clone();
         let serial = decoded.serial;
 
+        if let Some(client_id) = &self.client_id {
+            Mux::get().unwrap().client_had_input(client_id);
+        }
+
         let send_response = move |result: anyhow::Result<Pdu>| {
             let pdu = match result {
                 Ok(pdu) => pdu,
@@ -248,6 +278,49 @@ impl SessionHandler {
 
         match decoded.pdu {
             Pdu::Ping(Ping {}) => send_response(Ok(Pdu::Pong(Pong {}))),
+            Pdu::SetWindowWorkspace(SetWindowWorkspace {
+                window_id,
+                workspace,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let mut window = mux
+                                .get_window_mut(window_id)
+                                .ok_or_else(|| anyhow!("window {} is invalid", window_id))?;
+                            window.set_workspace(&workspace);
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+            Pdu::SetClientId(SetClientId { client_id }) => {
+                self.client_id.replace(client_id.clone());
+                spawn_into_main_thread(async move {
+                    let mux = Mux::get().unwrap();
+                    mux.register_client(&client_id);
+                })
+                .detach();
+                send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
+            }
+            Pdu::GetClientList(GetClientList) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let clients = mux.iter_clients();
+                            Ok(Pdu::GetClientListResponse(GetClientListResponse {
+                                clients,
+                            }))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
             Pdu::ListPanes(ListPanes {}) => {
                 spawn_into_main_thread(async move {
                     catch(
@@ -456,14 +529,6 @@ impl SessionHandler {
                 .detach();
             }
 
-            Pdu::Spawn(spawn) => {
-                let sender = self.to_write_tx.clone();
-                spawn_into_main_thread(async move {
-                    schedule_domain_spawn(spawn, sender, send_response);
-                })
-                .detach();
-            }
-
             Pdu::SpawnV2(spawn) => {
                 let sender = self.to_write_tx.clone();
                 spawn_into_main_thread(async move {
@@ -534,10 +599,18 @@ impl SessionHandler {
             }
 
             Pdu::GetCodecVersion(_) => {
-                send_response(Ok(Pdu::GetCodecVersionResponse(GetCodecVersionResponse {
-                    codec_vers: CODEC_VERSION,
-                    version_string: config::wezterm_version().to_owned(),
-                })))
+                match std::env::current_exe().context("resolving current_exe") {
+                    Err(err) => send_response(Err(err)),
+                    Ok(executable_path) => {
+                        send_response(Ok(Pdu::GetCodecVersionResponse(GetCodecVersionResponse {
+                            codec_vers: CODEC_VERSION,
+                            version_string: config::wezterm_version().to_owned(),
+                            executable_path,
+                            config_file_path: std::env::var_os("WEZTERM_CONFIG_FILE")
+                                .map(Into::into),
+                        })))
+                    }
+                }
             }
 
             Pdu::GetTlsCreds(_) => {
@@ -567,7 +640,9 @@ impl SessionHandler {
             | Pdu::SearchScrollbackResponse { .. }
             | Pdu::GetLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }
+            | Pdu::WindowWorkspaceChanged { .. }
             | Pdu::GetTlsCredsResponse { .. }
+            | Pdu::GetClientListResponse { .. }
             | Pdu::PaneRemoved { .. }
             | Pdu::ErrorResponse { .. } => {
                 send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))
@@ -580,13 +655,6 @@ impl SessionHandler {
 // function below because the compiler thinks that all of its locals then need to be Send.
 // We need to shimmy through this helper to break that aspect of the compiler flow
 // analysis and allow things to compile.
-fn schedule_domain_spawn<SND>(spawn: Spawn, sender: PduSender, send_response: SND)
-where
-    SND: Fn(anyhow::Result<Pdu>) + 'static,
-{
-    promise::spawn::spawn(async move { send_response(domain_spawn(spawn, sender).await) }).detach();
-}
-
 fn schedule_domain_spawn_v2<SND>(spawn: SpawnV2, sender: PduSender, send_response: SND)
 where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
@@ -627,67 +695,25 @@ impl Clipboard for RemoteClipboard {
 
 async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
-    let (pane_domain_id, window_id, tab_id) = mux
+    let (_pane_domain_id, window_id, tab_id) = mux
         .resolve_pane_id(split.pane_id)
         .ok_or_else(|| anyhow!("pane_id {} invalid", split.pane_id))?;
 
-    let domain = match split.domain {
-        SpawnTabDomain::DefaultDomain => mux.default_domain(),
-        SpawnTabDomain::CurrentPaneDomain => mux
-            .get_domain(pane_domain_id)
-            .expect("resolve_pane_id to give valid domain_id"),
-        SpawnTabDomain::DomainName(name) => mux
-            .get_domain_by_name(&name)
-            .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
-    };
-
-    let pane_id = split.pane_id;
-    let current_pane = mux
-        .get_pane(pane_id)
-        .ok_or_else(|| anyhow!("pane_id {} is invalid", pane_id))?;
-    let term_config = current_pane.get_config();
-
-    let cwd = split.command_dir.or_else(|| {
-        mux.get_pane(pane_id)
-            .and_then(|pane| pane.get_current_working_dir())
-            .and_then(|url| {
-                percent_decode_str(url.path())
-                    .decode_utf8()
-                    .ok()
-                    .map(|path| path.into_owned())
-            })
-            .map(|path| {
-                // On Windows the file URI can produce a path like:
-                // `/C:\Users` which is valid in a file URI, but the leading slash
-                // is not liked by the windows file APIs, so we strip it off here.
-                let bytes = path.as_bytes();
-                if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
-                    path[1..].to_owned()
-                } else {
-                    path
-                }
-            })
-    });
-
-    let pane = domain
-        .split_pane(split.command, cwd, tab_id, split.pane_id, split.direction)
+    let (pane, size) = mux
+        .split_pane(
+            split.pane_id,
+            split.direction,
+            split.command,
+            split.command_dir,
+            split.domain,
+        )
         .await?;
-    let dims = pane.get_dimensions();
-    let size = PtySize {
-        cols: dims.cols as u16,
-        rows: dims.viewport_rows as u16,
-        pixel_height: 0,
-        pixel_width: 0,
-    };
 
     let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
         pane_id: pane.pane_id(),
         sender,
     });
     pane.set_clipboard(&clip);
-    if let Some(config) = term_config {
-        pane.set_config(config);
-    }
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
         pane_id: pane.pane_id(),
@@ -697,90 +723,19 @@ async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> 
     }))
 }
 
-async fn domain_spawn(spawn: Spawn, sender: PduSender) -> anyhow::Result<Pdu> {
-    let mux = Mux::get().unwrap();
-    let domain = mux
-        .get_domain(spawn.domain_id)
-        .ok_or_else(|| anyhow!("domain {} not found on this server", spawn.domain_id))?;
-    let window_builder;
-
-    let window_id = if let Some(window_id) = spawn.window_id {
-        mux.get_window_mut(window_id)
-            .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
-        window_id
-    } else {
-        window_builder = mux.new_empty_window();
-        *window_builder
-    };
-
-    let tab = domain
-        .spawn(spawn.size, spawn.command, spawn.command_dir, window_id)
-        .await?;
-
-    let pane = tab
-        .get_active_pane()
-        .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
-
-    let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
-        pane_id: pane.pane_id(),
-        sender,
-    });
-    pane.set_clipboard(&clip);
-
-    Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
-        pane_id: pane.pane_id(),
-        tab_id: tab.tab_id(),
-        window_id,
-        size: tab.get_size(),
-    }))
-}
-
 async fn domain_spawn_v2(spawn: SpawnV2, sender: PduSender) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
 
-    let domain = match spawn.domain {
-        SpawnTabDomain::DefaultDomain => mux.default_domain(),
-        SpawnTabDomain::CurrentPaneDomain => anyhow::bail!("must give a domain"),
-        SpawnTabDomain::DomainName(name) => mux
-            .get_domain_by_name(&name)
-            .ok_or_else(|| anyhow!("domain name {} is invalid", name))?,
-    };
-
-    let window_builder;
-    let term_config;
-
-    let (window_id, size) = if let Some(window_id) = spawn.window_id {
-        let window = mux
-            .get_window_mut(window_id)
-            .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
-        let tab = window
-            .get_active()
-            .ok_or_else(|| anyhow!("window {} has no tabs", window_id))?;
-        let pane = tab
-            .get_active_pane()
-            .ok_or_else(|| anyhow!("active tab in window {} has no panes", window_id))?;
-        term_config = pane.get_config();
-
-        let size = tab.get_size();
-
-        (window_id, size)
-    } else {
-        term_config = None;
-        window_builder = mux.new_empty_window();
-        (*window_builder, spawn.size)
-    };
-
-    let tab = domain
-        .spawn(size, spawn.command, spawn.command_dir, window_id)
+    let (tab, pane, window_id) = mux
+        .spawn_tab_or_window(
+            spawn.window_id,
+            spawn.domain,
+            spawn.command,
+            spawn.command_dir,
+            spawn.size,
+            None, // optional current pane_id
+        )
         .await?;
-
-    let pane = tab
-        .get_active_pane()
-        .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
-
-    if let Some(config) = term_config {
-        pane.set_config(config);
-    }
 
     let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
         pane_id: pane.pane_id(),

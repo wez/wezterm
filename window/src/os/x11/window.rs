@@ -4,9 +4,9 @@ use crate::connection::ConnectionOps;
 use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
-    Appearance, Clipboard, Dimensions, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
-    MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent, WindowEventSender,
-    WindowOps, WindowState,
+    Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
+    MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,
+    WindowEventSender, WindowOps, WindowState,
 };
 use anyhow::{anyhow, Context as _};
 use async_trait::async_trait;
@@ -161,6 +161,7 @@ impl XWindowInner {
                     dpi: self.dpi as usize,
                 },
                 window_state: self.get_window_state().unwrap_or(WindowState::default()),
+                live_resizing: false,
             });
         }
     }
@@ -264,15 +265,15 @@ impl XWindowInner {
                 self.queue_pending(WindowEvent::Resized {
                     dimensions,
                     window_state: self.get_window_state().unwrap_or(WindowState::default()),
+                    // Assume that we're live resizing: we don't know for sure,
+                    // but it seems like a reasonable assumption
+                    live_resizing: true,
                 });
             }
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 self.copy_and_paste.time = key_press.time();
-                if let Some(key) = conn.keyboard.process_key_event(key_press) {
-                    let key = key.normalize_shift();
-                    self.events.dispatch(WindowEvent::KeyEvent(key));
-                }
+                conn.keyboard.process_key_event(key_press, &mut self.events);
             }
 
             xcb::MOTION_NOTIFY => {
@@ -422,15 +423,18 @@ impl XWindowInner {
         Ok(())
     }
 
+    pub fn dispatch_ime_compose_status(&mut self, status: DeadKeyStatus) {
+        self.events
+            .dispatch(WindowEvent::AdviseDeadKeyStatus(status));
+    }
+
     pub fn dispatch_ime_text(&mut self, text: &str) {
         let key_event = KeyEvent {
             key: KeyCode::Composed(text.into()),
-            raw_key: None,
-            raw_modifiers: Modifiers::NONE,
-            raw_code: None,
             modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,
+            raw: None,
         }
         .normalize_shift();
         self.events.dispatch(WindowEvent::KeyEvent(key_event));
@@ -984,7 +988,7 @@ impl XWindowInner {
         self.conn().ime.borrow_mut().update_pos(
             self.window_id,
             self.last_cursor_position.min_x() as i16,
-            self.last_cursor_position.max_y() as i16,
+            (self.last_cursor_position.max_y() + self.last_cursor_position.height()) as i16,
         );
     }
 

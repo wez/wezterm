@@ -24,12 +24,8 @@ use termwiz::color::RgbColor;
 use termwiz::image::{ImageData, ImageDataType};
 use termwiz::surface::CursorShape;
 use wezterm_font::units::*;
-use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont};
+use wezterm_font::{FontConfiguration, GlyphInfo, LoadedFont, LoadedFontId};
 use wezterm_term::Underline;
-
-pub fn rc_to_usize<T>(rc: &Rc<T>) -> usize {
-    Rc::as_ptr(rc) as usize
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CellMetricKey {
@@ -60,8 +56,7 @@ pub struct GlyphKey {
     pub style: TextStyle,
     pub followed_by_space: bool,
     pub metric: CellMetricKey,
-    /// as produced by rc_to_usize
-    pub font_ptr: usize,
+    pub id: LoadedFontId,
 }
 
 /// We'd like to avoid allocating when resolving from the cache
@@ -77,8 +72,7 @@ pub struct BorrowedGlyphKey<'a> {
     pub style: &'a TextStyle,
     pub followed_by_space: bool,
     pub metric: CellMetricKey,
-    /// as produced by rc_to_usize
-    pub font_ptr: usize,
+    pub id: LoadedFontId,
 }
 
 impl<'a> BorrowedGlyphKey<'a> {
@@ -90,7 +84,7 @@ impl<'a> BorrowedGlyphKey<'a> {
             style: self.style.clone(),
             followed_by_space: self.followed_by_space,
             metric: self.metric,
-            font_ptr: self.font_ptr,
+            id: self.id,
         }
     }
 }
@@ -108,7 +102,7 @@ impl GlyphKeyTrait for GlyphKey {
             style: &self.style,
             followed_by_space: self.followed_by_space,
             metric: self.metric,
-            font_ptr: self.font_ptr,
+            id: self.id,
         }
     }
 }
@@ -358,7 +352,7 @@ impl<T: Texture2d> GlyphCache<T> {
             style,
             followed_by_space,
             metric: metrics.into(),
-            font_ptr: rc_to_usize(font),
+            id: font.id(),
         };
 
         if let Some(entry) = self.glyph_cache.get(&key as &dyn GlyphKeyTrait) {
@@ -503,14 +497,17 @@ impl<T: Texture2d> GlyphCache<T> {
             }
         };
 
-        let descender_adjust = {
+        let descender_adjust = PixelLength::new(0.0);
+        /* It seems like we don't really need this bit any more.
+         * See #1203 and #1499
             if info.font_idx == 0 {
                 PixelLength::new(0.0)
             } else {
                 let descender = idx_metrics.descender * scale;
-                base_metrics.descender - descender
+                base_metrics.descender - descender;
+                PixelLength::new(0.0)
             }
-        };
+        */
 
         let (cell_width, cell_height) = (base_metrics.cell_width, base_metrics.cell_height);
 

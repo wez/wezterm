@@ -1,10 +1,6 @@
 use crate::session::SessionEvent;
-use anyhow::{anyhow, Context};
-use libssh_rs as libssh;
+use anyhow::Context;
 use smol::channel::{bounded, Sender};
-use ssh2::CheckResult;
-use std::io::Write;
-use std::path::Path;
 
 #[derive(Debug)]
 pub struct HostVerificationEvent {
@@ -22,19 +18,20 @@ impl HostVerificationEvent {
 }
 
 impl crate::sessioninner::SessionInner {
+    #[cfg(feature = "libssh-rs")]
     pub fn host_verification_libssh(
         &mut self,
-        sess: &libssh::Session,
+        sess: &libssh_rs::Session,
         hostname: &str,
         port: u16,
     ) -> anyhow::Result<()> {
         let key = sess
             .get_server_public_key()?
-            .get_public_key_hash_hexa(libssh::PublicKeyHashType::Sha256)?;
+            .get_public_key_hash_hexa(libssh_rs::PublicKeyHashType::Sha256)?;
 
         match sess.is_known_server()? {
-            libssh::KnownHosts::Ok => Ok(()),
-            libssh::KnownHosts::NotFound | libssh::KnownHosts::Unknown => {
+            libssh_rs::KnownHosts::Ok => Ok(()),
+            libssh_rs::KnownHosts::NotFound | libssh_rs::KnownHosts::Unknown => {
                 let (reply, confirm) = bounded(1);
                 self.tx_event
                     .try_send(SessionEvent::HostVerify(HostVerificationEvent {
@@ -57,7 +54,7 @@ impl crate::sessioninner::SessionInner {
 
                 Ok(sess.update_known_hosts_file()?)
             }
-            libssh::KnownHosts::Changed => {
+            libssh_rs::KnownHosts::Changed => {
                 anyhow::bail!(
                     "host key mismatch for ssh server {}:{}.\n\
                          Got fingerprint {} instead of expected value from known_hosts\n\
@@ -68,7 +65,7 @@ impl crate::sessioninner::SessionInner {
                     key,
                 );
             }
-            libssh::KnownHosts::Other => {
+            libssh_rs::KnownHosts::Other => {
                 anyhow::bail!(
                     "The host key for this server was not found, but another\n\
             type of key exists. An attacker might change the default\n\
@@ -78,6 +75,8 @@ impl crate::sessioninner::SessionInner {
             }
         }
     }
+
+    #[cfg(feature = "ssh2")]
     pub fn host_verification(
         &mut self,
         sess: &ssh2::Session,
@@ -85,6 +84,10 @@ impl crate::sessioninner::SessionInner {
         port: u16,
         remote_address: &str,
     ) -> anyhow::Result<()> {
+        use anyhow::anyhow;
+        use std::io::Write;
+        use std::path::Path;
+
         let mut known_hosts = sess.known_hosts().context("preparing known hosts")?;
 
         let known_hosts_files = self
@@ -135,8 +138,8 @@ impl crate::sessioninner::SessionInner {
                 .ok_or_else(|| anyhow!("failed to get host fingerprint"))?;
 
             match known_hosts.check_port(&remote_host_name, port, key) {
-                CheckResult::Match => {}
-                CheckResult::NotFound => {
+                ssh2::CheckResult::Match => {}
+                ssh2::CheckResult::NotFound => {
                     let (reply, confirm) = bounded(1);
                     self.tx_event
                         .try_send(SessionEvent::HostVerify(HostVerificationEvent {
@@ -171,7 +174,7 @@ impl crate::sessioninner::SessionInner {
                         .write_file(&file, ssh2::KnownHostFileKind::OpenSSH)
                         .with_context(|| format!("writing known_hosts file {}", file.display()))?;
                 }
-                CheckResult::Mismatch => {
+                ssh2::CheckResult::Mismatch => {
                     anyhow::bail!(
                         "host key mismatch for ssh server {}.\n\
                          Got fingerprint {} instead of expected value from known_hosts\n\
@@ -182,7 +185,7 @@ impl crate::sessioninner::SessionInner {
                         file.display()
                     );
                 }
-                CheckResult::Failure => {
+                ssh2::CheckResult::Failure => {
                     anyhow::bail!("failed to check the known hosts");
                 }
             }

@@ -67,27 +67,19 @@ impl Line {
         Self { bits, cells, seqno }
     }
 
-    pub fn from_cells(cells: Vec<Cell>) -> Self {
+    pub fn from_cells(cells: Vec<Cell>, seqno: SequenceNo) -> Self {
         let bits = LineBits::NONE;
-        Self {
-            bits,
-            cells,
-            seqno: SEQ_ZERO,
-        }
+        Self { bits, cells, seqno }
     }
 
-    pub fn with_width(width: usize) -> Self {
+    pub fn with_width(width: usize, seqno: SequenceNo) -> Self {
         let mut cells = Vec::with_capacity(width);
         cells.resize_with(width, Cell::blank);
         let bits = LineBits::NONE;
-        Self {
-            bits,
-            cells,
-            seqno: SEQ_ZERO,
-        }
+        Self { bits, cells, seqno }
     }
 
-    pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
+    pub fn from_text(s: &str, attrs: &CellAttributes, seqno: SequenceNo) -> Line {
         let mut cells = Vec::new();
 
         for sub in s.graphemes(true) {
@@ -102,12 +94,16 @@ impl Line {
         Line {
             cells,
             bits: LineBits::NONE,
-            seqno: SEQ_ZERO,
+            seqno,
         }
     }
 
-    pub fn from_text_with_wrapped_last_col(s: &str, attrs: &CellAttributes) -> Line {
-        let mut line = Self::from_text(s, attrs);
+    pub fn from_text_with_wrapped_last_col(
+        s: &str,
+        attrs: &CellAttributes,
+        seqno: SequenceNo,
+    ) -> Line {
+        let mut line = Self::from_text(s, attrs, seqno);
         line.cells
             .last_mut()
             .map(|cell| cell.attrs_mut().set_wrapped(true));
@@ -366,12 +362,12 @@ impl Line {
         s
     }
 
-    pub fn split_off(&mut self, idx: usize) -> Self {
+    pub fn split_off(&mut self, idx: usize, seqno: SequenceNo) -> Self {
         let cells = self.cells.split_off(idx);
         Self {
             bits: self.bits,
             cells,
-            seqno: SEQ_ZERO,
+            seqno,
         }
     }
 
@@ -634,8 +630,8 @@ impl Line {
         })
     }
 
-    pub fn cluster(&self) -> Vec<CellCluster> {
-        CellCluster::make_cluster(self.cells.len(), self.visible_cells())
+    pub fn cluster(&self, cursor_idx: Option<usize>) -> Vec<CellCluster> {
+        CellCluster::make_cluster(self.cells.len(), self.visible_cells(), cursor_idx)
     }
 
     pub fn cells(&self) -> &[Cell] {
@@ -756,7 +752,7 @@ impl Line {
 
 impl<'a> From<&'a str> for Line {
     fn from(s: &str) -> Line {
-        Line::from_text(s, &CellAttributes::default())
+        Line::from_text(s, &CellAttributes::default(), SEQ_ZERO)
     }
 }
 
