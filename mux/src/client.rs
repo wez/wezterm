@@ -2,6 +2,7 @@ use chrono::serde::ts_seconds;
 use chrono::{DateTime, Utc};
 use serde::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::SystemTime;
 
 static CLIENT_ID: AtomicUsize = AtomicUsize::new(0);
@@ -37,7 +38,7 @@ impl ClientId {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
 pub struct ClientInfo {
-    pub client_id: ClientId,
+    pub client_id: Arc<ClientId>,
     /// The time this client last connected
     #[serde(with = "ts_seconds")]
     pub connected_at: DateTime<Utc>,
@@ -49,9 +50,9 @@ pub struct ClientInfo {
 }
 
 impl ClientInfo {
-    pub fn new(client_id: &ClientId) -> Self {
+    pub fn new(client_id: Arc<ClientId>) -> Self {
         Self {
-            client_id: client_id.clone(),
+            client_id,
             connected_at: Utc::now(),
             active_workspace: None,
             last_input: Utc::now(),

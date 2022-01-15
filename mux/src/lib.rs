@@ -42,6 +42,8 @@ pub mod window;
 
 use crate::activity::Activity;
 
+pub const DEFAULT_WORKSPACE: &str = "default";
+
 #[derive(Clone, Debug)]
 pub enum MuxNotification {
     PaneOutput(PaneId),
@@ -70,6 +72,7 @@ pub struct Mux {
     subscribers: RefCell<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool>>>,
     banner: RefCell<Option<String>>,
     clients: RefCell<HashMap<ClientId, ClientInfo>>,
+    identity: RefCell<Option<Arc<ClientId>>>,
 }
 
 const BUFSIZE: usize = 1024 * 1024;
@@ -324,6 +327,7 @@ impl Mux {
             subscribers: RefCell::new(HashMap::new()),
             banner: RefCell::new(None),
             clients: RefCell::new(HashMap::new()),
+            identity: RefCell::new(None),
         }
     }
 
@@ -333,10 +337,10 @@ impl Mux {
         }
     }
 
-    pub fn register_client(&self, client_id: &ClientId) {
+    pub fn register_client(&self, client_id: Arc<ClientId>) {
         self.clients
             .borrow_mut()
-            .insert(client_id.clone(), ClientInfo::new(client_id));
+            .insert((*client_id).clone(), ClientInfo::new(client_id));
     }
 
     pub fn iter_clients(&self) -> Vec<ClientInfo> {
@@ -345,6 +349,44 @@ impl Mux {
             .values()
             .map(|info| info.clone())
             .collect()
+    }
+
+    /// Returns the effective active workspace name
+    pub fn active_workspace(&self) -> String {
+        self.identity
+            .borrow()
+            .as_ref()
+            .and_then(|ident| {
+                self.clients
+                    .borrow()
+                    .get(&ident)
+                    .and_then(|info| info.active_workspace.clone())
+            })
+            .unwrap_or_else(|| DEFAULT_WORKSPACE.to_string())
+    }
+
+    /// Assigns the active workspace name for the current identity
+    pub fn set_active_workspace(&self, workspace: &str) {
+        if let Some(ident) = self.identity.borrow().clone() {
+            let mut clients = self.clients.borrow_mut();
+            if let Some(info) = clients.get_mut(&ident) {
+                info.active_workspace.replace(workspace.to_string());
+            }
+        }
+    }
+
+    /// Overrides the current client identity.
+    /// Returns `IdentityHolder` which will restore the prior identity
+    /// when it is dropped.
+    /// This can be used to change the identity for the duration of a block.
+    pub fn with_identity(&self, id: Option<Arc<ClientId>>) -> IdentityHolder {
+        let prior = self.replace_identity(id);
+        IdentityHolder { prior }
+    }
+
+    /// Replace the identity, returning the prior identity
+    pub fn replace_identity(&self, id: Option<Arc<ClientId>>) -> Option<Arc<ClientId>> {
+        std::mem::replace(&mut *self.identity.borrow_mut(), id)
     }
 
     pub fn unregister_client(&self, client_id: &ClientId) {
@@ -872,6 +914,18 @@ impl Mux {
         }
 
         Ok((tab, pane, window_id))
+    }
+}
+
+pub struct IdentityHolder {
+    prior: Option<Arc<ClientId>>,
+}
+
+impl Drop for IdentityHolder {
+    fn drop(&mut self) {
+        if let Some(mux) = Mux::get() {
+            mux.replace_identity(self.prior.take());
+        }
     }
 }
 

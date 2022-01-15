@@ -194,7 +194,7 @@ fn maybe_push_pane_changes(
 pub struct SessionHandler {
     to_write_tx: PduSender,
     per_pane: HashMap<TabId, Arc<Mutex<PerPane>>>,
-    client_id: Option<ClientId>,
+    client_id: Option<Arc<ClientId>>,
 }
 
 impl Drop for SessionHandler {
@@ -298,10 +298,11 @@ impl SessionHandler {
                 .detach();
             }
             Pdu::SetClientId(SetClientId { client_id }) => {
+                let client_id = Arc::new(client_id);
                 self.client_id.replace(client_id.clone());
                 spawn_into_main_thread(async move {
                     let mux = Mux::get().unwrap();
-                    mux.register_client(&client_id);
+                    mux.register_client(client_id);
                 })
                 .detach();
                 send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
@@ -531,16 +532,18 @@ impl SessionHandler {
 
             Pdu::SpawnV2(spawn) => {
                 let sender = self.to_write_tx.clone();
+                let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
-                    schedule_domain_spawn_v2(spawn, sender, send_response);
+                    schedule_domain_spawn_v2(spawn, sender, send_response, client_id);
                 })
                 .detach();
             }
 
             Pdu::SplitPane(split) => {
                 let sender = self.to_write_tx.clone();
+                let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
-                    schedule_split_pane(split, sender, send_response);
+                    schedule_split_pane(split, sender, send_response, client_id);
                 })
                 .detach();
             }
@@ -655,19 +658,30 @@ impl SessionHandler {
 // function below because the compiler thinks that all of its locals then need to be Send.
 // We need to shimmy through this helper to break that aspect of the compiler flow
 // analysis and allow things to compile.
-fn schedule_domain_spawn_v2<SND>(spawn: SpawnV2, sender: PduSender, send_response: SND)
-where
+fn schedule_domain_spawn_v2<SND>(
+    spawn: SpawnV2,
+    sender: PduSender,
+    send_response: SND,
+    client_id: Option<Arc<ClientId>>,
+) where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
 {
-    promise::spawn::spawn(async move { send_response(domain_spawn_v2(spawn, sender).await) })
-        .detach();
+    promise::spawn::spawn(
+        async move { send_response(domain_spawn_v2(spawn, sender, client_id).await) },
+    )
+    .detach();
 }
 
-fn schedule_split_pane<SND>(split: SplitPane, sender: PduSender, send_response: SND)
-where
+fn schedule_split_pane<SND>(
+    split: SplitPane,
+    sender: PduSender,
+    send_response: SND,
+    client_id: Option<Arc<ClientId>>,
+) where
     SND: Fn(anyhow::Result<Pdu>) + 'static,
 {
-    promise::spawn::spawn(async move { send_response(split_pane(split, sender).await) }).detach();
+    promise::spawn::spawn(async move { send_response(split_pane(split, sender, client_id).await) })
+        .detach();
 }
 
 struct RemoteClipboard {
@@ -693,8 +707,14 @@ impl Clipboard for RemoteClipboard {
     }
 }
 
-async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> {
+async fn split_pane(
+    split: SplitPane,
+    sender: PduSender,
+    client_id: Option<Arc<ClientId>>,
+) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
+    let _identity = mux.with_identity(client_id);
+
     let (_pane_domain_id, window_id, tab_id) = mux
         .resolve_pane_id(split.pane_id)
         .ok_or_else(|| anyhow!("pane_id {} invalid", split.pane_id))?;
@@ -723,8 +743,13 @@ async fn split_pane(split: SplitPane, sender: PduSender) -> anyhow::Result<Pdu> 
     }))
 }
 
-async fn domain_spawn_v2(spawn: SpawnV2, sender: PduSender) -> anyhow::Result<Pdu> {
+async fn domain_spawn_v2(
+    spawn: SpawnV2,
+    sender: PduSender,
+    client_id: Option<Arc<ClientId>>,
+) -> anyhow::Result<Pdu> {
     let mux = Mux::get().unwrap();
+    let _identity = mux.with_identity(client_id);
 
     let (tab, pane, window_id) = mux
         .spawn_tab_or_window(

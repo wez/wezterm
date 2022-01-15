@@ -24,7 +24,9 @@ impl Window {
             active: 0,
             last_active: None,
             clipboard: None,
-            workspace: "".to_string(),
+            workspace: Mux::get()
+                .expect("Window::new to be called on mux thread")
+                .active_workspace(),
         }
     }
 

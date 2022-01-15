@@ -167,9 +167,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
 
     let pty_system = Box::new(serial);
     let domain: Arc<dyn Domain> = Arc::new(LocalDomain::with_pty_system("local", pty_system));
-    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
-    Mux::set_mux(&mux);
-    crate::update::load_last_release_info_and_set_banner();
+    let mux = setup_mux(domain.clone(), &config, Some("local"))?;
 
     let gui = crate::frontend::try_new()?;
     block_on(domain.attach())?; // FIXME: blocking
@@ -514,13 +512,17 @@ fn spawn_mux_server(unix_socket_path: PathBuf, should_publish: bool) -> anyhow::
     Ok(())
 }
 
-fn build_initial_mux(
+fn setup_mux(
+    local_domain: Arc<dyn Domain>,
     config: &ConfigHandle,
     default_domain_name: Option<&str>,
 ) -> anyhow::Result<Rc<Mux>> {
-    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
-    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
+    let mux = Rc::new(mux::Mux::new(Some(local_domain.clone())));
     Mux::set_mux(&mux);
+    let client_id = Arc::new(mux::client::ClientId::new());
+    mux.register_client(client_id.clone());
+    mux.replace_identity(Some(client_id));
+    mux.set_active_workspace(mux::DEFAULT_WORKSPACE);
     crate::update::load_last_release_info_and_set_banner();
     update_mux_domains(config)?;
 
@@ -536,6 +538,14 @@ fn build_initial_mux(
     mux.set_default_domain(&domain);
 
     Ok(mux)
+}
+
+fn build_initial_mux(
+    config: &ConfigHandle,
+    default_domain_name: Option<&str>,
+) -> anyhow::Result<Rc<Mux>> {
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
+    setup_mux(domain, config, default_domain_name)
 }
 
 fn run_terminal_gui(opts: StartCommand) -> anyhow::Result<()> {
