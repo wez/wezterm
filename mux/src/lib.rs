@@ -419,14 +419,18 @@ impl Mux {
             .unwrap_or_else(|| DEFAULT_WORKSPACE.to_string())
     }
 
+    pub fn set_active_workspace_for_client(&self, ident: &Arc<ClientId>, workspace: &str) {
+        let mut clients = self.clients.borrow_mut();
+        if let Some(info) = clients.get_mut(&ident) {
+            info.active_workspace.replace(workspace.to_string());
+            self.notify(MuxNotification::ActiveWorkspaceChanged(ident.clone()));
+        }
+    }
+
     /// Assigns the active workspace name for the current identity
     pub fn set_active_workspace(&self, workspace: &str) {
         if let Some(ident) = self.identity.borrow().clone() {
-            let mut clients = self.clients.borrow_mut();
-            if let Some(info) = clients.get_mut(&ident) {
-                info.active_workspace.replace(workspace.to_string());
-                self.notify(MuxNotification::ActiveWorkspaceChanged(ident));
-            }
+            self.set_active_workspace_for_client(&ident, workspace);
         }
     }
 

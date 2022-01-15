@@ -62,8 +62,23 @@ impl GuiFrontEnd {
                             let mux = Mux::get().expect("mux started and running on main thread");
                             let workspace = mux.active_workspace_for_client(&client_id);
                             if mux.is_workspace_empty(&workspace) {
-                                log::trace!("Mux workspace is empty, terminate gui");
-                                Connection::get().unwrap().terminate_message_loop();
+                                // We don't want to silently kill off things that might
+                                // be running in other workspaces, so let's pick one
+                                // and activate it
+                                let workspaces = mux.iter_workspaces();
+                                if let Some(workspace) = workspaces.get(0).map(|s| s.to_string()) {
+                                    let activity = mux::activity::Activity::new();
+                                    let client_id = client_id.clone();
+                                    promise::spawn::spawn(async move {
+                                        let mux = Mux::get().expect("mux started and running on main thread");
+                                        mux.set_active_workspace_for_client(&client_id, &workspace);
+                                        switch_workspace(&workspace);
+                                        drop(activity);
+                                    }).detach();
+                                } else {
+                                    log::trace!("Mux workspace is empty, terminate gui");
+                                    Connection::get().unwrap().terminate_message_loop();
+                                }
                             }
                         }
                     }
