@@ -3674,10 +3674,13 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         shape: Option<CursorShape>,
         metrics: &RenderMetrics,
+        width: u8,
     ) -> anyhow::Result<Sprite<T>> {
-        if let Some(sprite) = self.cursor_glyphs.get(&shape) {
+        if let Some(sprite) = self.cursor_glyphs.get(&(shape, width)) {
             return Ok(sprite.clone());
         }
+
+        let metrics = metrics.scale_cell_width(width);
 
         let mut buffer = Image::new(
             metrics.cell_size.width as usize,
@@ -3740,7 +3743,7 @@ impl<T: Texture2d> GlyphCache<T> {
         }
 
         let sprite = self.atlas.allocate(&buffer)?;
-        self.cursor_glyphs.insert(shape, sprite.clone());
+        self.cursor_glyphs.insert((shape, width), sprite.clone());
         Ok(sprite)
     }
 

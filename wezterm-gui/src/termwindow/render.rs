@@ -1970,28 +1970,21 @@ impl super::TermWindow {
 
                     let pixel_width = glyph.x_advance.get() as f32;
 
-                    // We'd like to render the cursor with the cell width
-                    // so that double-wide cells look more reasonable.
-                    // If we have a cursor shape, compute the intended cursor
-                    // width.  We only use that if we're the first cell that
-                    // comprises this glyph; if for some reason the cursor position
-                    // is in the middle of a glyph we just use a single cell.
-                    let cursor_width = cursor_shape
-                        .map(|_| {
-                            if glyph_idx == 0 {
-                                info.pos.num_cells
-                            } else {
-                                1
-                            }
-                        })
-                        .unwrap_or(1) as f32;
-
                     // Note: in use_pixel_positioning mode, we draw backgrounds
                     // for glyph_idx == 0 based on the whole glyph advance, rather than
                     // for each of the cells.
 
                     if cursor_shape.is_some() {
-                        if !params.use_pixel_positioning || glyph_idx == 0 {
+                        if glyph_idx == 0 {
+                            // We'd like to render the cursor with the cell width
+                            // so that double-wide cells look more reasonable.
+                            // If we have a cursor shape, compute the intended cursor
+                            // width.  We only use that if we're the first cell that
+                            // comprises this glyph; if for some reason the cursor position
+                            // is in the middle of a glyph we just use a single cell.
+                            let cursor_width =
+                                cursor_shape.map(|_| info.pos.num_cells).unwrap_or(1);
+
                             let mut quad = layers[0].allocate()?;
                             quad.set_position(
                                 pos_x,
@@ -2000,7 +1993,7 @@ impl super::TermWindow {
                                     + if params.use_pixel_positioning {
                                         pixel_width
                                     } else {
-                                        cursor_width * cell_width
+                                        cursor_width as f32 * cell_width
                                     },
                                 pos_y + cell_height,
                             );
@@ -2011,7 +2004,11 @@ impl super::TermWindow {
                                 gl_state
                                     .glyph_cache
                                     .borrow_mut()
-                                    .cursor_sprite(cursor_shape, &params.render_metrics)?
+                                    .cursor_sprite(
+                                        cursor_shape,
+                                        &params.render_metrics,
+                                        cursor_width,
+                                    )?
                                     .texture_coords(),
                             );
 
@@ -2274,7 +2271,7 @@ impl super::TermWindow {
                             gl_state
                                 .glyph_cache
                                 .borrow_mut()
-                                .cursor_sprite(cursor_shape, &params.render_metrics)?
+                                .cursor_sprite(cursor_shape, &params.render_metrics, 1)?
                                 .texture_coords(),
                         );
                         quad.set_fg_color(cursor_border_color);

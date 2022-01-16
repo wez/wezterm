@@ -61,6 +61,12 @@ impl RenderMetrics {
         }
     }
 
+    pub fn scale_cell_width(&self, scale: u8) -> Self {
+        let mut scaled = self.clone();
+        scaled.cell_size.width *= scale as isize;
+        scaled
+    }
+
     pub fn new(fonts: &Rc<FontConfiguration>) -> anyhow::Result<Self> {
         let metrics = fonts
             .default_font_metrics()

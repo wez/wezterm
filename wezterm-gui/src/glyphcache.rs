@@ -254,7 +254,7 @@ pub struct GlyphCache<T: Texture2d> {
     frame_cache: HashMap<[u8; 32], Sprite<T>>,
     line_glyphs: HashMap<LineKey, Sprite<T>>,
     pub block_glyphs: HashMap<SizedBlockKey, Sprite<T>>,
-    pub cursor_glyphs: HashMap<Option<CursorShape>, Sprite<T>>,
+    pub cursor_glyphs: HashMap<(Option<CursorShape>, u8), Sprite<T>>,
     pub color: HashMap<(RgbColor, NotNan<f32>), Sprite<T>>,
 }
 
