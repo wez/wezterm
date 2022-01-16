@@ -101,6 +101,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 
         wezterm_mod.set("target_triple", crate::wezterm_target_triple())?;
         wezterm_mod.set("version", crate::wezterm_version())?;
+        wezterm_mod.set("nerdfonts", NerdFonts{})?;
         wezterm_mod.set("home_dir", crate::HOME_DIR.to_str())?;
         wezterm_mod.set(
             "running_under_wsl",
@@ -1027,4 +1028,14 @@ pub fn truncate_right(s: &str, max_width: usize) -> String {
         len += g_len;
     }
     result
+}
+
+struct NerdFonts {}
+
+impl mlua::UserData for NerdFonts {
+    fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_meta_method(mlua::MetaMethod::Index, |_, _, key: String| -> mlua::Result<Option<String>> {
+            Ok(termwiz::nerdfonts::NERD_FONTS.get(key.as_str()).map(|c| c.to_string()))
+        });
+    }
 }
