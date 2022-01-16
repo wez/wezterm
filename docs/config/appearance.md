@@ -209,6 +209,9 @@ return {
     -- The overall background color of the tab bar when
     -- the window is not focused
     inactive_titlebar_bg = "#333333",
+
+    -- The color of the inactive tab bar edge/divider
+    inactive_tab_edge = "#575757",
   },
 }
 ```
