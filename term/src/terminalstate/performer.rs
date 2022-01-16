@@ -305,6 +305,7 @@ impl<'a> Performer<'a> {
                 }
                 if self.newline_mode {
                     self.cursor.x = 0;
+                    self.clear_semantic_attribute_due_to_movement();
                 }
             }
             ControlCode::CarriageReturn => {
@@ -315,6 +316,7 @@ impl<'a> Performer<'a> {
                 }
                 let y = self.cursor.y;
                 self.wrap_next = false;
+                self.clear_semantic_attribute_due_to_movement();
                 self.screen_mut().dirty_line(y, seqno);
             }
 
@@ -503,6 +505,7 @@ impl<'a> Performer<'a> {
                 self.pen = Default::default();
                 self.cursor = Default::default();
                 self.wrap_next = false;
+                self.clear_semantic_attribute_on_newline = false;
                 self.insert = false;
                 self.dec_auto_wrap = true;
                 self.reverse_wraparound_mode = false;
@@ -658,6 +661,12 @@ impl<'a> Performer<'a> {
                 self.pen.set_semantic_type(SemanticType::Input);
             }
             OperatingSystemCommand::FinalTermSemanticPrompt(
+                FinalTermSemanticPrompt::MarkEndOfPromptAndStartOfInputUntilEndOfLine { .. },
+            ) => {
+                self.pen.set_semantic_type(SemanticType::Input);
+                self.clear_semantic_attribute_on_newline = true;
+            }
+            OperatingSystemCommand::FinalTermSemanticPrompt(
                 FinalTermSemanticPrompt::MarkEndOfInputAndStartOfOutput { .. },
             ) => {
                 self.pen.set_semantic_type(SemanticType::Output);
@@ -666,10 +675,6 @@ impl<'a> Performer<'a> {
             OperatingSystemCommand::FinalTermSemanticPrompt(
                 FinalTermSemanticPrompt::CommandStatus { .. },
             ) => {}
-
-            OperatingSystemCommand::FinalTermSemanticPrompt(ft) => {
-                log::warn!("unhandled: {:?}", ft);
-            }
 
             OperatingSystemCommand::SystemNotification(message) => {
                 if let Some(handler) = self.alert_handler.as_mut() {

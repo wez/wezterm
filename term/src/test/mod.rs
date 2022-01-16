@@ -317,6 +317,53 @@ fn assert_all_contents(term: &Terminal, file: &str, line: u32, expect_lines: &[&
 }
 
 #[test]
+fn test_semantic_1539() {
+    use termwiz::escape::osc::FinalTermSemanticPrompt;
+    let mut term = TestTerm::new(5, 10, 0);
+    term.print(format!(
+        "{}prompt\r\nwoot",
+        OperatingSystemCommand::FinalTermSemanticPrompt(
+            FinalTermSemanticPrompt::MarkEndOfPromptAndStartOfInputUntilEndOfLine
+        )
+    ));
+
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &[
+            "prompt    ",
+            "woot      ",
+            "          ",
+            "          ",
+            "          ",
+        ],
+    );
+
+    k9::snapshot!(
+        term.get_semantic_zones().unwrap(),
+        "
+[
+    SemanticZone {
+        start_y: 0,
+        start_x: 0,
+        end_y: 0,
+        end_x: 5,
+        semantic_type: Input,
+    },
+    SemanticZone {
+        start_y: 1,
+        start_x: 0,
+        end_y: 4,
+        end_x: 9,
+        semantic_type: Output,
+    },
+]
+"
+    );
+}
+
+#[test]
 fn test_semantic() {
     use termwiz::escape::osc::FinalTermSemanticPrompt;
     let mut term = TestTerm::new(5, 10, 0);
