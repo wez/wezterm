@@ -35,10 +35,10 @@ impl GuiFrontEnd {
         });
         let fe = Rc::downgrade(&front_end);
         mux.subscribe(move |n| {
-            if let Some(_fe) = fe.upgrade() {
+            if let Some(fe) = fe.upgrade() {
                 match n {
                     MuxNotification::WindowCreated(mux_window_id) => {
-                        if !is_switching_workspace() {
+                        if !fe.is_switching_workspace() {
                             let mux = Mux::get().expect("mux started and running on main thread");
                             let window = mux.get_window(mux_window_id).expect("new window notif to have valid window");
                             if window.get_workspace() == mux.active_workspace_for_client(&client_id) {
@@ -72,7 +72,7 @@ impl GuiFrontEnd {
                                     promise::spawn::spawn(async move {
                                         let mux = Mux::get().expect("mux started and running on main thread");
                                         mux.set_active_workspace_for_client(&client_id, &workspace);
-                                        switch_workspace(&workspace);
+                                        crate::frontend::front_end().switch_workspace(&workspace);
                                         drop(activity);
                                     }).detach();
                                 } else {
@@ -181,44 +181,20 @@ impl GuiFrontEnd {
     pub fn forget_known_window(&self, window: &Window) {
         self.known_windows.borrow_mut().retain(|w| w != window);
     }
+
+    pub fn is_switching_workspace(&self) -> bool {
+        *self.switching_workspaces.borrow()
+    }
 }
 
 thread_local! {
     static FRONT_END: RefCell<Option<Rc<GuiFrontEnd>>> = RefCell::new(None);
 }
 
-pub fn record_known_window(window: Window) {
-    FRONT_END.with(|f| {
-        f.borrow_mut()
-            .as_mut()
-            .map(|f| f.record_known_window(window))
-    });
-}
-
-pub fn forget_known_window(window: &Window) {
-    FRONT_END.with(|f| {
-        f.borrow_mut()
-            .as_mut()
-            .map(|f| f.forget_known_window(window))
-    });
-}
-
-pub fn is_switching_workspace() -> bool {
+pub fn front_end() -> Rc<GuiFrontEnd> {
     FRONT_END
-        .with(|f| {
-            f.borrow()
-                .as_ref()
-                .map(|f| *f.switching_workspaces.borrow())
-        })
-        .unwrap_or(false)
-}
-
-pub fn switch_workspace(new_name: &str) {
-    FRONT_END.with(|f| {
-        f.borrow_mut()
-            .as_mut()
-            .map(|f| f.switch_workspace(new_name))
-    });
+        .with(|f| f.borrow().as_ref().map(Rc::clone))
+        .expect("to be called on gui thread")
 }
 
 pub struct WorkspaceSwitcher {
@@ -244,7 +220,7 @@ impl WorkspaceSwitcher {
 
 impl Drop for WorkspaceSwitcher {
     fn drop(&mut self) {
-        switch_workspace(&self.new_name);
+        front_end().switch_workspace(&self.new_name);
     }
 }
 

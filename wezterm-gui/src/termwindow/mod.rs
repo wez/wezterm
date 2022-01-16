@@ -2,6 +2,7 @@
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::cache::LruCache;
+use crate::frontend::front_end;
 use crate::glium::texture::SrgbTexture2d;
 use crate::overlay::{
     confirm_close_pane, confirm_close_tab, confirm_close_window, confirm_quit_program, launcher,
@@ -346,7 +347,7 @@ impl TermWindow {
                 // Immediately kill the tabs and allow the window to close
                 mux.kill_window(self.mux_window_id);
                 window.close();
-                crate::frontend::forget_known_window(window);
+                front_end().forget_known_window(window);
             }
             WindowCloseConfirmation::AlwaysPrompt => {
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -354,7 +355,7 @@ impl TermWindow {
                     None => {
                         mux.kill_window(self.mux_window_id);
                         window.close();
-                        crate::frontend::forget_known_window(window);
+                        front_end().forget_known_window(window);
                         return;
                     }
                 };
@@ -367,7 +368,7 @@ impl TermWindow {
                 if can_close {
                     mux.kill_window(self.mux_window_id);
                     window.close();
-                    crate::frontend::forget_known_window(window);
+                    front_end().forget_known_window(window);
                     return;
                 }
                 let window = self.window.clone().unwrap();
@@ -776,7 +777,7 @@ impl TermWindow {
         }
 
         crate::update::start_update_checker();
-        crate::frontend::record_known_window(window);
+        front_end().record_known_window(window);
         Ok(())
     }
 
@@ -849,7 +850,7 @@ impl TermWindow {
         if gl.is_context_lost() {
             log::error!("opengl context was lost; should reinit");
             window.close();
-            crate::frontend::forget_known_window(window);
+            front_end().forget_known_window(window);
             return false;
         }
 
@@ -965,7 +966,7 @@ impl TermWindow {
                 MuxNotification::WindowRemoved(window_id) => {
                     if window_id == self.mux_window_id {
                         window.close();
-                        crate::frontend::forget_known_window(window);
+                        front_end().forget_known_window(window);
                     }
                 }
                 _ => {}
@@ -2547,7 +2548,7 @@ impl TermWindow {
 impl Drop for TermWindow {
     fn drop(&mut self) {
         if let Some(window) = self.window.take() {
-            crate::frontend::forget_known_window(&window);
+            front_end().forget_known_window(&window);
         }
     }
 }
