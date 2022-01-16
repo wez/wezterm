@@ -3,16 +3,21 @@ use crate::TermWindow;
 use ::window::*;
 use anyhow::Error;
 pub use config::FrontEndSelection;
+use mux::client::ClientId;
+use mux::window::WindowId as MuxWindowId;
 use mux::{Mux, MuxNotification};
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::rc::Rc;
+use std::sync::Arc;
 use wezterm_term::Alert;
 use wezterm_toast_notification::*;
 
 pub struct GuiFrontEnd {
     connection: Rc<Connection>,
     switching_workspaces: RefCell<bool>,
-    known_windows: RefCell<Vec<Window>>,
+    known_windows: RefCell<BTreeMap<Window, MuxWindowId>>,
+    client_id: Arc<ClientId>,
 }
 
 impl Drop for GuiFrontEnd {
@@ -31,57 +36,23 @@ impl GuiFrontEnd {
         let front_end = Rc::new(GuiFrontEnd {
             connection,
             switching_workspaces: RefCell::new(false),
-            known_windows: RefCell::new(vec![]),
+            known_windows: RefCell::new(BTreeMap::new()),
+            client_id: client_id.clone(),
         });
         let fe = Rc::downgrade(&front_end);
         mux.subscribe(move |n| {
             if let Some(fe) = fe.upgrade() {
                 match n {
-                    MuxNotification::WindowCreated(mux_window_id) => {
-                        if !fe.is_switching_workspace() {
-                            let mux = Mux::get().expect("mux started and running on main thread");
-                            let window = mux.get_window(mux_window_id).expect("new window notif to have valid window");
-                            if window.get_workspace() == mux.active_workspace_for_client(&client_id) {
-
-                                promise::spawn::spawn(async move {
-                                    if let Err(err) = TermWindow::new_window(mux_window_id).await {
-                                        log::error!("Failed to create window: {:#}", err);
-                                        let mux = Mux::get().expect("subscribe to trigger on main thread");
-                                        mux.kill_window(mux_window_id);
-                                    }
-                                    anyhow::Result::<()>::Ok(())
-                                })
-                                .detach();
-                            }
-                        }
-                    }
                     MuxNotification::WindowWorkspaceChanged(_) | MuxNotification::ActiveWorkspaceChanged(_) => {}
-                    MuxNotification::WindowRemoved(_) => {}
-                    MuxNotification::PaneRemoved(_) => {
-                        if mux::activity::Activity::count() == 0 {
-                            let mux = Mux::get().expect("mux started and running on main thread");
-                            let workspace = mux.active_workspace_for_client(&client_id);
-                            if mux.is_workspace_empty(&workspace) {
-                                // We don't want to silently kill off things that might
-                                // be running in other workspaces, so let's pick one
-                                // and activate it
-                                let workspaces = mux.iter_workspaces();
-                                if let Some(workspace) = workspaces.get(0).map(|s| s.to_string()) {
-                                    let activity = mux::activity::Activity::new();
-                                    let client_id = client_id.clone();
-                                    promise::spawn::spawn(async move {
-                                        let mux = Mux::get().expect("mux started and running on main thread");
-                                        mux.set_active_workspace_for_client(&client_id, &workspace);
-                                        crate::frontend::front_end().switch_workspace(&workspace);
-                                        drop(activity);
-                                    }).detach();
-                                } else {
-                                    log::trace!("Mux workspace is empty, terminate gui");
-                                    Connection::get().unwrap().terminate_message_loop();
-                                }
+                    MuxNotification::WindowCreated(_) | MuxNotification::WindowRemoved(_) => {
+                        promise::spawn::spawn(async move {
+                            let fe = crate::frontend::front_end();
+                            if !fe.is_switching_workspace() {
+                                fe.reconcile_workspace();
                             }
-                        }
+                        }).detach();
                     }
+                    MuxNotification::PaneRemoved(_) => {}
                     MuxNotification::WindowInvalidated(_) => {}
                     MuxNotification::PaneOutput(_) => {}
                     MuxNotification::PaneAdded(_) => {}
@@ -130,31 +101,63 @@ impl GuiFrontEnd {
         self.connection.run_message_loop()
     }
 
-    pub fn switch_workspace(&self, workspace: &str) {
+    pub fn reconcile_workspace(&self) {
         let mux = Mux::get().expect("mux started and running on main thread");
-        let mut mux_windows = mux.iter_windows_in_workspace(&workspace).into_iter();
+        let workspace = mux.active_workspace_for_client(&self.client_id);
+
+        if mux.is_workspace_empty(&workspace) {
+            // We don't want to silently kill off things that might
+            // be running in other workspaces, so let's pick one
+            // and activate it
+            if self.is_switching_workspace() {
+                return;
+            }
+            for workspace in mux.iter_workspaces() {
+                if !mux.is_workspace_empty(&workspace) {
+                    mux.set_active_workspace_for_client(&self.client_id, &workspace);
+                    log::debug!("using {} instead, as it is not empty", workspace);
+                    break;
+                }
+            }
+        }
+
+        let workspace = mux.active_workspace_for_client(&self.client_id);
+        log::debug!("workspace is {}, fixup windows", workspace);
+
+        let mut mux_windows = mux.iter_windows_in_workspace(&workspace);
 
         // First, repurpose existing windows.
         // Note that both iter_windows_in_workspace and self.known_windows have a
         // deterministic iteration order, so switching back and forth should result
         // in a consistent mux <-> gui window mapping.
-        {
-            let mut known_windows = self.known_windows.borrow_mut();
-            let mut windows = vec![];
+        let known_windows = std::mem::take(&mut *self.known_windows.borrow_mut());
+        let mut windows = BTreeMap::new();
+        let mut unused = BTreeMap::new();
 
-            for window in known_windows.drain(..) {
-                if let Some(mux_window_id) = mux_windows.next() {
-                    window.notify(TermWindowNotif::SwitchToMuxWindow(mux_window_id));
-                    windows.push(window);
-                } else {
-                    // We have more windows than are in the new workspace;
-                    // we no longer need this one!
-                    window.close();
-                }
+        for (window, window_id) in known_windows.into_iter() {
+            if let Some(idx) = mux_windows.iter().position(|&id| id == window_id) {
+                // it already points to the desired mux window
+                windows.insert(window, window_id);
+                mux_windows.remove(idx);
+            } else {
+                unused.insert(window, window_id);
             }
-
-            *known_windows = windows;
         }
+
+        let mut mux_windows = mux_windows.into_iter();
+
+        for (window, _old_id) in unused.into_iter() {
+            if let Some(mux_window_id) = mux_windows.next() {
+                window.notify(TermWindowNotif::SwitchToMuxWindow(mux_window_id));
+                windows.insert(window, mux_window_id);
+            } else {
+                // We have more windows than are in the new workspace;
+                // we no longer need this one!
+                window.close();
+            }
+        }
+
+        *self.known_windows.borrow_mut() = windows;
 
         // then spawn any new windows that are needed
         promise::spawn::spawn(async move {
@@ -165,21 +168,32 @@ impl GuiFrontEnd {
                     mux.kill_window(mux_window_id);
                 }
             }
-            FRONT_END.with(|f| {
-                f.borrow_mut()
-                    .as_mut()
-                    .map(|f| *f.switching_workspaces.borrow_mut() = false)
-            });
+            *front_end().switching_workspaces.borrow_mut() = false;
         })
         .detach();
     }
 
-    pub fn record_known_window(&self, window: Window) {
-        self.known_windows.borrow_mut().push(window);
+    pub fn switch_workspace(&self, workspace: &str) {
+        let mux = Mux::get().expect("mux started and running on main thread");
+        mux.set_active_workspace_for_client(&self.client_id, workspace);
+        *self.switching_workspaces.borrow_mut() = false;
+        self.reconcile_workspace();
+    }
+
+    pub fn record_known_window(&self, window: Window, mux_window_id: MuxWindowId) {
+        self.known_windows
+            .borrow_mut()
+            .insert(window, mux_window_id);
+        if !self.is_switching_workspace() {
+            self.reconcile_workspace();
+        }
     }
 
     pub fn forget_known_window(&self, window: &Window) {
-        self.known_windows.borrow_mut().retain(|w| w != window);
+        self.known_windows.borrow_mut().remove(window);
+        if !self.is_switching_workspace() {
+            self.reconcile_workspace();
+        }
     }
 
     pub fn is_switching_workspace(&self) -> bool {
@@ -203,11 +217,7 @@ pub struct WorkspaceSwitcher {
 
 impl WorkspaceSwitcher {
     pub fn new(new_name: &str) -> Self {
-        FRONT_END.with(|f| {
-            f.borrow_mut()
-                .as_mut()
-                .map(|f| *f.switching_workspaces.borrow_mut() = true)
-        });
+        *front_end().switching_workspaces.borrow_mut() = true;
         Self {
             new_name: new_name.to_string(),
         }

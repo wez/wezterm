@@ -715,10 +715,13 @@ impl Mux {
     }
 
     pub fn add_tab_to_window(&self, tab: &Rc<Tab>, window_id: WindowId) -> anyhow::Result<()> {
-        let mut window = self
-            .get_window_mut(window_id)
-            .ok_or_else(|| anyhow!("add_tab_to_window: no such window_id {}", window_id))?;
-        window.push(tab);
+        {
+            let mut window = self
+                .get_window_mut(window_id)
+                .ok_or_else(|| anyhow!("add_tab_to_window: no such window_id {}", window_id))?;
+            window.push(tab);
+        }
+        self.recompute_pane_count();
         Ok(())
     }
 

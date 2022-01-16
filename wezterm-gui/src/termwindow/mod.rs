@@ -777,7 +777,7 @@ impl TermWindow {
         }
 
         crate::update::start_update_checker();
-        front_end().record_known_window(window);
+        front_end().record_known_window(window, mux_window_id);
         Ok(())
     }
 
@@ -963,11 +963,8 @@ impl TermWindow {
                 MuxNotification::WindowInvalidated(_) => {
                     window.invalidate();
                 }
-                MuxNotification::WindowRemoved(window_id) => {
-                    if window_id == self.mux_window_id {
-                        window.close();
-                        front_end().forget_known_window(window);
-                    }
+                MuxNotification::WindowRemoved(_window_id) => {
+                    // Handled by frontend
                 }
                 _ => {}
             },

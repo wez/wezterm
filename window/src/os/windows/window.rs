@@ -43,7 +43,7 @@ extern "system" {
     pub fn ImmGetCompositionStringW(himc: HIMC, index: DWORD, buf: LPVOID, buflen: DWORD) -> LONG;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub(crate) struct HWindow(HWND);
 unsafe impl Send for HWindow {}
 unsafe impl Sync for HWindow {}
@@ -68,7 +68,7 @@ pub(crate) struct WindowInner {
     config: ConfigHandle,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct Window(HWindow);
 
 fn rect_width(r: &RECT) -> i32 {
