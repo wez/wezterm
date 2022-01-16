@@ -178,8 +178,8 @@ impl GuiFrontEnd {
         self.known_windows.borrow_mut().push(window);
     }
 
-    pub fn forget_known_window(&self, window: Window) {
-        self.known_windows.borrow_mut().retain(|w| *w != window);
+    pub fn forget_known_window(&self, window: &Window) {
+        self.known_windows.borrow_mut().retain(|w| w != window);
     }
 }
 
@@ -195,7 +195,7 @@ pub fn record_known_window(window: Window) {
     });
 }
 
-pub fn forget_known_window(window: Window) {
+pub fn forget_known_window(window: &Window) {
     FRONT_END.with(|f| {
         f.borrow_mut()
             .as_mut()

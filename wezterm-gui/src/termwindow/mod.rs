@@ -346,6 +346,7 @@ impl TermWindow {
                 // Immediately kill the tabs and allow the window to close
                 mux.kill_window(self.mux_window_id);
                 window.close();
+                crate::frontend::forget_known_window(window);
             }
             WindowCloseConfirmation::AlwaysPrompt => {
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -353,6 +354,7 @@ impl TermWindow {
                     None => {
                         mux.kill_window(self.mux_window_id);
                         window.close();
+                        crate::frontend::forget_known_window(window);
                         return;
                     }
                 };
@@ -365,6 +367,7 @@ impl TermWindow {
                 if can_close {
                     mux.kill_window(self.mux_window_id);
                     window.close();
+                    crate::frontend::forget_known_window(window);
                     return;
                 }
                 let window = self.window.clone().unwrap();
@@ -846,6 +849,7 @@ impl TermWindow {
         if gl.is_context_lost() {
             log::error!("opengl context was lost; should reinit");
             window.close();
+            crate::frontend::forget_known_window(window);
             return false;
         }
 
@@ -961,6 +965,7 @@ impl TermWindow {
                 MuxNotification::WindowRemoved(window_id) => {
                     if window_id == self.mux_window_id {
                         window.close();
+                        crate::frontend::forget_known_window(window);
                     }
                 }
                 _ => {}
@@ -995,7 +1000,6 @@ impl TermWindow {
                     }
                 };
                 self.update_title();
-
                 window.invalidate();
             }
         }
@@ -2543,7 +2547,7 @@ impl TermWindow {
 impl Drop for TermWindow {
     fn drop(&mut self) {
         if let Some(window) = self.window.take() {
-            crate::frontend::forget_known_window(window);
+            crate::frontend::forget_known_window(&window);
         }
     }
 }
