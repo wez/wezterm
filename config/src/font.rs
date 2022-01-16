@@ -560,6 +560,9 @@ impl TextStyle {
         // We bundle this emoji font as an in-memory fallback
         font.push(FontAttributes::new_fallback("Noto Color Emoji"));
 
+        // Add symbols that many people end up using via patched fonts
+        font.push(FontAttributes::new_fallback("Symbols Nerd Font Mono"));
+
         // And finally, a last resort fallback font
         font.push(FontAttributes::new_fallback("Last Resort High-Efficiency"));
 

@@ -23,3 +23,8 @@ SOFTWARE.
 WezTerm bundles `JetBrains Mono`, `Noto Color Emoji` and `Roboto` fonts.
 Those are distributed under the terms of the OFL 1.1, the text of which
 can be found in the assets/fonts directory.
+
+WezTerm bundles `Symbols Nerd Font Mono`, built from only those icon sets
+available from https://github.com/ryanoasis/nerd-fonts which are clearly
+distributed under the terms of the OFL 1.1.
+Note that WezTerm excludes the Pomicons icon set from this collection.

@@ -550,7 +550,7 @@ pub(crate) fn load_built_in_fonts(font_info: &mut Vec<ParsedFont>) -> anyhow::Re
         font!("../../assets/fonts/Roboto-Thin.ttf"),
         font!("../../assets/fonts/Roboto-ThinItalic.ttf"),
         font!("../../assets/fonts/NotoColorEmoji.ttf"),
-        font!("../../assets/fonts/PowerlineExtraSymbols.otf"),
+        font!("../../assets/fonts/Symbols-Nerd-Font-Mono.ttf"),
         font!("../../assets/fonts/LastResortHE-Regular.ttf"),
     ] {
         let locator = FontDataHandle {
