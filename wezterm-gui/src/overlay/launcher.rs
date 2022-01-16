@@ -359,7 +359,7 @@ impl LauncherState {
 
         let skip = if num_items < max_items {
             0
-        } else if num_items - self.active_idx < max_items {
+        } else if num_items.saturating_sub(self.active_idx) < max_items {
             // Align to bottom
             (num_items - max_items).saturating_sub(1)
         } else {
