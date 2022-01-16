@@ -989,9 +989,13 @@ impl TermWindow {
                 self.invalidate_fancy_tab_bar();
 
                 let mux = Mux::get().expect("to be main thread with mux running");
-                if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
-                    self.set_window_size(tab.get_size(), window)?;
-                }
+                if let Some(window) = mux.get_window(self.mux_window_id) {
+                    for tab in window.iter() {
+                        tab.resize(self.terminal_size);
+                    }
+                };
+                self.update_title();
+
                 window.invalidate();
             }
         }
@@ -2103,7 +2107,7 @@ impl TermWindow {
 
                 if mux.iter_windows_in_workspace(&name).is_empty() {
                     let spawn = spawn.as_ref().map(|s| s.clone()).unwrap_or_default();
-                    let size = self.config.initial_size();
+                    let size = self.terminal_size;
                     let term_config = Arc::new(TermConfig::with_config(self.config.clone()));
                     let src_window_id = self.mux_window_id;
                     let clipboard = ClipboardHelper {
