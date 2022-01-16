@@ -41,7 +41,7 @@ impl GuiFrontEnd {
         });
         let fe = Rc::downgrade(&front_end);
         mux.subscribe(move |n| {
-            if let Some(fe) = fe.upgrade() {
+            if let Some(_fe) = fe.upgrade() {
                 match n {
                     MuxNotification::WindowWorkspaceChanged(_) | MuxNotification::ActiveWorkspaceChanged(_) => {}
                     MuxNotification::WindowCreated(_) | MuxNotification::WindowRemoved(_) => {
