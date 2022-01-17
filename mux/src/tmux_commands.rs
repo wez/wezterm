@@ -267,6 +267,28 @@ impl TmuxCommand for ListAllPanes {
 }
 
 #[derive(Debug)]
+pub(crate) struct Resize {
+    pub size: portable_pty::PtySize,
+}
+
+impl TmuxCommand for Resize {
+    fn get_command(&self) -> String {
+        format!("refresh-client -C {}x{}\n", self.size.cols, self.size.rows)
+    }
+
+    fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
+        if result.error {
+            log::error!(
+                "Error resizing: domain_id={} result={:?}",
+                domain_id,
+                result
+            );
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
 pub(crate) struct CapturePane(TmuxPaneId);
 impl TmuxCommand for CapturePane {
     fn get_command(&self) -> String {

@@ -1,5 +1,5 @@
 use crate::tmux::{RefTmuxRemotePane, TmuxCmdQueue, TmuxDomainState};
-use crate::tmux_commands::SendKeys;
+use crate::tmux_commands::{Resize, SendKeys};
 use crate::DomainId;
 use filedescriptor::FileDescriptor;
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty};
@@ -123,7 +123,9 @@ impl ChildKiller for TmuxChild {
 
 impl MasterPty for TmuxPty {
     fn resize(&self, size: portable_pty::PtySize) -> Result<(), anyhow::Error> {
-        log::warn!("TODO: perform pane resize");
+        let mut cmd_queue = self.cmd_queue.lock().unwrap();
+        cmd_queue.push_back(Box::new(Resize { size }));
+        TmuxDomainState::schedule_send_next_command(self.domain_id);
         Ok(())
     }
 
