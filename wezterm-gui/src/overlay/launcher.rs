@@ -18,6 +18,7 @@ use mux::tab::TabId;
 use mux::termwiztermtab::TermWizTerminal;
 use mux::window::WindowId;
 use mux::Mux;
+use std::collections::BTreeMap;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent, MouseButtons, MouseEvent};
@@ -302,7 +303,9 @@ impl LauncherState {
         if args.flags.contains(LauncherFlags::KEY_ASSIGNMENTS) {
             let input_map = InputMap::new(&config);
             let mut key_entries: Vec<Entry> = vec![];
-            for ((keycode, mods), assignment) in input_map.keys {
+            // Give a consistent order to the entries
+            let keys: BTreeMap<_, _> = input_map.keys.into_iter().collect();
+            for ((keycode, mods), assignment) in keys {
                 if matches!(
                     &assignment,
                     KeyAssignment::ActivateTabRelative(_) | KeyAssignment::ActivateTab(_)

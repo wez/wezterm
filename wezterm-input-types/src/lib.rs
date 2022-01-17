@@ -14,7 +14,7 @@ pub type ScreenPoint = euclid::Point2D<isize, ScreenPixelUnit>;
 /// Which key is pressed.  Not all of these are probable to appear
 /// on most systems.  A lot of this list is @wez trawling docs and
 /// making an entry for things that might be possible in this first pass.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Ord, PartialOrd)]
 pub enum KeyCode {
     /// The decoded unicode character
     Char(char),
@@ -353,7 +353,7 @@ impl ToString for Modifiers {
 
 /// These keycodes identify keys based on their physical
 /// position on an ANSI-standard US keyboard.
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Hash, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Hash, Copy, Ord, PartialOrd)]
 pub enum PhysKeyCode {
     A,
     B,
