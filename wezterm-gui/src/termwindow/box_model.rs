@@ -812,7 +812,9 @@ impl super::TermWindow {
 
                                 let width = texture.coords.size.width as f32 * glyph.scale as f32;
                                 let height = texture.coords.size.height as f32 * glyph.scale as f32;
-                                if pos_x + width > element.content_rect.max_x() {
+                                if pos_x + glyph.x_advance.get() as f32
+                                    > element.content_rect.max_x()
+                                {
                                     break;
                                 }
 
