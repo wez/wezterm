@@ -363,6 +363,8 @@ pub struct TerminalState {
     /// We don't want that, so we use this flag to remember
     /// whether we want to skip it or not.
     suppress_initial_title_change: bool,
+
+    accumulating_title: Option<String>,
 }
 
 #[derive(Debug)]
@@ -504,6 +506,7 @@ impl TerminalState {
             unicode_version,
             unicode_version_stack: vec![],
             suppress_initial_title_change: false,
+            accumulating_title: None,
         }
     }
 

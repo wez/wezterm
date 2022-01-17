@@ -826,6 +826,24 @@ mod test {
         assert_eq!(encode(&actions), "\x1b[!p");
     }
 
+    #[test]
+    fn tmux_title_escape() {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1bktitle\x1b\\");
+        assert_eq!(
+            vec![
+                Action::Esc(Esc::Code(EscCode::TmuxTitle)),
+                Action::Print('t'),
+                Action::Print('i'),
+                Action::Print('t'),
+                Action::Print('l'),
+                Action::Print('e'),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ],
+            actions
+        );
+    }
+
     fn round_trip_parse(s: &str) -> Vec<Action> {
         let mut p = Parser::new();
         let actions = p.parse_as_vec(s.as_bytes());

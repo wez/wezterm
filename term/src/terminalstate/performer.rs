@@ -278,7 +278,11 @@ impl<'a> Performer<'a> {
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
         // We buffer up the chars to increase the chances of correctly grouping graphemes into cells
-        self.print.push(c);
+        if let Some(title) = self.accumulating_title.as_mut() {
+            title.push(c);
+        } else {
+            self.print.push(c);
+        }
     }
 
     fn control(&mut self, control: ControlCode) {
@@ -419,8 +423,14 @@ impl<'a> Performer<'a> {
         self.flush_print();
         match esc {
             Esc::Code(EscCode::StringTerminator) => {
-                // String Terminator (ST); explicitly has nothing to do here, as its purpose is
+                // String Terminator (ST); for the most part has nothing to do here, as its purpose is
                 // handled implicitly through a state transition in the vtparse state tables.
+                if let Some(title) = self.accumulating_title.take() {
+                    self.osc_dispatch(OperatingSystemCommand::SetIconNameAndWindowTitle(title));
+                }
+            }
+            Esc::Code(EscCode::TmuxTitle) => {
+                self.accumulating_title.replace(String::new());
             }
             Esc::Code(EscCode::DecApplicationKeyPad) => {
                 debug!("DECKPAM on");
@@ -536,6 +546,7 @@ impl<'a> Performer<'a> {
                 self.unicode_version = UnicodeVersion(self.config.unicode_version());
                 self.unicode_version_stack.clear();
                 self.suppress_initial_title_change = false;
+                self.accumulating_title.take();
 
                 self.screen.activate_primary_screen(seqno);
                 self.erase_in_display(EraseInDisplay::EraseScrollback);

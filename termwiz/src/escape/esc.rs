@@ -56,6 +56,8 @@ pub enum EscCode {
     PrivacyMessage = esc!('^'),
     /// APC - Application Program Command
     ApplicationProgramCommand = esc!('_'),
+    /// Used by tmux for setting the window title
+    TmuxTitle = esc!('k'),
 
     /// DECBI - Back Index
     DecBackIndex = esc!('6'),
