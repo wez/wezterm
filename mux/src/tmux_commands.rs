@@ -172,6 +172,12 @@ impl TmuxDomainState {
             mux.add_tab_to_window(&tab, **gui_window_id)?;
             gui_window_id.notify();
 
+            self.cmd_queue
+                .lock()
+                .unwrap()
+                .push_back(Box::new(CapturePane(pane.pane_id)));
+            TmuxDomainState::schedule_send_next_command(self.domain_id);
+
             self.add_attached_pane(&pane, &tab.tab_id())?;
             log::info!("new pane attached");
         }
@@ -264,7 +270,7 @@ impl TmuxCommand for ListAllPanes {
 pub(crate) struct CapturePane(TmuxPaneId);
 impl TmuxCommand for CapturePane {
     fn get_command(&self) -> String {
-        format!("capturep -p -t {} -e -C\n", self.0)
+        format!("capturep -p -t %{} -e -C\n", self.0)
     }
 
     fn process_result(&self, domain_id: DomainId, result: &Guarded) -> anyhow::Result<()> {
@@ -278,11 +284,14 @@ impl TmuxCommand for CapturePane {
             None => anyhow::bail!("Tmux domain lost"),
         };
 
+        let unescaped = termwiz::tmux_cc::unvis(&result.output).context("unescape pane content")?;
+        let unescaped = unescaped.replace("\n", "\r\n");
+
         let pane_map = tmux_domain.inner.remote_panes.borrow();
         if let Some(pane) = pane_map.get(&self.0) {
             let mut pane = pane.lock().expect("Grant lock of tmux cmd queue failed");
             pane.output_write
-                .write_all(result.output.as_bytes())
+                .write_all(unescaped.as_bytes())
                 .context("writing capture pane result to output")?;
         }
 

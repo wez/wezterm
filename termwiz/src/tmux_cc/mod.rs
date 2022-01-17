@@ -311,7 +311,7 @@ fn parse_line(line: &str) -> anyhow::Result<Event> {
 
 /// Decode OpenBSD `vis` encoded strings
 /// See: https://github.com/tmux/tmux/blob/486ce9b09855ae30a2bf5e576cb6f7ad37792699/compat/unvis.c
-fn unvis(s: &str) -> anyhow::Result<String> {
+pub fn unvis(s: &str) -> anyhow::Result<String> {
     enum State {
         Ground,
         Start,
