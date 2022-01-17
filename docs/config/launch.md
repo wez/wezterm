@@ -118,17 +118,20 @@ return {
 # The Launcher Menu
 
 The launcher menu is accessed from the new tab button in the tab bar UI; the
-`+` button to the right of the tabs.  Left clicking on the button will spawn
-a new tab, but right clicking on it will open the launcher menu.  You may also
-bind a key to the `ShowLauncher` action to trigger the menu.
+`+` button to the right of the tabs.  Left clicking on the button will spawn a
+new tab, but right clicking on it will open the launcher menu.  You may also
+bind a key to the [ShowLauncher](lua/keyassignment/ShowLauncher.md) or
+[ShowLauncherArgs](lua/keyassignment/ShowLauncherArgs.md) action to trigger the
+menu.
 
 The launcher menu by default lists the various multiplexer domains and offers
 the option of connecting and spawning tabs/windows in those domains.
 
-*Since 20200503-171512-b13ef15f*: You can define your own entries using the
-`launch_menu` configuration setting.  The snippet below adds two new entries to
-the menu; one that runs the `top` program to monitor process activity and a
-second one that explicitly launches the `bash` shell.
+You can define your own entries using the
+[launch_menu](lua/config/launch_menu.md) configuration setting.  The snippet
+below adds two new entries to the menu; one that runs the `top` program to
+monitor process activity and a second one that explicitly launches the `bash`
+shell.
 
 Each entry in `launch_menu` is an instance of a
 [SpawnCommand](lua/SpawnCommand.md) object.

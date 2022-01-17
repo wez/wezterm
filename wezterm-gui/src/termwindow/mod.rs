@@ -1955,6 +1955,9 @@ impl TermWindow {
             ShowTabNavigator => self.show_tab_navigator(),
             ShowDebugOverlay => self.show_debug_overlay(),
             ShowLauncher => self.show_launcher(),
+            ShowLauncherArgs(args) => {
+                self.show_launcher_impl(args.title.as_deref().unwrap_or("Launcher"), args.flags)
+            }
             HideApplication => {
                 let con = Connection::get().expect("call on gui thread");
                 con.hide_application();

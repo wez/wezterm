@@ -26,16 +26,7 @@ use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
 use window::WindowOps;
 
-bitflags::bitflags! {
-    pub struct LauncherFlags :u32 {
-        const ZERO = 0;
-        const TABS = 2;
-        const LAUNCH_MENU_ITEMS = 4;
-        const DOMAINS = 8;
-        const KEY_ASSIGNMENTS = 16;
-        const WORKSPACES = 32;
-    }
-}
+pub use config::keyassignment::LauncherFlags;
 
 #[derive(Clone)]
 enum EntryKind {
@@ -182,6 +173,7 @@ struct LauncherState {
     pane_id: PaneId,
     window: ::window::Window,
     filtering: bool,
+    flags: LauncherFlags,
 }
 
 impl LauncherState {
@@ -284,7 +276,10 @@ impl LauncherState {
                 }
             }
             self.entries.push(Entry {
-                label: "Create new Workspace".to_string(),
+                label: format!(
+                    "Create new Workspace (current is `{}`)",
+                    args.active_workspace
+                ),
                 kind: EntryKind::KeyAssignment(KeyAssignment::SwitchToWorkspace {
                     name: None,
                     spawn: None,
@@ -471,7 +466,9 @@ impl LauncherState {
                     key: KeyCode::Backspace,
                     ..
                 }) => {
-                    if self.filter_term.pop().is_none() {
+                    if self.filter_term.pop().is_none()
+                        && !self.flags.contains(LauncherFlags::FUZZY)
+                    {
                         self.filtering = false;
                     }
                     self.update_filter();
@@ -570,7 +567,8 @@ pub fn launcher(
         filter_term: String::new(),
         filtered_entries: vec![],
         window,
-        filtering: false,
+        filtering: args.flags.contains(LauncherFlags::FUZZY),
+        flags: args.flags,
     };
 
     term.set_raw_mode()?;
