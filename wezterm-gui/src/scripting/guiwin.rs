@@ -7,6 +7,7 @@ use config::keyassignment::KeyAssignment;
 use luahelper::*;
 use mlua::{UserData, UserDataMethods};
 use mux::window::WindowId as MuxWindowId;
+use mux::Mux;
 use serde::*;
 use wezterm_toast_notification::ToastNotification;
 use window::{Connection, ConnectionOps, DeadKeyStatus, WindowOps, WindowState};
@@ -163,6 +164,12 @@ impl UserData for GuiWin {
                 .map_err(luaerr)?;
 
             Ok(result)
+        });
+        methods.add_method("active_workspace", |_, _, _: ()| {
+            let mux = Mux::get()
+                .ok_or_else(|| anyhow::anyhow!("must be called on main thread"))
+                .map_err(luaerr)?;
+            Ok(mux.active_workspace().to_string())
         });
     }
 }
