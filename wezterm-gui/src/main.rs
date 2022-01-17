@@ -452,7 +452,12 @@ impl Publish {
                                 command,
                                 command_dir: None,
                                 size: config.initial_size(),
-                                workspace: workspace.unwrap_or(mux::DEFAULT_WORKSPACE).to_string(),
+                                workspace: workspace.unwrap_or(
+                                    config
+                                        .default_workspace
+                                        .as_deref()
+                                        .unwrap_or(mux::DEFAULT_WORKSPACE)
+                                ).to_string(),
                             })
                             .await
                     }));
@@ -525,7 +530,14 @@ fn setup_mux(
     let client_id = Arc::new(mux::client::ClientId::new());
     mux.register_client(client_id.clone());
     mux.replace_identity(Some(client_id));
-    mux.set_active_workspace(default_workspace_name.unwrap_or(mux::DEFAULT_WORKSPACE));
+    mux.set_active_workspace(
+        default_workspace_name.unwrap_or(
+            config
+                .default_workspace
+                .as_deref()
+                .unwrap_or(mux::DEFAULT_WORKSPACE),
+        ),
+    );
     crate::update::load_last_release_info_and_set_banner();
     update_mux_domains(config)?;
 

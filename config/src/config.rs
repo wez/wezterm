@@ -579,6 +579,9 @@ pub struct Config {
 
     #[serde(default)]
     pub default_domain: Option<String>,
+
+    #[serde(default)]
+    pub default_workspace: Option<String>,
 }
 impl_lua_conversion!(Config);
 
