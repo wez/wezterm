@@ -6,9 +6,9 @@
 //! semantic meaning to them.  It can also encode the semantic values as
 //! escape sequences.  It provides encoding and decoding functionality
 //! only; it does not provide terminal emulation facilities itself.
+use crate::tmux_cc::Event;
 use num_derive::*;
 use std::fmt::{Display, Error as FmtError, Formatter, Write as FmtWrite};
-use tmux_cc::Event;
 
 pub mod apc;
 pub mod csi;

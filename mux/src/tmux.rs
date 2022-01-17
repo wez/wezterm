@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 use std::sync::{Arc, Condvar, Mutex};
-use tmux_cc::*;
+use termwiz::tmux_cc::*;
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 enum State {

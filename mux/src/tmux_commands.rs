@@ -13,7 +13,7 @@ use std::fmt::Debug;
 use std::fmt::Write;
 use std::rc::Rc;
 use std::sync::{Arc, Condvar, Mutex};
-use tmux_cc::*;
+use termwiz::tmux_cc::*;
 
 pub(crate) trait TmuxCommand: Send + Debug {
     fn get_command(&self) -> String;

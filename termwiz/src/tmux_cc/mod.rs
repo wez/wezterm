@@ -10,7 +10,7 @@ pub type TmuxSessionId = u64;
 mod parser {
     use pest_derive::Parser;
     #[derive(Parser)]
-    #[grammar = "tmux.pest"]
+    #[grammar = "tmux_cc/tmux.pest"]
     pub struct TmuxParser;
 }
 

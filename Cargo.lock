@@ -2321,7 +2321,6 @@ dependencies = [
  "termwiz",
  "textwrap 0.14.2",
  "thiserror",
- "tmux-cc",
  "unicode-segmentation",
  "url",
  "wezterm-ssh",
@@ -4103,7 +4102,10 @@ dependencies = [
  "num-derive",
  "num-traits",
  "ordered-float",
+ "pest",
+ "pest_derive",
  "pretty_assertions",
+ "pretty_env_logger",
  "regex",
  "semver 0.11.0",
  "serde",
@@ -4112,7 +4114,6 @@ dependencies = [
  "terminfo",
  "termios 0.3.3",
  "thiserror",
- "tmux-cc",
  "ucd-trie",
  "unicode-segmentation",
  "varbincode",
@@ -4218,18 +4219,6 @@ name = "tinyvec_macros"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
-
-[[package]]
-name = "tmux-cc"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "log",
- "pest",
- "pest_derive",
- "pretty_assertions",
- "pretty_env_logger",
-]
 
 [[package]]
 name = "toml"

@@ -4,12 +4,12 @@ use crate::escape::{
     Action, DeviceControlMode, EnterDeviceControlMode, Esc, OperatingSystemCommand,
     ShortDeviceControl, Sixel, SixelData, CSI,
 };
+use crate::tmux_cc::Event;
 use log::error;
 use num_traits::FromPrimitive;
 use regex::bytes::Regex;
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
-use tmux_cc::Event;
 use vtparse::{CsiParam, VTActor, VTParser};
 
 struct SixelBuilder {
@@ -55,7 +55,7 @@ struct ParseState {
     sixel: Option<SixelBuilder>,
     dcs: Option<ShortDeviceControl>,
     get_tcap: Option<GetTcapBuilder>,
-    tmux_state: Option<RefCell<tmux_cc::Parser>>,
+    tmux_state: Option<RefCell<crate::tmux_cc::Parser>>,
 }
 
 /// The `Parser` struct holds the state machine that is used to decode
@@ -251,7 +251,8 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         } else {
             if byte == b'p' && params == [1000] {
                 // into tmux_cc mode
-                self.state.borrow_mut().tmux_state = Some(RefCell::new(tmux_cc::Parser::new()));
+                self.state.borrow_mut().tmux_state =
+                    Some(RefCell::new(crate::tmux_cc::Parser::new()));
             }
             (self.callback)(Action::DeviceControl(DeviceControlMode::Enter(Box::new(
                 EnterDeviceControlMode {

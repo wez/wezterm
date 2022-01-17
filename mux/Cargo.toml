@@ -37,7 +37,6 @@ terminfo = "0.7"
 termwiz = { path = "../termwiz" }
 textwrap = "0.14"
 thiserror = "1.0"
-tmux-cc = { path = "../tmux-cc" }
 unicode-segmentation = "1.8"
 url = "2"
 wezterm-ssh = { path = "../wezterm-ssh" }
