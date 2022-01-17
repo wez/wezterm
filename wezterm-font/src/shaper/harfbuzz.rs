@@ -1,8 +1,7 @@
-use crate::ftwrap;
-use crate::hbwrap as harfbuzz;
 use crate::parser::ParsedFont;
 use crate::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::units::*;
+use crate::{ftwrap, hbwrap as harfbuzz};
 use anyhow::{anyhow, Context};
 use config::ConfigHandle;
 use log::error;

@@ -1,5 +1,6 @@
 use crate::sshd::session;
-use assert_fs::{prelude::*, TempDir};
+use assert_fs::prelude::*;
+use assert_fs::TempDir;
 use predicates::prelude::*;
 use rstest::*;
 use std::convert::TryInto;

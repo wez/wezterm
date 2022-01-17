@@ -11,8 +11,7 @@ use crate::{
 use filedescriptor::{AsRawSocketDescriptor, POLLIN};
 use ssh2::{Channel, Session};
 use std::collections::HashMap;
-use std::io::Result as IoResult;
-use std::io::{Read, Write};
+use std::io::{Read, Result as IoResult, Write};
 use std::sync::{Arc, Condvar, Mutex};
 
 /// Represents a pty channel within a session.

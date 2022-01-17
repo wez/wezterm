@@ -250,16 +250,14 @@ impl<'a> std::hash::Hash for (dyn ShapeCacheKeyTrait + 'a) {
 mod test {
     use super::*;
     use crate::glyphcache::GlyphCache;
-    use crate::shapecache::GlyphPosition;
-    use crate::shapecache::ShapedInfo;
+    use crate::shapecache::{GlyphPosition, ShapedInfo};
     use crate::utilsprites::RenderMetrics;
     use config::{FontAttributes, TextStyle};
     use k9::assert_equal as assert_eq;
     use std::rc::Rc;
     use termwiz::cell::CellAttributes;
     use termwiz::surface::{Line, SEQ_ZERO};
-    use wezterm_font::FontConfiguration;
-    use wezterm_font::LoadedFont;
+    use wezterm_font::{FontConfiguration, LoadedFont};
 
     fn cluster_and_shape<T>(
         render_metrics: &RenderMetrics,

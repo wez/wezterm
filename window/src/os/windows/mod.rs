@@ -23,7 +23,8 @@ pub fn is_running_in_rdp_session() -> bool {
     use winapi::shared::minwindef::DWORD;
     use winapi::um::processthreadsapi::{GetCurrentProcessId, ProcessIdToSessionId};
     use winapi::um::winuser::{GetSystemMetrics, SM_REMOTESESSION};
-    use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
+    use winreg::enums::HKEY_LOCAL_MACHINE;
+    use winreg::RegKey;
 
     if unsafe { GetSystemMetrics(SM_REMOTESESSION) } != 0 {
         return true;

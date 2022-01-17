@@ -17,8 +17,7 @@ use crate::shapecache::*;
 use crate::tabbar::{TabBarItem, TabBarState};
 use ::wezterm_term::input::MouseButton as TMB;
 use ::window::*;
-use anyhow::Context;
-use anyhow::{anyhow, ensure};
+use anyhow::{anyhow, ensure, Context};
 use config::keyassignment::{
     ClipboardCopyDestination, ClipboardPasteSource, InputMap, KeyAssignment, QuickSelectArguments,
     SpawnCommand,

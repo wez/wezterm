@@ -45,6 +45,6 @@ jobs:
       - name: Build
         run: |
           source $HOME/.cargo/env
-          cargo fmt --all -- --check
+          cargo +nightly fmt --all -- --check
 
 

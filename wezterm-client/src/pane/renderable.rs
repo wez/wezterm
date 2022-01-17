@@ -19,8 +19,7 @@ use termwiz::cell::{Cell, CellAttributes, Underline};
 use termwiz::color::AnsiColor;
 use termwiz::surface::{SequenceNo, SEQ_ZERO};
 use url::Url;
-use wezterm_term::{KeyCode, KeyModifiers};
-use wezterm_term::{Line, StableRowIndex};
+use wezterm_term::{KeyCode, KeyModifiers, Line, StableRowIndex};
 
 const MAX_POLL_INTERVAL: Duration = Duration::from_secs(30);
 const BASE_POLL_INTERVAL: Duration = Duration::from_millis(20);

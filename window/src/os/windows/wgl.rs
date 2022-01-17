@@ -5,8 +5,7 @@ use std::io::Error as IoError;
 use std::os::raw::c_void;
 use std::ptr::{null, null_mut};
 use winapi::shared::windef::*;
-use winapi::um::libloaderapi::GetModuleHandleW;
-use winapi::um::libloaderapi::*;
+use winapi::um::libloaderapi::{GetModuleHandleW, *};
 use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
 

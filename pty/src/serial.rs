@@ -15,8 +15,7 @@ use serial::{
     BaudRate, CharSize, FlowControl, Parity, PortSettings, SerialPort, StopBits, SystemPort,
 };
 use std::ffi::{OsStr, OsString};
-use std::io::Result as IoResult;
-use std::io::{Read, Write};
+use std::io::{Read, Result as IoResult, Write};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 

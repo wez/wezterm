@@ -9,8 +9,7 @@ use super::VisibleRowIndex;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 
-pub use termwiz::input::KeyCode;
-pub use termwiz::input::Modifiers as KeyModifiers;
+pub use termwiz::input::{KeyCode, Modifiers as KeyModifiers};
 
 #[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

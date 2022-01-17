@@ -1,4 +1,5 @@
-use assert_fs::{prelude::*, TempDir};
+use assert_fs::prelude::*;
+use assert_fs::TempDir;
 use once_cell::sync::{Lazy, OnceCell};
 use rstest::*;
 use std::collections::HashMap;

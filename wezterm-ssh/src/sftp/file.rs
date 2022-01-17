@@ -1,11 +1,10 @@
 use super::{Metadata, SessionRequest, SessionSender, SftpChannelResult, SftpRequest};
 use smol::channel::{bounded, Sender};
 use smol::future::FutureExt;
-use std::fmt;
 use std::future::Future;
-use std::io;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::{fmt, io};
 
 pub(crate) type FileId = usize;
 

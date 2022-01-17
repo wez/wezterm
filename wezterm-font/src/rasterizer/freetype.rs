@@ -7,8 +7,7 @@ use anyhow::bail;
 use color_types::linear_u8_to_srgb8;
 use config::{FreeTypeLoadFlags, FreeTypeLoadTarget};
 use std::cell::RefCell;
-use std::mem;
-use std::slice;
+use std::{mem, slice};
 
 pub struct FreeTypeRasterizer {
     has_color: bool,

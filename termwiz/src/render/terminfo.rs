@@ -696,8 +696,7 @@ mod test {
     use crate::escape::{Action, Esc, EscCode};
     use crate::input::InputEvent;
     use crate::terminal::unix::{Purge, SetAttributeWhen, UnixTty};
-    use crate::terminal::ScreenSize;
-    use crate::terminal::{cast, Terminal, TerminalWaker};
+    use crate::terminal::{cast, ScreenSize, Terminal, TerminalWaker};
     use libc::winsize;
     use std::io::{Error as IoError, ErrorKind, Read, Result as IoResult, Write};
     use std::mem;

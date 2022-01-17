@@ -1,6 +1,5 @@
 use crate::keyassignment::KeyAssignment;
-use crate::Gradient;
-use crate::{FontAttributes, FontStretch, FontWeight, FreeTypeLoadTarget, TextStyle};
+use crate::{FontAttributes, FontStretch, FontWeight, FreeTypeLoadTarget, Gradient, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
 pub use luahelper::*;

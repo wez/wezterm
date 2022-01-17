@@ -1,8 +1,7 @@
 use super::*;
 use crate::bitmaps::*;
 use crate::connection::ConnectionOps;
-use crate::os::xkeysyms;
-use crate::os::{Connection, Window};
+use crate::os::{xkeysyms, Connection, Window};
 use crate::{
     Appearance, Clipboard, DeadKeyStatus, Dimensions, MouseButtons, MouseCursor, MouseEvent,
     MouseEventKind, MousePress, Point, Rect, ScreenPoint, WindowDecorations, WindowEvent,

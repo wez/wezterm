@@ -1,6 +1,5 @@
 use super::box_model::*;
-use crate::customglyph::BlockKey;
-use crate::customglyph::*;
+use crate::customglyph::{BlockKey, *};
 use crate::glium::texture::SrgbTexture2d;
 use crate::glyphcache::{CachedGlyph, GlyphCache};
 use crate::quad::Quad;
@@ -13,12 +12,11 @@ use crate::termwindow::{
 use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::OutOfTextureSpace;
 use ::window::bitmaps::{TextureCoord, TextureRect, TextureSize};
-use ::window::glium;
 use ::window::glium::uniforms::{
     MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
 };
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
-use ::window::{DeadKeyStatus, PointF, RectF, SizeF, WindowOps};
+use ::window::{glium, DeadKeyStatus, PointF, RectF, SizeF, WindowOps};
 use anyhow::anyhow;
 use config::{
     ConfigHandle, Dimension, DimensionContext, HsbTransform, TabBarColors, TextStyle,

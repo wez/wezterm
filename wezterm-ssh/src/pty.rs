@@ -4,8 +4,7 @@ use crate::sessionwrap::SessionWrap;
 use filedescriptor::{socketpair, FileDescriptor};
 use portable_pty::{ExitStatus, PtySize};
 use smol::channel::{bounded, Receiver, TryRecvError};
-use std::collections::HashMap;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::io::{Read, Write};
 use std::sync::Mutex;
 

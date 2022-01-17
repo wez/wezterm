@@ -18,8 +18,7 @@ pub mod parser;
 
 pub use self::apc::KittyImage;
 pub use self::csi::CSI;
-pub use self::esc::Esc;
-pub use self::esc::EscCode;
+pub use self::esc::{Esc, EscCode};
 pub use self::osc::OperatingSystemCommand;
 
 use vtparse::CsiParam;

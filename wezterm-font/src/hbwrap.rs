@@ -4,9 +4,8 @@ use freetype;
 pub use harfbuzz::*;
 
 use anyhow::{ensure, Error};
-use std::mem;
 use std::os::raw::c_char;
-use std::slice;
+use std::{mem, slice};
 
 extern "C" {
     fn hb_ft_font_set_load_flags(font: *mut hb_font_t, load_flags: i32);

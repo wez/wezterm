@@ -8,9 +8,8 @@ use anyhow::Context;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
-use termwiz::escape::apc::KittyImageData;
 use termwiz::escape::apc::{
-    KittyFrameCompositionMode, KittyImage, KittyImageCompression, KittyImageDelete,
+    KittyFrameCompositionMode, KittyImage, KittyImageCompression, KittyImageData, KittyImageDelete,
     KittyImageFormat, KittyImageFrame, KittyImageFrameCompose, KittyImagePlacement,
     KittyImageTransmit, KittyImageVerbosity,
 };

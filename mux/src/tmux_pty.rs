@@ -1,12 +1,8 @@
-use crate::{
-    tmux::{RefTmuxRemotePane, TmuxCmdQueue, TmuxDomainState},
-    tmux_commands::SendKeys,
-};
+use crate::tmux::{RefTmuxRemotePane, TmuxCmdQueue, TmuxDomainState};
+use crate::tmux_commands::SendKeys;
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty};
-use std::{
-    io::{Read, Write},
-    sync::{Arc, Condvar, Mutex},
-};
+use std::io::{Read, Write};
+use std::sync::{Arc, Condvar, Mutex};
 
 pub(crate) struct TmuxReader {
     rx: flume::Receiver<String>,

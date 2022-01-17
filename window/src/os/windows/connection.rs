@@ -10,7 +10,8 @@ use std::rc::Rc;
 use winapi::um::winbase::INFINITE;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::*;
-use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+use winreg::enums::HKEY_CURRENT_USER;
+use winreg::RegKey;
 
 pub struct Connection {
     event_handle: HANDLE,

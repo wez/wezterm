@@ -42,9 +42,7 @@ mod update;
 mod utilsprites;
 
 pub use selection::SelectionMode;
-pub use termwindow::set_window_class;
-pub use termwindow::TermWindow;
-pub use termwindow::ICON_DATA;
+pub use termwindow::{set_window_class, TermWindow, ICON_DATA};
 
 #[derive(Debug, StructOpt)]
 #[structopt(

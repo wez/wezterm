@@ -1,7 +1,5 @@
-use crate::de_notnan;
 use crate::keys::KeyNoAction;
-use crate::ConfigHandle;
-use crate::LeaderKey;
+use crate::{de_notnan, ConfigHandle, LeaderKey};
 use luahelper::impl_lua_conversion;
 use ordered_float::NotNan;
 use serde::{Deserialize, Serialize};

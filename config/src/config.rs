@@ -2,10 +2,9 @@ use crate::background::Gradient;
 use crate::bell::{AudibleBell, VisualBell};
 use crate::color::{ColorSchemeFile, HsbTransform, Palette, TabBarStyle, WindowFrameConfig};
 use crate::daemon::DaemonOptions;
-use crate::font::{AllowSquareGlyphOverflow, StyleRule, TextStyle};
 use crate::font::{
-    FontLocatorSelection, FontRasterizerSelection, FontShaperSelection, FreeTypeLoadFlags,
-    FreeTypeLoadTarget,
+    AllowSquareGlyphOverflow, FontLocatorSelection, FontRasterizerSelection, FontShaperSelection,
+    FreeTypeLoadFlags, FreeTypeLoadTarget, StyleRule, TextStyle,
 };
 use crate::frontend::FrontEndSelection;
 use crate::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnCommand};

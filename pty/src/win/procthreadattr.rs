@@ -1,8 +1,7 @@
 use crate::win::psuedocon::HPCON;
 use anyhow::{ensure, Error};
 use std::io::Error as IoError;
-use std::mem;
-use std::ptr;
+use std::{mem, ptr};
 use winapi::shared::minwindef::DWORD;
 use winapi::um::processthreadsapi::*;
 

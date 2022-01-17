@@ -1,6 +1,5 @@
-use std::env;
-use std::fs;
 use std::path::{Path, PathBuf};
+use std::{env, fs};
 
 fn new_build() -> cc::Build {
     let mut cfg = cc::Build::new();

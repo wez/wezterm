@@ -1,5 +1,6 @@
 use crate::sshd::session;
-use assert_fs::{prelude::*, TempDir};
+use assert_fs::prelude::*;
+use assert_fs::TempDir;
 use rstest::*;
 use smol::io::{AsyncReadExt, AsyncWriteExt};
 use std::convert::TryInto;

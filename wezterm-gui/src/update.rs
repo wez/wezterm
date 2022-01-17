@@ -1,7 +1,6 @@
 use crate::ICON_DATA;
 use anyhow::anyhow;
-use config::configuration;
-use config::wezterm_version;
+use config::{configuration, wezterm_version};
 use http_req::request::{HttpVersion, Request};
 use http_req::uri::Uri;
 use mux::connui::ConnectionUI;

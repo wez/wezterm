@@ -8,9 +8,9 @@ mod bindings {
     ::windows::include_bindings!();
 }
 
-use bindings::{
-    Windows::Data::Xml::Dom::XmlDocument, Windows::Foundation::*, Windows::UI::Notifications::*,
-};
+use bindings::Windows::Data::Xml::Dom::XmlDocument;
+use bindings::Windows::Foundation::*;
+use bindings::Windows::UI::Notifications::*;
 use windows::{Error as WinError, IInspectable, Interface};
 
 fn unwrap_arg<T>(a: &Option<T>) -> Result<&T, WinError> {

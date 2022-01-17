@@ -5,10 +5,8 @@ use anyhow::{anyhow, ensure, Error};
 use config::{FontStretch, FontWeight};
 pub use fontconfig::*;
 use std::ffi::{CStr, CString};
-use std::fmt;
-use std::mem;
 use std::os::raw::{c_char, c_int};
-use std::ptr;
+use std::{fmt, mem, ptr};
 
 pub const FC_MONO: i32 = 100;
 pub const FC_DUAL: i32 = 90;

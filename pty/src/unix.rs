@@ -4,12 +4,10 @@ use crate::{Child, CommandBuilder, MasterPty, PtyPair, PtySize, PtySystem, Slave
 use anyhow::{bail, Error};
 use filedescriptor::FileDescriptor;
 use libc::{self, winsize};
-use std::io;
 use std::io::{Read, Write};
-use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::os::unix::process::CommandExt;
-use std::ptr;
+use std::{io, mem, ptr};
 
 #[derive(Default)]
 pub struct UnixPtySystem {}

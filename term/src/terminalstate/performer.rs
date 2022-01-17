@@ -2,8 +2,7 @@ use crate::terminal::Alert;
 use crate::terminalstate::{
     default_color_map, CharSet, MouseEncoding, TabStop, UnicodeVersionStackEntry,
 };
-use crate::{ClipboardSelection, Position, TerminalState, VisibleRowIndex};
-use crate::{DCS, ST};
+use crate::{ClipboardSelection, Position, TerminalState, VisibleRowIndex, DCS, ST};
 use log::{debug, error};
 use num_traits::FromPrimitive;
 use std::fmt::Write;
