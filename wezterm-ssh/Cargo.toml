@@ -38,7 +38,7 @@ thiserror = "1.0"
 async_ossl = { path = "../async_ossl" }
 
 [dev-dependencies]
-assert_fs = "1.0.4"
+assert_fs = "1.0.7"
 indoc = "1.0"
 k9 = "0.11.0"
 once_cell = "1.8"
