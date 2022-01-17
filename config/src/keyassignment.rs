@@ -346,6 +346,7 @@ pub enum KeyAssignment {
         name: Option<String>,
         spawn: Option<SpawnCommand>,
     },
+    SwitchWorkspaceRelative(isize),
 }
 impl_lua_conversion!(KeyAssignment);
 

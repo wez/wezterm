@@ -2100,6 +2100,22 @@ impl TermWindow {
                 };
                 tab.toggle_zoom();
             }
+            SwitchWorkspaceRelative(delta) => {
+                let mux = Mux::get().unwrap();
+                let workspace = mux.active_workspace();
+                let workspaces = mux.iter_workspaces();
+                let idx = workspaces.iter().position(|w| *w == workspace).unwrap_or(0);
+                let new_idx = idx as isize + delta;
+                let new_idx = if new_idx < 0 {
+                    workspaces.len() as isize + new_idx
+                } else {
+                    new_idx
+                };
+                let new_idx = new_idx as usize % workspaces.len();
+                if let Some(w) = workspaces.get(new_idx) {
+                    front_end().switch_workspace(w);
+                }
+            }
             SwitchToWorkspace { name, spawn } => {
                 let activity = crate::Activity::new();
                 let mux = Mux::get().unwrap();
