@@ -23,7 +23,7 @@ wezterm.on("update-right-status", function(window, pane)
   local date = wezterm.strftime("%a %b %-d %H:%M ");
 
   window:set_right_status(wezterm.format({
-    {Text=wezterm.nerdfonts.mid_clock .. " "..date},
+    {Text=wezterm.nerdfonts.mdi_clock .. " "..date},
   }));
 end)
 ```
