@@ -7,8 +7,8 @@ use crate::escape::{
 use log::error;
 use num_traits::FromPrimitive;
 use regex::bytes::Regex;
-use std::borrow::{Borrow, BorrowMut};
-use std::cell::{Ref, RefCell};
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use tmux_cc::Event;
 use vtparse::{CsiParam, VTActor, VTParser};
 

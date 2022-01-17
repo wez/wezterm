@@ -1,8 +1,7 @@
 use crate::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::pane::{Pane, PaneId};
-use crate::tab::{SplitDirection, Tab, TabId};
+use crate::tab::TabId;
 use crate::tmux_commands::{ListAllPanes, TmuxCommand};
-use crate::window::WindowId;
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
 use portable_pty::{CommandBuilder, PtySize};
@@ -19,6 +18,7 @@ enum State {
     WaitingForResponse,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) struct TmuxRemotePane {
     // members for local
@@ -41,6 +41,7 @@ pub(crate) type RefTmuxRemotePane = Arc<Mutex<TmuxRemotePane>>;
 
 /// As a remote TmuxTab, keeping the TmuxPanes ID
 /// within the remote tab.
+#[allow(dead_code)]
 pub(crate) struct TmuxTab {
     pub tab_id: TabId, // local tab ID
     pub tmux_window_id: TmuxWindowId,
@@ -164,7 +165,7 @@ impl TmuxDomainState {
     pub fn create_gui_window(&self) {
         if self.gui_window.borrow().is_none() {
             let mux = Mux::get().expect("should be call at main thread");
-            let window_builder = mux.new_empty_window();
+            let window_builder = mux.new_empty_window(None /* TODO: pass session here */);
             log::info!("Tmux create window id {}", window_builder.window_id);
             {
                 let mut window_id = self.gui_window.borrow_mut();

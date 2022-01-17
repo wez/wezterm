@@ -2,7 +2,7 @@ use crate::{
     tmux::{RefTmuxRemotePane, TmuxCmdQueue, TmuxDomainState},
     tmux_commands::SendKeys,
 };
-use portable_pty::{Child, ExitStatus, MasterPty};
+use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty};
 use std::{
     io::{Read, Write},
     sync::{Arc, Condvar, Mutex},
@@ -95,10 +95,6 @@ impl Child for TmuxPty {
         todo!()
     }
 
-    fn kill(&mut self) -> std::io::Result<()> {
-        todo!()
-    }
-
     fn wait(&mut self) -> std::io::Result<portable_pty::ExitStatus> {
         let (lock, var) = &*self.active_lock;
         let mut released = lock.lock().unwrap();
@@ -118,9 +114,38 @@ impl Child for TmuxPty {
     }
 }
 
+#[derive(Clone, Debug)]
+struct TmuxChildKiller {}
+
+impl ChildKiller for TmuxChildKiller {
+    fn kill(&mut self) -> std::io::Result<()> {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "TmuxChildKiller: kill not implemented!",
+        ))
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(self.clone())
+    }
+}
+
+impl ChildKiller for TmuxPty {
+    fn kill(&mut self) -> std::io::Result<()> {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "TmuxPty: kill not implemented!",
+        ))
+    }
+
+    fn clone_killer(&self) -> Box<dyn ChildKiller + Send + Sync> {
+        Box::new(TmuxChildKiller {})
+    }
+}
+
 impl MasterPty for TmuxPty {
     fn resize(&self, size: portable_pty::PtySize) -> Result<(), anyhow::Error> {
-        // TODO: perform pane resize
+        log::warn!("TODO: perform pane resize");
         Ok(())
     }
 

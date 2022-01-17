@@ -25,7 +25,7 @@ pub(crate) struct PaneItem {
     session_id: TmuxSessionId,
     window_id: TmuxWindowId,
     pane_id: TmuxPaneId,
-    pane_index: u64,
+    _pane_index: u64,
     cursor_x: u64,
     cursor_y: u64,
     pane_width: u64,
@@ -198,7 +198,7 @@ impl TmuxCommand for ListAllPanes {
             let session_id = fields.next().ok_or_else(|| anyhow!("missing session_id"))?;
             let window_id = fields.next().ok_or_else(|| anyhow!("missing window_id"))?;
             let pane_id = fields.next().ok_or_else(|| anyhow!("missing pane_id"))?;
-            let pane_index = fields
+            let _pane_index = fields
                 .next()
                 .ok_or_else(|| anyhow!("missing pane_index"))?
                 .parse()?;
@@ -237,7 +237,7 @@ impl TmuxCommand for ListAllPanes {
                 session_id,
                 window_id,
                 pane_id,
-                pane_index,
+                _pane_index,
                 cursor_x,
                 cursor_y,
                 pane_width,
