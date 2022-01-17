@@ -40,6 +40,7 @@ jobs:
           profile: "minimal"
           toolchain: "nightly"
           override: true
+          components: rustfmt
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       - name: Build
