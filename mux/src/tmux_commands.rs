@@ -3,12 +3,13 @@ use crate::localpane::LocalPane;
 use crate::pane::alloc_pane_id;
 use crate::tab::{Tab, TabId};
 use crate::tmux::{TmuxDomain, TmuxDomainState, TmuxRemotePane, TmuxTab};
-use crate::tmux_pty::TmuxPty;
+use crate::tmux_pty::{TmuxChild, TmuxPty};
 use crate::{Mux, Pane};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use portable_pty::{MasterPty, PtySize};
 use std::collections::HashSet;
 use std::fmt::{Debug, Write};
+use std::io::Write as _;
 use std::rc::Rc;
 use std::sync::{Arc, Condvar, Mutex};
 use termwiz::tmux_cc::*;
@@ -97,12 +98,12 @@ impl TmuxDomainState {
             }
 
             let local_pane_id = alloc_pane_id();
-            let channel = flume::unbounded::<String>();
+            let (output_read, output_write) = filedescriptor::socketpair()?;
             let active_lock = Arc::new((Mutex::new(false), Condvar::new()));
 
             let ref_pane = Arc::new(Mutex::new(TmuxRemotePane {
                 local_pane_id,
-                tx: channel.0.clone(),
+                output_write,
                 active_lock: active_lock.clone(),
                 session_id: pane.session_id,
                 window_id: pane.window_id,
@@ -122,9 +123,8 @@ impl TmuxDomainState {
 
             let pane_pty = TmuxPty {
                 domain_id: self.domain_id,
-                rx: channel.1.clone(),
+                reader: output_read,
                 cmd_queue: self.cmd_queue.clone(),
-                active_lock: active_lock.clone(),
                 master_pane: ref_pane,
             };
             let writer = pane_pty.try_clone_writer()?;
@@ -134,6 +134,10 @@ impl TmuxDomainState {
                 cols: pane.pane_width as u16,
                 pixel_width: 0,
                 pixel_height: 0,
+            };
+
+            let child = TmuxChild {
+                active_lock: active_lock.clone(),
             };
 
             let terminal = wezterm_term::Terminal::new(
@@ -147,8 +151,8 @@ impl TmuxDomainState {
             let local_pane: Rc<dyn Pane> = Rc::new(LocalPane::new(
                 local_pane_id,
                 terminal,
-                Box::new(pane_pty.clone()),
-                Box::new(pane_pty.clone()),
+                Box::new(child),
+                Box::new(pane_pty),
                 self.domain_id,
             ));
 
@@ -276,11 +280,10 @@ impl TmuxCommand for CapturePane {
 
         let pane_map = tmux_domain.inner.remote_panes.borrow();
         if let Some(pane) = pane_map.get(&self.0) {
-            let lock = pane.lock().expect("Grant lock of tmux cmd queue failed");
-            return lock
-                .tx
-                .send(result.output.to_owned())
-                .map_err(|err| anyhow!("Send to tmux cmd queue failed {}", err));
+            let mut pane = pane.lock().expect("Grant lock of tmux cmd queue failed");
+            pane.output_write
+                .write_all(result.output.as_bytes())
+                .context("writing capture pane result to output")?;
         }
 
         Ok(())

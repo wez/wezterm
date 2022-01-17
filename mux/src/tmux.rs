@@ -4,9 +4,11 @@ use crate::tab::TabId;
 use crate::tmux_commands::{ListAllPanes, TmuxCommand};
 use crate::{Mux, MuxWindowBuilder};
 use async_trait::async_trait;
+use filedescriptor::FileDescriptor;
 use portable_pty::{CommandBuilder, PtySize};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::io::Write;
 use std::rc::Rc;
 use std::sync::{Arc, Condvar, Mutex};
 use termwiz::tmux_cc::*;
@@ -23,7 +25,7 @@ enum State {
 pub(crate) struct TmuxRemotePane {
     // members for local
     pub local_pane_id: PaneId,
-    pub tx: flume::Sender<String>,
+    pub output_write: FileDescriptor,
     pub active_lock: Arc<(Mutex<bool>, Condvar)>,
     // members sync with remote
     pub session_id: TmuxSessionId,
@@ -92,11 +94,10 @@ impl TmuxDomainState {
                 Event::Output { pane, text } => {
                     let pane_map = self.remote_panes.borrow_mut();
                     if let Some(ref_pane) = pane_map.get(pane) {
-                        let tmux_pane = ref_pane.lock().unwrap();
-                        tmux_pane
-                            .tx
-                            .send(text.to_string())
-                            .expect("send to tmux pane failed");
+                        let mut tmux_pane = ref_pane.lock().unwrap();
+                        if let Err(err) = tmux_pane.output_write.write_all(text.as_bytes()) {
+                            log::error!("Failed to write tmux data to output: {:#}", err);
+                        }
                     } else {
                         log::error!("Tmux pane {} havn't been attached", pane);
                     }

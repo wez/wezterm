@@ -1,68 +1,45 @@
 use crate::tmux::{RefTmuxRemotePane, TmuxCmdQueue, TmuxDomainState};
 use crate::tmux_commands::SendKeys;
+use crate::DomainId;
+use filedescriptor::FileDescriptor;
 use portable_pty::{Child, ChildKiller, ExitStatus, MasterPty};
 use std::io::{Read, Write};
 use std::sync::{Arc, Condvar, Mutex};
 
-pub(crate) struct TmuxReader {
-    rx: flume::Receiver<String>,
-    // If a string received from rx is larger then the buffer to write out,
-    // we put that string here and use a cursor to indicate all chars before
-    // that cursor have been written out.
-    // Clear this buffer before receive next string.
-    head_buffer: String,
-    head_cursor: usize, // the first char of next write
-}
-
-impl Read for TmuxReader {
-    fn read(&mut self, mut buf: &mut [u8]) -> std::io::Result<usize> {
-        if !self.head_buffer.is_empty() {
-            let mut buffer_cleared = false;
-            let bytes = if self.head_cursor + buf.len() >= self.head_buffer.len() {
-                buffer_cleared = true;
-                &self.head_buffer[self.head_cursor..]
-            } else {
-                &self.head_buffer[self.head_cursor..(self.head_cursor + buf.len())]
-            };
-            return buf.write(bytes.as_bytes()).map(|res| {
-                // update buffer if write success
-                if buffer_cleared {
-                    self.head_buffer.clear();
-                    self.head_cursor = 0;
-                } else {
-                    self.head_cursor = self.head_cursor + buf.len();
-                }
-                res
-            });
-        } else {
-            match self.rx.recv() {
-                Ok(str) => {
-                    if str.len() > buf.len() {
-                        self.head_buffer = str;
-                        self.head_cursor = 0;
-                        return self.read(buf);
-                    } else {
-                        return buf.write(str.as_bytes());
-                    }
-                }
-                Err(_) => {
-                    return Ok(0);
-                }
-            }
-        }
-    }
-}
-
 /// A local tmux pane(tab) based on a tmux pty
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct TmuxPty {
-    pub domain_id: usize,
+    pub domain_id: DomainId,
     pub master_pane: RefTmuxRemotePane,
-    pub rx: flume::Receiver<String>,
+    pub reader: FileDescriptor,
     pub cmd_queue: Arc<Mutex<TmuxCmdQueue>>,
+}
 
-    /// would be released by TmuxDomain when detatched
-    pub active_lock: Arc<(Mutex<bool>, Condvar)>,
+struct TmuxPtyWriter {
+    domain_id: DomainId,
+    master_pane: RefTmuxRemotePane,
+    cmd_queue: Arc<Mutex<TmuxCmdQueue>>,
+}
+
+impl Write for TmuxPtyWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let pane_id = {
+            let pane_lock = self.master_pane.lock().unwrap();
+            pane_lock.pane_id
+        };
+        log::trace!("pane:{}, content:{:?}", &pane_id, buf);
+        let mut cmd_queue = self.cmd_queue.lock().unwrap();
+        cmd_queue.push_back(Box::new(SendKeys {
+            pane: pane_id,
+            keys: buf.to_vec(),
+        }));
+        TmuxDomainState::schedule_send_next_command(self.domain_id);
+        Ok(0)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
 impl Write for TmuxPty {
@@ -86,7 +63,12 @@ impl Write for TmuxPty {
     }
 }
 
-impl Child for TmuxPty {
+#[derive(Clone, Debug)]
+pub(crate) struct TmuxChild {
+    pub active_lock: Arc<(Mutex<bool>, Condvar)>,
+}
+
+impl Child for TmuxChild {
     fn try_wait(&mut self) -> std::io::Result<Option<portable_pty::ExitStatus>> {
         todo!()
     }
@@ -126,7 +108,7 @@ impl ChildKiller for TmuxChildKiller {
     }
 }
 
-impl ChildKiller for TmuxPty {
+impl ChildKiller for TmuxChild {
     fn kill(&mut self) -> std::io::Result<()> {
         Err(std::io::Error::new(
             std::io::ErrorKind::Other,
@@ -155,21 +137,15 @@ impl MasterPty for TmuxPty {
         })
     }
 
-    fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, anyhow::Error> {
-        Ok(Box::new(TmuxReader {
-            rx: self.rx.clone(),
-            head_buffer: String::default(),
-            head_cursor: 0,
-        }))
+    fn try_clone_reader(&self) -> Result<Box<dyn Read + Send>, anyhow::Error> {
+        Ok(Box::new(self.reader.try_clone()?))
     }
 
-    fn try_clone_writer(&self) -> Result<Box<dyn std::io::Write + Send>, anyhow::Error> {
-        Ok(Box::new(TmuxPty {
+    fn try_clone_writer(&self) -> Result<Box<dyn Write + Send>, anyhow::Error> {
+        Ok(Box::new(TmuxPtyWriter {
             domain_id: self.domain_id,
             master_pane: self.master_pane.clone(),
-            rx: self.rx.clone(),
             cmd_queue: self.cmd_queue.clone(),
-            active_lock: self.active_lock.clone(),
         }))
     }
 
