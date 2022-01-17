@@ -169,8 +169,11 @@ impl LauncherArgs {
     }
 }
 
+const ROW_OVERHEAD: usize = 3;
+
 struct LauncherState {
     active_idx: usize,
+    max_items: usize,
     top_row: usize,
     entries: Vec<Entry>,
     filter_term: String,
@@ -354,23 +357,13 @@ impl LauncherState {
             Change::AllAttributes(CellAttributes::default()),
         ];
 
-        let max_items = size.rows - 3;
-        let num_items = self.filtered_entries.len();
-
-        let skip = if num_items < max_items {
-            0
-        } else if num_items.saturating_sub(self.active_idx) < max_items {
-            // Align to bottom
-            (num_items - max_items).saturating_sub(1)
-        } else {
-            self.active_idx.saturating_sub(2)
-        };
+        let max_items = self.max_items;
 
         for (row_num, (entry_idx, entry)) in self
             .filtered_entries
             .iter()
             .enumerate()
-            .skip(skip)
+            .skip(self.top_row)
             .enumerate()
         {
             if row_num > max_items {
@@ -391,7 +384,6 @@ impl LauncherState {
                 changes.push(AttributeChange::Reverse(false).into());
             }
         }
-        self.top_row = skip;
 
         if self.filtering || !self.filter_term.is_empty() {
             changes.append(&mut vec![
@@ -432,10 +424,16 @@ impl LauncherState {
 
     fn move_up(&mut self) {
         self.active_idx = self.active_idx.saturating_sub(1);
+        if self.active_idx < self.top_row {
+            self.top_row = self.active_idx;
+        }
     }
 
     fn move_down(&mut self) {
         self.active_idx = (self.active_idx + 1).min(self.filtered_entries.len() - 1);
+        if self.active_idx + self.top_row > self.max_items {
+            self.top_row = self.active_idx.saturating_sub(self.max_items);
+        }
     }
 
     fn run_loop(&mut self, term: &mut TermWizTerminal) -> anyhow::Result<()> {
@@ -502,6 +500,24 @@ impl LauncherState {
                 }
                 InputEvent::Mouse(MouseEvent {
                     y, mouse_buttons, ..
+                }) if mouse_buttons.contains(MouseButtons::VERT_WHEEL) => {
+                    if mouse_buttons.contains(MouseButtons::WHEEL_POSITIVE) {
+                        self.top_row = self.top_row.saturating_sub(1);
+                    } else {
+                        self.top_row += 1;
+                        self.top_row = self.top_row.min(
+                            self.filtered_entries
+                                .len()
+                                .saturating_sub(self.max_items)
+                                .saturating_sub(1),
+                        );
+                    }
+                    if y > 0 && y as usize <= self.filtered_entries.len() {
+                        self.active_idx = self.top_row + y as usize - 1;
+                    }
+                }
+                InputEvent::Mouse(MouseEvent {
+                    y, mouse_buttons, ..
                 }) => {
                     if y > 0 && y as usize <= self.filtered_entries.len() {
                         self.active_idx = self.top_row + y as usize - 1;
@@ -523,6 +539,9 @@ impl LauncherState {
                     self.launch(self.active_idx);
                     break;
                 }
+                InputEvent::Resized { rows, .. } => {
+                    self.max_items = rows.saturating_sub(ROW_OVERHEAD);
+                }
                 _ => {}
             }
             self.render(term)?;
@@ -537,8 +556,11 @@ pub fn launcher(
     mut term: TermWizTerminal,
     window: ::window::Window,
 ) -> anyhow::Result<()> {
+    let size = term.get_screen_size()?;
+    let max_items = size.rows.saturating_sub(ROW_OVERHEAD);
     let mut state = LauncherState {
         active_idx: 0,
+        max_items,
         pane_id: args.pane_id,
         top_row: 0,
         entries: vec![],
