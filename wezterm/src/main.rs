@@ -193,6 +193,21 @@ Outputs the pane-id for the newly created pane on success"
         #[structopt(parse(from_os_str))]
         prog: Vec<OsString>,
     },
+
+    /// Send text to a pane as though it were pasted.
+    /// If bracketed paste mode is enabled in the pane, then the
+    /// text will be sent as a bracketed paste.
+    #[structopt(name = "send-text")]
+    SendText {
+        /// Specify the target pane.
+        /// The default is to use the current pane based on the
+        /// environment variable WEZTERM_PANE.
+        #[structopt(long = "pane-id")]
+        pane_id: Option<PaneId>,
+
+        /// The text to send. If omitted, will read the text from stdin.
+        text: Option<String>,
+    },
 }
 
 use termwiz::escape::osc::{
@@ -565,6 +580,33 @@ async fn run_cli_async(config: config::ConfigHandle, cli: CliCommand) -> anyhow:
 
             log::debug!("{:?}", spawned);
             println!("{}", spawned.pane_id);
+        }
+        CliSubCommand::SendText { pane_id, text } => {
+            let pane_id: PaneId = match pane_id {
+                Some(p) => p,
+                None => std::env::var("WEZTERM_PANE")
+                    .map_err(|_| {
+                        anyhow!(
+                            "--pane-id was not specified and $WEZTERM_PANE \
+                             is not set in the environment."
+                        )
+                    })?
+                    .parse()?,
+            };
+            let data = match text {
+                Some(text) => text,
+                None => {
+                    let mut text = String::new();
+                    std::io::stdin()
+                        .read_to_string(&mut text)
+                        .context("reading stdin")?;
+                    text
+                }
+            };
+
+            client
+                .send_paste(codec::SendPaste { pane_id, data })
+                .await?;
         }
         CliSubCommand::SpawnCommand {
             cwd,

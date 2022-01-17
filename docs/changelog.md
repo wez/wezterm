@@ -23,6 +23,7 @@ As features stabilize some brief notes about them will accumulate here.
 * [wezterm.nerdfonts](config/lua/wezterm/nerdfonts.md) as a convenient way to resolve Nerd Fonts glyphs by name in your config file
 * [ShowLauncherArgs](config/lua/keyassignment/ShowLauncherArgs.md) key assignment to show the launcher scoped to certain items, or to launch it directly in fuzzy matching mode
 * Workspaces. Follow work in progress on [#1531](https://github.com/wez/wezterm/issues/1531) and [#1322](https://github.com/wez/wezterm/discussions/1322)! [window:active_workspace()](config/lua/window/active_workspace.md) [default_workspace](config/lua/config/default_workspace.md) [SwitchWorkspaceRelative](config/lua/keyassignment/SwitchWorkspaceRelative.md)
+* `wezterm cli send-text "hello"` allows sending text, as though pasted, to a pane. See `wezterm cli send-text --help` for more information. [#888](https://github.com/wez/wezterm/issues/888)
 
 #### Changed
 
