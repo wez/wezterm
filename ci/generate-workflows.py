@@ -277,9 +277,6 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
             RunStep(name="Install System Deps", run=f"{sudo}env PATH=$PATH ./get-deps")
         ]
 
-    def check_formatting(self):
-        return [RunStep(name="Check formatting", run="cargo fmt --all -- --check")]
-
     def build_all_release(self):
         if "win" in self.name:
             return [
@@ -566,7 +563,6 @@ cargo build --all --release""",
 
     def pull_request(self):
         steps = self.prep_environment()
-        steps += self.check_formatting()
         steps += self.build_all_release()
         steps += self.test_all_release()
         steps += self.package()
