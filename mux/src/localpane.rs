@@ -439,7 +439,7 @@ impl Pane for LocalPane {
     }
 
     fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
-        let term = self.terminal.borrow();
+        let mut term = self.terminal.borrow_mut();
         term.get_semantic_zones()
     }
 

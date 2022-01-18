@@ -2389,35 +2389,20 @@ impl TerminalState {
     ///
     /// By default, all screen data is of type Output.  The shell needs to
     /// employ OSC 133 escapes to markup its output.
-    pub fn get_semantic_zones(&self) -> anyhow::Result<Vec<SemanticZone>> {
-        let screen = self.screen();
+    pub fn get_semantic_zones(&mut self) -> anyhow::Result<Vec<SemanticZone>> {
+        let screen = self.screen_mut();
 
-        let mut last_cell: Option<&Cell> = None;
-        let mut current_zone = None;
+        let mut current_zone: Option<SemanticZone> = None;
         let mut zones = vec![];
-        let blank_cell = Cell::blank();
 
-        for (idx, line) in screen.lines.iter().enumerate() {
-            let stable_row = screen.phys_to_stable_row_index(idx);
+        let first_stable_row = screen.phys_to_stable_row_index(0);
+        for (idx, line) in screen.lines.iter_mut().enumerate() {
+            let stable_row = first_stable_row + idx as StableRowIndex;
 
-            // Rows may have trailing space+Output cells interleaved
-            // with other zones as a result of clear-to-eol and
-            // clear-to-end-of-screen sequences.  We don't want
-            // those to affect the zones that we compute here
-            let last_non_blank = line
-                .cells()
-                .iter()
-                .rposition(|cell| *cell != blank_cell)
-                .unwrap_or(line.cells().len());
-
-            for (grapheme_idx, cell) in line.visible_cells() {
-                if grapheme_idx > last_non_blank {
-                    break;
-                }
-                let semantic_type = cell.attrs().semantic_type();
-                let new_zone = match last_cell {
+            for zone_range in line.semantic_zone_ranges() {
+                let new_zone = match current_zone.as_ref() {
                     None => true,
-                    Some(c) => c.attrs().semantic_type() != semantic_type,
+                    Some(zone) => zone.semantic_type != zone_range.semantic_type,
                 };
 
                 if new_zone {
@@ -2426,20 +2411,18 @@ impl TerminalState {
                     }
 
                     current_zone.replace(SemanticZone {
-                        start_x: grapheme_idx as _,
+                        start_x: zone_range.range.start as usize,
                         start_y: stable_row,
-                        end_x: grapheme_idx as _,
+                        end_x: zone_range.range.end as usize,
                         end_y: stable_row,
-                        semantic_type: semantic_type,
+                        semantic_type: zone_range.semantic_type,
                     });
                 }
 
                 if let Some(zone) = current_zone.as_mut() {
-                    zone.end_x = grapheme_idx as _;
+                    zone.end_x = zone_range.range.end as usize;
                     zone.end_y = stable_row;
                 }
-
-                last_cell.replace(cell);
             }
         }
         if let Some(zone) = current_zone.take() {

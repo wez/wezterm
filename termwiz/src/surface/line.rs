@@ -1,4 +1,4 @@
-use crate::cell::{Cell, CellAttributes};
+use crate::cell::{Cell, CellAttributes, SemanticType};
 use crate::cellcluster::CellCluster;
 use crate::hyperlink::Rule;
 use crate::surface::{Change, SequenceNo, SEQ_ZERO};
@@ -46,9 +46,17 @@ bitflags! {
 }
 
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ZoneRange {
+    pub semantic_type: SemanticType,
+    pub range: Range<u16>,
+}
+
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Line {
     cells: Vec<Cell>,
+    zones: Vec<ZoneRange>,
     seqno: SequenceNo,
     bits: LineBits,
 }
@@ -64,19 +72,34 @@ impl Line {
         let mut cells = Vec::with_capacity(width);
         cells.resize(width, cell.clone());
         let bits = LineBits::NONE;
-        Self { bits, cells, seqno }
+        Self {
+            bits,
+            cells,
+            seqno,
+            zones: vec![],
+        }
     }
 
     pub fn from_cells(cells: Vec<Cell>, seqno: SequenceNo) -> Self {
         let bits = LineBits::NONE;
-        Self { bits, cells, seqno }
+        Self {
+            bits,
+            cells,
+            seqno,
+            zones: vec![],
+        }
     }
 
     pub fn with_width(width: usize, seqno: SequenceNo) -> Self {
         let mut cells = Vec::with_capacity(width);
         cells.resize_with(width, Cell::blank);
         let bits = LineBits::NONE;
-        Self { bits, cells, seqno }
+        Self {
+            bits,
+            cells,
+            seqno,
+            zones: vec![],
+        }
     }
 
     pub fn from_text(s: &str, attrs: &CellAttributes, seqno: SequenceNo) -> Line {
@@ -95,6 +118,7 @@ impl Line {
             cells,
             bits: LineBits::NONE,
             seqno,
+            zones: vec![],
         }
     }
 
@@ -123,12 +147,14 @@ impl Line {
             .resize_with(width, || Cell::blank_with_attrs(blank_attr.clone()));
         self.cells.shrink_to_fit();
         self.update_last_change_seqno(seqno);
+        self.invalidate_zones();
         self.bits = LineBits::NONE;
     }
 
     pub fn resize(&mut self, width: usize, seqno: SequenceNo) {
         self.cells.resize_with(width, Cell::blank);
         self.update_last_change_seqno(seqno);
+        self.invalidate_zones();
     }
 
     /// Wrap the line so that it fits within the provided width.
@@ -145,6 +171,7 @@ impl Line {
                         cells: chunk.to_vec(),
                         bits: LineBits::NONE,
                         seqno: seqno,
+                        zones: vec![],
                     };
                     if line.cells.len() == width {
                         // Ensure that we don't forget that we wrapped
@@ -264,6 +291,68 @@ impl Line {
         self.update_last_change_seqno(seqno);
     }
 
+    fn invalidate_zones(&mut self) {
+        self.zones.clear();
+    }
+
+    fn compute_zones(&mut self) {
+        let blank_cell = Cell::blank();
+        let mut last_cell: Option<&Cell> = None;
+        let mut current_zone: Option<ZoneRange> = None;
+        let mut zones = vec![];
+
+        // Rows may have trailing space+Output cells interleaved
+        // with other zones as a result of clear-to-eol and
+        // clear-to-end-of-screen sequences.  We don't want
+        // those to affect the zones that we compute here
+        let last_non_blank = self
+            .cells()
+            .iter()
+            .rposition(|cell| *cell != blank_cell)
+            .unwrap_or(self.cells().len());
+
+        for (grapheme_idx, cell) in self.visible_cells() {
+            if grapheme_idx > last_non_blank {
+                break;
+            }
+            let grapheme_idx = grapheme_idx as u16;
+            let semantic_type = cell.attrs().semantic_type();
+            let new_zone = match last_cell {
+                None => true,
+                Some(c) => c.attrs().semantic_type() != semantic_type,
+            };
+
+            if new_zone {
+                if let Some(zone) = current_zone.take() {
+                    zones.push(zone);
+                }
+
+                current_zone.replace(ZoneRange {
+                    range: grapheme_idx..grapheme_idx + 1,
+                    semantic_type,
+                });
+            }
+
+            if let Some(zone) = current_zone.as_mut() {
+                zone.range.end = grapheme_idx;
+            }
+
+            last_cell.replace(cell);
+        }
+
+        if let Some(zone) = current_zone.take() {
+            zones.push(zone);
+        }
+        self.zones = zones;
+    }
+
+    pub fn semantic_zone_ranges(&mut self) -> &[ZoneRange] {
+        if self.zones.is_empty() {
+            self.compute_zones();
+        }
+        &self.zones
+    }
+
     /// If we have any cells with an implicit hyperlink, remove the hyperlink
     /// from the cell attributes but leave the remainder of the attributes alone.
     pub fn invalidate_implicit_hyperlinks(&mut self, seqno: SequenceNo) {
@@ -368,6 +457,7 @@ impl Line {
             bits: self.bits,
             cells,
             seqno,
+            zones: vec![],
         }
     }
 
@@ -471,6 +561,7 @@ impl Line {
         }
 
         self.invalidate_implicit_hyperlinks(seqno);
+        self.invalidate_zones();
         self.update_last_change_seqno(seqno);
         if cell.attrs().hyperlink().is_some() {
             self.bits |= LineBits::HAS_HYPERLINK;
@@ -543,6 +634,7 @@ impl Line {
 
         self.cells.insert(x, cell);
         self.update_last_change_seqno(seqno);
+        self.invalidate_zones();
     }
 
     pub fn erase_cell(&mut self, x: usize, seqno: SequenceNo) {
@@ -555,6 +647,7 @@ impl Line {
         self.cells.remove(x);
         self.cells.push(Cell::default());
         self.update_last_change_seqno(seqno);
+        self.invalidate_zones();
     }
 
     pub fn remove_cell(&mut self, x: usize, seqno: SequenceNo) {
@@ -566,6 +659,7 @@ impl Line {
         self.invalidate_grapheme_at_or_before(x);
         self.cells.remove(x);
         self.update_last_change_seqno(seqno);
+        self.invalidate_zones();
     }
 
     pub fn erase_cell_with_margin(
@@ -587,6 +681,7 @@ impl Line {
                 .insert(right_margin - 1, Cell::blank_with_attrs(blank_attr));
         }
         self.update_last_change_seqno(seqno);
+        self.invalidate_zones();
     }
 
     pub fn prune_trailing_blanks(&mut self, seqno: SequenceNo) {
@@ -598,6 +693,7 @@ impl Line {
         {
             self.cells.resize_with(end_idx + 1, Cell::blank);
             self.update_last_change_seqno(seqno);
+            self.invalidate_zones();
         }
     }
 
@@ -672,6 +768,7 @@ impl Line {
     pub fn append_line(&mut self, mut other: Line, seqno: SequenceNo) {
         self.cells.append(&mut other.cells);
         self.update_last_change_seqno(seqno);
+        self.invalidate_zones();
     }
 
     /// mutable access the cell data, but the caller must take care
