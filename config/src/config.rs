@@ -531,6 +531,9 @@ pub struct Config {
     #[serde(default)]
     pub experimental_shape_post_processing: bool,
 
+    #[serde(default)]
+    pub experimental_pixel_positioning: bool,
+
     #[serde(default = "default_stateless_process_list")]
     pub skip_close_confirmation_for_processes_named: Vec<String>,
 
