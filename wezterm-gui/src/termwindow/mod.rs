@@ -1734,7 +1734,7 @@ impl TermWindow {
     }
 
     /// Returns the Prompt semantic zones
-    fn get_semantic_zones(&mut self, pane: &Rc<dyn Pane>) -> &[SemanticZone] {
+    fn get_semantic_prompt_zones(&mut self, pane: &Rc<dyn Pane>) -> &[SemanticZone] {
         let mut cache = self
             .semantic_zones
             .entry(pane.pane_id())
@@ -1760,7 +1760,7 @@ impl TermWindow {
             .get_viewport(pane.pane_id())
             .unwrap_or(dims.physical_top);
         let zone = {
-            let zones = self.get_semantic_zones(&pane);
+            let zones = self.get_semantic_prompt_zones(&pane);
             let idx = match zones.binary_search_by(|zone| zone.start_y.cmp(&position)) {
                 Ok(idx) | Err(idx) => idx,
             };
