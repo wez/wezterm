@@ -48,7 +48,7 @@ use termwiz::surface::SequenceNo;
 use wezterm_font::FontConfiguration;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{Alert, SemanticZone, StableRowIndex, TerminalConfiguration};
+use wezterm_term::{Alert, StableRowIndex, TerminalConfiguration};
 
 pub mod box_model;
 pub mod clipboard;
@@ -142,7 +142,7 @@ impl UIItem {
 #[derive(Clone, Default)]
 pub struct SemanticZoneCache {
     seqno: SequenceNo,
-    zones: Vec<SemanticZone>,
+    zones: Vec<StableRowIndex>,
 }
 
 #[derive(Default, Clone)]
@@ -1734,7 +1734,7 @@ impl TermWindow {
     }
 
     /// Returns the Prompt semantic zones
-    fn get_semantic_prompt_zones(&mut self, pane: &Rc<dyn Pane>) -> &[SemanticZone] {
+    fn get_semantic_prompt_zones(&mut self, pane: &Rc<dyn Pane>) -> &[StableRowIndex] {
         let mut cache = self
             .semantic_zones
             .entry(pane.pane_id())
@@ -1742,8 +1742,22 @@ impl TermWindow {
 
         let seqno = pane.get_current_seqno();
         if cache.seqno != seqno {
-            let mut zones = pane.get_semantic_zones().unwrap_or_else(|_| vec![]);
-            zones.retain(|zone| zone.semantic_type == wezterm_term::SemanticType::Prompt);
+            let zones = pane.get_semantic_zones().unwrap_or_else(|_| vec![]);
+            let mut zones: Vec<StableRowIndex> = zones
+                .into_iter()
+                .filter_map(|zone| {
+                    if zone.semantic_type == wezterm_term::SemanticType::Prompt {
+                        Some(zone.start_y)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            // dedup to avoid issues where both left and right prompts are
+            // defined: we only care if there were 1+ prompts on a line,
+            // not about how many prompts are on a line.
+            // <https://github.com/wez/wezterm/issues/1121>
+            zones.dedup();
             cache.zones = zones;
             cache.seqno = seqno;
         }
@@ -1761,14 +1775,14 @@ impl TermWindow {
             .unwrap_or(dims.physical_top);
         let zone = {
             let zones = self.get_semantic_prompt_zones(&pane);
-            let idx = match zones.binary_search_by(|zone| zone.start_y.cmp(&position)) {
+            let idx = match zones.binary_search(&position) {
                 Ok(idx) | Err(idx) => idx,
             };
             let idx = ((idx as isize) + amount).max(0) as usize;
             zones.get(idx).cloned()
         };
         if let Some(zone) = zone {
-            self.set_viewport(pane.pane_id(), Some(zone.start_y), dims);
+            self.set_viewport(pane.pane_id(), Some(zone), dims);
         }
 
         if let Some(win) = self.window.as_ref() {

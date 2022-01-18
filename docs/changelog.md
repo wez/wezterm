@@ -52,6 +52,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Windows: latency issue with AltSnap and other window-managery things [#1013](https://github.com/wez/wezterm/issues/1013) [#1398](https://github.com/wez/wezterm/issues/1398) [#1075](https://github.com/wez/wezterm/issues/1075) [#1099](https://github.com/wez/wezterm/issues/1099)
 * Multiplexer sessions now propagate user vars [#1528](https://github.com/wez/wezterm/issues/1528)
 * Config reloads on the multiplexer server didn't cause the palette to update on the client [#1526](https://github.com/wez/wezterm/issues/1528)
+* [ScrollToTop](config/lua/keyassignment/ScrollToTop.md) could get confused when there were multiple prompts on the same line [#1121](https://github.com/wez/wezterm/issues/1121)
 
 ### 20220101-133340-7edc5b5a
 
