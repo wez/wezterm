@@ -9,7 +9,7 @@ use termwiz::escape::{Action, ControlCode};
 )]
 /// This is a little utility that strips escape sequences from
 /// stdin and prints the result on stdout.
-/// It preserves only printable characters and CL, LF and HT.
+/// It preserves only printable characters and CR, LF and HT.
 ///
 /// This utility is part of WezTerm.
 ///

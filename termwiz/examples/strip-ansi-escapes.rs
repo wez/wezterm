@@ -1,6 +1,6 @@
 //! This is a little utility that strips escape sequences from
 //! stdin and prints the result on stdout.
-//! It preserves only printable characters and CL, LF and HT.
+//! It preserves only printable characters and CR, LF and HT.
 use std::io::{Read, Result};
 use termwiz::escape::parser::Parser;
 use termwiz::escape::{Action, ControlCode};
