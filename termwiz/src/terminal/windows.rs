@@ -490,6 +490,7 @@ pub struct WindowsTerminal {
     saved_input_cp: u32,
     saved_output_cp: u32,
     in_alternate_screen: bool,
+    caps: Capabilities,
 }
 
 impl Drop for WindowsTerminal {
@@ -586,11 +587,11 @@ impl WindowsTerminal {
         }
 
         let renderer = if caps.terminfo_db().is_some() {
-            Renderer::Terminfo(TerminfoRenderer::new(caps))
+            Renderer::Terminfo(TerminfoRenderer::new(caps.clone()))
         } else if virtual_terminal_available && !bypass_virtual_terminal() {
-            Renderer::Terminfo(TerminfoRenderer::new(caps.apply_builtin_terminfo()))
+            Renderer::Terminfo(TerminfoRenderer::new(caps.clone().apply_builtin_terminfo()))
         } else {
-            Renderer::Windows(WindowsConsoleRenderer::new(caps))
+            Renderer::Windows(WindowsConsoleRenderer::new(caps.clone()))
         };
         let input_parser = InputParser::new();
 
@@ -606,6 +607,7 @@ impl WindowsTerminal {
             input_parser,
             input_queue: VecDeque::new(),
             in_alternate_screen: false,
+            caps,
         };
 
         terminal.input_handle.set_input_cp(CP_UTF8)?;
@@ -672,7 +674,32 @@ impl Terminal for WindowsTerminal {
             (mode & !(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT))
                 | ENABLE_MOUSE_INPUT
                 | ENABLE_WINDOW_INPUT,
-        )
+        )?;
+
+        if matches!(&self.renderer, Renderer::Terminfo(_)) {
+            macro_rules! decset {
+                ($variant:ident) => {
+                    write!(
+                        self.output_handle,
+                        "{}",
+                        CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                            DecPrivateModeCode::$variant
+                        )))
+                    )?;
+                };
+            }
+
+            if self.caps.bracketed_paste() {
+                decset!(BracketedPaste);
+            }
+            if self.caps.mouse_reporting() {
+                decset!(AnyEventMouse);
+                decset!(SGRMouse);
+            }
+            self.output_handle.flush()?;
+        }
+
+        Ok(())
     }
 
     fn set_cooked_mode(&mut self) -> Result<()> {
