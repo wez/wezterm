@@ -55,6 +55,9 @@ pub enum Alert {
         name: String,
         value: String,
     },
+    /// When something bumps the seqno in the terminal model and
+    /// the terminal is not focused
+    OutputSinceFocusLost,
 }
 
 pub trait AlertHandler {
@@ -133,18 +136,24 @@ impl Terminal {
     /// The output is parsed and applied to the terminal model.
     pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) {
         self.state.increment_seqno();
-        let bytes = bytes.as_ref();
+        {
+            let bytes = bytes.as_ref();
 
-        let mut performer = Performer::new(&mut self.state);
+            let mut performer = Performer::new(&mut self.state);
 
-        self.parser.parse(bytes, |action| performer.perform(action));
+            self.parser.parse(bytes, |action| performer.perform(action));
+        }
+        self.trigger_unseen_output_notif();
     }
 
     pub fn perform_actions(&mut self, actions: Vec<termwiz::escape::Action>) {
         self.state.increment_seqno();
-        let mut performer = Performer::new(&mut self.state);
-        for action in actions {
-            performer.perform(action);
+        {
+            let mut performer = Performer::new(&mut self.state);
+            for action in actions {
+                performer.perform(action);
+            }
         }
+        self.trigger_unseen_output_notif();
     }
 }

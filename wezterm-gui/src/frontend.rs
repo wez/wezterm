@@ -43,14 +43,16 @@ impl GuiFrontEnd {
         mux.subscribe(move |n| {
             if let Some(_fe) = fe.upgrade() {
                 match n {
-                    MuxNotification::WindowWorkspaceChanged(_) | MuxNotification::ActiveWorkspaceChanged(_) => {}
+                    MuxNotification::WindowWorkspaceChanged(_)
+                    | MuxNotification::ActiveWorkspaceChanged(_) => {}
                     MuxNotification::WindowCreated(_) | MuxNotification::WindowRemoved(_) => {
                         promise::spawn::spawn(async move {
                             let fe = crate::frontend::front_end();
                             if !fe.is_switching_workspace() {
                                 fe.reconcile_workspace();
                             }
-                        }).detach();
+                        })
+                        .detach();
                     }
                     MuxNotification::PaneRemoved(_) => {}
                     MuxNotification::WindowInvalidated(_) => {}
@@ -78,9 +80,13 @@ impl GuiFrontEnd {
                     } => {
                         // Handled via TermWindowNotif; NOP it here.
                     }
-                    | MuxNotification::Alert {
+                    MuxNotification::Alert {
                         pane_id: _,
-                        alert: Alert::PaletteChanged | Alert::TitleMaybeChanged | Alert::SetUserVar{..},
+                        alert:
+                            Alert::OutputSinceFocusLost
+                            | Alert::PaletteChanged
+                            | Alert::TitleMaybeChanged
+                            | Alert::SetUserVar { .. },
                     } => {}
                     MuxNotification::Empty => {
                         if mux::activity::Activity::count() == 0 {

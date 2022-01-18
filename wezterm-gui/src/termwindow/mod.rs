@@ -181,6 +181,18 @@ impl UserData for TabInformation {
                 Ok(None)
             }
         });
+        fields.add_field_method_get("panes", |_, this| {
+            let mux = Mux::get().expect("event to run on main thread");
+            let mut panes = vec![];
+            if let Some(tab) = mux.get_tab(this.tab_id) {
+                panes = tab
+                    .iter_panes()
+                    .iter()
+                    .map(TermWindow::pos_pane_to_pane_info)
+                    .collect();
+            }
+            Ok(panes)
+        });
     }
 }
 
@@ -191,6 +203,7 @@ pub struct PaneInformation {
     pub pane_index: usize,
     pub is_active: bool,
     pub is_zoomed: bool,
+    pub has_unseen_output: bool,
     pub left: usize,
     pub top: usize,
     pub width: usize,
@@ -207,6 +220,7 @@ impl UserData for PaneInformation {
         fields.add_field_method_get("pane_index", |_, this| Ok(this.pane_index));
         fields.add_field_method_get("is_active", |_, this| Ok(this.is_active));
         fields.add_field_method_get("is_zoomed", |_, this| Ok(this.is_zoomed));
+        fields.add_field_method_get("has_unseen_output", |_, this| Ok(this.has_unseen_output));
         fields.add_field_method_get("left", |_, this| Ok(this.left));
         fields.add_field_method_get("top", |_, this| Ok(this.top));
         fields.add_field_method_get("width", |_, this| Ok(this.width));
@@ -927,7 +941,10 @@ impl TermWindow {
             }
             TermWindowNotif::MuxNotification(n) => match n {
                 MuxNotification::Alert {
-                    alert: Alert::TitleMaybeChanged | Alert::SetUserVar { .. },
+                    alert:
+                        Alert::OutputSinceFocusLost
+                        | Alert::TitleMaybeChanged
+                        | Alert::SetUserVar { .. },
                     ..
                 } => {
                     self.update_title();
@@ -956,6 +973,10 @@ impl TermWindow {
                     per_pane.bell_start.replace(Instant::now());
                     window.invalidate();
                 }
+                MuxNotification::Alert {
+                    alert: Alert::ToastNotification { .. },
+                    ..
+                } => {}
                 MuxNotification::PaneOutput(pane_id) => {
                     self.mux_pane_output_event(pane_id);
                 }
@@ -965,7 +986,12 @@ impl TermWindow {
                 MuxNotification::WindowRemoved(_window_id) => {
                     // Handled by frontend
                 }
-                _ => {}
+                MuxNotification::PaneAdded(_)
+                | MuxNotification::PaneRemoved(_)
+                | MuxNotification::WindowWorkspaceChanged(_)
+                | MuxNotification::ActiveWorkspaceChanged(_)
+                | MuxNotification::Empty
+                | MuxNotification::WindowCreated(_) => {}
             },
             TermWindowNotif::EmitStatusUpdate => {
                 self.emit_status_event();
@@ -1060,7 +1086,7 @@ impl TermWindow {
         match n {
             MuxNotification::Alert {
                 pane_id,
-                alert: Alert::TitleMaybeChanged | Alert::Bell,
+                alert: Alert::OutputSinceFocusLost | Alert::TitleMaybeChanged | Alert::Bell,
             }
             | MuxNotification::PaneOutput(pane_id) => {
                 // Ideally we'd check to see if pane_id is part of this window,
@@ -1110,7 +1136,18 @@ impl TermWindow {
                     return true;
                 }
             }
-            _ => return true,
+            MuxNotification::Alert {
+                alert:
+                    Alert::SetUserVar { .. }
+                    | Alert::ToastNotification { .. }
+                    | Alert::PaletteChanged { .. },
+                ..
+            }
+            | MuxNotification::PaneRemoved(_)
+            | MuxNotification::WindowCreated(_)
+            | MuxNotification::ActiveWorkspaceChanged(_)
+            | MuxNotification::Empty
+            | MuxNotification::WindowWorkspaceChanged(_) => return true,
         }
 
         window.notify(TermWindowNotif::MuxNotification(n));
@@ -2425,12 +2462,13 @@ impl TermWindow {
         }
     }
 
-    fn pos_pane_to_pane_info(&mut self, pos: &PositionedPane) -> PaneInformation {
+    fn pos_pane_to_pane_info(pos: &PositionedPane) -> PaneInformation {
         PaneInformation {
             pane_id: pos.pane.pane_id(),
             pane_index: pos.index,
             is_active: pos.is_active,
             is_zoomed: pos.is_zoomed,
+            has_unseen_output: pos.pane.has_unseen_output(),
             left: pos.left,
             top: pos.top,
             width: pos.width,
@@ -2463,7 +2501,7 @@ impl TermWindow {
                     active_pane: panes
                         .iter()
                         .find(|p| p.is_active)
-                        .map(|p| self.pos_pane_to_pane_info(p)),
+                        .map(Self::pos_pane_to_pane_info),
                 }
             })
             .collect()
@@ -2471,8 +2509,8 @@ impl TermWindow {
 
     fn get_pane_information(&mut self) -> Vec<PaneInformation> {
         self.get_panes_to_render()
-            .into_iter()
-            .map(|pos| self.pos_pane_to_pane_info(&pos))
+            .iter()
+            .map(Self::pos_pane_to_pane_info)
             .collect()
     }
 

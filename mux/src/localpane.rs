@@ -329,6 +329,10 @@ impl Pane for LocalPane {
         self.terminal.borrow_mut().focus_changed(focused);
     }
 
+    fn has_unseen_output(&self) -> bool {
+        self.terminal.borrow().has_unseen_output()
+    }
+
     fn is_mouse_grabbed(&self) -> bool {
         if self.tmux_domain.borrow().is_some() {
             false

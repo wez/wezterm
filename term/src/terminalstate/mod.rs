@@ -365,6 +365,9 @@ pub struct TerminalState {
     suppress_initial_title_change: bool,
 
     accumulating_title: Option<String>,
+
+    lost_focus_seqno: SequenceNo,
+    focused: bool,
 }
 
 #[derive(Debug)]
@@ -507,6 +510,8 @@ impl TerminalState {
             unicode_version_stack: vec![],
             suppress_initial_title_change: false,
             accumulating_title: None,
+            lost_focus_seqno: seqno,
+            focused: true,
         }
     }
 
@@ -680,6 +685,24 @@ impl TerminalState {
         if self.focus_tracking {
             write!(self.writer, "{}{}", CSI, if focused { "I" } else { "O" }).ok();
             self.writer.flush().ok();
+        }
+        self.focused = focused;
+        if !focused {
+            self.lost_focus_seqno = self.seqno;
+        }
+    }
+
+    /// Returns true if there is new output since the terminal
+    /// lost focus
+    pub fn has_unseen_output(&self) -> bool {
+        !self.focused && self.seqno > self.lost_focus_seqno
+    }
+
+    pub(crate) fn trigger_unseen_output_notif(&mut self) {
+        if self.has_unseen_output() {
+            if let Some(handler) = self.alert_handler.as_mut() {
+                handler.alert(Alert::OutputSinceFocusLost);
+            }
         }
     }
 

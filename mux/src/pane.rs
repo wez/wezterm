@@ -343,6 +343,9 @@ pub trait Pane: Downcast {
 
     /// Called to advise on whether this tab has focus
     fn focus_changed(&self, _focused: bool) {}
+    fn has_unseen_output(&self) -> bool {
+        false
+    }
 
     /// Certain panes are OK to be closed with impunity (no prompts)
     fn can_close_without_prompting(&self, _reason: CloseReason) -> bool {
