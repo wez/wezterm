@@ -27,10 +27,23 @@ pub enum CSI {
 
     Window(Window),
 
+    /// ECMA-48 SCP
+    SelectCharacterPath(CharacterPath, i64),
+
     /// Unknown or unspecified; should be rare and is rather
     /// large, so it is boxed and kept outside of the enum
     /// body to help reduce space usage in the common cases.
     Unspecified(Box<Unspecified>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CharacterPath {
+    /// 0
+    ImplementationDefault,
+    /// 1
+    LeftToRightOrTopToBottom,
+    /// 2
+    RightToLeftOrBottomToTop,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,6 +82,18 @@ impl Display for CSI {
             CSI::Mouse(mouse) => mouse.fmt(f)?,
             CSI::Device(dev) => dev.fmt(f)?,
             CSI::Window(window) => window.fmt(f)?,
+            CSI::SelectCharacterPath(path, n) => {
+                let a = match path {
+                    CharacterPath::ImplementationDefault => 0,
+                    CharacterPath::LeftToRightOrTopToBottom => 1,
+                    CharacterPath::RightToLeftOrBottomToTop => 2,
+                };
+                match (a, n) {
+                    (0, 0) => write!(f, " k")?,
+                    (a, 0) => write!(f, "{} k", a)?,
+                    (a, n) => write!(f, "{};{} k", a, n)?,
+                }
+            }
         };
         Ok(())
     }
@@ -775,6 +800,8 @@ pub enum TerminalModeCode {
     KeyboardAction = 2,
     /// https://vt100.net/docs/vt510-rm/IRM.html
     Insert = 4,
+    /// <https://terminal-wg.pages.freedesktop.org/bidi/recommendation/escape-sequences.html>
+    BiDirectionalSupportMode = 8,
     /// https://vt100.net/docs/vt510-rm/SRM.html
     /// But in the MS terminal this is cursor blinking.
     SendReceive = 12,
@@ -1576,6 +1603,7 @@ macro_rules! parse {
 impl<'a> CSIParser<'a> {
     fn parse_next(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
         match (self.control, self.orig_params) {
+            ('k', [.., CsiParam::P(b' ')]) => self.select_character_path(params),
             ('q', [.., CsiParam::P(b' ')]) => self.cursor_style(params),
             ('y', [.., CsiParam::P(b'*')]) => self.checksum_area(params),
 
@@ -1701,6 +1729,32 @@ impl<'a> CSIParser<'a> {
             &params[from_start..len - from_end]
         } else {
             params
+        }
+    }
+
+    fn select_character_path(&mut self, params: &'a [CsiParam]) -> Result<CSI, ()> {
+        fn path(n: i64) -> Result<CharacterPath, ()> {
+            Ok(match n {
+                0 => CharacterPath::ImplementationDefault,
+                1 => CharacterPath::LeftToRightOrTopToBottom,
+                2 => CharacterPath::RightToLeftOrBottomToTop,
+                _ => return Err(()),
+            })
+        }
+
+        match params {
+            [CsiParam::P(b' ')] => Ok(self.advance_by(
+                1,
+                params,
+                CSI::SelectCharacterPath(CharacterPath::ImplementationDefault, 0),
+            )),
+            [CsiParam::Integer(a), CsiParam::P(b' ')] => {
+                Ok(self.advance_by(2, params, CSI::SelectCharacterPath(path(*a)?, 0)))
+            }
+            [CsiParam::Integer(a), CsiParam::P(b';'), CsiParam::Integer(b), CsiParam::P(b' ')] => {
+                Ok(self.advance_by(4, params, CSI::SelectCharacterPath(path(*a)?, *b)))
+            }
+            _ => Err(()),
         }
     }
 
@@ -2707,6 +2761,22 @@ mod test {
             parse('l', &[20], "\x1b[20l"),
             vec![CSI::Mode(Mode::ResetMode(TerminalMode::Code(
                 TerminalModeCode::AutomaticNewline
+            )))]
+        );
+    }
+
+    #[test]
+    fn bidi_modes() {
+        assert_eq!(
+            parse('h', &[8], "\x1b[8h"),
+            vec![CSI::Mode(Mode::SetMode(TerminalMode::Code(
+                TerminalModeCode::BiDirectionalSupportMode
+            )))]
+        );
+        assert_eq!(
+            parse('l', &[8], "\x1b[8l"),
+            vec![CSI::Mode(Mode::ResetMode(TerminalMode::Code(
+                TerminalModeCode::BiDirectionalSupportMode
             )))]
         );
     }
