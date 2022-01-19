@@ -3,7 +3,7 @@ use crate::MouseCursor;
 use anyhow::{ensure, Context};
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::ffi::OsString;
+use std::ffi::OsStr;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::path::PathBuf;
@@ -34,9 +34,35 @@ pub struct CursorInfo {
 }
 
 fn icon_path() -> Vec<PathBuf> {
-    let path = std::env::var_os("XCURSOR_PATH").unwrap_or_else(|| {
-        OsString::from("~/.icons:/usr/share/icons:/usr/share/pixmaps:/usr/X11R6/lib/X11/icons")
-    });
+    let path = match std::env::var_os("XCURSOR_PATH") {
+        Some(path) => path,
+        None => {
+            fn add_icons_dir(path: &OsStr, dest: &mut Vec<PathBuf>) {
+                for entry in std::env::split_paths(path) {
+                    dest.push(entry.join("icons"));
+                }
+            }
+
+            fn xdg_location(name: &str, def: &str, dest: &mut Vec<PathBuf>) {
+                if let Some(var) = std::env::var_os(name) {
+                    add_icons_dir(&var, dest);
+                } else {
+                    add_icons_dir(OsStr::new(def), dest);
+                }
+            }
+
+            let mut path = vec![];
+            xdg_location("XDG_DATA_HOME", "~/.local/share", &mut path);
+            path.push("~/.icons".into());
+            xdg_location("XDG_DATA_DIRS", "/usr/local/share:/usr/share", &mut path);
+            path.push("/usr/share/pixmaps".into());
+            path.push("~/.cursors".into());
+            path.push("/usr/share/cursors/xorg-x11".into());
+            path.push("/usr/X11R6/lib/X11/icons".into());
+
+            std::env::join_paths(path).expect("failed to compose default xcursor path")
+        }
+    };
 
     fn tilde_expand(p: PathBuf) -> PathBuf {
         match p.to_str() {
