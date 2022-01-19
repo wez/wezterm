@@ -186,6 +186,13 @@ impl Window {
     /// The saved tab id is not changed.
     pub fn set_active_without_saving(&mut self, idx: usize) {
         assert!(idx < self.tabs.len());
+        if self.active != idx {
+            if let Some(tab) = self.tabs.get(self.active) {
+                if let Some(pane) = tab.get_active_pane() {
+                    pane.focus_changed(false);
+                }
+            }
+        }
         self.active = idx;
         self.invalidate();
     }

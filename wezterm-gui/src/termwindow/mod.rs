@@ -1606,10 +1606,6 @@ impl TermWindow {
     }
 
     fn activate_tab(&mut self, tab_idx: isize) -> anyhow::Result<()> {
-        if let Some(tab) = self.get_active_pane_or_overlay() {
-            tab.focus_changed(false);
-        }
-
         let mux = Mux::get().unwrap();
         let mut window = mux
             .get_window_mut(self.mux_window_id)
