@@ -26,7 +26,7 @@ struct Info {
 fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
     let is_space = text == " ";
     GlyphInfo {
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, test))]
         text: text.into(),
         is_space,
         font_idx,
@@ -594,46 +594,45 @@ mod test {
             let mut no_glyphs = vec![];
             let info = shaper.shape("abc", 10., 72, &mut no_glyphs, None).unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
-            assert_eq!(
+            k9::snapshot!(
                 info,
-                vec![
-                    GlyphInfo {
-                        cluster: 0,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 180,
-                        #[cfg(debug_assertions)]
-                        text: "a".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                    GlyphInfo {
-                        cluster: 1,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 205,
-                        #[cfg(debug_assertions)]
-                        text: "b".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                    GlyphInfo {
-                        cluster: 2,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 206,
-                        #[cfg(debug_assertions)]
-                        text: "c".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                ]
+                r#"
+[
+    GlyphInfo {
+        text: "a",
+        is_space: false,
+        cluster: 0,
+        font_idx: 0,
+        glyph_pos: 180,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+    GlyphInfo {
+        text: "b",
+        is_space: false,
+        cluster: 1,
+        font_idx: 0,
+        glyph_pos: 205,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+    GlyphInfo {
+        text: "c",
+        is_space: false,
+        cluster: 2,
+        font_idx: 0,
+        glyph_pos: 206,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+]
+"#
             );
         }
         {
@@ -662,80 +661,79 @@ mod test {
             let mut no_glyphs = vec![];
             let info = shaper.shape("<-", 10., 72, &mut no_glyphs, None).unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
-            assert_eq!(
+            k9::snapshot!(
                 info,
-                vec![
-                    GlyphInfo {
-                        cluster: 0,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 1212,
-                        #[cfg(debug_assertions)]
-                        text: "<".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                    GlyphInfo {
-                        cluster: 1,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 1065,
-                        #[cfg(debug_assertions)]
-                        text: "-".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                ]
+                r#"
+[
+    GlyphInfo {
+        text: "<",
+        is_space: false,
+        cluster: 0,
+        font_idx: 0,
+        glyph_pos: 1212,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+    GlyphInfo {
+        text: "-",
+        is_space: false,
+        cluster: 1,
+        font_idx: 0,
+        glyph_pos: 1065,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+]
+"#
             );
         }
         {
             let mut no_glyphs = vec![];
             let info = shaper.shape("<--", 10., 72, &mut no_glyphs, None).unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
-            assert_eq!(
+            k9::snapshot!(
                 info,
-                vec![
-                    GlyphInfo {
-                        cluster: 0,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 726,
-                        #[cfg(debug_assertions)]
-                        text: "<".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                    GlyphInfo {
-                        cluster: 1,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 1212,
-                        #[cfg(debug_assertions)]
-                        text: "-".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                    GlyphInfo {
-                        cluster: 2,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 623,
-                        #[cfg(debug_assertions)]
-                        text: "-".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                ]
+                r#"
+[
+    GlyphInfo {
+        text: "<",
+        is_space: false,
+        cluster: 0,
+        font_idx: 0,
+        glyph_pos: 726,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+    GlyphInfo {
+        text: "-",
+        is_space: false,
+        cluster: 1,
+        font_idx: 0,
+        glyph_pos: 1212,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+    GlyphInfo {
+        text: "-",
+        is_space: false,
+        cluster: 2,
+        font_idx: 0,
+        glyph_pos: 623,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+]
+"#
             );
         }
 
@@ -743,46 +741,45 @@ mod test {
             let mut no_glyphs = vec![];
             let info = shaper.shape("x x", 10., 72, &mut no_glyphs, None).unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
-            assert_eq!(
+            k9::snapshot!(
                 info,
-                vec![
-                    GlyphInfo {
-                        cluster: 0,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 350,
-                        #[cfg(debug_assertions)]
-                        text: "x".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                    GlyphInfo {
-                        #[cfg(debug_assertions)]
-                        text: " ".into(),
-                        is_space: true,
-                        cluster: 1,
-                        font_idx: 0,
-                        glyph_pos: 686,
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                    GlyphInfo {
-                        cluster: 2,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 350,
-                        #[cfg(debug_assertions)]
-                        text: "x".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    }
-                ]
+                r#"
+[
+    GlyphInfo {
+        text: "x",
+        is_space: false,
+        cluster: 0,
+        font_idx: 0,
+        glyph_pos: 350,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+    GlyphInfo {
+        text: " ",
+        is_space: true,
+        cluster: 1,
+        font_idx: 0,
+        glyph_pos: 686,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+    GlyphInfo {
+        text: "x",
+        is_space: false,
+        cluster: 2,
+        font_idx: 0,
+        glyph_pos: 350,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+]
+"#
             );
         }
 
@@ -792,46 +789,45 @@ mod test {
                 .shape("x\u{3000}x", 10., 72, &mut no_glyphs, None)
                 .unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
-            assert_eq!(
+            k9::snapshot!(
                 info,
-                vec![
-                    GlyphInfo {
-                        cluster: 0,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 350,
-                        #[cfg(debug_assertions)]
-                        text: "x".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                    GlyphInfo {
-                        #[cfg(debug_assertions)]
-                        text: "\u{3000}".into(),
-                        is_space: false,
-                        cluster: 1,
-                        font_idx: 0,
-                        glyph_pos: 686,
-                        x_advance: PixelLength::new(10.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    },
-                    GlyphInfo {
-                        cluster: 4,
-                        is_space: false,
-                        font_idx: 0,
-                        glyph_pos: 350,
-                        #[cfg(debug_assertions)]
-                        text: "x".into(),
-                        x_advance: PixelLength::new(6.),
-                        x_offset: PixelLength::new(0.),
-                        y_advance: PixelLength::new(0.),
-                        y_offset: PixelLength::new(0.),
-                    }
-                ]
+                r#"
+[
+    GlyphInfo {
+        text: "x",
+        is_space: false,
+        cluster: 0,
+        font_idx: 0,
+        glyph_pos: 350,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+    GlyphInfo {
+        text: "\u{3000}",
+        is_space: false,
+        cluster: 1,
+        font_idx: 0,
+        glyph_pos: 686,
+        x_advance: 10.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+    GlyphInfo {
+        text: "x",
+        is_space: false,
+        cluster: 4,
+        font_idx: 0,
+        glyph_pos: 350,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+]
+"#
             );
         }
     }

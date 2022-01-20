@@ -8,7 +8,7 @@ pub mod harfbuzz;
 #[derive(Clone, Debug, PartialEq)]
 pub struct GlyphInfo {
     /// We only retain text in debug mode for diagnostic purposes
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, test))]
     pub text: String,
     pub is_space: bool,
     /// Offset within text
