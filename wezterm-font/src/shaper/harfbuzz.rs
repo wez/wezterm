@@ -8,7 +8,7 @@ use log::error;
 use ordered_float::NotNan;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
-use termwiz::cell::Presentation;
+use termwiz::cell::{unicode_column_width, Presentation};
 use thiserror::Error;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -25,10 +25,16 @@ struct Info {
 
 fn make_glyphinfo(text: &str, font_idx: usize, info: &Info) -> GlyphInfo {
     let is_space = text == " ";
+    // TODO: this is problematic if the actual text in
+    // the terminal specified a different unicode version.
+    // We need to find a way to plumb that version through shaping
+    // so that it can be used here.
+    let num_cells = unicode_column_width(text, None) as u8;
     GlyphInfo {
         #[cfg(any(debug_assertions, test))]
         text: text.into(),
         is_space,
+        num_cells,
         font_idx,
         glyph_pos: info.codepoint,
         cluster: info.cluster as u32,
@@ -558,7 +564,6 @@ mod test {
     use super::*;
     use crate::FontDatabase;
     use config::FontAttributes;
-    use k9::assert_equal as assert_eq;
 
     #[test]
     fn ligatures() {
@@ -601,6 +606,7 @@ mod test {
     GlyphInfo {
         text: "a",
         is_space: false,
+        num_cells: 1,
         cluster: 0,
         font_idx: 0,
         glyph_pos: 180,
@@ -612,6 +618,7 @@ mod test {
     GlyphInfo {
         text: "b",
         is_space: false,
+        num_cells: 1,
         cluster: 1,
         font_idx: 0,
         glyph_pos: 205,
@@ -623,6 +630,7 @@ mod test {
     GlyphInfo {
         text: "c",
         is_space: false,
+        num_cells: 1,
         cluster: 2,
         font_idx: 0,
         glyph_pos: 206,
@@ -639,20 +647,24 @@ mod test {
             let mut no_glyphs = vec![];
             let info = shaper.shape("<", 10., 72, &mut no_glyphs, None).unwrap();
             assert!(no_glyphs.is_empty(), "{:?}", no_glyphs);
-            assert_eq!(
+            k9::snapshot!(
                 info,
-                vec![GlyphInfo {
-                    cluster: 0,
-                    is_space: false,
-                    font_idx: 0,
-                    glyph_pos: 726,
-                    #[cfg(debug_assertions)]
-                    text: "<".into(),
-                    x_advance: PixelLength::new(6.),
-                    x_offset: PixelLength::new(0.),
-                    y_advance: PixelLength::new(0.),
-                    y_offset: PixelLength::new(0.),
-                },]
+                r#"
+[
+    GlyphInfo {
+        text: "<",
+        is_space: false,
+        num_cells: 1,
+        cluster: 0,
+        font_idx: 0,
+        glyph_pos: 726,
+        x_advance: 6.0,
+        y_advance: 0.0,
+        x_offset: 0.0,
+        y_offset: 0.0,
+    },
+]
+"#
             );
         }
         {
@@ -668,6 +680,7 @@ mod test {
     GlyphInfo {
         text: "<",
         is_space: false,
+        num_cells: 1,
         cluster: 0,
         font_idx: 0,
         glyph_pos: 1212,
@@ -679,6 +692,7 @@ mod test {
     GlyphInfo {
         text: "-",
         is_space: false,
+        num_cells: 1,
         cluster: 1,
         font_idx: 0,
         glyph_pos: 1065,
@@ -702,6 +716,7 @@ mod test {
     GlyphInfo {
         text: "<",
         is_space: false,
+        num_cells: 1,
         cluster: 0,
         font_idx: 0,
         glyph_pos: 726,
@@ -713,6 +728,7 @@ mod test {
     GlyphInfo {
         text: "-",
         is_space: false,
+        num_cells: 1,
         cluster: 1,
         font_idx: 0,
         glyph_pos: 1212,
@@ -724,6 +740,7 @@ mod test {
     GlyphInfo {
         text: "-",
         is_space: false,
+        num_cells: 1,
         cluster: 2,
         font_idx: 0,
         glyph_pos: 623,
@@ -748,6 +765,7 @@ mod test {
     GlyphInfo {
         text: "x",
         is_space: false,
+        num_cells: 1,
         cluster: 0,
         font_idx: 0,
         glyph_pos: 350,
@@ -759,6 +777,7 @@ mod test {
     GlyphInfo {
         text: " ",
         is_space: true,
+        num_cells: 1,
         cluster: 1,
         font_idx: 0,
         glyph_pos: 686,
@@ -770,6 +789,7 @@ mod test {
     GlyphInfo {
         text: "x",
         is_space: false,
+        num_cells: 1,
         cluster: 2,
         font_idx: 0,
         glyph_pos: 350,
@@ -796,6 +816,7 @@ mod test {
     GlyphInfo {
         text: "x",
         is_space: false,
+        num_cells: 1,
         cluster: 0,
         font_idx: 0,
         glyph_pos: 350,
@@ -807,6 +828,7 @@ mod test {
     GlyphInfo {
         text: "\u{3000}",
         is_space: false,
+        num_cells: 2,
         cluster: 1,
         font_idx: 0,
         glyph_pos: 686,
@@ -818,6 +840,7 @@ mod test {
     GlyphInfo {
         text: "x",
         is_space: false,
+        num_cells: 1,
         cluster: 4,
         font_idx: 0,
         glyph_pos: 350,

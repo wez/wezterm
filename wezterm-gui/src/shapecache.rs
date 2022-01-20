@@ -57,7 +57,11 @@ where
         let simple_mode = !config::configuration().experimental_shape_post_processing;
 
         for (info, glyph) in infos.iter().zip(glyphs.iter()) {
-            let info_num_cells = cluster.byte_to_cell_width(info.cluster as usize);
+            // info.num_cells accounts for ligatures that have combined
+            // two or more single width cells into one glyph
+            let info_num_cells = info
+                .num_cells
+                .max(cluster.byte_to_cell_width(info.cluster as usize));
             if simple_mode {
                 pos.push(Some(ShapedInfo {
                     pos: GlyphPosition {
