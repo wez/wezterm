@@ -129,7 +129,7 @@ wezterm.font_with_fallback({
 You can ask wezterm to including a listing of all of the fonts on the system in a form that can be copied and pasted into the configuration file:
 
 ```
-$ wezterm ls-fonts
+$ wezterm ls-fonts --list-system
 <same output as above, but then:>
 112 fonts found in your font_dirs + built-in fonts:
 wezterm.font("Cascadia Code", {weight="ExtraLight", stretch="Normal", italic=false}) -- /home/wez/.fonts/CascadiaCode.ttf index=0 variation=1, FontDirs
