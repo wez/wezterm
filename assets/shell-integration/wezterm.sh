@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+
 # This file hooks up shell integration for wezterm.
 # It is suitable for zsh and bash.
 #
@@ -10,6 +12,7 @@
 # WEZTERM_SHELL_SKIP_SEMANTIC_ZONES - disables zones
 # WEZTERM_SHELL_SKIP_CWD - disables OSC 7 cwd setting
 
+# shellcheck disable=SC2166
 if [ -z "${BASH_VERSION}" -a -z "${ZSH_NAME}" ] ; then
   # Only for bash or zsh
   return 0
