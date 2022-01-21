@@ -383,7 +383,11 @@ fi;
 
 } # end of __wezterm_install_bash_prexec
 
-__wezterm_install_bash_prexec
+# blesh provides it's own preexec mechanism which is recommended over bash-preexec
+# See https://github.com/akinomyoga/ble.sh/wiki/Manual-%C2%A71-Introduction#user-content-fn-blehook for more details
+if [[ ! -v BLE_VERSION ]]; then
+  __wezterm_install_bash_prexec
+fi
 
 # This function emits an OSC 7 sequence to inform the terminal
 # of the current working directory.  It prefers to use a helper
@@ -438,13 +442,22 @@ function __wezterm_semantic_preexec() {
 # Register the various functions; take care to perform osc7 after
 # the semantic zones as we don't want to perturb the last command
 # status before we've had a chance to report it to the terminal
-if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES}" ]] ; then
-  precmd_functions+=(__wezterm_semantic_precmd)
-  preexec_functions+=(__wezterm_semantic_preexec)
+if [[ -z "${WEZTERM_SHELL_SKIP_SEMANTIC_ZONES}" ]]; then
+  if [[ -v BLE_VERSION ]]; then
+    blehook PRECMD+=__wezterm_semantic_precmd
+    blehook PREEXEC+=__wezterm_semantic_preexec
+  else
+    precmd_functions+=(__wezterm_semantic_precmd)
+    preexec_functions+=(__wezterm_semantic_preexec)
+  fi
 fi
 
 if [[ -z "${WEZTERM_SHELL_SKIP_CWD}" ]] ; then
-  precmd_functions+=(__wezterm_osc7)
+  if [[ -v BLE_VERSION ]]; then
+    blehook PRECMD+=__wezterm_osc7
+  else
+    precmd_functions+=(__wezterm_osc7)
+  fi
 fi
 
 true
