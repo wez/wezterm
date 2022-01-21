@@ -1497,6 +1497,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "generate-bidi"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4650,6 +4657,15 @@ dependencies = [
  "wezterm-client",
  "wezterm-gui-subcommands",
  "wezterm-term",
+]
+
+[[package]]
+name = "wezterm-bidi"
+version = "0.1.0"
+dependencies = [
+ "k9",
+ "log",
+ "pretty_env_logger",
 ]
 
 [[package]]
