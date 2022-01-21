@@ -53,6 +53,7 @@ As features stabilize some brief notes about them will accumulate here.
 * Multiplexer sessions now propagate user vars [#1528](https://github.com/wez/wezterm/issues/1528)
 * Config reloads on the multiplexer server didn't cause the palette to update on the client [#1526](https://github.com/wez/wezterm/issues/1528)
 * [ScrollToTop](config/lua/keyassignment/ScrollToTop.md) could get confused when there were multiple prompts on the same line [#1121](https://github.com/wez/wezterm/issues/1121)
+* Hangul text in NFD was not always correctly composed when shaping fonts. [#1573](https://github.com/wez/wezterm/issues/1573)
 
 ### 20220101-133340-7edc5b5a
 

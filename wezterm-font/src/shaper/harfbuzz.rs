@@ -187,7 +187,12 @@ impl HarfbuzzShaper {
         presentation: Option<Presentation>,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut buf = harfbuzz::Buffer::new()?;
-        buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);
+        // We deliberately omit setting the script and leave it to harfbuzz
+        // to infer from the buffer contents so that it can correctly
+        // enable appropriate preprocessing for eg: Hangul.
+        // <https://github.com/wez/wezterm/issues/1474> and
+        // <https://github.com/wez/wezterm/issues/1573>
+        // buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);
         buf.set_direction(harfbuzz::hb_direction_t::HB_DIRECTION_LTR);
         buf.set_language(self.lang);
         buf.add_str(s);
